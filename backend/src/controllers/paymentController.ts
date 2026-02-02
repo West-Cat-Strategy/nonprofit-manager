@@ -70,7 +70,7 @@ export const createPaymentIntent = async (req: AuthRequest, res: Response): Prom
     // Optionally log to audit table
     if (pool && donationId) {
       await pool.query(
-        `INSERT INTO audit_logs (action, entity_type, entity_id, user_id, details)
+        `INSERT INTO audit_logs (action, resource_type, resource_id, user_id, details)
          VALUES ($1, $2, $3, $4, $5)`,
         [
           'payment_intent_created',
@@ -150,7 +150,7 @@ export const createRefund = async (req: AuthRequest, res: Response): Promise<voi
     // Log refund to audit
     if (pool) {
       await pool.query(
-        `INSERT INTO audit_logs (action, entity_type, entity_id, user_id, details)
+        `INSERT INTO audit_logs (action, resource_type, resource_id, user_id, details)
          VALUES ($1, $2, $3, $4, $5)`,
         [
           'refund_created',
