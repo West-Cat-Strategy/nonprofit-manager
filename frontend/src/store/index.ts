@@ -15,6 +15,7 @@ import mailchimpReducer from './slices/mailchimpSlice';
 import webhooksReducer from './slices/webhookSlice';
 import templatesReducer from './slices/templateSlice';
 import casesReducer from './slices/casesSlice';
+import dashboardReducer from './slices/dashboardSlice';
 
 export const store = configureStore({
   reducer: {
@@ -34,6 +35,7 @@ export const store = configureStore({
     webhooks: webhooksReducer,
     templates: templatesReducer,
     cases: casesReducer,
+    dashboard: dashboardReducer,
   },
 });
 
