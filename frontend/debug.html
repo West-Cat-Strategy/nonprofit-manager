@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .status {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .success { border-left: 4px solid green; }
+        .error { border-left: 4px solid red; }
+    </style>
+</head>
+<body>
+    <h1>Frontend Debug Test</h1>
+    <div id="status"></div>
+    
+    <script type="module">
+        const statusDiv = document.getElementById('status');
+        
+        // Test 1: Basic JavaScript
+        const addStatus = (message, isError = false) => {
+            const div = document.createElement('div');
+            div.className = `status ${isError ? 'error' : 'success'}`;
+            div.textContent = message;
+            statusDiv.appendChild(div);
+        };
+        
+        addStatus('✓ JavaScript is running');
+        
+        // Test 2: Can import React?
+        try {
+            const reactTest = await import('react');
+            addStatus('✓ React import successful');
+        } catch (e) {
+            addStatus('✗ React import failed: ' + e.message, true);
+        }
+        
+        // Test 3: Can access main app?
+        try {
+            const appTest = await import('./src/main.tsx');
+            addStatus('✓ Main.tsx import successful');
+        } catch (e) {
+            addStatus('✗ Main.tsx import failed: ' + e.message, true);
+        }
+        
+        // Test 4: Check if root element exists
+        const rootEl = document.getElementById('root');
+        if (rootEl) {
+            addStatus('✓ Root element found in actual app');
+        } else {
+            addStatus('✗ Root element not found', true);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+# ZAP Scanning Rules Configuration
+# Format: rule_id	IGNORE/WARN/FAIL	notes
+
+# Ignore rules for development/test environment
+10096	IGNORE	Timestamp Disclosure - Unix (acceptable in dev)
+10015	IGNORE	Re-examine Cache-control Directives (handled by CDN in prod)
+
+# Fail on critical security issues
+40012	FAIL	Cross Site Scripting (Reflected)
+40014	FAIL	Cross Site Scripting (Persistent)
+40016	FAIL	Cross Site Scripting (Persistent) - Prime
+40017	FAIL	Cross Site Scripting (Persistent) - Spider
+90019	FAIL	Server Side Code Injection
+90020	FAIL	Remote OS Command Injection
+40018	FAIL	SQL Injection
+90021	FAIL	XPath Injection
+90022	FAIL	Application Error Disclosure
+90023	FAIL	XML External Entity Attack
+40019	FAIL	Server Side Include
+10054	FAIL	Cookie Without Secure Flag
+10055	FAIL	CSP: Wildcard Directive
+10056	FAIL	X-Frame-Options Header Not Set
+10057	FAIL	Cross-Domain JavaScript Source File Inclusion
+10062	FAIL	PII Disclosure
+10063	FAIL	Feature Policy Header Not Set
+10094	FAIL	Base64 Disclosure
+10095	FAIL	Backup File Disclosure
+10098	FAIL	Cross-Domain Misconfiguration
+10103	FAIL	Suspicious Comments
+10104	FAIL	User Agent Fuzzer
+10105	FAIL	Weak Authentication Method
+10106	FAIL	HTTP Only Site

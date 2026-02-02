@@ -1,0 +1,22 @@
+# Development Dockerfile for backend with hot reload
+FROM node:20-alpine AS development
+
+WORKDIR /app
+
+# Install development dependencies
+RUN apk add --no-cache python3 make g++
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including devDependencies)
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Expose application and debugger ports
+EXPOSE 3000 9229
+
+# Start with hot reload using ts-node-dev or nodemon
+CMD ["npm", "run", "dev"]

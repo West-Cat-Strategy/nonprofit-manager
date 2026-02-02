@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Test results
+/test-results/
+/playwright-report/
+/playwright/.cache/
+test-results.json
+
+# Environment files
+.env.test.local
+
+# Playwright videos and screenshots
+*.webm
+*.mp4
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
