@@ -1,0 +1,817 @@
+{
+  "info": {
+    "name": "Nonprofit Manager API",
+    "description": "Complete API collection for testing Nonprofit Manager endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "nonprofit-manager"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "test_payment_intent_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "test_customer_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "test_donation_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "test_contact_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "mailchimp_list_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "mailchimp_campaign_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', response.token);",
+                  "    console.log('Access token saved:', response.token.substring(0, 20) + '...');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"password123\",\n  \"firstName\": \"New\",\n  \"lastName\": \"User\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Get Payment Config",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/payments/config",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "config"]
+            }
+          }
+        },
+        {
+          "name": "Create Payment Intent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('test_payment_intent_id', response.id);",
+                  "    console.log('Payment Intent ID saved:', response.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 5000,\n  \"currency\": \"usd\",\n  \"description\": \"Test donation\",\n  \"receiptEmail\": \"donor@example.com\",\n  \"donationId\": \"{{test_donation_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/intents",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "intents"]
+            }
+          }
+        },
+        {
+          "name": "Get Payment Intent",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/payments/intents/{{test_payment_intent_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "intents", "{{test_payment_intent_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Cancel Payment Intent",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/intents/{{test_payment_intent_id}}/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "intents", "{{test_payment_intent_id}}", "cancel"]
+            }
+          }
+        },
+        {
+          "name": "Create Refund",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentIntentId\": \"{{test_payment_intent_id}}\",\n  \"amount\": 2500,\n  \"reason\": \"requested_by_customer\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/refunds",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "refunds"]
+            }
+          }
+        },
+        {
+          "name": "Create Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('test_customer_id', response.id);",
+                  "    console.log('Customer ID saved:', response.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer@example.com\",\n  \"name\": \"Test Customer\",\n  \"phone\": \"+1234567890\",\n  \"contactId\": \"{{test_contact_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/customers",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "customers"]
+            }
+          }
+        },
+        {
+          "name": "Get Customer",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/payments/customers/{{test_customer_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "customers", "{{test_customer_id}}"]
+            }
+          }
+        },
+        {
+          "name": "List Payment Methods",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/payments/customers/{{test_customer_id}}/payment-methods",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "customers", "{{test_customer_id}}", "payment-methods"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Mailchimp",
+      "item": [
+        {
+          "name": "Get Mailchimp Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/mailchimp/status",
+              "host": ["{{base_url}}"],
+              "path": ["mailchimp", "status"]
+            }
+          }
+        },
+        {
+          "name": "Get Mailchimp Lists",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.length > 0) {",
+                  "        pm.collectionVariables.set('mailchimp_list_id', response[0].id);",
+                  "        console.log('List ID saved:', response[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/mailchimp/lists",
+              "host": ["{{base_url}}"],
+              "path": ["mailchimp", "lists"]
+            }
+          }
+        },
+        {
+          "name": "Get List Tags",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/mailchimp/lists/{{mailchimp_list_id}}/tags",
+              "host": ["{{base_url}}"],
+              "path": ["mailchimp", "lists", "{{mailchimp_list_id}}", "tags"]
+            }
+          }
+        },
+        {
+          "name": "Get List Segments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/mailchimp/lists/{{mailchimp_list_id}}/segments",
+              "host": ["{{base_url}}"],
+              "path": ["mailchimp", "lists", "{{mailchimp_list_id}}", "segments"]
+            }
+          }
+        },
+        {
+          "name": "Create Segment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listId\": \"{{mailchimp_list_id}}\",\n  \"name\": \"Test Segment\",\n  \"matchType\": \"all\",\n  \"conditions\": [\n    {\n      \"field\": \"EMAIL\",\n      \"op\": \"contains\",\n      \"value\": \"@example.com\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/mailchimp/lists/{{mailchimp_list_id}}/segments",
+              "host": ["{{base_url}}"],
+              "path": ["mailchimp", "lists", "{{mailchimp_list_id}}", "segments"]
+            }
+          }
+        },
+        {
+          "name": "Get Campaigns",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.length > 0) {",
+                  "        pm.collectionVariables.set('mailchimp_campaign_id', response[0].id);",
+                  "        console.log('Campaign ID saved:', response[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/mailchimp/campaigns",
+              "host": ["{{base_url}}"],
+              "path": ["mailchimp", "campaigns"]
+            }
+          }
+        },
+        {
+          "name": "Create Campaign",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('mailchimp_campaign_id', response.id);",
+                  "    console.log('Campaign ID saved:', response.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listId\": \"{{mailchimp_list_id}}\",\n  \"title\": \"Test Campaign\",\n  \"subject\": \"Test Email Subject\",\n  \"previewText\": \"Preview text for test email\",\n  \"fromName\": \"Test Organization\",\n  \"replyTo\": \"test@example.com\",\n  \"htmlContent\": \"<h1>Test Email</h1><p>This is a test campaign.</p>\",\n  \"plainTextContent\": \"Test Email\\n\\nThis is a test campaign.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/mailchimp/campaigns",
+              "host": ["{{base_url}}"],
+              "path": ["mailchimp", "campaigns"]
+            }
+          }
+        },
+        {
+          "name": "Send Campaign",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/mailchimp/campaigns/{{mailchimp_campaign_id}}/send",
+              "host": ["{{base_url}}"],
+              "path": ["mailchimp", "campaigns", "{{mailchimp_campaign_id}}", "send"]
+            }
+          }
+        },
+        {
+          "name": "Add Member",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listId\": \"{{mailchimp_list_id}}\",\n  \"email\": \"newmember@example.com\",\n  \"status\": \"subscribed\",\n  \"mergeFields\": {\n    \"FNAME\": \"New\",\n    \"LNAME\": \"Member\"\n  },\n  \"tags\": [\"test\", \"postman\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/mailchimp/members",
+              "host": ["{{base_url}}"],
+              "path": ["mailchimp", "members"]
+            }
+          }
+        },
+        {
+          "name": "Sync Contact",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contactId\": \"{{test_contact_id}}\",\n  \"listId\": \"{{mailchimp_list_id}}\",\n  \"tags\": [\"donor\", \"active\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/mailchimp/sync/contact",
+              "host": ["{{base_url}}"],
+              "path": ["mailchimp", "sync", "contact"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Contacts",
+      "item": [
+        {
+          "name": "Get Contacts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/contacts?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["contacts"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Contact",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('test_contact_id', response.id);",
+                  "    console.log('Contact ID saved:', response.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Test\",\n  \"last_name\": \"Contact\",\n  \"email\": \"test.contact@example.com\",\n  \"phone\": \"+1234567890\",\n  \"contact_type\": \"individual\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/contacts",
+              "host": ["{{base_url}}"],
+              "path": ["contacts"]
+            }
+          }
+        },
+        {
+          "name": "Get Contact",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/contacts/{{test_contact_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["contacts", "{{test_contact_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Contact",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+1987654321\",\n  \"email\": \"updated.contact@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/contacts/{{test_contact_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["contacts", "{{test_contact_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Contact",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/contacts/{{test_contact_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["contacts", "{{test_contact_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Donations",
+      "item": [
+        {
+          "name": "Get Donations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/donations?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["donations"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Donation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('test_donation_id', response.id);",
+                  "    console.log('Donation ID saved:', response.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contact_id\": \"{{test_contact_id}}\",\n  \"amount\": 100.00,\n  \"donation_date\": \"2024-01-01\",\n  \"payment_method\": \"credit_card\",\n  \"payment_status\": \"pending\",\n  \"campaign_name\": \"Test Campaign\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/donations",
+              "host": ["{{base_url}}"],
+              "path": ["donations"]
+            }
+          }
+        },
+        {
+          "name": "Get Donation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/donations/{{test_donation_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["donations", "{{test_donation_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cases",
+      "item": [
+        {
+          "name": "Get Cases",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/cases?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["cases"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Case Types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/cases/types",
+              "host": ["{{base_url}}"],
+              "path": ["cases", "types"]
+            }
+          }
+        },
+        {
+          "name": "Get Case Statuses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/cases/statuses",
+              "host": ["{{base_url}}"],
+              "path": ["cases", "statuses"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "Stripe Webhook",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "stripe-signature",
+                "value": "t=1234567890,v1=signature_here",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"evt_test\",\n  \"object\": \"event\",\n  \"type\": \"payment_intent.succeeded\",\n  \"data\": {\n    \"object\": {\n      \"id\": \"pi_test\",\n      \"amount\": 5000,\n      \"currency\": \"usd\",\n      \"metadata\": {\n        \"donationId\": \"uuid-here\"\n      }\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/webhook",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "webhook"]
+            }
+          }
+        },
+        {
+          "name": "Mailchimp Webhook",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "type",
+                  "value": "subscribe",
+                  "type": "text"
+                },
+                {
+                  "key": "data[listId]",
+                  "value": "list_id_here",
+                  "type": "text"
+                },
+                {
+                  "key": "data[email]",
+                  "value": "subscriber@example.com",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/mailchimp/webhook",
+              "host": ["{{base_url}}"],
+              "path": ["mailchimp", "webhook"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
