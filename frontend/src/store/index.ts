@@ -14,6 +14,7 @@ import reconciliationReducer from './slices/reconciliationSlice';
 import mailchimpReducer from './slices/mailchimpSlice';
 import webhooksReducer from './slices/webhookSlice';
 import templatesReducer from './slices/templateSlice';
+import casesReducer from './slices/casesSlice';
 
 export const store = configureStore({
   reducer: {
@@ -32,6 +33,7 @@ export const store = configureStore({
     mailchimp: mailchimpReducer,
     webhooks: webhooksReducer,
     templates: templatesReducer,
+    cases: casesReducer,
   },
 });
 

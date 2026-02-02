@@ -74,6 +74,12 @@ const TemplatePreview = lazy(() => import('./pages/TemplatePreview'));
 // Payment Reconciliation pages
 const ReconciliationDashboard = lazy(() => import('./pages/ReconciliationDashboard'));
 
+// Case Management pages
+const CaseList = lazy(() => import('./pages/CaseList'));
+const CaseDetail = lazy(() => import('./pages/CaseDetail'));
+const CaseCreate = lazy(() => import('./pages/CaseCreate'));
+const CaseEdit = lazy(() => import('./pages/CaseEdit'));
+
 // Protected Route wrapper component
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -301,6 +307,38 @@ function App() {
               element={
                 <ProtectedRoute isAuthenticated={isAuthenticated}>
                   <ReconciliationDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/cases"
+              element={
+                <ProtectedRoute isAuthenticated={isAuthenticated}>
+                  <CaseList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/cases/new"
+              element={
+                <ProtectedRoute isAuthenticated={isAuthenticated}>
+                  <CaseCreate />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/cases/:id/edit"
+              element={
+                <ProtectedRoute isAuthenticated={isAuthenticated}>
+                  <CaseEdit />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/cases/:id"
+              element={
+                <ProtectedRoute isAuthenticated={isAuthenticated}>
+                  <CaseDetail />
                 </ProtectedRoute>
               }
             />
