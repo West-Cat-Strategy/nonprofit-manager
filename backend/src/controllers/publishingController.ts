@@ -7,6 +7,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import publishingService from '../services/publishingService';
 import { siteCacheService, getCacheControlHeader } from '../services/siteCacheService';
+import { logger } from '../config/logger';
 import type {
   CreatePublishedSiteDTO,
   UpdatePublishedSiteDTO,
@@ -280,7 +281,7 @@ export const recordAnalytics = async (
     res.status(204).send();
   } catch (error) {
     // Don't fail silently for analytics but log
-    console.error('Analytics recording error:', error);
+    logger.error('Analytics recording error', { error });
     res.status(204).send(); // Still return success to not block client
   }
 };

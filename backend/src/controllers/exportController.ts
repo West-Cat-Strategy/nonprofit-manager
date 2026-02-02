@@ -9,6 +9,7 @@ import { AnalyticsService } from '../services/analyticsService';
 import pool from '../config/database';
 import { AuthRequest } from '../middleware/auth';
 import type { ExportFormat } from '../services/exportService';
+import { logger } from '../config/logger';
 
 const exportService = new ExportService();
 const analyticsService = new AnalyticsService(pool);
@@ -44,7 +45,7 @@ export const exportAnalyticsSummary = async (
     // Send file
     res.download(filepath, (err) => {
       if (err) {
-        console.error('Error sending file:', err);
+        logger.error('Error sending export file', { error: err, filepath });
       }
       // Clean up file after sending
       setTimeout(() => exportService.deleteExport(filepath), 5000);
@@ -136,7 +137,7 @@ export const exportDonations = async (
     // Send file
     res.download(filepath, (err) => {
       if (err) {
-        console.error('Error sending file:', err);
+        logger.error('Error sending export file', { error: err, filepath });
       }
       setTimeout(() => exportService.deleteExport(filepath), 5000);
     });
@@ -214,7 +215,7 @@ export const exportVolunteerHours = async (
     // Send file
     res.download(filepath, (err) => {
       if (err) {
-        console.error('Error sending file:', err);
+        logger.error('Error sending export file', { error: err, filepath });
       }
       setTimeout(() => exportService.deleteExport(filepath), 5000);
     });
@@ -294,7 +295,7 @@ export const exportEvents = async (
     // Send file
     res.download(filepath, (err) => {
       if (err) {
-        console.error('Error sending file:', err);
+        logger.error('Error sending export file', { error: err, filepath });
       }
       setTimeout(() => exportService.deleteExport(filepath), 5000);
     });
@@ -429,7 +430,7 @@ export const exportComprehensive = async (
     // Send file
     res.download(filepath, (err) => {
       if (err) {
-        console.error('Error sending file:', err);
+        logger.error('Error sending export file', { error: err, filepath });
       }
       setTimeout(() => exportService.deleteExport(filepath), 5000);
     });

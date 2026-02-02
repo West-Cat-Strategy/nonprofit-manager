@@ -7,6 +7,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { taskService } from '../services/taskService';
 import { TaskFilters } from '../types/task';
+import { logger } from '../config/logger';
 
 // Helper functions for type conversion
 const getString = (value: any): string | undefined => {
@@ -48,7 +49,7 @@ export const taskController = {
       const result = await taskService.getTasks(filters);
       res.json(result);
     } catch (error) {
-      console.error('Error in getTasks:', error);
+      logger.error('Error in getTasks', { error });
       res.status(500).json({ message: 'Failed to retrieve tasks' });
     }
   },
@@ -68,7 +69,7 @@ export const taskController = {
       const summary = await taskService.getTaskSummary(filters);
       res.json(summary);
     } catch (error) {
-      console.error('Error in getTaskSummary:', error);
+      logger.error('Error in getTaskSummary', { error });
       res.status(500).json({ message: 'Failed to retrieve task summary' });
     }
   },
@@ -89,7 +90,7 @@ export const taskController = {
 
       res.json(task);
     } catch (error) {
-      console.error('Error in getTaskById:', error);
+      logger.error('Error in getTaskById', { error });
       res.status(500).json({ message: 'Failed to retrieve task' });
     }
   },
@@ -109,7 +110,7 @@ export const taskController = {
       const task = await taskService.createTask(req.body, userId);
       res.status(201).json(task);
     } catch (error) {
-      console.error('Error in createTask:', error);
+      logger.error('Error in createTask', { error });
       res.status(500).json({ message: 'Failed to create task' });
     }
   },
@@ -137,7 +138,7 @@ export const taskController = {
 
       res.json(task);
     } catch (error) {
-      console.error('Error in updateTask:', error);
+      logger.error('Error in updateTask', { error });
       res.status(500).json({ message: 'Failed to update task' });
     }
   },
@@ -158,7 +159,7 @@ export const taskController = {
 
       res.status(204).send();
     } catch (error) {
-      console.error('Error in deleteTask:', error);
+      logger.error('Error in deleteTask', { error });
       res.status(500).json({ message: 'Failed to delete task' });
     }
   },
@@ -186,7 +187,7 @@ export const taskController = {
 
       res.json(task);
     } catch (error) {
-      console.error('Error in completeTask:', error);
+      logger.error('Error in completeTask', { error });
       res.status(500).json({ message: 'Failed to complete task' });
     }
   },

@@ -1,4 +1,5 @@
 import { Pool, PoolConfig } from 'pg';
+import { logger } from './logger';
 
 const config: PoolConfig = {
   host: process.env.DB_HOST || 'localhost',
@@ -13,9 +14,16 @@ const config: PoolConfig = {
 
 const pool = new Pool(config);
 
+// Handle pool errors gracefully without crashing the application
+// The application can implement health checks and alerts based on these errors
 pool.on('error', (err: Error) => {
-  console.error('Unexpected error on idle client', err);
-  process.exit(-1);
+  logger.error('Unexpected error on idle database client', {
+    error: err.message,
+    stack: err.stack,
+    name: err.name,
+  });
+  // Don't crash the application - let health checks and monitoring handle it
+  // Health check endpoint will detect database connectivity issues
 });
 
 export default pool;
