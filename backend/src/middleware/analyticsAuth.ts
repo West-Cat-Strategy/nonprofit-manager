@@ -203,7 +203,7 @@ export async function auditAnalyticsAccess(
 ): Promise<void> {
   try {
     await pool.query(
-      `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details, created_at)
+      `INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details, created_at)
        VALUES ($1, $2, $3, $4, $5, NOW())`,
       [userId, action, entityType, entityId, JSON.stringify(details)]
     );
