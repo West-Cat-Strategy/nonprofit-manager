@@ -14,6 +14,7 @@ import type {
   CreateSegmentRequest,
   AddMemberRequest,
   MailchimpWebhookPayload,
+  CreateCampaignRequest,
 } from '../types/mailchimp';
 
 /**
@@ -378,6 +379,99 @@ export const getSegments = async (req: Request, res: Response): Promise<void> =>
 };
 
 /**
+ * Create a new email campaign
+ */
+export const createCampaign = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const {
+      listId,
+      title,
+      subject,
+      previewText,
+      fromName,
+      replyTo,
+      htmlContent,
+      plainTextContent,
+      segmentId,
+      sendTime,
+    } = req.body as CreateCampaignRequest;
+
+    if (!listId) {
+      res.status(400).json({ error: 'List ID is required' });
+      return;
+    }
+
+    if (!title) {
+      res.status(400).json({ error: 'Campaign title is required' });
+      return;
+    }
+
+    if (!subject) {
+      res.status(400).json({ error: 'Subject line is required' });
+      return;
+    }
+
+    if (!fromName) {
+      res.status(400).json({ error: 'From name is required' });
+      return;
+    }
+
+    if (!replyTo) {
+      res.status(400).json({ error: 'Reply-to email is required' });
+      return;
+    }
+
+    if (!mailchimpService.isMailchimpConfigured()) {
+      res.status(503).json({ error: 'Mailchimp is not configured' });
+      return;
+    }
+
+    const campaign = await mailchimpService.createCampaign({
+      listId,
+      title,
+      subject,
+      previewText,
+      fromName,
+      replyTo,
+      htmlContent,
+      plainTextContent,
+      segmentId,
+      sendTime: sendTime ? new Date(sendTime) : undefined,
+    });
+
+    res.status(201).json(campaign);
+  } catch (error) {
+    logger.error('Error creating campaign', { error });
+    res.status(500).json({ error: 'Failed to create campaign' });
+  }
+};
+
+/**
+ * Send a campaign immediately
+ */
+export const sendCampaign = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { campaignId } = req.params;
+
+    if (!campaignId) {
+      res.status(400).json({ error: 'Campaign ID is required' });
+      return;
+    }
+
+    if (!mailchimpService.isMailchimpConfigured()) {
+      res.status(503).json({ error: 'Mailchimp is not configured' });
+      return;
+    }
+
+    await mailchimpService.sendCampaign(campaignId);
+    res.json({ success: true, message: 'Campaign sent successfully' });
+  } catch (error) {
+    logger.error('Error sending campaign', { error });
+    res.status(500).json({ error: 'Failed to send campaign' });
+  }
+};
+
+/**
  * Handle Mailchimp webhook
  */
 export const handleWebhook = async (req: Request, res: Response): Promise<void> => {
@@ -466,6 +560,8 @@ export default {
   updateMemberTags,
   getListTags,
   getCampaigns,
+  createCampaign,
+  sendCampaign,
   createSegment,
   getSegments,
   handleWebhook,

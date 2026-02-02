@@ -185,6 +185,39 @@ router.get(
 );
 
 /**
+ * POST /api/mailchimp/campaigns
+ * Create a new email campaign
+ */
+router.post(
+  '/campaigns',
+  authenticate,
+  [
+    body('listId').isString().notEmpty().withMessage('List ID is required'),
+    body('title').isString().notEmpty().withMessage('Campaign title is required'),
+    body('subject').isString().notEmpty().withMessage('Subject line is required'),
+    body('fromName').isString().notEmpty().withMessage('From name is required'),
+    body('replyTo').isEmail().withMessage('Valid reply-to email is required'),
+    body('previewText').optional().isString().withMessage('Preview text must be a string'),
+    body('htmlContent').optional().isString().withMessage('HTML content must be a string'),
+    body('plainTextContent').optional().isString().withMessage('Plain text content must be a string'),
+    body('segmentId').optional().isNumeric().withMessage('Segment ID must be a number'),
+    body('sendTime').optional().isISO8601().withMessage('Send time must be a valid ISO 8601 date'),
+  ],
+  mailchimpController.createCampaign
+);
+
+/**
+ * POST /api/mailchimp/campaigns/:campaignId/send
+ * Send a campaign immediately
+ */
+router.post(
+  '/campaigns/:campaignId/send',
+  authenticate,
+  [param('campaignId').isString().notEmpty().withMessage('Campaign ID is required')],
+  mailchimpController.sendCampaign
+);
+
+/**
  * POST /api/mailchimp/webhook
  * Mailchimp webhook handler (no auth - Mailchimp sends webhooks)
  */

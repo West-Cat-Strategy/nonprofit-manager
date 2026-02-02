@@ -22,6 +22,7 @@ import type {
   MailchimpCampaign,
   CreateSegmentRequest,
   MailchimpSegment,
+  CreateCampaignRequest,
 } from '../types/mailchimp';
 
 // Type the mailchimp client with extended methods
@@ -597,6 +598,108 @@ export async function getSegments(listId: string): Promise<MailchimpSegment[]> {
   }
 }
 
+/**
+ * Create a new email campaign
+ */
+export async function createCampaign(request: CreateCampaignRequest): Promise<MailchimpCampaign> {
+  if (!isConfigured) {
+    throw new Error('Mailchimp is not configured');
+  }
+
+  try {
+    // Create campaign
+    const campaignData: {
+      type: 'regular';
+      recipients: { list_id: string; segment_opts?: { saved_segment_id: number } };
+      settings: {
+        subject_line: string;
+        preview_text?: string;
+        title: string;
+        from_name: string;
+        reply_to: string;
+      };
+    } = {
+      type: 'regular',
+      recipients: {
+        list_id: request.listId,
+      },
+      settings: {
+        subject_line: request.subject,
+        preview_text: request.previewText,
+        title: request.title,
+        from_name: request.fromName,
+        reply_to: request.replyTo,
+      },
+    };
+
+    // Add segment if specified
+    if (request.segmentId) {
+      campaignData.recipients.segment_opts = {
+        saved_segment_id: request.segmentId,
+      };
+    }
+
+    const campaign = await mailchimpClient.campaigns.create(campaignData);
+
+    // Set campaign content if provided
+    if (request.htmlContent || request.plainTextContent) {
+      const contentData: {
+        html?: string;
+        plain_text?: string;
+      } = {};
+
+      if (request.htmlContent) {
+        contentData.html = request.htmlContent;
+      }
+      if (request.plainTextContent) {
+        contentData.plain_text = request.plainTextContent;
+      }
+
+      await mailchimpClient.campaigns.setContent(campaign.id, contentData);
+    }
+
+    // Schedule campaign if send time is provided
+    if (request.sendTime) {
+      await mailchimpClient.campaigns.schedule(campaign.id, {
+        schedule_time: request.sendTime.toISOString(),
+      });
+    }
+
+    logger.info('Campaign created', { campaignId: campaign.id, title: request.title });
+
+    return {
+      id: campaign.id,
+      type: 'regular',
+      status: request.sendTime ? 'schedule' : 'save',
+      title: request.title,
+      subject: request.subject,
+      listId: request.listId,
+      createdAt: new Date(campaign.create_time),
+      sendTime: request.sendTime,
+    };
+  } catch (error) {
+    logger.error('Failed to create campaign', { error, request });
+    throw error;
+  }
+}
+
+/**
+ * Send a campaign immediately
+ */
+export async function sendCampaign(campaignId: string): Promise<void> {
+  if (!isConfigured) {
+    throw new Error('Mailchimp is not configured');
+  }
+
+  try {
+    await mailchimpClient.campaigns.send(campaignId);
+    logger.info('Campaign sent', { campaignId });
+  } catch (error) {
+    logger.error('Failed to send campaign', { error, campaignId });
+    throw error;
+  }
+}
+
 export default {
   isMailchimpConfigured,
   getStatus,
@@ -610,6 +713,8 @@ export default {
   updateMemberTags,
   getListTags,
   getCampaigns,
+  createCampaign,
+  sendCampaign,
   createSegment,
   getSegments,
 };

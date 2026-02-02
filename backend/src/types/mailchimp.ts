@@ -156,6 +156,22 @@ export interface MailchimpCampaign {
 }
 
 /**
+ * Request to create a campaign
+ */
+export interface CreateCampaignRequest {
+  listId: string;
+  title: string;
+  subject: string;
+  previewText?: string;
+  fromName: string;
+  replyTo: string;
+  htmlContent?: string;
+  plainTextContent?: string;
+  segmentId?: number;
+  sendTime?: Date;
+}
+
+/**
  * Mailchimp webhook event types
  */
 export type MailchimpWebhookType =
