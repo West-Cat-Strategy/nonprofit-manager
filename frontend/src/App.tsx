@@ -39,6 +39,7 @@ const AssignmentEdit = lazy(() => import('./pages/AssignmentEdit').then(m => ({ 
 
 // Event pages
 const EventList = lazy(() => import('./pages/EventList'));
+const EventCalendarPage = lazy(() => import('./pages/EventCalendarPage'));
 const EventDetail = lazy(() => import('./pages/EventDetail'));
 const EventCreate = lazy(() => import('./pages/EventCreate'));
 const EventEdit = lazy(() => import('./pages/EventEdit'));
@@ -227,6 +228,14 @@ function App() {
               element={
                 <ProtectedRoute isAuthenticated={isAuthenticated}>
                   <EventList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/events/calendar"
+              element={
+                <ProtectedRoute isAuthenticated={isAuthenticated}>
+                  <EventCalendarPage />
                 </ProtectedRoute>
               }
             />
