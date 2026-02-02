@@ -8,6 +8,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logout } from '../store/slices/authSlice';
+import { useNavigationPreferences } from '../hooks/useNavigationPreferences';
 
 const Navigation = () => {
   const navigate = useNavigate();
@@ -60,23 +61,27 @@ const Navigation = () => {
     return location.pathname.startsWith(path);
   };
 
-  // Primary navigation links (shown on desktop, tablet, and mobile)
-  const primaryNavLinks = [
-    { name: 'Dashboard', path: '/dashboard', icon: '📊' },
-    { name: 'Cases', path: '/cases', icon: '📋' },
-    { name: 'People', path: '/contacts', icon: '👤' },
-    { name: 'Accounts', path: '/accounts', icon: '🏢' },
-  ];
+  // Get navigation items from user preferences
+  const { primaryItems, secondaryItems, enabledItems } = useNavigationPreferences();
 
-  // Secondary navigation links (collapsed under "More" on desktop/tablet)
-  const secondaryNavLinks = [
-    { name: 'Volunteers', path: '/volunteers', icon: '🤝' },
-    { name: 'Events', path: '/events', icon: '📅' },
-    { name: 'Donations', path: '/donations', icon: '💰' },
-    { name: 'Tasks', path: '/tasks', icon: '✓' },
-  ];
+  // Map preference items to nav link format
+  const primaryNavLinks = primaryItems.map((item) => ({
+    name: item.name,
+    path: item.path,
+    icon: item.icon,
+  }));
 
-  const allNavLinks = [...primaryNavLinks, ...secondaryNavLinks];
+  const secondaryNavLinks = secondaryItems.map((item) => ({
+    name: item.name,
+    path: item.path,
+    icon: item.icon,
+  }));
+
+  const allNavLinks = enabledItems.map((item) => ({
+    name: item.name,
+    path: item.path,
+    icon: item.icon,
+  }));
 
   return (
     <nav className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-50">
@@ -200,7 +205,7 @@ const Navigation = () => {
 
             {/* Settings link - hidden on mobile */}
             <Link
-              to="/settings/api"
+              to="/settings/navigation"
               className="hidden lg:flex items-center px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-100 transition-colors whitespace-nowrap"
             >
               <svg className="w-4 h-4 lg:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -270,7 +275,7 @@ const Navigation = () => {
                       Dashboard
                     </Link>
                     <Link
-                      to="/settings/api"
+                      to="/settings/navigation"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                       onClick={() => setUserMenuOpen(false)}
                     >
@@ -411,7 +416,7 @@ const Navigation = () => {
                 Reports
               </Link>
               <Link
-                to="/settings/api"
+                to="/settings/navigation"
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center px-3 py-3 rounded-lg text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors"
               >
