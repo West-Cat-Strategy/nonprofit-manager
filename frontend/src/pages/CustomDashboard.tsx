@@ -29,6 +29,7 @@ import EventAttendanceWidget from '../components/dashboard/EventAttendanceWidget
 import QuickActionsWidget from '../components/dashboard/QuickActionsWidget';
 import CaseSummaryWidget from '../components/dashboard/CaseSummaryWidget';
 import ActivityFeedWidget from '../components/dashboard/ActivityFeedWidget';
+import PlausibleStatsWidget from '../components/dashboard/PlausibleStatsWidget';
 
 const CustomDashboard = () => {
   const dispatch = useAppDispatch();
@@ -138,6 +139,8 @@ const CustomDashboard = () => {
         return <CaseSummaryWidget {...commonProps} />;
       case 'activity_feed':
         return <ActivityFeedWidget {...commonProps} />;
+      case 'plausible_stats':
+        return <PlausibleStatsWidget {...commonProps} />;
       default:
         return <div className="p-4">Unknown widget type</div>;
     }
