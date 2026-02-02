@@ -367,33 +367,48 @@ export const exportComprehensive = async (
     // Prepare summary sheet
     const summaryData = [
       {
-        metric: 'Total Donations',
-        value: summary.donations.total_count,
-        amount: summary.donations.total_amount,
+        metric: 'Total Donations YTD',
+        value: summary.donation_count_ytd,
+        amount: summary.total_donations_ytd,
       },
       {
-        metric: 'Average Donation',
+        metric: 'Average Donation YTD',
         value: '-',
-        amount: summary.donations.average_donation,
+        amount: summary.average_donation_ytd,
       },
       {
-        metric: 'Total Donors',
-        value: summary.donors.total_count,
+        metric: 'Total Accounts',
+        value: summary.total_accounts,
+        amount: '-',
+      },
+      {
+        metric: 'Active Accounts',
+        value: summary.active_accounts,
+        amount: '-',
+      },
+      {
+        metric: 'Total Contacts',
+        value: summary.total_contacts,
+        amount: '-',
+      },
+      {
+        metric: 'Active Contacts',
+        value: summary.active_contacts,
         amount: '-',
       },
       {
         metric: 'Total Volunteers',
-        value: summary.volunteers.total_count,
+        value: summary.total_volunteers,
         amount: '-',
       },
       {
-        metric: 'Volunteer Hours',
-        value: summary.volunteers.total_hours,
+        metric: 'Volunteer Hours YTD',
+        value: summary.total_volunteer_hours_ytd,
         amount: '-',
       },
       {
-        metric: 'Total Events',
-        value: summary.events.total_count,
+        metric: 'Total Events YTD',
+        value: summary.total_events_ytd,
         amount: '-',
       },
     ];
