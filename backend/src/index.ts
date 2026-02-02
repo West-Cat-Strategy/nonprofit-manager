@@ -30,6 +30,7 @@ import publishingRoutes from './routes/publishing';
 import dashboardRoutes from './routes/dashboard';
 import alertRoutes from './routes/alerts';
 import exportRoutes from './routes/export';
+import activityRoutes from './routes/activities';
 import { setPaymentPool } from './controllers/paymentController';
 import { Pool } from 'pg';
 
@@ -139,6 +140,7 @@ app.use('/api/sites', publishingRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/activities', activityRoutes);
 
 // Error handling
 app.use(errorHandler);
