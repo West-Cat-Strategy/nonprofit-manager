@@ -1,276 +1,340 @@
 /**
  * Event Controller
- * HTTP handlers for event management
+ * HTTP request handlers for event scheduling and registration
  */
 
 import { Response, NextFunction } from 'express';
-import eventService from '../services/eventService';
-import {
-  CreateEventDTO,
-  CreateRegistrationDTO,
-  EventStatus,
-  EventType,
-  RegistrationStatus,
-  UpdateEventDTO,
-  UpdateRegistrationDTO,
-} from '../types/event';
+import { EventService } from '../services/eventService';
+import pool from '../config/database';
 import { AuthRequest } from '../middleware/auth';
-import {
-  generateICS,
-  generateGoogleCalendarUrl,
-  generateOutlookCalendarUrl,
-} from '../utils/calendar';
+import type {
+  CreateEventDTO,
+  UpdateEventDTO,
+  CreateRegistrationDTO,
+  UpdateRegistrationDTO,
+  EventFilters,
+  RegistrationFilters,
+  CheckInDTO,
+} from '../types/event';
 
-const getString = (value: unknown): string | undefined =>
-  typeof value === 'string' ? value : undefined;
+const eventService = new EventService(pool);
 
-const getBoolean = (value: unknown): boolean | undefined => {
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  return undefined;
+/**
+ * GET /api/events
+ * Get all events with optional filtering
+ */
+export const getEvents = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const filters: EventFilters = {
+      event_type: req.query.event_type as any,
+      status: req.query.status as any,
+      start_date: req.query.start_date as string,
+      end_date: req.query.end_date as string,
+      organizer_id: req.query.organizer_id as string,
+      search: req.query.search as string,
+    };
+
+    const events = await eventService.getEvents(filters);
+    res.json(events);
+  } catch (error) {
+    next(error);
+  }
 };
 
-const getDate = (value: unknown): Date | undefined => {
-  if (typeof value !== 'string') return undefined;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+/**
+ * GET /api/events/:id
+ * Get a single event by ID
+ */
+export const getEvent = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const event = await eventService.getEvent(id);
+
+    if (!event) {
+      res.status(404).json({ error: 'Event not found' });
+      return;
+    }
+
+    res.json(event);
+  } catch (error) {
+    next(error);
+  }
 };
 
-export class EventController {
-  /**
-   * Get all events
-   */
-  async getEvents(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const filters = {
-        search: getString(req.query.search),
-        event_type: getString(req.query.event_type) as EventType | undefined,
-        status: getString(req.query.status) as EventStatus | undefined,
-        start_date: getDate(req.query.start_date),
-        end_date: getDate(req.query.end_date),
-      };
+/**
+ * POST /api/events
+ * Create a new event
+ */
+export const createEvent = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const data: CreateEventDTO = {
+      ...req.body,
+      created_by: req.user!.id,
+    };
 
-      const pagination = {
-        page: getString(req.query.page) ? parseInt(req.query.page as string) : 1,
-        limit: getString(req.query.limit) ? parseInt(req.query.limit as string) : 20,
-        sort_by: getString(req.query.sort_by),
-        sort_order: getString(req.query.sort_order) as 'asc' | 'desc' | undefined,
-      };
-
-      const result = await eventService.getEvents(filters, pagination);
-      res.json(result);
-    } catch (error) {
-      next(error);
-    }
+    const event = await eventService.createEvent(data);
+    res.status(201).json(event);
+  } catch (error) {
+    next(error);
   }
+};
 
-  /**
-   * Get event by ID
-   */
-  async getEventById(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const event = await eventService.getEventById(req.params.id);
+/**
+ * PUT /api/events/:id
+ * Update an event
+ */
+export const updateEvent = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const data: UpdateEventDTO = req.body;
 
-      if (!event) {
-        res.status(404).json({ error: 'Event not found' });
-        return;
-      }
+    const event = await eventService.updateEvent(id, data);
 
-      res.json(event);
-    } catch (error) {
-      next(error);
+    if (!event) {
+      res.status(404).json({ error: 'Event not found' });
+      return;
     }
+
+    res.json(event);
+  } catch (error) {
+    next(error);
   }
+};
 
-  /**
-   * Create new event
-   */
-  async createEvent(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const eventData: CreateEventDTO = req.body;
-      const userId = req.user!.id;
+/**
+ * DELETE /api/events/:id
+ * Delete (cancel) an event
+ */
+export const deleteEvent = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const deleted = await eventService.deleteEvent(id);
 
-      const event = await eventService.createEvent(eventData, userId);
-      res.status(201).json(event);
-    } catch (error) {
-      next(error);
+    if (!deleted) {
+      res.status(404).json({ error: 'Event not found' });
+      return;
     }
+
+    res.status(204).send();
+  } catch (error) {
+    next(error);
   }
+};
 
-  /**
-   * Update event
-   */
-  async updateEvent(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const eventData: UpdateEventDTO = req.body;
-      const userId = req.user!.id;
+/**
+ * GET /api/events/:id/registrations
+ * Get registrations for an event
+ */
+export const getEventRegistrations = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
 
-      const event = await eventService.updateEvent(req.params.id, eventData, userId);
-      res.json(event);
-    } catch (error) {
-      next(error);
+    const filters: RegistrationFilters = {
+      event_id: id,
+      status: req.query.status as any,
+    };
+
+    const registrations = await eventService.getRegistrations(filters);
+    res.json(registrations);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/events/:id/register
+ * Register for an event
+ */
+export const registerForEvent = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const data: CreateRegistrationDTO = {
+      ...req.body,
+      event_id: id,
+    };
+
+    const registration = await eventService.createRegistration(data);
+
+    if ('error' in registration) {
+      res.status(400).json({ error: registration.error });
+      return;
     }
-  }
 
-  /**
-   * Delete event
-   */
-  async deleteEvent(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      await eventService.deleteEvent(req.params.id, userId);
-      res.status(204).send();
-    } catch (error) {
-      next(error);
+    res.status(201).json(registration);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/events/registrations/:id
+ * Update a registration
+ */
+export const updateRegistration = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const data: UpdateRegistrationDTO = req.body;
+
+    const registration = await eventService.updateRegistration(id, data);
+
+    if (!registration) {
+      res.status(404).json({ error: 'Registration not found' });
+      return;
     }
+
+    res.json(registration);
+  } catch (error) {
+    next(error);
   }
+};
 
-  // ==================== EVENT REGISTRATIONS ====================
+/**
+ * POST /api/events/registrations/:id/checkin
+ * Check in an attendee
+ */
+export const checkInAttendee = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
 
-  /**
-   * Get event registrations
-   */
-  async getEventRegistrations(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const filters = {
-        registration_status: getString(
-          req.query.registration_status
-        ) as RegistrationStatus | undefined,
-        checked_in: getBoolean(req.query.checked_in),
-      };
+    const data: CheckInDTO = {
+      registration_id: id,
+      checked_in_by: req.user!.id,
+    };
 
-      const registrations = await eventService.getEventRegistrations(req.params.eventId, filters);
-      res.json(registrations);
-    } catch (error) {
-      next(error);
+    const registration = await eventService.checkIn(data);
+
+    if (!registration) {
+      res.status(404).json({ error: 'Registration not found' });
+      return;
     }
-  }
 
-  /**
-   * Get contact registrations
-   */
-  async getContactRegistrations(
-    req: AuthRequest,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
-    try {
-      const registrations = await eventService.getContactRegistrations(req.params.contactId);
-      res.json(registrations);
-    } catch (error) {
-      next(error);
+    res.json(registration);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/events/registrations/:id
+ * Cancel a registration
+ */
+export const cancelRegistration = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const cancelled = await eventService.cancelRegistration(id);
+
+    if (!cancelled) {
+      res.status(404).json({ error: 'Registration not found' });
+      return;
     }
-  }
 
-  /**
-   * Register contact for event
-   */
-  async registerContact(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const registrationData: CreateRegistrationDTO = req.body;
-      const registration = await eventService.registerContact(registrationData);
-      res.status(201).json(registration);
-    } catch (error) {
-      next(error);
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/events/:id/attendance
+ * Get attendance statistics for an event
+ */
+export const getAttendanceStats = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const stats = await eventService.getAttendanceStats(id);
+
+    if (!stats) {
+      res.status(404).json({ error: 'Event not found' });
+      return;
     }
+
+    res.json(stats);
+  } catch (error) {
+    next(error);
   }
+};
 
-  /**
-   * Update registration
-   */
-  async updateRegistration(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const updateData: UpdateRegistrationDTO = req.body;
-      const registration = await eventService.updateRegistration(
-        req.params.registrationId,
-        updateData
-      );
-      res.json(registration);
-    } catch (error) {
-      next(error);
-    }
+/**
+ * GET /api/events/registrations
+ * Get all registrations with optional filtering
+ */
+export const getRegistrations = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const filters: RegistrationFilters = {
+      event_id: req.query.event_id as string,
+      contact_id: req.query.contact_id as string,
+      status: req.query.status as any,
+      start_date: req.query.start_date as string,
+      end_date: req.query.end_date as string,
+    };
+
+    const registrations = await eventService.getRegistrations(filters);
+    res.json(registrations);
+  } catch (error) {
+    next(error);
   }
+};
 
-  /**
-   * Check in attendee
-   */
-  async checkInAttendee(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const result = await eventService.checkInAttendee(req.params.registrationId);
-
-      if (!result.success) {
-        res.status(400).json({ error: result.message });
-        return;
-      }
-
-      res.json(result);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Cancel registration
-   */
-  async cancelRegistration(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
-    try {
-      await eventService.cancelRegistration(req.params.registrationId);
-      res.status(204).send();
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Export event as .ics calendar file
-   */
-  async exportCalendar(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const event = await eventService.getEventById(req.params.id);
-
-      if (!event) {
-        res.status(404).json({ error: 'Event not found' });
-        return;
-      }
-
-      const icsContent = generateICS(event);
-
-      // Set headers for file download
-      res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename="${event.event_name.replace(/[^a-zA-Z0-9]/g, '_')}.ics"`
-      );
-
-      res.send(icsContent);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Get calendar links for an event (Google, Outlook, .ics download)
-   */
-  async getCalendarLinks(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const event = await eventService.getEventById(req.params.id);
-
-      if (!event) {
-        res.status(404).json({ error: 'Event not found' });
-        return;
-      }
-
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
-
-      res.json({
-        google: generateGoogleCalendarUrl(event),
-        outlook: generateOutlookCalendarUrl(event),
-        ics: `${baseUrl}/api/events/${event.event_id}/calendar.ics`,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-}
-
-export default new EventController();
+export default {
+  getEvents,
+  getEvent,
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  getEventRegistrations,
+  registerForEvent,
+  updateRegistration,
+  checkInAttendee,
+  cancelRegistration,
+  getAttendanceStats,
+  getRegistrations,
+};

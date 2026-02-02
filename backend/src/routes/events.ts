@@ -1,114 +1,206 @@
 /**
  * Event Routes
- * API endpoints for event management
+ * API routes for event scheduling and registration
  */
 
 import { Router } from 'express';
-import { body, query } from 'express-validator';
-import eventController from '../controllers/eventController';
+import { body, param, query } from 'express-validator';
+import {
+  getEvents,
+  getEvent,
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  getEventRegistrations,
+  registerForEvent,
+  updateRegistration,
+  checkInAttendee,
+  cancelRegistration,
+  getAttendanceStats,
+  getRegistrations,
+} from '../controllers/eventController';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
-// Validation rules
-const createEventValidation = [
-  body('event_name').trim().notEmpty().withMessage('Event name is required'),
-  body('event_type')
-    .isIn(['fundraiser', 'community', 'training', 'meeting', 'volunteer', 'social', 'other'])
-    .withMessage('Invalid event type'),
-  body('status')
-    .optional()
-    .isIn(['planned', 'active', 'completed', 'cancelled', 'postponed'])
-    .withMessage('Invalid status'),
-  body('start_date').isISO8601().withMessage('Invalid start date'),
-  body('end_date').isISO8601().withMessage('Invalid end date'),
-  body('capacity').optional().isInt({ min: 1 }).withMessage('Capacity must be a positive number'),
-];
+// All routes require authentication
+router.use(authenticate);
 
-const updateEventValidation = [
-  body('event_name').optional().trim().notEmpty().withMessage('Event name cannot be empty'),
-  body('event_type')
-    .optional()
-    .isIn(['fundraiser', 'community', 'training', 'meeting', 'volunteer', 'social', 'other'])
-    .withMessage('Invalid event type'),
-  body('status')
-    .optional()
-    .isIn(['planned', 'active', 'completed', 'cancelled', 'postponed'])
-    .withMessage('Invalid status'),
-  body('start_date').optional().isISO8601().withMessage('Invalid start date'),
-  body('end_date').optional().isISO8601().withMessage('Invalid end date'),
-  body('capacity').optional().isInt({ min: 1 }).withMessage('Capacity must be a positive number'),
-];
-
-const createRegistrationValidation = [
-  body('event_id').isUUID().withMessage('Invalid event ID'),
-  body('contact_id').isUUID().withMessage('Invalid contact ID'),
-  body('registration_status')
-    .optional()
-    .isIn(['registered', 'waitlisted', 'cancelled', 'confirmed', 'no_show'])
-    .withMessage('Invalid registration status'),
-];
-
-const updateRegistrationValidation = [
-  body('registration_status')
-    .optional()
-    .isIn(['registered', 'waitlisted', 'cancelled', 'confirmed', 'no_show'])
-    .withMessage('Invalid registration status'),
-];
-
-const eventQueryValidation = [
-  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-  query('limit')
-    .optional()
-    .isInt({ min: 1, max: 100 })
-    .withMessage('Limit must be between 1 and 100'),
-  query('event_type')
-    .optional()
-    .isIn(['fundraiser', 'community', 'training', 'meeting', 'volunteer', 'social', 'other'])
-    .withMessage('Invalid event type'),
-  query('status')
-    .optional()
-    .isIn(['planned', 'active', 'completed', 'cancelled', 'postponed'])
-    .withMessage('Invalid status'),
-];
-
-// Event routes
-router.get('/', authenticate, eventQueryValidation, eventController.getEvents);
-router.get('/:id', authenticate, eventController.getEventById);
-router.post('/', authenticate, createEventValidation, eventController.createEvent);
-router.put('/:id', authenticate, updateEventValidation, eventController.updateEvent);
-router.delete('/:id', authenticate, eventController.deleteEvent);
-
-// Calendar export routes
-router.get('/:id/calendar.ics', authenticate, eventController.exportCalendar);
-router.get('/:id/calendar-links', authenticate, eventController.getCalendarLinks);
-
-// Registration routes
-router.get('/:eventId/registrations', authenticate, eventController.getEventRegistrations);
-router.post(
-  '/registrations',
-  authenticate,
-  createRegistrationValidation,
-  eventController.registerContact
-);
-router.put(
-  '/registrations/:registrationId',
-  authenticate,
-  updateRegistrationValidation,
-  eventController.updateRegistration
-);
-router.post(
-  '/registrations/:registrationId/check-in',
-  authenticate,
-  eventController.checkInAttendee
-);
-router.delete('/registrations/:registrationId', authenticate, eventController.cancelRegistration);
-
-// Contact registrations
+/**
+ * GET /api/events
+ * Get all events with optional filtering
+ */
 router.get(
-  '/contacts/:contactId/registrations',
-  authenticate,
-  eventController.getContactRegistrations
+  '/',
+  [
+    query('event_type').optional().isString(),
+    query('status').optional().isString(),
+    query('start_date').optional().isISO8601(),
+    query('end_date').optional().isISO8601(),
+    query('organizer_id').optional().isUUID(),
+    query('search').optional().isString(),
+  ],
+  getEvents
+);
+
+/**
+ * GET /api/events/:id
+ * Get a single event
+ */
+router.get('/:id', [param('id').isUUID()], getEvent);
+
+/**
+ * POST /api/events
+ * Create a new event
+ */
+router.post(
+  '/',
+  [
+    body('name').isString().trim().notEmpty().withMessage('Event name is required'),
+    body('description').optional().isString(),
+    body('event_type').isString().isIn([
+      'fundraiser',
+      'volunteer_opportunity',
+      'community_event',
+      'training',
+      'meeting',
+      'workshop',
+      'conference',
+      'social',
+      'other',
+    ]).withMessage('Invalid event type'),
+    body('start_date').isISO8601().withMessage('Valid start date is required'),
+    body('end_date').optional().isISO8601(),
+    body('location').optional().isString(),
+    body('capacity').optional().isInt({ min: 1 }),
+    body('registration_required').isBoolean(),
+    body('registration_deadline').optional().isISO8601(),
+    body('status').optional().isIn(['draft', 'published', 'cancelled', 'completed']),
+    body('organizer_id').optional().isUUID(),
+  ],
+  createEvent
+);
+
+/**
+ * PUT /api/events/:id
+ * Update an event
+ */
+router.put(
+  '/:id',
+  [
+    param('id').isUUID(),
+    body('name').optional().isString().trim().notEmpty(),
+    body('description').optional().isString(),
+    body('event_type').optional().isString(),
+    body('start_date').optional().isISO8601(),
+    body('end_date').optional().isISO8601(),
+    body('location').optional().isString(),
+    body('capacity').optional().isInt({ min: 1 }),
+    body('registration_required').optional().isBoolean(),
+    body('registration_deadline').optional().isISO8601(),
+    body('status').optional().isString(),
+    body('organizer_id').optional().isUUID(),
+  ],
+  updateEvent
+);
+
+/**
+ * DELETE /api/events/:id
+ * Cancel an event
+ */
+router.delete('/:id', [param('id').isUUID()], deleteEvent);
+
+/**
+ * GET /api/events/:id/registrations
+ * Get registrations for an event
+ */
+router.get(
+  '/:id/registrations',
+  [
+    param('id').isUUID(),
+    query('status').optional().isString(),
+  ],
+  getEventRegistrations
+);
+
+/**
+ * POST /api/events/:id/register
+ * Register for an event
+ */
+router.post(
+  '/:id/register',
+  [
+    param('id').isUUID(),
+    body('contact_id').optional().isUUID(),
+    body('attendee_name').isString().trim().notEmpty().withMessage('Attendee name is required'),
+    body('attendee_email').isEmail().withMessage('Valid email is required'),
+    body('attendee_phone').optional().isString(),
+    body('notes').optional().isString(),
+  ],
+  registerForEvent
+);
+
+/**
+ * PUT /api/events/registrations/:id
+ * Update a registration
+ */
+router.put(
+  '/registrations/:id',
+  [
+    param('id').isUUID(),
+    body('status').optional().isIn(['registered', 'confirmed', 'attended', 'no_show', 'cancelled']),
+    body('notes').optional().isString(),
+    body('attendee_name').optional().isString(),
+    body('attendee_email').optional().isEmail(),
+    body('attendee_phone').optional().isString(),
+  ],
+  updateRegistration
+);
+
+/**
+ * POST /api/events/registrations/:id/checkin
+ * Check in an attendee
+ */
+router.post(
+  '/registrations/:id/checkin',
+  [param('id').isUUID()],
+  checkInAttendee
+);
+
+/**
+ * DELETE /api/events/registrations/:id
+ * Cancel a registration
+ */
+router.delete(
+  '/registrations/:id',
+  [param('id').isUUID()],
+  cancelRegistration
+);
+
+/**
+ * GET /api/events/:id/attendance
+ * Get attendance statistics
+ */
+router.get(
+  '/:id/attendance',
+  [param('id').isUUID()],
+  getAttendanceStats
+);
+
+/**
+ * GET /api/events/registrations
+ * Get all registrations with filtering
+ */
+router.get(
+  '/registrations',
+  [
+    query('event_id').optional().isUUID(),
+    query('contact_id').optional().isUUID(),
+    query('status').optional().isString(),
+    query('start_date').optional().isISO8601(),
+    query('end_date').optional().isISO8601(),
+  ],
+  getRegistrations
 );
 
 export default router;
