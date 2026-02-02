@@ -213,11 +213,16 @@ export const checkSetupStatus = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const result = await pool.query('SELECT COUNT(*) as count FROM users');
-    const userCount = parseInt(result.rows[0].count);
+    // Check if any admin users exist
+    const adminResult = await pool.query("SELECT COUNT(*) as count FROM users WHERE role = 'admin'");
+    const adminCount = parseInt(adminResult.rows[0].count);
+
+    // Also get total user count for reference
+    const totalResult = await pool.query('SELECT COUNT(*) as count FROM users');
+    const userCount = parseInt(totalResult.rows[0].count);
 
     return res.json({
-      setupRequired: userCount === 0,
+      setupRequired: adminCount === 0,
       userCount: userCount,
     });
   } catch (error) {
@@ -241,13 +246,13 @@ export const setupFirstUser = async (
       return res.status(400).json({ errors: errors.array() });
     }
 
-    // Check if any users exist
-    const countResult = await pool.query('SELECT COUNT(*) as count FROM users');
-    const userCount = parseInt(countResult.rows[0].count);
+    // Check if any admin users exist
+    const countResult = await pool.query("SELECT COUNT(*) as count FROM users WHERE role = 'admin'");
+    const adminCount = parseInt(countResult.rows[0].count);
 
-    if (userCount > 0) {
+    if (adminCount > 0) {
       return res.status(403).json({
-        error: 'Setup has already been completed. Please use the login page.'
+        error: 'Setup has already been completed. An admin user already exists.'
       });
     }
 
