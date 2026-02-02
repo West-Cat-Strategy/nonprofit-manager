@@ -30,6 +30,19 @@ interface UserRow {
   created_at: Date;
 }
 
+/**
+ * Get JWT secret from environment or throw error
+ * Never use fallback secrets in production
+ */
+const getJwtSecret = (): string => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    logger.error('JWT_SECRET environment variable is not set');
+    throw new Error('JWT_SECRET must be configured');
+  }
+  return secret;
+};
+
 export const register = async (
   req: AuthRequest,
   res: Response,
@@ -64,7 +77,7 @@ export const register = async (
     const user = result.rows[0];
 
     // Generate JWT token for immediate login after registration
-    const jwtSecret = process.env.JWT_SECRET || 'fallback_secret';
+    const jwtSecret = getJwtSecret();
     const token = jwt.sign(
       {
         id: user.id,
@@ -133,7 +146,7 @@ export const login = async (
     await trackLoginAttempt(email, true, user.id);
 
     // Generate access token
-    const jwtSecret = process.env.JWT_SECRET || 'fallback_secret';
+    const jwtSecret = getJwtSecret();
 
     const token = jwt.sign(
       {
@@ -273,7 +286,7 @@ export const setupFirstUser = async (
     const user = result.rows[0];
 
     // Generate access token
-    const jwtSecret = process.env.JWT_SECRET || 'fallback_secret';
+    const jwtSecret = getJwtSecret();
     const token = jwt.sign(
       {
         id: user.id,
