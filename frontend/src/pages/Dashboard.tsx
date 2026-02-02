@@ -292,11 +292,11 @@ export default function Dashboard() {
                 <div className="p-5">
                   <div className="flex items-center">
                     <div className="flex-1">
-                      <h3 className="text-lg font-medium text-teal-900">Contacts</h3>
-                      <p className="mt-1 text-sm text-teal-700">Manage individual contacts</p>
+                      <h3 className="text-lg font-medium text-teal-900">People</h3>
+                      <p className="mt-1 text-sm text-teal-700">Manage individual people</p>
                       {summary && (
                         <p className="mt-2 text-xs text-teal-600">
-                          {summary.active_contacts} active contacts
+                          {summary.active_contacts} active people
                         </p>
                       )}
                     </div>

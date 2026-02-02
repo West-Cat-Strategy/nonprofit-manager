@@ -64,7 +64,7 @@ const Navigation = () => {
   const primaryNavLinks = [
     { name: 'Dashboard', path: '/dashboard', icon: '📊' },
     { name: 'Cases', path: '/cases', icon: '📋' },
-    { name: 'Contacts', path: '/contacts', icon: '👤' },
+    { name: 'People', path: '/contacts', icon: '👤' },
     { name: 'Accounts', path: '/accounts', icon: '🏢' },
   ];
 

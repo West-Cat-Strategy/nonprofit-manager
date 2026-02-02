@@ -151,7 +151,7 @@ export default function QuickLookupWidget({ className = '' }: QuickLookupWidgetP
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-4 ${className}`}>
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-gray-900">Quick Lookup</h3>
-        <span className="text-xs text-gray-500">Search contacts</span>
+        <span className="text-xs text-gray-500">Search people</span>
       </div>
 
       <div className="relative">
@@ -230,7 +230,7 @@ export default function QuickLookupWidget({ className = '' }: QuickLookupWidgetP
           >
             {results.length === 0 ? (
               <div className="p-4 text-center text-gray-500 text-sm">
-                No contacts found for "{searchTerm}"
+                No people found for "{searchTerm}"
               </div>
             ) : (
               <ul className="py-1">
@@ -293,7 +293,7 @@ export default function QuickLookupWidget({ className = '' }: QuickLookupWidgetP
                   className="block text-center text-xs text-blue-600 hover:text-blue-800 py-1"
                   onClick={() => setIsOpen(false)}
                 >
-                  View all results in Contacts
+                  View all results in People
                 </Link>
               </div>
             )}
