@@ -35,6 +35,43 @@ These tests verify:
 
 ## Running Tests
 
+### Quick Start (Recommended)
+
+The fastest way to run all integration tests:
+
+```bash
+cd backend/tests/integration
+
+# 1. Setup environment (gets auth token automatically)
+./setup-test-environment.sh
+
+# 2. Run full system test
+./integration-full-system.sh
+
+# Or run all test scenarios
+./run-all-integration-tests.sh
+```
+
+### Step-by-Step Setup
+
+If you prefer manual setup:
+
+```bash
+# 1. Ensure server is running
+cd backend
+npm run dev
+
+# 2. Get authentication token
+export TOKEN=$(curl -s -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"your_password"}' \
+  | jq -r '.token')
+
+# 3. Run tests
+cd tests/integration
+./integration-full-system.sh
+```
+
 ### Run All Integration Tests
 
 ```bash
@@ -42,9 +79,14 @@ cd backend/tests/integration
 ./run-all-integration-tests.sh
 ```
 
+This runs all test scenarios in sequence and provides a summary.
+
 ### Run Individual Test Scenarios
 
 ```bash
+# Full system integration (recommended for comprehensive testing)
+./integration-full-system.sh
+
 # Volunteer event registration workflow
 ./integration-volunteer-event.sh
 
@@ -53,15 +95,25 @@ cd backend/tests/integration
 
 # Case management workflow (when available)
 ./integration-case-workflow.sh
-
-# Other scenarios...
 ```
 
 ## Test Scenarios
 
 ### Available Tests
 
-1. **integration-volunteer-event.sh**
+1. **integration-full-system.sh** ⭐ (Comprehensive)
+   - Tests all Phase 2 modules together
+   - Creates foundation data (accounts, contacts)
+   - Tests donations module
+   - Tests volunteers module
+   - Tests events module
+   - Tests tasks module
+   - Tests cases module
+   - Verifies cross-module relationships
+   - Tests data integrity and constraints
+   - ~30 integration tests across all modules
+
+2. **integration-volunteer-event.sh**
    - Creates volunteer contact and record
    - Creates volunteer opportunity event
    - Registers volunteer for event
@@ -69,7 +121,7 @@ cd backend/tests/integration
    - Verifies attendance statistics
    - Tests duplicate prevention
 
-2. **integration-business-rules.sh**
+3. **integration-business-rules.sh**
    - Tests capacity limit enforcement
    - Verifies deadline validation
    - Tests cancellation freeing capacity
@@ -296,13 +348,46 @@ jobs:
           ./run-all-integration-tests.sh
 ```
 
+## Test Results Documentation
+
+After running tests, document results using the template:
+
+```bash
+# Copy template
+cp TEST_RESULTS_TEMPLATE.md test-results-$(date +%Y%m%d).md
+
+# Edit with your results
+# Then commit to track test history
+git add test-results-*.md
+git commit -m "Add integration test results for $(date +%Y-%m-%d)"
+```
+
+## Continuous Integration
+
+To run tests in CI/CD pipeline:
+
+```yaml
+# .github/workflows/integration-tests.yml
+- name: Run Integration Tests
+  run: |
+    cd backend
+    npm run dev &
+    sleep 10
+    cd tests/integration
+    ./setup-test-environment.sh
+    ./integration-full-system.sh
+```
+
 ## Next Steps
 
-1. Implement remaining test scenarios
-2. Add automated test data generation
-3. Create Jest-based integration tests
-4. Add performance benchmarks
-5. Generate coverage reports
+1. ✅ Full system integration test implemented
+2. ✅ Environment setup automation
+3. ✅ Test results documentation template
+4. [ ] Implement remaining test scenarios
+5. [ ] Add automated test data generation
+6. [ ] Create Jest-based integration tests
+7. [ ] Add performance benchmarks
+8. [ ] Generate coverage reports
 
 ## Documentation
 
