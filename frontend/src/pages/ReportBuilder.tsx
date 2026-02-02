@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { generateReport } from '../store/slices/reportsSlice';
 import { createSavedReport, fetchSavedReportById } from '../store/slices/savedReportsSlice';
-import MainLayout from '../components/MainLayout';
 import FieldSelector from '../components/FieldSelector';
 import FilterBuilder from '../components/FilterBuilder';
 import SortBuilder from '../components/SortBuilder';
@@ -140,8 +139,7 @@ function ReportBuilder() {
   };
 
   return (
-    <MainLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Report Builder</h1>
           <p className="mt-2 text-gray-600">
@@ -332,8 +330,7 @@ function ReportBuilder() {
             </div>
           </div>
         )}
-      </div>
-    </MainLayout>
+    </div>
   );
 }
 

@@ -16,11 +16,22 @@ interface AuthState {
   loading: boolean;
 }
 
-// Check for existing token on initialization
+// Check for existing token and user on initialization
 const token = localStorage.getItem('token');
+const storedUser = localStorage.getItem('user');
+let user: User | null = null;
+
+if (storedUser) {
+  try {
+    user = JSON.parse(storedUser);
+  } catch (error) {
+    console.error('Failed to parse stored user:', error);
+    localStorage.removeItem('user');
+  }
+}
 
 const initialState: AuthState = {
-  user: null,
+  user: user,
   token: token,
   isAuthenticated: !!token, // Set to true if token exists
   loading: false, // Changed to false to prevent blocking
@@ -36,6 +47,7 @@ const authSlice = createSlice({
       state.isAuthenticated = true;
       state.loading = false;
       localStorage.setItem('token', action.payload.token);
+      localStorage.setItem('user', JSON.stringify(action.payload.user));
     },
     logout: (state) => {
       state.user = null;
@@ -43,6 +55,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.loading = false;
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;

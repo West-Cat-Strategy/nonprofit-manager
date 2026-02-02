@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchEvents } from '../store/slices/eventsSlice';
-import { Event, EventType, EventStatus } from '../types/event';
+import type { Event, EventType } from '../types/event';
 import {
   startOfMonth,
   endOfMonth,
@@ -39,8 +39,10 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({ onEventClick }) =>
 
     dispatch(
       fetchEvents({
-        start_date: start.toISOString(),
-        end_date: end.toISOString(),
+        filters: {
+          start_date: start.toISOString(),
+          end_date: end.toISOString(),
+        },
       })
     );
   }, [currentMonth, dispatch]);
@@ -98,20 +100,18 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({ onEventClick }) =>
     switch (type) {
       case 'fundraiser':
         return 'bg-green-100 text-green-800 hover:bg-green-200';
-      case 'volunteer_opportunity':
+      case 'volunteer':
         return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
-      case 'community_event':
+      case 'community':
         return 'bg-purple-100 text-purple-800 hover:bg-purple-200';
       case 'training':
         return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
       case 'meeting':
         return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
-      case 'workshop':
-        return 'bg-orange-100 text-orange-800 hover:bg-orange-200';
-      case 'conference':
-        return 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200';
       case 'social':
         return 'bg-pink-100 text-pink-800 hover:bg-pink-200';
+      case 'other':
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
       default:
         return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
     }
@@ -230,7 +230,7 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({ onEventClick }) =>
                 <div className="space-y-1">
                   {dayEvents.slice(0, 3).map((event) => (
                     <div
-                      key={event.id}
+                      key={event.event_id}
                       className={`px-2 py-1 text-xs font-medium rounded truncate cursor-pointer ${getEventTypeColor(
                         event.event_type
                       )}`}
@@ -238,10 +238,10 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({ onEventClick }) =>
                         e.stopPropagation();
                         onEventClick?.(event);
                       }}
-                      title={event.name}
+                      title={event.event_name}
                     >
                       {format(parseISO(event.start_date), 'HH:mm')}{' '}
-                      {event.name}
+                      {event.event_name}
                     </div>
                   ))}
                   {dayEvents.length > 3 && (

@@ -264,8 +264,12 @@ const VolunteerDetail = () => {
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold">Assignment History</h3>
                   <button
-                    onClick={() => navigate(`/volunteers/${id}/assignments/new`)}
+                    onClick={() => {
+                      console.log('New Assignment button clicked, navigating to:', `/volunteers/${id}/assignments/new`);
+                      navigate(`/volunteers/${id}/assignments/new`);
+                    }}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm"
+                    type="button"
                   >
                     + New Assignment
                   </button>
