@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchSavedReports, deleteSavedReport } from '../store/slices/savedReportsSlice';
-import MainLayout from '../components/MainLayout';
 import type { SavedReport } from '../types/savedReport';
 
 function SavedReports() {
@@ -31,11 +30,11 @@ function SavedReports() {
     : reports;
 
   return (
-    <MainLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6 flex justify-between items-center">
           <h1 className="text-3xl font-bold text-gray-900">Saved Reports</h1>
           <button
+            type="button"
             onClick={() => navigate('/reports/builder')}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
@@ -51,10 +50,11 @@ function SavedReports() {
 
         {/* Filter */}
         <div className="bg-white shadow rounded-lg p-4 mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="filter-entity" className="block text-sm font-medium text-gray-700 mb-2">
             Filter by Entity
           </label>
           <select
+            id="filter-entity"
             value={filterEntity}
             onChange={(e) => setFilterEntity(e.target.value)}
             className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -79,6 +79,7 @@ function SavedReports() {
           <div className="bg-white shadow rounded-lg p-12 text-center">
             <p className="text-gray-500 mb-4">No saved reports found</p>
             <button
+              type="button"
               onClick={() => navigate('/reports/builder')}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
@@ -133,12 +134,14 @@ function SavedReports() {
 
                 <div className="flex gap-2">
                   <button
+                    type="button"
                     onClick={() => handleLoadReport(report)}
                     className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
                   >
                     Load & Run
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleDeleteReport(report.id, report.name)}
                     className="px-3 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700"
                   >
@@ -149,8 +152,7 @@ function SavedReports() {
             ))}
           </div>
         )}
-      </div>
-    </MainLayout>
+    </div>
   );
 }
 

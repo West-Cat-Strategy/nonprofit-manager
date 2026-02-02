@@ -26,8 +26,14 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Don't redirect to login if we're checking setup status or already on setup page
+      const isSetupCheck = error.config?.url?.includes('/auth/setup-status');
+      const isSetupPage = window.location.pathname === '/setup';
+
+      if (!isSetupCheck && !isSetupPage) {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

@@ -9,6 +9,7 @@ import {
 } from '../store/slices/casesSlice';
 import { fetchContacts } from '../store/slices/contactsSlice';
 import type { CreateCaseDTO, UpdateCaseDTO } from '../types/case';
+// import { useToast } from '../contexts/ToastContext';
 
 interface CaseFormProps {
   caseId?: string;
@@ -19,6 +20,7 @@ interface CaseFormProps {
 const CaseForm = ({ caseId, initialData, onSuccess }: CaseFormProps) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  // const { showSuccess, showError } = useToast();
   const { caseTypes, loading, error } = useAppSelector((state) => state.cases);
   const { contacts } = useAppSelector((state) => state.contacts);
 
@@ -96,8 +98,10 @@ const CaseForm = ({ caseId, initialData, onSuccess }: CaseFormProps) => {
           tags: formData.tags,
         };
         await dispatch(updateCase({ id: caseId, data: updateData })).unwrap();
+        // showSuccess('Case updated successfully');
       } else {
         await dispatch(createCase(formData)).unwrap();
+        // showSuccess('Case created successfully');
       }
 
       if (onSuccess) {
@@ -107,6 +111,7 @@ const CaseForm = ({ caseId, initialData, onSuccess }: CaseFormProps) => {
       }
     } catch (err) {
       console.error('Failed to save case:', err);
+      // showError(isEditMode ? 'Failed to update case. Please try again.' : 'Failed to create case. Please try again.');
     }
   };
 

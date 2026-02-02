@@ -5,7 +5,6 @@
 
 import { Response, NextFunction } from 'express';
 import { EventService } from '../services/eventService';
-import pool from '../config/database';
 import { AuthRequest } from '../middleware/auth';
 import type {
   CreateEventDTO,
@@ -14,10 +13,9 @@ import type {
   UpdateRegistrationDTO,
   EventFilters,
   RegistrationFilters,
-  CheckInDTO,
 } from '../types/event';
 
-const eventService = new EventService(pool);
+const eventService = new EventService();
 
 /**
  * GET /api/events
@@ -32,9 +30,8 @@ export const getEvents = async (
     const filters: EventFilters = {
       event_type: req.query.event_type as any,
       status: req.query.status as any,
-      start_date: req.query.start_date as string,
-      end_date: req.query.end_date as string,
-      organizer_id: req.query.organizer_id as string,
+      start_date: req.query.start_date ? new Date(req.query.start_date as string) : undefined,
+      end_date: req.query.end_date ? new Date(req.query.end_date as string) : undefined,
       search: req.query.search as string,
     };
 
@@ -56,7 +53,7 @@ export const getEvent = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const event = await eventService.getEvent(id);
+    const event = await eventService.getEventById(id);
 
     if (!event) {
       res.status(404).json({ error: 'Event not found' });
@@ -79,12 +76,9 @@ export const createEvent = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const data: CreateEventDTO = {
-      ...req.body,
-      created_by: req.user!.id,
-    };
+    const data: CreateEventDTO = req.body;
 
-    const event = await eventService.createEvent(data);
+    const event = await eventService.createEvent(data, req.user!.id);
     res.status(201).json(event);
   } catch (error) {
     next(error);
@@ -104,7 +98,7 @@ export const updateEvent = async (
     const { id } = req.params;
     const data: UpdateEventDTO = req.body;
 
-    const event = await eventService.updateEvent(id, data);
+    const event = await eventService.updateEvent(id, data, req.user!.id);
 
     if (!event) {
       res.status(404).json({ error: 'Event not found' });
@@ -128,13 +122,7 @@ export const deleteEvent = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const deleted = await eventService.deleteEvent(id);
-
-    if (!deleted) {
-      res.status(404).json({ error: 'Event not found' });
-      return;
-    }
-
+    await eventService.deleteEvent(id, req.user!.id);
     res.status(204).send();
   } catch (error) {
     next(error);
@@ -154,11 +142,11 @@ export const getEventRegistrations = async (
     const { id } = req.params;
 
     const filters: RegistrationFilters = {
-      event_id: id,
-      status: req.query.status as any,
+      registration_status: req.query.status as any,
+      checked_in: req.query.checked_in === 'true' ? true : req.query.checked_in === 'false' ? false : undefined,
     };
 
-    const registrations = await eventService.getRegistrations(filters);
+    const registrations = await eventService.getEventRegistrations(id, filters);
     res.json(registrations);
   } catch (error) {
     next(error);
@@ -182,13 +170,7 @@ export const registerForEvent = async (
       event_id: id,
     };
 
-    const registration = await eventService.createRegistration(data);
-
-    if ('error' in registration) {
-      res.status(400).json({ error: registration.error });
-      return;
-    }
-
+    const registration = await eventService.registerContact(data);
     res.status(201).json(registration);
   } catch (error) {
     next(error);
@@ -233,19 +215,14 @@ export const checkInAttendee = async (
   try {
     const { id } = req.params;
 
-    const data: CheckInDTO = {
-      registration_id: id,
-      checked_in_by: req.user!.id,
-    };
+    const result = await eventService.checkInAttendee(id);
 
-    const registration = await eventService.checkIn(data);
-
-    if (!registration) {
-      res.status(404).json({ error: 'Registration not found' });
+    if (!result.success) {
+      res.status(400).json({ error: result.message });
       return;
     }
 
-    res.json(registration);
+    res.json(result.registration);
   } catch (error) {
     next(error);
   }
@@ -262,13 +239,7 @@ export const cancelRegistration = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const cancelled = await eventService.cancelRegistration(id);
-
-    if (!cancelled) {
-      res.status(404).json({ error: 'Registration not found' });
-      return;
-    }
-
+    await eventService.cancelRegistration(id);
     res.status(204).send();
   } catch (error) {
     next(error);
@@ -286,12 +257,18 @@ export const getAttendanceStats = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const stats = await eventService.getAttendanceStats(id);
 
-    if (!stats) {
-      res.status(404).json({ error: 'Event not found' });
-      return;
-    }
+    // Get registrations for the event
+    const registrations = await eventService.getEventRegistrations(id);
+
+    // Calculate stats
+    const stats = {
+      total_registered: registrations.length,
+      checked_in: registrations.filter(r => r.checked_in).length,
+      attendance_rate: registrations.length > 0
+        ? (registrations.filter(r => r.checked_in).length / registrations.length) * 100
+        : 0,
+    };
 
     res.json(stats);
   } catch (error) {
@@ -301,7 +278,7 @@ export const getAttendanceStats = async (
 
 /**
  * GET /api/events/registrations
- * Get all registrations with optional filtering
+ * Get registrations for a contact
  */
 export const getRegistrations = async (
   req: AuthRequest,
@@ -309,15 +286,14 @@ export const getRegistrations = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const filters: RegistrationFilters = {
-      event_id: req.query.event_id as string,
-      contact_id: req.query.contact_id as string,
-      status: req.query.status as any,
-      start_date: req.query.start_date as string,
-      end_date: req.query.end_date as string,
-    };
+    const contactId = req.query.contact_id as string;
 
-    const registrations = await eventService.getRegistrations(filters);
+    if (!contactId) {
+      res.status(400).json({ error: 'contact_id query parameter is required' });
+      return;
+    }
+
+    const registrations = await eventService.getContactRegistrations(contactId);
     res.json(registrations);
   } catch (error) {
     next(error);
