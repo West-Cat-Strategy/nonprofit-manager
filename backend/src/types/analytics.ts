@@ -150,6 +150,70 @@ export interface ComparativeAnalytics {
   };
 }
 
+/**
+ * Trend analysis point with moving averages
+ */
+export interface TrendDataPoint {
+  period: string;
+  value: number;
+  movingAverage?: number;
+  movingAverage7?: number;
+  movingAverage30?: number;
+}
+
+/**
+ * Trend analysis result
+ */
+export interface TrendAnalysis {
+  metric_name: string;
+  data_points: TrendDataPoint[];
+  trend_direction: 'increasing' | 'decreasing' | 'stable';
+  trend_strength: number; // 0-100, higher means stronger trend
+  velocity: number; // rate of change per period
+  prediction_next_period?: number;
+  analysis_period: {
+    start_date: string;
+    end_date: string;
+    period_count: number;
+  };
+}
+
+/**
+ * Anomaly detection result
+ */
+export interface Anomaly {
+  period: string;
+  value: number;
+  expected_value: number;
+  deviation: number;
+  deviation_percent: number;
+  severity: 'low' | 'medium' | 'high';
+  type: 'spike' | 'drop' | 'unusual_pattern';
+}
+
+/**
+ * Anomaly detection analysis
+ */
+export interface AnomalyDetectionResult {
+  metric_name: string;
+  total_periods: number;
+  anomalies_detected: number;
+  anomalies: Anomaly[];
+  statistical_summary: {
+    mean: number;
+    median: number;
+    std_deviation: number;
+    min: number;
+    max: number;
+    threshold_upper: number;
+    threshold_lower: number;
+  };
+  analysis_period: {
+    start_date: string;
+    end_date: string;
+  };
+}
+
 export default {
   DonationMetrics: {} as DonationMetrics,
   EventMetrics: {} as EventMetrics,

@@ -18,6 +18,8 @@ import {
   getVolunteerHoursTrends,
   getEventAttendanceTrends,
   getComparativeAnalytics,
+  getTrendAnalysis,
+  detectAnomalies,
 } from '../controllers/analyticsController';
 import { authenticate } from '../middleware/auth';
 
@@ -123,6 +125,35 @@ router.get(
   '/comparative',
   [query('period').optional().isIn(['month', 'quarter', 'year'])],
   getComparativeAnalytics
+);
+
+/**
+ * GET /api/analytics/trends/:metricType
+ * Get trend analysis with moving averages
+ * Supported metric types: donations, volunteer_hours, event_attendance
+ */
+router.get(
+  '/trends/:metricType',
+  [
+    param('metricType').isIn(['donations', 'volunteer_hours', 'event_attendance']),
+    query('months').optional().isInt({ min: 1, max: 36 }),
+  ],
+  getTrendAnalysis
+);
+
+/**
+ * GET /api/analytics/anomalies/:metricType
+ * Detect anomalies using statistical analysis
+ * Supported metric types: donations, volunteer_hours, event_attendance
+ */
+router.get(
+  '/anomalies/:metricType',
+  [
+    param('metricType').isIn(['donations', 'volunteer_hours', 'event_attendance']),
+    query('months').optional().isInt({ min: 3, max: 36 }),
+    query('sensitivity').optional().isFloat({ min: 1.0, max: 4.0 }),
+  ],
+  detectAnomalies
 );
 
 export default router;

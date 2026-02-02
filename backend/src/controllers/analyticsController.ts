@@ -254,6 +254,72 @@ export const getComparativeAnalytics = async (
   }
 };
 
+/**
+ * GET /api/analytics/trends/:metricType
+ * Get trend analysis with moving averages for a metric
+ */
+export const getTrendAnalysis = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { metricType } = req.params as { metricType: 'donations' | 'volunteer_hours' | 'event_attendance' };
+    const months = parseInt(req.query.months as string) || 12;
+
+    if (!['donations', 'volunteer_hours', 'event_attendance'].includes(metricType)) {
+      res.status(400).json({ error: 'Invalid metric type. Must be donations, volunteer_hours, or event_attendance' });
+      return;
+    }
+
+    if (months < 1 || months > 36) {
+      res.status(400).json({ error: 'Months must be between 1 and 36' });
+      return;
+    }
+
+    const analysis = await analyticsService.getTrendAnalysis(metricType, months);
+    res.json(analysis);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/analytics/anomalies/:metricType
+ * Detect anomalies in metric data using statistical methods
+ */
+export const detectAnomalies = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { metricType } = req.params as { metricType: 'donations' | 'volunteer_hours' | 'event_attendance' };
+    const months = parseInt(req.query.months as string) || 12;
+    const sensitivity = parseFloat(req.query.sensitivity as string) || 2.0;
+
+    if (!['donations', 'volunteer_hours', 'event_attendance'].includes(metricType)) {
+      res.status(400).json({ error: 'Invalid metric type. Must be donations, volunteer_hours, or event_attendance' });
+      return;
+    }
+
+    if (months < 3 || months > 36) {
+      res.status(400).json({ error: 'Months must be between 3 and 36 for anomaly detection' });
+      return;
+    }
+
+    if (sensitivity < 1.0 || sensitivity > 4.0) {
+      res.status(400).json({ error: 'Sensitivity must be between 1.0 (very sensitive) and 4.0 (less sensitive)' });
+      return;
+    }
+
+    const result = await analyticsService.detectAnomalies(metricType, months, sensitivity);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export default {
   getAccountAnalytics,
   getContactAnalytics,
@@ -267,4 +333,6 @@ export default {
   getVolunteerHoursTrends,
   getEventAttendanceTrends,
   getComparativeAnalytics,
+  getTrendAnalysis,
+  detectAnomalies,
 };
