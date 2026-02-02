@@ -1,0 +1,151 @@
+/**
+ * Template Preview Page
+ * Displays a live preview of a template
+ */
+
+import React, { useEffect, useState, useRef } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../store';
+
+const TemplatePreview: React.FC = () => {
+  const { templateId } = useParams<{ templateId: string }>();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const pageSlug = searchParams.get('page') || 'home';
+
+  const { token } = useSelector((state: RootState) => state.auth);
+  const [previewHtml, setPreviewHtml] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    const fetchPreview = async () => {
+      if (!templateId || !token) {
+        setError('Missing template ID or authentication');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+        const url = `${baseUrl}/api/templates/${templateId}/preview?page=${encodeURIComponent(pageSlug)}`;
+
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch preview');
+        }
+
+        const html = await response.text();
+        setPreviewHtml(html);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load preview');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPreview();
+  }, [templateId, pageSlug, token]);
+
+  // Inject HTML into iframe when preview HTML changes
+  useEffect(() => {
+    if (previewHtml && iframeRef.current) {
+      const iframe = iframeRef.current;
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (doc) {
+        doc.open();
+        doc.write(previewHtml);
+        doc.close();
+      }
+    }
+  }, [previewHtml]);
+
+  const handleClose = () => {
+    navigate('/website-builder');
+  };
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
+          <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 text-center mb-2">Preview Error</h2>
+          <p className="text-gray-600 text-center mb-6">{error}</p>
+          <button
+            type="button"
+            onClick={handleClose}
+            className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Back to Templates
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-gray-900 flex flex-col">
+      {/* Header */}
+      <div className="bg-gray-800 border-b border-gray-700 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="text-gray-300 hover:text-white transition-colors"
+            title="Close Preview"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <div className="text-white">
+            <h1 className="text-lg font-semibold">Template Preview</h1>
+            <p className="text-sm text-gray-400">Page: {pageSlug}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-400">Preview Mode</span>
+          <button
+            type="button"
+            onClick={handleClose}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Exit Preview
+          </button>
+        </div>
+      </div>
+
+      {/* Preview Frame */}
+      <div className="flex-1 bg-white overflow-hidden">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        ) : (
+          <iframe
+            ref={iframeRef}
+            title="Template Preview"
+            className="w-full h-full border-0"
+            sandbox="allow-scripts allow-same-origin allow-popups"
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default TemplatePreview;

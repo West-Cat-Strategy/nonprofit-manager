@@ -1,0 +1,21 @@
+{
+  "name": "nonprofit-manager-e2e",
+  "version": "1.0.0",
+  "description": "End-to-end tests for Nonprofit Manager",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "test:report": "playwright show-report",
+    "test:codegen": "playwright codegen http://localhost:5173"
+  },
+  "keywords": ["e2e", "testing", "playwright"],
+  "author": "Bryan Crockett",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.10.0",
+    "dotenv": "^16.3.1"
+  }
+}
