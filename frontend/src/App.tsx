@@ -70,6 +70,7 @@ const SavedReports = lazy(() => import('./pages/SavedReports'));
 // Settings and Integration pages
 const EmailMarketing = lazy(() => import('./pages/EmailMarketing'));
 const ApiSettings = lazy(() => import('./pages/ApiSettings'));
+const NavigationSettings = lazy(() => import('./pages/NavigationSettings'));
 
 // Website Builder pages
 const TemplateGallery = lazy(() => import('./pages/TemplateGallery'));
@@ -458,6 +459,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute isAuthenticated={isAuthenticated}>
             <ApiSettings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings/navigation"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <NavigationSettings />
           </ProtectedRoute>
         }
       />
