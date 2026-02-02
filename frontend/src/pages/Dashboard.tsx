@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchAnalyticsSummary } from '../store/slices/analyticsSlice';
 import { fetchCases, selectActiveCases, selectUrgentCases, selectCasesDueThisWeek } from '../store/slices/casesSlice';
 import VolunteerWidget from '../components/VolunteerWidget';
+import QuickLookupWidget from '../components/dashboard/QuickLookupWidget';
 
 /**
  * Format currency values
@@ -166,6 +167,11 @@ export default function Dashboard() {
               </svg>
               <span>Customize Dashboard</span>
             </Link>
+          </div>
+
+          {/* Quick Lookup Section */}
+          <div className="mb-6">
+            <QuickLookupWidget />
           </div>
 
           {/* KPI Cards Section */}
