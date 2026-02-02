@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAppSelector } from './store/hooks';
+import { useSetupCheck } from './hooks/useSetupCheck';
+import Layout from './components/Layout';
 import './App.css';
 
 // Loading component for Suspense fallback
@@ -14,8 +16,10 @@ const PageLoader = () => (
 );
 
 // Lazy load all page components for code splitting
+const Setup = lazy(() => import('./pages/Setup'));
 const Login = lazy(() => import('./pages/Login'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const CustomDashboard = lazy(() => import('./pages/CustomDashboard'));
 
 // Account pages
 const AccountList = lazy(() => import('./pages/AccountList'));
@@ -91,378 +95,413 @@ const ProtectedRoute = ({ children, isAuthenticated }: ProtectedRouteProps) => {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  return <>{children}</>;
+  return <Layout>{children}</Layout>;
+};
+
+// AppRoutes component with setup check logic
+const AppRoutes = () => {
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const { setupRequired, loading } = useSetupCheck();
+  const location = useLocation();
+
+  // Show loader while checking setup status
+  if (loading) {
+    return <PageLoader />;
+  }
+
+  // Redirect to setup if required and not already on setup page
+  if (setupRequired && location.pathname !== '/setup') {
+    // Clear any old tokens before redirecting to setup
+    localStorage.removeItem('token');
+    return <Navigate to="/setup" replace />;
+  }
+
+  // Redirect to login if setup is complete but user tries to access setup page
+  if (!setupRequired && location.pathname === '/setup') {
+    return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <Routes>
+      <Route path="/setup" element={<Setup />} />
+      <Route path="/login" element={<Login />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/custom"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <CustomDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/accounts"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <AccountList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/accounts/new"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <AccountCreate />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/accounts/:id/edit"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <AccountEdit />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/accounts/:id"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <AccountDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/contacts"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <ContactList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/contacts/new"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <ContactCreate />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/contacts/:id/edit"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <ContactEdit />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/contacts/:id"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <ContactDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/volunteers"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <VolunteerList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/volunteers/new"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <VolunteerCreate />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/volunteers/:id/edit"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <VolunteerEdit />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/volunteers/:volunteerId/assignments/new"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <AssignmentCreate />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/volunteers/:volunteerId/assignments/:assignmentId/edit"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <AssignmentEdit />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/volunteers/:id"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <VolunteerDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/events"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <EventList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/events/calendar"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <EventCalendarPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/events/new"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <EventCreate />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/events/:id/edit"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <EventEdit />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/events/:id"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <EventDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/donations"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <DonationList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/donations/new"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <DonationCreate />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/donations/:id/edit"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <DonationEdit />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/donations/:id"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <DonationDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/donations/payment"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <DonationPayment />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/donations/payment-result"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <PaymentResult />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reconciliation"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <ReconciliationDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/cases"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <CaseList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/cases/new"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <CaseCreate />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/cases/:id/edit"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <CaseEdit />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/cases/:id"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <CaseDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tasks"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <TaskList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tasks/new"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <TaskCreate />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tasks/:id/edit"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <TaskEdit />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tasks/:id"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <TaskDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/analytics"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <Analytics />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports/builder"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <ReportBuilder />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports/saved"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <SavedReports />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <Navigate to="/reports/builder" replace />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings/email-marketing"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <EmailMarketing />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings/api"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <ApiSettings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/website-builder"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <TemplateGallery />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/website-builder/:templateId/preview"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <TemplatePreview />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/website-builder/:templateId"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <PageEditor />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/"
+        element={
+          isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
+        }
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 };
 
 function App() {
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
-
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">
         <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/accounts"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <AccountList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/accounts/new"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <AccountCreate />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/accounts/:id/edit"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <AccountEdit />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/accounts/:id"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <AccountDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/contacts"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <ContactList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/contacts/new"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <ContactCreate />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/contacts/:id/edit"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <ContactEdit />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/contacts/:id"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <ContactDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/volunteers"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <VolunteerList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/volunteers/new"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <VolunteerCreate />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/volunteers/:id/edit"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <VolunteerEdit />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/volunteers/:volunteerId/assignments/new"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <AssignmentCreate />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/volunteers/:volunteerId/assignments/:assignmentId/edit"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <AssignmentEdit />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/volunteers/:id"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <VolunteerDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/events"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <EventList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/events/calendar"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <EventCalendarPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/events/new"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <EventCreate />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/events/:id/edit"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <EventEdit />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/events/:id"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <EventDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/donations"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <DonationList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/donations/new"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <DonationCreate />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/donations/:id/edit"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <DonationEdit />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/donations/:id"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <DonationDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/donations/payment"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <DonationPayment />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/donations/payment-result"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <PaymentResult />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reconciliation"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <ReconciliationDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/cases"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <CaseList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/cases/new"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <CaseCreate />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/cases/:id/edit"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <CaseEdit />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/cases/:id"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <CaseDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/tasks"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <TaskList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/tasks/new"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <TaskCreate />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/tasks/:id/edit"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <TaskEdit />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/tasks/:id"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <TaskDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/analytics"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <Analytics />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reports/builder"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <ReportBuilder />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reports/saved"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <SavedReports />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reports"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <Navigate to="/reports/builder" replace />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings/email-marketing"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <EmailMarketing />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings/api"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <ApiSettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/website-builder"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <TemplateGallery />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/website-builder/:templateId/preview"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <TemplatePreview />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/website-builder/:templateId"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <PageEditor />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/"
-              element={
-                isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
-              }
-            />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <AppRoutes />
         </Suspense>
       </div>
     </Router>

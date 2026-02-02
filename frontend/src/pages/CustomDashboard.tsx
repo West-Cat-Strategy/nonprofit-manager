@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   fetchDashboards,
+  createDashboard,
   setEditMode,
   updateLayout,
   saveDashboardLayout,
@@ -15,10 +16,8 @@ import {
   resetToDefault,
 } from '../store/slices/dashboardSlice';
 import GridLayout, { type Layout } from 'react-grid-layout';
-import 'react-grid-layout/css/styles.css';
-import 'react-grid-layout/css/resizable.css';
 import type { DashboardWidget, WidgetType } from '../types/dashboard';
-import { WIDGET_TEMPLATES } from '../types/dashboard';
+import { WIDGET_TEMPLATES, DEFAULT_DASHBOARD_CONFIG } from '../types/dashboard';
 
 // Widget components (will be created separately)
 import DonationSummaryWidget from '../components/dashboard/DonationSummaryWidget';
@@ -28,17 +27,55 @@ import VolunteerHoursWidget from '../components/dashboard/VolunteerHoursWidget';
 import EventAttendanceWidget from '../components/dashboard/EventAttendanceWidget';
 import QuickActionsWidget from '../components/dashboard/QuickActionsWidget';
 import CaseSummaryWidget from '../components/dashboard/CaseSummaryWidget';
+import MyCasesWidget from '../components/dashboard/MyCasesWidget';
 import ActivityFeedWidget from '../components/dashboard/ActivityFeedWidget';
 import PlausibleStatsWidget from '../components/dashboard/PlausibleStatsWidget';
 
 const CustomDashboard = () => {
   const dispatch = useAppDispatch();
   const { currentDashboard, loading, saving, editMode } = useAppSelector((state) => state.dashboard);
+  const { user } = useAppSelector((state) => state.auth);
   const [showAddWidget, setShowAddWidget] = useState(false);
+  const [creatingDefault, setCreatingDefault] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchDashboards());
-  }, [dispatch]);
+    const initializeDashboard = async () => {
+      try {
+        console.log('[CustomDashboard] Fetching dashboards for user:', user?.id);
+        const result = await dispatch(fetchDashboards()).unwrap();
+        console.log('[CustomDashboard] Fetched dashboards:', result);
+
+        // If no dashboards exist, create a default one
+        if (Array.isArray(result) && result.length === 0 && user) {
+          console.log('[CustomDashboard] No dashboards found, creating default...');
+          setCreatingDefault(true);
+          const newDashboard = await dispatch(createDashboard({
+            user_id: user.id,
+            name: 'My Dashboard',
+            is_default: true,
+            widgets: DEFAULT_DASHBOARD_CONFIG.widgets,
+            layout: DEFAULT_DASHBOARD_CONFIG.layout,
+            breakpoints: DEFAULT_DASHBOARD_CONFIG.breakpoints,
+            cols: DEFAULT_DASHBOARD_CONFIG.cols,
+          })).unwrap();
+          console.log('[CustomDashboard] Created dashboard:', newDashboard);
+          // Refetch to get the newly created dashboard
+          await dispatch(fetchDashboards()).unwrap();
+          setCreatingDefault(false);
+        }
+      } catch (error) {
+        console.error('[CustomDashboard] Failed to initialize dashboard:', error);
+        setCreatingDefault(false);
+      }
+    };
+
+    if (user) {
+      console.log('[CustomDashboard] User available, initializing...');
+      initializeDashboard();
+    } else {
+      console.log('[CustomDashboard] Waiting for user...');
+    }
+  }, [dispatch, user]);
 
   const handleLayoutChange = (layout: Layout[]) => {
     if (editMode && currentDashboard) {
@@ -137,6 +174,8 @@ const CustomDashboard = () => {
         return <QuickActionsWidget {...commonProps} />;
       case 'case_summary':
         return <CaseSummaryWidget {...commonProps} />;
+      case 'my_cases':
+        return <MyCasesWidget {...commonProps} />;
       case 'activity_feed':
         return <ActivityFeedWidget {...commonProps} />;
       case 'plausible_stats':
@@ -146,10 +185,15 @@ const CustomDashboard = () => {
     }
   };
 
-  if (loading || !currentDashboard) {
+  if (loading || creatingDefault || !currentDashboard) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading dashboard...</div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="text-gray-500">
+            {creatingDefault ? 'Creating your dashboard...' : 'Loading dashboard...'}
+          </div>
+        </div>
       </div>
     );
   }
@@ -215,8 +259,9 @@ const CustomDashboard = () => {
         width={1200}
         isDraggable={editMode}
         isResizable={editMode}
-        onLayoutChange={handleLayoutChange as any}
+        onLayoutChange={(layout) => handleLayoutChange(layout as unknown as Layout[])}
         draggableHandle=".drag-handle"
+        {...({} as any)}
       >
         {currentDashboard.widgets.map((widget) => (
           <div

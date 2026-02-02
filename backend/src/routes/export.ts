@@ -13,13 +13,13 @@ import {
   exportComprehensive,
 } from '../controllers/exportController';
 import { authenticate } from '../middleware/auth';
-import { checkAnalyticsPermission } from '../middleware/analyticsAuth';
+import { requireExportPermission } from '../middleware/analyticsAuth';
 
 const router = Router();
 
-// All routes require authentication and analytics permissions
+// All routes require authentication and export permissions
 router.use(authenticate);
-router.use(checkAnalyticsPermission);
+router.use(requireExportPermission);
 
 /**
  * POST /api/export/analytics-summary
