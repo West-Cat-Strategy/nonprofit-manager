@@ -7,6 +7,7 @@ import type { Response, NextFunction } from 'express';
 import type { AuthRequest } from '../middleware/auth';
 import activityService from '../services/activityService';
 import { logger } from '../config/logger';
+import { PAGINATION, HTTP_STATUS } from '../config/constants';
 
 /**
  * Get recent activities
@@ -18,12 +19,12 @@ export const getRecentActivities = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limit = parseInt(req.query.limit as string) || PAGINATION.ACTIVITY_DEFAULT_LIMIT;
 
     // Validate limit
-    if (limit < 1 || limit > 50) {
-      return res.status(400).json({
-        error: 'Limit must be between 1 and 50',
+    if (limit < PAGINATION.MIN_LIMIT || limit > PAGINATION.ACTIVITY_MAX_LIMIT) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        error: `Limit must be between ${PAGINATION.MIN_LIMIT} and ${PAGINATION.ACTIVITY_MAX_LIMIT}`,
       });
     }
 
@@ -54,7 +55,7 @@ export const getEntityActivities = async (
     // Validate entity type
     const validTypes = ['case', 'donation', 'volunteer', 'event', 'contact'];
     if (!validTypes.includes(entityType)) {
-      return res.status(400).json({
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
         error: 'Invalid entity type',
       });
     }

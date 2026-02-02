@@ -3,6 +3,8 @@
  * Used for caching analytics query results
  */
 
+import { CACHE } from '../config/constants';
+
 interface CacheEntry<T> {
   value: T;
   expiresAt: number;
@@ -16,12 +18,12 @@ export class Cache<T = any> {
    * Create a new cache instance
    * @param defaultTTL - Default time-to-live in seconds (default: 300 = 5 minutes)
    */
-  constructor(defaultTTL: number = 300) {
+  constructor(defaultTTL: number = CACHE.DEFAULT_TTL) {
     this.cache = new Map();
     this.defaultTTL = defaultTTL * 1000; // Convert to milliseconds
 
     // Clean up expired entries every minute
-    setInterval(() => this.cleanup(), 60000);
+    setInterval(() => this.cleanup(), CACHE.CLEANUP_INTERVAL_MS);
   }
 
   /**
@@ -154,13 +156,13 @@ export function createCacheKey(...parts: (string | number | boolean | undefined)
  * Global analytics cache instance
  * 5 minute TTL for analytics queries
  */
-export const analyticsCache = new Cache(300);
+export const analyticsCache = new Cache(CACHE.ANALYTICS_TTL);
 
 /**
  * Global dashboard cache instance
  * 1 minute TTL for dashboard data (more frequent updates)
  */
-export const dashboardCache = new Cache(60);
+export const dashboardCache = new Cache(CACHE.DASHBOARD_TTL);
 
 /**
  * Invalidate analytics cache for a specific user

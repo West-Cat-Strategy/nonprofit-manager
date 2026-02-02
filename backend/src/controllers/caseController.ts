@@ -3,6 +3,7 @@ import type { AuthRequest } from '../middleware/auth';
 import * as caseService from '../services/caseService';
 import type { CreateCaseDTO, UpdateCaseDTO, CaseFilter, CreateCaseNoteDTO, UpdateCaseStatusDTO } from '../types/case';
 import { logger } from '../config/logger';
+import { PAGINATION } from '../config/constants';
 
 export const createCase = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -20,7 +21,7 @@ export const getCases = async (req: AuthRequest, res: Response): Promise<void> =
   try {
     const filter = req.query as CaseFilter;
     const { cases, total } = await caseService.getCases(filter);
-    res.json({ cases, total, pagination: { page: parseInt(String(filter.page || 1)), limit: parseInt(String(filter.limit || 20)) } });
+    res.json({ cases, total, pagination: { page: parseInt(String(filter.page || 1)), limit: parseInt(String(filter.limit || PAGINATION.DEFAULT_LIMIT)) } });
   } catch (error) {
     logger.error('Error fetching cases:', error);
     res.status(500).json({ error: 'Failed to fetch cases' });

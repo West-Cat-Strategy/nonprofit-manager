@@ -1,5 +1,6 @@
 import { Pool, PoolConfig } from 'pg';
 import { logger } from './logger';
+import { DATABASE } from './constants';
 
 const config: PoolConfig = {
   host: process.env.DB_HOST || 'localhost',
@@ -7,9 +8,9 @@ const config: PoolConfig = {
   database: process.env.DB_NAME || 'nonprofit_manager',
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  max: DATABASE.POOL_MAX_CONNECTIONS,
+  idleTimeoutMillis: DATABASE.IDLE_TIMEOUT_MS,
+  connectionTimeoutMillis: DATABASE.CONNECTION_TIMEOUT_MS,
 };
 
 const pool = new Pool(config);

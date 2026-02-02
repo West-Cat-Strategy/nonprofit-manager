@@ -6,6 +6,7 @@ import pool from '../config/database';
 import { logger } from '../config/logger';
 import { AuthRequest } from '../middleware/auth';
 import { trackLoginAttempt } from '../middleware/accountLockout';
+import { JWT, PASSWORD } from '../config/constants';
 
 interface RegisterRequest {
   email: string;
@@ -64,7 +65,7 @@ export const register = async (
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, PASSWORD.BCRYPT_SALT_ROUNDS);
 
     // Create user
     const result = await pool.query<UserRow>(
@@ -85,7 +86,7 @@ export const register = async (
         role: user.role,
       },
       jwtSecret,
-      { expiresIn: '24h' }
+      { expiresIn: JWT.ACCESS_TOKEN_EXPIRY }
     );
 
     logger.info(`User registered: ${user.email}`);
@@ -155,7 +156,7 @@ export const login = async (
         role: user.role,
       },
       jwtSecret,
-      { expiresIn: '24h' }
+      { expiresIn: JWT.ACCESS_TOKEN_EXPIRY }
     );
 
     // Generate refresh token (for future use)
@@ -294,7 +295,7 @@ export const setupFirstUser = async (
         role: user.role,
       },
       jwtSecret,
-      { expiresIn: '24h' }
+      { expiresIn: JWT.ACCESS_TOKEN_EXPIRY }
     );
 
     logger.info(`First admin user created: ${email}`);

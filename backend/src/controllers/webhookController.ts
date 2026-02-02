@@ -14,6 +14,7 @@ import type {
   CreateApiKeyRequest,
   UpdateApiKeyRequest,
 } from '../types/webhook';
+import { PAGINATION } from '../config/constants';
 
 // ==================== Webhook Endpoints ====================
 
@@ -222,7 +223,7 @@ export const getWebhookDeliveries = async (req: AuthRequest, res: Response): Pro
     }
 
     const { id } = req.params;
-    const limit = parseInt(req.query.limit as string) || 50;
+    const limit = parseInt(req.query.limit as string) || PAGINATION.WEBHOOK_DEFAULT_LIMIT;
 
     const deliveries = await webhookService.getWebhookDeliveries(id, userId, limit);
     res.json(deliveries);
@@ -448,7 +449,7 @@ export const getApiKeyUsage = async (req: AuthRequest, res: Response): Promise<v
     }
 
     const { id } = req.params;
-    const limit = parseInt(req.query.limit as string) || 100;
+    const limit = parseInt(req.query.limit as string) || PAGINATION.WEBHOOK_DELIVERY_DEFAULT_LIMIT;
 
     const usage = await apiKeyService.getApiKeyUsage(id, userId, limit);
     res.json(usage);
