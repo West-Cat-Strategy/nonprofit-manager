@@ -1,5 +1,6 @@
 import rateLimit from 'express-rate-limit';
 import { Request } from 'express';
+import { RATE_LIMIT, ERROR_MESSAGES, HTTP_STATUS } from '../config/constants';
 
 interface RateLimitRequest extends Request {
   rateLimit?: {
@@ -12,14 +13,14 @@ const isTestEnv = process.env.NODE_ENV === 'test';
 
 // General API rate limiter
 export const apiLimiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-  max: isTestEnv ? 10000 : parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'), // 100 requests per window
-  message: 'Too many requests from this IP, please try again later.',
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || String(RATE_LIMIT.WINDOW_MS)),
+  max: isTestEnv ? 10000 : parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || String(RATE_LIMIT.MAX_REQUESTS)),
+  message: ERROR_MESSAGES.TOO_MANY_REQUESTS,
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   handler: (req, res) => {
     const rateLimitReq = req as RateLimitRequest;
-    res.status(429).json({
+    res.status(HTTP_STATUS.TOO_MANY_REQUESTS).json({
       error: 'Too many requests',
       message: 'You have exceeded the rate limit. Please try again later.',
       retryAfter: rateLimitReq.rateLimit?.resetTime,
@@ -29,18 +30,17 @@ export const apiLimiter = rateLimit({
 
 // Strict rate limiter for authentication endpoints
 export const authLimiter = rateLimit({
-  windowMs: parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-  max: isTestEnv ? 10000 : parseInt(process.env.AUTH_RATE_LIMIT_MAX_REQUESTS || '5'), // 5 login attempts per window
+  windowMs: parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS || String(RATE_LIMIT.AUTH_WINDOW_MS)),
+  max: isTestEnv ? 10000 : parseInt(process.env.AUTH_RATE_LIMIT_MAX_REQUESTS || String(RATE_LIMIT.AUTH_MAX_ATTEMPTS)),
   skipSuccessfulRequests: true, // Don't count successful requests
-  message: 'Too many login attempts, please try again later.',
+  message: ERROR_MESSAGES.TOO_MANY_LOGIN_ATTEMPTS,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
     const rateLimitReq = req as RateLimitRequest;
-    res.status(429).json({
+    res.status(HTTP_STATUS.TOO_MANY_REQUESTS).json({
       error: 'Too many login attempts',
-      message:
-        'Account temporarily locked due to too many failed login attempts. Please try again in 15 minutes.',
+      message: ERROR_MESSAGES.TOO_MANY_LOGIN_ATTEMPTS,
       retryAfter: rateLimitReq.rateLimit?.resetTime,
     });
   },
@@ -48,17 +48,17 @@ export const authLimiter = rateLimit({
 
 // Rate limiter for password reset endpoints
 export const passwordResetLimiter = rateLimit({
-  windowMs: 3600000, // 1 hour
-  max: 3, // 3 requests per hour
+  windowMs: RATE_LIMIT.PASSWORD_RESET_WINDOW_MS,
+  max: RATE_LIMIT.PASSWORD_RESET_MAX_ATTEMPTS,
   skipSuccessfulRequests: false,
-  message: 'Too many password reset requests.',
+  message: ERROR_MESSAGES.TOO_MANY_PASSWORD_RESETS,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
     const rateLimitReq = req as RateLimitRequest;
-    res.status(429).json({
+    res.status(HTTP_STATUS.TOO_MANY_REQUESTS).json({
       error: 'Too many password reset requests',
-      message: 'Please wait before requesting another password reset.',
+      message: ERROR_MESSAGES.TOO_MANY_PASSWORD_RESETS,
       retryAfter: rateLimitReq.rateLimit?.resetTime,
     });
   },
@@ -66,17 +66,17 @@ export const passwordResetLimiter = rateLimit({
 
 // Rate limiter for registration endpoint
 export const registrationLimiter = rateLimit({
-  windowMs: 3600000, // 1 hour
-  max: 5, // 5 registrations per IP per hour
+  windowMs: RATE_LIMIT.REGISTRATION_WINDOW_MS,
+  max: RATE_LIMIT.REGISTRATION_MAX_ATTEMPTS,
   skipSuccessfulRequests: false,
-  message: 'Too many accounts created from this IP.',
+  message: ERROR_MESSAGES.TOO_MANY_REGISTRATIONS,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
     const rateLimitReq = req as RateLimitRequest;
-    res.status(429).json({
+    res.status(HTTP_STATUS.TOO_MANY_REQUESTS).json({
       error: 'Too many registration attempts',
-      message: 'Too many accounts created from this IP address. Please try again later.',
+      message: ERROR_MESSAGES.TOO_MANY_REGISTRATIONS,
       retryAfter: rateLimitReq.rateLimit?.resetTime,
     });
   },
