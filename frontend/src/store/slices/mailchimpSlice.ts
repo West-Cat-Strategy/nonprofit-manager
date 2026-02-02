@@ -16,6 +16,7 @@ import type {
   BulkSyncRequest,
   BulkSyncResponse,
   SyncResult,
+  CreateCampaignRequest,
 } from '../../types/mailchimp';
 
 const initialState: MailchimpState = {
@@ -160,6 +161,37 @@ export const bulkSyncContacts = createAsyncThunk<BulkSyncResponse, BulkSyncReque
   }
 );
 
+/**
+ * Create a new campaign
+ */
+export const createCampaign = createAsyncThunk<MailchimpCampaign, CreateCampaignRequest>(
+  'mailchimp/createCampaign',
+  async (data, { rejectWithValue }) => {
+    try {
+      const response = await api.post('/mailchimp/campaigns', data);
+      return response.data;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to create campaign';
+      return rejectWithValue(message);
+    }
+  }
+);
+
+/**
+ * Send a campaign immediately
+ */
+export const sendCampaign = createAsyncThunk<void, string>(
+  'mailchimp/sendCampaign',
+  async (campaignId, { rejectWithValue }) => {
+    try {
+      await api.post(`/mailchimp/campaigns/${campaignId}/send`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to send campaign';
+      return rejectWithValue(message);
+    }
+  }
+);
+
 const mailchimpSlice = createSlice({
   name: 'mailchimp',
   initialState,
@@ -297,6 +329,35 @@ const mailchimpSlice = createSlice({
       })
       .addCase(bulkSyncContacts.rejected, (state, action) => {
         state.isSyncing = false;
+        state.error = action.payload as string;
+      });
+
+    // Create campaign
+    builder
+      .addCase(createCampaign.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(createCampaign.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.campaigns.unshift(action.payload);
+      })
+      .addCase(createCampaign.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
+
+    // Send campaign
+    builder
+      .addCase(sendCampaign.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(sendCampaign.fulfilled, (state) => {
+        state.isLoading = false;
+      })
+      .addCase(sendCampaign.rejected, (state, action) => {
+        state.isLoading = false;
         state.error = action.payload as string;
       });
   },

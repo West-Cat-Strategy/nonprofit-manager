@@ -129,6 +129,22 @@ export interface BulkSyncResponse {
 }
 
 /**
+ * Request to create a campaign
+ */
+export interface CreateCampaignRequest {
+  listId: string;
+  title: string;
+  subject: string;
+  previewText?: string;
+  fromName: string;
+  replyTo: string;
+  htmlContent?: string;
+  plainTextContent?: string;
+  segmentId?: number;
+  sendTime?: string;
+}
+
+/**
  * Mailchimp state for Redux
  */
 export interface MailchimpState {
