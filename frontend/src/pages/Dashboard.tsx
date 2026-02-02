@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { logout } from '../store/slices/authSlice';
 import { fetchAnalyticsSummary } from '../store/slices/analyticsSlice';
+import { fetchCases, selectActiveCases, selectUrgentCases, selectCasesDueThisWeek } from '../store/slices/casesSlice';
 import VolunteerWidget from '../components/VolunteerWidget';
 
 /**
@@ -135,45 +135,39 @@ function EngagementChart({ distribution }: EngagementChartProps) {
 }
 
 export default function Dashboard() {
-  const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state) => state.auth);
   const { summary, summaryLoading, error } = useAppSelector((state) => state.analytics);
+
+  // Get case metrics
+  const activeCases = useAppSelector(selectActiveCases);
+  const urgentCases = useAppSelector(selectUrgentCases);
+  const casesDueThisWeek = useAppSelector(selectCasesDueThisWeek);
 
   useEffect(() => {
     dispatch(fetchAnalyticsSummary());
+    dispatch(fetchCases({}));
   }, [dispatch]);
 
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate('/login');
-  };
-
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">Nonprofit Manager</h1>
+    <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <div className="px-4 py-6 sm:px-0">
+          {/* Dashboard Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+              <p className="text-sm text-gray-500 mt-1">Overview of your organization's key metrics</p>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700">
-                {user?.firstName} {user?.lastName}
-              </span>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
-              >
-                Logout
-              </button>
-            </div>
+            <Link
+              to="/dashboard/custom"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
+              </svg>
+              <span>Customize Dashboard</span>
+            </Link>
           </div>
-        </div>
-      </nav>
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
           {/* KPI Cards Section */}
           <div className="mb-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Key Metrics (YTD)</h2>
@@ -211,6 +205,12 @@ export default function Dashboard() {
                   value={formatNumber(summary.active_contacts)}
                   subtitle={`${summary.total_contacts} total`}
                   color="teal"
+                />
+                <KPICard
+                  title="Active Cases"
+                  value={activeCases.length}
+                  subtitle={urgentCases.length > 0 ? `${urgentCases.length} urgent, ${casesDueThisWeek.length} due this week` : `${casesDueThisWeek.length} due this week`}
+                  color="red"
                 />
                 <KPICard
                   title="Volunteers"
@@ -258,9 +258,9 @@ export default function Dashboard() {
             <h2 className="text-xl font-bold text-gray-900 mb-4">Modules</h2>
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              <button
-                onClick={() => navigate('/accounts')}
-                className="bg-yellow-50 overflow-hidden shadow rounded-lg hover:shadow-md transition cursor-pointer text-left"
+              <Link
+                to="/accounts"
+                className="bg-yellow-50 overflow-hidden shadow rounded-lg hover:shadow-md transition cursor-pointer text-left block"
               >
                 <div className="p-5">
                   <div className="flex items-center">
@@ -277,10 +277,10 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-              </button>
+              </Link>
 
-              <button
-                onClick={() => navigate('/contacts')}
+              <Link
+                to="/contacts"
                 className="bg-teal-50 overflow-hidden shadow rounded-lg hover:shadow-md transition cursor-pointer text-left"
               >
                 <div className="p-5">
@@ -296,10 +296,10 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-              </button>
+              </Link>
 
-              <button
-                onClick={() => navigate('/volunteers')}
+              <Link
+                to="/volunteers"
                 className="bg-blue-50 overflow-hidden shadow rounded-lg hover:shadow-md transition cursor-pointer text-left"
               >
                 <div className="p-5">
@@ -318,10 +318,10 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-              </button>
+              </Link>
 
-              <button
-                onClick={() => navigate('/events')}
+              <Link
+                to="/events"
                 className="bg-green-50 overflow-hidden shadow rounded-lg hover:shadow-md transition cursor-pointer text-left"
               >
                 <div className="p-5">
@@ -337,10 +337,10 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-              </button>
+              </Link>
 
-              <button
-                onClick={() => navigate('/donations')}
+              <Link
+                to="/donations"
                 className="bg-purple-50 overflow-hidden shadow rounded-lg hover:shadow-md transition cursor-pointer text-left"
               >
                 <div className="p-5">
@@ -356,10 +356,10 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-              </button>
+              </Link>
 
-              <button
-                onClick={() => navigate('/tasks')}
+              <Link
+                to="/tasks"
                 className="bg-red-50 overflow-hidden shadow rounded-lg hover:shadow-md transition cursor-pointer text-left"
               >
                 <div className="p-5">
@@ -370,10 +370,10 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-              </button>
+              </Link>
 
-              <button
-                onClick={() => navigate('/analytics')}
+              <Link
+                to="/analytics"
                 className="bg-indigo-50 overflow-hidden shadow rounded-lg hover:shadow-md transition cursor-pointer text-left"
               >
                 <div className="p-5">
@@ -384,11 +384,10 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-              </button>
+              </Link>
             </div>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
   );
 }

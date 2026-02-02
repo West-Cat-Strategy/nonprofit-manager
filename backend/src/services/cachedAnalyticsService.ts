@@ -12,7 +12,7 @@ import type {
   AnalyticsSummary,
   AnalyticsFilters,
   ComparativeAnalytics,
-  TrendAnalytics,
+  TrendAnalysis,
 } from '../types/analytics';
 
 export class CachedAnalyticsService {
@@ -60,8 +60,8 @@ export class CachedAnalyticsService {
       'analytics-summary',
       filters?.start_date,
       filters?.end_date,
-      filters?.donor_type,
-      filters?.payment_method
+      filters?.account_type,
+      filters?.category
     );
 
     return analyticsCache.getOrSet(
@@ -92,22 +92,18 @@ export class CachedAnalyticsService {
    * Cache TTL: 5 minutes
    */
   async getTrendAnalytics(
-    metricType: string,
-    startDate: string,
-    endDate: string,
-    granularity: 'day' | 'week' | 'month' = 'month'
-  ): Promise<TrendAnalytics> {
+    metricType: 'donations' | 'volunteer_hours' | 'event_attendance',
+    months: number = 12
+  ): Promise<TrendAnalysis> {
     const cacheKey = createCacheKey(
       'trend-analytics',
       metricType,
-      startDate,
-      endDate,
-      granularity
+      months
     );
 
     return analyticsCache.getOrSet(
       cacheKey,
-      () => this.analyticsService.getTrendAnalytics(metricType, startDate, endDate, granularity),
+      () => this.analyticsService.getTrendAnalysis(metricType, months),
       300 // 5 minutes
     );
   }

@@ -9,8 +9,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type {
   AnalyticsSummary,
-  DonationAnalytics,
-  TrendAnalytics,
+  TrendAnalysis,
 } from '../types/analytics';
 
 export type ExportFormat = 'csv' | 'excel';
@@ -43,43 +42,48 @@ export class ExportService {
 
     const rows = [
       {
-        metric: 'Total Donations',
-        value: data.donations.total_count,
-        amount: data.donations.total_amount,
+        metric: 'Total Donations YTD',
+        value: data.donation_count_ytd,
+        amount: data.total_donations_ytd,
       },
       {
-        metric: 'Average Donation',
+        metric: 'Average Donation YTD',
         value: '-',
-        amount: data.donations.average_donation,
+        amount: data.average_donation_ytd,
       },
       {
-        metric: 'Total Donors',
-        value: data.donors.total_count,
+        metric: 'Total Accounts',
+        value: data.total_accounts,
         amount: '-',
       },
       {
-        metric: 'Active Donors',
-        value: data.donors.active_count,
+        metric: 'Active Accounts',
+        value: data.active_accounts,
+        amount: '-',
+      },
+      {
+        metric: 'Total Contacts',
+        value: data.total_contacts,
+        amount: '-',
+      },
+      {
+        metric: 'Active Contacts',
+        value: data.active_contacts,
         amount: '-',
       },
       {
         metric: 'Total Volunteers',
-        value: data.volunteers.total_count,
+        value: data.total_volunteers,
         amount: '-',
       },
       {
-        metric: 'Volunteer Hours',
-        value: data.volunteers.total_hours,
+        metric: 'Volunteer Hours YTD',
+        value: data.total_volunteer_hours_ytd,
         amount: '-',
       },
       {
-        metric: 'Total Events',
-        value: data.events.total_count,
-        amount: '-',
-      },
-      {
-        metric: 'Event Attendees',
-        value: data.events.total_attendees,
+        metric: 'Total Events YTD',
+        value: data.total_events_ytd,
         amount: '-',
       },
     ];
@@ -195,15 +199,15 @@ export class ExportService {
    * Export trend data
    */
   async exportTrendData(
-    trends: TrendAnalytics,
+    trends: TrendAnalysis,
     options: ExportOptions
   ): Promise<string> {
     const filename = options.filename || `trends-${Date.now()}`;
 
-    const rows = trends.data_points.map((point) => ({
+    const rows = trends.data_points.map((point: any) => ({
       period: point.period,
       value: point.value,
-      change: point.change ? `${point.change > 0 ? '+' : ''}${point.change.toFixed(2)}%` : '-',
+      movingAverage: point.movingAverage || '-',
     }));
 
     if (options.format === 'csv') {
