@@ -6,6 +6,7 @@
 import type { Response, NextFunction } from 'express';
 import type { AuthRequest } from '../middleware/auth';
 import activityService from '../services/activityService';
+import { logger } from '../config/logger';
 
 /**
  * Get recent activities
@@ -33,7 +34,7 @@ export const getRecentActivities = async (
       total: activities.length,
     });
   } catch (error: any) {
-    console.error('Error fetching activities:', error);
+    logger.error('Error fetching activities', { error });
     next(error);
   }
 };
@@ -68,7 +69,8 @@ export const getEntityActivities = async (
       total: activities.length,
     });
   } catch (error: any) {
-    console.error('Error fetching entity activities:', error);
+    const { entityType, entityId } = req.params;
+    logger.error('Error fetching entity activities', { error, entityType, entityId });
     next(error);
   }
 };
