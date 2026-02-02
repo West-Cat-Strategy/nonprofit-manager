@@ -16,6 +16,7 @@ import webhooksReducer from './slices/webhookSlice';
 import templatesReducer from './slices/templateSlice';
 import casesReducer from './slices/casesSlice';
 import dashboardReducer from './slices/dashboardSlice';
+import alertsReducer from './slices/alertsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -36,6 +37,7 @@ export const store = configureStore({
     templates: templatesReducer,
     cases: casesReducer,
     dashboard: dashboardReducer,
+    alerts: alertsReducer,
   },
 });
 
