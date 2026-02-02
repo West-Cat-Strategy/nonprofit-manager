@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import EventCalendar from '../components/EventCalendar';
-import { Event } from '../types/event';
+import type { Event } from '../types/event';
 import { format, parseISO } from 'date-fns';
 
 export const EventCalendarPage: React.FC = () => {
@@ -23,7 +23,7 @@ export const EventCalendarPage: React.FC = () => {
 
   const handleViewDetails = () => {
     if (selectedEvent) {
-      navigate(`/events/${selectedEvent.id}`);
+      navigate(`/events/${selectedEvent.event_id}`);
     }
   };
 
@@ -117,7 +117,7 @@ export const EventCalendarPage: React.FC = () => {
                 {/* Event Name */}
                 <div>
                   <h4 className="text-xl font-semibold text-gray-900">
-                    {selectedEvent.name}
+                    {selectedEvent.event_name}
                   </h4>
                   <div className="flex items-center gap-2 mt-2">
                     {getStatusBadge(selectedEvent.status)}
@@ -165,7 +165,7 @@ export const EventCalendarPage: React.FC = () => {
                   </div>
 
                   {/* Location */}
-                  {selectedEvent.location && (
+                  {selectedEvent.location_name && (
                     <div className="flex items-start">
                       <svg
                         className="w-5 h-5 mt-0.5 mr-2 text-gray-400"
@@ -187,7 +187,7 @@ export const EventCalendarPage: React.FC = () => {
                         />
                       </svg>
                       <div className="text-sm text-gray-900">
-                        {selectedEvent.location}
+                        {selectedEvent.location_name}
                       </div>
                     </div>
                   )}
@@ -219,8 +219,8 @@ export const EventCalendarPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* Registration Info */}
-                {selectedEvent.registration_required && (
+                {/* Capacity Info */}
+                {selectedEvent.capacity && (
                   <div className="pt-3 border-t">
                     <div className="flex items-center text-sm text-gray-600">
                       <svg
@@ -233,20 +233,11 @@ export const EventCalendarPage: React.FC = () => {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                         />
                       </svg>
-                      Registration required
+                      Capacity: {selectedEvent.registered_count || 0} / {selectedEvent.capacity}
                     </div>
-                    {selectedEvent.registration_deadline && (
-                      <div className="mt-1 text-xs text-gray-500">
-                        Deadline:{' '}
-                        {format(
-                          parseISO(selectedEvent.registration_deadline),
-                          'PPp'
-                        )}
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -260,7 +251,7 @@ export const EventCalendarPage: React.FC = () => {
                   </button>
                   <button
                     onClick={() =>
-                      navigate(`/events/${selectedEvent.id}/edit`)
+                      navigate(`/events/${selectedEvent.event_id}/edit`)
                     }
                     className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
                   >

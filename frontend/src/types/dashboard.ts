@@ -14,6 +14,7 @@ export type WidgetType =
   | 'event_attendance'
   | 'recent_contacts'
   | 'case_summary'
+  | 'my_cases'
   | 'upcoming_events'
   | 'quick_actions'
   | 'activity_feed'
@@ -206,10 +207,19 @@ export const WIDGET_TEMPLATES: WidgetTemplate[] = [
   {
     type: 'case_summary',
     title: 'Case Summary',
-    description: 'Overview of case management metrics',
+    description: 'Enhanced overview of case management metrics',
     icon: '📋',
     defaultSize: 'medium',
-    defaultLayout: { x: 8, y: 3, w: 4, h: 2, minW: 3, minH: 2 },
+    defaultLayout: { x: 8, y: 3, w: 4, h: 3, minW: 3, minH: 3 },
+    category: 'management',
+  },
+  {
+    type: 'my_cases',
+    title: 'My Cases',
+    description: 'Cases assigned to you',
+    icon: '👤📋',
+    defaultSize: 'medium',
+    defaultLayout: { x: 0, y: 5, w: 4, h: 3, minW: 3, minH: 3 },
     category: 'management',
   },
   {

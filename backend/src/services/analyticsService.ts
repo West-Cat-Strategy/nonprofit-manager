@@ -275,16 +275,16 @@ export class AnalyticsService {
         SELECT
           v.id as volunteer_id,
           v.skills,
-          v.availability_status,
-          v.volunteer_since,
-          COALESCE(v.total_hours_logged, 0) as total_hours,
-          COUNT(va.assignment_id) as total_assignments,
-          COUNT(va.assignment_id) FILTER (WHERE va.status = 'completed') as completed_assignments,
-          COUNT(va.assignment_id) FILTER (WHERE va.status IN ('scheduled', 'in_progress')) as active_assignments
+          v.volunteer_status as availability_status,
+          v.created_at as volunteer_since,
+          COALESCE(SUM(vh.hours_logged), 0) as total_hours,
+          COUNT(DISTINCT vh.id) as total_assignments,
+          COUNT(DISTINCT vh.id) FILTER (WHERE vh.verified = true) as completed_assignments,
+          0 as active_assignments
         FROM volunteers v
-        LEFT JOIN volunteer_assignments va ON v.id = va.volunteer_id
+        LEFT JOIN volunteer_hours vh ON v.id = vh.volunteer_id
         WHERE v.contact_id = $1 AND v.volunteer_status = 'active'
-        GROUP BY v.id
+        GROUP BY v.id, v.skills, v.volunteer_status, v.created_at
       `;
 
       const volunteerResult = await this.pool.query(volunteerQuery, [contactId]);
@@ -298,12 +298,12 @@ export class AnalyticsService {
       // Get hours by month
       const monthQuery = `
         SELECT
-          TO_CHAR(va.start_time, 'YYYY-MM') as month,
-          COALESCE(SUM(va.hours_logged), 0) as hours
-        FROM volunteer_assignments va
-        JOIN volunteers v ON va.volunteer_id = v.id
-        WHERE v.contact_id = $1 AND va.status = 'completed'
-        GROUP BY TO_CHAR(va.start_time, 'YYYY-MM')
+          TO_CHAR(vh.activity_date, 'YYYY-MM') as month,
+          COALESCE(SUM(vh.hours_logged), 0) as hours
+        FROM volunteer_hours vh
+        JOIN volunteers v ON vh.volunteer_id = v.id
+        WHERE v.contact_id = $1
+        GROUP BY TO_CHAR(vh.activity_date, 'YYYY-MM')
         ORDER BY month DESC
         LIMIT 12
       `;
@@ -314,20 +314,18 @@ export class AnalyticsService {
         hoursByMonth[row.month] = parseFloat(row.hours);
       }
 
-      // Get recent assignments
+      // Get recent volunteer hours
       const recentQuery = `
         SELECT
-          va.assignment_id,
-          e.event_name,
-          t.subject as task_subject,
-          COALESCE(va.hours_logged, 0) as hours_logged,
-          va.status
-        FROM volunteer_assignments va
-        JOIN volunteers v ON va.volunteer_id = v.id
-        LEFT JOIN events e ON va.event_id = e.id
-        LEFT JOIN tasks t ON va.task_id = t.id
+          vh.id as assignment_id,
+          vh.activity_type as event_name,
+          vh.description as task_subject,
+          COALESCE(vh.hours_logged, 0) as hours_logged,
+          CASE WHEN vh.verified = true THEN 'completed' ELSE 'pending' END as status
+        FROM volunteer_hours vh
+        JOIN volunteers v ON vh.volunteer_id = v.id
         WHERE v.contact_id = $1
-        ORDER BY va.created_at DESC
+        ORDER BY vh.activity_date DESC
         LIMIT 5
       `;
 
@@ -612,11 +610,10 @@ export class AnalyticsService {
       const volunteerQuery = `
         SELECT
           COUNT(DISTINCT v.id) as total_volunteers,
-          COALESCE(SUM(va.hours_logged), 0) as total_hours
+          COALESCE(SUM(vh.hours_logged), 0) as total_hours
         FROM volunteers v
-        LEFT JOIN volunteer_assignments va ON v.id = va.volunteer_id
-          AND va.status = 'completed'
-          AND va.start_time >= $1 AND va.start_time <= $2
+        LEFT JOIN volunteer_hours vh ON v.id = vh.volunteer_id
+          AND vh.activity_date >= $1 AND vh.activity_date <= $2
         WHERE v.volunteer_status = 'active'
       `;
 
@@ -649,11 +646,11 @@ export class AnalyticsService {
           SELECT
             c.id,
             COUNT(d.id) as donation_count,
-            COALESCE(SUM(va.hours_logged), 0) as hours_logged
+            COALESCE(SUM(vh.hours_logged), 0) as hours_logged
           FROM contacts c
           LEFT JOIN donations d ON c.id = d.contact_id AND d.payment_status = 'completed'
           LEFT JOIN volunteers v ON c.id = v.contact_id
-          LEFT JOIN volunteer_assignments va ON v.id = va.volunteer_id AND va.status = 'completed'
+          LEFT JOIN volunteer_hours vh ON v.id = vh.volunteer_id
           WHERE c.is_active = true
           GROUP BY c.id
         ) engagement_data
@@ -781,13 +778,12 @@ export class AnalyticsService {
 
       const query = `
         SELECT
-          TO_CHAR(start_time, 'YYYY-MM') as month,
+          TO_CHAR(activity_date, 'YYYY-MM') as month,
           COALESCE(SUM(hours_logged), 0) as hours,
           COUNT(*) as assignments
-        FROM volunteer_assignments
-        WHERE status = 'completed'
-          AND start_time >= NOW() - INTERVAL '${months} months'
-        GROUP BY TO_CHAR(start_time, 'YYYY-MM')
+        FROM volunteer_hours
+        WHERE activity_date >= NOW() - INTERVAL '${months} months'
+        GROUP BY TO_CHAR(activity_date, 'YYYY-MM')
         ORDER BY month ASC
       `;
 
@@ -1027,14 +1023,13 @@ export class AnalyticsService {
       const volunteerQuery = `
         SELECT
           CASE
-            WHEN start_time >= $1 AND start_time <= $2 THEN 'current'
-            WHEN start_time >= $3 AND start_time <= $4 THEN 'previous'
+            WHEN activity_date >= $1 AND activity_date <= $2 THEN 'current'
+            WHEN activity_date >= $3 AND activity_date <= $4 THEN 'previous'
           END as period,
           COALESCE(SUM(hours_logged), 0) as hours
-        FROM volunteer_assignments
-        WHERE status = 'completed'
-          AND ((start_time >= $1 AND start_time <= $2)
-            OR (start_time >= $3 AND start_time <= $4))
+        FROM volunteer_hours
+        WHERE (activity_date >= $1 AND activity_date <= $2)
+            OR (activity_date >= $3 AND activity_date <= $4)
         GROUP BY period
       `;
 
