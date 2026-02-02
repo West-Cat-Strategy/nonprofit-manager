@@ -8,6 +8,7 @@ import { AnalyticsService } from '../services/analyticsService';
 import pool from '../config/database';
 import { AuthRequest } from '../middleware/auth';
 import type { AnalyticsFilters } from '../types/analytics';
+import { maskFinancialData } from '../middleware/analyticsAuth';
 
 const analyticsService = new AnalyticsService(pool);
 
@@ -23,7 +24,8 @@ export const getAccountAnalytics = async (
   try {
     const { id } = req.params;
     const analytics = await analyticsService.getAccountAnalytics(id);
-    res.json(analytics);
+    const maskedAnalytics = maskFinancialData(analytics, req.user!.role);
+    res.json(maskedAnalytics);
   } catch (error) {
     if ((error as Error).message === 'Account not found') {
       res.status(404).json({ error: 'Account not found' });
@@ -45,7 +47,8 @@ export const getContactAnalytics = async (
   try {
     const { id } = req.params;
     const analytics = await analyticsService.getContactAnalytics(id);
-    res.json(analytics);
+    const maskedAnalytics = maskFinancialData(analytics, req.user!.role);
+    res.json(maskedAnalytics);
   } catch (error) {
     if ((error as Error).message === 'Contact not found') {
       res.status(404).json({ error: 'Contact not found' });
@@ -73,7 +76,8 @@ export const getAnalyticsSummary = async (
     };
 
     const summary = await analyticsService.getAnalyticsSummary(filters);
-    res.json(summary);
+    const maskedSummary = maskFinancialData(summary, req.user!.role);
+    res.json(maskedSummary);
   } catch (error) {
     next(error);
   }
@@ -91,7 +95,8 @@ export const getAccountDonationMetrics = async (
   try {
     const { id } = req.params;
     const metrics = await analyticsService.getDonationMetrics('account', id);
-    res.json(metrics);
+    const maskedMetrics = maskFinancialData(metrics, req.user!.role);
+    res.json(maskedMetrics);
   } catch (error) {
     next(error);
   }
@@ -109,7 +114,8 @@ export const getContactDonationMetrics = async (
   try {
     const { id } = req.params;
     const metrics = await analyticsService.getDonationMetrics('contact', id);
-    res.json(metrics);
+    const maskedMetrics = maskFinancialData(metrics, req.user!.role);
+    res.json(maskedMetrics);
   } catch (error) {
     next(error);
   }
@@ -187,7 +193,8 @@ export const getDonationTrends = async (
   try {
     const months = parseInt(req.query.months as string) || 12;
     const trends = await analyticsService.getDonationTrends(Math.min(months, 24));
-    res.json(trends);
+    const maskedTrends = maskFinancialData(trends, req.user!.role);
+    res.json(maskedTrends);
   } catch (error) {
     next(error);
   }
@@ -240,15 +247,16 @@ export const getComparativeAnalytics = async (
 ): Promise<void> => {
   try {
     const periodType = (req.query.period as 'month' | 'quarter' | 'year') || 'month';
-    
+
     // Validate period type
     if (!['month', 'quarter', 'year'].includes(periodType)) {
       res.status(400).json({ error: 'Invalid period type. Must be month, quarter, or year' });
       return;
     }
-    
+
     const analytics = await analyticsService.getComparativeAnalytics(periodType);
-    res.json(analytics);
+    const maskedAnalytics = maskFinancialData(analytics, req.user!.role);
+    res.json(maskedAnalytics);
   } catch (error) {
     next(error);
   }
