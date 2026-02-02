@@ -16,7 +16,8 @@ export type WidgetType =
   | 'case_summary'
   | 'upcoming_events'
   | 'quick_actions'
-  | 'activity_feed';
+  | 'activity_feed'
+  | 'plausible_stats';
 
 /**
  * Widget size presets
@@ -237,6 +238,15 @@ export const WIDGET_TEMPLATES: WidgetTemplate[] = [
     defaultSize: 'medium',
     defaultLayout: { x: 9, y: 7, w: 3, h: 4, minW: 3, minH: 3 },
     category: 'activity',
+  },
+  {
+    type: 'plausible_stats',
+    title: 'Website Analytics',
+    description: 'Plausible Analytics metrics and insights',
+    icon: '📊',
+    defaultSize: 'large',
+    defaultLayout: { x: 0, y: 10, w: 6, h: 3, minW: 4, minH: 3 },
+    category: 'analytics',
   },
 ];
 
