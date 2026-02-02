@@ -162,7 +162,7 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className="text-sm font-semibold text-gray-900">
-                      {volunteer.total_hours_logged.toFixed(1)}h
+                      {(volunteer.total_hours_logged ?? 0).toFixed(1)}h
                     </div>
                     <span
                       className={`px-2 py-1 text-xs rounded-full ${
