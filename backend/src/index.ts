@@ -27,6 +27,8 @@ import mailchimpRoutes from './routes/mailchimp';
 import webhookRoutes from './routes/webhooks';
 import templateRoutes from './routes/templates';
 import publishingRoutes from './routes/publishing';
+import dashboardRoutes from './routes/dashboard';
+import alertRoutes from './routes/alerts';
 import { setPaymentPool } from './controllers/paymentController';
 import { Pool } from 'pg';
 
@@ -123,6 +125,8 @@ app.use('/api/mailchimp', mailchimpRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/sites', publishingRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/alerts', alertRoutes);
 
 // Error handling
 app.use(errorHandler);
