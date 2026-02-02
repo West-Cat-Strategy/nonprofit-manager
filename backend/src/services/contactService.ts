@@ -46,7 +46,10 @@ export class ContactService {
         conditions.push(`(
           c.first_name ILIKE $${paramCounter} OR
           c.last_name ILIKE $${paramCounter} OR
-          c.email ILIKE $${paramCounter}
+          c.email ILIKE $${paramCounter} OR
+          c.phone ILIKE $${paramCounter} OR
+          c.mobile_phone ILIKE $${paramCounter} OR
+          CONCAT(c.first_name, ' ', c.last_name) ILIKE $${paramCounter}
         )`);
         values.push(`%${filters.search}%`);
         paramCounter++;
