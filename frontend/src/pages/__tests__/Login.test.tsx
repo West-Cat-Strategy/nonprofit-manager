@@ -60,7 +60,7 @@ describe('Login page', () => {
 
     expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^sign in$/i })).toBeInTheDocument();
   });
 
   it('submits credentials and navigates on success', async () => {
@@ -85,7 +85,7 @@ describe('Login page', () => {
 
     await user.type(screen.getByLabelText(/email address/i), 'test@example.com');
     await user.type(screen.getByLabelText(/password/i), 'Password123!');
-    await user.click(screen.getByRole('button', { name: /sign in/i }));
+    await user.click(screen.getByRole('button', { name: /^sign in$/i }));
 
     expect(authService.login).toHaveBeenCalledWith({
       email: 'test@example.com',
@@ -110,7 +110,7 @@ describe('Login page', () => {
 
     await user.type(screen.getByLabelText(/email address/i), 'fail@example.com');
     await user.type(screen.getByLabelText(/password/i), 'BadPassword');
-    await user.click(screen.getByRole('button', { name: /sign in/i }));
+    await user.click(screen.getByRole('button', { name: /^sign in$/i }));
 
     expect(await screen.findByText(/invalid credentials/i)).toBeInTheDocument();
     expect(mockNavigate).not.toHaveBeenCalled();

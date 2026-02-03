@@ -18,6 +18,7 @@ interface UserRow {
   first_name: string;
   last_name: string;
   role: string;
+  profile_picture?: string | null;
   is_active: boolean;
   created_at: Date;
   updated_at: Date;
@@ -69,7 +70,7 @@ export const listUsers = async (
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const result = await pool.query<UserRow>(
-      `SELECT id, email, first_name, last_name, role, is_active, created_at, updated_at
+      `SELECT id, email, first_name, last_name, role, profile_picture, is_active, created_at, updated_at
        FROM users
        ${whereClause}
        ORDER BY created_at DESC`,
@@ -82,6 +83,7 @@ export const listUsers = async (
       firstName: user.first_name,
       lastName: user.last_name,
       role: user.role,
+      profilePicture: user.profile_picture || null,
       isActive: user.is_active,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
@@ -110,7 +112,7 @@ export const getUser = async (
     const { id } = req.params;
 
     const result = await pool.query<UserRow>(
-      `SELECT id, email, first_name, last_name, role, is_active, created_at, updated_at
+      `SELECT id, email, first_name, last_name, role, profile_picture, is_active, created_at, updated_at
        FROM users WHERE id = $1`,
       [id]
     );
@@ -127,6 +129,7 @@ export const getUser = async (
       firstName: user.first_name,
       lastName: user.last_name,
       role: user.role,
+      profilePicture: user.profile_picture || null,
       isActive: user.is_active,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
@@ -170,7 +173,7 @@ export const createUser = async (
     const result = await pool.query<UserRow>(
       `INSERT INTO users (email, password_hash, first_name, last_name, role, is_active, created_at, updated_at, created_by)
        VALUES ($1, $2, $3, $4, $5, true, NOW(), NOW(), $6)
-       RETURNING id, email, first_name, last_name, role, is_active, created_at, updated_at`,
+       RETURNING id, email, first_name, last_name, role, profile_picture, is_active, created_at, updated_at`,
       [email, hashedPassword, firstName, lastName, role, req.user.id]
     );
 
@@ -186,6 +189,7 @@ export const createUser = async (
       firstName: user.first_name,
       lastName: user.last_name,
       role: user.role,
+      profilePicture: user.profile_picture || null,
       isActive: user.is_active,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
@@ -257,7 +261,7 @@ export const updateUser = async (
            updated_at = NOW(),
            modified_by = $6
        WHERE id = $7
-       RETURNING id, email, first_name, last_name, role, is_active, created_at, updated_at`,
+       RETURNING id, email, first_name, last_name, role, profile_picture, is_active, created_at, updated_at`,
       [email, firstName, lastName, role, isActive, req.user.id, id]
     );
 
@@ -275,6 +279,7 @@ export const updateUser = async (
       firstName: user.first_name,
       lastName: user.last_name,
       role: user.role,
+      profilePicture: user.profile_picture || null,
       isActive: user.is_active,
       createdAt: user.created_at,
       updatedAt: user.updated_at,

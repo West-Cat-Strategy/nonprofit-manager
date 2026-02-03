@@ -8,6 +8,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { useToast } from '../contexts/ToastContext';
+import { useBranding } from '../contexts/BrandingContext';
+import Avatar from '../components/Avatar';
+import { defaultBranding, type BrandingConfig } from '../types/branding';
 
 // ============================================================================
 // Interfaces
@@ -34,14 +37,6 @@ interface OrganizationConfig {
   phoneFormat: 'canadian' | 'us' | 'international';
 }
 
-interface BrandingConfig {
-  appName: string;
-  appIcon: string | null;
-  favicon: string | null;
-  primaryColour: string;
-  secondaryColour: string;
-}
-
 interface Role {
   id: string;
   name: string;
@@ -57,6 +52,7 @@ interface UserSearchResult {
   firstName: string;
   lastName: string;
   role: string;
+  profilePicture?: string | null;
   isActive: boolean;
   lastLoginAt: string | null;
   createdAt: string;
@@ -68,6 +64,7 @@ interface UserSecurityInfo {
   firstName: string;
   lastName: string;
   role: string;
+  profilePicture?: string | null;
   isActive: boolean;
   lastLoginAt: string | null;
   lastPasswordChange: string | null;
@@ -170,14 +167,6 @@ const defaultConfig: OrganizationConfig = {
   fiscalYearStart: '04',
   measurementSystem: 'metric',
   phoneFormat: 'canadian',
-};
-
-const defaultBranding: BrandingConfig = {
-  appName: 'Nonprofit Manager',
-  appIcon: null,
-  favicon: null,
-  primaryColour: '#2563eb',
-  secondaryColour: '#7c3aed',
 };
 
 // ============================================================================
@@ -310,6 +299,7 @@ const validatePostalCode = (postalCode: string, country: string): boolean => {
 
 export default function AdminSettings() {
   const { showSuccess, showError } = useToast();
+  const { setBranding: setGlobalBranding } = useBranding();
 
   // State
   const [activeSection, setActiveSection] = useState<string>('organization');
@@ -507,17 +497,10 @@ export default function AdminSettings() {
     setIsSaving(true);
     setSaveStatus('idle');
     try {
-      await api.put('/admin/branding', branding);
-      // Update favicon in document
-      if (branding.favicon) {
-        const link = document.querySelector("link[rel*='icon']") as HTMLLinkElement || document.createElement('link');
-        link.type = 'image/x-icon';
-        link.rel = 'shortcut icon';
-        link.href = branding.favicon;
-        document.head.appendChild(link);
-      }
-      // Update document title
-      document.title = branding.appName;
+      const response = await api.put('/admin/branding', branding);
+      const saved = { ...defaultBranding, ...(response.data || {}) } as BrandingConfig;
+      setBranding(saved);
+      setGlobalBranding(saved);
       setSaveStatus('success');
       setTimeout(() => setSaveStatus('idle'), 3000);
     } catch {
@@ -1511,9 +1494,12 @@ export default function AdminSettings() {
                         onClick={() => fetchUserSecurityInfo(user.id)}
                       >
                         <div className="flex items-center">
-                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                            {user.firstName[0]}{user.lastName[0]}
-                          </div>
+                          <Avatar
+                            src={user.profilePicture}
+                            firstName={user.firstName}
+                            lastName={user.lastName}
+                            size="md"
+                          />
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">
                               {user.firstName} {user.lastName}
@@ -2262,9 +2248,12 @@ export default function AdminSettings() {
               <div className="p-6 space-y-6">
                 {/* User Info */}
                 <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xl font-semibold">
-                    {selectedUser.firstName[0]}{selectedUser.lastName[0]}
-                  </div>
+                  <Avatar
+                    src={selectedUser.profilePicture}
+                    firstName={selectedUser.firstName}
+                    lastName={selectedUser.lastName}
+                    size="lg"
+                  />
                   <div>
                     <h4 className="text-xl font-semibold text-gray-900">
                       {selectedUser.firstName} {selectedUser.lastName}
