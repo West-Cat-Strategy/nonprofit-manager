@@ -1,6 +1,8 @@
 /**
  * User Settings Page - SMB3 "Backstage" Aesthetic
  * Dark background, vibrant props, heavy shadows
+ * 
+ * Phase 1: Uses LoopApiService for profile management
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -9,6 +11,7 @@ import { EyeIcon, EyeSlashIcon, TrashIcon, SunIcon, MoonIcon } from '@heroicons/
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { updateUser } from '../store/slices/authSlice';
 import api from '../services/api';
+import LoopApiService from '../services/LoopApiService';
 import NeoBrutalistLayout from '../components/neo-brutalist/NeoBrutalistLayout';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -204,8 +207,8 @@ export default function UserSettings() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await api.get('/auth/profile');
-        const data = response.data;
+        // Use LoopApiService to fetch profile
+        const data = await LoopApiService.getUserProfile();
         setProfile({
           firstName: data.firstName || user?.firstName || '',
           lastName: data.lastName || user?.lastName || '',
@@ -350,7 +353,8 @@ export default function UserSettings() {
         pronouns: pronounsToSave,
       };
 
-      await api.put('/auth/profile', payload);
+      // Use LoopApiService instead of direct API call
+      await LoopApiService.updateUserProfile(payload);
 
       // Update the auth state with new user info
       dispatch(updateUser({
@@ -370,6 +374,43 @@ export default function UserSettings() {
       setIsSaving(false);
     }
   };
+
+  // Password change functionality - Currently disabled in UI
+  // TODO: Implement via LoopApiService in Phase 2
+  /*
+  const handleChangePassword = async () => {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      setPasswordError('Password must be at least 8 characters');
+      return;
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
+    if (!passwordRegex.test(passwordData.newPassword)) {
+      setPasswordError('Password must contain uppercase, lowercase, number, and special character');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    setPasswordStatus('idle');
+    setPasswordError('');
+
+    try {
+      // TODO: Implement LoopApiService.updatePassword()
+      await api.put('/auth/password', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+      });
+
+      setPasswordStatus('success');
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setShowPasswordSection(false);
+      setTimeout(() => setPasswordStatus('idle'), 3000);
+  */
 
   const handleStartTotpSetup = async () => {
     setSecurityError('');
@@ -463,6 +504,8 @@ export default function UserSettings() {
       setSecurityActionLoading(false);
     }
   };
+  */
+
 
   if (isLoading) {
     return (
