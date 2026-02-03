@@ -36,22 +36,22 @@ export default function LinkingModule() {
                             placeholder="Search data..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full border-2 border-black px-4 py-2 pl-10 bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
+                            className="w-full border-2 border-black dark:border-white px-4 py-2 pl-10 bg-white dark:bg-[#000000] text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
                         />
                     </div>
-                    <button className="px-6 py-2 bg-[#4DD0E1] text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-cyan-400 font-bold uppercase">
+                    <button className="px-6 py-2 bg-[#4DD0E1] text-black border-2 border-black dark:border-white shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-cyan-400 font-bold uppercase">
                         + NEW ITEM
                     </button>
                 </div>
 
                 {/* Banner - GREEN */}
-                <div className="bg-[#90EE90] border-2 border-black shadow-[4px_4px_0px_0px_var(--shadow-color)] p-8 mb-6">
+                <div className="bg-[#90EE90] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-8 mb-6">
                     <h2 className="text-3xl font-black mb-2 uppercase">Linking Network</h2>
                     <p className="text-lg font-medium">Managing partnerships and organizational connections.</p>
                 </div>
 
                 {/* Data Table */}
-                <div className="bg-white border-2 border-black shadow-[4px_4px_0px_0px_var(--shadow-color)] overflow-hidden">
+                <div className="bg-white dark:bg-[#121212] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] overflow-hidden">
                     <table className="w-full">
                         <thead className="bg-[#90EE90]">
                             <tr>

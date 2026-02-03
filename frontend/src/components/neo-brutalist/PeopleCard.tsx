@@ -50,7 +50,7 @@ export default function PeopleCard({ person }: PeopleCardProps) {
             <h3 className="font-black text-lg mb-1 text-center">{person.fullName}</h3>
 
             {/* Role/Title */}
-            <p className="text-xs text-gray-700 mb-3 uppercase font-bold tracking-wide text-center">
+            <p className="text-xs text-gray-700 dark:text-gray-300 mb-3 uppercase font-bold tracking-wide text-center">
                 {person.title || person.role}
             </p>
 
@@ -63,10 +63,10 @@ export default function PeopleCard({ person }: PeopleCardProps) {
 
             {/* Contact Info */}
             {person.email && (
-                <div className="text-xs text-gray-700 truncate mb-1 text-center w-full">{person.email}</div>
+                <div className="text-xs text-gray-700 dark:text-gray-300 truncate mb-1 text-center w-full">{person.email}</div>
             )}
             {person.phone && (
-                <div className="text-xs text-gray-700 text-center">{person.phone}</div>
+                <div className="text-xs text-gray-700 dark:text-gray-300 text-center">{person.phone}</div>
             )}
         </div>
     );

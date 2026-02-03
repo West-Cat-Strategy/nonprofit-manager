@@ -13,9 +13,9 @@ export default function NeoBrutalistSidebar() {
 
     const NavButton = ({ to, icon, label, active }: { to: string; icon: string; label: string; active?: boolean }) => (
         <Link to={to}>
-            <div className={`flex items-center gap-3 px-4 py-3 border-b-2 border-black transition-all ${active
-                ? 'bg-black text-white'
-                : 'bg-white text-black hover:bg-gray-100'
+            <div className={`flex items-center gap-3 px-4 py-3 border-b-2 border-black dark:border-white transition-all ${active
+                ? 'bg-black text-white dark:bg-white dark:text-black'
+                : 'bg-white dark:bg-[#121212] text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-900'
                 }`}>
                 <span className="text-lg">{icon}</span>
                 <span className="font-bold">{label}</span>
@@ -34,9 +34,9 @@ export default function NeoBrutalistSidebar() {
 
         return (
             <Link to={to} className="block mb-3">
-                <div className={`flex items-center gap-3 px-4 py-3 border-2 border-black transition-all ${active
+                <div className={`flex items-center gap-3 px-4 py-3 border-2 border-black dark:border-white transition-all ${active
                     ? `${bgColor} text-black shadow-[6px_6px_0px_0px_var(--shadow-color)]`
-                    : 'bg-white text-black hover:bg-gray-50 shadow-[4px_4px_0px_0px_var(--shadow-color)]'
+                    : 'bg-white dark:bg-[#121212] text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-900 shadow-[4px_4px_0px_0px_var(--shadow-color)]'
                     }`}>
                     <div className="w-6 h-6 bg-black text-white flex items-center justify-center text-xs font-bold border-2 border-black">
                         {icon}
@@ -58,9 +58,9 @@ export default function NeoBrutalistSidebar() {
     };
 
     return (
-        <div className="w-48 bg-white border-r-2 border-black flex flex-col h-screen">
+        <div className="w-48 bg-white dark:bg-[#121212] border-r-2 border-black dark:border-white flex flex-col h-screen">
             {/* Yellow LOOP Branding Header */}
-            <div className="bg-[var(--loop-yellow)] border-b-2 border-black p-4 shadow-[6px_0px_0px_0px_var(--shadow-color)]">
+            <div className="bg-[var(--loop-yellow)] dark:bg-[#CCAC00] border-b-2 border-black dark:border-white p-4 shadow-[6px_0px_0px_0px_var(--shadow-color)]">
                 <h1 className="font-black text-xl leading-tight text-black">
                     COMMUNITY<br />LOOP
                 </h1>
@@ -79,7 +79,7 @@ export default function NeoBrutalistSidebar() {
             />
 
             {/* Yellow Separator Box (replaces MODULES label) */}
-            <div className="h-6 bg-[var(--loop-yellow)] border-b-2 border-black shadow-[6px_0px_0px_0px_var(--shadow-color)]"></div>
+            <div className="h-6 bg-[var(--loop-yellow)] dark:bg-[#CCAC00] border-b-2 border-black dark:border-white shadow-[6px_0px_0px_0px_var(--shadow-color)]"></div>
 
             {/* Module Links with Chameleon Colors */}
             <ModuleButton
