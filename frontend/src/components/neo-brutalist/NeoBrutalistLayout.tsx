@@ -34,29 +34,29 @@ export default function NeoBrutalistLayout({ children, pageTitle }: NeoBrutalist
             <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Unified Top Bar - Page Title Left, Profile Right */}
                 <div className="bg-white border-b-2 border-black pl-6 pr-0 py-0 flex items-center justify-between">
-                    {/* Page Title (Left Side) - Vertical Padding Restored here */}
+                    {/* Page Title (Left Side) */}
                     <h1 className="text-xl font-black uppercase tracking-tight py-3">
                         {pageTitle || 'WORKBENCH OVERVIEW'}
                     </h1>
 
-                    {/* Profile Menu (Right Side) - Now Flush Right */}
+                    {/* Profile Menu (Right Side) - Flush Right & Jumbo */}
                     <div className="relative h-full">
                         <button
                             onClick={() => setShowMenu(!showMenu)}
-                            className="flex items-center gap-4 px-6 h-[72px] border-l-2 border-black bg-white hover:bg-gray-50 font-bold shadow-none transition-all active:bg-gray-100"
+                            className="flex items-center gap-6 px-8 h-[96px] border-l-2 border-black bg-white hover:bg-gray-50 font-bold shadow-none transition-all active:bg-gray-100"
                         >
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-6">
                                 {user?.profilePicture ? (
-                                    <img key={user.profilePicture} src={user.profilePicture} alt="Profile" className="w-12 h-12 rounded-full border-2 border-black object-cover" />
+                                    <img key={user.profilePicture} src={user.profilePicture} alt="Profile" className="w-16 h-16 rounded-full border-2 border-black object-cover" />
                                 ) : (
-                                    <div className="w-12 h-12 bg-black text-white flex items-center justify-center text-xl font-black rounded-full border-2 border-black">
+                                    <div className="w-16 h-16 bg-black text-white flex items-center justify-center text-3xl font-black rounded-full border-2 border-black">
                                         {user?.firstName?.[0] || 'U'}
                                     </div>
                                 )}
-                                <span className="text-2xl font-black italic">{user?.firstName ? `${user.firstName} ${user.lastName}` : 'User'}</span>
+                                <span className="text-3xl font-black italic">{user?.firstName ? `${user.firstName} ${user.lastName}` : 'User'}</span>
                             </div>
-                            <svg className="w-6 h-6 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                            <svg className="w-8 h-8 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>
 
