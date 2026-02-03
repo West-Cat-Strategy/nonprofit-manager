@@ -2,10 +2,15 @@
 
 /* LOOP Design System - Neo-Brutalist Variables */
 :root {
+  /* Global Palette */
   --loop-yellow: #FFD700;
   --loop-green: #90EE90;
   --loop-purple: #D8BFD8;
   --loop-pink: #FFB6C1;
+  --loop-cyan: #4DD0E1;
+  --loop-blue: #87CEEB;
+
+  /* Brutalist defaults */
   --shadow-color: #000000;
   --border-brutal: 2px solid #000000;
   --shadow-brutal: 6px 6px 0px var(--shadow-color);
@@ -19,13 +24,45 @@ body {
 }
 
 body.neo-dark-mode {
+  /* Muted/Darker Colors for Dark Mode Headers */
+  --loop-yellow: #CCAC00;
+  --loop-green: #72BD72;
+  --loop-purple: #AA96AA;
+  --loop-pink: #CC919A;
+  --loop-cyan: #3DA6B4;
+  --loop-blue: #6CA4BC;
+
   --shadow-color: #F5F5DC;
   background-color: #1a1a1a !important;
   color: #ffffff !important;
+
+  /* Readability Boost */
+  font-size: 1.1em;
+  letter-spacing: 0.03em;
 }
 
+/* Thicker black rim for all text in dark mode */
 body.neo-dark-mode * {
-  -webkit-text-stroke: 0.5px #000000;
+  -webkit-text-stroke: 1px #000000;
+  text-shadow: 1px 1px 0px #000;
+}
+
+/* Preserve black text on vibrant props/banners where white text + black rim is muddy */
+/* Note: Since we are using variables now, we target the utility classes that use them */
+/* However, Tailwind utilitarian variables are not easily targeted by just class name if using arbitrary values or style binding. 
+   But we switched to `bg-[var(--loop-x)]` which generates a specific class. 
+   Ideally we just force text black on anything inside these components if we can. 
+   For now, we will target the styles generally or assume the component sets text color. */
+
+body.neo-dark-mode .bg-\[var\(--loop-yellow\)\] *,
+body.neo-dark-mode .bg-\[var\(--loop-green\)\] *,
+body.neo-dark-mode .bg-\[var\(--loop-cyan\)\] *,
+body.neo-dark-mode .bg-\[var\(--loop-pink\)\] *,
+body.neo-dark-mode .bg-\[var\(--loop-purple\)\] *,
+body.neo-dark-mode .bg-\[var\(--loop-blue\)\] * {
+  color: #000000 !important;
+  -webkit-text-stroke: 0px !important;
+  text-shadow: none !important;
 }
 
 body.neo-dark-mode .bg-white,
@@ -41,13 +78,14 @@ body.neo-dark-mode label,
 body.neo-dark-mode input,
 body.neo-dark-mode select {
   color: #ffffff !important;
-  -webkit-text-stroke: 0.5px #000000;
+  -webkit-text-stroke: 1px #000000;
 }
 
 body.neo-dark-mode input,
 body.neo-dark-mode select,
 body.neo-dark-mode textarea {
   background-color: #333333 !important;
+  box-shadow: 4px 4px 0px 0px var(--shadow-color) !important;
 }
 
 /* React Grid Layout styles */
