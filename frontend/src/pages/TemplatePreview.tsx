@@ -3,7 +3,7 @@
  * Displays a live preview of a template
  */
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
@@ -18,7 +18,12 @@ const TemplatePreview: React.FC = () => {
   const [previewHtml, setPreviewHtml] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const previewUrl = useMemo(() => {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+    const baseUrl = apiUrl.endsWith('/api') ? apiUrl.slice(0, -4) : apiUrl;
+    return `${baseUrl}/api/templates/${templateId}/preview?page=${encodeURIComponent(pageSlug)}`;
+  }, [templateId, pageSlug]);
 
   useEffect(() => {
     const fetchPreview = async () => {
@@ -30,10 +35,7 @@ const TemplatePreview: React.FC = () => {
 
       try {
         setIsLoading(true);
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-        const url = `${baseUrl}/api/templates/${templateId}/preview?page=${encodeURIComponent(pageSlug)}`;
-
-        const response = await fetch(url, {
+        const response = await fetch(previewUrl, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -54,20 +56,7 @@ const TemplatePreview: React.FC = () => {
     };
 
     fetchPreview();
-  }, [templateId, pageSlug, token]);
-
-  // Inject HTML into iframe when preview HTML changes
-  useEffect(() => {
-    if (previewHtml && iframeRef.current) {
-      const iframe = iframeRef.current;
-      const doc = iframe.contentDocument || iframe.contentWindow?.document;
-      if (doc) {
-        doc.open();
-        doc.write(previewHtml);
-        doc.close();
-      }
-    }
-  }, [previewHtml]);
+  }, [templateId, token, previewUrl]);
 
   const handleClose = () => {
     navigate('/website-builder');
@@ -137,10 +126,11 @@ const TemplatePreview: React.FC = () => {
           </div>
         ) : (
           <iframe
-            ref={iframeRef}
             title="Template Preview"
             className="w-full h-full border-0"
-            sandbox="allow-scripts allow-same-origin allow-popups"
+            srcDoc={previewHtml}
+            // Avoid `allow-same-origin` so preview scripts cannot read app storage/tokens.
+            sandbox="allow-scripts allow-popups"
           />
         )}
       </div>

@@ -32,16 +32,18 @@ if (storedUser) {
 }
 
 // 🔧 DEV MODE: Auto-authenticate for development
-// This bypasses the login screen with Andrew's credentials
+// Opt-in only: set `VITE_DEV_AUTO_LOGIN=true` to bypass the login screen locally.
+// Never enable this in production builds.
 const DEV_MODE = import.meta.env.DEV;
+const DEV_AUTO_LOGIN = import.meta.env.VITE_DEV_AUTO_LOGIN === 'true';
 
-if (DEV_MODE && !token) {
+if (DEV_MODE && DEV_AUTO_LOGIN && !token) {
   const devUser: User = {
     id: '1',
-    email: 'andrew.dolby@westcat.ca',
-    firstName: 'Andrew',
-    lastName: 'Dolby',
-    role: 'System Admin'
+    email: 'dev@example.com',
+    firstName: 'Dev',
+    lastName: 'User',
+    role: 'admin',
   };
   const devToken = 'dev-token-' + Date.now();
 
@@ -54,8 +56,8 @@ if (DEV_MODE && !token) {
 
 const initialState: AuthState = {
   user: user,
-  token: token || (DEV_MODE ? 'dev-token' : null),
-  isAuthenticated: !!token || DEV_MODE, // Always authenticated in dev mode
+  token: token || localStorage.getItem('token'),
+  isAuthenticated: !!(token || localStorage.getItem('token')),
   loading: false,
 };
 
