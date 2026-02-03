@@ -14,18 +14,55 @@ export interface RegisterData {
 
 export interface AuthResponse {
   token: string;
+  refreshToken?: string;
   user: {
     id: string;
     email: string;
     firstName: string;
     lastName: string;
     role: string;
+    profilePicture?: string | null;
   };
 }
 
+export interface MfaRequiredResponse {
+  mfaRequired: true;
+  method: 'totp';
+  mfaToken: string;
+  user: AuthResponse['user'];
+}
+
+export type LoginResponse = AuthResponse | MfaRequiredResponse;
+
 export const authService = {
-  login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/auth/login', credentials);
+  login: async (credentials: LoginCredentials): Promise<LoginResponse> => {
+    const response = await api.post<LoginResponse>('/auth/login', credentials);
+    return response.data;
+  },
+
+  completeTotpLogin: async (params: {
+    email: string;
+    mfaToken: string;
+    code: string;
+  }): Promise<AuthResponse> => {
+    const response = await api.post<AuthResponse>('/auth/login/2fa', params);
+    return response.data;
+  },
+
+  passkeyLoginOptions: async (email: string): Promise<{ challengeId: string; options: unknown }> => {
+    const response = await api.post<{ challengeId: string; options: unknown }>(
+      '/auth/passkeys/login/options',
+      { email }
+    );
+    return response.data;
+  },
+
+  passkeyLoginVerify: async (params: {
+    email: string;
+    challengeId: string;
+    credential: unknown;
+  }): Promise<AuthResponse> => {
+    const response = await api.post<AuthResponse>('/auth/passkeys/login/verify', params);
     return response.data;
   },
 

@@ -13,6 +13,21 @@ import {
   updateProfile,
   changePassword,
 } from '../controllers/authController';
+import {
+  completeTotpLogin,
+  disableTotp,
+  enableTotp,
+  enrollTotp,
+  getSecurityOverview,
+} from '../controllers/mfaController';
+import {
+  deletePasskey,
+  listPasskeys,
+  loginOptions as passkeyLoginOptions,
+  loginVerify as passkeyLoginVerify,
+  registrationOptions as passkeyRegistrationOptions,
+  registrationVerify as passkeyRegistrationVerify,
+} from '../controllers/passkeyController';
 import { authenticate } from '../middleware/auth';
 import { authLimiter, registrationLimiter } from '../middleware/rateLimiter';
 import { checkAccountLockout } from '../middleware/accountLockout';
@@ -46,7 +61,25 @@ router.post(
   login
 );
 
+router.post(
+  '/login/2fa',
+  authLimiter,
+  checkAccountLockout,
+  [
+    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('mfaToken').notEmpty().withMessage('MFA token is required'),
+    body('code')
+      .trim()
+      .matches(/^[0-9]{6}$/)
+      .withMessage('Authentication code must be 6 digits'),
+  ],
+  completeTotpLogin
+);
+
 router.get('/me', authenticate, getCurrentUser);
+
+// Security (MFA / passkeys) overview
+router.get('/security', authenticate, getSecurityOverview);
 
 // User preferences routes
 router.get('/preferences', authenticate, getPreferences);
@@ -79,6 +112,56 @@ router.put(
       .withMessage('Password must contain uppercase, lowercase, number, and special character'),
   ],
   changePassword
+);
+
+// TOTP 2FA management
+router.post('/2fa/totp/enroll', authenticate, enrollTotp);
+router.post(
+  '/2fa/totp/enable',
+  authenticate,
+  [body('code').trim().matches(/^[0-9]{6}$/).withMessage('Authentication code must be 6 digits')],
+  enableTotp
+);
+router.post(
+  '/2fa/totp/disable',
+  authenticate,
+  [
+    body('password').notEmpty().withMessage('Password is required'),
+    body('code')
+      .trim()
+      .matches(/^[0-9]{6}$/)
+      .withMessage('Authentication code must be 6 digits'),
+  ],
+  disableTotp
+);
+
+// Passkeys (WebAuthn)
+router.get('/passkeys', authenticate, listPasskeys);
+router.delete('/passkeys/:id', authenticate, deletePasskey);
+router.post('/passkeys/register/options', authenticate, passkeyRegistrationOptions);
+router.post(
+  '/passkeys/register/verify',
+  authenticate,
+  [body('challengeId').notEmpty().withMessage('challengeId is required'), body('credential').notEmpty()],
+  passkeyRegistrationVerify
+);
+router.post(
+  '/passkeys/login/options',
+  authLimiter,
+  checkAccountLockout,
+  [body('email').isEmail().normalizeEmail().withMessage('Valid email is required')],
+  passkeyLoginOptions
+);
+router.post(
+  '/passkeys/login/verify',
+  authLimiter,
+  checkAccountLockout,
+  [
+    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('challengeId').notEmpty().withMessage('challengeId is required'),
+    body('credential').notEmpty(),
+  ],
+  passkeyLoginVerify
 );
 
 // Setup routes (no authentication required)
