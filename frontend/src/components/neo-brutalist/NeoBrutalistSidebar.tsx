@@ -68,7 +68,8 @@ function ModuleButton({
 export default function NeoBrutalistSidebar() {
     const location = useLocation();
 
-    const isActive = (path: string) => location.pathname === path;
+    const isActive = (path: string) =>
+        location.pathname === path || location.pathname.startsWith(`${path}/`);
 
     // Get current date in format "FEB 03 2026"
     const getCurrentDate = () => {
@@ -106,35 +107,43 @@ export default function NeoBrutalistSidebar() {
 
             {/* Module Links with Chameleon Colors */}
             <ModuleButton
-                to="/linking"
-                icon="L"
-                label="Linking"
-                activeColor="bg-[var(--loop-green)]"
-                active={isActive('/linking')}
-            />
-
-            <ModuleButton
-                to="/operations"
-                icon="O"
-                label="Operations"
-                activeColor="bg-[var(--loop-blue)]"
-                active={isActive('/operations')}
-            />
-
-            <ModuleButton
-                to="/outreach"
-                icon="O"
-                label="Outreach"
-                activeColor="bg-[var(--loop-purple)]"
-                active={isActive('/outreach')}
-            />
-
-            <ModuleButton
                 to="/people"
                 icon="P"
                 label="People"
                 activeColor="bg-[var(--loop-pink)]"
                 active={isActive('/people')}
+            />
+
+            <ModuleButton
+                to="/cases"
+                icon="C"
+                label="Cases"
+                activeColor="bg-[var(--loop-blue)]"
+                active={isActive('/cases')}
+            />
+
+            <ModuleButton
+                to="/events"
+                icon="E"
+                label="Events"
+                activeColor="bg-[var(--loop-purple)]"
+                active={isActive('/events')}
+            />
+
+            <ModuleButton
+                to="/tasks"
+                icon="T"
+                label="Tasks"
+                activeColor="bg-[var(--loop-green)]"
+                active={isActive('/tasks')}
+            />
+
+            <ModuleButton
+                to="/reports"
+                icon="R"
+                label="Reports"
+                activeColor="bg-[var(--loop-yellow)]"
+                active={isActive('/reports')}
             />
 
             {/* Spacer */}
