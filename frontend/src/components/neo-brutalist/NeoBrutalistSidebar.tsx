@@ -23,7 +23,7 @@ function NavButton({
         className={`flex items-center gap-3 px-4 py-3 border-b-2 border-black dark:border-white transition-all ${
           active
             ? 'bg-black text-white dark:bg-white dark:text-black'
-            : 'bg-white dark:bg-[#121212] text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-900'
+            : 'bg-[var(--app-surface)] text-black dark:text-white hover:opacity-80'
         }`}
       >
         <span className="text-lg">{icon}</span>
@@ -54,7 +54,7 @@ function ModuleButton({
         className={`flex items-center gap-3 px-4 py-3 border-2 border-black dark:border-white transition-all ${
           active
             ? `${bgColor} text-black shadow-[6px_6px_0px_0px_var(--shadow-color)]`
-            : 'bg-white dark:bg-[#121212] text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-900 shadow-[4px_4px_0px_0px_var(--shadow-color)]'
+            : 'bg-[var(--app-surface)] text-black dark:text-white hover:opacity-80 shadow-[4px_4px_0px_0px_var(--shadow-color)]'
         }`}
       >
         <div className="w-6 h-6 bg-black text-white flex items-center justify-center text-xs font-bold border-2 border-black">
@@ -84,13 +84,13 @@ export default function NeoBrutalistSidebar() {
     };
 
     return (
-        <div className="w-48 bg-white dark:bg-[#121212] border-r-2 border-black dark:border-white flex flex-col h-screen">
+        <div className="w-48 bg-[var(--app-bg)] border-r-2 border-black dark:border-white flex flex-col h-screen transition-colors duration-300">
             {/* Yellow LOOP Branding Header */}
-            <div className="bg-[var(--loop-yellow)] dark:bg-[#CCAC00] border-b-2 border-black dark:border-white p-4 shadow-[6px_0px_0px_0px_var(--shadow-color)]">
+            <div className="bg-[var(--loop-yellow)] border-b-2 border-black dark:border-white p-4 shadow-[6px_0px_0px_0px_var(--shadow-color)] transition-colors duration-300">
                 <h1 className="font-black text-xl leading-tight text-black">
                     COMMUNITY<br />LOOP
                 </h1>
-                <div className="mt-2 inline-block border-2 border-black bg-white px-2 py-1 text-xs font-bold shadow-[2px_2px_0px_0px_var(--shadow-color)]">
+                <div className="mt-2 inline-block border-2 border-black bg-[var(--app-surface)] px-2 py-1 text-xs font-bold shadow-[2px_2px_0px_0px_var(--shadow-color)] text-[var(--app-text)]">
                     {getCurrentDate()}
                 </div>
 
@@ -104,8 +104,8 @@ export default function NeoBrutalistSidebar() {
                 active={isActive('/dashboard') || isActive('/')}
             />
 
-            {/* Yellow Separator Box (replaces MODULES label) */}
-            <div className="h-6 bg-[var(--loop-yellow)] dark:bg-[#CCAC00] border-b-2 border-black dark:border-white shadow-[6px_0px_0px_0px_var(--shadow-color)]"></div>
+            {/* Yellow Separator Box */}
+            <div className="h-6 bg-[var(--loop-yellow)] border-b-2 border-black dark:border-white shadow-[6px_0px_0px_0px_var(--shadow-color)] transition-colors duration-300"></div>
 
             {/* Module Links with Chameleon Colors */}
             <ModuleButton

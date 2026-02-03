@@ -113,6 +113,7 @@ const LinkingModule = lazy(() => import('./pages/neo-brutalist/LinkingModule'));
 const OperationsBoard = lazy(() => import('./pages/neo-brutalist/OperationsBoard'));
 const OutreachCenter = lazy(() => import('./pages/neo-brutalist/OutreachCenter'));
 const PeopleDirectory = lazy(() => import('./pages/neo-brutalist/PeopleDirectory'));
+const ThemeAudit = lazy(() => import('./pages/neo-brutalist/ThemeAudit'));
 
 // Protected Route wrapper component
 interface ProtectedRouteProps {
@@ -694,6 +695,7 @@ const AppRoutes = () => {
       <Route path="/demo/operations" element={<OperationsBoard />} />
       <Route path="/demo/outreach" element={<OutreachCenter />} />
       <Route path="/demo/people" element={<PeopleDirectory />} />
+      <Route path="/demo/audit" element={<ThemeAudit />} />
 
       {/* Root - Redirects to Neo-Brutalist Dashboard */}
       <Route
@@ -710,7 +712,7 @@ const AppRoutes = () => {
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-app-bg text-app-text transition-colors duration-300">
         <ThemeProvider>
           <Suspense fallback={<PageLoader />}>
             <AppRoutes />
