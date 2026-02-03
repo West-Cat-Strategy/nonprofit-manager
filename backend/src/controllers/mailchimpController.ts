@@ -51,7 +51,7 @@ export const getLists = async (_req: Request, res: Response): Promise<void> => {
 /**
  * Get a specific list by ID
  */
-export const getList = async (req: Request, res: Response): Promise<void> => {
+export const getList = async (req: Request<{ id: string }>, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -113,7 +113,10 @@ export const addMember = async (req: AuthRequest, res: Response): Promise<void> 
 /**
  * Get a member from a list
  */
-export const getMember = async (req: Request, res: Response): Promise<void> => {
+export const getMember = async (
+  req: Request<{ listId: string; email: string }>,
+  res: Response
+): Promise<void> => {
   try {
     const { listId, email } = req.params;
 
@@ -270,7 +273,7 @@ export const updateMemberTags = async (req: AuthRequest, res: Response): Promise
 /**
  * Get list tags
  */
-export const getListTags = async (req: Request, res: Response): Promise<void> => {
+export const getListTags = async (req: Request<{ listId: string }>, res: Response): Promise<void> => {
   try {
     const { listId } = req.params;
 
@@ -356,7 +359,7 @@ export const createSegment = async (req: AuthRequest, res: Response): Promise<vo
 /**
  * Get segments for a list
  */
-export const getSegments = async (req: Request, res: Response): Promise<void> => {
+export const getSegments = async (req: Request<{ listId: string }>, res: Response): Promise<void> => {
   try {
     const { listId } = req.params;
 
