@@ -504,9 +504,6 @@ export default function UserSettings() {
       setSecurityActionLoading(false);
     }
   };
-  */
-
-
   if (isLoading) {
     return (
       <NeoBrutalistLayout pageTitle="USER SETTINGS">
