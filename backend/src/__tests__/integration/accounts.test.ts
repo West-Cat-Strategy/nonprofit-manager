@@ -5,13 +5,14 @@ import pool from '../../config/database';
 describe('Account API Integration Tests', () => {
   let authToken: string;
   let testAccountId: string;
+  const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   beforeAll(async () => {
     // Register and login to get auth token
     const registerResponse = await request(app)
       .post('/api/auth/register')
       .send({
-        email: `account-test-${Date.now()}@example.com`,
+        email: `account-test-${unique()}@example.com`,
         password: 'Test123!Strong',
         firstName: 'Account',
         lastName: 'Tester',

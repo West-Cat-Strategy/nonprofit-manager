@@ -1,6 +1,7 @@
 import express from 'express';
 import { authenticate } from '../middleware/auth';
 import * as caseController from '../controllers/caseController';
+import * as documentController from '../controllers/contactDocumentsController';
 
 const router = express.Router();
 
@@ -15,6 +16,7 @@ router.put('/:id', authenticate, caseController.updateCase);
 router.delete('/:id', authenticate, caseController.deleteCase);
 router.put('/:id/status', authenticate, caseController.updateCaseStatus);
 router.get('/:id/notes', authenticate, caseController.getCaseNotes);
+router.get('/:id/documents', authenticate, documentController.getCaseDocuments);
 router.post('/notes', authenticate, caseController.createCaseNote);
 
 export default router;

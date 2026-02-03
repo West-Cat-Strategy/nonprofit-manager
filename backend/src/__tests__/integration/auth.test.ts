@@ -4,7 +4,8 @@ import pool from '../../config/database';
 
 describe('Auth API Integration Tests', () => {
   let authToken: string;
-  const testEmail = `auth-test-${Date.now()}@example.com`;
+  const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const testEmail = `auth-test-${unique()}@example.com`;
   const testPassword = 'StrongPassword123!';
 
   afterAll(async () => {
@@ -78,7 +79,7 @@ describe('Auth API Integration Tests', () => {
     });
 
     it('should hash the password before storage', async () => {
-      const newEmail = `hash-test-${Date.now()}@example.com`;
+      const newEmail = `hash-test-${unique()}@example.com`;
       await request(app)
         .post('/api/auth/register')
         .send({
@@ -189,7 +190,7 @@ describe('Auth API Integration Tests', () => {
 
   describe('Account Lockout', () => {
     it('should lock account after multiple failed login attempts', async () => {
-      const lockoutEmail = `lockout-${Date.now()}@example.com`;
+      const lockoutEmail = `lockout-${unique()}@example.com`;
 
       // Register user for lockout testing
       await request(app).post('/api/auth/register').send({

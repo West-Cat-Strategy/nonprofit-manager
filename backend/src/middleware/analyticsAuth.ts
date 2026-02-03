@@ -46,6 +46,27 @@ const ANALYTICS_PERMISSIONS = {
     canViewAnomalies: false,
     canViewTrends: true,
   },
+  // Default app users should have at least basic (non-financial) analytics access.
+  user: {
+    canViewOrgAnalytics: true,
+    canViewAccountAnalytics: true,
+    canViewContactAnalytics: true,
+    canViewFinancialMetrics: false,
+    canViewSensitiveData: false,
+    canExportData: false,
+    canViewAnomalies: false,
+    canViewTrends: true,
+  },
+  readonly: {
+    canViewOrgAnalytics: true,
+    canViewAccountAnalytics: true,
+    canViewContactAnalytics: true,
+    canViewFinancialMetrics: false,
+    canViewSensitiveData: false,
+    canExportData: false,
+    canViewAnomalies: false,
+    canViewTrends: true,
+  },
   volunteer: {
     canViewOrgAnalytics: false,
     canViewAccountAnalytics: false,
@@ -240,28 +261,40 @@ export const auditAnalyticsMiddleware = (action: string) => {
 /**
  * Mask sensitive financial data based on user role
  */
-export function maskFinancialData<T extends Record<string, any>>(
-  data: T,
-  userRole: string
-): T {
-  // Admin and manager can see all data
+export function maskFinancialData<T>(data: T, userRole: string): T {
+  // Admin can see all data unchanged
   if (userRole === 'admin') {
+    return data;
+  }
+
+  // Arrays (trends, lists) must preserve array shape.
+  if (Array.isArray(data)) {
+    const masked = data.map((item) => maskFinancialData(item, userRole));
+    return masked as any as T;
+  }
+
+  // Non-objects can't contain financial fields
+  if (data === null || data === undefined || typeof data !== 'object') {
     return data;
   }
 
   // Manager sees rounded amounts (no cents)
   if (userRole === 'manager') {
-    return maskAmountsToNearest(data);
+    return maskAmountsToNearest(data as any) as any as T;
   }
 
   // Staff and below see ranges instead of exact amounts
-  return maskAmountsToRanges(data);
+  return maskAmountsToRanges(data as any) as any as T;
 }
 
 /**
  * Round amounts to nearest dollar (remove cents)
  */
-function maskAmountsToNearest<T extends Record<string, any>>(data: T): T {
+function maskAmountsToNearest(data: any): any {
+  if (Array.isArray(data)) {
+    return data.map((item) => maskAmountsToNearest(item));
+  }
+
   const masked = { ...data } as any;
 
   // Recursively mask amount fields
@@ -273,13 +306,17 @@ function maskAmountsToNearest<T extends Record<string, any>>(data: T): T {
     }
   }
 
-  return masked as T;
+  return masked;
 }
 
 /**
  * Convert amounts to ranges for privacy
  */
-function maskAmountsToRanges<T extends Record<string, any>>(data: T): T {
+function maskAmountsToRanges(data: any): any {
+  if (Array.isArray(data)) {
+    return data.map((item) => maskAmountsToRanges(item));
+  }
+
   const masked = { ...data } as any;
 
   for (const key in masked) {
@@ -290,7 +327,7 @@ function maskAmountsToRanges<T extends Record<string, any>>(data: T): T {
     }
   }
 
-  return masked as T;
+  return masked;
 }
 
 /**

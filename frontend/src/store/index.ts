@@ -17,6 +17,7 @@ import templatesReducer from './slices/templateSlice';
 import casesReducer from './slices/casesSlice';
 import dashboardReducer from './slices/dashboardSlice';
 import alertsReducer from './slices/alertsSlice';
+import portalAuthReducer from './slices/portalAuthSlice';
 
 export const store = configureStore({
   reducer: {
@@ -38,6 +39,7 @@ export const store = configureStore({
     cases: casesReducer,
     dashboard: dashboardReducer,
     alerts: alertsReducer,
+    portalAuth: portalAuthReducer,
   },
 });
 

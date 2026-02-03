@@ -29,6 +29,7 @@ import {
   requireAnomalyAccess,
   auditAnalyticsMiddleware,
 } from '../middleware/analyticsAuth';
+import { handleValidationErrors } from '../middleware/validation';
 
 const router = Router();
 
@@ -41,8 +42,6 @@ router.use(authenticate);
  */
 router.get(
   '/summary',
-  requireOrgAnalytics,
-  auditAnalyticsMiddleware('view_org_analytics'),
   [
     query('start_date').optional().isISO8601(),
     query('end_date').optional().isISO8601(),
@@ -51,6 +50,9 @@ router.get(
       .optional()
       .isIn(['donor', 'volunteer', 'partner', 'vendor', 'beneficiary', 'other']),
   ],
+  handleValidationErrors,
+  requireOrgAnalytics,
+  auditAnalyticsMiddleware('view_org_analytics'),
   getAnalyticsSummary
 );
 
@@ -60,9 +62,10 @@ router.get(
  */
 router.get(
   '/accounts/:id',
+  [param('id').isUUID()],
+  handleValidationErrors,
   requireAccountAnalytics,
   auditAnalyticsMiddleware('view_account_analytics'),
-  [param('id').isUUID()],
   getAccountAnalytics
 );
 
@@ -72,9 +75,10 @@ router.get(
  */
 router.get(
   '/accounts/:id/donations',
+  [param('id').isUUID()],
+  handleValidationErrors,
   requireAccountAnalytics,
   auditAnalyticsMiddleware('view_account_donations'),
-  [param('id').isUUID()],
   getAccountDonationMetrics
 );
 
@@ -84,9 +88,10 @@ router.get(
  */
 router.get(
   '/accounts/:id/events',
+  [param('id').isUUID()],
+  handleValidationErrors,
   requireAccountAnalytics,
   auditAnalyticsMiddleware('view_account_events'),
-  [param('id').isUUID()],
   getAccountEventMetrics
 );
 
@@ -96,9 +101,10 @@ router.get(
  */
 router.get(
   '/contacts/:id',
+  [param('id').isUUID()],
+  handleValidationErrors,
   requireContactAnalytics,
   auditAnalyticsMiddleware('view_contact_analytics'),
-  [param('id').isUUID()],
   getContactAnalytics
 );
 
@@ -108,9 +114,10 @@ router.get(
  */
 router.get(
   '/contacts/:id/donations',
+  [param('id').isUUID()],
+  handleValidationErrors,
   requireContactAnalytics,
   auditAnalyticsMiddleware('view_contact_donations'),
-  [param('id').isUUID()],
   getContactDonationMetrics
 );
 
@@ -120,9 +127,10 @@ router.get(
  */
 router.get(
   '/contacts/:id/events',
+  [param('id').isUUID()],
+  handleValidationErrors,
   requireContactAnalytics,
   auditAnalyticsMiddleware('view_contact_events'),
-  [param('id').isUUID()],
   getContactEventMetrics
 );
 
@@ -132,9 +140,10 @@ router.get(
  */
 router.get(
   '/contacts/:id/volunteer',
+  [param('id').isUUID()],
+  handleValidationErrors,
   requireContactAnalytics,
   auditAnalyticsMiddleware('view_volunteer_metrics'),
-  [param('id').isUUID()],
   getContactVolunteerMetrics
 );
 
@@ -144,9 +153,10 @@ router.get(
  */
 router.get(
   '/trends/donations',
+  [query('months').optional().isInt({ min: 1, max: 24 })],
+  handleValidationErrors,
   requireOrgAnalytics,
   auditAnalyticsMiddleware('view_donation_trends'),
-  [query('months').optional().isInt({ min: 1, max: 24 })],
   getDonationTrends
 );
 
@@ -156,9 +166,10 @@ router.get(
  */
 router.get(
   '/trends/volunteer-hours',
+  [query('months').optional().isInt({ min: 1, max: 24 })],
+  handleValidationErrors,
   requireOrgAnalytics,
   auditAnalyticsMiddleware('view_volunteer_trends'),
-  [query('months').optional().isInt({ min: 1, max: 24 })],
   getVolunteerHoursTrends
 );
 
@@ -168,9 +179,10 @@ router.get(
  */
 router.get(
   '/trends/event-attendance',
+  [query('months').optional().isInt({ min: 1, max: 24 })],
+  handleValidationErrors,
   requireOrgAnalytics,
   auditAnalyticsMiddleware('view_event_trends'),
-  [query('months').optional().isInt({ min: 1, max: 24 })],
   getEventAttendanceTrends
 );
 
@@ -180,9 +192,10 @@ router.get(
  */
 router.get(
   '/comparative',
+  [query('period').optional().isIn(['month', 'quarter', 'year'])],
+  handleValidationErrors,
   requireOrgAnalytics,
   auditAnalyticsMiddleware('view_comparative_analytics'),
-  [query('period').optional().isIn(['month', 'quarter', 'year'])],
   getComparativeAnalytics
 );
 
@@ -193,12 +206,13 @@ router.get(
  */
 router.get(
   '/trends/:metricType',
-  requireOrgAnalytics,
-  auditAnalyticsMiddleware('view_trend_analysis'),
   [
     param('metricType').isIn(['donations', 'volunteer_hours', 'event_attendance']),
     query('months').optional().isInt({ min: 1, max: 36 }),
   ],
+  handleValidationErrors,
+  requireOrgAnalytics,
+  auditAnalyticsMiddleware('view_trend_analysis'),
   getTrendAnalysis
 );
 
@@ -209,13 +223,14 @@ router.get(
  */
 router.get(
   '/anomalies/:metricType',
-  requireAnomalyAccess,
-  auditAnalyticsMiddleware('view_anomaly_detection'),
   [
     param('metricType').isIn(['donations', 'volunteer_hours', 'event_attendance']),
     query('months').optional().isInt({ min: 3, max: 36 }),
     query('sensitivity').optional().isFloat({ min: 1.0, max: 4.0 }),
   ],
+  handleValidationErrors,
+  requireAnomalyAccess,
+  auditAnalyticsMiddleware('view_anomaly_detection'),
   detectAnomalies
 );
 

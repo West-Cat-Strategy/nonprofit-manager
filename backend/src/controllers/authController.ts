@@ -4,16 +4,18 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../config/database';
 import { logger } from '../config/logger';
+import { getJwtSecret } from '../config/jwt';
 import { AuthRequest } from '../middleware/auth';
 import { trackLoginAttempt } from '../middleware/accountLockout';
 import { JWT, PASSWORD } from '../config/constants';
+import { syncUserRole } from '../services/userRoleService';
+import { issueTotpMfaChallenge } from './mfaController';
 
 interface RegisterRequest {
   email: string;
   password: string;
   firstName: string;
   lastName: string;
-  role?: string;
 }
 
 interface LoginRequest {
@@ -29,21 +31,10 @@ interface UserRow {
   last_name: string;
   role: string;
   created_at: Date;
+  profile_picture?: string | null;
   preferences?: Record<string, unknown>;
+  mfa_totp_enabled?: boolean;
 }
-
-/**
- * Get JWT secret from environment or throw error
- * Never use fallback secrets in production
- */
-const getJwtSecret = (): string => {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    logger.error('JWT_SECRET environment variable is not set');
-    throw new Error('JWT_SECRET must be configured');
-  }
-  return secret;
-};
 
 export const register = async (
   req: AuthRequest,
@@ -56,7 +47,8 @@ export const register = async (
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email, password, firstName, lastName, role = 'user' }: RegisterRequest = req.body;
+    const { email, password, firstName, lastName }: RegisterRequest = req.body;
+    const role = 'user';
 
     // Check if user exists
     const existingUser = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
@@ -77,6 +69,8 @@ export const register = async (
     );
 
     const user = result.rows[0];
+
+    await syncUserRole(user.id, user.role);
 
     // Generate JWT token for immediate login after registration
     const jwtSecret = getJwtSecret();
@@ -100,6 +94,7 @@ export const register = async (
         firstName: user.first_name,
         lastName: user.last_name,
         role: user.role,
+        profilePicture: null,
       },
     });
   } catch (error) {
@@ -123,29 +118,47 @@ export const login = async (
 
     // Get user
     const result = await pool.query<UserRow>(
-      'SELECT id, email, password_hash, first_name, last_name, role FROM users WHERE email = $1',
+      'SELECT id, email, password_hash, first_name, last_name, role, profile_picture, mfa_totp_enabled FROM users WHERE email = $1',
       [email]
     );
 
     if (result.rows.length === 0) {
       // Track failed attempt for non-existent user
-      await trackLoginAttempt(email, false);
+      await trackLoginAttempt(email, false, undefined, clientIp);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     const user = result.rows[0];
 
+    await syncUserRole(user.id, user.role);
+
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
       // Track failed login attempt
-      await trackLoginAttempt(email, false, user.id);
+      await trackLoginAttempt(email, false, user.id, clientIp);
       logger.warn(`Failed login attempt for user: ${email}`, { ip: clientIp });
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Track successful login
-    await trackLoginAttempt(email, true, user.id);
+    // If TOTP is enabled, require second factor before issuing tokens
+    if (user.mfa_totp_enabled) {
+      logger.info(`MFA required for user: ${user.email}`, { ip: clientIp });
+      return res.json({
+        ...issueTotpMfaChallenge(user),
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          role: user.role,
+          profilePicture: user.profile_picture || null,
+        },
+      });
+    }
+
+    // Track successful login (no MFA required)
+    await trackLoginAttempt(email, true, user.id, clientIp);
 
     // Generate access token
     const jwtSecret = getJwtSecret();
@@ -181,6 +194,7 @@ export const login = async (
         firstName: user.first_name,
         lastName: user.last_name,
         role: user.role,
+        profilePicture: user.profile_picture || null,
       },
     });
   } catch (error) {
@@ -195,7 +209,7 @@ export const getCurrentUser = async (
 ): Promise<Response | void> => {
   try {
     const result = await pool.query<UserRow>(
-      'SELECT id, email, first_name, last_name, role, created_at FROM users WHERE id = $1',
+      'SELECT id, email, first_name, last_name, role, profile_picture, created_at FROM users WHERE id = $1',
       [req.user!.id]
     );
 
@@ -211,6 +225,7 @@ export const getCurrentUser = async (
       firstName: user.first_name,
       lastName: user.last_name,
       role: user.role,
+      profilePicture: user.profile_picture || null,
       createdAt: user.created_at,
     });
   } catch (error) {
@@ -310,6 +325,7 @@ export const setupFirstUser = async (
         firstName: user.first_name,
         lastName: user.last_name,
         role: user.role,
+        profilePicture: null,
       },
     });
   } catch (error) {

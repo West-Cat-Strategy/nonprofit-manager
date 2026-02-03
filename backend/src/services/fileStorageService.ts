@@ -25,10 +25,8 @@ const DEFAULT_CONFIG: FileStorageConfig = {
 /**
  * Ensure directory exists, creating it if necessary
  */
-const ensureDir = (dirPath: string): void => {
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-  }
+const ensureDir = async (dirPath: string): Promise<void> => {
+  await fs.promises.mkdir(dirPath, { recursive: true });
 };
 
 /**
@@ -58,13 +56,13 @@ export const uploadFile = async (
   const targetPath = path.join(targetDir, uniqueFileName);
 
   // Ensure target directory exists
-  ensureDir(targetDir);
+  await ensureDir(targetDir);
 
   // Move file from temp location to target (if using memoryStorage, write buffer)
   if (file.buffer) {
-    fs.writeFileSync(targetPath, file.buffer);
+    await fs.promises.writeFile(targetPath, file.buffer);
   } else if (file.path) {
-    fs.renameSync(file.path, targetPath);
+    await fs.promises.rename(file.path, targetPath);
   } else {
     throw new Error('Invalid file object: no buffer or path');
   }
@@ -89,8 +87,12 @@ export const deleteFile = async (
 ): Promise<void> => {
   const fullPath = path.join(config.baseUploadDir, filePath);
 
-  if (fs.existsSync(fullPath)) {
-    fs.unlinkSync(fullPath);
+  try {
+    await fs.promises.unlink(fullPath);
+  } catch (error: any) {
+    if (error?.code !== 'ENOENT') {
+      throw error;
+    }
   }
 };
 

@@ -305,7 +305,7 @@ describe('AnalyticsService', () => {
             },
           ],
         },
-        'contact_role = \'primary\'': {
+        "cr.name = 'Primary Contact'": {
           rows: [{ contact_id: 'contact-1', name: 'John Doe', email: 'john@test.com' }],
         },
         'SUM(amount)': {
@@ -392,7 +392,7 @@ describe('AnalyticsService', () => {
               email: 'jane@test.com',
               account_id: 'account-1',
               account_name: 'Test Org',
-              contact_role: 'primary',
+              contact_roles: ['Primary Contact'],
               created_at: '2023-01-01',
             },
           ],
@@ -546,7 +546,7 @@ describe('AnalyticsService', () => {
             },
           ],
         },
-        'contact_role = \'primary\'': { rows: [] },
+        "cr.name = 'Primary Contact'": { rows: [] },
         'SUM(amount)': {
           rows: [
             {
@@ -616,7 +616,7 @@ describe('AnalyticsService', () => {
             },
           ],
         },
-        'contact_role = \'primary\'': { rows: [] },
+        "cr.name = 'Primary Contact'": { rows: [] },
         'SUM(amount)': {
           rows: [
             {

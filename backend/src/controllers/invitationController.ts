@@ -9,11 +9,11 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../config/database';
 import { logger } from '../config/logger';
+import { getJwtSecret } from '../config/jwt';
 import { AuthRequest } from '../middleware/auth';
 import { PASSWORD, JWT } from '../config/constants';
 import * as invitationService from '../services/invitationService';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+import { syncUserRole } from '../services/userRoleService';
 
 /**
  * POST /api/invitations
@@ -126,7 +126,7 @@ export const getInvitationById = async (
  * Validate invitation token (public - for acceptance flow)
  */
 export const validateInvitation = async (
-  req: Request,
+  req: Request<{ token: string }>,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
@@ -162,7 +162,7 @@ export const validateInvitation = async (
  * Accept invitation and create user account (public)
  */
 export const acceptInvitation = async (
-  req: Request,
+  req: Request<{ token: string }>,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
@@ -196,6 +196,8 @@ export const acceptInvitation = async (
 
     const newUser = userResult.rows[0];
 
+    await syncUserRole(newUser.id, newUser.role);
+
     // Mark invitation as accepted
     await invitationService.markInvitationAccepted(invitation.id, newUser.id);
 
@@ -206,7 +208,7 @@ export const acceptInvitation = async (
         email: newUser.email,
         role: newUser.role,
       },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: JWT.ACCESS_TOKEN_EXPIRY }
     );
 
@@ -224,6 +226,7 @@ export const acceptInvitation = async (
         firstName: newUser.first_name,
         lastName: newUser.last_name,
         role: newUser.role,
+        profilePicture: null,
       },
     });
   } catch (error) {

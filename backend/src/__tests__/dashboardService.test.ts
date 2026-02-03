@@ -23,7 +23,8 @@ describe('DashboardService', () => {
   beforeEach(() => {
     mockPool = new Pool() as jest.Mocked<Pool>;
     dashboardService = new DashboardService(mockPool);
-    jest.clearAllMocks();
+    mockPool.query.mockReset();
+    mockPool.connect.mockReset();
   });
 
   describe('getUserDashboards', () => {
@@ -290,33 +291,30 @@ describe('DashboardService', () => {
 
   describe('createDefaultDashboard', () => {
     it('should create a default dashboard with predefined widgets', async () => {
-      const mockClient = {
-        query: jest.fn()
-          .mockResolvedValueOnce({ rows: [] }) // BEGIN
-          .mockResolvedValueOnce({ rows: [] }) // UPDATE
-          .mockResolvedValueOnce({
-            rows: [{
-              id: '123',
-              user_id: 'user-1',
-              name: 'Default Dashboard',
-              is_default: true,
-              widgets: expect.any(Array),
-              layout: expect.any(Array),
-            }]
-          }) // INSERT
-          .mockResolvedValueOnce({ rows: [] }), // COMMIT
-        release: jest.fn(),
-      };
-
-      mockPool.connect.mockResolvedValue(mockClient as any);
+      mockPool.query.mockResolvedValueOnce({
+        rows: [
+          {
+            id: '123',
+            user_id: 'user-1',
+            name: 'Default Dashboard',
+            is_default: true,
+            widgets: [],
+            layout: [],
+            breakpoints: {},
+            cols: {},
+            created_at: new Date(),
+            updated_at: new Date(),
+          },
+        ],
+      } as any);
 
       const result = await dashboardService.createDefaultDashboard('user-1');
 
       expect(result.name).toBe('Default Dashboard');
       expect(result.is_default).toBe(true);
-      expect(mockClient.query).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO dashboard_configs'),
-        expect.arrayContaining(['user-1', 'Default Dashboard', true])
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('ON CONFLICT'),
+        expect.arrayContaining(['user-1', 'Default Dashboard'])
       );
     });
   });

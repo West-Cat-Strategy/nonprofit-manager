@@ -27,7 +27,6 @@ global.fetch = jest.fn();
 import pool from '../../config/database';
 import * as webhookService from '../../services/webhookService';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockPool = pool as any;
 const mockFetch = global.fetch as jest.Mock;
 

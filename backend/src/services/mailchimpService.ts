@@ -26,7 +26,6 @@ import type {
 } from '../types/mailchimp';
 
 // Type the mailchimp client with extended methods
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mailchimpClient = mailchimp as any;
 
 // Mailchimp configuration
@@ -40,7 +39,10 @@ let isConfigured = false;
  */
 function initializeMailchimp(): void {
   if (!mailchimpApiKey || !mailchimpServerPrefix) {
-    logger.warn('Mailchimp is not configured. Set MAILCHIMP_API_KEY and MAILCHIMP_SERVER_PREFIX.');
+    // In tests we intentionally run without external integrations configured.
+    if (process.env.NODE_ENV !== 'test') {
+      logger.warn('Mailchimp is not configured. Set MAILCHIMP_API_KEY and MAILCHIMP_SERVER_PREFIX.');
+    }
     return;
   }
 

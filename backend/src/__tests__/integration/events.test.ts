@@ -5,13 +5,14 @@ import pool from '../../config/database';
 describe('Event API Integration Tests', () => {
   let authToken: string;
   let testEventId: string;
+  const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   beforeAll(async () => {
     // Register and login
     const registerResponse = await request(app)
       .post('/api/auth/register')
       .send({
-        email: `event-test-${Date.now()}@example.com`,
+        email: `event-test-${unique()}@example.com`,
         password: 'Test123!Strong',
         firstName: 'Event',
         lastName: 'Tester',

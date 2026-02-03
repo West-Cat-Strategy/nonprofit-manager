@@ -43,6 +43,23 @@ export const getEvents = async (
 };
 
 /**
+ * GET /api/events/summary
+ * Get event attendance summary for dashboards
+ */
+export const getEventAttendanceSummary = async (
+  _req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const summary = await eventService.getEventAttendanceSummary();
+    res.json(summary);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * GET /api/events/:id
  * Get a single event by ID
  */
