@@ -45,6 +45,7 @@ export default function BrutalButton({
             className={`
         border-2 border-black dark:border-white shadow-[6px_6px_0px_var(--shadow-color)] font-bold uppercase
         hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_var(--shadow-color)]
+        focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2
         transition-all
         disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0
         ${variantClasses[variant]}
