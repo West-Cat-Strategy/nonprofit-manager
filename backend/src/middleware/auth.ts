@@ -8,7 +8,8 @@ interface JwtPayload {
   role: string;
 }
 
-export interface AuthRequest extends Request {
+export interface AuthRequest
+  extends Request<Record<string, string>, any, any, Record<string, string | undefined>> {
   user?: JwtPayload;
 }
 

@@ -39,6 +39,7 @@ import portalAdminRoutes from './routes/portalAdmin';
 import meetingRoutes from './routes/meetings';
 import ingestRoutes from './routes/ingest';
 import adminRoutes from './routes/admin';
+import backupRoutes from './routes/backup';
 import { setPaymentPool } from './controllers/paymentController';
 import { Pool } from 'pg';
 
@@ -166,6 +167,7 @@ app.use('/api/portal/admin', portalAdminRoutes);
 app.use('/api/meetings', meetingRoutes);
 app.use('/api/ingest', ingestRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/backup', backupRoutes);
 
 // Error handling
 app.use(errorHandler);

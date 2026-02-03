@@ -7,34 +7,81 @@
  * - Consistent Styling
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { useNavigate } from 'react-router-dom';
 import NeoBrutalistLayout from '../../components/neo-brutalist/NeoBrutalistLayout';
 import PeopleCard from '../../components/neo-brutalist/PeopleCard';
 import BrutalInput from '../../components/neo-brutalist/BrutalInput';
-import LoopApiService from '../../services/LoopApiService';
+import api from '../../services/api';
 import type { AdaptedPerson } from '../../types/schema';
 
 type TabType = 'all' | 'staff' | 'volunteer' | 'board';
 
+type ContactsResponse = {
+    data: Array<{
+        contact_id: string;
+        first_name: string;
+        last_name: string;
+        email: string | null;
+        phone: string | null;
+        mobile_phone: string | null;
+        job_title: string | null;
+        is_active: boolean;
+    }>;
+    pagination: {
+        total: number;
+        page: number;
+        limit: number;
+        total_pages: number;
+    };
+};
+
+const DEFAULT_PAGE_SIZE = 100;
+
 export default function PeopleDirectory() {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<TabType>('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [people, setPeople] = useState<AdaptedPerson[]>([]);
+    const [counts, setCounts] = useState<Record<TabType, number>>({
+        all: 0,
+        staff: 0,
+        volunteer: 0,
+        board: 0,
+    });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
-    const [searchDebounceTimer, setSearchDebounceTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+    const searchDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const previousTabRef = useRef<TabType | null>(null);
 
-    // Fetch people from service layer
-    const fetchPeople = useCallback(async (role?: TabType, query?: string) => {
+    const fetchPeople = useCallback(async (tab: TabType, query: string) => {
         setLoading(true);
         try {
             setError(false);
-            const filter = {
-                role: role === 'all' ? undefined : role,
-                query: query || undefined,
-            };
-            const data = await LoopApiService.getPeople(filter);
+            const res = await api.get<ContactsResponse>('/contacts', {
+                params: {
+                    page: 1,
+                    limit: DEFAULT_PAGE_SIZE,
+                    search: query.trim() === '' ? undefined : query.trim(),
+                    role: tab === 'all' ? undefined : tab,
+                    is_active: true,
+                },
+            });
+
+            const data = res.data.data.map((c) => ({
+                id: c.contact_id,
+                firstName: c.first_name,
+                lastName: c.last_name,
+                email: c.email || '',
+                phone: c.phone || c.mobile_phone || undefined,
+                role: tab === 'all' ? undefined : tab,
+                status: c.is_active ? 'active' : 'inactive',
+                title: c.job_title || undefined,
+                fullName: `${c.first_name} ${c.last_name}`.trim(),
+                cardColor: 'gray',
+            })) satisfies AdaptedPerson[];
+
             setPeople(data);
         } catch (err) {
             console.error('[PeopleDirectory] Failed to fetch people:', err);
@@ -45,51 +92,74 @@ export default function PeopleDirectory() {
         }
     }, []);
 
-    // Fetch on mount
-    useEffect(() => {
-        fetchPeople('all');
-    }, [fetchPeople]);
+    const fetchCounts = useCallback(async (query: string) => {
+        try {
+            const search = query.trim() === '' ? undefined : query.trim();
+            const baseParams = { page: 1, limit: 1, search, is_active: true as const };
+
+            const [allRes, staffRes, volunteerRes, boardRes] = await Promise.all([
+                api.get<ContactsResponse>('/contacts', { params: baseParams }),
+                api.get<ContactsResponse>('/contacts', { params: { ...baseParams, role: 'staff' } }),
+                api.get<ContactsResponse>('/contacts', { params: { ...baseParams, role: 'volunteer' } }),
+                api.get<ContactsResponse>('/contacts', { params: { ...baseParams, role: 'board' } }),
+            ]);
+
+            setCounts({
+                all: allRes.data.pagination.total,
+                staff: staffRes.data.pagination.total,
+                volunteer: volunteerRes.data.pagination.total,
+                board: boardRes.data.pagination.total,
+            });
+        } catch (err) {
+            console.error('[PeopleDirectory] Failed to fetch counts:', err);
+        }
+    }, []);
+
+    const refresh = useCallback(
+        async (tab: TabType, query: string) => {
+            await Promise.all([fetchPeople(tab, query), fetchCounts(query)]);
+        },
+        [fetchCounts, fetchPeople]
+    );
 
     // Handle tab change
     const handleTabChange = (tab: TabType) => {
         setActiveTab(tab);
         setSearchTerm(''); // Clear search when changing tabs
-        fetchPeople(tab);
     };
 
-    // Handle search with 300ms debounce
-    const handleSearchChange = (value: string) => {
-        setSearchTerm(value);
-
-        // Clear existing timer
-        if (searchDebounceTimer) {
-            clearTimeout(searchDebounceTimer);
-        }
-
-        // Set new debounce timer
-        const timer = setTimeout(() => {
-            fetchPeople(activeTab, value);
-        }, 300);
-
-        setSearchDebounceTimer(timer);
-    };
+    // Server-side quick lookup (debounced)
+    const handleSearchChange = (value: string) => setSearchTerm(value);
 
     // Handle "+ NEW ITEM" button click
     const handleNewPerson = () => {
-        console.log('Open Create Person Modal');
-        // Phase 2: Open modal or route to creation page
-        // Example: navigate('/people/new') or setShowCreateModal(true)
+        navigate('/contacts/new');
     };
 
-    // Get counts for tabs (from current loaded data)
-    const getCounts = () => ({
-        all: people.length,
-        staff: people.filter(p => p.role === 'staff').length,
-        volunteer: people.filter(p => p.role === 'volunteer').length,
-        board: people.filter(p => p.role === 'board').length,
-    });
+    useEffect(() => {
+        const tabChanged = previousTabRef.current !== activeTab;
+        previousTabRef.current = activeTab;
 
-    const counts = getCounts();
+        if (searchDebounceTimerRef.current) {
+            clearTimeout(searchDebounceTimerRef.current);
+        }
+
+        if (tabChanged) {
+            refresh(activeTab, searchTerm);
+            return;
+        }
+
+        const timer = setTimeout(() => refresh(activeTab, searchTerm), 250);
+
+        searchDebounceTimerRef.current = timer;
+
+        return () => {
+            clearTimeout(timer);
+            if (searchDebounceTimerRef.current === timer) {
+                searchDebounceTimerRef.current = null;
+            }
+        };
+    }, [activeTab, refresh, searchTerm]);
 
     const TabButton = ({ tab, label, count }: { tab: TabType; label: string; count: number }) => (
         <button
@@ -121,7 +191,7 @@ export default function PeopleDirectory() {
                     <div className="bg-red-100 border-2 border-red-500 p-6 text-center shadow-[4px_4px_0px_0px_var(--shadow-color)]">
                         <h2 className="text-2xl font-black text-red-600 mb-2 uppercase">Directory Unavailable</h2>
                         <p className="font-bold">Failed to load people data. Please try again later.</p>
-                        <button onClick={() => fetchPeople(activeTab)} className="mt-4 px-6 py-2 bg-red-500 text-white font-bold border-2 border-black hover:bg-red-600 uppercase">
+                        <button onClick={() => refresh(activeTab, searchTerm)} className="mt-4 px-6 py-2 bg-red-500 text-white font-bold border-2 border-black hover:bg-red-600 uppercase">
                             Retry
                         </button>
                     </div>
@@ -144,7 +214,7 @@ export default function PeopleDirectory() {
                         <BrutalInput
                             type="search"
                             aria-label="Search people"
-                            placeholder="Search people..."
+                            placeholder="Quick lookup (name, email, phone)..."
                             icon={<MagnifyingGlassIcon className="w-5 h-5" />}
                             value={searchTerm}
                             onChange={(e) => handleSearchChange(e.target.value)}
