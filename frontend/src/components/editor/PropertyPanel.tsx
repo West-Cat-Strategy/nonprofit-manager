@@ -564,9 +564,126 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({
 
       default:
         return (
-          <p className="text-sm text-gray-500">
-            Properties for {selectedComponent.type} coming soon.
-          </p>
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                CSS Class
+              </label>
+              <input
+                type="text"
+                value={selectedComponent.className || ''}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, { className: e.target.value })
+                }
+                placeholder="custom-class"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Margin
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  value={selectedComponent.margin?.top || ''}
+                  onChange={(e) =>
+                    onUpdateComponent(selectedComponent.id, {
+                      margin: { ...selectedComponent.margin, top: e.target.value },
+                    })
+                  }
+                  placeholder="Top"
+                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                />
+                <input
+                  type="text"
+                  value={selectedComponent.margin?.right || ''}
+                  onChange={(e) =>
+                    onUpdateComponent(selectedComponent.id, {
+                      margin: { ...selectedComponent.margin, right: e.target.value },
+                    })
+                  }
+                  placeholder="Right"
+                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                />
+                <input
+                  type="text"
+                  value={selectedComponent.margin?.bottom || ''}
+                  onChange={(e) =>
+                    onUpdateComponent(selectedComponent.id, {
+                      margin: { ...selectedComponent.margin, bottom: e.target.value },
+                    })
+                  }
+                  placeholder="Bottom"
+                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                />
+                <input
+                  type="text"
+                  value={selectedComponent.margin?.left || ''}
+                  onChange={(e) =>
+                    onUpdateComponent(selectedComponent.id, {
+                      margin: { ...selectedComponent.margin, left: e.target.value },
+                    })
+                  }
+                  placeholder="Left"
+                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Padding
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  value={selectedComponent.padding?.top || ''}
+                  onChange={(e) =>
+                    onUpdateComponent(selectedComponent.id, {
+                      padding: { ...selectedComponent.padding, top: e.target.value },
+                    })
+                  }
+                  placeholder="Top"
+                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                />
+                <input
+                  type="text"
+                  value={selectedComponent.padding?.right || ''}
+                  onChange={(e) =>
+                    onUpdateComponent(selectedComponent.id, {
+                      padding: { ...selectedComponent.padding, right: e.target.value },
+                    })
+                  }
+                  placeholder="Right"
+                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                />
+                <input
+                  type="text"
+                  value={selectedComponent.padding?.bottom || ''}
+                  onChange={(e) =>
+                    onUpdateComponent(selectedComponent.id, {
+                      padding: { ...selectedComponent.padding, bottom: e.target.value },
+                    })
+                  }
+                  placeholder="Bottom"
+                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                />
+                <input
+                  type="text"
+                  value={selectedComponent.padding?.left || ''}
+                  onChange={(e) =>
+                    onUpdateComponent(selectedComponent.id, {
+                      padding: { ...selectedComponent.padding, left: e.target.value },
+                    })
+                  }
+                  placeholder="Left"
+                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                />
+              </div>
+            </div>
+          </>
         );
     }
   };

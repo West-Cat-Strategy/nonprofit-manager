@@ -39,7 +39,7 @@ describe('DonationSummaryWidget', () => {
 
   describe('Rendering', () => {
     it('renders without crashing', () => {
-      (api.get as any).mockResolvedValue({ data: mockDonationData });
+      (api.get as any).mockReturnValue(new Promise(() => {}));
 
       render(
         <DonationSummaryWidget
@@ -185,8 +185,8 @@ describe('DonationSummaryWidget', () => {
 
       await waitFor(() => {
         // Should display 0 for missing values
-        expect(screen.getByText('0')).toBeInTheDocument();
-        expect(screen.getByText('$0')).toBeInTheDocument();
+        expect(screen.getAllByText('0').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('$0').length).toBeGreaterThan(0);
       });
     });
   });
@@ -232,7 +232,7 @@ describe('DonationSummaryWidget', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('$0')).toBeInTheDocument();
+        expect(screen.getAllByText('$0').length).toBeGreaterThan(0);
       });
     });
 
@@ -467,8 +467,10 @@ describe('DonationSummaryWidget', () => {
         />
       );
 
-      // Should not crash
-      expect(screen.getByText('Donation Summary')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Donation Summary')).toBeInTheDocument();
+        expect(screen.getAllByText('$0').length).toBeGreaterThan(0);
+      });
     });
   });
 

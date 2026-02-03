@@ -26,23 +26,32 @@ const VolunteerHoursWidget = ({ widget, editMode, onRemove }: VolunteerHoursWidg
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchData = async () => {
       try {
         setLoading(true);
         const response = await api.get('/volunteers/summary');
+        if (!isMounted) return;
+        const payload = response.data ?? {};
         setData({
-          total_hours: response.data.total_hours || 0,
-          active_volunteers: response.data.active_volunteers || 0,
-          hours_this_month: response.data.hours_this_month || 0,
+          total_hours: payload.total_hours || 0,
+          active_volunteers: payload.active_volunteers || 0,
+          hours_this_month: payload.hours_this_month || 0,
         });
       } catch (err) {
+        if (!isMounted) return;
         setError('Failed to load volunteer data');
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchData();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (

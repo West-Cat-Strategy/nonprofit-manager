@@ -26,6 +26,24 @@ export const getContactDocuments = async (
 };
 
 /**
+ * GET /api/cases/:caseId/documents
+ * Get all documents for a case
+ */
+export const getCaseDocuments = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const documents = await documentService.getDocumentsByCase(id);
+    res.json(documents);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * GET /api/contacts/documents/:documentId
  * Get a single document by ID
  */

@@ -7,6 +7,7 @@ import { Router } from 'express';
 import { body, param, query } from 'express-validator';
 import {
   getEvents,
+  getEventAttendanceSummary,
   getEvent,
   createEvent,
   updateEvent,
@@ -42,6 +43,12 @@ router.get(
   ],
   getEvents
 );
+
+/**
+ * GET /api/events/summary
+ * Get event attendance summary for dashboards
+ */
+router.get('/summary', getEventAttendanceSummary);
 
 /**
  * GET /api/events/:id

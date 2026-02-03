@@ -9,6 +9,16 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logout } from '../store/slices/authSlice';
 import { useNavigationPreferences } from '../hooks/useNavigationPreferences';
+import api from '../services/api';
+
+interface SearchResult {
+  contact_id: string;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+  phone: string | null;
+  mobile_phone: string | null;
+}
 
 const Navigation = () => {
   const navigate = useNavigate();
@@ -18,9 +28,15 @@ const Navigation = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Close menus on ESC key
   useEffect(() => {
@@ -29,6 +45,7 @@ const Navigation = () => {
         setMobileMenuOpen(false);
         setUserMenuOpen(false);
         setMoreMenuOpen(false);
+        setSearchOpen(false);
       }
     };
     document.addEventListener('keydown', handleEscape);
@@ -42,7 +59,7 @@ const Navigation = () => {
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
-    if (mobileMenuOpen) {
+    if (mobileMenuOpen || searchOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -50,11 +67,18 @@ const Navigation = () => {
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [mobileMenuOpen]);
+  }, [mobileMenuOpen, searchOpen]);
 
   const handleLogout = () => {
     dispatch(logout());
     navigate('/login');
+  };
+
+  const handleSearch = () => {
+    setSearchOpen(true);
+    setSearchResults([]);
+    setSearchTerm('');
+    setIsSearching(false);
   };
 
   const isActive = (path: string) => {
@@ -82,6 +106,45 @@ const Navigation = () => {
     path: item.path,
     icon: item.icon,
   }));
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    searchInputRef.current?.focus();
+  }, [searchOpen]);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+
+    if (searchTerm.trim().length < 2) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        const response = await api.get('/contacts', {
+          params: { search: searchTerm.trim(), limit: 8, is_active: true },
+        });
+        setSearchResults(response.data?.data || response.data?.contacts || []);
+      } catch (error) {
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 250);
+
+    return () => {
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current);
+      }
+    };
+  }, [searchTerm, searchOpen]);
 
   return (
     <nav className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-50">
@@ -172,8 +235,7 @@ const Navigation = () => {
               type="button"
               className="hidden xl:flex items-center px-3 py-1.5 text-sm text-gray-500 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
               onClick={() => {
-                // TODO: Implement search functionality
-                alert('Search functionality coming soon!');
+                handleSearch();
               }}
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -454,8 +516,7 @@ const Navigation = () => {
                 type="button"
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  // TODO: Implement search
-                  alert('Search functionality coming soon!');
+                  handleSearch();
                 }}
                 className="flex items-center w-full px-3 py-3 rounded-lg text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors"
               >
@@ -495,6 +556,86 @@ const Navigation = () => {
             </div>
           </div>
         </>
+      )}
+      {searchOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-40 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mt-16">
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Search People</h2>
+              <button
+                onClick={() => setSearchOpen(false)}
+                className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                type="button"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-4">
+              <div className="relative">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by name, email, or phone..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                {isSearching && (
+                  <div className="absolute right-3 top-2.5 text-gray-400 text-sm">
+                    Searching...
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 max-h-80 overflow-auto border border-gray-200 rounded-lg">
+                {searchTerm.trim().length < 2 ? (
+                  <div className="p-4 text-sm text-gray-500">
+                    Type at least 2 characters to search.
+                  </div>
+                ) : searchResults.length === 0 ? (
+                  <div className="p-4 text-sm text-gray-500">
+                    No matches for "{searchTerm}".
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-gray-200">
+                    {searchResults.map((result) => (
+                      <li key={result.contact_id}>
+                        <Link
+                          to={`/contacts/${result.contact_id}`}
+                          onClick={() => setSearchOpen(false)}
+                          className="block px-4 py-3 hover:bg-gray-50"
+                        >
+                          <div className="font-medium text-gray-900">
+                            {result.first_name} {result.last_name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {result.email || result.mobile_phone || result.phone || 'No contact info'}
+                          </div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchOpen(false);
+                    navigate('/contacts');
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                >
+                  View All People
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </nav>
   );

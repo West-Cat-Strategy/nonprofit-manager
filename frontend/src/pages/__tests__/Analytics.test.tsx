@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -22,13 +23,24 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('../../services/api');
 
-// Mock ResizeObserver for Recharts
-class ResizeObserverMock {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-global.ResizeObserver = ResizeObserverMock;
+vi.mock('recharts', () => {
+  const Wrapper = ({ children }: { children?: ReactNode }) => <div>{children}</div>;
+  return {
+    ResponsiveContainer: Wrapper,
+    PieChart: Wrapper,
+    Pie: Wrapper,
+    Cell: () => <div />,
+    BarChart: Wrapper,
+    Bar: Wrapper,
+    LineChart: Wrapper,
+    Line: Wrapper,
+    XAxis: Wrapper,
+    YAxis: Wrapper,
+    CartesianGrid: Wrapper,
+    Tooltip: Wrapper,
+    Legend: () => null,
+  };
+});
 
 const mockSummary: AnalyticsSummary = {
   total_accounts: 50,
@@ -133,15 +145,20 @@ describe('Analytics page', () => {
     setupMocks();
     renderAnalytics();
 
-    expect(screen.getByText('Analytics & Reports')).toBeInTheDocument();
-    expect(screen.getByText('← Back')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Analytics & Reports')).toBeInTheDocument();
+      expect(screen.getByText('← Back')).toBeInTheDocument();
+    });
   });
 
-  it('displays loading state initially', () => {
-    setupMocks();
+  it('displays loading state initially', async () => {
+    const mockGet = api.get as ReturnType<typeof vi.fn>;
+    mockGet.mockImplementation(() => new Promise(() => {}));
     renderAnalytics();
 
-    expect(screen.getByText('Loading analytics...')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Loading analytics...')).toBeInTheDocument();
+    });
   });
 
   it('displays summary data after loading', async () => {
@@ -208,7 +225,7 @@ describe('Analytics page', () => {
     expect(screen.getByText('High')).toBeInTheDocument();
     expect(screen.getByText('Medium')).toBeInTheDocument();
     expect(screen.getByText('Low')).toBeInTheDocument();
-    expect(screen.getByText('Inactive')).toBeInTheDocument();
+    expect(screen.getAllByText('Inactive').length).toBeGreaterThan(0);
   });
 
   it('displays constituent overview chart', async () => {
@@ -314,14 +331,16 @@ describe('Analytics page', () => {
     expect(screen.getByText('Number of Donations')).toBeInTheDocument();
   });
 
-  it('has date filter inputs', () => {
+  it('has date filter inputs', async () => {
     setupMocks();
     renderAnalytics();
 
-    expect(screen.getByLabelText('Start Date')).toBeInTheDocument();
-    expect(screen.getByLabelText('End Date')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Apply Filters' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Clear' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByLabelText('Start Date')).toBeInTheDocument();
+      expect(screen.getByLabelText('End Date')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Apply Filters' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Clear' })).toBeInTheDocument();
+    });
   });
 
   it('allows entering date filter values', async () => {

@@ -1,13 +1,14 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi } from 'vitest';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import SocialShare from '../SocialShare';
 
 // Mock navigator.clipboard and navigator.share
 const mockClipboard = {
-  writeText: jest.fn(),
+  writeText: vi.fn(),
 };
 
-const mockShare = jest.fn();
+const mockShare = vi.fn();
 
 Object.assign(navigator, {
   clipboard: mockClipboard,
@@ -22,7 +23,7 @@ describe('SocialShare', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockClipboard.writeText.mockResolvedValue(undefined);
     mockShare.mockResolvedValue(undefined);
     // Reset navigator.share for each test
@@ -34,7 +35,8 @@ describe('SocialShare', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it('should render the share button with label', () => {
@@ -192,8 +194,6 @@ describe('SocialShare', () => {
   });
 
   it('should reset "Copied!" message after 2 seconds', async () => {
-    jest.useFakeTimers();
-
     render(<SocialShare data={mockData} />);
 
     const button = screen.getByRole('button', { name: /share/i });
@@ -202,25 +202,20 @@ describe('SocialShare', () => {
     const copyButton = screen.getByText('Copy Link');
     fireEvent.click(copyButton);
 
-    await waitFor(() => {
-      expect(screen.getByText('Copied!')).toBeInTheDocument();
+    expect(await screen.findByText('Copied!')).toBeInTheDocument();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 2100));
     });
 
-    jest.advanceTimersByTime(2000);
-
-    await waitFor(() => {
-      expect(screen.getByText('Copy Link')).toBeInTheDocument();
-      expect(screen.queryByText('Copied!')).not.toBeInTheDocument();
-    });
-
-    jest.useRealTimers();
+    expect(screen.getByText('Copy Link')).toBeInTheDocument();
+    expect(screen.queryByText('Copied!')).not.toBeInTheDocument();
   });
 
   it('should handle clipboard API failure with fallback', async () => {
     mockClipboard.writeText.mockRejectedValue(new Error('Clipboard API not available'));
 
     // Mock document.execCommand
-    document.execCommand = jest.fn(() => true);
+    document.execCommand = vi.fn(() => true);
 
     render(<SocialShare data={mockData} />);
 
@@ -326,7 +321,7 @@ describe('SocialShare', () => {
   });
 
   it('should cleanup event listener on unmount', () => {
-    const removeEventListenerSpy = jest.spyOn(document, 'removeEventListener');
+    const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener');
 
     const { unmount } = render(<SocialShare data={mockData} />);
 

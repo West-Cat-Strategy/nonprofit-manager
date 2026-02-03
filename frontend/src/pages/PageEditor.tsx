@@ -27,6 +27,8 @@ import {
   fetchTemplate,
   updateTemplatePage,
   createTemplateVersion,
+  createTemplatePage,
+  updateTemplate,
   setCurrentPage,
   updateCurrentPageSections,
 } from '../store/slices/templateSlice';
@@ -55,6 +57,13 @@ const PageEditor: React.FC = () => {
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showPageList, setShowPageList] = useState(false);
+  const [showTemplateSettings, setShowTemplateSettings] = useState(false);
+  const [templateSettingsError, setTemplateSettingsError] = useState<string | null>(null);
+  const [templateSettings, setTemplateSettings] = useState({
+    name: currentTemplate?.name || '',
+    description: currentTemplate?.description || '',
+    status: currentTemplate?.status || 'draft',
+  });
   const [autoSaveEnabled] = useState(true);
 
   // Initialize sections from currentPage
@@ -108,6 +117,16 @@ const PageEditor: React.FC = () => {
       dispatch(updateCurrentPageSections(historySections));
     }
   }, [historySections, dispatch, currentPage]);
+
+  useEffect(() => {
+    if (currentTemplate) {
+      setTemplateSettings({
+        name: currentTemplate.name,
+        description: currentTemplate.description || '',
+        status: currentTemplate.status,
+      });
+    }
+  }, [currentTemplate]);
 
   // Keyboard shortcuts for undo/redo
   useEffect(() => {
@@ -386,6 +405,56 @@ const PageEditor: React.FC = () => {
     [currentTemplate, dispatch]
   );
 
+  const handleAddPage = useCallback(async () => {
+    if (!templateId || !currentTemplate) return;
+
+    const baseIndex = currentTemplate.pages.length + 1;
+    const baseName = `New Page ${baseIndex}`;
+    const existingSlugs = new Set(currentTemplate.pages.map((p) => p.slug));
+    let slug = `page-${baseIndex}`;
+    let suffix = 1;
+    while (existingSlugs.has(slug)) {
+      slug = `page-${baseIndex}-${suffix}`;
+      suffix += 1;
+    }
+
+    try {
+      await dispatch(
+        createTemplatePage({
+          templateId,
+          data: {
+            name: baseName,
+            slug,
+            sections: [],
+          },
+        })
+      ).unwrap();
+      setShowPageList(false);
+    } catch (err) {
+      console.error('Failed to create page:', err);
+    }
+  }, [dispatch, templateId, currentTemplate]);
+
+  const handleSaveTemplateSettings = useCallback(async () => {
+    if (!currentTemplate) return;
+    setTemplateSettingsError(null);
+    try {
+      await dispatch(
+        updateTemplate({
+          id: currentTemplate.id,
+          data: {
+            name: templateSettings.name.trim(),
+            description: templateSettings.description.trim() || undefined,
+            status: templateSettings.status as 'draft' | 'published' | 'archived',
+          },
+        })
+      ).unwrap();
+      setShowTemplateSettings(false);
+    } catch (err) {
+      setTemplateSettingsError(err instanceof Error ? err.message : 'Failed to update template');
+    }
+  }, [dispatch, currentTemplate, templateSettings]);
+
   if (!currentTemplate || !currentPage) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -414,6 +483,7 @@ const PageEditor: React.FC = () => {
           onSaveVersion={handleSaveVersion}
           onBack={() => navigate('/website-builder')}
           onShowPages={() => setShowPageList(true)}
+          onOpenSettings={() => setShowTemplateSettings(true)}
           canUndo={canUndo}
           canRedo={canRedo}
           onUndo={undo}
@@ -484,8 +554,95 @@ const PageEditor: React.FC = () => {
             pages={currentTemplate.pages}
             currentPageId={currentPage.id}
             onSelectPage={handlePageChange}
+            onAddPage={handleAddPage}
             onClose={() => setShowPageList(false)}
           />
+        )}
+
+        {showTemplateSettings && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">Template Settings</h2>
+                <button
+                  onClick={() => setShowTemplateSettings(false)}
+                  className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="p-4 space-y-4">
+                {templateSettingsError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded">
+                    {templateSettingsError}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Template Name
+                  </label>
+                  <input
+                    type="text"
+                    value={templateSettings.name}
+                    onChange={(e) =>
+                      setTemplateSettings((prev) => ({ ...prev, name: e.target.value }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={templateSettings.description}
+                    onChange={(e) =>
+                      setTemplateSettings((prev) => ({ ...prev, description: e.target.value }))
+                    }
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={templateSettings.status}
+                    onChange={(e) =>
+                      setTemplateSettings((prev) => ({ ...prev, status: e.target.value }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="p-4 border-t border-gray-200 flex justify-end gap-2">
+                <button
+                  onClick={() => setShowTemplateSettings(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveTemplateSettings}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Error Toast */}

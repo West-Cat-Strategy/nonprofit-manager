@@ -4,10 +4,17 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import EventAttendanceWidget from '../EventAttendanceWidget';
+import api from '../../../services/api';
 import type { DashboardWidget } from '../../../types/dashboard';
+
+vi.mock('../../../services/api', () => ({
+  default: {
+    get: vi.fn(),
+  },
+}));
 
 describe('EventAttendanceWidget', () => {
   const mockWidget: DashboardWidget = {
@@ -18,8 +25,20 @@ describe('EventAttendanceWidget', () => {
     config: {},
   };
 
+  const mockedApi = api as { get: ReturnType<typeof vi.fn> };
+
+  const mockSummaryResponse = () =>
+    mockedApi.get.mockResolvedValue({
+      data: {
+        upcoming_events: 12,
+        total_this_month: 24,
+        avg_attendance: 45,
+      },
+    });
+
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedApi.get.mockReturnValue(new Promise(() => {}));
   });
 
   describe('Rendering', () => {
@@ -45,7 +64,7 @@ describe('EventAttendanceWidget', () => {
       );
 
       expect(screen.getByText('Upcoming Events')).toBeInTheDocument();
-      expect(screen.getByText('12')).toBeInTheDocument();
+      expect(screen.getAllByText('--').length).toBeGreaterThan(0);
     });
 
     it('displays total this month metric', () => {
@@ -58,7 +77,7 @@ describe('EventAttendanceWidget', () => {
       );
 
       expect(screen.getByText('Total This Month')).toBeInTheDocument();
-      expect(screen.getByText('24')).toBeInTheDocument();
+      expect(screen.getAllByText('--').length).toBeGreaterThan(0);
     });
 
     it('displays average attendance metric', () => {
@@ -71,10 +90,11 @@ describe('EventAttendanceWidget', () => {
       );
 
       expect(screen.getByText('Avg. Attendance')).toBeInTheDocument();
-      expect(screen.getByText('45')).toBeInTheDocument();
+      expect(screen.getAllByText('--').length).toBeGreaterThan(0);
     });
 
-    it('uses correct text sizes for metrics', () => {
+    it('uses correct text sizes for metrics', async () => {
+      mockSummaryResponse();
       const { container } = render(
         <EventAttendanceWidget
           widget={mockWidget}
@@ -84,14 +104,14 @@ describe('EventAttendanceWidget', () => {
       );
 
       // Primary metric should be larger (text-3xl)
-      const upcomingEvents = screen.getByText('12');
+      const upcomingEvents = await screen.findByText('12');
       expect(upcomingEvents).toHaveClass('text-3xl', 'font-bold');
 
       // Secondary metrics should be smaller (text-xl)
-      const totalThisMonth = screen.getByText('24');
+      const totalThisMonth = await screen.findByText('24');
       expect(totalThisMonth).toHaveClass('text-xl', 'font-semibold');
 
-      const avgAttendance = screen.getByText('45');
+      const avgAttendance = await screen.findByText('45');
       expect(avgAttendance).toHaveClass('text-xl', 'font-semibold');
     });
   });
@@ -214,7 +234,7 @@ describe('EventAttendanceWidget', () => {
     it('calls onRemove callback', () => {
       const onRemove = vi.fn();
 
-      render(
+      const { container } = render(
         <EventAttendanceWidget
           widget={mockWidget}
           editMode={true}
@@ -238,7 +258,7 @@ describe('EventAttendanceWidget', () => {
 
       // Should render normally without edit controls
       expect(screen.getByText('Event Attendance')).toBeInTheDocument();
-      expect(screen.getByText('12')).toBeInTheDocument();
+      expect(screen.getAllByText('--').length).toBeGreaterThan(0);
     });
   });
 
@@ -336,7 +356,7 @@ describe('EventAttendanceWidget', () => {
       );
 
       // Values should be dark gray (text-gray-900) for high contrast
-      const value = screen.getByText('12');
+      const value = screen.getAllByText('--')[0];
       expect(value).toHaveClass('text-gray-900');
     });
 
@@ -354,7 +374,7 @@ describe('EventAttendanceWidget', () => {
       expect(label).toHaveClass('text-gray-500');
 
       // Values should be darker (text-gray-900)
-      const value = screen.getByText('12');
+      const value = screen.getAllByText('--')[0];
       expect(value).toHaveClass('text-gray-900');
     });
   });
@@ -369,7 +389,7 @@ describe('EventAttendanceWidget', () => {
         />
       );
 
-      const primaryValue = screen.getByText('12');
+      const primaryValue = screen.getAllByText('--')[0];
       expect(primaryValue).toHaveClass('text-3xl');
     });
 
@@ -382,8 +402,8 @@ describe('EventAttendanceWidget', () => {
         />
       );
 
-      const secondaryValue1 = screen.getByText('24');
-      const secondaryValue2 = screen.getByText('45');
+      const secondaryValue1 = screen.getAllByText('--')[1];
+      const secondaryValue2 = screen.getAllByText('--')[2];
 
       expect(secondaryValue1).toHaveClass('text-xl');
       expect(secondaryValue2).toHaveClass('text-xl');
@@ -398,7 +418,7 @@ describe('EventAttendanceWidget', () => {
         />
       );
 
-      const primaryValue = screen.getByText('12');
+      const primaryValue = screen.getAllByText('--')[0];
       expect(primaryValue).toHaveClass('font-bold');
     });
 
@@ -411,8 +431,8 @@ describe('EventAttendanceWidget', () => {
         />
       );
 
-      const secondaryValue1 = screen.getByText('24');
-      const secondaryValue2 = screen.getByText('45');
+      const secondaryValue1 = screen.getAllByText('--')[1];
+      const secondaryValue2 = screen.getAllByText('--')[2];
 
       expect(secondaryValue1).toHaveClass('font-semibold');
       expect(secondaryValue2).toHaveClass('font-semibold');
@@ -495,7 +515,7 @@ describe('EventAttendanceWidget', () => {
     it('accepts onRemove callback prop', () => {
       const onRemove = vi.fn();
 
-      render(
+      const { container } = render(
         <EventAttendanceWidget
           widget={mockWidget}
           editMode={true}
@@ -508,8 +528,9 @@ describe('EventAttendanceWidget', () => {
     });
   });
 
-  describe('Static Data Display', () => {
-    it('displays static upcoming events count', () => {
+  describe('Data Display', () => {
+    it('displays upcoming events count from API', async () => {
+      mockSummaryResponse();
       render(
         <EventAttendanceWidget
           widget={mockWidget}
@@ -518,11 +539,11 @@ describe('EventAttendanceWidget', () => {
         />
       );
 
-      // Currently displays static value of 12
-      expect(screen.getByText('12')).toBeInTheDocument();
+      expect(await screen.findByText('12')).toBeInTheDocument();
     });
 
-    it('displays static total this month count', () => {
+    it('displays total this month count from API', async () => {
+      mockSummaryResponse();
       render(
         <EventAttendanceWidget
           widget={mockWidget}
@@ -531,11 +552,11 @@ describe('EventAttendanceWidget', () => {
         />
       );
 
-      // Currently displays static value of 24
-      expect(screen.getByText('24')).toBeInTheDocument();
+      expect(await screen.findByText('24')).toBeInTheDocument();
     });
 
-    it('displays static average attendance count', () => {
+    it('displays average attendance count from API', async () => {
+      mockSummaryResponse();
       render(
         <EventAttendanceWidget
           widget={mockWidget}
@@ -544,8 +565,7 @@ describe('EventAttendanceWidget', () => {
         />
       );
 
-      // Currently displays static value of 45
-      expect(screen.getByText('45')).toBeInTheDocument();
+      expect(await screen.findByText('45')).toBeInTheDocument();
     });
   });
 
@@ -596,34 +616,127 @@ describe('EventAttendanceWidget', () => {
     });
   });
 
-  // TODO: Add these tests when API integration is implemented
-  describe.skip('API Integration (Not Yet Implemented)', () => {
-    it('should call events summary API on mount', () => {
-      // Future: expect(api.get).toHaveBeenCalledWith('/events/summary')
+  describe('API Integration', () => {
+    it('should call events summary API on mount', async () => {
+      mockSummaryResponse();
+      render(
+        <EventAttendanceWidget
+          widget={mockWidget}
+          editMode={false}
+          onRemove={() => {}}
+        />
+      );
+
+      await waitFor(() => {
+        expect(mockedApi.get).toHaveBeenCalledWith('/events/summary');
+      });
     });
 
     it('should display loading state initially', () => {
-      // Future: Test loading spinner/skeleton
+      mockedApi.get.mockReturnValue(new Promise(() => {}));
+
+      render(
+        <EventAttendanceWidget
+          widget={mockWidget}
+          editMode={false}
+          onRemove={() => {}}
+        />
+      );
+
+      expect(screen.getAllByText('--').length).toBeGreaterThan(0);
     });
 
-    it('should handle API errors gracefully', () => {
-      // Future: Test error state display
+    it('should handle API errors gracefully', async () => {
+      mockedApi.get.mockRejectedValueOnce(new Error('Network error'));
+
+      render(
+        <EventAttendanceWidget
+          widget={mockWidget}
+          editMode={false}
+          onRemove={() => {}}
+        />
+      );
+
+      expect(await screen.findByText('Unable to load event summary')).toBeInTheDocument();
+      expect(screen.getAllByText('0').length).toBeGreaterThan(0);
     });
 
-    it('should update display when API data changes', () => {
-      // Future: Test data updates
+    it('should update display when API data changes', async () => {
+      mockedApi.get.mockResolvedValueOnce({
+        data: {
+          upcoming_events: 3,
+          total_this_month: 7,
+          avg_attendance: 18,
+        },
+      });
+
+      render(
+        <EventAttendanceWidget
+          widget={mockWidget}
+          editMode={false}
+          onRemove={() => {}}
+        />
+      );
+
+      expect(await screen.findByText('3')).toBeInTheDocument();
+      expect(await screen.findByText('7')).toBeInTheDocument();
+      expect(await screen.findByText('18')).toBeInTheDocument();
     });
 
-    it('should format large numbers correctly', () => {
-      // Future: Test number formatting (e.g., 1,234)
+    it('should format large numbers correctly', async () => {
+      mockedApi.get.mockResolvedValueOnce({
+        data: {
+          upcoming_events: 1234,
+          total_this_month: 9876,
+          avg_attendance: 4500,
+        },
+      });
+
+      render(
+        <EventAttendanceWidget
+          widget={mockWidget}
+          editMode={false}
+          onRemove={() => {}}
+        />
+      );
+
+      expect(await screen.findByText('1,234')).toBeInTheDocument();
+      expect(await screen.findByText('9,876')).toBeInTheDocument();
+      expect(await screen.findByText('4,500')).toBeInTheDocument();
     });
 
-    it('should handle zero values', () => {
-      // Future: Test display when counts are 0
+    it('should handle zero values', async () => {
+      mockedApi.get.mockResolvedValueOnce({
+        data: {
+          upcoming_events: 0,
+          total_this_month: 0,
+          avg_attendance: 0,
+        },
+      });
+
+      render(
+        <EventAttendanceWidget
+          widget={mockWidget}
+          editMode={false}
+          onRemove={() => {}}
+        />
+      );
+
+      expect((await screen.findAllByText('0')).length).toBeGreaterThan(0);
     });
 
-    it('should handle null or undefined data', () => {
-      // Future: Test fallback to 0 or placeholder
+    it('should handle null or undefined data', async () => {
+      mockedApi.get.mockResolvedValueOnce({ data: {} });
+
+      render(
+        <EventAttendanceWidget
+          widget={mockWidget}
+          editMode={false}
+          onRemove={() => {}}
+        />
+      );
+
+      expect((await screen.findAllByText('0')).length).toBeGreaterThan(0);
     });
   });
 });

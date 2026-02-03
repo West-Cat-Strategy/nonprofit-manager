@@ -49,6 +49,7 @@ describe('FieldSelector', () => {
   });
 
   it('renders loading state', () => {
+    mockApi.get.mockReturnValue(new Promise(() => {}));
     const initialState = {
       reports: {
         currentReport: null,
