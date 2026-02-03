@@ -80,15 +80,15 @@ export const getBranding = async (_req: AuthRequest, res: Response) => {
 };
 
 export const putBranding = async (req: AuthRequest, res: Response) => {
-  try {
-    const brandingConfig = parseBrandingConfig(req.body);
-    if (!brandingConfig) {
-      return res.status(400).json({
-        error:
-          'Invalid branding payload. Expected { appName, appIcon, primaryColour, secondaryColour, favicon }',
-      });
-    }
+  const brandingConfig = parseBrandingConfig(req.body);
+  if (!brandingConfig) {
+    return res.status(400).json({
+      error:
+        'Invalid branding payload. Expected { appName, appIcon, primaryColour, secondaryColour, favicon }',
+    });
+  }
 
+  try {
     const result = await pool.query(
       `INSERT INTO organization_branding (id, config, created_at, updated_at)
        VALUES (1, $1::jsonb, NOW(), NOW())
