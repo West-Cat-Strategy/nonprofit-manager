@@ -47,13 +47,13 @@ export default function NeoBrutalistLayout({ children, pageTitle }: NeoBrutalist
                         >
                             <div className="flex items-center gap-2">
                                 {user?.profilePicture ? (
-                                    <img key={user.profilePicture} src={user.profilePicture} alt="Profile" className="w-6 h-6 rounded-full border border-black object-cover" />
+                                    <img key={user.profilePicture} src={user.profilePicture} alt="Profile" className="w-9 h-9 rounded-full border border-black object-cover" />
                                 ) : (
-                                    <div className="w-6 h-6 bg-black text-white flex items-center justify-center text-xs font-bold rounded-full border border-black">
+                                    <div className="w-9 h-9 bg-black text-white flex items-center justify-center text-sm font-bold rounded-full border border-black">
                                         {user?.firstName?.[0] || 'U'}
                                     </div>
                                 )}
-                                <span className="text-sm">{user?.firstName ? `${user.firstName} ${user.lastName}` : 'User'}</span>
+                                <span className="text-lg font-black">{user?.firstName ? `${user.firstName} ${user.lastName}` : 'User'}</span>
                             </div>
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

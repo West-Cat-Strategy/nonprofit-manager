@@ -60,8 +60,8 @@ export default function NeoBrutalistSidebar() {
     return (
         <div className="w-48 bg-white border-r-2 border-black flex flex-col h-screen">
             {/* Yellow LOOP Branding Header */}
-            <div className="bg-[#FFD700] border-b-2 border-black p-4 shadow-[6px_0px_0px_0px_var(--shadow-color)]">
-                <h1 className="font-black text-xl leading-tight">
+            <div className="bg-[var(--loop-yellow)] border-b-2 border-black p-4 shadow-[6px_0px_0px_0px_var(--shadow-color)]">
+                <h1 className="font-black text-xl leading-tight text-black">
                     COMMUNITY<br />LOOP
                 </h1>
                 <div className="mt-2 inline-block border-2 border-black bg-white px-2 py-1 text-xs font-bold shadow-[2px_2px_0px_0px_var(--shadow-color)]">
@@ -79,35 +79,35 @@ export default function NeoBrutalistSidebar() {
             />
 
             {/* Yellow Separator Box (replaces MODULES label) */}
-            <div className="h-6 bg-[#FFD700] border-b-2 border-black shadow-[6px_0px_0px_0px_var(--shadow-color)]"></div>
+            <div className="h-6 bg-[var(--loop-yellow)] border-b-2 border-black shadow-[6px_0px_0px_0px_var(--shadow-color)]"></div>
 
             {/* Module Links with Chameleon Colors */}
             <ModuleButton
                 to="/linking"
                 icon="L"
                 label="Linking"
-                activeColor="bg-[#90EE90]"
+                activeColor="bg-[var(--loop-green)]"
             />
 
             <ModuleButton
                 to="/operations"
                 icon="O"
                 label="Operations"
-                activeColor="bg-[#87CEEB]"
+                activeColor="bg-[var(--loop-blue)]"
             />
 
             <ModuleButton
                 to="/outreach"
                 icon="O"
                 label="Outreach"
-                activeColor="bg-[#D8BFD8]"
+                activeColor="bg-[var(--loop-purple)]"
             />
 
             <ModuleButton
                 to="/people"
                 icon="P"
                 label="People"
-                activeColor="bg-[#FFB6C1]"
+                activeColor="bg-[var(--loop-pink)]"
             />
 
             {/* Spacer */}
