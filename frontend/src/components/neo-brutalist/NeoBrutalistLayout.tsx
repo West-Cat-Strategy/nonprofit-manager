@@ -47,7 +47,7 @@ export default function NeoBrutalistLayout({ children, pageTitle }: NeoBrutalist
                         >
                             <div className="flex items-center gap-2">
                                 {user?.profilePicture ? (
-                                    <img src={user.profilePicture} alt="Profile" className="w-6 h-6 rounded-full border border-black" />
+                                    <img key={user.profilePicture} src={user.profilePicture} alt="Profile" className="w-6 h-6 rounded-full border border-black object-cover" />
                                 ) : (
                                     <div className="w-6 h-6 bg-black text-white flex items-center justify-center text-xs font-bold rounded-full border border-black">
                                         {user?.firstName?.[0] || 'U'}

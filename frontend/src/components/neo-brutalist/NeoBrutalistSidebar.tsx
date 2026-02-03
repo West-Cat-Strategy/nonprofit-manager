@@ -33,10 +33,10 @@ export default function NeoBrutalistSidebar() {
         const bgColor = activeColor || 'bg-gray-200';
 
         return (
-            <Link to={to}>
-                <div className={`flex items-center gap-3 px-4 py-3 border-b-2 border-black transition-all ${active
+            <Link to={to} className="block mb-3">
+                <div className={`flex items-center gap-3 px-4 py-3 border-2 border-black transition-all ${active
                     ? `${bgColor} text-black shadow-[6px_6px_0px_0px_var(--shadow-color)]`
-                    : 'bg-white text-black hover:bg-gray-50'
+                    : 'bg-white text-black hover:bg-gray-50 shadow-[4px_4px_0px_0px_var(--shadow-color)]'
                     }`}>
                     <div className="w-6 h-6 bg-black text-white flex items-center justify-center text-xs font-bold border-2 border-black">
                         {icon}
@@ -67,11 +67,7 @@ export default function NeoBrutalistSidebar() {
                 <div className="mt-2 inline-block border-2 border-black bg-white px-2 py-1 text-xs font-bold shadow-[2px_2px_0px_0px_var(--shadow-color)]">
                     {getCurrentDate()}
                 </div>
-                {location.pathname.includes('settings') && (
-                    <div className="mt-2 bg-black text-white px-2 py-1 text-xs font-bold block w-fit">
-                        SETTINGS
-                    </div>
-                )}
+
             </div>
 
             {/* Dashboard */}

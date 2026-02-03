@@ -13,10 +13,19 @@
   --shadow-brutal-lg: 8px 8px 0px var(--shadow-color);
 }
 
+/* Light Mode - Enforce Black Text */
+body {
+  color: #000000;
+}
+
 body.neo-dark-mode {
   --shadow-color: #F5F5DC;
   background-color: #1a1a1a !important;
   color: #ffffff !important;
+}
+
+body.neo-dark-mode * {
+  -webkit-text-stroke: 0.5px #000000;
 }
 
 body.neo-dark-mode .bg-white,
@@ -32,6 +41,7 @@ body.neo-dark-mode label,
 body.neo-dark-mode input,
 body.neo-dark-mode select {
   color: #ffffff !important;
+  -webkit-text-stroke: 0.5px #000000;
 }
 
 body.neo-dark-mode input,

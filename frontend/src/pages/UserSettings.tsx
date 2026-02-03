@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, EyeSlashIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { updateUser } from '../store/slices/authSlice';
 import api from '../services/api';
@@ -358,6 +358,7 @@ export default function UserSettings() {
         firstName: profile.firstName,
         lastName: profile.lastName,
         email: profile.email,
+        profilePicture: profile.profilePicture,
       }));
 
       setSaveStatus('success');
@@ -491,6 +492,18 @@ export default function UserSettings() {
                 <div className="absolute -bottom-3 -right-3 bg-black text-white p-2 border-2 border-white transform rotate-3">
                   EDIT
                 </div>
+                {previewImage && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveImage();
+                    }}
+                    className="absolute -bottom-3 -left-3 bg-black text-white p-2 border-2 border-white transform -rotate-3 hover:scale-110 transition-transform shadow-[2px_2px_0px_0px_var(--shadow-color)]"
+                    title="Remove Profile Picture"
+                  >
+                    <TrashIcon className="w-5 h-5" />
+                  </button>
+                )}
               </div>
 
               <div className="flex-1 w-full">
@@ -543,7 +556,7 @@ export default function UserSettings() {
                     </label>
                     <button
                       onClick={() => toggleFieldVisibility(item.field)}
-                      className="text-gray-500 hover:text-black transition-colors"
+                      className="text-gray-500 hover:text-black transition-all border-2 border-transparent hover:border-black hover:shadow-[2px_2px_0px_0px_var(--shadow-color)] p-1 rounded-sm"
                       title="Toggle Public Visibility"
                     >
                       {fieldVisibility[item.field] ? (
@@ -558,7 +571,7 @@ export default function UserSettings() {
                     value={String(profile[item.field as keyof UserProfile] || '')}
                     onChange={(e) => handleChange(item.field as keyof UserProfile, e.target.value)}
                     placeholder={item.placeholder || ''}
-                    className="w-full p-3 border-2 border-black font-medium focus:outline-none focus:shadow-[4px_4px_0px_0px_var(--shadow-color)] focus:-translate-y-1 transition-all"
+                    className="w-full p-3 border-2 border-black font-medium focus:outline-none shadow-[4px_4px_0px_0px_var(--shadow-color)] focus:-translate-y-1 transition-all"
                   />
                 </div>
               ))}
@@ -676,14 +689,14 @@ export default function UserSettings() {
 
             <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-4">
               {Object.entries(profile.notifications).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between border-2 border-black p-3 bg-white hover:bg-gray-50 transition-colors">
+                <div key={key} className="flex items-center justify-between border-2 border-black p-3 bg-white hover:bg-gray-50 transition-colors shadow-[4px_4px_0px_0px_var(--shadow-color)]">
                   <span className="font-bold uppercase text-sm">
                     {key.replace(/([A-Z])/g, ' $1').trim()}
                   </span>
                   <button
                     type="button"
                     onClick={() => handleNotificationChange(key as keyof NotificationSettings, !value)}
-                    className={`w-12 h-6 border-2 border-black rounded-full relative transition-colors ${value ? 'bg-[#90EE90]' : 'bg-gray-200'
+                    className={`w-12 h-6 border-2 border-black rounded-full relative transition-colors shadow-[2px_2px_0px_0px_var(--shadow-color)] ${value ? 'bg-[#90EE90]' : 'bg-gray-200'
                       }`}
                   >
                     <div className={`absolute top-0.5 bottom-0.5 w-4 h-4 bg-black border border-black rounded-full transition-all ${value ? 'right-1' : 'left-1'
@@ -702,7 +715,7 @@ export default function UserSettings() {
             </div>
             <button
               onClick={toggleDarkMode}
-              className={`reltaive inline-flex h-8 w-16 items-center rounded-full border-2 border-black transition-colors focus:outline-none ${isDarkMode ? 'bg-black' : 'bg-gray-200'
+              className={`reltaive inline-flex h-8 w-16 items-center rounded-full border-2 border-black transition-colors focus:outline-none shadow-[2px_2px_0px_0px_var(--shadow-color)] ${isDarkMode ? 'bg-black' : 'bg-gray-200'
                 }`}
             >
               <span
