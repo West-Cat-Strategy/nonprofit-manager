@@ -373,6 +373,8 @@ Future plans include cloud hosting options.
 
 This is a new project. Contribution guidelines will be added as the project matures.
 
+Test pull requests to verify workflow integrations are welcome.
+
 For development guidelines, see:
 - [Agent Instructions](docs/AGENT_INSTRUCTIONS.md) - For AI assistants and developers
 - [Conventions](docs/CONVENTIONS.md) - Code standards and best practices
