@@ -8,6 +8,8 @@ An all-in-one platform for nonprofit organizations to manage volunteers, events,
 
 ## Project Overview
 
+Last updated: February 3, 2026.
+
 Nonprofit Manager helps nonprofit organizations streamline their operations through:
 - **Volunteer Management**: Track volunteers, skills, and assignments
 - **Event Scheduling**: Create and manage events with registration and check-in
