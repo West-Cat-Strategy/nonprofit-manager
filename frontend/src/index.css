@@ -1,8 +1,133 @@
 @import "tailwindcss";
 
+/* Design system variables (brand + neo-brutalist theme) */
 :root {
   --brand-primary: #2563eb;
   --brand-secondary: #7c3aed;
+  /* Global Palette */
+  --loop-yellow: #FFD700;
+  --loop-green: #90EE90;
+  --loop-purple: #D8BFD8;
+  --loop-pink: #FFB6C1;
+  --loop-cyan: #4DD0E1;
+  --loop-blue: #87CEEB;
+
+  /* Brutalist defaults */
+  --shadow-color: #000000;
+  --border-brutal: 2px solid #000000;
+  --shadow-brutal: 6px 6px 0px var(--shadow-color);
+  --shadow-brutal-sm: 2px 2px 0px var(--shadow-color);
+  --shadow-brutal-lg: 8px 8px 0px var(--shadow-color);
+}
+
+/* Light Mode - Enforce Black Text */
+body {
+  color: #000000;
+}
+
+/* FORCE DARK MODE READABILITY - HIGH CONTRAST STRATEGY */
+body.neo-dark-mode {
+  /* Muted/Darker Colors for Dark Mode Headers */
+  --loop-yellow: #CCAC00;
+  --loop-green: #72BD72;
+  --loop-purple: #AA96AA;
+  --loop-pink: #CC919A;
+  --loop-cyan: #3DA6B4;
+  --loop-blue: #6CA4BC;
+
+  --shadow-color: #FFFFFF;
+  background-color: #000000 !important;
+  /* Void Black */
+  color: #FFFFFF !important;
+  /* Pure White Text */
+
+  /* Readability Boost */
+  font-size: 1.1em;
+  letter-spacing: 0.03em;
+}
+
+/* 1. Base Cards & Containers in Dark Mode */
+body.neo-dark-mode .bg-white,
+body.neo-dark-mode .bg-gray-50,
+body.neo-dark-mode .bg-gray-100 {
+  background-color: #121212 !important;
+  /* Dark Grey Surface */
+  color: #FFFFFF !important;
+  /* White Text */
+  border-color: #FFFFFF !important;
+  /* White Border */
+}
+
+/* 2. Global Border Inversion (Black -> White) */
+body.neo-dark-mode .border-black {
+  border-color: #FFFFFF !important;
+}
+
+/* 3. Global Text Inversion (Black -> White) */
+body.neo-dark-mode .text-black,
+body.neo-dark-mode .text-gray-900 {
+  color: #FFFFFF !important;
+  -webkit-text-stroke: 0px;
+  /* Remove stroke for clarity */
+}
+
+/* 4. Inputs in Dark Mode */
+body.neo-dark-mode input,
+body.neo-dark-mode select,
+body.neo-dark-mode textarea {
+  background-color: #000000 !important;
+  /* Black Input */
+  color: #FFFFFF !important;
+  border-color: #FFFFFF !important;
+  box-shadow: 4px 4px 0px 0px var(--shadow-color) !important;
+  -webkit-text-stroke: 0px !important;
+}
+
+/* 5. Labels */
+body.neo-dark-mode label {
+  color: #FFFFFF !important;
+}
+
+/* Remove default text stroke in dark mode */
+body.neo-dark-mode * {
+  -webkit-text-stroke: 0px;
+  text-shadow: none;
+}
+
+/* 6. THE SAFETY EXCEPTION - Colored cards MUST stay Black Text/Border */
+body.neo-dark-mode .bg-\[var\(--loop-yellow\)\],
+body.neo-dark-mode .bg-\[var\(--loop-green\)\],
+body.neo-dark-mode .bg-\[var\(--loop-cyan\)\],
+body.neo-dark-mode .bg-\[var\(--loop-pink\)\],
+body.neo-dark-mode .bg-\[var\(--loop-purple\)\],
+body.neo-dark-mode .bg-\[var\(--loop-blue\)\],
+body.neo-dark-mode .bg-\[\#FFD700\],
+body.neo-dark-mode .bg-\[\#90EE90\],
+body.neo-dark-mode .bg-\[\#D8BFD8\],
+body.neo-dark-mode .bg-\[\#FFB6C1\],
+body.neo-dark-mode .bg-\[\#4DD0E1\],
+body.neo-dark-mode .bg-\[\#87CEEB\] {
+  color: #000000 !important;
+  border-color: #000000 !important;
+}
+
+/* Ensure elements INSIDE colored cards also stay black */
+body.neo-dark-mode .bg-\[var\(--loop-yellow\)\] *,
+body.neo-dark-mode .bg-\[var\(--loop-green\)\] *,
+body.neo-dark-mode .bg-\[var\(--loop-cyan\)\] *,
+body.neo-dark-mode .bg-\[var\(--loop-pink\)\] *,
+body.neo-dark-mode .bg-\[var\(--loop-purple\)\] *,
+body.neo-dark-mode .bg-\[var\(--loop-blue\)\] *,
+body.neo-dark-mode .bg-\[\#FFD700\] *,
+body.neo-dark-mode .bg-\[\#90EE90\] *,
+body.neo-dark-mode .bg-\[\#D8BFD8\] *,
+body.neo-dark-mode .bg-\[\#FFB6C1\] *,
+body.neo-dark-mode .bg-\[\#4DD0E1\] *,
+body.neo-dark-mode .bg-\[\#87CEEB\] * {
+  color: #000000 !important;
+  border-color: #000000 !important;
+  -webkit-text-stroke: 0px !important;
+  text-shadow: none !important;
 }
 
 /* React Grid Layout styles */
@@ -73,6 +198,7 @@
     transform: translateX(100%);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
@@ -88,7 +214,9 @@
   from {
     opacity: 0;
     transform: translateY(-10px);
+    opacity: 0;
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

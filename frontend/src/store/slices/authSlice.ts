@@ -31,11 +31,32 @@ if (storedUser) {
   }
 }
 
+// 🔧 DEV MODE: Auto-authenticate for development
+// This bypasses the login screen with Andrew's credentials
+const DEV_MODE = import.meta.env.DEV;
+
+if (DEV_MODE && !token) {
+  const devUser: User = {
+    id: '1',
+    email: 'andrew.dolby@westcat.ca',
+    firstName: 'Andrew',
+    lastName: 'Dolby',
+    role: 'System Admin'
+  };
+  const devToken = 'dev-token-' + Date.now();
+
+  user = devUser;
+  localStorage.setItem('token', devToken);
+  localStorage.setItem('user', JSON.stringify(devUser));
+
+  console.log('🔧 [DEV MODE] Auto-authenticated as:', devUser.email);
+}
+
 const initialState: AuthState = {
   user: user,
-  token: token,
-  isAuthenticated: !!token, // Set to true if token exists
-  loading: false, // Changed to false to prevent blocking
+  token: token || (DEV_MODE ? 'dev-token' : null),
+  isAuthenticated: !!token || DEV_MODE, // Always authenticated in dev mode
+  loading: false,
 };
 
 const authSlice = createSlice({
