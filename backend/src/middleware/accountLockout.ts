@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import pool from '../config/database';
 import { logger } from '../config/logger';
+import { getRedisClient } from '../config/redis';
 
 interface LoginAttempt {
   userId: string;
@@ -9,9 +10,30 @@ interface LoginAttempt {
 }
 
 const loginAttempts = new Map<string, LoginAttempt>();
+const LOCKOUT_KEY_PREFIX = 'auth:lockout:';
 
 const MAX_LOGIN_ATTEMPTS = parseInt(process.env.MAX_LOGIN_ATTEMPTS || '5');
 const LOCKOUT_DURATION_MS = parseInt(process.env.ACCOUNT_LOCKOUT_DURATION_MS || '900000'); // 15 minutes
+
+const getLoginAttempt = async (identifier: string): Promise<LoginAttempt | null> => {
+  const key = identifier.toLowerCase();
+  const redis = getRedisClient();
+  const redisKey = `${LOCKOUT_KEY_PREFIX}${key}`;
+
+  if (redis?.isReady) {
+    const stored = await redis.hGetAll(redisKey);
+    if (Object.keys(stored).length > 0) {
+      return {
+        userId: stored.userId || '',
+        attempts: parseInt(stored.attempts || '0', 10),
+        lockedUntil: stored.lockedUntil ? new Date(parseInt(stored.lockedUntil, 10)) : null,
+      };
+    }
+    return null;
+  }
+
+  return loginAttempts.get(key) || null;
+};
 
 /**
  * Track failed login attempts and lock accounts if threshold is exceeded
@@ -19,13 +41,20 @@ const LOCKOUT_DURATION_MS = parseInt(process.env.ACCOUNT_LOCKOUT_DURATION_MS || 
 export const trackLoginAttempt = async (
   identifier: string,
   success: boolean,
-  userId?: string
+  userId?: string,
+  ipAddress?: string
 ): Promise<void> => {
   const key = identifier.toLowerCase();
+  const redis = getRedisClient();
+  const redisKey = `${LOCKOUT_KEY_PREFIX}${key}`;
 
   if (success) {
     // Clear attempts on successful login
-    loginAttempts.delete(key);
+    if (redis?.isReady) {
+      await redis.del(redisKey);
+    } else {
+      loginAttempts.delete(key);
+    }
 
     // Log successful login for audit
     if (userId) {
@@ -33,7 +62,7 @@ export const trackLoginAttempt = async (
         await pool.query(
           `INSERT INTO audit_logs (user_id, action, details, ip_address, created_at) 
            VALUES ($1, $2, $3, $4, NOW())`,
-          [userId, 'LOGIN_SUCCESS', 'User logged in successfully', identifier]
+          [userId, 'LOGIN_SUCCESS', 'User logged in successfully', ipAddress || 'unknown']
         );
       } catch (error) {
         logger.error('Failed to log successful login attempt', { error, userId });
@@ -43,12 +72,17 @@ export const trackLoginAttempt = async (
   }
 
   // Handle failed login attempt
-  const attempt = loginAttempts.get(key) || {
-    userId: userId || '',
-    attempts: 0,
-    lockedUntil: null,
-  };
+  let attempt = await getLoginAttempt(identifier);
 
+  if (!attempt) {
+    attempt = {
+      userId: userId || '',
+      attempts: 0,
+      lockedUntil: null,
+    };
+  }
+
+  attempt.userId = userId || attempt.userId;
   attempt.attempts += 1;
 
   // Check if account should be locked
@@ -70,7 +104,7 @@ export const trackLoginAttempt = async (
             userId,
             'ACCOUNT_LOCKED',
             `Account locked after ${attempt.attempts} failed login attempts`,
-            identifier,
+            ipAddress || 'unknown',
           ]
         );
       } catch (error) {
@@ -85,7 +119,17 @@ export const trackLoginAttempt = async (
     });
   }
 
-  loginAttempts.set(key, attempt);
+  if (redis?.isReady) {
+    await redis.hSet(redisKey, {
+      userId: attempt.userId,
+      attempts: String(attempt.attempts),
+      lockedUntil: attempt.lockedUntil ? String(attempt.lockedUntil.getTime()) : '',
+    });
+    // Ensure lockout data expires eventually in Redis
+    await redis.expire(redisKey, Math.ceil(LOCKOUT_DURATION_MS / 1000));
+  } else {
+    loginAttempts.set(key, attempt);
+  }
 
   // Log failed login for audit
   if (userId) {
@@ -97,7 +141,7 @@ export const trackLoginAttempt = async (
           userId,
           'LOGIN_FAILED',
           `Failed login attempt (${attempt.attempts}/${MAX_LOGIN_ATTEMPTS})`,
-          identifier,
+          ipAddress || 'unknown',
         ]
       );
     } catch (error) {
@@ -109,9 +153,11 @@ export const trackLoginAttempt = async (
 /**
  * Check if an account is locked
  */
-export const isAccountLocked = (identifier: string): boolean => {
+export const isAccountLocked = async (identifier: string): Promise<boolean> => {
+  const redis = getRedisClient();
+  const attempt = await getLoginAttempt(identifier);
   const key = identifier.toLowerCase();
-  const attempt = loginAttempts.get(key);
+  const redisKey = `${LOCKOUT_KEY_PREFIX}${key}`;
 
   if (!attempt || !attempt.lockedUntil) {
     return false;
@@ -119,7 +165,11 @@ export const isAccountLocked = (identifier: string): boolean => {
 
   // Check if lockout period has expired
   if (new Date() > attempt.lockedUntil) {
-    loginAttempts.delete(key);
+    if (redis?.isReady) {
+      await redis.del(redisKey);
+    } else {
+      loginAttempts.delete(key);
+    }
     return false;
   }
 
@@ -129,9 +179,8 @@ export const isAccountLocked = (identifier: string): boolean => {
 /**
  * Get remaining lockout time in minutes
  */
-export const getLockoutTimeRemaining = (identifier: string): number => {
-  const key = identifier.toLowerCase();
-  const attempt = loginAttempts.get(key);
+export const getLockoutTimeRemaining = async (identifier: string): Promise<number> => {
+  const attempt = await getLoginAttempt(identifier);
 
   if (!attempt || !attempt.lockedUntil) {
     return 0;
@@ -144,21 +193,26 @@ export const getLockoutTimeRemaining = (identifier: string): number => {
 /**
  * Middleware to check account lockout status
  */
-export const checkAccountLockout = (req: Request, res: Response, next: NextFunction): void => {
+export const checkAccountLockout = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   const { email } = req.body;
 
   if (!email) {
     return next();
   }
 
-  if (isAccountLocked(email)) {
-    const minutesRemaining = getLockoutTimeRemaining(email);
+  if (await isAccountLocked(email)) {
+    const minutesRemaining = await getLockoutTimeRemaining(email);
+    const attempt = await getLoginAttempt(email);
     logger.warn('Login attempt on locked account', { email, minutesRemaining });
 
     res.status(423).json({
       error: 'Account locked',
       message: `Account is temporarily locked due to too many failed login attempts. Please try again in ${minutesRemaining} minutes.`,
-      lockedUntil: loginAttempts.get(email.toLowerCase())?.lockedUntil,
+      lockedUntil: attempt?.lockedUntil,
     });
     return;
   }
