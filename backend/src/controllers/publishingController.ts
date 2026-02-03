@@ -8,6 +8,7 @@ import { validationResult } from 'express-validator';
 import publishingService from '../services/publishingService';
 import { siteCacheService, getCacheControlHeader } from '../services/siteCacheService';
 import { logger } from '../config/logger';
+import type { AuthRequest } from '../middleware/auth';
 import type {
   CreatePublishedSiteDTO,
   UpdatePublishedSiteDTO,
@@ -19,7 +20,7 @@ import type {
  * Create a new published site entry
  */
 export const createSite = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -54,7 +55,7 @@ export const createSite = async (
  * Get a published site by ID
  */
 export const getSite = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -78,7 +79,7 @@ export const getSite = async (
  * Update a published site
  */
 export const updateSite = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -115,7 +116,7 @@ export const updateSite = async (
  * Delete a published site
  */
 export const deleteSite = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -139,7 +140,7 @@ export const deleteSite = async (
  * Search published sites
  */
 export const searchSites = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -165,7 +166,7 @@ export const searchSites = async (
  * Publish a template to create/update a site
  */
 export const publishSite = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -197,7 +198,7 @@ export const publishSite = async (
  * Unpublish a site (set to draft)
  */
 export const unpublishSite = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -221,7 +222,7 @@ export const unpublishSite = async (
  * Get deployment info for a site
  */
 export const getDeploymentInfo = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -245,7 +246,7 @@ export const getDeploymentInfo = async (
  * Record an analytics event (public endpoint for tracking)
  */
 export const recordAnalytics = async (
-  req: Request,
+  req: Request<{ siteId: string }>,
   res: Response,
   _next: NextFunction
 ): Promise<void> => {
@@ -290,7 +291,7 @@ export const recordAnalytics = async (
  * Get analytics summary for a site
  */
 export const getAnalyticsSummary = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -327,7 +328,10 @@ export const servePublishedSite = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const subdomain = req.subdomains[0] || req.params.subdomain;
+    const subdomainParam = req.params.subdomain;
+    const subdomain =
+      req.subdomains[0] ||
+      (Array.isArray(subdomainParam) ? subdomainParam[0] : subdomainParam);
     const customDomain = req.hostname;
 
     let site = null;
@@ -363,7 +367,7 @@ export const servePublishedSite = async (
  * Add a custom domain to a site
  */
 export const addCustomDomain = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -404,7 +408,7 @@ export const addCustomDomain = async (
  * Verify a custom domain's DNS configuration
  */
 export const verifyCustomDomain = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -433,7 +437,7 @@ export const verifyCustomDomain = async (
  * Remove a custom domain from a site
  */
 export const removeCustomDomain = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -457,7 +461,7 @@ export const removeCustomDomain = async (
  * Get custom domain configuration
  */
 export const getCustomDomainConfig = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -483,7 +487,7 @@ export const getCustomDomainConfig = async (
  * Get SSL certificate info for a site
  */
 export const getSslInfo = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -507,7 +511,7 @@ export const getSslInfo = async (
  * Provision SSL certificate for a site
  */
 export const provisionSsl = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -533,7 +537,7 @@ export const provisionSsl = async (
  * Get version history for a site
  */
 export const getVersionHistory = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -559,7 +563,7 @@ export const getVersionHistory = async (
  * Get a specific version
  */
 export const getVersion = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -583,7 +587,7 @@ export const getVersion = async (
  * Rollback to a previous version
  */
 export const rollbackVersion = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -619,7 +623,7 @@ export const rollbackVersion = async (
  * Prune old versions
  */
 export const pruneVersions = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -659,7 +663,7 @@ export const getCacheStats = async (
  * Invalidate cache for a site
  */
 export const invalidateSiteCache = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -685,7 +689,7 @@ export const invalidateSiteCache = async (
  * Clear all cache (admin only)
  */
 export const clearAllCache = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   _next: NextFunction
 ): Promise<void> => {
@@ -708,7 +712,10 @@ export const servePublishedSiteWithCache = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const subdomain = req.subdomains[0] || req.params.subdomain;
+    const subdomainParam = req.params.subdomain;
+    const subdomain =
+      req.subdomains[0] ||
+      (Array.isArray(subdomainParam) ? subdomainParam[0] : subdomainParam);
     const customDomain = req.hostname;
     const pageSlug = (req.params.page as string) || 'index';
 

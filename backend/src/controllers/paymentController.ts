@@ -92,7 +92,7 @@ export const createPaymentIntent = async (req: AuthRequest, res: Response): Prom
 /**
  * Get payment intent status
  */
-export const getPaymentIntent = async (req: Request, res: Response): Promise<void> => {
+export const getPaymentIntent = async (req: Request<{ id: string }>, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -112,7 +112,7 @@ export const getPaymentIntent = async (req: Request, res: Response): Promise<voi
 /**
  * Cancel payment intent
  */
-export const cancelPaymentIntent = async (req: Request, res: Response): Promise<void> => {
+export const cancelPaymentIntent = async (req: Request<{ id: string }>, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -207,7 +207,7 @@ export const createCustomer = async (req: Request, res: Response): Promise<void>
 /**
  * Get customer
  */
-export const getCustomer = async (req: Request, res: Response): Promise<void> => {
+export const getCustomer = async (req: Request<{ id: string }>, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -227,7 +227,10 @@ export const getCustomer = async (req: Request, res: Response): Promise<void> =>
 /**
  * List customer payment methods
  */
-export const listPaymentMethods = async (req: Request, res: Response): Promise<void> => {
+export const listPaymentMethods = async (
+  req: Request<{ customerId: string }>,
+  res: Response
+): Promise<void> => {
   try {
     const { customerId } = req.params;
 
