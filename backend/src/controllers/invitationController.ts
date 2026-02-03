@@ -126,7 +126,7 @@ export const getInvitationById = async (
  * Validate invitation token (public - for acceptance flow)
  */
 export const validateInvitation = async (
-  req: Request,
+  req: Request<{ token: string }>,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
@@ -162,7 +162,7 @@ export const validateInvitation = async (
  * Accept invitation and create user account (public)
  */
 export const acceptInvitation = async (
-  req: Request,
+  req: Request<{ token: string }>,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {

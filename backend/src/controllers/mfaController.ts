@@ -2,7 +2,6 @@ import { Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { authenticator } from 'otplib';
 import pool from '../config/database';
 import { getJwtSecret } from '../config/jwt';
 import { logger } from '../config/logger';
@@ -11,10 +10,9 @@ import { trackLoginAttempt } from '../middleware/accountLockout';
 import { JWT, TIME } from '../config/constants';
 import { decrypt, encrypt } from '../utils/encryption';
 
-authenticator.options = {
-  step: 30,
-  window: 1,
-};
+const TOTP_PERIOD_SECONDS = 30;
+const TOTP_WINDOW = 1;
+const TOTP_EPOCH_TOLERANCE_SECONDS = TOTP_PERIOD_SECONDS * TOTP_WINDOW;
 
 const MFA_TOKEN_EXPIRY = Math.floor(TIME.FIVE_MINUTES / 1000);
 const TOTP_ISSUER = process.env.TOTP_ISSUER || 'Nonprofit Manager';
@@ -33,6 +31,7 @@ interface TotpUserRow {
 }
 
 const normalizeTotpCode = (code: string) => code.replace(/\s+/g, '');
+const loadOtplib = async () => import('otplib');
 
 const issueAuthTokens = (user: { id: string; email: string; role: string }) => {
   const jwtSecret = getJwtSecret();
@@ -112,8 +111,14 @@ export const enrollTotp = async (
       return res.status(409).json({ error: '2FA is already enabled' });
     }
 
-    const secret = authenticator.generateSecret();
-    const otpauthUrl = authenticator.keyuri(result.rows[0].email, TOTP_ISSUER, secret);
+    const { generateSecret, generateURI } = await loadOtplib();
+    const secret = generateSecret();
+    const otpauthUrl = generateURI({
+      issuer: TOTP_ISSUER,
+      label: result.rows[0].email,
+      secret,
+      period: TOTP_PERIOD_SECONDS,
+    });
 
     await pool.query(
       `UPDATE users
@@ -161,8 +166,14 @@ export const enableTotp = async (
     }
 
     const secret = decrypt(result.rows[0].mfa_totp_pending_secret_enc);
-    const isValid = authenticator.check(normalizeTotpCode(code), secret);
-    if (!isValid) {
+    const { verify } = await loadOtplib();
+    const verifyResult = await verify({
+      secret,
+      token: normalizeTotpCode(code),
+      period: TOTP_PERIOD_SECONDS,
+      epochTolerance: TOTP_EPOCH_TOLERANCE_SECONDS,
+    });
+    if (!verifyResult.valid) {
       return res.status(401).json({ error: 'Invalid authentication code' });
     }
 
@@ -218,8 +229,14 @@ export const disableTotp = async (
     }
 
     const secret = decrypt(user.mfa_totp_secret_enc);
-    const isValid = authenticator.check(normalizeTotpCode(code), secret);
-    if (!isValid) {
+    const { verify } = await loadOtplib();
+    const verifyResult = await verify({
+      secret,
+      token: normalizeTotpCode(code),
+      period: TOTP_PERIOD_SECONDS,
+      epochTolerance: TOTP_EPOCH_TOLERANCE_SECONDS,
+    });
+    if (!verifyResult.valid) {
       return res.status(401).json({ error: 'Invalid authentication code' });
     }
 
@@ -287,8 +304,14 @@ export const completeTotpLogin = async (
     }
 
     const secret = decrypt(user.mfa_totp_secret_enc);
-    const ok = authenticator.check(normalizeTotpCode(code), secret);
-    if (!ok) {
+    const { verify } = await loadOtplib();
+    const verifyResult = await verify({
+      secret,
+      token: normalizeTotpCode(code),
+      period: TOTP_PERIOD_SECONDS,
+      epochTolerance: TOTP_EPOCH_TOLERANCE_SECONDS,
+    });
+    if (!verifyResult.valid) {
       await trackLoginAttempt(email, false, user.id, clientIp);
       return res.status(401).json({ error: 'Invalid authentication code' });
     }

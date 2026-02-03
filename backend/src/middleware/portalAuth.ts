@@ -9,7 +9,8 @@ interface PortalJwtPayload {
   type: 'portal';
 }
 
-export interface PortalAuthRequest extends Request {
+export interface PortalAuthRequest
+  extends Request<Record<string, string>, any, any, Record<string, string | undefined>> {
   portalUser?: PortalJwtPayload;
 }
 
