@@ -38,7 +38,7 @@ export default function PeopleCard({ person }: PeopleCardProps) {
     const initials = `${person.firstName[0]}${person.lastName[0]}`;
 
     return (
-        <div className={`${cardBg} border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 flex flex-col items-center`}>
+        <div className={`${cardBg} border-2 border-black shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 flex flex-col items-center`}>
             {/* Profile Photo Area - White circle with initials */}
             <div className="w-20 h-20 bg-white border-2 border-black rounded-full flex items-center justify-center mb-4 overflow-hidden">
                 <span className="text-2xl font-black text-black">

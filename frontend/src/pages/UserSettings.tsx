@@ -4,10 +4,12 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { updateUser } from '../store/slices/authSlice';
 import api from '../services/api';
 import NeoBrutalistLayout from '../components/neo-brutalist/NeoBrutalistLayout';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface AlternativeEmail {
   email: string;
@@ -159,6 +161,21 @@ export default function UserSettings() {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [newAltEmail, setNewAltEmail] = useState({ email: '', label: '' });
+  const { isDarkMode, toggleDarkMode } = useTheme();
+
+  // Visual-only state for field visibility (not persisted per instructions)
+  const [fieldVisibility, setFieldVisibility] = useState<Record<string, boolean>>({
+    firstName: true,
+    lastName: true,
+    displayName: true,
+    alternativeName: true,
+    title: true,
+    cellPhone: true
+  });
+
+  const toggleFieldVisibility = (field: string) => {
+    setFieldVisibility(prev => ({ ...prev, [field]: !prev[field] }));
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -416,7 +433,7 @@ export default function UserSettings() {
               onClick={handleSave}
               disabled={isSaving}
               className="px-8 py-3 bg-[#000] text-white font-black uppercase tracking-wider text-xl
-                border-4 border-white shadow-[6px_6px_0px_0px_#FFF] 
+                border-4 border-white shadow-[6px_6px_0px_0px_var(--shadow-color)] 
                 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_#FFF]
                 active:translate-x-[6px] active:translate-y-[6px] active:shadow-none
                 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
@@ -435,25 +452,25 @@ export default function UserSettings() {
 
           {/* Status Messages */}
           {saveStatus === 'success' && (
-            <div className="bg-[#90EE90] border-4 border-black p-4 font-bold shadow-[6px_6px_0px_0px_#000000] flex items-center gap-3 text-lg animate-slide-in">
+            <div className="bg-[#90EE90] border-4 border-black p-4 font-bold shadow-[6px_6px_0px_0px_var(--shadow-color)] flex items-center gap-3 text-lg animate-slide-in">
               <span>✅</span> Profile saved successfully!
             </div>
           )}
           {saveStatus === 'error' && (
-            <div className="bg-[#FF6B6B] border-4 border-black p-4 font-bold shadow-[6px_6px_0px_0px_#000000] flex items-center gap-3 text-lg animate-slide-in text-white">
+            <div className="bg-[#FF6B6B] border-4 border-black p-4 font-bold shadow-[6px_6px_0px_0px_var(--shadow-color)] flex items-center gap-3 text-lg animate-slide-in text-white">
               <span>⚠️</span> {errorMessage || 'Failed to save profile'}
             </div>
           )}
 
           {/* Profile Picture Card - CYAN Theme */}
-          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_#000000]">
+          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
             <div className="bg-[#4DD0E1] border-b-4 border-black p-4">
-              <h2 className="text-2xl font-black uppercase">Identity Disc</h2>
+              <h2 className="text-2xl font-black uppercase">Profile</h2>
             </div>
 
             <div className="p-8 flex flex-col md:flex-row items-center gap-8">
               <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                <div className="w-40 h-40 border-4 border-black shadow-[6px_6px_0px_0px_#000000] overflow-hidden bg-gray-100">
+                <div className="w-40 h-40 border-4 border-black shadow-[6px_6px_0px_0px_var(--shadow-color)] overflow-hidden bg-gray-100">
                   {previewImage ? (
                     <img
                       src={previewImage}
@@ -505,9 +522,10 @@ export default function UserSettings() {
           </div>
 
           {/* Personal Information Card - PINK Theme */}
-          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_#000000]">
+          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
             <div className="bg-[#FFB6C1] border-b-4 border-black p-4">
-              <h2 className="text-2xl font-black uppercase">Character Sheet</h2>
+              {/* Header Removed as per requirements */}
+              <div className="h-2"></div>
             </div>
 
             <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -517,18 +535,30 @@ export default function UserSettings() {
                 { label: 'Display Name', field: 'displayName', placeholder: 'Included in credit roll' },
                 { label: 'Alt Name', field: 'alternativeName', placeholder: 'Nickname' },
                 { label: 'Title / Role', field: 'title', placeholder: 'e.g. Keyblade Master' },
-                { label: 'Cell Phone', field: 'cellPhone' },
               ].map((item) => (
                 <div key={item.field} className="space-y-2">
-                  <label className="block font-bold text-sm uppercase tracking-wide">
-                    {item.label} {item.req && <span className="text-red-500">*</span>}
-                  </label>
+                  <div className="flex justify-between items-center">
+                    <label className="block font-bold text-sm uppercase tracking-wide">
+                      {item.label} {item.req && <span className="text-red-500">*</span>}
+                    </label>
+                    <button
+                      onClick={() => toggleFieldVisibility(item.field)}
+                      className="text-gray-500 hover:text-black transition-colors"
+                      title="Toggle Public Visibility"
+                    >
+                      {fieldVisibility[item.field] ? (
+                        <EyeIcon className="w-5 h-5" />
+                      ) : (
+                        <EyeSlashIcon className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
                   <input
                     type="text"
                     value={String(profile[item.field as keyof UserProfile] || '')}
                     onChange={(e) => handleChange(item.field as keyof UserProfile, e.target.value)}
                     placeholder={item.placeholder || ''}
-                    className="w-full p-3 border-2 border-black font-medium focus:outline-none focus:shadow-[4px_4px_0px_0px_#000000] focus:-translate-y-1 transition-all"
+                    className="w-full p-3 border-2 border-black font-medium focus:outline-none focus:shadow-[4px_4px_0px_0px_var(--shadow-color)] focus:-translate-y-1 transition-all"
                   />
                 </div>
               ))}
@@ -540,7 +570,7 @@ export default function UserSettings() {
                   <select
                     value={profile.pronouns}
                     onChange={(e) => handleChange('pronouns', e.target.value)}
-                    className="w-full p-3 border-2 border-black font-medium bg-white focus:outline-none focus:shadow-[4px_4px_0px_0px_#000000] focus:-translate-y-1 transition-all"
+                    className="w-full p-3 border-2 border-black font-medium bg-white focus:outline-none focus:shadow-[4px_4px_0px_0px_var(--shadow-color)] focus:-translate-y-1 transition-all"
                   >
                     {pronounOptions.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -554,7 +584,7 @@ export default function UserSettings() {
                       value={customPronouns}
                       onChange={(e) => setCustomPronouns(e.target.value)}
                       placeholder="Specify"
-                      className="w-1/2 p-3 border-2 border-black font-medium focus:outline-none focus:shadow-[4px_4px_0px_0px_#000000]"
+                      className="w-1/2 p-3 border-2 border-black font-medium focus:outline-none focus:shadow-[4px_4px_0px_0px_var(--shadow-color)]"
                     />
                   )}
                 </div>
@@ -563,12 +593,37 @@ export default function UserSettings() {
           </div>
 
           {/* Contact Information Card - GREEN Theme */}
-          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_#000000]">
+          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
             <div className="bg-[#90EE90] border-b-4 border-black p-4">
-              <h2 className="text-2xl font-black uppercase">Comms & Signals</h2>
+              <h2 className="text-2xl font-black uppercase">Contact Info</h2>
             </div>
 
             <div className="p-8 space-y-6">
+              <div className="space-y-2">
+                <label className="block font-bold text-sm uppercase tracking-wide">
+                  Cell Phone
+                </label>
+                <div className="flex justify-between items-center mb-1">
+                  <button
+                    onClick={() => toggleFieldVisibility('cellPhone')}
+                    className="text-gray-500 hover:text-black transition-colors ml-auto"
+                    title="Toggle Public Visibility"
+                  >
+                    {fieldVisibility['cellPhone'] ? (
+                      <EyeIcon className="w-5 h-5" />
+                    ) : (
+                      <EyeSlashIcon className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={profile.cellPhone}
+                  onChange={(e) => handleChange('cellPhone', e.target.value)}
+                  className="w-full p-3 border-2 border-black font-medium focus:outline-none focus:shadow-[4px_4px_0px_0px_var(--shadow-color)] focus:-translate-y-1 transition-all"
+                />
+              </div>
+
               <div className="space-y-2">
                 <label className="block font-bold text-sm uppercase tracking-wide">
                   Primary Frequency (Email) <span className="text-red-500">*</span>
@@ -614,9 +669,9 @@ export default function UserSettings() {
           </div>
 
           {/* Notifications - PURPLE Theme */}
-          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_#000000]">
+          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
             <div className="bg-[#D8BFD8] border-b-4 border-black p-4">
-              <h2 className="text-2xl font-black uppercase">Alert Protocols</h2>
+              <h2 className="text-2xl font-black uppercase">Notification Settings</h2>
             </div>
 
             <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -637,6 +692,24 @@ export default function UserSettings() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Dark Mode Toggle */}
+          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)] p-6 flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-black uppercase">Dark Mode</h3>
+              <p className="text-sm text-gray-600">Override whitespace with dark gray.</p>
+            </div>
+            <button
+              onClick={toggleDarkMode}
+              className={`reltaive inline-flex h-8 w-16 items-center rounded-full border-2 border-black transition-colors focus:outline-none ${isDarkMode ? 'bg-black' : 'bg-gray-200'
+                }`}
+            >
+              <span
+                className={`${isDarkMode ? 'translate-x-[34px] bg-white' : 'translate-x-[2px] bg-white'
+                  } inline-block h-6 w-6 transform rounded-full border-2 border-black transition-transform`}
+              />
+            </button>
           </div>
 
         </div>

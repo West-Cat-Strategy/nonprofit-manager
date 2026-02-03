@@ -33,7 +33,7 @@ export default function PeopleDirectory() {
         <button
             onClick={() => setActiveTab(tab)}
             className={`px-6 py-3 font-bold uppercase border-2 border-black transition-all ${activeTab === tab
-                ? 'bg-[#FFB6C1] text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                ? 'bg-[#FFB6C1] text-black shadow-[2px_2px_0px_0px_var(--shadow-color)]'
                 : 'bg-white text-black hover:bg-gray-100'
                 }`}
         >
@@ -42,11 +42,12 @@ export default function PeopleDirectory() {
     );
 
     return (
-        <NeoBrutalistLayout>
+        <NeoBrutalistLayout pageTitle="DIRECTORY">
             <div className="p-6">
                 {/* Page Title */}
-                <div className="mb-6">
-                    <h1 className="text-3xl font-black uppercase mb-2">PEOPLE DIRECTORY</h1>
+                {/* Banner - PINK */}
+                <div className="bg-[#FFB6C1] border-2 border-black shadow-[4px_4px_0px_0px_var(--shadow-color)] p-8 mb-6">
+                    <h2 className="text-3xl font-black mb-2 uppercase">DIRECTORY</h2>
                 </div>
 
                 {/* Search Bar */}
@@ -61,7 +62,7 @@ export default function PeopleDirectory() {
                             className="w-full border-2 border-black px-4 py-2 pl-10 bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
                         />
                     </div>
-                    <button className="px-6 py-2 bg-[#4DD0E1] text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-cyan-400 font-bold uppercase">
+                    <button className="px-6 py-2 bg-[#4DD0E1] text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-cyan-400 font-bold uppercase">
                         + NEW ITEM
                     </button>
                 </div>
@@ -105,7 +106,7 @@ export default function PeopleDirectory() {
 
                 {/* Empty State */}
                 {filteredPeople.length === 0 && (
-                    <div className="bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-12 text-center">
+                    <div className="bg-white border-2 border-black shadow-[4px_4px_0px_0px_var(--shadow-color)] p-12 text-center">
                         <h3 className="font-black text-2xl mb-2 uppercase">No People Found</h3>
                         <p className="text-gray-600">Try adjusting your filters or search term</p>
                     </div>

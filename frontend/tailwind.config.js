@@ -15,9 +15,9 @@ export default {
         },
       },
       boxShadow: {
-        'brutal': '4px 4px 0px #000000',
-        'brutal-sm': '2px 2px 0px #000000',
-        'brutal-lg': '6px 6px 0px #000000',
+        'brutal': '4px 4px 0px var(--shadow-color)',
+        'brutal-sm': '2px 2px 0px var(--shadow-color)',
+        'brutal-lg': '6px 6px 0px var(--shadow-color)',
       },
       fontWeight: {
         'brutal': '800',
