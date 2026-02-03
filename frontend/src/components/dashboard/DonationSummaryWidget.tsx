@@ -27,24 +27,33 @@ const DonationSummaryWidget = ({ widget, editMode, onRemove }: DonationSummaryWi
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchData = async () => {
       try {
         setLoading(true);
         const response = await api.get('/analytics/summary');
+        if (!isMounted) return;
+        const payload = response.data ?? {};
         setData({
-          total_donations: response.data.total_donations || 0,
-          total_amount: response.data.total_donation_amount || 0,
-          average_donation: response.data.average_donation || 0,
-          month_over_month: response.data.donations_month_over_month || 0,
+          total_donations: payload.total_donations || 0,
+          total_amount: payload.total_donation_amount || 0,
+          average_donation: payload.average_donation || 0,
+          month_over_month: payload.donations_month_over_month || 0,
         });
       } catch (err) {
+        if (!isMounted) return;
         setError('Failed to load donation data');
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchData();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const formatCurrency = (amount: number) => {

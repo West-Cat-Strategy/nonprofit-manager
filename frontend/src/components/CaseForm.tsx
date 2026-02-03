@@ -8,16 +8,24 @@ import {
   fetchCaseStatuses,
 } from '../store/slices/casesSlice';
 import { fetchContacts } from '../store/slices/contactsSlice';
-import type { CreateCaseDTO, UpdateCaseDTO } from '../types/case';
+import type { CaseWithDetails, CreateCaseDTO, UpdateCaseDTO } from '../types/case';
 // import { useToast } from '../contexts/ToastContext';
 
 interface CaseFormProps {
   caseId?: string;
   initialData?: Partial<CreateCaseDTO>;
   onSuccess?: () => void;
+  onCreated?: (createdCase: CaseWithDetails) => void;
+  disableContactSelection?: boolean;
 }
 
-const CaseForm = ({ caseId, initialData, onSuccess }: CaseFormProps) => {
+const CaseForm = ({
+  caseId,
+  initialData,
+  onSuccess,
+  onCreated,
+  disableContactSelection = false,
+}: CaseFormProps) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   // const { showSuccess, showError } = useToast();
@@ -100,13 +108,16 @@ const CaseForm = ({ caseId, initialData, onSuccess }: CaseFormProps) => {
         await dispatch(updateCase({ id: caseId, data: updateData })).unwrap();
         // showSuccess('Case updated successfully');
       } else {
-        await dispatch(createCase(formData)).unwrap();
+        const createdCase = await dispatch(createCase(formData)).unwrap();
+        if (onCreated) {
+          onCreated(createdCase);
+        }
         // showSuccess('Case created successfully');
       }
 
       if (onSuccess) {
         onSuccess();
-      } else {
+      } else if (!onCreated) {
         navigate('/cases');
       }
     } catch (err) {
@@ -131,7 +142,7 @@ const CaseForm = ({ caseId, initialData, onSuccess }: CaseFormProps) => {
           value={formData.contact_id}
           onChange={handleChange}
           required
-          disabled={isEditMode}
+          disabled={isEditMode || (disableContactSelection && Boolean(formData.contact_id))}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
         >
           <option value="">Select a client...</option>

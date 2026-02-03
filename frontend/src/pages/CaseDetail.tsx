@@ -10,6 +10,7 @@ import {
   fetchCaseStatuses,
 } from '../store/slices/casesSlice';
 import CaseNotes from '../components/CaseNotes';
+import CaseDocuments from '../components/CaseDocuments';
 import type { CasePriority } from '../types/case';
 
 const CaseDetail = () => {
@@ -408,13 +409,8 @@ const CaseDetail = () => {
         {activeTab === 'notes' && id && <CaseNotes caseId={id} />}
 
         {/* Documents Tab */}
-        {activeTab === 'documents' && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="text-center py-12">
-              <div className="text-gray-400 text-4xl mb-2">📄</div>
-              <p className="text-gray-600">Document management coming soon</p>
-            </div>
-          </div>
+        {activeTab === 'documents' && id && (
+          <CaseDocuments caseId={id} contactId={currentCase.contact_id} />
         )}
       </div>
     </div>

@@ -68,9 +68,11 @@ const GENDER_OPTIONS = [
 interface ContactFormProps {
   contact?: StoreContact;
   mode: 'create' | 'edit';
+  onCreated?: (contact: StoreContact) => void;
+  onCancel?: () => void;
 }
 
-export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode }) => {
+export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode, onCreated, onCancel }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
@@ -227,6 +229,10 @@ export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode }) => {
 
       if (mode === 'create') {
         const result = await dispatch(createContact(cleanedData)).unwrap();
+        if (onCreated) {
+          onCreated(result);
+          return;
+        }
         // If we came from adding a relationship, go back to that contact's edit page
         if (returnToContactId) {
           navigate(`/contacts/${returnToContactId}/edit`);
@@ -252,6 +258,10 @@ export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode }) => {
   };
 
   const handleCancel = () => {
+    if (onCancel) {
+      onCancel();
+      return;
+    }
     if (mode === 'edit' && contact?.contact_id) {
       navigate(`/contacts/${contact.contact_id}`);
     } else {

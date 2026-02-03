@@ -198,6 +198,7 @@ describe('PaymentHistory', () => {
 
   describe('Error State', () => {
     it('shows error message when API call fails', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockApi.get.mockRejectedValue(new Error('Network error'));
 
       renderWithRouter(<PaymentHistory contactId="contact-123" />);
@@ -205,6 +206,8 @@ describe('PaymentHistory', () => {
       await waitFor(() => {
         expect(screen.getByText('Failed to load payment history')).toBeInTheDocument();
       });
+
+      consoleError.mockRestore();
     });
   });
 

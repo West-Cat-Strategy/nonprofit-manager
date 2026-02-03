@@ -15,6 +15,12 @@ interface QuickActionsWidgetProps {
 
 const actions = [
   {
+    title: 'New Intake',
+    icon: '🧾',
+    link: '/intake/new',
+    color: 'bg-amber-100 text-amber-800',
+  },
+  {
     title: 'New Donation',
     icon: '💰',
     link: '/donations/new',
