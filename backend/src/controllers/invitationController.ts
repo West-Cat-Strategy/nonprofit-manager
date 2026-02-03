@@ -9,11 +9,10 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../config/database';
 import { logger } from '../config/logger';
+import { getJwtSecret } from '../config/jwt';
 import { AuthRequest } from '../middleware/auth';
 import { PASSWORD, JWT } from '../config/constants';
 import * as invitationService from '../services/invitationService';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 /**
  * POST /api/invitations
@@ -206,7 +205,7 @@ export const acceptInvitation = async (
         email: newUser.email,
         role: newUser.role,
       },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: JWT.ACCESS_TOKEN_EXPIRY }
     );
 
