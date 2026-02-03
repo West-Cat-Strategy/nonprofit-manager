@@ -31,6 +31,8 @@ import dashboardRoutes from './routes/dashboard';
 import alertRoutes from './routes/alerts';
 import exportRoutes from './routes/export';
 import activityRoutes from './routes/activities';
+import userRoutes from './routes/users';
+import invitationRoutes from './routes/invitations';
 import { setPaymentPool } from './controllers/paymentController';
 import { Pool } from 'pg';
 
@@ -141,6 +143,8 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/activities', activityRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/invitations', invitationRoutes);
 
 // Error handling
 app.use(errorHandler);

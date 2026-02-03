@@ -17,7 +17,6 @@ const ContactList = () => {
   );
 
   const [searchInput, setSearchInput] = useState(filters.search);
-  const [roleFilter, setRoleFilter] = useState(filters.contact_role);
 
   const loadContacts = useCallback(() => {
     dispatch(
@@ -25,7 +24,6 @@ const ContactList = () => {
         page: pagination.page,
         limit: pagination.limit,
         search: filters.search || undefined,
-        contact_role: filters.contact_role || undefined,
         is_active: filters.is_active,
       })
     );
@@ -40,14 +38,8 @@ const ContactList = () => {
     dispatch(setFilters({ search: searchInput }));
   };
 
-  const handleFilterChange = (value: string) => {
-    setRoleFilter(value);
-    dispatch(setFilters({ contact_role: value }));
-  };
-
   const handleClearFilters = () => {
     setSearchInput('');
-    setRoleFilter('');
     dispatch(clearFilters());
   };
 
@@ -78,42 +70,28 @@ const ContactList = () => {
 
         {/* Filters */}
         <div className="bg-white p-4 rounded-lg shadow mb-6">
-          <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <form onSubmit={handleSearch} className="flex gap-4">
             <input
               type="text"
-              placeholder="Search people..."
+              placeholder="Search people by name, email, or phone..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
 
-            <select
-              value={roleFilter}
-              onChange={(e) => handleFilterChange(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            <button
+              type="submit"
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
             >
-              <option value="">All Roles</option>
-              <option value="primary">Primary</option>
-              <option value="billing">Billing</option>
-              <option value="technical">Technical</option>
-              <option value="general">General</option>
-            </select>
-
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-              >
-                Search
-              </button>
-              <button
-                type="button"
-                onClick={handleClearFilters}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-              >
-                Clear
-              </button>
-            </div>
+              Search
+            </button>
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+            >
+              Clear
+            </button>
           </form>
         </div>
 
@@ -143,16 +121,16 @@ const ContactList = () => {
                     Name
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Account
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
+                    Organization
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Email
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Phone
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -163,7 +141,7 @@ const ContactList = () => {
                 {contacts.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                      No contacts found. Create your first contact to get started!
+                      No people found. Create your first person to get started!
                     </td>
                   </tr>
                 ) : (
@@ -176,12 +154,12 @@ const ContactList = () => {
                         >
                           {formatName(contact)}
                         </Link>
+                        {contact.pronouns && (
+                          <span className="ml-2 text-xs text-gray-400">({contact.pronouns})</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {contact.account_name || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
-                        {contact.contact_role}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {contact.email || '-'}
@@ -189,14 +167,27 @@ const ContactList = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {contact.phone || contact.mobile_phone || '-'}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full ${
+                            contact.is_active
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          {contact.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
+                          type="button"
                           onClick={() => navigate(`/contacts/${contact.contact_id}/edit`)}
                           className="text-indigo-600 hover:text-indigo-900 mr-4"
                         >
                           Edit
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleDelete(contact.contact_id, formatName(contact))}
                           className="text-red-600 hover:text-red-900"
                         >

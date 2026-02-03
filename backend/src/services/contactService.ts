@@ -61,13 +61,6 @@ export class ContactService {
         paramCounter++;
       }
 
-      // Note: contact_role column will be added in future migration
-      // if (filters.contact_role) {
-      //   conditions.push(`c.contact_role = $${paramCounter}`);
-      //   values.push(filters.contact_role);
-      //   paramCounter++;
-      // }
-
       if (filters.is_active !== undefined) {
         conditions.push(`c.is_active = $${paramCounter}`);
         values.push(filters.is_active);
@@ -88,11 +81,20 @@ export class ContactService {
           c.account_id,
           c.first_name,
           c.last_name,
+          c.middle_name,
+          c.salutation,
+          c.suffix,
+          c.birth_date,
+          c.gender,
+          c.pronouns,
           c.email,
           c.phone,
           c.mobile_phone,
           c.job_title,
+          c.department,
           c.preferred_contact_method,
+          c.do_not_email,
+          c.do_not_phone,
           c.address_line1,
           c.address_line2,
           c.city,
@@ -103,7 +105,11 @@ export class ContactService {
           c.is_active,
           c.created_at,
           c.updated_at,
-          a.account_name
+          a.account_name,
+          (SELECT COUNT(*) FROM contact_phone_numbers WHERE contact_id = c.id) as phone_count,
+          (SELECT COUNT(*) FROM contact_email_addresses WHERE contact_id = c.id) as email_count,
+          (SELECT COUNT(*) FROM contact_relationships WHERE contact_id = c.id AND is_active = true) as relationship_count,
+          (SELECT COUNT(*) FROM contact_notes WHERE contact_id = c.id) as note_count
         FROM contacts c
         LEFT JOIN accounts a ON c.account_id = a.id
         ${whereClause}
@@ -138,11 +144,20 @@ export class ContactService {
           c.account_id,
           c.first_name,
           c.last_name,
+          c.middle_name,
+          c.salutation,
+          c.suffix,
+          c.birth_date,
+          c.gender,
+          c.pronouns,
           c.email,
           c.phone,
           c.mobile_phone,
           c.job_title,
+          c.department,
           c.preferred_contact_method,
+          c.do_not_email,
+          c.do_not_phone,
           c.address_line1,
           c.address_line2,
           c.city,
@@ -153,7 +168,11 @@ export class ContactService {
           c.is_active,
           c.created_at,
           c.updated_at,
-          a.account_name
+          a.account_name,
+          (SELECT COUNT(*) FROM contact_phone_numbers WHERE contact_id = c.id) as phone_count,
+          (SELECT COUNT(*) FROM contact_email_addresses WHERE contact_id = c.id) as email_count,
+          (SELECT COUNT(*) FROM contact_relationships WHERE contact_id = c.id AND is_active = true) as relationship_count,
+          (SELECT COUNT(*) FROM contact_notes WHERE contact_id = c.id) as note_count
          FROM contacts c
          LEFT JOIN accounts a ON c.account_id = a.id
          WHERE c.id = $1`,
@@ -174,21 +193,29 @@ export class ContactService {
     try {
       const result = await this.pool.query(
         `INSERT INTO contacts (
-          account_id, first_name, last_name,
+          account_id, first_name, last_name, middle_name, salutation, suffix,
+          birth_date, gender, pronouns,
           email, phone, mobile_phone,
           address_line1, address_line2, city, state_province, postal_code, country,
-          job_title, preferred_contact_method, notes,
+          job_title, department, preferred_contact_method, do_not_email, do_not_phone, notes,
           created_by, modified_by
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $16)
-        RETURNING id as contact_id, account_id, first_name, last_name,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $25)
+        RETURNING id as contact_id, account_id, first_name, last_name, middle_name, salutation, suffix,
+          birth_date, gender, pronouns,
           email, phone, mobile_phone,
           address_line1, address_line2, city, state_province, postal_code, country,
-          job_title, preferred_contact_method, notes,
+          job_title, department, preferred_contact_method, do_not_email, do_not_phone, notes,
           is_active, created_at, updated_at, created_by, modified_by`,
         [
           data.account_id || null,
           data.first_name,
           data.last_name,
+          data.middle_name || null,
+          data.salutation || null,
+          data.suffix || null,
+          data.birth_date || null,
+          data.gender || null,
+          data.pronouns || null,
           data.email || null,
           data.phone || null,
           data.mobile_phone || null,
@@ -199,7 +226,10 @@ export class ContactService {
           data.postal_code || null,
           data.country || null,
           data.job_title || null,
+          data.department || null,
           data.preferred_contact_method || null,
+          data.do_not_email || false,
+          data.do_not_phone || false,
           data.notes || null,
           userId,
         ]
@@ -252,8 +282,10 @@ export class ContactService {
         UPDATE contacts
         SET ${fields.join(', ')}
         WHERE id = $${paramCounter}
-        RETURNING id as contact_id, account_id, first_name, last_name,
-          email, phone, mobile_phone, job_title, preferred_contact_method,
+        RETURNING id as contact_id, account_id, first_name, last_name, middle_name, salutation, suffix,
+          birth_date, gender, pronouns,
+          email, phone, mobile_phone, job_title, department, preferred_contact_method,
+          do_not_email, do_not_phone,
           address_line1, address_line2, city, state_province, postal_code, country,
           notes, is_active, created_at, updated_at, created_by, modified_by
       `;

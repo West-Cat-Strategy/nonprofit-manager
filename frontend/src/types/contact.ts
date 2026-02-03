@@ -1,6 +1,5 @@
 /**
- * Contact Type Definitions
- * Aligned with Microsoft Common Data Model (CDM) Contact entity
+ * Contact Type Definitions for Frontend
  */
 
 // ============================================================================
@@ -15,10 +14,8 @@ export interface ContactPhoneNumber {
   phone_number: string;
   label: PhoneLabel;
   is_primary: boolean;
-  created_at: Date;
-  updated_at: Date;
-  created_by: string | null;
-  modified_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CreateContactPhoneDTO {
@@ -45,10 +42,8 @@ export interface ContactEmailAddress {
   email_address: string;
   label: EmailLabel;
   is_primary: boolean;
-  created_at: Date;
-  updated_at: Date;
-  created_by: string | null;
-  modified_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CreateContactEmailDTO {
@@ -94,10 +89,8 @@ export interface ContactRelationship {
   inverse_relationship_type: RelationshipType | null;
   notes: string | null;
   is_active: boolean;
-  created_at: Date;
-  updated_at: Date;
-  created_by: string | null;
-  modified_by: string | null;
+  created_at: string;
+  updated_at: string;
   // Joined fields for display
   related_contact_first_name?: string;
   related_contact_last_name?: string;
@@ -140,8 +133,8 @@ export interface ContactNote {
   is_important: boolean;
   is_pinned: boolean;
   attachments: any | null;
-  created_at: Date;
-  updated_at: Date;
+  created_at: string;
+  updated_at: string;
   created_by: string | null;
   // Joined fields for display
   created_by_first_name?: string;
@@ -158,7 +151,6 @@ export interface CreateContactNoteDTO {
   is_internal?: boolean;
   is_important?: boolean;
   is_pinned?: boolean;
-  attachments?: any;
 }
 
 export interface UpdateContactNoteDTO {
@@ -168,150 +160,74 @@ export interface UpdateContactNoteDTO {
   is_internal?: boolean;
   is_important?: boolean;
   is_pinned?: boolean;
-  attachments?: any;
 }
 
 // ============================================================================
-// Contact Types
+// Helper Constants
 // ============================================================================
 
-export interface Contact {
-  contact_id: string;
-  account_id: string | null;
+export const PHONE_LABELS: { value: PhoneLabel; label: string }[] = [
+  { value: 'mobile', label: 'Mobile' },
+  { value: 'home', label: 'Home' },
+  { value: 'work', label: 'Work' },
+  { value: 'fax', label: 'Fax' },
+  { value: 'other', label: 'Other' },
+];
 
-  // Name fields
-  first_name: string;
-  last_name: string;
-  middle_name: string | null;
-  salutation: string | null;
-  suffix: string | null;
+export const EMAIL_LABELS: { value: EmailLabel; label: string }[] = [
+  { value: 'personal', label: 'Personal' },
+  { value: 'work', label: 'Work' },
+  { value: 'other', label: 'Other' },
+];
 
-  // Personal information
-  birth_date: Date | null;
-  gender: string | null;
-  pronouns: string | null;
+export const RELATIONSHIP_TYPES: { value: RelationshipType; label: string }[] = [
+  { value: 'contact_person', label: 'Contact Person' },
+  { value: 'spouse', label: 'Spouse/Partner' },
+  { value: 'parent', label: 'Parent' },
+  { value: 'child', label: 'Child' },
+  { value: 'sibling', label: 'Sibling' },
+  { value: 'family_member', label: 'Other Family Member' },
+  { value: 'emergency_contact', label: 'Emergency Contact' },
+  { value: 'social_worker', label: 'Social Worker' },
+  { value: 'caregiver', label: 'Caregiver' },
+  { value: 'advocate', label: 'Advocate' },
+  { value: 'support_person', label: 'Support Person' },
+  { value: 'roommate', label: 'Roommate' },
+  { value: 'friend', label: 'Friend' },
+  { value: 'colleague', label: 'Colleague' },
+  { value: 'other', label: 'Other' },
+];
 
-  // Legacy contact information (kept for backwards compatibility)
-  email: string | null;
-  phone: string | null;
-  mobile_phone: string | null;
+export const NOTE_TYPES: { value: ContactNoteType; label: string; icon?: string }[] = [
+  { value: 'note', label: 'Note', icon: 'note' },
+  { value: 'email', label: 'Email', icon: 'email' },
+  { value: 'call', label: 'Phone Call', icon: 'phone' },
+  { value: 'meeting', label: 'Meeting', icon: 'people' },
+  { value: 'update', label: 'Update', icon: 'update' },
+  { value: 'other', label: 'Other', icon: 'more_horiz' },
+];
 
-  // Address fields
-  address_line1: string | null;
-  address_line2: string | null;
-  city: string | null;
-  state_province: string | null;
-  postal_code: string | null;
-  country: string | null;
+export const PRONOUNS_OPTIONS: string[] = [
+  'he/him',
+  'she/her',
+  'they/them',
+  'he/they',
+  'she/they',
+  'ze/hir',
+  'xe/xem',
+];
 
-  // Additional information
-  job_title: string | null;
-  department: string | null;
-  preferred_contact_method: string | null;
-  do_not_email: boolean;
-  do_not_phone: boolean;
-  notes: string | null;
-
-  // Lifecycle tracking
-  is_active: boolean;
-  created_at: Date;
-  updated_at: Date;
-  created_by: string;
-  modified_by: string;
-
-  // Related account info (for joins)
-  account_name?: string;
-
-  // Related data counts (for detail views)
-  phone_count?: number;
-  email_count?: number;
-  relationship_count?: number;
-  note_count?: number;
-}
-
-export interface ContactWithRelated extends Contact {
-  phones: ContactPhoneNumber[];
-  emails: ContactEmailAddress[];
-  relationships: ContactRelationship[];
-}
-
-export interface CreateContactDTO {
-  account_id?: string;
-  first_name: string;
-  last_name: string;
-  middle_name?: string;
-  salutation?: string;
-  suffix?: string;
-  birth_date?: Date | string;
-  gender?: string;
-  pronouns?: string;
-  email?: string;
-  phone?: string;
-  mobile_phone?: string;
-  address_line1?: string;
-  address_line2?: string;
-  city?: string;
-  state_province?: string;
-  postal_code?: string;
-  country?: string;
-  job_title?: string;
-  department?: string;
-  preferred_contact_method?: string;
-  do_not_email?: boolean;
-  do_not_phone?: boolean;
-  notes?: string;
-}
-
-export interface UpdateContactDTO {
-  account_id?: string;
-  first_name?: string;
-  last_name?: string;
-  middle_name?: string;
-  salutation?: string;
-  suffix?: string;
-  birth_date?: Date | string | null;
-  gender?: string | null;
-  pronouns?: string | null;
-  email?: string;
-  phone?: string;
-  mobile_phone?: string;
-  address_line1?: string;
-  address_line2?: string;
-  city?: string;
-  state_province?: string;
-  postal_code?: string;
-  country?: string;
-  job_title?: string;
-  department?: string;
-  preferred_contact_method?: string;
-  do_not_email?: boolean;
-  do_not_phone?: boolean;
-  notes?: string;
-  is_active?: boolean;
-}
-
-export interface ContactFilters {
-  search?: string;
-  account_id?: string;
-  is_active?: boolean;
-}
-
-export interface PaginationParams {
-  page?: number;
-  limit?: number;
-  sort_by?: string;
-  sort_order?: 'asc' | 'desc';
-}
-
-export interface PaginatedContacts {
-  data: Contact[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    total_pages: number;
-  };
-}
+export const GENDER_OPTIONS: string[] = [
+  'Male',
+  'Female',
+  'Non-binary',
+  'Genderqueer',
+  'Genderfluid',
+  'Agender',
+  'Two-Spirit',
+  'Prefer not to say',
+  'Other',
+];
 
 // ============================================================================
 // Contact Document Types
@@ -348,9 +264,9 @@ export interface ContactDocument {
 
   // Audit fields
   is_active: boolean;
-  created_at: Date;
+  created_at: string;
   created_by: string | null;
-  updated_at: Date;
+  updated_at: string;
 
   // Joined fields for display
   created_by_first_name?: string;
@@ -371,3 +287,16 @@ export interface UpdateContactDocumentDTO {
   title?: string;
   description?: string;
 }
+
+export const DOCUMENT_TYPES: { value: DocumentType; label: string; icon: string }[] = [
+  { value: 'identification', label: 'Identification', icon: '🪪' },
+  { value: 'legal', label: 'Legal Document', icon: '⚖️' },
+  { value: 'medical', label: 'Medical Record', icon: '🏥' },
+  { value: 'financial', label: 'Financial Document', icon: '💰' },
+  { value: 'correspondence', label: 'Correspondence', icon: '📧' },
+  { value: 'photo', label: 'Photo', icon: '📷' },
+  { value: 'consent_form', label: 'Consent Form', icon: '✍️' },
+  { value: 'assessment', label: 'Assessment', icon: '📋' },
+  { value: 'report', label: 'Report', icon: '📊' },
+  { value: 'other', label: 'Other', icon: '📄' },
+];
