@@ -6,10 +6,38 @@
   --loop-green: #90EE90;
   --loop-purple: #D8BFD8;
   --loop-pink: #FFB6C1;
+  --shadow-color: #000000;
   --border-brutal: 2px solid #000000;
-  --shadow-brutal: 6px 6px 0px #000000;
-  --shadow-brutal-sm: 2px 2px 0px #000000;
-  --shadow-brutal-lg: 8px 8px 0px #000000;
+  --shadow-brutal: 6px 6px 0px var(--shadow-color);
+  --shadow-brutal-sm: 2px 2px 0px var(--shadow-color);
+  --shadow-brutal-lg: 8px 8px 0px var(--shadow-color);
+}
+
+body.neo-dark-mode {
+  --shadow-color: #F5F5DC;
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+}
+
+body.neo-dark-mode .bg-white,
+body.neo-dark-mode .bg-gray-50,
+body.neo-dark-mode .bg-gray-100 {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+}
+
+body.neo-dark-mode .text-black,
+body.neo-dark-mode .text-gray-900,
+body.neo-dark-mode label,
+body.neo-dark-mode input,
+body.neo-dark-mode select {
+  color: #ffffff !important;
+}
+
+body.neo-dark-mode input,
+body.neo-dark-mode select,
+body.neo-dark-mode textarea {
+  background-color: #333333 !important;
 }
 
 /* React Grid Layout styles */

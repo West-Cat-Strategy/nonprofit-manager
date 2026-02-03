@@ -25,7 +25,7 @@ export default function LinkingModule() {
     };
 
     return (
-        <NeoBrutalistLayout pageTitle="LINKING MODULE">
+        <NeoBrutalistLayout pageTitle="LINKING">
             <div className="p-6">
                 {/* Search Bar */}
                 <div className="mb-6 flex justify-between items-center gap-4">
@@ -39,21 +39,21 @@ export default function LinkingModule() {
                             className="w-full border-2 border-black px-4 py-2 pl-10 bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
                         />
                     </div>
-                    <button className="px-6 py-2 bg-[#4DD0E1] text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-cyan-400 font-bold uppercase">
+                    <button className="px-6 py-2 bg-[#4DD0E1] text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-cyan-400 font-bold uppercase">
                         + NEW ITEM
                     </button>
                 </div>
 
                 {/* Banner - GREEN */}
-                <div className="bg-[#90EE90] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-8 mb-6">
+                <div className="bg-[#90EE90] border-2 border-black shadow-[4px_4px_0px_0px_var(--shadow-color)] p-8 mb-6">
                     <h2 className="text-3xl font-black mb-2 uppercase">Linking Network</h2>
                     <p className="text-lg font-medium">Managing partnerships and organizational connections.</p>
                 </div>
 
                 {/* Data Table */}
-                <div className="bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+                <div className="bg-white border-2 border-black shadow-[4px_4px_0px_0px_var(--shadow-color)] overflow-hidden">
                     <table className="w-full">
-                        <thead className="bg-gray-100">
+                        <thead className="bg-[#90EE90]">
                             <tr>
                                 <th className="px-6 py-4 text-left border-b-2 border-black font-black uppercase text-sm">
                                     ORGANIZATION
@@ -75,7 +75,7 @@ export default function LinkingModule() {
                         <tbody>
                             {mockOrganizations.map((org) => (
                                 <tr key={org.id} className="border-b-2 border-black hover:bg-gray-50">
-                                    <td className="px-6 py-4 font-bold">{org.name}</td>
+                                    <td className="px-6 py-4 font-bold bg-[#90EE90] border-r-2 border-black">{org.name}</td>
                                     <td className="px-6 py-4 capitalize font-medium">{org.type}</td>
                                     <td className="px-6 py-4">
                                         <span className={`text-xs font-bold uppercase px-3 py-1 border-2 ${getStatusColor(org.status)}`}>
@@ -84,7 +84,7 @@ export default function LinkingModule() {
                                     </td>
                                     <td className="px-6 py-4">{org.contact}</td>
                                     <td className="px-6 py-4">
-                                        <button className="px-4 py-2 bg-white text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 font-bold uppercase text-sm">
+                                        <button className="px-4 py-2 bg-white text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-gray-100 font-bold uppercase text-sm">
                                             EDIT
                                         </button>
                                     </td>

@@ -4,6 +4,7 @@ import { useAppSelector } from './store/hooks';
 import { useSetupCheck } from './hooks/useSetupCheck';
 import Layout from './components/Layout';
 import AdminRoute from './components/AdminRoute';
+import { ThemeProvider } from './contexts/ThemeContext';
 import './App.css';
 
 // Loading component for Suspense fallback
@@ -595,9 +596,11 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">
-        <Suspense fallback={<PageLoader />}>
-          <AppRoutes />
-        </Suspense>
+        <ThemeProvider>
+          <Suspense fallback={<PageLoader />}>
+            <AppRoutes />
+          </Suspense>
+        </ThemeProvider>
       </div>
     </Router>
   );
