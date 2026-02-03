@@ -5,6 +5,7 @@ import { useSetupCheck } from './hooks/useSetupCheck';
 import Layout from './components/Layout';
 import AdminRoute from './components/AdminRoute';
 import PortalProtectedRoute from './components/PortalProtectedRoute';
+import { ThemeProvider } from './contexts/ThemeContext';
 import './App.css';
 
 // Loading component for Suspense fallback
@@ -21,7 +22,6 @@ const PageLoader = () => (
 const Setup = lazy(() => import('./pages/Setup'));
 const Login = lazy(() => import('./pages/Login'));
 const AcceptInvitation = lazy(() => import('./pages/AcceptInvitation'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
 const CustomDashboard = lazy(() => import('./pages/CustomDashboard'));
 const IntakeNew = lazy(() => import('./pages/IntakeNew'));
 const InteractionNote = lazy(() => import('./pages/InteractionNote'));
@@ -106,6 +106,13 @@ const CaseDetail = lazy(() => import('./pages/CaseDetail'));
 const CaseCreate = lazy(() => import('./pages/CaseCreate'));
 const CaseEdit = lazy(() => import('./pages/CaseEdit'));
 
+// Neo-Brutalist Demo Pages
+const NeoBrutalistDashboard = lazy(() => import('./pages/neo-brutalist/NeoBrutalistDashboard'));
+const LinkingModule = lazy(() => import('./pages/neo-brutalist/LinkingModule'));
+const OperationsBoard = lazy(() => import('./pages/neo-brutalist/OperationsBoard'));
+const OutreachCenter = lazy(() => import('./pages/neo-brutalist/OutreachCenter'));
+const PeopleDirectory = lazy(() => import('./pages/neo-brutalist/PeopleDirectory'));
+
 // Protected Route wrapper component
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -117,6 +124,14 @@ const ProtectedRoute = ({ children, isAuthenticated }: ProtectedRouteProps) => {
     return <Navigate to="/login" replace />;
   }
   return <Layout>{children}</Layout>;
+};
+
+// Neo-Brutalist routes don't use the old Layout (they have their own sidebar layout)
+const NeoBrutalistRoute = ({ children, isAuthenticated }: ProtectedRouteProps) => {
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
 };
 
 // AppRoutes component with setup check logic
@@ -222,12 +237,13 @@ const AppRoutes = () => {
         }
       />
       <Route path="/accept-invitation/:token" element={<AcceptInvitation />} />
+      {/* Neo-Brutalist Dashboard (Primary) */}
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <Dashboard />
-          </ProtectedRoute>
+          <NeoBrutalistRoute isAuthenticated={isAuthenticated}>
+            <NeoBrutalistDashboard />
+          </NeoBrutalistRoute>
         }
       />
       <Route
@@ -318,6 +334,47 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      {/* LOOP Module: People Directory */}
+      <Route
+        path="/people"
+        element={
+          <NeoBrutalistRoute isAuthenticated={isAuthenticated}>
+            <PeopleDirectory />
+          </NeoBrutalistRoute>
+        }
+      />
+
+      {/* LOOP Module: Linking */}
+      <Route
+        path="/linking"
+        element={
+          <NeoBrutalistRoute isAuthenticated={isAuthenticated}>
+            <LinkingModule />
+          </NeoBrutalistRoute>
+        }
+      />
+
+      {/* LOOP Module: Operations */}
+      <Route
+        path="/operations"
+        element={
+          <NeoBrutalistRoute isAuthenticated={isAuthenticated}>
+            <OperationsBoard />
+          </NeoBrutalistRoute>
+        }
+      />
+
+      {/* Neo-Brutalist Outreach Center */}
+      <Route
+        path="/outreach"
+        element={
+          <NeoBrutalistRoute isAuthenticated={isAuthenticated}>
+            <OutreachCenter />
+          </NeoBrutalistRoute>
+        }
+      />
+
+      {/* Legacy Volunteer Routes (kept for backwards compatibility) */}
       <Route
         path="/volunteers"
         element={
@@ -585,9 +642,9 @@ const AppRoutes = () => {
       <Route
         path="/settings/user"
         element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
+          <NeoBrutalistRoute isAuthenticated={isAuthenticated}>
             <UserSettings />
-          </ProtectedRoute>
+          </NeoBrutalistRoute>
         }
       />
       <Route
@@ -622,6 +679,14 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      {/* Neo-Brutalist Demo Routes (No Auth Required) */}
+      <Route path="/demo/dashboard" element={<NeoBrutalistDashboard />} />
+      <Route path="/demo/linking" element={<LinkingModule />} />
+      <Route path="/demo/operations" element={<OperationsBoard />} />
+      <Route path="/demo/outreach" element={<OutreachCenter />} />
+      <Route path="/demo/people" element={<PeopleDirectory />} />
+
+      {/* Root - Redirects to Neo-Brutalist Dashboard */}
       <Route
         path="/"
         element={
@@ -637,9 +702,11 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">
-        <Suspense fallback={<PageLoader />}>
-          <AppRoutes />
-        </Suspense>
+        <ThemeProvider>
+          <Suspense fallback={<PageLoader />}>
+            <AppRoutes />
+          </Suspense>
+        </ThemeProvider>
       </div>
     </Router>
   );

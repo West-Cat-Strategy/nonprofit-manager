@@ -11,6 +11,9 @@ const config: PoolConfig = {
   max: DATABASE.POOL_MAX_CONNECTIONS,
   idleTimeoutMillis: DATABASE.IDLE_TIMEOUT_MS,
   connectionTimeoutMillis: DATABASE.CONNECTION_TIMEOUT_MS,
+  // Avoid Jest hanging on open TCP handles while still allowing real connections during tests.
+  // https://node-postgres.com/api/pool
+  allowExitOnIdle: process.env.NODE_ENV === 'test',
 };
 
 const pool = new Pool(config);
