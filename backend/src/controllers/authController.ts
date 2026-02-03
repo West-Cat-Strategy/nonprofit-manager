@@ -29,6 +29,7 @@ interface UserRow {
   last_name: string;
   role: string;
   created_at: Date;
+  preferences?: Record<string, unknown>;
 }
 
 /**
@@ -313,6 +314,386 @@ export const setupFirstUser = async (
     });
   } catch (error) {
     logger.error('Error during first-time setup', error);
+    next(error);
+  }
+};
+
+/**
+ * GET /api/auth/preferences
+ * Get user preferences
+ */
+export const getPreferences = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const result = await pool.query(
+      'SELECT preferences FROM users WHERE id = $1',
+      [req.user!.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.json({
+      preferences: result.rows[0].preferences || {},
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/auth/preferences
+ * Update user preferences (merge with existing)
+ */
+export const updatePreferences = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const { preferences } = req.body;
+
+    if (!preferences || typeof preferences !== 'object') {
+      return res.status(400).json({ error: 'Preferences must be an object' });
+    }
+
+    // Use jsonb_set to merge preferences rather than replace
+    const result = await pool.query(
+      `UPDATE users
+       SET preferences = COALESCE(preferences, '{}'::jsonb) || $1::jsonb,
+           updated_at = NOW()
+       WHERE id = $2
+       RETURNING preferences`,
+      [JSON.stringify(preferences), req.user!.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    logger.info(`User preferences updated: ${req.user!.id}`);
+
+    return res.json({
+      preferences: result.rows[0].preferences,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PATCH /api/auth/preferences/:key
+ * Update a specific preference key
+ */
+export const updatePreferenceKey = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const { key } = req.params;
+    const { value } = req.body;
+
+    if (value === undefined) {
+      return res.status(400).json({ error: 'Value is required' });
+    }
+
+    // Update specific key in preferences
+    const result = await pool.query(
+      `UPDATE users
+       SET preferences = COALESCE(preferences, '{}'::jsonb) || jsonb_build_object($1::text, $2::jsonb),
+           updated_at = NOW()
+       WHERE id = $3
+       RETURNING preferences`,
+      [key, JSON.stringify(value), req.user!.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    logger.info(`User preference '${key}' updated: ${req.user!.id}`);
+
+    return res.json({
+      preferences: result.rows[0].preferences,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+interface AlternativeEmail {
+  email: string;
+  label: string;
+  isVerified: boolean;
+}
+
+interface NotificationSettings {
+  emailNotifications: boolean;
+  taskReminders: boolean;
+  eventReminders: boolean;
+  donationAlerts: boolean;
+  caseUpdates: boolean;
+  weeklyDigest: boolean;
+  marketingEmails: boolean;
+}
+
+interface ProfileRow {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  display_name: string | null;
+  alternative_name: string | null;
+  pronouns: string | null;
+  title: string | null;
+  cell_phone: string | null;
+  contact_number: string | null;
+  profile_picture: string | null;
+  email_shared_with_clients: boolean;
+  email_shared_with_users: boolean;
+  alternative_emails: AlternativeEmail[];
+  notifications: NotificationSettings;
+}
+
+/**
+ * GET /api/auth/profile
+ * Get full user profile including extended fields
+ */
+export const getProfile = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const result = await pool.query<ProfileRow>(
+      `SELECT id, email, first_name, last_name, role,
+              display_name, alternative_name, pronouns, title,
+              cell_phone, contact_number, profile_picture,
+              email_shared_with_clients, email_shared_with_users,
+              alternative_emails, notifications
+       FROM users WHERE id = $1`,
+      [req.user!.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const user = result.rows[0];
+
+    const defaultNotifications: NotificationSettings = {
+      emailNotifications: true,
+      taskReminders: true,
+      eventReminders: true,
+      donationAlerts: true,
+      caseUpdates: true,
+      weeklyDigest: false,
+      marketingEmails: false,
+    };
+
+    return res.json({
+      id: user.id,
+      email: user.email,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      role: user.role,
+      displayName: user.display_name || '',
+      alternativeName: user.alternative_name || '',
+      pronouns: user.pronouns || '',
+      title: user.title || '',
+      cellPhone: user.cell_phone || '',
+      contactNumber: user.contact_number || '',
+      profilePicture: user.profile_picture || null,
+      emailSharedWithClients: user.email_shared_with_clients || false,
+      emailSharedWithUsers: user.email_shared_with_users || false,
+      alternativeEmails: user.alternative_emails || [],
+      notifications: user.notifications || defaultNotifications,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/auth/profile
+ * Update user profile
+ */
+export const updateProfile = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const {
+      firstName,
+      lastName,
+      email,
+      displayName,
+      alternativeName,
+      pronouns,
+      title,
+      cellPhone,
+      contactNumber,
+      profilePicture,
+      emailSharedWithClients,
+      emailSharedWithUsers,
+      alternativeEmails,
+      notifications,
+    } = req.body;
+
+    // Check if email is being changed and if it's already taken
+    if (email) {
+      const emailCheck = await pool.query(
+        'SELECT id FROM users WHERE email = $1 AND id != $2',
+        [email, req.user!.id]
+      );
+      if (emailCheck.rows.length > 0) {
+        return res.status(409).json({ error: 'Email is already in use by another account' });
+      }
+    }
+
+    const result = await pool.query<ProfileRow>(
+      `UPDATE users
+       SET first_name = COALESCE($1, first_name),
+           last_name = COALESCE($2, last_name),
+           email = COALESCE($3, email),
+           display_name = $4,
+           alternative_name = $5,
+           pronouns = $6,
+           title = $7,
+           cell_phone = $8,
+           contact_number = $9,
+           profile_picture = $10,
+           email_shared_with_clients = COALESCE($11, email_shared_with_clients),
+           email_shared_with_users = COALESCE($12, email_shared_with_users),
+           alternative_emails = COALESCE($13, alternative_emails),
+           notifications = COALESCE($14, notifications),
+           updated_at = NOW()
+       WHERE id = $15
+       RETURNING id, email, first_name, last_name, role,
+                 display_name, alternative_name, pronouns, title,
+                 cell_phone, contact_number, profile_picture,
+                 email_shared_with_clients, email_shared_with_users,
+                 alternative_emails, notifications`,
+      [
+        firstName,
+        lastName,
+        email,
+        displayName || null,
+        alternativeName || null,
+        pronouns || null,
+        title || null,
+        cellPhone || null,
+        contactNumber || null,
+        profilePicture || null,
+        emailSharedWithClients,
+        emailSharedWithUsers,
+        alternativeEmails ? JSON.stringify(alternativeEmails) : null,
+        notifications ? JSON.stringify(notifications) : null,
+        req.user!.id,
+      ]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const user = result.rows[0];
+
+    const defaultNotifications: NotificationSettings = {
+      emailNotifications: true,
+      taskReminders: true,
+      eventReminders: true,
+      donationAlerts: true,
+      caseUpdates: true,
+      weeklyDigest: false,
+      marketingEmails: false,
+    };
+
+    logger.info(`User profile updated: ${user.email}`);
+
+    return res.json({
+      id: user.id,
+      email: user.email,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      role: user.role,
+      displayName: user.display_name || '',
+      alternativeName: user.alternative_name || '',
+      pronouns: user.pronouns || '',
+      title: user.title || '',
+      cellPhone: user.cell_phone || '',
+      contactNumber: user.contact_number || '',
+      profilePicture: user.profile_picture || null,
+      emailSharedWithClients: user.email_shared_with_clients || false,
+      emailSharedWithUsers: user.email_shared_with_users || false,
+      alternativeEmails: user.alternative_emails || [],
+      notifications: user.notifications || defaultNotifications,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/auth/password
+ * Change user password
+ */
+export const changePassword = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    // Get current password hash
+    const userResult = await pool.query<{ password_hash: string; email: string }>(
+      'SELECT password_hash, email FROM users WHERE id = $1',
+      [req.user!.id]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const user = userResult.rows[0];
+
+    // Verify current password
+    const isValidPassword = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, PASSWORD.BCRYPT_SALT_ROUNDS);
+
+    // Update password
+    await pool.query(
+      `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`,
+      [hashedPassword, req.user!.id]
+    );
+
+    logger.info(`Password changed for user: ${user.email}`);
+
+    return res.json({ message: 'Password changed successfully' });
+  } catch (error) {
     next(error);
   }
 };

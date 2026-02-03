@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { useAppSelector } from './store/hooks';
 import { useSetupCheck } from './hooks/useSetupCheck';
 import Layout from './components/Layout';
+import AdminRoute from './components/AdminRoute';
 import './App.css';
 
 // Loading component for Suspense fallback
@@ -18,6 +19,7 @@ const PageLoader = () => (
 // Lazy load all page components for code splitting
 const Setup = lazy(() => import('./pages/Setup'));
 const Login = lazy(() => import('./pages/Login'));
+const AcceptInvitation = lazy(() => import('./pages/AcceptInvitation'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const CustomDashboard = lazy(() => import('./pages/CustomDashboard'));
 
@@ -71,6 +73,8 @@ const SavedReports = lazy(() => import('./pages/SavedReports'));
 const EmailMarketing = lazy(() => import('./pages/EmailMarketing'));
 const ApiSettings = lazy(() => import('./pages/ApiSettings'));
 const NavigationSettings = lazy(() => import('./pages/NavigationSettings'));
+const UserSettings = lazy(() => import('./pages/UserSettings'));
+const AdminSettings = lazy(() => import('./pages/AdminSettings'));
 
 // Website Builder pages
 const TemplateGallery = lazy(() => import('./pages/TemplateGallery'));
@@ -126,6 +130,7 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/setup" element={<Setup />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/accept-invitation/:token" element={<AcceptInvitation />} />
       <Route
         path="/dashboard"
         element={
@@ -468,6 +473,22 @@ const AppRoutes = () => {
           <ProtectedRoute isAuthenticated={isAuthenticated}>
             <NavigationSettings />
           </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings/user"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <UserSettings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings/admin"
+        element={
+          <AdminRoute>
+            <AdminSettings />
+          </AdminRoute>
         }
       />
       <Route

@@ -38,3 +38,8 @@ coverage/
 *.db
 *.sqlite
 *.sqlite3
+.deploy.conf
+
+# Local CI/CD
+security-reports/
+.deploy-history
