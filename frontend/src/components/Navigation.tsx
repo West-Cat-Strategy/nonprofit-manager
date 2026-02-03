@@ -132,7 +132,7 @@ const Navigation = () => {
           params: { search: searchTerm.trim(), limit: 8, is_active: true },
         });
         setSearchResults(response.data?.data || response.data?.contacts || []);
-      } catch (error) {
+      } catch {
         setSearchResults([]);
       } finally {
         setIsSearching(false);

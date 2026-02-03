@@ -40,7 +40,7 @@ const DonationSummaryWidget = ({ widget, editMode, onRemove }: DonationSummaryWi
           average_donation: payload.average_donation || 0,
           month_over_month: payload.donations_month_over_month || 0,
         });
-      } catch (err) {
+      } catch {
         if (!isMounted) return;
         setError('Failed to load donation data');
       } finally {

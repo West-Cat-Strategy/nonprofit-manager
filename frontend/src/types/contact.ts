@@ -151,6 +151,7 @@ export interface CreateContactNoteDTO {
   is_internal?: boolean;
   is_important?: boolean;
   is_pinned?: boolean;
+  attachments?: any;
 }
 
 export interface UpdateContactNoteDTO {
@@ -160,6 +161,17 @@ export interface UpdateContactNoteDTO {
   is_internal?: boolean;
   is_important?: boolean;
   is_pinned?: boolean;
+}
+
+// ============================================================================
+// Contact Role Types
+// ============================================================================
+
+export interface ContactRole {
+  id: string;
+  name: string;
+  description?: string | null;
+  is_system?: boolean;
 }
 
 // ============================================================================

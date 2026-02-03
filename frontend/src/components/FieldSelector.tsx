@@ -17,7 +17,7 @@ function FieldSelector({ entity, selectedFields, onChange }: FieldSelectorProps)
     dispatch(fetchAvailableFields(entity));
   }, [dispatch, entity]);
 
-  const currentFields = (availableFields[entity] || []) as { name: string; type: string }[];
+  const currentFields = (availableFields[entity] || []) as { field: string; label: string; type: string }[];
 
   const handleToggleField = (field: string) => {
     if (selectedFields.includes(field)) {
@@ -28,7 +28,7 @@ function FieldSelector({ entity, selectedFields, onChange }: FieldSelectorProps)
   };
 
   const handleSelectAll = () => {
-    onChange(currentFields.map((f) => f.name));
+    onChange(currentFields.map((f) => f.field));
   };
 
   const handleClearAll = () => {
@@ -73,10 +73,10 @@ function FieldSelector({ entity, selectedFields, onChange }: FieldSelectorProps)
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {currentFields.map((field) => {
-          const isSelected = selectedFields.includes(field.name);
+          const isSelected = selectedFields.includes(field.field);
           return (
             <label
-              key={field.name}
+              key={field.field}
               className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
                 isSelected
                   ? 'border-blue-500 bg-blue-50'
@@ -86,12 +86,12 @@ function FieldSelector({ entity, selectedFields, onChange }: FieldSelectorProps)
               <input
                 type="checkbox"
                 checked={isSelected}
-                onChange={() => handleToggleField(field.name)}
+                onChange={() => handleToggleField(field.field)}
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
               <div className="flex-1">
                 <div className="font-medium text-gray-900">
-                  {field.name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                  {field.label || field.field.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
                 </div>
                 <div className="text-xs text-gray-500">{field.type}</div>
               </div>

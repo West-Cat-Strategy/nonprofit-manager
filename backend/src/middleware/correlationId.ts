@@ -7,15 +7,6 @@ import { Request, Response, NextFunction } from 'express';
 import { randomUUID } from 'crypto';
 import { logger } from '../config/logger';
 
-// Extend Express Request to include correlationId
-declare global {
-  namespace Express {
-    interface Request {
-      correlationId: string;
-    }
-  }
-}
-
 export const CORRELATION_ID_HEADER = 'x-correlation-id';
 
 /**

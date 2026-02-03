@@ -3,11 +3,12 @@
  * Drag-and-drop dashboard with widgets
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   fetchDashboards,
-  createDashboard,
+  fetchDefaultDashboard,
   setEditMode,
   updateLayout,
   saveDashboardLayout,
@@ -17,7 +18,7 @@ import {
 } from '../store/slices/dashboardSlice';
 import GridLayout, { type Layout } from 'react-grid-layout';
 import type { DashboardWidget, WidgetType } from '../types/dashboard';
-import { WIDGET_TEMPLATES, DEFAULT_DASHBOARD_CONFIG } from '../types/dashboard';
+import { WIDGET_TEMPLATES } from '../types/dashboard';
 
 // Widget components (will be created separately)
 import DonationSummaryWidget from '../components/dashboard/DonationSummaryWidget';
@@ -33,49 +34,40 @@ import PlausibleStatsWidget from '../components/dashboard/PlausibleStatsWidget';
 
 const CustomDashboard = () => {
   const dispatch = useAppDispatch();
-  const { currentDashboard, loading, saving, editMode } = useAppSelector((state) => state.dashboard);
-  const { user } = useAppSelector((state) => state.auth);
+  const { currentDashboard, loading, saving, editMode, error } = useAppSelector((state) => state.dashboard);
+  const { token, isAuthenticated } = useAppSelector((state) => state.auth);
   const [showAddWidget, setShowAddWidget] = useState(false);
   const [creatingDefault, setCreatingDefault] = useState(false);
+  const hasInitializedRef = useRef(false);
 
   useEffect(() => {
     const initializeDashboard = async () => {
       try {
-        console.log('[CustomDashboard] Fetching dashboards for user:', user?.id);
+        if (hasInitializedRef.current) return;
+        hasInitializedRef.current = true;
+
         const result = await dispatch(fetchDashboards()).unwrap();
-        console.log('[CustomDashboard] Fetched dashboards:', result);
 
         // If no dashboards exist, create a default one
-        if (Array.isArray(result) && result.length === 0 && user) {
-          console.log('[CustomDashboard] No dashboards found, creating default...');
+        if (Array.isArray(result) && result.length === 0) {
           setCreatingDefault(true);
-          const newDashboard = await dispatch(createDashboard({
-            user_id: user.id,
-            name: 'My Dashboard',
-            is_default: true,
-            widgets: DEFAULT_DASHBOARD_CONFIG.widgets,
-            layout: DEFAULT_DASHBOARD_CONFIG.layout,
-            breakpoints: DEFAULT_DASHBOARD_CONFIG.breakpoints,
-            cols: DEFAULT_DASHBOARD_CONFIG.cols,
-          })).unwrap();
-          console.log('[CustomDashboard] Created dashboard:', newDashboard);
-          // Refetch to get the newly created dashboard
-          await dispatch(fetchDashboards()).unwrap();
+          await dispatch(fetchDefaultDashboard()).unwrap();
           setCreatingDefault(false);
+          return;
         }
+
+        // Ensure we have a current dashboard selected (default server-side).
+        await dispatch(fetchDefaultDashboard()).unwrap();
       } catch (error) {
         console.error('[CustomDashboard] Failed to initialize dashboard:', error);
         setCreatingDefault(false);
       }
     };
 
-    if (user) {
-      console.log('[CustomDashboard] User available, initializing...');
+    if (token || isAuthenticated) {
       initializeDashboard();
-    } else {
-      console.log('[CustomDashboard] Waiting for user...');
     }
-  }, [dispatch, user]);
+  }, [dispatch, token, isAuthenticated]);
 
   const handleLayoutChange = (layout: Layout[]) => {
     if (editMode && currentDashboard) {
@@ -132,12 +124,13 @@ const CustomDashboard = () => {
     const template = WIDGET_TEMPLATES.find((t) => t.type === widgetType);
     if (!template || !currentDashboard) return;
 
+    const widgetId = `widget-${widgetType}-${Date.now()}`;
     const newWidget: DashboardWidget = {
-      id: `widget-${widgetType}-${Date.now()}`,
+      id: widgetId,
       type: widgetType,
       title: template.title,
       enabled: true,
-      layout: { i: `widget-${widgetType}-${Date.now()}`, ...template.defaultLayout },
+      layout: { i: widgetId, ...template.defaultLayout },
     };
 
     dispatch(addWidget(newWidget));
@@ -184,6 +177,36 @@ const CustomDashboard = () => {
         return <div className="p-4">Unknown widget type</div>;
     }
   };
+
+  if (!token && !isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="text-gray-600 mb-2">Please sign in to customize your dashboard.</div>
+          <Link to="/login" className="text-blue-600 hover:text-blue-700 text-sm">
+            Go to login
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !loading && !creatingDefault) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="text-red-600 mb-2">Failed to load dashboard.</div>
+          <div className="text-sm text-gray-500 mb-4">{error}</div>
+          <button
+            onClick={() => dispatch(fetchDefaultDashboard())}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading || creatingDefault || !currentDashboard) {
     return (

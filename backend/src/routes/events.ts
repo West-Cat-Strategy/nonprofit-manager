@@ -21,6 +21,7 @@ import {
   getRegistrations,
 } from '../controllers/eventController';
 import { authenticate } from '../middleware/auth';
+import { handleValidationErrors } from '../middleware/validation';
 
 const router = Router();
 
@@ -41,6 +42,7 @@ router.get(
     query('organizer_id').optional().isUUID(),
     query('search').optional().isString(),
   ],
+  handleValidationErrors,
   getEvents
 );
 
@@ -54,7 +56,7 @@ router.get('/summary', getEventAttendanceSummary);
  * GET /api/events/:id
  * Get a single event
  */
-router.get('/:id', [param('id').isUUID()], getEvent);
+router.get('/:id', [param('id').isUUID()], handleValidationErrors, getEvent);
 
 /**
  * POST /api/events
@@ -63,28 +65,25 @@ router.get('/:id', [param('id').isUUID()], getEvent);
 router.post(
   '/',
   [
-    body('name').isString().trim().notEmpty().withMessage('Event name is required'),
+    body('event_name').isString().trim().notEmpty().withMessage('Event name is required'),
     body('description').optional().isString(),
-    body('event_type').isString().isIn([
-      'fundraiser',
-      'volunteer_opportunity',
-      'community_event',
-      'training',
-      'meeting',
-      'workshop',
-      'conference',
-      'social',
-      'other',
-    ]).withMessage('Invalid event type'),
+    body('event_type')
+      .isString()
+      .trim()
+      .notEmpty(),
     body('start_date').isISO8601().withMessage('Valid start date is required'),
-    body('end_date').optional().isISO8601(),
-    body('location').optional().isString(),
+    body('end_date').isISO8601().withMessage('Valid end date is required'),
+    body('location_name').optional().isString(),
+    body('address_line1').optional().isString(),
+    body('address_line2').optional().isString(),
+    body('city').optional().isString(),
+    body('state_province').optional().isString(),
+    body('postal_code').optional().isString(),
+    body('country').optional().isString(),
     body('capacity').optional().isInt({ min: 1 }),
-    body('registration_required').isBoolean(),
-    body('registration_deadline').optional().isISO8601(),
-    body('status').optional().isIn(['draft', 'published', 'cancelled', 'completed']),
-    body('organizer_id').optional().isUUID(),
+    body('status').optional().isString(),
   ],
+  handleValidationErrors,
   createEvent
 );
 
@@ -96,18 +95,22 @@ router.put(
   '/:id',
   [
     param('id').isUUID(),
-    body('name').optional().isString().trim().notEmpty(),
+    body('event_name').optional().isString().trim().notEmpty(),
     body('description').optional().isString(),
     body('event_type').optional().isString(),
+    body('status').optional().isString(),
     body('start_date').optional().isISO8601(),
     body('end_date').optional().isISO8601(),
-    body('location').optional().isString(),
+    body('location_name').optional().isString(),
+    body('address_line1').optional().isString(),
+    body('address_line2').optional().isString(),
+    body('city').optional().isString(),
+    body('state_province').optional().isString(),
+    body('postal_code').optional().isString(),
+    body('country').optional().isString(),
     body('capacity').optional().isInt({ min: 1 }),
-    body('registration_required').optional().isBoolean(),
-    body('registration_deadline').optional().isISO8601(),
-    body('status').optional().isString(),
-    body('organizer_id').optional().isUUID(),
   ],
+  handleValidationErrors,
   updateEvent
 );
 
@@ -115,7 +118,7 @@ router.put(
  * DELETE /api/events/:id
  * Cancel an event
  */
-router.delete('/:id', [param('id').isUUID()], deleteEvent);
+router.delete('/:id', [param('id').isUUID()], handleValidationErrors, deleteEvent);
 
 /**
  * GET /api/events/:id/registrations
@@ -127,6 +130,7 @@ router.get(
     param('id').isUUID(),
     query('status').optional().isString(),
   ],
+  handleValidationErrors,
   getEventRegistrations
 );
 
@@ -144,6 +148,7 @@ router.post(
     body('attendee_phone').optional().isString(),
     body('notes').optional().isString(),
   ],
+  handleValidationErrors,
   registerForEvent
 );
 
@@ -161,6 +166,7 @@ router.put(
     body('attendee_email').optional().isEmail(),
     body('attendee_phone').optional().isString(),
   ],
+  handleValidationErrors,
   updateRegistration
 );
 
@@ -171,6 +177,7 @@ router.put(
 router.post(
   '/registrations/:id/checkin',
   [param('id').isUUID()],
+  handleValidationErrors,
   checkInAttendee
 );
 
@@ -181,6 +188,7 @@ router.post(
 router.delete(
   '/registrations/:id',
   [param('id').isUUID()],
+  handleValidationErrors,
   cancelRegistration
 );
 
@@ -191,6 +199,7 @@ router.delete(
 router.get(
   '/:id/attendance',
   [param('id').isUUID()],
+  handleValidationErrors,
   getAttendanceStats
 );
 
@@ -207,6 +216,7 @@ router.get(
     query('start_date').optional().isISO8601(),
     query('end_date').optional().isISO8601(),
   ],
+  handleValidationErrors,
   getRegistrations
 );
 

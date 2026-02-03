@@ -97,7 +97,7 @@ describe('AvailabilityCalendar', () => {
   });
 
   it('should display unavailable status with red color', () => {
-    const { container } = render(
+    render(
       <AvailabilityCalendar assignments={[]} availabilityStatus="unavailable" />
     );
 
@@ -106,7 +106,7 @@ describe('AvailabilityCalendar', () => {
   });
 
   it('should display limited status with yellow color', () => {
-    const { container } = render(
+    render(
       <AvailabilityCalendar assignments={[]} availabilityStatus="limited" />
     );
 
@@ -263,7 +263,7 @@ describe('AvailabilityCalendar', () => {
   });
 
   it('should highlight today\'s date', () => {
-    const { container } = render(<AvailabilityCalendar assignments={[]} />);
+    render(<AvailabilityCalendar assignments={[]} />);
 
     // June 10, 2024 should be highlighted (our mocked current date)
     // This would require checking for specific styling on the date cell

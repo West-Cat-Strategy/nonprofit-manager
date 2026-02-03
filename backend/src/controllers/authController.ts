@@ -8,6 +8,7 @@ import { getJwtSecret } from '../config/jwt';
 import { AuthRequest } from '../middleware/auth';
 import { trackLoginAttempt } from '../middleware/accountLockout';
 import { JWT, PASSWORD } from '../config/constants';
+import { syncUserRole } from '../services/userRoleService';
 
 interface RegisterRequest {
   email: string;
@@ -66,6 +67,8 @@ export const register = async (
 
     const user = result.rows[0];
 
+    await syncUserRole(user.id, user.role);
+
     // Generate JWT token for immediate login after registration
     const jwtSecret = getJwtSecret();
     const token = jwt.sign(
@@ -122,6 +125,8 @@ export const login = async (
     }
 
     const user = result.rows[0];
+
+    await syncUserRole(user.id, user.role);
 
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password_hash);

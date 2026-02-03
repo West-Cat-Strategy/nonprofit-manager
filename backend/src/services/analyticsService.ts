@@ -18,59 +18,10 @@ import type {
   ComparativeAnalytics,
   PeriodComparison,
 } from '../types/analytics';
+import { calculateEngagementScore, getEngagementLevel } from './analytics/engagement';
 
 export class AnalyticsService {
   constructor(private pool: Pool) {}
-
-  /**
-   * Calculate engagement score based on various metrics
-   * Returns a score from 0-100
-   */
-  private calculateEngagementScore(
-    donationMetrics: DonationMetrics,
-    eventMetrics: EventMetrics,
-    volunteerMetrics: VolunteerMetrics | null,
-    taskMetrics: TaskMetrics
-  ): number {
-    let score = 0;
-
-    // Donation engagement (max 40 points)
-    if (donationMetrics.total_count > 0) {
-      score += Math.min(15, donationMetrics.total_count * 3); // Up to 15 points for donation count
-      score += donationMetrics.recurring_donations > 0 ? 15 : 0; // 15 points for recurring
-      score += Math.min(10, Math.floor(donationMetrics.total_amount / 1000)); // Up to 10 points for total amount
-    }
-
-    // Event engagement (max 30 points)
-    if (eventMetrics.total_registrations > 0) {
-      score += Math.min(15, eventMetrics.events_attended * 3); // Up to 15 points for attendance
-      score += Math.min(15, Math.floor(eventMetrics.attendance_rate * 15)); // Up to 15 points for attendance rate
-    }
-
-    // Volunteer engagement (max 20 points)
-    if (volunteerMetrics) {
-      score += Math.min(10, Math.floor(volunteerMetrics.total_hours / 10)); // Up to 10 points for hours
-      score += Math.min(10, volunteerMetrics.completed_assignments * 2); // Up to 10 points for assignments
-    }
-
-    // Task engagement (max 10 points)
-    if (taskMetrics.total_tasks > 0) {
-      const completionRate = taskMetrics.completed_tasks / taskMetrics.total_tasks;
-      score += Math.floor(completionRate * 10);
-    }
-
-    return Math.min(100, score);
-  }
-
-  /**
-   * Get engagement level based on score
-   */
-  private getEngagementLevel(score: number): 'high' | 'medium' | 'low' | 'inactive' {
-    if (score >= 60) return 'high';
-    if (score >= 30) return 'medium';
-    if (score > 0) return 'low';
-    return 'inactive';
-  }
 
   /**
    * Get donation metrics for an account or contact
@@ -441,9 +392,15 @@ export class AnalyticsService {
 
       // Get primary contact
       const primaryContactQuery = `
-        SELECT id as contact_id, first_name || ' ' || last_name as name, email
-        FROM contacts
-        WHERE account_id = $1 AND contact_role = 'primary' AND is_active = true
+        SELECT
+          c.id as contact_id,
+          c.first_name || ' ' || c.last_name as name,
+          c.email
+        FROM contacts c
+        LEFT JOIN contact_role_assignments cra ON cra.contact_id = c.id
+        LEFT JOIN contact_roles cr ON cr.id = cra.role_id AND cr.name = 'Primary Contact'
+        WHERE c.account_id = $1 AND c.is_active = true
+        ORDER BY CASE WHEN cr.id IS NOT NULL THEN 0 ELSE 1 END, c.created_at ASC
         LIMIT 1
       `;
 
@@ -457,7 +414,7 @@ export class AnalyticsService {
         this.getTaskMetrics('account', accountId),
       ]);
 
-      const engagementScore = this.calculateEngagementScore(
+      const engagementScore = calculateEngagementScore(
         donationMetrics,
         eventMetrics,
         null,
@@ -476,7 +433,7 @@ export class AnalyticsService {
         event_metrics: eventMetrics,
         task_metrics: taskMetrics,
         engagement_score: engagementScore,
-        engagement_level: this.getEngagementLevel(engagementScore),
+        engagement_level: getEngagementLevel(engagementScore),
       };
     } catch (error) {
       // Preserve "not found" errors for proper HTTP 404 response
@@ -501,11 +458,17 @@ export class AnalyticsService {
           c.email,
           c.account_id,
           a.account_name,
-          c.contact_role,
+          COALESCE(
+            ARRAY_AGG(DISTINCT cr.name) FILTER (WHERE cr.name IS NOT NULL),
+            ARRAY[]::text[]
+          ) as contact_roles,
           c.created_at
         FROM contacts c
         LEFT JOIN accounts a ON c.account_id = a.id
+        LEFT JOIN contact_role_assignments cra ON cra.contact_id = c.id
+        LEFT JOIN contact_roles cr ON cr.id = cra.role_id
         WHERE c.id = $1
+        GROUP BY c.id, a.account_name
       `;
 
       const contactResult = await this.pool.query(contactQuery, [contactId]);
@@ -524,7 +487,7 @@ export class AnalyticsService {
         this.getTaskMetrics('contact', contactId),
       ]);
 
-      const engagementScore = this.calculateEngagementScore(
+      const engagementScore = calculateEngagementScore(
         donationMetrics,
         eventMetrics,
         volunteerMetrics,
@@ -537,14 +500,14 @@ export class AnalyticsService {
         email: contact.email,
         account_id: contact.account_id,
         account_name: contact.account_name,
-        contact_role: contact.contact_role,
+        contact_roles: contact.contact_roles || [],
         created_at: contact.created_at,
         donation_metrics: donationMetrics,
         event_metrics: eventMetrics,
         volunteer_metrics: volunteerMetrics,
         task_metrics: taskMetrics,
         engagement_score: engagementScore,
-        engagement_level: this.getEngagementLevel(engagementScore),
+        engagement_level: getEngagementLevel(engagementScore),
       };
     } catch (error) {
       // Preserve "not found" errors for proper HTTP 404 response

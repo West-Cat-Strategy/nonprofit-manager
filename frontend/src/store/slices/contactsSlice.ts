@@ -59,6 +59,7 @@ export interface Contact {
   email_count?: number;
   relationship_count?: number;
   note_count?: number;
+  roles?: string[];
 }
 
 export interface ContactsState {
@@ -515,7 +516,9 @@ const contactsSlice = createSlice({
       })
       .addCase(fetchContactRelationships.fulfilled, (state, action) => {
         state.relationshipsLoading = false;
-        state.relationships = action.payload;
+        state.relationships = Array.isArray(action.payload)
+          ? action.payload
+          : (action.payload?.relationships || []);
       })
       .addCase(fetchContactRelationships.rejected, (state) => {
         state.relationshipsLoading = false;

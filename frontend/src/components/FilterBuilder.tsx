@@ -20,11 +20,11 @@ const OPERATORS: { value: FilterOperator; label: string; types: string[] }[] = [
 
 function FilterBuilder({ entity, filters, onChange }: FilterBuilderProps) {
   const { availableFields } = useAppSelector((state) => state.reports);
-  const currentFields = (availableFields[entity] || []) as { name: string; type: string }[];
+  const currentFields = (availableFields[entity] || []) as { field: string; label: string; type: string }[];
 
   const handleAddFilter = () => {
     const newFilter: ReportFilter = {
-      field: currentFields[0]?.name || '',
+      field: currentFields[0]?.field || '',
       operator: 'eq',
       value: '',
     };
@@ -42,7 +42,7 @@ function FilterBuilder({ entity, filters, onChange }: FilterBuilderProps) {
   };
 
   const getFieldType = (fieldName: string): string => {
-    const field = currentFields.find((f) => f.name === fieldName);
+    const field = currentFields.find((f) => f.field === fieldName);
     return field?.type || 'string';
   };
 
@@ -147,8 +147,8 @@ function FilterBuilder({ entity, filters, onChange }: FilterBuilderProps) {
                 className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               >
                 {currentFields.map((field) => (
-                  <option key={field.name} value={field.name}>
-                    {field.name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                  <option key={field.field} value={field.field}>
+                    {field.label || field.field.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
                   </option>
                 ))}
               </select>

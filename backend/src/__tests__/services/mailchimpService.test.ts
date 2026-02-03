@@ -54,9 +54,7 @@ import mailchimp from '@mailchimp/mailchimp_marketing';
 import pool from '../../config/database';
 
 // Use any to work around incomplete Mailchimp types
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockMailchimp = mailchimp as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockPool = pool as any;
 
 describe('MailchimpService', () => {

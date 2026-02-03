@@ -2,6 +2,15 @@ import type { Config } from 'jest';
 
 const config: Config = {
   preset: 'ts-jest',
+  transform: {
+    '^.+\\.ts$': [
+      'ts-jest',
+      {
+        tsconfig: '<rootDir>/tsconfig.json',
+        diagnostics: false,
+      },
+    ],
+  },
   testEnvironment: 'node',
   rootDir: '.',
   testMatch: ['<rootDir>/src/**/__tests__/**/*.test.ts'],

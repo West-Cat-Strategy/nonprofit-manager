@@ -95,7 +95,7 @@ describe('EventAttendanceWidget', () => {
 
     it('uses correct text sizes for metrics', async () => {
       mockSummaryResponse();
-      const { container } = render(
+      render(
         <EventAttendanceWidget
           widget={mockWidget}
           editMode={false}
@@ -347,7 +347,7 @@ describe('EventAttendanceWidget', () => {
     });
 
     it('uses high contrast colors for readability', () => {
-      const { container } = render(
+      render(
         <EventAttendanceWidget
           widget={mockWidget}
           editMode={false}

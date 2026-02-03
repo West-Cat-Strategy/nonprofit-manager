@@ -10,8 +10,9 @@ import {
   fetchContacts,
 } from '../store/slices/contactsSlice';
 import type { Contact as StoreContact } from '../store/slices/contactsSlice';
-import type { CreateContactRelationshipDTO, RelationshipType } from '../types/contact';
+import type { ContactRole, CreateContactRelationshipDTO, RelationshipType } from '../types/contact';
 import { RELATIONSHIP_TYPES } from '../types/contact';
+import api from '../services/api';
 
 type ContactFormValues = {
   contact_id?: string;
@@ -39,6 +40,7 @@ type ContactFormValues = {
   do_not_phone?: boolean;
   notes?: string | null;
   is_active?: boolean;
+  roles?: string[];
 };
 
 const PRONOUNS_OPTIONS = [
@@ -77,6 +79,8 @@ export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode, onCreat
   const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
   const { relationships, relationshipsLoading, contacts } = useAppSelector((state) => state.contacts);
+  const [availableRoles, setAvailableRoles] = useState<ContactRole[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
 
   // Pre-fill from URL params when creating (e.g., from relationship "Create New Person")
   const urlFirstName = searchParams.get('first_name') || '';
@@ -108,6 +112,7 @@ export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode, onCreat
     do_not_phone: false,
     notes: '',
     is_active: true,
+    roles: [],
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -142,9 +147,26 @@ export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode, onCreat
     if (contact && mode === 'edit') {
       setFormData({
         ...contact,
+        roles: contact.roles || [],
       });
     }
   }, [contact, mode]);
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        setRolesLoading(true);
+        const response = await api.get('/contacts/roles');
+        setAvailableRoles(response.data.roles || []);
+      } catch (error) {
+        console.error('Failed to load contact roles:', error);
+      } finally {
+        setRolesLoading(false);
+      }
+    };
+
+    fetchRoles();
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -225,10 +247,16 @@ export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode, onCreat
         department: formData.department || undefined,
         preferred_contact_method: formData.preferred_contact_method || undefined,
         notes: formData.notes || undefined,
+        roles: formData.roles || [],
       };
 
       if (mode === 'create') {
         const result = await dispatch(createContact(cleanedData)).unwrap();
+        if (result.staffInvitation?.inviteUrl) {
+          alert(
+            `Staff invitation created for ${result.staffInvitation.role}. Share this link: ${result.staffInvitation.inviteUrl}`
+          );
+        }
         if (onCreated) {
           onCreated(result);
           return;
@@ -241,12 +269,17 @@ export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode, onCreat
           navigate(`/contacts/${result.contact_id}`);
         }
       } else if (mode === 'edit' && contact?.contact_id) {
-        await dispatch(
+        const result = await dispatch(
           updateContact({
             contactId: contact.contact_id,
             data: cleanedData,
           })
         ).unwrap();
+        if (result.staffInvitation?.inviteUrl) {
+          alert(
+            `Staff invitation created for ${result.staffInvitation.role}. Share this link: ${result.staffInvitation.inviteUrl}`
+          );
+        }
         navigate(`/contacts/${contact.contact_id}`);
       }
     } catch (error) {
@@ -724,6 +757,55 @@ export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode, onCreat
             </select>
           </div>
         </div>
+      </div>
+
+      {/* Roles */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <h2 className="text-lg font-medium text-gray-900 mb-4">Roles</h2>
+        {rolesLoading ? (
+          <div className="text-sm text-gray-500">Loading roles...</div>
+        ) : availableRoles.length === 0 ? (
+          <div className="text-sm text-gray-500">No roles available.</div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {availableRoles.map((role) => {
+              const isSelected = (formData.roles || []).includes(role.name);
+              return (
+                <label
+                  key={role.id}
+                  className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                    isSelected
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => {
+                      setFormData((prev) => {
+                        const roles = prev.roles || [];
+                        return {
+                          ...prev,
+                          roles: roles.includes(role.name)
+                            ? roles.filter((r) => r !== role.name)
+                            : [...roles, role.name],
+                        };
+                      });
+                    }}
+                    className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <div>
+                    <div className="font-medium text-gray-900">{role.name}</div>
+                    {role.description && (
+                      <div className="text-xs text-gray-500">{role.description}</div>
+                    )}
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Contact Information */}

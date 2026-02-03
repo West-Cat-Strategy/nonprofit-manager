@@ -439,7 +439,8 @@ const webhookSlice = createSlice({
         state.isLoading = false;
         state.newApiKey = action.payload;
         // Add to list (without the key value)
-        const { key: _key, ...apiKeyWithoutKey } = action.payload;
+        const apiKeyWithoutKey = { ...action.payload };
+        delete (apiKeyWithoutKey as { key?: string }).key;
         state.apiKeys.unshift(apiKeyWithoutKey as ApiKey);
       })
       .addCase(createApiKey.rejected, (state, action) => {

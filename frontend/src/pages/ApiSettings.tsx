@@ -34,7 +34,7 @@ import type {
 /**
  * Status Badge Component
  */
-function StatusBadge({ status, type: _type }: { status: string; type: 'webhook' | 'apiKey' | 'delivery' }) {
+function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
     active: 'bg-green-100 text-green-800',
     success: 'bg-green-100 text-green-800',
@@ -119,7 +119,7 @@ function WebhookEndpointCard({
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h3 className="font-medium text-gray-900 truncate">{endpoint.url}</h3>
-            <StatusBadge status={endpoint.isActive ? 'active' : 'inactive'} type="webhook" />
+            <StatusBadge status={endpoint.isActive ? 'active' : 'inactive'} />
           </div>
           {endpoint.description && (
             <p className="mt-1 text-sm text-gray-500">{endpoint.description}</p>
@@ -171,7 +171,7 @@ function WebhookEndpointCard({
           {endpoint.lastDeliveryAt ? (
             <>
               Last delivery: {new Date(endpoint.lastDeliveryAt).toLocaleString()} -{' '}
-              <StatusBadge status={endpoint.lastDeliveryStatus || 'unknown'} type="delivery" />
+              <StatusBadge status={endpoint.lastDeliveryStatus || 'unknown'} />
             </>
           ) : (
             'No deliveries yet'
@@ -223,7 +223,7 @@ function ApiKeyCard({
         <div>
           <div className="flex items-center gap-2">
             <h3 className="font-medium text-gray-900">{apiKey.name}</h3>
-            <StatusBadge status={apiKey.status} type="apiKey" />
+            <StatusBadge status={apiKey.status} />
           </div>
           <p className="mt-1 text-sm text-gray-500 font-mono">{apiKey.keyPrefix}...</p>
         </div>
@@ -338,7 +338,7 @@ function DeliveryHistoryModal({
                   <tr key={delivery.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm text-gray-900">{delivery.eventType}</td>
                     <td className="px-4 py-3">
-                      <StatusBadge status={delivery.status} type="delivery" />
+                      <StatusBadge status={delivery.status} />
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">
                       {delivery.responseStatus || '-'}
@@ -450,7 +450,7 @@ export default function ApiSettings() {
   const [showCreateWebhook, setShowCreateWebhook] = useState(false);
   const [showCreateApiKey, setShowCreateApiKey] = useState(false);
   const [showDeliveries, setShowDeliveries] = useState(false);
-  const [_selectedEndpointId, setSelectedEndpointId] = useState<string | null>(null);
+  const [, setSelectedEndpointId] = useState<string | null>(null);
 
   // Webhook form state
   const [webhookUrl, setWebhookUrl] = useState('');

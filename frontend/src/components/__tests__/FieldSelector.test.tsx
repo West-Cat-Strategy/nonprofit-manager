@@ -4,7 +4,6 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import FieldSelector from '../FieldSelector';
 import reportsReducer from '../../store/slices/reportsSlice';
-import type { ReportEntity } from '../../types/report';
 import api from '../../services/api';
 
 // Mock API
@@ -36,16 +35,16 @@ const renderWithProviders = (component: React.ReactElement, initialState = {}) =
 describe('FieldSelector', () => {
   const mockOnChange = vi.fn();
   const mockFields = [
-    { name: 'id', type: 'string' },
-    { name: 'name', type: 'string' },
-    { name: 'email', type: 'string' },
-    { name: 'created_at', type: 'date' },
+    { field: 'id', label: 'ID', type: 'string' },
+    { field: 'name', label: 'Name', type: 'string' },
+    { field: 'email', label: 'Email', type: 'string' },
+    { field: 'created_at', label: 'Created At', type: 'date' },
   ];
 
   beforeEach(() => {
     mockOnChange.mockClear();
     // Mock API to return fields
-    mockApi.get.mockResolvedValue({ data: mockFields });
+    mockApi.get.mockResolvedValue({ data: { entity: 'contacts', fields: mockFields } });
   });
 
   it('renders loading state', () => {
@@ -204,10 +203,11 @@ describe('FieldSelector', () => {
   });
 
   it('shows empty state when no fields available', async () => {
+    mockApi.get.mockResolvedValueOnce({ data: { entity: 'contacts', fields: [] } });
     const initialState = {
       reports: {
         currentReport: null,
-        availableFields: { contacts: [], accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        availableFields: { contacts: null, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
         loading: false,
         fieldsLoading: false,
         error: null,
