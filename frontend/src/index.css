@@ -81,7 +81,13 @@ body.neo-dark-mode .bg-\[var\(--loop-green\)\] *,
 body.neo-dark-mode .bg-\[var\(--loop-cyan\)\] *,
 body.neo-dark-mode .bg-\[var\(--loop-pink\)\] *,
 body.neo-dark-mode .bg-\[var\(--loop-purple\)\] *,
-body.neo-dark-mode .bg-\[var\(--loop-blue\)\] * {
+body.neo-dark-mode .bg-\[var\(--loop-blue\)\] *,
+body.neo-dark-mode .bg-\[\#FFD700\] *,
+body.neo-dark-mode .bg-\[\#90EE90\] *,
+body.neo-dark-mode .bg-\[\#D8BFD8\] *,
+body.neo-dark-mode .bg-\[\#FFB6C1\] *,
+body.neo-dark-mode .bg-\[\#4DD0E1\] *,
+body.neo-dark-mode .bg-\[\#87CEEB\] * {
   color: #000000 !important;
   border-color: #000000 !important;
   /* Force Black Border */

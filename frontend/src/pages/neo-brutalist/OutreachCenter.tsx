@@ -31,9 +31,9 @@ export default function OutreachCenter() {
                 <div className="bg-[#D8BFD8] border-2 border-black shadow-[4px_4px_0px_0px_var(--shadow-color)] p-12 mb-6">
                     <div className="flex justify-between items-start">
                         <div className="flex-1">
-                            <h2 className="text-4xl font-black mb-4 uppercase text-white">Campaign Central</h2>
-                            <div className="text-6xl font-black mb-2 text-white">{mockCampaignStats.peopleEngaged.toLocaleString()}</div>
-                            <div className="text-lg font-bold uppercase tracking-wide text-white">PEOPLE ENGAGED</div>
+                            <h2 className="text-4xl font-black mb-4 uppercase text-black">Campaign Central</h2>
+                            <div className="text-6xl font-black mb-2 text-black">{mockCampaignStats.peopleEngaged.toLocaleString()}</div>
+                            <div className="text-lg font-bold uppercase tracking-wide text-black">PEOPLE ENGAGED</div>
                             <div className="mt-8 flex gap-4">
                                 <button className="px-6 py-3 bg-white text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-gray-100 font-bold uppercase">
                                     NEW BLAST
@@ -50,25 +50,25 @@ export default function OutreachCenter() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                     <div className="bg-[#D8BFD8] border-2 border-black shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 text-center">
                         <EnvelopeIcon className="w-12 h-12 mx-auto mb-3 text-purple-600" />
-                        <h3 className="font-black text-lg mb-2 uppercase">Newsletter</h3>
+                        <h3 className="font-black text-lg mb-2 uppercase text-black">Newsletter</h3>
                         <p className="text-sm text-gray-600">{mockCampaignStats.newsletterSubs}</p>
                     </div>
 
                     <div className="bg-[#D8BFD8] border-2 border-black shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 text-center">
                         <CalendarIcon className="w-12 h-12 mx-auto mb-3 text-pink-500" />
-                        <h3 className="font-black text-lg mb-2 uppercase">Events</h3>
+                        <h3 className="font-black text-lg mb-2 uppercase text-black">Events</h3>
                         <p className="text-sm text-gray-600">{mockCampaignStats.upcomingEvents}</p>
                     </div>
 
                     <div className="bg-[#D8BFD8] border-2 border-black shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 text-center">
                         <CurrencyDollarIcon className="w-12 h-12 mx-auto mb-3 text-green-600" />
-                        <h3 className="font-black text-lg mb-2 uppercase">Donors</h3>
+                        <h3 className="font-black text-lg mb-2 uppercase text-black">Donors</h3>
                         <p className="text-sm text-gray-600">{mockCampaignStats.activeDonors}</p>
                     </div>
 
                     <div className="bg-[#D8BFD8] border-2 border-black shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 text-center">
                         <GlobeAltIcon className="w-12 h-12 mx-auto mb-3 text-blue-600" />
-                        <h3 className="font-black text-lg mb-2 uppercase">Social</h3>
+                        <h3 className="font-black text-lg mb-2 uppercase text-black">Social</h3>
                         <p className="text-sm text-gray-600">{mockCampaignStats.socialHandle}</p>
                     </div>
                 </div>
