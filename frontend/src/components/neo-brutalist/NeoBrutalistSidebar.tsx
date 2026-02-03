@@ -5,46 +5,70 @@
 
 import { Link, useLocation } from 'react-router-dom';
 
+function NavButton({
+  to,
+  icon,
+  label,
+  active,
+}: {
+  to: string;
+  icon: string;
+  label: string;
+  active?: boolean;
+}) {
+  return (
+    <Link to={to}>
+      <div
+        className={`flex items-center gap-3 px-4 py-3 border-b-2 border-black dark:border-white transition-all ${
+          active
+            ? 'bg-black text-white dark:bg-white dark:text-black'
+            : 'bg-white dark:bg-[#121212] text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-900'
+        }`}
+      >
+        <span className="text-lg">{icon}</span>
+        <span className="font-bold">{label}</span>
+      </div>
+    </Link>
+  );
+}
+
+function ModuleButton({
+  to,
+  icon,
+  label,
+  activeColor,
+  active,
+}: {
+  to: string;
+  icon: string;
+  label: string;
+  activeColor?: string;
+  active: boolean;
+}) {
+  const bgColor = activeColor || 'bg-gray-200';
+
+  return (
+    <Link to={to} className="block mb-3">
+      <div
+        className={`flex items-center gap-3 px-4 py-3 border-2 border-black dark:border-white transition-all ${
+          active
+            ? `${bgColor} text-black shadow-[6px_6px_0px_0px_var(--shadow-color)]`
+            : 'bg-white dark:bg-[#121212] text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-900 shadow-[4px_4px_0px_0px_var(--shadow-color)]'
+        }`}
+      >
+        <div className="w-6 h-6 bg-black text-white flex items-center justify-center text-xs font-bold border-2 border-black">
+          {icon}
+        </div>
+        <span className="font-bold text-sm">{label}</span>
+      </div>
+    </Link>
+  );
+}
+
 export default function NeoBrutalistSidebar() {
     const location = useLocation();
 
     const isActive = (path: string) => location.pathname === path;
-
-    const NavButton = ({ to, icon, label, active }: { to: string; icon: string; label: string; active?: boolean }) => (
-        <Link to={to}>
-            <div className={`flex items-center gap-3 px-4 py-3 border-b-2 border-black dark:border-white transition-all ${active
-                ? 'bg-black text-white dark:bg-white dark:text-black'
-                : 'bg-white dark:bg-[#121212] text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-900'
-                }`}>
-                <span className="text-lg">{icon}</span>
-                <span className="font-bold">{label}</span>
-            </div>
-        </Link>
-    );
-
-    const ModuleButton = ({ to, icon, label, activeColor }: {
-        to: string;
-        icon: string;
-        label: string;
-        activeColor?: string;
-    }) => {
-        const active = isActive(to);
-        const bgColor = activeColor || 'bg-gray-200';
-
-        return (
-            <Link to={to} className="block mb-3">
-                <div className={`flex items-center gap-3 px-4 py-3 border-2 border-black dark:border-white transition-all ${active
-                    ? `${bgColor} text-black shadow-[6px_6px_0px_0px_var(--shadow-color)]`
-                    : 'bg-white dark:bg-[#121212] text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-900 shadow-[4px_4px_0px_0px_var(--shadow-color)]'
-                    }`}>
-                    <div className="w-6 h-6 bg-black text-white flex items-center justify-center text-xs font-bold border-2 border-black">
-                        {icon}
-                    </div>
-                    <span className="font-bold text-sm">{label}</span>
-                </div>
-            </Link>
-        );
-    };
 
     // Get current date in format "FEB 03 2026"
     const getCurrentDate = () => {
@@ -86,6 +110,7 @@ export default function NeoBrutalistSidebar() {
                 icon="L"
                 label="Linking"
                 activeColor="bg-[var(--loop-green)]"
+                active={isActive('/linking')}
             />
 
             <ModuleButton
@@ -93,6 +118,7 @@ export default function NeoBrutalistSidebar() {
                 icon="O"
                 label="Operations"
                 activeColor="bg-[var(--loop-blue)]"
+                active={isActive('/operations')}
             />
 
             <ModuleButton
@@ -100,6 +126,7 @@ export default function NeoBrutalistSidebar() {
                 icon="O"
                 label="Outreach"
                 activeColor="bg-[var(--loop-purple)]"
+                active={isActive('/outreach')}
             />
 
             <ModuleButton
@@ -107,6 +134,7 @@ export default function NeoBrutalistSidebar() {
                 icon="P"
                 label="People"
                 activeColor="bg-[var(--loop-pink)]"
+                active={isActive('/people')}
             />
 
             {/* Spacer */}

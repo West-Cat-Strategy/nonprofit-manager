@@ -49,6 +49,7 @@ const DonationPayment: React.FC = () => {
   });
   const [customAmount, setCustomAmount] = useState('');
   const [stripePromise, setStripePromise] = useState<ReturnType<typeof loadStripe> | null>(null);
+  const [donationRecordError, setDonationRecordError] = useState<string | null>(null);
 
   // Fetch payment config on mount
   useEffect(() => {
@@ -169,6 +170,7 @@ const DonationPayment: React.FC = () => {
 
   const handlePaymentSuccess = async (paymentIntentId: string) => {
     try {
+      setDonationRecordError(null);
       const contactId = await ensureContactId();
       if (!contactId) {
         throw new Error('Unable to create or locate donor contact');
@@ -197,6 +199,9 @@ const DonationPayment: React.FC = () => {
       dispatch(setPaymentSuccess(true));
     } catch (err) {
       console.error('Failed to create donation record:', err);
+      setDonationRecordError(
+        'Your payment was successful, but we could not save your donation record. Please contact support with your receipt details.'
+      );
       dispatch(setPaymentSuccess(true));
     }
   };
@@ -502,9 +507,9 @@ const DonationPayment: React.FC = () => {
           </div>
         )}
 
-        {/* Step 4: Success */}
-        {step === 'success' && (
-          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+	        {/* Step 4: Success */}
+	        {step === 'success' && (
+	          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <svg
                 className="h-8 w-8 text-green-500"
@@ -520,15 +525,20 @@ const DonationPayment: React.FC = () => {
                 />
               </svg>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Thank You!</h2>
-            <p className="text-gray-600 mb-6">
-              Your donation of {formatCurrency(formData.amount)} has been processed successfully.
-              A receipt has been sent to {formData.donorEmail}.
-            </p>
-            <div className="flex gap-4 justify-center">
-              <button
-                onClick={() => navigate('/donations')}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+	            <h2 className="text-2xl font-bold text-gray-900 mb-2">Thank You!</h2>
+	            <p className="text-gray-600 mb-6">
+	              Your donation of {formatCurrency(formData.amount)} has been processed successfully.
+	              A receipt has been sent to {formData.donorEmail}.
+	            </p>
+	            {donationRecordError && (
+	              <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-6 text-left">
+	                {donationRecordError}
+	              </div>
+	            )}
+	            <div className="flex gap-4 justify-center">
+	              <button
+	                onClick={() => navigate('/donations')}
+	                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
               >
                 View Donations
               </button>

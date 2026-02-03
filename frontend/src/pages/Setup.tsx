@@ -6,6 +6,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useAppDispatch } from '../store/hooks';
+import { setCredentials } from '../store/slices/authSlice';
 
 interface SetupFormData {
   email: string;
@@ -17,6 +19,7 @@ interface SetupFormData {
 
 const Setup: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const [formData, setFormData] = useState<SetupFormData>({
     email: '',
     password: '',
@@ -96,6 +99,10 @@ const Setup: React.FC = () => {
 
       // Store token
       localStorage.setItem('token', response.data.token);
+
+      // Hydrate Redux auth state so route protection works.
+      const me = await api.get('/auth/me');
+      dispatch(setCredentials({ user: me.data, token: response.data.token }));
 
       // Redirect to dashboard
       navigate('/dashboard');
