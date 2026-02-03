@@ -38,7 +38,7 @@ class HybridRateLimitStore implements Store {
     if (totalHits === 1) {
       await redis.pExpire(redisKey, this.windowMs);
     }
-    const ttl = await redis.pTtl(redisKey);
+    const ttl = await redis.pTTL(redisKey);
     const resetTime = new Date(Date.now() + (ttl > 0 ? ttl : this.windowMs));
     return { totalHits, resetTime };
   }
