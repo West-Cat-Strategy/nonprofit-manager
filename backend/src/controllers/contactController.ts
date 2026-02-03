@@ -94,6 +94,13 @@ const getBoolean = (value: unknown): boolean | undefined => {
   return undefined;
 };
 
+const getRoleFilter = (
+  value: unknown
+): 'staff' | 'volunteer' | 'board' | undefined => {
+  if (value === 'staff' || value === 'volunteer' || value === 'board') return value;
+  return undefined;
+};
+
 export const getContacts = async (
   req: AuthRequest,
   res: Response,
@@ -102,6 +109,7 @@ export const getContacts = async (
   try {
     const filters: ContactFilters = {
       search: getString(req.query.search),
+      role: getRoleFilter(req.query.role),
       account_id: getString(req.query.account_id),
       is_active: getBoolean(req.query.is_active),
     };

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
@@ -17,6 +17,7 @@ const ContactList = () => {
   );
 
   const [searchInput, setSearchInput] = useState(filters.search);
+  const searchDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadContacts = useCallback(() => {
     dispatch(
@@ -32,6 +33,28 @@ const ContactList = () => {
   useEffect(() => {
     loadContacts();
   }, [loadContacts]);
+
+  // Quick lookup: debounce server-side search as the user types
+  useEffect(() => {
+    if (searchInput === filters.search) return;
+
+    if (searchDebounceTimerRef.current) {
+      clearTimeout(searchDebounceTimerRef.current);
+    }
+
+    const timer = setTimeout(() => {
+      dispatch(setFilters({ search: searchInput }));
+    }, 250);
+
+    searchDebounceTimerRef.current = timer;
+
+    return () => {
+      clearTimeout(timer);
+      if (searchDebounceTimerRef.current === timer) {
+        searchDebounceTimerRef.current = null;
+      }
+    };
+  }, [dispatch, filters.search, searchInput]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,7 +96,7 @@ const ContactList = () => {
           <form onSubmit={handleSearch} className="flex gap-4">
             <input
               type="text"
-              placeholder="Search people by name, email, or phone..."
+              placeholder="Quick lookup (name, email, phone)..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

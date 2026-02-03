@@ -91,6 +91,7 @@ const ApiSettings = lazy(() => import('./pages/ApiSettings'));
 const NavigationSettings = lazy(() => import('./pages/NavigationSettings'));
 const UserSettings = lazy(() => import('./pages/UserSettings'));
 const AdminSettings = lazy(() => import('./pages/AdminSettings'));
+const DataBackup = lazy(() => import('./pages/DataBackup'));
 
 // Website Builder pages
 const TemplateGallery = lazy(() => import('./pages/TemplateGallery'));
@@ -652,6 +653,14 @@ const AppRoutes = () => {
         element={
           <AdminRoute>
             <AdminSettings />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/settings/backup"
+        element={
+          <AdminRoute>
+            <DataBackup />
           </AdminRoute>
         }
       />
