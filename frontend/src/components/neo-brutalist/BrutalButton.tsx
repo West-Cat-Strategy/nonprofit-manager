@@ -27,7 +27,7 @@ export default function BrutalButton({
     const variantClasses = {
         primary: 'bg-black text-white hover:bg-gray-800',
         secondary: 'bg-white text-black hover:bg-gray-100',
-        success: 'bg-loop-green text-black hover:bg-green-400',
+        success: 'bg-[var(--loop-green)] text-black hover:bg-green-400',
         danger: 'bg-red-500 text-white hover:bg-red-600',
     };
 

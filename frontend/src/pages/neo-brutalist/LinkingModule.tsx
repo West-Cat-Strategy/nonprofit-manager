@@ -1,51 +1,84 @@
 /**
- * Linking Module - HARD-CODED NEO-BRUTALIST STYLING
- * Green theme (#90EE90) with thick black borders
+ * Linking Module - PARTNERSHIP MANAGEMENT
+ * Uses LoopApiService, standard Loop Green theme
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import NeoBrutalistLayout from '../../components/neo-brutalist/NeoBrutalistLayout';
-import { mockOrganizations } from '../../utils/mockData';
+import BrutalInput from '../../components/neo-brutalist/BrutalInput';
+import LoopApiService from '../../services/LoopApiService';
+import type { Organization } from '../../types/schema';
 
 export default function LinkingModule() {
+    const [organizations, setOrganizations] = useState<Organization[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+
+    useEffect(() => {
+        const fetchOrgs = async () => {
+            try {
+                const data = await LoopApiService.getOrganizations();
+                setOrganizations(data);
+            } catch (error) {
+                console.error('Failed to fetch organizations:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchOrgs();
+    }, []);
+
+    const handleNewItem = () => console.log('Open New Organization Modal');
+    const handleEdit = (id: string) => console.log(`Edit Organization ${id}`);
 
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'active':
-                return 'bg-[#90EE90] text-black border-black';
+                return 'bg-[var(--loop-green)] text-black border-black';
             case 'pending':
-                return 'bg-[#FFD700] text-black border-black';
+                return 'bg-[var(--loop-yellow)] text-black border-black';
             case 'review':
-                return 'bg-[#D8BFD8] text-black border-black';
+                return 'bg-[var(--loop-purple)] text-black border-black';
             default:
                 return 'bg-gray-300 text-black border-black';
         }
     };
+
+    if (loading) {
+        return (
+            <NeoBrutalistLayout pageTitle="LINKING">
+                <div className="flex justify-center items-center h-screen pb-40">
+                    <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-black dark:border-white"></div>
+                </div>
+            </NeoBrutalistLayout>
+        );
+    }
 
     return (
         <NeoBrutalistLayout pageTitle="LINKING">
             <div className="p-6">
                 {/* Search Bar */}
                 <div className="mb-6 flex justify-between items-center gap-4">
-                    <div className="flex-1 max-w-2xl relative">
-                        <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                        <input
+                    <div className="flex-1 max-w-2xl">
+                        <BrutalInput
                             type="search"
-                            placeholder="Search data..."
+                            placeholder="Search partnerships..."
+                            icon={<MagnifyingGlassIcon className="w-5 h-5" />}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full border-2 border-black dark:border-white px-4 py-2 pl-10 bg-white dark:bg-[#000000] text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
                         />
                     </div>
-                    <button className="px-6 py-2 bg-[#4DD0E1] text-black border-2 border-black dark:border-white shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-cyan-400 font-bold uppercase">
+                    <button
+                        onClick={handleNewItem}
+                        className="px-6 py-2 bg-[var(--loop-cyan)] text-black border-2 border-black dark:border-white shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-cyan-400 font-bold uppercase"
+                    >
                         + NEW ITEM
                     </button>
                 </div>
 
                 {/* Banner - GREEN */}
-                <div className="bg-[#90EE90] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-8 mb-6">
+                <div className="bg-[var(--loop-green)] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-8 mb-6">
                     <h2 className="text-3xl font-black mb-2 uppercase">Linking Network</h2>
                     <p className="text-lg font-medium">Managing partnerships and organizational connections.</p>
                 </div>
@@ -53,38 +86,41 @@ export default function LinkingModule() {
                 {/* Data Table */}
                 <div className="bg-white dark:bg-[#121212] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] overflow-hidden">
                     <table className="w-full">
-                        <thead className="bg-[#90EE90]">
+                        <thead className="bg-[var(--loop-green)]">
                             <tr>
-                                <th className="px-6 py-4 text-left border-b-2 border-black font-black uppercase text-sm">
+                                <th className="px-6 py-4 text-left border-b-2 border-black font-black uppercase text-sm text-black">
                                     ORGANIZATION
                                 </th>
-                                <th className="px-6 py-4 text-left border-b-2 border-black font-black uppercase text-sm">
+                                <th className="px-6 py-4 text-left border-b-2 border-black font-black uppercase text-sm text-black">
                                     TYPE
                                 </th>
-                                <th className="px-6 py-4 text-left border-b-2 border-black font-black uppercase text-sm">
+                                <th className="px-6 py-4 text-left border-b-2 border-black font-black uppercase text-sm text-black">
                                     STATUS
                                 </th>
-                                <th className="px-6 py-4 text-left border-b-2 border-black font-black uppercase text-sm">
+                                <th className="px-6 py-4 text-left border-b-2 border-black font-black uppercase text-sm text-black">
                                     CONTACT
                                 </th>
-                                <th className="px-6 py-4 text-left border-b-2 border-black font-black uppercase text-sm">
+                                <th className="px-6 py-4 text-left border-b-2 border-black font-black uppercase text-sm text-black">
                                     ACTIONS
                                 </th>
                             </tr>
                         </thead>
                         <tbody>
-                            {mockOrganizations.map((org) => (
-                                <tr key={org.id} className="border-b-2 border-black hover:bg-gray-50">
-                                    <td className="px-6 py-4 font-bold bg-[#90EE90] border-r-2 border-black">{org.name}</td>
-                                    <td className="px-6 py-4 capitalize font-medium">{org.type}</td>
+                            {organizations.map((org) => (
+                                <tr key={org.id} className="border-b-2 border-black hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                    <td className="px-6 py-4 font-bold bg-[var(--loop-green)] border-r-2 border-black text-black">{org.name}</td>
+                                    <td className="px-6 py-4 capitalize font-medium text-black dark:text-white">{org.type}</td>
                                     <td className="px-6 py-4">
                                         <span className={`text-xs font-bold uppercase px-3 py-1 border-2 ${getStatusColor(org.status)}`}>
                                             {org.status}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4">{org.contact}</td>
+                                    <td className="px-6 py-4 text-black dark:text-white">{org.contact}</td>
                                     <td className="px-6 py-4">
-                                        <button className="px-4 py-2 bg-white text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-gray-100 font-bold uppercase text-sm">
+                                        <button
+                                            onClick={() => handleEdit(org.id)}
+                                            className="px-4 py-2 bg-white text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-gray-100 font-bold uppercase text-sm"
+                                        >
                                             EDIT
                                         </button>
                                     </td>

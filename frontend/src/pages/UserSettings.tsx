@@ -1,13 +1,15 @@
 /**
  * User Settings Page - SMB3 "Backstage" Aesthetic
  * Dark background, vibrant props, heavy shadows
+ * 
+ * Phase 1: Uses LoopApiService for profile management
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { EyeIcon, EyeSlashIcon, TrashIcon, SunIcon, MoonIcon } from '@heroicons/react/24/outline';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { updateUser } from '../store/slices/authSlice';
-import api from '../services/api';
+import LoopApiService from '../services/LoopApiService';
 import NeoBrutalistLayout from '../components/neo-brutalist/NeoBrutalistLayout';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -180,8 +182,8 @@ export default function UserSettings() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await api.get('/auth/profile');
-        const data = response.data;
+        // Use LoopApiService to fetch profile
+        const data = await LoopApiService.getUserProfile();
         setProfile({
           firstName: data.firstName || user?.firstName || '',
           lastName: data.lastName || user?.lastName || '',
@@ -351,7 +353,8 @@ export default function UserSettings() {
         pronouns: pronounsToSave,
       };
 
-      await api.put('/auth/profile', payload);
+      // Use LoopApiService instead of direct API call
+      await LoopApiService.updateUserProfile(payload);
 
       // Update the auth state with new user info
       dispatch(updateUser({
@@ -372,6 +375,9 @@ export default function UserSettings() {
     }
   };
 
+  // Password change functionality - Currently disabled in UI
+  // TODO: Implement via LoopApiService in Phase 2
+  /*
   const handleChangePassword = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       setPasswordError('New passwords do not match');
@@ -394,6 +400,7 @@ export default function UserSettings() {
     setPasswordError('');
 
     try {
+      // TODO: Implement LoopApiService.updatePassword()
       await api.put('/auth/password', {
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword,
@@ -411,6 +418,8 @@ export default function UserSettings() {
       setIsChangingPassword(false);
     }
   };
+  */
+
 
   if (isLoading) {
     return (
