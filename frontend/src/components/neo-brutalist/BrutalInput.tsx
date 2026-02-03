@@ -5,46 +5,33 @@
 
 import React from 'react';
 
-export interface BrutalInputProps {
-    type?: 'text' | 'email' | 'password' | 'search';
-    placeholder?: string;
-    value?: string;
-    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    className?: string;
-    disabled?: boolean;
+export interface BrutalInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     icon?: React.ReactNode;
 }
 
 export default function BrutalInput({
-    type = 'text',
-    placeholder,
-    value,
-    onChange,
-    className = '',
-    disabled = false,
     icon,
+    className = '',
+    ...props
 }: BrutalInputProps) {
     return (
-        <div className="relative">
+        <div className={`relative ${className}`}>
             {icon && (
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
                     {icon}
                 </div>
             )}
             <input
-                type={type}
-                placeholder={placeholder}
-                value={value}
-                onChange={onChange}
-                disabled={disabled}
+                {...props}
                 className={`
-          w-full border-brutal border-black px-4 py-2 
-          bg-white text-black
-          focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2
-          disabled:bg-gray-100 disabled:cursor-not-allowed
-          ${icon ? 'pl-10' : ''}
-          ${className}
-        `}
+                    w-full border-2 border-black dark:border-white 
+                    px-4 py-2 ${icon ? 'pl-10' : ''} 
+                    bg-white dark:bg-[#000000] 
+                    text-black dark:text-white 
+                    focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white 
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    transition-all
+                `}
             />
         </div>
     );
