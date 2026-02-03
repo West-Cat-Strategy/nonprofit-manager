@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+/* LOOP Design System - Neo-Brutalist Variables */
+:root {
+  --loop-yellow: #FFD700;
+  --loop-green: #90EE90;
+  --loop-purple: #D8BFD8;
+  --loop-pink: #FFB6C1;
+  --border-brutal: 2px solid #000000;
+  --shadow-brutal: 4px 4px 0px #000000;
+  --shadow-brutal-sm: 2px 2px 0px #000000;
+  --shadow-brutal-lg: 6px 6px 0px #000000;
+}
+
 /* React Grid Layout styles */
 .react-grid-layout {
   position: relative;
