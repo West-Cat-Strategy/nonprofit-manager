@@ -14,7 +14,7 @@ import {
 } from '../types/contact';
 import { logger } from '../config/logger';
 
-type QueryValue = string | number | boolean | null;
+type QueryValue = string | number | boolean | null | string[];
 
 export class ContactService {
   private pool: Pool;
@@ -52,6 +52,25 @@ export class ContactService {
           CONCAT(c.first_name, ' ', c.last_name) ILIKE $${paramCounter}
         )`);
         values.push(`%${filters.search}%`);
+        paramCounter++;
+      }
+
+      if (filters.role) {
+        const roleNames =
+          filters.role === 'staff'
+            ? ['Staff', 'Executive Director']
+            : filters.role === 'volunteer'
+              ? ['Volunteer']
+              : ['Board Member'];
+
+        conditions.push(`EXISTS (
+          SELECT 1
+          FROM contact_role_assignments cra
+          INNER JOIN contact_roles cr ON cr.id = cra.role_id
+          WHERE cra.contact_id = c.id
+            AND cr.name = ANY($${paramCounter}::text[])
+        )`);
+        values.push(roleNames);
         paramCounter++;
       }
 
