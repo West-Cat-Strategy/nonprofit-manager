@@ -43,3 +43,6 @@ coverage/
 # Local CI/CD
 security-reports/
 .deploy-history
+
+# Generated data exports/backups
+backend/exports/
