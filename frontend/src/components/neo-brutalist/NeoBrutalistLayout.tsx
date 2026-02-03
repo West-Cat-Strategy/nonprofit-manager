@@ -27,14 +27,14 @@ export default function NeoBrutalistLayout({ children, pageTitle }: NeoBrutalist
     };
 
     return (
-        <div className="flex h-screen overflow-hidden bg-white">
+        <div className="flex h-screen overflow-hidden bg-[var(--app-bg)] transition-colors duration-300">
             {/* Left Sidebar */}
             <NeoBrutalistSidebar />
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Unified Top Bar - Page Title Left, Profile Right */}
-                <div className="bg-white dark:bg-[#121212] border-b-2 border-black dark:border-white pl-6 pr-0 py-0 flex items-center justify-between">
+                <div className="relative z-50 bg-[var(--app-bg)] border-b-2 border-black dark:border-white pl-6 pr-0 py-0 flex items-center justify-between transition-colors duration-300">
                     {/* Page Title (Left Side) */}
                     <h1 className="text-xl font-black uppercase tracking-tight py-3 text-black dark:text-white">
                         {pageTitle || 'WORKBENCH OVERVIEW'}
@@ -44,7 +44,7 @@ export default function NeoBrutalistLayout({ children, pageTitle }: NeoBrutalist
                     <div className="relative h-full">
                         <button
                             onClick={() => setShowMenu(!showMenu)}
-                            className="flex items-center gap-6 px-8 h-[96px] border-l-2 border-black dark:border-white bg-white dark:bg-[#121212] hover:bg-gray-50 dark:hover:bg-gray-900 font-bold shadow-none transition-all active:bg-gray-100 dark:active:bg-gray-800"
+                            className="flex items-center gap-6 px-8 h-[96px] border-l-2 border-black dark:border-white bg-[var(--app-bg)] hover:bg-[var(--app-surface)] font-bold shadow-none transition-all active:opacity-80"
                             aria-label="Open user menu"
                             aria-haspopup="menu"
                             aria-expanded={showMenu ? 'true' : 'false'}
@@ -57,22 +57,24 @@ export default function NeoBrutalistLayout({ children, pageTitle }: NeoBrutalist
                                         {user?.firstName?.[0] || 'U'}
                                     </div>
                                 )}
-                                <span className="text-3xl font-black italic text-black dark:text-white">{user?.firstName ? `${user.firstName} ${user.lastName}` : 'User'}</span>
+                                <span className="text-3xl font-black italic text-black dark:text-white truncate max-w-xs">
+                                    {user?.firstName ? `${user.firstName} ${user.lastName}` : 'User'}
+                                </span>
                             </div>
                             <svg className="w-8 h-8 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>
 
-                        {/* Dropdown Menu */}
+                        {/* Dropdown Menu - High z-index to appear above brutal borders */}
                         {showMenu && (
-                            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#121212] border-2 border-black dark:border-white shadow-[6px_6px_0px_0px_var(--shadow-color)] z-50">
+                            <div className="absolute right-0 mt-2 w-48 bg-[var(--app-surface)] border-2 border-black dark:border-white shadow-[6px_6px_0px_0px_var(--shadow-color)] z-[100] opacity-100">
                                 <button
                                     onClick={() => {
                                         setShowMenu(false);
                                         navigate('/settings/user');
                                     }}
-                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 font-bold text-sm border-b-2 border-black dark:border-white text-black dark:text-white"
+                                    className="w-full text-left px-4 py-2 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black font-bold text-sm border-b-2 border-black dark:border-white text-black dark:text-white transition-colors"
                                 >
                                     Settings
                                 </button>
@@ -92,7 +94,7 @@ export default function NeoBrutalistLayout({ children, pageTitle }: NeoBrutalist
                                         setShowMenu(false);
                                         handleLogout();
                                     }}
-                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 font-bold text-sm text-black dark:text-white"
+                                    className="w-full text-left px-4 py-2 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black font-bold text-sm text-black dark:text-white transition-colors"
                                 >
                                     Logout
                                 </button>
@@ -102,7 +104,7 @@ export default function NeoBrutalistLayout({ children, pageTitle }: NeoBrutalist
                 </div>
 
                 {/* Scrollable Content */}
-                <div className="flex-1 overflow-auto bg-white">
+                <div className="flex-1 overflow-auto bg-[var(--app-bg)] transition-colors duration-300">
                     {children}
                 </div>
             </div>
