@@ -32,9 +32,9 @@ export default function PeopleDirectory() {
     const TabButton = ({ tab, label, count }: { tab: TabType; label: string; count: number }) => (
         <button
             onClick={() => setActiveTab(tab)}
-            className={`px-6 py-3 font-bold uppercase border-2 border-black transition-all ${activeTab === tab
+            className={`px-6 py-3 font-bold uppercase border-2 border-black dark:border-white transition-all ${activeTab === tab
                 ? 'bg-[#FFB6C1] text-black shadow-[2px_2px_0px_0px_var(--shadow-color)]'
-                : 'bg-white text-black hover:bg-gray-100'
+                : 'bg-white dark:bg-[#121212] text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-900'
                 }`}
         >
             {label} ({count})
@@ -46,7 +46,7 @@ export default function PeopleDirectory() {
             <div className="p-6">
                 {/* Page Title */}
                 {/* Banner - PINK */}
-                <div className="bg-[#FFB6C1] border-2 border-black shadow-[4px_4px_0px_0px_var(--shadow-color)] p-8 mb-6">
+                <div className="bg-[#FFB6C1] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-8 mb-6">
                     <h2 className="text-3xl font-black mb-2 uppercase">DIRECTORY</h2>
                 </div>
 
@@ -59,10 +59,10 @@ export default function PeopleDirectory() {
                             placeholder="Search data..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full border-2 border-black px-4 py-2 pl-10 bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
+                            className="w-full border-2 border-black dark:border-white px-4 py-2 pl-10 bg-white dark:bg-[#000000] text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
                         />
                     </div>
-                    <button className="px-6 py-2 bg-[#4DD0E1] text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-cyan-400 font-bold uppercase">
+                    <button className="px-6 py-2 bg-[#4DD0E1] text-black border-2 border-black dark:border-white shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-cyan-400 font-bold uppercase">
                         + NEW ITEM
                     </button>
                 </div>
@@ -106,7 +106,7 @@ export default function PeopleDirectory() {
 
                 {/* Empty State */}
                 {filteredPeople.length === 0 && (
-                    <div className="bg-white border-2 border-black shadow-[4px_4px_0px_0px_var(--shadow-color)] p-12 text-center">
+                    <div className="bg-white dark:bg-[#121212] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-12 text-center">
                         <h3 className="font-black text-2xl mb-2 uppercase">No People Found</h3>
                         <p className="text-gray-600">Try adjusting your filters or search term</p>
                     </div>
