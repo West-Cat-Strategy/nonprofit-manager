@@ -42,6 +42,7 @@ router.get(
     query('sort_by').optional().isString(),
     query('sort_order').optional().isIn(['asc', 'desc']),
     query('search').optional().isString(),
+    query('role').optional().isIn(['staff', 'volunteer', 'board']),
     query('account_id').optional().isUUID(),
     query('is_active').optional().isBoolean(),
   ],

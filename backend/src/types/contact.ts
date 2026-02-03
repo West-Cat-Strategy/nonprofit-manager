@@ -306,6 +306,7 @@ export interface ContactFilters {
   search?: string;
   account_id?: string;
   is_active?: boolean;
+  role?: 'staff' | 'volunteer' | 'board';
 }
 
 export interface PaginationParams {
