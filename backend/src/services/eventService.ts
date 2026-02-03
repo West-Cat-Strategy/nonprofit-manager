@@ -593,7 +593,7 @@ export class EventService {
         message: 'Successfully checked in',
         registration: result.rows[0],
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         message: 'Check-in failed',
