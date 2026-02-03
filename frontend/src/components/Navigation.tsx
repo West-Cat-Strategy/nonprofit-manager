@@ -10,6 +10,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logout } from '../store/slices/authSlice';
 import { useNavigationPreferences } from '../hooks/useNavigationPreferences';
 import api from '../services/api';
+import { useBranding } from '../contexts/BrandingContext';
 
 interface SearchResult {
   contact_id: string;
@@ -25,6 +26,7 @@ const Navigation = () => {
   const location = useLocation();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
+  const { branding } = useBranding();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
@@ -154,11 +156,22 @@ const Navigation = () => {
           <div className="flex items-center min-w-0">
             {/* Logo */}
             <Link to="/dashboard" className="flex items-center space-x-2 mr-3 sm:mr-6 lg:mr-8 flex-shrink-0">
-              <div className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-lg shadow-sm">
-                <span className="text-white text-lg sm:text-xl font-bold">N</span>
+              <div
+                className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg shadow-sm overflow-hidden"
+                style={{
+                  background: `linear-gradient(to bottom right, ${branding.primaryColour}, ${branding.secondaryColour})`,
+                }}
+              >
+                {branding.appIcon ? (
+                  <img src={branding.appIcon} alt={branding.appName} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-white text-lg sm:text-xl font-bold">
+                    {(branding.appName || 'N')[0]?.toUpperCase()}
+                  </span>
+                )}
               </div>
               <span className="text-lg sm:text-xl font-bold text-gray-900 hidden sm:block truncate">
-                Nonprofit Manager
+                {branding.appName || 'Nonprofit Manager'}
               </span>
             </Link>
 

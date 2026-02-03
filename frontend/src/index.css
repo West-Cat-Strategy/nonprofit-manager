@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+:root {
+  --brand-primary: #2563eb;
+  --brand-secondary: #7c3aed;
+}
+
 /* React Grid Layout styles */
 .react-grid-layout {
   position: relative;

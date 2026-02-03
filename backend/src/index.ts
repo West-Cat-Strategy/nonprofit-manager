@@ -37,6 +37,8 @@ import portalAuthRoutes from './routes/portalAuth';
 import portalRoutes from './routes/portal';
 import portalAdminRoutes from './routes/portalAdmin';
 import meetingRoutes from './routes/meetings';
+import ingestRoutes from './routes/ingest';
+import adminRoutes from './routes/admin';
 import { setPaymentPool } from './controllers/paymentController';
 import { Pool } from 'pg';
 
@@ -162,6 +164,8 @@ app.use('/api/portal/auth', portalAuthRoutes);
 app.use('/api/portal', portalRoutes);
 app.use('/api/portal/admin', portalAdminRoutes);
 app.use('/api/meetings', meetingRoutes);
+app.use('/api/ingest', ingestRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Error handling
 app.use(errorHandler);

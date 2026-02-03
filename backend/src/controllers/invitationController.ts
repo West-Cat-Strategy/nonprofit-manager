@@ -226,6 +226,7 @@ export const acceptInvitation = async (
         firstName: newUser.first_name,
         lastName: newUser.last_name,
         role: newUser.role,
+        profilePicture: null,
       },
     });
   } catch (error) {

@@ -9,6 +9,7 @@ import { AuthRequest } from '../middleware/auth';
 import { trackLoginAttempt } from '../middleware/accountLockout';
 import { JWT, PASSWORD } from '../config/constants';
 import { syncUserRole } from '../services/userRoleService';
+import { issueTotpMfaChallenge } from './mfaController';
 
 interface RegisterRequest {
   email: string;
@@ -30,7 +31,9 @@ interface UserRow {
   last_name: string;
   role: string;
   created_at: Date;
+  profile_picture?: string | null;
   preferences?: Record<string, unknown>;
+  mfa_totp_enabled?: boolean;
 }
 
 export const register = async (
@@ -91,6 +94,7 @@ export const register = async (
         firstName: user.first_name,
         lastName: user.last_name,
         role: user.role,
+        profilePicture: null,
       },
     });
   } catch (error) {
@@ -114,7 +118,7 @@ export const login = async (
 
     // Get user
     const result = await pool.query<UserRow>(
-      'SELECT id, email, password_hash, first_name, last_name, role FROM users WHERE email = $1',
+      'SELECT id, email, password_hash, first_name, last_name, role, profile_picture, mfa_totp_enabled FROM users WHERE email = $1',
       [email]
     );
 
@@ -137,7 +141,23 @@ export const login = async (
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Track successful login
+    // If TOTP is enabled, require second factor before issuing tokens
+    if (user.mfa_totp_enabled) {
+      logger.info(`MFA required for user: ${user.email}`, { ip: clientIp });
+      return res.json({
+        ...issueTotpMfaChallenge(user),
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          role: user.role,
+          profilePicture: user.profile_picture || null,
+        },
+      });
+    }
+
+    // Track successful login (no MFA required)
     await trackLoginAttempt(email, true, user.id, clientIp);
 
     // Generate access token
@@ -174,6 +194,7 @@ export const login = async (
         firstName: user.first_name,
         lastName: user.last_name,
         role: user.role,
+        profilePicture: user.profile_picture || null,
       },
     });
   } catch (error) {
@@ -188,7 +209,7 @@ export const getCurrentUser = async (
 ): Promise<Response | void> => {
   try {
     const result = await pool.query<UserRow>(
-      'SELECT id, email, first_name, last_name, role, created_at FROM users WHERE id = $1',
+      'SELECT id, email, first_name, last_name, role, profile_picture, created_at FROM users WHERE id = $1',
       [req.user!.id]
     );
 
@@ -204,6 +225,7 @@ export const getCurrentUser = async (
       firstName: user.first_name,
       lastName: user.last_name,
       role: user.role,
+      profilePicture: user.profile_picture || null,
       createdAt: user.created_at,
     });
   } catch (error) {
@@ -303,6 +325,7 @@ export const setupFirstUser = async (
         firstName: user.first_name,
         lastName: user.last_name,
         role: user.role,
+        profilePicture: null,
       },
     });
   } catch (error) {
