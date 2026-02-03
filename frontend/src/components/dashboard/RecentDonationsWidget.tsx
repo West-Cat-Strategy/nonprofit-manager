@@ -34,7 +34,7 @@ const RecentDonationsWidget = ({ widget, editMode, onRemove }: RecentDonationsWi
         setLoading(true);
         const response = await api.get('/donations?limit=5&sort=created_at:desc');
         setDonations(response.data.donations || []);
-      } catch (err) {
+      } catch {
         setError('Failed to load donations');
       } finally {
         setLoading(false);

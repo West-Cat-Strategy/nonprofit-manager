@@ -38,7 +38,7 @@ const VolunteerHoursWidget = ({ widget, editMode, onRemove }: VolunteerHoursWidg
           active_volunteers: payload.active_volunteers || 0,
           hours_this_month: payload.hours_this_month || 0,
         });
-      } catch (err) {
+      } catch {
         if (!isMounted) return;
         setError('Failed to load volunteer data');
       } finally {

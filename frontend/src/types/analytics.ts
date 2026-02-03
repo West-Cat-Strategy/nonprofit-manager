@@ -82,7 +82,7 @@ export interface ContactAnalytics {
   email: string | null;
   account_id: string | null;
   account_name: string | null;
-  contact_role: string;
+  contact_roles: string[];
   created_at: string;
   donation_metrics: DonationMetrics;
   event_metrics: EventMetrics;

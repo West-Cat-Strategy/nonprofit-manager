@@ -33,11 +33,11 @@ const renderWithProviders = (component: React.ReactElement, initialState = {}) =
 describe('FilterBuilder', () => {
   const mockOnChange = vi.fn();
   const mockFields = [
-    { name: 'id', type: 'string' },
-    { name: 'name', type: 'string' },
-    { name: 'age', type: 'number' },
-    { name: 'created_at', type: 'date' },
-    { name: 'active', type: 'boolean' },
+    { field: 'id', label: 'ID', type: 'string' },
+    { field: 'name', label: 'Name', type: 'string' },
+    { field: 'age', label: 'Age', type: 'number' },
+    { field: 'created_at', label: 'Created At', type: 'date' },
+    { field: 'active', label: 'Active', type: 'boolean' },
   ];
 
   beforeEach(() => {

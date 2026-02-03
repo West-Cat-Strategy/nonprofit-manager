@@ -8,9 +8,9 @@ import WidgetContainer from './WidgetContainer';
 import type { DashboardWidget } from '../../types/dashboard';
 
 interface QuickActionsWidgetProps {
-  widget: DashboardWidget;
-  editMode: boolean;
-  onRemove: () => void;
+  widget?: DashboardWidget;
+  editMode?: boolean;
+  onRemove?: () => void;
 }
 
 const actions = [
@@ -45,6 +45,12 @@ const actions = [
     color: 'bg-purple-100 text-purple-700',
   },
   {
+    title: 'Note an Interaction',
+    icon: '📝',
+    link: '/interactions/new',
+    color: 'bg-blue-100 text-blue-700',
+  },
+  {
     title: 'New Event',
     icon: '📅',
     link: '/events/new',
@@ -58,7 +64,7 @@ const actions = [
   },
 ];
 
-const QuickActionsWidget = ({ widget, editMode, onRemove }: QuickActionsWidgetProps) => {
+const QuickActionsWidget = ({ widget, editMode = false, onRemove }: QuickActionsWidgetProps) => {
   const handleClick = (e: React.MouseEvent) => {
     // Prevent parent handlers from interfering with navigation
     if (editMode) {
@@ -66,27 +72,42 @@ const QuickActionsWidget = ({ widget, editMode, onRemove }: QuickActionsWidgetPr
     }
   };
 
+  const content = (
+    <div className="grid grid-cols-2 gap-3" onClick={handleClick}>
+      {actions.map((action) => (
+        <Link
+          key={action.title}
+          to={action.link}
+          className={`${action.color} rounded-lg p-4 flex flex-col items-center justify-center text-center hover:opacity-80 transition-opacity ${editMode ? 'pointer-events-auto' : ''}`}
+          onClick={(e) => {
+            if (editMode) {
+              e.stopPropagation();
+            }
+          }}
+        >
+          <span className="text-3xl mb-2">{action.icon}</span>
+          <span className="text-sm font-medium">{action.title}</span>
+        </Link>
+      ))}
+    </div>
+  );
+
+  if (widget && onRemove) {
+    return (
+      <WidgetContainer widget={widget} editMode={editMode} onRemove={onRemove}>
+        {content}
+      </WidgetContainer>
+    );
+  }
+
   return (
-    <WidgetContainer widget={widget} editMode={editMode} onRemove={onRemove}>
-      <div className="grid grid-cols-2 gap-3" onClick={handleClick}>
-        {actions.map((action) => (
-          <Link
-            key={action.title}
-            to={action.link}
-            className={`${action.color} rounded-lg p-4 flex flex-col items-center justify-center text-center hover:opacity-80 transition-opacity ${editMode ? 'pointer-events-auto' : ''}`}
-            onClick={(e) => {
-              console.log('Quick action clicked:', action.title, '-> navigating to:', action.link);
-              if (editMode) {
-                e.stopPropagation();
-              }
-            }}
-          >
-            <span className="text-3xl mb-2">{action.icon}</span>
-            <span className="text-sm font-medium">{action.title}</span>
-          </Link>
-        ))}
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
+        <span className="text-xs text-gray-500">Shortcuts</span>
       </div>
-    </WidgetContainer>
+      {content}
+    </div>
   );
 };
 

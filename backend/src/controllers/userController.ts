@@ -10,6 +10,7 @@ import pool from '../config/database';
 import { logger } from '../config/logger';
 import { AuthRequest } from '../middleware/auth';
 import { PASSWORD } from '../config/constants';
+import { syncUserRole } from '../services/userRoleService';
 
 interface UserRow {
   id: string;
@@ -175,6 +176,8 @@ export const createUser = async (
 
     const user = result.rows[0];
 
+    await syncUserRole(user.id, user.role);
+
     logger.info(`User created by admin: ${user.email}`, { adminId: req.user.id });
 
     return res.status(201).json({
@@ -259,6 +262,10 @@ export const updateUser = async (
     );
 
     const user = result.rows[0];
+
+    if (existingUser.rows[0].role !== user.role) {
+      await syncUserRole(user.id, user.role);
+    }
 
     logger.info(`User updated by admin: ${user.email}`, { adminId: req.user.id, userId: id });
 

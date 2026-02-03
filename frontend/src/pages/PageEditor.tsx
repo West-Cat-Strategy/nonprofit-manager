@@ -39,7 +39,7 @@ import EditorHeader from '../components/editor/EditorHeader';
 import PageList from '../components/editor/PageList';
 import { useEditorHistory } from '../hooks/useEditorHistory';
 import { useAutoSave } from '../hooks/useAutoSave';
-import type { PageComponent, PageSection, ComponentType } from '../types/websiteBuilder';
+import type { PageComponent, PageSection, ComponentType, TemplateStatus } from '../types/websiteBuilder';
 
 type ViewMode = 'desktop' | 'tablet' | 'mobile';
 
@@ -69,7 +69,7 @@ const PageEditor: React.FC = () => {
   // Initialize sections from currentPage
   const initialSections = useMemo(
     () => currentPage?.sections || [],
-    [currentPage?.id] // Only reset when page changes
+    [currentPage?.sections]
   );
 
   // Editor history for undo/redo
@@ -191,6 +191,41 @@ const PageEditor: React.FC = () => {
     return historySections.find((s) => s.id === selectedSectionId) || null;
   }, [selectedSectionId, currentPage, historySections]);
 
+  // Create new component with defaults
+  function createNewComponent(type: ComponentType): PageComponent {
+    const id = `component-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    const defaults: Record<ComponentType, Partial<PageComponent>> = {
+      text: { type: 'text', content: 'Add your text here...', align: 'left' },
+      heading: { type: 'heading', content: 'Heading', level: 2, align: 'left' },
+      image: { type: 'image', src: '', alt: 'Image description', objectFit: 'cover' },
+      button: { type: 'button', text: 'Click me', variant: 'primary', size: 'md' },
+      divider: { type: 'divider', color: '#e2e8f0', thickness: '1px', width: '100%' },
+      spacer: { type: 'spacer', height: '2rem' },
+      form: { type: 'form', fields: [], submitText: 'Submit', submitAction: '', successMessage: 'Thank you!', errorMessage: 'Something went wrong.' },
+      gallery: { type: 'gallery', items: [], columns: 3 },
+      video: { type: 'video', src: '', provider: 'youtube', controls: true },
+      map: { type: 'map', height: '300px', zoom: 14 },
+      'social-links': { type: 'social-links', links: [], iconSize: 'md', align: 'center' },
+      columns: { type: 'columns', columns: [{ id: 'col1', width: '1/2', components: [] }, { id: 'col2', width: '1/2', components: [] }], gap: '1rem' },
+      hero: { type: 'hero', minHeight: '400px', verticalAlign: 'center', components: [] },
+      card: { type: 'card', shadow: true },
+      testimonial: { type: 'testimonial', quote: 'Add testimonial quote...', author: 'Author Name' },
+      pricing: { type: 'pricing', tiers: [], columns: 3 },
+      faq: { type: 'faq', items: [], expandFirst: true, allowMultiple: false },
+      'contact-form': { type: 'contact-form', submitText: 'Send Message', includePhone: true, includeMessage: true },
+      'donation-form': { type: 'donation-form', suggestedAmounts: [25, 50, 100, 250], allowCustomAmount: true, recurringOption: true },
+      'event-list': { type: 'event-list', maxEvents: 6, showPastEvents: false, layout: 'grid' },
+      'newsletter-signup': { type: 'newsletter-signup', buttonText: 'Subscribe', successMessage: 'Thanks for subscribing!' },
+      countdown: { type: 'countdown', targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), showDays: true, showHours: true, showMinutes: true, showSeconds: true },
+      stats: { type: 'stats', items: [], columns: 4 },
+      team: { type: 'team', members: [], columns: 3, showBio: true, showSocial: true },
+      'logo-grid': { type: 'logo-grid', logos: [], columns: 4, grayscale: false },
+    };
+
+    return { id, ...defaults[type] } as PageComponent;
+  }
+
   // Handle drag start
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveId(event.active.id as string);
@@ -260,41 +295,6 @@ const PageEditor: React.FC = () => {
     },
     [currentPage, historySections, setHistorySections]
   );
-
-  // Create new component with defaults
-  const createNewComponent = (type: ComponentType): PageComponent => {
-    const id = `component-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-    const defaults: Record<ComponentType, Partial<PageComponent>> = {
-      text: { type: 'text', content: 'Add your text here...', align: 'left' },
-      heading: { type: 'heading', content: 'Heading', level: 2, align: 'left' },
-      image: { type: 'image', src: '', alt: 'Image description', objectFit: 'cover' },
-      button: { type: 'button', text: 'Click me', variant: 'primary', size: 'md' },
-      divider: { type: 'divider', color: '#e2e8f0', thickness: '1px', width: '100%' },
-      spacer: { type: 'spacer', height: '2rem' },
-      form: { type: 'form', fields: [], submitText: 'Submit', submitAction: '', successMessage: 'Thank you!', errorMessage: 'Something went wrong.' },
-      gallery: { type: 'gallery', items: [], columns: 3 },
-      video: { type: 'video', src: '', provider: 'youtube', controls: true },
-      map: { type: 'map', height: '300px', zoom: 14 },
-      'social-links': { type: 'social-links', links: [], iconSize: 'md', align: 'center' },
-      columns: { type: 'columns', columns: [{ id: 'col1', width: '1/2', components: [] }, { id: 'col2', width: '1/2', components: [] }], gap: '1rem' },
-      hero: { type: 'hero', minHeight: '400px', verticalAlign: 'center', components: [] },
-      card: { type: 'card', shadow: true },
-      testimonial: { type: 'testimonial', quote: 'Add testimonial quote...', author: 'Author Name' },
-      pricing: { type: 'pricing', tiers: [], columns: 3 },
-      faq: { type: 'faq', items: [], expandFirst: true, allowMultiple: false },
-      'contact-form': { type: 'contact-form', submitText: 'Send Message', includePhone: true, includeMessage: true },
-      'donation-form': { type: 'donation-form', suggestedAmounts: [25, 50, 100, 250], allowCustomAmount: true, recurringOption: true },
-      'event-list': { type: 'event-list', maxEvents: 6, showPastEvents: false, layout: 'grid' },
-      'newsletter-signup': { type: 'newsletter-signup', buttonText: 'Subscribe', successMessage: 'Thanks for subscribing!' },
-      countdown: { type: 'countdown', targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), showDays: true, showHours: true, showMinutes: true, showSeconds: true },
-      stats: { type: 'stats', items: [], columns: 4 },
-      team: { type: 'team', members: [], columns: 3, showBio: true, showSocial: true },
-      'logo-grid': { type: 'logo-grid', logos: [], columns: 4, grayscale: false },
-    };
-
-    return { id, ...defaults[type] } as PageComponent;
-  };
 
   // Update component properties
   const handleUpdateComponent = useCallback(
@@ -616,7 +616,10 @@ const PageEditor: React.FC = () => {
                   <select
                     value={templateSettings.status}
                     onChange={(e) =>
-                      setTemplateSettings((prev) => ({ ...prev, status: e.target.value }))
+                      setTemplateSettings((prev) => ({
+                        ...prev,
+                        status: e.target.value as TemplateStatus,
+                      }))
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                   >

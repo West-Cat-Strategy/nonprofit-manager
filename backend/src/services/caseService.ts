@@ -92,6 +92,55 @@ export async function createCase(data: CreateCaseDTO, userId?: string): Promise<
  * Get cases with filtering
  */
 export async function getCases(filter: CaseFilter = {}): Promise<{ cases: CaseWithDetails[]; total: number }> {
+  const filters: string[] = [];
+  const params: any[] = [];
+
+  const addFilter = (sql: string, value?: unknown) => {
+    if (value !== undefined) {
+      params.push(value);
+      filters.push(sql.replace('?', `$${params.length}`));
+    } else {
+      filters.push(sql);
+    }
+  };
+
+  if (filter.contact_id) {
+    addFilter('c.contact_id = ?', filter.contact_id);
+  }
+
+  if (filter.case_type_id) {
+    addFilter('c.case_type_id = ?', filter.case_type_id);
+  }
+
+  if (filter.status_id) {
+    addFilter('c.status_id = ?', filter.status_id);
+  }
+
+  if (filter.priority) {
+    addFilter('c.priority = ?', filter.priority);
+  }
+
+  if (filter.assigned_to) {
+    addFilter('c.assigned_to = ?', filter.assigned_to);
+  }
+
+  if (filter.is_urgent !== undefined) {
+    addFilter('c.is_urgent = ?', filter.is_urgent);
+  }
+
+  if (filter.search) {
+    const searchValue = `%${filter.search}%`;
+    params.push(searchValue, searchValue, searchValue);
+    filters.push(
+      `(c.case_number ILIKE $${params.length - 2} OR c.title ILIKE $${params.length - 1} OR c.description ILIKE $${params.length})`
+    );
+  }
+
+  const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
+
+  const countResult = await pool.query(`SELECT COUNT(*) FROM cases c ${whereClause}`, params);
+  const total = parseInt(countResult.rows[0].count);
+
   let query = `
     SELECT c.*,
       ct.name as case_type_name, ct.color as case_type_color, ct.icon as case_type_icon,
@@ -106,61 +155,30 @@ export async function getCases(filter: CaseFilter = {}): Promise<{ cases: CaseWi
     LEFT JOIN case_statuses cs ON c.status_id = cs.id
     LEFT JOIN contacts con ON c.contact_id = con.id
     LEFT JOIN users u ON c.assigned_to = u.id
-    WHERE 1=1
+    ${whereClause}
   `;
 
-  const params: any[] = [];
-  let paramIndex = 1;
-
-  if (filter.contact_id) {
-    query += ` AND c.contact_id = $${paramIndex++}`;
-    params.push(filter.contact_id);
-  }
-
-  if (filter.case_type_id) {
-    query += ` AND c.case_type_id = $${paramIndex++}`;
-    params.push(filter.case_type_id);
-  }
-
-  if (filter.status_id) {
-    query += ` AND c.status_id = $${paramIndex++}`;
-    params.push(filter.status_id);
-  }
-
-  if (filter.priority) {
-    query += ` AND c.priority = $${paramIndex++}`;
-    params.push(filter.priority);
-  }
-
-  if (filter.assigned_to) {
-    query += ` AND c.assigned_to = $${paramIndex++}`;
-    params.push(filter.assigned_to);
-  }
-
-  if (filter.is_urgent !== undefined) {
-    query += ` AND c.is_urgent = $${paramIndex++}`;
-    params.push(filter.is_urgent);
-  }
-
-  if (filter.search) {
-    query += ` AND (c.case_number ILIKE $${paramIndex} OR c.title ILIKE $${paramIndex} OR c.description ILIKE $${paramIndex})`;
-    params.push(`%${filter.search}%`);
-    paramIndex++;
-  }
-
-  // Count total
-  const countResult = await pool.query(`SELECT COUNT(*) FROM (${query}) AS count_query`, params);
-  const total = parseInt(countResult.rows[0].count);
-
   // Add sorting and pagination
-  const sortBy = filter.sort_by || 'created_at';
-  const sortOrder = filter.sort_order || 'desc';
-  query += ` ORDER BY c.${sortBy} ${sortOrder}`;
+  const sortColumns: Record<string, string> = {
+    created_at: 'c.created_at',
+    updated_at: 'c.updated_at',
+    case_number: 'c.case_number',
+    title: 'c.title',
+    priority: 'c.priority',
+    due_date: 'c.due_date',
+    status_id: 'c.status_id',
+    case_type_id: 'c.case_type_id',
+    intake_date: 'c.intake_date',
+  };
+
+  const sortBy = sortColumns[filter.sort_by || 'created_at'] || 'c.created_at';
+  const sortOrder = filter.sort_order === 'asc' ? 'ASC' : 'DESC';
+  query += ` ORDER BY ${sortBy} ${sortOrder}`;
 
   const limit = filter.limit || 20;
   const offset = ((filter.page || 1) - 1) * limit;
-  query += ` LIMIT $${paramIndex++} OFFSET $${paramIndex}`;
   params.push(limit, offset);
+  query += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
 
   const result = await pool.query(query, params);
   return { cases: result.rows, total };

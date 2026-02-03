@@ -66,8 +66,10 @@ const updateCanonical = (url: string): void => {
  * Hook to update document meta tags
  */
 export const useDocumentMeta = (config: MetaTagConfig): void => {
+  const { title, description, image, url, type, siteName } = config;
+
   useEffect(() => {
-    const mergedConfig = { ...defaultConfig, ...config };
+    const mergedConfig = { ...defaultConfig, title, description, image, url, type, siteName };
     const baseUrl = window.location.origin;
 
     // Update document title
@@ -119,7 +121,7 @@ export const useDocumentMeta = (config: MetaTagConfig): void => {
     return () => {
       document.title = 'Nonprofit Manager - Organization Management Platform';
     };
-  }, [config.title, config.description, config.image, config.url, config.type, config.siteName]);
+  }, [title, description, image, url, type, siteName]);
 };
 
 export default useDocumentMeta;

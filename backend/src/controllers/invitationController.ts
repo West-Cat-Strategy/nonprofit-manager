@@ -13,6 +13,7 @@ import { getJwtSecret } from '../config/jwt';
 import { AuthRequest } from '../middleware/auth';
 import { PASSWORD, JWT } from '../config/constants';
 import * as invitationService from '../services/invitationService';
+import { syncUserRole } from '../services/userRoleService';
 
 /**
  * POST /api/invitations
@@ -194,6 +195,8 @@ export const acceptInvitation = async (
     );
 
     const newUser = userResult.rows[0];
+
+    await syncUserRole(newUser.id, newUser.role);
 
     // Mark invitation as accepted
     await invitationService.markInvitationAccepted(invitation.id, newUser.id);

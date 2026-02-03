@@ -14,6 +14,7 @@ import {
   deleteAccount,
 } from '../controllers/accountController';
 import { authenticate } from '../middleware/auth';
+import { handleValidationErrors } from '../middleware/validation';
 
 const router = Router();
 
@@ -38,6 +39,7 @@ router.get(
       .isIn(['donor', 'volunteer', 'partner', 'vendor', 'beneficiary', 'other']),
     query('is_active').optional().isBoolean(),
   ],
+  handleValidationErrors,
   getAccounts
 );
 
@@ -45,13 +47,13 @@ router.get(
  * GET /api/accounts/:id
  * Get account by ID
  */
-router.get('/:id', [param('id').isUUID()], getAccountById);
+router.get('/:id', [param('id').isUUID()], handleValidationErrors, getAccountById);
 
 /**
  * GET /api/accounts/:id/contacts
  * Get contacts for an account
  */
-router.get('/:id/contacts', [param('id').isUUID()], getAccountContacts);
+router.get('/:id/contacts', [param('id').isUUID()], handleValidationErrors, getAccountContacts);
 
 /**
  * POST /api/accounts
@@ -62,10 +64,11 @@ router.post(
   [
     body('account_name').notEmpty().trim().isLength({ min: 1, max: 255 }),
     body('account_type').isIn(['organization', 'individual']),
-    body('category').isIn(['donor', 'volunteer', 'partner', 'vendor', 'beneficiary', 'other']),
-    body('email').optional().isEmail().normalizeEmail(),
+    body('category').optional().isIn(['donor', 'volunteer', 'partner', 'vendor', 'beneficiary', 'other']),
+    // Keep validation light; frontend already validates.
+    body('email').optional().isString().trim(),
     body('phone').optional().isString().trim(),
-    body('website').optional().isURL(),
+    body('website').optional().isString().trim(),
     body('description').optional().isString().trim(),
     body('address_line1').optional().isString().trim(),
     body('address_line2').optional().isString().trim(),
@@ -75,6 +78,7 @@ router.post(
     body('country').optional().isString().trim(),
     body('tax_id').optional().isString().trim(),
   ],
+  handleValidationErrors,
   createAccount
 );
 
@@ -91,9 +95,9 @@ router.put(
     body('category')
       .optional()
       .isIn(['donor', 'volunteer', 'partner', 'vendor', 'beneficiary', 'other']),
-    body('email').optional().isEmail().normalizeEmail(),
+    body('email').optional().isString().trim(),
     body('phone').optional().isString().trim(),
-    body('website').optional().isURL(),
+    body('website').optional().isString().trim(),
     body('description').optional().isString().trim(),
     body('address_line1').optional().isString().trim(),
     body('address_line2').optional().isString().trim(),
@@ -104,6 +108,7 @@ router.put(
     body('tax_id').optional().isString().trim(),
     body('is_active').optional().isBoolean(),
   ],
+  handleValidationErrors,
   updateAccount
 );
 
@@ -111,6 +116,6 @@ router.put(
  * DELETE /api/accounts/:id
  * Soft delete account
  */
-router.delete('/:id', [param('id').isUUID()], deleteAccount);
+router.delete('/:id', [param('id').isUUID()], handleValidationErrors, deleteAccount);
 
 export default router;

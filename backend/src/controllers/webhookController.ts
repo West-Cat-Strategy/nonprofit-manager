@@ -345,6 +345,8 @@ export const getApiKey = async (req: AuthRequest, res: Response): Promise<void> 
     }
 
     // Don't return the hash
+    // Omit keyHash from response
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { keyHash: _hash, ...safeKey } = key;
     res.json(safeKey);
   } catch (error) {
@@ -375,6 +377,8 @@ export const updateApiKey = async (req: AuthRequest, res: Response): Promise<voi
     }
 
     // Don't return the hash
+    // Omit keyHash from response
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { keyHash: _hash, ...safeKey } = key;
     res.json(safeKey);
   } catch (error) {

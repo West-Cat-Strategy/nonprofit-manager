@@ -9,12 +9,12 @@ import type {
   ReportDefinition,
   ReportResult,
   ReportEntity,
-  AvailableFields,
+  ReportField,
 } from '../../types/report';
 
 export interface ReportsState {
   currentReport: ReportResult | null;
-  availableFields: Record<ReportEntity, AvailableFields | null>;
+  availableFields: Record<ReportEntity, ReportField[] | null>;
   loading: boolean;
   fieldsLoading: boolean;
   error: string | null;
@@ -90,10 +90,10 @@ const reportsSlice = createSlice({
       .addCase(fetchAvailableFields.pending, (state) => {
         state.fieldsLoading = true;
       })
-      .addCase(fetchAvailableFields.fulfilled, (state, action) => {
+  .addCase(fetchAvailableFields.fulfilled, (state, action) => {
         state.fieldsLoading = false;
         const entity = action.payload.entity as ReportEntity;
-        state.availableFields[entity] = action.payload;
+        state.availableFields[entity] = action.payload.fields || [];
       })
       .addCase(fetchAvailableFields.rejected, (state, action) => {
         state.fieldsLoading = false;
