@@ -29,6 +29,7 @@ interface FieldAccessRule {
 // Cache for field access rules (5 minute TTL)
 const fieldAccessCache = new Map<string, { rules: FieldAccessRule[]; timestamp: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
+const DEFAULT_DENY_ON_NO_RULES = process.env.FIELD_ACCESS_DEFAULT_DENY !== 'false';
 
 /**
  * Get field access rules for a user and resource
@@ -124,9 +125,13 @@ function filterRecord(
   rules: FieldAccessRule[],
   isAdmin: boolean
 ): Record<string, unknown> {
-  if (isAdmin || rules.length === 0) {
-    // Admins see everything, and if no rules, default to showing all
+  if (isAdmin) {
+    // Admins see everything
     return record;
+  }
+
+  if (rules.length === 0 && DEFAULT_DENY_ON_NO_RULES) {
+    return {};
   }
 
   const rulesMap = new Map(rules.map((r) => [r.field_name, r]));
@@ -184,6 +189,9 @@ export function filterFieldAccess(resource: string) {
           }
 
           const rules = await getFieldAccessRules(userId, resource);
+          if (rules.length === 0 && DEFAULT_DENY_ON_NO_RULES) {
+            logger.warn('No field access rules found; default deny applied', { userId, resource });
+          }
 
           // Filter the data
           let filtered: unknown;
