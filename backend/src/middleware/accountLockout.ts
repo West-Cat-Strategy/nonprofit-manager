@@ -84,10 +84,6 @@ export const trackLoginAttempt = async (
 
   attempt.userId = userId || attempt.userId;
   attempt.attempts += 1;
-    userId: userId || '',
-    attempts: 0,
-    lockedUntil: null,
-  };
 
   // Check if account should be locked
   if (attempt.attempts >= MAX_LOGIN_ATTEMPTS) {
