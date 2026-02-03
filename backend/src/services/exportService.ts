@@ -22,6 +22,7 @@ export interface ExportOptions {
 
 export class ExportService {
   private exportDir: string;
+  private readonly maxFilenameLength = 80;
 
   constructor() {
     // Create exports directory if it doesn't exist
@@ -38,7 +39,10 @@ export class ExportService {
     data: AnalyticsSummary,
     options: ExportOptions
   ): Promise<string> {
-    const filename = options.filename || `analytics-summary-${Date.now()}`;
+    const filename = this.sanitizeFilename(
+      options.filename,
+      `analytics-summary-${Date.now()}`
+    );
 
     const rows = [
       {
@@ -106,7 +110,7 @@ export class ExportService {
     donations: any[],
     options: ExportOptions
   ): Promise<string> {
-    const filename = options.filename || `donations-${Date.now()}`;
+    const filename = this.sanitizeFilename(options.filename, `donations-${Date.now()}`);
 
     const rows = donations.map((d) => ({
       date: new Date(d.donation_date).toLocaleDateString(),
@@ -138,7 +142,7 @@ export class ExportService {
     hours: any[],
     options: ExportOptions
   ): Promise<string> {
-    const filename = options.filename || `volunteer-hours-${Date.now()}`;
+    const filename = this.sanitizeFilename(options.filename, `volunteer-hours-${Date.now()}`);
 
     const rows = hours.map((h) => ({
       date: new Date(h.log_date).toLocaleDateString(),
@@ -168,7 +172,7 @@ export class ExportService {
     events: any[],
     options: ExportOptions
   ): Promise<string> {
-    const filename = options.filename || `event-attendance-${Date.now()}`;
+    const filename = this.sanitizeFilename(options.filename, `event-attendance-${Date.now()}`);
 
     const rows = events.map((e) => ({
       event: e.event_name,
@@ -202,7 +206,7 @@ export class ExportService {
     trends: TrendAnalysis,
     options: ExportOptions
   ): Promise<string> {
-    const filename = options.filename || `trends-${Date.now()}`;
+    const filename = this.sanitizeFilename(options.filename, `trends-${Date.now()}`);
 
     const rows = trends.data_points.map((point: any) => ({
       period: point.period,
@@ -228,7 +232,7 @@ export class ExportService {
     sheets: Array<{ name: string; data: any[] }>,
     options: ExportOptions
   ): Promise<string> {
-    const filename = options.filename || `export-${Date.now()}`;
+    const filename = this.sanitizeFilename(options.filename, `export-${Date.now()}`);
 
     if (options.format === 'csv') {
       // For CSV, export first sheet only (CSV doesn't support multiple sheets)
@@ -252,13 +256,14 @@ export class ExportService {
     headers: Array<{ id: string; title: string }>
   ): Promise<string> {
     const filepath = path.join(this.exportDir, `${filename}.csv`);
+    const sanitizedData = data.map((row) => this.sanitizeRow(row));
 
     const csvWriter = createObjectCsvWriter({
       path: filepath,
       header: headers,
     });
 
-    await csvWriter.writeRecords(data);
+    await csvWriter.writeRecords(sanitizedData);
 
     return filepath;
   }
@@ -277,14 +282,15 @@ export class ExportService {
 
     // Add each sheet
     for (const sheet of sheets) {
-      const worksheet = XLSX.utils.json_to_sheet(sheet.data);
+      const sanitizedSheetData = sheet.data.map((row) => this.sanitizeRow(row));
+      const worksheet = XLSX.utils.json_to_sheet(sanitizedSheetData);
 
       // Auto-size columns
       const maxWidth = 50;
       const colWidths = Object.keys(sheet.data[0] || {}).map((key) => {
         const maxLength = Math.max(
           key.length,
-          ...sheet.data.map((row) => String(row[key] || '').length)
+          ...sanitizedSheetData.map((row) => String(row[key] || '').length)
         );
         return { wch: Math.min(maxLength + 2, maxWidth) };
       });
@@ -328,6 +334,43 @@ export class ExportService {
         });
       });
     });
+  }
+
+  private sanitizeFilename(input: string | undefined, fallback: string): string {
+    if (!input) {
+      return fallback;
+    }
+
+    const baseName = path.basename(input);
+    const withoutExt = baseName.replace(/\.[^/.]+$/, '');
+    const sanitized = withoutExt
+      .replace(/[^a-zA-Z0-9-_]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .substring(0, this.maxFilenameLength);
+
+    return sanitized.length > 0 ? sanitized : fallback;
+  }
+
+  private sanitizeRow(row: Record<string, unknown>): Record<string, unknown> {
+    const sanitized: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(row)) {
+      sanitized[key] = this.sanitizeSpreadsheetValue(value);
+    }
+    return sanitized;
+  }
+
+  private sanitizeSpreadsheetValue(value: unknown): unknown {
+    if (typeof value !== 'string') {
+      return value;
+    }
+
+    const trimmed = value.trimStart();
+    if (/^[=+\-@]/.test(trimmed)) {
+      return `'${value}`;
+    }
+
+    return value;
   }
 }
 

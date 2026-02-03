@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../config/database';
 import { logger } from '../config/logger';
+import { getJwtSecret } from '../config/jwt';
 import { AuthRequest } from '../middleware/auth';
 import { trackLoginAttempt } from '../middleware/accountLockout';
 import { JWT, PASSWORD } from '../config/constants';
@@ -13,7 +14,6 @@ interface RegisterRequest {
   password: string;
   firstName: string;
   lastName: string;
-  role?: string;
 }
 
 interface LoginRequest {
@@ -32,19 +32,6 @@ interface UserRow {
   preferences?: Record<string, unknown>;
 }
 
-/**
- * Get JWT secret from environment or throw error
- * Never use fallback secrets in production
- */
-const getJwtSecret = (): string => {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    logger.error('JWT_SECRET environment variable is not set');
-    throw new Error('JWT_SECRET must be configured');
-  }
-  return secret;
-};
-
 export const register = async (
   req: AuthRequest,
   res: Response,
@@ -56,7 +43,8 @@ export const register = async (
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email, password, firstName, lastName, role = 'user' }: RegisterRequest = req.body;
+    const { email, password, firstName, lastName }: RegisterRequest = req.body;
+    const role = 'user';
 
     // Check if user exists
     const existingUser = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
@@ -129,7 +117,7 @@ export const login = async (
 
     if (result.rows.length === 0) {
       // Track failed attempt for non-existent user
-      await trackLoginAttempt(email, false);
+      await trackLoginAttempt(email, false, undefined, clientIp);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -139,13 +127,13 @@ export const login = async (
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
       // Track failed login attempt
-      await trackLoginAttempt(email, false, user.id);
+      await trackLoginAttempt(email, false, user.id, clientIp);
       logger.warn(`Failed login attempt for user: ${email}`, { ip: clientIp });
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     // Track successful login
-    await trackLoginAttempt(email, true, user.id);
+    await trackLoginAttempt(email, true, user.id, clientIp);
 
     // Generate access token
     const jwtSecret = getJwtSecret();
