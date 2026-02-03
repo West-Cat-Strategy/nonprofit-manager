@@ -1,6 +1,6 @@
 /**
  * Neo-Brutalist Layout - Two-column layout with sidebar
- * Wraps all Neo-Brutalist pages with minimal top bar for profile menu
+ * Precision-refined: No top whitespace, unified header bar
  */
 
 import React, { ReactNode } from 'react';
@@ -32,13 +32,18 @@ export default function NeoBrutalistLayout({ children, pageTitle }: NeoBrutalist
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Minimal Top Bar - Empty left, Profile right */}
-                <div className="bg-white border-b-2 border-black px-6 py-3 flex items-center justify-end">
-                    {/* Profile Menu (Right Side Only) */}
+                {/* Unified Top Bar - Page Title Left, Profile Right */}
+                <div className="bg-white border-b-2 border-black px-6 py-3 flex items-center justify-between">
+                    {/* Page Title (Left Side) */}
+                    <h1 className="text-xl font-black uppercase tracking-tight">
+                        {pageTitle || 'WORKBENCH OVERVIEW'}
+                    </h1>
+
+                    {/* Profile Menu (Right Side) */}
                     <div className="relative">
                         <button
                             onClick={() => setShowMenu(!showMenu)}
-                            className="flex items-center gap-2 px-3 py-2 border-2 border-black bg-white hover:bg-gray-50 font-bold"
+                            className="flex items-center gap-2 px-3 py-2 border-2 border-black bg-white hover:bg-gray-50 font-bold shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
                         >
                             <span className="text-sm">{user?.full_name || 'User'}</span>
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,7 +53,7 @@ export default function NeoBrutalistLayout({ children, pageTitle }: NeoBrutalist
 
                         {/* Dropdown Menu */}
                         {showMenu && (
-                            <div className="absolute right-0 mt-2 w-48 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50">
+                            <div className="absolute right-0 mt-2 w-48 bg-white border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] z-50">
                                 <button
                                     onClick={() => navigate('/settings/user')}
                                     className="w-full text-left px-4 py-2 hover:bg-gray-100 font-bold text-sm border-b-2 border-black"
@@ -65,13 +70,6 @@ export default function NeoBrutalistLayout({ children, pageTitle }: NeoBrutalist
                         )}
                     </div>
                 </div>
-
-                {/* Optional Page Title Bar */}
-                {pageTitle && (
-                    <div className="bg-white border-b-2 border-black px-6 py-4">
-                        <h1 className="text-2xl font-black uppercase">{pageTitle}</h1>
-                    </div>
-                )}
 
                 {/* Scrollable Content */}
                 <div className="flex-1 overflow-auto bg-white">

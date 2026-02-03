@@ -535,9 +535,9 @@ const AppRoutes = () => {
       <Route
         path="/settings/user"
         element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
+          <NeoBrutalistRoute isAuthenticated={isAuthenticated}>
             <UserSettings />
-          </ProtectedRoute>
+          </NeoBrutalistRoute>
         }
       />
       <Route
