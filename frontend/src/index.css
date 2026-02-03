@@ -51,28 +51,29 @@ body.dark:not([class*="theme-"]) {
    Concept: Soft, airy, rounded, teal/turquoise palette
    ========================================================================== */
 body.theme-sea-breeze {
-  /* LIGHT MODE (DEFAULT) */
+  /* LIGHT MODE - Applies LOOP Brand Colors */
   --loop-yellow: #B2DFDB;
-  /* Teal 100 */
-  --loop-green: #80CBC4;
-  /* Teal 200 */
-  --loop-purple: #4DB6AC;
-  /* Teal 300 */
-  --loop-pink: #26A69A;
-  /* Teal 400 */
+  /* Teal 100 - Sidebar header */
+  --loop-green: #90EE90;
+  /* LOOP Green - Linking Module */
+  --loop-blue: #87CEEB;
+  /* LOOP Blue - Operations Module */
+  --loop-purple: #D8BFD8;
+  /* LOOP Purple - Outreach Module */
+  --loop-pink: #FFB6C1;
+  /* LOOP Pink - People Module */
   --loop-cyan: #009688;
-  /* Teal 500 */
-  --loop-blue: #00897B;
-  /* Teal 600 */
+  /* Teal 500 - Accent */
 
   /* App Base (LIGHT) */
   --app-bg: #E0F2F1;
   /* Very Light Teal */
   --app-surface: #F5FCFD;
-  /* Minty White (Not Pure White) */
+  /* Minty White */
   --app-text: #004D40;
   /* Teal 900 */
   --app-border: #80CBC4;
+  /* Teal 200 */
 
   /* Brutalist Overrides (Softened) */
   --shadow-color: rgba(0, 150, 136, 0.2);
@@ -85,19 +86,19 @@ body.theme-sea-breeze {
 
 /* SEA BREEZE: DARK MODE */
 body.theme-sea-breeze.dark {
-  /* Palette - Deep Ocean */
-  --loop-yellow: #004D40;
-  /* Teal 900 */
-  --loop-green: #00695C;
-  /* Teal 800 */
-  --loop-purple: #00796B;
-  /* Teal 700 */
-  --loop-pink: #00897B;
-  /* Teal 600 */
+  /* Palette - Deep Ocean Background / Bright Accents */
+  --loop-yellow: #B2DFDB;
+  /* Teal 100 - Bright to support Black Text */
+  --loop-green: #80CBC4;
+  /* Teal 200 */
+  --loop-purple: #4DB6AC;
+  /* Teal 300 */
+  --loop-pink: #26A69A;
+  /* Teal 400 */
   --loop-cyan: #009688;
-  /* Teal 500 (Primary) */
-  --loop-blue: #4DB6AC;
-  /* Teal 300 (Highlight) */
+  /* Teal 500 */
+  --loop-blue: #00897B;
+  /* Teal 600 */
 
   /* App Base (DARK) */
   --app-bg: #00251A;
@@ -126,6 +127,59 @@ body.theme-sea-breeze button.p-3,
 body.theme-sea-breeze button.p-4 {
   border-radius: 50px !important;
   /* Pill shapes for main buttons */
+}
+
+/* ==========================================================================
+   TRACK 2: DARK MODE ACCESSIBILITY - "CHALKBOARD PROTOCOL"
+   HIGH CONTRAST RULES for readability in dark themes
+   ========================================================================== */
+
+/* RULE 1: Main Dark Backgrounds need White/Cream borders */
+body.dark .border-black:not(.bg-loop-yellow):not(.bg-loop-green):not(.bg-loop-purple):not(.bg-loop-pink):not([class*="bg-[var(--loop"]]):not([class*="bg-loop-"]) {
+  border-color: #F5F5DC !important;
+  /* Cream borders on dark backgrounds */
+}
+
+/* RULE 2: "Safety Zone Exception" - Colored Cards MUST retain Black text/borders */
+/* EXCLUDES navigation elements to prevent sidebar text from going black */
+body.dark .bg-loop-yellow:not(nav *),
+body.dark .bg-loop-green:not(nav *),
+body.dark .bg-loop-purple:not(nav *),
+body.dark .bg-loop-pink:not(nav *) {
+  color: #000000 !important;
+  border-color: #000000 !important;
+}
+
+/* Nested elements in colored cards also get black text - EXCLUDES NAV */
+body.dark main .bg-loop-yellow *,
+body.dark main .bg-loop-green *,
+body.dark main .bg-loop-purple *,
+body.dark main .bg-loop-pink *,
+body.dark main [class*="bg-[var(--loop"] *,
+body.dark .p-6 [class*="bg-[var(--loop"] *,
+body.dark .p-8 [class*="bg-[var(--loop"] * {
+  color: #000000 !important;
+}
+
+/* RULE 3: Input & Dropdown Rescue - Solid backgrounds with white borders */
+body.dark input:not([class*="bg-loop-"]),
+body.dark select:not([class*="bg-loop-"]),
+body.dark textarea:not([class*="bg-loop-"]) {
+  background-color: #1a1a1a !important;
+  /* Solid Dark Grey (User Request) */
+  border-color: #f5f5dc !important;
+  /* Cream border */
+  color: #ffffff !important;
+  /* White text */
+}
+
+/* Placeholder text visibility */
+body.dark input::placeholder,
+body.dark select::placeholder,
+body.dark textarea::placeholder {
+  color: #94a3b8 !important;
+  /* Slate 400 */
+  opacity: 1;
 }
 
 
@@ -165,19 +219,19 @@ body.theme-corporate {
 
 /* CORPORATE: DARK MODE */
 body.theme-corporate.dark {
-  /* Dark Slate Palette */
-  --loop-yellow: #1F2937;
-  /* Gray 800 */
-  --loop-green: #374151;
-  /* Gray 700 */
-  --loop-purple: #4B5563;
-  /* Gray 600 */
-  --loop-pink: #6B7280;
-  /* Gray 500 */
-  --loop-cyan: #9CA3AF;
-  /* Gray 400 */
-  --loop-blue: #D1D5DB;
+  /* Dark Slate Palette - Monochrome Bright Accents */
+  --loop-yellow: #F3F4F6;
+  /* Gray 100 */
+  --loop-green: #E5E7EB;
+  /* Gray 200 */
+  --loop-purple: #D1D5DB;
   /* Gray 300 */
+  --loop-pink: #9CA3AF;
+  /* Gray 400 */
+  --loop-cyan: #6B7280;
+  /* Gray 500 */
+  --loop-blue: #374151;
+  /* Gray 700 - Use cautiously */
 
   /* App Base (DARK) */
   --app-bg: #111827;
@@ -223,63 +277,60 @@ body.theme-corporate button:hover {
    Concept: Futuristic, translucent, blur, neon accents
    ========================================================================== */
 body.theme-glass {
-  /* LIGHT MODE */
-  /* Palette - Frost & Sky */
-  --loop-yellow: #81D4FA;
-  /* Light Blue 200 */
-  --loop-green: #4FC3F7;
-  /* Light Blue 300 */
-  --loop-purple: #29B6F6;
-  /* Light Blue 400 */
-  --loop-pink: #03A9F4;
-  /* Light Blue 500 */
+  /* LIGHT MODE - "Frosted Steel" - Applies LOOP Brand Colors */
+  --loop-yellow: #CBD5E1;
+  /* Slate 300 - Sidebar header */
+  --loop-green: #90EE90;
+  /* LOOP Green - Linking Module */
+  --loop-blue: #87CEEB;
+  /* LOOP Blue - Operations Module */
+  --loop-purple: #D8BFD8;
+  /* LOOP Purple - Outreach Module */
+  --loop-pink: #FFB6C1;
+  /* LOOP Pink - People Module */
   --loop-cyan: #00B0FF;
   /* Light Blue Accent */
-  --loop-blue: #0091EA;
-  /* Light Blue 700 */
 
-  /* App Base (LIGHT GLASS) */
-  --app-bg: #E0F7FA;
-  /* Cyan 50 (Very light) - Per user "peaceful blue background" request? */
-  /* User said: "C-Breeze needs peaceful blue background... Everything that is white needs to be peaceful blue" */
-  /* Wait, this is GLASS theme. User said: "Dark Glass Mode... shiny grayish silvery background normally" */
-  --app-bg: #F3F4F6;
-  /* Silvery Gray */
-  --app-surface: rgba(255, 255, 255, 0.6);
-  /* Frosted */
+  /* App Base (LIGHT GLASS - Frosted Steel) */
+  --app-bg: #94A3B8;
+  /* Slate 400 - Darker Silver-Blue "Premium Steel" */
+  --app-surface: rgba(203, 213, 225, 0.7);
+  /* Slate 300 - Frosted */
   --app-text: #0F172A;
-  --app-border: #FFFFFF;
+  /* Slate 900 */
+  --app-border: #CBD5E1;
+  /* Slate 300 */
 
   /* Brutalist Overrides (Glassy) */
-  --shadow-color: rgba(0, 0, 0, 0.1);
-  --border-brutal: 1px solid rgba(255, 255, 255, 0.8);
-  --shadow-brutal: 0 4px 6px rgba(0, 0, 0, 0.05);
-  --shadow-brutal-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-color: rgba(0, 0, 0, 0.15);
+  --border-brutal: 1px solid rgba(203, 213, 225, 0.8);
+  --shadow-brutal: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-brutal-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
   --focus-ring: #00B0FF;
 }
 
 /* GLASS: DARK MODE */
 body.theme-glass.dark {
-  /* Palette - DEEP VOID & NEON */
-  --loop-yellow: #000000;
-  /* Black */
-  --loop-green: #111827;
-  /* Gray 900 */
-  --loop-purple: #1F2937;
-  /* Gray 800 */
-  --loop-pink: #374151;
-  /* Gray 700 */
-  --loop-cyan: #00FFFF;
-  /* Cyan Neon */
-  --loop-blue: #3B82F6;
-  /* Blue Neon */
+  /* Palette - DEEP VOID & NEON ACCENTS */
+  --loop-yellow: #FEF08A;
+  /* Yellow 200 - Neon */
+  --loop-green: #A7F3D0;
+  /* Green 200 - Neon */
+  --loop-purple: #DDD6FE;
+  /* Violet 200 - Neon */
+  --loop-pink: #FBCFE8;
+  /* Pink 200 - Neon */
+  --loop-cyan: #67E8F9;
+  /* Cyan 300 - Neon */
+  --loop-blue: #93C5FD;
+  /* Blue 300 - Neon */
 
   /* App Base (DARK) */
   --app-bg: #000000;
   /* Pure Black */
-  --app-surface: rgba(20, 20, 30, 0.6);
+  --app-surface: rgba(20, 20, 30, 0.8);
   --app-text: #F3F4F6;
-  --app-border: rgba(59, 130, 246, 0.3);
+  --app-border: rgba(59, 130, 246, 0.5);
 
   /* Brutalist Overrides (Glowing) */
   --shadow-color: #3B82F6;
@@ -422,3 +473,175 @@ body.theme-glass textarea {
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out;
 }
+
+/* ==============================================================================
+   NUCLEAR DARK MODE FIX - AUTONOMOUS REPAIR v2.0
+   Fixes ALL text visibility while respecting Safety Zone for colored cards
+   ============================================================================== */
+
+/* RULE 1: GLOBAL WHITE TEXT - All text elements in dark mode MUST be white */
+.dark,
+.dark body,
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6,
+.dark p,
+.dark span,
+.dark label,
+.dark div,
+.dark td,
+.dark th,
+.dark li,
+.dark a {
+  color: #FFFFFF;
+}
+
+/* RULE 2: SIDEBAR TEXT - Force all sidebar text to be visible */
+.dark nav span,
+.dark nav div,
+.dark [class*="sidebar"] span,
+.dark [class*="Sidebar"] span {
+  color: #FFFFFF !important;
+}
+
+/* Sidebar module button labels - explicit override */
+.dark nav a>div>span:last-child {
+  color: #FFFFFF !important;
+}
+
+/* RULE 3: SAFETY ZONE - Colored Cards MUST have BLACK text */
+/* Only applies to CONTENT cards, not sidebar buttons */
+.dark .bg-\[var\(--loop-yellow\)\],
+.dark .bg-\[var\(--loop-green\)\],
+.dark .bg-\[var\(--loop-blue\)\],
+.dark .bg-\[var\(--loop-purple\)\],
+.dark .bg-\[var\(--loop-pink\)\],
+.dark .bg-\[var\(--loop-cyan\)\] {
+  color: #000000 !important;
+}
+
+.dark .bg-\[var\(--loop-yellow\)\] *,
+.dark .bg-\[var\(--loop-green\)\] *,
+.dark .bg-\[var\(--loop-blue\)\] *,
+.dark .bg-\[var\(--loop-purple\)\] *,
+.dark .bg-\[var\(--loop-pink\)\] *,
+.dark .bg-\[var\(--loop-cyan\)\] * {
+  color: #000000 !important;
+}
+
+/* Also target hex colors used in some places */
+.dark .bg-\[\#FFD700\] *,
+.dark .bg-yellow-400 *,
+.dark .bg-\[\#90EE90\] *,
+.dark .bg-green-400 *,
+.dark .bg-\[\#87CEEB\] *,
+.dark .bg-blue-400 *,
+.dark .bg-\[\#D8BFD8\] *,
+.dark .bg-purple-400 *,
+.dark .bg-\[\#FFB6C1\] *,
+.dark .bg-pink-400 * {
+  color: #000000 !important;
+}
+
+/* RULE 4: INPUTS - Dark grey background, white text, white border */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #1a1a1a !important;
+  color: #FFFFFF !important;
+  border: 2px solid #FFFFFF !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #9CA3AF !important;
+}
+
+/* RULE 5: SIDEBAR HEADER - "COMMUNITY LOOP" stays BLACK on yellow */
+.dark .bg-\[var\(--loop-yellow\)\] h1,
+.dark .bg-\[var\(--loop-yellow\)\] .font-black {
+  color: #000000 !important;
+}
+
+/* Date box in sidebar */
+.dark .bg-\[var\(--loop-yellow\)\]>div:last-child {
+  background-color: #000000 !important;
+  color: #FFFFFF !important;
+}
+
+/* RULE 6: HEADER USER NAME - Force visibility */
+.dark header span,
+.dark [class*="header"] span,
+.dark button span {
+  color: #FFFFFF !important;
+}
+
+/* But keep black text in yellow/colored backgrounds */
+.dark .bg-\[var\(--loop-yellow\)\] span,
+.dark .bg-\[var\(--loop-yellow\)\] button span {
+  color: #000000 !important;
+}
+
+/* RULE 7: BORDERS - White borders on dark backgrounds */
+.dark .border-black:not(.bg-\[var\(--loop-yellow\)\]):not(.bg-\[var\(--loop-green\)\]):not(.bg-\[var\(--loop-blue\)\]):not(.bg-\[var\(--loop-purple\)\]):not(.bg-\[var\(--loop-pink\)\]) {
+  border-color: #FFFFFF !important;
+}
+
+/* Colored cards keep black borders */
+.dark .bg-\[var\(--loop-yellow\)\],
+.dark .bg-\[var\(--loop-green\)\],
+.dark .bg-\[var\(--loop-blue\)\],
+.dark .bg-\[var\(--loop-purple\)\],
+.dark .bg-\[var\(--loop-pink\)\] {
+  border-color: #000000 !important;
+}
+
+/* RULE 8: SETTINGS PAGE WHITE CARDS - Black text on pure white backgrounds */
+/* CRITICAL: Only applies when element does NOT have a dark mode background override */
+.dark .bg-white:not(.dark\:bg-\[\#121212\]) {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+}
+
+.dark .bg-white:not(.dark\:bg-\[\#121212\]) * {
+  color: #000000 !important;
+}
+
+/* RULE 9: DARK CONTAINERS - White text on dark surfaces */
+/* Overrides the greedy safety zone for explicit dark containers */
+.dark .dark\:bg-\[\#121212\],
+.dark [class*="dark:bg-[#121212]"] {
+  color: #FFFFFF !important;
+}
+
+.dark .dark\:bg-\[\#121212\] *,
+.dark [class*="dark:bg-[#121212]"] * {
+  color: #FFFFFF !important;
+}
+
+/* RULE 10: TABLE CELLS - Explicit white text in dark mode tables */
+.dark table td,
+.dark table th {
+  color: #FFFFFF !important;
+}
+
+/* But keep black text for cells with colored backgrounds */
+.dark td.bg-\[var\(--loop-green\)\],
+.dark td.bg-\[var\(--loop-blue\)\] {
+  color: #000000 !important;
+}
+
+/* RULE 11: KANBAN HEADERS - White text on dark column headers */
+.dark .font-black.text-lg {
+  color: #FFFFFF !important;
+}
+
+/* RULE 12: UPPERCASE TEXT - Ensure uppercase styling preserved */
+.dark .uppercase {
+  text-transform: uppercase !important;
+}
+
+/* ============================================================================== */
