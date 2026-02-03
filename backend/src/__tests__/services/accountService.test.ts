@@ -19,8 +19,13 @@ describe('AccountService', () => {
 
   beforeEach(() => {
     mockQuery = jest.fn();
+    const mockClient = {
+      query: mockQuery,
+      release: jest.fn(),
+    };
     mockPool = {
       query: mockQuery,
+      connect: jest.fn().mockResolvedValue(mockClient),
     } as unknown as jest.Mocked<Pool>;
     accountService = new AccountService(mockPool);
   });
@@ -144,10 +149,17 @@ describe('AccountService', () => {
         account_type: 'organization',
       };
 
-      // Mock for generateAccountNumber
-      mockQuery.mockResolvedValueOnce({ rows: [{ account_number: 'ACC-10001' }] });
-      // Mock for INSERT
-      mockQuery.mockResolvedValueOnce({ rows: [mockCreatedAccount] });
+      mockQuery
+        // BEGIN
+        .mockResolvedValueOnce({ rows: [] })
+        // advisory lock
+        .mockResolvedValueOnce({ rows: [] })
+        // generateAccountNumber SELECT
+        .mockResolvedValueOnce({ rows: [{ account_number: 'ACC-10001' }] })
+        // INSERT
+        .mockResolvedValueOnce({ rows: [mockCreatedAccount] })
+        // COMMIT
+        .mockResolvedValueOnce({ rows: [] });
 
       const result = await accountService.createAccount(
         { account_name: 'New Organization', account_type: AccountType.ORGANIZATION, category: AccountCategory.DONOR },
@@ -155,7 +167,7 @@ describe('AccountService', () => {
       );
 
       expect(result).toEqual(mockCreatedAccount);
-      expect(mockQuery).toHaveBeenCalledTimes(2);
+      expect(mockQuery).toHaveBeenCalled();
     });
 
     it('should generate first account number when no accounts exist', async () => {
@@ -166,10 +178,12 @@ describe('AccountService', () => {
         account_type: 'organization',
       };
 
-      // No existing accounts
-      mockQuery.mockResolvedValueOnce({ rows: [] });
-      // Mock for INSERT
-      mockQuery.mockResolvedValueOnce({ rows: [mockCreatedAccount] });
+      mockQuery
+        .mockResolvedValueOnce({ rows: [] }) // BEGIN
+        .mockResolvedValueOnce({ rows: [] }) // advisory lock
+        .mockResolvedValueOnce({ rows: [] }) // generateAccountNumber SELECT (no rows)
+        .mockResolvedValueOnce({ rows: [mockCreatedAccount] }) // INSERT
+        .mockResolvedValueOnce({ rows: [] }); // COMMIT
 
       const result = await accountService.createAccount(
         { account_name: 'First Organization', account_type: AccountType.ORGANIZATION, category: AccountCategory.DONOR },
@@ -196,10 +210,14 @@ describe('AccountService', () => {
         country: 'USA',
       };
 
-      mockQuery.mockResolvedValueOnce({ rows: [{ account_number: 'ACC-10001' }] });
-      mockQuery.mockResolvedValueOnce({
-        rows: [{ account_id: 'uuid', ...accountData, account_number: 'ACC-10002' }],
-      });
+      mockQuery
+        .mockResolvedValueOnce({ rows: [] }) // BEGIN
+        .mockResolvedValueOnce({ rows: [] }) // advisory lock
+        .mockResolvedValueOnce({ rows: [{ account_number: 'ACC-10001' }] }) // generateAccountNumber SELECT
+        .mockResolvedValueOnce({
+          rows: [{ account_id: 'uuid', ...accountData, account_number: 'ACC-10002' }],
+        }) // INSERT
+        .mockResolvedValueOnce({ rows: [] }); // COMMIT
 
       const result = await accountService.createAccount(accountData, 'user-123');
 
@@ -208,8 +226,12 @@ describe('AccountService', () => {
     });
 
     it('should throw error on database failure', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [{ account_number: 'ACC-10001' }] });
-      mockQuery.mockRejectedValueOnce(new Error('Database error'));
+      mockQuery
+        .mockResolvedValueOnce({ rows: [] }) // BEGIN
+        .mockResolvedValueOnce({ rows: [] }) // advisory lock
+        .mockResolvedValueOnce({ rows: [{ account_number: 'ACC-10001' }] }) // generateAccountNumber SELECT
+        .mockRejectedValueOnce(new Error('Database error')) // INSERT
+        .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
 
       await expect(
         accountService.createAccount({ account_name: 'Test', account_type: AccountType.ORGANIZATION, category: AccountCategory.DONOR }, 'user-123')

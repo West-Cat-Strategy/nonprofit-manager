@@ -133,7 +133,10 @@ export const getReconciliations = async (req: Request, res: Response): Promise<v
 /**
  * Get reconciliation by ID
  */
-export const getReconciliationById = async (req: Request, res: Response): Promise<void> => {
+export const getReconciliationById = async (
+  req: Request<{ id: string }>,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -157,7 +160,10 @@ export const getReconciliationById = async (req: Request, res: Response): Promis
 /**
  * Get reconciliation items
  */
-export const getReconciliationItems = async (req: Request, res: Response): Promise<void> => {
+export const getReconciliationItems = async (
+  req: Request<{ id: string }>,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
     const { match_status, page = 1, limit = 50 } = req.query as any;
@@ -186,7 +192,10 @@ export const getReconciliationItems = async (req: Request, res: Response): Promi
 /**
  * Get discrepancies for a reconciliation
  */
-export const getReconciliationDiscrepancies = async (req: Request, res: Response): Promise<void> => {
+export const getReconciliationDiscrepancies = async (
+  req: Request<{ id: string }>,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
 

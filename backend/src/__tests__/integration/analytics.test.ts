@@ -13,10 +13,11 @@ import pool from '../../config/database';
 describe('Analytics API Integration Tests', () => {
   let authToken: string;
   let testUserId: string;
+  const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   beforeAll(async () => {
     // Register and login a test user
-    const email = `analytics-test-${Date.now()}@example.com`;
+    const email = `analytics-test-${unique()}@example.com`;
     const registerResponse = await request(app).post('/api/auth/register').send({
       email,
       password: 'Test123!Strong',

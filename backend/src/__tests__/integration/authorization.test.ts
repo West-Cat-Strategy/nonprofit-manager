@@ -12,13 +12,14 @@ describe('Authorization Integration Tests', () => {
   const tokens: Record<string, string> = {};
   const userIds: Record<string, string> = {};
   const testData: Record<string, string> = {};
+  const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   beforeAll(async () => {
     // Create test users with different roles
     const roles = ['admin', 'manager', 'staff', 'volunteer', 'viewer'];
 
     for (const role of roles) {
-      const email = `auth-test-${role}-${Date.now()}@example.com`;
+      const email = `auth-test-${role}-${unique()}@example.com`;
       const response = await request(app)
         .post('/api/auth/register')
         .send({
@@ -271,7 +272,7 @@ describe('Authorization Integration Tests', () => {
           .send({
             first_name: 'Admin',
             last_name: 'Contact',
-            email: `admin-contact-${Date.now()}@example.com`,
+            email: `admin-contact-${unique()}@example.com`,
           });
 
         expect(response.status).toBe(201);
@@ -289,7 +290,7 @@ describe('Authorization Integration Tests', () => {
           .send({
             first_name: 'Staff',
             last_name: 'Contact',
-            email: `staff-contact-${Date.now()}@example.com`,
+            email: `staff-contact-${unique()}@example.com`,
           });
 
         expect(response.status).toBe(201);

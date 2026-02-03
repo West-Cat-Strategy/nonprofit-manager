@@ -16,6 +16,7 @@ import { Contact } from '../types/contact';
 import { logger } from '../config/logger';
 
 type QueryValue = string | number | boolean | null;
+type DbClient = Pick<Pool, 'query'>;
 
 export class AccountService {
   private pool: Pool;
@@ -27,9 +28,13 @@ export class AccountService {
   /**
    * Generate unique account number
    */
-  private async generateAccountNumber(): Promise<string> {
-    const result = await this.pool.query(
-      `SELECT account_number FROM accounts ORDER BY created_at DESC LIMIT 1`
+  private async generateAccountNumber(db: DbClient = this.pool): Promise<string> {
+    const result = await db.query(
+      `SELECT account_number
+       FROM accounts
+       WHERE account_number IS NOT NULL
+       ORDER BY created_at DESC
+       LIMIT 1`
     );
 
     if (result.rows.length === 0) {
@@ -37,7 +42,15 @@ export class AccountService {
     }
 
     const lastNumber = result.rows[0].account_number;
-    const numPart = parseInt(lastNumber.split('-')[1]);
+    if (!lastNumber || typeof lastNumber !== 'string' || !lastNumber.includes('-')) {
+      return 'ACC-10001';
+    }
+
+    const numPart = parseInt(lastNumber.split('-')[1], 10);
+    if (Number.isNaN(numPart)) {
+      return 'ACC-10001';
+    }
+
     return `ACC-${numPart + 1}`;
   }
 
@@ -181,20 +194,27 @@ export class AccountService {
    * Create new account
    */
   async createAccount(data: CreateAccountDTO, userId: string): Promise<Account> {
+    const client = await this.pool.connect();
     try {
-      const accountNumber = await this.generateAccountNumber();
+      await client.query('BEGIN');
 
-      const result = await this.pool.query(
+      // Prevent account_number collisions under concurrent account creation.
+      // We serialize just the number allocation using a transaction-scoped advisory lock.
+      await client.query('SELECT pg_advisory_xact_lock($1)', [911_000_001]);
+
+      const accountNumber = await this.generateAccountNumber(client);
+
+      const result = await client.query(
         `INSERT INTO accounts (
-          account_number, account_name, account_type,
-          email, phone, website, description,
-          address_line1, address_line2, city, state_province, postal_code, country,
-          created_by, modified_by
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14)
-        RETURNING id as account_id, account_number, account_name, account_type,
-          email, phone, website, description,
-          address_line1, address_line2, city, state_province, postal_code, country,
-          is_active, created_at, updated_at, created_by, modified_by`,
+           account_number, account_name, account_type,
+           email, phone, website, description,
+           address_line1, address_line2, city, state_province, postal_code, country,
+           created_by, modified_by
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14)
+         RETURNING id as account_id, account_number, account_name, account_type,
+           email, phone, website, description,
+           address_line1, address_line2, city, state_province, postal_code, country,
+           is_active, created_at, updated_at, created_by, modified_by`,
         [
           accountNumber,
           data.account_name,
@@ -213,11 +233,20 @@ export class AccountService {
         ]
       );
 
+      await client.query('COMMIT');
+
       logger.info(`Account created: ${result.rows[0].account_id}`);
       return result.rows[0];
     } catch (error) {
+      try {
+        await client.query('ROLLBACK');
+      } catch {
+        // ignore rollback errors; original error is what matters
+      }
       logger.error('Error creating account:', error);
       throw new Error('Failed to create account');
+    } finally {
+      client.release();
     }
   }
 

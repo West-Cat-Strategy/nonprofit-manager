@@ -163,6 +163,49 @@ export class EventService {
   }
 
   /**
+   * Get event attendance summary for dashboard widgets
+   */
+  async getEventAttendanceSummary(referenceDate: Date = new Date()): Promise<{
+    upcoming_events: number;
+    total_this_month: number;
+    avg_attendance: number;
+  }> {
+    const startOfMonth = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
+    const endOfMonth = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const upcomingQuery = `
+      SELECT COUNT(*)::int as upcoming_events
+      FROM events
+      WHERE start_date >= $1
+        AND status NOT IN ('cancelled', 'completed')
+    `;
+
+    const monthSummaryQuery = `
+      SELECT
+        COUNT(*)::int as total_this_month,
+        COALESCE(AVG(attended_count), 0)::float as avg_attendance
+      FROM events
+      WHERE start_date >= $1
+        AND start_date <= $2
+    `;
+
+    const [upcomingResult, monthResult] = await Promise.all([
+      this.pool.query(upcomingQuery, [referenceDate]),
+      this.pool.query(monthSummaryQuery, [startOfMonth, endOfMonth]),
+    ]);
+
+    const upcoming_events = upcomingResult.rows[0]?.upcoming_events ?? 0;
+    const total_this_month = monthResult.rows[0]?.total_this_month ?? 0;
+    const avg_attendance = monthResult.rows[0]?.avg_attendance ?? 0;
+
+    return {
+      upcoming_events,
+      total_this_month,
+      avg_attendance,
+    };
+  }
+
+  /**
    * Create new event
    */
   async createEvent(eventData: CreateEventDTO, userId: string): Promise<Event> {
@@ -550,7 +593,7 @@ export class EventService {
         message: 'Successfully checked in',
         registration: result.rows[0],
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         message: 'Check-in failed',

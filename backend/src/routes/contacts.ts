@@ -7,6 +7,7 @@ import { Router } from 'express';
 import { body, param, query } from 'express-validator';
 import {
   getContacts,
+  getContactRoles,
   getContactById,
   createContact,
   updateContact,
@@ -41,11 +42,18 @@ router.get(
     query('sort_by').optional().isString(),
     query('sort_order').optional().isIn(['asc', 'desc']),
     query('search').optional().isString(),
+    query('role').optional().isIn(['staff', 'volunteer', 'board']),
     query('account_id').optional().isUUID(),
     query('is_active').optional().isBoolean(),
   ],
   getContacts
 );
+
+/**
+ * GET /api/contacts/roles
+ * Get available contact roles
+ */
+router.get('/roles', getContactRoles);
 
 /**
  * GET /api/contacts/:id
@@ -84,6 +92,8 @@ router.post(
     body('do_not_email').optional().isBoolean(),
     body('do_not_phone').optional().isBoolean(),
     body('notes').optional().isString().trim(),
+    body('roles').optional().isArray(),
+    body('roles.*').optional().isString().trim(),
   ],
   createContact
 );
@@ -121,6 +131,8 @@ router.put(
     body('do_not_phone').optional().isBoolean(),
     body('notes').optional().isString().trim(),
     body('is_active').optional().isBoolean(),
+    body('roles').optional().isArray(),
+    body('roles.*').optional().isString().trim(),
   ],
   updateContact
 );

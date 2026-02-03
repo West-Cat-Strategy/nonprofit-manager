@@ -4,6 +4,7 @@ import { useAppSelector } from './store/hooks';
 import { useSetupCheck } from './hooks/useSetupCheck';
 import Layout from './components/Layout';
 import AdminRoute from './components/AdminRoute';
+import PortalProtectedRoute from './components/PortalProtectedRoute';
 import { ThemeProvider } from './contexts/ThemeContext';
 import './App.css';
 
@@ -21,8 +22,9 @@ const PageLoader = () => (
 const Setup = lazy(() => import('./pages/Setup'));
 const Login = lazy(() => import('./pages/Login'));
 const AcceptInvitation = lazy(() => import('./pages/AcceptInvitation'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
 const CustomDashboard = lazy(() => import('./pages/CustomDashboard'));
+const IntakeNew = lazy(() => import('./pages/IntakeNew'));
+const InteractionNote = lazy(() => import('./pages/InteractionNote'));
 
 // Account pages
 const AccountList = lazy(() => import('./pages/AccountList'));
@@ -69,6 +71,19 @@ const TaskEdit = lazy(() => import('./pages/TaskEdit'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 const ReportBuilder = lazy(() => import('./pages/ReportBuilder'));
 const SavedReports = lazy(() => import('./pages/SavedReports'));
+// Portal pages
+const PortalLogin = lazy(() => import('./pages/PortalLogin'));
+const PortalSignup = lazy(() => import('./pages/PortalSignup'));
+const PortalAcceptInvitation = lazy(() => import('./pages/PortalAcceptInvitation'));
+const PortalDashboard = lazy(() => import('./pages/PortalDashboard'));
+const PortalProfile = lazy(() => import('./pages/PortalProfile'));
+const PortalPeople = lazy(() => import('./pages/PortalPeople'));
+const PortalEvents = lazy(() => import('./pages/PortalEvents'));
+const PortalAppointments = lazy(() => import('./pages/PortalAppointments'));
+const PortalDocuments = lazy(() => import('./pages/PortalDocuments'));
+const PortalNotes = lazy(() => import('./pages/PortalNotes'));
+const PortalForms = lazy(() => import('./pages/PortalForms'));
+const PortalReminders = lazy(() => import('./pages/PortalReminders'));
 
 // Settings and Integration pages
 const EmailMarketing = lazy(() => import('./pages/EmailMarketing'));
@@ -76,6 +91,7 @@ const ApiSettings = lazy(() => import('./pages/ApiSettings'));
 const NavigationSettings = lazy(() => import('./pages/NavigationSettings'));
 const UserSettings = lazy(() => import('./pages/UserSettings'));
 const AdminSettings = lazy(() => import('./pages/AdminSettings'));
+const DataBackup = lazy(() => import('./pages/DataBackup'));
 
 // Website Builder pages
 const TemplateGallery = lazy(() => import('./pages/TemplateGallery'));
@@ -147,6 +163,81 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/setup" element={<Setup />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/portal/login" element={<PortalLogin />} />
+      <Route path="/portal/signup" element={<PortalSignup />} />
+      <Route path="/portal/accept-invitation/:token" element={<PortalAcceptInvitation />} />
+      <Route
+        path="/portal"
+        element={
+          <PortalProtectedRoute>
+            <PortalDashboard />
+          </PortalProtectedRoute>
+        }
+      />
+      <Route
+        path="/portal/profile"
+        element={
+          <PortalProtectedRoute>
+            <PortalProfile />
+          </PortalProtectedRoute>
+        }
+      />
+      <Route
+        path="/portal/people"
+        element={
+          <PortalProtectedRoute>
+            <PortalPeople />
+          </PortalProtectedRoute>
+        }
+      />
+      <Route
+        path="/portal/events"
+        element={
+          <PortalProtectedRoute>
+            <PortalEvents />
+          </PortalProtectedRoute>
+        }
+      />
+      <Route
+        path="/portal/appointments"
+        element={
+          <PortalProtectedRoute>
+            <PortalAppointments />
+          </PortalProtectedRoute>
+        }
+      />
+      <Route
+        path="/portal/documents"
+        element={
+          <PortalProtectedRoute>
+            <PortalDocuments />
+          </PortalProtectedRoute>
+        }
+      />
+      <Route
+        path="/portal/notes"
+        element={
+          <PortalProtectedRoute>
+            <PortalNotes />
+          </PortalProtectedRoute>
+        }
+      />
+      <Route
+        path="/portal/forms"
+        element={
+          <PortalProtectedRoute>
+            <PortalForms />
+          </PortalProtectedRoute>
+        }
+      />
+      <Route
+        path="/portal/reminders"
+        element={
+          <PortalProtectedRoute>
+            <PortalReminders />
+          </PortalProtectedRoute>
+        }
+      />
       <Route path="/accept-invitation/:token" element={<AcceptInvitation />} />
       {/* Neo-Brutalist Dashboard (Primary) */}
       <Route
@@ -547,6 +638,14 @@ const AppRoutes = () => {
         element={
           <AdminRoute>
             <AdminSettings />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/settings/backup"
+        element={
+          <AdminRoute>
+            <DataBackup />
           </AdminRoute>
         }
       />
