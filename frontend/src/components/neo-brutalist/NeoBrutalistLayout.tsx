@@ -45,6 +45,9 @@ export default function NeoBrutalistLayout({ children, pageTitle }: NeoBrutalist
                         <button
                             onClick={() => setShowMenu(!showMenu)}
                             className="flex items-center gap-6 px-8 h-[96px] border-l-2 border-black dark:border-white bg-white dark:bg-[#121212] hover:bg-gray-50 dark:hover:bg-gray-900 font-bold shadow-none transition-all active:bg-gray-100 dark:active:bg-gray-800"
+                            aria-label="Open user menu"
+                            aria-haspopup="menu"
+                            aria-expanded={showMenu ? 'true' : 'false'}
                         >
                             <div className="flex items-center gap-6">
                                 {user?.profilePicture ? (
@@ -65,13 +68,30 @@ export default function NeoBrutalistLayout({ children, pageTitle }: NeoBrutalist
                         {showMenu && (
                             <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#121212] border-2 border-black dark:border-white shadow-[6px_6px_0px_0px_var(--shadow-color)] z-50">
                                 <button
-                                    onClick={() => navigate('/settings/user')}
+                                    onClick={() => {
+                                        setShowMenu(false);
+                                        navigate('/settings/user');
+                                    }}
                                     className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 font-bold text-sm border-b-2 border-black dark:border-white text-black dark:text-white"
                                 >
                                     Settings
                                 </button>
+                                {user?.role === 'admin' && (
+                                    <button
+                                        onClick={() => {
+                                            setShowMenu(false);
+                                            navigate('/settings/admin');
+                                        }}
+                                        className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 font-bold text-sm border-b-2 border-black dark:border-white text-black dark:text-white"
+                                    >
+                                        Organization Admin
+                                    </button>
+                                )}
                                 <button
-                                    onClick={handleLogout}
+                                    onClick={() => {
+                                        setShowMenu(false);
+                                        handleLogout();
+                                    }}
                                     className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 font-bold text-sm text-black dark:text-white"
                                 >
                                     Logout

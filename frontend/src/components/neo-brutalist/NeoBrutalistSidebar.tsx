@@ -4,6 +4,7 @@
  */
 
 import { Link, useLocation } from 'react-router-dom';
+import { useAppSelector } from '../../store/hooks';
 
 function NavButton({
   to,
@@ -67,6 +68,7 @@ function ModuleButton({
 
 export default function NeoBrutalistSidebar() {
     const location = useLocation();
+    const { user } = useAppSelector((state) => state.auth);
 
     const isActive = (path: string) => location.pathname === path;
 
@@ -139,6 +141,24 @@ export default function NeoBrutalistSidebar() {
 
             {/* Spacer */}
             <div className="flex-1 border-b-2 border-black"></div>
+
+            {/* Settings */}
+            <NavButton
+                to="/settings/user"
+                icon="⚙"
+                label="Settings"
+                active={isActive('/settings/user')}
+            />
+
+            {/* Organization Admin (admins only) */}
+            {user?.role === 'admin' && (
+                <NavButton
+                    to="/settings/admin"
+                    icon="★"
+                    label="Org Admin"
+                    active={isActive('/settings/admin')}
+                />
+            )}
 
 
         </div>
