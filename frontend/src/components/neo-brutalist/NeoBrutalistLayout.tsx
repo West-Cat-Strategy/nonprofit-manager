@@ -53,25 +53,27 @@ export default function NeoBrutalistLayout({ children, pageTitle }: NeoBrutalist
                                         {user?.firstName?.[0] || 'U'}
                                     </div>
                                 )}
-                                <span className="text-3xl font-black italic text-black dark:text-white">{user?.firstName ? `${user.firstName} ${user.lastName}` : 'User'}</span>
+                                <span className="text-3xl font-black italic text-black dark:text-white truncate max-w-xs">
+                                    {user?.firstName ? `${user.firstName} ${user.lastName}` : 'User'}
+                                </span>
                             </div>
                             <svg className="w-8 h-8 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>
 
-                        {/* Dropdown Menu */}
+                        {/* Dropdown Menu - High z-index to appear above brutal borders */}
                         {showMenu && (
-                            <div className="absolute right-0 mt-2 w-48 bg-[var(--app-surface)] border-2 border-black dark:border-white shadow-[6px_6px_0px_0px_var(--shadow-color)] z-50 opacity-100">
+                            <div className="absolute right-0 mt-2 w-48 bg-[var(--app-surface)] border-2 border-black dark:border-white shadow-[6px_6px_0px_0px_var(--shadow-color)] z-[100] opacity-100">
                                 <button
                                     onClick={() => navigate('/settings/user')}
-                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 font-bold text-sm border-b-2 border-black dark:border-white text-black dark:text-white"
+                                    className="w-full text-left px-4 py-2 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black font-bold text-sm border-b-2 border-black dark:border-white text-black dark:text-white transition-colors"
                                 >
                                     Settings
                                 </button>
                                 <button
                                     onClick={handleLogout}
-                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 font-bold text-sm text-black dark:text-white"
+                                    className="w-full text-left px-4 py-2 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black font-bold text-sm text-black dark:text-white transition-colors"
                                 >
                                     Logout
                                 </button>
