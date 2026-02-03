@@ -43,8 +43,8 @@ export default function BrutalButton({
             onClick={onClick}
             disabled={disabled}
             className={`
-        border-brutal border-black shadow-brutal font-bold uppercase
-        hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-brutal-sm
+        border-2 border-black dark:border-white shadow-[6px_6px_0px_var(--shadow-color)] font-bold uppercase
+        hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_var(--shadow-color)]
         transition-all
         disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0
         ${variantClasses[variant]}
