@@ -2164,6 +2164,30 @@ export default function AdminSettings() {
             <ul className="divide-y divide-gray-200">
               <li>
                 <Link
+                  to="/settings/backup"
+                  className="flex items-center justify-between px-6 py-4 hover:bg-gray-50"
+                >
+                  <div className="flex items-center space-x-4">
+                    <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4m0 4h.01M21 12A9 9 0 113 12a9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <div>
+                      <span className="font-medium text-gray-900">Data Backup</span>
+                      <p className="text-sm text-gray-500">Download a backup export</p>
+                    </div>
+                  </div>
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </li>
+              <li>
+                <Link
                   to="/settings/navigation"
                   className="flex items-center justify-between px-6 py-4 hover:bg-gray-50"
                 >
