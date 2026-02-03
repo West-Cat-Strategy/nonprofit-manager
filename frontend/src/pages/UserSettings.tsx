@@ -1,13 +1,13 @@
 /**
- * User Settings Page
- * Personal settings and profile management for the logged-in user
+ * User Settings Page - SMB3 "Backstage" Aesthetic
+ * Dark background, vibrant props, heavy shadows
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { updateUser } from '../store/slices/authSlice';
 import api from '../services/api';
+import NeoBrutalistLayout from '../components/neo-brutalist/NeoBrutalistLayout';
 
 interface AlternativeEmail {
   email: string;
@@ -396,97 +396,87 @@ export default function UserSettings() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 p-6 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
+      <NeoBrutalistLayout pageTitle="USER SETTINGS">
+        <div className="min-h-full bg-[#202020] p-6 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[#FFD700]"></div>
+        </div>
+      </NeoBrutalistLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">User Settings</h1>
-              <p className="mt-2 text-gray-600">
-                Manage your personal profile and account settings.
-              </p>
-            </div>
+    <NeoBrutalistLayout pageTitle="USER SETTINGS">
+      <div className="min-h-full bg-[#202020] p-8 font-sans">
+        <div className="max-w-4xl mx-auto space-y-8">
+
+          {/* Top Actions Pane */}
+          <div className="flex justify-end sticky top-4 z-20">
             <button
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              className="px-8 py-3 bg-[#000] text-white font-black uppercase tracking-wider text-xl
+                border-4 border-white shadow-[6px_6px_0px_0px_#FFF] 
+                hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_#FFF]
+                active:translate-x-[6px] active:translate-y-[6px] active:shadow-none
+                transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
             >
               {isSaving ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Saving...
+                  <span className="animate-spin">⌛</span> SAVING...
                 </>
               ) : (
                 <>
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Save Changes
+                  <span>💾</span> SAVE ALL CHANGES
                 </>
               )}
             </button>
           </div>
+
+          {/* Status Messages */}
           {saveStatus === 'success' && (
-            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center text-green-700">
-              <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Profile saved successfully
+            <div className="bg-[#90EE90] border-4 border-black p-4 font-bold shadow-[6px_6px_0px_0px_#000000] flex items-center gap-3 text-lg animate-slide-in">
+              <span>✅</span> Profile saved successfully!
             </div>
           )}
           {saveStatus === 'error' && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center text-red-700">
-              <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              {errorMessage || 'Failed to save profile'}
+            <div className="bg-[#FF6B6B] border-4 border-black p-4 font-bold shadow-[6px_6px_0px_0px_#000000] flex items-center gap-3 text-lg animate-slide-in text-white">
+              <span>⚠️</span> {errorMessage || 'Failed to save profile'}
             </div>
           )}
-        </div>
 
-        {/* Profile Picture Card */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h2 className="text-lg font-semibold text-gray-900">Profile Picture</h2>
-            <p className="text-sm text-gray-500 mt-1">Upload a photo to personalize your account</p>
-          </div>
+          {/* Profile Picture Card - CYAN Theme */}
+          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_#000000]">
+            <div className="bg-[#4DD0E1] border-b-4 border-black p-4">
+              <h2 className="text-2xl font-black uppercase">Identity Disc</h2>
+            </div>
 
-          <div className="p-6">
-            <div className="flex items-start space-x-6">
-              <div className="relative">
-                {previewImage ? (
-                  <img
-                    src={previewImage}
-                    alt="Profile"
-                    className="w-24 h-24 rounded-full object-cover border-4 border-gray-200"
-                  />
-                ) : (
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold border-4 border-gray-200">
-                    {profile.firstName?.[0]}{profile.lastName?.[0]}
-                  </div>
-                )}
-                {isProcessingImage && (
-                  <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
-                    <svg className="animate-spin h-6 w-6 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                    </svg>
-                  </div>
-                )}
+            <div className="p-8 flex flex-col md:flex-row items-center gap-8">
+              <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                <div className="w-40 h-40 border-4 border-black shadow-[6px_6px_0px_0px_#000000] overflow-hidden bg-gray-100">
+                  {previewImage ? (
+                    <img
+                      src={previewImage}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-[#FFD700] text-4xl font-black">
+                      {profile.firstName?.[0]}{profile.lastName?.[0]}
+                    </div>
+                  )}
+                  {isProcessingImage && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white">
+                      Loading...
+                    </div>
+                  )}
+                </div>
+                <div className="absolute -bottom-3 -right-3 bg-black text-white p-2 border-2 border-white transform rotate-3">
+                  EDIT
+                </div>
               </div>
-              <div className="flex-1">
+
+              <div className="flex-1 w-full">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -495,633 +485,162 @@ export default function UserSettings() {
                   className="hidden"
                 />
 
-                {/* Drag and Drop Zone */}
                 <div
                   ref={dropZoneRef}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
-                    isDragging
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
-                  }`}
+                  className={`border-4 border-dashed rounded-none p-6 text-center cursor-pointer transition-all uppercase font-bold
+                    ${isDragging
+                      ? 'border-[#4DD0E1] bg-[#E0F7FA] text-black scale-[1.02]'
+                      : 'border-gray-300 hover:border-black hover:bg-gray-50 text-gray-500 hover:text-black'
+                    }`}
                 >
-                  <svg className="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <p className="mt-2 text-sm text-gray-600">
-                    <span className="font-medium text-blue-600">Click to upload</span> or drag and drop
-                  </p>
-                  <p className="mt-1 text-xs text-gray-500">
-                    JPG, PNG or GIF up to 20MB (will be resized automatically)
-                  </p>
+                  <p className="text-lg">Click to Upload Avatar</p>
+                  <p className="text-xs mt-2">JPG, PNG or GIF (Max 20MB)</p>
                 </div>
-
-                {previewImage && (
-                  <button
-                    type="button"
-                    onClick={handleRemoveImage}
-                    className="mt-3 px-4 py-2 text-red-600 font-medium rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500"
-                  >
-                    Remove Photo
-                  </button>
-                )}
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Personal Information Card */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h2 className="text-lg font-semibold text-gray-900">Personal Information</h2>
-            <p className="text-sm text-gray-500 mt-1">Your basic profile information</p>
-          </div>
-
-          <div className="p-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  First Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={profile.firstName}
-                  onChange={(e) => handleChange('firstName', e.target.value)}
-                  placeholder="John"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Last Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={profile.lastName}
-                  onChange={(e) => handleChange('lastName', e.target.value)}
-                  placeholder="Doe"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+          {/* Personal Information Card - PINK Theme */}
+          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_#000000]">
+            <div className="bg-[#FFB6C1] border-b-4 border-black p-4">
+              <h2 className="text-2xl font-black uppercase">Character Sheet</h2>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Display Name
-              </label>
-              <input
-                type="text"
-                value={profile.displayName}
-                onChange={(e) => handleChange('displayName', e.target.value)}
-                placeholder="How you want to be addressed"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <p className="text-sm text-gray-500 mt-1">This is how your name will appear to others</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Alternative Name
-              </label>
-              <input
-                type="text"
-                value={profile.alternativeName}
-                onChange={(e) => handleChange('alternativeName', e.target.value)}
-                placeholder="Nickname, maiden name, etc."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Pronouns <span className="text-gray-400 font-normal">(optional)</span>
-                </label>
-                <select
-                  value={profile.pronouns}
-                  onChange={(e) => handleChange('pronouns', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {pronounOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {profile.pronouns === 'custom' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Custom Pronouns
+            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[
+                { label: 'First Name', field: 'firstName', req: true },
+                { label: 'Last Name', field: 'lastName', req: true },
+                { label: 'Display Name', field: 'displayName', placeholder: 'Included in credit roll' },
+                { label: 'Alt Name', field: 'alternativeName', placeholder: 'Nickname' },
+                { label: 'Title / Role', field: 'title', placeholder: 'e.g. Keyblade Master' },
+                { label: 'Cell Phone', field: 'cellPhone' },
+              ].map((item) => (
+                <div key={item.field} className="space-y-2">
+                  <label className="block font-bold text-sm uppercase tracking-wide">
+                    {item.label} {item.req && <span className="text-red-500">*</span>}
                   </label>
                   <input
                     type="text"
-                    value={customPronouns}
-                    onChange={(e) => setCustomPronouns(e.target.value)}
-                    placeholder="e.g., ze/zir"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={String(profile[item.field as keyof UserProfile] || '')}
+                    onChange={(e) => handleChange(item.field as keyof UserProfile, e.target.value)}
+                    placeholder={item.placeholder || ''}
+                    className="w-full p-3 border-2 border-black font-medium focus:outline-none focus:shadow-[4px_4px_0px_0px_#000000] focus:-translate-y-1 transition-all"
                   />
                 </div>
-              )}
-            </div>
+              ))}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Position / Title
-              </label>
-              <input
-                type="text"
-                value={profile.title}
-                onChange={(e) => handleChange('title', e.target.value)}
-                placeholder="e.g., Program Director, Volunteer Coordinator"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Contact Information Card */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h2 className="text-lg font-semibold text-gray-900">Contact Information</h2>
-            <p className="text-sm text-gray-500 mt-1">How others can reach you</p>
-          </div>
-
-          <div className="p-6 space-y-4">
-            {/* Primary Email */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Primary Email Address <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="email"
-                value={profile.email}
-                onChange={(e) => handleChange('email', e.target.value)}
-                placeholder="john@example.com"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <p className="text-sm text-gray-500 mt-1">This is also your login username</p>
-            </div>
-
-            {/* Email Sharing Options */}
-            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-              <p className="text-sm font-medium text-gray-700">Email Visibility</p>
-              <label className="flex items-center space-x-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={profile.emailSharedWithUsers}
-                  onChange={(e) => handleChange('emailSharedWithUsers', e.target.checked)}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">Share email with other staff members</span>
-              </label>
-              <label className="flex items-center space-x-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={profile.emailSharedWithClients}
-                  onChange={(e) => handleChange('emailSharedWithClients', e.target.checked)}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">Share email with clients and contacts</span>
-              </label>
-            </div>
-
-            {/* Alternative Emails */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Alternative Email Addresses
-              </label>
-
-              {profile.alternativeEmails.length > 0 && (
-                <div className="space-y-2 mb-3">
-                  {profile.alternativeEmails.map((altEmail, index) => (
-                    <div key={index} className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
-                      <div className="flex-1">
-                        <span className="text-sm text-gray-900">{altEmail.email}</span>
-                        {altEmail.label && (
-                          <span className="ml-2 text-xs text-gray-500">({altEmail.label})</span>
-                        )}
-                        {!altEmail.isVerified && (
-                          <span className="ml-2 px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded">
-                            Unverified
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeAlternativeEmail(index)}
-                        className="text-red-500 hover:text-red-700 p-1"
-                        aria-label="Remove email"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
+              {/* Pronouns Selection */}
+              <div className="space-y-2">
+                <label className="block font-bold text-sm uppercase tracking-wide">Pronouns</label>
+                <div className="flex gap-2">
+                  <select
+                    value={profile.pronouns}
+                    onChange={(e) => handleChange('pronouns', e.target.value)}
+                    className="w-full p-3 border-2 border-black font-medium bg-white focus:outline-none focus:shadow-[4px_4px_0px_0px_#000000] focus:-translate-y-1 transition-all"
+                  >
+                    {pronounOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  {profile.pronouns === 'custom' && (
+                    <input
+                      type="text"
+                      value={customPronouns}
+                      onChange={(e) => setCustomPronouns(e.target.value)}
+                      placeholder="Specify"
+                      className="w-1/2 p-3 border-2 border-black font-medium focus:outline-none focus:shadow-[4px_4px_0px_0px_#000000]"
+                    />
+                  )}
                 </div>
-              )}
+              </div>
+            </div>
+          </div>
 
-              <div className="flex gap-2">
+          {/* Contact Information Card - GREEN Theme */}
+          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_#000000]">
+            <div className="bg-[#90EE90] border-b-4 border-black p-4">
+              <h2 className="text-2xl font-black uppercase">Comms & Signals</h2>
+            </div>
+
+            <div className="p-8 space-y-6">
+              <div className="space-y-2">
+                <label className="block font-bold text-sm uppercase tracking-wide">
+                  Primary Frequency (Email) <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="email"
-                  value={newAltEmail.email}
-                  onChange={(e) => setNewAltEmail(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="email@example.com"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={profile.email}
+                  onChange={(e) => handleChange('email', e.target.value)}
+                  className="w-full p-3 border-2 border-black bg-gray-100 font-mono text-gray-500 cursor-not-allowed"
+                  disabled // Making email read-only typically good for primary ID, or changing it requires re-auth usually
                 />
-                <input
-                  type="text"
-                  value={newAltEmail.label}
-                  onChange={(e) => setNewAltEmail(prev => ({ ...prev, label: e.target.value }))}
-                  placeholder="Label (optional)"
-                  className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <button
-                  type="button"
-                  onClick={addAlternativeEmail}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                >
-                  Add
-                </button>
               </div>
-            </div>
 
-            {/* Phone Numbers */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cell Phone
+              {/* Visibility Toggles */}
+              <div className="border-2 border-black p-4 bg-gray-50 flex flex-col gap-3">
+                <h3 className="font-bold text-sm uppercase">Visibility Settings</h3>
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div className={`w-6 h-6 border-2 border-black flex items-center justify-center transition-all ${profile.emailSharedWithUsers ? 'bg-black' : 'bg-white'}`}>
+                    {profile.emailSharedWithUsers && <span className="text-white text-xs">✓</span>}
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={profile.emailSharedWithUsers}
+                    onChange={(e) => handleChange('emailSharedWithUsers', e.target.checked)}
+                  />
+                  <span className="font-medium group-hover:underline">Broadcast email to other staff</span>
                 </label>
-                <input
-                  type="tel"
-                  value={profile.cellPhone}
-                  onChange={(e) => handleChange('cellPhone', e.target.value)}
-                  placeholder="(555) 123-4567"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Contact Number
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div className={`w-6 h-6 border-2 border-black flex items-center justify-center transition-all ${profile.emailSharedWithClients ? 'bg-black' : 'bg-white'}`}>
+                    {profile.emailSharedWithClients && <span className="text-white text-xs">✓</span>}
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={profile.emailSharedWithClients}
+                    onChange={(e) => handleChange('emailSharedWithClients', e.target.checked)}
+                  />
+                  <span className="font-medium group-hover:underline">Broadcast email to external contacts</span>
                 </label>
-                <input
-                  type="tel"
-                  value={profile.contactNumber}
-                  onChange={(e) => handleChange('contactNumber', e.target.value)}
-                  placeholder="Office or alternative phone"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Notifications Card */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h2 className="text-lg font-semibold text-gray-900">Notifications</h2>
-            <p className="text-sm text-gray-500 mt-1">Manage how you receive notifications</p>
-          </div>
-
-          <div className="p-6 space-y-4">
-            {/* Master Toggle */}
-            <div className="flex items-center justify-between pb-4 border-b border-gray-200">
-              <div>
-                <p className="font-medium text-gray-900">Email Notifications</p>
-                <p className="text-sm text-gray-500">Receive notifications via email</p>
-              </div>
-              <button
-                type="button"
-                aria-label="Toggle email notifications"
-                onClick={() => handleNotificationChange('emailNotifications', !profile.notifications.emailNotifications)}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                  profile.notifications.emailNotifications ? 'bg-blue-600' : 'bg-gray-200'
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                    profile.notifications.emailNotifications ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-                />
-              </button>
+          {/* Notifications - PURPLE Theme */}
+          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_#000000]">
+            <div className="bg-[#D8BFD8] border-b-4 border-black p-4">
+              <h2 className="text-2xl font-black uppercase">Alert Protocols</h2>
             </div>
 
-            {profile.notifications.emailNotifications && (
-              <div className="space-y-3">
-                {/* Task Reminders */}
-                <label className="flex items-center justify-between cursor-pointer py-2">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Task Reminders</p>
-                    <p className="text-xs text-gray-500">Get notified about upcoming and overdue tasks</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={profile.notifications.taskReminders}
-                    onChange={(e) => handleNotificationChange('taskReminders', e.target.checked)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                </label>
-
-                {/* Event Reminders */}
-                <label className="flex items-center justify-between cursor-pointer py-2">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Event Reminders</p>
-                    <p className="text-xs text-gray-500">Receive reminders before events you&apos;re involved in</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={profile.notifications.eventReminders}
-                    onChange={(e) => handleNotificationChange('eventReminders', e.target.checked)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                </label>
-
-                {/* Donation Alerts */}
-                <label className="flex items-center justify-between cursor-pointer py-2">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Donation Alerts</p>
-                    <p className="text-xs text-gray-500">Get notified when new donations are received</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={profile.notifications.donationAlerts}
-                    onChange={(e) => handleNotificationChange('donationAlerts', e.target.checked)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                </label>
-
-                {/* Case Updates */}
-                <label className="flex items-center justify-between cursor-pointer py-2">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Case Updates</p>
-                    <p className="text-xs text-gray-500">Receive updates on cases assigned to you</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={profile.notifications.caseUpdates}
-                    onChange={(e) => handleNotificationChange('caseUpdates', e.target.checked)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                </label>
-
-                {/* Weekly Digest */}
-                <label className="flex items-center justify-between cursor-pointer py-2">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Weekly Digest</p>
-                    <p className="text-xs text-gray-500">Receive a weekly summary of activity</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={profile.notifications.weeklyDigest}
-                    onChange={(e) => handleNotificationChange('weeklyDigest', e.target.checked)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                </label>
-
-                {/* Marketing Emails */}
-                <label className="flex items-center justify-between cursor-pointer py-2 border-t border-gray-200 pt-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Marketing & Updates</p>
-                    <p className="text-xs text-gray-500">Receive product updates and tips</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={profile.notifications.marketingEmails}
-                    onChange={(e) => handleNotificationChange('marketingEmails', e.target.checked)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                </label>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Security Card */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h2 className="text-lg font-semibold text-gray-900">Security</h2>
-            <p className="text-sm text-gray-500 mt-1">Manage your password and account security</p>
-          </div>
-
-          <div className="p-6">
-            {!showPasswordSection ? (
-              <button
-                type="button"
-                onClick={() => setShowPasswordSection(true)}
-                className="px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
-              >
-                Change Password
-              </button>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Current Password
-                  </label>
-                  <input
-                    type="password"
-                    value={passwordData.currentPassword}
-                    onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      New Password
-                    </label>
-                    <input
-                      type="password"
-                      value={passwordData.newPassword}
-                      onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Confirm New Password
-                    </label>
-                    <input
-                      type="password"
-                      value={passwordData.confirmPassword}
-                      onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-                <p className="text-sm text-gray-500">
-                  Password must be at least 8 characters and contain uppercase, lowercase, number, and special character.
-                </p>
-
-                {passwordError && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center text-red-700">
-                    <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    {passwordError}
-                  </div>
-                )}
-
-                {passwordStatus === 'success' && (
-                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center text-green-700">
-                    <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Password changed successfully
-                  </div>
-                )}
-
-                <div className="flex space-x-3">
+            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(profile.notifications).map(([key, value]) => (
+                <div key={key} className="flex items-center justify-between border-2 border-black p-3 bg-white hover:bg-gray-50 transition-colors">
+                  <span className="font-bold uppercase text-sm">
+                    {key.replace(/([A-Z])/g, ' $1').trim()}
+                  </span>
                   <button
                     type="button"
-                    onClick={handleChangePassword}
-                    disabled={isChangingPassword}
-                    className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                    onClick={() => handleNotificationChange(key as keyof NotificationSettings, !value)}
+                    className={`w-12 h-6 border-2 border-black rounded-full relative transition-colors ${value ? 'bg-[#90EE90]' : 'bg-gray-200'
+                      }`}
                   >
-                    {isChangingPassword ? 'Updating...' : 'Update Password'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowPasswordSection(false);
-                      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-                      setPasswordError('');
-                    }}
-                    className="px-4 py-2 text-gray-700 font-medium rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                  >
-                    Cancel
+                    <div className={`absolute top-0.5 bottom-0.5 w-4 h-4 bg-black border border-black rounded-full transition-all ${value ? 'right-1' : 'left-1'
+                      }`}></div>
                   </button>
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Account Information Card */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h2 className="text-lg font-semibold text-gray-900">Account Information</h2>
-            <p className="text-sm text-gray-500 mt-1">Your account details</p>
+              ))}
+            </div>
           </div>
 
-          <div className="p-6">
-            <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Role</dt>
-                <dd className="mt-1 text-sm text-gray-900 capitalize">{user?.role || 'User'}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Username</dt>
-                <dd className="mt-1 text-sm text-gray-900">{user?.email}</dd>
-              </div>
-            </dl>
-          </div>
-        </div>
-
-        {/* Other Settings Links */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h2 className="text-lg font-semibold text-gray-900">Other Settings</h2>
-          </div>
-          <ul className="divide-y divide-gray-200">
-            <li>
-              <Link
-                to="/settings/navigation"
-                className="flex items-center justify-between px-6 py-4 hover:bg-gray-50"
-              >
-                <div className="flex items-center space-x-4">
-                  <svg
-                    className="h-6 w-6 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 6h16M4 12h16M4 18h16"
-                    />
-                  </svg>
-                  <div>
-                    <span className="font-medium text-gray-900">Navigation</span>
-                    <p className="text-sm text-gray-500">Customize menu items and order</p>
-                  </div>
-                </div>
-                <svg
-                  className="h-5 w-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </Link>
-            </li>
-            {user?.role === 'admin' && (
-              <li>
-                <Link
-                  to="/settings/admin"
-                  className="flex items-center justify-between px-6 py-4 hover:bg-gray-50"
-                >
-                  <div className="flex items-center space-x-4">
-                    <svg
-                      className="h-6 w-6 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                    </svg>
-                    <div>
-                      <span className="font-medium text-gray-900">Admin Settings</span>
-                      <p className="text-sm text-gray-500">Organization settings, user management</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="px-1.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded">
-                      Admin
-                    </span>
-                    <svg
-                      className="h-5 w-5 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </div>
-                </Link>
-              </li>
-            )}
-          </ul>
         </div>
       </div>
-    </div>
+    </NeoBrutalistLayout>
   );
 }
