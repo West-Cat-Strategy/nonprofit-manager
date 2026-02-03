@@ -9,10 +9,18 @@ export default {
     extend: {
       colors: {
         loop: {
-          yellow: '#FFD700',
-          green: '#90EE90',
-          purple: '#D8BFD8',
-          pink: '#FFB6C1',
+          yellow: 'var(--loop-yellow)',
+          green: 'var(--loop-green)',
+          purple: 'var(--loop-purple)',
+          pink: 'var(--loop-pink)',
+          cyan: 'var(--loop-cyan)',
+          blue: 'var(--loop-blue)',
+        },
+        app: {
+          bg: 'var(--app-bg)',
+          surface: 'var(--app-surface)',
+          text: 'var(--app-text)',
+          border: 'var(--app-border)',
         },
       },
       boxShadow: {
