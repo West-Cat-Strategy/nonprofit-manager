@@ -9,7 +9,7 @@
  * Kept for backward compatibility during migration.
  */
 
-import type { MockPerson, CardColor } from './mockData';
+import type { MockPerson } from './mockData';
 import type { AdaptedPerson } from '../types/schema';
 
 // Re-export AdaptedPerson from schema for backward compatibility
