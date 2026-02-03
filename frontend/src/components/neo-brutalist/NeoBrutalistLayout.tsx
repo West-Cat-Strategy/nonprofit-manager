@@ -43,9 +43,18 @@ export default function NeoBrutalistLayout({ children, pageTitle }: NeoBrutalist
                     <div className="relative">
                         <button
                             onClick={() => setShowMenu(!showMenu)}
-                            className="flex items-center gap-2 px-3 py-2 border-2 border-black bg-white hover:bg-gray-50 font-bold shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+                            className="flex items-center gap-2 px-3 py-2 border-2 border-black bg-white hover:bg-gray-50 font-bold shadow-[6px_6px_0px_0px_var(--shadow-color)]"
                         >
-                            <span className="text-sm">{user?.full_name || 'User'}</span>
+                            <div className="flex items-center gap-2">
+                                {user?.profilePicture ? (
+                                    <img src={user.profilePicture} alt="Profile" className="w-6 h-6 rounded-full border border-black" />
+                                ) : (
+                                    <div className="w-6 h-6 bg-black text-white flex items-center justify-center text-xs font-bold rounded-full border border-black">
+                                        {user?.firstName?.[0] || 'U'}
+                                    </div>
+                                )}
+                                <span className="text-sm">{user?.firstName ? `${user.firstName} ${user.lastName}` : 'User'}</span>
+                            </div>
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
@@ -53,7 +62,7 @@ export default function NeoBrutalistLayout({ children, pageTitle }: NeoBrutalist
 
                         {/* Dropdown Menu */}
                         {showMenu && (
-                            <div className="absolute right-0 mt-2 w-48 bg-white border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] z-50">
+                            <div className="absolute right-0 mt-2 w-48 bg-white border-2 border-black shadow-[6px_6px_0px_0px_var(--shadow-color)] z-50">
                                 <button
                                     onClick={() => navigate('/settings/user')}
                                     className="w-full text-left px-4 py-2 hover:bg-gray-100 font-bold text-sm border-b-2 border-black"
