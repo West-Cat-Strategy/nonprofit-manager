@@ -10,6 +10,7 @@ interface PageListProps {
   pages: TemplatePage[];
   currentPageId: string;
   onSelectPage: (pageId: string) => void;
+  onAddPage: () => void;
   onClose: () => void;
 }
 
@@ -17,6 +18,7 @@ const PageList: React.FC<PageListProps> = ({
   pages,
   currentPageId,
   onSelectPage,
+  onAddPage,
   onClose,
 }) => {
   return (
@@ -92,7 +94,7 @@ const PageList: React.FC<PageListProps> = ({
         {/* Footer */}
         <div className="p-4 border-t border-gray-200">
           <button
-            onClick={() => {/* TODO: Add new page */}}
+            onClick={onAddPage}
             className="w-full py-2 px-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-500 hover:text-blue-500 transition-colors flex items-center justify-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

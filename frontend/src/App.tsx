@@ -22,6 +22,7 @@ const Login = lazy(() => import('./pages/Login'));
 const AcceptInvitation = lazy(() => import('./pages/AcceptInvitation'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const CustomDashboard = lazy(() => import('./pages/CustomDashboard'));
+const IntakeNew = lazy(() => import('./pages/IntakeNew'));
 
 // Account pages
 const AccountList = lazy(() => import('./pages/AccountList'));
@@ -176,6 +177,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute isAuthenticated={isAuthenticated}>
             <AccountDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/intake/new"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <IntakeNew />
           </ProtectedRoute>
         }
       />

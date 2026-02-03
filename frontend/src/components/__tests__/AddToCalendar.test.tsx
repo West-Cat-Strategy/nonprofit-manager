@@ -1,14 +1,15 @@
+import { vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import AddToCalendar from '../AddToCalendar';
 import * as calendarUtils from '../../utils/calendar';
 
 // Mock the calendar utility functions
-jest.mock('../../utils/calendar', () => ({
-  generateGoogleCalendarUrl: jest.fn((event) => `https://google.com/calendar?event=${event.event_id}`),
-  generateOutlookCalendarUrl: jest.fn((event) => `https://outlook.com/calendar?event=${event.event_id}`),
-  generateYahooCalendarUrl: jest.fn((event) => `https://yahoo.com/calendar?event=${event.event_id}`),
-  getIcsDownloadUrl: jest.fn((eventId) => `/api/events/${eventId}/ics`),
+vi.mock('../../utils/calendar', () => ({
+  generateGoogleCalendarUrl: vi.fn((event) => `https://google.com/calendar?event=${event.event_id}`),
+  generateOutlookCalendarUrl: vi.fn((event) => `https://outlook.com/calendar?event=${event.event_id}`),
+  generateYahooCalendarUrl: vi.fn((event) => `https://yahoo.com/calendar?event=${event.event_id}`),
+  getIcsDownloadUrl: vi.fn((eventId) => `/api/events/${eventId}/ics`),
 }));
 
 describe('AddToCalendar', () => {
@@ -27,7 +28,7 @@ describe('AddToCalendar', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should render the "Add to Calendar" button', () => {
@@ -248,7 +249,7 @@ describe('AddToCalendar', () => {
   });
 
   it('should cleanup event listener on unmount', () => {
-    const removeEventListenerSpy = jest.spyOn(document, 'removeEventListener');
+    const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener');
 
     const { unmount } = render(<AddToCalendar event={mockEvent} />);
 

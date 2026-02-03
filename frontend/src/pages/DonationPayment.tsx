@@ -15,8 +15,11 @@ import {
   clearCurrentIntent,
   setPaymentSuccess,
 } from '../store/slices/paymentsSlice';
+import { createDonation } from '../store/slices/donationsSlice';
+import api from '../services/api';
 import PaymentForm from '../components/PaymentForm';
 import type { DonationPaymentData } from '../types/payment';
+import type { CreateDonationDTO } from '../types/donation';
 
 // Preset donation amounts
 const PRESET_AMOUNTS = [25, 50, 100, 250, 500, 1000];
@@ -126,10 +129,76 @@ const DonationPayment: React.FC = () => {
     }
   };
 
-  const handlePaymentSuccess = (paymentIntentId: string) => {
-    dispatch(setPaymentSuccess(true));
-    // TODO: Create donation record in backend
-    console.log('Payment successful:', paymentIntentId);
+  const parseDonorName = (name: string | undefined) => {
+    const trimmed = (name || '').trim();
+    if (!trimmed) {
+      return { first_name: 'Anonymous', last_name: 'Donor' };
+    }
+    const parts = trimmed.split(/\s+/);
+    if (parts.length === 1) {
+      return { first_name: parts[0], last_name: 'Donor' };
+    }
+    return {
+      first_name: parts.slice(0, -1).join(' '),
+      last_name: parts[parts.length - 1],
+    };
+  };
+
+  const ensureContactId = async () => {
+    if (!formData.donorEmail) return null;
+    const searchResponse = await api.get('/contacts', {
+      params: { search: formData.donorEmail, limit: 1, is_active: true },
+    });
+    const contacts = searchResponse.data?.data || searchResponse.data?.contacts || [];
+    const match = contacts.find((contact: any) =>
+      (contact.email || '').toLowerCase() === formData.donorEmail.toLowerCase()
+    );
+    if (match?.contact_id) {
+      return match.contact_id as string;
+    }
+
+    const { first_name, last_name } = parseDonorName(formData.donorName);
+    const createResponse = await api.post('/contacts', {
+      first_name,
+      last_name,
+      email: formData.donorEmail,
+      phone: formData.donorPhone || undefined,
+    });
+    return createResponse.data?.contact_id || null;
+  };
+
+  const handlePaymentSuccess = async (paymentIntentId: string) => {
+    try {
+      const contactId = await ensureContactId();
+      if (!contactId) {
+        throw new Error('Unable to create or locate donor contact');
+      }
+
+      const donationData: CreateDonationDTO = {
+        contact_id: contactId,
+        amount: formData.amount / 100,
+        currency: formData.currency.toUpperCase(),
+        donation_date: new Date().toISOString(),
+        payment_method: 'credit_card',
+        payment_status: 'completed',
+        transaction_id: paymentIntentId,
+        campaign_name: formData.campaignName || undefined,
+        designation: formData.designation || undefined,
+        is_recurring: formData.isRecurring,
+        recurring_frequency: formData.isRecurring
+          ? formData.recurringFrequency === 'yearly'
+            ? 'annually'
+            : formData.recurringFrequency || 'monthly'
+          : 'one_time',
+        notes: formData.notes || undefined,
+      };
+
+      await dispatch(createDonation(donationData)).unwrap();
+      dispatch(setPaymentSuccess(true));
+    } catch (err) {
+      console.error('Failed to create donation record:', err);
+      dispatch(setPaymentSuccess(true));
+    }
   };
 
   const handlePaymentError = (errorMessage: string) => {

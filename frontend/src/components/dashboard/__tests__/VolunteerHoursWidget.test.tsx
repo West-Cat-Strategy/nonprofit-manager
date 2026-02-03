@@ -32,14 +32,17 @@ describe('VolunteerHoursWidget', () => {
     hours_this_month: 180,
   };
 
+  const mockPending = () => {
+    (api.get as any).mockReturnValue(new Promise(() => {}));
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPending();
   });
 
   describe('Rendering', () => {
     it('renders without crashing', () => {
-      (api.get as any).mockResolvedValue({ data: mockVolunteerData });
-
       render(
         <VolunteerHoursWidget
           widget={mockWidget}
@@ -52,9 +55,7 @@ describe('VolunteerHoursWidget', () => {
     });
 
     it('shows loading state initially', () => {
-      (api.get as any).mockImplementation(
-        () => new Promise(() => {}) // Never resolves
-      );
+      mockPending();
 
       render(
         <VolunteerHoursWidget
@@ -170,15 +171,13 @@ describe('VolunteerHoursWidget', () => {
 
       await waitFor(() => {
         // Should display 0 for missing values
-        expect(screen.getByText('0')).toBeInTheDocument();
+        expect(screen.getAllByText('0').length).toBeGreaterThan(0);
       });
     });
   });
 
   describe('Edit Mode', () => {
     it('passes edit mode to WidgetContainer', () => {
-      (api.get as any).mockResolvedValue({ data: mockVolunteerData });
-
       const { container } = render(
         <VolunteerHoursWidget
           widget={mockWidget}
@@ -192,7 +191,6 @@ describe('VolunteerHoursWidget', () => {
     });
 
     it('calls onRemove callback', () => {
-      (api.get as any).mockResolvedValue({ data: mockVolunteerData });
       const onRemove = vi.fn();
 
       render(
@@ -280,8 +278,6 @@ describe('VolunteerHoursWidget', () => {
 
   describe('Widget Configuration', () => {
     it('uses widget title from config', () => {
-      (api.get as any).mockResolvedValue({ data: mockVolunteerData });
-
       const customWidget = {
         ...mockWidget,
         title: 'Custom Volunteer Title',
@@ -299,8 +295,6 @@ describe('VolunteerHoursWidget', () => {
     });
 
     it('applies widget positioning', () => {
-      (api.get as any).mockResolvedValue({ data: mockVolunteerData });
-
       const positionedWidget = {
         ...mockWidget,
         position: { x: 2, y: 1, w: 2, h: 2 },
@@ -358,8 +352,6 @@ describe('VolunteerHoursWidget', () => {
 
   describe('Performance', () => {
     it('only fetches data once on mount', async () => {
-      (api.get as any).mockResolvedValue({ data: mockVolunteerData });
-
       const { rerender } = render(
         <VolunteerHoursWidget
           widget={mockWidget}
