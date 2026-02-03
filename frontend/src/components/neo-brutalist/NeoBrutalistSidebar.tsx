@@ -1,6 +1,6 @@
 /**
  * Neo-Brutalist Sidebar - Yellow LOOP Branding
- * Persistent left sidebar with module navigation
+ * Chameleon Mode: Active modules change sidebar button colors
  */
 
 import React from 'react';
@@ -35,10 +35,10 @@ export default function NeoBrutalistSidebar() {
         return (
             <Link to={to}>
                 <div className={`flex items-center gap-3 px-4 py-3 border-b-2 border-black transition-all ${active
-                    ? `${bgColor} text-black`
+                    ? `${bgColor} text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]`
                     : 'bg-white text-black hover:bg-gray-50'
                     }`}>
-                    <div className="w-6 h-6 bg-black text-white flex items-center justify-center text-xs font-bold">
+                    <div className="w-6 h-6 bg-black text-white flex items-center justify-center text-xs font-bold border-2 border-black">
                         {icon}
                     </div>
                     <span className="font-bold text-sm">{label}</span>
@@ -47,15 +47,25 @@ export default function NeoBrutalistSidebar() {
         );
     };
 
+    // Get current date in format "FEB 03 2026"
+    const getCurrentDate = () => {
+        const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+        const now = new Date();
+        const month = months[now.getMonth()];
+        const day = String(now.getDate()).padStart(2, '0');
+        const year = now.getFullYear();
+        return `${month} ${day} ${year}`;
+    };
+
     return (
         <div className="w-48 bg-white border-r-2 border-black flex flex-col h-screen">
             {/* Yellow LOOP Branding Header */}
-            <div className="bg-[#FFD700] border-b-2 border-black p-4">
+            <div className="bg-[#FFD700] border-b-2 border-black p-4 shadow-[6px_0px_0px_0px_rgba(0,0,0,1)]">
                 <h1 className="font-black text-xl leading-tight">
                     COMMUNITY<br />LOOP
                 </h1>
-                <div className="mt-2 inline-block border-2 border-black bg-white px-2 py-1 text-xs font-bold">
-                    v2.0.4
+                <div className="mt-2 inline-block border-2 border-black bg-white px-2 py-1 text-xs font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    {getCurrentDate()}
                 </div>
             </div>
 
@@ -67,24 +77,22 @@ export default function NeoBrutalistSidebar() {
                 active={isActive('/dashboard') || isActive('/')}
             />
 
-            {/* MODULES Section Label */}
-            <div className="px-4 py-2 text-xs font-bold text-gray-500 uppercase tracking-wide border-b-2 border-black bg-gray-50">
-                MODULES
-            </div>
+            {/* Yellow Separator Box (replaces MODULES label) */}
+            <div className="h-6 bg-[#FFD700] border-b-2 border-black shadow-[6px_0px_0px_0px_rgba(0,0,0,1)]"></div>
 
-            {/* Module Links */}
+            {/* Module Links with Chameleon Colors */}
             <ModuleButton
                 to="/linking"
                 icon="L"
                 label="Linking"
-                activeColor="bg-white"
+                activeColor="bg-[#90EE90]"
             />
 
             <ModuleButton
                 to="/operations"
                 icon="O"
                 label="Operations"
-                activeColor="bg-[#FFD700]"
+                activeColor="bg-[#87CEEB]"
             />
 
             <ModuleButton
@@ -113,7 +121,7 @@ export default function NeoBrutalistSidebar() {
                     <div className="font-bold text-sm">Jane Admin</div>
                     <div className="text-xs text-gray-600">@westcat</div>
                 </div>
-                <button className="w-8 h-8 hover:bg-gray-100 flex items-center justify-center border-2 border-black">
+                <button className="w-8 h-8 hover:bg-gray-100 flex items-center justify-center border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     ⚙️
                 </button>
             </div>
