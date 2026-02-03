@@ -53,6 +53,17 @@ export const fetchDashboard = createAsyncThunk(
 );
 
 /**
+ * Fetch user's default dashboard (or create it)
+ */
+export const fetchDefaultDashboard = createAsyncThunk(
+  'dashboard/fetchDefaultDashboard',
+  async () => {
+    const response = await api.get<DashboardConfig>('/dashboard/configs/default');
+    return response.data;
+  }
+);
+
+/**
  * Create a new dashboard configuration
  */
 export const createDashboard = createAsyncThunk(
@@ -188,12 +199,32 @@ const dashboardSlice = createSlice({
           const defaultDashboard = action.payload.find((d) => d.is_default);
           if (defaultDashboard) {
             state.currentDashboard = defaultDashboard;
+          } else if (action.payload.length > 0) {
+            state.currentDashboard = action.payload[0];
           }
         }
       })
       .addCase(fetchDashboards.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to fetch dashboards';
+      })
+
+      // Fetch default dashboard
+      .addCase(fetchDefaultDashboard.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchDefaultDashboard.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentDashboard = action.payload;
+        const exists = state.dashboards.find((d) => d.id === action.payload.id);
+        if (!exists) {
+          state.dashboards.push(action.payload);
+        }
+      })
+      .addCase(fetchDefaultDashboard.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to fetch default dashboard';
       })
 
       // Fetch specific dashboard

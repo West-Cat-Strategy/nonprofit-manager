@@ -227,6 +227,9 @@ export interface Contact {
   email_count?: number;
   relationship_count?: number;
   note_count?: number;
+
+  // Roles
+  roles?: string[];
 }
 
 export interface ContactWithRelated extends Contact {
@@ -260,6 +263,7 @@ export interface CreateContactDTO {
   do_not_email?: boolean;
   do_not_phone?: boolean;
   notes?: string;
+  roles?: string[];
 }
 
 export interface UpdateContactDTO {
@@ -288,6 +292,14 @@ export interface UpdateContactDTO {
   do_not_phone?: boolean;
   notes?: string;
   is_active?: boolean;
+  roles?: string[];
+}
+
+export interface ContactRole {
+  id: string;
+  name: string;
+  description: string | null;
+  is_system: boolean;
 }
 
 export interface ContactFilters {

@@ -21,7 +21,7 @@ function ReportBuilder() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const dispatch = useAppDispatch();
-  const { currentReport, loading } = useAppSelector((state) => state.reports);
+  const { currentReport, loading, availableFields } = useAppSelector((state) => state.reports);
   const { currentSavedReport } = useAppSelector((state) => state.savedReports);
 
   const [entity, setEntity] = useState<ReportEntity>('contacts');
@@ -138,6 +138,14 @@ function ReportBuilder() {
     setSorts([]);
   };
 
+  const fieldLabelMap = (availableFields[entity] || []).reduce<Record<string, string>>(
+    (acc, field) => {
+      acc[field.field] = field.label || field.field;
+      return acc;
+    },
+    {}
+  );
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
@@ -242,7 +250,7 @@ function ReportBuilder() {
                         key={field}
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
-                        {field.replace(/_/g, ' ')}
+                        {(fieldLabelMap[field] || field).replace(/_/g, ' ')}
                       </th>
                     ))}
                   </tr>

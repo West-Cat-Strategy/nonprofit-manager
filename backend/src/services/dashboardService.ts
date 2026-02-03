@@ -84,8 +84,8 @@ export class DashboardService {
           data.is_default,
           JSON.stringify(data.widgets),
           JSON.stringify(data.layout),
-          JSON.stringify(data.breakpoints || null),
-          JSON.stringify(data.cols || null),
+          JSON.stringify(data.breakpoints || {}),
+          JSON.stringify(data.cols || {}),
         ]
       );
 
@@ -142,11 +142,11 @@ export class DashboardService {
       }
       if (data.breakpoints !== undefined) {
         fields.push(`breakpoints = $${paramCount++}`);
-        values.push(JSON.stringify(data.breakpoints));
+        values.push(JSON.stringify(data.breakpoints || {}));
       }
       if (data.cols !== undefined) {
         fields.push(`cols = $${paramCount++}`);
-        values.push(JSON.stringify(data.cols));
+        values.push(JSON.stringify(data.cols || {}));
       }
 
       fields.push(`updated_at = NOW()`);
@@ -254,6 +254,29 @@ export class DashboardService {
       cols: { lg: 12, md: 10, sm: 6, xs: 4 },
     };
 
-    return this.createDashboard(defaultConfig);
+    // Try to create the default dashboard. If another request creates it concurrently,
+    // the partial unique index (user_id where is_default=true) will win and we'll fall back to selecting.
+    const insertResult = await this.pool.query(
+      `INSERT INTO dashboard_configs (user_id, name, is_default, widgets, layout, breakpoints, cols, created_at, updated_at)
+       VALUES ($1, $2, true, $3, $4, $5, $6, NOW(), NOW())
+       ON CONFLICT (user_id) WHERE is_default = true DO NOTHING
+       RETURNING id, user_id, name, is_default, widgets, layout, breakpoints, cols, created_at, updated_at`,
+      [
+        defaultConfig.user_id,
+        defaultConfig.name,
+        JSON.stringify(defaultConfig.widgets),
+        JSON.stringify(defaultConfig.layout),
+        JSON.stringify(defaultConfig.breakpoints || {}),
+        JSON.stringify(defaultConfig.cols || {}),
+      ]
+    );
+
+    if (insertResult.rows[0]) return insertResult.rows[0];
+
+    const existing = await this.getDefaultDashboard(userId);
+    if (existing) return existing;
+
+    // If we still don't have one, something is off (e.g. missing index). Fail loudly.
+    throw new Error('Failed to create default dashboard');
   }
 }

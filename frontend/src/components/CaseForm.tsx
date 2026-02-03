@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
@@ -7,7 +7,8 @@ import {
   fetchCaseTypes,
   fetchCaseStatuses,
 } from '../store/slices/casesSlice';
-import { fetchContacts } from '../store/slices/contactsSlice';
+import type { Contact } from '../store/slices/contactsSlice';
+import api from '../services/api';
 import type { CaseWithDetails, CreateCaseDTO, UpdateCaseDTO } from '../types/case';
 // import { useToast } from '../contexts/ToastContext';
 
@@ -30,7 +31,6 @@ const CaseForm = ({
   const dispatch = useAppDispatch();
   // const { showSuccess, showError } = useToast();
   const { caseTypes, loading, error } = useAppSelector((state) => state.cases);
-  const { contacts } = useAppSelector((state) => state.contacts);
 
   const isEditMode = Boolean(caseId);
 
@@ -50,12 +50,62 @@ const CaseForm = ({
   });
 
   const [tagInput, setTagInput] = useState('');
+  const [contactQuery, setContactQuery] = useState('');
+  const [contactResults, setContactResults] = useState<Contact[]>([]);
+  const [contactLoading, setContactLoading] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const contactInputRef = useRef<HTMLInputElement>(null);
+  const contactDropdownRef = useRef<HTMLDivElement>(null);
+  const contactDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     dispatch(fetchCaseTypes());
     dispatch(fetchCaseStatuses());
-    dispatch(fetchContacts({ page: 1, limit: 100 }));
   }, [dispatch]);
+
+  useEffect(() => {
+    const loadSelectedContact = async (contactId: string) => {
+      try {
+        const response = await api.get(`/contacts/${contactId}`);
+        const contact = response.data as Contact;
+        setSelectedContact(contact);
+        setContactQuery(
+          `${contact.first_name} ${contact.last_name}${contact.email ? ` • ${contact.email}` : ''}`
+        );
+      } catch {
+        setSelectedContact(null);
+      }
+    };
+
+    if (formData.contact_id && !selectedContact) {
+      loadSelectedContact(formData.contact_id);
+    }
+  }, [formData.contact_id, selectedContact]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        contactDropdownRef.current &&
+        !contactDropdownRef.current.contains(event.target as Node) &&
+        contactInputRef.current &&
+        !contactInputRef.current.contains(event.target as Node)
+      ) {
+        setContactOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (contactDebounceRef.current) {
+        clearTimeout(contactDebounceRef.current);
+      }
+    };
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -67,6 +117,57 @@ const CaseForm = ({
       [name]: type === 'checkbox' ? checked : value,
     }));
   };
+
+  const handleContactSearch = (value: string) => {
+    if (contactDebounceRef.current) {
+      clearTimeout(contactDebounceRef.current);
+    }
+
+    if (value.trim().length < 2) {
+      setContactResults([]);
+      setContactOpen(false);
+      return;
+    }
+
+    contactDebounceRef.current = setTimeout(async () => {
+      setContactLoading(true);
+      try {
+        const response = await api.get('/contacts', {
+          params: {
+            search: value.trim(),
+            limit: 8,
+            is_active: true,
+          },
+        });
+        setContactResults(response.data.contacts || []);
+        setContactOpen(true);
+      } catch {
+        setContactResults([]);
+        setContactOpen(false);
+      } finally {
+        setContactLoading(false);
+      }
+    }, 250);
+  };
+
+  const handleContactQueryChange = (value: string) => {
+    setContactQuery(value);
+    setSelectedContact(null);
+    setFormData((prev) => ({ ...prev, contact_id: '' }));
+    handleContactSearch(value);
+  };
+
+  const handleSelectContact = (contact: Contact) => {
+    setSelectedContact(contact);
+    setContactQuery(
+      `${contact.first_name} ${contact.last_name}${contact.email ? ` • ${contact.email}` : ''}`
+    );
+    setFormData((prev) => ({ ...prev, contact_id: contact.contact_id }));
+    setContactResults([]);
+    setContactOpen(false);
+  };
+
+  const visibleResults = useMemo(() => contactResults, [contactResults]);
 
   const handleAddTag = () => {
     if (tagInput.trim() && !formData.tags?.includes(tagInput.trim())) {
@@ -137,21 +238,47 @@ const CaseForm = ({
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Client <span className="text-red-500">*</span>
         </label>
-        <select
-          name="contact_id"
-          value={formData.contact_id}
-          onChange={handleChange}
-          required
-          disabled={isEditMode || (disableContactSelection && Boolean(formData.contact_id))}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-        >
-          <option value="">Select a client...</option>
-          {contacts.map((contact) => (
-            <option key={contact.contact_id} value={contact.contact_id}>
-              {contact.first_name} {contact.last_name} - {contact.email}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <input
+            ref={contactInputRef}
+            type="text"
+            name="contact_lookup"
+            value={contactQuery}
+            onChange={(e) => handleContactQueryChange(e.target.value)}
+            onFocus={() => contactQuery.trim().length >= 2 && setContactOpen(true)}
+            placeholder="Search by name, email, or phone..."
+            disabled={isEditMode || (disableContactSelection && Boolean(formData.contact_id))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+          />
+          {contactLoading && (
+            <div className="absolute inset-y-0 right-3 flex items-center">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-500" />
+            </div>
+          )}
+          {contactOpen && visibleResults.length > 0 && !isEditMode && (
+            <div
+              ref={contactDropdownRef}
+              className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg max-h-64 overflow-y-auto"
+            >
+              {visibleResults.map((contact) => (
+                <button
+                  type="button"
+                  key={contact.contact_id}
+                  onClick={() => handleSelectContact(contact)}
+                  className="w-full text-left px-4 py-2 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
+                >
+                  <div className="text-sm font-medium text-gray-900">
+                    {contact.first_name} {contact.last_name}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {contact.email || contact.phone || contact.mobile_phone || 'No contact info'}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <input type="hidden" name="contact_id" value={formData.contact_id} />
         {isEditMode && (
           <p className="mt-1 text-sm text-gray-500">Client cannot be changed after case creation</p>
         )}

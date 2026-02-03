@@ -52,7 +52,7 @@ export default function QuickLookupWidget({ className = '' }: QuickLookupWidgetP
       setResults(response.data.contacts || []);
       setIsOpen(true);
       setSelectedIndex(-1);
-    } catch (error) {
+    } catch {
       setResults([]);
     } finally {
       setIsLoading(false);

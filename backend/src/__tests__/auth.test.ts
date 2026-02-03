@@ -5,6 +5,11 @@ import pool from '../config/database';
 import { register, login } from '../controllers/authController';
 import { AuthRequest } from '../middleware/auth';
 
+jest.mock('../services/userRoleService', () => ({
+  __esModule: true,
+  syncUserRole: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock('../config/database', () => ({
   __esModule: true,
   default: {

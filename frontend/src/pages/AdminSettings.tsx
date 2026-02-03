@@ -7,6 +7,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
+import { useToast } from '../contexts/ToastContext';
 
 // ============================================================================
 // Interfaces
@@ -95,6 +96,55 @@ interface UserInvitation {
   message: string | null;
   createdAt: string;
   createdByName?: string;
+}
+
+interface PortalSignupRequest {
+  id: string;
+  email: string;
+  status: string;
+  requested_at: string;
+  reviewed_at?: string | null;
+  contact_id?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+}
+
+interface PortalInvitation {
+  id: string;
+  email: string;
+  contact_id?: string | null;
+  expires_at: string;
+  created_at: string;
+  accepted_at?: string | null;
+}
+
+interface PortalUser {
+  id: string;
+  email: string;
+  status: string;
+  is_verified: boolean;
+  created_at: string;
+  last_login_at: string | null;
+  contact_id: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+}
+
+interface PortalActivity {
+  id: string;
+  action: string;
+  details: string | null;
+  created_at: string;
+  ip_address?: string | null;
+  user_agent?: string | null;
+}
+
+interface PortalContactLookup {
+  contact_id: string;
+  first_name: string;
+  last_name: string;
+  email?: string | null;
+  phone?: string | null;
 }
 
 // ============================================================================
@@ -259,6 +309,8 @@ const validatePostalCode = (postalCode: string, country: string): boolean => {
 // ============================================================================
 
 export default function AdminSettings() {
+  const { showSuccess, showError } = useToast();
+
   // State
   const [activeSection, setActiveSection] = useState<string>('organization');
   const [config, setConfig] = useState<OrganizationConfig>(defaultConfig);
@@ -290,6 +342,29 @@ export default function AdminSettings() {
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [isCreatingInvite, setIsCreatingInvite] = useState(false);
+
+  // Portal admin state
+  const [portalRequests, setPortalRequests] = useState<PortalSignupRequest[]>([]);
+  const [portalInvitations, setPortalInvitations] = useState<PortalInvitation[]>([]);
+  const [portalInviteEmail, setPortalInviteEmail] = useState('');
+  const [portalInviteContactId, setPortalInviteContactId] = useState('');
+  const [portalInviteUrl, setPortalInviteUrl] = useState<string | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [portalUsers, setPortalUsers] = useState<PortalUser[]>([]);
+  const [portalUsersLoading, setPortalUsersLoading] = useState(false);
+  const [portalUserSearch, setPortalUserSearch] = useState('');
+  const [portalUserActivity, setPortalUserActivity] = useState<PortalActivity[]>([]);
+  const [portalActivityLoading, setPortalActivityLoading] = useState(false);
+  const [selectedPortalUser, setSelectedPortalUser] = useState<PortalUser | null>(null);
+  const [portalResetTarget, setPortalResetTarget] = useState<PortalUser | null>(null);
+  const [portalResetPassword, setPortalResetPassword] = useState('');
+  const [portalResetConfirmPassword, setPortalResetConfirmPassword] = useState('');
+  const [portalResetLoading, setPortalResetLoading] = useState(false);
+  const [showPortalResetModal, setShowPortalResetModal] = useState(false);
+  const [portalContactSearch, setPortalContactSearch] = useState('');
+  const [portalContactResults, setPortalContactResults] = useState<PortalContactLookup[]>([]);
+  const [portalContactLoading, setPortalContactLoading] = useState(false);
+  const [selectedPortalContact, setSelectedPortalContact] = useState<PortalContactLookup | null>(null);
 
   // Form states
   const [newPassword, setNewPassword] = useState('');
@@ -342,6 +417,31 @@ export default function AdminSettings() {
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (activeSection !== 'portal') return;
+
+    const fetchPortalData = async () => {
+      try {
+        setPortalLoading(true);
+        setPortalUsersLoading(true);
+        const [requestsResponse, invitationsResponse, usersResponse] = await Promise.all([
+          api.get('/portal/admin/requests').catch(() => ({ data: { requests: [] } })),
+          api.get('/portal/admin/invitations').catch(() => ({ data: { invitations: [] } })),
+          api.get('/portal/admin/users').catch(() => ({ data: { users: [] } })),
+        ]);
+
+        setPortalRequests(requestsResponse.data.requests || []);
+        setPortalInvitations(invitationsResponse.data.invitations || []);
+        setPortalUsers(usersResponse.data.users || []);
+      } finally {
+        setPortalLoading(false);
+        setPortalUsersLoading(false);
+      }
+    };
+
+    fetchPortalData();
+  }, [activeSection]);
 
   // ============================================================================
   // User Search
@@ -647,6 +747,169 @@ export default function AdminSettings() {
   };
 
   // ============================================================================
+  // Client Portal Management
+  // ============================================================================
+
+  const refreshPortalData = async () => {
+    try {
+      setPortalLoading(true);
+      const [requestsResponse, invitationsResponse] = await Promise.all([
+        api.get('/portal/admin/requests').catch(() => ({ data: { requests: [] } })),
+        api.get('/portal/admin/invitations').catch(() => ({ data: { invitations: [] } })),
+      ]);
+      setPortalRequests(requestsResponse.data.requests || []);
+      setPortalInvitations(invitationsResponse.data.invitations || []);
+    } finally {
+      setPortalLoading(false);
+    }
+
+    fetchPortalUsers(portalUserSearch);
+  };
+
+  const handleApprovePortalRequest = async (requestId: string) => {
+    try {
+      await api.post(`/portal/admin/requests/${requestId}/approve`);
+      showSuccess('Portal signup request approved');
+      refreshPortalData();
+    } catch (error: any) {
+      showError(error.response?.data?.error || 'Failed to approve request');
+    }
+  };
+
+  const handleRejectPortalRequest = async (requestId: string) => {
+    if (!confirm('Reject this portal request?')) return;
+    try {
+      await api.post(`/portal/admin/requests/${requestId}/reject`);
+      showSuccess('Portal signup request rejected');
+      refreshPortalData();
+    } catch (error: any) {
+      showError(error.response?.data?.error || 'Failed to reject request');
+    }
+  };
+
+  const handleCreatePortalInvite = async () => {
+    if (!portalInviteEmail) {
+      setFormError('Portal invite email is required');
+      return;
+    }
+
+    try {
+      setFormError(null);
+      const response = await api.post('/portal/admin/invitations', {
+        email: portalInviteEmail,
+        contact_id: portalInviteContactId || undefined,
+      });
+      setPortalInviteUrl(response.data.inviteUrl);
+      setPortalInviteEmail('');
+      setPortalInviteContactId('');
+      setSelectedPortalContact(null);
+      showSuccess('Portal invitation created');
+      refreshPortalData();
+    } catch (error: any) {
+      showError(error.response?.data?.error || 'Failed to create portal invitation');
+    }
+  };
+
+  const fetchPortalUsers = useCallback(async (searchTerm?: string) => {
+    try {
+      setPortalUsersLoading(true);
+      const response = await api.get('/portal/admin/users', {
+        params: searchTerm ? { search: searchTerm } : undefined,
+      });
+      setPortalUsers(response.data.users || []);
+    } finally {
+      setPortalUsersLoading(false);
+    }
+  }, []);
+
+  const handlePortalUserStatusChange = async (user: PortalUser, status: string) => {
+    try {
+      await api.patch(`/portal/admin/users/${user.id}`, { status });
+      showSuccess(`Portal user ${status === 'active' ? 'reactivated' : 'suspended'}`);
+      fetchPortalUsers(portalUserSearch);
+      if (selectedPortalUser?.id === user.id) {
+        setSelectedPortalUser({ ...selectedPortalUser, status });
+      }
+    } catch (error: any) {
+      showError(error.response?.data?.error || 'Failed to update portal user status');
+    }
+  };
+
+  const handlePortalUserActivity = async (user: PortalUser) => {
+    try {
+      setSelectedPortalUser(user);
+      setPortalActivityLoading(true);
+      const response = await api.get(`/portal/admin/users/${user.id}/activity`);
+      setPortalUserActivity(response.data.activity || []);
+    } finally {
+      setPortalActivityLoading(false);
+    }
+  };
+
+  const handlePortalPasswordReset = async () => {
+    if (!portalResetTarget || !portalResetPassword) {
+      showError('Password is required');
+      return;
+    }
+    if (portalResetPassword.length < 8) {
+      showError('Password must be at least 8 characters');
+      return;
+    }
+    if (portalResetPassword !== portalResetConfirmPassword) {
+      showError('Passwords do not match');
+      return;
+    }
+    try {
+      setPortalResetLoading(true);
+      await api.post('/portal/admin/reset-password', {
+        portalUserId: portalResetTarget.id,
+        password: portalResetPassword,
+      });
+      setPortalResetPassword('');
+      setPortalResetConfirmPassword('');
+      setPortalResetTarget(null);
+      setShowPortalResetModal(false);
+      showSuccess('Portal user password updated');
+    } catch (error: any) {
+      showError(error.response?.data?.error || 'Failed to reset password');
+    } finally {
+      setPortalResetLoading(false);
+    }
+  };
+
+  const searchPortalContacts = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setPortalContactResults([]);
+      return;
+    }
+    setPortalContactLoading(true);
+    try {
+      const response = await api.get('/contacts', { params: { search: query, limit: 5 } });
+      setPortalContactResults(response.data.data || []);
+    } catch {
+      setPortalContactResults([]);
+    } finally {
+      setPortalContactLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeSection !== 'portal') return;
+    const debounceTimer = setTimeout(() => {
+      fetchPortalUsers(portalUserSearch);
+    }, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [activeSection, portalUserSearch, fetchPortalUsers]);
+
+  useEffect(() => {
+    if (activeSection !== 'portal') return;
+    const debounceTimer = setTimeout(() => {
+      searchPortalContacts(portalContactSearch);
+    }, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [activeSection, portalContactSearch, searchPortalContacts]);
+
+  // ============================================================================
   // Render Helpers
   // ============================================================================
 
@@ -722,6 +985,7 @@ export default function AdminSettings() {
               { id: 'organization', label: 'Organization' },
               { id: 'branding', label: 'Branding' },
               { id: 'users', label: 'Users & Security' },
+              { id: 'portal', label: 'Client Portal' },
               { id: 'roles', label: 'Roles & Permissions' },
               { id: 'other', label: 'Other Settings' },
             ].map((tab) => (
@@ -1436,6 +1700,359 @@ export default function AdminSettings() {
           </div>
         )}
 
+        {/* Client Portal Section */}
+        {activeSection === 'portal' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h2 className="text-lg font-semibold text-gray-900">Client Portal Access</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Approve client signup requests and issue portal invitations.
+                </p>
+              </div>
+              <div className="p-6 flex flex-col gap-4">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">Manual distribution</div>
+                    <div className="text-sm text-gray-500">
+                      No SMTP configured. Copy invite links and share them securely.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={refreshPortalData}
+                    className="px-4 py-2 text-sm bg-gray-100 rounded-lg hover:bg-gray-200"
+                  >
+                    Refresh
+                  </button>
+                </div>
+                {portalInviteUrl && (
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                    <div className="text-sm font-medium text-blue-900">Latest invite link</div>
+                    <div className="mt-1 text-sm text-blue-800 break-all">{portalInviteUrl}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 className="text-lg font-semibold text-gray-900">Signup Requests</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Requests from clients waiting for approval.
+                </p>
+              </div>
+              <div className="p-6">
+                {portalLoading ? (
+                  <p className="text-sm text-gray-500">Loading requests...</p>
+                ) : portalRequests.length === 0 ? (
+                  <p className="text-sm text-gray-500">No pending requests.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {portalRequests.map((request) => (
+                      <div
+                        key={request.id}
+                        className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border border-gray-200 rounded-lg p-4"
+                      >
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {request.first_name || request.last_name
+                              ? `${request.first_name || ''} ${request.last_name || ''}`.trim()
+                              : request.email}
+                          </div>
+                          <div className="text-sm text-gray-500">{request.email}</div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            Requested {new Date(request.requested_at).toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleApprovePortalRequest(request.id)}
+                            className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRejectPortalRequest(request.id)}
+                            className="px-3 py-1.5 text-sm bg-gray-200 rounded-lg hover:bg-gray-300"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 className="text-lg font-semibold text-gray-900">Invite a Client</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Create a portal invitation for a client.
+                </p>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Client Email</label>
+                    <input
+                      type="email"
+                      value={portalInviteEmail}
+                      onChange={(e) => setPortalInviteEmail(e.target.value)}
+                      placeholder="client@example.org"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Link Existing Contact (optional)</label>
+                    <input
+                      type="text"
+                      value={portalContactSearch}
+                      onChange={(e) => setPortalContactSearch(e.target.value)}
+                      placeholder="Search contacts by name or email"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    />
+                    {portalContactLoading && (
+                      <div className="text-xs text-gray-500 mt-2">Searching contacts...</div>
+                    )}
+                    {portalContactResults.length > 0 && (
+                      <div className="mt-2 border border-gray-200 rounded-lg divide-y">
+                        {portalContactResults.map((contact) => (
+                          <button
+                            key={contact.contact_id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedPortalContact(contact);
+                              setPortalInviteContactId(contact.contact_id);
+                              if (contact.email) {
+                                setPortalInviteEmail(contact.email);
+                              }
+                              setPortalContactResults([]);
+                              setPortalContactSearch('');
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
+                          >
+                            <div className="font-medium text-gray-900">
+                              {contact.first_name} {contact.last_name}
+                            </div>
+                            <div className="text-xs text-gray-500">{contact.email || 'No email on file'}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {selectedPortalContact && (
+                      <div className="mt-2 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
+                        <div className="text-xs text-blue-900">
+                          Linked: {selectedPortalContact.first_name} {selectedPortalContact.last_name}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedPortalContact(null);
+                            setPortalInviteContactId('');
+                          }}
+                          className="text-xs text-blue-700 hover:underline"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleCreatePortalInvite}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
+                  >
+                    Create Invitation
+                  </button>
+                  {formError && (
+                    <span className="text-sm text-red-600">{formError}</span>
+                  )}
+                </div>
+
+                <div className="pt-4 border-t border-gray-200">
+                  <h4 className="text-sm font-semibold text-gray-900">Recent Invitations</h4>
+                  {portalLoading ? (
+                    <p className="text-sm text-gray-500 mt-2">Loading invitations...</p>
+                  ) : portalInvitations.length === 0 ? (
+                    <p className="text-sm text-gray-500 mt-2">No portal invitations yet.</p>
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      {portalInvitations.map((invite) => (
+                        <div
+                          key={invite.id}
+                          className="flex items-center justify-between border border-gray-200 rounded-lg p-3"
+                        >
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{invite.email}</div>
+                            <div className="text-xs text-gray-500">
+                              Created {new Date(invite.created_at).toLocaleDateString('en-CA')} &bull; Expires{' '}
+                              {new Date(invite.expires_at).toLocaleDateString('en-CA')}
+                            </div>
+                          </div>
+                          <div className="text-xs font-medium text-gray-500">
+                            {invite.accepted_at ? 'Accepted' : 'Pending'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 className="text-lg font-semibold text-gray-900">Portal Users</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Manage portal user access, passwords, and status.
+                </p>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <input
+                    type="text"
+                    value={portalUserSearch}
+                    onChange={(e) => setPortalUserSearch(e.target.value)}
+                    placeholder="Search portal users by name or email"
+                    className="w-full md:max-w-md px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fetchPortalUsers(portalUserSearch)}
+                    className="px-4 py-2 text-sm bg-gray-100 rounded-lg hover:bg-gray-200"
+                  >
+                    Refresh
+                  </button>
+                </div>
+
+                {portalUsersLoading ? (
+                  <p className="text-sm text-gray-500">Loading portal users...</p>
+                ) : portalUsers.length === 0 ? (
+                  <p className="text-sm text-gray-500">No portal users found.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {portalUsers.map((user) => {
+                      const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+                      return (
+                        <div key={user.id} className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-gray-900">
+                                  {name || user.email}
+                                </span>
+                                <span
+                                  className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                                    user.status === 'active'
+                                      ? 'bg-green-100 text-green-800'
+                                      : 'bg-red-100 text-red-800'
+                                  }`}
+                                >
+                                  {user.status}
+                                </span>
+                                <span
+                                  className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                                    user.is_verified ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'
+                                  }`}
+                                >
+                                  {user.is_verified ? 'Verified' : 'Pending'}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-500">{user.email}</div>
+                              <div className="text-xs text-gray-400 mt-1">
+                                Last login:{' '}
+                                {user.last_login_at
+                                  ? new Date(user.last_login_at).toLocaleString()
+                                  : 'Never'}
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handlePortalUserActivity(user)}
+                                className="px-3 py-1.5 text-xs bg-gray-100 rounded-lg hover:bg-gray-200"
+                              >
+                                View Activity
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handlePortalUserStatusChange(
+                                    user,
+                                    user.status === 'active' ? 'suspended' : 'active'
+                                  )
+                                }
+                                className={`px-3 py-1.5 text-xs rounded-lg ${
+                                  user.status === 'active'
+                                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                }`}
+                              >
+                                {user.status === 'active' ? 'Suspend' : 'Reactivate'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPortalResetTarget(user);
+                                  setPortalResetPassword('');
+                                  setPortalResetConfirmPassword('');
+                                  setShowPortalResetModal(true);
+                                }}
+                                className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                              >
+                                Reset Password
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {selectedPortalUser && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                  <h3 className="text-lg font-semibold text-gray-900">Recent Portal Activity</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Activity for {selectedPortalUser.email}
+                  </p>
+                </div>
+                <div className="p-6">
+                  {portalActivityLoading ? (
+                    <p className="text-sm text-gray-500">Loading activity...</p>
+                  ) : portalUserActivity.length === 0 ? (
+                    <p className="text-sm text-gray-500">No recent activity.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {portalUserActivity.map((activity) => (
+                        <div key={activity.id} className="border border-gray-200 rounded-lg p-3">
+                          <div className="text-xs text-gray-500 uppercase">{activity.action}</div>
+                          {activity.details && (
+                            <div className="text-sm text-gray-800 mt-1">{activity.details}</div>
+                          )}
+                          <div className="text-xs text-gray-400 mt-1">
+                            {new Date(activity.created_at).toLocaleString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Roles & Permissions Section */}
         {activeSection === 'roles' && (
           <div className="space-y-6">
@@ -1761,6 +2378,78 @@ export default function AdminSettings() {
                     <p className="text-sm text-gray-500">No recent activity logs</p>
                   )}
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Portal Reset Password Modal */}
+      {showPortalResetModal && portalResetTarget && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4">
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50"
+              onClick={() => {
+                setShowPortalResetModal(false);
+                setPortalResetTarget(null);
+                setPortalResetPassword('');
+                setPortalResetConfirmPassword('');
+              }}
+            />
+            <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Reset Portal Password
+              </h3>
+              <p className="text-sm text-gray-600">
+                This will immediately replace the portal password for{' '}
+                <span className="font-medium">{portalResetTarget.email}</span>.
+              </p>
+
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                  <input
+                    type="password"
+                    value={portalResetPassword}
+                    onChange={(e) => setPortalResetPassword(e.target.value)}
+                    placeholder="New password (min 8 chars)"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                  <input
+                    type="password"
+                    value={portalResetConfirmPassword}
+                    onChange={(e) => setPortalResetConfirmPassword(e.target.value)}
+                    placeholder="Confirm new password"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPortalResetModal(false);
+                    setPortalResetTarget(null);
+                    setPortalResetPassword('');
+                    setPortalResetConfirmPassword('');
+                  }}
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePortalPasswordReset}
+                  disabled={portalResetLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {portalResetLoading ? 'Resetting...' : 'Reset Password'}
+                </button>
               </div>
             </div>
           </div>

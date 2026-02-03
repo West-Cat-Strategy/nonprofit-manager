@@ -70,7 +70,7 @@ export default function UserManagement() {
       const response = await api.get(`/users?${params.toString()}`);
       setUsers(response.data.users);
       setError(null);
-    } catch (err) {
+    } catch {
       setError('Failed to load users');
     } finally {
       setIsLoading(false);

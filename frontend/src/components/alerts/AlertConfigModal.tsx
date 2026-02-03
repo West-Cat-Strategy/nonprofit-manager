@@ -101,7 +101,7 @@ const AlertConfigModal = ({ config, onClose, onSuccess }: AlertConfigModalProps)
       setTestResult(null);
       const result = await dispatch(testAlertConfig(formData)).unwrap();
       setTestResult(result);
-    } catch (error) {
+    } catch {
       setTestResult({ error: 'Failed to test alert configuration' });
     } finally {
       setTesting(false);
