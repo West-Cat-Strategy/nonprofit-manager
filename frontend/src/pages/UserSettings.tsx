@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { EyeIcon, EyeSlashIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, EyeSlashIcon, TrashIcon, SunIcon, MoonIcon } from '@heroicons/react/24/outline';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { updateUser } from '../store/slices/authSlice';
 import api from '../services/api';
@@ -465,7 +465,7 @@ export default function UserSettings() {
 
           {/* Profile Picture Card - CYAN Theme */}
           <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
-            <div className="bg-[#4DD0E1] border-b-4 border-black p-4">
+            <div className="bg-[var(--loop-cyan)] border-b-4 border-black p-4">
               <h2 className="text-2xl font-black uppercase">Profile</h2>
             </div>
 
@@ -536,9 +536,8 @@ export default function UserSettings() {
 
           {/* Personal Information Card - PINK Theme */}
           <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
-            <div className="bg-[#FFB6C1] border-b-4 border-black p-4">
-              {/* Header Removed as per requirements */}
-              <div className="h-2"></div>
+            <div className="bg-[var(--loop-pink)] border-b-4 border-black p-4">
+              <h2 className="text-2xl font-black uppercase">Bio</h2>
             </div>
 
             <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -607,7 +606,7 @@ export default function UserSettings() {
 
           {/* Contact Information Card - GREEN Theme */}
           <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
-            <div className="bg-[#90EE90] border-b-4 border-black p-4">
+            <div className="bg-[var(--loop-green)] border-b-4 border-black p-4">
               <h2 className="text-2xl font-black uppercase">Contact Info</h2>
             </div>
 
@@ -683,7 +682,7 @@ export default function UserSettings() {
 
           {/* Notifications - PURPLE Theme */}
           <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
-            <div className="bg-[#D8BFD8] border-b-4 border-black p-4">
+            <div className="bg-[var(--loop-purple)] border-b-4 border-black p-4">
               <h2 className="text-2xl font-black uppercase">Notification Settings</h2>
             </div>
 
@@ -715,18 +714,24 @@ export default function UserSettings() {
             </div>
             <button
               onClick={toggleDarkMode}
-              className={`reltaive inline-flex h-8 w-16 items-center rounded-full border-2 border-black transition-colors focus:outline-none shadow-[2px_2px_0px_0px_var(--shadow-color)] ${isDarkMode ? 'bg-black' : 'bg-gray-200'
+              className={`relative inline-flex h-10 w-20 items-center rounded-full border-4 border-black transition-colors focus:outline-none shadow-[4px_4px_0px_0px_var(--shadow-color)] ${isDarkMode ? 'bg-black' : 'bg-white'
                 }`}
             >
-              <span
-                className={`${isDarkMode ? 'translate-x-[34px] bg-white' : 'translate-x-[2px] bg-white'
-                  } inline-block h-6 w-6 transform rounded-full border-2 border-black transition-transform`}
-              />
+              <div
+                className={`${isDarkMode ? 'translate-x-[42px] bg-[#FFD700]' : 'translate-x-[4px] bg-white'
+                  } flex h-8 w-8 items-center justify-center transform rounded-full border-2 border-black transition-transform duration-200`}
+              >
+                {isDarkMode ? (
+                  <SunIcon className="w-5 h-5 text-black" />
+                ) : (
+                  <MoonIcon className="w-5 h-5 text-black" />
+                )}
+              </div>
             </button>
           </div>
 
         </div>
       </div>
-    </NeoBrutalistLayout>
+    </NeoBrutalistLayout >
   );
 }
