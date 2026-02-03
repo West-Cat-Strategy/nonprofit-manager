@@ -6,7 +6,7 @@
 import { Response, NextFunction } from 'express';
 import { ContactService } from '../services/contactService';
 import pool from '../config/database';
-import { ContactFilters, ContactRole, PaginationParams } from '../types/contact';
+import { ContactFilters, PaginationParams } from '../types/contact';
 import { AuthRequest } from '../middleware/auth';
 
 const contactService = new ContactService(pool);
@@ -33,7 +33,6 @@ export const getContacts = async (
     const filters: ContactFilters = {
       search: getString(req.query.search),
       account_id: getString(req.query.account_id),
-      contact_role: getString(req.query.contact_role) as ContactRole | undefined,
       is_active: getBoolean(req.query.is_active),
     };
 
