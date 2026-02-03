@@ -45,11 +45,11 @@ export default function PeopleCard({ person }: PeopleCardProps) {
                 </span>
             </div>
 
-            {/* Name */}
-            <h3 className="font-black text-lg mb-1 text-center">{person.fullName}</h3>
+            {/* Name - Truncate to prevent overflow */}
+            <h3 className="font-black text-lg mb-1 text-center truncate w-full max-w-full px-2">{person.fullName}</h3>
 
-            {/* Role/Title */}
-            <p className="text-xs text-gray-700 dark:text-gray-300 mb-3 uppercase font-bold tracking-wide text-center">
+            {/* Role/Title - Truncate to prevent overflow */}
+            <p className="text-xs text-gray-700 dark:text-gray-300 mb-3 uppercase font-bold tracking-wide text-center truncate w-full max-w-full px-2">
                 {person.title || person.role}
             </p>
 

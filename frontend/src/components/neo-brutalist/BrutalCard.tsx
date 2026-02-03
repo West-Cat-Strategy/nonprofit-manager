@@ -30,12 +30,13 @@ export default function BrutalCard({
     return (
         <div
             className={`
-        border-brutal border-black shadow-brutal
+        border-brutal border-black shadow-brutal relative
         ${colorClasses[color]}
-        ${onClick ? 'cursor-pointer hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-brutal-sm transition-all' : ''}
+        ${onClick ? 'cursor-pointer hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-brutal-sm transition-all z-10' : 'z-0'}
         ${className}
       `}
             onClick={onClick}
+            style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
         >
             {children}
         </div>

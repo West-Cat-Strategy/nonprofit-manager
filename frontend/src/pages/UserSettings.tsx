@@ -7,12 +7,13 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
-import { EyeIcon, EyeSlashIcon, TrashIcon, SunIcon, MoonIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, EyeSlashIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { updateUser } from '../store/slices/authSlice';
 import api from '../services/api';
 import LoopApiService from '../services/LoopApiService';
 import NeoBrutalistLayout from '../components/neo-brutalist/NeoBrutalistLayout';
+import ThemeSelector from '../components/ThemeSelector';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface AlternativeEmail {
@@ -520,7 +521,9 @@ export default function UserSettings() {
         <div className="max-w-4xl mx-auto space-y-8">
 
           {/* Top Actions Pane */}
-          <div className="flex justify-end sticky top-4 z-20">
+          <div className="flex justify-between items-start sticky top-4 z-20">
+            {/* Theme Selector Moved to Bottom */}
+
             <button
               type="button"
               onClick={handleSave}
@@ -529,7 +532,7 @@ export default function UserSettings() {
                 border-4 border-white shadow-[6px_6px_0px_0px_var(--shadow-color)] 
                 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_#FFF]
                 active:translate-x-[6px] active:translate-y-[6px] active:shadow-none
-                transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+                transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 shrink-0"
             >
               {isSaving ? (
                 <>
@@ -798,28 +801,9 @@ export default function UserSettings() {
             </div>
           </div>
 
-          {/* Dark Mode Toggle */}
-          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)] p-6 flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-black uppercase">Dark Mode</h3>
-              <p className="text-sm text-gray-600">Override whitespace with dark gray.</p>
-            </div>
-            <button
-              onClick={toggleDarkMode}
-              className={`relative inline-flex h-10 w-20 items-center rounded-full border-4 border-black transition-colors focus:outline-none shadow-[4px_4px_0px_0px_var(--shadow-color)] ${isDarkMode ? 'bg-black' : 'bg-white'
-                }`}
-            >
-              <div
-                className={`${isDarkMode ? 'translate-x-[42px] bg-[#FFD700]' : 'translate-x-[4px] bg-white'
-                  } flex h-8 w-8 items-center justify-center transform rounded-full border-2 border-black transition-transform duration-200`}
-              >
-                {isDarkMode ? (
-                  <SunIcon className="w-5 h-5 text-black" />
-                ) : (
-                  <MoonIcon className="w-5 h-5 text-black" />
-                )}
-              </div>
-            </button>
+          {/* Interface Theme - Moved to Bottom */}
+          <div className="w-full">
+            <ThemeSelector />
           </div>
 
           {/* Security */}
