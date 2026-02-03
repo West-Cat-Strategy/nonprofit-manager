@@ -2,6 +2,8 @@
 -- Run after all migrations
 -- Password for all users: 'password123' (hash generated with bcrypt)
 
+\set ON_ERROR_STOP on
+
 -- ============================================================================
 -- USERS
 -- ============================================================================
@@ -71,11 +73,11 @@ ON CONFLICT (id) DO NOTHING;
 -- ============================================================================
 INSERT INTO volunteers (id, contact_id, volunteer_status, skills, availability, background_check_date, background_check_status, emergency_contact_name, emergency_contact_phone, created_at, created_by)
 VALUES
-  ('vvvv1111-1111-1111-1111-111111111111', 'cccc3333-3333-3333-3333-333333333333', 'active', ARRAY['event_planning', 'fundraising', 'social_media'], 'weekends', '2025-06-15', 'cleared', 'Tom Williams', '555-9001', NOW(), '11111111-1111-1111-1111-111111111111'),
-  ('vvvv2222-2222-2222-2222-222222222222', 'cccc5555-5555-5555-5555-555555555555', 'active', ARRAY['tutoring', 'mentoring'], 'evenings', '2025-07-20', 'cleared', 'Bob Taylor', '555-9002', NOW(), '11111111-1111-1111-1111-111111111111'),
-  ('vvvv3333-3333-3333-3333-333333333333', 'ccccbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'active', ARRAY['administrative', 'data_entry'], 'flexible', '2025-08-10', 'cleared', 'Maria Garcia', '555-9003', NOW(), '11111111-1111-1111-1111-111111111111'),
-  ('vvvv4444-4444-4444-4444-444444444444', 'ccccdddd-dddd-dddd-dddd-dddddddddddd', 'inactive', ARRAY['marketing', 'photography'], 'weekdays', '2025-03-01', 'cleared', 'Susan Harris', '555-9004', NOW(), '11111111-1111-1111-1111-111111111111'),
-  ('vvvv5555-5555-5555-5555-555555555555', 'cccceeee-eeee-eeee-eeee-eeeeeeeeeeee', 'pending', ARRAY['construction', 'landscaping'], 'weekends', NULL, 'pending', 'Mike Harris', '555-9005', NOW(), '11111111-1111-1111-1111-111111111111')
+  ('f1111111-1111-1111-1111-111111111111', 'cccc3333-3333-3333-3333-333333333333', 'active', ARRAY['event_planning', 'fundraising', 'social_media'], 'weekends', '2025-06-15', 'cleared', 'Tom Williams', '555-9001', NOW(), '11111111-1111-1111-1111-111111111111'),
+  ('f2222222-2222-2222-2222-222222222222', 'cccc5555-5555-5555-5555-555555555555', 'active', ARRAY['tutoring', 'mentoring'], 'evenings', '2025-07-20', 'cleared', 'Bob Taylor', '555-9002', NOW(), '11111111-1111-1111-1111-111111111111'),
+  ('f3333333-3333-3333-3333-333333333333', 'ccccbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'active', ARRAY['administrative', 'data_entry'], 'flexible', '2025-08-10', 'cleared', 'Maria Garcia', '555-9003', NOW(), '11111111-1111-1111-1111-111111111111'),
+  ('f4444444-4444-4444-4444-444444444444', 'ccccdddd-dddd-dddd-dddd-dddddddddddd', 'inactive', ARRAY['marketing', 'photography'], 'weekdays', '2025-03-01', 'cleared', 'Susan Harris', '555-9004', NOW(), '11111111-1111-1111-1111-111111111111'),
+  ('f5555555-5555-5555-5555-555555555555', 'cccceeee-eeee-eeee-eeee-eeeeeeeeeeee', 'pending', ARRAY['construction', 'landscaping'], 'weekends', NULL, 'pending', 'Mike Harris', '555-9005', NOW(), '11111111-1111-1111-1111-111111111111')
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================================
@@ -83,23 +85,23 @@ ON CONFLICT (id) DO NOTHING;
 -- ============================================================================
 INSERT INTO events (id, name, description, event_type, start_date, end_date, location_name, capacity, status, created_at, created_by)
 VALUES
-  ('evnt1111-1111-1111-1111-111111111111', 'Annual Gala Dinner', 'Our flagship fundraising event featuring dinner, silent auction, and live entertainment.', 'fundraiser', '2026-03-15 18:00:00', '2026-03-15 23:00:00', 'Grand Ballroom, Hilton Hotel', 300, 'planned', NOW(), '11111111-1111-1111-1111-111111111111'),
-  ('evnt2222-2222-2222-2222-222222222222', 'Volunteer Appreciation Day', 'Thank you event for all our amazing volunteers.', 'appreciation', '2026-04-20 12:00:00', '2026-04-20 16:00:00', 'Community Center', 100, 'planned', NOW(), '11111111-1111-1111-1111-111111111111'),
-  ('evnt3333-3333-3333-3333-333333333333', 'Community Cleanup Day', 'Join us for our spring neighborhood cleanup initiative.', 'community', '2026-04-05 09:00:00', '2026-04-05 14:00:00', 'Riverside Park', 50, 'planned', NOW(), '11111111-1111-1111-1111-111111111111'),
-  ('evnt4444-4444-4444-4444-444444444444', 'Board Meeting Q1', 'Quarterly board of directors meeting.', 'meeting', '2026-02-15 14:00:00', '2026-02-15 17:00:00', 'Main Office, Conference Room A', 15, 'planned', NOW(), '11111111-1111-1111-1111-111111111111'),
-  ('evnt5555-5555-5555-5555-555555555555', 'Youth Mentorship Workshop', 'Training session for new youth mentors.', 'workshop', '2026-02-28 10:00:00', '2026-02-28 15:00:00', 'Youth Education Center', 25, 'planned', NOW(), '11111111-1111-1111-1111-111111111111')
+  ('e1111111-1111-1111-1111-111111111111', 'Annual Gala Dinner', 'Our flagship fundraising event featuring dinner, silent auction, and live entertainment.', 'fundraiser', '2026-03-15 18:00:00', '2026-03-15 23:00:00', 'Grand Ballroom, Hilton Hotel', 300, 'planned', NOW(), '11111111-1111-1111-1111-111111111111'),
+  ('e2222222-2222-2222-2222-222222222222', 'Volunteer Appreciation Day', 'Thank you event for all our amazing volunteers.', 'appreciation', '2026-04-20 12:00:00', '2026-04-20 16:00:00', 'Community Center', 100, 'planned', NOW(), '11111111-1111-1111-1111-111111111111'),
+  ('e3333333-3333-3333-3333-333333333333', 'Community Cleanup Day', 'Join us for our spring neighborhood cleanup initiative.', 'community', '2026-04-05 09:00:00', '2026-04-05 14:00:00', 'Riverside Park', 50, 'planned', NOW(), '11111111-1111-1111-1111-111111111111'),
+  ('e4444444-4444-4444-4444-444444444444', 'Board Meeting Q1', 'Quarterly board of directors meeting.', 'meeting', '2026-02-15 14:00:00', '2026-02-15 17:00:00', 'Main Office, Conference Room A', 15, 'planned', NOW(), '11111111-1111-1111-1111-111111111111'),
+  ('e5555555-5555-5555-5555-555555555555', 'Youth Mentorship Workshop', 'Training session for new youth mentors.', 'workshop', '2026-02-28 10:00:00', '2026-02-28 15:00:00', 'Youth Education Center', 25, 'planned', NOW(), '11111111-1111-1111-1111-111111111111')
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================================
 -- EVENT REGISTRATIONS
 -- ============================================================================
-INSERT INTO event_registrations (id, event_id, contact_id, registration_status, registered_at, created_at)
+INSERT INTO event_registrations (id, event_id, contact_id, registration_status, created_at, updated_at)
 VALUES
-  ('ereg1111-1111-1111-1111-111111111111', 'evnt1111-1111-1111-1111-111111111111', 'cccc1111-1111-1111-1111-111111111111', 'registered', NOW(), NOW()),
-  ('ereg2222-2222-2222-2222-222222222222', 'evnt1111-1111-1111-1111-111111111111', 'cccc2222-2222-2222-2222-222222222222', 'registered', NOW(), NOW()),
-  ('ereg3333-3333-3333-3333-333333333333', 'evnt1111-1111-1111-1111-111111111111', 'cccc9999-9999-9999-9999-999999999999', 'registered', NOW(), NOW()),
-  ('ereg4444-4444-4444-4444-444444444444', 'evnt3333-3333-3333-3333-333333333333', 'cccc3333-3333-3333-3333-333333333333', 'registered', NOW(), NOW()),
-  ('ereg5555-5555-5555-5555-555555555555', 'evnt3333-3333-3333-3333-333333333333', 'cccc5555-5555-5555-5555-555555555555', 'registered', NOW(), NOW())
+  ('e9111111-1111-1111-1111-111111111111', 'e1111111-1111-1111-1111-111111111111', 'cccc1111-1111-1111-1111-111111111111', 'registered', NOW(), NOW()),
+  ('e9222222-2222-2222-2222-222222222222', 'e1111111-1111-1111-1111-111111111111', 'cccc2222-2222-2222-2222-222222222222', 'registered', NOW(), NOW()),
+  ('e9333333-3333-3333-3333-333333333333', 'e1111111-1111-1111-1111-111111111111', 'cccc9999-9999-9999-9999-999999999999', 'registered', NOW(), NOW()),
+  ('e9444444-4444-4444-4444-444444444444', 'e3333333-3333-3333-3333-333333333333', 'cccc3333-3333-3333-3333-333333333333', 'registered', NOW(), NOW()),
+  ('e9555555-5555-5555-5555-555555555555', 'e3333333-3333-3333-3333-333333333333', 'cccc5555-5555-5555-5555-555555555555', 'registered', NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================================
