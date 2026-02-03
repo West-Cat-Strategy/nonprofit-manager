@@ -58,13 +58,13 @@ export default function NeoBrutalistSidebar() {
     };
 
     return (
-        <div className="w-48 bg-white dark:bg-[#121212] border-r-2 border-black dark:border-white flex flex-col h-screen">
+        <div className="w-48 bg-[var(--app-bg)] border-r-2 border-black dark:border-white flex flex-col h-screen transition-colors duration-300">
             {/* Yellow LOOP Branding Header */}
-            <div className="bg-[var(--loop-yellow)] dark:bg-[#CCAC00] border-b-2 border-black dark:border-white p-4 shadow-[6px_0px_0px_0px_var(--shadow-color)]">
+            <div className="bg-[var(--loop-yellow)] border-b-2 border-black dark:border-white p-4 shadow-[6px_0px_0px_0px_var(--shadow-color)] transition-colors duration-300">
                 <h1 className="font-black text-xl leading-tight text-black">
                     COMMUNITY<br />LOOP
                 </h1>
-                <div className="mt-2 inline-block border-2 border-black bg-white px-2 py-1 text-xs font-bold shadow-[2px_2px_0px_0px_var(--shadow-color)]">
+                <div className="mt-2 inline-block border-2 border-black bg-[var(--app-surface)] px-2 py-1 text-xs font-bold shadow-[2px_2px_0px_0px_var(--shadow-color)] text-[var(--app-text)]">
                     {getCurrentDate()}
                 </div>
 

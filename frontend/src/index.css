@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
-/* LOOP Design System - Neo-Brutalist Variables */
+/* LOOP Design System - Theme Engine */
 :root {
-  /* Global Palette */
+  /* GLOBAL DEFAULTS (NEO-BRUTALIST) */
   --loop-yellow: #FFD700;
   --loop-green: #90EE90;
   --loop-purple: #D8BFD8;
@@ -10,124 +10,322 @@
   --loop-cyan: #4DD0E1;
   --loop-blue: #87CEEB;
 
-  /* Brutalist defaults */
+  --app-bg: #F9FAFB;
+  /* Gray 50 equivalent */
+  --app-surface: #FFFFFF;
+  --app-text: #000000;
+  --app-border: #000000;
+
   --shadow-color: #000000;
   --border-brutal: 2px solid #000000;
   --shadow-brutal: 6px 6px 0px var(--shadow-color);
   --shadow-brutal-sm: 2px 2px 0px var(--shadow-color);
   --shadow-brutal-lg: 8px 8px 0px var(--shadow-color);
+  --focus-ring: #000000;
 }
 
-/* Light Mode - Enforce Black Text */
-body {
-  color: #000000;
-}
-
-/* FORCE DARK MODE READABILITY - HIGH CONTRAST STRATEGY */
-body.neo-dark-mode {
-  /* Muted/Darker Colors for Dark Mode Headers */
-  --loop-yellow: #CCAC00;
-  --loop-green: #72BD72;
-  --loop-purple: #AA96AA;
-  --loop-pink: #CC919A;
-  --loop-cyan: #3DA6B4;
-  --loop-blue: #6CA4BC;
+/* GLOBAL DARK MODE (DEFAULT FALLBACK) */
+body.dark:not([class*="theme-"]) {
+  /* Default Dark Mode (High Contrast Neon/Black) */
+  --app-bg: #121212;
+  --app-surface: #000000;
+  --app-text: #FFFFFF;
+  --app-border: #FFFFFF;
 
   --shadow-color: #FFFFFF;
-  background-color: #000000 !important;
-  /* Void Black */
-  color: #FFFFFF !important;
-  /* Pure White Text */
+  /* Inverted White Shadows for Brutalism */
+  --border-brutal: 2px solid #FFFFFF;
+  --focus-ring: #FFFFFF;
 
-  /* Readability Boost */
-  font-size: 1.1em;
-  letter-spacing: 0.03em;
+  /* Keep the Loop Colors POPPING against black */
+  --loop-yellow: #FFD700;
+  --loop-green: #90EE90;
+  --loop-purple: #D8BFD8;
+  --loop-pink: #FFB6C1;
+  --loop-cyan: #4DD0E1;
+  --loop-blue: #87CEEB;
 }
 
-/* 1. Base Cards & Containers in Dark Mode */
-body.neo-dark-mode .bg-white,
-body.neo-dark-mode .bg-gray-50,
-body.neo-dark-mode .bg-gray-100 {
-  background-color: #121212 !important;
-  /* Dark Grey Surface */
-  color: #FFFFFF !important;
-  /* White Text */
-  border-color: #FFFFFF !important;
-  /* White Border */
+/* ==========================================================================
+   THEME 1: SEA BREEZE (LIGHT & DARK)
+   Concept: Soft, airy, rounded, teal/turquoise palette
+   ========================================================================== */
+body.theme-sea-breeze {
+  /* LIGHT MODE (DEFAULT) */
+  --loop-yellow: #B2DFDB;
+  /* Teal 100 */
+  --loop-green: #80CBC4;
+  /* Teal 200 */
+  --loop-purple: #4DB6AC;
+  /* Teal 300 */
+  --loop-pink: #26A69A;
+  /* Teal 400 */
+  --loop-cyan: #009688;
+  /* Teal 500 */
+  --loop-blue: #00897B;
+  /* Teal 600 */
+
+  /* App Base (LIGHT) */
+  --app-bg: #E0F2F1;
+  /* Very Light Teal */
+  --app-surface: #F5FCFD;
+  /* Minty White (Not Pure White) */
+  --app-text: #004D40;
+  /* Teal 900 */
+  --app-border: #80CBC4;
+
+  /* Brutalist Overrides (Softened) */
+  --shadow-color: rgba(0, 150, 136, 0.2);
+  --border-brutal: 2px solid #009688;
+  --shadow-brutal: 4px 4px 0px var(--shadow-color);
+  --shadow-brutal-sm: 2px 2px 0px var(--shadow-color);
+  --font-weight-brutal: 600;
+  --focus-ring: #009688;
 }
 
-/* 2. Global Border Inversion (Black -> White) */
-body.neo-dark-mode .border-black {
-  border-color: #FFFFFF !important;
+/* SEA BREEZE: DARK MODE */
+body.theme-sea-breeze.dark {
+  /* Palette - Deep Ocean */
+  --loop-yellow: #004D40;
+  /* Teal 900 */
+  --loop-green: #00695C;
+  /* Teal 800 */
+  --loop-purple: #00796B;
+  /* Teal 700 */
+  --loop-pink: #00897B;
+  /* Teal 600 */
+  --loop-cyan: #009688;
+  /* Teal 500 (Primary) */
+  --loop-blue: #4DB6AC;
+  /* Teal 300 (Highlight) */
+
+  /* App Base (DARK) */
+  --app-bg: #00251A;
+  /* Deepest Teal/Black */
+  --app-surface: #004D40;
+  /* Deep Teal Surface */
+  --app-text: #E0F2F1;
+  /* Light Teal Text */
+  --app-border: #00796B;
+
+  --shadow-color: #000000;
+  --border-brutal: 2px solid #004D40;
 }
 
-/* 3. Global Text Inversion (Black -> White) */
-body.neo-dark-mode .text-black,
-body.neo-dark-mode .text-gray-900 {
-  color: #FFFFFF !important;
-  -webkit-text-stroke: 0px;
-  /* Remove stroke for clarity */
+/* Sea Breeze Overrides */
+body.theme-sea-breeze .border-brutal,
+body.theme-sea-breeze [class*="border-brutal"],
+body.theme-sea-breeze button,
+body.theme-sea-breeze input,
+body.theme-sea-breeze select {
+  border-radius: 16px !important;
+  /* Soft corners */
 }
 
-/* 4. Inputs in Dark Mode */
-body.neo-dark-mode input,
-body.neo-dark-mode select,
-body.neo-dark-mode textarea {
-  background-color: #000000 !important;
-  /* Black Input */
-  color: #FFFFFF !important;
-  border-color: #FFFFFF !important;
-  box-shadow: 4px 4px 0px 0px var(--shadow-color) !important;
-  -webkit-text-stroke: 0px !important;
+body.theme-sea-breeze button.p-3,
+body.theme-sea-breeze button.p-4 {
+  border-radius: 50px !important;
+  /* Pill shapes for main buttons */
 }
 
-/* 5. Labels */
-body.neo-dark-mode label {
-  color: #FFFFFF !important;
+
+/* ==========================================================================
+   THEME 2: CORPORATE MINIMALIST (LIGHT & DARK)
+   Concept: Clean, professional, high legibility, subtle borders
+   ========================================================================== */
+body.theme-corporate {
+  /* LIGHT MODE */
+  --loop-yellow: #F3F4F6;
+  /* Gray 100 */
+  --loop-green: #E5E7EB;
+  /* Gray 200 */
+  --loop-purple: #D1D5DB;
+  /* Gray 300 */
+  --loop-pink: #9CA3AF;
+  /* Gray 400 */
+  --loop-cyan: #6B7280;
+  /* Gray 500 */
+  --loop-blue: #374151;
+  /* Gray 700 */
+
+  /* App Base */
+  --app-bg: #FFFFFF;
+  --app-surface: #F9FAFB;
+  --app-text: #111827;
+  --app-border: #E5E7EB;
+
+  /* Brutalist Overrides (Normalized) */
+  --shadow-color: rgba(0, 0, 0, 0.05);
+  --border-brutal: 1px solid #E5E7EB;
+  --shadow-brutal: 0 1px 2px 0 var(--shadow-color);
+  --shadow-brutal-sm: 0 1px 2px 0 var(--shadow-color);
+  --font-weight-brutal: 400;
+  --focus-ring: #6B7280;
 }
 
-/* Remove default text stroke in dark mode */
-body.neo-dark-mode * {
-  -webkit-text-stroke: 0px;
-  text-shadow: none;
+/* CORPORATE: DARK MODE */
+body.theme-corporate.dark {
+  /* Dark Slate Palette */
+  --loop-yellow: #1F2937;
+  /* Gray 800 */
+  --loop-green: #374151;
+  /* Gray 700 */
+  --loop-purple: #4B5563;
+  /* Gray 600 */
+  --loop-pink: #6B7280;
+  /* Gray 500 */
+  --loop-cyan: #9CA3AF;
+  /* Gray 400 */
+  --loop-blue: #D1D5DB;
+  /* Gray 300 */
+
+  /* App Base (DARK) */
+  --app-bg: #111827;
+  /* Gray 900 */
+  --app-surface: #1F2937;
+  /* Gray 800 */
+  --app-text: #F9FAFB;
+  /* Gray 50 */
+  --app-border: #374151;
+
+  --shadow-color: #000000;
+  --border-brutal: 1px solid #374151;
 }
 
-/* 6. THE SAFETY EXCEPTION - Colored cards MUST stay Black Text/Border */
-body.neo-dark-mode .bg-\[var\(--loop-yellow\)\],
-body.neo-dark-mode .bg-\[var\(--loop-green\)\],
-body.neo-dark-mode .bg-\[var\(--loop-cyan\)\],
-body.neo-dark-mode .bg-\[var\(--loop-pink\)\],
-body.neo-dark-mode .bg-\[var\(--loop-purple\)\],
-body.neo-dark-mode .bg-\[var\(--loop-blue\)\],
-body.neo-dark-mode .bg-\[\#FFD700\],
-body.neo-dark-mode .bg-\[\#90EE90\],
-body.neo-dark-mode .bg-\[\#D8BFD8\],
-body.neo-dark-mode .bg-\[\#FFB6C1\],
-body.neo-dark-mode .bg-\[\#4DD0E1\],
-body.neo-dark-mode .bg-\[\#87CEEB\] {
-  color: #000000 !important;
-  border-color: #000000 !important;
+/* Corporate Overrides */
+body.theme-corporate * {
+  text-transform: none !important;
+  /* Remove any brutalist caps */
+  letter-spacing: normal !important;
+  font-family: system-ui, -apple-system, sans-serif !important;
 }
 
-/* Ensure elements INSIDE colored cards also stay black */
-body.neo-dark-mode .bg-\[var\(--loop-yellow\)\] *,
-body.neo-dark-mode .bg-\[var\(--loop-green\)\] *,
-body.neo-dark-mode .bg-\[var\(--loop-cyan\)\] *,
-body.neo-dark-mode .bg-\[var\(--loop-pink\)\] *,
-body.neo-dark-mode .bg-\[var\(--loop-purple\)\] *,
-body.neo-dark-mode .bg-\[var\(--loop-blue\)\] *,
-body.neo-dark-mode .bg-\[\#FFD700\] *,
-body.neo-dark-mode .bg-\[\#90EE90\] *,
-body.neo-dark-mode .bg-\[\#D8BFD8\] *,
-body.neo-dark-mode .bg-\[\#FFB6C1\] *,
-body.neo-dark-mode .bg-\[\#4DD0E1\] *,
-body.neo-dark-mode .bg-\[\#87CEEB\] * {
-  color: #000000 !important;
-  border-color: #000000 !important;
-  -webkit-text-stroke: 0px !important;
-  text-shadow: none !important;
+body.theme-corporate .border-brutal,
+body.theme-corporate [class*="border-brutal"] {
+  border-radius: 6px !important;
+  /* Standard small radius */
+  border-color: #E5E7EB !important;
 }
 
+body.theme-corporate button {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  transform: none !important;
+}
+
+body.theme-corporate button:hover {
+  background-color: #f9fafb !important;
+  border-color: #d1d5db !important;
+}
+
+
+/* ==========================================================================
+   THEME 3: GLASSMORPHISM (LIGHT & DARK)
+   Concept: Futuristic, translucent, blur, neon accents
+   ========================================================================== */
+body.theme-glass {
+  /* LIGHT MODE */
+  /* Palette - Frost & Sky */
+  --loop-yellow: #81D4FA;
+  /* Light Blue 200 */
+  --loop-green: #4FC3F7;
+  /* Light Blue 300 */
+  --loop-purple: #29B6F6;
+  /* Light Blue 400 */
+  --loop-pink: #03A9F4;
+  /* Light Blue 500 */
+  --loop-cyan: #00B0FF;
+  /* Light Blue Accent */
+  --loop-blue: #0091EA;
+  /* Light Blue 700 */
+
+  /* App Base (LIGHT GLASS) */
+  --app-bg: #E0F7FA;
+  /* Cyan 50 (Very light) - Per user "peaceful blue background" request? */
+  /* User said: "C-Breeze needs peaceful blue background... Everything that is white needs to be peaceful blue" */
+  /* Wait, this is GLASS theme. User said: "Dark Glass Mode... shiny grayish silvery background normally" */
+  --app-bg: #F3F4F6;
+  /* Silvery Gray */
+  --app-surface: rgba(255, 255, 255, 0.6);
+  /* Frosted */
+  --app-text: #0F172A;
+  --app-border: #FFFFFF;
+
+  /* Brutalist Overrides (Glassy) */
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --border-brutal: 1px solid rgba(255, 255, 255, 0.8);
+  --shadow-brutal: 0 4px 6px rgba(0, 0, 0, 0.05);
+  --shadow-brutal-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --focus-ring: #00B0FF;
+}
+
+/* GLASS: DARK MODE */
+body.theme-glass.dark {
+  /* Palette - DEEP VOID & NEON */
+  --loop-yellow: #000000;
+  /* Black */
+  --loop-green: #111827;
+  /* Gray 900 */
+  --loop-purple: #1F2937;
+  /* Gray 800 */
+  --loop-pink: #374151;
+  /* Gray 700 */
+  --loop-cyan: #00FFFF;
+  /* Cyan Neon */
+  --loop-blue: #3B82F6;
+  /* Blue Neon */
+
+  /* App Base (DARK) */
+  --app-bg: #000000;
+  /* Pure Black */
+  --app-surface: rgba(20, 20, 30, 0.6);
+  --app-text: #F3F4F6;
+  --app-border: rgba(59, 130, 246, 0.3);
+
+  /* Brutalist Overrides (Glowing) */
+  --shadow-color: #3B82F6;
+  --border-brutal: 1px solid rgba(59, 130, 246, 0.5);
+  --shadow-brutal: 0 0 15px rgba(59, 130, 246, 0.3);
+  --shadow-brutal-sm: 0 0 8px rgba(59, 130, 246, 0.3);
+  --focus-ring: #00FFFF;
+}
+
+/* Glass Overrides */
+body.theme-glass {
+  color: var(--app-text) !important;
+  background-color: var(--app-bg) !important;
+}
+
+body.theme-glass .bg-white,
+body.theme-glass .bg-gray-50,
+body.theme-glass .bg-gray-100 {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #FFF !important;
+}
+
+/* Glow Effects on Hover */
+body.theme-glass div[class*="border-brutal"]:hover,
+body.theme-glass button:hover {
+  box-shadow: 0 0 25px var(--shadow-color) !important;
+  border-color: var(--loop-blue) !important;
+}
+
+body.theme-glass .border-brutal,
+body.theme-glass [class*="border-brutal"] {
+  border-radius: 12px !important;
+}
+
+body.theme-glass input,
+body.theme-glass select,
+body.theme-glass textarea {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+}
+
+/* UTILITIES */
 /* React Grid Layout styles */
 .react-grid-layout {
   position: relative;
