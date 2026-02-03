@@ -32,13 +32,13 @@ export default {
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
         popIn: {
-          '0%': { transform: 'scale(0.8)', opacity: '0' },
+          '0%': { transform: 'scale(0.9)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
         },
       },
       animation: {
-        slideDown: 'slideDown 0.6s ease-out',
-        popIn: 'popIn 0.4s ease-out',
+        slideDown: 'slideDown 0.6s ease-out forwards',
+        popIn: 'popIn 0.5s ease-out forwards 0.5s',
       },
     },
   },
