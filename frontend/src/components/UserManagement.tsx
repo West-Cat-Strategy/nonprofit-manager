@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
+import Avatar from './Avatar';
 
 interface User {
   id: string;
@@ -12,6 +13,7 @@ interface User {
   firstName: string;
   lastName: string;
   role: string;
+  profilePicture?: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -327,9 +329,12 @@ export default function UserManagement() {
                 <tr key={user.id} className={!user.isActive ? 'bg-gray-50' : ''}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                        {user.firstName[0]}{user.lastName[0]}
-                      </div>
+                      <Avatar
+                        src={user.profilePicture}
+                        firstName={user.firstName}
+                        lastName={user.lastName}
+                        size="md"
+                      />
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">
                           {user.firstName} {user.lastName}
