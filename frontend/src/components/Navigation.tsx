@@ -11,6 +11,7 @@ import { logout } from '../store/slices/authSlice';
 import { useNavigationPreferences } from '../hooks/useNavigationPreferences';
 import api from '../services/api';
 import { useBranding } from '../contexts/BrandingContext';
+import Avatar from './Avatar';
 
 interface SearchResult {
   contact_id: string;
@@ -303,9 +304,12 @@ const Navigation = () => {
                 aria-label="User menu"
                 aria-expanded={userMenuOpen ? "true" : "false"}
               >
-                <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs sm:text-sm font-semibold shrink-0">
-                  {user?.firstName?.[0]}{user?.lastName?.[0]}
-                </div>
+                <Avatar
+                  src={user?.profilePicture}
+                  firstName={user?.firstName}
+                  lastName={user?.lastName}
+                  size="sm"
+                />
                 <span className="hidden md:block truncate max-w-[120px] lg:max-w-[150px]">
                   {user?.firstName} {user?.lastName}
                 </span>
@@ -543,9 +547,12 @@ const Navigation = () => {
             {/* User section at bottom */}
             <div className="px-3 py-4 border-t border-gray-200 mt-auto">
               <div className="flex items-center space-x-3 px-3 py-3 bg-gray-50 rounded-lg">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0">
-                  {user?.firstName?.[0]}{user?.lastName?.[0]}
-                </div>
+                <Avatar
+                  src={user?.profilePicture}
+                  firstName={user?.firstName}
+                  lastName={user?.lastName}
+                  size="md"
+                />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">
                     {user?.firstName} {user?.lastName}
