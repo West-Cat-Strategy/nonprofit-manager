@@ -5,6 +5,11 @@ import pool from '../config/database';
 import { register, login } from '../controllers/authController';
 import { AuthRequest } from '../middleware/auth';
 
+jest.mock('../services/userRoleService', () => ({
+  __esModule: true,
+  syncUserRole: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock('../config/database', () => ({
   __esModule: true,
   default: {
@@ -79,6 +84,49 @@ describe('Auth API', () => {
       );
       expect(next).not.toHaveBeenCalled();
       expect(queryMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('ignores requested role and defaults to user', async () => {
+      const hashedPassword = 'hashed-password';
+      (bcrypt.hash as jest.Mock).mockResolvedValueOnce(hashedPassword);
+
+      queryMock.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'user-2',
+            email: 'role-test@example.com',
+            first_name: 'Role',
+            last_name: 'Test',
+            role: 'user',
+            created_at: new Date(),
+          },
+        ],
+      });
+
+      const req = {
+        body: {
+          email: 'role-test@example.com',
+          password: 'StrongP@ssw0rd',
+          firstName: 'Role',
+          lastName: 'Test',
+          role: 'admin',
+        },
+      } as AuthRequest;
+      const res = createMockResponse() as unknown as Response;
+      const next = jest.fn();
+
+      await register(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user: expect.objectContaining({
+            role: 'user',
+          }),
+        })
+      );
+      expect(queryMock.mock.calls[1][1][4]).toBe('user');
+      expect(next).not.toHaveBeenCalled();
     });
 
     it('rejects registration when email already exists', async () => {

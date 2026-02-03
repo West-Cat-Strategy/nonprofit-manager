@@ -1,22 +1,12 @@
-/**
- * Express Type Extensions
- * Extends Express Request type to include user from authentication
- */
+import 'express-serve-static-core';
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        email: string;
-        role: string;
-        firstName?: string;
-        lastName?: string;
-        createdAt?: string;
-        updatedAt?: string;
-      };
-    }
+declare module 'express-serve-static-core' {
+  interface Request {
+    correlationId: string;
+    user?: {
+      id: string;
+      email: string;
+      role: string;
+    };
   }
 }
-
-export {};

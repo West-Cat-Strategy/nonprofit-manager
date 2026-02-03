@@ -6,13 +6,14 @@ describe('Volunteer API Integration Tests', () => {
   let authToken: string;
   let testContactId: string;
   let testAccountId: string;
+  const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   beforeAll(async () => {
     // Register and login
     const registerResponse = await request(app)
       .post('/api/auth/register')
       .send({
-        email: `volunteer-test-${Date.now()}@example.com`,
+        email: `volunteer-test-${unique()}@example.com`,
         password: 'Test123!Strong',
         firstName: 'Volunteer',
         lastName: 'Tester',

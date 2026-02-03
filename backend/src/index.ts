@@ -33,10 +33,23 @@ import exportRoutes from './routes/export';
 import activityRoutes from './routes/activities';
 import userRoutes from './routes/users';
 import invitationRoutes from './routes/invitations';
+import portalAuthRoutes from './routes/portalAuth';
+import portalRoutes from './routes/portal';
+import portalAdminRoutes from './routes/portalAdmin';
+import meetingRoutes from './routes/meetings';
+import ingestRoutes from './routes/ingest';
+import adminRoutes from './routes/admin';
+import backupRoutes from './routes/backup';
 import { setPaymentPool } from './controllers/paymentController';
 import { Pool } from 'pg';
 
 dotenv.config();
+
+const dbPassword = process.env.DB_PASSWORD;
+if (!dbPassword && process.env.NODE_ENV === 'production') {
+  logger.error('DB_PASSWORD environment variable is not set');
+  throw new Error('DB_PASSWORD must be configured in production');
+}
 
 // Database pool for health checks
 const pool = new Pool({
@@ -44,7 +57,7 @@ const pool = new Pool({
   port: parseInt(process.env.DB_PORT || '5432'),
   database: process.env.DB_NAME || 'nonprofit_manager',
   user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
+  password: dbPassword || 'postgres',
 });
 
 // Set pool for health checks and payments
@@ -74,7 +87,10 @@ app.use(
 );
 
 // CORS configuration
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',');
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     // Allow requests with no origin (like mobile apps or curl requests)
@@ -145,6 +161,13 @@ app.use('/api/export', exportRoutes);
 app.use('/api/activities', activityRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/invitations', invitationRoutes);
+app.use('/api/portal/auth', portalAuthRoutes);
+app.use('/api/portal', portalRoutes);
+app.use('/api/portal/admin', portalAdminRoutes);
+app.use('/api/meetings', meetingRoutes);
+app.use('/api/ingest', ingestRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/backup', backupRoutes);
 
 // Error handling
 app.use(errorHandler);

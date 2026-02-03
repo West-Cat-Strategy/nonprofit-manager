@@ -5,13 +5,14 @@ import pool from '../../config/database';
 describe('Donation API Integration Tests', () => {
   let authToken: string;
   let testAccountId: string;
+  const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   beforeAll(async () => {
     // Register and login
     const registerResponse = await request(app)
       .post('/api/auth/register')
       .send({
-        email: `donation-test-${Date.now()}@example.com`,
+        email: `donation-test-${unique()}@example.com`,
         password: 'Test123!Strong',
         firstName: 'Donation',
         lastName: 'Tester',
