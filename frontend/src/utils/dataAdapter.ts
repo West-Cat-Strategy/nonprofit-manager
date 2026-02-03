@@ -4,22 +4,16 @@
  * This utility adapts unknown backend data structures to a standardized UI format.
  * Since we don't know if the API uses "volunteers", "members", "contacts", etc.,
  * we detect and map fields dynamically.
+ * 
+ * DEPRECATED: This file is being phased out in favor of types/schema.ts
+ * Kept for backward compatibility during migration.
  */
 
 import type { MockPerson, CardColor } from './mockData';
+import type { AdaptedPerson } from '../types/schema';
 
-export interface AdaptedPerson {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone?: string;
-    role?: string;
-    status?: string;
-    title?: string;
-    fullName: string;
-    cardColor?: CardColor; // Neo-Brutalist card background color
-}
+// Re-export AdaptedPerson from schema for backward compatibility
+export type { AdaptedPerson };
 
 /**
  * Adapts API response to standardized People format
