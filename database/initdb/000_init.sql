@@ -27,5 +27,9 @@
 \i /migrations/022_meeting_manager.sql
 \i /migrations/023_mfa_webauthn.sql
 \i /migrations/024_organization_branding.sql
+\i /migrations/025_theme_presets.sql
+\i /migrations/026_data_scopes.sql
 
 \i /seeds/005_kingdom_hearts_mock_data.sql
+\i /seeds/006_theme_presets.sql
+\i /seeds/006_theme_presets.sql

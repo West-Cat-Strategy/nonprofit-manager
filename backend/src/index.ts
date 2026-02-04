@@ -9,6 +9,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimiter';
 import { correlationIdMiddleware, CORRELATION_ID_HEADER } from './middleware/correlationId';
 import { metricsMiddleware, metricsRouter } from './middleware/metrics';
+import { orgContextMiddleware } from './middleware/orgContext';
 import healthRoutes, { setHealthCheckPool } from './routes/health';
 import authRoutes from './routes/auth';
 import accountRoutes from './routes/accounts';
@@ -119,6 +120,9 @@ app.use(correlationIdMiddleware);
 
 // Metrics middleware (before routes)
 app.use(metricsMiddleware);
+
+// Organization/tenant context middleware (optional)
+app.use(orgContextMiddleware);
 
 // Logging middleware with correlation ID
 app.use(

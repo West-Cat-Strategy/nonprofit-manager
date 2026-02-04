@@ -14,6 +14,7 @@ import {
 } from '../types/account';
 import { Contact } from '../types/contact';
 import { logger } from '../config/logger';
+import type { DataScopeFilter } from '../types/dataScope';
 
 type QueryValue = string | number | boolean | null;
 type DbClient = Pick<Pool, 'query'>;
@@ -59,7 +60,8 @@ export class AccountService {
    */
   async getAccounts(
     filters: AccountFilters = {},
-    pagination: PaginationParams = {}
+    pagination: PaginationParams = {},
+    scope?: DataScopeFilter
   ): Promise<PaginatedAccounts> {
     try {
       const page = pagination.page || 1;
@@ -99,6 +101,24 @@ export class AccountService {
       if (filters.is_active !== undefined) {
         conditions.push(`is_active = $${paramCounter}`);
         values.push(filters.is_active);
+        paramCounter++;
+      }
+
+      if (scope?.accountIds && scope.accountIds.length > 0) {
+        conditions.push(`id = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.accountIds);
+        paramCounter++;
+      }
+
+      if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
+        conditions.push(`created_by = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.createdByUserIds);
+        paramCounter++;
+      }
+
+      if (scope?.accountTypes && scope.accountTypes.length > 0) {
+        conditions.push(`account_type = ANY($${paramCounter}::text[])`);
+        values.push(scope.accountTypes);
         paramCounter++;
       }
 
@@ -186,6 +206,65 @@ export class AccountService {
       return result.rows[0] || null;
     } catch (error) {
       logger.error('Error getting account by ID:', error);
+      throw new Error('Failed to retrieve account');
+    }
+  }
+
+  async getAccountByIdWithScope(
+    accountId: string,
+    scope?: DataScopeFilter
+  ): Promise<Account | null> {
+    try {
+      const conditions = ['id = $1'];
+      const values: QueryValue[] = [accountId];
+      let paramCounter = 2;
+
+      if (scope?.accountIds && scope.accountIds.length > 0) {
+        conditions.push(`id = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.accountIds);
+        paramCounter++;
+      }
+
+      if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
+        conditions.push(`created_by = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.createdByUserIds);
+        paramCounter++;
+      }
+
+      if (scope?.accountTypes && scope.accountTypes.length > 0) {
+        conditions.push(`account_type = ANY($${paramCounter}::text[])`);
+        values.push(scope.accountTypes);
+        paramCounter++;
+      }
+
+      const result = await this.pool.query(
+        `SELECT
+          id as account_id,
+          account_number,
+          account_name,
+          account_type,
+          email,
+          phone,
+          website,
+          description,
+          address_line1,
+          address_line2,
+          city,
+          state_province,
+          postal_code,
+          country,
+          is_active,
+          created_at,
+          updated_at,
+          created_by,
+          modified_by
+        FROM accounts WHERE ${conditions.join(' AND ')}`,
+        values
+      );
+
+      return result.rows[0] || null;
+    } catch (error) {
+      logger.error('Error getting account by ID with scope:', error);
       throw new Error('Failed to retrieve account');
     }
   }

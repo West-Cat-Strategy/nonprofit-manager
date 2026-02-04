@@ -14,6 +14,8 @@ import {
   VolunteerFilters,
 } from '../types/volunteer';
 import { AuthRequest } from '../middleware/auth';
+import { getString, getBoolean } from '../utils/queryHelpers';
+import { notFound, badRequest } from '../utils/responseHelpers';
 
 const volunteerService = new VolunteerService(pool);
 
@@ -21,14 +23,6 @@ const volunteerService = new VolunteerService(pool);
  * GET /api/volunteers
  * Get all volunteers with filtering and pagination
  */
-const getString = (value: unknown): string | undefined =>
-  typeof value === 'string' ? value : undefined;
-
-const getBoolean = (value: unknown): boolean | undefined => {
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  return undefined;
-};
 
 export const getVolunteers = async (
   req: AuthRequest,
@@ -73,7 +67,7 @@ export const getVolunteerById = async (
     const volunteer = await volunteerService.getVolunteerById(req.params.id);
 
     if (!volunteer) {
-      res.status(404).json({ error: 'Volunteer not found' });
+      notFound(res, 'Volunteer');
       return;
     }
 
@@ -96,7 +90,7 @@ export const findVolunteersBySkills = async (
     const skills = getString(req.query.skills)?.split(',') ?? [];
 
     if (skills.length === 0) {
-      res.status(400).json({ error: 'Skills parameter is required' });
+      badRequest(res, 'Skills parameter is required');
       return;
     }
 
@@ -139,7 +133,7 @@ export const updateVolunteer = async (
     const volunteer = await volunteerService.updateVolunteer(req.params.id, req.body, userId);
 
     if (!volunteer) {
-      res.status(404).json({ error: 'Volunteer not found' });
+      notFound(res, 'Volunteer');
       return;
     }
 
@@ -163,7 +157,7 @@ export const deleteVolunteer = async (
     const success = await volunteerService.deleteVolunteer(req.params.id, userId);
 
     if (!success) {
-      res.status(404).json({ error: 'Volunteer not found' });
+      notFound(res, 'Volunteer');
       return;
     }
 
@@ -226,7 +220,7 @@ export const updateAssignment = async (
     const assignment = await volunteerService.updateAssignment(req.params.id, req.body, userId);
 
     if (!assignment) {
-      res.status(404).json({ error: 'Assignment not found' });
+      notFound(res, 'Assignment');
       return;
     }
 

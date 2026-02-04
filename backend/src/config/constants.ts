@@ -53,6 +53,7 @@ export const CACHE = {
   ANALYTICS_TTL: 300, // 5 minutes - analytics cache TTL
   DASHBOARD_TTL: 60, // 1 minute - dashboard cache TTL (more frequent updates)
   CLEANUP_INTERVAL_MS: 60 * 1000, // 1 minute - cache cleanup interval
+  MAX_ENTRIES: 10000, // Maximum cache entries before LRU eviction
 } as const;
 
 /**

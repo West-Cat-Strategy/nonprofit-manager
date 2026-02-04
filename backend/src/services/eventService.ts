@@ -22,11 +22,7 @@ import {
 type QueryValue = string | number | boolean | Date | null;
 
 export class EventService {
-  private pool: Pool;
-
-  constructor() {
-    this.pool = pool;
-  }
+  constructor(private pool: Pool) {}
 
   /**
    * Get all events with filtering and pagination
@@ -629,4 +625,4 @@ export class EventService {
   }
 }
 
-export default new EventService();
+export default new EventService(pool);

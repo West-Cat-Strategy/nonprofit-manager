@@ -19,12 +19,14 @@ import * as emailsController from '../controllers/contactEmailsController';
 import * as relationshipsController from '../controllers/contactRelationshipsController';
 import * as documentsController from '../controllers/contactDocumentsController';
 import { authenticate } from '../middleware/auth';
+import { loadDataScope } from '../middleware/dataScope';
 import { documentUpload, handleMulterError } from '../middleware/upload';
 
 const router = Router();
 
 // All routes require authentication
 router.use(authenticate);
+router.use(loadDataScope('contacts'));
 
 // ============================================================================
 // CONTACT ROUTES

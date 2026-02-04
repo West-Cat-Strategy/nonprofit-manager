@@ -14,12 +14,14 @@ import {
   deleteAccount,
 } from '../controllers/accountController';
 import { authenticate } from '../middleware/auth';
+import { loadDataScope } from '../middleware/dataScope';
 import { handleValidationErrors } from '../middleware/validation';
 
 const router = Router();
 
 // All routes require authentication
 router.use(authenticate);
+router.use(loadDataScope('accounts'));
 
 /**
  * GET /api/accounts
