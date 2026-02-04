@@ -3,7 +3,8 @@
  * Handles donations and reconciliation
  */
 
-import { lazy, ReactNode } from 'react';
+import { lazy } from 'react';
+import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
 
 // Lazy load donation pages

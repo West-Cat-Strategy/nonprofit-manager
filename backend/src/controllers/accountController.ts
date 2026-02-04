@@ -123,6 +123,15 @@ export const updateAccount = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (scope) {
+      const scopedAccount = await accountService.getAccountByIdWithScope(req.params.id, scope);
+      if (!scopedAccount) {
+        notFound(res, 'Account');
+        return;
+      }
+    }
+
     const userId = req.user!.id;
     const account = await accountService.updateAccount(req.params.id, req.body, userId);
 
@@ -147,6 +156,15 @@ export const deleteAccount = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (scope) {
+      const scopedAccount = await accountService.getAccountByIdWithScope(req.params.id, scope);
+      if (!scopedAccount) {
+        notFound(res, 'Account');
+        return;
+      }
+    }
+
     const userId = req.user!.id;
     const success = await accountService.deleteAccount(req.params.id, userId);
 

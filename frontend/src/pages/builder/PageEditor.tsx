@@ -22,7 +22,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import type { AppDispatch, RootState } from '../store';
+import type { AppDispatch, RootState } from '../../store';
 import {
   fetchTemplate,
   updateTemplatePage,
@@ -39,7 +39,13 @@ import EditorHeader from '../../components/editor/EditorHeader';
 import PageList from '../../components/editor/PageList';
 import { useEditorHistory } from '../../hooks/useEditorHistory';
 import { useAutoSave } from '../../hooks/useAutoSave';
-import type { PageComponent, PageSection, ComponentType, TemplateStatus } from '../../types/websiteBuilder';
+import type {
+  PageComponent,
+  PageSection,
+  ComponentType,
+  TemplateStatus,
+  TemplatePage,
+} from '../../types/websiteBuilder';
 
 type ViewMode = 'desktop' | 'tablet' | 'mobile';
 
@@ -394,7 +400,7 @@ const PageEditor: React.FC = () => {
   const handlePageChange = useCallback(
     (pageId: string) => {
       if (!currentTemplate) return;
-      const page = currentTemplate.pages.find((p) => p.id === pageId);
+      const page = currentTemplate.pages.find((p: TemplatePage) => p.id === pageId);
       if (page) {
         dispatch(setCurrentPage(page));
         setSelectedComponentId(null);
@@ -410,7 +416,7 @@ const PageEditor: React.FC = () => {
 
     const baseIndex = currentTemplate.pages.length + 1;
     const baseName = `New Page ${baseIndex}`;
-    const existingSlugs = new Set(currentTemplate.pages.map((p) => p.slug));
+    const existingSlugs = new Set(currentTemplate.pages.map((p: TemplatePage) => p.slug));
     let slug = `page-${baseIndex}`;
     let suffix = 1;
     while (existingSlugs.has(slug)) {

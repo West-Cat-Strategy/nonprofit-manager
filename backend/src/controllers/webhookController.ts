@@ -74,6 +74,12 @@ export const createWebhookEndpoint = async (req: AuthRequest, res: Response): Pr
       return;
     }
 
+    const urlValidation = await webhookService.validateWebhookUrl(url);
+    if (!urlValidation.ok) {
+      res.status(400).json({ error: urlValidation.reason || 'Webhook URL is not allowed' });
+      return;
+    }
+
     const endpoint = await webhookService.createWebhookEndpoint(userId, {
       url,
       description,
@@ -139,6 +145,12 @@ export const updateWebhookEndpoint = async (req: AuthRequest, res: Response): Pr
 
       if (process.env.NODE_ENV === 'production' && !data.url.startsWith('https://')) {
         res.status(400).json({ error: 'HTTPS URL is required in production' });
+        return;
+      }
+
+      const urlValidation = await webhookService.validateWebhookUrl(data.url);
+      if (!urlValidation.ok) {
+        res.status(400).json({ error: urlValidation.reason || 'Webhook URL is not allowed' });
         return;
       }
     }

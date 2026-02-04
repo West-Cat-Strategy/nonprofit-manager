@@ -9,8 +9,49 @@ import pool from '../config/database';
 import { AuthRequest } from '../middleware/auth';
 import type { AnalyticsFilters } from '../types/analytics';
 import { maskFinancialData } from '../middleware/analyticsAuth';
+import type { DataScopeFilter } from '../types/dataScope';
 
 const analyticsService = new AnalyticsService(pool);
+
+const denyIfScopedForOrgWide = (
+  scope: DataScopeFilter | undefined,
+  res: Response
+): boolean => {
+  if (!scope) return false;
+  const hasScope =
+    (scope.accountIds && scope.accountIds.length > 0) ||
+    (scope.contactIds && scope.contactIds.length > 0) ||
+    (scope.createdByUserIds && scope.createdByUserIds.length > 0);
+  if (hasScope) {
+    res.status(403).json({ error: 'Scoped access does not allow organization-wide analytics' });
+    return true;
+  }
+  return false;
+};
+
+const denyIfAccountOutOfScope = (
+  scope: DataScopeFilter | undefined,
+  accountId: string,
+  res: Response
+): boolean => {
+  if (scope?.accountIds && scope.accountIds.length > 0 && !scope.accountIds.includes(accountId)) {
+    res.status(404).json({ error: 'Account not found' });
+    return true;
+  }
+  return false;
+};
+
+const denyIfContactOutOfScope = (
+  scope: DataScopeFilter | undefined,
+  contactId: string,
+  res: Response
+): boolean => {
+  if (scope?.contactIds && scope.contactIds.length > 0 && !scope.contactIds.includes(contactId)) {
+    res.status(404).json({ error: 'Contact not found' });
+    return true;
+  }
+  return false;
+};
 
 /**
  * GET /api/analytics/accounts/:id
@@ -23,6 +64,10 @@ export const getAccountAnalytics = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (denyIfAccountOutOfScope(scope, id, res)) {
+      return;
+    }
     const analytics = await analyticsService.getAccountAnalytics(id);
     const maskedAnalytics = maskFinancialData(analytics, req.user!.role);
     res.json(maskedAnalytics);
@@ -46,6 +91,10 @@ export const getContactAnalytics = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (denyIfContactOutOfScope(scope, id, res)) {
+      return;
+    }
     const analytics = await analyticsService.getContactAnalytics(id);
     const maskedAnalytics = maskFinancialData(analytics, req.user!.role);
     res.json(maskedAnalytics);
@@ -68,6 +117,10 @@ export const getAnalyticsSummary = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (denyIfScopedForOrgWide(scope, res)) {
+      return;
+    }
     const filters: AnalyticsFilters = {
       start_date: req.query.start_date as string | undefined,
       end_date: req.query.end_date as string | undefined,
@@ -94,6 +147,10 @@ export const getAccountDonationMetrics = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (denyIfAccountOutOfScope(scope, id, res)) {
+      return;
+    }
     const metrics = await analyticsService.getDonationMetrics('account', id);
     const maskedMetrics = maskFinancialData(metrics, req.user!.role);
     res.json(maskedMetrics);
@@ -113,6 +170,10 @@ export const getContactDonationMetrics = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (denyIfContactOutOfScope(scope, id, res)) {
+      return;
+    }
     const metrics = await analyticsService.getDonationMetrics('contact', id);
     const maskedMetrics = maskFinancialData(metrics, req.user!.role);
     res.json(maskedMetrics);
@@ -132,6 +193,10 @@ export const getAccountEventMetrics = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (denyIfAccountOutOfScope(scope, id, res)) {
+      return;
+    }
     const metrics = await analyticsService.getEventMetrics('account', id);
     res.json(metrics);
   } catch (error) {
@@ -150,6 +215,10 @@ export const getContactEventMetrics = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (denyIfContactOutOfScope(scope, id, res)) {
+      return;
+    }
     const metrics = await analyticsService.getEventMetrics('contact', id);
     res.json(metrics);
   } catch (error) {
@@ -168,6 +237,10 @@ export const getContactVolunteerMetrics = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (denyIfContactOutOfScope(scope, id, res)) {
+      return;
+    }
     const metrics = await analyticsService.getVolunteerMetrics(id);
 
     if (!metrics) {
@@ -191,6 +264,10 @@ export const getDonationTrends = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (denyIfScopedForOrgWide(scope, res)) {
+      return;
+    }
     const months = parseInt(req.query.months as string) || 12;
     const trends = await analyticsService.getDonationTrends(Math.min(months, 24));
     const maskedTrends = maskFinancialData(trends, req.user!.role);
@@ -210,6 +287,10 @@ export const getVolunteerHoursTrends = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (denyIfScopedForOrgWide(scope, res)) {
+      return;
+    }
     const months = parseInt(req.query.months as string) || 12;
     const trends = await analyticsService.getVolunteerHoursTrends(Math.min(months, 24));
     res.json(trends);
@@ -228,6 +309,10 @@ export const getEventAttendanceTrends = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (denyIfScopedForOrgWide(scope, res)) {
+      return;
+    }
     const months = parseInt(req.query.months as string) || 12;
     const trends = await analyticsService.getEventAttendanceTrends(Math.min(months, 24));
     res.json(trends);
@@ -246,6 +331,10 @@ export const getComparativeAnalytics = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (denyIfScopedForOrgWide(scope, res)) {
+      return;
+    }
     const periodType = (req.query.period as 'month' | 'quarter' | 'year') || 'month';
 
     // Validate period type
@@ -272,6 +361,10 @@ export const getTrendAnalysis = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (denyIfScopedForOrgWide(scope, res)) {
+      return;
+    }
     const { metricType } = req.params as { metricType: 'donations' | 'volunteer_hours' | 'event_attendance' };
     const months = parseInt(req.query.months as string) || 12;
 
@@ -302,6 +395,10 @@ export const detectAnomalies = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (denyIfScopedForOrgWide(scope, res)) {
+      return;
+    }
     const { metricType } = req.params as { metricType: 'donations' | 'volunteer_hours' | 'event_attendance' };
     const months = parseInt(req.query.months as string) || 12;
     const sensitivity = parseFloat(req.query.sensitivity as string) || 2.0;

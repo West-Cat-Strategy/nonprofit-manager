@@ -3,7 +3,8 @@
  * Handles settings and admin-only pages
  */
 
-import { lazy, ReactNode } from 'react';
+import { lazy } from 'react';
+import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
 
 // Lazy load admin pages

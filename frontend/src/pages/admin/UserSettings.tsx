@@ -161,7 +161,7 @@ export default function UserSettings() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
-  const { isDarkMode, toggleDarkMode } = useTheme();
+  useTheme();
 
   // Visual-only state for field visibility (not persisted per instructions)
   const [fieldVisibility, setFieldVisibility] = useState<Record<string, boolean>>({

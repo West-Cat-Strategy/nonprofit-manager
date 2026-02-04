@@ -15,6 +15,7 @@ export interface RegisterData {
 export interface AuthResponse {
   token: string;
   refreshToken?: string;
+  organizationId?: string | null;
   user: {
     id: string;
     email: string;
@@ -29,6 +30,7 @@ export interface MfaRequiredResponse {
   mfaRequired: true;
   method: 'totp';
   mfaToken: string;
+  organizationId?: string | null;
   user: AuthResponse['user'];
 }
 

@@ -13,6 +13,7 @@ import {
   PaginatedContacts,
 } from '../types/contact';
 import { logger } from '../config/logger';
+import { resolveSort } from '../utils/queryHelpers';
 import type { DataScopeFilter } from '../types/dataScope';
 
 type QueryValue = string | number | boolean | null | string[];
@@ -36,8 +37,20 @@ export class ContactService {
       const page = pagination.page || 1;
       const limit = pagination.limit || 20;
       const offset = (page - 1) * limit;
-      const sortBy = pagination.sort_by || 'created_at';
-      const sortOrder = pagination.sort_order || 'desc';
+      const sortColumnMap: Record<string, string> = {
+        created_at: 'c.created_at',
+        updated_at: 'c.updated_at',
+        first_name: 'c.first_name',
+        last_name: 'c.last_name',
+        email: 'c.email',
+        account_name: 'a.account_name',
+      };
+      const { sortColumn, sortOrder } = resolveSort(
+        pagination.sort_by,
+        pagination.sort_order,
+        sortColumnMap,
+        'created_at'
+      );
 
       // Build WHERE clause
       const conditions: string[] = [];
@@ -152,7 +165,7 @@ export class ContactService {
         FROM contacts c
         LEFT JOIN accounts a ON c.account_id = a.id
         ${whereClause}
-        ORDER BY c.${sortBy} ${sortOrder.toUpperCase()}
+        ORDER BY ${sortColumn} ${sortOrder}
         LIMIT $${paramCounter} OFFSET $${paramCounter + 1}
       `;
       const dataResult = await this.pool.query(dataQuery, [...values, limit, offset]);

@@ -16,6 +16,7 @@ import {
 import { AuthRequest } from '../middleware/auth';
 import { getString, getBoolean } from '../utils/queryHelpers';
 import { notFound, badRequest } from '../utils/responseHelpers';
+import type { DataScopeFilter } from '../types/dataScope';
 
 const volunteerService = new VolunteerService(pool);
 
@@ -47,7 +48,8 @@ export const getVolunteers = async (
       sort_order: getString(req.query.sort_order) as 'asc' | 'desc' | undefined,
     };
 
-    const result = await volunteerService.getVolunteers(filters, pagination);
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    const result = await volunteerService.getVolunteers(filters, pagination, scope);
     res.json(result);
   } catch (error) {
     next(error);
@@ -64,7 +66,8 @@ export const getVolunteerById = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const volunteer = await volunteerService.getVolunteerById(req.params.id);
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    const volunteer = await volunteerService.getVolunteerById(req.params.id, scope);
 
     if (!volunteer) {
       notFound(res, 'Volunteer');

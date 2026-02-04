@@ -14,6 +14,7 @@ import {
 import { AuthRequest } from '../middleware/auth';
 import { getString, getNumber, getBoolean } from '../utils/queryHelpers';
 import { notFound } from '../utils/responseHelpers';
+import type { DataScopeFilter } from '../types/dataScope';
 
 export class DonationController {
   /**
@@ -42,7 +43,8 @@ export class DonationController {
         sort_order: getString(req.query.sort_order) as 'asc' | 'desc' | undefined,
       };
 
-      const result = await donationService.getDonations(filters, pagination);
+      const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+      const result = await donationService.getDonations(filters, pagination, scope);
       res.json(result);
     } catch (error) {
       next(error);
@@ -54,7 +56,8 @@ export class DonationController {
    */
   async getDonationById(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const donation = await donationService.getDonationById(req.params.id);
+      const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+      const donation = await donationService.getDonationById(req.params.id, scope);
       
       if (!donation) {
         notFound(res, 'Donation');
@@ -146,7 +149,8 @@ export class DonationController {
         end_date: getString(req.query.end_date),
       };
 
-      const summary = await donationService.getDonationSummary(filters);
+      const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+      const summary = await donationService.getDonationSummary(filters, scope);
       res.json(summary);
     } catch (error) {
       next(error);

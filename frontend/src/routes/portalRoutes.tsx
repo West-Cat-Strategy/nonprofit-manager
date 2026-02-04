@@ -3,7 +3,8 @@
  * Handles client portal pages
  */
 
-import { lazy, ReactNode } from 'react';
+import { lazy } from 'react';
+import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
 
 // Lazy load portal pages (remain in pages/portal directory)

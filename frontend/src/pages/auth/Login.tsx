@@ -18,6 +18,12 @@ export default function Login() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
+  const persistOrganizationId = (organizationId?: string | null) => {
+    if (organizationId) {
+      localStorage.setItem('organizationId', organizationId);
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
@@ -36,6 +42,7 @@ export default function Login() {
         if (!('token' in response)) {
           throw new Error('Unexpected login response');
         }
+        persistOrganizationId(response.organizationId);
         dispatch(setCredentials({ user: response.user, token: response.token }));
         navigate('/dashboard');
         return;
@@ -52,6 +59,7 @@ export default function Login() {
         mfaToken,
         code: totpCode.trim(),
       });
+      persistOrganizationId(response.organizationId);
       dispatch(setCredentials(response));
       navigate('/dashboard');
     } catch (err: unknown) {
@@ -86,6 +94,7 @@ export default function Login() {
         challengeId,
         credential,
       });
+      persistOrganizationId(response.organizationId);
       dispatch(setCredentials(response));
       navigate('/dashboard');
     } catch (err: unknown) {

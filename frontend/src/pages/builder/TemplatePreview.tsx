@@ -6,7 +6,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import type { RootState } from '../store';
+import type { RootState } from '../../store';
 
 const TemplatePreview: React.FC = () => {
   const { templateId } = useParams<{ templateId: string }>();
@@ -35,9 +35,12 @@ const TemplatePreview: React.FC = () => {
 
       try {
         setIsLoading(true);
+        const organizationId =
+          localStorage.getItem('organizationId') || import.meta.env.VITE_DEFAULT_ORGANIZATION_ID;
         const response = await fetch(previewUrl, {
           headers: {
             'Authorization': `Bearer ${token}`,
+            ...(organizationId ? { 'X-Organization-Id': organizationId } : {}),
           },
         });
 

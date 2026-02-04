@@ -1,4 +1,3 @@
-import React from 'react';
 import ThemeSelector from '../../components/ThemeSelector';
 import NeoBrutalistLayout from '../../components/neo-brutalist/NeoBrutalistLayout';
 import BrutalButton from '../../components/neo-brutalist/BrutalButton';
@@ -20,13 +19,13 @@ export default function ThemeAudit() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {/* Visual Primitives */}
-                        <div space-y-4>
+                        <div className="space-y-4">
                             <h2 className="text-xl font-bold mb-4">2. Visual Primitives</h2>
 
                             {/* Buttons */}
                             <div className="flex flex-wrap gap-4 mb-4">
                                 <BrutalButton>Primary Action</BrutalButton>
-                                <BrutalButton color="bg-loop-pink">Pink Action</BrutalButton>
+                                <BrutalButton className="bg-loop-pink text-black">Pink Action</BrutalButton>
                                 <BrutalButton disabled>Disabled</BrutalButton>
                             </div>
 
@@ -50,7 +49,8 @@ export default function ThemeAudit() {
                         {/* Cards / Surfaces */}
                         <div>
                             <h2 className="text-xl font-bold mb-4">3. Surfaces & Typography</h2>
-                            <BrutalCard title="Card Component" color="bg-app-surface" className="mb-4">
+                            <BrutalCard className="mb-4">
+                                <h3 className="text-lg font-mono mb-2">Card Component</h3>
                                 <p className="mb-2">This is standard body text. It should have high contrast.</p>
                                 <p className="text-sm opacity-75">This is secondary text opacity 75%.</p>
                                 <div className="mt-4 p-4 bg-app-bg border-2 border-app-border">
@@ -58,7 +58,8 @@ export default function ThemeAudit() {
                                 </div>
                             </BrutalCard>
 
-                            <BrutalCard title="Colored Card" color="bg-loop-green">
+                            <BrutalCard color="green">
+                                <h3 className="text-lg font-mono mb-2">Colored Card</h3>
                                 <p>This card has a forced background color. Text inside should be readable.</p>
                             </BrutalCard>
                         </div>

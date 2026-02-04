@@ -194,6 +194,15 @@ export const updateContact = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (scope) {
+      const scopedContact = await contactService.getContactByIdWithScope(req.params.id, scope);
+      if (!scopedContact) {
+        notFound(res, 'Contact');
+        return;
+      }
+    }
+
     const userId = req.user!.id;
     const { roles, ...contactData } = req.body;
     const contact = await contactService.updateContact(req.params.id, contactData, userId);
@@ -253,6 +262,15 @@ export const deleteContact = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (scope) {
+      const scopedContact = await contactService.getContactByIdWithScope(req.params.id, scope);
+      if (!scopedContact) {
+        notFound(res, 'Contact');
+        return;
+      }
+    }
+
     const userId = req.user!.id;
     const success = await contactService.deleteContact(req.params.id, userId);
 

@@ -14,8 +14,10 @@ import {
   PaginatedDonations,
   DonationSummary,
 } from '../types/donation';
+import { resolveSort } from '../utils/queryHelpers';
+import type { DataScopeFilter } from '../types/dataScope';
 
-type QueryValue = string | number | boolean | Date | null;
+type QueryValue = string | number | boolean | Date | null | string[];
 
 export class DonationService {
   constructor(private pool: Pool) {}
@@ -47,7 +49,8 @@ export class DonationService {
    */
   async getDonations(
     filters: DonationFilters = {},
-    pagination: PaginationParams = {}
+    pagination: PaginationParams = {},
+    scope?: DataScopeFilter
   ): Promise<PaginatedDonations> {
     const {
       search,
@@ -66,8 +69,8 @@ export class DonationService {
     const {
       page = 1,
       limit = 20,
-      sort_by = 'donation_date',
-      sort_order = 'desc',
+      sort_by,
+      sort_order,
     } = pagination;
 
     const offset = (page - 1) * limit;
@@ -148,6 +151,24 @@ export class DonationService {
       paramCount++;
     }
 
+    if (scope?.accountIds && scope.accountIds.length > 0) {
+      conditions.push(`d.account_id = ANY($${paramCount}::uuid[])`);
+      params.push(scope.accountIds);
+      paramCount++;
+    }
+
+    if (scope?.contactIds && scope.contactIds.length > 0) {
+      conditions.push(`d.contact_id = ANY($${paramCount}::uuid[])`);
+      params.push(scope.contactIds);
+      paramCount++;
+    }
+
+    if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
+      conditions.push(`d.created_by = ANY($${paramCount}::uuid[])`);
+      params.push(scope.createdByUserIds);
+      paramCount++;
+    }
+
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // Get total count and summary
@@ -166,6 +187,21 @@ export class DonationService {
       count: total,
       average_amount: parseFloat(summaryResult.rows[0].average_amount),
     };
+
+    const sortColumnMap: Record<string, string> = {
+      donation_date: 'd.donation_date',
+      created_at: 'd.created_at',
+      amount: 'd.amount',
+      donation_number: 'd.donation_number',
+      payment_status: 'd.payment_status',
+      payment_method: 'd.payment_method',
+    };
+    const { sortColumn, sortOrder } = resolveSort(
+      sort_by,
+      sort_order,
+      sortColumnMap,
+      'donation_date'
+    );
 
     // Get paginated results with joined data
     const dataQuery = `
@@ -197,7 +233,7 @@ export class DonationService {
       LEFT JOIN accounts a ON d.account_id = a.id
       LEFT JOIN contacts c ON d.contact_id = c.id
       ${whereClause}
-      ORDER BY ${sort_by} ${sort_order}
+      ORDER BY ${sortColumn} ${sortOrder}
       LIMIT $${paramCount} OFFSET $${paramCount + 1}
     `;
 
@@ -219,7 +255,10 @@ export class DonationService {
   /**
    * Get donation by ID
    */
-  async getDonationById(donationId: string): Promise<Donation | null> {
+  async getDonationById(
+    donationId: string,
+    scope?: DataScopeFilter
+  ): Promise<Donation | null> {
     const query = `
       SELECT 
         d.id as donation_id,
@@ -251,7 +290,31 @@ export class DonationService {
       WHERE d.id = $1
     `;
 
-    const result = await this.pool.query(query, [donationId]);
+    const params: QueryValue[] = [donationId];
+    let paramCount = 2;
+    const conditions: string[] = [];
+
+    if (scope?.accountIds && scope.accountIds.length > 0) {
+      conditions.push(`d.account_id = ANY($${paramCount}::uuid[])`);
+      params.push(scope.accountIds);
+      paramCount++;
+    }
+
+    if (scope?.contactIds && scope.contactIds.length > 0) {
+      conditions.push(`d.contact_id = ANY($${paramCount}::uuid[])`);
+      params.push(scope.contactIds);
+      paramCount++;
+    }
+
+    if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
+      conditions.push(`d.created_by = ANY($${paramCount}::uuid[])`);
+      params.push(scope.createdByUserIds);
+      paramCount++;
+    }
+
+    const finalQuery =
+      conditions.length > 0 ? `${query} AND ${conditions.join(' AND ')}` : query;
+    const result = await this.pool.query(finalQuery, params);
     return result.rows[0] || null;
   }
 
@@ -450,7 +513,10 @@ export class DonationService {
   /**
    * Get donation summary statistics
    */
-  async getDonationSummary(filters: DonationFilters = {}): Promise<DonationSummary> {
+  async getDonationSummary(
+    filters: DonationFilters = {},
+    scope?: DataScopeFilter
+  ): Promise<DonationSummary> {
     const conditions: string[] = [];
     const params: QueryValue[] = [];
     let paramCount = 1;
@@ -477,6 +543,24 @@ export class DonationService {
     if (filters.end_date) {
       conditions.push(`donation_date <= $${paramCount}`);
       params.push(filters.end_date);
+      paramCount++;
+    }
+
+    if (scope?.accountIds && scope.accountIds.length > 0) {
+      conditions.push(`account_id = ANY($${paramCount}::uuid[])`);
+      params.push(scope.accountIds);
+      paramCount++;
+    }
+
+    if (scope?.contactIds && scope.contactIds.length > 0) {
+      conditions.push(`contact_id = ANY($${paramCount}::uuid[])`);
+      params.push(scope.contactIds);
+      paramCount++;
+    }
+
+    if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
+      conditions.push(`created_by = ANY($${paramCount}::uuid[])`);
+      params.push(scope.createdByUserIds);
       paramCount++;
     }
 

@@ -65,6 +65,8 @@ services:
       RATE_LIMIT_WINDOW_MS: 60000
       AUTH_RATE_LIMIT_MAX_REQUESTS: 50
       AUTH_RATE_LIMIT_WINDOW_MS: 60000
+      ORG_CONTEXT_REQUIRE: "true"
+      ORG_CONTEXT_VALIDATE: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -96,6 +98,7 @@ services:
       - "8080:8080"
     environment:
       VITE_API_URL: http://localhost:3000/api
+      VITE_DEFAULT_ORGANIZATION_ID: 82c6f7af-7d6f-4527-a5ae-60db86c5c619
     depends_on:
       backend:
         condition: service_healthy

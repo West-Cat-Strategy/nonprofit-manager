@@ -17,11 +17,13 @@ import {
   updateAssignment,
 } from '../controllers/volunteerController';
 import { authenticate } from '../middleware/auth';
+import { loadDataScope } from '../middleware/dataScope';
 
 const router = Router();
 
 // All routes require authentication
 router.use(authenticate);
+router.use(loadDataScope('volunteers'));
 
 /**
  * GET /api/volunteers/search/skills

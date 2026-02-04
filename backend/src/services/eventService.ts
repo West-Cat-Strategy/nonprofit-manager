@@ -18,8 +18,10 @@ import {
   RegistrationFilters,
   CheckInResult,
 } from '../types/event';
+import { resolveSort } from '../utils/queryHelpers';
+import type { DataScopeFilter } from '../types/dataScope';
 
-type QueryValue = string | number | boolean | Date | null;
+type QueryValue = string | number | boolean | Date | null | string[];
 
 export class EventService {
   constructor(private pool: Pool) {}
@@ -29,11 +31,12 @@ export class EventService {
    */
   async getEvents(
     filters: EventFilters = {},
-    pagination: PaginationParams = {}
+    pagination: PaginationParams = {},
+    scope?: DataScopeFilter
   ): Promise<PaginatedEvents> {
     const { search, event_type, status, start_date, end_date } = filters;
 
-    const { page = 1, limit = 20, sort_by = 'start_date', sort_order = 'desc' } = pagination;
+    const { page = 1, limit = 20, sort_by, sort_order } = pagination;
 
     const offset = (page - 1) * limit;
 
@@ -72,6 +75,12 @@ export class EventService {
       paramCount++;
     }
 
+    if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
+      conditions.push(`created_by = ANY($${paramCount}::uuid[])`);
+      params.push(scope.createdByUserIds);
+      paramCount++;
+    }
+
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // Get total count
@@ -80,6 +89,17 @@ export class EventService {
     const total = parseInt(countResult.rows[0].count);
 
     // Get paginated results
+    const sortColumnMap: Record<string, string> = {
+      start_date: 'start_date',
+      end_date: 'end_date',
+      created_at: 'created_at',
+      updated_at: 'updated_at',
+      name: 'name',
+      status: 'status',
+      event_type: 'event_type',
+    };
+    const { sortColumn, sortOrder } = resolveSort(sort_by, sort_order, sortColumnMap, 'start_date');
+
     const dataQuery = `
       SELECT 
         id as event_id,
@@ -105,7 +125,7 @@ export class EventService {
         modified_by
       FROM events
       ${whereClause}
-      ORDER BY ${sort_by} ${sort_order}
+      ORDER BY ${sortColumn} ${sortOrder}
       LIMIT $${paramCount} OFFSET $${paramCount + 1}
     `;
 
@@ -126,7 +146,7 @@ export class EventService {
   /**
    * Get event by ID
    */
-  async getEventById(eventId: string): Promise<Event | null> {
+  async getEventById(eventId: string, scope?: DataScopeFilter): Promise<Event | null> {
     const query = `
       SELECT 
         id as event_id,
@@ -154,14 +174,29 @@ export class EventService {
       WHERE id = $1
     `;
 
-    const result = await this.pool.query(query, [eventId]);
+    const params: QueryValue[] = [eventId];
+    let paramCount = 2;
+    const conditions: string[] = [];
+
+    if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
+      conditions.push(`created_by = ANY($${paramCount}::uuid[])`);
+      params.push(scope.createdByUserIds);
+      paramCount++;
+    }
+
+    const finalQuery =
+      conditions.length > 0 ? `${query} AND ${conditions.join(' AND ')}` : query;
+    const result = await this.pool.query(finalQuery, params);
     return result.rows[0] || null;
   }
 
   /**
    * Get event attendance summary for dashboard widgets
    */
-  async getEventAttendanceSummary(referenceDate: Date = new Date()): Promise<{
+  async getEventAttendanceSummary(
+    referenceDate: Date = new Date(),
+    scope?: DataScopeFilter
+  ): Promise<{
     upcoming_events: number;
     total_this_month: number;
     avg_attendance: number;
@@ -185,9 +220,25 @@ export class EventService {
         AND start_date <= $2
     `;
 
+    const scopeCondition =
+      scope?.createdByUserIds && scope.createdByUserIds.length > 0
+        ? ` AND created_by = ANY($3::uuid[])`
+        : '';
+
+    const upcomingQueryScoped = `${upcomingQuery}${scopeCondition}`;
+    const monthQueryScoped = `${monthSummaryQuery}${scopeCondition}`;
+
+    const upcomingParams: QueryValue[] = [referenceDate];
+    const monthParams: QueryValue[] = [startOfMonth, endOfMonth];
+
+    if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
+      upcomingParams.push(scope.createdByUserIds);
+      monthParams.push(scope.createdByUserIds);
+    }
+
     const [upcomingResult, monthResult] = await Promise.all([
-      this.pool.query(upcomingQuery, [referenceDate]),
-      this.pool.query(monthSummaryQuery, [startOfMonth, endOfMonth]),
+      this.pool.query(upcomingQueryScoped, upcomingParams),
+      this.pool.query(monthQueryScoped, monthParams),
     ]);
 
     const upcoming_events = upcomingResult.rows[0]?.upcoming_events ?? 0;

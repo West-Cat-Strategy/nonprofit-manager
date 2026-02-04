@@ -7,6 +7,7 @@ import { Router } from 'express';
 import { body, query } from 'express-validator';
 import donationController from '../controllers/donationController';
 import { authenticate } from '../middleware/auth';
+import { loadDataScope } from '../middleware/dataScope';
 
 const router = Router();
 
@@ -71,12 +72,14 @@ const donationQueryValidation = [
 ];
 
 // Donation routes
-router.get('/', authenticate, donationQueryValidation, donationController.getDonations);
-router.get('/summary', authenticate, donationController.getDonationSummary);
-router.get('/:id', authenticate, donationController.getDonationById);
-router.post('/', authenticate, createDonationValidation, donationController.createDonation);
-router.put('/:id', authenticate, updateDonationValidation, donationController.updateDonation);
-router.delete('/:id', authenticate, donationController.deleteDonation);
-router.post('/:id/receipt', authenticate, donationController.markReceiptSent);
+router.use(authenticate);
+router.use(loadDataScope('donations'));
+router.get('/', donationQueryValidation, donationController.getDonations);
+router.get('/summary', donationController.getDonationSummary);
+router.get('/:id', donationController.getDonationById);
+router.post('/', createDonationValidation, donationController.createDonation);
+router.put('/:id', updateDonationValidation, donationController.updateDonation);
+router.delete('/:id', donationController.deleteDonation);
+router.post('/:id/receipt', donationController.markReceiptSent);
 
 export default router;

@@ -4,6 +4,8 @@
  */
 
 import crypto from 'crypto';
+import dns from 'dns/promises';
+import net from 'net';
 import pool from '../config/database';
 import { logger } from '../config/logger';
 import type {
@@ -21,6 +23,107 @@ import type {
 const MAX_RETRY_ATTEMPTS = 5;
 const RETRY_DELAYS = [60, 300, 900, 3600, 7200]; // seconds: 1m, 5m, 15m, 1h, 2h
 const WEBHOOK_TIMEOUT = 30000; // 30 seconds
+
+const PRIVATE_HOSTNAME_SUFFIXES = ['.localhost', '.local'];
+const BLOCKED_HOSTNAMES = new Set(['localhost']);
+
+const isPrivateIpv4 = (ip: string): boolean => {
+  const parts = ip.split('.').map((part) => parseInt(part, 10));
+  if (parts.length !== 4 || parts.some((part) => Number.isNaN(part))) return false;
+  const [a, b] = parts;
+
+  if (a === 10) return true;
+  if (a === 127) return true;
+  if (a === 169 && b === 254) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 0) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
+  if (a === 198 && (b === 18 || b === 19)) return true; // benchmark
+  if (a >= 224) return true; // multicast/reserved
+  return false;
+};
+
+const isPrivateIpv6 = (ip: string): boolean => {
+  const normalized = ip.toLowerCase();
+
+  if (normalized === '::' || normalized === '::1') return true;
+  if (normalized.startsWith('fc') || normalized.startsWith('fd')) return true; // fc00::/7
+  if (normalized.startsWith('fe80')) return true; // link-local
+  if (normalized.startsWith('2001:db8')) return true; // documentation
+
+  if (normalized.startsWith('::ffff:')) {
+    const ipv4 = normalized.replace('::ffff:', '');
+    return isPrivateIpv4(ipv4);
+  }
+
+  return false;
+};
+
+const isPrivateHost = (hostname: string): boolean => {
+  const lower = hostname.toLowerCase();
+  if (BLOCKED_HOSTNAMES.has(lower)) return true;
+  if (PRIVATE_HOSTNAME_SUFFIXES.some((suffix) => lower.endsWith(suffix))) return true;
+  return false;
+};
+
+const isPrivateIp = (ip: string): boolean => {
+  const ipVersion = net.isIP(ip);
+  if (ipVersion === 4) return isPrivateIpv4(ip);
+  if (ipVersion === 6) return isPrivateIpv6(ip);
+  return false;
+};
+
+export async function validateWebhookUrl(
+  url: string
+): Promise<{ ok: boolean; reason?: string }> {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return { ok: false, reason: 'Invalid URL' };
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return { ok: false, reason: 'Only http and https URLs are allowed' };
+  }
+
+  if (parsed.username || parsed.password) {
+    return { ok: false, reason: 'URL must not include credentials' };
+  }
+
+  const hostname = parsed.hostname;
+  if (!hostname) {
+    return { ok: false, reason: 'URL must include a hostname' };
+  }
+
+  if (isPrivateHost(hostname)) {
+    return { ok: false, reason: 'Host is not allowed' };
+  }
+
+  if (net.isIP(hostname)) {
+    if (isPrivateIp(hostname)) {
+      return { ok: false, reason: 'IP address is not allowed' };
+    }
+    return { ok: true };
+  }
+
+  try {
+    const addresses = await dns.lookup(hostname, { all: true, verbatim: true });
+    if (addresses.length === 0) {
+      return { ok: false, reason: 'Hostname did not resolve' };
+    }
+    for (const addr of addresses) {
+      if (isPrivateIp(addr.address)) {
+        return { ok: false, reason: 'Hostname resolves to a private IP' };
+      }
+    }
+  } catch {
+    return { ok: false, reason: 'Hostname resolution failed' };
+  }
+
+  return { ok: true };
+}
 
 /**
  * Generate a secure webhook secret
@@ -288,6 +391,21 @@ async function deliverWebhook(
   const deliveryId = deliveryResult.rows[0].id;
 
   try {
+    const validation = await validateWebhookUrl(endpoint.url);
+    if (!validation.ok) {
+      await updateDeliveryStatus(deliveryId, 'failed', {
+        responseBody: validation.reason || 'Webhook URL blocked',
+        attempts: MAX_RETRY_ATTEMPTS,
+      });
+      await pool.query(
+        `UPDATE webhook_endpoints
+         SET last_delivery_at = NOW(), last_delivery_status = 'failed'
+         WHERE id = $1`,
+        [endpoint.id]
+      );
+      return;
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT);
 
@@ -486,6 +604,15 @@ export async function testWebhookEndpoint(
   const startTime = Date.now();
 
   try {
+    const validation = await validateWebhookUrl(endpoint.url);
+    if (!validation.ok) {
+      return {
+        success: false,
+        responseTime: Date.now() - startTime,
+        error: validation.reason || 'Webhook URL blocked',
+      };
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT);
 

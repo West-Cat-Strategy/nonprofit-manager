@@ -32,4 +32,5 @@
 
 \i /seeds/005_kingdom_hearts_mock_data.sql
 \i /seeds/006_theme_presets.sql
+\i /seeds/007_data_scopes.sql
 \i /seeds/006_theme_presets.sql
