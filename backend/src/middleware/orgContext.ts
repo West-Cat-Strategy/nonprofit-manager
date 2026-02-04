@@ -58,6 +58,22 @@ export const orgContextMiddleware = async (
   res: Response,
   next: NextFunction
 ): Promise<void | Response> => {
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+
+  const path = req.path || '';
+  const fullPath = req.originalUrl || req.url || path;
+  const normalizedPath = fullPath.split('?')[0];
+  const skipPrefixes = ['/auth', '/payments/webhook'];
+  if (skipPrefixes.some((prefix) => path.startsWith(prefix) || normalizedPath.startsWith(prefix))) {
+    return next();
+  }
+
+  if (req.method === 'POST' && (path === '/accounts' || normalizedPath.startsWith('/accounts'))) {
+    return next();
+  }
+
   const { id, source } = getOrgContext(req);
 
   if (!id) {

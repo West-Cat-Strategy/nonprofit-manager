@@ -1,0 +1,1 @@
+{"version":3,"file":"userRoleService.d.ts","sourceRoot":"","sources":["../../src/services/userRoleService.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,IAAI,EAAE,UAAU,EAAE,MAAM,IAAI,CAAC;AAItC,KAAK,QAAQ,GAAG,IAAI,GAAG,UAAU,CAAC;AAUlC,eAAO,MAAM,YAAY,GACvB,QAAQ,MAAM,EACd,UAAU,MAAM,EAChB,KAAI,QAAe,KAClB,OAAO,CAAC,IAAI,CAoBd,CAAC"}

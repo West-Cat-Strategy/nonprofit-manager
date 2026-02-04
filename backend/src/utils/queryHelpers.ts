@@ -129,3 +129,19 @@ export const extractPagination = (
 export const getOffset = (page: number, limit: number): number => {
   return (page - 1) * limit;
 };
+
+/**
+ * Resolve a safe ORDER BY clause from a user-provided sort field.
+ * Uses an allowlist mapping from external sort keys to SQL column names.
+ */
+export const resolveSort = (
+  sortBy: string | undefined,
+  sortOrder: string | undefined,
+  sortColumnMap: Record<string, string>,
+  defaultSortKey: string
+): { sortColumn: string; sortOrder: 'ASC' | 'DESC' } => {
+  const sortColumn =
+    (sortBy && sortColumnMap[sortBy]) || sortColumnMap[defaultSortKey] || defaultSortKey;
+  const order = sortOrder === 'asc' ? 'ASC' : 'DESC';
+  return { sortColumn, sortOrder: order };
+};

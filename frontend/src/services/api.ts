@@ -14,6 +14,11 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    const organizationId =
+      localStorage.getItem('organizationId') || import.meta.env.VITE_DEFAULT_ORGANIZATION_ID;
+    if (organizationId) {
+      config.headers['X-Organization-Id'] = organizationId;
+    }
     return config;
   },
   (error) => {

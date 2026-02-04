@@ -50,6 +50,10 @@ if (DEV_MODE && DEV_AUTO_LOGIN && !token) {
   user = devUser;
   localStorage.setItem('token', devToken);
   localStorage.setItem('user', JSON.stringify(devUser));
+  const defaultOrgId = import.meta.env.VITE_DEFAULT_ORGANIZATION_ID;
+  if (defaultOrgId) {
+    localStorage.setItem('organizationId', defaultOrgId);
+  }
 
   console.log('🔧 [DEV MODE] Auto-authenticated as:', devUser.email);
 }
@@ -80,6 +84,7 @@ const authSlice = createSlice({
       state.loading = false;
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      localStorage.removeItem('organizationId');
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;

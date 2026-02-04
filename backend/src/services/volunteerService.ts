@@ -17,6 +17,8 @@ import {
   AssignmentFilters,
 } from '../types/volunteer';
 import { logger } from '../config/logger';
+import { resolveSort } from '../utils/queryHelpers';
+import type { DataScopeFilter } from '../types/dataScope';
 
 type QueryValue = string | number | boolean | string[] | null;
 
@@ -32,14 +34,27 @@ export class VolunteerService {
    */
   async getVolunteers(
     filters: VolunteerFilters = {},
-    pagination: PaginationParams = {}
+    pagination: PaginationParams = {},
+    scope?: DataScopeFilter
   ): Promise<PaginatedVolunteers> {
     try {
       const page = pagination.page || 1;
       const limit = pagination.limit || 20;
       const offset = (page - 1) * limit;
-      const sortBy = pagination.sort_by || 'v.created_at';
-      const sortOrder = pagination.sort_order || 'desc';
+      const sortColumnMap: Record<string, string> = {
+        created_at: 'v.created_at',
+        updated_at: 'v.updated_at',
+        first_name: 'c.first_name',
+        last_name: 'c.last_name',
+        email: 'c.email',
+        volunteer_status: 'v.volunteer_status',
+      };
+      const { sortColumn, sortOrder } = resolveSort(
+        pagination.sort_by,
+        pagination.sort_order,
+        sortColumnMap,
+        'created_at'
+      );
 
       // Build WHERE clause
       const conditions: string[] = [];
@@ -74,6 +89,24 @@ export class VolunteerService {
         paramCounter++;
       }
 
+      if (scope?.accountIds && scope.accountIds.length > 0) {
+        conditions.push(`c.account_id = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.accountIds);
+        paramCounter++;
+      }
+
+      if (scope?.contactIds && scope.contactIds.length > 0) {
+        conditions.push(`c.id = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.contactIds);
+        paramCounter++;
+      }
+
+      if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
+        conditions.push(`v.created_by = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.createdByUserIds);
+        paramCounter++;
+      }
+
       // Filter by volunteer_status instead of is_active (not in schema)
       // Skip is_active filter as it doesn't exist in the schema
 
@@ -101,7 +134,7 @@ export class VolunteerService {
         FROM volunteers v
         INNER JOIN contacts c ON v.contact_id = c.id
         ${whereClause}
-        ORDER BY ${sortBy} ${sortOrder.toUpperCase()}
+        ORDER BY ${sortColumn} ${sortOrder}
         LIMIT $${paramCounter} OFFSET $${paramCounter + 1}
       `;
       const dataResult = await this.pool.query(dataQuery, [...values, limit, offset]);
@@ -124,8 +157,33 @@ export class VolunteerService {
   /**
    * Get volunteer by ID
    */
-  async getVolunteerById(volunteerId: string): Promise<Volunteer | null> {
+  async getVolunteerById(
+    volunteerId: string,
+    scope?: DataScopeFilter
+  ): Promise<Volunteer | null> {
     try {
+      const conditions: string[] = ['v.id = $1'];
+      const values: QueryValue[] = [volunteerId];
+      let paramCounter = 2;
+
+      if (scope?.accountIds && scope.accountIds.length > 0) {
+        conditions.push(`c.account_id = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.accountIds);
+        paramCounter++;
+      }
+
+      if (scope?.contactIds && scope.contactIds.length > 0) {
+        conditions.push(`c.id = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.contactIds);
+        paramCounter++;
+      }
+
+      if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
+        conditions.push(`v.created_by = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.createdByUserIds);
+        paramCounter++;
+      }
+
       const result = await this.pool.query(
         `SELECT 
           v.*,
@@ -136,8 +194,8 @@ export class VolunteerService {
           c.mobile_phone
          FROM volunteers v
          INNER JOIN contacts c ON v.contact_id = c.id
-         WHERE v.id = $1`,
-        [volunteerId]
+         WHERE ${conditions.join(' AND ')}`,
+        values
       );
 
       return result.rows[0] || null;

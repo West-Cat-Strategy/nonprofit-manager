@@ -1133,7 +1133,7 @@ export async function applyPaletteToTemplate(
   const template = await getTemplate(templateId, userId);
   if (!template) return null;
   const theme = { ...template.theme, colors: { ...template.theme.colors, ...palette } };
-  return updateTemplate(templateId, { theme }, userId);
+  return updateTemplate(templateId, userId, { theme });
 }
 
 export async function applyFontPairingToTemplate(
@@ -1151,7 +1151,7 @@ export async function applyFontPairingToTemplate(
       fontFamily: pairing.bodyFont,
     },
   };
-  return updateTemplate(templateId, { theme }, userId);
+  return updateTemplate(templateId, userId, { theme });
 }
 
 export default {

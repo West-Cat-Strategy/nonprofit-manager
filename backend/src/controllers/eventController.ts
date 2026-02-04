@@ -5,6 +5,7 @@
 
 import { Response, NextFunction } from 'express';
 import { EventService } from '../services/eventService';
+import pool from '../config/database';
 import { AuthRequest } from '../middleware/auth';
 import type {
   CreateEventDTO,
@@ -14,8 +15,9 @@ import type {
   EventFilters,
   RegistrationFilters,
 } from '../types/event';
+import type { DataScopeFilter } from '../types/dataScope';
 
-const eventService = new EventService();
+const eventService = new EventService(pool);
 
 /**
  * GET /api/events
@@ -35,7 +37,8 @@ export const getEvents = async (
       search: req.query.search as string,
     };
 
-    const events = await eventService.getEvents(filters);
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    const events = await eventService.getEvents(filters, {}, scope);
     res.json(events);
   } catch (error) {
     next(error);
@@ -47,12 +50,13 @@ export const getEvents = async (
  * Get event attendance summary for dashboards
  */
 export const getEventAttendanceSummary = async (
-  _req: AuthRequest,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const summary = await eventService.getEventAttendanceSummary();
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    const summary = await eventService.getEventAttendanceSummary(new Date(), scope);
     res.json(summary);
   } catch (error) {
     next(error);
@@ -70,7 +74,8 @@ export const getEvent = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const event = await eventService.getEventById(id);
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    const event = await eventService.getEventById(id, scope);
 
     if (!event) {
       res.status(404).json({ error: 'Event not found' });

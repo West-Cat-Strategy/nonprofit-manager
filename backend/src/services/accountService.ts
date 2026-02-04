@@ -14,9 +14,10 @@ import {
 } from '../types/account';
 import { Contact } from '../types/contact';
 import { logger } from '../config/logger';
+import { resolveSort } from '../utils/queryHelpers';
 import type { DataScopeFilter } from '../types/dataScope';
 
-type QueryValue = string | number | boolean | null;
+type QueryValue = string | number | boolean | null | string[];
 type DbClient = Pick<Pool, 'query'>;
 
 export class AccountService {
@@ -67,8 +68,20 @@ export class AccountService {
       const page = pagination.page || 1;
       const limit = pagination.limit || 20;
       const offset = (page - 1) * limit;
-      const sortBy = pagination.sort_by || 'created_at';
-      const sortOrder = pagination.sort_order || 'desc';
+      const sortColumnMap: Record<string, string> = {
+        created_at: 'created_at',
+        updated_at: 'updated_at',
+        account_name: 'account_name',
+        account_number: 'account_number',
+        account_type: 'account_type',
+        email: 'email',
+      };
+      const { sortColumn, sortOrder } = resolveSort(
+        pagination.sort_by,
+        pagination.sort_order,
+        sortColumnMap,
+        'created_at'
+      );
 
       // Build WHERE clause
       const conditions: string[] = [];
@@ -153,7 +166,7 @@ export class AccountService {
           modified_by
         FROM accounts
         ${whereClause}
-        ORDER BY ${sortBy} ${sortOrder.toUpperCase()}
+        ORDER BY ${sortColumn} ${sortOrder}
         LIMIT $${paramCounter} OFFSET $${paramCounter + 1}
       `;
       const dataResult = await this.pool.query(dataQuery, [...values, limit, offset]);

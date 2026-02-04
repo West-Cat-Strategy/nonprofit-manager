@@ -67,6 +67,17 @@ const issueAuthTokens = (user: { id: string; email: string; role: string }) => {
   };
 };
 
+const getDefaultOrganizationId = async (): Promise<string | null> => {
+  const result = await pool.query(
+    `SELECT id
+     FROM accounts
+     WHERE account_type = 'organization'
+     ORDER BY created_at ASC
+     LIMIT 1`
+  );
+  return result.rows[0]?.id || null;
+};
+
 export const listPasskeys = async (
   req: AuthRequest,
   res: Response,
@@ -399,9 +410,11 @@ export const loginVerify = async (
     await trackLoginAttempt(email, true, user.id, clientIp);
 
     const { token, refreshToken } = issueAuthTokens(user);
+    const organizationId = await getDefaultOrganizationId();
     return res.json({
       token,
       refreshToken,
+      organizationId,
       user: {
         id: user.id,
         email: user.email,

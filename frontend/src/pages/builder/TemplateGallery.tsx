@@ -6,7 +6,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import type { AppDispatch, RootState } from '../store';
+import type { AppDispatch, RootState } from '../../store';
 import {
   searchTemplates,
   fetchSystemTemplates,
@@ -103,7 +103,7 @@ const TemplateGallery: React.FC = () => {
     (template: TemplateListItem) => {
       if (template.isSystemTemplate) {
         // For system templates, duplicate and then edit
-        dispatch(duplicateTemplate({ id: template.id })).then((result) => {
+        dispatch(duplicateTemplate({ id: template.id })).then((result: any) => {
           if (duplicateTemplate.fulfilled.match(result)) {
             navigate(`/website-builder/${result.payload.id}`);
           }
@@ -123,7 +123,7 @@ const TemplateGallery: React.FC = () => {
 
   const handleDuplicateTemplate = useCallback(
     (template: TemplateListItem) => {
-      dispatch(duplicateTemplate({ id: template.id })).then((result) => {
+      dispatch(duplicateTemplate({ id: template.id })).then((result: any) => {
         if (duplicateTemplate.fulfilled.match(result)) {
           // Refresh list to show new template
           dispatch(searchTemplates());

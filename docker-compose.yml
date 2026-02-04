@@ -65,6 +65,8 @@ services:
       RATE_LIMIT_WINDOW_MS: 60000
       AUTH_RATE_LIMIT_MAX_REQUESTS: 50
       AUTH_RATE_LIMIT_WINDOW_MS: 60000
+      ORG_CONTEXT_REQUIRE: "true"
+      ORG_CONTEXT_VALIDATE: "true"
     depends_on:
       postgres:
         condition: service_healthy

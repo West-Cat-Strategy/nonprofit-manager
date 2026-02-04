@@ -21,12 +21,14 @@ import {
   getRegistrations,
 } from '../controllers/eventController';
 import { authenticate } from '../middleware/auth';
+import { loadDataScope } from '../middleware/dataScope';
 import { handleValidationErrors } from '../middleware/validation';
 
 const router = Router();
 
 // All routes require authentication
 router.use(authenticate);
+router.use(loadDataScope('events'));
 
 /**
  * GET /api/events

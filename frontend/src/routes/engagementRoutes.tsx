@@ -3,7 +3,8 @@
  * Handles events, tasks, and cases
  */
 
-import { lazy, ReactNode } from 'react';
+import { lazy } from 'react';
+import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
 
 // Lazy load event pages
