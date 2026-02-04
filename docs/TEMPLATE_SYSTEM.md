@@ -433,6 +433,26 @@ Returns: HTML string
 GET /api/templates/system
 ```
 
+#### Theme Presets
+```http
+GET /api/templates/palettes
+GET /api/templates/fonts
+```
+
+#### Template Theme CSS Variables
+```http
+GET /api/templates/:templateId/css
+```
+
+#### Apply Palette / Font Pairing
+```http
+POST /api/templates/:templateId/apply-palette
+Body: { paletteId: string }
+
+POST /api/templates/:templateId/apply-font
+Body: { fontPairingId: string }
+```
+
 ### Page Endpoints
 
 #### List Pages

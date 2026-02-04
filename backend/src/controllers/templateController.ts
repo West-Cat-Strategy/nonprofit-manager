@@ -6,6 +6,7 @@
 import { Response } from 'express';
 import { logger } from '../config/logger';
 import * as templateService from '../services/templateService';
+import * as themePresetService from '../services/themePresetService';
 import type { AuthRequest } from '../middleware/auth';
 import type {
   CreateTemplateRequest,
@@ -73,6 +74,140 @@ export const getTemplate = async (req: AuthRequest, res: Response): Promise<void
   } catch (error) {
     logger.error('Error getting template', { error });
     res.status(500).json({ error: 'Failed to get template' });
+  }
+};
+
+/**
+ * Get template CSS variables
+ */
+export const getTemplateCss = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+
+    const { templateId } = req.params;
+    const cssVariables = await templateService.getTemplateCssVariables(templateId, userId);
+    if (!cssVariables) {
+      res.status(404).json({ error: 'Template not found' });
+      return;
+    }
+
+    res.json({ cssVariables });
+  } catch (error) {
+    logger.error('Error getting template CSS variables', { error });
+    res.status(500).json({ error: 'Failed to get template CSS variables' });
+  }
+};
+
+/**
+ * List available color palettes
+ */
+export const listColorPalettes = async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const palettes = await themePresetService.listColorPalettes(true);
+    res.json(palettes);
+  } catch (error) {
+    logger.error('Error listing color palettes', { error });
+    res.status(500).json({ error: 'Failed to list color palettes' });
+  }
+};
+
+/**
+ * List available font pairings
+ */
+export const listFontPairings = async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const pairings = await themePresetService.listFontPairings(true);
+    res.json(pairings);
+  } catch (error) {
+    logger.error('Error listing font pairings', { error });
+    res.status(500).json({ error: 'Failed to list font pairings' });
+  }
+};
+
+/**
+ * Apply a color palette to a template
+ */
+export const applyTemplatePalette = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+
+    const { templateId } = req.params;
+    const { paletteId } = req.body as { paletteId?: string };
+    if (!paletteId) {
+      res.status(400).json({ error: 'paletteId is required' });
+      return;
+    }
+
+    const palette = await themePresetService.getColorPaletteById(paletteId);
+    if (!palette) {
+      res.status(404).json({ error: 'Palette not found' });
+      return;
+    }
+
+    const updated = await templateService.applyPaletteToTemplate(
+      templateId,
+      userId,
+      palette.colors
+    );
+
+    if (!updated) {
+      res.status(404).json({ error: 'Template not found' });
+      return;
+    }
+
+    res.json(updated);
+  } catch (error) {
+    logger.error('Error applying template palette', { error });
+    res.status(500).json({ error: 'Failed to apply palette' });
+  }
+};
+
+/**
+ * Apply a font pairing to a template
+ */
+export const applyTemplateFontPairing = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+
+    const { templateId } = req.params;
+    const { fontPairingId } = req.body as { fontPairingId?: string };
+    if (!fontPairingId) {
+      res.status(400).json({ error: 'fontPairingId is required' });
+      return;
+    }
+
+    const pairing = await themePresetService.getFontPairingById(fontPairingId);
+    if (!pairing) {
+      res.status(404).json({ error: 'Font pairing not found' });
+      return;
+    }
+
+    const updated = await templateService.applyFontPairingToTemplate(templateId, userId, {
+      headingFont: pairing.headingFont,
+      bodyFont: pairing.bodyFont,
+    });
+
+    if (!updated) {
+      res.status(404).json({ error: 'Template not found' });
+      return;
+    }
+
+    res.json(updated);
+  } catch (error) {
+    logger.error('Error applying template font pairing', { error });
+    res.status(500).json({ error: 'Failed to apply font pairing' });
   }
 };
 

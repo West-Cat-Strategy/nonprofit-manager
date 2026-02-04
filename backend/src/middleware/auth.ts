@@ -11,6 +11,14 @@ interface JwtPayload {
 export interface AuthRequest
   extends Request<Record<string, string>, any, any, Record<string, string | undefined>> {
   user?: JwtPayload;
+  organizationId?: string;
+  accountId?: string;
+  tenantId?: string;
+  dataScope?: {
+    resource: string;
+    scopeId?: string;
+    filter?: Record<string, unknown>;
+  };
 }
 
 export const authenticate = (
