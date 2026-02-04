@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import type { ReactNode } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAppSelector } from './store/hooks';
 import { useSetupCheck } from './hooks/useSetupCheck';
@@ -7,6 +8,16 @@ import AdminRoute from './components/AdminRoute';
 import PortalProtectedRoute from './components/PortalProtectedRoute';
 import { ThemeProvider } from './contexts/ThemeContext';
 import './App.css';
+
+// Import route creators
+import { createPeopleRoutes } from './routes/peopleRoutes';
+import { createEngagementRoutes } from './routes/engagementRoutes';
+import { createFinanceRoutes } from './routes/financeRoutes';
+import { createAnalyticsRoutes } from './routes/analyticsRoutes';
+import { createAdminRoutes } from './routes/adminRoutes';
+import { createBuilderRoutes } from './routes/builderRoutes';
+import { createPortalRoutes } from './routes/portalRoutes';
+import { createWorkflowRoutes } from './routes/workflowRoutes';
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
@@ -18,96 +29,12 @@ const PageLoader = () => (
   </div>
 );
 
-// Lazy load all page components for code splitting
-const Setup = lazy(() => import('./pages/Setup'));
-const Login = lazy(() => import('./pages/Login'));
-const AcceptInvitation = lazy(() => import('./pages/AcceptInvitation'));
-const CustomDashboard = lazy(() => import('./pages/CustomDashboard'));
-const IntakeNew = lazy(() => import('./pages/IntakeNew'));
-const InteractionNote = lazy(() => import('./pages/InteractionNote'));
+// Lazy load auth pages
+const Setup = lazy(() => import('./pages/auth/Setup'));
+const Login = lazy(() => import('./pages/auth/Login'));
+const AcceptInvitation = lazy(() => import('./pages/auth/AcceptInvitation'));
 
-// Account pages
-const AccountList = lazy(() => import('./pages/AccountList'));
-const AccountDetail = lazy(() => import('./pages/AccountDetail'));
-const AccountCreate = lazy(() => import('./pages/AccountCreate').then(m => ({ default: m.AccountCreate })));
-const AccountEdit = lazy(() => import('./pages/AccountEdit').then(m => ({ default: m.AccountEdit })));
-
-// Contact pages
-const ContactList = lazy(() => import('./pages/ContactList'));
-const ContactDetail = lazy(() => import('./pages/ContactDetail'));
-const ContactCreate = lazy(() => import('./pages/ContactCreate').then(m => ({ default: m.ContactCreate })));
-const ContactEdit = lazy(() => import('./pages/ContactEdit').then(m => ({ default: m.ContactEdit })));
-
-// Volunteer pages
-const VolunteerList = lazy(() => import('./pages/VolunteerList'));
-const VolunteerDetail = lazy(() => import('./pages/VolunteerDetail'));
-const VolunteerCreate = lazy(() => import('./pages/VolunteerCreate').then(m => ({ default: m.VolunteerCreate })));
-const VolunteerEdit = lazy(() => import('./pages/VolunteerEdit').then(m => ({ default: m.VolunteerEdit })));
-const AssignmentCreate = lazy(() => import('./pages/AssignmentCreate').then(m => ({ default: m.AssignmentCreate })));
-const AssignmentEdit = lazy(() => import('./pages/AssignmentEdit').then(m => ({ default: m.AssignmentEdit })));
-
-// Event pages
-const EventList = lazy(() => import('./pages/EventList'));
-const EventCalendarPage = lazy(() => import('./pages/EventCalendarPage'));
-const EventDetail = lazy(() => import('./pages/EventDetail'));
-const EventCreate = lazy(() => import('./pages/EventCreate'));
-const EventEdit = lazy(() => import('./pages/EventEdit'));
-
-// Donation pages
-const DonationList = lazy(() => import('./pages/DonationList'));
-const DonationDetail = lazy(() => import('./pages/DonationDetail'));
-const DonationCreate = lazy(() => import('./pages/DonationCreate'));
-const DonationEdit = lazy(() => import('./pages/DonationEdit'));
-const DonationPayment = lazy(() => import('./pages/DonationPayment'));
-const PaymentResult = lazy(() => import('./pages/PaymentResult'));
-
-// Task pages
-const TaskList = lazy(() => import('./pages/TaskList'));
-const TaskDetail = lazy(() => import('./pages/TaskDetail'));
-const TaskCreate = lazy(() => import('./pages/TaskCreate'));
-const TaskEdit = lazy(() => import('./pages/TaskEdit'));
-
-// Analytics and Reports pages
-const Analytics = lazy(() => import('./pages/Analytics'));
-const ReportBuilder = lazy(() => import('./pages/ReportBuilder'));
-const SavedReports = lazy(() => import('./pages/SavedReports'));
-// Portal pages
-const PortalLogin = lazy(() => import('./pages/PortalLogin'));
-const PortalSignup = lazy(() => import('./pages/PortalSignup'));
-const PortalAcceptInvitation = lazy(() => import('./pages/PortalAcceptInvitation'));
-const PortalDashboard = lazy(() => import('./pages/PortalDashboard'));
-const PortalProfile = lazy(() => import('./pages/PortalProfile'));
-const PortalPeople = lazy(() => import('./pages/PortalPeople'));
-const PortalEvents = lazy(() => import('./pages/PortalEvents'));
-const PortalAppointments = lazy(() => import('./pages/PortalAppointments'));
-const PortalDocuments = lazy(() => import('./pages/PortalDocuments'));
-const PortalNotes = lazy(() => import('./pages/PortalNotes'));
-const PortalForms = lazy(() => import('./pages/PortalForms'));
-const PortalReminders = lazy(() => import('./pages/PortalReminders'));
-
-// Settings and Integration pages
-const EmailMarketing = lazy(() => import('./pages/EmailMarketing'));
-const ApiSettings = lazy(() => import('./pages/ApiSettings'));
-const NavigationSettings = lazy(() => import('./pages/NavigationSettings'));
-const UserSettings = lazy(() => import('./pages/UserSettings'));
-const AdminSettings = lazy(() => import('./pages/AdminSettings'));
-const DataBackup = lazy(() => import('./pages/DataBackup'));
-
-// Website Builder pages
-const TemplateGallery = lazy(() => import('./pages/TemplateGallery'));
-const PageEditor = lazy(() => import('./pages/PageEditor'));
-const TemplatePreview = lazy(() => import('./pages/TemplatePreview'));
-
-// Payment Reconciliation pages
-const ReconciliationDashboard = lazy(() => import('./pages/ReconciliationDashboard'));
-
-// Case Management pages
-const CaseList = lazy(() => import('./pages/CaseList'));
-const CaseDetail = lazy(() => import('./pages/CaseDetail'));
-const CaseCreate = lazy(() => import('./pages/CaseCreate'));
-const CaseEdit = lazy(() => import('./pages/CaseEdit'));
-
-// Neo-Brutalist Demo Pages
+// Lazy load Neo-Brutalist pages (remain in their directory)
 const NeoBrutalistDashboard = lazy(() => import('./pages/neo-brutalist/NeoBrutalistDashboard'));
 const LinkingModule = lazy(() => import('./pages/neo-brutalist/LinkingModule'));
 const OperationsBoard = lazy(() => import('./pages/neo-brutalist/OperationsBoard'));
@@ -117,11 +44,10 @@ const ThemeAudit = lazy(() => import('./pages/neo-brutalist/ThemeAudit'));
 
 // Protected Route wrapper component
 interface ProtectedRouteProps {
-  children: React.ReactNode;
-  isAuthenticated: boolean;
+  children: ReactNode;
 }
 
-const ProtectedRoute = ({ children, isAuthenticated }: ProtectedRouteProps) => {
+const ProtectedRouteWrapper = ({ children, isAuthenticated }: ProtectedRouteProps & { isAuthenticated: boolean }) => {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -129,7 +55,7 @@ const ProtectedRoute = ({ children, isAuthenticated }: ProtectedRouteProps) => {
 };
 
 // Neo-Brutalist routes don't use the old Layout (they have their own sidebar layout)
-const NeoBrutalistRoute = ({ children, isAuthenticated }: ProtectedRouteProps) => {
+const NeoBrutalistRouteWrapper = ({ children, isAuthenticated }: ProtectedRouteProps & { isAuthenticated: boolean }) => {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -159,188 +85,43 @@ const AppRoutes = () => {
     return <Navigate to="/login" replace />;
   }
 
+  // Create route wrapper components with isAuthenticated bound
+  const ProtectedRoute = ({ children }: ProtectedRouteProps) => (
+    <ProtectedRouteWrapper isAuthenticated={isAuthenticated}>{children}</ProtectedRouteWrapper>
+  );
+
+  const NeoBrutalistRoute = ({ children }: ProtectedRouteProps) => (
+    <NeoBrutalistRouteWrapper isAuthenticated={isAuthenticated}>{children}</NeoBrutalistRouteWrapper>
+  );
+
   return (
     <Routes>
+      {/* Auth Routes */}
       <Route path="/setup" element={<Setup />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/portal/login" element={<PortalLogin />} />
-      <Route path="/portal/signup" element={<PortalSignup />} />
-      <Route path="/portal/accept-invitation/:token" element={<PortalAcceptInvitation />} />
-      <Route
-        path="/portal"
-        element={
-          <PortalProtectedRoute>
-            <PortalDashboard />
-          </PortalProtectedRoute>
-        }
-      />
-      <Route
-        path="/portal/profile"
-        element={
-          <PortalProtectedRoute>
-            <PortalProfile />
-          </PortalProtectedRoute>
-        }
-      />
-      <Route
-        path="/portal/people"
-        element={
-          <PortalProtectedRoute>
-            <PortalPeople />
-          </PortalProtectedRoute>
-        }
-      />
-      <Route
-        path="/portal/events"
-        element={
-          <PortalProtectedRoute>
-            <PortalEvents />
-          </PortalProtectedRoute>
-        }
-      />
-      <Route
-        path="/portal/appointments"
-        element={
-          <PortalProtectedRoute>
-            <PortalAppointments />
-          </PortalProtectedRoute>
-        }
-      />
-      <Route
-        path="/portal/documents"
-        element={
-          <PortalProtectedRoute>
-            <PortalDocuments />
-          </PortalProtectedRoute>
-        }
-      />
-      <Route
-        path="/portal/notes"
-        element={
-          <PortalProtectedRoute>
-            <PortalNotes />
-          </PortalProtectedRoute>
-        }
-      />
-      <Route
-        path="/portal/forms"
-        element={
-          <PortalProtectedRoute>
-            <PortalForms />
-          </PortalProtectedRoute>
-        }
-      />
-      <Route
-        path="/portal/reminders"
-        element={
-          <PortalProtectedRoute>
-            <PortalReminders />
-          </PortalProtectedRoute>
-        }
-      />
       <Route path="/accept-invitation/:token" element={<AcceptInvitation />} />
+
+      {/* Portal Routes */}
+      {createPortalRoutes(PortalProtectedRoute)}
+
       {/* Neo-Brutalist Dashboard (Primary) */}
       <Route
         path="/dashboard"
         element={
-          <NeoBrutalistRoute isAuthenticated={isAuthenticated}>
+          <NeoBrutalistRoute>
             <NeoBrutalistDashboard />
           </NeoBrutalistRoute>
         }
       />
-      <Route
-        path="/dashboard/custom"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <CustomDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/accounts"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <AccountList />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/accounts/new"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <AccountCreate />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/accounts/:id/edit"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <AccountEdit />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/accounts/:id"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <AccountDetail />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/intake/new"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <IntakeNew />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/interactions/new"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <InteractionNote />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/contacts"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <ContactList />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/contacts/new"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <ContactCreate />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/contacts/:id/edit"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <ContactEdit />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/contacts/:id"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <ContactDetail />
-          </ProtectedRoute>
-        }
-      />
+
+      {/* People Routes (Accounts, Contacts, Volunteers) */}
+      {createPeopleRoutes(ProtectedRoute)}
+
       {/* LOOP Module: People Directory */}
       <Route
         path="/people"
         element={
-          <NeoBrutalistRoute isAuthenticated={isAuthenticated}>
+          <NeoBrutalistRoute>
             <PeopleDirectory />
           </NeoBrutalistRoute>
         }
@@ -350,7 +131,7 @@ const AppRoutes = () => {
       <Route
         path="/linking"
         element={
-          <NeoBrutalistRoute isAuthenticated={isAuthenticated}>
+          <NeoBrutalistRoute>
             <LinkingModule />
           </NeoBrutalistRoute>
         }
@@ -360,7 +141,7 @@ const AppRoutes = () => {
       <Route
         path="/operations"
         element={
-          <NeoBrutalistRoute isAuthenticated={isAuthenticated}>
+          <NeoBrutalistRoute>
             <OperationsBoard />
           </NeoBrutalistRoute>
         }
@@ -370,325 +151,30 @@ const AppRoutes = () => {
       <Route
         path="/outreach"
         element={
-          <NeoBrutalistRoute isAuthenticated={isAuthenticated}>
+          <NeoBrutalistRoute>
             <OutreachCenter />
           </NeoBrutalistRoute>
         }
       />
 
-      {/* Legacy Volunteer Routes (kept for backwards compatibility) */}
-      <Route
-        path="/volunteers"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <VolunteerList />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/volunteers/new"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <VolunteerCreate />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/volunteers/:id/edit"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <VolunteerEdit />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/volunteers/:volunteerId/assignments/new"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <AssignmentCreate />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/volunteers/:volunteerId/assignments/:assignmentId/edit"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <AssignmentEdit />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/volunteers/:id"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <VolunteerDetail />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/events"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <EventList />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/events/calendar"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <EventCalendarPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/events/new"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <EventCreate />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/events/:id/edit"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <EventEdit />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/events/:id"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <EventDetail />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/donations"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <DonationList />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/donations/new"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <DonationCreate />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/donations/:id/edit"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <DonationEdit />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/donations/:id"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <DonationDetail />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/donations/payment"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <DonationPayment />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/donations/payment-result"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <PaymentResult />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/reconciliation"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <ReconciliationDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/cases"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <CaseList />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/cases/new"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <CaseCreate />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/cases/:id/edit"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <CaseEdit />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/cases/:id"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <CaseDetail />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/tasks"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <TaskList />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/tasks/new"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <TaskCreate />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/tasks/:id/edit"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <TaskEdit />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/tasks/:id"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <TaskDetail />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/analytics"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <Analytics />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/reports/builder"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <ReportBuilder />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/reports/saved"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <SavedReports />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/reports"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <Navigate to="/reports/builder" replace />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings/email-marketing"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <EmailMarketing />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings/api"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <ApiSettings />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings/navigation"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <NavigationSettings />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings/user"
-        element={
-          <NeoBrutalistRoute isAuthenticated={isAuthenticated}>
-            <UserSettings />
-          </NeoBrutalistRoute>
-        }
-      />
-      <Route
-        path="/settings/admin"
-        element={
-          <AdminRoute>
-            <AdminSettings />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/settings/backup"
-        element={
-          <AdminRoute>
-            <DataBackup />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/website-builder"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <TemplateGallery />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/website-builder/:templateId/preview"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <TemplatePreview />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/website-builder/:templateId"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <PageEditor />
-          </ProtectedRoute>
-        }
-      />
+      {/* Engagement Routes (Events, Tasks, Cases) */}
+      {createEngagementRoutes(ProtectedRoute)}
+
+      {/* Finance Routes (Donations, Reconciliation) */}
+      {createFinanceRoutes(ProtectedRoute)}
+
+      {/* Analytics Routes */}
+      {createAnalyticsRoutes(ProtectedRoute)}
+
+      {/* Workflow Routes */}
+      {createWorkflowRoutes(ProtectedRoute)}
+
+      {/* Admin Routes */}
+      {createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRoute })}
+
+      {/* Builder Routes */}
+      {createBuilderRoutes(ProtectedRoute)}
+
       {/* Neo-Brutalist Demo Routes (No Auth Required) */}
       <Route path="/demo/dashboard" element={<NeoBrutalistDashboard />} />
       <Route path="/demo/linking" element={<LinkingModule />} />

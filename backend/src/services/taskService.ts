@@ -3,10 +3,13 @@
  * Handles business logic for task management
  */
 
+import { Pool } from 'pg';
 import pool from '../config/database';
 import { Task, CreateTaskDTO, UpdateTaskDTO, TaskFilters, TaskSummary, TaskStatus, TaskPriority } from '../types/task';
 
-export const taskService = {
+export class TaskService {
+  constructor(private pool: Pool) {}
+
   /**
    * Get tasks with optional filtering and pagination
    */
@@ -86,7 +89,7 @@ export const taskService = {
 
     // Get total count
     const countQuery = `SELECT COUNT(*) FROM tasks t ${whereClause}`;
-    const countResult = await pool.query(countQuery, values);
+    const countResult = await this.pool.query(countQuery, values);
     const total = parseInt(countResult.rows[0].count);
 
     // Get tasks with joined data
@@ -96,7 +99,7 @@ export const taskService = {
     const offsetParam = paramCount;
 
     const query = `
-      SELECT 
+      SELECT
         t.*,
         u.first_name || ' ' || u.last_name as assigned_to_name,
         CASE
@@ -115,20 +118,20 @@ export const taskService = {
       LEFT JOIN donations d ON t.related_to_type = 'donation' AND t.related_to_id = d.id
       LEFT JOIN contacts vc ON t.related_to_type = 'volunteer' AND t.related_to_id = vc.id
       ${whereClause}
-      ORDER BY 
+      ORDER BY
         CASE WHEN t.status IN ('completed', 'cancelled') THEN 1 ELSE 0 END,
-        CASE t.priority 
-          WHEN 'urgent' THEN 1 
-          WHEN 'high' THEN 2 
-          WHEN 'normal' THEN 3 
-          WHEN 'low' THEN 4 
+        CASE t.priority
+          WHEN 'urgent' THEN 1
+          WHEN 'high' THEN 2
+          WHEN 'normal' THEN 3
+          WHEN 'low' THEN 4
         END,
         t.due_date ASC NULLS LAST,
         t.created_at DESC
       LIMIT $${limitParam} OFFSET $${offsetParam}
     `;
 
-    const result = await pool.query(query, [...values, limit, offset]);
+    const result = await this.pool.query(query, [...values, limit, offset]);
     const tasks = result.rows;
 
     // Get summary statistics
@@ -152,7 +155,7 @@ export const taskService = {
       ${whereClause}
     `;
 
-    const summaryResult = await pool.query(summaryQuery, values);
+    const summaryResult = await this.pool.query(summaryQuery, values);
     const summaryRow = summaryResult.rows[0];
 
     const summary: TaskSummary = {
@@ -186,14 +189,14 @@ export const taskService = {
       },
       summary,
     };
-  },
+  }
 
   /**
    * Get a single task by ID
    */
   async getTaskById(id: string): Promise<Task | null> {
     const query = `
-      SELECT 
+      SELECT
         t.*,
         u.first_name || ' ' || u.last_name as assigned_to_name,
         CASE
@@ -213,9 +216,9 @@ export const taskService = {
       LEFT JOIN contacts vc ON t.related_to_type = 'volunteer' AND t.related_to_id = vc.id
       WHERE t.id = $1
     `;
-    const result = await pool.query(query, [id]);
+    const result = await this.pool.query(query, [id]);
     return result.rows[0] || null;
-  },
+  }
 
   /**
    * Create a new task
@@ -255,9 +258,9 @@ export const taskService = {
       userId,
     ];
 
-    const result = await pool.query(query, values);
+    const result = await this.pool.query(query, values);
     return result.rows[0];
-  },
+  }
 
   /**
    * Update a task
@@ -302,18 +305,18 @@ export const taskService = {
     `;
     values.push(id);
 
-    const result = await pool.query(query, values);
+    const result = await this.pool.query(query, values);
     return result.rows[0] || null;
-  },
+  }
 
   /**
    * Delete a task
    */
   async deleteTask(id: string): Promise<boolean> {
     const query = 'DELETE FROM tasks WHERE id = $1';
-    const result = await pool.query(query, [id]);
+    const result = await this.pool.query(query, [id]);
     return result.rowCount ? result.rowCount > 0 : false;
-  },
+  }
 
   /**
    * Complete a task
@@ -327,7 +330,7 @@ export const taskService = {
       },
       userId
     );
-  },
+  }
 
   /**
    * Get task summary statistics
@@ -335,5 +338,8 @@ export const taskService = {
   async getTaskSummary(filters: TaskFilters = {}): Promise<TaskSummary> {
     const result = await this.getTasks({ ...filters, limit: 1 });
     return result.summary;
-  },
-};
+  }
+}
+
+// Backwards compatible export for existing code
+export const taskService = new TaskService(pool);

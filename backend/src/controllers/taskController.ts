@@ -8,22 +8,7 @@ import { AuthRequest } from '../middleware/auth';
 import { taskService } from '../services/taskService';
 import { TaskFilters } from '../types/task';
 import { logger } from '../config/logger';
-
-// Helper functions for type conversion
-const getString = (value: any): string | undefined => {
-  return typeof value === 'string' ? value : undefined;
-};
-
-const getBoolean = (value: any): boolean | undefined => {
-  if (value === 'true' || value === '1') return true;
-  if (value === 'false' || value === '0') return false;
-  return undefined;
-};
-
-const getNumber = (value: any): number | undefined => {
-  const num = parseInt(value);
-  return isNaN(num) ? undefined : num;
-};
+import { getString, getBoolean, getInteger } from '../utils/queryHelpers';
 
 export const taskController = {
   /**
@@ -42,8 +27,8 @@ export const taskController = {
         due_before: getString(req.query.due_before),
         due_after: getString(req.query.due_after),
         overdue: getBoolean(req.query.overdue),
-        page: getNumber(req.query.page),
-        limit: getNumber(req.query.limit),
+        page: getInteger(req.query.page),
+        limit: getInteger(req.query.limit),
       };
 
       const result = await taskService.getTasks(filters);

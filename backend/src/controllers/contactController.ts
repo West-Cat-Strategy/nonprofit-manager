@@ -11,6 +11,9 @@ import { ContactFilters, PaginationParams } from '../types/contact';
 import { AuthRequest } from '../middleware/auth';
 import * as invitationService from '../services/invitationService';
 import { syncUserRole } from '../services/userRoleService';
+import { getString, getBoolean } from '../utils/queryHelpers';
+import { notFound } from '../utils/responseHelpers';
+import type { DataScopeFilter } from '../types/dataScope';
 
 const contactService = new ContactService(pool);
 const contactRoleService = new ContactRoleService(pool);
@@ -85,15 +88,6 @@ const ensureStaffUserAccount = async (
  * GET /api/contacts
  * Get all contacts with filtering and pagination
  */
-const getString = (value: unknown): string | undefined =>
-  typeof value === 'string' ? value : undefined;
-
-const getBoolean = (value: unknown): boolean | undefined => {
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  return undefined;
-};
-
 const getRoleFilter = (
   value: unknown
 ): 'staff' | 'volunteer' | 'board' | undefined => {
@@ -121,7 +115,8 @@ export const getContacts = async (
       sort_order: getString(req.query.sort_order) as 'asc' | 'desc' | undefined,
     };
 
-    const result = await contactService.getContacts(filters, pagination);
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    const result = await contactService.getContacts(filters, pagination, scope);
     res.json(result);
   } catch (error) {
     next(error);
@@ -138,10 +133,13 @@ export const getContactById = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const contact = await contactService.getContactById(req.params.id);
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    const contact = scope
+      ? await contactService.getContactByIdWithScope(req.params.id, scope)
+      : await contactService.getContactById(req.params.id);
 
     if (!contact) {
-      res.status(404).json({ error: 'Contact not found' });
+      notFound(res, 'Contact');
       return;
     }
 
@@ -201,7 +199,7 @@ export const updateContact = async (
     const contact = await contactService.updateContact(req.params.id, contactData, userId);
 
     if (!contact) {
-      res.status(404).json({ error: 'Contact not found' });
+      notFound(res, 'Contact');
       return;
     }
 
@@ -259,7 +257,7 @@ export const deleteContact = async (
     const success = await contactService.deleteContact(req.params.id, userId);
 
     if (!success) {
-      res.status(404).json({ error: 'Contact not found' });
+      notFound(res, 'Contact');
       return;
     }
 

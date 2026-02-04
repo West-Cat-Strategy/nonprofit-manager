@@ -8,11 +8,16 @@ import { CACHE } from '../config/constants';
 interface CacheEntry<T> {
   value: T;
   expiresAt: number;
+  lastAccessed: number;
 }
 
 export class Cache<T = any> {
   private cache: Map<string, CacheEntry<T>>;
   private defaultTTL: number;
+  private maxEntries: number;
+  private hits = 0;
+  private misses = 0;
+  private evictions = 0;
 
   /**
    * Create a new cache instance
@@ -21,6 +26,7 @@ export class Cache<T = any> {
   constructor(defaultTTL: number = CACHE.DEFAULT_TTL) {
     this.cache = new Map();
     this.defaultTTL = defaultTTL * 1000; // Convert to milliseconds
+    this.maxEntries = CACHE.MAX_ENTRIES;
 
     // Clean up expired entries every minute
     setInterval(() => this.cleanup(), CACHE.CLEANUP_INTERVAL_MS);
@@ -35,15 +41,19 @@ export class Cache<T = any> {
     const entry = this.cache.get(key);
 
     if (!entry) {
+      this.misses++;
       return undefined;
     }
 
     // Check if entry has expired
     if (Date.now() > entry.expiresAt) {
       this.cache.delete(key);
+      this.misses++;
       return undefined;
     }
 
+    entry.lastAccessed = Date.now();
+    this.hits++;
     return entry.value;
   }
 
@@ -56,11 +66,13 @@ export class Cache<T = any> {
   set(key: string, value: T, ttl?: number): void {
     const ttlMs = ttl ? ttl * 1000 : this.defaultTTL;
     const expiresAt = Date.now() + ttlMs;
+    const lastAccessed = Date.now();
 
-    this.cache.set(key, {
-      value,
-      expiresAt,
-    });
+    if (this.cache.size >= this.maxEntries) {
+      this.evictLRU();
+    }
+
+    this.cache.set(key, { value, expiresAt, lastAccessed });
   }
 
   /**
@@ -80,6 +92,7 @@ export class Cache<T = any> {
       return false;
     }
 
+    entry.lastAccessed = Date.now();
     return true;
   }
 
@@ -96,6 +109,9 @@ export class Cache<T = any> {
    */
   clear(): void {
     this.cache.clear();
+    this.hits = 0;
+    this.misses = 0;
+    this.evictions = 0;
   }
 
   /**
@@ -109,6 +125,24 @@ export class Cache<T = any> {
     };
   }
 
+  detailedStats(): {
+    size: number;
+    hits: number;
+    misses: number;
+    hitRate: string;
+    evictions: number;
+  } {
+    const total = this.hits + this.misses;
+    const hitRate = total === 0 ? 0 : (this.hits / total) * 100;
+    return {
+      size: this.cache.size,
+      hits: this.hits,
+      misses: this.misses,
+      hitRate: `${hitRate.toFixed(2)}%`,
+      evictions: this.evictions,
+    };
+  }
+
   /**
    * Remove expired entries from the cache
    */
@@ -119,6 +153,19 @@ export class Cache<T = any> {
       if (now > entry.expiresAt) {
         this.cache.delete(key);
       }
+    }
+  }
+
+  private evictLRU(count: number = 100): void {
+    if (this.cache.size === 0) return;
+
+    const entries = Array.from(this.cache.entries());
+    entries.sort((a, b) => a[1].lastAccessed - b[1].lastAccessed);
+    const toEvict = entries.slice(0, Math.min(count, entries.length));
+
+    for (const [key] of toEvict) {
+      this.cache.delete(key);
+      this.evictions++;
     }
   }
 
@@ -150,6 +197,27 @@ export class Cache<T = any> {
  */
 export function createCacheKey(...parts: (string | number | boolean | undefined)[]): string {
   return parts.filter((p) => p !== undefined).join(':');
+}
+
+/**
+ * Cache key helpers for scoped resources
+ */
+export class CacheKeys {
+  private static scope(prefix: string, ...parts: (string | number)[]): string {
+    return `${prefix}:${parts.join(':')}`;
+  }
+
+  static account(accountId: string, ...parts: (string | number)[]): string {
+    return this.scope(`account:${accountId}`, ...parts);
+  }
+
+  static contact(contactId: string, ...parts: (string | number)[]): string {
+    return this.scope(`contact:${contactId}`, ...parts);
+  }
+
+  static analytics(...parts: (string | number)[]): string {
+    return this.scope('analytics', ...parts);
+  }
 }
 
 /**

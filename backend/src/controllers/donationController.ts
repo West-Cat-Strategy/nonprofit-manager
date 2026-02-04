@@ -12,20 +12,8 @@ import {
   UpdateDonationDTO,
 } from '../types/donation';
 import { AuthRequest } from '../middleware/auth';
-
-const getString = (value: unknown): string | undefined =>
-  typeof value === 'string' ? value : undefined;
-
-const getNumber = (value: unknown): number | undefined => {
-  const num = parseFloat(value as string);
-  return isNaN(num) ? undefined : num;
-};
-
-const getBoolean = (value: unknown): boolean | undefined => {
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  return undefined;
-};
+import { getString, getNumber, getBoolean } from '../utils/queryHelpers';
+import { notFound } from '../utils/responseHelpers';
 
 export class DonationController {
   /**
@@ -69,7 +57,7 @@ export class DonationController {
       const donation = await donationService.getDonationById(req.params.id);
       
       if (!donation) {
-        res.status(404).json({ error: 'Donation not found' });
+        notFound(res, 'Donation');
         return;
       }
 
@@ -105,7 +93,7 @@ export class DonationController {
       const donation = await donationService.updateDonation(req.params.id, donationData, userId);
 
       if (!donation) {
-        res.status(404).json({ error: 'Donation not found' });
+        notFound(res, 'Donation');
         return;
       }
 
@@ -123,7 +111,7 @@ export class DonationController {
       const deleted = await donationService.deleteDonation(req.params.id);
 
       if (!deleted) {
-        res.status(404).json({ error: 'Donation not found' });
+        notFound(res, 'Donation');
         return;
       }
 

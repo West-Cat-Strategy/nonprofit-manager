@@ -26,6 +26,18 @@ const validStatuses = ['draft', 'published', 'archived'];
  */
 router.get('/system', templateController.getSystemTemplates);
 
+/**
+ * GET /api/templates/palettes
+ * Get available color palettes
+ */
+router.get('/palettes', templateController.listColorPalettes);
+
+/**
+ * GET /api/templates/fonts
+ * Get available font pairings
+ */
+router.get('/fonts', templateController.listFontPairings);
+
 // ==================== Template CRUD ====================
 
 /**
@@ -70,6 +82,21 @@ router.get(
 );
 
 /**
+ * GET /api/templates/:templateId/css
+ * Get CSS variables for a template theme
+ */
+router.get(
+  '/:templateId/css',
+  [
+    param('templateId')
+      .isUUID()
+      .withMessage('Invalid template ID'),
+  ],
+  handleValidationErrors,
+  templateController.getTemplateCss
+);
+
+/**
  * GET /api/templates/:templateId
  * Get a specific template
  */
@@ -101,6 +128,42 @@ router.get(
   ],
   handleValidationErrors,
   templateController.previewTemplate
+);
+
+/**
+ * POST /api/templates/:templateId/apply-palette
+ * Apply a color palette to a template
+ */
+router.post(
+  '/:templateId/apply-palette',
+  [
+    param('templateId')
+      .isUUID()
+      .withMessage('Invalid template ID'),
+    body('paletteId')
+      .isUUID()
+      .withMessage('paletteId must be a valid UUID'),
+  ],
+  handleValidationErrors,
+  templateController.applyTemplatePalette
+);
+
+/**
+ * POST /api/templates/:templateId/apply-font
+ * Apply a font pairing to a template
+ */
+router.post(
+  '/:templateId/apply-font',
+  [
+    param('templateId')
+      .isUUID()
+      .withMessage('Invalid template ID'),
+    body('fontPairingId')
+      .isUUID()
+      .withMessage('fontPairingId must be a valid UUID'),
+  ],
+  handleValidationErrors,
+  templateController.applyTemplateFontPairing
 );
 
 /**

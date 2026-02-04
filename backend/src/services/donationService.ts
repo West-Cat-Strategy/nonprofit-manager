@@ -18,11 +18,7 @@ import {
 type QueryValue = string | number | boolean | Date | null;
 
 export class DonationService {
-  private pool: Pool;
-
-  constructor() {
-    this.pool = pool;
-  }
+  constructor(private pool: Pool) {}
 
   /**
    * Generate unique donation number (DON-YYMMDD-XXXXX)
@@ -553,4 +549,4 @@ export class DonationService {
   }
 }
 
-export default new DonationService();
+export default new DonationService(pool);

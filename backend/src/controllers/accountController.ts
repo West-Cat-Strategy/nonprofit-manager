@@ -8,6 +8,9 @@ import { AccountService } from '../services/accountService';
 import pool from '../config/database';
 import { AccountCategory, AccountFilters, AccountType, PaginationParams } from '../types/account';
 import { AuthRequest } from '../middleware/auth';
+import { getString, getBoolean } from '../utils/queryHelpers';
+import { notFound } from '../utils/responseHelpers';
+import type { DataScopeFilter } from '../types/dataScope';
 
 const accountService = new AccountService(pool);
 
@@ -15,15 +18,6 @@ const accountService = new AccountService(pool);
  * GET /api/accounts
  * Get all accounts with filtering and pagination
  */
-const getString = (value: unknown): string | undefined =>
-  typeof value === 'string' ? value : undefined;
-
-const getBoolean = (value: unknown): boolean | undefined => {
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  return undefined;
-};
-
 export const getAccounts = async (
   req: AuthRequest,
   res: Response,
@@ -44,7 +38,8 @@ export const getAccounts = async (
       sort_order: getString(req.query.sort_order) as 'asc' | 'desc' | undefined,
     };
 
-    const result = await accountService.getAccounts(filters, pagination);
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    const result = await accountService.getAccounts(filters, pagination, scope);
     res.json(result);
   } catch (error) {
     next(error);
@@ -61,14 +56,17 @@ export const getAccountById = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const account = await accountService.getAccountById(req.params.id);
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    const result = scope
+      ? await accountService.getAccountByIdWithScope(req.params.id, scope)
+      : await accountService.getAccountById(req.params.id);
 
-    if (!account) {
-      res.status(404).json({ error: 'Account not found' });
+    if (!result) {
+      notFound(res, 'Account');
       return;
     }
 
-    res.json(account);
+    res.json(result);
   } catch (error) {
     next(error);
   }
@@ -84,6 +82,12 @@ export const getAccountContacts = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (scope?.accountIds && !scope.accountIds.includes(req.params.id)) {
+      notFound(res, 'Account');
+      return;
+    }
+
     const contacts = await accountService.getAccountContacts(req.params.id);
     res.json(contacts);
   } catch (error) {
@@ -123,7 +127,7 @@ export const updateAccount = async (
     const account = await accountService.updateAccount(req.params.id, req.body, userId);
 
     if (!account) {
-      res.status(404).json({ error: 'Account not found' });
+      notFound(res, 'Account');
       return;
     }
 
@@ -147,7 +151,7 @@ export const deleteAccount = async (
     const success = await accountService.deleteAccount(req.params.id, userId);
 
     if (!success) {
-      res.status(404).json({ error: 'Account not found' });
+      notFound(res, 'Account');
       return;
     }
 

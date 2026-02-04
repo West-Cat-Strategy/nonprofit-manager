@@ -13,6 +13,7 @@ import {
   PaginatedContacts,
 } from '../types/contact';
 import { logger } from '../config/logger';
+import type { DataScopeFilter } from '../types/dataScope';
 
 type QueryValue = string | number | boolean | null | string[];
 
@@ -28,7 +29,8 @@ export class ContactService {
    */
   async getContacts(
     filters: ContactFilters = {},
-    pagination: PaginationParams = {}
+    pagination: PaginationParams = {},
+    scope?: DataScopeFilter
   ): Promise<PaginatedContacts> {
     try {
       const page = pagination.page || 1;
@@ -83,6 +85,24 @@ export class ContactService {
       if (filters.is_active !== undefined) {
         conditions.push(`c.is_active = $${paramCounter}`);
         values.push(filters.is_active);
+        paramCounter++;
+      }
+
+      if (scope?.accountIds && scope.accountIds.length > 0) {
+        conditions.push(`c.account_id = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.accountIds);
+        paramCounter++;
+      }
+
+      if (scope?.contactIds && scope.contactIds.length > 0) {
+        conditions.push(`c.id = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.contactIds);
+        paramCounter++;
+      }
+
+      if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
+        conditions.push(`c.created_by = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.createdByUserIds);
         paramCounter++;
       }
 
@@ -201,6 +221,81 @@ export class ContactService {
       return result.rows[0] || null;
     } catch (error) {
       logger.error('Error getting contact by ID:', error);
+      throw new Error('Failed to retrieve contact');
+    }
+  }
+
+  async getContactByIdWithScope(
+    contactId: string,
+    scope?: DataScopeFilter
+  ): Promise<Contact | null> {
+    try {
+      const conditions = ['c.id = $1'];
+      const values: QueryValue[] = [contactId];
+      let paramCounter = 2;
+
+      if (scope?.accountIds && scope.accountIds.length > 0) {
+        conditions.push(`c.account_id = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.accountIds);
+        paramCounter++;
+      }
+
+      if (scope?.contactIds && scope.contactIds.length > 0) {
+        conditions.push(`c.id = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.contactIds);
+        paramCounter++;
+      }
+
+      if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
+        conditions.push(`c.created_by = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.createdByUserIds);
+        paramCounter++;
+      }
+
+      const result = await this.pool.query(
+        `SELECT
+          c.id as contact_id,
+          c.account_id,
+          c.first_name,
+          c.last_name,
+          c.middle_name,
+          c.salutation,
+          c.suffix,
+          c.birth_date,
+          c.gender,
+          c.pronouns,
+          c.email,
+          c.phone,
+          c.mobile_phone,
+          c.job_title,
+          c.department,
+          c.preferred_contact_method,
+          c.do_not_email,
+          c.do_not_phone,
+          c.address_line1,
+          c.address_line2,
+          c.city,
+          c.state_province,
+          c.postal_code,
+          c.country,
+          c.notes,
+          c.is_active,
+          c.created_at,
+          c.updated_at,
+          a.account_name,
+          (SELECT COUNT(*) FROM contact_phone_numbers WHERE contact_id = c.id) as phone_count,
+          (SELECT COUNT(*) FROM contact_email_addresses WHERE contact_id = c.id) as email_count,
+          (SELECT COUNT(*) FROM contact_relationships WHERE contact_id = c.id AND is_active = true) as relationship_count,
+          (SELECT COUNT(*) FROM contact_notes WHERE contact_id = c.id) as note_count
+         FROM contacts c
+         LEFT JOIN accounts a ON c.account_id = a.id
+         WHERE ${conditions.join(' AND ')}`,
+        values
+      );
+
+      return result.rows[0] || null;
+    } catch (error) {
+      logger.error('Error getting contact by ID with scope:', error);
       throw new Error('Failed to retrieve contact');
     }
   }

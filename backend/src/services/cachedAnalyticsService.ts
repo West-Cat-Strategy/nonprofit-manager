@@ -5,7 +5,7 @@
 
 import { Pool } from 'pg';
 import { AnalyticsService } from './analyticsService';
-import { analyticsCache, createCacheKey, invalidateAnalyticsCache } from '../utils/cache';
+import { analyticsCache, CacheKeys, invalidateAnalyticsCache } from '../utils/cache';
 import type {
   AccountAnalytics,
   ContactAnalytics,
@@ -27,7 +27,7 @@ export class CachedAnalyticsService {
    * Cache TTL: 5 minutes
    */
   async getAccountAnalytics(accountId: string): Promise<AccountAnalytics> {
-    const cacheKey = createCacheKey('account-analytics', accountId);
+    const cacheKey = CacheKeys.analytics('account', accountId);
 
     return analyticsCache.getOrSet(
       cacheKey,
@@ -41,7 +41,7 @@ export class CachedAnalyticsService {
    * Cache TTL: 5 minutes
    */
   async getContactAnalytics(contactId: string): Promise<ContactAnalytics> {
-    const cacheKey = createCacheKey('contact-analytics', contactId);
+    const cacheKey = CacheKeys.analytics('contact', contactId);
 
     return analyticsCache.getOrSet(
       cacheKey,
@@ -56,12 +56,12 @@ export class CachedAnalyticsService {
    * Cache TTL: 3 minutes (shorter due to frequent updates)
    */
   async getAnalyticsSummary(filters?: AnalyticsFilters): Promise<AnalyticsSummary> {
-    const cacheKey = createCacheKey(
-      'analytics-summary',
-      filters?.start_date,
-      filters?.end_date,
-      filters?.account_type,
-      filters?.category
+    const cacheKey = CacheKeys.analytics(
+      'summary',
+      filters?.start_date || 'all',
+      filters?.end_date || 'all',
+      filters?.account_type || 'all',
+      filters?.category || 'all'
     );
 
     return analyticsCache.getOrSet(
@@ -78,7 +78,7 @@ export class CachedAnalyticsService {
   async getComparativeAnalytics(
     periodType: 'month' | 'quarter' | 'year' = 'month'
   ): Promise<ComparativeAnalytics> {
-    const cacheKey = createCacheKey('comparative-analytics', periodType);
+    const cacheKey = CacheKeys.analytics('comparative', periodType);
 
     return analyticsCache.getOrSet(
       cacheKey,
@@ -95,11 +95,7 @@ export class CachedAnalyticsService {
     metricType: 'donations' | 'volunteer_hours' | 'event_attendance',
     months: number = 12
   ): Promise<TrendAnalysis> {
-    const cacheKey = createCacheKey(
-      'trend-analytics',
-      metricType,
-      months
-    );
+    const cacheKey = CacheKeys.analytics('trend', metricType, months);
 
     return analyticsCache.getOrSet(
       cacheKey,

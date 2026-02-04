@@ -31,6 +31,7 @@ import type {
   PublishedSection,
   GeneratedPage,
 } from '../types/publishing';
+import type { ColorPalette } from '../types/websiteBuilder';
 
 // ==================== Default Theme ====================
 
@@ -160,6 +161,60 @@ function incrementVersion(version: string): string {
   const parts = version.split('.').map(Number);
   parts[2] = (parts[2] || 0) + 1;
   return parts.join('.');
+}
+
+/**
+ * Generate CSS variables from a template theme
+ */
+export function generateThemeCssVariables(theme: TemplateTheme): string {
+  const { colors, typography, spacing, borderRadius, shadows } = theme;
+  let css = ':root {\n';
+
+  // Colors
+  css += `  --color-primary: ${colors.primary};\n`;
+  css += `  --color-secondary: ${colors.secondary};\n`;
+  css += `  --color-accent: ${colors.accent};\n`;
+  css += `  --color-background: ${colors.background};\n`;
+  css += `  --color-surface: ${colors.surface};\n`;
+  css += `  --color-text: ${colors.text};\n`;
+  css += `  --color-text-muted: ${colors.textMuted};\n`;
+  css += `  --color-border: ${colors.border};\n`;
+  css += `  --color-error: ${colors.error};\n`;
+  css += `  --color-success: ${colors.success};\n`;
+  css += `  --color-warning: ${colors.warning};\n`;
+
+  // Typography
+  css += `  --font-body: ${typography.fontFamily};\n`;
+  css += `  --font-heading: ${typography.headingFontFamily};\n`;
+  css += `  --font-base-size: ${typography.baseFontSize};\n`;
+  css += `  --line-height: ${typography.lineHeight};\n`;
+  css += `  --line-height-heading: ${typography.headingLineHeight};\n`;
+  css += `  --font-weight-normal: ${typography.fontWeightNormal};\n`;
+  css += `  --font-weight-medium: ${typography.fontWeightMedium};\n`;
+  css += `  --font-weight-bold: ${typography.fontWeightBold};\n`;
+
+  // Spacing
+  css += `  --spacing-xs: ${spacing.xs};\n`;
+  css += `  --spacing-sm: ${spacing.sm};\n`;
+  css += `  --spacing-md: ${spacing.md};\n`;
+  css += `  --spacing-lg: ${spacing.lg};\n`;
+  css += `  --spacing-xl: ${spacing.xl};\n`;
+  css += `  --spacing-xxl: ${spacing.xxl};\n`;
+
+  // Border radius
+  css += `  --radius-sm: ${borderRadius.sm};\n`;
+  css += `  --radius-md: ${borderRadius.md};\n`;
+  css += `  --radius-lg: ${borderRadius.lg};\n`;
+  css += `  --radius-full: ${borderRadius.full};\n`;
+
+  // Shadows
+  css += `  --shadow-sm: ${shadows.sm};\n`;
+  css += `  --shadow-md: ${shadows.md};\n`;
+  css += `  --shadow-lg: ${shadows.lg};\n`;
+  css += `  --shadow-xl: ${shadows.xl};\n`;
+
+  css += '}\n';
+  return css;
 }
 
 // ==================== Template CRUD ====================
@@ -1061,6 +1116,44 @@ function convertToPublishedPage(page: TemplatePage): PublishedPage {
   };
 }
 
+export async function getTemplateCssVariables(
+  templateId: string,
+  userId: string
+): Promise<string | null> {
+  const template = await getTemplate(templateId, userId);
+  if (!template) return null;
+  return generateThemeCssVariables(template.theme);
+}
+
+export async function applyPaletteToTemplate(
+  templateId: string,
+  userId: string,
+  palette: ColorPalette
+): Promise<Template | null> {
+  const template = await getTemplate(templateId, userId);
+  if (!template) return null;
+  const theme = { ...template.theme, colors: { ...template.theme.colors, ...palette } };
+  return updateTemplate(templateId, { theme }, userId);
+}
+
+export async function applyFontPairingToTemplate(
+  templateId: string,
+  userId: string,
+  pairing: { headingFont: string; bodyFont: string }
+): Promise<Template | null> {
+  const template = await getTemplate(templateId, userId);
+  if (!template) return null;
+  const theme = {
+    ...template.theme,
+    typography: {
+      ...template.theme.typography,
+      headingFontFamily: pairing.headingFont,
+      fontFamily: pairing.bodyFont,
+    },
+  };
+  return updateTemplate(templateId, { theme }, userId);
+}
+
 export default {
   createTemplate,
   getTemplate,
@@ -1079,4 +1172,7 @@ export default {
   getSystemTemplates,
   duplicateTemplate,
   generateTemplatePreview,
+  getTemplateCssVariables,
+  applyPaletteToTemplate,
+  applyFontPairingToTemplate,
 };

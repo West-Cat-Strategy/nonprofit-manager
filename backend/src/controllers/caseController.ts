@@ -4,6 +4,7 @@ import * as caseService from '../services/caseService';
 import type { CreateCaseDTO, UpdateCaseDTO, CaseFilter, CreateCaseNoteDTO, UpdateCaseStatusDTO } from '../types/case';
 import { logger } from '../config/logger';
 import { PAGINATION } from '../config/constants';
+import { notFound } from '../utils/responseHelpers';
 
 export const createCase = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -33,7 +34,7 @@ export const getCaseById = async (req: AuthRequest, res: Response): Promise<void
     const { id } = req.params;
     const caseData = await caseService.getCaseById(id);
     if (!caseData) {
-      res.status(404).json({ error: 'Case not found' });
+      notFound(res, 'Case');
       return;
     }
     res.json(caseData);
