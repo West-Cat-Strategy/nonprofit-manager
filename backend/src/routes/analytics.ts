@@ -29,12 +29,14 @@ import {
   requireAnomalyAccess,
   auditAnalyticsMiddleware,
 } from '../middleware/analyticsAuth';
+import { loadDataScope } from '../middleware/dataScope';
 import { handleValidationErrors } from '../middleware/validation';
 
 const router = Router();
 
 // All routes require authentication
 router.use(authenticate);
+router.use(loadDataScope('analytics'));
 
 /**
  * GET /api/analytics/summary

@@ -16,6 +16,7 @@ import type {
   CreateContactDocumentDTO,
   UpdateContactDocumentDTO,
 } from '../types/contact';
+import type { DataScopeFilter } from '../types/dataScope';
 
 /**
  * Get all documents for a contact
@@ -99,6 +100,60 @@ export async function getDocumentById(documentId: string): Promise<ContactDocume
     return result.rows[0] || null;
   } catch (error) {
     logger.error('Error getting document by ID:', error);
+    throw new Error('Failed to retrieve document');
+  }
+}
+
+/**
+ * Get a single document by ID with data scope filtering
+ */
+export async function getDocumentByIdWithScope(
+  documentId: string,
+  scope?: DataScopeFilter
+): Promise<ContactDocument | null> {
+  try {
+    const conditions: string[] = ['cd.id = $1'];
+    const values: Array<string | string[]> = [documentId];
+    let paramIndex = 2;
+
+    if (scope?.accountIds && scope.accountIds.length > 0) {
+      conditions.push(`ct.account_id = ANY($${paramIndex}::uuid[])`);
+      values.push(scope.accountIds);
+      paramIndex++;
+    }
+
+    if (scope?.contactIds && scope.contactIds.length > 0) {
+      conditions.push(`cd.contact_id = ANY($${paramIndex}::uuid[])`);
+      values.push(scope.contactIds);
+      paramIndex++;
+    }
+
+    if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
+      conditions.push(`cd.created_by = ANY($${paramIndex}::uuid[])`);
+      values.push(scope.createdByUserIds);
+      paramIndex++;
+    }
+
+    const result = await pool.query(
+      `
+      SELECT
+        cd.*,
+        u.first_name as created_by_first_name,
+        u.last_name as created_by_last_name,
+        c.case_number,
+        c.title as case_title
+      FROM contact_documents cd
+      LEFT JOIN users u ON cd.created_by = u.id
+      LEFT JOIN cases c ON cd.case_id = c.id
+      LEFT JOIN contacts ct ON cd.contact_id = ct.id
+      WHERE ${conditions.join(' AND ')}
+      `,
+      values
+    );
+
+    return result.rows[0] || null;
+  } catch (error) {
+    logger.error('Error getting document by ID with scope:', error);
     throw new Error('Failed to retrieve document');
   }
 }

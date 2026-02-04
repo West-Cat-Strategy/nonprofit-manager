@@ -10,9 +10,23 @@ import pool from '../config/database';
 import { AuthRequest } from '../middleware/auth';
 import type { ExportFormat } from '../services/exportService';
 import { logger } from '../config/logger';
+import type { DataScopeFilter } from '../types/dataScope';
 
 const exportService = new ExportService();
 const analyticsService = new AnalyticsService(pool);
+
+const denyIfScopedExport = (scope: DataScopeFilter | undefined, res: Response): boolean => {
+  if (!scope) return false;
+  const hasScope =
+    (scope.accountIds && scope.accountIds.length > 0) ||
+    (scope.contactIds && scope.contactIds.length > 0) ||
+    (scope.createdByUserIds && scope.createdByUserIds.length > 0);
+  if (hasScope) {
+    res.status(403).json({ error: 'Scoped access does not allow exports yet' });
+    return true;
+  }
+  return false;
+};
 
 /**
  * POST /api/export/analytics-summary
@@ -24,6 +38,10 @@ export const exportAnalyticsSummary = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (denyIfScopedExport(scope, res)) {
+      return;
+    }
     const format: ExportFormat = req.body.format || 'csv';
     const filters = {
       start_date: req.body.start_date,
@@ -65,6 +83,10 @@ export const exportDonations = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (denyIfScopedExport(scope, res)) {
+      return;
+    }
     const format: ExportFormat = req.body.format || 'csv';
     const filters = {
       start_date: req.body.start_date,
@@ -156,6 +178,10 @@ export const exportVolunteerHours = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (denyIfScopedExport(scope, res)) {
+      return;
+    }
     const format: ExportFormat = req.body.format || 'csv';
     const filters = {
       start_date: req.body.start_date,
@@ -234,6 +260,10 @@ export const exportEvents = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (denyIfScopedExport(scope, res)) {
+      return;
+    }
     const format: ExportFormat = req.body.format || 'csv';
     const filters = {
       start_date: req.body.start_date,
@@ -314,6 +344,10 @@ export const exportComprehensive = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (denyIfScopedExport(scope, res)) {
+      return;
+    }
     const format: ExportFormat = req.body.format || 'excel'; // Excel recommended for multi-sheet
     const filters = {
       start_date: req.body.start_date,

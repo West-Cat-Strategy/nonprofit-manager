@@ -99,6 +99,9 @@ const Setup: React.FC = () => {
 
       // Store token
       localStorage.setItem('token', response.data.token);
+      if (response.data.organizationId) {
+        localStorage.setItem('organizationId', response.data.organizationId);
+      }
 
       // Hydrate Redux auth state so route protection works.
       const me = await api.get('/auth/me');

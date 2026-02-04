@@ -36,6 +36,17 @@ interface UserRow {
   mfa_totp_enabled?: boolean;
 }
 
+const getDefaultOrganizationId = async (): Promise<string | null> => {
+  const result = await pool.query(
+    `SELECT id
+     FROM accounts
+     WHERE account_type = 'organization'
+     ORDER BY created_at ASC
+     LIMIT 1`
+  );
+  return result.rows[0]?.id || null;
+};
+
 export const register = async (
   req: AuthRequest,
   res: Response,
@@ -86,8 +97,10 @@ export const register = async (
 
     logger.info(`User registered: ${user.email}`);
 
+    const organizationId = await getDefaultOrganizationId();
     return res.status(201).json({
       token,
+      organizationId,
       user: {
         user_id: user.id,
         email: user.email,
@@ -144,8 +157,10 @@ export const login = async (
     // If TOTP is enabled, require second factor before issuing tokens
     if (user.mfa_totp_enabled) {
       logger.info(`MFA required for user: ${user.email}`, { ip: clientIp });
+      const organizationId = await getDefaultOrganizationId();
       return res.json({
         ...issueTotpMfaChallenge(user),
+        organizationId,
         user: {
           id: user.id,
           email: user.email,
@@ -185,9 +200,11 @@ export const login = async (
 
     logger.info(`User logged in: ${user.email}`, { ip: clientIp });
 
+    const organizationId = await getDefaultOrganizationId();
     return res.json({
       token,
       refreshToken,
+      organizationId,
       user: {
         id: user.id,
         email: user.email,
@@ -302,6 +319,15 @@ export const setupFirstUser = async (
 
     const user = result.rows[0];
 
+    const defaultOrgName = process.env.ORG_DEFAULT_NAME || 'Default Organization';
+    const orgResult = await pool.query(
+      `INSERT INTO accounts (account_name, account_type, created_by, modified_by)
+       VALUES ($1, 'organization', $2, $2)
+       RETURNING id`,
+      [defaultOrgName, user.id]
+    );
+    const organizationId = orgResult.rows[0]?.id || null;
+
     // Generate access token
     const jwtSecret = getJwtSecret();
     const token = jwt.sign(
@@ -319,6 +345,7 @@ export const setupFirstUser = async (
     return res.status(201).json({
       message: 'Setup completed successfully',
       token,
+      organizationId,
       user: {
         user_id: user.id,
         email: user.email,

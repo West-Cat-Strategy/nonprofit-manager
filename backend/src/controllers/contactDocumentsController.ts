@@ -5,7 +5,12 @@
 
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/auth';
+import pool from '../config/database';
 import * as documentService from '../services/contactDocumentService';
+import { ContactService } from '../services/contactService';
+import type { DataScopeFilter } from '../types/dataScope';
+
+const contactService = new ContactService(pool);
 
 /**
  * GET /api/contacts/:contactId/documents
@@ -18,6 +23,14 @@ export const getContactDocuments = async (
 ): Promise<void> => {
   try {
     const { contactId } = req.params;
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (scope) {
+      const scopedContact = await contactService.getContactByIdWithScope(contactId, scope);
+      if (!scopedContact) {
+        res.status(404).json({ error: 'Contact not found' });
+        return;
+      }
+    }
     const documents = await documentService.getDocumentsByContact(contactId);
     res.json(documents);
   } catch (error) {
@@ -54,7 +67,10 @@ export const getDocumentById = async (
 ): Promise<void> => {
   try {
     const { documentId } = req.params;
-    const document = await documentService.getDocumentById(documentId);
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    const document = scope
+      ? await documentService.getDocumentByIdWithScope(documentId, scope)
+      : await documentService.getDocumentById(documentId);
 
     if (!document) {
       res.status(404).json({ error: 'Document not found' });
@@ -78,7 +94,10 @@ export const downloadDocument = async (
 ): Promise<void> => {
   try {
     const { documentId } = req.params;
-    const document = await documentService.getDocumentById(documentId);
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    const document = scope
+      ? await documentService.getDocumentByIdWithScope(documentId, scope)
+      : await documentService.getDocumentById(documentId);
 
     if (!document || !document.is_active) {
       res.status(404).json({ error: 'Document not found' });
@@ -119,6 +138,15 @@ export const uploadDocument = async (
     const { contactId } = req.params;
     const userId = req.user!.id;
     const file = req.file;
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+
+    if (scope) {
+      const scopedContact = await contactService.getContactByIdWithScope(contactId, scope);
+      if (!scopedContact) {
+        res.status(404).json({ error: 'Contact not found' });
+        return;
+      }
+    }
 
     if (!file) {
       res.status(400).json({ error: 'No file uploaded' });
@@ -150,6 +178,15 @@ export const updateDocument = async (
 ): Promise<void> => {
   try {
     const { documentId } = req.params;
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (scope) {
+      const scopedDoc = await documentService.getDocumentByIdWithScope(documentId, scope);
+      if (!scopedDoc) {
+        res.status(404).json({ error: 'Document not found' });
+        return;
+      }
+    }
+
     const document = await documentService.updateDocument(documentId, req.body);
 
     if (!document) {
@@ -174,6 +211,15 @@ export const deleteDocument = async (
 ): Promise<void> => {
   try {
     const { documentId } = req.params;
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    if (scope) {
+      const scopedDoc = await documentService.getDocumentByIdWithScope(documentId, scope);
+      if (!scopedDoc) {
+        res.status(404).json({ error: 'Document not found' });
+        return;
+      }
+    }
+
     const success = await documentService.deleteDocument(documentId);
 
     if (!success) {

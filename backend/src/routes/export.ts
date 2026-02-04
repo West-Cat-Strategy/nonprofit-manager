@@ -14,12 +14,14 @@ import {
 } from '../controllers/exportController';
 import { authenticate } from '../middleware/auth';
 import { requireExportPermission } from '../middleware/analyticsAuth';
+import { loadDataScope } from '../middleware/dataScope';
 
 const router = Router();
 
 // All routes require authentication and export permissions
 router.use(authenticate);
 router.use(requireExportPermission);
+router.use(loadDataScope('exports'));
 
 /**
  * POST /api/export/analytics-summary

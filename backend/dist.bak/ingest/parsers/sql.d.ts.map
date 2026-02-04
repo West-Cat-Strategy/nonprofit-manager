@@ -1,0 +1,1 @@
+{"version":3,"file":"sql.d.ts","sourceRoot":"","sources":["../../../src/ingest/parsers/sql.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,UAAU,CAAC;AAI9C,MAAM,WAAW,eAAe;IAC9B,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,aAAa,CAAC,EAAE,MAAM,CAAC;CACxB;AAgOD,wBAAgB,kBAAkB,CAAC,GAAG,EAAE,MAAM,EAAE,OAAO,GAAE,eAAoB,GAAG,aAAa,EAAE,CA6D9F"}

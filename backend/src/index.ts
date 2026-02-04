@@ -122,7 +122,7 @@ app.use(correlationIdMiddleware);
 app.use(metricsMiddleware);
 
 // Organization/tenant context middleware (optional)
-app.use(orgContextMiddleware);
+app.use('/api', orgContextMiddleware);
 
 // Logging middleware with correlation ID
 app.use(
