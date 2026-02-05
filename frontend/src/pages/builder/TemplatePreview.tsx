@@ -133,7 +133,8 @@ const TemplatePreview: React.FC = () => {
             className="w-full h-full border-0"
             srcDoc={previewHtml}
             // Avoid `allow-same-origin` so preview scripts cannot read app storage/tokens.
-            sandbox="allow-scripts allow-popups"
+            // Removed `allow-popups` to prevent potential popup-based attacks.
+            sandbox="allow-scripts"
           />
         )}
       </div>

@@ -1,11 +1,12 @@
 /**
  * Plausible Stats Widget
- * Displays key metrics from Plausible Analytics
+ * Displays key metrics from Plausible Analytics via backend proxy
  */
 
 import { useEffect, useState } from 'react';
 import type { DashboardWidget } from '../../types/dashboard';
 import WidgetContainer from './WidgetContainer';
+import api from '../../services/api';
 
 interface PlausibleStatsWidgetProps {
   widget: DashboardWidget;
@@ -73,24 +74,16 @@ const PlausibleStatsWidget = ({ widget, editMode, onRemove }: PlausibleStatsWidg
       setLoading(true);
       setError(null);
 
-      const apiHost = import.meta.env.VITE_PLAUSIBLE_API_HOST || 'http://localhost:8000';
-      const domain = import.meta.env.VITE_PLAUSIBLE_DOMAIN || 'localhost';
+      // Fetch aggregate stats via backend proxy (API key is server-side)
+      const response = await api.get('/plausible/stats/aggregate', {
+        params: {
+          period: '30d',
+          metrics: 'visitors,pageviews,bounce_rate,visit_duration',
+          compare: 'previous_period',
+        },
+      });
 
-      // Fetch aggregate stats for the last 30 days
-      const response = await fetch(
-        `${apiHost}/api/v1/stats/aggregate?site_id=${domain}&period=30d&metrics=visitors,pageviews,bounce_rate,visit_duration&compare=previous_period`,
-        {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_PLAUSIBLE_API_KEY || ''}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch Plausible stats');
-      }
-
-      const data = await response.json();
+      const data = response.data;
 
       // Transform API response to our format
       setStats({
