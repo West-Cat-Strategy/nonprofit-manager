@@ -1,3 +1,8 @@
+/**
+ * CaseDetail Page
+ * Displays detailed information about a single case with neo-brutalist styling
+ */
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -9,17 +14,23 @@ import {
   clearCurrentCase,
   fetchCaseStatuses,
 } from '../../../store/slices/casesSlice';
+import { useToast } from '../../../contexts/useToast';
+import { BrutalBadge, BrutalButton, BrutalCard } from '../../../components/neo-brutalist';
 import CaseNotes from '../../../components/CaseNotes';
 import CaseDocuments from '../../../components/CaseDocuments';
-import type { CasePriority } from '../../../types/case';
+import FollowUpList from '../../../components/FollowUpList';
+import type { CasePriority, CaseStatusType } from '../../../types/case';
+
+type TabType = 'overview' | 'notes' | 'documents' | 'followups';
 
 const CaseDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const { showSuccess, showError } = useToast();
   const { currentCase, caseStatuses, loading, error } = useAppSelector((state) => state.cases);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'notes' | 'documents'>('overview');
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [isChangingStatus, setIsChangingStatus] = useState(false);
   const [newStatusId, setNewStatusId] = useState('');
   const [statusChangeNotes, setStatusChangeNotes] = useState('');
@@ -50,12 +61,14 @@ const CaseDetail = () => {
         })
       ).unwrap();
 
+      showSuccess('Status updated successfully');
       setIsChangingStatus(false);
       setNewStatusId('');
       setStatusChangeNotes('');
-      dispatch(fetchCaseNotes(id)); // Refresh notes to show status change note
+      dispatch(fetchCaseNotes(id));
     } catch (err) {
       console.error('Failed to update status:', err);
+      showError('Failed to update status');
     }
   };
 
@@ -67,26 +80,47 @@ const CaseDetail = () => {
 
     try {
       await dispatch(deleteCase(id)).unwrap();
+      showSuccess('Case deleted successfully');
       navigate('/cases');
     } catch (err) {
       console.error('Failed to delete case:', err);
+      showError('Failed to delete case');
     }
   };
 
-  const getPriorityColor = (priority: CasePriority) => {
-    const colors = {
-      low: 'bg-gray-100 text-gray-800',
-      medium: 'bg-blue-100 text-blue-800',
-      high: 'bg-orange-100 text-orange-800',
-      urgent: 'bg-red-100 text-red-800',
+  const getPriorityBadgeColor = (priority: CasePriority): 'gray' | 'blue' | 'yellow' | 'red' => {
+    const colors: Record<CasePriority, 'gray' | 'blue' | 'yellow' | 'red'> = {
+      low: 'gray',
+      medium: 'blue',
+      high: 'yellow',
+      urgent: 'red',
     };
     return colors[priority];
   };
 
+  const getStatusTypeBadgeColor = (
+    statusType?: CaseStatusType
+  ): 'purple' | 'green' | 'yellow' | 'gray' | 'red' => {
+    if (!statusType) return 'gray';
+    const colors: Record<CaseStatusType, 'purple' | 'green' | 'yellow' | 'gray' | 'red'> = {
+      intake: 'purple',
+      active: 'green',
+      review: 'yellow',
+      closed: 'gray',
+      cancelled: 'red',
+    };
+    return colors[statusType];
+  };
+
   if (loading && !currentCase) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="p-6">
+        <BrutalCard color="white" className="p-12">
+          <div className="flex flex-col items-center justify-center">
+            <div className="animate-spin h-12 w-12 border-4 border-black border-t-transparent mb-4" />
+            <p className="font-bold text-black">Loading case...</p>
+          </div>
+        </BrutalCard>
       </div>
     );
   }
@@ -94,7 +128,16 @@ const CaseDetail = () => {
   if (error) {
     return (
       <div className="p-6">
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">{error}</div>
+        <BrutalCard color="pink" className="p-6">
+          <div className="text-center">
+            <div className="text-4xl mb-4">⚠️</div>
+            <h2 className="text-xl font-black uppercase text-black mb-2">Error</h2>
+            <p className="font-bold text-black/70 mb-4">{error}</p>
+            <BrutalButton onClick={() => navigate('/cases')} variant="secondary">
+              Back to Cases
+            </BrutalButton>
+          </div>
+        </BrutalCard>
       </div>
     );
   }
@@ -102,118 +145,122 @@ const CaseDetail = () => {
   if (!currentCase) {
     return (
       <div className="p-6">
-        <div className="text-center py-12">
-          <p className="text-gray-600">Case not found</p>
-          <button
-            onClick={() => navigate('/cases')}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Back to Cases
-          </button>
-        </div>
+        <BrutalCard color="yellow" className="p-6">
+          <div className="text-center">
+            <div className="text-4xl mb-4">🔍</div>
+            <h2 className="text-xl font-black uppercase text-black mb-2">Case Not Found</h2>
+            <p className="font-bold text-black/70 mb-4">
+              The case you're looking for doesn't exist or has been removed.
+            </p>
+            <BrutalButton onClick={() => navigate('/cases')} variant="primary">
+              Back to Cases
+            </BrutalButton>
+          </div>
+        </BrutalCard>
       </div>
     );
   }
 
+  const tabs: Array<{ key: TabType; label: string; count?: number }> = [
+    { key: 'overview', label: 'Overview' },
+    { key: 'notes', label: 'Notes', count: currentCase.notes_count || 0 },
+    { key: 'documents', label: 'Documents', count: currentCase.documents_count || 0 },
+    { key: 'followups', label: 'Follow-ups' },
+  ];
+
   return (
-    <div className="p-6">
+    <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-start justify-between">
+      <BrutalCard color="yellow" className="p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
+            <button
+              onClick={() => navigate('/cases')}
+              className="text-sm font-black uppercase text-black/70 hover:text-black mb-2 flex items-center gap-1"
+              aria-label="Back to cases"
+            >
+              ← Back to Cases
+            </button>
             <div className="flex items-center gap-3 mb-2">
-              <button
-                onClick={() => navigate('/cases')}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                ← Back
-              </button>
-              <h1 className="text-2xl font-bold text-gray-900">{currentCase.case_number}</h1>
+              <h1 className="text-3xl font-black uppercase tracking-tight text-black">
+                {currentCase.case_number}
+              </h1>
               {currentCase.is_urgent && (
-                <span className="px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-full">
-                  ⚠️ Urgent
+                <span className="px-3 py-1 bg-red-500 text-white text-sm font-black rounded-none border-2 border-black">
+                  ⚠️ URGENT
                 </span>
               )}
             </div>
-            <h2 className="text-xl text-gray-700">{currentCase.title}</h2>
+            <h2 className="text-xl font-bold text-black">{currentCase.title}</h2>
           </div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => navigate(`/cases/${id}/edit`)}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-            >
+          <div className="flex gap-2">
+            <BrutalButton onClick={() => navigate(`/cases/${id}/edit`)} variant="secondary">
               Edit
-            </button>
-            <button
-              onClick={handleDelete}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-            >
+            </BrutalButton>
+            <BrutalButton onClick={handleDelete} variant="danger">
               Delete
-            </button>
+            </BrutalButton>
           </div>
         </div>
-      </div>
+      </BrutalCard>
 
       {/* Status Bar */}
-      <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-6">
+      <BrutalCard color="white" className="p-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-6">
             <div>
-              <div className="text-sm text-gray-600 mb-1">Status</div>
-              <span
-                className="px-3 py-1 text-sm font-medium rounded-full inline-block"
-                style={{
-                  backgroundColor: currentCase.status_color || '#e5e7eb',
-                  color: '#1f2937',
-                }}
-              >
+              <div className="text-xs font-black uppercase text-black/70 mb-1">Status</div>
+              <BrutalBadge color={getStatusTypeBadgeColor(currentCase.status_type)}>
                 {currentCase.status_name}
-              </span>
+              </BrutalBadge>
             </div>
             <div>
-              <div className="text-sm text-gray-600 mb-1">Priority</div>
-              <span
-                className={`px-3 py-1 text-sm font-medium rounded-full inline-block ${getPriorityColor(
-                  currentCase.priority
-                )}`}
-              >
+              <div className="text-xs font-black uppercase text-black/70 mb-1">Priority</div>
+              <BrutalBadge color={getPriorityBadgeColor(currentCase.priority)}>
                 {currentCase.priority}
-              </span>
+              </BrutalBadge>
             </div>
             <div>
-              <div className="text-sm text-gray-600 mb-1">Type</div>
+              <div className="text-xs font-black uppercase text-black/70 mb-1">Type</div>
               <span
-                className="px-3 py-1 text-sm font-medium rounded-full inline-block"
+                className="inline-block border-2 border-black px-3 py-1 text-xs font-black uppercase"
                 style={{
                   backgroundColor: currentCase.case_type_color || '#e5e7eb',
-                  color: '#1f2937',
+                  color: '#000000',
                 }}
               >
                 {currentCase.case_type_name}
               </span>
             </div>
           </div>
-          <button
-            onClick={() => setIsChangingStatus(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
+          <BrutalButton onClick={() => setIsChangingStatus(true)} variant="primary" size="sm">
             Change Status
-          </button>
+          </BrutalButton>
         </div>
-      </div>
+      </BrutalCard>
 
       {/* Status Change Modal */}
       {isChangingStatus && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Change Case Status</h3>
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="status-modal-title"
+        >
+          <BrutalCard color="white" className="p-6 max-w-md w-full mx-4">
+            <h3 id="status-modal-title" className="text-lg font-black uppercase mb-4 text-black">
+              Change Case Status
+            </h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">New Status</label>
+                <label className="block text-sm font-black uppercase text-black/70 mb-2">
+                  New Status
+                </label>
                 <select
                   value={newStatusId}
                   onChange={(e) => setNewStatusId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border-2 border-black bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
+                  aria-label="Select new status"
                 >
                   <option value="">Select new status...</option>
                   {caseStatuses.map((status) => (
@@ -224,72 +271,65 @@ const CaseDetail = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                <label className="block text-sm font-black uppercase text-black/70 mb-2">
+                  Notes
+                </label>
                 <textarea
                   value={statusChangeNotes}
                   onChange={(e) => setStatusChangeNotes(e.target.value)}
                   rows={3}
                   placeholder="Reason for status change..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border-2 border-black bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
                 />
               </div>
               <div className="flex justify-end gap-3">
-                <button
+                <BrutalButton
                   onClick={() => {
                     setIsChangingStatus(false);
                     setNewStatusId('');
                     setStatusChangeNotes('');
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  variant="secondary"
                 >
                   Cancel
-                </button>
-                <button
+                </BrutalButton>
+                <BrutalButton
                   onClick={handleStatusChange}
                   disabled={!newStatusId || loading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  variant="primary"
                 >
                   {loading ? 'Updating...' : 'Update Status'}
-                </button>
+                </BrutalButton>
               </div>
             </div>
-          </div>
+          </BrutalCard>
         </div>
       )}
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="flex gap-6">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`pb-3 border-b-2 transition ${
-              activeTab === 'overview'
-                ? 'border-blue-600 text-blue-600 font-medium'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Overview
-          </button>
-          <button
-            onClick={() => setActiveTab('notes')}
-            className={`pb-3 border-b-2 transition ${
-              activeTab === 'notes'
-                ? 'border-blue-600 text-blue-600 font-medium'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Notes ({currentCase.notes_count || 0})
-          </button>
-          <button
-            onClick={() => setActiveTab('documents')}
-            className={`pb-3 border-b-2 transition ${
-              activeTab === 'documents'
-                ? 'border-blue-600 text-blue-600 font-medium'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Documents ({currentCase.documents_count || 0})
-          </button>
+      <div className="border-b-2 border-black dark:border-white">
+        <nav className="flex gap-0" role="tablist" aria-label="Case details tabs">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              role="tab"
+              aria-selected={activeTab === tab.key}
+              aria-controls={`panel-${tab.key}`}
+              className={`px-4 py-3 font-black uppercase text-sm border-b-4 transition-colors ${
+                activeTab === tab.key
+                  ? 'border-black dark:border-white text-black dark:text-white bg-[var(--loop-yellow)]'
+                  : 'border-transparent text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+            >
+              {tab.label}
+              {tab.count !== undefined && (
+                <span className="ml-2 px-2 py-0.5 text-xs bg-black text-white dark:bg-white dark:text-black rounded-none">
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
         </nav>
       </div>
 
@@ -297,102 +337,143 @@ const CaseDetail = () => {
       <div>
         {/* Overview Tab */}
         {activeTab === 'overview' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div
+            id="panel-overview"
+            role="tabpanel"
+            aria-labelledby="tab-overview"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+          >
             {/* Case Information */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold mb-4">Case Information</h3>
+            <BrutalCard color="white" className="p-6">
+              <h3 className="text-lg font-black uppercase mb-4 text-black dark:text-white">
+                Case Information
+              </h3>
               <dl className="space-y-3">
                 <div>
-                  <dt className="text-sm font-medium text-gray-600">Client</dt>
-                  <dd className="text-sm text-gray-900">
+                  <dt className="text-xs font-black uppercase text-black/60 dark:text-white/60">
+                    Client
+                  </dt>
+                  <dd className="text-sm font-bold text-black dark:text-white">
                     {currentCase.contact_first_name} {currentCase.contact_last_name}
                   </dd>
                 </div>
                 {currentCase.contact_email && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-600">Email</dt>
-                    <dd className="text-sm text-gray-900">{currentCase.contact_email}</dd>
+                    <dt className="text-xs font-black uppercase text-black/60 dark:text-white/60">
+                      Email
+                    </dt>
+                    <dd className="text-sm font-bold text-black dark:text-white">
+                      {currentCase.contact_email}
+                    </dd>
                   </div>
                 )}
                 {currentCase.contact_phone && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-600">Phone</dt>
-                    <dd className="text-sm text-gray-900">{currentCase.contact_phone}</dd>
+                    <dt className="text-xs font-black uppercase text-black/60 dark:text-white/60">
+                      Phone
+                    </dt>
+                    <dd className="text-sm font-bold text-black dark:text-white">
+                      {currentCase.contact_phone}
+                    </dd>
                   </div>
                 )}
                 {currentCase.description && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-600">Description</dt>
-                    <dd className="text-sm text-gray-900 whitespace-pre-wrap">
+                    <dt className="text-xs font-black uppercase text-black/60 dark:text-white/60">
+                      Description
+                    </dt>
+                    <dd className="text-sm font-bold text-black dark:text-white whitespace-pre-wrap">
                       {currentCase.description}
                     </dd>
                   </div>
                 )}
                 {currentCase.source && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-600">Source</dt>
-                    <dd className="text-sm text-gray-900">{currentCase.source}</dd>
+                    <dt className="text-xs font-black uppercase text-black/60 dark:text-white/60">
+                      Source
+                    </dt>
+                    <dd className="text-sm font-bold text-black dark:text-white capitalize">
+                      {currentCase.source}
+                    </dd>
                   </div>
                 )}
                 {currentCase.referral_source && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-600">Referral Source</dt>
-                    <dd className="text-sm text-gray-900">{currentCase.referral_source}</dd>
+                    <dt className="text-xs font-black uppercase text-black/60 dark:text-white/60">
+                      Referral Source
+                    </dt>
+                    <dd className="text-sm font-bold text-black dark:text-white">
+                      {currentCase.referral_source}
+                    </dd>
                   </div>
                 )}
               </dl>
-            </div>
+            </BrutalCard>
 
             {/* Dates and Assignment */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold mb-4">Dates & Assignment</h3>
+            <BrutalCard color="white" className="p-6">
+              <h3 className="text-lg font-black uppercase mb-4 text-black dark:text-white">
+                Dates & Assignment
+              </h3>
               <dl className="space-y-3">
                 <div>
-                  <dt className="text-sm font-medium text-gray-600">Intake Date</dt>
-                  <dd className="text-sm text-gray-900">
+                  <dt className="text-xs font-black uppercase text-black/60 dark:text-white/60">
+                    Intake Date
+                  </dt>
+                  <dd className="text-sm font-bold text-black dark:text-white">
                     {new Date(currentCase.intake_date).toLocaleDateString()}
                   </dd>
                 </div>
                 {currentCase.opened_date && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-600">Opened Date</dt>
-                    <dd className="text-sm text-gray-900">
+                    <dt className="text-xs font-black uppercase text-black/60 dark:text-white/60">
+                      Opened Date
+                    </dt>
+                    <dd className="text-sm font-bold text-black dark:text-white">
                       {new Date(currentCase.opened_date).toLocaleDateString()}
                     </dd>
                   </div>
                 )}
                 {currentCase.due_date && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-600">Due Date</dt>
-                    <dd className="text-sm text-gray-900">
+                    <dt className="text-xs font-black uppercase text-black/60 dark:text-white/60">
+                      Due Date
+                    </dt>
+                    <dd className="text-sm font-bold text-black dark:text-white">
                       {new Date(currentCase.due_date).toLocaleDateString()}
                     </dd>
                   </div>
                 )}
                 {currentCase.closed_date && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-600">Closed Date</dt>
-                    <dd className="text-sm text-gray-900">
+                    <dt className="text-xs font-black uppercase text-black/60 dark:text-white/60">
+                      Closed Date
+                    </dt>
+                    <dd className="text-sm font-bold text-black dark:text-white">
                       {new Date(currentCase.closed_date).toLocaleDateString()}
                     </dd>
                   </div>
                 )}
                 {currentCase.assigned_first_name && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-600">Assigned To</dt>
-                    <dd className="text-sm text-gray-900">
+                    <dt className="text-xs font-black uppercase text-black/60 dark:text-white/60">
+                      Assigned To
+                    </dt>
+                    <dd className="text-sm font-bold text-black dark:text-white">
                       {currentCase.assigned_first_name} {currentCase.assigned_last_name}
                     </dd>
                   </div>
                 )}
                 {currentCase.tags && currentCase.tags.length > 0 && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-600 mb-2">Tags</dt>
+                    <dt className="text-xs font-black uppercase text-black/60 dark:text-white/60 mb-2">
+                      Tags
+                    </dt>
                     <dd className="flex flex-wrap gap-2">
                       {currentCase.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                          className="px-2 py-1 bg-[var(--loop-cyan)] text-black text-xs font-black border-2 border-black"
                         >
                           {tag}
                         </span>
@@ -401,16 +482,33 @@ const CaseDetail = () => {
                   </div>
                 )}
               </dl>
-            </div>
+            </BrutalCard>
           </div>
         )}
 
         {/* Notes Tab */}
-        {activeTab === 'notes' && id && <CaseNotes caseId={id} />}
+        {activeTab === 'notes' && id && (
+          <div id="panel-notes" role="tabpanel" aria-labelledby="tab-notes">
+            <BrutalCard color="white" className="p-6">
+              <CaseNotes caseId={id} />
+            </BrutalCard>
+          </div>
+        )}
 
         {/* Documents Tab */}
         {activeTab === 'documents' && id && (
-          <CaseDocuments caseId={id} contactId={currentCase.contact_id} />
+          <div id="panel-documents" role="tabpanel" aria-labelledby="tab-documents">
+            <CaseDocuments caseId={id} contactId={currentCase.contact_id} />
+          </div>
+        )}
+
+        {/* Follow-ups Tab */}
+        {activeTab === 'followups' && id && (
+          <div id="panel-followups" role="tabpanel" aria-labelledby="tab-followups">
+            <BrutalCard color="white" className="p-6">
+              <FollowUpList entityType="case" entityId={id} />
+            </BrutalCard>
+          </div>
         )}
       </div>
     </div>

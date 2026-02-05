@@ -18,6 +18,7 @@ import casesReducer from './slices/casesSlice';
 import dashboardReducer from './slices/dashboardSlice';
 import alertsReducer from './slices/alertsSlice';
 import portalAuthReducer from './slices/portalAuthSlice';
+import followUpsReducer from './slices/followUpsSlice';
 
 export const rootReducer = combineReducers({
   auth: authReducer,
@@ -39,6 +40,7 @@ export const rootReducer = combineReducers({
   dashboard: dashboardReducer,
   alerts: alertsReducer,
   portalAuth: portalAuthReducer,
+  followUps: followUpsReducer,
 });
 
 export const store = configureStore({

@@ -8,6 +8,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchTaskById, deleteTask, completeTask } from '../../../store/slices/tasksSlice';
 import { TaskStatus, TaskPriority } from '../../../types/task';
+import FollowUpList from '../../../components/FollowUpList';
 
 const TaskDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -204,6 +205,13 @@ const TaskDetail: React.FC = () => {
           </dl>
         </div>
       </div>
+
+      {/* Follow-ups Section */}
+      {id && (
+        <div className="mt-6 bg-white shadow-md rounded-lg p-6">
+          <FollowUpList entityType="task" entityId={id} />
+        </div>
+      )}
     </div>
   );
 };

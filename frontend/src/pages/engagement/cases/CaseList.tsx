@@ -35,7 +35,7 @@ const CaseList = () => {
   const hasInitializedFromUrl = useRef(false);
 
   const [searchTerm, setSearchTerm] = useState(filters.search || '');
-  const [selectedPriority, setSelectedPriority] = useState(filters.priority || '');
+  const [selectedPriority, setSelectedPriority] = useState<CasePriority | ''>(filters.priority || '');
   const [selectedStatus, setSelectedStatus] = useState(filters.status_id || '');
   const [selectedType, setSelectedType] = useState(filters.case_type_id || '');
   const [showUrgentOnly, setShowUrgentOnly] = useState(filters.is_urgent || false);
@@ -375,7 +375,7 @@ const CaseList = () => {
           <div>
             <select
               value={selectedPriority}
-              onChange={(e) => setSelectedPriority(e.target.value)}
+              onChange={(e) => setSelectedPriority(e.target.value as CasePriority | '')}
               className="w-full border-2 border-black dark:border-white bg-white dark:bg-[#000000] text-black dark:text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
             >
               <option value="">All Priorities</option>
