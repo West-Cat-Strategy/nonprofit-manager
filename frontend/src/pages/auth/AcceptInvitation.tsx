@@ -10,6 +10,7 @@ import { setCredentials } from '../../store/slices/authSlice';
 import api from '../../services/api';
 import { useApiError } from '../../hooks/useApiError';
 import ErrorBanner from '../../components/ErrorBanner';
+import { validatePassword } from '../../utils/validation';
 
 interface InvitationInfo {
   email: string;
@@ -75,25 +76,6 @@ export default function AcceptInvitation() {
 
     validateToken();
   }, [token, clearValidationError, setValidationFromError]);
-
-  const validatePassword = (pwd: string): string | null => {
-    if (pwd.length < 8) {
-      return 'Password must be at least 8 characters';
-    }
-    if (!/[a-z]/.test(pwd)) {
-      return 'Password must contain a lowercase letter';
-    }
-    if (!/[A-Z]/.test(pwd)) {
-      return 'Password must contain an uppercase letter';
-    }
-    if (!/\d/.test(pwd)) {
-      return 'Password must contain a number';
-    }
-    if (!/[@$!%*?&]/.test(pwd)) {
-      return 'Password must contain a special character (@$!%*?&)';
-    }
-    return null;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
