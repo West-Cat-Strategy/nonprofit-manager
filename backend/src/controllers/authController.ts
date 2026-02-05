@@ -11,6 +11,7 @@ import { JWT, PASSWORD } from '../config/constants';
 import { syncUserRole } from '../services/userRoleService';
 import { issueTotpMfaChallenge } from './mfaController';
 import { badRequest, conflict, forbidden, notFoundMessage, unauthorized, validationErrorResponse } from '../utils/responseHelpers';
+import { setAuthCookie, setRefreshCookie, clearAuthCookies } from '../utils/cookieHelper';
 
 interface RegisterRequest {
   email: string;
@@ -98,9 +99,12 @@ export const register = async (
 
     logger.info(`User registered: ${user.email}`);
 
+    // Set auth cookie
+    setAuthCookie(res, token);
+
     const organizationId = await getDefaultOrganizationId();
     return res.status(201).json({
-      token,
+      token, // Still return token for backward compatibility during migration
       organizationId,
       user: {
         user_id: user.id,
@@ -201,9 +205,13 @@ export const login = async (
 
     logger.info(`User logged in: ${user.email}`, { ip: clientIp });
 
+    // Set auth cookies
+    setAuthCookie(res, token);
+    setRefreshCookie(res, refreshToken);
+
     const organizationId = await getDefaultOrganizationId();
     return res.json({
-      token,
+      token, // Still return token for backward compatibility during migration
       refreshToken,
       organizationId,
       user: {
@@ -218,6 +226,16 @@ export const login = async (
   } catch (error) {
     next(error);
   }
+};
+
+export const logout = async (
+  _req: AuthRequest,
+  res: Response,
+  _next: NextFunction
+): Promise<Response> => {
+  // Clear all auth cookies
+  clearAuthCookies(res);
+  return res.json({ message: 'Logged out successfully' });
 };
 
 export const getCurrentUser = async (
@@ -341,9 +359,12 @@ export const setupFirstUser = async (
 
     logger.info(`First admin user created: ${email}`);
 
+    // Set auth cookie
+    setAuthCookie(res, token);
+
     return res.status(201).json({
       message: 'Setup completed successfully',
-      token,
+      token, // Still return token for backward compatibility during migration
       organizationId,
       user: {
         user_id: user.id,

@@ -192,11 +192,16 @@ export default function UserSettings() {
     clear: clearSecurityError,
   } = useApiError();
 
+  // TOTP setup timeout (5 minutes)
+  const TOTP_SETUP_TIMEOUT_MS = 5 * 60 * 1000;
+
   const [totpSetup, setTotpSetup] = useState<{
     secret: string;
     otpauthUrl: string;
     qrDataUrl: string | null;
   } | null>(null);
+  const [totpSetupExpiresAt, setTotpSetupExpiresAt] = useState<number | null>(null);
+  const [totpSecondsRemaining, setTotpSecondsRemaining] = useState<number>(0);
   const [totpEnableCode, setTotpEnableCode] = useState('');
   const [totpDisablePassword, setTotpDisablePassword] = useState('');
   const [totpDisableCode, setTotpDisableCode] = useState('');
@@ -271,6 +276,30 @@ export default function UserSettings() {
   useEffect(() => {
     refreshSecurity();
   }, [refreshSecurity]);
+
+  // TOTP setup expiration countdown
+  useEffect(() => {
+    if (!totpSetupExpiresAt) {
+      setTotpSecondsRemaining(0);
+      return;
+    }
+
+    const updateCountdown = () => {
+      const remaining = Math.max(0, Math.floor((totpSetupExpiresAt - Date.now()) / 1000));
+      setTotpSecondsRemaining(remaining);
+
+      if (remaining === 0) {
+        // Auto-clear setup on expiry
+        setTotpSetup(null);
+        setTotpSetupExpiresAt(null);
+        setTotpEnableCode('');
+      }
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [totpSetupExpiresAt]);
 
   const handleChange = (field: keyof UserProfile, value: string | boolean) => {
     setProfile((prev) => ({ ...prev, [field]: value }));
@@ -437,6 +466,7 @@ export default function UserSettings() {
       const qrcode = await import('qrcode');
       const qrDataUrl = await qrcode.toDataURL(otpauthUrl, { margin: 1, width: 192 });
       setTotpSetup({ secret, otpauthUrl, qrDataUrl });
+      setTotpSetupExpiresAt(Date.now() + TOTP_SETUP_TIMEOUT_MS);
       setTotpEnableCode('');
     } catch (err: unknown) {
       setSecurityErrorFromError(err, 'Failed to start 2FA setup');
@@ -452,6 +482,7 @@ export default function UserSettings() {
     try {
       await api.post('/auth/2fa/totp/enable', { code: totpEnableCode.trim() });
       setTotpSetup(null);
+      setTotpSetupExpiresAt(null);
       setTotpEnableCode('');
       await refreshSecurity();
     } catch (err: unknown) {
@@ -860,6 +891,20 @@ export default function UserSettings() {
 
               {!security.totpEnabled && totpSetup && (
                 <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  {/* Timeout warning banner */}
+                  {totpSecondsRemaining > 0 && (
+                    <div className={`mb-4 p-3 rounded-lg border ${totpSecondsRemaining < 60 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-yellow-50 border-yellow-200 text-yellow-700'}`}>
+                      <div className="flex items-center gap-2">
+                        <span>{totpSecondsRemaining < 60 ? '⚠️' : '⏱️'}</span>
+                        <span className="font-medium">
+                          Setup expires in {Math.floor(totpSecondsRemaining / 60)}:{(totpSecondsRemaining % 60).toString().padStart(2, '0')}
+                        </span>
+                      </div>
+                      {totpSecondsRemaining < 60 && (
+                        <p className="text-sm mt-1">Complete setup now or the secret will be cleared for security.</p>
+                      )}
+                    </div>
+                  )}
                   <div className="flex flex-col md:flex-row md:items-start md:space-x-6">
                     {totpSetup.qrDataUrl && (
                       <img
@@ -903,6 +948,7 @@ export default function UserSettings() {
                           type="button"
                           onClick={() => {
                             setTotpSetup(null);
+                            setTotpSetupExpiresAt(null);
                             setTotpEnableCode('');
                           }}
                           className="px-4 py-2 text-gray-700 font-medium rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500"

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '../config/jwt';
 import { forbidden, unauthorized } from '../utils/responseHelpers';
+import { extractToken, AUTH_COOKIE_NAME } from '../utils/cookieHelper';
 
 interface JwtPayload {
   id: string;
@@ -28,13 +29,13 @@ export const authenticate = (
   next: NextFunction
 ): Response | void => {
   try {
-    const authHeader = req.headers.authorization;
+    // Extract token from cookies first (preferred), then Authorization header (backward compatible)
+    const token = extractToken(req.cookies, req.headers.authorization, AUTH_COOKIE_NAME);
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!token) {
       return unauthorized(res, 'No token provided');
     }
 
-    const token = authHeader.substring(7);
     const decoded = jwt.verify(token, getJwtSecret()) as JwtPayload;
 
     req.user = decoded;

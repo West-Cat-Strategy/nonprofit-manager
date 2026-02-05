@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../services/api';
+import { useToast } from '../contexts/useToast';
 import type { ContactDocument } from '../types/contact';
 import { DOCUMENT_TYPES } from '../types/contact';
 
@@ -13,7 +14,54 @@ interface CaseDocumentsProps {
   contactId?: string | null;
 }
 
+// Allowed file types for upload
+const ALLOWED_FILE_EXTENSIONS = [
+  '.pdf', '.doc', '.docx', '.txt', '.rtf', '.odt',
+  '.xls', '.xlsx', '.csv',
+  '.jpg', '.jpeg', '.png', '.gif', '.webp'
+];
+
+const ALLOWED_MIME_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
+  'application/rtf',
+  'application/vnd.oasis.opendocument.text',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/csv',
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp'
+];
+
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+
+const validateFile = (file: File): string | null => {
+  // Check file size
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    return `File size exceeds 10MB limit (${(file.size / 1024 / 1024).toFixed(1)}MB)`;
+  }
+
+  // Check MIME type
+  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    return `File type "${file.type || 'unknown'}" is not allowed`;
+  }
+
+  // Check file extension
+  const fileName = file.name.toLowerCase();
+  const hasAllowedExtension = ALLOWED_FILE_EXTENSIONS.some(ext => fileName.endsWith(ext));
+  if (!hasAllowedExtension) {
+    return 'File extension is not allowed. Accepted: PDF, DOC, DOCX, TXT, RTF, ODT, XLS, XLSX, CSV, JPG, PNG, GIF, WEBP';
+  }
+
+  return null;
+};
+
 const CaseDocuments = ({ caseId, contactId }: CaseDocumentsProps) => {
+  const { showSuccess, showError } = useToast();
   const [documents, setDocuments] = useState<ContactDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +113,7 @@ const CaseDocuments = ({ caseId, contactId }: CaseDocumentsProps) => {
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Failed to download document:', err);
-      alert('Failed to download document');
+      showError('Failed to download document');
     }
   };
 
@@ -79,6 +127,13 @@ const CaseDocuments = ({ caseId, contactId }: CaseDocumentsProps) => {
     const file = fileInputRef.current?.files?.[0];
     if (!file) {
       setUploadError('Please choose a file to upload.');
+      return;
+    }
+
+    // Validate file type and size
+    const validationError = validateFile(file);
+    if (validationError) {
+      setUploadError(validationError);
       return;
     }
 
@@ -106,8 +161,11 @@ const CaseDocuments = ({ caseId, contactId }: CaseDocumentsProps) => {
         fileInputRef.current.value = '';
       }
       await loadDocuments();
+      showSuccess('Document uploaded successfully');
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Failed to upload document');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to upload document';
+      setUploadError(errorMessage);
+      showError(errorMessage);
     } finally {
       setIsUploading(false);
     }
@@ -159,6 +217,7 @@ const CaseDocuments = ({ caseId, contactId }: CaseDocumentsProps) => {
             <input
               ref={fileInputRef}
               type="file"
+              accept=".pdf,.doc,.docx,.txt,.rtf,.odt,.xls,.xlsx,.csv,.jpg,.jpeg,.png,.gif,.webp"
               className="w-full text-sm text-gray-700"
             />
           </div>

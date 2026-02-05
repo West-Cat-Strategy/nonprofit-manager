@@ -12,6 +12,7 @@ import {
 import type { Contact as StoreContact } from '../store/slices/contactsSlice';
 import type { ContactRole, CreateContactRelationshipDTO, RelationshipType } from '../types/contact';
 import { RELATIONSHIP_TYPES } from '../types/contact';
+import { useToast } from '../contexts/useToast';
 import api from '../services/api';
 
 type ContactFormValues = {
@@ -67,6 +68,43 @@ const GENDER_OPTIONS = [
   { value: 'Other', label: 'Other' },
 ];
 
+// Postal code validation patterns by country
+const POSTAL_CODE_PATTERNS: Record<string, { regex: RegExp; example: string }> = {
+  'US': { regex: /^\d{5}(-\d{4})?$/, example: '12345 or 12345-6789' },
+  'USA': { regex: /^\d{5}(-\d{4})?$/, example: '12345 or 12345-6789' },
+  'United States': { regex: /^\d{5}(-\d{4})?$/, example: '12345 or 12345-6789' },
+  'CA': { regex: /^[A-Za-z]\d[A-Za-z][ ]?\d[A-Za-z]\d$/, example: 'A1A 1A1' },
+  'Canada': { regex: /^[A-Za-z]\d[A-Za-z][ ]?\d[A-Za-z]\d$/, example: 'A1A 1A1' },
+  'UK': { regex: /^[A-Za-z]{1,2}\d[A-Za-z\d]?[ ]?\d[A-Za-z]{2}$/, example: 'SW1A 1AA' },
+  'United Kingdom': { regex: /^[A-Za-z]{1,2}\d[A-Za-z\d]?[ ]?\d[A-Za-z]{2}$/, example: 'SW1A 1AA' },
+  'GB': { regex: /^[A-Za-z]{1,2}\d[A-Za-z\d]?[ ]?\d[A-Za-z]{2}$/, example: 'SW1A 1AA' },
+};
+
+// Generic fallback pattern for other countries
+const GENERIC_POSTAL_PATTERN = /^[\w\s-]{3,10}$/;
+
+const validatePostalCode = (postalCode: string, country?: string | null): string | null => {
+  if (!postalCode) return null; // Empty is valid (optional field)
+
+  const normalizedCountry = country?.trim() || '';
+
+  // Check for country-specific pattern
+  const pattern = POSTAL_CODE_PATTERNS[normalizedCountry];
+  if (pattern) {
+    if (!pattern.regex.test(postalCode.trim())) {
+      return `Invalid postal code format for ${normalizedCountry}. Example: ${pattern.example}`;
+    }
+    return null;
+  }
+
+  // Generic validation for other countries
+  if (!GENERIC_POSTAL_PATTERN.test(postalCode.trim())) {
+    return 'Postal code must be 3-10 characters (letters, numbers, spaces, or dashes)';
+  }
+
+  return null;
+};
+
 interface ContactFormProps {
   contact?: StoreContact;
   mode: 'create' | 'edit';
@@ -78,6 +116,7 @@ export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode, onCreat
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
+  const { showSuccess, showError } = useToast();
   const { relationships, relationshipsLoading, contacts } = useAppSelector((state) => state.contacts);
   const [availableRoles, setAvailableRoles] = useState<ContactRole[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
@@ -211,6 +250,14 @@ export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode, onCreat
       newErrors.mobile_phone = 'Invalid mobile phone number format';
     }
 
+    // Postal code validation
+    if (formData.postal_code) {
+      const postalError = validatePostalCode(formData.postal_code, formData.country);
+      if (postalError) {
+        newErrors.postal_code = postalError;
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -253,10 +300,11 @@ export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode, onCreat
       if (mode === 'create') {
         const result = await dispatch(createContact(cleanedData)).unwrap();
         if (result.staffInvitation?.inviteUrl) {
-          alert(
+          showSuccess(
             `Staff invitation created for ${result.staffInvitation.role}. Share this link: ${result.staffInvitation.inviteUrl}`
           );
         }
+        showSuccess('Contact created successfully');
         if (onCreated) {
           onCreated(result);
           return;
@@ -276,10 +324,11 @@ export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode, onCreat
           })
         ).unwrap();
         if (result.staffInvitation?.inviteUrl) {
-          alert(
+          showSuccess(
             `Staff invitation created for ${result.staffInvitation.role}. Share this link: ${result.staffInvitation.inviteUrl}`
           );
         }
+        showSuccess('Contact updated successfully');
         navigate(`/contacts/${contact.contact_id}`);
       }
     } catch (error) {
@@ -318,7 +367,7 @@ export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode, onCreat
   const handleAddRelationship = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!relationshipData.related_contact_id || !contact?.contact_id) {
-      alert('Please select a person');
+      showError('Please select a person');
       return;
     }
 
@@ -326,9 +375,10 @@ export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode, onCreat
       await dispatch(
         createContactRelationship({ contactId: contact.contact_id, data: relationshipData })
       ).unwrap();
+      showSuccess('Relationship added successfully');
       resetRelationshipForm();
     } catch (error: any) {
-      alert(error.message || 'Failed to add relationship');
+      showError(error.message || 'Failed to add relationship');
     }
   };
 
@@ -989,8 +1039,11 @@ export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode, onCreat
               id="postal_code"
               value={formData.postal_code ?? ''}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className={`mt-1 block w-full border ${
+                errors.postal_code ? 'border-red-300' : 'border-gray-300'
+              } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
             />
+            {errors.postal_code && <p className="mt-1 text-sm text-red-600">{errors.postal_code}</p>}
           </div>
 
           <div>
