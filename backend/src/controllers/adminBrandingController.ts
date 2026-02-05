@@ -2,7 +2,7 @@ import type { Response } from 'express';
 import pool from '../config/database';
 import { logger } from '../config/logger';
 import type { AuthRequest } from '../middleware/auth';
-import { serverError } from '../utils/responseHelpers';
+import { badRequest, serverError } from '../utils/responseHelpers';
 
 type BrandingConfig = {
   appName: string;
@@ -83,10 +83,10 @@ export const getBranding = async (_req: AuthRequest, res: Response) => {
 export const putBranding = async (req: AuthRequest, res: Response) => {
   const brandingConfig = parseBrandingConfig(req.body);
   if (!brandingConfig) {
-    return res.status(400).json({
-      error:
-        'Invalid branding payload. Expected { appName, appIcon, primaryColour, secondaryColour, favicon }',
-    });
+    return badRequest(
+      res,
+      'Invalid branding payload. Expected { appName, appIcon, primaryColour, secondaryColour, favicon }'
+    );
   }
 
   try {

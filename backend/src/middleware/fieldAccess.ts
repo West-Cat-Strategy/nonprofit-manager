@@ -7,7 +7,7 @@ import { Request, Response, NextFunction } from 'express';
 import pool from '../config/database';
 import { logger } from '../config/logger';
 import { maskData, maskEmail, maskPhone, decrypt, isEncrypted } from '../utils/encryption';
-import { serverError, unauthorized } from '../utils/responseHelpers';
+import { errorPayload, serverError, unauthorized } from '../utils/responseHelpers';
 
 // Extended request type with user info
 interface AuthRequest extends Request {
@@ -274,10 +274,14 @@ export function checkFieldWriteAccess(resource: string, fields: string[]) {
           resource,
           deniedFields,
         });
-        return res.status(403).json({
-          error: 'Forbidden',
-          message: `You do not have permission to modify: ${deniedFields.join(', ')}`,
-        });
+        return res.status(403).json(
+          errorPayload(
+            res,
+            'Forbidden',
+            { message: `You do not have permission to modify: ${deniedFields.join(', ')}` },
+            'forbidden'
+          )
+        );
       }
 
       next();
@@ -312,10 +316,14 @@ export function requirePermission(permissionName: string) {
 
       if (!permitted) {
         logger.warn('Permission denied', { userId, permissionName });
-        return res.status(403).json({
-          error: 'Forbidden',
-          message: 'You do not have permission to perform this action',
-        });
+        return res.status(403).json(
+          errorPayload(
+            res,
+            'Forbidden',
+            { message: 'You do not have permission to perform this action' },
+            'forbidden'
+          )
+        );
       }
 
       next();

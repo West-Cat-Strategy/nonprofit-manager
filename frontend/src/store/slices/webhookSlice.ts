@@ -5,6 +5,7 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../services/api';
+import { formatApiErrorMessage } from '../../utils/apiError';
 import type {
   WebhookState,
   WebhookEndpoint,
@@ -49,7 +50,7 @@ export const fetchWebhookEndpoints = createAsyncThunk<WebhookEndpoint[]>(
       const response = await api.get('/webhooks/endpoints');
       return response.data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to fetch webhook endpoints';
+      const message = formatApiErrorMessage(error, 'Network error');
       return rejectWithValue(message);
     }
   }
@@ -68,7 +69,7 @@ export const createWebhookEndpoint = createAsyncThunk<
       const response = await api.post('/webhooks/endpoints', data);
       return response.data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to create webhook endpoint';
+      const message = formatApiErrorMessage(error, 'Network error');
       return rejectWithValue(message);
     }
   }
@@ -87,7 +88,7 @@ export const updateWebhookEndpoint = createAsyncThunk<
       const response = await api.put(`/webhooks/endpoints/${id}`, data);
       return response.data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to update webhook endpoint';
+      const message = formatApiErrorMessage(error, 'Network error');
       return rejectWithValue(message);
     }
   }
@@ -103,7 +104,7 @@ export const deleteWebhookEndpoint = createAsyncThunk<string, string>(
       await api.delete(`/webhooks/endpoints/${id}`);
       return id;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to delete webhook endpoint';
+      const message = formatApiErrorMessage(error, 'Network error');
       return rejectWithValue(message);
     }
   }
@@ -122,7 +123,7 @@ export const regenerateWebhookSecret = createAsyncThunk<
       const response = await api.post(`/webhooks/endpoints/${id}/regenerate-secret`);
       return { id, secret: response.data.secret };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to regenerate webhook secret';
+      const message = formatApiErrorMessage(error, 'Network error');
       return rejectWithValue(message);
     }
   }
@@ -138,7 +139,7 @@ export const testWebhookEndpoint = createAsyncThunk<WebhookTestResponse, string>
       const response = await api.post(`/webhooks/endpoints/${id}/test`);
       return response.data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to test webhook endpoint';
+      const message = formatApiErrorMessage(error, 'Test failed');
       return rejectWithValue(message);
     }
   }
@@ -157,7 +158,7 @@ export const fetchWebhookDeliveries = createAsyncThunk<
       const response = await api.get(`/webhooks/endpoints/${endpointId}/deliveries?limit=${limit}`);
       return response.data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to fetch webhook deliveries';
+      const message = formatApiErrorMessage(error, 'Network error');
       return rejectWithValue(message);
     }
   }
@@ -173,7 +174,7 @@ export const fetchAvailableWebhookEvents = createAsyncThunk<WebhookEventInfo[]>(
       const response = await api.get('/webhooks/events');
       return response.data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to fetch webhook events';
+      const message = formatApiErrorMessage(error, 'Network error');
       return rejectWithValue(message);
     }
   }
@@ -191,7 +192,7 @@ export const fetchApiKeys = createAsyncThunk<ApiKey[]>(
       const response = await api.get('/webhooks/api-keys');
       return response.data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to fetch API keys';
+      const message = formatApiErrorMessage(error, 'Network error');
       return rejectWithValue(message);
     }
   }
@@ -207,7 +208,7 @@ export const createApiKey = createAsyncThunk<CreateApiKeyResponse, CreateApiKeyR
       const response = await api.post('/webhooks/api-keys', data);
       return response.data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to create API key';
+      const message = formatApiErrorMessage(error, 'Network error');
       return rejectWithValue(message);
     }
   }
@@ -226,7 +227,7 @@ export const updateApiKey = createAsyncThunk<
       const response = await api.put(`/webhooks/api-keys/${id}`, data);
       return response.data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to update API key';
+      const message = formatApiErrorMessage(error, 'Network error');
       return rejectWithValue(message);
     }
   }
@@ -242,7 +243,7 @@ export const revokeApiKey = createAsyncThunk<string, string>(
       await api.post(`/webhooks/api-keys/${id}/revoke`);
       return id;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to revoke API key';
+      const message = formatApiErrorMessage(error, 'Network error');
       return rejectWithValue(message);
     }
   }
@@ -258,7 +259,7 @@ export const deleteApiKey = createAsyncThunk<string, string>(
       await api.delete(`/webhooks/api-keys/${id}`);
       return id;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to delete API key';
+      const message = formatApiErrorMessage(error, 'Network error');
       return rejectWithValue(message);
     }
   }
@@ -277,7 +278,7 @@ export const fetchApiKeyUsage = createAsyncThunk<
       const response = await api.get(`/webhooks/api-keys/${keyId}/usage?limit=${limit}`);
       return response.data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to fetch API key usage';
+      const message = formatApiErrorMessage(error, 'Network error');
       return rejectWithValue(message);
     }
   }
@@ -293,7 +294,7 @@ export const fetchAvailableScopes = createAsyncThunk<ApiScopeInfo[]>(
       const response = await api.get('/webhooks/api-keys/scopes');
       return response.data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to fetch API scopes';
+      const message = formatApiErrorMessage(error, 'Network error');
       return rejectWithValue(message);
     }
   }

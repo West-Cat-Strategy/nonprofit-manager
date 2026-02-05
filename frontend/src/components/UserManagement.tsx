@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
+import { formatApiErrorMessage } from '../utils/apiError';
 import Avatar from './Avatar';
 
 interface User {
@@ -126,7 +127,7 @@ export default function UserManagement() {
       fetchUsers();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
-      setFormError(error.response?.data?.error || 'Failed to create user');
+      setFormError(formatApiErrorMessage(error, 'Failed to create user'));
     } finally {
       setIsSaving(false);
     }
@@ -150,7 +151,7 @@ export default function UserManagement() {
       fetchUsers();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
-      setFormError(error.response?.data?.error || 'Failed to update user');
+      setFormError(formatApiErrorMessage(error, 'Failed to update user'));
     } finally {
       setIsSaving(false);
     }
@@ -181,7 +182,7 @@ export default function UserManagement() {
       setFormData(initialFormData);
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
-      setFormError(error.response?.data?.error || 'Failed to reset password');
+      setFormError(formatApiErrorMessage(error, 'Failed to reset password'));
     } finally {
       setIsSaving(false);
     }
@@ -193,7 +194,7 @@ export default function UserManagement() {
       fetchUsers();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
-      alert(error.response?.data?.error || 'Failed to update user status');
+      alert(formatApiErrorMessage(error, 'Failed to update user status'));
     }
   };
 

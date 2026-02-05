@@ -7,6 +7,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
+import { formatApiErrorMessage } from '../../utils/apiError';
 import { useToast } from '../../contexts/ToastContext';
 import { useBranding } from '../../contexts/BrandingContext';
 import Avatar from '../../components/Avatar';
@@ -693,7 +694,7 @@ export default function AdminSettings() {
       setInviteUrl(response.data.inviteUrl);
       fetchInvitations();
     } catch (error: any) {
-      setFormError(error.response?.data?.error || 'Failed to create invitation');
+      setFormError(formatApiErrorMessage(error, 'Failed to create invitation'));
     } finally {
       setIsCreatingInvite(false);
     }
@@ -755,7 +756,7 @@ export default function AdminSettings() {
       showSuccess('Portal signup request approved');
       refreshPortalData();
     } catch (error: any) {
-      showError(error.response?.data?.error || 'Failed to approve request');
+      showError(formatApiErrorMessage(error, 'Failed to approve request'));
     }
   };
 
@@ -766,7 +767,7 @@ export default function AdminSettings() {
       showSuccess('Portal signup request rejected');
       refreshPortalData();
     } catch (error: any) {
-      showError(error.response?.data?.error || 'Failed to reject request');
+      showError(formatApiErrorMessage(error, 'Failed to reject request'));
     }
   };
 
@@ -789,7 +790,7 @@ export default function AdminSettings() {
       showSuccess('Portal invitation created');
       refreshPortalData();
     } catch (error: any) {
-      showError(error.response?.data?.error || 'Failed to create portal invitation');
+      showError(formatApiErrorMessage(error, 'Failed to create portal invitation'));
     }
   };
 
@@ -814,7 +815,7 @@ export default function AdminSettings() {
         setSelectedPortalUser({ ...selectedPortalUser, status });
       }
     } catch (error: any) {
-      showError(error.response?.data?.error || 'Failed to update portal user status');
+      showError(formatApiErrorMessage(error, 'Failed to update portal user status'));
     }
   };
 
@@ -854,7 +855,7 @@ export default function AdminSettings() {
       setShowPortalResetModal(false);
       showSuccess('Portal user password updated');
     } catch (error: any) {
-      showError(error.response?.data?.error || 'Failed to reset password');
+      showError(formatApiErrorMessage(error, 'Failed to reset password'));
     } finally {
       setPortalResetLoading(false);
     }

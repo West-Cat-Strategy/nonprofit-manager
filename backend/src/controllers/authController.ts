@@ -10,7 +10,7 @@ import { trackLoginAttempt } from '../middleware/accountLockout';
 import { JWT, PASSWORD } from '../config/constants';
 import { syncUserRole } from '../services/userRoleService';
 import { issueTotpMfaChallenge } from './mfaController';
-import { badRequest, conflict, notFoundMessage, unauthorized, validationErrorResponse } from '../utils/responseHelpers';
+import { badRequest, conflict, forbidden, notFoundMessage, unauthorized, validationErrorResponse } from '../utils/responseHelpers';
 
 interface RegisterRequest {
   email: string;
@@ -299,9 +299,7 @@ export const setupFirstUser = async (
     const adminCount = parseInt(countResult.rows[0].count);
 
     if (adminCount > 0) {
-      return res.status(403).json({
-        error: 'Setup has already been completed. An admin user already exists.'
-      });
+      return forbidden(res, 'Setup has already been completed. An admin user already exists.');
     }
 
     const { email, password, firstName, lastName }: RegisterRequest = req.body;

@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
+import { formatApiErrorMessage } from '../../utils/apiError';
 import WidgetContainer from './WidgetContainer';
 import type { DashboardWidget } from '../../types/dashboard';
 
@@ -37,7 +38,7 @@ const ActivityFeedWidget = ({ widget, editMode, onRemove }: ActivityFeedWidgetPr
       setActivities(response.data.activities || []);
     } catch (err: any) {
       console.error('Error fetching activities:', err);
-      setError(err.response?.data?.error || 'Failed to load activities');
+      setError(formatApiErrorMessage(err, 'Failed to load activities'));
     } finally {
       setLoading(false);
     }

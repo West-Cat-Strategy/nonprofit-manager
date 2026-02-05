@@ -102,9 +102,10 @@ export const handleMulterError = (
     // Multer-specific errors
     switch (err.code) {
       case 'LIMIT_FILE_SIZE':
-        res.status(400).json({
-          error: `File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB`,
-        });
+        badRequest(
+          res,
+          `File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB`
+        );
         return;
       case 'LIMIT_FILE_COUNT':
         badRequest(res, 'Too many files uploaded');
