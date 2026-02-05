@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../store/hooks';
 import { createAccount, updateAccount } from '../store/slices/accountsSlice';
 import type { Account } from '../store/slices/accountsSlice';
+import { useForm, formValidators, type ValidationRules } from '../hooks/useForm';
+import { validateEmail, validatePhoneNumber, validateUrl } from '../utils/validation';
 
 type AccountFormValues = {
   account_id?: string;
@@ -10,18 +12,50 @@ type AccountFormValues = {
   account_name: string;
   account_type: Account['account_type'];
   category: Account['category'];
-  email?: string | null;
-  phone?: string | null;
-  website?: string | null;
-  address_line1?: string | null;
-  address_line2?: string | null;
-  city?: string | null;
-  state_province?: string | null;
-  postal_code?: string | null;
-  country?: string | null;
-  tax_id?: string | null;
-  description?: string | null;
-  is_active?: boolean;
+  email: string;
+  phone: string;
+  website: string;
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  state_province: string;
+  postal_code: string;
+  country: string;
+  tax_id: string;
+  description: string;
+  is_active: boolean;
+};
+
+const initialValues: AccountFormValues = {
+  account_name: '',
+  account_type: 'individual',
+  category: 'donor',
+  email: '',
+  phone: '',
+  website: '',
+  address_line1: '',
+  address_line2: '',
+  city: '',
+  state_province: '',
+  postal_code: '',
+  country: '',
+  tax_id: '',
+  description: '',
+  is_active: true,
+};
+
+const validationRules: ValidationRules<AccountFormValues> = {
+  account_name: formValidators.required('Account name'),
+  email: (value) => validateEmail(value),
+  phone: (value) => validatePhoneNumber(value),
+  website: (value) => {
+    if (!value) return null;
+    // Use stricter URL validation that requires protocol
+    if (!/^https?:\/\/.+/.test(value)) {
+      return 'Website must start with http:// or https://';
+    }
+    return validateUrl(value);
+  },
 };
 
 interface AccountFormProps {
@@ -33,105 +67,63 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
-  const [formData, setFormData] = useState<AccountFormValues>({
-    account_name: '',
-    account_type: 'individual',
-    category: 'donor',
-    email: '',
-    phone: '',
-    website: '',
-    address_line1: '',
-    address_line2: '',
-    city: '',
-    state_province: '',
-    postal_code: '',
-    country: '',
-    tax_id: '',
-    description: '',
-    is_active: true,
+  const {
+    values,
+    errors,
+    isSubmitting,
+    handleChange,
+    validate,
+    setError,
+    resetTo,
+  } = useForm<AccountFormValues>({
+    initialValues,
+    validationRules,
   });
-
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (account && mode === 'edit') {
-      setFormData({
+      resetTo({
+        ...initialValues,
         ...account,
+        email: account.email ?? '',
+        phone: account.phone ?? '',
+        website: account.website ?? '',
+        address_line1: account.address_line1 ?? '',
+        address_line2: account.address_line2 ?? '',
+        city: account.city ?? '',
+        state_province: account.state_province ?? '',
+        postal_code: account.postal_code ?? '',
+        country: account.country ?? '',
+        tax_id: account.tax_id ?? '',
+        description: account.description ?? '',
+        is_active: account.is_active ?? true,
       });
     }
-  }, [account, mode]);
+  }, [account, mode, resetTo]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value, type } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
-    }));
-
-    // Clear error for this field
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.account_name.trim()) {
-      newErrors.account_name = 'Account name is required';
-    }
-
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Invalid email format';
-    }
-
-    if (formData.website && !/^https?:\/\/.+/.test(formData.website)) {
-      newErrors.website = 'Website must start with http:// or https://';
-    }
-
-    if (formData.phone && !/^[\d\s+() -]+$/.test(formData.phone)) {
-      newErrors.phone = 'Invalid phone number format';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
+    if (!validate()) {
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
       if (mode === 'create') {
-        await dispatch(createAccount(formData)).unwrap();
+        await dispatch(createAccount(values)).unwrap();
         navigate('/accounts');
       } else if (mode === 'edit' && account?.account_id) {
         await dispatch(
           updateAccount({
             accountId: account.account_id,
-            data: formData,
+            data: values,
           })
         ).unwrap();
         navigate(`/accounts/${account.account_id}`);
       }
     } catch (error) {
       console.error('Failed to save account:', error);
-      setErrors({ submit: 'Failed to save account. Please try again.' });
-    } finally {
-      setIsSubmitting(false);
+      setError('submit', 'Failed to save account. Please try again.');
     }
   };
 
@@ -144,7 +136,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleFormSubmit} className="space-y-6">
       {errors.submit && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
           {errors.submit}
@@ -163,7 +155,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               type="text"
               name="account_name"
               id="account_name"
-              value={formData.account_name}
+              value={values.account_name}
               onChange={handleChange}
               className={`mt-1 block w-full border ${
                 errors.account_name ? 'border-red-300' : 'border-gray-300'
@@ -181,7 +173,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
             <select
               name="account_type"
               id="account_type"
-              value={formData.account_type}
+              value={values.account_type}
               onChange={handleChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             >
@@ -197,7 +189,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
             <select
               name="category"
               id="category"
-              value={formData.category}
+              value={values.category}
               onChange={handleChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             >
@@ -224,7 +216,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               type="email"
               name="email"
               id="email"
-              value={formData.email ?? ''}
+              value={values.email}
               onChange={handleChange}
               className={`mt-1 block w-full border ${
                 errors.email ? 'border-red-300' : 'border-gray-300'
@@ -241,7 +233,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               type="text"
               name="phone"
               id="phone"
-              value={formData.phone ?? ''}
+              value={values.phone}
               onChange={handleChange}
               className={`mt-1 block w-full border ${
                 errors.phone ? 'border-red-300' : 'border-gray-300'
@@ -258,7 +250,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               type="text"
               name="website"
               id="website"
-              value={formData.website ?? ''}
+              value={values.website}
               onChange={handleChange}
               placeholder="https://example.com"
               className={`mt-1 block w-full border ${
@@ -282,7 +274,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               type="text"
               name="address_line1"
               id="address_line1"
-              value={formData.address_line1 ?? ''}
+              value={values.address_line1}
               onChange={handleChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             />
@@ -296,7 +288,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               type="text"
               name="address_line2"
               id="address_line2"
-              value={formData.address_line2 ?? ''}
+              value={values.address_line2}
               onChange={handleChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             />
@@ -310,7 +302,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               type="text"
               name="city"
               id="city"
-              value={formData.city ?? ''}
+              value={values.city}
               onChange={handleChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             />
@@ -324,7 +316,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               type="text"
               name="state_province"
               id="state_province"
-              value={formData.state_province ?? ''}
+              value={values.state_province}
               onChange={handleChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             />
@@ -338,7 +330,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               type="text"
               name="postal_code"
               id="postal_code"
-              value={formData.postal_code ?? ''}
+              value={values.postal_code}
               onChange={handleChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             />
@@ -352,7 +344,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               type="text"
               name="country"
               id="country"
-              value={formData.country ?? ''}
+              value={values.country}
               onChange={handleChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             />
@@ -372,7 +364,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               type="text"
               name="tax_id"
               id="tax_id"
-              value={formData.tax_id ?? ''}
+              value={values.tax_id}
               onChange={handleChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             />
@@ -386,7 +378,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               name="description"
               id="description"
               rows={3}
-              value={formData.description ?? ''}
+              value={values.description}
               onChange={handleChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             />
@@ -398,7 +390,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
                 type="checkbox"
                 name="is_active"
                 id="is_active"
-                checked={formData.is_active}
+                checked={values.is_active}
                 onChange={handleChange}
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
