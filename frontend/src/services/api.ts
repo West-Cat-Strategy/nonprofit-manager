@@ -1,47 +1,16 @@
-import axios from 'axios';
+import { createApiClient } from './httpClient';
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
-  headers: {
-    'Content-Type': 'application/json',
+const api = createApiClient({
+  tokenKey: 'token',
+  onUnauthorized: (error) => {
+    const isSetupCheck = error.config?.url?.includes('/auth/setup-status');
+    const isSetupPage = window.location.pathname === '/setup';
+
+    if (!isSetupCheck && !isSetupPage) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
   },
 });
-
-// Request interceptor to add token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    const organizationId =
-      localStorage.getItem('organizationId') || import.meta.env.VITE_DEFAULT_ORGANIZATION_ID;
-    if (organizationId) {
-      config.headers['X-Organization-Id'] = organizationId;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Response interceptor to handle errors
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Don't redirect to login if we're checking setup status or already on setup page
-      const isSetupCheck = error.config?.url?.includes('/auth/setup-status');
-      const isSetupPage = window.location.pathname === '/setup';
-
-      if (!isSetupCheck && !isSetupPage) {
-        localStorage.removeItem('token');
-        window.location.href = '/login';
-      }
-    }
-    return Promise.reject(error);
-  }
-);
 
 export default api;

@@ -2,11 +2,12 @@ import { Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import type { AuthRequest } from '../middleware/auth';
 import * as meetingService from '../services/meetingService';
+import { notFoundMessage, unauthorized, validationErrorResponse } from '../utils/responseHelpers';
 
 export const listCommittees = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ error: 'Unauthorized' });
+      unauthorized(res, 'Unauthorized');
       return;
     }
     const committees = await meetingService.listCommittees();
@@ -19,7 +20,7 @@ export const listCommittees = async (req: AuthRequest, res: Response, next: Next
 export const listMeetings = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ error: 'Unauthorized' });
+      unauthorized(res, 'Unauthorized');
       return;
     }
     const meetings = await meetingService.listMeetings({
@@ -38,12 +39,12 @@ export const listMeetings = async (req: AuthRequest, res: Response, next: NextFu
 export const getMeetingDetail = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ error: 'Unauthorized' });
+      unauthorized(res, 'Unauthorized');
       return;
     }
     const detail = await meetingService.getMeetingDetail(req.params.id);
     if (!detail) {
-      res.status(404).json({ error: 'Meeting not found' });
+      notFoundMessage(res, 'Meeting not found');
       return;
     }
     res.json(detail);
@@ -55,12 +56,12 @@ export const getMeetingDetail = async (req: AuthRequest, res: Response, next: Ne
 export const createMeeting = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ error: 'Unauthorized' });
+      unauthorized(res, 'Unauthorized');
       return;
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
+      validationErrorResponse(res, errors);
       return;
     }
 
@@ -87,18 +88,18 @@ export const createMeeting = async (req: AuthRequest, res: Response, next: NextF
 export const updateMeeting = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ error: 'Unauthorized' });
+      unauthorized(res, 'Unauthorized');
       return;
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
+      validationErrorResponse(res, errors);
       return;
     }
 
     const meeting = await meetingService.updateMeeting(req.params.id, req.body, req.user.id);
     if (!meeting) {
-      res.status(404).json({ error: 'Meeting not found' });
+      notFoundMessage(res, 'Meeting not found');
       return;
     }
     res.json({ meeting });
@@ -110,12 +111,12 @@ export const updateMeeting = async (req: AuthRequest, res: Response, next: NextF
 export const addAgendaItem = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ error: 'Unauthorized' });
+      unauthorized(res, 'Unauthorized');
       return;
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
+      validationErrorResponse(res, errors);
       return;
     }
 
@@ -140,12 +141,12 @@ export const addAgendaItem = async (req: AuthRequest, res: Response, next: NextF
 export const reorderAgenda = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ error: 'Unauthorized' });
+      unauthorized(res, 'Unauthorized');
       return;
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
+      validationErrorResponse(res, errors);
       return;
     }
 
@@ -159,12 +160,12 @@ export const reorderAgenda = async (req: AuthRequest, res: Response, next: NextF
 export const addMotion = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ error: 'Unauthorized' });
+      unauthorized(res, 'Unauthorized');
       return;
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
+      validationErrorResponse(res, errors);
       return;
     }
 
@@ -189,18 +190,18 @@ export const addMotion = async (req: AuthRequest, res: Response, next: NextFunct
 export const updateMotion = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ error: 'Unauthorized' });
+      unauthorized(res, 'Unauthorized');
       return;
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
+      validationErrorResponse(res, errors);
       return;
     }
 
     const motion = await meetingService.updateMotion(req.params.motionId, req.body, req.user.id);
     if (!motion) {
-      res.status(404).json({ error: 'Motion not found' });
+      notFoundMessage(res, 'Motion not found');
       return;
     }
     res.json({ motion });
@@ -212,12 +213,12 @@ export const updateMotion = async (req: AuthRequest, res: Response, next: NextFu
 export const createActionItem = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ error: 'Unauthorized' });
+      unauthorized(res, 'Unauthorized');
       return;
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
+      validationErrorResponse(res, errors);
       return;
     }
 
@@ -242,12 +243,12 @@ export const createActionItem = async (req: AuthRequest, res: Response, next: Ne
 export const getMinutesDraft = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ error: 'Unauthorized' });
+      unauthorized(res, 'Unauthorized');
       return;
     }
     const draft = await meetingService.generateMinutesDraft(req.params.id);
     if (!draft) {
-      res.status(404).json({ error: 'Meeting not found' });
+      notFoundMessage(res, 'Meeting not found');
       return;
     }
     res.json(draft);
@@ -255,4 +256,3 @@ export const getMinutesDraft = async (req: AuthRequest, res: Response, next: Nex
     next(error);
   }
 };
-

@@ -22,7 +22,7 @@ import {
 } from '../controllers/eventController';
 import { authenticate } from '../middleware/auth';
 import { loadDataScope } from '../middleware/dataScope';
-import { handleValidationErrors } from '../middleware/validation';
+import { validateRequest } from '../middleware/validation';
 
 const router = Router();
 
@@ -44,7 +44,7 @@ router.get(
     query('organizer_id').optional().isUUID(),
     query('search').optional().isString(),
   ],
-  handleValidationErrors,
+  validateRequest,
   getEvents
 );
 
@@ -58,7 +58,7 @@ router.get('/summary', getEventAttendanceSummary);
  * GET /api/events/:id
  * Get a single event
  */
-router.get('/:id', [param('id').isUUID()], handleValidationErrors, getEvent);
+router.get('/:id', [param('id').isUUID()], validateRequest, getEvent);
 
 /**
  * POST /api/events
@@ -85,7 +85,7 @@ router.post(
     body('capacity').optional().isInt({ min: 1 }),
     body('status').optional().isString(),
   ],
-  handleValidationErrors,
+  validateRequest,
   createEvent
 );
 
@@ -112,7 +112,7 @@ router.put(
     body('country').optional().isString(),
     body('capacity').optional().isInt({ min: 1 }),
   ],
-  handleValidationErrors,
+  validateRequest,
   updateEvent
 );
 
@@ -120,7 +120,7 @@ router.put(
  * DELETE /api/events/:id
  * Cancel an event
  */
-router.delete('/:id', [param('id').isUUID()], handleValidationErrors, deleteEvent);
+router.delete('/:id', [param('id').isUUID()], validateRequest, deleteEvent);
 
 /**
  * GET /api/events/:id/registrations
@@ -132,7 +132,7 @@ router.get(
     param('id').isUUID(),
     query('status').optional().isString(),
   ],
-  handleValidationErrors,
+  validateRequest,
   getEventRegistrations
 );
 
@@ -150,7 +150,7 @@ router.post(
     body('attendee_phone').optional().isString(),
     body('notes').optional().isString(),
   ],
-  handleValidationErrors,
+  validateRequest,
   registerForEvent
 );
 
@@ -168,7 +168,7 @@ router.put(
     body('attendee_email').optional().isEmail(),
     body('attendee_phone').optional().isString(),
   ],
-  handleValidationErrors,
+  validateRequest,
   updateRegistration
 );
 
@@ -179,7 +179,7 @@ router.put(
 router.post(
   '/registrations/:id/checkin',
   [param('id').isUUID()],
-  handleValidationErrors,
+  validateRequest,
   checkInAttendee
 );
 
@@ -190,7 +190,7 @@ router.post(
 router.delete(
   '/registrations/:id',
   [param('id').isUUID()],
-  handleValidationErrors,
+  validateRequest,
   cancelRegistration
 );
 
@@ -201,7 +201,7 @@ router.delete(
 router.get(
   '/:id/attendance',
   [param('id').isUUID()],
-  handleValidationErrors,
+  validateRequest,
   getAttendanceStats
 );
 
@@ -218,7 +218,7 @@ router.get(
     query('start_date').optional().isISO8601(),
     query('end_date').optional().isISO8601(),
   ],
-  handleValidationErrors,
+  validateRequest,
   getRegistrations
 );
 

@@ -4,12 +4,12 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { AlertService } from '../services/alertService';
-import pool from '../config/database';
+import { services } from '../container/services';
 import { AuthRequest } from '../middleware/auth';
 import type { CreateAlertDTO, UpdateAlertDTO } from '../types/alert';
+import { notFoundMessage } from '../utils/responseHelpers';
 
-const alertService = new AlertService(pool);
+const alertService = services.alert;
 
 /**
  * GET /api/alerts/configs
@@ -42,7 +42,7 @@ export const getAlertConfig = async (
     const alert = await alertService.getAlert(id, req.user!.id);
 
     if (!alert) {
-      res.status(404).json({ error: 'Alert configuration not found' });
+      notFoundMessage(res, 'Alert configuration not found');
       return;
     }
 
@@ -90,7 +90,7 @@ export const updateAlertConfig = async (
     const alert = await alertService.updateAlert(id, req.user!.id, data);
 
     if (!alert) {
-      res.status(404).json({ error: 'Alert configuration not found' });
+      notFoundMessage(res, 'Alert configuration not found');
       return;
     }
 
@@ -114,7 +114,7 @@ export const deleteAlertConfig = async (
     const deleted = await alertService.deleteAlert(id, req.user!.id);
 
     if (!deleted) {
-      res.status(404).json({ error: 'Alert configuration not found' });
+      notFoundMessage(res, 'Alert configuration not found');
       return;
     }
 
@@ -138,7 +138,7 @@ export const toggleAlertConfig = async (
     const alert = await alertService.toggleAlert(id, req.user!.id);
 
     if (!alert) {
-      res.status(404).json({ error: 'Alert configuration not found' });
+      notFoundMessage(res, 'Alert configuration not found');
       return;
     }
 
@@ -207,7 +207,7 @@ export const acknowledgeAlert = async (
     const instance = await alertService.acknowledgeAlert(id, req.user!.id);
 
     if (!instance) {
-      res.status(404).json({ error: 'Alert instance not found' });
+      notFoundMessage(res, 'Alert instance not found');
       return;
     }
 
@@ -231,7 +231,7 @@ export const resolveAlert = async (
     const instance = await alertService.resolveAlert(id);
 
     if (!instance) {
-      res.status(404).json({ error: 'Alert instance not found' });
+      notFoundMessage(res, 'Alert instance not found');
       return;
     }
 

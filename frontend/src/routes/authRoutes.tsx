@@ -3,13 +3,10 @@
  * Handles login, setup, and invitation acceptance
  */
 
-import { lazy } from 'react';
 import { Route } from 'react-router-dom';
+import { Setup, Login, AcceptInvitation } from './authRouteComponents';
 
 // Lazy load auth pages
-const Setup = lazy(() => import('../pages/auth/Setup'));
-const Login = lazy(() => import('../pages/auth/Login'));
-const AcceptInvitation = lazy(() => import('../pages/auth/AcceptInvitation'));
 
 export const authRoutes = (
   <>
@@ -18,6 +15,3 @@ export const authRoutes = (
     <Route path="/accept-invitation/:token" element={<AcceptInvitation />} />
   </>
 );
-
-// Re-export lazy components for backwards compatibility
-export { Setup, Login, AcceptInvitation };

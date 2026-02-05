@@ -1,0 +1,16 @@
+import { lazy } from 'react';
+
+export const AccountList = lazy(() => import('../pages/people/accounts/AccountList'));
+export const AccountDetail = lazy(() => import('../pages/people/accounts/AccountDetail'));
+export const AccountCreate = lazy(() => import('../pages/people/accounts/AccountCreate'));
+export const AccountEdit = lazy(() => import('../pages/people/accounts/AccountEdit'));
+export const ContactList = lazy(() => import('../pages/people/contacts/ContactList'));
+export const ContactDetail = lazy(() => import('../pages/people/contacts/ContactDetail'));
+export const ContactCreate = lazy(() => import('../pages/people/contacts/ContactCreate'));
+export const ContactEdit = lazy(() => import('../pages/people/contacts/ContactEdit'));
+export const VolunteerList = lazy(() => import('../pages/people/volunteers/VolunteerList'));
+export const VolunteerDetail = lazy(() => import('../pages/people/volunteers/VolunteerDetail'));
+export const VolunteerCreate = lazy(() => import('../pages/people/volunteers/VolunteerCreate'));
+export const VolunteerEdit = lazy(() => import('../pages/people/volunteers/VolunteerEdit'));
+export const AssignmentCreate = lazy(() => import('../pages/people/volunteers/AssignmentCreate'));
+export const AssignmentEdit = lazy(() => import('../pages/people/volunteers/AssignmentEdit'));

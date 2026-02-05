@@ -13,6 +13,13 @@ export const notFound = (res: Response, entity: string = 'Resource'): void => {
 };
 
 /**
+ * Send a 404 Not Found response with a custom message
+ */
+export const notFoundMessage = (res: Response, message: string): void => {
+  res.status(404).json({ error: message });
+};
+
+/**
  * Send a 409 Conflict response
  */
 export const conflict = (res: Response, message: string): void => {
@@ -48,10 +55,27 @@ export const validationError = (res: Response, errors: Record<string, string> | 
 };
 
 /**
+ * Send a 400 Bad Request response with express-validator errors
+ */
+export const validationErrorResponse = (
+  res: Response,
+  errors: { array: () => unknown }
+): void => {
+  res.status(400).json({ errors: errors.array() });
+};
+
+/**
  * Send a 500 Internal Server Error response
  */
 export const serverError = (res: Response, message: string = 'Internal server error'): void => {
   res.status(500).json({ error: message });
+};
+
+/**
+ * Send a 503 Service Unavailable response
+ */
+export const serviceUnavailable = (res: Response, message: string): void => {
+  res.status(503).json({ error: message });
 };
 
 /**

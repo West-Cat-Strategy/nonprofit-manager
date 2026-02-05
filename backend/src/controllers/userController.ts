@@ -11,6 +11,7 @@ import { logger } from '../config/logger';
 import { AuthRequest } from '../middleware/auth';
 import { PASSWORD } from '../config/constants';
 import { syncUserRole } from '../services/userRoleService';
+import { badRequest, conflict, forbidden, notFoundMessage, validationErrorResponse } from '../utils/responseHelpers';
 
 interface UserRow {
   id: string;
@@ -36,7 +37,7 @@ export const listUsers = async (
   try {
     // Check if user is admin
     if (req.user?.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
+      return forbidden(res, 'Admin access required');
     }
 
     const { search, role, is_active } = req.query;
@@ -106,7 +107,7 @@ export const getUser = async (
 ): Promise<Response | void> => {
   try {
     if (req.user?.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
+      return forbidden(res, 'Admin access required');
     }
 
     const { id } = req.params;
@@ -118,7 +119,7 @@ export const getUser = async (
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return notFoundMessage(res, 'User not found');
     }
 
     const user = result.rows[0];
@@ -150,12 +151,12 @@ export const createUser = async (
 ): Promise<Response | void> => {
   try {
     if (req.user?.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
+      return forbidden(res, 'Admin access required');
     }
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return validationErrorResponse(res, errors);
     }
 
     const { email, password, firstName, lastName, role = 'user' } = req.body;
@@ -163,7 +164,7 @@ export const createUser = async (
     // Check if user already exists
     const existingUser = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
     if (existingUser.rows.length > 0) {
-      return res.status(409).json({ error: 'User with this email already exists' });
+      return conflict(res, 'User with this email already exists');
     }
 
     // Hash password
@@ -210,12 +211,12 @@ export const updateUser = async (
 ): Promise<Response | void> => {
   try {
     if (req.user?.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
+      return forbidden(res, 'Admin access required');
     }
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return validationErrorResponse(res, errors);
     }
 
     const { id } = req.params;
@@ -224,14 +225,14 @@ export const updateUser = async (
     // Check if user exists
     const existingUser = await pool.query('SELECT id, role FROM users WHERE id = $1', [id]);
     if (existingUser.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return notFoundMessage(res, 'User not found');
     }
 
     // Prevent demoting the last admin
     if (existingUser.rows[0].role === 'admin' && role !== 'admin') {
       const adminCount = await pool.query("SELECT COUNT(*) as count FROM users WHERE role = 'admin' AND is_active = true");
       if (parseInt(adminCount.rows[0].count) <= 1) {
-        return res.status(400).json({ error: 'Cannot demote the last admin user' });
+        return badRequest(res, 'Cannot demote the last admin user');
       }
     }
 
@@ -239,7 +240,7 @@ export const updateUser = async (
     if (existingUser.rows[0].role === 'admin' && isActive === false) {
       const adminCount = await pool.query("SELECT COUNT(*) as count FROM users WHERE role = 'admin' AND is_active = true");
       if (parseInt(adminCount.rows[0].count) <= 1) {
-        return res.status(400).json({ error: 'Cannot deactivate the last admin user' });
+        return badRequest(res, 'Cannot deactivate the last admin user');
       }
     }
 
@@ -247,7 +248,7 @@ export const updateUser = async (
     if (email) {
       const emailCheck = await pool.query('SELECT id FROM users WHERE email = $1 AND id != $2', [email, id]);
       if (emailCheck.rows.length > 0) {
-        return res.status(409).json({ error: 'Another user with this email already exists' });
+        return conflict(res, 'Another user with this email already exists');
       }
     }
 
@@ -300,12 +301,12 @@ export const resetUserPassword = async (
 ): Promise<Response | void> => {
   try {
     if (req.user?.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
+      return forbidden(res, 'Admin access required');
     }
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return validationErrorResponse(res, errors);
     }
 
     const { id } = req.params;
@@ -314,7 +315,7 @@ export const resetUserPassword = async (
     // Check if user exists
     const existingUser = await pool.query('SELECT id, email FROM users WHERE id = $1', [id]);
     if (existingUser.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return notFoundMessage(res, 'User not found');
     }
 
     // Hash new password
@@ -346,27 +347,27 @@ export const deleteUser = async (
 ): Promise<Response | void> => {
   try {
     if (req.user?.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
+      return forbidden(res, 'Admin access required');
     }
 
     const { id } = req.params;
 
     // Prevent self-deletion
     if (id === req.user.id) {
-      return res.status(400).json({ error: 'Cannot delete your own account' });
+      return badRequest(res, 'Cannot delete your own account');
     }
 
     // Check if user exists and their role
     const existingUser = await pool.query('SELECT id, role, email FROM users WHERE id = $1', [id]);
     if (existingUser.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return notFoundMessage(res, 'User not found');
     }
 
     // Prevent deleting the last admin
     if (existingUser.rows[0].role === 'admin') {
       const adminCount = await pool.query("SELECT COUNT(*) as count FROM users WHERE role = 'admin' AND is_active = true");
       if (parseInt(adminCount.rows[0].count) <= 1) {
-        return res.status(400).json({ error: 'Cannot delete the last admin user' });
+        return badRequest(res, 'Cannot delete the last admin user');
       }
     }
 
@@ -396,7 +397,7 @@ export const getRoles = async (
   _next: NextFunction
 ): Promise<Response | void> => {
   if (req.user?.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
+    return forbidden(res, 'Admin access required');
   }
 
   const roles = [

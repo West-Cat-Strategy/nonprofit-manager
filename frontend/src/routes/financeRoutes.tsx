@@ -3,20 +3,13 @@
  * Handles donations and reconciliation
  */
 
-import { lazy } from 'react';
 import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
+import { DonationList, DonationDetail, DonationCreate, DonationEdit, DonationPayment, PaymentResult, ReconciliationDashboard } from './financeRouteComponents';
 
 // Lazy load donation pages
-const DonationList = lazy(() => import('../pages/finance/donations/DonationList'));
-const DonationDetail = lazy(() => import('../pages/finance/donations/DonationDetail'));
-const DonationCreate = lazy(() => import('../pages/finance/donations/DonationCreate'));
-const DonationEdit = lazy(() => import('../pages/finance/donations/DonationEdit'));
-const DonationPayment = lazy(() => import('../pages/finance/donations/DonationPayment'));
-const PaymentResult = lazy(() => import('../pages/finance/donations/PaymentResult'));
 
 // Lazy load reconciliation pages
-const ReconciliationDashboard = lazy(() => import('../pages/finance/reconciliation/ReconciliationDashboard'));
 
 interface RouteWrapperProps {
   children: ReactNode;
@@ -59,14 +52,3 @@ export function createFinanceRoutes(ProtectedRoute: React.ComponentType<RouteWra
     </>
   );
 }
-
-// Re-export lazy components for backwards compatibility
-export {
-  DonationList,
-  DonationDetail,
-  DonationCreate,
-  DonationEdit,
-  DonationPayment,
-  PaymentResult,
-  ReconciliationDashboard,
-};

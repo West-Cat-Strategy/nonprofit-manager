@@ -101,12 +101,7 @@ export interface EventFilters {
   end_date?: Date;
 }
 
-export interface PaginationParams {
-  page?: number;
-  limit?: number;
-  sort_by?: string;
-  sort_order?: 'asc' | 'desc';
-}
+export type { PaginationParams } from './pagination';
 
 export interface PaginatedEvents {
   data: Event[];

@@ -16,6 +16,7 @@ import type {
   MailchimpWebhookPayload,
   CreateCampaignRequest,
 } from '../types/mailchimp';
+import { badRequest, notFoundMessage, serverError, serviceUnavailable } from '../utils/responseHelpers';
 
 /**
  * Get Mailchimp configuration status
@@ -26,7 +27,7 @@ export const getStatus = async (_req: Request, res: Response): Promise<void> => 
     res.json(status);
   } catch (error) {
     logger.error('Error getting Mailchimp status', { error });
-    res.status(500).json({ error: 'Failed to get Mailchimp status' });
+    serverError(res, 'Failed to get Mailchimp status');
   }
 };
 
@@ -36,7 +37,7 @@ export const getStatus = async (_req: Request, res: Response): Promise<void> => 
 export const getLists = async (_req: Request, res: Response): Promise<void> => {
   try {
     if (!mailchimpService.isMailchimpConfigured()) {
-      res.status(503).json({ error: 'Mailchimp is not configured' });
+      serviceUnavailable(res, 'Mailchimp is not configured');
       return;
     }
 
@@ -44,7 +45,7 @@ export const getLists = async (_req: Request, res: Response): Promise<void> => {
     res.json(lists);
   } catch (error) {
     logger.error('Error getting Mailchimp lists', { error });
-    res.status(500).json({ error: 'Failed to get Mailchimp lists' });
+    serverError(res, 'Failed to get Mailchimp lists');
   }
 };
 
@@ -56,12 +57,12 @@ export const getList = async (req: Request<{ id: string }>, res: Response): Prom
     const { id } = req.params;
 
     if (!id) {
-      res.status(400).json({ error: 'List ID is required' });
+      badRequest(res, 'List ID is required');
       return;
     }
 
     if (!mailchimpService.isMailchimpConfigured()) {
-      res.status(503).json({ error: 'Mailchimp is not configured' });
+      serviceUnavailable(res, 'Mailchimp is not configured');
       return;
     }
 
@@ -69,7 +70,7 @@ export const getList = async (req: Request<{ id: string }>, res: Response): Prom
     res.json(list);
   } catch (error) {
     logger.error('Error getting Mailchimp list', { error });
-    res.status(500).json({ error: 'Failed to get Mailchimp list' });
+    serverError(res, 'Failed to get Mailchimp list');
   }
 };
 
@@ -81,17 +82,17 @@ export const addMember = async (req: AuthRequest, res: Response): Promise<void> 
     const { listId, email, status, mergeFields, tags } = req.body as AddMemberRequest;
 
     if (!listId) {
-      res.status(400).json({ error: 'List ID is required' });
+      badRequest(res, 'List ID is required');
       return;
     }
 
     if (!email) {
-      res.status(400).json({ error: 'Email is required' });
+      badRequest(res, 'Email is required');
       return;
     }
 
     if (!mailchimpService.isMailchimpConfigured()) {
-      res.status(503).json({ error: 'Mailchimp is not configured' });
+      serviceUnavailable(res, 'Mailchimp is not configured');
       return;
     }
 
@@ -106,7 +107,7 @@ export const addMember = async (req: AuthRequest, res: Response): Promise<void> 
     res.status(201).json(member);
   } catch (error) {
     logger.error('Error adding Mailchimp member', { error });
-    res.status(500).json({ error: 'Failed to add member to Mailchimp' });
+    serverError(res, 'Failed to add member to Mailchimp');
   }
 };
 
@@ -121,26 +122,26 @@ export const getMember = async (
     const { listId, email } = req.params;
 
     if (!listId || !email) {
-      res.status(400).json({ error: 'List ID and email are required' });
+      badRequest(res, 'List ID and email are required');
       return;
     }
 
     if (!mailchimpService.isMailchimpConfigured()) {
-      res.status(503).json({ error: 'Mailchimp is not configured' });
+      serviceUnavailable(res, 'Mailchimp is not configured');
       return;
     }
 
     const member = await mailchimpService.getMember(listId, email);
 
     if (!member) {
-      res.status(404).json({ error: 'Member not found' });
+      notFoundMessage(res, 'Member not found');
       return;
     }
 
     res.json(member);
   } catch (error) {
     logger.error('Error getting Mailchimp member', { error });
-    res.status(500).json({ error: 'Failed to get Mailchimp member' });
+    serverError(res, 'Failed to get Mailchimp member');
   }
 };
 
@@ -152,12 +153,12 @@ export const deleteMember = async (req: AuthRequest, res: Response): Promise<voi
     const { listId, email } = req.params;
 
     if (!listId || !email) {
-      res.status(400).json({ error: 'List ID and email are required' });
+      badRequest(res, 'List ID and email are required');
       return;
     }
 
     if (!mailchimpService.isMailchimpConfigured()) {
-      res.status(503).json({ error: 'Mailchimp is not configured' });
+      serviceUnavailable(res, 'Mailchimp is not configured');
       return;
     }
 
@@ -165,7 +166,7 @@ export const deleteMember = async (req: AuthRequest, res: Response): Promise<voi
     res.status(204).send();
   } catch (error) {
     logger.error('Error deleting Mailchimp member', { error });
-    res.status(500).json({ error: 'Failed to delete Mailchimp member' });
+    serverError(res, 'Failed to delete Mailchimp member');
   }
 };
 
@@ -177,17 +178,17 @@ export const syncContact = async (req: AuthRequest, res: Response): Promise<void
     const { contactId, listId, tags } = req.body as SyncContactRequest;
 
     if (!contactId) {
-      res.status(400).json({ error: 'Contact ID is required' });
+      badRequest(res, 'Contact ID is required');
       return;
     }
 
     if (!listId) {
-      res.status(400).json({ error: 'List ID is required' });
+      badRequest(res, 'List ID is required');
       return;
     }
 
     if (!mailchimpService.isMailchimpConfigured()) {
-      res.status(503).json({ error: 'Mailchimp is not configured' });
+      serviceUnavailable(res, 'Mailchimp is not configured');
       return;
     }
 
@@ -200,7 +201,7 @@ export const syncContact = async (req: AuthRequest, res: Response): Promise<void
     }
   } catch (error) {
     logger.error('Error syncing contact to Mailchimp', { error });
-    res.status(500).json({ error: 'Failed to sync contact to Mailchimp' });
+    serverError(res, 'Failed to sync contact to Mailchimp');
   }
 };
 
@@ -212,23 +213,23 @@ export const bulkSyncContacts = async (req: AuthRequest, res: Response): Promise
     const { contactIds, listId, tags } = req.body as BulkSyncRequest;
 
     if (!contactIds || !Array.isArray(contactIds) || contactIds.length === 0) {
-      res.status(400).json({ error: 'Contact IDs array is required and must not be empty' });
+      badRequest(res, 'Contact IDs array is required and must not be empty');
       return;
     }
 
     if (!listId) {
-      res.status(400).json({ error: 'List ID is required' });
+      badRequest(res, 'List ID is required');
       return;
     }
 
     // Limit bulk sync to 500 contacts at a time
     if (contactIds.length > 500) {
-      res.status(400).json({ error: 'Maximum 500 contacts can be synced at once' });
+      badRequest(res, 'Maximum 500 contacts can be synced at once');
       return;
     }
 
     if (!mailchimpService.isMailchimpConfigured()) {
-      res.status(503).json({ error: 'Mailchimp is not configured' });
+      serviceUnavailable(res, 'Mailchimp is not configured');
       return;
     }
 
@@ -236,7 +237,7 @@ export const bulkSyncContacts = async (req: AuthRequest, res: Response): Promise
     res.json(result);
   } catch (error) {
     logger.error('Error bulk syncing contacts to Mailchimp', { error });
-    res.status(500).json({ error: 'Failed to bulk sync contacts to Mailchimp' });
+    serverError(res, 'Failed to bulk sync contacts to Mailchimp');
   }
 };
 
@@ -248,17 +249,17 @@ export const updateMemberTags = async (req: AuthRequest, res: Response): Promise
     const { listId, email, tagsToAdd, tagsToRemove } = req.body as UpdateTagsRequest;
 
     if (!listId) {
-      res.status(400).json({ error: 'List ID is required' });
+      badRequest(res, 'List ID is required');
       return;
     }
 
     if (!email) {
-      res.status(400).json({ error: 'Email is required' });
+      badRequest(res, 'Email is required');
       return;
     }
 
     if (!mailchimpService.isMailchimpConfigured()) {
-      res.status(503).json({ error: 'Mailchimp is not configured' });
+      serviceUnavailable(res, 'Mailchimp is not configured');
       return;
     }
 
@@ -266,7 +267,7 @@ export const updateMemberTags = async (req: AuthRequest, res: Response): Promise
     res.json({ success: true });
   } catch (error) {
     logger.error('Error updating member tags', { error });
-    res.status(500).json({ error: 'Failed to update member tags' });
+    serverError(res, 'Failed to update member tags');
   }
 };
 
@@ -278,12 +279,12 @@ export const getListTags = async (req: Request<{ listId: string }>, res: Respons
     const { listId } = req.params;
 
     if (!listId) {
-      res.status(400).json({ error: 'List ID is required' });
+      badRequest(res, 'List ID is required');
       return;
     }
 
     if (!mailchimpService.isMailchimpConfigured()) {
-      res.status(503).json({ error: 'Mailchimp is not configured' });
+      serviceUnavailable(res, 'Mailchimp is not configured');
       return;
     }
 
@@ -291,7 +292,7 @@ export const getListTags = async (req: Request<{ listId: string }>, res: Respons
     res.json(tags);
   } catch (error) {
     logger.error('Error getting list tags', { error });
-    res.status(500).json({ error: 'Failed to get list tags' });
+    serverError(res, 'Failed to get list tags');
   }
 };
 
@@ -303,7 +304,7 @@ export const getCampaigns = async (req: Request, res: Response): Promise<void> =
     const { listId } = req.query;
 
     if (!mailchimpService.isMailchimpConfigured()) {
-      res.status(503).json({ error: 'Mailchimp is not configured' });
+      serviceUnavailable(res, 'Mailchimp is not configured');
       return;
     }
 
@@ -311,7 +312,7 @@ export const getCampaigns = async (req: Request, res: Response): Promise<void> =
     res.json(campaigns);
   } catch (error) {
     logger.error('Error getting campaigns', { error });
-    res.status(500).json({ error: 'Failed to get campaigns' });
+    serverError(res, 'Failed to get campaigns');
   }
 };
 
@@ -323,22 +324,22 @@ export const createSegment = async (req: AuthRequest, res: Response): Promise<vo
     const { listId, name, matchType, conditions } = req.body as CreateSegmentRequest;
 
     if (!listId) {
-      res.status(400).json({ error: 'List ID is required' });
+      badRequest(res, 'List ID is required');
       return;
     }
 
     if (!name) {
-      res.status(400).json({ error: 'Segment name is required' });
+      badRequest(res, 'Segment name is required');
       return;
     }
 
     if (!conditions || !Array.isArray(conditions) || conditions.length === 0) {
-      res.status(400).json({ error: 'Segment conditions are required' });
+      badRequest(res, 'Segment conditions are required');
       return;
     }
 
     if (!mailchimpService.isMailchimpConfigured()) {
-      res.status(503).json({ error: 'Mailchimp is not configured' });
+      serviceUnavailable(res, 'Mailchimp is not configured');
       return;
     }
 
@@ -352,7 +353,7 @@ export const createSegment = async (req: AuthRequest, res: Response): Promise<vo
     res.status(201).json(segment);
   } catch (error) {
     logger.error('Error creating segment', { error });
-    res.status(500).json({ error: 'Failed to create segment' });
+    serverError(res, 'Failed to create segment');
   }
 };
 
@@ -364,12 +365,12 @@ export const getSegments = async (req: Request<{ listId: string }>, res: Respons
     const { listId } = req.params;
 
     if (!listId) {
-      res.status(400).json({ error: 'List ID is required' });
+      badRequest(res, 'List ID is required');
       return;
     }
 
     if (!mailchimpService.isMailchimpConfigured()) {
-      res.status(503).json({ error: 'Mailchimp is not configured' });
+      serviceUnavailable(res, 'Mailchimp is not configured');
       return;
     }
 
@@ -377,7 +378,7 @@ export const getSegments = async (req: Request<{ listId: string }>, res: Respons
     res.json(segments);
   } catch (error) {
     logger.error('Error getting segments', { error });
-    res.status(500).json({ error: 'Failed to get segments' });
+    serverError(res, 'Failed to get segments');
   }
 };
 
@@ -400,32 +401,32 @@ export const createCampaign = async (req: AuthRequest, res: Response): Promise<v
     } = req.body as CreateCampaignRequest;
 
     if (!listId) {
-      res.status(400).json({ error: 'List ID is required' });
+      badRequest(res, 'List ID is required');
       return;
     }
 
     if (!title) {
-      res.status(400).json({ error: 'Campaign title is required' });
+      badRequest(res, 'Campaign title is required');
       return;
     }
 
     if (!subject) {
-      res.status(400).json({ error: 'Subject line is required' });
+      badRequest(res, 'Subject line is required');
       return;
     }
 
     if (!fromName) {
-      res.status(400).json({ error: 'From name is required' });
+      badRequest(res, 'From name is required');
       return;
     }
 
     if (!replyTo) {
-      res.status(400).json({ error: 'Reply-to email is required' });
+      badRequest(res, 'Reply-to email is required');
       return;
     }
 
     if (!mailchimpService.isMailchimpConfigured()) {
-      res.status(503).json({ error: 'Mailchimp is not configured' });
+      serviceUnavailable(res, 'Mailchimp is not configured');
       return;
     }
 
@@ -445,7 +446,7 @@ export const createCampaign = async (req: AuthRequest, res: Response): Promise<v
     res.status(201).json(campaign);
   } catch (error) {
     logger.error('Error creating campaign', { error });
-    res.status(500).json({ error: 'Failed to create campaign' });
+    serverError(res, 'Failed to create campaign');
   }
 };
 
@@ -457,12 +458,12 @@ export const sendCampaign = async (req: AuthRequest, res: Response): Promise<voi
     const { campaignId } = req.params;
 
     if (!campaignId) {
-      res.status(400).json({ error: 'Campaign ID is required' });
+      badRequest(res, 'Campaign ID is required');
       return;
     }
 
     if (!mailchimpService.isMailchimpConfigured()) {
-      res.status(503).json({ error: 'Mailchimp is not configured' });
+      serviceUnavailable(res, 'Mailchimp is not configured');
       return;
     }
 
@@ -470,7 +471,7 @@ export const sendCampaign = async (req: AuthRequest, res: Response): Promise<voi
     res.json({ success: true, message: 'Campaign sent successfully' });
   } catch (error) {
     logger.error('Error sending campaign', { error });
-    res.status(500).json({ error: 'Failed to send campaign' });
+    serverError(res, 'Failed to send campaign');
   }
 };
 

@@ -62,6 +62,16 @@ const NeoBrutalistRouteWrapper = ({ children, isAuthenticated }: ProtectedRouteP
   return <>{children}</>;
 };
 
+const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  return <ProtectedRouteWrapper isAuthenticated={isAuthenticated}>{children}</ProtectedRouteWrapper>;
+};
+
+const NeoBrutalistRoute = ({ children }: ProtectedRouteProps) => {
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  return <NeoBrutalistRouteWrapper isAuthenticated={isAuthenticated}>{children}</NeoBrutalistRouteWrapper>;
+};
+
 // AppRoutes component with setup check logic
 const AppRoutes = () => {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
@@ -84,15 +94,6 @@ const AppRoutes = () => {
   if (!setupRequired && location.pathname === '/setup') {
     return <Navigate to="/login" replace />;
   }
-
-  // Create route wrapper components with isAuthenticated bound
-  const ProtectedRoute = ({ children }: ProtectedRouteProps) => (
-    <ProtectedRouteWrapper isAuthenticated={isAuthenticated}>{children}</ProtectedRouteWrapper>
-  );
-
-  const NeoBrutalistRoute = ({ children }: ProtectedRouteProps) => (
-    <NeoBrutalistRouteWrapper isAuthenticated={isAuthenticated}>{children}</NeoBrutalistRouteWrapper>
-  );
 
   return (
     <Routes>

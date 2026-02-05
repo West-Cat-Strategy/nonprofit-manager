@@ -3,13 +3,11 @@
  * Handles intake and interaction workflows
  */
 
-import { lazy } from 'react';
 import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
+import { IntakeNew, InteractionNote } from './workflowRouteComponents';
 
 // Lazy load workflow pages
-const IntakeNew = lazy(() => import('../pages/workflows/IntakeNew'));
-const InteractionNote = lazy(() => import('../pages/workflows/InteractionNote'));
 
 interface RouteWrapperProps {
   children: ReactNode;
@@ -29,9 +27,3 @@ export function createWorkflowRoutes(ProtectedRoute: React.ComponentType<RouteWr
     </>
   );
 }
-
-// Re-export lazy components for backwards compatibility
-export {
-  IntakeNew,
-  InteractionNote,
-};

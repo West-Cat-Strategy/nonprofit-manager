@@ -6,7 +6,7 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
 import { authenticate } from '../middleware/auth';
-import { handleValidationErrors } from '../middleware/validation';
+import { validateRequest } from '../middleware/validation';
 import { documentUpload, handleMulterError } from '../middleware/upload';
 import { previewText, previewUpload } from '../controllers/ingestController';
 
@@ -36,7 +36,7 @@ router.post(
     body('text').isString().isLength({ min: 1 }),
     body('name').optional().isString(),
   ],
-  handleValidationErrors,
+  validateRequest,
   previewText
 );
 

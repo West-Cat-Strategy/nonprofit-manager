@@ -6,6 +6,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { validationResult, ValidationChain, body, param, query } from 'express-validator';
 import { logger } from '../config/logger';
+import { validationErrorResponse } from '../utils/responseHelpers';
 
 /**
  * Middleware to check validation results
@@ -26,18 +27,15 @@ export const handleValidationErrors = (
       correlationId: req.correlationId,
     });
 
-    res.status(400).json({
-      error: 'Validation failed',
-      details: errors.array().map((err) => ({
-        field: 'path' in err ? err.path : 'unknown',
-        message: err.msg,
-      })),
-    });
+    validationErrorResponse(res, errors);
     return;
   }
 
   next();
 };
+
+// Legacy alias for consistency with validateRequest middleware
+export const validateRequest = handleValidationErrors;
 
 /**
  * Common validation patterns
@@ -215,6 +213,7 @@ export const rateLimitInfo = (
 
 export default {
   handleValidationErrors,
+  validateRequest,
   validators,
   sanitizeFields,
   rateLimitInfo,

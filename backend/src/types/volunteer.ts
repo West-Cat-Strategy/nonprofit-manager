@@ -94,12 +94,7 @@ export interface VolunteerFilters {
   is_active?: boolean;
 }
 
-export interface PaginationParams {
-  page?: number;
-  limit?: number;
-  sort_by?: string;
-  sort_order?: 'asc' | 'desc';
-}
+export type { PaginationParams } from './pagination';
 
 export interface PaginatedVolunteers {
   data: Volunteer[];
