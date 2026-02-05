@@ -98,16 +98,10 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
     }
   };
 
-  // Request interceptor for auth, organization headers, and CSRF token
+  // Request interceptor for organization headers and CSRF token
+  // Note: Auth tokens are handled via httpOnly cookies (withCredentials: true)
   client.interceptors.request.use(
     async (config: InternalAxiosRequestConfig) => {
-      // Still include Authorization header for backward compatibility during migration
-      const token = localStorage.getItem(tokenKey);
-      if (token) {
-        config.headers = config.headers || {};
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-
       if (includeOrganizationHeader) {
         const organizationId = resolveOrganizationId(organizationIdKey, defaultOrganizationId);
         if (organizationId) {

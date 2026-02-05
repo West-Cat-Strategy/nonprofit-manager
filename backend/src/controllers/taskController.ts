@@ -6,10 +6,26 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { taskService } from '../services/taskService';
-import { TaskFilters } from '../types/task';
+import { TaskFilters, TaskStatus, TaskPriority, RelatedToType } from '../types/task';
 import { logger } from '../config/logger';
 import { getString, getBoolean, getInteger } from '../utils/queryHelpers';
 import { notFoundMessage, serverError, unauthorized } from '../utils/responseHelpers';
+
+// Type-safe enum parsers
+const parseTaskStatus = (value: string | undefined): TaskStatus | undefined => {
+  if (!value) return undefined;
+  return Object.values(TaskStatus).includes(value as TaskStatus) ? (value as TaskStatus) : undefined;
+};
+
+const parseTaskPriority = (value: string | undefined): TaskPriority | undefined => {
+  if (!value) return undefined;
+  return Object.values(TaskPriority).includes(value as TaskPriority) ? (value as TaskPriority) : undefined;
+};
+
+const parseRelatedToType = (value: string | undefined): RelatedToType | undefined => {
+  if (!value) return undefined;
+  return Object.values(RelatedToType).includes(value as RelatedToType) ? (value as RelatedToType) : undefined;
+};
 
 export const taskController = {
   /**
@@ -20,10 +36,10 @@ export const taskController = {
     try {
       const filters: TaskFilters = {
         search: getString(req.query.search),
-        status: getString(req.query.status) as any,
-        priority: getString(req.query.priority) as any,
+        status: parseTaskStatus(getString(req.query.status)),
+        priority: parseTaskPriority(getString(req.query.priority)),
         assigned_to: getString(req.query.assigned_to),
-        related_to_type: getString(req.query.related_to_type) as any,
+        related_to_type: parseRelatedToType(getString(req.query.related_to_type)),
         related_to_id: getString(req.query.related_to_id),
         due_before: getString(req.query.due_before),
         due_after: getString(req.query.due_after),
@@ -48,7 +64,7 @@ export const taskController = {
     try {
       const filters: TaskFilters = {
         assigned_to: getString(req.query.assigned_to),
-        related_to_type: getString(req.query.related_to_type) as any,
+        related_to_type: parseRelatedToType(getString(req.query.related_to_type)),
         related_to_id: getString(req.query.related_to_id),
       };
 
