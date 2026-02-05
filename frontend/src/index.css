@@ -209,9 +209,10 @@ body.dark .p-8 [class*="bg-[var(--loop"] * {
 }
 
 /* RULE 3: Input & Dropdown Rescue - Solid backgrounds with white borders */
-body.dark input:not([class*="bg-loop-"]),
-body.dark select:not([class*="bg-loop-"]),
-body.dark textarea:not([class*="bg-loop-"]) {
+/* Excludes inputs with explicit bg-white (e.g., Login page) which should keep white bg + black text */
+body.dark input:not([class*="bg-loop-"]):not(.bg-white),
+body.dark select:not([class*="bg-loop-"]):not(.bg-white),
+body.dark textarea:not([class*="bg-loop-"]):not(.bg-white) {
   background-color: #1a1a1a !important;
   /* Solid Dark Grey (User Request) */
   border-color: #f5f5dc !important;
