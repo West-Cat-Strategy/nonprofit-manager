@@ -1,4 +1,4 @@
-import xlsx from 'xlsx';
+import ExcelJS from 'exceljs';
 import { parseCsvToDataset } from '../parsers/csv';
 import { parseExcelToDatasets } from '../parsers/excel';
 import { parseSqlToDatasets } from '../parsers/sql';
@@ -32,16 +32,18 @@ describe('ingest robustness', () => {
     expect(insert?.sampleRows[0].email).toBe('jane@example.org');
   });
 
-  test('Excel parser still profiles columns', () => {
-    const wb = xlsx.utils.book_new();
-    const sheet = xlsx.utils.aoa_to_sheet([
-      ['First Name', 'Last Name', 'Email'],
-      ['Jane', 'Doe', 'jane@example.org'],
-    ]);
-    xlsx.utils.book_append_sheet(wb, sheet, 'People');
-    const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+  test('Excel parser still profiles columns', async () => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('People');
 
-    const datasets = parseExcelToDatasets(buffer, { name: 'people.xlsx' });
+    // Add header row
+    sheet.addRow(['First Name', 'Last Name', 'Email']);
+    // Add data row
+    sheet.addRow(['Jane', 'Doe', 'jane@example.org']);
+
+    const buffer = await workbook.xlsx.writeBuffer() as Buffer;
+
+    const datasets = await parseExcelToDatasets(buffer, { name: 'people.xlsx' });
     expect(datasets[0].columns.find((c) => c.name === 'Email')?.inferredType).toBe('email');
   });
 });
@@ -65,4 +67,3 @@ describe('matcher intelligence', () => {
     expect(Object.values(suggestion.bestTable?.suggestedMapping ?? {})).toContain('contacts.contact_id');
   });
 });
-
