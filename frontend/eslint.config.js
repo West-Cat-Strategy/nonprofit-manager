@@ -20,9 +20,15 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
+      // Enable type safety rules with warnings to allow gradual migration
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      '@typescript-eslint/prefer-optional-chain': 'warn',
+      '@typescript-eslint/no-non-null-assertion': 'warn',
+      // React hooks rules
       'react-hooks/purity': 'off',
       'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/exhaustive-deps': 'warn',
     },
   },
 ])

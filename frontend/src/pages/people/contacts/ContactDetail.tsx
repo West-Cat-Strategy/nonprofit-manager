@@ -1,8 +1,14 @@
+/**
+ * ContactDetail Page
+ * Page for viewing a contact's full details with neo-brutalist styling
+ */
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchContactById, clearCurrentContact } from '../../../store/slices/contactsSlice';
 import { fetchCases, selectCasesByContact } from '../../../store/slices/casesSlice';
+import { BrutalBadge, BrutalButton, BrutalCard } from '../../../components/neo-brutalist';
 import PaymentHistory from '../../../components/PaymentHistory';
 import ContactPhoneNumbers from '../../../components/ContactPhoneNumbers';
 import ContactEmailAddresses from '../../../components/ContactEmailAddresses';
@@ -10,12 +16,14 @@ import ContactRelationships from '../../../components/ContactRelationships';
 import ContactNotes from '../../../components/ContactNotes';
 import ContactDocuments from '../../../components/ContactDocuments';
 
+type TabType = 'overview' | 'notes' | 'documents' | 'payments';
+
 const ContactDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { currentContact, loading, error } = useAppSelector((state) => state.contacts);
-  const [activeTab, setActiveTab] = useState<'overview' | 'notes' | 'documents' | 'payments'>('overview');
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
 
   // Get cases for this contact
   const contactCases = useAppSelector((state) => (id ? selectCasesByContact(state, id) : []));
@@ -32,26 +40,49 @@ const ContactDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 p-6">
-        <div className="max-w-5xl mx-auto bg-white rounded-lg shadow p-8 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading contact...</p>
-        </div>
+      <div className="p-6">
+        <BrutalCard color="white" className="p-12">
+          <div className="flex flex-col items-center justify-center">
+            <div className="animate-spin h-12 w-12 border-4 border-black border-t-transparent mb-4" />
+            <p className="font-bold text-black">Loading contact...</p>
+          </div>
+        </BrutalCard>
       </div>
     );
   }
 
-  if (error || !currentContact) {
+  if (error) {
     return (
-      <div className="min-h-screen bg-gray-100 p-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            {error || 'Contact not found'}
+      <div className="p-6">
+        <BrutalCard color="pink" className="p-6">
+          <div className="text-center">
+            <div className="text-4xl mb-4">⚠️</div>
+            <h2 className="text-xl font-black uppercase text-black mb-2">Error</h2>
+            <p className="font-bold text-black/70 mb-4">{error}</p>
+            <BrutalButton onClick={() => navigate('/contacts')} variant="secondary">
+              Back to People
+            </BrutalButton>
           </div>
-          <button onClick={() => navigate('/contacts')} className="mt-4 text-blue-600 hover:text-blue-900">
-            &larr; Back to People
-          </button>
-        </div>
+        </BrutalCard>
+      </div>
+    );
+  }
+
+  if (!currentContact) {
+    return (
+      <div className="p-6">
+        <BrutalCard color="yellow" className="p-6">
+          <div className="text-center">
+            <div className="text-4xl mb-4">🔍</div>
+            <h2 className="text-xl font-black uppercase text-black mb-2">Contact Not Found</h2>
+            <p className="font-bold text-black/70 mb-4">
+              The contact you're looking for doesn't exist or has been removed.
+            </p>
+            <BrutalButton onClick={() => navigate('/contacts')} variant="primary">
+              Back to People
+            </BrutalButton>
+          </div>
+        </BrutalCard>
       </div>
     );
   }
@@ -75,149 +106,154 @@ const ContactDetail = () => {
     return age;
   };
 
+  const tabs: { id: TabType; label: string; count?: number }[] = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'notes', label: 'Notes', count: currentContact.note_count || 0 },
+    { id: 'documents', label: 'Documents' },
+    { id: 'payments', label: 'Payments' },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="mb-6 flex justify-between items-start">
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <BrutalCard color="purple" className="p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <Link to="/contacts" className="text-blue-600 hover:text-blue-900 mb-2 inline-block">
-              &larr; Back to People
-            </Link>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold text-gray-900">{fullName}</h1>
+            <button
+              onClick={() => navigate('/contacts')}
+              className="text-sm font-black uppercase text-black/70 hover:text-black mb-2 flex items-center gap-1"
+              aria-label="Back to people"
+            >
+              ← Back to People
+            </button>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-3xl font-black uppercase tracking-tight text-black">
+                {fullName}
+              </h1>
               {currentContact.pronouns && (
-                <span className="px-2 py-1 text-sm bg-gray-100 text-gray-600 rounded">
+                <BrutalBadge color="gray" size="sm">
                   {currentContact.pronouns}
-                </span>
+                </BrutalBadge>
               )}
-              <span
-                className={`px-2 py-1 rounded-full text-xs ${
-                  currentContact.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                }`}
-              >
+              <BrutalBadge color={currentContact.is_active ? 'green' : 'gray'} size="sm">
                 {currentContact.is_active ? 'Active' : 'Inactive'}
-              </span>
+              </BrutalBadge>
             </div>
             {currentContact.job_title && (
-              <p className="text-gray-500 mt-1">
+              <p className="mt-1 font-bold text-black/70">
                 {currentContact.job_title}
                 {currentContact.department && ` - ${currentContact.department}`}
               </p>
             )}
             {currentContact.account_name && (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm font-bold text-black/60">
                 Organization: {currentContact.account_name}
               </p>
             )}
           </div>
+          <div className="flex gap-2">
+            <BrutalButton onClick={() => navigate(`/contacts/${id}/edit`)} variant="primary">
+              Edit Contact
+            </BrutalButton>
+          </div>
+        </div>
+      </BrutalCard>
+
+      {/* Tabs */}
+      <div
+        className="flex flex-wrap gap-2 border-b-4 border-black pb-2"
+        role="tablist"
+        aria-label="Contact sections"
+      >
+        {tabs.map((tab) => (
           <button
-            onClick={() => navigate(`/contacts/${id}/edit`)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+            key={tab.id}
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            aria-controls={`tabpanel-${tab.id}`}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2 text-sm font-black uppercase transition-all border-2 border-black ${
+              activeTab === tab.id
+                ? 'bg-black text-white shadow-[2px_2px_0px_var(--shadow-color)]'
+                : 'bg-white text-black hover:bg-[var(--loop-yellow)] shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)]'
+            }`}
           >
-            Edit Contact
+            {tab.label}
+            {tab.count !== undefined && tab.count > 0 && (
+              <span className="ml-1">({tab.count})</span>
+            )}
           </button>
-        </div>
+        ))}
+      </div>
 
-        {/* Tabs */}
-        <div className="border-b border-gray-200 mb-6">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`pb-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'overview'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveTab('notes')}
-              className={`pb-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'notes'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Notes {currentContact.note_count ? `(${currentContact.note_count})` : ''}
-            </button>
-            <button
-              onClick={() => setActiveTab('documents')}
-              className={`pb-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'documents'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Documents
-            </button>
-            <button
-              onClick={() => setActiveTab('payments')}
-              className={`pb-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'payments'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Payments
-            </button>
-          </nav>
-        </div>
-
-        {/* Tab Content */}
+      {/* Tab Content */}
+      <div id={`tabpanel-${activeTab}`} role="tabpanel" aria-labelledby={activeTab}>
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column */}
             <div className="lg:col-span-2 space-y-6">
               {/* Personal Information */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-lg font-semibold mb-4">Personal Information</h2>
+              <BrutalCard color="white" className="p-6">
+                <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
+                  Personal Information
+                </h2>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-500">Date of Birth</label>
-                    <p className="mt-1">
+                    <label className="block text-xs font-black uppercase text-black/60">
+                      Date of Birth
+                    </label>
+                    <p className="mt-1 font-bold text-black">
                       {formatDate(currentContact.birth_date)}
                       {currentContact.birth_date && calculateAge(currentContact.birth_date) !== null && (
-                        <span className="text-gray-400 ml-1">
+                        <span className="text-black/60 ml-1">
                           (Age: {calculateAge(currentContact.birth_date)})
                         </span>
                       )}
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-500">Gender</label>
-                    <p className="mt-1">{currentContact.gender || '-'}</p>
+                    <label className="block text-xs font-black uppercase text-black/60">
+                      Gender
+                    </label>
+                    <p className="mt-1 font-bold text-black">{currentContact.gender || '-'}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-500">Pronouns</label>
-                    <p className="mt-1">{currentContact.pronouns || '-'}</p>
+                    <label className="block text-xs font-black uppercase text-black/60">
+                      Pronouns
+                    </label>
+                    <p className="mt-1 font-bold text-black">{currentContact.pronouns || '-'}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-500">
+                    <label className="block text-xs font-black uppercase text-black/60">
                       Preferred Contact Method
                     </label>
-                    <p className="mt-1 capitalize">{currentContact.preferred_contact_method || '-'}</p>
+                    <p className="mt-1 font-bold text-black capitalize">
+                      {currentContact.preferred_contact_method || '-'}
+                    </p>
                   </div>
                 </div>
 
                 {/* Communication Preferences */}
                 {(currentContact.do_not_email || currentContact.do_not_phone) && (
-                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                    <p className="text-sm text-yellow-800 font-medium">Communication Preferences:</p>
-                    <ul className="mt-1 text-sm text-yellow-700">
-                      {currentContact.do_not_email && <li>&#8226; Do not contact via email</li>}
-                      {currentContact.do_not_phone && <li>&#8226; Do not contact via phone</li>}
+                  <div className="mt-4 p-3 bg-[var(--loop-yellow)] border-2 border-black">
+                    <p className="text-sm font-black uppercase text-black">
+                      Communication Preferences:
+                    </p>
+                    <ul className="mt-1 text-sm font-bold text-black/80">
+                      {currentContact.do_not_email && <li>• Do not contact via email</li>}
+                      {currentContact.do_not_phone && <li>• Do not contact via phone</li>}
                     </ul>
                   </div>
                 )}
-              </div>
+              </BrutalCard>
 
               {/* Address */}
               {(currentContact.address_line1 || currentContact.city) && (
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h2 className="text-lg font-semibold mb-4">Address</h2>
-                  <p className="text-gray-700">
+                <BrutalCard color="white" className="p-6">
+                  <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
+                    Address
+                  </h2>
+                  <p className="font-bold text-black">
                     {currentContact.address_line1 && (
                       <>
                         {currentContact.address_line1}
@@ -239,28 +275,28 @@ const ContactDetail = () => {
                       </>
                     )}
                   </p>
-                </div>
+                </BrutalCard>
               )}
 
               {/* Associated Cases */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold">Associated Cases</h2>
+              <BrutalCard color="white" className="p-6">
+                <div className="flex items-center justify-between mb-4 border-b-2 border-black pb-2">
+                  <h2 className="text-lg font-black uppercase text-black">Associated Cases</h2>
                   <Link
                     to={`/cases/new?contact_id=${id}`}
-                    className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                    className="text-sm font-black uppercase text-black hover:text-[var(--loop-green)] transition"
                   >
                     + Create Case
                   </Link>
                 </div>
 
                 {contactCases.length === 0 ? (
-                  <div className="text-center py-6">
-                    <div className="text-gray-400 text-4xl mb-2">📁</div>
-                    <p className="text-sm text-gray-500">No associated cases</p>
+                  <div className="text-center py-6 border-2 border-dashed border-black/30">
+                    <div className="text-4xl mb-2">📁</div>
+                    <p className="text-sm font-bold text-black/70">No associated cases</p>
                     <Link
                       to={`/cases/new?contact_id=${id}`}
-                      className="mt-3 inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 transition"
+                      className="mt-3 inline-block px-4 py-2 text-sm font-black uppercase text-black bg-[var(--loop-green)] border-2 border-black shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
                     >
                       Create Case
                     </Link>
@@ -271,82 +307,102 @@ const ContactDetail = () => {
                       <Link
                         key={case_.id}
                         to={`/cases/${case_.id}`}
-                        className="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
+                        className="flex items-center justify-between p-3 border-2 border-black bg-white hover:bg-[var(--loop-yellow)] transition-colors"
                       >
                         <div>
-                          <div className="font-medium text-gray-900">{case_.title}</div>
-                          <div className="text-sm text-gray-500">
-                            {case_.case_number} &bull; {case_.case_type_name || 'General'}
+                          <div className="font-black text-black">{case_.title}</div>
+                          <div className="text-sm font-bold text-black/70">
+                            {case_.case_number} • {case_.case_type_name || 'General'}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span
-                            className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                          <BrutalBadge
+                            color={
                               case_.status_type === 'closed'
-                                ? 'bg-gray-100 text-gray-800'
+                                ? 'gray'
                                 : case_.status_type === 'active'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-blue-100 text-blue-800'
-                            }`}
+                                  ? 'green'
+                                  : 'blue'
+                            }
+                            size="sm"
                           >
                             {case_.status_name || case_.status_type}
-                          </span>
-                          {case_.is_urgent && <span className="text-red-500">&#9888;</span>}
+                          </BrutalBadge>
+                          {case_.is_urgent && (
+                            <span className="text-red-600" aria-label="Urgent">
+                              ⚠️
+                            </span>
+                          )}
                         </div>
                       </Link>
                     ))}
                     {contactCases.length > 5 && (
                       <Link
                         to={`/cases?contact_id=${id}`}
-                        className="block text-center text-sm text-blue-600 hover:text-blue-800 font-medium pt-2"
+                        className="block text-center text-sm font-black uppercase text-black hover:text-[var(--loop-green)] pt-2"
                       >
-                        View all {contactCases.length} cases &rarr;
+                        View all {contactCases.length} cases →
                       </Link>
                     )}
                   </div>
                 )}
-              </div>
+              </BrutalCard>
             </div>
 
             {/* Right Column */}
             <div className="space-y-6">
               {/* Phone Numbers */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-lg font-semibold mb-4">Phone Numbers</h2>
+              <BrutalCard color="white" className="p-6">
+                <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
+                  Phone Numbers
+                </h2>
                 {id && <ContactPhoneNumbers contactId={id} />}
-              </div>
+              </BrutalCard>
 
               {/* Email Addresses */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-lg font-semibold mb-4">Email Addresses</h2>
+              <BrutalCard color="white" className="p-6">
+                <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
+                  Email Addresses
+                </h2>
                 {id && <ContactEmailAddresses contactId={id} />}
-              </div>
+              </BrutalCard>
 
               {/* Associated People */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-lg font-semibold mb-4">{currentContact.first_name}'s People</h2>
+              <BrutalCard color="white" className="p-6">
+                <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
+                  {currentContact.first_name}'s People
+                </h2>
                 {id && <ContactRelationships contactId={id} />}
-              </div>
+              </BrutalCard>
             </div>
           </div>
         )}
 
         {activeTab === 'notes' && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold mb-4">Notes Timeline</h2>
+          <BrutalCard color="white" className="p-6">
+            <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
+              Notes Timeline
+            </h2>
             {id && <ContactNotes contactId={id} />}
-          </div>
+          </BrutalCard>
         )}
 
         {activeTab === 'documents' && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold mb-4">Documents</h2>
+          <BrutalCard color="white" className="p-6">
+            <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
+              Documents
+            </h2>
             {id && <ContactDocuments contactId={id} />}
-          </div>
+          </BrutalCard>
         )}
 
         {activeTab === 'payments' && (
-          <PaymentHistory contactId={id} limit={20} showViewAll={false} />
+          <BrutalCard color="white" className="p-6">
+            <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
+              Payment History
+            </h2>
+            <PaymentHistory contactId={id} limit={20} showViewAll={false} />
+          </BrutalCard>
         )}
       </div>
     </div>

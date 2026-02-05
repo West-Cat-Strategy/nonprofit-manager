@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { createCaseNote } from '../store/slices/casesSlice';
+import { useToast } from '../contexts/useToast';
 import type { CreateCaseNoteDTO, NoteType } from '../types/case';
 
 interface CaseNotesProps {
@@ -9,6 +10,7 @@ interface CaseNotesProps {
 
 const CaseNotes = ({ caseId }: CaseNotesProps) => {
   const dispatch = useAppDispatch();
+  const { showSuccess, showError } = useToast();
   const { caseNotes, loading } = useAppSelector((state) => state.cases);
 
   const [isAddingNote, setIsAddingNote] = useState(false);
@@ -25,7 +27,7 @@ const CaseNotes = ({ caseId }: CaseNotesProps) => {
     e.preventDefault();
 
     if (!newNote.content?.trim()) {
-      alert('Please enter note content');
+      showError('Please enter note content');
       return;
     }
 
@@ -41,6 +43,7 @@ const CaseNotes = ({ caseId }: CaseNotesProps) => {
         })
       ).unwrap();
 
+      showSuccess('Note added successfully');
       // Reset form
       setNewNote({
         case_id: caseId,
@@ -53,6 +56,7 @@ const CaseNotes = ({ caseId }: CaseNotesProps) => {
       setIsAddingNote(false);
     } catch (error) {
       console.error('Failed to add note:', error);
+      showError('Failed to add note. Please try again.');
     }
   };
 

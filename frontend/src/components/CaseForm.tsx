@@ -9,8 +9,8 @@ import {
 } from '../store/slices/casesSlice';
 import type { Contact } from '../store/slices/contactsSlice';
 import api from '../services/api';
+import { useToast } from '../contexts/useToast';
 import type { CaseWithDetails, CreateCaseDTO, UpdateCaseDTO } from '../types/case';
-// import { useToast } from '../contexts/ToastContext';
 
 interface CaseFormProps {
   caseId?: string;
@@ -29,7 +29,7 @@ const CaseForm = ({
 }: CaseFormProps) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  // const { showSuccess, showError } = useToast();
+  const { showSuccess, showError } = useToast();
   const { caseTypes, loading, error } = useAppSelector((state) => state.cases);
 
   const isEditMode = Boolean(caseId);
@@ -191,7 +191,7 @@ const CaseForm = ({
 
     // Validation
     if (!formData.contact_id || !formData.case_type_id || !formData.title) {
-      alert('Please fill in all required fields');
+      showError('Please fill in all required fields');
       return;
     }
 
@@ -207,13 +207,13 @@ const CaseForm = ({
           tags: formData.tags,
         };
         await dispatch(updateCase({ id: caseId, data: updateData })).unwrap();
-        // showSuccess('Case updated successfully');
+        showSuccess('Case updated successfully');
       } else {
         const createdCase = await dispatch(createCase(formData)).unwrap();
         if (onCreated) {
           onCreated(createdCase);
         }
-        // showSuccess('Case created successfully');
+        showSuccess('Case created successfully');
       }
 
       if (onSuccess) {
@@ -223,7 +223,7 @@ const CaseForm = ({
       }
     } catch (err) {
       console.error('Failed to save case:', err);
-      // showError(isEditMode ? 'Failed to update case. Please try again.' : 'Failed to create case. Please try again.');
+      showError(isEditMode ? 'Failed to update case. Please try again.' : 'Failed to create case. Please try again.');
     }
   };
 
