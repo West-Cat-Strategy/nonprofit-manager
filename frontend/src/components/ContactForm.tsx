@@ -14,6 +14,7 @@ import type { ContactRole, CreateContactRelationshipDTO, RelationshipType } from
 import { RELATIONSHIP_TYPES } from '../types/contact';
 import { useToast } from '../contexts/useToast';
 import api from '../services/api';
+import { validatePostalCode } from '../utils/validation';
 
 type ContactFormValues = {
   contact_id?: string;
@@ -67,43 +68,6 @@ const GENDER_OPTIONS = [
   { value: 'Prefer not to say', label: 'Prefer not to say' },
   { value: 'Other', label: 'Other' },
 ];
-
-// Postal code validation patterns by country
-const POSTAL_CODE_PATTERNS: Record<string, { regex: RegExp; example: string }> = {
-  'US': { regex: /^\d{5}(-\d{4})?$/, example: '12345 or 12345-6789' },
-  'USA': { regex: /^\d{5}(-\d{4})?$/, example: '12345 or 12345-6789' },
-  'United States': { regex: /^\d{5}(-\d{4})?$/, example: '12345 or 12345-6789' },
-  'CA': { regex: /^[A-Za-z]\d[A-Za-z][ ]?\d[A-Za-z]\d$/, example: 'A1A 1A1' },
-  'Canada': { regex: /^[A-Za-z]\d[A-Za-z][ ]?\d[A-Za-z]\d$/, example: 'A1A 1A1' },
-  'UK': { regex: /^[A-Za-z]{1,2}\d[A-Za-z\d]?[ ]?\d[A-Za-z]{2}$/, example: 'SW1A 1AA' },
-  'United Kingdom': { regex: /^[A-Za-z]{1,2}\d[A-Za-z\d]?[ ]?\d[A-Za-z]{2}$/, example: 'SW1A 1AA' },
-  'GB': { regex: /^[A-Za-z]{1,2}\d[A-Za-z\d]?[ ]?\d[A-Za-z]{2}$/, example: 'SW1A 1AA' },
-};
-
-// Generic fallback pattern for other countries
-const GENERIC_POSTAL_PATTERN = /^[\w\s-]{3,10}$/;
-
-const validatePostalCode = (postalCode: string, country?: string | null): string | null => {
-  if (!postalCode) return null; // Empty is valid (optional field)
-
-  const normalizedCountry = country?.trim() || '';
-
-  // Check for country-specific pattern
-  const pattern = POSTAL_CODE_PATTERNS[normalizedCountry];
-  if (pattern) {
-    if (!pattern.regex.test(postalCode.trim())) {
-      return `Invalid postal code format for ${normalizedCountry}. Example: ${pattern.example}`;
-    }
-    return null;
-  }
-
-  // Generic validation for other countries
-  if (!GENERIC_POSTAL_PATTERN.test(postalCode.trim())) {
-    return 'Postal code must be 3-10 characters (letters, numbers, spaces, or dashes)';
-  }
-
-  return null;
-};
 
 interface ContactFormProps {
   contact?: StoreContact;
