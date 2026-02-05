@@ -11,12 +11,13 @@ export interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export const availableThemes = ['default', 'sea-breeze', 'corporate', 'glass'];
+export const availableThemes = ['neobrutalist', 'sea-breeze', 'corporate', 'clean-modern', 'glass'];
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const [theme, setTheme] = useState(() => {
         const saved = localStorage.getItem('app-theme');
-        return saved && availableThemes.includes(saved) ? saved : 'default';
+        const normalized = saved === 'default' ? 'neobrutalist' : saved;
+        return normalized && availableThemes.includes(normalized) ? normalized : 'neobrutalist';
     });
 
     const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -33,11 +34,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         // Clean up classes
         root.classList.remove('neo-dark-mode'); // Legacy cleanup
         availableThemes.forEach(t => {
-            if (t !== 'default') root.classList.remove(`theme-${t}`);
+            if (t !== 'neobrutalist') root.classList.remove(`theme-${t}`);
         });
 
         // Apply Theme Class
-        if (theme !== 'default') {
+        if (theme !== 'neobrutalist') {
             root.classList.add(`theme-${theme}`);
         }
 

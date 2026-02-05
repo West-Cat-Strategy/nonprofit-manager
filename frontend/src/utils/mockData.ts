@@ -362,7 +362,7 @@ export const mockDashboardStats = {
     newPeopleRequests: 12,
     activePartners: 24,
     opsEfficiency: 92,
-    campaignReach: 3400,
+    reach: 3400,
     totalPeople: 850,
 };
 

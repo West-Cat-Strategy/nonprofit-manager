@@ -98,6 +98,7 @@ export class CaseService {
   async getCases(filter: CaseFilter = {}): Promise<{ cases: CaseWithDetails[]; total: number }> {
     const filters: string[] = [];
     const params: any[] = [];
+    let needsStatusJoin = false;
 
     const addFilter = (sql: string, value?: unknown) => {
       if (value !== undefined) {
@@ -132,6 +133,34 @@ export class CaseService {
       addFilter('c.is_urgent = ?', filter.is_urgent);
     }
 
+    if (filter.quick_filter) {
+      if (filter.quick_filter === 'urgent') {
+        filters.push(`(c.is_urgent = true OR c.priority = 'urgent')`);
+      }
+
+      if (filter.quick_filter === 'unassigned') {
+        needsStatusJoin = true;
+        filters.push('c.assigned_to IS NULL');
+        filters.push(`cs.status_type NOT IN ('closed', 'cancelled')`);
+      }
+
+      if (filter.quick_filter === 'overdue') {
+        needsStatusJoin = true;
+        filters.push('c.due_date IS NOT NULL');
+        filters.push('c.due_date < NOW()');
+        filters.push(`cs.status_type NOT IN ('closed', 'cancelled')`);
+      }
+
+      if (filter.quick_filter === 'due_soon') {
+        needsStatusJoin = true;
+        const days = typeof filter.due_within_days === 'number' && filter.due_within_days > 0 ? filter.due_within_days : 7;
+        filters.push('c.due_date IS NOT NULL');
+        params.push(days);
+        filters.push(`c.due_date >= NOW() AND c.due_date <= NOW() + ($${params.length} * INTERVAL '1 day')`);
+        filters.push(`cs.status_type NOT IN ('closed', 'cancelled')`);
+      }
+    }
+
     if (filter.search) {
       const searchValue = `%${filter.search}%`;
       params.push(searchValue, searchValue, searchValue);
@@ -142,7 +171,8 @@ export class CaseService {
 
     const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
 
-    const countResult = await this.pool.query(`SELECT COUNT(*) FROM cases c ${whereClause}`, params);
+    const countJoinClause = needsStatusJoin ? 'LEFT JOIN case_statuses cs ON c.status_id = cs.id' : '';
+    const countResult = await this.pool.query(`SELECT COUNT(*) FROM cases c ${countJoinClause} ${whereClause}`, params);
     const total = parseInt(countResult.rows[0].count);
 
     let query = `

@@ -20,7 +20,44 @@ export const createCase = async (req: AuthRequest, res: Response): Promise<void>
 
 export const getCases = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const filter = req.query as CaseFilter;
+    const query = req.query as Record<string, string | string[] | undefined>;
+    const getParam = (key: string) => {
+      const value = query[key];
+      return Array.isArray(value) ? value[0] : value;
+    };
+    const parseBoolean = (value?: string) => {
+      if (value === 'true') return true;
+      if (value === 'false') return false;
+      return undefined;
+    };
+    const parseNumber = (value?: string) => {
+      if (!value) return undefined;
+      const parsed = Number(value);
+      return Number.isNaN(parsed) ? undefined : parsed;
+    };
+
+    const filter: CaseFilter = {
+      search: getParam('search'),
+      contact_id: getParam('contact_id'),
+      account_id: getParam('account_id'),
+      case_type_id: getParam('case_type_id'),
+      status_id: getParam('status_id'),
+      priority: getParam('priority') as CaseFilter['priority'],
+      assigned_to: getParam('assigned_to'),
+      assigned_team: getParam('assigned_team'),
+      is_urgent: parseBoolean(getParam('is_urgent')),
+      requires_followup: parseBoolean(getParam('requires_followup')),
+      intake_start_date: getParam('intake_start_date'),
+      intake_end_date: getParam('intake_end_date'),
+      due_date_start: getParam('due_date_start'),
+      due_date_end: getParam('due_date_end'),
+      quick_filter: getParam('quick_filter') as CaseFilter['quick_filter'],
+      due_within_days: parseNumber(getParam('due_within_days')),
+      page: parseNumber(getParam('page')),
+      limit: parseNumber(getParam('limit')),
+      sort_by: getParam('sort_by'),
+      sort_order: getParam('sort_order') as CaseFilter['sort_order'],
+    };
     const { cases, total } = await caseService.getCases(filter);
     res.json({ cases, total, pagination: { page: parseInt(String(filter.page || 1)), limit: parseInt(String(filter.limit || PAGINATION.DEFAULT_LIMIT)) } });
   } catch (error) {

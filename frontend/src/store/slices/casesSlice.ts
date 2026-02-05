@@ -14,6 +14,7 @@ import type {
   CaseStatusesResponse,
   CaseNotesResponse,
   CaseSummary,
+  CaseStatusType,
 } from '../../types/case';
 
 const getErrorMessage = (error: unknown, fallbackMessage: string) => formatApiErrorMessageWith(fallbackMessage)(error);
@@ -342,6 +343,13 @@ export const { setFilters, clearFilters, clearCurrentCase, clearError } = casesS
 export default casesSlice.reducer;
 
 // Selectors
+const isClosedStatus = (status?: CaseStatusType) => status === 'closed' || status === 'cancelled';
+const isActiveStatus = (status?: CaseStatusType) => !isClosedStatus(status);
+const parseDate = (value?: string | null) => {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
 
 /**
  * Select cases assigned to a specific user
@@ -367,9 +375,9 @@ export const selectUrgentCases = (state: { cases: CasesState }) =>
 export const selectOverdueCases = (state: { cases: CasesState }) => {
   const now = new Date();
   return state.cases.cases.filter((case_) => {
-    if (!case_.due_date) return false;
-    if (case_.status_type === 'closed' || case_.status_type === 'cancelled') return false;
-    const dueDate = new Date(case_.due_date);
+    if (!isActiveStatus(case_.status_type)) return false;
+    const dueDate = parseDate(case_.due_date);
+    if (!dueDate) return false;
     return dueDate < now;
   });
 };
@@ -382,9 +390,9 @@ export const selectCasesDueWithinDays = (state: { cases: CasesState }, days: num
   const futureDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
 
   return state.cases.cases.filter((case_) => {
-    if (!case_.due_date) return false;
-    if (case_.status_type === 'closed' || case_.status_type === 'cancelled') return false;
-    const dueDate = new Date(case_.due_date);
+    if (!isActiveStatus(case_.status_type)) return false;
+    const dueDate = parseDate(case_.due_date);
+    if (!dueDate) return false;
     return dueDate >= now && dueDate <= futureDate;
   });
 };
@@ -399,13 +407,13 @@ export const selectCasesDueThisWeek = (state: { cases: CasesState }) =>
  * Select unassigned cases
  */
 export const selectUnassignedCases = (state: { cases: CasesState }) =>
-  state.cases.cases.filter((case_) => !case_.assigned_to && case_.status_type !== 'closed' && case_.status_type !== 'cancelled');
+  state.cases.cases.filter((case_) => !case_.assigned_to && isActiveStatus(case_.status_type));
 
 /**
  * Select active cases (not closed or cancelled)
  */
 export const selectActiveCases = (state: { cases: CasesState }) =>
-  state.cases.cases.filter((case_) => case_.status_type !== 'closed' && case_.status_type !== 'cancelled');
+  state.cases.cases.filter((case_) => isActiveStatus(case_.status_type));
 
 /**
  * Count cases by priority
@@ -419,7 +427,7 @@ export const selectCasesByPriority = (state: { cases: CasesState }) => {
   };
 
   state.cases.cases.forEach((case_) => {
-    if (case_.status_type !== 'closed' && case_.status_type !== 'cancelled') {
+    if (isActiveStatus(case_.status_type)) {
       counts[case_.priority]++;
     }
   });

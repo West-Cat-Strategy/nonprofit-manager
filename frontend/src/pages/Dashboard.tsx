@@ -40,6 +40,7 @@ interface KPICardProps {
   title: string;
   value: string | number;
   subtitle?: string;
+  caption?: string;
   color: 'blue' | 'green' | 'purple' | 'yellow' | 'red' | 'teal' | 'indigo';
   icon?: React.ReactNode;
 }
@@ -112,42 +113,38 @@ const saveDashboardSettings = (settings: DashboardSettings) => {
   }
 };
 
-function KPICard({ title, value, subtitle, color }: KPICardProps) {
-  const colorClasses = {
-    blue: 'bg-blue-50 border-blue-200',
-    green: 'bg-green-50 border-green-200',
-    purple: 'bg-purple-50 border-purple-200',
-    yellow: 'bg-yellow-50 border-yellow-200',
-    red: 'bg-red-50 border-red-200',
-    teal: 'bg-teal-50 border-teal-200',
-    indigo: 'bg-indigo-50 border-indigo-200',
+function KPICard({ title, value, subtitle, caption, color }: KPICardProps) {
+  const accentGlow = {
+    blue: 'bg-sky-200/60',
+    green: 'bg-emerald-200/60',
+    purple: 'bg-violet-200/60',
+    yellow: 'bg-amber-200/60',
+    red: 'bg-rose-200/60',
+    teal: 'bg-teal-200/60',
+    indigo: 'bg-indigo-200/60',
   };
 
-  const textColorClasses = {
-    blue: 'text-blue-900',
-    green: 'text-green-900',
-    purple: 'text-purple-900',
-    yellow: 'text-yellow-900',
-    red: 'text-red-900',
-    teal: 'text-teal-900',
-    indigo: 'text-indigo-900',
-  };
-
-  const subtitleColorClasses = {
-    blue: 'text-blue-700',
-    green: 'text-green-700',
-    purple: 'text-purple-700',
-    yellow: 'text-yellow-700',
-    red: 'text-red-700',
+  const accentText = {
+    blue: 'text-sky-700',
+    green: 'text-emerald-700',
+    purple: 'text-violet-700',
+    yellow: 'text-amber-700',
+    red: 'text-rose-700',
     teal: 'text-teal-700',
     indigo: 'text-indigo-700',
   };
 
   return (
-    <div className={`${colorClasses[color]} border rounded-lg p-4`}>
-      <p className={`text-sm font-medium ${subtitleColorClasses[color]}`}>{title}</p>
-      <p className={`mt-1 text-2xl font-bold ${textColorClasses[color]}`}>{value}</p>
-      {subtitle && <p className={`mt-1 text-xs ${subtitleColorClasses[color]}`}>{subtitle}</p>}
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/85 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+      <div className={`absolute -right-8 -top-8 h-24 w-24 rounded-full ${accentGlow[color]}`} />
+      <div className="relative">
+        <p className={`text-xs font-semibold uppercase tracking-wide ${accentText[color]}`}>
+          {title}
+        </p>
+        <p className="font-display mt-2 text-2xl font-semibold text-slate-900">{value}</p>
+        {subtitle && <p className="mt-1 text-xs text-slate-500">{subtitle}</p>}
+        {caption && <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{caption}</p>}
+      </div>
     </div>
   );
 }
@@ -176,9 +173,12 @@ function EngagementChart({ distribution }: EngagementChartProps) {
   ];
 
   return (
-    <div className="bg-white rounded-lg shadow p-4">
-      <h3 className="text-sm font-medium text-gray-700 mb-3">Engagement Distribution</h3>
-      <div className="flex h-4 rounded-full overflow-hidden mb-3">
+    <div className="rounded-2xl border border-slate-200/70 bg-white/85 p-5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-slate-700">Engagement Distribution</h3>
+        <span className="text-xs text-slate-400">Last 30 days</span>
+      </div>
+      <div className="mt-4 flex h-3 rounded-full overflow-hidden bg-slate-100">
         {segments.map(
           (segment) =>
             segment.value > 0 && (
@@ -191,11 +191,11 @@ function EngagementChart({ distribution }: EngagementChartProps) {
             )
         )}
       </div>
-      <div className="flex flex-wrap gap-3 text-xs">
+      <div className="mt-4 flex flex-wrap gap-3 text-xs">
         {segments.map((segment) => (
           <div key={segment.label} className="flex items-center gap-1">
             <div className={`w-3 h-3 rounded ${segment.color}`} />
-            <span className="text-gray-600">
+            <span className="text-slate-600">
               {segment.label}: {segment.value}
             </span>
           </div>
@@ -293,12 +293,14 @@ export default function Dashboard() {
         title: 'Total Donations',
         value: formatCurrency(summary.total_donations_ytd),
         subtitle: `${summary.donation_count_ytd} donations`,
+        caption: 'Year to date',
         color: 'green' as const,
       },
       {
         key: 'avgDonation' as const,
         title: 'Avg. Donation',
         value: formatCurrency(summary.average_donation_ytd),
+        caption: 'Year to date',
         color: 'green' as const,
       },
       {
@@ -306,6 +308,7 @@ export default function Dashboard() {
         title: 'Active Accounts',
         value: formatNumber(summary.active_accounts),
         subtitle: `${summary.total_accounts} total`,
+        caption: 'Current',
         color: 'yellow' as const,
       },
       {
@@ -313,6 +316,7 @@ export default function Dashboard() {
         title: 'Active Contacts',
         value: formatNumber(summary.active_contacts),
         subtitle: `${summary.total_contacts} total`,
+        caption: 'Current',
         color: 'teal' as const,
       },
       {
@@ -323,12 +327,14 @@ export default function Dashboard() {
           urgentCases.length > 0
             ? `${urgentCases.length} urgent, ${casesDueThisWeek.length} due this week`
             : `${casesDueThisWeek.length} due this week`,
+        caption: 'Open work',
         color: 'red' as const,
       },
       {
         key: 'volunteers' as const,
         title: 'Volunteers',
         value: formatNumber(summary.total_volunteers),
+        caption: 'Rostered',
         color: 'blue' as const,
       },
       {
@@ -336,6 +342,7 @@ export default function Dashboard() {
         title: 'Volunteer Hours',
         value: formatNumber(summary.total_volunteer_hours_ytd),
         subtitle: 'hours logged',
+        caption: 'Year to date',
         color: 'blue' as const,
       },
       {
@@ -343,6 +350,7 @@ export default function Dashboard() {
         title: 'Events',
         value: formatNumber(summary.total_events_ytd),
         subtitle: 'this year',
+        caption: 'Program calendar',
         color: 'purple' as const,
       },
       {
@@ -350,332 +358,385 @@ export default function Dashboard() {
         title: 'Engagement',
         value: `${summary.engagement_distribution.high + summary.engagement_distribution.medium}`,
         subtitle: 'highly/medium engaged',
+        caption: 'Last 30 days',
         color: 'indigo' as const,
       },
     ];
   }, [summary, activeCases.length, urgentCases.length, casesDueThisWeek.length]);
 
   return (
-    <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-      <div className="px-4 py-6 sm:px-0">
-          {/* Dashboard Header */}
-          <div className="flex items-center justify-between mb-6">
+    <div className="mx-auto max-w-7xl px-4 pb-12 pt-8 sm:px-6 lg:px-8 font-body">
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200/70 bg-gradient-to-br from-slate-50 via-white to-sky-50 p-6 shadow-sm">
+        <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-sky-200/40 blur-2xl" />
+        <div className="absolute -left-12 -bottom-24 h-56 w-56 rounded-full bg-emerald-200/30 blur-2xl" />
+        <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              Overview
+            </p>
+            <h1 className="font-display mt-2 text-3xl font-semibold text-slate-900">Dashboard</h1>
+            <p className="mt-2 text-sm text-slate-500">
+              Monitor your nonprofit's engagement, fundraising, and program delivery at a glance.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => setShowCustomize((prev) => !prev)}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"
+                />
+              </svg>
+              <span>{showCustomize ? 'Close' : 'Edit'} Metrics</span>
+            </button>
+            <Link
+              to="/dashboard/custom"
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:-translate-y-0.5 hover:bg-slate-800"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"
+                />
+              </svg>
+              <span>Customize Dashboard</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {showCustomize && (
+        <div className="mt-6 rounded-2xl border border-slate-200/70 bg-white/85 p-5 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-              <p className="text-sm text-gray-500 mt-1">Overview of your organization's key metrics</p>
+              <h2 className="text-lg font-semibold text-slate-900">Visible Metrics</h2>
+              <p className="text-sm text-slate-500">Choose which metrics and sections to show.</p>
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setShowCustomize((prev) => !prev)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
-                </svg>
-                <span>{showCustomize ? 'Close' : 'Edit'} Metrics</span>
-              </button>
-              <Link
-                to="/dashboard/custom"
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
-                </svg>
-                <span>Customize Dashboard</span>
+            <button
+              type="button"
+              onClick={() => setSettings(defaultDashboardSettings)}
+              className="text-sm font-semibold text-slate-700 hover:text-slate-900"
+            >
+              Reset defaults
+            </button>
+          </div>
+          <div className="mt-5 grid gap-6 md:grid-cols-2">
+            <div className="rounded-xl border border-slate-200/70 bg-slate-50/70 p-4">
+              <h3 className="text-sm font-semibold text-slate-700 mb-3">Sections</h3>
+              <label className="flex items-center gap-2 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={settings.showQuickLookup}
+                  onChange={(e) =>
+                    setSettings((prev) => ({ ...prev, showQuickLookup: e.target.checked }))
+                  }
+                />
+                Quick lookup
+              </label>
+              <label className="mt-2 flex items-center gap-2 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={settings.showQuickActions}
+                  onChange={(e) =>
+                    setSettings((prev) => ({ ...prev, showQuickActions: e.target.checked }))
+                  }
+                />
+                Quick actions
+              </label>
+              <label className="mt-2 flex items-center gap-2 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={settings.showModules}
+                  onChange={(e) =>
+                    setSettings((prev) => ({ ...prev, showModules: e.target.checked }))
+                  }
+                />
+                Modules
+              </label>
+              <label className="mt-2 flex items-center gap-2 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={settings.showEngagementChart}
+                  onChange={(e) =>
+                    setSettings((prev) => ({ ...prev, showEngagementChart: e.target.checked }))
+                  }
+                />
+                Engagement chart
+              </label>
+              <label className="mt-2 flex items-center gap-2 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={settings.showVolunteerWidget}
+                  onChange={(e) =>
+                    setSettings((prev) => ({ ...prev, showVolunteerWidget: e.target.checked }))
+                  }
+                />
+                Volunteer widget
+              </label>
+            </div>
+            <div className="rounded-xl border border-slate-200/70 bg-slate-50/70 p-4">
+              <h3 className="text-sm font-semibold text-slate-700 mb-3">KPI cards</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {Object.entries(settings.kpis).map(([key, value]) => (
+                  <label key={key} className="flex items-center gap-2 text-sm text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={value}
+                      onChange={(e) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          kpis: { ...prev.kpis, [key]: e.target.checked },
+                        }))
+                      }
+                    />
+                    {key
+                      .replace(/([A-Z])/g, ' $1')
+                      .replace(/^./, (c) => c.toUpperCase())}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {settings.showQuickLookup && (
+        <section className="mt-6">
+          <QuickLookupWidget />
+        </section>
+      )}
+
+      {settings.showQuickActions && (
+        <section className="mt-6">
+          <QuickActionsWidget />
+        </section>
+      )}
+
+      <section className="mt-6">
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/85 p-5 shadow-sm">
+            <div className="absolute -right-10 -top-10 h-20 w-20 rounded-full bg-rose-200/50" />
+            <div className="relative">
+              <p className="text-xs font-semibold uppercase tracking-wide text-rose-500">Priority</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-900">
+                {urgentCases.length}
+              </p>
+              <p className="mt-1 text-sm text-slate-600">Urgent cases need attention</p>
+              <Link className="mt-3 inline-flex text-xs font-semibold text-rose-600 hover:text-rose-700" to="/cases">
+                Review cases
               </Link>
             </div>
           </div>
-
-          {showCustomize && (
-            <div className="mb-6 rounded-lg border border-gray-200 bg-white p-4">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Visible Metrics</h2>
-                  <p className="text-sm text-gray-500">Choose which metrics and sections to show</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSettings(defaultDashboardSettings)}
-                  className="text-sm text-blue-600 hover:text-blue-700"
-                >
-                  Reset defaults
-                </button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">Sections</h3>
-                  <label className="flex items-center gap-2 text-sm text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={settings.showQuickLookup}
-                      onChange={(e) =>
-                        setSettings((prev) => ({ ...prev, showQuickLookup: e.target.checked }))
-                      }
-                    />
-                    Quick lookup
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-gray-700 mt-2">
-                    <input
-                      type="checkbox"
-                      checked={settings.showQuickActions}
-                      onChange={(e) =>
-                        setSettings((prev) => ({ ...prev, showQuickActions: e.target.checked }))
-                      }
-                    />
-                    Quick actions
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-gray-700 mt-2">
-                    <input
-                      type="checkbox"
-                      checked={settings.showModules}
-                      onChange={(e) =>
-                        setSettings((prev) => ({ ...prev, showModules: e.target.checked }))
-                      }
-                    />
-                    Modules
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-gray-700 mt-2">
-                    <input
-                      type="checkbox"
-                      checked={settings.showEngagementChart}
-                      onChange={(e) =>
-                        setSettings((prev) => ({ ...prev, showEngagementChart: e.target.checked }))
-                      }
-                    />
-                    Engagement chart
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-gray-700 mt-2">
-                    <input
-                      type="checkbox"
-                      checked={settings.showVolunteerWidget}
-                      onChange={(e) =>
-                        setSettings((prev) => ({ ...prev, showVolunteerWidget: e.target.checked }))
-                      }
-                    />
-                    Volunteer widget
-                  </label>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">KPI cards</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {Object.entries(settings.kpis).map(([key, value]) => (
-                      <label key={key} className="flex items-center gap-2 text-sm text-gray-700">
-                        <input
-                          type="checkbox"
-                          checked={value}
-                          onChange={(e) =>
-                            setSettings((prev) => ({
-                              ...prev,
-                              kpis: { ...prev.kpis, [key]: e.target.checked },
-                            }))
-                          }
-                        />
-                        {key
-                          .replace(/([A-Z])/g, ' $1')
-                          .replace(/^./, (c) => c.toUpperCase())}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
+          <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/85 p-5 shadow-sm">
+            <div className="absolute -right-10 -top-10 h-20 w-20 rounded-full bg-amber-200/50" />
+            <div className="relative">
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-500">This Week</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-900">
+                {casesDueThisWeek.length}
+              </p>
+              <p className="mt-1 text-sm text-slate-600">Cases due for follow-up</p>
+              <Link className="mt-3 inline-flex text-xs font-semibold text-amber-600 hover:text-amber-700" to="/cases">
+                Plan follow-ups
+              </Link>
             </div>
-          )}
-
-          {/* Quick Lookup Section */}
-          {settings.showQuickLookup && (
-            <div className="mb-6">
-              <QuickLookupWidget />
-            </div>
-          )}
-
-          {/* Quick Actions */}
-          {settings.showQuickActions && (
-            <div className="mb-6">
-              <QuickActionsWidget />
-            </div>
-          )}
-
-          {/* Module Navigation Cards */}
-          {settings.showModules && (
-            <div className="bg-white rounded-lg shadow px-5 py-6 sm:px-6 mb-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Modules</h2>
-
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                <Link
-                  to="/accounts"
-                  className="bg-yellow-50 overflow-hidden shadow rounded-lg hover:shadow-md transition cursor-pointer text-left block"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-medium text-yellow-900">Accounts</h3>
-                        <p className="mt-1 text-sm text-yellow-700">
-                          Manage organizations and individuals
-                        </p>
-                        {summary && (
-                          <p className="mt-2 text-xs text-yellow-600">
-                            {summary.active_accounts} active accounts
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-
-                <Link
-                  to="/contacts"
-                  className="bg-teal-50 overflow-hidden shadow rounded-lg hover:shadow-md transition cursor-pointer text-left"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-medium text-teal-900">People</h3>
-                        <p className="mt-1 text-sm text-teal-700">Manage individual people</p>
-                        {summary && (
-                          <p className="mt-2 text-xs text-teal-600">
-                            {summary.active_contacts} active people
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-
-                <Link
-                  to="/volunteers"
-                  className="bg-blue-50 overflow-hidden shadow rounded-lg hover:shadow-md transition cursor-pointer text-left"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-medium text-blue-900">Volunteers</h3>
-                        <p className="mt-1 text-sm text-blue-700">Manage volunteer programs</p>
-                        {summary && (
-                          <p className="mt-2 text-xs text-blue-600">
-                            {summary.total_volunteers} volunteers
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-
-                <Link
-                  to="/events"
-                  className="bg-green-50 overflow-hidden shadow rounded-lg hover:shadow-md transition cursor-pointer text-left"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-medium text-green-900">Events</h3>
-                        <p className="mt-1 text-sm text-green-700">Schedule and track events</p>
-                        {summary && (
-                          <p className="mt-2 text-xs text-green-600">
-                            {summary.total_events_ytd} events this year
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-
-                <Link
-                  to="/donations"
-                  className="bg-purple-50 overflow-hidden shadow rounded-lg hover:shadow-md transition cursor-pointer text-left"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-medium text-purple-900">Donations</h3>
-                        <p className="mt-1 text-sm text-purple-700">Track donations and donors</p>
-                        {summary && (
-                          <p className="mt-2 text-xs text-purple-600">
-                            {formatCurrency(summary.total_donations_ytd)} YTD
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-
-                <Link
-                  to="/tasks"
-                  className="bg-red-50 overflow-hidden shadow rounded-lg hover:shadow-md transition cursor-pointer text-left"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-medium text-red-900">Tasks</h3>
-                        <p className="mt-1 text-sm text-red-700">Organize and track tasks</p>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-
-                <Link
-                  to="/analytics"
-                  className="bg-indigo-50 overflow-hidden shadow rounded-lg hover:shadow-md transition cursor-pointer text-left"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-medium text-indigo-900">Reports</h3>
-                        <p className="mt-1 text-sm text-indigo-700">Analytics and insights</p>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {/* KPI Cards Section */}
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Key Metrics (YTD)</h2>
-            {summaryLoading ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[...Array(8)].map((_, i) => (
-                  <div key={i} className="bg-gray-100 animate-pulse rounded-lg h-24" />
-                ))}
-              </div>
-            ) : error ? (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-                {error}
-              </div>
-            ) : summary ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {kpiCards
-                  .filter((card) => settings.kpis[card.key])
-                  .map((card) => (
-                    <KPICard
-                      key={card.key}
-                      title={card.title}
-                      value={card.value}
-                      subtitle={card.subtitle}
-                      color={card.color}
-                    />
-                  ))}
-              </div>
-            ) : (
-              <div className="text-gray-500">No analytics data available</div>
-            )}
           </div>
-
-          {/* Engagement Distribution */}
-          {summary && settings.showEngagementChart && (
-            <div className="mb-6">
-              <EngagementChart distribution={summary.engagement_distribution} />
+          <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/85 p-5 shadow-sm">
+            <div className="absolute -right-10 -top-10 h-20 w-20 rounded-full bg-emerald-200/50" />
+            <div className="relative">
+              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">Engagement</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-900">
+                {summary ? summary.engagement_distribution.high : 0}
+              </p>
+              <p className="mt-1 text-sm text-slate-600">Highly engaged constituents</p>
+              <Link className="mt-3 inline-flex text-xs font-semibold text-emerald-600 hover:text-emerald-700" to="/analytics">
+                View reports
+              </Link>
             </div>
-          )}
+          </div>
+        </div>
+      </section>
 
-          {/* Volunteer Widget */}
-          {settings.showVolunteerWidget && (
-            <div className="mb-6">
-              <VolunteerWidget showDetailedView={true} />
+      {settings.showModules && (
+        <section className="mt-6 rounded-2xl border border-slate-200/70 bg-white/85 p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900">Modules</h2>
+              <p className="text-sm text-slate-500">Jump into the workstreams you manage most.</p>
             </div>
+          </div>
+          <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <Link
+              to="/accounts"
+              className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-amber-200/50" />
+              <div className="relative">
+                <h3 className="text-lg font-semibold text-slate-900">Accounts</h3>
+                <p className="mt-1 text-sm text-slate-600">Manage organizations and households</p>
+                {summary && (
+                  <p className="mt-3 text-xs text-slate-500">
+                    {summary.active_accounts} active accounts
+                  </p>
+                )}
+              </div>
+            </Link>
+
+            <Link
+              to="/contacts"
+              className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-teal-200/50" />
+              <div className="relative">
+                <h3 className="text-lg font-semibold text-slate-900">People</h3>
+                <p className="mt-1 text-sm text-slate-600">Keep constituent profiles updated</p>
+                {summary && (
+                  <p className="mt-3 text-xs text-slate-500">
+                    {summary.active_contacts} active people
+                  </p>
+                )}
+              </div>
+            </Link>
+
+            <Link
+              to="/volunteers"
+              className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-sky-200/50" />
+              <div className="relative">
+                <h3 className="text-lg font-semibold text-slate-900">Volunteers</h3>
+                <p className="mt-1 text-sm text-slate-600">Coordinate volunteer programs</p>
+                {summary && (
+                  <p className="mt-3 text-xs text-slate-500">
+                    {summary.total_volunteers} volunteers
+                  </p>
+                )}
+              </div>
+            </Link>
+
+            <Link
+              to="/events"
+              className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-200/50" />
+              <div className="relative">
+                <h3 className="text-lg font-semibold text-slate-900">Events</h3>
+                <p className="mt-1 text-sm text-slate-600">Plan and track event operations</p>
+                {summary && (
+                  <p className="mt-3 text-xs text-slate-500">
+                    {summary.total_events_ytd} events this year
+                  </p>
+                )}
+              </div>
+            </Link>
+
+            <Link
+              to="/donations"
+              className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-violet-200/50" />
+              <div className="relative">
+                <h3 className="text-lg font-semibold text-slate-900">Donations</h3>
+                <p className="mt-1 text-sm text-slate-600">Track giving and stewardship</p>
+                {summary && (
+                  <p className="mt-3 text-xs text-slate-500">
+                    {formatCurrency(summary.total_donations_ytd)} YTD
+                  </p>
+                )}
+              </div>
+            </Link>
+
+            <Link
+              to="/tasks"
+              className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-rose-200/50" />
+              <div className="relative">
+                <h3 className="text-lg font-semibold text-slate-900">Tasks</h3>
+                <p className="mt-1 text-sm text-slate-600">Stay on top of team to-dos</p>
+              </div>
+            </Link>
+
+            <Link
+              to="/cases"
+              className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-red-200/50" />
+              <div className="relative">
+                <h3 className="text-lg font-semibold text-slate-900">Cases</h3>
+                <p className="mt-1 text-sm text-slate-600">Track client cases and follow-ups</p>
+                <p className="mt-3 text-xs text-slate-500">{activeCases.length} active cases</p>
+              </div>
+            </Link>
+
+            <Link
+              to="/analytics"
+              className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-indigo-200/50" />
+              <div className="relative">
+                <h3 className="text-lg font-semibold text-slate-900">Reports</h3>
+                <p className="mt-1 text-sm text-slate-600">Dig into trends and insights</p>
+              </div>
+            </Link>
+          </div>
+        </section>
+      )}
+
+      <section className="mt-6">
+        <h2 className="text-lg font-semibold text-slate-900">Key Metrics (YTD)</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Snapshot of year-to-date activity across fundraising and engagement.
+        </p>
+        <div className="mt-4">
+          {summaryLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="h-24 rounded-2xl bg-slate-100 animate-pulse" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
+              {error}
+            </div>
+          ) : summary ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {kpiCards
+                .filter((card) => settings.kpis[card.key])
+                .map((card) => (
+                  <KPICard
+                    key={card.key}
+                    title={card.title}
+                    value={card.value}
+                    subtitle={card.subtitle}
+                    color={card.color}
+                  />
+                ))}
+            </div>
+          ) : (
+            <div className="text-slate-500">No analytics data available</div>
           )}
         </div>
-      </div>
+      </section>
+
+      {summary && settings.showEngagementChart && (
+        <section className="mt-6">
+          <EngagementChart distribution={summary.engagement_distribution} />
+        </section>
+      )}
+
+      {settings.showVolunteerWidget && (
+        <section className="mt-6">
+          <VolunteerWidget showDetailedView={true} />
+        </section>
+      )}
+    </div>
   );
 }

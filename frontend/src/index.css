@@ -1,7 +1,10 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 /* LOOP Design System - Theme Engine */
 :root {
+  --font-display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;
+  --font-body: 'Space Grotesk', 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
   /* GLOBAL DEFAULTS (NEO-BRUTALIST) */
   --loop-yellow: #FFD700;
   --loop-green: #90EE90;
@@ -13,8 +16,17 @@
   --app-bg: #F9FAFB;
   /* Gray 50 equivalent */
   --app-surface: #FFFFFF;
+  --app-surface-muted: #F3F4F6;
   --app-text: #000000;
+  --app-text-muted: #6B7280;
+  --app-text-subtle: #9CA3AF;
   --app-border: #000000;
+  --app-accent: #2563EB;
+  --app-accent-hover: #1D4ED8;
+  --app-accent-text: #2563EB;
+  --app-accent-text-hover: #1D4ED8;
+  --app-accent-soft: #DBEAFE;
+  --app-accent-soft-hover: #BFDBFE;
 
   --shadow-color: #000000;
   --border-brutal: 2px solid #000000;
@@ -24,13 +36,30 @@
   --focus-ring: #000000;
 }
 
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
 /* GLOBAL DARK MODE (DEFAULT FALLBACK) */
 body.dark:not([class*="theme-"]) {
   /* Default Dark Mode (High Contrast Neon/Black) */
   --app-bg: #121212;
   --app-surface: #000000;
+  --app-surface-muted: #1F2937;
   --app-text: #FFFFFF;
+  --app-text-muted: #D1D5DB;
+  --app-text-subtle: #9CA3AF;
   --app-border: #FFFFFF;
+  --app-accent: #2563EB;
+  --app-accent-hover: #1D4ED8;
+  --app-accent-text: #60A5FA;
+  --app-accent-text-hover: #93C5FD;
+  --app-accent-soft: rgba(37, 99, 235, 0.2);
+  --app-accent-soft-hover: rgba(37, 99, 235, 0.35);
 
   --shadow-color: #FFFFFF;
   /* Inverted White Shadows for Brutalism */
@@ -70,10 +99,19 @@ body.theme-sea-breeze {
   /* Very Light Teal */
   --app-surface: #F5FCFD;
   /* Minty White */
+  --app-surface-muted: #DFF6F3;
   --app-text: #004D40;
   /* Teal 900 */
+  --app-text-muted: #0F766E;
+  --app-text-subtle: #14B8A6;
   --app-border: #80CBC4;
   /* Teal 200 */
+  --app-accent: #009688;
+  --app-accent-hover: #00796B;
+  --app-accent-text: #009688;
+  --app-accent-text-hover: #00796B;
+  --app-accent-soft: #B2DFDB;
+  --app-accent-soft-hover: #80CBC4;
 
   /* Brutalist Overrides (Softened) */
   --shadow-color: rgba(0, 150, 136, 0.2);
@@ -105,9 +143,18 @@ body.theme-sea-breeze.dark {
   /* Deepest Teal/Black */
   --app-surface: #004D40;
   /* Deep Teal Surface */
+  --app-surface-muted: #00695C;
   --app-text: #E0F2F1;
   /* Light Teal Text */
+  --app-text-muted: #B2DFDB;
+  --app-text-subtle: #80CBC4;
   --app-border: #00796B;
+  --app-accent: #4DB6AC;
+  --app-accent-hover: #26A69A;
+  --app-accent-text: #B2DFDB;
+  --app-accent-text-hover: #80CBC4;
+  --app-accent-soft: rgba(77, 182, 172, 0.2);
+  --app-accent-soft-hover: rgba(77, 182, 172, 0.35);
 
   --shadow-color: #000000;
   --border-brutal: 2px solid #004D40;
@@ -206,7 +253,16 @@ body.theme-corporate {
   --app-bg: #FFFFFF;
   --app-surface: #F9FAFB;
   --app-text: #111827;
+  --app-surface-muted: #F3F4F6;
+  --app-text-muted: #4B5563;
+  --app-text-subtle: #6B7280;
   --app-border: #E5E7EB;
+  --app-accent: #1F2937;
+  --app-accent-hover: #111827;
+  --app-accent-text: #1F2937;
+  --app-accent-text-hover: #111827;
+  --app-accent-soft: #E5E7EB;
+  --app-accent-soft-hover: #D1D5DB;
 
   /* Brutalist Overrides (Normalized) */
   --shadow-color: rgba(0, 0, 0, 0.05);
@@ -238,9 +294,18 @@ body.theme-corporate.dark {
   /* Gray 900 */
   --app-surface: #1F2937;
   /* Gray 800 */
+  --app-surface-muted: #374151;
   --app-text: #F9FAFB;
   /* Gray 50 */
+  --app-text-muted: #E5E7EB;
+  --app-text-subtle: #CBD5E1;
   --app-border: #374151;
+  --app-accent: #4B5563;
+  --app-accent-hover: #374151;
+  --app-accent-text: #E5E7EB;
+  --app-accent-text-hover: #F9FAFB;
+  --app-accent-soft: rgba(75, 85, 99, 0.2);
+  --app-accent-soft-hover: rgba(75, 85, 99, 0.35);
 
   --shadow-color: #000000;
   --border-brutal: 1px solid #374151;
@@ -271,6 +336,69 @@ body.theme-corporate button:hover {
   border-color: #d1d5db !important;
 }
 
+/* ==========================================================================
+   THEME 3: CLEAN MODERN (LIGHT & DARK)
+   Concept: Crisp, minimal surfaces with cool slate tones and blue accents
+   ========================================================================== */
+body.theme-clean-modern {
+  /* LIGHT MODE */
+  --loop-yellow: #FDE68A;
+  --loop-green: #A7F3D0;
+  --loop-purple: #C4B5FD;
+  --loop-pink: #F9A8D4;
+  --loop-cyan: #67E8F9;
+  --loop-blue: #93C5FD;
+
+  --app-bg: #F8FAFC;
+  --app-surface: #FFFFFF;
+  --app-surface-muted: #F1F5F9;
+  --app-text: #0F172A;
+  --app-text-muted: #475569;
+  --app-text-subtle: #94A3B8;
+  --app-border: #E2E8F0;
+  --app-accent: #2563EB;
+  --app-accent-hover: #1D4ED8;
+  --app-accent-text: #1D4ED8;
+  --app-accent-text-hover: #1E40AF;
+  --app-accent-soft: #DBEAFE;
+  --app-accent-soft-hover: #BFDBFE;
+
+  --shadow-color: rgba(15, 23, 42, 0.08);
+  --border-brutal: 1px solid #E2E8F0;
+  --shadow-brutal: 0 2px 6px rgba(15, 23, 42, 0.08);
+  --shadow-brutal-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --focus-ring: #2563EB;
+}
+
+body.theme-clean-modern.dark {
+  --loop-yellow: #FDE68A;
+  --loop-green: #A7F3D0;
+  --loop-purple: #C4B5FD;
+  --loop-pink: #F9A8D4;
+  --loop-cyan: #67E8F9;
+  --loop-blue: #93C5FD;
+
+  --app-bg: #0B1220;
+  --app-surface: #111827;
+  --app-surface-muted: #1F2937;
+  --app-text: #E2E8F0;
+  --app-text-muted: #94A3B8;
+  --app-text-subtle: #64748B;
+  --app-border: #334155;
+  --app-accent: #3B82F6;
+  --app-accent-hover: #2563EB;
+  --app-accent-text: #93C5FD;
+  --app-accent-text-hover: #BFDBFE;
+  --app-accent-soft: rgba(59, 130, 246, 0.2);
+  --app-accent-soft-hover: rgba(59, 130, 246, 0.35);
+
+  --shadow-color: #000000;
+  --border-brutal: 1px solid #334155;
+  --shadow-brutal: 0 2px 6px rgba(0, 0, 0, 0.35);
+  --shadow-brutal-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --focus-ring: #3B82F6;
+}
+
 
 /* ==========================================================================
    THEME 3: GLASSMORPHISM (LIGHT & DARK)
@@ -296,10 +424,19 @@ body.theme-glass {
   /* Slate 400 - Darker Silver-Blue "Premium Steel" */
   --app-surface: rgba(203, 213, 225, 0.7);
   /* Slate 300 - Frosted */
+  --app-surface-muted: rgba(203, 213, 225, 0.4);
   --app-text: #0F172A;
   /* Slate 900 */
+  --app-text-muted: #334155;
+  --app-text-subtle: #475569;
   --app-border: #CBD5E1;
   /* Slate 300 */
+  --app-accent: #00B0FF;
+  --app-accent-hover: #0081CC;
+  --app-accent-text: #00B0FF;
+  --app-accent-text-hover: #0081CC;
+  --app-accent-soft: rgba(0, 176, 255, 0.15);
+  --app-accent-soft-hover: rgba(0, 176, 255, 0.25);
 
   /* Brutalist Overrides (Glassy) */
   --shadow-color: rgba(0, 0, 0, 0.15);
@@ -329,8 +466,17 @@ body.theme-glass.dark {
   --app-bg: #000000;
   /* Pure Black */
   --app-surface: rgba(20, 20, 30, 0.8);
+  --app-surface-muted: rgba(59, 130, 246, 0.15);
   --app-text: #F3F4F6;
+  --app-text-muted: #E2E8F0;
+  --app-text-subtle: #CBD5E1;
   --app-border: rgba(59, 130, 246, 0.5);
+  --app-accent: #007FFF;
+  --app-accent-hover: #005FCC;
+  --app-accent-text: #93C5FD;
+  --app-accent-text-hover: #BFDBFE;
+  --app-accent-soft: rgba(0, 127, 255, 0.2);
+  --app-accent-soft-hover: rgba(0, 127, 255, 0.35);
 
   /* Brutalist Overrides (Glowing) */
   --shadow-color: #3B82F6;
@@ -374,6 +520,108 @@ body.theme-glass textarea {
   background-color: rgba(0, 0, 0, 0.5) !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
   color: white !important;
+}
+
+/* ==========================================================================
+   THEME NORMALIZATION: MAP COMMON TAILWIND UTILITIES TO THEME TOKENS
+   Ensures consistent surfaces, text, borders, and primary accents across pages.
+   ========================================================================== */
+body {
+  color: var(--app-text);
+  background-color: var(--app-bg);
+}
+
+body:not(.theme-glass) .bg-white {
+  background-color: var(--app-surface) !important;
+}
+
+body:not(.theme-glass) .bg-gray-50,
+body:not(.theme-glass) .bg-gray-100,
+body:not(.theme-glass) .bg-gray-200,
+body:not(.theme-glass) .bg-gray-300 {
+  background-color: var(--app-surface-muted) !important;
+}
+
+body .text-gray-900,
+body .text-gray-800,
+body .text-gray-700 {
+  color: var(--app-text) !important;
+}
+
+body .text-gray-600,
+body .text-gray-500 {
+  color: var(--app-text-muted) !important;
+}
+
+body .text-gray-400,
+body .text-gray-300 {
+  color: var(--app-text-subtle) !important;
+}
+
+body .border-gray-200,
+body .border-gray-300,
+body .border-gray-400,
+body .border-gray-500 {
+  border-color: var(--app-border) !important;
+}
+
+body .bg-blue-500,
+body .bg-blue-600 {
+  background-color: var(--app-accent) !important;
+}
+
+body .hover\\:bg-blue-700:hover {
+  background-color: var(--app-accent-hover) !important;
+}
+
+body .bg-blue-50,
+body .bg-blue-100 {
+  background-color: var(--app-accent-soft) !important;
+}
+
+body .hover\\:bg-blue-50:hover,
+body .hover\\:bg-blue-100:hover {
+  background-color: var(--app-accent-soft-hover) !important;
+}
+
+body .focus\\:bg-blue-50:focus {
+  background-color: var(--app-accent-soft-hover) !important;
+}
+
+body .hover\\:border-blue-500:hover {
+  border-color: var(--app-accent) !important;
+}
+
+body .text-blue-600,
+body .text-blue-500,
+body .text-blue-700,
+body .text-blue-800,
+body .text-blue-900 {
+  color: var(--app-accent-text) !important;
+}
+
+body .hover\\:text-blue-500:hover,
+body .hover\\:text-blue-800:hover,
+body .hover\\:text-blue-900:hover {
+  color: var(--app-accent-text-hover) !important;
+}
+
+body .border-blue-200,
+body .border-blue-300,
+body .border-blue-400,
+body .border-blue-500,
+body .border-blue-600 {
+  border-color: var(--app-accent) !important;
+}
+
+body .focus\\:ring-blue-500:focus,
+body .focus\\:ring-blue-600:focus {
+  --tw-ring-color: var(--app-accent) !important;
+}
+
+body .focus\\:border-blue-500:focus,
+body .focus\\:border-blue-600:focus {
+  border-color: var(--app-accent) !important;
 }
 
 /* UTILITIES */
@@ -479,7 +727,7 @@ body.theme-glass textarea {
    Fixes ALL text visibility while respecting Safety Zone for colored cards
    ============================================================================== */
 
-/* RULE 1: GLOBAL WHITE TEXT - All text elements in dark mode MUST be white */
+/* RULE 1: GLOBAL TEXT COLOR - Use theme token for dark mode */
 .dark,
 .dark body,
 .dark h1,
@@ -496,7 +744,7 @@ body.theme-glass textarea {
 .dark th,
 .dark li,
 .dark a {
-  color: #FFFFFF;
+  color: var(--app-text);
 }
 
 /* RULE 2: SIDEBAR TEXT - Force all sidebar text to be visible */
@@ -504,12 +752,12 @@ body.theme-glass textarea {
 .dark nav div,
 .dark [class*="sidebar"] span,
 .dark [class*="Sidebar"] span {
-  color: #FFFFFF !important;
+  color: var(--app-text) !important;
 }
 
 /* Sidebar module button labels - explicit override */
 .dark nav a>div>span:last-child {
-  color: #FFFFFF !important;
+  color: var(--app-text) !important;
 }
 
 /* RULE 3: SAFETY ZONE - Colored Cards MUST have BLACK text */
@@ -546,18 +794,18 @@ body.theme-glass textarea {
   color: #000000 !important;
 }
 
-/* RULE 4: INPUTS - Dark grey background, white text, white border */
+/* RULE 4: INPUTS - Use theme surfaces in dark mode */
 .dark input,
 .dark select,
 .dark textarea {
-  background-color: #1a1a1a !important;
-  color: #FFFFFF !important;
-  border: 2px solid #FFFFFF !important;
+  background-color: var(--app-surface) !important;
+  color: var(--app-text) !important;
+  border: 2px solid var(--app-border) !important;
 }
 
 .dark input::placeholder,
 .dark textarea::placeholder {
-  color: #9CA3AF !important;
+  color: var(--app-text-subtle) !important;
 }
 
 /* RULE 5: SIDEBAR HEADER - "COMMUNITY LOOP" stays BLACK on yellow */
@@ -576,7 +824,7 @@ body.theme-glass textarea {
 .dark header span,
 .dark [class*="header"] span,
 .dark button span {
-  color: #FFFFFF !important;
+  color: var(--app-text) !important;
 }
 
 /* But keep black text in yellow/colored backgrounds */
@@ -585,9 +833,9 @@ body.theme-glass textarea {
   color: #000000 !important;
 }
 
-/* RULE 7: BORDERS - White borders on dark backgrounds */
+/* RULE 7: BORDERS - Use theme border on dark backgrounds */
 .dark .border-black:not(.bg-\[var\(--loop-yellow\)\]):not(.bg-\[var\(--loop-green\)\]):not(.bg-\[var\(--loop-blue\)\]):not(.bg-\[var\(--loop-purple\)\]):not(.bg-\[var\(--loop-pink\)\]) {
-  border-color: #FFFFFF !important;
+  border-color: var(--app-border) !important;
 }
 
 /* Colored cards keep black borders */
@@ -610,22 +858,22 @@ body.theme-glass textarea {
   color: #000000 !important;
 }
 
-/* RULE 9: DARK CONTAINERS - White text on dark surfaces */
+/* RULE 9: DARK CONTAINERS - Use theme text on dark surfaces */
 /* Overrides the greedy safety zone for explicit dark containers */
 .dark .dark\:bg-\[\#121212\],
 .dark [class*="dark:bg-[#121212]"] {
-  color: #FFFFFF !important;
+  color: var(--app-text) !important;
 }
 
 .dark .dark\:bg-\[\#121212\] *,
 .dark [class*="dark:bg-[#121212]"] * {
-  color: #FFFFFF !important;
+  color: var(--app-text) !important;
 }
 
-/* RULE 10: TABLE CELLS - Explicit white text in dark mode tables */
+/* RULE 10: TABLE CELLS - Explicit text in dark mode tables */
 .dark table td,
 .dark table th {
-  color: #FFFFFF !important;
+  color: var(--app-text) !important;
 }
 
 /* But keep black text for cells with colored backgrounds */
@@ -634,9 +882,9 @@ body.theme-glass textarea {
   color: #000000 !important;
 }
 
-/* RULE 11: KANBAN HEADERS - White text on dark column headers */
+/* RULE 11: KANBAN HEADERS - Ensure visibility */
 .dark .font-black.text-lg {
-  color: #FFFFFF !important;
+  color: var(--app-text) !important;
 }
 
 /* RULE 12: UPPERCASE TEXT - Ensure uppercase styling preserved */

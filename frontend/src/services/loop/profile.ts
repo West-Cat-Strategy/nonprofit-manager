@@ -19,9 +19,10 @@ export const getUserProfile = async (): Promise<UserProfile> => {
     notifications: {
       emailNotifications: true,
       taskReminders: true,
-      weeklySummaries: true,
-      newRegistrations: false,
+      eventReminders: true,
       donationAlerts: true,
+      caseUpdates: false,
+      weeklyDigest: true,
       marketingEmails: false,
     },
   };
