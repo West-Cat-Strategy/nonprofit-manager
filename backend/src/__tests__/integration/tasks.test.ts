@@ -87,7 +87,7 @@ describe('Task API Integration Tests', () => {
       expect(response.body.related_to_type).toBe('event');
     });
 
-    it('should validate priority enum', async () => {
+    it('should reject invalid priority enum', async () => {
       const response = await request(app)
         .post('/api/tasks')
         .set('Authorization', `Bearer ${authToken}`)
@@ -95,10 +95,10 @@ describe('Task API Integration Tests', () => {
           subject: 'Invalid Priority Task',
           priority: 'invalid_priority',
         })
-        .expect(201); // Service accepts any value, DB may reject
+        .expect(400); // Validation middleware correctly rejects invalid enum
 
-      // The task is created but priority may be set to default
-      expect(response.body).toHaveProperty('id');
+      expect(response.body).toHaveProperty('error', 'Validation failed');
+      expect(response.body).toHaveProperty('details');
     });
   });
 

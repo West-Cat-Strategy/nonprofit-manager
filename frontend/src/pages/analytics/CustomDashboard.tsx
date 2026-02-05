@@ -284,7 +284,6 @@ const CustomDashboard = () => {
         isResizable={editMode}
         onLayoutChange={(layout) => handleLayoutChange(layout as unknown as Layout[])}
         draggableHandle=".drag-handle"
-        {...({} as any)}
       >
         {currentDashboard.widgets.map((widget) => (
           <div

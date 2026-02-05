@@ -13,6 +13,7 @@ import {
   exportComprehensive,
 } from '../controllers/exportController';
 import { authenticate } from '../middleware/auth';
+import { validateRequest } from '../middleware/validation';
 import { requireExportPermission } from '../middleware/analyticsAuth';
 import { loadDataScope } from '../middleware/dataScope';
 
@@ -36,6 +37,7 @@ router.post(
     body('end_date').optional().isISO8601(),
     body('donor_type').optional().isString(),
     body('payment_method').optional().isString(),
+    validateRequest,
   ],
   exportAnalyticsSummary
 );
@@ -55,6 +57,7 @@ router.post(
     body('payment_method').optional().isString(),
     body('min_amount').optional().isNumeric(),
     body('max_amount').optional().isNumeric(),
+    validateRequest,
   ],
   exportDonations
 );
@@ -72,6 +75,7 @@ router.post(
     body('end_date').optional().isISO8601(),
     body('volunteer_id').optional().isUUID(),
     body('activity_type').optional().isString(),
+    validateRequest,
   ],
   exportVolunteerHours
 );
@@ -89,6 +93,7 @@ router.post(
     body('end_date').optional().isISO8601(),
     body('event_type').optional().isString(),
     body('status').optional().isString(),
+    validateRequest,
   ],
   exportEvents
 );
@@ -104,6 +109,7 @@ router.post(
     body('filename').optional().isString(),
     body('start_date').isISO8601().withMessage('Start date is required'),
     body('end_date').isISO8601().withMessage('End date is required'),
+    validateRequest,
   ],
   exportComprehensive
 );

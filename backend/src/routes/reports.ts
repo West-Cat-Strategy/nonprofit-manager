@@ -7,6 +7,7 @@ import { Router } from 'express';
 import { param, body } from 'express-validator';
 import { generateReport, getAvailableFields } from '../controllers/reportController';
 import { authenticate } from '../middleware/auth';
+import { validateRequest } from '../middleware/validation';
 
 const router = Router();
 
@@ -28,6 +29,7 @@ router.post(
     body('filters').optional().isArray(),
     body('sort').optional().isArray(),
     body('limit').optional().isInt({ min: 1, max: 10000 }),
+    validateRequest,
   ],
   generateReport
 );
@@ -42,6 +44,7 @@ router.get(
     param('entity')
       .isIn(['accounts', 'contacts', 'donations', 'events', 'volunteers', 'tasks'])
       .withMessage('Invalid entity type'),
+    validateRequest,
   ],
   getAvailableFields
 );

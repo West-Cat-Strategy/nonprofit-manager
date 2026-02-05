@@ -8,6 +8,7 @@ import {
   acceptPortalInvitation,
 } from '../controllers/portalAuthController';
 import { authenticatePortal } from '../middleware/portalAuth';
+import { validateRequest } from '../middleware/validation';
 
 const router = Router();
 
@@ -19,13 +20,14 @@ router.post(
     body('firstName').isString().notEmpty(),
     body('lastName').isString().notEmpty(),
     body('phone').optional().isString(),
+    validateRequest,
   ],
   portalSignup
 );
 
 router.post(
   '/login',
-  [body('email').isEmail().normalizeEmail(), body('password').isString()],
+  [body('email').isEmail().normalizeEmail(), body('password').isString(), validateRequest],
   portalLogin
 );
 
@@ -33,7 +35,7 @@ router.get('/me', authenticatePortal, getPortalMe);
 
 router.get(
   '/invitations/validate/:token',
-  [param('token').isString().notEmpty()],
+  [param('token').isString().notEmpty(), validateRequest],
   validatePortalInvitation
 );
 
@@ -44,6 +46,7 @@ router.post(
     body('firstName').isString().notEmpty(),
     body('lastName').isString().notEmpty(),
     body('password').isLength({ min: 8 }),
+    validateRequest,
   ],
   acceptPortalInvitation
 );
