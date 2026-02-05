@@ -1,4 +1,4 @@
-import { configureStore } from '@reduxjs/toolkit';
+import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
 import accountsReducer from './slices/accountsSlice';
 import contactsReducer from './slices/contactsSlice';
@@ -19,7 +19,7 @@ import dashboardReducer from './slices/dashboardSlice';
 import alertsReducer from './slices/alertsSlice';
 import portalAuthReducer from './slices/portalAuthSlice';
 
-export const rootReducer = {
+export const rootReducer = combineReducers({
   auth: authReducer,
   accounts: accountsReducer,
   contacts: contactsReducer,
@@ -39,7 +39,7 @@ export const rootReducer = {
   dashboard: dashboardReducer,
   alerts: alertsReducer,
   portalAuth: portalAuthReducer,
-};
+});
 
 export const store = configureStore({
   reducer: rootReducer,

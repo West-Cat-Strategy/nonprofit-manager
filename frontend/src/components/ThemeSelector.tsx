@@ -7,9 +7,10 @@ interface ThemeOption {
 }
 
 const themeOptions: ThemeOption[] = [
-    { id: 'default', label: 'Neo-Brutalist (Default)', colors: ['#FFD700', '#000000'] },
+    { id: 'neobrutalist', label: 'Neobrutalist', colors: ['#FFD700', '#000000'] },
     { id: 'sea-breeze', label: 'Sea Breeze', colors: ['#98FB98', '#AFEEEE'] },
     { id: 'corporate', label: 'Corporate Minimal', colors: ['#F3F4F6', '#111827'] },
+    { id: 'clean-modern', label: 'Clean and Modern', colors: ['#E2E8F0', '#2563EB'] },
     { id: 'glass', label: 'Glassmorphism', colors: ['#E0E7FF', '#007FFF'] },
 ];
 

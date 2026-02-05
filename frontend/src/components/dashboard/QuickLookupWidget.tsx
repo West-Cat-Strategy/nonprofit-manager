@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
 interface SearchResult {
@@ -23,6 +23,7 @@ interface QuickLookupWidgetProps {
 }
 
 export default function QuickLookupWidget({ className = '' }: QuickLookupWidgetProps) {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -89,7 +90,8 @@ export default function QuickLookupWidget({ className = '' }: QuickLookupWidgetP
       case 'Enter':
         e.preventDefault();
         if (selectedIndex >= 0 && results[selectedIndex]) {
-          window.location.href = `/contacts/${results[selectedIndex].contact_id}`;
+          setIsOpen(false);
+          navigate(`/contacts/${results[selectedIndex].contact_id}`);
         }
         break;
       case 'Escape':
