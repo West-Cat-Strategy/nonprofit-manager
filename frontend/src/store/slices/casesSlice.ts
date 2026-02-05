@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../services/api';
-import { formatApiErrorMessage } from '../../utils/apiError';
+import { formatApiErrorMessageWith } from '../../utils/apiError';
 import type {
   CasesState,
   CaseWithDetails,
@@ -15,6 +15,8 @@ import type {
   CaseNotesResponse,
   CaseSummary,
 } from '../../types/case';
+
+const getErrorMessage = (error: unknown, fallbackMessage: string) => formatApiErrorMessageWith(fallbackMessage)(error);
 
 const initialState: CasesState = {
   cases: [],
@@ -49,7 +51,7 @@ export const fetchCases = createAsyncThunk(
       const response = await api.get<CasesResponse>(`/cases?${params.toString()}`);
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(formatApiErrorMessage(error, 'Failed to fetch cases'));
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch cases'));
     }
   }
 );
@@ -61,7 +63,7 @@ export const fetchCaseById = createAsyncThunk(
       const response = await api.get<CaseWithDetails>(`/cases/${id}`);
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(formatApiErrorMessage(error, 'Failed to fetch case'));
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch case'));
     }
   }
 );
@@ -73,7 +75,7 @@ export const createCase = createAsyncThunk(
       const response = await api.post<CaseWithDetails>('/cases', data);
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(formatApiErrorMessage(error, 'Failed to create case'));
+      return rejectWithValue(getErrorMessage(error, 'Failed to create case'));
     }
   }
 );
@@ -85,7 +87,7 @@ export const updateCase = createAsyncThunk(
       const response = await api.put<CaseWithDetails>(`/cases/${id}`, data);
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(formatApiErrorMessage(error, 'Failed to update case'));
+      return rejectWithValue(getErrorMessage(error, 'Failed to update case'));
     }
   }
 );
@@ -97,7 +99,7 @@ export const deleteCase = createAsyncThunk(
       await api.delete(`/cases/${id}`);
       return id;
     } catch (error: any) {
-      return rejectWithValue(formatApiErrorMessage(error, 'Failed to delete case'));
+      return rejectWithValue(getErrorMessage(error, 'Failed to delete case'));
     }
   }
 );
@@ -109,7 +111,7 @@ export const updateCaseStatus = createAsyncThunk(
       const response = await api.put<CaseWithDetails>(`/cases/${id}/status`, data);
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(formatApiErrorMessage(error, 'Failed to update status'));
+      return rejectWithValue(getErrorMessage(error, 'Failed to update status'));
     }
   }
 );
@@ -121,7 +123,7 @@ export const fetchCaseNotes = createAsyncThunk(
       const response = await api.get<CaseNotesResponse>(`/cases/${caseId}/notes`);
       return response.data.notes;
     } catch (error: any) {
-      return rejectWithValue(formatApiErrorMessage(error, 'Failed to fetch notes'));
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch notes'));
     }
   }
 );
@@ -133,7 +135,7 @@ export const createCaseNote = createAsyncThunk(
       const response = await api.post('/cases/notes', data);
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(formatApiErrorMessage(error, 'Failed to create note'));
+      return rejectWithValue(getErrorMessage(error, 'Failed to create note'));
     }
   }
 );
@@ -145,7 +147,7 @@ export const fetchCaseTypes = createAsyncThunk(
       const response = await api.get<CaseTypesResponse>('/cases/types');
       return response.data.types;
     } catch (error: any) {
-      return rejectWithValue(formatApiErrorMessage(error, 'Failed to fetch case types'));
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch case types'));
     }
   }
 );
@@ -157,7 +159,7 @@ export const fetchCaseStatuses = createAsyncThunk(
       const response = await api.get<CaseStatusesResponse>('/cases/statuses');
       return response.data.statuses;
     } catch (error: any) {
-      return rejectWithValue(formatApiErrorMessage(error, 'Failed to fetch statuses'));
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch statuses'));
     }
   }
 );
@@ -169,7 +171,7 @@ export const fetchCaseSummary = createAsyncThunk(
       const response = await api.get<CaseSummary>('/cases/summary');
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(formatApiErrorMessage(error, 'Failed to fetch summary'));
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch summary'));
     }
   }
 );

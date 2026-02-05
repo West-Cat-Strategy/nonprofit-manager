@@ -1,11 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { Provider } from 'react-redux';
-import { BrowserRouter } from 'react-router-dom';
-import { configureStore } from '@reduxjs/toolkit';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { ContactForm } from '../ContactForm';
-import contactsReducer from '../../store/slices/contactsSlice';
-import accountsReducer from '../../store/slices/accountsSlice';
+import { renderWithProviders, createTestStore } from '../../test/testUtils';
 import api from '../../services/api';
 
 vi.mock('../../services/api', () => ({
@@ -27,22 +23,9 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-const createTestStore = () => {
-  return configureStore({
-    reducer: {
-      contacts: contactsReducer,
-      accounts: accountsReducer,
-    },
-  });
-};
-
-const renderWithProviders = async (component: React.ReactElement) => {
+const renderContactForm = async (component: React.ReactElement) => {
   const store = createTestStore();
-  const view = render(
-    <Provider store={store}>
-      <BrowserRouter>{component}</BrowserRouter>
-    </Provider>
-  );
+  const view = renderWithProviders(component, { store });
   // ContactForm fetches role/options on mount; wait for the effect to settle to avoid act warnings.
   await waitFor(() => expect(mockApi.get).toHaveBeenCalled());
   return view;
@@ -56,7 +39,7 @@ describe('ContactForm', () => {
 
   describe('Create Mode', () => {
     it('renders all required form fields', async () => {
-      await renderWithProviders(<ContactForm mode="create" />);
+      await renderContactForm(<ContactForm mode="create" />);
 
       expect(screen.getByLabelText(/first name \*/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/last name \*/i)).toBeInTheDocument();
@@ -65,12 +48,12 @@ describe('ContactForm', () => {
     });
 
     it('shows Create Contact button', async () => {
-      await renderWithProviders(<ContactForm mode="create" />);
+      await renderContactForm(<ContactForm mode="create" />);
       expect(screen.getByRole('button', { name: /create contact/i })).toBeInTheDocument();
     });
 
     it('has empty form fields initially', async () => {
-      await renderWithProviders(<ContactForm mode="create" />);
+      await renderContactForm(<ContactForm mode="create" />);
 
       const firstNameInput = screen.getByLabelText(/first name \*/i) as HTMLInputElement;
       expect(firstNameInput.value).toBe('');
@@ -80,7 +63,7 @@ describe('ContactForm', () => {
     });
 
     it('allows user to fill out basic contact info', async () => {
-      await renderWithProviders(<ContactForm mode="create" />);
+      await renderContactForm(<ContactForm mode="create" />);
 
       const firstNameInput = screen.getByLabelText(/first name \*/i) as HTMLInputElement;
       fireEvent.change(firstNameInput, { target: { value: 'John' } });
@@ -96,14 +79,14 @@ describe('ContactForm', () => {
     });
 
     it('validates email input type', async () => {
-      await renderWithProviders(<ContactForm mode="create" />);
+      await renderContactForm(<ContactForm mode="create" />);
 
       const emailInput = screen.getByLabelText(/^email$/i) as HTMLInputElement;
       expect(emailInput.type).toBe('email');
     });
 
     it('has cancel button that navigates back', async () => {
-      await renderWithProviders(<ContactForm mode="create" />);
+      await renderContactForm(<ContactForm mode="create" />);
 
       const cancelButton = screen.getByRole('button', { name: /cancel/i });
       fireEvent.click(cancelButton);
@@ -131,12 +114,12 @@ describe('ContactForm', () => {
     };
 
     it('shows Update Contact button in edit mode', async () => {
-      await renderWithProviders(<ContactForm mode="edit" contact={mockContact} />);
+      await renderContactForm(<ContactForm mode="edit" contact={mockContact} />);
       expect(screen.getByRole('button', { name: /update contact/i })).toBeInTheDocument();
     });
 
     it('populates form fields with contact data', async () => {
-      await renderWithProviders(<ContactForm mode="edit" contact={mockContact} />);
+      await renderContactForm(<ContactForm mode="edit" contact={mockContact} />);
 
       const firstNameInput = screen.getByLabelText(/first name \*/i) as HTMLInputElement;
       expect(firstNameInput.value).toBe('Jane');
@@ -149,7 +132,7 @@ describe('ContactForm', () => {
     });
 
     it('allows user to modify form fields', async () => {
-      await renderWithProviders(<ContactForm mode="edit" contact={mockContact} />);
+      await renderContactForm(<ContactForm mode="edit" contact={mockContact} />);
 
       const firstNameInput = screen.getByLabelText(/first name \*/i) as HTMLInputElement;
       fireEvent.change(firstNameInput, { target: { value: 'Janet' } });
@@ -159,7 +142,7 @@ describe('ContactForm', () => {
 
   describe('Contact Method Preferences', () => {
     it('allows selecting preferred contact method', async () => {
-      await renderWithProviders(<ContactForm mode="create" />);
+      await renderContactForm(<ContactForm mode="create" />);
 
       const preferredMethodSelect = screen.getByLabelText(
         /preferred contact method/i
@@ -169,7 +152,7 @@ describe('ContactForm', () => {
     });
 
     it('shows email as default preferred method', async () => {
-      await renderWithProviders(<ContactForm mode="create" />);
+      await renderContactForm(<ContactForm mode="create" />);
 
       const preferredMethodSelect = screen.getByLabelText(
         /preferred contact method/i
@@ -180,7 +163,7 @@ describe('ContactForm', () => {
 
   describe('Professional Information', () => {
     it('allows entering job title', async () => {
-      await renderWithProviders(<ContactForm mode="create" />);
+      await renderContactForm(<ContactForm mode="create" />);
 
       const titleInput = screen.getByLabelText(/job title/i) as HTMLInputElement;
       fireEvent.change(titleInput, { target: { value: 'CEO' } });
@@ -188,7 +171,7 @@ describe('ContactForm', () => {
     });
 
     it('allows entering department', async () => {
-      await renderWithProviders(<ContactForm mode="create" />);
+      await renderContactForm(<ContactForm mode="create" />);
 
       const deptInput = screen.getByLabelText(/department/i) as HTMLInputElement;
       fireEvent.change(deptInput, { target: { value: 'Marketing' } });
@@ -198,7 +181,7 @@ describe('ContactForm', () => {
 
   describe('Form Validation', () => {
     it('validates required first name field', async () => {
-      await renderWithProviders(<ContactForm mode="create" />);
+      await renderContactForm(<ContactForm mode="create" />);
 
       const submitButton = screen.getByRole('button', { name: /create contact/i });
       fireEvent.click(submitButton);
@@ -209,7 +192,7 @@ describe('ContactForm', () => {
     });
 
     it('validates required last name field', async () => {
-      await renderWithProviders(<ContactForm mode="create" />);
+      await renderContactForm(<ContactForm mode="create" />);
 
       const firstNameInput = screen.getByLabelText(/first name \*/i);
       fireEvent.change(firstNameInput, { target: { value: 'John' } });

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import api from '../../services/api';
-import { formatApiErrorMessage } from '../../utils/apiError';
+import ErrorBanner from '../../components/ErrorBanner';
+import { useApiError } from '../../hooks/useApiError';
 
 function getFilenameFromContentDisposition(headerValue: string | undefined): string | null {
   if (!headerValue) return null;
@@ -25,7 +26,7 @@ function getFilenameFromContentDisposition(headerValue: string | undefined): str
 export default function DataBackup() {
   const [includeSecrets, setIncludeSecrets] = useState(false);
   const [downloading, setDownloading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { error, details, setFromError, clear } = useApiError();
 
   const warningText = useMemo(() => {
     if (!includeSecrets) return null;
@@ -34,7 +35,7 @@ export default function DataBackup() {
 
   const downloadBackup = async () => {
     setDownloading(true);
-    setError(null);
+    clear();
     try {
       const response = await api.post(
         '/backup/export',
@@ -62,12 +63,8 @@ export default function DataBackup() {
       } finally {
         URL.revokeObjectURL(url);
       }
-    } catch (e: any) {
-      const message = formatApiErrorMessage(
-        e,
-        e?.message || 'Failed to download backup. Please try again.'
-      );
-      setError(String(message));
+    } catch (e: unknown) {
+      setFromError(e, (e as { message?: string })?.message || 'Failed to download backup. Please try again.');
     } finally {
       setDownloading(false);
     }
@@ -110,11 +107,7 @@ export default function DataBackup() {
             </div>
           )}
 
-          {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-900">
-              {error}
-            </div>
-          )}
+          <ErrorBanner message={error} correlationId={details?.correlationId} />
 
           <div className="pt-2">
             <button

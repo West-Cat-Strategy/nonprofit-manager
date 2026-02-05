@@ -11,11 +11,12 @@ import { EyeIcon, EyeSlashIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { updateUser } from '../../store/slices/authSlice';
 import api from '../../services/api';
-import { formatApiErrorMessage } from '../../utils/apiError';
 import LoopApiService from '../../services/LoopApiService';
 import NeoBrutalistLayout from '../../components/neo-brutalist/NeoBrutalistLayout';
 import ThemeSelector from '../../components/ThemeSelector';
 import { useTheme } from '../../contexts/ThemeContext';
+import ErrorBanner from '../../components/ErrorBanner';
+import { useApiError } from '../../hooks/useApiError';
 
 interface AlternativeEmail {
   email: string;
@@ -158,7 +159,11 @@ export default function UserSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState('');
+  const {
+    error: errorMessage,
+    setFromError: setErrorMessageFromError,
+    clear: clearErrorMessage,
+  } = useApiError();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
@@ -180,7 +185,12 @@ export default function UserSettings() {
 
   const [security, setSecurity] = useState<SecurityOverview>({ totpEnabled: false, passkeys: [] });
   const [securityLoading, setSecurityLoading] = useState(true);
-  const [securityError, setSecurityError] = useState('');
+  const {
+    error: securityError,
+    details: securityDetails,
+    setFromError: setSecurityErrorFromError,
+    clear: clearSecurityError,
+  } = useApiError();
 
   const [totpSetup, setTotpSetup] = useState<{
     secret: string;
@@ -194,17 +204,16 @@ export default function UserSettings() {
   const [newPasskeyName, setNewPasskeyName] = useState('');
 
   const refreshSecurity = useCallback(async () => {
-    setSecurityError('');
+    clearSecurityError();
     try {
       const response = await api.get<{ totpEnabled: boolean; passkeys: PasskeyInfo[] }>('/auth/security');
       setSecurity(response.data);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setSecurityError(formatApiErrorMessage(error, 'Failed to load security settings'));
+      setSecurityErrorFromError(err, 'Failed to load security settings');
     } finally {
       setSecurityLoading(false);
     }
-  }, []);
+  }, [clearSecurityError, setSecurityErrorFromError]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -276,20 +285,23 @@ export default function UserSettings() {
 
   const processImage = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) {
-      setErrorMessage('Please upload an image file (JPG, PNG, GIF)');
+      setErrorMessageFromError(
+        new Error('Please upload an image file (JPG, PNG, GIF)'),
+        'Please upload an image file (JPG, PNG, GIF)'
+      );
       setSaveStatus('error');
       return;
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      setErrorMessage('Image must be less than 20MB');
+      setErrorMessageFromError(new Error('Image must be less than 20MB'), 'Image must be less than 20MB');
       setSaveStatus('error');
       return;
     }
 
     setIsProcessingImage(true);
     setSaveStatus('idle');
-    setErrorMessage('');
+    clearErrorMessage();
 
     try {
       // Always resize to optimize storage and performance
@@ -297,13 +309,16 @@ export default function UserSettings() {
       setPreviewImage(resizedBase64);
       setProfile(prev => ({ ...prev, profilePicture: resizedBase64 }));
     } catch (err) {
-      setErrorMessage('Failed to process image. Please try another file.');
+      setErrorMessageFromError(
+        new Error('Failed to process image. Please try another file.'),
+        'Failed to process image. Please try another file.'
+      );
       setSaveStatus('error');
       console.error('Image processing error:', err);
     } finally {
       setIsProcessingImage(false);
     }
-  }, []);
+  }, [clearErrorMessage, setErrorMessageFromError]);
 
   const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -346,7 +361,7 @@ export default function UserSettings() {
   const handleSave = async () => {
     setIsSaving(true);
     setSaveStatus('idle');
-    setErrorMessage('');
+    clearErrorMessage();
 
     try {
       const pronounsToSave = profile.pronouns === 'custom' ? customPronouns : profile.pronouns;
@@ -370,8 +385,7 @@ export default function UserSettings() {
       setTimeout(() => setSaveStatus('idle'), 3000);
     } catch (err: unknown) {
       setSaveStatus('error');
-      const error = err as { response?: { data?: { error?: string } } };
-      setErrorMessage(formatApiErrorMessage(error, 'Failed to save profile'));
+      setErrorMessageFromError(err, 'Failed to save profile');
     } finally {
       setIsSaving(false);
     }
@@ -415,7 +429,7 @@ export default function UserSettings() {
   */
 
   const handleStartTotpSetup = async () => {
-    setSecurityError('');
+    clearSecurityError();
     setSecurityActionLoading(true);
     try {
       const response = await api.post<{ secret: string; otpauthUrl: string }>('/auth/2fa/totp/enroll');
@@ -425,8 +439,7 @@ export default function UserSettings() {
       setTotpSetup({ secret, otpauthUrl, qrDataUrl });
       setTotpEnableCode('');
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setSecurityError(formatApiErrorMessage(error, 'Failed to start 2FA setup'));
+      setSecurityErrorFromError(err, 'Failed to start 2FA setup');
     } finally {
       setSecurityActionLoading(false);
     }
@@ -434,7 +447,7 @@ export default function UserSettings() {
 
   const handleEnableTotp = async () => {
     if (!totpEnableCode.trim()) return;
-    setSecurityError('');
+    clearSecurityError();
     setSecurityActionLoading(true);
     try {
       await api.post('/auth/2fa/totp/enable', { code: totpEnableCode.trim() });
@@ -442,8 +455,7 @@ export default function UserSettings() {
       setTotpEnableCode('');
       await refreshSecurity();
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setSecurityError(formatApiErrorMessage(error, 'Failed to enable 2FA'));
+      setSecurityErrorFromError(err, 'Failed to enable 2FA');
     } finally {
       setSecurityActionLoading(false);
     }
@@ -451,7 +463,7 @@ export default function UserSettings() {
 
   const handleDisableTotp = async () => {
     if (!totpDisablePassword || !totpDisableCode.trim()) return;
-    setSecurityError('');
+    clearSecurityError();
     setSecurityActionLoading(true);
     try {
       await api.post('/auth/2fa/totp/disable', {
@@ -462,15 +474,14 @@ export default function UserSettings() {
       setTotpDisableCode('');
       await refreshSecurity();
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setSecurityError(formatApiErrorMessage(error, 'Failed to disable 2FA'));
+      setSecurityErrorFromError(err, 'Failed to disable 2FA');
     } finally {
       setSecurityActionLoading(false);
     }
   };
 
   const handleAddPasskey = async () => {
-    setSecurityError('');
+    clearSecurityError();
     setSecurityActionLoading(true);
     try {
       const { startRegistration } = await import('@simplewebauthn/browser');
@@ -486,22 +497,20 @@ export default function UserSettings() {
       setNewPasskeyName('');
       await refreshSecurity();
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setSecurityError(formatApiErrorMessage(error, 'Failed to add passkey'));
+      setSecurityErrorFromError(err, 'Failed to add passkey');
     } finally {
       setSecurityActionLoading(false);
     }
   };
 
   const handleDeletePasskey = async (id: string) => {
-    setSecurityError('');
+    clearSecurityError();
     setSecurityActionLoading(true);
     try {
       await api.delete(`/auth/passkeys/${id}`);
       await refreshSecurity();
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setSecurityError(formatApiErrorMessage(error, 'Failed to delete passkey'));
+      setSecurityErrorFromError(err, 'Failed to delete passkey');
     } finally {
       setSecurityActionLoading(false);
     }
@@ -843,11 +852,11 @@ export default function UserSettings() {
                 </div>
               )}
 
-              {securityError && (
-                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                  {securityError}
-                </div>
-              )}
+              <ErrorBanner
+                message={securityError}
+                correlationId={securityDetails?.correlationId}
+                className="mt-3"
+              />
 
               {!security.totpEnabled && totpSetup && (
                 <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-4">

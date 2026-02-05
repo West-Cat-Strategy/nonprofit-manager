@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import FieldSelector from '../FieldSelector';
-import reportsReducer from '../../store/slices/reportsSlice';
+import { renderWithProviders, createTestStore } from '../../test/testUtils';
 import api from '../../services/api';
 
 // Mock API
@@ -17,21 +15,7 @@ vi.mock('../../services/api', () => ({
 const mockApi = api as { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn> };
 
 // Create a test store
-const createTestStore = (initialState = {}) => {
-  return configureStore({
-    reducer: {
-      reports: reportsReducer,
-    },
-    preloadedState: initialState,
-  });
-};
-
 // Wrapper component
-const renderWithProviders = (component: React.ReactElement, initialState = {}) => {
-  const store = createTestStore(initialState);
-  return render(<Provider store={store}>{component}</Provider>);
-};
-
 describe('FieldSelector', () => {
   const mockOnChange = vi.fn();
   const mockFields = [
@@ -47,6 +31,11 @@ describe('FieldSelector', () => {
     mockApi.get.mockResolvedValue({ data: { entity: 'contacts', fields: mockFields } });
   });
 
+const renderFieldSelector = (component: React.ReactElement, initialState = {}) => {
+  const store = createTestStore(initialState);
+  return renderWithProviders(component, { store });
+};
+
   it('renders loading state', () => {
     mockApi.get.mockReturnValue(new Promise(() => {}));
     const initialState = {
@@ -59,7 +48,7 @@ describe('FieldSelector', () => {
       },
     };
 
-    renderWithProviders(
+    renderFieldSelector(
       <FieldSelector entity="contacts" selectedFields={[]} onChange={mockOnChange} />,
       initialState
     );
@@ -80,7 +69,7 @@ describe('FieldSelector', () => {
       },
     };
 
-    renderWithProviders(
+    renderFieldSelector(
       <FieldSelector entity="contacts" selectedFields={[]} onChange={mockOnChange} />,
       initialState
     );
@@ -104,7 +93,7 @@ describe('FieldSelector', () => {
       },
     };
 
-    renderWithProviders(
+    renderFieldSelector(
       <FieldSelector entity="contacts" selectedFields={['name', 'email']} onChange={mockOnChange} />,
       initialState
     );
@@ -125,7 +114,7 @@ describe('FieldSelector', () => {
       },
     };
 
-    renderWithProviders(
+    renderFieldSelector(
       <FieldSelector entity="contacts" selectedFields={[]} onChange={mockOnChange} />,
       initialState
     );
@@ -147,7 +136,7 @@ describe('FieldSelector', () => {
       },
     };
 
-    renderWithProviders(
+    renderFieldSelector(
       <FieldSelector entity="contacts" selectedFields={['name', 'email']} onChange={mockOnChange} />,
       initialState
     );
@@ -169,7 +158,7 @@ describe('FieldSelector', () => {
       },
     };
 
-    renderWithProviders(
+    renderFieldSelector(
       <FieldSelector entity="contacts" selectedFields={[]} onChange={mockOnChange} />,
       initialState
     );
@@ -191,7 +180,7 @@ describe('FieldSelector', () => {
       },
     };
 
-    renderWithProviders(
+    renderFieldSelector(
       <FieldSelector entity="contacts" selectedFields={['name', 'email']} onChange={mockOnChange} />,
       initialState
     );
@@ -214,7 +203,7 @@ describe('FieldSelector', () => {
       },
     };
 
-    renderWithProviders(
+    renderFieldSelector(
       <FieldSelector entity="contacts" selectedFields={[]} onChange={mockOnChange} />,
       initialState
     );

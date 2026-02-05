@@ -1,10 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
-import { MemoryRouter } from 'react-router-dom';
+import { screen, fireEvent } from '@testing-library/react';
 import NeoBrutalistLayout from '../neo-brutalist/NeoBrutalistLayout';
-import authReducer from '../../store/slices/authSlice';
+import { renderWithProviders, createTestStore } from '../../test/testUtils';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -16,33 +13,27 @@ vi.mock('react-router-dom', async () => {
 });
 
 const renderLayout = (role: string) => {
-  const store = configureStore({
-    reducer: { auth: authReducer },
-    preloadedState: {
-      auth: {
-        user: {
-          id: 'u1',
-          email: 'test@example.com',
-          firstName: 'Test',
-          lastName: 'User',
-          role,
-          profilePicture: null,
-        },
-        token: 't',
-        isAuthenticated: true,
-        loading: false,
+  const store = createTestStore({
+    auth: {
+      user: {
+        id: 'u1',
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        role,
+        profilePicture: null,
       },
+      token: 't',
+      isAuthenticated: true,
+      loading: false,
     },
   });
 
-  render(
-    <Provider store={store}>
-      <MemoryRouter>
-        <NeoBrutalistLayout pageTitle="TEST">
-          <div>Content</div>
-        </NeoBrutalistLayout>
-      </MemoryRouter>
-    </Provider>
+  renderWithProviders(
+    <NeoBrutalistLayout pageTitle="TEST">
+      <div>Content</div>
+    </NeoBrutalistLayout>,
+    { store }
   );
 };
 
@@ -59,4 +50,3 @@ describe('NeoBrutalistLayout', () => {
     expect(screen.queryByText('Organization Admin')).not.toBeInTheDocument();
   });
 });
-

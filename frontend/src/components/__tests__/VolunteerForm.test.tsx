@@ -1,11 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { Provider } from 'react-redux';
-import { BrowserRouter } from 'react-router-dom';
-import { configureStore } from '@reduxjs/toolkit';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { VolunteerForm } from '../VolunteerForm';
-import volunteersReducer from '../../store/slices/volunteersSlice';
-import contactsReducer from '../../store/slices/contactsSlice';
+import { renderWithProviders, createTestStore } from '../../test/testUtils';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -16,22 +12,9 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-const createTestStore = () => {
-  return configureStore({
-    reducer: {
-      volunteers: volunteersReducer,
-      contacts: contactsReducer,
-    },
-  });
-};
-
-const renderWithProviders = (component: React.ReactElement) => {
+const renderVolunteerForm = (component: React.ReactElement) => {
   const store = createTestStore();
-  return render(
-    <Provider store={store}>
-      <BrowserRouter>{component}</BrowserRouter>
-    </Provider>
-  );
+  return renderWithProviders(component, { store });
 };
 
 describe('VolunteerForm', () => {
@@ -41,7 +24,7 @@ describe('VolunteerForm', () => {
 
   describe('Create Mode', () => {
     it('renders all required form fields', () => {
-      renderWithProviders(<VolunteerForm mode="create" />);
+      renderVolunteerForm(<VolunteerForm mode="create" />);
 
       expect(screen.getByLabelText(/select contact/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/availability status/i)).toBeInTheDocument();
@@ -49,19 +32,19 @@ describe('VolunteerForm', () => {
     });
 
     it('shows Create Volunteer button', () => {
-      renderWithProviders(<VolunteerForm mode="create" />);
+      renderVolunteerForm(<VolunteerForm mode="create" />);
       expect(screen.getByRole('button', { name: /create volunteer/i })).toBeInTheDocument();
     });
 
     it('has default availability status as available', () => {
-      renderWithProviders(<VolunteerForm mode="create" />);
+      renderVolunteerForm(<VolunteerForm mode="create" />);
 
       const statusSelect = screen.getByLabelText(/availability status/i) as HTMLSelectElement;
       expect(statusSelect.value).toBe('available');
     });
 
     it('allows adding skills by typing and pressing Enter', async () => {
-      renderWithProviders(<VolunteerForm mode="create" />);
+      renderVolunteerForm(<VolunteerForm mode="create" />);
 
       const skillsInput = screen.getByLabelText(/^skills$/i) as HTMLInputElement;
       fireEvent.change(skillsInput, { target: { value: 'Programming' } });
@@ -73,7 +56,7 @@ describe('VolunteerForm', () => {
     });
 
     it('clears skill input after adding', async () => {
-      renderWithProviders(<VolunteerForm mode="create" />);
+      renderVolunteerForm(<VolunteerForm mode="create" />);
 
       const skillsInput = screen.getByLabelText(/^skills$/i) as HTMLInputElement;
       fireEvent.change(skillsInput, { target: { value: 'Design' } });
@@ -85,7 +68,7 @@ describe('VolunteerForm', () => {
     });
 
     it('allows removing skills', async () => {
-      renderWithProviders(<VolunteerForm mode="create" />);
+      renderVolunteerForm(<VolunteerForm mode="create" />);
 
       const skillsInput = screen.getByLabelText(/^skills$/i) as HTMLInputElement;
       fireEvent.change(skillsInput, { target: { value: 'Marketing' } });
@@ -110,7 +93,7 @@ describe('VolunteerForm', () => {
     });
 
     it('has cancel button that navigates back', () => {
-      renderWithProviders(<VolunteerForm mode="create" />);
+      renderVolunteerForm(<VolunteerForm mode="create" />);
 
       const cancelButton = screen.getByRole('button', { name: /cancel/i });
       fireEvent.click(cancelButton);
@@ -134,12 +117,12 @@ describe('VolunteerForm', () => {
     };
 
     it('shows Update Volunteer button in edit mode', () => {
-      renderWithProviders(<VolunteerForm mode="edit" volunteer={mockVolunteer} />);
+      renderVolunteerForm(<VolunteerForm mode="edit" volunteer={mockVolunteer} />);
       expect(screen.getByRole('button', { name: /update volunteer/i })).toBeInTheDocument();
     });
 
     it('populates form fields with volunteer data', () => {
-      renderWithProviders(<VolunteerForm mode="edit" volunteer={mockVolunteer} />);
+      renderVolunteerForm(<VolunteerForm mode="edit" volunteer={mockVolunteer} />);
 
       const statusSelect = screen.getByLabelText(/availability status/i) as HTMLSelectElement;
       expect(statusSelect.value).toBe('available');
@@ -149,14 +132,14 @@ describe('VolunteerForm', () => {
     });
 
     it('shows existing skills as tags', () => {
-      renderWithProviders(<VolunteerForm mode="edit" volunteer={mockVolunteer} />);
+      renderVolunteerForm(<VolunteerForm mode="edit" volunteer={mockVolunteer} />);
 
       expect(screen.getByText('Teaching')).toBeInTheDocument();
       expect(screen.getByText('Event Planning')).toBeInTheDocument();
     });
 
     it('allows adding new skills to existing list', async () => {
-      renderWithProviders(<VolunteerForm mode="edit" volunteer={mockVolunteer} />);
+      renderVolunteerForm(<VolunteerForm mode="edit" volunteer={mockVolunteer} />);
 
       const skillsInput = screen.getByLabelText(/^skills$/i) as HTMLInputElement;
       fireEvent.change(skillsInput, { target: { value: 'Photography' } });
@@ -171,7 +154,7 @@ describe('VolunteerForm', () => {
 
   describe('Availability Status Selection', () => {
     it('allows selecting available status', () => {
-      renderWithProviders(<VolunteerForm mode="create" />);
+      renderVolunteerForm(<VolunteerForm mode="create" />);
 
       const statusSelect = screen.getByLabelText(/availability status/i) as HTMLSelectElement;
       fireEvent.change(statusSelect, { target: { value: 'available' } });
@@ -179,7 +162,7 @@ describe('VolunteerForm', () => {
     });
 
     it('allows selecting unavailable status', () => {
-      renderWithProviders(<VolunteerForm mode="create" />);
+      renderVolunteerForm(<VolunteerForm mode="create" />);
 
       const statusSelect = screen.getByLabelText(/availability status/i) as HTMLSelectElement;
       fireEvent.change(statusSelect, { target: { value: 'unavailable' } });
@@ -187,7 +170,7 @@ describe('VolunteerForm', () => {
     });
 
     it('allows selecting limited status', () => {
-      renderWithProviders(<VolunteerForm mode="create" />);
+      renderVolunteerForm(<VolunteerForm mode="create" />);
 
       const statusSelect = screen.getByLabelText(/availability status/i) as HTMLSelectElement;
       fireEvent.change(statusSelect, { target: { value: 'limited' } });
@@ -197,7 +180,7 @@ describe('VolunteerForm', () => {
 
   describe('Background Check', () => {
     it('allows selecting background check status', () => {
-      renderWithProviders(<VolunteerForm mode="create" />);
+      renderVolunteerForm(<VolunteerForm mode="create" />);
 
       const bgCheckSelect = screen.getByLabelText(/background check status/i) as HTMLSelectElement;
       fireEvent.change(bgCheckSelect, { target: { value: 'approved' } });
@@ -205,7 +188,7 @@ describe('VolunteerForm', () => {
     });
 
     it('allows entering background check date', () => {
-      renderWithProviders(<VolunteerForm mode="create" />);
+      renderVolunteerForm(<VolunteerForm mode="create" />);
 
       const bgCheckDate = screen.getByLabelText(/background check date/i) as HTMLInputElement;
       fireEvent.change(bgCheckDate, { target: { value: '2026-02-01' } });
@@ -215,7 +198,7 @@ describe('VolunteerForm', () => {
 
   describe('Emergency Contact', () => {
     it('allows entering emergency contact name', () => {
-      renderWithProviders(<VolunteerForm mode="create" />);
+      renderVolunteerForm(<VolunteerForm mode="create" />);
 
       // The label says "Name" but the id is emergency_contact_name
       const emergencyName = document.getElementById('emergency_contact_name') as HTMLInputElement;
@@ -224,7 +207,7 @@ describe('VolunteerForm', () => {
     });
 
     it('allows entering emergency contact phone', () => {
-      renderWithProviders(<VolunteerForm mode="create" />);
+      renderVolunteerForm(<VolunteerForm mode="create" />);
 
       // The label says "Phone" but the id is emergency_contact_phone
       const emergencyPhone = document.getElementById(
@@ -237,7 +220,7 @@ describe('VolunteerForm', () => {
 
   describe('Availability Notes', () => {
     it('allows entering availability notes', () => {
-      renderWithProviders(<VolunteerForm mode="create" />);
+      renderVolunteerForm(<VolunteerForm mode="create" />);
 
       const availabilityInput = screen.getByLabelText(/availability notes/i) as HTMLTextAreaElement;
       fireEvent.change(availabilityInput, { target: { value: 'Weekdays after 5pm' } });
@@ -247,7 +230,7 @@ describe('VolunteerForm', () => {
 
   describe('Skills Management', () => {
     it('prevents adding duplicate skills', async () => {
-      renderWithProviders(<VolunteerForm mode="create" />);
+      renderVolunteerForm(<VolunteerForm mode="create" />);
 
       const skillsInput = screen.getByLabelText(/^skills$/i) as HTMLInputElement;
 
@@ -266,7 +249,7 @@ describe('VolunteerForm', () => {
     });
 
     it('trims whitespace from skill names', async () => {
-      renderWithProviders(<VolunteerForm mode="create" />);
+      renderVolunteerForm(<VolunteerForm mode="create" />);
 
       const skillsInput = screen.getByLabelText(/^skills$/i) as HTMLInputElement;
       fireEvent.change(skillsInput, { target: { value: '  Fundraising  ' } });
@@ -278,7 +261,7 @@ describe('VolunteerForm', () => {
     });
 
     it('does not add empty skills', async () => {
-      renderWithProviders(<VolunteerForm mode="create" />);
+      renderVolunteerForm(<VolunteerForm mode="create" />);
 
       const skillsInput = screen.getByLabelText(/^skills$/i) as HTMLInputElement;
       fireEvent.change(skillsInput, { target: { value: '   ' } });

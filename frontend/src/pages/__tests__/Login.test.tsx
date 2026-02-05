@@ -1,14 +1,8 @@
-import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import Login from '../auth/Login';
-import authReducer from '../../store/slices/authSlice';
-import accountsReducer from '../../store/slices/accountsSlice';
-import contactsReducer from '../../store/slices/contactsSlice';
-import volunteersReducer from '../../store/slices/volunteersSlice';
 import { authService } from '../../services/authService';
+import { renderWithProviders, createTestStore } from '../../test/testUtils';
 import { vi } from 'vitest';
 
 const mockNavigate = vi.fn();
@@ -27,25 +21,9 @@ vi.mock('../../services/authService', () => ({
   },
 }));
 
-const createTestStore = () =>
-  configureStore({
-    reducer: {
-      auth: authReducer,
-      accounts: accountsReducer,
-      contacts: contactsReducer,
-      volunteers: volunteersReducer,
-    },
-  });
-
 const renderLogin = () => {
   const store = createTestStore();
-  render(
-    <Provider store={store}>
-      <MemoryRouter>
-        <Login />
-      </MemoryRouter>
-    </Provider>
-  );
+  renderWithProviders(<Login />, { store });
   return store;
 };
 

@@ -1,10 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { Provider } from 'react-redux';
-import { BrowserRouter } from 'react-router-dom';
-import { configureStore } from '@reduxjs/toolkit';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { AccountForm } from '../AccountForm';
-import accountsReducer from '../../store/slices/accountsSlice';
+import { renderWithProviders, createTestStore } from '../../test/testUtils';
 
 // Mock navigate
 const mockNavigate = vi.fn();
@@ -16,23 +13,9 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-// Create a test store
-const createTestStore = () => {
-  return configureStore({
-    reducer: {
-      accounts: accountsReducer,
-    },
-  });
-};
-
-// Wrapper component
-const renderWithProviders = (component: React.ReactElement) => {
+const renderAccountForm = (component: React.ReactElement) => {
   const store = createTestStore();
-  return render(
-    <Provider store={store}>
-      <BrowserRouter>{component}</BrowserRouter>
-    </Provider>
-  );
+  return renderWithProviders(component, { store });
 };
 
 describe('AccountForm', () => {
@@ -42,7 +25,7 @@ describe('AccountForm', () => {
 
   describe('Create Mode', () => {
     it('renders all form fields', () => {
-      renderWithProviders(<AccountForm mode="create" />);
+      renderAccountForm(<AccountForm mode="create" />);
 
       expect(screen.getByLabelText(/account name/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/account type/i)).toBeInTheDocument();
@@ -53,19 +36,19 @@ describe('AccountForm', () => {
     });
 
     it('shows Create Account title', () => {
-      renderWithProviders(<AccountForm mode="create" />);
+      renderAccountForm(<AccountForm mode="create" />);
       expect(screen.getByText(/create account/i)).toBeInTheDocument();
     });
 
     it('has empty form fields initially', () => {
-      renderWithProviders(<AccountForm mode="create" />);
+      renderAccountForm(<AccountForm mode="create" />);
 
       const accountNameInput = screen.getByLabelText(/account name/i) as HTMLInputElement;
       expect(accountNameInput.value).toBe('');
     });
 
     it('validates required fields on submit', async () => {
-      renderWithProviders(<AccountForm mode="create" />);
+      renderAccountForm(<AccountForm mode="create" />);
 
       const submitButton = screen.getByRole('button', { name: /create account/i });
       fireEvent.click(submitButton);
@@ -77,7 +60,7 @@ describe('AccountForm', () => {
     });
 
     it('allows user to fill out the form', () => {
-      renderWithProviders(<AccountForm mode="create" />);
+      renderAccountForm(<AccountForm mode="create" />);
 
       const accountNameInput = screen.getByLabelText(/account name/i) as HTMLInputElement;
       fireEvent.change(accountNameInput, { target: { value: 'Test Organization' } });
@@ -89,7 +72,7 @@ describe('AccountForm', () => {
     });
 
     it('validates email format', async () => {
-      renderWithProviders(<AccountForm mode="create" />);
+      renderAccountForm(<AccountForm mode="create" />);
 
       const emailInput = screen.getByLabelText(/email/i);
       fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
@@ -102,7 +85,7 @@ describe('AccountForm', () => {
     });
 
     it('validates URL format for website', async () => {
-      renderWithProviders(<AccountForm mode="create" />);
+      renderAccountForm(<AccountForm mode="create" />);
 
       // Fill required fields first
       const accountNameInput = screen.getByLabelText(/account name/i);
@@ -123,7 +106,7 @@ describe('AccountForm', () => {
     });
 
     it('has cancel button that navigates back', () => {
-      renderWithProviders(<AccountForm mode="create" />);
+      renderAccountForm(<AccountForm mode="create" />);
 
       const cancelButton = screen.getByRole('button', { name: /cancel/i });
       fireEvent.click(cancelButton);
@@ -156,12 +139,12 @@ describe('AccountForm', () => {
     };
 
     it('shows Update Account button in edit mode', () => {
-      renderWithProviders(<AccountForm mode="edit" account={mockAccount} />);
+      renderAccountForm(<AccountForm mode="edit" account={mockAccount} />);
       expect(screen.getByRole('button', { name: /update account/i })).toBeInTheDocument();
     });
 
     it('populates form fields with account data', () => {
-      renderWithProviders(<AccountForm mode="edit" account={mockAccount} />);
+      renderAccountForm(<AccountForm mode="edit" account={mockAccount} />);
 
       const accountNameInput = screen.getByLabelText(/account name/i) as HTMLInputElement;
       expect(accountNameInput.value).toBe('Existing Organization');
@@ -174,7 +157,7 @@ describe('AccountForm', () => {
     });
 
     it('allows user to modify form fields', () => {
-      renderWithProviders(<AccountForm mode="edit" account={mockAccount} />);
+      renderAccountForm(<AccountForm mode="edit" account={mockAccount} />);
 
       const accountNameInput = screen.getByLabelText(/account name/i) as HTMLInputElement;
       fireEvent.change(accountNameInput, { target: { value: 'Updated Organization' } });
@@ -182,14 +165,14 @@ describe('AccountForm', () => {
     });
 
     it('shows Update Account button', () => {
-      renderWithProviders(<AccountForm mode="edit" account={mockAccount} />);
+      renderAccountForm(<AccountForm mode="edit" account={mockAccount} />);
       expect(screen.getByRole('button', { name: /update account/i })).toBeInTheDocument();
     });
   });
 
   describe('Account Type Selection', () => {
     it('allows selecting individual account type', () => {
-      renderWithProviders(<AccountForm mode="create" />);
+      renderAccountForm(<AccountForm mode="create" />);
 
       const accountTypeSelect = screen.getByLabelText(/account type/i) as HTMLSelectElement;
       fireEvent.change(accountTypeSelect, { target: { value: 'individual' } });
@@ -197,7 +180,7 @@ describe('AccountForm', () => {
     });
 
     it('allows selecting organization account type', () => {
-      renderWithProviders(<AccountForm mode="create" />);
+      renderAccountForm(<AccountForm mode="create" />);
 
       const accountTypeSelect = screen.getByLabelText(/account type/i) as HTMLSelectElement;
       fireEvent.change(accountTypeSelect, { target: { value: 'organization' } });
@@ -207,7 +190,7 @@ describe('AccountForm', () => {
 
   describe('Category Selection', () => {
     it('allows selecting donor category', () => {
-      renderWithProviders(<AccountForm mode="create" />);
+      renderAccountForm(<AccountForm mode="create" />);
 
       const categorySelect = screen.getByLabelText(/category/i) as HTMLSelectElement;
       fireEvent.change(categorySelect, { target: { value: 'donor' } });
@@ -215,7 +198,7 @@ describe('AccountForm', () => {
     });
 
     it('allows selecting partner category', () => {
-      renderWithProviders(<AccountForm mode="create" />);
+      renderAccountForm(<AccountForm mode="create" />);
 
       const categorySelect = screen.getByLabelText(/category/i) as HTMLSelectElement;
       fireEvent.change(categorySelect, { target: { value: 'partner' } });
@@ -223,7 +206,7 @@ describe('AccountForm', () => {
     });
 
     it('allows selecting volunteer category', () => {
-      renderWithProviders(<AccountForm mode="create" />);
+      renderAccountForm(<AccountForm mode="create" />);
 
       const categorySelect = screen.getByLabelText(/category/i) as HTMLSelectElement;
       fireEvent.change(categorySelect, { target: { value: 'volunteer' } });
@@ -233,7 +216,7 @@ describe('AccountForm', () => {
 
   describe('Address Fields', () => {
     it('renders address section', () => {
-      renderWithProviders(<AccountForm mode="create" />);
+      renderAccountForm(<AccountForm mode="create" />);
 
       expect(screen.getByLabelText(/address line 1/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/city/i)).toBeInTheDocument();
@@ -242,7 +225,7 @@ describe('AccountForm', () => {
     });
 
     it('allows filling in complete address', () => {
-      renderWithProviders(<AccountForm mode="create" />);
+      renderAccountForm(<AccountForm mode="create" />);
 
       const addressInput = screen.getByLabelText(/address line 1/i) as HTMLInputElement;
       fireEvent.change(addressInput, { target: { value: '456 Oak Ave' } });

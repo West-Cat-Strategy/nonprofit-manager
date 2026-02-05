@@ -1,7 +1,8 @@
 import { vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import SocialShare from '../SocialShare';
+import { renderWithProviders } from '../../test/testUtils';
 
 // Mock navigator.clipboard and navigator.share
 const mockClipboard = {
@@ -40,28 +41,28 @@ describe('SocialShare', () => {
   });
 
   it('should render the share button with label', () => {
-    render(<SocialShare data={mockData} />);
+    renderWithProviders(<SocialShare data={mockData} />);
 
     const button = screen.getByRole('button', { name: /share/i });
     expect(button).toBeInTheDocument();
   });
 
   it('should render without label when showLabel is false', () => {
-    render(<SocialShare data={mockData} showLabel={false} />);
+    renderWithProviders(<SocialShare data={mockData} showLabel={false} />);
 
     const button = screen.getByRole('button');
     expect(button).not.toHaveTextContent('Share');
   });
 
   it('should not show dropdown initially', () => {
-    render(<SocialShare data={mockData} />);
+    renderWithProviders(<SocialShare data={mockData} />);
 
     expect(screen.queryByText('Facebook')).not.toBeInTheDocument();
     expect(screen.queryByText('Twitter')).not.toBeInTheDocument();
   });
 
   it('should open dropdown when button is clicked', () => {
-    render(<SocialShare data={mockData} />);
+    renderWithProviders(<SocialShare data={mockData} />);
 
     const button = screen.getByRole('button', { name: /share/i });
     fireEvent.click(button);
@@ -74,7 +75,7 @@ describe('SocialShare', () => {
   });
 
   it('should close dropdown when button is clicked again', () => {
-    render(<SocialShare data={mockData} />);
+    renderWithProviders(<SocialShare data={mockData} />);
 
     const button = screen.getByRole('button', { name: /share/i });
 
@@ -88,7 +89,7 @@ describe('SocialShare', () => {
   });
 
   it('should close dropdown when clicking outside', async () => {
-    render(<SocialShare data={mockData} />);
+    renderWithProviders(<SocialShare data={mockData} />);
 
     // Open dropdown
     const button = screen.getByRole('button', { name: /share/i });
@@ -103,7 +104,7 @@ describe('SocialShare', () => {
   });
 
   it('should generate correct Facebook share URL', () => {
-    render(<SocialShare data={mockData} />);
+    renderWithProviders(<SocialShare data={mockData} />);
 
     const button = screen.getByRole('button', { name: /share/i });
     fireEvent.click(button);
@@ -116,7 +117,7 @@ describe('SocialShare', () => {
   });
 
   it('should generate correct Twitter share URL', () => {
-    render(<SocialShare data={mockData} />);
+    renderWithProviders(<SocialShare data={mockData} />);
 
     const button = screen.getByRole('button', { name: /share/i });
     fireEvent.click(button);
@@ -127,7 +128,7 @@ describe('SocialShare', () => {
   });
 
   it('should generate correct LinkedIn share URL', () => {
-    render(<SocialShare data={mockData} />);
+    renderWithProviders(<SocialShare data={mockData} />);
 
     const button = screen.getByRole('button', { name: /share/i });
     fireEvent.click(button);
@@ -137,7 +138,7 @@ describe('SocialShare', () => {
   });
 
   it('should generate correct Email share URL', () => {
-    render(<SocialShare data={mockData} />);
+    renderWithProviders(<SocialShare data={mockData} />);
 
     const button = screen.getByRole('button', { name: /share/i });
     fireEvent.click(button);
@@ -149,7 +150,7 @@ describe('SocialShare', () => {
   });
 
   it('should open social links in new tab except email', () => {
-    render(<SocialShare data={mockData} />);
+    renderWithProviders(<SocialShare data={mockData} />);
 
     const button = screen.getByRole('button', { name: /share/i });
     fireEvent.click(button);
@@ -166,7 +167,7 @@ describe('SocialShare', () => {
   });
 
   it('should copy link to clipboard when Copy Link is clicked', async () => {
-    render(<SocialShare data={mockData} />);
+    renderWithProviders(<SocialShare data={mockData} />);
 
     const button = screen.getByRole('button', { name: /share/i });
     fireEvent.click(button);
@@ -180,7 +181,7 @@ describe('SocialShare', () => {
   });
 
   it('should show "Copied!" message after copying', async () => {
-    render(<SocialShare data={mockData} />);
+    renderWithProviders(<SocialShare data={mockData} />);
 
     const button = screen.getByRole('button', { name: /share/i });
     fireEvent.click(button);
@@ -194,7 +195,7 @@ describe('SocialShare', () => {
   });
 
   it('should reset "Copied!" message after 2 seconds', async () => {
-    render(<SocialShare data={mockData} />);
+    renderWithProviders(<SocialShare data={mockData} />);
 
     const button = screen.getByRole('button', { name: /share/i });
     fireEvent.click(button);
@@ -217,7 +218,7 @@ describe('SocialShare', () => {
     // Mock document.execCommand
     document.execCommand = vi.fn(() => true);
 
-    render(<SocialShare data={mockData} />);
+    renderWithProviders(<SocialShare data={mockData} />);
 
     const button = screen.getByRole('button', { name: /share/i });
     fireEvent.click(button);
@@ -238,7 +239,7 @@ describe('SocialShare', () => {
       writable: true,
     });
 
-    render(<SocialShare data={mockData} />);
+    renderWithProviders(<SocialShare data={mockData} />);
 
     const button = screen.getByRole('button', { name: /share/i });
     fireEvent.click(button);
@@ -264,7 +265,7 @@ describe('SocialShare', () => {
       writable: true,
     });
 
-    render(<SocialShare data={mockData} />);
+    renderWithProviders(<SocialShare data={mockData} />);
 
     const button = screen.getByRole('button', { name: /share/i });
     
@@ -278,7 +279,7 @@ describe('SocialShare', () => {
       title: 'Event',
     };
 
-    render(<SocialShare data={absoluteData} />);
+    renderWithProviders(<SocialShare data={absoluteData} />);
 
     const button = screen.getByRole('button', { name: /share/i });
     fireEvent.click(button);
@@ -293,7 +294,7 @@ describe('SocialShare', () => {
       title: 'Event',
     };
 
-    render(<SocialShare data={dataWithoutDesc} />);
+    renderWithProviders(<SocialShare data={dataWithoutDesc} />);
 
     const button = screen.getByRole('button', { name: /share/i });
     fireEvent.click(button);
@@ -302,14 +303,14 @@ describe('SocialShare', () => {
   });
 
   it('should apply custom className', () => {
-    const { container } = render(<SocialShare data={mockData} className="custom-class" />);
+    const { container } = renderWithProviders(<SocialShare data={mockData} className="custom-class" />);
 
     const wrapper = container.querySelector('.custom-class');
     expect(wrapper).toBeInTheDocument();
   });
 
   it('should close dropdown when share option is clicked', () => {
-    render(<SocialShare data={mockData} />);
+    renderWithProviders(<SocialShare data={mockData} />);
 
     const button = screen.getByRole('button', { name: /share/i });
     fireEvent.click(button);
@@ -323,7 +324,7 @@ describe('SocialShare', () => {
   it('should cleanup event listener on unmount', () => {
     const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener');
 
-    const { unmount } = render(<SocialShare data={mockData} />);
+    const { unmount } = renderWithProviders(<SocialShare data={mockData} />);
 
     unmount();
 
@@ -333,14 +334,14 @@ describe('SocialShare', () => {
   });
 
   it('should render share icon', () => {
-    const { container } = render(<SocialShare data={mockData} />);
+    const { container } = renderWithProviders(<SocialShare data={mockData} />);
 
     const shareIcon = container.querySelector('svg.w-5.h-5');
     expect(shareIcon).toBeInTheDocument();
   });
 
   it('should rotate chevron when dropdown is open and native share not available', () => {
-    const { container } = render(<SocialShare data={mockData} />);
+    const { container } = renderWithProviders(<SocialShare data={mockData} />);
 
     const chevron = container.querySelectorAll('svg.w-4.h-4.transition-transform')[0];
 
@@ -362,7 +363,7 @@ describe('SocialShare', () => {
       writable: true,
     });
 
-    const { container } = render(<SocialShare data={mockData} />);
+    const { container } = renderWithProviders(<SocialShare data={mockData} />);
 
     const chevron = container.querySelector('svg.w-4.h-4.transition-transform');
     
@@ -371,7 +372,7 @@ describe('SocialShare', () => {
   });
 
   it('should render dropdown with correct z-index', () => {
-    render(<SocialShare data={mockData} />);
+    renderWithProviders(<SocialShare data={mockData} />);
 
     const button = screen.getByRole('button', { name: /share/i });
     fireEvent.click(button);
@@ -387,7 +388,7 @@ describe('SocialShare', () => {
       description: 'With special chars: !@#$%',
     };
 
-    render(<SocialShare data={specialData} />);
+    renderWithProviders(<SocialShare data={specialData} />);
 
     const button = screen.getByRole('button', { name: /share/i });
     fireEvent.click(button);

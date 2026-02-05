@@ -6,8 +6,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
-import { formatApiErrorMessage } from '../../utils/apiError';
 import ErrorBanner from '../../components/ErrorBanner';
+import { useApiError } from '../../hooks/useApiError';
 import { useAppDispatch } from '../../store/hooks';
 import { setCredentials } from '../../store/slices/authSlice';
 
@@ -30,6 +30,7 @@ const Setup: React.FC = () => {
     lastName: '',
   });
   const [errors, setErrors] = useState<string[]>([]);
+  const { details, setFromError, clear } = useApiError({ notify: true });
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,7 +40,8 @@ const Setup: React.FC = () => {
     });
     // Clear errors when user starts typing
     if (errors.length > 0) {
-      setErrors([]);
+    setErrors([]);
+    clear();
     }
   };
 
@@ -114,10 +116,9 @@ const Setup: React.FC = () => {
     } catch (error: any) {
       if (error.response?.data?.details && Array.isArray(error.response.data.details)) {
         setErrors(error.response.data.details.map((e: any) => e.msg || String(e)));
-      } else if (error.response?.data?.error) {
-        setErrors([formatApiErrorMessage(error, error.response.data.error)]);
       } else {
-        setErrors([formatApiErrorMessage(error, 'An error occurred during setup. Please try again.')]);
+        setFromError(error, 'An error occurred during setup. Please try again.');
+        setErrors(['An error occurred during setup. Please try again.']);
       }
     } finally {
       setLoading(false);
@@ -154,7 +155,10 @@ const Setup: React.FC = () => {
 
         {/* Error Messages */}
         {errors.length > 0 && (
-          <ErrorBanner className="bg-red-50 border-red-200 text-red-800">
+          <ErrorBanner
+            className="bg-red-50 border-red-200 text-red-800"
+            correlationId={details?.correlationId}
+          >
             <div className="flex">
               <svg
                 className="h-5 w-5 text-red-400 mr-2"

@@ -1,12 +1,8 @@
 import type { ReactNode } from 'react';
-import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import Analytics from '../analytics/Analytics';
-import analyticsReducer from '../../store/slices/analyticsSlice';
-import authReducer from '../../store/slices/authSlice';
+import { renderWithProviders, createTestStore } from '../../test/testUtils';
 import api from '../../services/api';
 import { vi } from 'vitest';
 import type { AnalyticsSummary, DonationTrendPoint, VolunteerHoursTrendPoint } from '../../types/analytics';
@@ -73,33 +69,17 @@ const mockVolunteerTrends: VolunteerHoursTrendPoint[] = [
   { month: 'Mar 2025', hours: 120, assignments: 12 },
 ];
 
-const createTestStore = () => {
-  return configureStore({
-    reducer: {
-      auth: authReducer,
-      analytics: analyticsReducer,
-    },
-    preloadedState: {
-      auth: {
-        user: { id: '1', email: 'test@example.com', firstName: 'Test', lastName: 'User', role: 'user' },
-        token: 'test-token',
-        isAuthenticated: true,
-        loading: false,
-        error: null,
-      },
+const renderAnalytics = () => {
+  const store = createTestStore({
+    auth: {
+      user: { id: '1', email: 'test@example.com', firstName: 'Test', lastName: 'User', role: 'user' },
+      token: 'test-token',
+      isAuthenticated: true,
+      loading: false,
+      error: null,
     },
   });
-};
-
-const renderAnalytics = () => {
-  const store = createTestStore();
-  render(
-    <Provider store={store}>
-      <MemoryRouter>
-        <Analytics />
-      </MemoryRouter>
-    </Provider>
-  );
+  renderWithProviders(<Analytics />, { store });
   return store;
 };
 
@@ -170,7 +150,6 @@ describe('Analytics page', () => {
     });
 
     expect(screen.getByText('Total Donations (YTD)')).toBeInTheDocument();
-    // Use getAllByText since the value may appear in multiple places (KPI and summary section)
     expect(screen.getAllByText('$75,000').length).toBeGreaterThan(0);
     expect(screen.getByText('150 donations')).toBeInTheDocument();
   });
@@ -183,11 +162,9 @@ describe('Analytics page', () => {
       expect(screen.getByText('Key Performance Indicators')).toBeInTheDocument();
     });
 
-    // Check that we have an average donation display - use getAllByText since it may appear multiple times
     const avgDonationElements = screen.getAllByText('Average Donation');
     expect(avgDonationElements.length).toBeGreaterThan(0);
 
-    // Check for the dollar value
     const dollarValues = screen.getAllByText('$500');
     expect(dollarValues.length).toBeGreaterThan(0);
   });

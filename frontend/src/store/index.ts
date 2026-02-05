@@ -19,28 +19,30 @@ import dashboardReducer from './slices/dashboardSlice';
 import alertsReducer from './slices/alertsSlice';
 import portalAuthReducer from './slices/portalAuthSlice';
 
+export const rootReducer = {
+  auth: authReducer,
+  accounts: accountsReducer,
+  contacts: contactsReducer,
+  volunteers: volunteersReducer,
+  events: eventsReducer,
+  donations: donationsReducer,
+  tasks: tasksReducer,
+  analytics: analyticsReducer,
+  reports: reportsReducer,
+  savedReports: savedReportsReducer,
+  payments: paymentsReducer,
+  reconciliation: reconciliationReducer,
+  mailchimp: mailchimpReducer,
+  webhooks: webhooksReducer,
+  templates: templatesReducer,
+  cases: casesReducer,
+  dashboard: dashboardReducer,
+  alerts: alertsReducer,
+  portalAuth: portalAuthReducer,
+};
+
 export const store = configureStore({
-  reducer: {
-    auth: authReducer,
-    accounts: accountsReducer,
-    contacts: contactsReducer,
-    volunteers: volunteersReducer,
-    events: eventsReducer,
-    donations: donationsReducer,
-    tasks: tasksReducer,
-    analytics: analyticsReducer,
-    reports: reportsReducer,
-    savedReports: savedReportsReducer,
-    payments: paymentsReducer,
-    reconciliation: reconciliationReducer,
-    mailchimp: mailchimpReducer,
-    webhooks: webhooksReducer,
-    templates: templatesReducer,
-    cases: casesReducer,
-    dashboard: dashboardReducer,
-    alerts: alertsReducer,
-    portalAuth: portalAuthReducer,
-  },
+  reducer: rootReducer,
 });
 
 export type RootState = ReturnType<typeof store.getState>;

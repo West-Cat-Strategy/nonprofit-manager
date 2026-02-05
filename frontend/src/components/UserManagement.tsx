@@ -5,8 +5,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
-import { formatApiErrorMessage } from '../utils/apiError';
 import Avatar from './Avatar';
+import ErrorBanner from './ErrorBanner';
+import { useApiError } from '../hooks/useApiError';
 
 interface User {
   id: string;
@@ -48,7 +49,7 @@ export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { error, details, setFromError, clear } = useApiError();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [showInactive, setShowInactive] = useState(false);
@@ -59,7 +60,12 @@ export default function UserManagement() {
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [formData, setFormData] = useState<UserFormData>(initialFormData);
-  const [formError, setFormError] = useState<string | null>(null);
+  const {
+    error: formError,
+    details: formDetails,
+    setFromError: setFormErrorFromError,
+    clear: clearFormError,
+  } = useApiError();
   const [isSaving, setIsSaving] = useState(false);
 
   const fetchUsers = useCallback(async () => {
@@ -72,13 +78,13 @@ export default function UserManagement() {
 
       const response = await api.get(`/users?${params.toString()}`);
       setUsers(response.data.users);
-      setError(null);
+      clear();
     } catch {
-      setError('Failed to load users');
+      setFromError(new Error('Failed to load users'), 'Failed to load users');
     } finally {
       setIsLoading(false);
     }
-  }, [searchTerm, roleFilter, showInactive]);
+  }, [searchTerm, roleFilter, showInactive, clear, setFromError]);
 
   const fetchRoles = async () => {
     try {
@@ -101,15 +107,15 @@ export default function UserManagement() {
   }, [fetchUsers]);
 
   const handleCreateUser = async () => {
-    setFormError(null);
+    clearFormError();
 
     if (formData.password !== formData.confirmPassword) {
-      setFormError('Passwords do not match');
+      setFormErrorFromError(new Error('Passwords do not match'), 'Passwords do not match');
       return;
     }
 
     if (formData.password.length < 8) {
-      setFormError('Password must be at least 8 characters');
+      setFormErrorFromError(new Error('Password must be at least 8 characters'), 'Password must be at least 8 characters');
       return;
     }
 
@@ -126,8 +132,7 @@ export default function UserManagement() {
       setFormData(initialFormData);
       fetchUsers();
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setFormError(formatApiErrorMessage(error, 'Failed to create user'));
+      setFormErrorFromError(err, 'Failed to create user');
     } finally {
       setIsSaving(false);
     }
@@ -136,7 +141,7 @@ export default function UserManagement() {
   const handleUpdateUser = async () => {
     if (!selectedUser) return;
 
-    setFormError(null);
+    clearFormError();
     setIsSaving(true);
     try {
       await api.put(`/users/${selectedUser.id}`, {
@@ -150,8 +155,7 @@ export default function UserManagement() {
       setFormData(initialFormData);
       fetchUsers();
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setFormError(formatApiErrorMessage(error, 'Failed to update user'));
+      setFormErrorFromError(err, 'Failed to update user');
     } finally {
       setIsSaving(false);
     }
@@ -160,15 +164,15 @@ export default function UserManagement() {
   const handleResetPassword = async () => {
     if (!selectedUser) return;
 
-    setFormError(null);
+    clearFormError();
 
     if (formData.password !== formData.confirmPassword) {
-      setFormError('Passwords do not match');
+      setFormErrorFromError(new Error('Passwords do not match'), 'Passwords do not match');
       return;
     }
 
     if (formData.password.length < 8) {
-      setFormError('Password must be at least 8 characters');
+      setFormErrorFromError(new Error('Password must be at least 8 characters'), 'Password must be at least 8 characters');
       return;
     }
 
@@ -181,8 +185,7 @@ export default function UserManagement() {
       setSelectedUser(null);
       setFormData(initialFormData);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setFormError(formatApiErrorMessage(error, 'Failed to reset password'));
+      setFormErrorFromError(err, 'Failed to reset password');
     } finally {
       setIsSaving(false);
     }
@@ -193,8 +196,7 @@ export default function UserManagement() {
       await api.put(`/users/${user.id}`, { isActive: !user.isActive });
       fetchUsers();
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      alert(formatApiErrorMessage(error, 'Failed to update user status'));
+      setFromError(err, 'Failed to update user status');
     }
   };
 
@@ -208,14 +210,14 @@ export default function UserManagement() {
       password: '',
       confirmPassword: '',
     });
-    setFormError(null);
+    clearFormError();
     setShowEditModal(true);
   };
 
   const openResetPasswordModal = (user: User) => {
     setSelectedUser(user);
     setFormData({ ...initialFormData });
-    setFormError(null);
+    clearFormError();
     setShowResetPasswordModal(true);
   };
 
@@ -291,11 +293,7 @@ export default function UserManagement() {
       </div>
 
       {/* Error message */}
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-          {error}
-        </div>
-      )}
+      <ErrorBanner message={error} correlationId={details?.correlationId} />
 
       {/* Users list */}
       {isLoading ? (
@@ -394,11 +392,11 @@ export default function UserManagement() {
             <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Create New User</h3>
 
-              {formError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                  {formError}
-                </div>
-              )}
+              <ErrorBanner
+                message={formError}
+                correlationId={formDetails?.correlationId}
+                className="mb-4"
+              />
 
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -501,11 +499,11 @@ export default function UserManagement() {
             <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit User</h3>
 
-              {formError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                  {formError}
-                </div>
-              )}
+              <ErrorBanner
+                message={formError}
+                correlationId={formDetails?.correlationId}
+                className="mb-4"
+              />
 
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -587,11 +585,11 @@ export default function UserManagement() {
                 Reset Password for {selectedUser.firstName} {selectedUser.lastName}
               </h3>
 
-              {formError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                  {formError}
-                </div>
-              )}
+              <ErrorBanner
+                message={formError}
+                correlationId={formDetails?.correlationId}
+                className="mb-4"
+              />
 
               <div className="space-y-4">
                 <div>

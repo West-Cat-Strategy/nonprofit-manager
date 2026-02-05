@@ -6,7 +6,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import api from '../../services/api';
-import { formatApiErrorMessage } from '../../utils/apiError';
+import { formatApiErrorMessageWith } from '../../utils/apiError';
 import type {
   TemplateState,
   Template,
@@ -21,6 +21,8 @@ import type {
   UpdatePageRequest,
   PageSection,
 } from '../../types/websiteBuilder';
+
+const getErrorMessage = (error: unknown, fallbackMessage: string) => formatApiErrorMessageWith(fallbackMessage)(error);
 
 const initialState: TemplateState = {
   templates: [],
@@ -76,7 +78,7 @@ export const searchTemplates = createAsyncThunk<
       const response = await api.get(`/templates?${queryParams.toString()}`);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Network error');
+      const message = getErrorMessage(error, 'Network error');
       return rejectWithValue(message);
     }
   }
@@ -92,7 +94,7 @@ export const fetchSystemTemplates = createAsyncThunk<TemplateListItem[]>(
       const response = await api.get('/templates/system');
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to fetch system templates');
+      const message = getErrorMessage(error, 'Failed to fetch system templates');
       return rejectWithValue(message);
     }
   }
@@ -108,7 +110,7 @@ export const fetchTemplate = createAsyncThunk<Template, string>(
       const response = await api.get(`/templates/${templateId}`);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Not found');
+      const message = getErrorMessage(error, 'Not found');
       return rejectWithValue(message);
     }
   }
@@ -124,7 +126,7 @@ export const createTemplate = createAsyncThunk<Template, CreateTemplateRequest>(
       const response = await api.post('/templates', data);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to create template');
+      const message = getErrorMessage(error, 'Failed to create template');
       return rejectWithValue(message);
     }
   }
@@ -143,7 +145,7 @@ export const updateTemplate = createAsyncThunk<
       const response = await api.put(`/templates/${id}`, data);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to update template');
+      const message = getErrorMessage(error, 'Failed to update template');
       return rejectWithValue(message);
     }
   }
@@ -159,7 +161,7 @@ export const deleteTemplate = createAsyncThunk<string, string>(
       await api.delete(`/templates/${id}`);
       return id;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to delete template');
+      const message = getErrorMessage(error, 'Failed to delete template');
       return rejectWithValue(message);
     }
   }
@@ -178,7 +180,7 @@ export const duplicateTemplate = createAsyncThunk<
       const response = await api.post(`/templates/${id}/duplicate`, { name });
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to duplicate template');
+      const message = getErrorMessage(error, 'Failed to duplicate template');
       return rejectWithValue(message);
     }
   }
@@ -199,7 +201,7 @@ export const createTemplatePage = createAsyncThunk<
       const response = await api.post(`/templates/${templateId}/pages`, data);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to create template page');
+      const message = getErrorMessage(error, 'Failed to create template page');
       return rejectWithValue(message);
     }
   }
@@ -218,7 +220,7 @@ export const updateTemplatePage = createAsyncThunk<
       const response = await api.put(`/templates/${templateId}/pages/${pageId}`, data);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to update template page');
+      const message = getErrorMessage(error, 'Failed to update template page');
       return rejectWithValue(message);
     }
   }
@@ -237,7 +239,7 @@ export const deleteTemplatePage = createAsyncThunk<
       await api.delete(`/templates/${templateId}/pages/${pageId}`);
       return { templateId, pageId };
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to delete template page');
+      const message = getErrorMessage(error, 'Failed to delete template page');
       return rejectWithValue(message);
     }
   }
@@ -255,7 +257,7 @@ export const reorderTemplatePages = createAsyncThunk<
     try {
       await api.put(`/templates/${templateId}/pages/reorder`, { pageIds });
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to reorder template pages');
+      const message = getErrorMessage(error, 'Failed to reorder template pages');
       return rejectWithValue(message);
     }
   }
@@ -276,7 +278,7 @@ export const fetchTemplateVersions = createAsyncThunk<
       const response = await api.get(`/templates/${templateId}/versions`);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to fetch template versions');
+      const message = getErrorMessage(error, 'Failed to fetch template versions');
       return rejectWithValue(message);
     }
   }
@@ -295,7 +297,7 @@ export const createTemplateVersion = createAsyncThunk<
       const response = await api.post(`/templates/${templateId}/versions`, { changes });
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to create template version');
+      const message = getErrorMessage(error, 'Failed to create template version');
       return rejectWithValue(message);
     }
   }
@@ -314,7 +316,7 @@ export const restoreTemplateVersion = createAsyncThunk<
       const response = await api.post(`/templates/${templateId}/versions/${versionId}/restore`);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to restore template version');
+      const message = getErrorMessage(error, 'Failed to restore template version');
       return rejectWithValue(message);
     }
   }

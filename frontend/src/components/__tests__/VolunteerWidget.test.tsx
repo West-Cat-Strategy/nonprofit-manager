@@ -1,11 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { Provider } from 'react-redux';
-import { BrowserRouter } from 'react-router-dom';
-import { configureStore } from '@reduxjs/toolkit';
+import { screen, fireEvent } from '@testing-library/react';
 import VolunteerWidget from '../VolunteerWidget';
-import volunteersReducer from '../../store/slices/volunteersSlice';
 import type { Volunteer } from '../../store/slices/volunteersSlice';
+import { renderWithProviders, createTestStore } from '../../test/testUtils';
 
 // Mock navigate
 const mockNavigate = vi.fn();
@@ -95,46 +92,35 @@ const mockVolunteers: Volunteer[] = [
   },
 ];
 
-// Create a test store with initial state
-const createTestStore = (initialState = {}) => {
-  return configureStore({
-    reducer: {
-      volunteers: volunteersReducer,
-    },
-    preloadedState: {
-      volunteers: {
-        volunteers: mockVolunteers,
-        currentVolunteer: null,
-        assignments: [],
-        loading: false,
-        error: null,
-        pagination: {
-          total: mockVolunteers.length,
-          page: 1,
-          limit: 20,
-          total_pages: 1,
-        },
-        filters: {
-          search: '',
-          skills: [],
-          availability_status: '',
-          background_check_status: '',
-          is_active: true,
-        },
-        ...initialState,
-      },
-    },
-  });
+const baseVolunteersState = {
+  volunteers: mockVolunteers,
+  currentVolunteer: null,
+  assignments: [],
+  loading: false,
+  error: null,
+  pagination: {
+    total: mockVolunteers.length,
+    page: 1,
+    limit: 20,
+    total_pages: 1,
+  },
+  filters: {
+    search: '',
+    skills: [],
+    availability_status: '',
+    background_check_status: '',
+    is_active: true,
+  },
 };
 
-// Wrapper component
-const renderWithProviders = (component: React.ReactElement, storeState = {}) => {
-  const store = createTestStore(storeState);
-  return render(
-    <Provider store={store}>
-      <BrowserRouter>{component}</BrowserRouter>
-    </Provider>
-  );
+const renderWidget = (component: React.ReactElement, storeState = {}) => {
+  const store = createTestStore({
+    volunteers: {
+      ...baseVolunteersState,
+      ...storeState,
+    },
+  });
+  return renderWithProviders(component, { store });
 };
 
 describe('VolunteerWidget', () => {
@@ -143,17 +129,17 @@ describe('VolunteerWidget', () => {
   });
 
   it('should render Volunteer Overview heading', () => {
-    renderWithProviders(<VolunteerWidget />);
+    renderWidget(<VolunteerWidget />);
     expect(screen.getByText('Volunteer Overview')).toBeInTheDocument();
   });
 
   it('should render View All button', () => {
-    renderWithProviders(<VolunteerWidget />);
+    renderWidget(<VolunteerWidget />);
     expect(screen.getByText('View All →')).toBeInTheDocument();
   });
 
   it('should navigate to volunteers list when View All is clicked', () => {
-    renderWithProviders(<VolunteerWidget />);
+    renderWidget(<VolunteerWidget />);
 
     const viewAllButton = screen.getByText('View All →');
     fireEvent.click(viewAllButton);
@@ -162,64 +148,60 @@ describe('VolunteerWidget', () => {
   });
 
   it('should display total volunteers count', () => {
-    renderWithProviders(<VolunteerWidget />);
+    renderWidget(<VolunteerWidget />);
 
     expect(screen.getByText('3')).toBeInTheDocument();
     expect(screen.getByText('Total')).toBeInTheDocument();
   });
 
   it('should display available volunteers count', () => {
-    renderWithProviders(<VolunteerWidget />);
+    renderWidget(<VolunteerWidget />);
 
-    // "1" appears multiple times (in different stats), so check for the label
     expect(screen.getByText('Available')).toBeInTheDocument();
     const ones = screen.getAllByText('1');
     expect(ones.length).toBeGreaterThan(0);
   });
 
   it('should display limited volunteers count', () => {
-    renderWithProviders(<VolunteerWidget />);
+    renderWidget(<VolunteerWidget />);
 
-    // "1" appears multiple times (in different stats), so check for the label
     expect(screen.getByText('Limited')).toBeInTheDocument();
     const ones = screen.getAllByText('1');
     expect(ones.length).toBeGreaterThan(0);
   });
 
   it('should display unavailable volunteers count', () => {
-    renderWithProviders(<VolunteerWidget />);
+    renderWidget(<VolunteerWidget />);
 
-    // "1" appears multiple times (in different stats), so check for the label
     expect(screen.getByText('Unavailable')).toBeInTheDocument();
     const ones = screen.getAllByText('1');
     expect(ones.length).toBeGreaterThan(0);
   });
 
   it('should display total hours logged', () => {
-    renderWithProviders(<VolunteerWidget />);
+    renderWidget(<VolunteerWidget />);
 
-    // Total: 120 + 85 + 45 = 250
     expect(screen.getByText('250.0')).toBeInTheDocument();
     expect(screen.getByText('Total Hours Logged')).toBeInTheDocument();
   });
 
   it('should display Quick Actions heading', () => {
-    renderWithProviders(<VolunteerWidget />);
+    renderWidget(<VolunteerWidget />);
     expect(screen.getByText('Quick Actions')).toBeInTheDocument();
   });
 
   it('should render Add Volunteer button', () => {
-    renderWithProviders(<VolunteerWidget />);
+    renderWidget(<VolunteerWidget />);
     expect(screen.getByText('Add Volunteer')).toBeInTheDocument();
   });
 
   it('should render New Assignment button', () => {
-    renderWithProviders(<VolunteerWidget />);
+    renderWidget(<VolunteerWidget />);
     expect(screen.getByText('New Assignment')).toBeInTheDocument();
   });
 
   it('should navigate to volunteer creation when Add Volunteer is clicked', () => {
-    renderWithProviders(<VolunteerWidget />);
+    renderWidget(<VolunteerWidget />);
 
     const addButton = screen.getByText('Add Volunteer');
     fireEvent.click(addButton);
@@ -228,7 +210,7 @@ describe('VolunteerWidget', () => {
   });
 
   it('should navigate to assignment creation when New Assignment is clicked', () => {
-    renderWithProviders(<VolunteerWidget />);
+    renderWidget(<VolunteerWidget />);
 
     const assignButton = screen.getByText('New Assignment');
     fireEvent.click(assignButton);
@@ -237,14 +219,13 @@ describe('VolunteerWidget', () => {
   });
 
   it('should display Availability Breakdown heading', () => {
-    renderWithProviders(<VolunteerWidget />);
+    renderWidget(<VolunteerWidget />);
     expect(screen.getByText('Availability Breakdown')).toBeInTheDocument();
   });
 
   it('should show percentage breakdowns in availability section', () => {
-    renderWithProviders(<VolunteerWidget />);
+    renderWidget(<VolunteerWidget />);
 
-    // 1 available out of 3 = 33%
     expect(screen.getByText('33% available')).toBeInTheDocument();
     expect(screen.getByText('33% limited')).toBeInTheDocument();
     expect(screen.getByText('33% unavailable')).toBeInTheDocument();
@@ -256,36 +237,32 @@ describe('VolunteerWidget', () => {
       loading: true,
     };
 
-    renderWithProviders(<VolunteerWidget />, loadingState);
+    renderWidget(<VolunteerWidget />, loadingState);
 
-    // Should show loading skeleton
     const loadingElements = document.querySelectorAll('.animate-pulse');
     expect(loadingElements.length).toBeGreaterThan(0);
   });
 
   it('should display Top Volunteers section in detailed view', () => {
-    renderWithProviders(<VolunteerWidget showDetailedView={true} />);
+    renderWidget(<VolunteerWidget showDetailedView={true} />);
     expect(screen.getByText('Top Volunteers')).toBeInTheDocument();
   });
 
   it('should list top volunteers by hours in detailed view', () => {
-    renderWithProviders(<VolunteerWidget showDetailedView={true} />);
+    renderWidget(<VolunteerWidget showDetailedView={true} />);
 
-    // John Doe has 120 hours (highest)
     expect(screen.getByText('John Doe')).toBeInTheDocument();
     expect(screen.getByText('120.0h')).toBeInTheDocument();
 
-    // Jane Smith has 85 hours (second)
     expect(screen.getByText('Jane Smith')).toBeInTheDocument();
     expect(screen.getByText('85.0h')).toBeInTheDocument();
 
-    // Bob Johnson has 45 hours (third)
     expect(screen.getByText('Bob Johnson')).toBeInTheDocument();
     expect(screen.getByText('45.0h')).toBeInTheDocument();
   });
 
   it('should display volunteer skills in detailed view', () => {
-    renderWithProviders(<VolunteerWidget showDetailedView={true} />);
+    renderWidget(<VolunteerWidget showDetailedView={true} />);
 
     expect(screen.getByText('Event Planning, Fundraising')).toBeInTheDocument();
     expect(screen.getByText('Teaching, Mentoring')).toBeInTheDocument();
@@ -301,14 +278,14 @@ describe('VolunteerWidget', () => {
       volunteers: volunteersWithNoSkills,
     };
 
-    renderWithProviders(<VolunteerWidget showDetailedView={true} />, stateWithNoSkills);
+    renderWidget(<VolunteerWidget showDetailedView={true} />, stateWithNoSkills);
 
     const noSkillsElements = screen.getAllByText('No skills listed');
     expect(noSkillsElements.length).toBeGreaterThan(0);
   });
 
   it('should navigate to volunteer detail when clicking on a volunteer card', () => {
-    renderWithProviders(<VolunteerWidget showDetailedView={true} />);
+    renderWidget(<VolunteerWidget showDetailedView={true} />);
 
     const johnDoeCard = screen.getByText('John Doe').closest('div');
     if (johnDoeCard) {
@@ -318,14 +295,10 @@ describe('VolunteerWidget', () => {
   });
 
   it('should display availability status badges with correct colors', () => {
-    renderWithProviders(<VolunteerWidget showDetailedView={true} />);
+    renderWidget(<VolunteerWidget showDetailedView={true} />);
 
-    // Find all availability status badges (they appear in the detailed view volunteer list)
     const availableBadges = screen.getAllByText('available');
-    // At least one should have the correct classes (the one in the volunteer card, not the header)
-    const volunteerBadge = availableBadges.find((badge) =>
-      badge.className.includes('bg-green-100')
-    );
+    const volunteerBadge = availableBadges.find((badge) => badge.className.includes('bg-green-100'));
     expect(volunteerBadge).toBeTruthy();
     if (volunteerBadge) {
       expect(volunteerBadge).toHaveClass('bg-green-100', 'text-green-800');
@@ -339,9 +312,8 @@ describe('VolunteerWidget', () => {
   });
 
   it('should show ranking numbers for top volunteers', () => {
-    renderWithProviders(<VolunteerWidget showDetailedView={true} />);
+    renderWidget(<VolunteerWidget showDetailedView={true} />);
 
-    // Numbers 1, 2, 3 appear in rankings and possibly in stats, so use getAllByText
     const ones = screen.getAllByText('1');
     const twos = screen.getAllByText('2');
     const threes = screen.getAllByText('3');
@@ -364,15 +336,14 @@ describe('VolunteerWidget', () => {
       volunteers: manyVolunteers,
     };
 
-    renderWithProviders(<VolunteerWidget showDetailedView={true} />, stateWithMany);
+    renderWidget(<VolunteerWidget showDetailedView={true} />, stateWithMany);
 
-    // Should show rankings 1-5 but not 6+
     expect(screen.getByText('5')).toBeInTheDocument();
     expect(screen.queryByText('6')).not.toBeInTheDocument();
   });
 
   it('should not show Top Volunteers section when detailed view is false', () => {
-    renderWithProviders(<VolunteerWidget showDetailedView={false} />);
+    renderWidget(<VolunteerWidget showDetailedView={false} />);
     expect(screen.queryByText('Top Volunteers')).not.toBeInTheDocument();
   });
 
@@ -386,7 +357,7 @@ describe('VolunteerWidget', () => {
       activeAssignments: 15,
     };
 
-    renderWithProviders(<VolunteerWidget stats={customStats} />);
+    renderWidget(<VolunteerWidget stats={customStats} />);
 
     expect(screen.getByText('50')).toBeInTheDocument();
     expect(screen.getByText('30')).toBeInTheDocument();
@@ -394,11 +365,10 @@ describe('VolunteerWidget', () => {
   });
 
   it('should calculate stats from volunteers when stats prop is not provided', () => {
-    renderWithProviders(<VolunteerWidget />);
+    renderWidget(<VolunteerWidget />);
 
-    // Should calculate from mockVolunteers
-    expect(screen.getByText('3')).toBeInTheDocument(); // total
-    expect(screen.getByText('250.0')).toBeInTheDocument(); // total hours
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByText('250.0')).toBeInTheDocument();
   });
 
   it('should handle empty volunteers array gracefully with stats prop', () => {
@@ -407,7 +377,6 @@ describe('VolunteerWidget', () => {
       loading: false,
     };
 
-    // When passing stats directly, it should show the data even if volunteers array is empty
     const customStats = {
       total: 0,
       available: 0,
@@ -417,16 +386,15 @@ describe('VolunteerWidget', () => {
       activeAssignments: 0,
     };
 
-    renderWithProviders(<VolunteerWidget stats={customStats} />, emptyState);
+    renderWidget(<VolunteerWidget stats={customStats} />, emptyState);
 
-    // Check for multiple zeros (one for each stat)
     const zeros = screen.getAllByText('0');
     expect(zeros.length).toBeGreaterThan(0);
     expect(screen.getByText('Total')).toBeInTheDocument();
   });
 
   it('should display stats grid with correct layout classes', () => {
-    renderWithProviders(<VolunteerWidget />);
+    renderWidget(<VolunteerWidget />);
 
     const statsGrid = document.querySelector('.grid.grid-cols-2.md\\:grid-cols-4');
     expect(statsGrid).toBeInTheDocument();
@@ -444,11 +412,9 @@ describe('VolunteerWidget', () => {
       volunteers: volunteerWithManySkills,
     };
 
-    renderWithProviders(<VolunteerWidget showDetailedView={true} />, stateWithManySkills);
+    renderWidget(<VolunteerWidget showDetailedView={true} />, stateWithManySkills);
 
-    // Should show first 2 skills joined with comma
     expect(screen.getByText('Skill1, Skill2')).toBeInTheDocument();
-    // Should not show Skill3 or Skill4
     expect(screen.queryByText(/Skill3/)).not.toBeInTheDocument();
   });
 
@@ -457,7 +423,7 @@ describe('VolunteerWidget', () => {
       volunteers: [],
     };
 
-    renderWithProviders(<VolunteerWidget />, emptyState);
+    renderWidget(<VolunteerWidget />, emptyState);
 
     expect(screen.queryByText('Availability Breakdown')).not.toBeInTheDocument();
   });

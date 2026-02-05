@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import portalApi from '../services/portalApi';
-import { formatApiErrorMessage } from '../utils/apiError';
+import { useApiError } from '../hooks/useApiError';
 import ErrorBanner from '../components/ErrorBanner';
 import { useAppDispatch } from '../store/hooks';
 import { portalLogin } from '../store/slices/portalAuthSlice';
@@ -17,7 +17,7 @@ export default function PortalAcceptInvitation() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [invitation, setInvitation] = useState<InvitationInfo | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { error, details, setFromError, clear } = useApiError({ notify: true });
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -29,14 +29,15 @@ export default function PortalAcceptInvitation() {
       try {
         const response = await portalApi.get(`/portal/auth/invitations/validate/${token}`);
         setInvitation(response.data.invitation);
+        clear();
       } catch (err: any) {
-        setError(formatApiErrorMessage(err, 'Invitation is invalid or expired'));
+        setFromError(err, 'Invitation is invalid or expired');
       }
     };
     if (token) {
       loadInvite();
     }
-  }, [token]);
+  }, [token, clear, setFromError]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -49,7 +50,7 @@ export default function PortalAcceptInvitation() {
       await dispatch(portalLogin({ email: invitation!.email, password: formData.password })).unwrap();
       navigate('/portal');
     } catch (err: any) {
-      setError(formatApiErrorMessage(err, 'Failed to accept invitation'));
+      setFromError(err, 'Failed to accept invitation');
     }
   };
 
@@ -57,7 +58,7 @@ export default function PortalAcceptInvitation() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="bg-white shadow rounded-lg p-8 w-full max-w-md">
         <h1 className="text-2xl font-semibold text-gray-900">Accept Portal Invitation</h1>
-        <ErrorBanner message={error} className="mt-4" />
+        <ErrorBanner message={error} correlationId={details?.correlationId} className="mt-4" />
         {invitation && (
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>

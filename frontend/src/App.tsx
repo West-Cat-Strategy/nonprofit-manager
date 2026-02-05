@@ -7,6 +7,7 @@ import Layout from './components/Layout';
 import AdminRoute from './components/AdminRoute';
 import PortalProtectedRoute from './components/PortalProtectedRoute';
 import { ThemeProvider } from './contexts/ThemeContext';
+import ToastHost from './components/ToastHost';
 import './App.css';
 
 // Import route creators
@@ -204,6 +205,7 @@ function App() {
           <Suspense fallback={<PageLoader />}>
             <AppRoutes />
           </Suspense>
+          <ToastHost />
         </ThemeProvider>
       </div>
     </Router>

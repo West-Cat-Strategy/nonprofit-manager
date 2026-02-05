@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { screen, waitFor } from '@testing-library/react';
 import PaymentHistory from '../PaymentHistory';
+import { renderWithProviders } from '../../test/testUtils';
 import api from '../../services/api';
 
 // Mock the API
@@ -13,10 +13,6 @@ vi.mock('../../services/api', () => ({
 
 const mockApi = api as { get: ReturnType<typeof vi.fn> };
 
-const renderWithRouter = (component: React.ReactElement) => {
-  return render(<BrowserRouter>{component}</BrowserRouter>);
-};
-
 describe('PaymentHistory', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -26,7 +22,7 @@ describe('PaymentHistory', () => {
     it('shows loading skeleton while fetching data', async () => {
       mockApi.get.mockImplementation(() => new Promise(() => {})); // Never resolves
 
-      renderWithRouter(<PaymentHistory contactId="contact-123" />);
+      renderWithProviders(<PaymentHistory contactId="contact-123" />);
 
       expect(screen.getByText('Payment History')).toBeInTheDocument();
       // Should show loading skeleton (3 placeholder divs)
@@ -45,7 +41,7 @@ describe('PaymentHistory', () => {
         },
       });
 
-      renderWithRouter(<PaymentHistory contactId="contact-123" />);
+      renderWithProviders(<PaymentHistory contactId="contact-123" />);
 
       await waitFor(() => {
         expect(screen.getByText('No donations yet')).toBeInTheDocument();
@@ -55,7 +51,7 @@ describe('PaymentHistory', () => {
     });
 
     it('does not fetch data when no contactId or accountId provided', async () => {
-      renderWithRouter(<PaymentHistory />);
+      renderWithProviders(<PaymentHistory />);
 
       await waitFor(() => {
         expect(mockApi.get).not.toHaveBeenCalled();
@@ -106,7 +102,7 @@ describe('PaymentHistory', () => {
         },
       });
 
-      renderWithRouter(<PaymentHistory contactId="contact-123" />);
+      renderWithProviders(<PaymentHistory contactId="contact-123" />);
 
       await waitFor(() => {
         expect(screen.getByText('$100.00')).toBeInTheDocument();
@@ -136,7 +132,7 @@ describe('PaymentHistory', () => {
         },
       });
 
-      renderWithRouter(<PaymentHistory contactId="contact-123" />);
+      renderWithProviders(<PaymentHistory contactId="contact-123" />);
 
       await waitFor(() => {
         expect(screen.getByText(/3 donations totaling/)).toBeInTheDocument();
@@ -153,7 +149,7 @@ describe('PaymentHistory', () => {
         },
       });
 
-      renderWithRouter(<PaymentHistory contactId="contact-123" showViewAll={true} />);
+      renderWithProviders(<PaymentHistory contactId="contact-123" showViewAll={true} />);
 
       await waitFor(() => {
         const viewAllLink = screen.getByText('View All');
@@ -171,7 +167,7 @@ describe('PaymentHistory', () => {
         },
       });
 
-      renderWithRouter(<PaymentHistory contactId="contact-123" />);
+      renderWithProviders(<PaymentHistory contactId="contact-123" />);
 
       await waitFor(() => {
         const viewLinks = screen.getAllByText('View');
@@ -188,7 +184,7 @@ describe('PaymentHistory', () => {
         },
       });
 
-      renderWithRouter(<PaymentHistory contactId="contact-123" limit={2} />);
+      renderWithProviders(<PaymentHistory contactId="contact-123" limit={2} />);
 
       await waitFor(() => {
         expect(screen.getByText('Showing 2 of 10 donations')).toBeInTheDocument();
@@ -201,7 +197,7 @@ describe('PaymentHistory', () => {
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockApi.get.mockRejectedValue(new Error('Network error'));
 
-      renderWithRouter(<PaymentHistory contactId="contact-123" />);
+      renderWithProviders(<PaymentHistory contactId="contact-123" />);
 
       await waitFor(() => {
         expect(screen.getByText('Failed to load payment history')).toBeInTheDocument();
@@ -220,7 +216,7 @@ describe('PaymentHistory', () => {
         },
       });
 
-      renderWithRouter(<PaymentHistory contactId="contact-123" limit={10} />);
+      renderWithProviders(<PaymentHistory contactId="contact-123" limit={10} />);
 
       await waitFor(() => {
         expect(mockApi.get).toHaveBeenCalledWith(
@@ -242,7 +238,7 @@ describe('PaymentHistory', () => {
         },
       });
 
-      renderWithRouter(<PaymentHistory accountId="account-456" />);
+      renderWithProviders(<PaymentHistory accountId="account-456" />);
 
       await waitFor(() => {
         expect(mockApi.get).toHaveBeenCalledWith(
@@ -270,7 +266,7 @@ describe('PaymentHistory', () => {
         },
       });
 
-      renderWithRouter(<PaymentHistory contactId="contact-123" />);
+      renderWithProviders(<PaymentHistory contactId="contact-123" />);
 
       await waitFor(() => {
         expect(screen.getByText('completed')).toHaveClass('bg-green-100');

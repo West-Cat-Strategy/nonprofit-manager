@@ -1,10 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { Provider } from 'react-redux';
-import { BrowserRouter } from 'react-router-dom';
-import { configureStore } from '@reduxjs/toolkit';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { AssignmentForm } from '../AssignmentForm';
-import volunteersReducer from '../../store/slices/volunteersSlice';
+import { renderWithProviders, createTestStore } from '../../test/testUtils';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -16,21 +13,9 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-const createTestStore = () => {
-  return configureStore({
-    reducer: {
-      volunteers: volunteersReducer,
-    },
-  });
-};
-
-const renderWithProviders = (component: React.ReactElement) => {
+const renderAssignmentForm = (component: React.ReactElement) => {
   const store = createTestStore();
-  return render(
-    <Provider store={store}>
-      <BrowserRouter>{component}</BrowserRouter>
-    </Provider>
-  );
+  return renderWithProviders(component, { store });
 };
 
 describe('AssignmentForm', () => {
@@ -40,7 +25,7 @@ describe('AssignmentForm', () => {
 
   describe('Create Mode', () => {
     it('renders all required form fields', () => {
-      renderWithProviders(<AssignmentForm mode="create" volunteerId="123" />);
+      renderAssignmentForm(<AssignmentForm mode="create" volunteerId="123" />);
 
       expect(screen.getByLabelText(/assignment type/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/^role$/i)).toBeInTheDocument();
@@ -48,19 +33,19 @@ describe('AssignmentForm', () => {
     });
 
     it('shows Create Assignment title in submit button', () => {
-      renderWithProviders(<AssignmentForm mode="create" volunteerId="123" />);
+      renderAssignmentForm(<AssignmentForm mode="create" volunteerId="123" />);
       expect(screen.getByRole('button', { name: /create assignment/i })).toBeInTheDocument();
     });
 
     it('has general as default assignment type', () => {
-      renderWithProviders(<AssignmentForm mode="create" volunteerId="123" />);
+      renderAssignmentForm(<AssignmentForm mode="create" volunteerId="123" />);
 
       const typeSelect = screen.getByLabelText(/assignment type/i) as HTMLSelectElement;
       expect(typeSelect.value).toBe('general');
     });
 
     it('allows selecting event assignment type', () => {
-      renderWithProviders(<AssignmentForm mode="create" volunteerId="123" />);
+      renderAssignmentForm(<AssignmentForm mode="create" volunteerId="123" />);
 
       const typeSelect = screen.getByLabelText(/assignment type/i) as HTMLSelectElement;
       fireEvent.change(typeSelect, { target: { value: 'event' } });
@@ -68,7 +53,7 @@ describe('AssignmentForm', () => {
     });
 
     it('allows selecting task assignment type', () => {
-      renderWithProviders(<AssignmentForm mode="create" volunteerId="123" />);
+      renderAssignmentForm(<AssignmentForm mode="create" volunteerId="123" />);
 
       const typeSelect = screen.getByLabelText(/assignment type/i) as HTMLSelectElement;
       fireEvent.change(typeSelect, { target: { value: 'task' } });
@@ -76,7 +61,7 @@ describe('AssignmentForm', () => {
     });
 
     it('allows entering role/position', () => {
-      renderWithProviders(<AssignmentForm mode="create" volunteerId="123" />);
+      renderAssignmentForm(<AssignmentForm mode="create" volunteerId="123" />);
 
       const roleInput = screen.getByLabelText(/^role$/i) as HTMLInputElement;
       fireEvent.change(roleInput, { target: { value: 'Team Lead' } });
@@ -84,7 +69,7 @@ describe('AssignmentForm', () => {
     });
 
     it('allows setting start time', () => {
-      renderWithProviders(<AssignmentForm mode="create" volunteerId="123" />);
+      renderAssignmentForm(<AssignmentForm mode="create" volunteerId="123" />);
 
       const startTimeInput = screen.getByLabelText(/start time/i) as HTMLInputElement;
       fireEvent.change(startTimeInput, { target: { value: '2026-02-15T09:00' } });
@@ -92,7 +77,7 @@ describe('AssignmentForm', () => {
     });
 
     it('allows setting end time', () => {
-      renderWithProviders(<AssignmentForm mode="create" volunteerId="123" />);
+      renderAssignmentForm(<AssignmentForm mode="create" volunteerId="123" />);
 
       const endTimeInput = screen.getByLabelText(/end time/i) as HTMLInputElement;
       fireEvent.change(endTimeInput, { target: { value: '2026-03-15T17:00' } });
@@ -100,7 +85,7 @@ describe('AssignmentForm', () => {
     });
 
     it('has cancel button that navigates back', () => {
-      renderWithProviders(<AssignmentForm mode="create" volunteerId="123" />);
+      renderAssignmentForm(<AssignmentForm mode="create" volunteerId="123" />);
 
       const cancelButton = screen.getByRole('button', { name: /cancel/i });
       fireEvent.click(cancelButton);
@@ -109,7 +94,7 @@ describe('AssignmentForm', () => {
     });
 
     it('shows Create Assignment button', () => {
-      renderWithProviders(<AssignmentForm mode="create" volunteerId="123" />);
+      renderAssignmentForm(<AssignmentForm mode="create" volunteerId="123" />);
       expect(screen.getByRole('button', { name: /create assignment/i })).toBeInTheDocument();
     });
   });
@@ -129,14 +114,14 @@ describe('AssignmentForm', () => {
     };
 
     it('shows Update Assignment in submit button', () => {
-      renderWithProviders(
+      renderAssignmentForm(
         <AssignmentForm mode="edit" volunteerId="123" assignment={mockAssignment} />
       );
       expect(screen.getByRole('button', { name: /update assignment/i })).toBeInTheDocument();
     });
 
     it('populates form fields with assignment data', () => {
-      renderWithProviders(
+      renderAssignmentForm(
         <AssignmentForm mode="edit" volunteerId="123" assignment={mockAssignment} />
       );
 
@@ -148,7 +133,7 @@ describe('AssignmentForm', () => {
     });
 
     it('allows user to modify form fields', () => {
-      renderWithProviders(
+      renderAssignmentForm(
         <AssignmentForm mode="edit" volunteerId="123" assignment={mockAssignment} />
       );
 
@@ -158,21 +143,21 @@ describe('AssignmentForm', () => {
     });
 
     it('shows Update Assignment button', () => {
-      renderWithProviders(
+      renderAssignmentForm(
         <AssignmentForm mode="edit" volunteerId="123" assignment={mockAssignment} />
       );
       expect(screen.getByRole('button', { name: /update assignment/i })).toBeInTheDocument();
     });
 
     it('shows status field in edit mode', () => {
-      renderWithProviders(
+      renderAssignmentForm(
         <AssignmentForm mode="edit" volunteerId="123" assignment={mockAssignment} />
       );
       expect(screen.getByLabelText(/status/i)).toBeInTheDocument();
     });
 
     it('shows hours logged field in edit mode', () => {
-      renderWithProviders(
+      renderAssignmentForm(
         <AssignmentForm mode="edit" volunteerId="123" assignment={mockAssignment} />
       );
       expect(screen.getByLabelText(/hours logged/i)).toBeInTheDocument();
@@ -189,7 +174,7 @@ describe('AssignmentForm', () => {
     };
 
     it('allows selecting scheduled status', () => {
-      renderWithProviders(
+      renderAssignmentForm(
         <AssignmentForm mode="edit" volunteerId="123" assignment={mockAssignment} />
       );
 
@@ -199,7 +184,7 @@ describe('AssignmentForm', () => {
     });
 
     it('allows selecting in_progress status', () => {
-      renderWithProviders(
+      renderAssignmentForm(
         <AssignmentForm mode="edit" volunteerId="123" assignment={mockAssignment} />
       );
 
@@ -209,7 +194,7 @@ describe('AssignmentForm', () => {
     });
 
     it('allows selecting completed status', () => {
-      renderWithProviders(
+      renderAssignmentForm(
         <AssignmentForm mode="edit" volunteerId="123" assignment={mockAssignment} />
       );
 
@@ -219,7 +204,7 @@ describe('AssignmentForm', () => {
     });
 
     it('allows selecting cancelled status', () => {
-      renderWithProviders(
+      renderAssignmentForm(
         <AssignmentForm mode="edit" volunteerId="123" assignment={mockAssignment} />
       );
 
@@ -240,7 +225,7 @@ describe('AssignmentForm', () => {
     };
 
     it('allows entering hours logged', () => {
-      renderWithProviders(
+      renderAssignmentForm(
         <AssignmentForm mode="edit" volunteerId="123" assignment={mockAssignment} />
       );
 
@@ -250,7 +235,7 @@ describe('AssignmentForm', () => {
     });
 
     it('validates hours as numeric values', () => {
-      renderWithProviders(
+      renderAssignmentForm(
         <AssignmentForm mode="edit" volunteerId="123" assignment={mockAssignment} />
       );
 
@@ -261,7 +246,7 @@ describe('AssignmentForm', () => {
 
   describe('Notes Field', () => {
     it('allows entering assignment notes', () => {
-      renderWithProviders(<AssignmentForm mode="create" volunteerId="123" />);
+      renderAssignmentForm(<AssignmentForm mode="create" volunteerId="123" />);
 
       const notesInput = screen.getByLabelText(/additional notes/i) as HTMLTextAreaElement;
       fireEvent.change(notesInput, {
@@ -273,7 +258,7 @@ describe('AssignmentForm', () => {
 
   describe('Form Validation', () => {
     it('validates required start time field', async () => {
-      renderWithProviders(<AssignmentForm mode="create" volunteerId="123" />);
+      renderAssignmentForm(<AssignmentForm mode="create" volunteerId="123" />);
 
       const submitButton = screen.getByRole('button', { name: /create assignment/i });
       fireEvent.click(submitButton);
@@ -284,7 +269,7 @@ describe('AssignmentForm', () => {
     });
 
     it('validates end time is after start time', async () => {
-      renderWithProviders(<AssignmentForm mode="create" volunteerId="123" />);
+      renderAssignmentForm(<AssignmentForm mode="create" volunteerId="123" />);
 
       const startTimeInput = screen.getByLabelText(/start time/i);
       fireEvent.change(startTimeInput, { target: { value: '2026-03-15T10:00' } });
@@ -301,7 +286,7 @@ describe('AssignmentForm', () => {
 
   describe('Conditional Fields', () => {
     it('shows event ID field when type is event', () => {
-      renderWithProviders(<AssignmentForm mode="create" volunteerId="123" />);
+      renderAssignmentForm(<AssignmentForm mode="create" volunteerId="123" />);
 
       const typeSelect = screen.getByLabelText(/assignment type/i);
       fireEvent.change(typeSelect, { target: { value: 'event' } });
@@ -310,7 +295,7 @@ describe('AssignmentForm', () => {
     });
 
     it('shows task ID field when type is task', () => {
-      renderWithProviders(<AssignmentForm mode="create" volunteerId="123" />);
+      renderAssignmentForm(<AssignmentForm mode="create" volunteerId="123" />);
 
       const typeSelect = screen.getByLabelText(/assignment type/i);
       fireEvent.change(typeSelect, { target: { value: 'task' } });
@@ -319,7 +304,7 @@ describe('AssignmentForm', () => {
     });
 
     it('hides event/task fields for general type', () => {
-      renderWithProviders(<AssignmentForm mode="create" volunteerId="123" />);
+      renderAssignmentForm(<AssignmentForm mode="create" volunteerId="123" />);
 
       const typeSelect = screen.getByLabelText(/assignment type/i);
       fireEvent.change(typeSelect, { target: { value: 'general' } });
