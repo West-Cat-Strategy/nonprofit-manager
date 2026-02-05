@@ -2,11 +2,13 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { logger } from './config/logger';
 import { initializeRedis, closeRedis } from './config/redis';
 import { errorHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimiter';
+import { csrfMiddleware } from './middleware/csrf';
 import { correlationIdMiddleware, CORRELATION_ID_HEADER } from './middleware/correlationId';
 import { metricsMiddleware, metricsRouter } from './middleware/metrics';
 import { orgContextMiddleware } from './middleware/orgContext';
@@ -41,10 +43,38 @@ import meetingRoutes from './routes/meetings';
 import ingestRoutes from './routes/ingest';
 import adminRoutes from './routes/admin';
 import backupRoutes from './routes/backup';
+import plausibleRoutes from './routes/plausibleProxy';
 import { setPaymentPool } from './controllers/paymentController';
 import { Pool } from 'pg';
 
 dotenv.config();
+
+// Production secrets validation
+if (process.env.NODE_ENV === 'production') {
+  const warnings: string[] = [];
+
+  const jwtSecret = process.env.JWT_SECRET || '';
+  if (jwtSecret.includes('dev') || jwtSecret.length < 32) {
+    warnings.push('JWT_SECRET appears insecure (contains "dev" or is less than 32 characters)');
+  }
+
+  if (process.env.DB_PASSWORD === 'postgres') {
+    warnings.push('DB_PASSWORD is set to default value "postgres"');
+  }
+
+  const csrfSecret = process.env.CSRF_SECRET || '';
+  if (csrfSecret.includes('change') || csrfSecret.length < 32) {
+    warnings.push('CSRF_SECRET appears insecure (contains "change" or is less than 32 characters)');
+  }
+
+  if (warnings.length > 0) {
+    warnings.forEach((w) => logger.warn(`SECURITY WARNING: ${w}`));
+    if (process.env.ENFORCE_SECURE_CONFIG === 'true') {
+      logger.error('Exiting due to insecure configuration. Set ENFORCE_SECURE_CONFIG=false to disable.');
+      process.exit(1);
+    }
+  }
+}
 
 const dbPassword = process.env.DB_PASSWORD;
 if (!dbPassword && process.env.NODE_ENV === 'production') {
@@ -111,9 +141,15 @@ app.use(cors(corsOptions));
 // Stripe webhook needs raw body - must be before json parsing
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 
+// Cookie parser middleware (before body parsing for CSRF)
+app.use(cookieParser());
+
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// CSRF protection middleware (after cookie-parser and body parsing)
+app.use(csrfMiddleware);
 
 // Correlation ID middleware (early - before logging)
 app.use(correlationIdMiddleware);
@@ -172,6 +208,7 @@ app.use('/api/meetings', meetingRoutes);
 app.use('/api/ingest', ingestRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/backup', backupRoutes);
+app.use('/api/plausible', plausibleRoutes);
 
 // Error handling
 app.use(errorHandler);

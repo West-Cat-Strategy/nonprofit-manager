@@ -2,7 +2,7 @@ import { Response, NextFunction } from 'express';
 import pool from '../config/database';
 import { logger } from '../config/logger';
 import { AuthRequest } from './auth';
-import { badRequest, notFoundMessage, serverError } from '../utils/responseHelpers';
+import { badRequest, forbidden, notFoundMessage, serverError } from '../utils/responseHelpers';
 
 type OrgContextSource = 'header' | 'query' | 'param';
 
@@ -53,6 +53,7 @@ const getOrgContext = (req: AuthRequest): { id?: string; source?: OrgContextSour
 
 const shouldValidateContext = () => process.env.ORG_CONTEXT_VALIDATE === 'true';
 const shouldRequireContext = () => process.env.ORG_CONTEXT_REQUIRE === 'true';
+const shouldValidateUserAccess = () => process.env.ORG_ACCESS_VALIDATE === 'true';
 
 export const orgContextMiddleware = async (
   req: AuthRequest,
@@ -98,6 +99,28 @@ export const orgContextMiddleware = async (
       logger.warn('Organization context not found', { orgId: id, source });
       return notFoundMessage(res, 'Organization context not found');
     }
+
+    // Validate user access to the organization if enabled
+    if (shouldValidateUserAccess() && req.user) {
+      const userId = req.user.id;
+      const userRole = req.user.role;
+
+      // Admins always have access
+      if (userRole !== 'admin') {
+        // Check user_organization_access table for explicit access
+        const accessResult = await pool.query(
+          `SELECT id FROM user_organization_access
+           WHERE user_id = $1 AND organization_id = $2 AND is_active = true`,
+          [userId, id]
+        );
+
+        if (accessResult.rows.length === 0) {
+          logger.warn('User lacks access to organization', { userId, orgId: id, source });
+          return forbidden(res, 'You do not have access to this organization');
+        }
+      }
+    }
+
     return next();
   } catch (error) {
     logger.error('Failed to validate organization context', { error, orgId: id, source });

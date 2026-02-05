@@ -33,11 +33,19 @@ if (storedUser) {
 
 // 🔧 DEV MODE: Auto-authenticate for development
 // Opt-in only: set `VITE_DEV_AUTO_LOGIN=true` to bypass the login screen locally.
-// Never enable this in production builds.
+// Multiple safeguards prevent this from running in production.
 const DEV_MODE = import.meta.env.DEV;
 const DEV_AUTO_LOGIN = import.meta.env.VITE_DEV_AUTO_LOGIN === 'true';
 
-if (DEV_MODE && DEV_AUTO_LOGIN && !token) {
+// Additional production safeguards
+const isProductionBuild = import.meta.env.PROD;
+const isNotLocalhost = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+
+// Block dev auto-login if ANY production indicator is detected
+const shouldBlockDevLogin = isProductionBuild || isNotLocalhost;
+
+if (DEV_MODE && DEV_AUTO_LOGIN && !token && !shouldBlockDevLogin) {
   const devUser: User = {
     id: '1',
     email: 'dev@example.com',
@@ -56,6 +64,12 @@ if (DEV_MODE && DEV_AUTO_LOGIN && !token) {
   }
 
   console.log('🔧 [DEV MODE] Auto-authenticated as:', devUser.email);
+} else if (DEV_AUTO_LOGIN && shouldBlockDevLogin) {
+  // Log security warning if dev auto-login was attempted in production-like environment
+  console.warn('🔒 [SECURITY] Dev auto-login blocked: Production environment detected');
+  if (isHttps) {
+    console.warn('🔒 [SECURITY] HTTPS detected - ensure VITE_DEV_AUTO_LOGIN is disabled');
+  }
 }
 
 const initialState: AuthState = {

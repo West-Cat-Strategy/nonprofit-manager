@@ -3,6 +3,7 @@ import { body } from 'express-validator';
 import {
   login,
   register,
+  logout,
   getCurrentUser,
   checkSetupStatus,
   setupFirstUser,
@@ -13,6 +14,7 @@ import {
   updateProfile,
   changePassword,
 } from '../controllers/authController';
+import { getCsrfToken } from '../middleware/csrf';
 import {
   completeTotpLogin,
   disableTotp,
@@ -77,6 +79,10 @@ router.post(
 );
 
 router.get('/me', authenticate, getCurrentUser);
+router.post('/logout', authenticate, logout);
+
+// CSRF token endpoint
+router.get('/csrf-token', getCsrfToken);
 
 // Security (MFA / passkeys) overview
 router.get('/security', authenticate, getSecurityOverview);
