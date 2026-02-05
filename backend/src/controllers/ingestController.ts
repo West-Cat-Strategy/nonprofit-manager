@@ -21,7 +21,7 @@ export const previewUpload = async (req: AuthRequest, res: Response, next: NextF
     const format =
       typeof req.body.format === 'string' ? (req.body.format as IngestSourceType) : undefined;
 
-    const preview = ingestPreviewFromBuffer({
+    const preview = await ingestPreviewFromBuffer({
       buffer: file.buffer,
       filename: file.originalname,
       mimeType: file.mimetype,

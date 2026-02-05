@@ -44,8 +44,8 @@
     "pg": "^8.18.0",
     "redis": "^5.10.0",
     "stripe": "^20.3.0",
-    "winston": "^3.19.0",
-    "xlsx": "^0.18.5"
+    "exceljs": "^4.4.0",
+    "winston": "^3.19.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
