@@ -59,14 +59,14 @@ export function ingestPreviewFromTextAuto(params: { text: string; name?: string 
   return ingestPreviewFromText({ format, text: params.text, name: params.name ?? format.toUpperCase() });
 }
 
-export function ingestPreviewFromBuffer(params: {
+export async function ingestPreviewFromBuffer(params: {
   buffer: Buffer;
   filename?: string;
   mimeType?: string;
   format?: IngestSourceType;
   sheetName?: string;
   name?: string;
-}): IngestPreviewResult {
+}): Promise<IngestPreviewResult> {
   const filenameHint = inferFormatFromFilename(params.filename);
   const mimeHint = inferFormatFromMime(params.mimeType);
 
@@ -81,7 +81,7 @@ export function ingestPreviewFromBuffer(params: {
 
   const datasets =
     format === 'excel'
-      ? parseExcelToDatasets(params.buffer, { name, sheetName: params.sheetName })
+      ? await parseExcelToDatasets(params.buffer, { name, sheetName: params.sheetName })
       : format === 'sql'
         ? parseSqlToDatasets(params.buffer.toString('utf8'), { name })
         : [parseCsvToDataset(params.buffer.toString('utf8'), { name })];

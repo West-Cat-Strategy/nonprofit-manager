@@ -1,4 +1,4 @@
-import xlsx from 'xlsx';
+import ExcelJS from 'exceljs';
 import type { IngestDataset } from '../types';
 import { inferColumn } from '../infer';
 import { normalizeName, safeRatio, take, uniq } from '../utils';
@@ -44,22 +44,67 @@ function toRowObject(headers: string[], values: unknown[]): Record<string, strin
   return row;
 }
 
-export function parseExcelToDatasets(buffer: Buffer, options: ExcelParseOptions = {}): IngestDataset[] {
+function getCellValue(cell: ExcelJS.Cell): unknown {
+  if (!cell || cell.value === null || cell.value === undefined) {
+    return null;
+  }
+
+  const value = cell.value;
+
+  // Handle different cell value types
+  if (typeof value === 'object') {
+    // Rich text
+    if ('richText' in value && Array.isArray(value.richText)) {
+      return value.richText.map((rt: { text?: string }) => rt.text || '').join('');
+    }
+    // Formula result
+    if ('result' in value) {
+      return value.result;
+    }
+    // Hyperlink
+    if ('text' in value) {
+      return value.text;
+    }
+    // Date
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+  }
+
+  return value;
+}
+
+export async function parseExcelToDatasets(buffer: Buffer, options: ExcelParseOptions = {}): Promise<IngestDataset[]> {
   const maxRows = options.maxRows ?? 5000;
-  const workbook = xlsx.read(buffer, { type: 'buffer' });
+  const workbook = new ExcelJS.Workbook();
+  // ExcelJS load accepts Buffer in Node.js environments
+  await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
 
   const sheetNames =
-    options.sheetName && workbook.SheetNames.includes(options.sheetName)
+    options.sheetName && workbook.worksheets.some(ws => ws.name === options.sheetName)
       ? [options.sheetName]
-      : workbook.SheetNames;
+      : workbook.worksheets.map(ws => ws.name);
 
   const datasets: IngestDataset[] = [];
 
   for (const sheetName of sheetNames) {
-    const sheet = workbook.Sheets[sheetName];
+    const sheet = workbook.getWorksheet(sheetName);
     if (!sheet) continue;
 
-    const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: null }) as unknown[][];
+    // Convert worksheet to array of arrays
+    const rows: unknown[][] = [];
+    sheet.eachRow({ includeEmpty: false }, (row) => {
+      const rowValues: unknown[] = [];
+      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        // Ensure we fill in gaps for empty cells
+        while (rowValues.length < colNumber - 1) {
+          rowValues.push(null);
+        }
+        rowValues.push(getCellValue(cell));
+      });
+      rows.push(rowValues);
+    });
+
     const nonEmptyRows = rows.filter((r) => r.some((v) => v !== null && v !== undefined && String(v).trim()));
 
     const warnings: string[] = [];
@@ -148,3 +193,9 @@ export function parseExcelToDatasets(buffer: Buffer, options: ExcelParseOptions 
   return datasets;
 }
 
+// Synchronous wrapper for backward compatibility (uses sync parsing where possible)
+export function parseExcelToDatasetsSynced(_buffer: Buffer, _options: ExcelParseOptions = {}): IngestDataset[] {
+  // For ExcelJS we need to use the async API, so this is a placeholder
+  // that will throw an error if called - callers should use the async version
+  throw new Error('parseExcelToDatasetsSynced is not supported with ExcelJS. Use parseExcelToDatasets instead.');
+}

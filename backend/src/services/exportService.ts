@@ -4,7 +4,7 @@
  */
 
 import { createObjectCsvWriter } from 'csv-writer';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import * as fs from 'fs';
 import * as path from 'path';
 import type {
@@ -269,38 +269,64 @@ export class ExportService {
   }
 
   /**
-   * Export data to Excel format
+   * Export data to Excel format using ExcelJS
    */
-  private exportToExcel(
+  private async exportToExcel(
     sheets: Array<{ name: string; data: any[] }>,
     filename: string
-  ): string {
+  ): Promise<string> {
     const filepath = path.join(this.exportDir, `${filename}.xlsx`);
 
     // Create workbook
-    const workbook = XLSX.utils.book_new();
+    const workbook = new ExcelJS.Workbook();
+    workbook.created = new Date();
 
     // Add each sheet
     for (const sheet of sheets) {
       const sanitizedSheetData = sheet.data.map((row) => this.sanitizeRow(row));
-      const worksheet = XLSX.utils.json_to_sheet(sanitizedSheetData);
+      const worksheet = workbook.addWorksheet(sheet.name);
 
-      // Auto-size columns
-      const maxWidth = 50;
-      const colWidths = Object.keys(sheet.data[0] || {}).map((key) => {
-        const maxLength = Math.max(
-          key.length,
-          ...sanitizedSheetData.map((row) => String(row[key] || '').length)
-        );
-        return { wch: Math.min(maxLength + 2, maxWidth) };
-      });
-      worksheet['!cols'] = colWidths;
+      if (sanitizedSheetData.length > 0) {
+        // Get headers from first row
+        const headers = Object.keys(sanitizedSheetData[0]);
 
-      XLSX.utils.book_append_sheet(workbook, worksheet, sheet.name);
+        // Add header row
+        worksheet.columns = headers.map((header) => ({
+          header: header.charAt(0).toUpperCase() + header.slice(1).replace(/_/g, ' '),
+          key: header,
+          width: Math.min(50, Math.max(10, header.length + 5)),
+        }));
+
+        // Add data rows
+        for (const row of sanitizedSheetData) {
+          worksheet.addRow(row);
+        }
+
+        // Auto-fit column widths based on content
+        worksheet.columns.forEach((column) => {
+          let maxLength = column.header ? String(column.header).length : 10;
+          column.eachCell?.({ includeEmpty: false }, (cell) => {
+            const cellLength = cell.value ? String(cell.value).length : 0;
+            if (cellLength > maxLength) {
+              maxLength = cellLength;
+            }
+          });
+          column.width = Math.min(50, maxLength + 2);
+        });
+
+        // Style header row
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { bold: true };
+        headerRow.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFE0E0E0' },
+        };
+      }
     }
 
     // Write file
-    XLSX.writeFile(workbook, filepath);
+    await workbook.xlsx.writeFile(filepath);
 
     return filepath;
   }
