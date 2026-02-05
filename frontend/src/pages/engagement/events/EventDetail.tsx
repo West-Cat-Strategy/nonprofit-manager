@@ -17,6 +17,7 @@ import {
 import AddToCalendar from '../../../components/AddToCalendar';
 import SocialShare from '../../../components/SocialShare';
 import { useDocumentMeta } from '../../../hooks/useDocumentMeta';
+import { formatDateTime } from '../../../utils/format';
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -47,15 +48,11 @@ const EventDetail: React.FC = () => {
     };
   }, [id, dispatch]);
 
-  const formatDateTime = (date: string) => {
-    return new Date(date).toLocaleString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
+  // Add weekday to the standard date format for event details
+  const formatEventDateTime = (date: string) => {
+    const d = new Date(date);
+    const weekday = d.toLocaleDateString('en-US', { weekday: 'long' });
+    return `${weekday}, ${formatDateTime(date)}`;
   };
 
   const handleCheckIn = async (registrationId: string) => {
@@ -168,11 +165,11 @@ const EventDetail: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <h3 className="text-lg font-semibold mb-2">Start Date & Time</h3>
-              <p className="text-gray-700">{formatDateTime(event.start_date)}</p>
+              <p className="text-gray-700">{formatEventDateTime(event.start_date)}</p>
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-2">End Date & Time</h3>
-              <p className="text-gray-700">{formatDateTime(event.end_date)}</p>
+              <p className="text-gray-700">{formatEventDateTime(event.end_date)}</p>
             </div>
           </div>
 

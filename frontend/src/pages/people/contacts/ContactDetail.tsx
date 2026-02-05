@@ -15,6 +15,7 @@ import ContactEmailAddresses from '../../../components/ContactEmailAddresses';
 import ContactRelationships from '../../../components/ContactRelationships';
 import ContactNotes from '../../../components/ContactNotes';
 import ContactDocuments from '../../../components/ContactDocuments';
+import { formatDate } from '../../../utils/format';
 
 type TabType = 'overview' | 'notes' | 'documents' | 'payments';
 
@@ -89,9 +90,8 @@ const ContactDetail = () => {
 
   const fullName = `${currentContact.salutation ? currentContact.salutation + ' ' : ''}${currentContact.first_name} ${currentContact.middle_name ? currentContact.middle_name + ' ' : ''}${currentContact.last_name}${currentContact.suffix ? ', ' + currentContact.suffix : ''}`;
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString();
+  const formatDateOrDash = (dateString: string | null) => {
+    return dateString ? formatDate(dateString) : '-';
   };
 
   const calculateAge = (birthDate: string | null) => {
@@ -203,7 +203,7 @@ const ContactDetail = () => {
                       Date of Birth
                     </label>
                     <p className="mt-1 font-bold text-black">
-                      {formatDate(currentContact.birth_date)}
+                      {formatDateOrDash(currentContact.birth_date)}
                       {currentContact.birth_date && calculateAge(currentContact.birth_date) !== null && (
                         <span className="text-black/60 ml-1">
                           (Age: {calculateAge(currentContact.birth_date)})

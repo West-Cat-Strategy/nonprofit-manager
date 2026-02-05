@@ -9,6 +9,7 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchTasks, deleteTask, completeTask } from '../../../store/slices/tasksSlice';
 import { TaskStatus, TaskPriority } from '../../../types/task';
 import type { TaskFilters } from '../../../types/task';
+import { formatDate } from '../../../utils/format';
 
 type TaskListFilters = {
   search: string;
@@ -59,14 +60,8 @@ const TaskList: React.FC = () => {
     await dispatch(completeTask(id));
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'No due date';
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    }).format(date);
+  const formatDueDate = (dateString: string | null) => {
+    return dateString ? formatDate(dateString) : 'No due date';
   };
 
   const isOverdue = (dueDate: string | null, status: TaskStatus) => {
@@ -254,7 +249,7 @@ const TaskList: React.FC = () => {
                           : 'text-gray-900'
                       }`}
                     >
-                      {formatDate(task.due_date)}
+                      {formatDueDate(task.due_date)}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm font-medium space-x-2">
