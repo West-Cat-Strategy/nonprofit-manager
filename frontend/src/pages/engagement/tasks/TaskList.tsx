@@ -10,6 +10,7 @@ import { fetchTasks, deleteTask, completeTask } from '../../../store/slices/task
 import { TaskStatus, TaskPriority } from '../../../types/task';
 import type { TaskFilters } from '../../../types/task';
 import { formatDate } from '../../../utils/format';
+import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 
 type TaskListFilters = {
   search: string;
@@ -105,19 +106,22 @@ const TaskList: React.FC = () => {
 
   if (error) {
     return (
+      <NeoBrutalistLayout pageTitle="TASKS">
       <div className="container mx-auto px-4 py-8">
-        <div className="p-4 bg-red-100 text-red-700 rounded-md">Error: {error}</div>
+        <div className="p-4 bg-red-100 border-2 border-red-500 text-red-700 shadow-[4px_4px_0px_0px_var(--shadow-color)]">Error: {error}</div>
       </div>
+      </NeoBrutalistLayout>
     );
   }
 
   return (
+    <NeoBrutalistLayout pageTitle="TASKS">
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
+        <h1 className="text-3xl font-black text-[var(--app-text)]">Tasks</h1>
         <button
           onClick={() => navigate('/tasks/new')}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="px-4 py-2 bg-[var(--loop-green)] text-black border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_var(--shadow-color)] transition-all font-bold uppercase"
         >
           + New Task
         </button>
@@ -126,40 +130,40 @@ const TaskList: React.FC = () => {
       {/* Summary Cards */}
       {summary && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-red-50 p-4 rounded-lg shadow">
-            <div className="text-red-600 text-sm font-medium">Overdue</div>
-            <div className="text-2xl font-bold text-red-900">{summary.overdue}</div>
+          <div className="bg-red-100 border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-4">
+            <div className="text-red-600 text-sm font-bold uppercase">Overdue</div>
+            <div className="text-2xl font-black text-red-900">{summary.overdue}</div>
           </div>
-          <div className="bg-yellow-50 p-4 rounded-lg shadow">
-            <div className="text-yellow-600 text-sm font-medium">Due Today</div>
-            <div className="text-2xl font-bold text-yellow-900">{summary.due_today}</div>
+          <div className="bg-[var(--loop-yellow)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-4">
+            <div className="text-black text-sm font-bold uppercase">Due Today</div>
+            <div className="text-2xl font-black text-black">{summary.due_today}</div>
           </div>
-          <div className="bg-blue-50 p-4 rounded-lg shadow">
-            <div className="text-blue-600 text-sm font-medium">Due This Week</div>
-            <div className="text-2xl font-bold text-blue-900">{summary.due_this_week}</div>
+          <div className="bg-[var(--loop-blue)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-4">
+            <div className="text-black text-sm font-bold uppercase">Due This Week</div>
+            <div className="text-2xl font-black text-black">{summary.due_this_week}</div>
           </div>
-          <div className="bg-green-50 p-4 rounded-lg shadow">
-            <div className="text-green-600 text-sm font-medium">Total Tasks</div>
-            <div className="text-2xl font-bold text-green-900">{pagination.total}</div>
+          <div className="bg-[var(--loop-green)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-4">
+            <div className="text-black text-sm font-bold uppercase">Total Tasks</div>
+            <div className="text-2xl font-black text-black">{pagination.total}</div>
           </div>
         </div>
       )}
 
       {/* Filters */}
-      <div className="bg-white p-4 rounded-lg shadow mb-6">
+      <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <input
             type="text"
             placeholder="Search tasks..."
             value={filters.search}
             onChange={(e) => handleFilterChange('search', e.target.value)}
-            className="px-4 py-2 border rounded-md"
+            className="px-4 py-2 border-2 border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] shadow-[2px_2px_0px_0px_var(--shadow-color)]"
             aria-label="Search tasks"
           />
           <select
             value={filters.status}
             onChange={(e) => handleFilterChange('status', e.target.value as TaskStatus | '')}
-            className="px-4 py-2 border rounded-md"
+            className="px-4 py-2 border-2 border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] shadow-[2px_2px_0px_0px_var(--shadow-color)]"
             aria-label="Filter by status"
           >
             <option value="">All Statuses</option>
@@ -173,7 +177,7 @@ const TaskList: React.FC = () => {
           <select
             value={filters.priority}
             onChange={(e) => handleFilterChange('priority', e.target.value as TaskPriority | '')}
-            className="px-4 py-2 border rounded-md"
+            className="px-4 py-2 border-2 border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] shadow-[2px_2px_0px_0px_var(--shadow-color)]"
             aria-label="Filter by priority"
           >
             <option value="">All Priorities</option>
@@ -182,7 +186,7 @@ const TaskList: React.FC = () => {
             <option value={TaskPriority.HIGH}>High</option>
             <option value={TaskPriority.URGENT}>Urgent</option>
           </select>
-          <label className="flex items-center px-4 py-2 border rounded-md cursor-pointer">
+          <label className="flex items-center px-4 py-2 border-2 border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] shadow-[2px_2px_0px_0px_var(--shadow-color)] cursor-pointer font-bold">
             <input
               type="checkbox"
               checked={filters.overdue}
@@ -196,49 +200,49 @@ const TaskList: React.FC = () => {
       </div>
 
       {/* Task Table */}
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
+      <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">Loading tasks...</div>
+          <div className="p-8 text-center text-[var(--app-text-muted)]">Loading tasks...</div>
         ) : tasks.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">No tasks found</div>
+          <div className="p-8 text-center text-[var(--app-text-muted)]">No tasks found</div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-[var(--app-border)]">
+            <thead className="bg-[var(--app-surface-muted)]">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
                   Task
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
                   Priority
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
                   Assigned To
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
                   Due Date
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-[var(--app-surface)] divide-y divide-[var(--app-border)]">
               {tasks.map((task) => (
-                <tr key={task.id} className="hover:bg-gray-50">
+                <tr key={task.id} className="hover:bg-[var(--app-surface-muted)]">
                   <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-gray-900">{task.subject}</div>
+                    <div className="text-sm font-medium text-[var(--app-text)]">{task.subject}</div>
                     {task.related_to_name && (
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-[var(--app-text-muted)]">
                         Related to: {task.related_to_name}
                       </div>
                     )}
                   </td>
                   <td className="px-6 py-4">{getStatusBadge(task.status)}</td>
                   <td className="px-6 py-4">{getPriorityBadge(task.priority)}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
+                  <td className="px-6 py-4 text-sm text-[var(--app-text)]">
                     {task.assigned_to_name || 'Unassigned'}
                   </td>
                   <td className="px-6 py-4">
@@ -246,16 +250,16 @@ const TaskList: React.FC = () => {
                       className={`text-sm ${
                         isOverdue(task.due_date, task.status)
                           ? 'text-red-600 font-semibold'
-                          : 'text-gray-900'
+                          : 'text-[var(--app-text)]'
                       }`}
                     >
                       {formatDueDate(task.due_date)}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium space-x-2">
+                  <td className="px-6 py-4 text-sm font-bold space-x-2">
                     <button
                       onClick={() => navigate(`/tasks/${task.id}`)}
-                      className="text-blue-600 hover:text-blue-900"
+                      className="text-[var(--app-accent-text)] hover:text-[var(--app-accent-text-hover)]"
                     >
                       View
                     </button>
@@ -269,7 +273,7 @@ const TaskList: React.FC = () => {
                     )}
                     <button
                       onClick={() => navigate(`/tasks/${task.id}/edit`)}
-                      className="text-indigo-600 hover:text-indigo-900"
+                      className="text-[var(--app-accent-text)] hover:text-[var(--app-accent-text-hover)]"
                     >
                       Edit
                     </button>
@@ -290,16 +294,16 @@ const TaskList: React.FC = () => {
       {/* Pagination */}
       {pagination.pages > 1 && (
         <div className="mt-4 flex justify-center">
-          <nav className="inline-flex rounded-md shadow">
+          <nav className="inline-flex shadow-[4px_4px_0px_0px_var(--shadow-color)]">
             {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((page) => (
               <button
                 key={page}
                 onClick={() => handleFilterChange('page', page)}
-                className={`px-4 py-2 text-sm font-medium ${
+                className={`px-4 py-2 text-sm font-bold ${
                   pagination.page === page
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                } border border-gray-300`}
+                    ? 'bg-[var(--app-border)] text-[var(--app-bg)]'
+                    : 'bg-[var(--app-surface)] text-[var(--app-text)] hover:bg-[var(--app-surface-muted)]'
+                } border-2 border-[var(--app-border)]`}
               >
                 {page}
               </button>
@@ -308,6 +312,7 @@ const TaskList: React.FC = () => {
         </div>
       )}
     </div>
+    </NeoBrutalistLayout>
   );
 };
 

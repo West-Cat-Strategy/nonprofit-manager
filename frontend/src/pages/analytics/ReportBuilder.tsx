@@ -7,6 +7,7 @@ import FieldSelector from '../../components/FieldSelector';
 import FilterBuilder from '../../components/FilterBuilder';
 import SortBuilder from '../../components/SortBuilder';
 import type { ReportEntity, ReportFilter, ReportSort } from '../../types/report';
+import NeoBrutalistLayout from '../../components/neo-brutalist/NeoBrutalistLayout';
 
 const ENTITIES: { value: ReportEntity; label: string }[] = [
   { value: 'accounts', label: 'Accounts' },
@@ -147,26 +148,27 @@ function ReportBuilder() {
   );
 
   return (
+    <NeoBrutalistLayout pageTitle="REPORTS">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Report Builder</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="text-3xl font-black text-[var(--app-text)]">Report Builder</h1>
+          <p className="mt-2 text-[var(--app-text-muted)]">
             Create custom reports by selecting entity, fields, filters, and sorting options
           </p>
         </div>
 
         {/* Entity Selector */}
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">1. Select Entity</h2>
+        <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 mb-6">
+          <h2 className="text-lg font-bold text-[var(--app-text)] mb-4 uppercase">1. Select Entity</h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
             {ENTITIES.map((ent) => (
               <button
                 key={ent.value}
                 onClick={() => handleEntityChange(ent.value)}
-                className={`px-4 py-3 rounded-lg border-2 font-medium transition-colors ${
+                className={`px-4 py-3 border-2 border-[var(--app-border)] font-bold transition-all shadow-[2px_2px_0px_0px_var(--shadow-color)] ${
                   entity === ent.value
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                    ? 'bg-[var(--loop-yellow)] text-black'
+                    : 'bg-[var(--app-surface)] text-[var(--app-text)] hover:bg-[var(--app-surface-muted)]'
                 }`}
               >
                 {ent.label}
@@ -176,8 +178,8 @@ function ReportBuilder() {
         </div>
 
         {/* Field Selector */}
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">2. Select Fields</h2>
+        <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 mb-6">
+          <h2 className="text-lg font-bold text-[var(--app-text)] mb-4 uppercase">2. Select Fields</h2>
           <FieldSelector
             entity={entity}
             selectedFields={selectedFields}
@@ -186,14 +188,14 @@ function ReportBuilder() {
         </div>
 
         {/* Filter Builder */}
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">3. Add Filters (Optional)</h2>
+        <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 mb-6">
+          <h2 className="text-lg font-bold text-[var(--app-text)] mb-4 uppercase">3. Add Filters (Optional)</h2>
           <FilterBuilder entity={entity} filters={filters} onChange={setFilters} />
         </div>
 
         {/* Sort Builder */}
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">4. Add Sorting (Optional)</h2>
+        <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 mb-6">
+          <h2 className="text-lg font-bold text-[var(--app-text)] mb-4 uppercase">4. Add Sorting (Optional)</h2>
           <SortBuilder
             entity={entity}
             selectedFields={selectedFields}
@@ -203,33 +205,33 @@ function ReportBuilder() {
         </div>
 
         {/* Actions */}
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">5. Generate & Save Report</h2>
+        <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 mb-6">
+          <h2 className="text-lg font-bold text-[var(--app-text)] mb-4 uppercase">5. Generate & Save Report</h2>
           <div className="flex flex-wrap gap-4">
             <button
               onClick={handleGenerateReport}
               disabled={loading || selectedFields.length === 0}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+              className="px-6 py-3 bg-[var(--loop-blue)] text-black border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Generating...' : 'Generate Report'}
             </button>
             <button
               onClick={() => setShowSaveDialog(true)}
               disabled={selectedFields.length === 0}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+              className="px-6 py-3 bg-[var(--loop-green)] text-black border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Save Report
             </button>
             <button
               onClick={() => navigate('/reports/saved')}
-              className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium"
+              className="px-6 py-3 bg-[var(--loop-purple)] text-black border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
             >
               View Saved Reports
             </button>
             {currentReport && currentReport.data.length > 0 && (
               <button
                 onClick={handleExportCSV}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                className="px-6 py-3 bg-[var(--loop-green)] text-black border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
               >
                 Export to CSV
               </button>
@@ -239,27 +241,27 @@ function ReportBuilder() {
 
         {/* Report Preview */}
         {currentReport && currentReport.data.length > 0 && (
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Report Preview</h2>
+          <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6">
+            <h2 className="text-lg font-bold text-[var(--app-text)] mb-4 uppercase">Report Preview</h2>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full border-2 border-[var(--app-border)]">
+                <thead className="bg-[var(--app-surface-muted)]">
                   <tr>
                     {selectedFields.map((field) => (
                       <th
                         key={field}
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider border-b-2 border-[var(--app-border)]"
                       >
                         {(fieldLabelMap[field] || field).replace(/_/g, ' ')}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-[var(--app-surface)]">
                   {currentReport.data.slice(0, 10).map((row, idx) => (
-                    <tr key={idx}>
+                    <tr key={idx} className="border-b border-[var(--app-border)]">
                       {selectedFields.map((field) => (
-                        <td key={field} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td key={field} className="px-6 py-4 whitespace-nowrap text-sm text-[var(--app-text)]">
                           {row[field] !== null && row[field] !== undefined
                             ? String(row[field])
                             : '-'}
@@ -271,7 +273,7 @@ function ReportBuilder() {
               </table>
             </div>
             {currentReport.data.length > 10 && (
-              <p className="mt-4 text-sm text-gray-600">
+              <p className="mt-4 text-sm text-[var(--app-text-muted)]">
                 Showing first 10 of {currentReport.data.length} records. Export to CSV to view all
                 data.
               </p>
@@ -280,39 +282,39 @@ function ReportBuilder() {
         )}
 
         {currentReport && currentReport.data.length === 0 && (
-          <div className="bg-white shadow rounded-lg p-6">
-            <p className="text-gray-600">No data found matching your criteria.</p>
+          <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6">
+            <p className="text-[var(--app-text-muted)]">No data found matching your criteria.</p>
           </div>
         )}
 
         {/* Save Report Dialog */}
         {showSaveDialog && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Save Report</h3>
+            <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[8px_8px_0px_0px_var(--shadow-color)] p-6 w-full max-w-md">
+              <h3 className="text-lg font-bold text-[var(--app-text)] mb-4 uppercase">Save Report</h3>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-bold text-[var(--app-text)] mb-2 uppercase">
                   Report Name *
                 </label>
                 <input
                   type="text"
                   value={savedReportName}
                   onChange={(e) => setSavedReportName(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="block w-full px-3 py-2 border-2 border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] focus:outline-none focus:ring-2 focus:ring-[var(--loop-yellow)]"
                   placeholder="e.g., Monthly Donor Report"
                 />
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-bold text-[var(--app-text)] mb-2 uppercase">
                   Description (Optional)
                 </label>
                 <textarea
                   value={savedReportDescription}
                   onChange={(e) => setSavedReportDescription(e.target.value)}
                   rows={3}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="block w-full px-3 py-2 border-2 border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] focus:outline-none focus:ring-2 focus:ring-[var(--loop-yellow)]"
                   placeholder="Describe what this report is for..."
                 />
               </div>
@@ -320,7 +322,7 @@ function ReportBuilder() {
               <div className="flex gap-3">
                 <button
                   onClick={handleSaveReport}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex-1 px-4 py-3 bg-[var(--loop-blue)] text-black border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
                 >
                   Save
                 </button>
@@ -330,7 +332,7 @@ function ReportBuilder() {
                     setSavedReportName('');
                     setSavedReportDescription('');
                   }}
-                  className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                  className="flex-1 px-4 py-3 bg-[var(--app-surface-muted)] text-[var(--app-text)] border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
                 >
                   Cancel
                 </button>
@@ -339,6 +341,7 @@ function ReportBuilder() {
           </div>
         )}
     </div>
+    </NeoBrutalistLayout>
   );
 }
 

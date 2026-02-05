@@ -9,70 +9,18 @@ import {
   deleteContactRelationship,
   fetchContacts,
 } from '../store/slices/contactsSlice';
-import type { Contact as StoreContact } from '../store/slices/contactsSlice';
 import type { ContactRole, CreateContactRelationshipDTO, RelationshipType } from '../types/contact';
 import { RELATIONSHIP_TYPES } from '../types/contact';
 import { useToast } from '../contexts/useToast';
 import api from '../services/api';
 import { validatePostalCode } from '../utils/validation';
-
-type ContactFormValues = {
-  contact_id?: string;
-  first_name: string;
-  last_name: string;
-  middle_name?: string | null;
-  salutation?: string | null;
-  suffix?: string | null;
-  birth_date?: string | null;
-  gender?: string | null;
-  pronouns?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  mobile_phone?: string | null;
-  address_line1?: string | null;
-  address_line2?: string | null;
-  city?: string | null;
-  state_province?: string | null;
-  postal_code?: string | null;
-  country?: string | null;
-  job_title?: string | null;
-  department?: string | null;
-  preferred_contact_method?: string | null;
-  do_not_email?: boolean;
-  do_not_phone?: boolean;
-  notes?: string | null;
-  is_active?: boolean;
-  roles?: string[];
-};
-
-const PRONOUNS_OPTIONS = [
-  { value: '', label: 'Select pronouns...' },
-  { value: 'he/him', label: 'He/Him' },
-  { value: 'she/her', label: 'She/Her' },
-  { value: 'they/them', label: 'They/Them' },
-  { value: 'he/they', label: 'He/They' },
-  { value: 'she/they', label: 'She/They' },
-  { value: 'ze/hir', label: 'Ze/Hir' },
-  { value: 'other', label: 'Other' },
-];
-
-const GENDER_OPTIONS = [
-  { value: '', label: 'Select gender...' },
-  { value: 'Male', label: 'Male' },
-  { value: 'Female', label: 'Female' },
-  { value: 'Non-binary', label: 'Non-binary' },
-  { value: 'Genderqueer', label: 'Genderqueer' },
-  { value: 'Genderfluid', label: 'Genderfluid' },
-  { value: 'Agender', label: 'Agender' },
-  { value: 'Two-Spirit', label: 'Two-Spirit' },
-  { value: 'Prefer not to say', label: 'Prefer not to say' },
-  { value: 'Other', label: 'Other' },
-];
+import type { ContactFormValues, ContactRecord } from './contactForm/types';
+import { GENDER_OPTIONS, PRONOUNS_OPTIONS } from './contactForm/constants';
 
 interface ContactFormProps {
-  contact?: StoreContact;
+  contact?: ContactRecord;
   mode: 'create' | 'edit';
-  onCreated?: (contact: StoreContact) => void;
+  onCreated?: (contact: ContactRecord) => void;
   onCancel?: () => void;
 }
 
