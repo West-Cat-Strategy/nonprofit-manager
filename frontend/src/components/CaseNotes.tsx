@@ -3,6 +3,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { createCaseNote } from '../store/slices/casesSlice';
 import { useToast } from '../contexts/useToast';
 import type { CreateCaseNoteDTO, NoteType } from '../types/case';
+import { getNoteIcon, getNoteTypeLabel, formatNoteDate, NOTE_TYPE_OPTIONS } from '../utils/notes';
 
 interface CaseNotesProps {
   caseId: string;
@@ -60,45 +61,6 @@ const CaseNotes = ({ caseId }: CaseNotesProps) => {
     }
   };
 
-  const getNoteIcon = (noteType: NoteType) => {
-    const icons: Record<NoteType, string> = {
-      note: '📝',
-      email: '📧',
-      call: '📞',
-      meeting: '🤝',
-      update: '📢',
-      status_change: '🔄',
-    };
-    return icons[noteType] || '📝';
-  };
-
-  const getNoteTypeLabel = (noteType: NoteType) => {
-    const labels: Record<NoteType, string> = {
-      note: 'Note',
-      email: 'Email',
-      call: 'Phone Call',
-      meeting: 'Meeting',
-      update: 'Update',
-      status_change: 'Status Change',
-    };
-    return labels[noteType] || 'Note';
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    return date.toLocaleDateString();
-  };
-
   return (
     <div className="space-y-6">
       {/* Add Note Button */}
@@ -126,11 +88,11 @@ const CaseNotes = ({ caseId }: CaseNotesProps) => {
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="note">General Note</option>
-              <option value="email">Email</option>
-              <option value="call">Phone Call</option>
-              <option value="meeting">Meeting</option>
-              <option value="update">Update</option>
+              {NOTE_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -243,7 +205,7 @@ const CaseNotes = ({ caseId }: CaseNotesProps) => {
                     )}
                   </div>
                   <div className="text-sm text-gray-500">
-                    {note.first_name} {note.last_name} • {formatDate(note.created_at)}
+                    {note.first_name} {note.last_name} • {formatNoteDate(note.created_at)}
                   </div>
                 </div>
               </div>
