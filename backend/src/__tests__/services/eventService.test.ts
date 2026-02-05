@@ -1,20 +1,18 @@
-// Mock the database pool before importing the service
-const mockQuery = jest.fn();
-jest.mock('../../config/database', () => ({
-  __esModule: true,
-  default: {
-    query: mockQuery,
-  },
-}));
-
+import { Pool } from 'pg';
 import { EventService } from '../../services/eventService';
 import { EventType, EventStatus, RegistrationStatus } from '../../types/event';
+
+// Create mock pool
+const mockQuery = jest.fn();
+const mockPool = {
+  query: mockQuery,
+} as unknown as Pool;
 
 describe('EventService', () => {
   let eventService: EventService;
 
   beforeEach(() => {
-    eventService = new EventService();
+    eventService = new EventService(mockPool);
     jest.clearAllMocks();
   });
 
