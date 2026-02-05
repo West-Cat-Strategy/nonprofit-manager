@@ -1,8 +1,9 @@
 import { vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import AddToCalendar from '../AddToCalendar';
 import * as calendarUtils from '../../utils/calendar';
+import { renderWithProviders } from '../../test/testUtils';
 
 // Mock the calendar utility functions
 vi.mock('../../utils/calendar', () => ({
@@ -32,21 +33,21 @@ describe('AddToCalendar', () => {
   });
 
   it('should render the "Add to Calendar" button', () => {
-    render(<AddToCalendar event={mockEvent} />);
+    renderWithProviders(<AddToCalendar event={mockEvent} />);
 
     const button = screen.getByText('Add to Calendar');
     expect(button).toBeInTheDocument();
   });
 
   it('should not show dropdown initially', () => {
-    render(<AddToCalendar event={mockEvent} />);
+    renderWithProviders(<AddToCalendar event={mockEvent} />);
 
     expect(screen.queryByText('Google Calendar')).not.toBeInTheDocument();
     expect(screen.queryByText('Outlook')).not.toBeInTheDocument();
   });
 
   it('should open dropdown when button is clicked', () => {
-    render(<AddToCalendar event={mockEvent} />);
+    renderWithProviders(<AddToCalendar event={mockEvent} />);
 
     const button = screen.getByText('Add to Calendar');
     fireEvent.click(button);
@@ -58,7 +59,7 @@ describe('AddToCalendar', () => {
   });
 
   it('should close dropdown when button is clicked again', () => {
-    render(<AddToCalendar event={mockEvent} />);
+    renderWithProviders(<AddToCalendar event={mockEvent} />);
 
     const button = screen.getByText('Add to Calendar');
 
@@ -72,7 +73,7 @@ describe('AddToCalendar', () => {
   });
 
   it('should close dropdown when clicking outside', async () => {
-    render(<AddToCalendar event={mockEvent} />);
+    renderWithProviders(<AddToCalendar event={mockEvent} />);
 
     // Open dropdown
     const button = screen.getByText('Add to Calendar');
@@ -88,7 +89,7 @@ describe('AddToCalendar', () => {
   });
 
   it('should not close dropdown when clicking inside', () => {
-    render(<AddToCalendar event={mockEvent} />);
+    renderWithProviders(<AddToCalendar event={mockEvent} />);
 
     // Open dropdown
     const button = screen.getByText('Add to Calendar');
@@ -104,7 +105,7 @@ describe('AddToCalendar', () => {
   });
 
   it('should generate correct Google Calendar URL', () => {
-    render(<AddToCalendar event={mockEvent} />);
+    renderWithProviders(<AddToCalendar event={mockEvent} />);
 
     const button = screen.getByText('Add to Calendar');
     fireEvent.click(button);
@@ -118,7 +119,7 @@ describe('AddToCalendar', () => {
   });
 
   it('should generate correct Outlook Calendar URL', () => {
-    render(<AddToCalendar event={mockEvent} />);
+    renderWithProviders(<AddToCalendar event={mockEvent} />);
 
     const button = screen.getByText('Add to Calendar');
     fireEvent.click(button);
@@ -131,7 +132,7 @@ describe('AddToCalendar', () => {
   });
 
   it('should generate correct Yahoo Calendar URL', () => {
-    render(<AddToCalendar event={mockEvent} />);
+    renderWithProviders(<AddToCalendar event={mockEvent} />);
 
     const button = screen.getByText('Add to Calendar');
     fireEvent.click(button);
@@ -144,7 +145,7 @@ describe('AddToCalendar', () => {
   });
 
   it('should generate correct ICS download URL', () => {
-    render(<AddToCalendar event={mockEvent} />);
+    renderWithProviders(<AddToCalendar event={mockEvent} />);
 
     const button = screen.getByText('Add to Calendar');
     fireEvent.click(button);
@@ -158,7 +159,7 @@ describe('AddToCalendar', () => {
   });
 
   it('should close dropdown when calendar option is clicked', () => {
-    render(<AddToCalendar event={mockEvent} />);
+    renderWithProviders(<AddToCalendar event={mockEvent} />);
 
     const button = screen.getByText('Add to Calendar');
     fireEvent.click(button);
@@ -170,14 +171,14 @@ describe('AddToCalendar', () => {
   });
 
   it('should apply custom className', () => {
-    const { container } = render(<AddToCalendar event={mockEvent} className="custom-class" />);
+    const { container } = renderWithProviders(<AddToCalendar event={mockEvent} className="custom-class" />);
 
     const wrapper = container.querySelector('.custom-class');
     expect(wrapper).toBeInTheDocument();
   });
 
   it('should render all calendar option icons', () => {
-    render(<AddToCalendar event={mockEvent} />);
+    renderWithProviders(<AddToCalendar event={mockEvent} />);
 
     const button = screen.getByText('Add to Calendar');
     fireEvent.click(button);
@@ -190,7 +191,7 @@ describe('AddToCalendar', () => {
   });
 
   it('should rotate chevron icon when dropdown is open', () => {
-    const { container } = render(<AddToCalendar event={mockEvent} />);
+    const { container } = renderWithProviders(<AddToCalendar event={mockEvent} />);
 
     const chevron = container.querySelector('svg.w-4.h-4.transition-transform');
 
@@ -219,7 +220,7 @@ describe('AddToCalendar', () => {
       end_date: '2024-01-01T11:00:00Z',
     };
 
-    render(<AddToCalendar event={minimalEvent} />);
+    renderWithProviders(<AddToCalendar event={minimalEvent} />);
 
     const button = screen.getByText('Add to Calendar');
     fireEvent.click(button);
@@ -240,7 +241,7 @@ describe('AddToCalendar', () => {
       country: null,
     };
 
-    render(<AddToCalendar event={eventWithNulls} />);
+    renderWithProviders(<AddToCalendar event={eventWithNulls} />);
 
     const button = screen.getByText('Add to Calendar');
     fireEvent.click(button);
@@ -251,7 +252,7 @@ describe('AddToCalendar', () => {
   it('should cleanup event listener on unmount', () => {
     const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener');
 
-    const { unmount } = render(<AddToCalendar event={mockEvent} />);
+    const { unmount } = renderWithProviders(<AddToCalendar event={mockEvent} />);
 
     unmount();
 
@@ -261,7 +262,7 @@ describe('AddToCalendar', () => {
   });
 
   it('should be accessible with keyboard', () => {
-    render(<AddToCalendar event={mockEvent} />);
+    renderWithProviders(<AddToCalendar event={mockEvent} />);
 
     const button = screen.getByText('Add to Calendar');
 
@@ -270,7 +271,7 @@ describe('AddToCalendar', () => {
   });
 
   it('should render dropdown with correct z-index for layering', () => {
-    render(<AddToCalendar event={mockEvent} />);
+    renderWithProviders(<AddToCalendar event={mockEvent} />);
 
     const button = screen.getByText('Add to Calendar');
     fireEvent.click(button);
@@ -280,7 +281,7 @@ describe('AddToCalendar', () => {
   });
 
   it('should position dropdown to the right', () => {
-    render(<AddToCalendar event={mockEvent} />);
+    renderWithProviders(<AddToCalendar event={mockEvent} />);
 
     const button = screen.getByText('Add to Calendar');
     fireEvent.click(button);

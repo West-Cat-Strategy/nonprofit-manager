@@ -40,3 +40,6 @@ export const formatApiErrorMessage = (error: unknown, fallbackMessage: string): 
   }
   return parsed.message;
 };
+
+export const formatApiErrorMessageWith = (fallbackMessage: string) => (error: unknown): string =>
+  formatApiErrorMessage(error, fallbackMessage);

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../../store/hooks';
 import { setCredentials } from '../../store/slices/authSlice';
 import { authService } from '../../services/authService';
-import { formatApiErrorMessage } from '../../utils/apiError';
+import { useApiError } from '../../hooks/useApiError';
 import ErrorBanner from '../../components/ErrorBanner';
 import axios from 'axios';
 
@@ -14,7 +14,7 @@ export default function Login() {
   const [totpCode, setTotpCode] = useState('');
   const [mfaToken, setMfaToken] = useState<string | null>(null);
   const [step, setStep] = useState<'password' | 'totp'>('password');
-  const [error, setError] = useState('');
+  const { error, details, setFromError, clear } = useApiError({ notify: true });
   const [loading, setLoading] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const navigate = useNavigate();
@@ -28,7 +28,7 @@ export default function Login() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError('');
+    clear();
     setLoading(true);
 
     try {
@@ -51,7 +51,7 @@ export default function Login() {
       }
 
       if (!mfaToken) {
-        setError('Missing MFA token. Please sign in again.');
+        setFromError(new Error('Missing MFA token. Please sign in again.'), 'Missing MFA token. Please sign in again.');
         setStep('password');
         return;
       }
@@ -66,9 +66,9 @@ export default function Login() {
       navigate('/dashboard');
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        setError(formatApiErrorMessage(err, 'Login failed. Please try again.'));
+        setFromError(err, 'Login failed. Please try again.');
       } else {
-        setError('Login failed. Please try again.');
+        setFromError(err, 'Login failed. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -76,11 +76,11 @@ export default function Login() {
   };
 
   const handlePasskeyLogin = async () => {
-    setError('');
+    clear();
 
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
-      setError('Enter your email address first.');
+      setFromError(new Error('Enter your email address first.'), 'Enter your email address first.');
       return;
     }
 
@@ -99,9 +99,9 @@ export default function Login() {
       navigate('/dashboard');
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        setError(formatApiErrorMessage(err, 'Passkey sign-in failed. Please try again.'));
+        setFromError(err, 'Passkey sign-in failed. Please try again.');
       } else {
-        setError('Passkey sign-in failed. Please try again.');
+        setFromError(err, 'Passkey sign-in failed. Please try again.');
       }
     } finally {
       setPasskeyLoading(false);
@@ -116,7 +116,7 @@ export default function Login() {
           {step === 'password' ? 'Sign In' : 'Two-Factor Authentication'}
         </h3>
 
-        <ErrorBanner message={error} className="mb-4" />
+        <ErrorBanner message={error} correlationId={details?.correlationId} className="mb-4" />
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>

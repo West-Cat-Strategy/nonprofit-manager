@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import DonationForm from '../DonationForm';
+import { renderWithProviders } from '../../test/testUtils';
 import type { Donation } from '../../types/donation';
 
 // Mock navigate
@@ -15,10 +15,6 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Wrapper component
-const renderWithRouter = (component: React.ReactElement) => {
-  return render(<BrowserRouter>{component}</BrowserRouter>);
-};
-
 describe('DonationForm', () => {
   const mockOnSubmit = vi.fn();
 
@@ -29,7 +25,7 @@ describe('DonationForm', () => {
 
   describe('Create Mode', () => {
     it('renders all form fields', () => {
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       expect(screen.getByLabelText(/amount/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/currency/i)).toBeInTheDocument();
@@ -44,19 +40,19 @@ describe('DonationForm', () => {
     });
 
     it('shows Record Donation button', () => {
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
       expect(screen.getByRole('button', { name: /record donation/i })).toBeInTheDocument();
     });
 
     it('has default currency as USD', () => {
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       const currencyInput = screen.getByLabelText(/currency/i) as HTMLInputElement;
       expect(currencyInput.value).toBe('USD');
     });
 
     it('allows user to fill out the form', () => {
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       const amountInput = screen.getByLabelText(/amount/i) as HTMLInputElement;
       fireEvent.change(amountInput, { target: { value: '100.50' } });
@@ -69,7 +65,7 @@ describe('DonationForm', () => {
 
     it('validates amount is greater than 0', async () => {
       mockOnSubmit.mockRejectedValue(new Error('Should not be called'));
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       const amountInput = screen.getByLabelText(/amount/i);
       fireEvent.change(amountInput, { target: { value: '0' } });
@@ -92,7 +88,7 @@ describe('DonationForm', () => {
 
     it('calls onSubmit with form data on valid submission', async () => {
       mockOnSubmit.mockResolvedValue(undefined);
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       fireEvent.change(screen.getByLabelText(/amount/i), {
         target: { value: '250' },
@@ -108,7 +104,7 @@ describe('DonationForm', () => {
 
     it('navigates to donations list on successful submission', async () => {
       mockOnSubmit.mockResolvedValue(undefined);
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       fireEvent.change(screen.getByLabelText(/amount/i), {
         target: { value: '100' },
@@ -123,7 +119,7 @@ describe('DonationForm', () => {
     });
 
     it('has cancel button that navigates back', () => {
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       const cancelButton = screen.getByRole('button', { name: /cancel/i });
       fireEvent.click(cancelButton);
@@ -153,12 +149,12 @@ describe('DonationForm', () => {
     };
 
     it('shows Update Donation button in edit mode', () => {
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} donation={mockDonation} isEdit />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} donation={mockDonation} isEdit />);
       expect(screen.getByRole('button', { name: /update donation/i })).toBeInTheDocument();
     });
 
     it('populates form fields with donation data', () => {
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} donation={mockDonation} isEdit />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} donation={mockDonation} isEdit />);
 
       const amountInput = screen.getByLabelText(/amount/i) as HTMLInputElement;
       expect(amountInput.value).toBe('500');
@@ -171,7 +167,7 @@ describe('DonationForm', () => {
     });
 
     it('allows user to modify form fields', () => {
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} donation={mockDonation} isEdit />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} donation={mockDonation} isEdit />);
 
       const amountInput = screen.getByLabelText(/amount/i) as HTMLInputElement;
       fireEvent.change(amountInput, { target: { value: '750' } });
@@ -181,7 +177,7 @@ describe('DonationForm', () => {
 
   describe('Payment Method Selection', () => {
     it('allows selecting credit card payment method', () => {
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       const paymentMethodSelect = screen.getByLabelText(/payment method/i) as HTMLSelectElement;
       fireEvent.change(paymentMethodSelect, { target: { value: 'credit_card' } });
@@ -189,7 +185,7 @@ describe('DonationForm', () => {
     });
 
     it('allows selecting check payment method', () => {
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       const paymentMethodSelect = screen.getByLabelText(/payment method/i) as HTMLSelectElement;
       fireEvent.change(paymentMethodSelect, { target: { value: 'check' } });
@@ -197,7 +193,7 @@ describe('DonationForm', () => {
     });
 
     it('allows selecting bank transfer payment method', () => {
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       const paymentMethodSelect = screen.getByLabelText(/payment method/i) as HTMLSelectElement;
       fireEvent.change(paymentMethodSelect, { target: { value: 'bank_transfer' } });
@@ -205,7 +201,7 @@ describe('DonationForm', () => {
     });
 
     it('allows selecting stock payment method', () => {
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       const paymentMethodSelect = screen.getByLabelText(/payment method/i) as HTMLSelectElement;
       fireEvent.change(paymentMethodSelect, { target: { value: 'stock' } });
@@ -215,7 +211,7 @@ describe('DonationForm', () => {
 
   describe('Payment Status Selection', () => {
     it('allows selecting completed status', () => {
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       const statusSelect = screen.getByLabelText(/payment status/i) as HTMLSelectElement;
       fireEvent.change(statusSelect, { target: { value: 'completed' } });
@@ -223,7 +219,7 @@ describe('DonationForm', () => {
     });
 
     it('allows selecting pending status', () => {
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       const statusSelect = screen.getByLabelText(/payment status/i) as HTMLSelectElement;
       fireEvent.change(statusSelect, { target: { value: 'pending' } });
@@ -231,7 +227,7 @@ describe('DonationForm', () => {
     });
 
     it('allows selecting refunded status', () => {
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       const statusSelect = screen.getByLabelText(/payment status/i) as HTMLSelectElement;
       fireEvent.change(statusSelect, { target: { value: 'refunded' } });
@@ -241,7 +237,7 @@ describe('DonationForm', () => {
 
   describe('Recurring Donation', () => {
     it('shows frequency dropdown when recurring is checked', async () => {
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       const recurringCheckbox = screen.getByLabelText(/this is a recurring donation/i);
       fireEvent.click(recurringCheckbox);
@@ -252,13 +248,13 @@ describe('DonationForm', () => {
     });
 
     it('hides frequency dropdown when recurring is unchecked', () => {
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       expect(screen.queryByLabelText(/^frequency$/i)).not.toBeInTheDocument();
     });
 
     it('allows selecting monthly frequency', async () => {
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       const recurringCheckbox = screen.getByLabelText(/this is a recurring donation/i);
       fireEvent.click(recurringCheckbox);
@@ -271,7 +267,7 @@ describe('DonationForm', () => {
     });
 
     it('allows selecting quarterly frequency', async () => {
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       const recurringCheckbox = screen.getByLabelText(/this is a recurring donation/i);
       fireEvent.click(recurringCheckbox);
@@ -287,7 +283,7 @@ describe('DonationForm', () => {
   describe('Error Handling', () => {
     it('displays error message on submission failure', async () => {
       mockOnSubmit.mockRejectedValue(new Error('Server error'));
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       fireEvent.change(screen.getByLabelText(/amount/i), {
         target: { value: '100' },
@@ -303,7 +299,7 @@ describe('DonationForm', () => {
 
     it('displays generic error for non-Error objects', async () => {
       mockOnSubmit.mockRejectedValue('Unknown error');
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       fireEvent.change(screen.getByLabelText(/amount/i), {
         target: { value: '100' },
@@ -320,7 +316,7 @@ describe('DonationForm', () => {
 
   describe('Notes Field', () => {
     it('allows entering notes', () => {
-      renderWithRouter(<DonationForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       const notesInput = screen.getByLabelText(/notes/i) as HTMLTextAreaElement;
       fireEvent.change(notesInput, { target: { value: 'Thank you letter sent' } });

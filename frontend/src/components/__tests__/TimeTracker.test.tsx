@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import TimeTracker from '../TimeTracker';
 import type { VolunteerAssignment } from '../../store/slices/volunteersSlice';
+import { renderWithProviders } from '../../test/testUtils';
 
 describe('TimeTracker', () => {
   const mockAssignments: VolunteerAssignment[] = [
@@ -62,7 +63,7 @@ describe('TimeTracker', () => {
   });
 
   it('should render Time Tracker heading', () => {
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -74,7 +75,7 @@ describe('TimeTracker', () => {
   });
 
   it('should display volunteer name', () => {
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -86,7 +87,7 @@ describe('TimeTracker', () => {
   });
 
   it('should display total hours logged', () => {
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={25.5}
@@ -99,7 +100,7 @@ describe('TimeTracker', () => {
   });
 
   it('should display active assignments heading', () => {
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -111,7 +112,7 @@ describe('TimeTracker', () => {
   });
 
   it('should show only in_progress and scheduled assignments as active', () => {
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -136,7 +137,7 @@ describe('TimeTracker', () => {
       },
     ];
 
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -148,7 +149,7 @@ describe('TimeTracker', () => {
   });
 
   it('should display Start Timer button for active assignments', () => {
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -161,7 +162,7 @@ describe('TimeTracker', () => {
   });
 
   it('should display manual hours input for active assignments', () => {
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -174,7 +175,7 @@ describe('TimeTracker', () => {
   });
 
   it('should display Log button for manual hours entry', () => {
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -189,7 +190,7 @@ describe('TimeTracker', () => {
   it('should start timer when Start Timer button is clicked', () => {
     const mockOnStartTimer = vi.fn();
 
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -206,7 +207,7 @@ describe('TimeTracker', () => {
   });
 
   it('should display Stop button when timer is running', () => {
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -221,7 +222,7 @@ describe('TimeTracker', () => {
   });
 
   it('should display timer countdown in HH:MM:SS format', () => {
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -246,7 +247,7 @@ describe('TimeTracker', () => {
   });
 
   it('should advance timer correctly over time', () => {
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -270,7 +271,7 @@ describe('TimeTracker', () => {
   it('should call onStopTimer when Stop button is clicked', () => {
     const mockOnStopTimer = vi.fn();
 
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -297,7 +298,7 @@ describe('TimeTracker', () => {
   });
 
   it('should hide timer display after stopping', () => {
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -335,7 +336,7 @@ describe('TimeTracker', () => {
 
     const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -369,7 +370,7 @@ describe('TimeTracker', () => {
   });
 
   it('should handle manual hours input change', () => {
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -386,7 +387,7 @@ describe('TimeTracker', () => {
   it('should call onUpdateHours when Log button is clicked with valid hours', () => {
     const mockOnUpdateHours = vi.fn();
 
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -407,7 +408,7 @@ describe('TimeTracker', () => {
   it('should show alert for invalid hours input', () => {
     const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -429,7 +430,7 @@ describe('TimeTracker', () => {
   it('should show alert for zero hours input', () => {
     const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -451,7 +452,7 @@ describe('TimeTracker', () => {
   it('should clear manual hours input after successful submission', () => {
     const mockOnUpdateHours = vi.fn();
 
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -470,7 +471,7 @@ describe('TimeTracker', () => {
   });
 
   it('should display Recently Completed section', () => {
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -482,7 +483,7 @@ describe('TimeTracker', () => {
   });
 
   it('should show completed assignments in Recently Completed section', () => {
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -497,7 +498,7 @@ describe('TimeTracker', () => {
   });
 
   it('should display hours logged for each active assignment', () => {
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -510,7 +511,7 @@ describe('TimeTracker', () => {
   });
 
   it('should display assignment role if available', () => {
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -522,7 +523,7 @@ describe('TimeTracker', () => {
   });
 
   it('should display assignment dates', () => {
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -536,7 +537,7 @@ describe('TimeTracker', () => {
   });
 
   it('should display status badge with correct styling for in_progress', () => {
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -556,7 +557,7 @@ describe('TimeTracker', () => {
       },
     ];
 
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}
@@ -584,7 +585,7 @@ describe('TimeTracker', () => {
       task_name: null,
     }));
 
-    render(
+    renderWithProviders(
       <TimeTracker
         volunteerName="John Doe"
         totalHoursLogged={10}

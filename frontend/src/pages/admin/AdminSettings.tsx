@@ -7,10 +7,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
-import { formatApiErrorMessage } from '../../utils/apiError';
-import { useToast } from '../../contexts/ToastContext';
+import { useToast } from '../../contexts/useToast';
+import { useApiError } from '../../hooks/useApiError';
 import { useBranding } from '../../contexts/BrandingContext';
 import Avatar from '../../components/Avatar';
+import ErrorBanner from '../../components/ErrorBanner';
 import { defaultBranding, type BrandingConfig } from '../../types/branding';
 
 // ============================================================================
@@ -300,6 +301,8 @@ const validatePostalCode = (postalCode: string, country: string): boolean => {
 
 export default function AdminSettings() {
   const { showSuccess, showError } = useToast();
+  const { error: formError, setFromError: setFormErrorFromError, clear: clearFormError } = useApiError();
+  const { setFromError: notifyError } = useApiError({ notify: true });
   const { setBranding: setGlobalBranding } = useBranding();
 
   // State
@@ -361,7 +364,7 @@ export default function AdminSettings() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [newEmail, setNewEmail] = useState('');
-  const [formError, setFormError] = useState<string | null>(null);
+  // formError handled via useApiError
 
   // Refs
   const iconInputRef = useRef<HTMLInputElement>(null);
@@ -568,15 +571,18 @@ export default function AdminSettings() {
 
   const handleResetUserPassword = async () => {
     if (!selectedUser) return;
-    setFormError(null);
+    clearFormError();
 
     if (newPassword !== confirmPassword) {
-      setFormError('Passwords do not match');
+      setFormErrorFromError(new Error('Passwords do not match'), 'Passwords do not match');
       return;
     }
 
     if (newPassword.length < 8) {
-      setFormError('Password must be at least 8 characters');
+      setFormErrorFromError(
+        new Error('Password must be at least 8 characters'),
+        'Password must be at least 8 characters'
+      );
       return;
     }
 
@@ -587,16 +593,16 @@ export default function AdminSettings() {
       setConfirmPassword('');
       alert('Password has been reset successfully');
     } catch {
-      setFormError('Failed to reset password');
+      setFormErrorFromError(new Error('Failed to reset password'), 'Failed to reset password');
     }
   };
 
   const handleResetUserEmail = async () => {
     if (!selectedUser) return;
-    setFormError(null);
+    clearFormError();
 
     if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
-      setFormError('Please enter a valid email address');
+      setFormErrorFromError(new Error('Please enter a valid email address'), 'Please enter a valid email address');
       return;
     }
 
@@ -607,7 +613,7 @@ export default function AdminSettings() {
       setSelectedUser((prev) => prev ? { ...prev, email: newEmail } : null);
       alert('Email has been updated successfully');
     } catch {
-      setFormError('Failed to update email');
+      setFormErrorFromError(new Error('Failed to update email'), 'Failed to update email');
     }
   };
 
@@ -677,12 +683,12 @@ export default function AdminSettings() {
 
   const handleCreateInvitation = async () => {
     if (!inviteEmail) {
-      setFormError('Email is required');
+      setFormErrorFromError(new Error('Email is required'), 'Email is required');
       return;
     }
 
     setIsCreatingInvite(true);
-    setFormError(null);
+    clearFormError();
 
     try {
       const response = await api.post('/invitations', {
@@ -693,8 +699,8 @@ export default function AdminSettings() {
 
       setInviteUrl(response.data.inviteUrl);
       fetchInvitations();
-    } catch (error: any) {
-      setFormError(formatApiErrorMessage(error, 'Failed to create invitation'));
+    } catch (error: unknown) {
+      setFormErrorFromError(error, 'Failed to create invitation');
     } finally {
       setIsCreatingInvite(false);
     }
@@ -727,7 +733,7 @@ export default function AdminSettings() {
     setInviteRole('user');
     setInviteMessage('');
     setInviteUrl(null);
-    setFormError(null);
+    clearFormError();
   };
 
   // ============================================================================
@@ -755,8 +761,8 @@ export default function AdminSettings() {
       await api.post(`/portal/admin/requests/${requestId}/approve`);
       showSuccess('Portal signup request approved');
       refreshPortalData();
-    } catch (error: any) {
-      showError(formatApiErrorMessage(error, 'Failed to approve request'));
+    } catch (error: unknown) {
+      notifyError(error, 'Failed to approve request');
     }
   };
 
@@ -766,19 +772,19 @@ export default function AdminSettings() {
       await api.post(`/portal/admin/requests/${requestId}/reject`);
       showSuccess('Portal signup request rejected');
       refreshPortalData();
-    } catch (error: any) {
-      showError(formatApiErrorMessage(error, 'Failed to reject request'));
+    } catch (error: unknown) {
+      notifyError(error, 'Failed to reject request');
     }
   };
 
   const handleCreatePortalInvite = async () => {
     if (!portalInviteEmail) {
-      setFormError('Portal invite email is required');
+      setFormErrorFromError(new Error('Portal invite email is required'), 'Portal invite email is required');
       return;
     }
 
     try {
-      setFormError(null);
+      clearFormError();
       const response = await api.post('/portal/admin/invitations', {
         email: portalInviteEmail,
         contact_id: portalInviteContactId || undefined,
@@ -789,8 +795,8 @@ export default function AdminSettings() {
       setSelectedPortalContact(null);
       showSuccess('Portal invitation created');
       refreshPortalData();
-    } catch (error: any) {
-      showError(formatApiErrorMessage(error, 'Failed to create portal invitation'));
+    } catch (error: unknown) {
+      notifyError(error, 'Failed to create portal invitation');
     }
   };
 
@@ -814,8 +820,8 @@ export default function AdminSettings() {
       if (selectedPortalUser?.id === user.id) {
         setSelectedPortalUser({ ...selectedPortalUser, status });
       }
-    } catch (error: any) {
-      showError(formatApiErrorMessage(error, 'Failed to update portal user status'));
+    } catch (error: unknown) {
+      notifyError(error, 'Failed to update portal user status');
     }
   };
 
@@ -854,8 +860,8 @@ export default function AdminSettings() {
       setPortalResetTarget(null);
       setShowPortalResetModal(false);
       showSuccess('Portal user password updated');
-    } catch (error: any) {
-      showError(formatApiErrorMessage(error, 'Failed to reset password'));
+    } catch (error: unknown) {
+      notifyError(error, 'Failed to reset password');
     } finally {
       setPortalResetLoading(false);
     }
@@ -1858,10 +1864,8 @@ export default function AdminSettings() {
                   >
                     Create Invitation
                   </button>
-                  {formError && (
-                    <span className="text-sm text-red-600">{formError}</span>
-                  )}
                 </div>
+                <ErrorBanner message={formError} className="mt-2" />
 
                 <div className="pt-4 border-t border-gray-200">
                   <h4 className="text-sm font-semibold text-gray-900">Recent Invitations</h4>
@@ -2480,11 +2484,7 @@ export default function AdminSettings() {
                 Reset Password for {selectedUser.firstName} {selectedUser.lastName}
               </h3>
 
-              {formError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                  {formError}
-                </div>
-              )}
+              <ErrorBanner message={formError} className="mb-4" />
 
               <div className="space-y-4">
                 <div>
@@ -2516,7 +2516,7 @@ export default function AdminSettings() {
                     setShowResetPasswordModal(false);
                     setNewPassword('');
                     setConfirmPassword('');
-                    setFormError(null);
+                    clearFormError();
                   }}
                   className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
                 >
@@ -2545,11 +2545,7 @@ export default function AdminSettings() {
                 Change Email for {selectedUser.firstName} {selectedUser.lastName}
               </h3>
 
-              {formError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                  {formError}
-                </div>
-              )}
+              <ErrorBanner message={formError} className="mb-4" />
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">New Email Address</label>
@@ -2568,7 +2564,7 @@ export default function AdminSettings() {
                   onClick={() => {
                     setShowResetEmailModal(false);
                     setNewEmail('');
-                    setFormError(null);
+                    clearFormError();
                   }}
                   className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
                 >
@@ -2698,11 +2694,7 @@ export default function AdminSettings() {
                 Invite New User
               </h3>
 
-              {formError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                  {formError}
-                </div>
-              )}
+              <ErrorBanner message={formError} className="mb-4" />
 
               {inviteUrl ? (
                 <div className="space-y-4">
