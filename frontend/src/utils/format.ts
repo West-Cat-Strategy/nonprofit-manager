@@ -1,12 +1,12 @@
 /**
  * Format currency values using US locale
  */
-export function formatCurrency(amount: number, options?: Intl.NumberFormatOptions): string {
+export function formatCurrency(amount: number, currency = 'USD', options?: Intl.NumberFormatOptions): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    currency,
+    minimumFractionDigits: currency === 'USD' ? 0 : 2,
+    maximumFractionDigits: currency === 'USD' ? 0 : 2,
     ...options,
   }).format(amount);
 }
@@ -40,6 +40,86 @@ export function formatBytes(bytes: number): string {
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
+/**
+ * Format a date as a localized date string (e.g., "Jan 15, 2024")
+ */
+export function formatDate(date: string | Date | null | undefined): string {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+/**
+ * Format a date with time (e.g., "Jan 15, 2024, 2:30 PM")
+ */
+export function formatDateTime(date: string | Date | null | undefined): string {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+/**
+ * Format time only from a Date (e.g., "2:30 PM")
+ */
+export function formatTime(date: string | Date | null | undefined): string {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+/**
+ * Format a time-only string like "14:30" to "2:30 PM"
+ */
+export function formatTimeString(timeString: string | null | undefined): string {
+  if (!timeString) return '';
+  const [hours, minutes] = timeString.split(':');
+  if (!hours || !minutes) return timeString;
+  const date = new Date();
+  date.setHours(parseInt(hours, 10), parseInt(minutes, 10));
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+/**
+ * Format a date with Today/Tomorrow labels for near dates
+ */
+export function formatDateSmart(date: string | Date | null | undefined): string {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '';
+
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  if (d.toDateString() === today.toDateString()) {
+    return 'Today';
+  }
+  if (d.toDateString() === tomorrow.toDateString()) {
+    return 'Tomorrow';
+  }
+
+  return d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 /**

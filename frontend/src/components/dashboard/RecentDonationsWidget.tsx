@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import WidgetContainer from './WidgetContainer';
 import type { DashboardWidget } from '../../types/dashboard';
+import { formatDate, formatCurrency } from '../../utils/format';
 
 interface RecentDonationsWidgetProps {
   widget: DashboardWidget;
@@ -43,20 +44,6 @@ const RecentDonationsWidget = ({ widget, editMode, onRemove }: RecentDonationsWi
 
     fetchDonations();
   }, []);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
-  };
 
   return (
     <WidgetContainer widget={widget} editMode={editMode} onRemove={onRemove} loading={loading} error={error}>

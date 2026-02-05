@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchDonations } from '../../../store/slices/donationsSlice';
 import type { PaymentMethod, PaymentStatus } from '../../../types/donation';
+import { formatDate, formatCurrency } from '../../../utils/format';
 
 const DonationList: React.FC = () => {
   const navigate = useNavigate();
@@ -42,21 +43,6 @@ const DonationList: React.FC = () => {
   useEffect(() => {
     loadDonations();
   }, [loadDonations]);
-
-  const formatCurrency = (amount: number, currency = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-    }).format(amount);
-  };
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {

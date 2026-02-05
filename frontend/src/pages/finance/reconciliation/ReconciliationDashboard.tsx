@@ -12,6 +12,7 @@ import {
   fetchAllDiscrepancies,
 } from '../../../store/slices/reconciliationSlice';
 import type { CreateReconciliationRequest } from '../../../types/reconciliation';
+import { formatDate, formatCurrency } from '../../../utils/format';
 
 const ReconciliationDashboard: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -58,21 +59,12 @@ const ReconciliationDashboard: React.FC = () => {
     }
   };
 
-  const formatCurrency = (amount?: number | null) => {
-    if (amount === undefined || amount === null) return '$0.00';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
+  const formatCurrencyOrZero = (amount?: number | null) => {
+    return formatCurrency(amount ?? 0);
   };
 
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+  const formatDateOrNA = (dateString?: string | null) => {
+    return dateString ? formatDate(dateString) : 'N/A';
   };
 
   const getSeverityColor = (severity: string) => {
@@ -186,7 +178,7 @@ const ReconciliationDashboard: React.FC = () => {
             <div>
               <div className="text-sm text-gray-600">Period</div>
               <div className="text-sm">
-                {formatDate(latestReconciliation.start_date)} - {formatDate(latestReconciliation.end_date)}
+                {formatDateOrNA(latestReconciliation.start_date)} - {formatDateOrNA(latestReconciliation.end_date)}
               </div>
             </div>
             <div>
@@ -198,19 +190,19 @@ const ReconciliationDashboard: React.FC = () => {
             <div>
               <div className="text-sm text-gray-600">Stripe Amount</div>
               <div className="font-semibold">
-                {formatCurrency(latestReconciliation.stripe_balance_amount)}
+                {formatCurrencyOrZero(latestReconciliation.stripe_balance_amount)}
               </div>
             </div>
             <div>
               <div className="text-sm text-gray-600">Donations Amount</div>
               <div className="font-semibold">
-                {formatCurrency(latestReconciliation.donations_total_amount)}
+                {formatCurrencyOrZero(latestReconciliation.donations_total_amount)}
               </div>
             </div>
             <div>
               <div className="text-sm text-gray-600">Fees</div>
               <div className="font-semibold text-red-600">
-                {formatCurrency(latestReconciliation.stripe_total_fees)}
+                {formatCurrencyOrZero(latestReconciliation.stripe_total_fees)}
               </div>
             </div>
             <div>
@@ -272,7 +264,7 @@ const ReconciliationDashboard: React.FC = () => {
                       {recon.reconciliation_type}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(recon.start_date)} - {formatDate(recon.end_date)}
+                      {formatDateOrNA(recon.start_date)} - {formatDateOrNA(recon.end_date)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 rounded text-xs font-semibold ${getStatusColor(recon.status)}`}>
@@ -288,7 +280,7 @@ const ReconciliationDashboard: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(recon.created_at)}
+                      {formatDateOrNA(recon.created_at)}
                     </td>
                   </tr>
                 ))}
@@ -347,13 +339,13 @@ const ReconciliationDashboard: React.FC = () => {
                       {disc.description}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-red-600">
-                      {disc.difference_amount ? formatCurrency(disc.difference_amount) : 'N/A'}
+                      {disc.difference_amount ? formatCurrencyOrZero(disc.difference_amount) : 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {disc.status}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(disc.created_at)}
+                      {formatDateOrNA(disc.created_at)}
                     </td>
                   </tr>
                 ))}
