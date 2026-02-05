@@ -7,7 +7,7 @@ import { Router } from 'express';
 import { body } from 'express-validator';
 import { exportBackup } from '../controllers/backupController';
 import { authenticate, authorize } from '../middleware/auth';
-import { handleValidationErrors } from '../middleware/validation';
+import { validateRequest } from '../middleware/validation';
 
 const router = Router();
 
@@ -21,7 +21,7 @@ router.post(
     body('include_secrets').optional().isBoolean(),
     body('compress').optional().isBoolean(),
   ],
-  handleValidationErrors,
+  validateRequest,
   exportBackup
 );
 

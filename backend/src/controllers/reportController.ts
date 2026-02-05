@@ -4,12 +4,12 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { ReportService } from '../services/reportService';
-import pool from '../config/database';
+import { services } from '../container/services';
 import { AuthRequest } from '../middleware/auth';
 import type { ReportDefinition, ReportEntity } from '../types/report';
+import { badRequest } from '../utils/responseHelpers';
 
-const reportService = new ReportService(pool);
+const reportService = services.report;
 
 /**
  * POST /api/reports/generate
@@ -25,12 +25,12 @@ export const generateReport = async (
 
     // Validate definition
     if (!definition.entity) {
-      res.status(400).json({ error: 'Entity is required' });
+      badRequest(res, 'Entity is required');
       return;
     }
 
     if (!definition.fields || definition.fields.length === 0) {
-      res.status(400).json({ error: 'At least one field must be selected' });
+      badRequest(res, 'At least one field must be selected');
       return;
     }
 
@@ -55,7 +55,7 @@ export const getAvailableFields = async (
 
     const validEntities = ['accounts', 'contacts', 'donations', 'events', 'volunteers', 'tasks'];
     if (!validEntities.includes(entity)) {
-      res.status(400).json({ error: 'Invalid entity type' });
+      badRequest(res, 'Invalid entity type');
       return;
     }
 

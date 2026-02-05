@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import pool from '../config/database';
 import { logger } from '../config/logger';
 import type { AuthRequest } from '../middleware/auth';
+import { serverError } from '../utils/responseHelpers';
 
 type BrandingConfig = {
   appName: string;
@@ -75,7 +76,7 @@ export const getBranding = async (_req: AuthRequest, res: Response) => {
       return res.json((result.rows[0]?.config ?? {}) as BrandingConfig | Record<string, unknown>);
     }
     logger.error('Failed to fetch organization branding', { error });
-    return res.status(500).json({ error: 'Failed to fetch branding' });
+    return serverError(res, 'Failed to fetch branding');
   }
 };
 
@@ -115,6 +116,6 @@ export const putBranding = async (req: AuthRequest, res: Response) => {
       return res.json(result.rows[0].config);
     }
     logger.error('Failed to update organization branding', { error, userId: req.user?.id });
-    return res.status(500).json({ error: 'Failed to update branding' });
+    return serverError(res, 'Failed to update branding');
   }
 };

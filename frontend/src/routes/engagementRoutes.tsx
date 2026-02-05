@@ -3,28 +3,15 @@
  * Handles events, tasks, and cases
  */
 
-import { lazy } from 'react';
 import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
+import { EventList, EventDetail, EventCreate, EventEdit, EventCalendarPage, TaskList, TaskDetail, TaskCreate, TaskEdit, CaseList, CaseDetail, CaseCreate, CaseEdit } from './engagementRouteComponents';
 
 // Lazy load event pages
-const EventList = lazy(() => import('../pages/engagement/events/EventList'));
-const EventDetail = lazy(() => import('../pages/engagement/events/EventDetail'));
-const EventCreate = lazy(() => import('../pages/engagement/events/EventCreate'));
-const EventEdit = lazy(() => import('../pages/engagement/events/EventEdit'));
-const EventCalendarPage = lazy(() => import('../pages/engagement/events/EventCalendarPage'));
 
 // Lazy load task pages
-const TaskList = lazy(() => import('../pages/engagement/tasks/TaskList'));
-const TaskDetail = lazy(() => import('../pages/engagement/tasks/TaskDetail'));
-const TaskCreate = lazy(() => import('../pages/engagement/tasks/TaskCreate'));
-const TaskEdit = lazy(() => import('../pages/engagement/tasks/TaskEdit'));
 
 // Lazy load case pages
-const CaseList = lazy(() => import('../pages/engagement/cases/CaseList'));
-const CaseDetail = lazy(() => import('../pages/engagement/cases/CaseDetail'));
-const CaseCreate = lazy(() => import('../pages/engagement/cases/CaseCreate'));
-const CaseEdit = lazy(() => import('../pages/engagement/cases/CaseEdit'));
 
 interface RouteWrapperProps {
   children: ReactNode;
@@ -93,20 +80,3 @@ export function createEngagementRoutes(ProtectedRoute: React.ComponentType<Route
     </>
   );
 }
-
-// Re-export lazy components for backwards compatibility
-export {
-  EventList,
-  EventDetail,
-  EventCreate,
-  EventEdit,
-  EventCalendarPage,
-  TaskList,
-  TaskDetail,
-  TaskCreate,
-  TaskEdit,
-  CaseList,
-  CaseDetail,
-  CaseCreate,
-  CaseEdit,
-};

@@ -6,6 +6,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import * as contactPhoneService from '../services/contactPhoneService';
+import { badRequest, notFoundMessage } from '../utils/responseHelpers';
 
 /**
  * GET /api/contacts/:contactId/phones
@@ -39,7 +40,7 @@ export const getContactPhoneById = async (
     const phone = await contactPhoneService.getContactPhoneById(phoneId);
 
     if (!phone) {
-      res.status(404).json({ error: 'Phone number not found' });
+      notFoundMessage(res, 'Phone number not found');
       return;
     }
 
@@ -65,7 +66,7 @@ export const createContactPhone = async (
     res.status(201).json(phone);
   } catch (error: any) {
     if (error.message === 'This phone number already exists for this contact') {
-      res.status(400).json({ error: error.message });
+      badRequest(res, error.message);
       return;
     }
     next(error);
@@ -87,14 +88,14 @@ export const updateContactPhone = async (
     const phone = await contactPhoneService.updateContactPhone(phoneId, req.body, userId);
 
     if (!phone) {
-      res.status(404).json({ error: 'Phone number not found' });
+      notFoundMessage(res, 'Phone number not found');
       return;
     }
 
     res.json(phone);
   } catch (error: any) {
     if (error.message === 'This phone number already exists for this contact') {
-      res.status(400).json({ error: error.message });
+      badRequest(res, error.message);
       return;
     }
     next(error);
@@ -115,7 +116,7 @@ export const deleteContactPhone = async (
     const success = await contactPhoneService.deleteContactPhone(phoneId);
 
     if (!success) {
-      res.status(404).json({ error: 'Phone number not found' });
+      notFoundMessage(res, 'Phone number not found');
       return;
     }
 

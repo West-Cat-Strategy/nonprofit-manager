@@ -3,6 +3,8 @@
  * Utilities for parsing and validating query parameters from HTTP requests
  */
 
+import type { PaginationParams } from '../types/pagination';
+
 /**
  * Parse a query parameter as a string
  */
@@ -68,12 +70,6 @@ export const getDateString = (value: unknown): string | undefined => {
 /**
  * Standard pagination parameters extraction
  */
-export interface PaginationParams {
-  page: number;
-  limit: number;
-  sort_by?: string;
-  sort_order?: 'asc' | 'desc';
-}
 
 export interface ExtractPaginationOptions {
   defaultPage?: number;

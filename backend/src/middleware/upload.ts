@@ -6,6 +6,7 @@
 import multer, { FileFilterCallback } from 'multer';
 import { Request } from 'express';
 import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from '../services/fileStorageService';
+import { badRequest } from '../utils/responseHelpers';
 
 /**
  * File filter to validate uploaded file types
@@ -106,17 +107,17 @@ export const handleMulterError = (
         });
         return;
       case 'LIMIT_FILE_COUNT':
-        res.status(400).json({ error: 'Too many files uploaded' });
+        badRequest(res, 'Too many files uploaded');
         return;
       case 'LIMIT_UNEXPECTED_FILE':
-        res.status(400).json({ error: 'Unexpected file field' });
+        badRequest(res, 'Unexpected file field');
         return;
       default:
-        res.status(400).json({ error: err.message });
+        badRequest(res, err.message);
         return;
     }
   } else if (err.message.includes('Invalid file type')) {
-    res.status(400).json({ error: err.message });
+    badRequest(res, err.message);
     return;
   }
   next(err);

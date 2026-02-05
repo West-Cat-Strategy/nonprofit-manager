@@ -5,7 +5,7 @@
 
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
-import { handleValidationErrors } from '../middleware/validation';
+import { validateRequest } from '../middleware/validation';
 import { authenticate } from '../middleware/auth';
 import * as webhookController from '../controllers/webhookController';
 
@@ -54,7 +54,7 @@ router.post(
       .isString()
       .withMessage('Event types must be strings'),
   ],
-  handleValidationErrors,
+  validateRequest,
   webhookController.createWebhookEndpoint
 );
 
@@ -65,7 +65,7 @@ router.post(
 router.get(
   '/endpoints/:id',
   [param('id').isUUID().withMessage('Invalid endpoint ID')],
-  handleValidationErrors,
+  validateRequest,
   webhookController.getWebhookEndpoint
 );
 
@@ -95,7 +95,7 @@ router.put(
       .isBoolean()
       .withMessage('isActive must be a boolean'),
   ],
-  handleValidationErrors,
+  validateRequest,
   webhookController.updateWebhookEndpoint
 );
 
@@ -106,7 +106,7 @@ router.put(
 router.delete(
   '/endpoints/:id',
   [param('id').isUUID().withMessage('Invalid endpoint ID')],
-  handleValidationErrors,
+  validateRequest,
   webhookController.deleteWebhookEndpoint
 );
 
@@ -117,7 +117,7 @@ router.delete(
 router.post(
   '/endpoints/:id/regenerate-secret',
   [param('id').isUUID().withMessage('Invalid endpoint ID')],
-  handleValidationErrors,
+  validateRequest,
   webhookController.regenerateWebhookSecret
 );
 
@@ -134,7 +134,7 @@ router.get(
       .isInt({ min: 1, max: 100 })
       .withMessage('Limit must be between 1 and 100'),
   ],
-  handleValidationErrors,
+  validateRequest,
   webhookController.getWebhookDeliveries
 );
 
@@ -145,7 +145,7 @@ router.get(
 router.post(
   '/endpoints/:id/test',
   [param('id').isUUID().withMessage('Invalid endpoint ID')],
-  handleValidationErrors,
+  validateRequest,
   webhookController.testWebhookEndpoint
 );
 
@@ -189,7 +189,7 @@ router.post(
       .isISO8601()
       .withMessage('Invalid expiration date format'),
   ],
-  handleValidationErrors,
+  validateRequest,
   webhookController.createApiKey
 );
 
@@ -200,7 +200,7 @@ router.post(
 router.get(
   '/api-keys/:id',
   [param('id').isUUID().withMessage('Invalid API key ID')],
-  handleValidationErrors,
+  validateRequest,
   webhookController.getApiKey
 );
 
@@ -226,7 +226,7 @@ router.put(
       .isIn(['active', 'revoked'])
       .withMessage('Invalid status'),
   ],
-  handleValidationErrors,
+  validateRequest,
   webhookController.updateApiKey
 );
 
@@ -237,7 +237,7 @@ router.put(
 router.post(
   '/api-keys/:id/revoke',
   [param('id').isUUID().withMessage('Invalid API key ID')],
-  handleValidationErrors,
+  validateRequest,
   webhookController.revokeApiKey
 );
 
@@ -248,7 +248,7 @@ router.post(
 router.delete(
   '/api-keys/:id',
   [param('id').isUUID().withMessage('Invalid API key ID')],
-  handleValidationErrors,
+  validateRequest,
   webhookController.deleteApiKey
 );
 
@@ -265,7 +265,7 @@ router.get(
       .isInt({ min: 1, max: 500 })
       .withMessage('Limit must be between 1 and 500'),
   ],
-  handleValidationErrors,
+  validateRequest,
   webhookController.getApiKeyUsage
 );
 

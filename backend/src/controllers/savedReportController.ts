@@ -4,12 +4,12 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { SavedReportService } from '../services/savedReportService';
-import pool from '../config/database';
+import { services } from '../container/services';
 import { AuthRequest } from '../middleware/auth';
 import type { CreateSavedReportRequest, UpdateSavedReportRequest } from '../types/savedReport';
+import { badRequest, notFoundMessage, unauthorized } from '../utils/responseHelpers';
 
-const savedReportService = new SavedReportService(pool);
+const savedReportService = services.savedReport;
 
 /**
  * GET /api/saved-reports
@@ -47,7 +47,7 @@ export const getSavedReportById = async (
     const report = await savedReportService.getSavedReportById(id, userId);
 
     if (!report) {
-      res.status(404).json({ error: 'Saved report not found or access denied' });
+      notFoundMessage(res, 'Saved report not found or access denied');
       return;
     }
 
@@ -70,7 +70,7 @@ export const createSavedReport = async (
     const userId = req.user?.id;
 
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -78,7 +78,7 @@ export const createSavedReport = async (
 
     // Validate required fields
     if (!data.name || !data.entity || !data.report_definition) {
-      res.status(400).json({ error: 'Name, entity, and report_definition are required' });
+      badRequest(res, 'Name, entity, and report_definition are required');
       return;
     }
 
@@ -103,7 +103,7 @@ export const updateSavedReport = async (
     const { id } = req.params;
 
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -112,7 +112,7 @@ export const updateSavedReport = async (
     const report = await savedReportService.updateSavedReport(id, userId, data);
 
     if (!report) {
-      res.status(404).json({ error: 'Saved report not found or access denied' });
+      notFoundMessage(res, 'Saved report not found or access denied');
       return;
     }
 
@@ -136,14 +136,14 @@ export const deleteSavedReport = async (
     const { id } = req.params;
 
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
     const success = await savedReportService.deleteSavedReport(id, userId);
 
     if (!success) {
-      res.status(404).json({ error: 'Saved report not found or access denied' });
+      notFoundMessage(res, 'Saved report not found or access denied');
       return;
     }
 

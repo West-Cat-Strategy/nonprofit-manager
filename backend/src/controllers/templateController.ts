@@ -17,6 +17,8 @@ import type {
   TemplateCategory,
   TemplateStatus,
 } from '../types/websiteBuilder';
+import { badRequest, notFoundMessage, serverError, unauthorized } from '../utils/responseHelpers';
+import { extractPagination } from '../utils/queryHelpers';
 
 // ==================== Templates ====================
 
@@ -27,18 +29,19 @@ export const searchTemplates = async (req: AuthRequest, res: Response): Promise<
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
+    const { page, limit } = extractPagination(req.query, { defaultLimit: 20, maxLimit: 100 });
     const params: TemplateSearchParams = {
       search: req.query.search as string,
       category: req.query.category as TemplateCategory,
       tags: req.query.tags ? (req.query.tags as string).split(',') : undefined,
       status: req.query.status as TemplateStatus,
       isSystemTemplate: req.query.isSystemTemplate === 'true' ? true : req.query.isSystemTemplate === 'false' ? false : undefined,
-      page: req.query.page ? parseInt(req.query.page as string) : 1,
-      limit: req.query.limit ? Math.min(parseInt(req.query.limit as string), 100) : 20,
+      page,
+      limit,
       sortBy: (req.query.sortBy as 'name' | 'createdAt' | 'updatedAt') || 'createdAt',
       sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
     };
@@ -47,7 +50,7 @@ export const searchTemplates = async (req: AuthRequest, res: Response): Promise<
     res.json(result);
   } catch (error) {
     logger.error('Error searching templates', { error });
-    res.status(500).json({ error: 'Failed to search templates' });
+    serverError(res, 'Failed to search templates');
   }
 };
 
@@ -58,7 +61,7 @@ export const getTemplate = async (req: AuthRequest, res: Response): Promise<void
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -66,14 +69,14 @@ export const getTemplate = async (req: AuthRequest, res: Response): Promise<void
     const template = await templateService.getTemplate(templateId, userId);
 
     if (!template) {
-      res.status(404).json({ error: 'Template not found' });
+      notFoundMessage(res, 'Template not found');
       return;
     }
 
     res.json(template);
   } catch (error) {
     logger.error('Error getting template', { error });
-    res.status(500).json({ error: 'Failed to get template' });
+    serverError(res, 'Failed to get template');
   }
 };
 
@@ -84,21 +87,21 @@ export const getTemplateCss = async (req: AuthRequest, res: Response): Promise<v
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
     const { templateId } = req.params;
     const cssVariables = await templateService.getTemplateCssVariables(templateId, userId);
     if (!cssVariables) {
-      res.status(404).json({ error: 'Template not found' });
+      notFoundMessage(res, 'Template not found');
       return;
     }
 
     res.json({ cssVariables });
   } catch (error) {
     logger.error('Error getting template CSS variables', { error });
-    res.status(500).json({ error: 'Failed to get template CSS variables' });
+    serverError(res, 'Failed to get template CSS variables');
   }
 };
 
@@ -111,7 +114,7 @@ export const listColorPalettes = async (_req: AuthRequest, res: Response): Promi
     res.json(palettes);
   } catch (error) {
     logger.error('Error listing color palettes', { error });
-    res.status(500).json({ error: 'Failed to list color palettes' });
+    serverError(res, 'Failed to list color palettes');
   }
 };
 
@@ -124,7 +127,7 @@ export const listFontPairings = async (_req: AuthRequest, res: Response): Promis
     res.json(pairings);
   } catch (error) {
     logger.error('Error listing font pairings', { error });
-    res.status(500).json({ error: 'Failed to list font pairings' });
+    serverError(res, 'Failed to list font pairings');
   }
 };
 
@@ -135,20 +138,20 @@ export const applyTemplatePalette = async (req: AuthRequest, res: Response): Pro
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
     const { templateId } = req.params;
     const { paletteId } = req.body as { paletteId?: string };
     if (!paletteId) {
-      res.status(400).json({ error: 'paletteId is required' });
+      badRequest(res, 'paletteId is required');
       return;
     }
 
     const palette = await themePresetService.getColorPaletteById(paletteId);
     if (!palette) {
-      res.status(404).json({ error: 'Palette not found' });
+      notFoundMessage(res, 'Palette not found');
       return;
     }
 
@@ -159,14 +162,14 @@ export const applyTemplatePalette = async (req: AuthRequest, res: Response): Pro
     );
 
     if (!updated) {
-      res.status(404).json({ error: 'Template not found' });
+      notFoundMessage(res, 'Template not found');
       return;
     }
 
     res.json(updated);
   } catch (error) {
     logger.error('Error applying template palette', { error });
-    res.status(500).json({ error: 'Failed to apply palette' });
+    serverError(res, 'Failed to apply palette');
   }
 };
 
@@ -177,20 +180,20 @@ export const applyTemplateFontPairing = async (req: AuthRequest, res: Response):
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
     const { templateId } = req.params;
     const { fontPairingId } = req.body as { fontPairingId?: string };
     if (!fontPairingId) {
-      res.status(400).json({ error: 'fontPairingId is required' });
+      badRequest(res, 'fontPairingId is required');
       return;
     }
 
     const pairing = await themePresetService.getFontPairingById(fontPairingId);
     if (!pairing) {
-      res.status(404).json({ error: 'Font pairing not found' });
+      notFoundMessage(res, 'Font pairing not found');
       return;
     }
 
@@ -200,14 +203,14 @@ export const applyTemplateFontPairing = async (req: AuthRequest, res: Response):
     });
 
     if (!updated) {
-      res.status(404).json({ error: 'Template not found' });
+      notFoundMessage(res, 'Template not found');
       return;
     }
 
     res.json(updated);
   } catch (error) {
     logger.error('Error applying template font pairing', { error });
-    res.status(500).json({ error: 'Failed to apply font pairing' });
+    serverError(res, 'Failed to apply font pairing');
   }
 };
 
@@ -218,25 +221,25 @@ export const createTemplate = async (req: AuthRequest, res: Response): Promise<v
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
     const { name, description, category, tags, theme, globalSettings, cloneFromId } = req.body as CreateTemplateRequest;
 
     if (!name || !name.trim()) {
-      res.status(400).json({ error: 'Template name is required' });
+      badRequest(res, 'Template name is required');
       return;
     }
 
     if (!category) {
-      res.status(400).json({ error: 'Template category is required' });
+      badRequest(res, 'Template category is required');
       return;
     }
 
     const validCategories: TemplateCategory[] = ['landing-page', 'event', 'donation', 'blog', 'multi-page', 'portfolio', 'contact'];
     if (!validCategories.includes(category)) {
-      res.status(400).json({ error: 'Invalid template category' });
+      badRequest(res, 'Invalid template category');
       return;
     }
 
@@ -253,7 +256,7 @@ export const createTemplate = async (req: AuthRequest, res: Response): Promise<v
     res.status(201).json(template);
   } catch (error) {
     logger.error('Error creating template', { error });
-    res.status(500).json({ error: 'Failed to create template' });
+    serverError(res, 'Failed to create template');
   }
 };
 
@@ -264,7 +267,7 @@ export const updateTemplate = async (req: AuthRequest, res: Response): Promise<v
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -274,7 +277,7 @@ export const updateTemplate = async (req: AuthRequest, res: Response): Promise<v
     if (data.category) {
       const validCategories: TemplateCategory[] = ['landing-page', 'event', 'donation', 'blog', 'multi-page', 'portfolio', 'contact'];
       if (!validCategories.includes(data.category)) {
-        res.status(400).json({ error: 'Invalid template category' });
+        badRequest(res, 'Invalid template category');
         return;
       }
     }
@@ -282,7 +285,7 @@ export const updateTemplate = async (req: AuthRequest, res: Response): Promise<v
     if (data.status) {
       const validStatuses: TemplateStatus[] = ['draft', 'published', 'archived'];
       if (!validStatuses.includes(data.status)) {
-        res.status(400).json({ error: 'Invalid template status' });
+        badRequest(res, 'Invalid template status');
         return;
       }
     }
@@ -290,14 +293,14 @@ export const updateTemplate = async (req: AuthRequest, res: Response): Promise<v
     const template = await templateService.updateTemplate(templateId, userId, data);
 
     if (!template) {
-      res.status(404).json({ error: 'Template not found or access denied' });
+      notFoundMessage(res, 'Template not found or access denied');
       return;
     }
 
     res.json(template);
   } catch (error) {
     logger.error('Error updating template', { error });
-    res.status(500).json({ error: 'Failed to update template' });
+    serverError(res, 'Failed to update template');
   }
 };
 
@@ -308,7 +311,7 @@ export const deleteTemplate = async (req: AuthRequest, res: Response): Promise<v
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -316,14 +319,14 @@ export const deleteTemplate = async (req: AuthRequest, res: Response): Promise<v
     const success = await templateService.deleteTemplate(templateId, userId);
 
     if (!success) {
-      res.status(404).json({ error: 'Template not found or cannot be deleted' });
+      notFoundMessage(res, 'Template not found or cannot be deleted');
       return;
     }
 
     res.status(204).send();
   } catch (error) {
     logger.error('Error deleting template', { error });
-    res.status(500).json({ error: 'Failed to delete template' });
+    serverError(res, 'Failed to delete template');
   }
 };
 
@@ -334,7 +337,7 @@ export const duplicateTemplate = async (req: AuthRequest, res: Response): Promis
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -344,14 +347,14 @@ export const duplicateTemplate = async (req: AuthRequest, res: Response): Promis
     const template = await templateService.duplicateTemplate(templateId, userId, name);
 
     if (!template) {
-      res.status(404).json({ error: 'Template not found' });
+      notFoundMessage(res, 'Template not found');
       return;
     }
 
     res.status(201).json(template);
   } catch (error) {
     logger.error('Error duplicating template', { error });
-    res.status(500).json({ error: 'Failed to duplicate template' });
+    serverError(res, 'Failed to duplicate template');
   }
 };
 
@@ -364,7 +367,7 @@ export const getSystemTemplates = async (_req: AuthRequest, res: Response): Prom
     res.json(templates);
   } catch (error) {
     logger.error('Error getting system templates', { error });
-    res.status(500).json({ error: 'Failed to get system templates' });
+    serverError(res, 'Failed to get system templates');
   }
 };
 
@@ -377,7 +380,7 @@ export const getTemplatePages = async (req: AuthRequest, res: Response): Promise
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -386,7 +389,7 @@ export const getTemplatePages = async (req: AuthRequest, res: Response): Promise
     // Verify template access
     const template = await templateService.getTemplate(templateId, userId);
     if (!template) {
-      res.status(404).json({ error: 'Template not found' });
+      notFoundMessage(res, 'Template not found');
       return;
     }
 
@@ -394,7 +397,7 @@ export const getTemplatePages = async (req: AuthRequest, res: Response): Promise
     res.json(pages);
   } catch (error) {
     logger.error('Error getting template pages', { error });
-    res.status(500).json({ error: 'Failed to get template pages' });
+    serverError(res, 'Failed to get template pages');
   }
 };
 
@@ -405,7 +408,7 @@ export const getTemplatePage = async (req: AuthRequest, res: Response): Promise<
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -413,14 +416,14 @@ export const getTemplatePage = async (req: AuthRequest, res: Response): Promise<
     const page = await templateService.getTemplatePage(templateId, pageId, userId);
 
     if (!page) {
-      res.status(404).json({ error: 'Page not found' });
+      notFoundMessage(res, 'Page not found');
       return;
     }
 
     res.json(page);
   } catch (error) {
     logger.error('Error getting template page', { error });
-    res.status(500).json({ error: 'Failed to get template page' });
+    serverError(res, 'Failed to get template page');
   }
 };
 
@@ -431,7 +434,7 @@ export const createTemplatePage = async (req: AuthRequest, res: Response): Promi
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -439,18 +442,18 @@ export const createTemplatePage = async (req: AuthRequest, res: Response): Promi
     const { name, slug, isHomepage, seo, sections, cloneFromId } = req.body as CreatePageRequest;
 
     if (!name || !name.trim()) {
-      res.status(400).json({ error: 'Page name is required' });
+      badRequest(res, 'Page name is required');
       return;
     }
 
     if (!slug || !slug.trim()) {
-      res.status(400).json({ error: 'Page slug is required' });
+      badRequest(res, 'Page slug is required');
       return;
     }
 
     // Validate slug format
     if (!/^[a-z0-9-]+$/.test(slug)) {
-      res.status(400).json({ error: 'Slug must contain only lowercase letters, numbers, and hyphens' });
+      badRequest(res, 'Slug must contain only lowercase letters, numbers, and hyphens');
       return;
     }
 
@@ -464,7 +467,7 @@ export const createTemplatePage = async (req: AuthRequest, res: Response): Promi
     });
 
     if (!page) {
-      res.status(404).json({ error: 'Template not found or access denied' });
+      notFoundMessage(res, 'Template not found or access denied');
       return;
     }
 
@@ -474,11 +477,11 @@ export const createTemplatePage = async (req: AuthRequest, res: Response): Promi
 
     // Handle unique constraint violation
     if ((error as { code?: string }).code === '23505') {
-      res.status(400).json({ error: 'A page with this slug already exists' });
+      badRequest(res, 'A page with this slug already exists');
       return;
     }
 
-    res.status(500).json({ error: 'Failed to create template page' });
+    serverError(res, 'Failed to create template page');
   }
 };
 
@@ -489,7 +492,7 @@ export const updateTemplatePage = async (req: AuthRequest, res: Response): Promi
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -498,14 +501,14 @@ export const updateTemplatePage = async (req: AuthRequest, res: Response): Promi
 
     // Validate slug format if provided
     if (data.slug && !/^[a-z0-9-]+$/.test(data.slug)) {
-      res.status(400).json({ error: 'Slug must contain only lowercase letters, numbers, and hyphens' });
+      badRequest(res, 'Slug must contain only lowercase letters, numbers, and hyphens');
       return;
     }
 
     const page = await templateService.updateTemplatePage(templateId, pageId, userId, data);
 
     if (!page) {
-      res.status(404).json({ error: 'Page not found or access denied' });
+      notFoundMessage(res, 'Page not found or access denied');
       return;
     }
 
@@ -515,11 +518,11 @@ export const updateTemplatePage = async (req: AuthRequest, res: Response): Promi
 
     // Handle unique constraint violation
     if ((error as { code?: string }).code === '23505') {
-      res.status(400).json({ error: 'A page with this slug already exists' });
+      badRequest(res, 'A page with this slug already exists');
       return;
     }
 
-    res.status(500).json({ error: 'Failed to update template page' });
+    serverError(res, 'Failed to update template page');
   }
 };
 
@@ -530,7 +533,7 @@ export const deleteTemplatePage = async (req: AuthRequest, res: Response): Promi
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -538,14 +541,14 @@ export const deleteTemplatePage = async (req: AuthRequest, res: Response): Promi
     const success = await templateService.deleteTemplatePage(templateId, pageId, userId);
 
     if (!success) {
-      res.status(400).json({ error: 'Page not found, access denied, or cannot delete homepage' });
+      badRequest(res, 'Page not found, access denied, or cannot delete homepage');
       return;
     }
 
     res.status(204).send();
   } catch (error) {
     logger.error('Error deleting template page', { error });
-    res.status(500).json({ error: 'Failed to delete template page' });
+    serverError(res, 'Failed to delete template page');
   }
 };
 
@@ -556,7 +559,7 @@ export const reorderTemplatePages = async (req: AuthRequest, res: Response): Pro
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -564,21 +567,21 @@ export const reorderTemplatePages = async (req: AuthRequest, res: Response): Pro
     const { pageIds } = req.body;
 
     if (!Array.isArray(pageIds) || pageIds.length === 0) {
-      res.status(400).json({ error: 'Page IDs array is required' });
+      badRequest(res, 'Page IDs array is required');
       return;
     }
 
     const success = await templateService.reorderTemplatePages(templateId, userId, pageIds);
 
     if (!success) {
-      res.status(404).json({ error: 'Template not found or access denied' });
+      notFoundMessage(res, 'Template not found or access denied');
       return;
     }
 
     res.status(200).json({ success: true });
   } catch (error) {
     logger.error('Error reordering template pages', { error });
-    res.status(500).json({ error: 'Failed to reorder template pages' });
+    serverError(res, 'Failed to reorder template pages');
   }
 };
 
@@ -591,7 +594,7 @@ export const getTemplateVersions = async (req: AuthRequest, res: Response): Prom
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -601,7 +604,7 @@ export const getTemplateVersions = async (req: AuthRequest, res: Response): Prom
     res.json(versions);
   } catch (error) {
     logger.error('Error getting template versions', { error });
-    res.status(500).json({ error: 'Failed to get template versions' });
+    serverError(res, 'Failed to get template versions');
   }
 };
 
@@ -612,7 +615,7 @@ export const createTemplateVersion = async (req: AuthRequest, res: Response): Pr
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -622,14 +625,14 @@ export const createTemplateVersion = async (req: AuthRequest, res: Response): Pr
     const version = await templateService.createTemplateVersion(templateId, userId, changes);
 
     if (!version) {
-      res.status(404).json({ error: 'Template not found or access denied' });
+      notFoundMessage(res, 'Template not found or access denied');
       return;
     }
 
     res.status(201).json(version);
   } catch (error) {
     logger.error('Error creating template version', { error });
-    res.status(500).json({ error: 'Failed to create template version' });
+    serverError(res, 'Failed to create template version');
   }
 };
 
@@ -640,7 +643,7 @@ export const restoreTemplateVersion = async (req: AuthRequest, res: Response): P
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -648,14 +651,14 @@ export const restoreTemplateVersion = async (req: AuthRequest, res: Response): P
     const template = await templateService.restoreTemplateVersion(templateId, versionId, userId);
 
     if (!template) {
-      res.status(404).json({ error: 'Template or version not found' });
+      notFoundMessage(res, 'Template or version not found');
       return;
     }
 
     res.json(template);
   } catch (error) {
     logger.error('Error restoring template version', { error });
-    res.status(500).json({ error: 'Failed to restore template version' });
+    serverError(res, 'Failed to restore template version');
   }
 };
 
@@ -668,7 +671,7 @@ export const previewTemplate = async (req: AuthRequest, res: Response): Promise<
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -678,7 +681,7 @@ export const previewTemplate = async (req: AuthRequest, res: Response): Promise<
     const preview = await templateService.generateTemplatePreview(templateId, userId, pageSlug);
 
     if (!preview) {
-      res.status(404).json({ error: 'Template or page not found' });
+      notFoundMessage(res, 'Template or page not found');
       return;
     }
 
@@ -687,6 +690,6 @@ export const previewTemplate = async (req: AuthRequest, res: Response): Promise<
     res.send(preview.html);
   } catch (error) {
     logger.error('Error generating template preview', { error });
-    res.status(500).json({ error: 'Failed to generate template preview' });
+    serverError(res, 'Failed to generate template preview');
   }
 };

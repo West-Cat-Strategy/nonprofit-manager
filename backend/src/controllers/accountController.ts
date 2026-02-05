@@ -4,15 +4,14 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { AccountService } from '../services/accountService';
-import pool from '../config/database';
+import { services } from '../container/services';
 import { AccountCategory, AccountFilters, AccountType, PaginationParams } from '../types/account';
 import { AuthRequest } from '../middleware/auth';
-import { getString, getBoolean } from '../utils/queryHelpers';
+import { extractPagination, getString, getBoolean } from '../utils/queryHelpers';
 import { notFound } from '../utils/responseHelpers';
 import type { DataScopeFilter } from '../types/dataScope';
 
-const accountService = new AccountService(pool);
+const accountService = services.account;
 
 /**
  * GET /api/accounts
@@ -31,12 +30,7 @@ export const getAccounts = async (
       is_active: getBoolean(req.query.is_active),
     };
 
-    const pagination: PaginationParams = {
-      page: getString(req.query.page) ? parseInt(req.query.page as string) : undefined,
-      limit: getString(req.query.limit) ? parseInt(req.query.limit as string) : undefined,
-      sort_by: getString(req.query.sort_by),
-      sort_order: getString(req.query.sort_order) as 'asc' | 'desc' | undefined,
-    };
+    const pagination: PaginationParams = extractPagination(req.query);
 
     const scope = req.dataScope?.filter as DataScopeFilter | undefined;
     const result = await accountService.getAccounts(filters, pagination, scope);

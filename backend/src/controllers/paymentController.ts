@@ -13,6 +13,7 @@ import type {
   RefundRequest,
   CreateCustomerRequest,
 } from '../types/payment';
+import { badRequest, serverError } from '../utils/responseHelpers';
 
 // Database pool
 let pool: Pool;
@@ -34,7 +35,7 @@ export const getPaymentConfig = async (_req: Request, res: Response): Promise<vo
     });
   } catch (error) {
     logger.error('Error getting payment config', { error });
-    res.status(500).json({ error: 'Failed to get payment configuration' });
+    serverError(res, 'Failed to get payment configuration');
   }
 };
 
@@ -47,13 +48,13 @@ export const createPaymentIntent = async (req: AuthRequest, res: Response): Prom
       req.body as CreatePaymentIntentRequest;
 
     if (!amount || amount <= 0) {
-      res.status(400).json({ error: 'Amount must be a positive number' });
+      badRequest(res, 'Amount must be a positive number');
       return;
     }
 
     // Minimum amount is $0.50 (50 cents)
     if (amount < 50) {
-      res.status(400).json({ error: 'Minimum amount is $0.50 (50 cents)' });
+      badRequest(res, 'Minimum amount is $0.50 (50 cents)');
       return;
     }
 
@@ -85,7 +86,7 @@ export const createPaymentIntent = async (req: AuthRequest, res: Response): Prom
     res.status(201).json(paymentIntent);
   } catch (error) {
     logger.error('Error creating payment intent', { error });
-    res.status(500).json({ error: 'Failed to create payment intent' });
+    serverError(res, 'Failed to create payment intent');
   }
 };
 
@@ -97,7 +98,7 @@ export const getPaymentIntent = async (req: Request<{ id: string }>, res: Respon
     const { id } = req.params;
 
     if (!id) {
-      res.status(400).json({ error: 'Payment intent ID is required' });
+      badRequest(res, 'Payment intent ID is required');
       return;
     }
 
@@ -105,7 +106,7 @@ export const getPaymentIntent = async (req: Request<{ id: string }>, res: Respon
     res.json(paymentIntent);
   } catch (error) {
     logger.error('Error getting payment intent', { error });
-    res.status(500).json({ error: 'Failed to get payment intent' });
+    serverError(res, 'Failed to get payment intent');
   }
 };
 
@@ -117,7 +118,7 @@ export const cancelPaymentIntent = async (req: Request<{ id: string }>, res: Res
     const { id } = req.params;
 
     if (!id) {
-      res.status(400).json({ error: 'Payment intent ID is required' });
+      badRequest(res, 'Payment intent ID is required');
       return;
     }
 
@@ -125,7 +126,7 @@ export const cancelPaymentIntent = async (req: Request<{ id: string }>, res: Res
     res.json(paymentIntent);
   } catch (error) {
     logger.error('Error canceling payment intent', { error });
-    res.status(500).json({ error: 'Failed to cancel payment intent' });
+    serverError(res, 'Failed to cancel payment intent');
   }
 };
 
@@ -137,7 +138,7 @@ export const createRefund = async (req: AuthRequest, res: Response): Promise<voi
     const { paymentIntentId, amount, reason } = req.body as RefundRequest;
 
     if (!paymentIntentId) {
-      res.status(400).json({ error: 'Payment intent ID is required' });
+      badRequest(res, 'Payment intent ID is required');
       return;
     }
 
@@ -165,7 +166,7 @@ export const createRefund = async (req: AuthRequest, res: Response): Promise<voi
     res.status(201).json(refund);
   } catch (error) {
     logger.error('Error creating refund', { error });
-    res.status(500).json({ error: 'Failed to create refund' });
+    serverError(res, 'Failed to create refund');
   }
 };
 
@@ -177,7 +178,7 @@ export const createCustomer = async (req: Request, res: Response): Promise<void>
     const { email, name, phone, contactId } = req.body as CreateCustomerRequest;
 
     if (!email) {
-      res.status(400).json({ error: 'Email is required' });
+      badRequest(res, 'Email is required');
       return;
     }
 
@@ -200,7 +201,7 @@ export const createCustomer = async (req: Request, res: Response): Promise<void>
     res.status(201).json(customer);
   } catch (error) {
     logger.error('Error creating customer', { error });
-    res.status(500).json({ error: 'Failed to create customer' });
+    serverError(res, 'Failed to create customer');
   }
 };
 
@@ -212,7 +213,7 @@ export const getCustomer = async (req: Request<{ id: string }>, res: Response): 
     const { id } = req.params;
 
     if (!id) {
-      res.status(400).json({ error: 'Customer ID is required' });
+      badRequest(res, 'Customer ID is required');
       return;
     }
 
@@ -220,7 +221,7 @@ export const getCustomer = async (req: Request<{ id: string }>, res: Response): 
     res.json(customer);
   } catch (error) {
     logger.error('Error getting customer', { error });
-    res.status(500).json({ error: 'Failed to get customer' });
+    serverError(res, 'Failed to get customer');
   }
 };
 
@@ -235,7 +236,7 @@ export const listPaymentMethods = async (
     const { customerId } = req.params;
 
     if (!customerId) {
-      res.status(400).json({ error: 'Customer ID is required' });
+      badRequest(res, 'Customer ID is required');
       return;
     }
 
@@ -243,7 +244,7 @@ export const listPaymentMethods = async (
     res.json(paymentMethods);
   } catch (error) {
     logger.error('Error listing payment methods', { error });
-    res.status(500).json({ error: 'Failed to list payment methods' });
+    serverError(res, 'Failed to list payment methods');
   }
 };
 
@@ -254,7 +255,7 @@ export const handleWebhook = async (req: Request, res: Response): Promise<void> 
   const signature = req.headers['stripe-signature'] as string;
 
   if (!signature) {
-    res.status(400).json({ error: 'Missing stripe-signature header' });
+    badRequest(res, 'Missing stripe-signature header');
     return;
   }
 
@@ -319,6 +320,6 @@ export const handleWebhook = async (req: Request, res: Response): Promise<void> 
     res.json({ received: true });
   } catch (error) {
     logger.error('Webhook error', { error });
-    res.status(400).json({ error: 'Webhook error' });
+    badRequest(res, 'Webhook error');
   }
 };

@@ -7,12 +7,13 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { ingestPreviewFromBuffer, ingestPreviewFromText, ingestPreviewFromTextAuto } from '../ingest/preview';
 import type { IngestSourceType } from '../ingest/types';
+import { badRequest } from '../utils/responseHelpers';
 
 export const previewUpload = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const file = req.file;
     if (!file || !file.buffer) {
-      res.status(400).json({ error: 'No file uploaded' });
+      badRequest(res, 'No file uploaded');
       return;
     }
 

@@ -5,12 +5,12 @@
 
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/auth';
-import pool from '../config/database';
 import * as documentService from '../services/contactDocumentService';
-import { ContactService } from '../services/contactService';
+import { services } from '../container/services';
 import type { DataScopeFilter } from '../types/dataScope';
+import { badRequest, notFoundMessage } from '../utils/responseHelpers';
 
-const contactService = new ContactService(pool);
+const contactService = services.contact;
 
 /**
  * GET /api/contacts/:contactId/documents
@@ -27,7 +27,7 @@ export const getContactDocuments = async (
     if (scope) {
       const scopedContact = await contactService.getContactByIdWithScope(contactId, scope);
       if (!scopedContact) {
-        res.status(404).json({ error: 'Contact not found' });
+        notFoundMessage(res, 'Contact not found');
         return;
       }
     }
@@ -73,7 +73,7 @@ export const getDocumentById = async (
       : await documentService.getDocumentById(documentId);
 
     if (!document) {
-      res.status(404).json({ error: 'Document not found' });
+      notFoundMessage(res, 'Document not found');
       return;
     }
 
@@ -100,13 +100,13 @@ export const downloadDocument = async (
       : await documentService.getDocumentById(documentId);
 
     if (!document || !document.is_active) {
-      res.status(404).json({ error: 'Document not found' });
+      notFoundMessage(res, 'Document not found');
       return;
     }
 
     const filePath = documentService.getDocumentFilePath(document);
     if (!filePath) {
-      res.status(404).json({ error: 'Document file not found' });
+      notFoundMessage(res, 'Document file not found');
       return;
     }
 
@@ -143,13 +143,13 @@ export const uploadDocument = async (
     if (scope) {
       const scopedContact = await contactService.getContactByIdWithScope(contactId, scope);
       if (!scopedContact) {
-        res.status(404).json({ error: 'Contact not found' });
+        notFoundMessage(res, 'Contact not found');
         return;
       }
     }
 
     if (!file) {
-      res.status(400).json({ error: 'No file uploaded' });
+      badRequest(res, 'No file uploaded');
       return;
     }
 
@@ -182,7 +182,7 @@ export const updateDocument = async (
     if (scope) {
       const scopedDoc = await documentService.getDocumentByIdWithScope(documentId, scope);
       if (!scopedDoc) {
-        res.status(404).json({ error: 'Document not found' });
+        notFoundMessage(res, 'Document not found');
         return;
       }
     }
@@ -190,7 +190,7 @@ export const updateDocument = async (
     const document = await documentService.updateDocument(documentId, req.body);
 
     if (!document) {
-      res.status(404).json({ error: 'Document not found' });
+      notFoundMessage(res, 'Document not found');
       return;
     }
 
@@ -215,7 +215,7 @@ export const deleteDocument = async (
     if (scope) {
       const scopedDoc = await documentService.getDocumentByIdWithScope(documentId, scope);
       if (!scopedDoc) {
-        res.status(404).json({ error: 'Document not found' });
+        notFoundMessage(res, 'Document not found');
         return;
       }
     }
@@ -223,7 +223,7 @@ export const deleteDocument = async (
     const success = await documentService.deleteDocument(documentId);
 
     if (!success) {
-      res.status(404).json({ error: 'Document not found' });
+      notFoundMessage(res, 'Document not found');
       return;
     }
 
