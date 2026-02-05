@@ -9,6 +9,13 @@ import activityService from '../services/activityService';
 import { logger } from '../config/logger';
 import { PAGINATION, HTTP_STATUS } from '../config/constants';
 
+type EntityType = 'case' | 'donation' | 'volunteer' | 'event' | 'contact';
+const validEntityTypes: EntityType[] = ['case', 'donation', 'volunteer', 'event', 'contact'];
+
+const isValidEntityType = (value: string): value is EntityType => {
+  return validEntityTypes.includes(value as EntityType);
+};
+
 /**
  * Get recent activities
  * GET /api/activities/recent
@@ -34,7 +41,7 @@ export const getRecentActivities = async (
       activities,
       total: activities.length,
     });
-  } catch (error: any) {
+  } catch (error) {
     logger.error('Error fetching activities', { error });
     next(error);
   }
@@ -52,16 +59,15 @@ export const getEntityActivities = async (
   try {
     const { entityType, entityId } = req.params;
 
-    // Validate entity type
-    const validTypes = ['case', 'donation', 'volunteer', 'event', 'contact'];
-    if (!validTypes.includes(entityType)) {
+    // Validate entity type with type guard
+    if (!isValidEntityType(entityType)) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         error: 'Invalid entity type',
       });
     }
 
     const activities = await activityService.getActivitiesForEntity(
-      entityType as any,
+      entityType,
       entityId
     );
 
@@ -69,7 +75,7 @@ export const getEntityActivities = async (
       activities,
       total: activities.length,
     });
-  } catch (error: any) {
+  } catch (error) {
     const { entityType, entityId } = req.params;
     logger.error('Error fetching entity activities', { error, entityType, entityId });
     next(error);

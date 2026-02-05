@@ -5,6 +5,7 @@
 
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
+import { validateRequest } from '../middleware/validation';
 import {
   getContacts,
   getContactRoles,
@@ -47,6 +48,7 @@ router.get(
     query('role').optional().isIn(['staff', 'volunteer', 'board']),
     query('account_id').optional().isUUID(),
     query('is_active').optional().isBoolean(),
+    validateRequest,
   ],
   getContacts
 );
@@ -61,7 +63,7 @@ router.get('/roles', getContactRoles);
  * GET /api/contacts/:id
  * Get contact by ID
  */
-router.get('/:id', [param('id').isUUID()], getContactById);
+router.get('/:id', [param('id').isUUID(), validateRequest], getContactById);
 
 /**
  * POST /api/contacts
@@ -96,6 +98,7 @@ router.post(
     body('notes').optional().isString().trim(),
     body('roles').optional().isArray(),
     body('roles.*').optional().isString().trim(),
+    validateRequest,
   ],
   createContact
 );
@@ -135,6 +138,7 @@ router.put(
     body('is_active').optional().isBoolean(),
     body('roles').optional().isArray(),
     body('roles.*').optional().isString().trim(),
+    validateRequest,
   ],
   updateContact
 );
@@ -143,7 +147,7 @@ router.put(
  * DELETE /api/contacts/:id
  * Soft delete contact
  */
-router.delete('/:id', [param('id').isUUID()], deleteContact);
+router.delete('/:id', [param('id').isUUID(), validateRequest], deleteContact);
 
 // ============================================================================
 // CONTACT NOTES ROUTES

@@ -8,6 +8,7 @@ import { body, query } from 'express-validator';
 import donationController from '../controllers/donationController';
 import { authenticate } from '../middleware/auth';
 import { loadDataScope } from '../middleware/dataScope';
+import { validateRequest } from '../middleware/validation';
 
 const router = Router();
 
@@ -74,11 +75,11 @@ const donationQueryValidation = [
 // Donation routes
 router.use(authenticate);
 router.use(loadDataScope('donations'));
-router.get('/', donationQueryValidation, donationController.getDonations);
+router.get('/', donationQueryValidation, validateRequest, donationController.getDonations);
 router.get('/summary', donationController.getDonationSummary);
 router.get('/:id', donationController.getDonationById);
-router.post('/', createDonationValidation, donationController.createDonation);
-router.put('/:id', updateDonationValidation, donationController.updateDonation);
+router.post('/', createDonationValidation, validateRequest, donationController.createDonation);
+router.put('/:id', updateDonationValidation, validateRequest, donationController.updateDonation);
 router.delete('/:id', donationController.deleteDonation);
 router.post('/:id/receipt', donationController.markReceiptSent);
 

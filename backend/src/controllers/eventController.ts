@@ -14,10 +14,27 @@ import type {
   EventFilters,
   RegistrationFilters,
 } from '../types/event';
+import { EventType, EventStatus, RegistrationStatus } from '../types/event';
 import type { DataScopeFilter } from '../types/dataScope';
 import { badRequest, notFoundMessage } from '../utils/responseHelpers';
 
 const eventService = services.event;
+
+// Type-safe enum parsers
+const parseEventType = (value: unknown): EventType | undefined => {
+  if (typeof value !== 'string') return undefined;
+  return Object.values(EventType).includes(value as EventType) ? (value as EventType) : undefined;
+};
+
+const parseEventStatus = (value: unknown): EventStatus | undefined => {
+  if (typeof value !== 'string') return undefined;
+  return Object.values(EventStatus).includes(value as EventStatus) ? (value as EventStatus) : undefined;
+};
+
+const parseRegistrationStatus = (value: unknown): RegistrationStatus | undefined => {
+  if (typeof value !== 'string') return undefined;
+  return Object.values(RegistrationStatus).includes(value as RegistrationStatus) ? (value as RegistrationStatus) : undefined;
+};
 
 /**
  * GET /api/events
@@ -30,8 +47,8 @@ export const getEvents = async (
 ): Promise<void> => {
   try {
     const filters: EventFilters = {
-      event_type: req.query.event_type as any,
-      status: req.query.status as any,
+      event_type: parseEventType(req.query.event_type),
+      status: parseEventStatus(req.query.status),
       start_date: req.query.start_date ? new Date(req.query.start_date as string) : undefined,
       end_date: req.query.end_date ? new Date(req.query.end_date as string) : undefined,
       search: req.query.search as string,
@@ -164,7 +181,7 @@ export const getEventRegistrations = async (
     const { id } = req.params;
 
     const filters: RegistrationFilters = {
-      registration_status: req.query.status as any,
+      registration_status: parseRegistrationStatus(req.query.status),
       checked_in: req.query.checked_in === 'true' ? true : req.query.checked_in === 'false' ? false : undefined,
     };
 
