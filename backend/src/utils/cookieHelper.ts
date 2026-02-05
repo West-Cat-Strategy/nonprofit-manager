@@ -1,17 +1,24 @@
 import { Response } from 'express';
+import { logger } from '../config/logger';
 
 const isProduction = process.env.NODE_ENV === 'production';
+const enforceHttps = process.env.ENFORCE_HTTPS_COOKIES === 'true' || isProduction;
 
 // Cookie names
 export const AUTH_COOKIE_NAME = 'auth_token';
 export const REFRESH_COOKIE_NAME = 'refresh_token';
 export const PORTAL_AUTH_COOKIE_NAME = 'portal_auth_token';
 
+// Validate secure cookie configuration in production
+if (isProduction && !enforceHttps) {
+  logger.warn('HTTPS cookies are not enforced in production - this is a security risk');
+}
+
 // Cookie options
 const baseCookieOptions = {
   httpOnly: true,
-  secure: isProduction,
-  sameSite: isProduction ? ('strict' as const) : ('lax' as const),
+  secure: enforceHttps,
+  sameSite: enforceHttps ? ('strict' as const) : ('lax' as const),
   path: '/',
 };
 

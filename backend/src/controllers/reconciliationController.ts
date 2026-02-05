@@ -59,6 +59,18 @@ export const createReconciliation = async (req: AuthRequest, res: Response): Pro
   }
 };
 
+interface ReconciliationQueryParams {
+  status?: string;
+  reconciliation_type?: string;
+  start_date?: string;
+  end_date?: string;
+  initiated_by?: string;
+  page?: string;
+  limit?: string;
+}
+
+type QueryValue = string | number;
+
 /**
  * Get all reconciliations with filtering
  */
@@ -70,15 +82,17 @@ export const getReconciliations = async (req: Request, res: Response): Promise<v
       start_date,
       end_date,
       initiated_by,
-      page = 1,
-      limit = 20,
-    } = req.query as any;
+      page = '1',
+      limit = '20',
+    } = req.query as ReconciliationQueryParams;
 
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20)); // Enforce max limit
+    const offset = (pageNum - 1) * limitNum;
 
-    // Build query
+    // Build query with parameterized values
     let query = 'SELECT * FROM payment_reconciliations WHERE 1=1';
-    const params: any[] = [];
+    const params: QueryValue[] = [];
     let paramIndex = 1;
 
     if (status) {
@@ -112,7 +126,7 @@ export const getReconciliations = async (req: Request, res: Response): Promise<v
 
     // Add pagination
     query += ` ORDER BY created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex}`;
-    params.push(limit, offset);
+    params.push(limitNum, offset);
 
     const result = await pool.query(query, params);
 
@@ -120,9 +134,9 @@ export const getReconciliations = async (req: Request, res: Response): Promise<v
       reconciliations: result.rows,
       pagination: {
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total_pages: Math.ceil(total / parseInt(limit)),
+        page: pageNum,
+        limit: limitNum,
+        total_pages: Math.ceil(total / limitNum),
       },
     });
   } catch (error) {

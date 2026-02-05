@@ -126,7 +126,8 @@ export class ContactService {
       const countResult = await this.pool.query(countQuery, values);
       const total = parseInt(countResult.rows[0].count);
 
-      // Get paginated data with account info
+      // Get paginated data with account info and aggregated counts
+      // Using LEFT JOINs with GROUP BY instead of correlated subqueries for better performance
       const dataQuery = `
         SELECT
           c.id as contact_id,
@@ -158,12 +159,24 @@ export class ContactService {
           c.created_at,
           c.updated_at,
           a.account_name,
-          (SELECT COUNT(*) FROM contact_phone_numbers WHERE contact_id = c.id) as phone_count,
-          (SELECT COUNT(*) FROM contact_email_addresses WHERE contact_id = c.id) as email_count,
-          (SELECT COUNT(*) FROM contact_relationships WHERE contact_id = c.id AND is_active = true) as relationship_count,
-          (SELECT COUNT(*) FROM contact_notes WHERE contact_id = c.id) as note_count
+          COALESCE(phone_counts.cnt, 0) as phone_count,
+          COALESCE(email_counts.cnt, 0) as email_count,
+          COALESCE(rel_counts.cnt, 0) as relationship_count,
+          COALESCE(note_counts.cnt, 0) as note_count
         FROM contacts c
         LEFT JOIN accounts a ON c.account_id = a.id
+        LEFT JOIN (
+          SELECT contact_id, COUNT(*) as cnt FROM contact_phone_numbers GROUP BY contact_id
+        ) phone_counts ON phone_counts.contact_id = c.id
+        LEFT JOIN (
+          SELECT contact_id, COUNT(*) as cnt FROM contact_email_addresses GROUP BY contact_id
+        ) email_counts ON email_counts.contact_id = c.id
+        LEFT JOIN (
+          SELECT contact_id, COUNT(*) as cnt FROM contact_relationships WHERE is_active = true GROUP BY contact_id
+        ) rel_counts ON rel_counts.contact_id = c.id
+        LEFT JOIN (
+          SELECT contact_id, COUNT(*) as cnt FROM contact_notes GROUP BY contact_id
+        ) note_counts ON note_counts.contact_id = c.id
         ${whereClause}
         ORDER BY ${sortColumn} ${sortOrder}
         LIMIT $${paramCounter} OFFSET $${paramCounter + 1}
