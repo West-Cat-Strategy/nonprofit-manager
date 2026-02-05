@@ -110,9 +110,9 @@ const AppRoutes = () => {
       <Route
         path="/dashboard"
         element={
-          <NeoBrutalistRoute>
+          <ProtectedRoute>
             <NeoBrutalistDashboard />
-          </NeoBrutalistRoute>
+          </ProtectedRoute>
         }
       />
 

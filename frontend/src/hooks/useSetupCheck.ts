@@ -20,6 +20,7 @@ export const useSetupCheck = () => {
 
   useEffect(() => {
     const checkSetup = async () => {
+      setLoading(true);
       try {
         const response = await api.get<SetupStatus>('/auth/setup-status');
         const { setupRequired } = response.data;

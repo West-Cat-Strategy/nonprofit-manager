@@ -277,13 +277,19 @@ const CustomDashboard = () => {
       <GridLayout
         className="layout"
         layout={currentDashboard.layout}
-        cols={12}
-        rowHeight={80}
+        gridConfig={{
+          cols: 12,
+          rowHeight: 80,
+        }}
         width={1200}
-        isDraggable={editMode}
-        isResizable={editMode}
+        dragConfig={{
+          enabled: editMode,
+          handle: ".drag-handle",
+        }}
+        resizeConfig={{
+          enabled: editMode,
+        }}
         onLayoutChange={(layout) => handleLayoutChange(layout as unknown as Layout[])}
-        draggableHandle=".drag-handle"
       >
         {currentDashboard.widgets.map((widget) => (
           <div
