@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { body, param } from 'express-validator';
 import { authenticatePortal } from '../middleware/portalAuth';
+import { validateRequest } from '../middleware/validation';
 import {
   getPortalProfile,
   updatePortalProfile,
@@ -38,23 +39,24 @@ router.post(
     body('relationship_label').optional().isString(),
     body('notes').optional().isString(),
     body('related_contact_id').optional().isUUID(),
+    validateRequest,
   ],
   createPortalRelationship
 );
 
 router.put(
   '/relationships/:id',
-  [param('id').isUUID()],
+  [param('id').isUUID(), validateRequest],
   updatePortalRelationship
 );
 
-router.delete('/relationships/:id', [param('id').isUUID()], deletePortalRelationship);
+router.delete('/relationships/:id', [param('id').isUUID(), validateRequest], deletePortalRelationship);
 
 router.get('/events', getPortalEvents);
 
-router.post('/events/:eventId/register', [param('eventId').isUUID()], registerPortalEvent);
+router.post('/events/:eventId/register', [param('eventId').isUUID(), validateRequest], registerPortalEvent);
 
-router.delete('/events/:eventId/register', [param('eventId').isUUID()], cancelPortalEventRegistration);
+router.delete('/events/:eventId/register', [param('eventId').isUUID(), validateRequest], cancelPortalEventRegistration);
 
 router.get('/appointments', getPortalAppointments);
 
@@ -66,15 +68,16 @@ router.post(
     body('end_time').optional().isISO8601(),
     body('description').optional().isString(),
     body('location').optional().isString(),
+    validateRequest,
   ],
   createPortalAppointment
 );
 
-router.delete('/appointments/:id', [param('id').isUUID()], cancelPortalAppointment);
+router.delete('/appointments/:id', [param('id').isUUID(), validateRequest], cancelPortalAppointment);
 
 router.get('/documents', getPortalDocuments);
 
-router.get('/documents/:id/download', [param('id').isUUID()], downloadPortalDocument);
+router.get('/documents/:id/download', [param('id').isUUID(), validateRequest], downloadPortalDocument);
 
 router.get('/notes', getPortalNotes);
 

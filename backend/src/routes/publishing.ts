@@ -6,6 +6,7 @@
 import { Router } from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticate } from '../middleware/auth';
+import { validateRequest } from '../middleware/validation';
 import * as publishingController from '../controllers/publishingController';
 
 const router = Router();
@@ -100,35 +101,34 @@ const searchValidation = [
 // ==================== Protected Routes (require auth) ====================
 
 // Search sites
-router.get('/', authenticate, searchValidation, publishingController.searchSites);
+router.get('/', authenticate, [...searchValidation, validateRequest], publishingController.searchSites);
 
 // Create a new site entry
-router.post('/', authenticate, createSiteValidation, publishingController.createSite);
+router.post('/', authenticate, [...createSiteValidation, validateRequest], publishingController.createSite);
 
 // Publish a template (create or update published site)
-router.post('/publish', authenticate, publishValidation, publishingController.publishSite);
+router.post('/publish', authenticate, [...publishValidation, validateRequest], publishingController.publishSite);
 
 // Get a specific site
-router.get('/:siteId', authenticate, siteIdParam, publishingController.getSite);
+router.get('/:siteId', authenticate, [siteIdParam, validateRequest], publishingController.getSite);
 
 // Update a site
-router.put('/:siteId', authenticate, updateSiteValidation, publishingController.updateSite);
+router.put('/:siteId', authenticate, [...updateSiteValidation, validateRequest], publishingController.updateSite);
 
 // Delete a site
-router.delete('/:siteId', authenticate, siteIdParam, publishingController.deleteSite);
+router.delete('/:siteId', authenticate, [siteIdParam, validateRequest], publishingController.deleteSite);
 
 // Unpublish a site
-router.post('/:siteId/unpublish', authenticate, siteIdParam, publishingController.unpublishSite);
+router.post('/:siteId/unpublish', authenticate, [siteIdParam, validateRequest], publishingController.unpublishSite);
 
 // Get deployment info
-router.get('/:siteId/deployment', authenticate, siteIdParam, publishingController.getDeploymentInfo);
+router.get('/:siteId/deployment', authenticate, [siteIdParam, validateRequest], publishingController.getDeploymentInfo);
 
 // Get analytics summary
 router.get(
   '/:siteId/analytics',
   authenticate,
-  siteIdParam,
-  query('period').optional().isInt({ min: 1, max: 365 }),
+  [siteIdParam, query('period').optional().isInt({ min: 1, max: 365 }), validateRequest],
   publishingController.getAnalyticsSummary
 );
 
@@ -138,28 +138,31 @@ router.get(
 router.post(
   '/:siteId/domain',
   authenticate,
-  siteIdParam,
-  body('domain').isString().trim().isFQDN().withMessage('Invalid domain'),
-  body('verificationMethod').optional().isIn(['cname', 'txt']),
+  [
+    siteIdParam,
+    body('domain').isString().trim().isFQDN().withMessage('Invalid domain'),
+    body('verificationMethod').optional().isIn(['cname', 'txt']),
+    validateRequest,
+  ],
   publishingController.addCustomDomain
 );
 
 // Get custom domain config
-router.get('/:siteId/domain', authenticate, siteIdParam, publishingController.getCustomDomainConfig);
+router.get('/:siteId/domain', authenticate, [siteIdParam, validateRequest], publishingController.getCustomDomainConfig);
 
 // Verify custom domain
-router.post('/:siteId/domain/verify', authenticate, siteIdParam, publishingController.verifyCustomDomain);
+router.post('/:siteId/domain/verify', authenticate, [siteIdParam, validateRequest], publishingController.verifyCustomDomain);
 
 // Remove custom domain
-router.delete('/:siteId/domain', authenticate, siteIdParam, publishingController.removeCustomDomain);
+router.delete('/:siteId/domain', authenticate, [siteIdParam, validateRequest], publishingController.removeCustomDomain);
 
 // ==================== SSL Certificate Routes ====================
 
 // Get SSL info
-router.get('/:siteId/ssl', authenticate, siteIdParam, publishingController.getSslInfo);
+router.get('/:siteId/ssl', authenticate, [siteIdParam, validateRequest], publishingController.getSslInfo);
 
 // Provision SSL certificate
-router.post('/:siteId/ssl/provision', authenticate, siteIdParam, publishingController.provisionSsl);
+router.post('/:siteId/ssl/provision', authenticate, [siteIdParam, validateRequest], publishingController.provisionSsl);
 
 // ==================== Version History Routes ====================
 
@@ -167,8 +170,7 @@ router.post('/:siteId/ssl/provision', authenticate, siteIdParam, publishingContr
 router.get(
   '/:siteId/versions',
   authenticate,
-  siteIdParam,
-  query('limit').optional().isInt({ min: 1, max: 100 }),
+  [siteIdParam, query('limit').optional().isInt({ min: 1, max: 100 }), validateRequest],
   publishingController.getVersionHistory
 );
 
@@ -176,8 +178,7 @@ router.get(
 router.get(
   '/:siteId/versions/:version',
   authenticate,
-  siteIdParam,
-  param('version').isString().notEmpty(),
+  [siteIdParam, param('version').isString().notEmpty(), validateRequest],
   publishingController.getVersion
 );
 
@@ -185,8 +186,7 @@ router.get(
 router.post(
   '/:siteId/rollback',
   authenticate,
-  siteIdParam,
-  body('version').isString().notEmpty().withMessage('Version is required'),
+  [siteIdParam, body('version').isString().notEmpty().withMessage('Version is required'), validateRequest],
   publishingController.rollbackVersion
 );
 
@@ -194,15 +194,14 @@ router.post(
 router.delete(
   '/:siteId/versions',
   authenticate,
-  siteIdParam,
-  query('keep').optional().isInt({ min: 1, max: 100 }),
+  [siteIdParam, query('keep').optional().isInt({ min: 1, max: 100 }), validateRequest],
   publishingController.pruneVersions
 );
 
 // ==================== Cache Management Routes ====================
 
 // Invalidate cache for a site
-router.post('/:siteId/cache/invalidate', authenticate, siteIdParam, publishingController.invalidateSiteCache);
+router.post('/:siteId/cache/invalidate', authenticate, [siteIdParam, validateRequest], publishingController.invalidateSiteCache);
 
 // Get cache statistics (admin)
 router.get('/admin/cache/stats', authenticate, publishingController.getCacheStats);
@@ -216,7 +215,7 @@ router.get('/admin/cache/profiles', publishingController.getPerformanceCacheCont
 // ==================== Public Routes (no auth required) ====================
 
 // Record analytics event (called from published sites)
-router.post('/:siteId/track', analyticsValidation, publishingController.recordAnalytics);
+router.post('/:siteId/track', [...analyticsValidation, validateRequest], publishingController.recordAnalytics);
 
 // Serve published site content by subdomain
 router.get('/serve/:subdomain', publishingController.servePublishedSite);

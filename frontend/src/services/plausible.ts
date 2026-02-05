@@ -3,6 +3,15 @@
  * Utility functions for tracking custom events with Plausible
  */
 
+// Type declaration for Plausible Analytics global function injected by script tag
+type PlausibleFunction = (eventName: string, options?: { props?: Record<string, string | number | boolean>; revenue?: { amount: number; currency: string }; u?: string }) => void;
+
+declare global {
+  interface Window {
+    plausible?: PlausibleFunction;
+  }
+}
+
 export interface PlausibleEventOptions {
   props?: Record<string, string | number | boolean>;
   revenue?: {
@@ -18,14 +27,14 @@ export interface PlausibleEventOptions {
  */
 export const trackEvent = (eventName: string, options?: PlausibleEventOptions): void => {
   // Check if Plausible is loaded
-  if (typeof window === 'undefined' || !(window as any).plausible) {
+  if (typeof window === 'undefined' || !window.plausible) {
     if (import.meta.env.DEV) {
       console.warn('Plausible not loaded. Event not tracked:', eventName, options);
     }
     return;
   }
 
-  const plausible = (window as any).plausible;
+  const plausible = window.plausible;
 
   try {
     if (options?.revenue) {
@@ -59,13 +68,12 @@ export const trackEvent = (eventName: string, options?: PlausibleEventOptions): 
  * @param url - The URL to track (optional, defaults to current location)
  */
 export const trackPageView = (url?: string): void => {
-  if (typeof window === 'undefined' || !(window as any).plausible) {
+  if (typeof window === 'undefined' || !window.plausible) {
     return;
   }
 
   try {
-    const plausible = (window as any).plausible;
-    plausible('pageview', { u: url || window.location.href });
+    window.plausible('pageview', { u: url || window.location.href });
   } catch (error) {
     console.error('Error tracking page view:', error);
   }

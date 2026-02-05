@@ -6,6 +6,7 @@
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
 import { authenticate } from '../middleware/auth';
+import { validateRequest } from '../middleware/validation';
 import * as mailchimpController from '../controllers/mailchimpController';
 
 const router = Router();
@@ -29,7 +30,7 @@ router.get('/lists', authenticate, mailchimpController.getLists);
 router.get(
   '/lists/:id',
   authenticate,
-  [param('id').isString().notEmpty().withMessage('List ID is required')],
+  [param('id').isString().notEmpty().withMessage('List ID is required'), validateRequest],
   mailchimpController.getList
 );
 
@@ -40,7 +41,7 @@ router.get(
 router.get(
   '/lists/:listId/tags',
   authenticate,
-  [param('listId').isString().notEmpty().withMessage('List ID is required')],
+  [param('listId').isString().notEmpty().withMessage('List ID is required'), validateRequest],
   mailchimpController.getListTags
 );
 
@@ -51,7 +52,7 @@ router.get(
 router.get(
   '/lists/:listId/segments',
   authenticate,
-  [param('listId').isString().notEmpty().withMessage('List ID is required')],
+  [param('listId').isString().notEmpty().withMessage('List ID is required'), validateRequest],
   mailchimpController.getSegments
 );
 
@@ -72,6 +73,7 @@ router.post(
       .isIn(['is', 'not', 'contains', 'notcontain', 'greater', 'less', 'blank', 'blank_not'])
       .withMessage('Invalid condition operator'),
     body('conditions.*.value').notEmpty().withMessage('Condition value is required'),
+    validateRequest,
   ],
   mailchimpController.createSegment
 );
@@ -86,6 +88,7 @@ router.get(
   [
     param('listId').isString().notEmpty().withMessage('List ID is required'),
     param('email').isEmail().withMessage('Valid email is required'),
+    validateRequest,
   ],
   mailchimpController.getMember
 );
@@ -100,6 +103,7 @@ router.delete(
   [
     param('listId').isString().notEmpty().withMessage('List ID is required'),
     param('email').isEmail().withMessage('Valid email is required'),
+    validateRequest,
   ],
   mailchimpController.deleteMember
 );
@@ -120,6 +124,7 @@ router.post(
       .withMessage('Invalid member status'),
     body('mergeFields').optional().isObject().withMessage('Merge fields must be an object'),
     body('tags').optional().isArray().withMessage('Tags must be an array'),
+    validateRequest,
   ],
   mailchimpController.addMember
 );
@@ -136,6 +141,7 @@ router.post(
     body('email').isEmail().withMessage('Valid email is required'),
     body('tagsToAdd').optional().isArray().withMessage('Tags to add must be an array'),
     body('tagsToRemove').optional().isArray().withMessage('Tags to remove must be an array'),
+    validateRequest,
   ],
   mailchimpController.updateMemberTags
 );
@@ -151,6 +157,7 @@ router.post(
     body('contactId').isUUID().withMessage('Valid contact ID is required'),
     body('listId').isString().notEmpty().withMessage('List ID is required'),
     body('tags').optional().isArray().withMessage('Tags must be an array'),
+    validateRequest,
   ],
   mailchimpController.syncContact
 );
@@ -169,6 +176,7 @@ router.post(
     body('contactIds.*').isUUID().withMessage('All contact IDs must be valid UUIDs'),
     body('listId').isString().notEmpty().withMessage('List ID is required'),
     body('tags').optional().isArray().withMessage('Tags must be an array'),
+    validateRequest,
   ],
   mailchimpController.bulkSyncContacts
 );
@@ -180,7 +188,7 @@ router.post(
 router.get(
   '/campaigns',
   authenticate,
-  [query('listId').optional().isString().withMessage('List ID must be a string')],
+  [query('listId').optional().isString().withMessage('List ID must be a string'), validateRequest],
   mailchimpController.getCampaigns
 );
 
@@ -202,6 +210,7 @@ router.post(
     body('plainTextContent').optional().isString().withMessage('Plain text content must be a string'),
     body('segmentId').optional().isNumeric().withMessage('Segment ID must be a number'),
     body('sendTime').optional().isISO8601().withMessage('Send time must be a valid ISO 8601 date'),
+    validateRequest,
   ],
   mailchimpController.createCampaign
 );
@@ -213,7 +222,7 @@ router.post(
 router.post(
   '/campaigns/:campaignId/send',
   authenticate,
-  [param('campaignId').isString().notEmpty().withMessage('Campaign ID is required')],
+  [param('campaignId').isString().notEmpty().withMessage('Campaign ID is required'), validateRequest],
   mailchimpController.sendCampaign
 );
 

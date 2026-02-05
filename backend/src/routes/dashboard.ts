@@ -15,6 +15,7 @@ import {
   deleteDashboard,
 } from '../controllers/dashboardController';
 import { authenticate } from '../middleware/auth';
+import { validateRequest } from '../middleware/validation';
 
 const router = Router();
 
@@ -37,7 +38,7 @@ router.get('/configs/default', getDefaultDashboard);
  * GET /api/dashboard/configs/:id
  * Get a specific dashboard configuration
  */
-router.get('/configs/:id', [param('id').isUUID()], getDashboard);
+router.get('/configs/:id', [param('id').isUUID(), validateRequest], getDashboard);
 
 /**
  * POST /api/dashboard/configs
@@ -52,6 +53,7 @@ router.post(
     body('layout').isArray().withMessage('Layout must be an array'),
     body('breakpoints').optional().isObject(),
     body('cols').optional().isObject(),
+    validateRequest,
   ],
   createDashboard
 );
@@ -70,6 +72,7 @@ router.put(
     body('layout').optional().isArray(),
     body('breakpoints').optional().isObject(),
     body('cols').optional().isObject(),
+    validateRequest,
   ],
   updateDashboard
 );
@@ -80,7 +83,7 @@ router.put(
  */
 router.put(
   '/configs/:id/layout',
-  [param('id').isUUID(), body('layout').isArray().withMessage('Layout must be an array')],
+  [param('id').isUUID(), body('layout').isArray().withMessage('Layout must be an array'), validateRequest],
   updateDashboardLayout
 );
 
@@ -88,6 +91,6 @@ router.put(
  * DELETE /api/dashboard/configs/:id
  * Delete dashboard configuration
  */
-router.delete('/configs/:id', [param('id').isUUID()], deleteDashboard);
+router.delete('/configs/:id', [param('id').isUUID(), validateRequest], deleteDashboard);
 
 export default router;

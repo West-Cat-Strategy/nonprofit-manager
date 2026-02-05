@@ -19,6 +19,7 @@ import {
   getAlertStats,
 } from '../controllers/alertController';
 import { authenticate } from '../middleware/auth';
+import { validateRequest } from '../middleware/validation';
 
 const router = Router();
 
@@ -35,7 +36,7 @@ router.get('/configs', getAlertConfigs);
  * GET /api/alerts/configs/:id
  * Get a specific alert configuration
  */
-router.get('/configs/:id', [param('id').isUUID()], getAlertConfig);
+router.get('/configs/:id', [param('id').isUUID(), validateRequest], getAlertConfig);
 
 /**
  * POST /api/alerts/configs
@@ -68,6 +69,7 @@ router.post(
     body('enabled').isBoolean().optional(),
     body('recipients').optional().isArray(),
     body('filters').optional().isObject(),
+    validateRequest,
   ],
   createAlertConfig
 );
@@ -92,6 +94,7 @@ router.put(
     body('enabled').optional().isBoolean(),
     body('recipients').optional().isArray(),
     body('filters').optional().isObject(),
+    validateRequest,
   ],
   updateAlertConfig
 );
@@ -100,13 +103,13 @@ router.put(
  * DELETE /api/alerts/configs/:id
  * Delete alert configuration
  */
-router.delete('/configs/:id', [param('id').isUUID()], deleteAlertConfig);
+router.delete('/configs/:id', [param('id').isUUID(), validateRequest], deleteAlertConfig);
 
 /**
  * PATCH /api/alerts/configs/:id/toggle
  * Toggle alert enabled status
  */
-router.patch('/configs/:id/toggle', [param('id').isUUID()], toggleAlertConfig);
+router.patch('/configs/:id/toggle', [param('id').isUUID(), validateRequest], toggleAlertConfig);
 
 /**
  * POST /api/alerts/test
@@ -120,6 +123,7 @@ router.post(
     body('threshold').optional().isNumeric(),
     body('percentage_change').optional().isNumeric(),
     body('sensitivity').optional().isFloat({ min: 1.0, max: 4.0 }),
+    validateRequest,
   ],
   testAlertConfig
 );
@@ -134,6 +138,7 @@ router.get(
     query('status').optional().isString(),
     query('severity').optional().isString(),
     query('limit').optional().isInt({ min: 1, max: 100 }),
+    validateRequest,
   ],
   getAlertInstances
 );
@@ -142,13 +147,13 @@ router.get(
  * PATCH /api/alerts/instances/:id/acknowledge
  * Acknowledge an alert instance
  */
-router.patch('/instances/:id/acknowledge', [param('id').isUUID()], acknowledgeAlert);
+router.patch('/instances/:id/acknowledge', [param('id').isUUID(), validateRequest], acknowledgeAlert);
 
 /**
  * PATCH /api/alerts/instances/:id/resolve
  * Resolve an alert instance
  */
-router.patch('/instances/:id/resolve', [param('id').isUUID()], resolveAlert);
+router.patch('/instances/:id/resolve', [param('id').isUUID(), validateRequest], resolveAlert);
 
 /**
  * GET /api/alerts/stats

@@ -18,6 +18,7 @@ import {
 } from '../controllers/volunteerController';
 import { authenticate } from '../middleware/auth';
 import { loadDataScope } from '../middleware/dataScope';
+import { validateRequest } from '../middleware/validation';
 
 const router = Router();
 
@@ -31,7 +32,7 @@ router.use(loadDataScope('volunteers'));
  */
 router.get(
   '/search/skills',
-  [query('skills').notEmpty().withMessage('Skills parameter is required')],
+  [query('skills').notEmpty().withMessage('Skills parameter is required'), validateRequest],
   findVolunteersBySkills
 );
 
@@ -53,6 +54,7 @@ router.get(
       .optional()
       .isIn(['not_required', 'pending', 'in_progress', 'approved', 'rejected', 'expired']),
     query('is_active').optional().isBoolean(),
+    validateRequest,
   ],
   getVolunteers
 );
@@ -61,13 +63,13 @@ router.get(
  * GET /api/volunteers/:id
  * Get volunteer by ID
  */
-router.get('/:id', [param('id').isUUID()], getVolunteerById);
+router.get('/:id', [param('id').isUUID(), validateRequest], getVolunteerById);
 
 /**
  * GET /api/volunteers/:id/assignments
  * Get assignments for a volunteer
  */
-router.get('/:id/assignments', [param('id').isUUID()], getVolunteerAssignments);
+router.get('/:id/assignments', [param('id').isUUID(), validateRequest], getVolunteerAssignments);
 
 /**
  * POST /api/volunteers
@@ -91,6 +93,7 @@ router.post(
     body('emergency_contact_name').optional().isString().trim(),
     body('emergency_contact_phone').optional().isString().trim(),
     body('emergency_contact_relationship').optional().isString().trim(),
+    validateRequest,
   ],
   createVolunteer
 );
@@ -118,6 +121,7 @@ router.put(
     body('emergency_contact_phone').optional().isString().trim(),
     body('emergency_contact_relationship').optional().isString().trim(),
     body('is_active').optional().isBoolean(),
+    validateRequest,
   ],
   updateVolunteer
 );
@@ -126,7 +130,7 @@ router.put(
  * DELETE /api/volunteers/:id
  * Soft delete volunteer
  */
-router.delete('/:id', [param('id').isUUID()], deleteVolunteer);
+router.delete('/:id', [param('id').isUUID(), validateRequest], deleteVolunteer);
 
 /**
  * POST /api/volunteers/assignments
@@ -143,6 +147,7 @@ router.post(
     body('start_time').isISO8601(),
     body('end_time').optional().isISO8601(),
     body('notes').optional().isString().trim(),
+    validateRequest,
   ],
   createAssignment
 );
@@ -161,6 +166,7 @@ router.put(
     body('hours_logged').optional().isFloat({ min: 0 }),
     body('status').optional().isIn(['scheduled', 'in_progress', 'completed', 'cancelled']),
     body('notes').optional().isString().trim(),
+    validateRequest,
   ],
   updateAssignment
 );

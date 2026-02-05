@@ -116,7 +116,7 @@ async function saveStripeBalanceTransactions(
       currency: tx.currency.toUpperCase(),
       status: tx.status,
       transaction_type: tx.type,
-      stripe_description: (tx as any).description || null,
+      stripe_description: tx.description || null,
       stripe_metadata: null, // Metadata not available on balance transactions
       stripe_created_at: new Date(tx.created * 1000),
       stripe_available_on: tx.available_on ? new Date(tx.available_on * 1000) : null,

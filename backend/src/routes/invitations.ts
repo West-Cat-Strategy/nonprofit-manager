@@ -15,6 +15,7 @@ import {
   resendInvitation,
 } from '../controllers/invitationController';
 import { authenticate } from '../middleware/auth';
+import { validateRequest } from '../middleware/validation';
 
 const router = Router();
 
@@ -28,7 +29,7 @@ const router = Router();
  */
 router.get(
   '/validate/:token',
-  [param('token').notEmpty().withMessage('Token is required')],
+  [param('token').notEmpty().withMessage('Token is required'), validateRequest],
   validateInvitation
 );
 
@@ -47,6 +48,7 @@ router.post(
       .withMessage('Password must be at least 8 characters')
       .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
       .withMessage('Password must contain uppercase, lowercase, number, and special character'),
+    validateRequest,
   ],
   acceptInvitation
 );
@@ -68,6 +70,7 @@ router.get(
     query('includeExpired').optional().isBoolean(),
     query('includeAccepted').optional().isBoolean(),
     query('includeRevoked').optional().isBoolean(),
+    validateRequest,
   ],
   getInvitations
 );
@@ -86,6 +89,7 @@ router.post(
       .withMessage('Valid role is required'),
     body('message').optional().isString().trim(),
     body('expiresInDays').optional().isInt({ min: 1, max: 30 }).withMessage('Expiry must be 1-30 days'),
+    validateRequest,
   ],
   createInvitation
 );
@@ -96,7 +100,7 @@ router.post(
  */
 router.get(
   '/:id',
-  [param('id').isUUID().withMessage('Invalid invitation ID')],
+  [param('id').isUUID().withMessage('Invalid invitation ID'), validateRequest],
   getInvitationById
 );
 
@@ -106,7 +110,7 @@ router.get(
  */
 router.delete(
   '/:id',
-  [param('id').isUUID().withMessage('Invalid invitation ID')],
+  [param('id').isUUID().withMessage('Invalid invitation ID'), validateRequest],
   revokeInvitation
 );
 
@@ -116,7 +120,7 @@ router.delete(
  */
 router.post(
   '/:id/resend',
-  [param('id').isUUID().withMessage('Invalid invitation ID')],
+  [param('id').isUUID().withMessage('Invalid invitation ID'), validateRequest],
   resendInvitation
 );
 

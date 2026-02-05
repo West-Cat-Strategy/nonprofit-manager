@@ -13,6 +13,7 @@ import {
   deleteSavedReport,
 } from '../controllers/savedReportController';
 import { authenticate } from '../middleware/auth';
+import { validateRequest } from '../middleware/validation';
 
 const router = Router();
 
@@ -33,6 +34,7 @@ router.get(
   '/:id',
   [
     param('id').isUUID().withMessage('Invalid report ID'),
+    validateRequest,
   ],
   getSavedReportById
 );
@@ -51,6 +53,7 @@ router.post(
       .withMessage('Invalid entity type'),
     body('report_definition').isObject().withMessage('Report definition must be an object'),
     body('is_public').optional().isBoolean().withMessage('is_public must be a boolean'),
+    validateRequest,
   ],
   createSavedReport
 );
@@ -67,6 +70,7 @@ router.put(
     body('description').optional().trim(),
     body('report_definition').optional().isObject().withMessage('Report definition must be an object'),
     body('is_public').optional().isBoolean().withMessage('is_public must be a boolean'),
+    validateRequest,
   ],
   updateSavedReport
 );
@@ -79,6 +83,7 @@ router.delete(
   '/:id',
   [
     param('id').isUUID().withMessage('Invalid report ID'),
+    validateRequest,
   ],
   deleteSavedReport
 );

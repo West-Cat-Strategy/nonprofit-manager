@@ -7,6 +7,7 @@ import express from 'express';
 import { body, query, param } from 'express-validator';
 import { taskController } from '../controllers/taskController';
 import { authenticate } from '../middleware/auth';
+import { validateRequest } from '../middleware/validation';
 
 const router = express.Router();
 
@@ -83,12 +84,12 @@ const uuidParamValidation = [
 ];
 
 // Routes
-router.get('/', taskQueryValidation, taskController.getTasks);
-router.get('/summary', taskQueryValidation, taskController.getTaskSummary);
-router.get('/:id', uuidParamValidation, taskController.getTaskById);
-router.post('/', createTaskValidation, taskController.createTask);
-router.put('/:id', uuidParamValidation, updateTaskValidation, taskController.updateTask);
-router.delete('/:id', uuidParamValidation, taskController.deleteTask);
-router.post('/:id/complete', uuidParamValidation, taskController.completeTask);
+router.get('/', taskQueryValidation, validateRequest, taskController.getTasks);
+router.get('/summary', taskQueryValidation, validateRequest, taskController.getTaskSummary);
+router.get('/:id', uuidParamValidation, validateRequest, taskController.getTaskById);
+router.post('/', createTaskValidation, validateRequest, taskController.createTask);
+router.put('/:id', [...uuidParamValidation, ...updateTaskValidation, validateRequest], taskController.updateTask);
+router.delete('/:id', uuidParamValidation, validateRequest, taskController.deleteTask);
+router.post('/:id/complete', uuidParamValidation, validateRequest, taskController.completeTask);
 
 export default router;

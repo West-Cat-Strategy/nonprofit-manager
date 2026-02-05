@@ -11,6 +11,7 @@ import type {
   CreateReconciliationRequest,
   MatchTransactionRequest,
   ResolveDiscrepancyRequest,
+  MatchStatus,
 } from '../types/reconciliation';
 import pool from '../config/database';
 import { badRequest, notFoundMessage, serverError, serviceUnavailable } from '../utils/responseHelpers';
@@ -69,7 +70,31 @@ interface ReconciliationQueryParams {
   limit?: string;
 }
 
+interface ReconciliationItemsQueryParams {
+  match_status?: string;
+  page?: string;
+  limit?: string;
+}
+
+interface DiscrepancyQueryParams {
+  status?: string;
+  severity?: string;
+  discrepancy_type?: string;
+  assigned_to?: string;
+  reconciliation_id?: string;
+  donation_id?: string;
+  page?: string;
+  limit?: string;
+}
+
 type QueryValue = string | number;
+
+const validMatchStatuses: MatchStatus[] = ['matched', 'unmatched_stripe', 'unmatched_donation', 'amount_mismatch', 'date_mismatch'];
+
+const parseMatchStatus = (value: string | undefined): MatchStatus | undefined => {
+  if (!value) return undefined;
+  return validMatchStatuses.includes(value as MatchStatus) ? (value as MatchStatus) : undefined;
+};
 
 /**
  * Get all reconciliations with filtering
@@ -122,7 +147,7 @@ export const getReconciliations = async (req: Request, res: Response): Promise<v
 
     // Get total count
     const countResult = await pool.query(`SELECT COUNT(*) FROM (${query}) AS count_query`, params);
-    const total = parseInt(countResult.rows[0].count);
+    const total = parseInt(countResult.rows[0].count, 10);
 
     // Add pagination
     query += ` ORDER BY created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex}`;
@@ -181,21 +206,24 @@ export const getReconciliationItems = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const { match_status, page = 1, limit = 50 } = req.query as any;
+    const { match_status, page = '1', limit = '50' } = req.query as ReconciliationItemsQueryParams;
 
-    const items = await reconciliationService.getReconciliationItems(id, match_status);
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
+
+    const items = await reconciliationService.getReconciliationItems(id, parseMatchStatus(match_status));
 
     // Apply pagination
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    const paginatedItems = items.slice(offset, offset + parseInt(limit));
+    const offset = (pageNum - 1) * limitNum;
+    const paginatedItems = items.slice(offset, offset + limitNum);
 
     res.json({
       items: paginatedItems,
       pagination: {
         total: items.length,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total_pages: Math.ceil(items.length / parseInt(limit)),
+        page: pageNum,
+        limit: limitNum,
+        total_pages: Math.ceil(items.length / limitNum),
       },
     });
   } catch (error) {
@@ -235,15 +263,17 @@ export const getAllDiscrepancies = async (req: Request, res: Response): Promise<
       assigned_to,
       reconciliation_id,
       donation_id,
-      page = 1,
-      limit = 20,
-    } = req.query as any;
+      page = '1',
+      limit = '20',
+    } = req.query as DiscrepancyQueryParams;
 
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const offset = (pageNum - 1) * limitNum;
 
     // Build query
     let query = 'SELECT * FROM payment_discrepancies WHERE 1=1';
-    const params: any[] = [];
+    const params: QueryValue[] = [];
     let paramIndex = 1;
 
     if (status) {
@@ -278,11 +308,11 @@ export const getAllDiscrepancies = async (req: Request, res: Response): Promise<
 
     // Get total count
     const countResult = await pool.query(`SELECT COUNT(*) FROM (${query}) AS count_query`, params);
-    const total = parseInt(countResult.rows[0].count);
+    const total = parseInt(countResult.rows[0].count, 10);
 
     // Add pagination and ordering
     query += ` ORDER BY severity DESC, created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex}`;
-    params.push(limit, offset);
+    params.push(limitNum, offset);
 
     const result = await pool.query(query, params);
 
@@ -290,9 +320,9 @@ export const getAllDiscrepancies = async (req: Request, res: Response): Promise<
       discrepancies: result.rows,
       pagination: {
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total_pages: Math.ceil(total / parseInt(limit)),
+        page: pageNum,
+        limit: limitNum,
+        total_pages: Math.ceil(total / limitNum),
       },
     });
   } catch (error) {

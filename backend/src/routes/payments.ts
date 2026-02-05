@@ -6,6 +6,7 @@
 import { Router } from 'express';
 import { body, param } from 'express-validator';
 import { authenticate } from '../middleware/auth';
+import { validateRequest } from '../middleware/validation';
 import * as paymentController from '../controllers/paymentController';
 
 const router = Router();
@@ -44,6 +45,7 @@ router.post(
       .optional()
       .isEmail()
       .withMessage('Invalid email'),
+    validateRequest,
   ],
   paymentController.createPaymentIntent
 );
@@ -60,6 +62,7 @@ router.get(
       .isString()
       .matches(/^pi_/)
       .withMessage('Invalid payment intent ID'),
+    validateRequest,
   ],
   paymentController.getPaymentIntent
 );
@@ -76,6 +79,7 @@ router.post(
       .isString()
       .matches(/^pi_/)
       .withMessage('Invalid payment intent ID'),
+    validateRequest,
   ],
   paymentController.cancelPaymentIntent
 );
@@ -100,6 +104,7 @@ router.post(
       .optional()
       .isIn(['duplicate', 'fraudulent', 'requested_by_customer'])
       .withMessage('Invalid refund reason'),
+    validateRequest,
   ],
   paymentController.createRefund
 );
@@ -129,6 +134,7 @@ router.post(
       .optional()
       .isUUID()
       .withMessage('Invalid contact ID'),
+    validateRequest,
   ],
   paymentController.createCustomer
 );
@@ -145,6 +151,7 @@ router.get(
       .isString()
       .matches(/^cus_/)
       .withMessage('Invalid customer ID'),
+    validateRequest,
   ],
   paymentController.getCustomer
 );
@@ -161,6 +168,7 @@ router.get(
       .isString()
       .matches(/^cus_/)
       .withMessage('Invalid customer ID'),
+    validateRequest,
   ],
   paymentController.listPaymentMethods
 );
