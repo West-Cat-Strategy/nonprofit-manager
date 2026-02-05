@@ -3,7 +3,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import Login from '../Login';
+import Login from '../auth/Login';
 import authReducer from '../../store/slices/authSlice';
 import accountsReducer from '../../store/slices/accountsSlice';
 import contactsReducer from '../../store/slices/contactsSlice';

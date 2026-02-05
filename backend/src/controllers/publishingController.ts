@@ -15,6 +15,8 @@ import type {
   PublishedSiteSearchParams,
   AnalyticsEventType,
 } from '../types/publishing';
+import { badRequest, conflict, forbidden, notFoundMessage, validationErrorResponse } from '../utils/responseHelpers';
+import { extractPagination } from '../utils/queryHelpers';
 
 /**
  * Create a new published site entry
@@ -27,7 +29,7 @@ export const createSite = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
+      validationErrorResponse(res, errors);
       return;
     }
 
@@ -39,11 +41,11 @@ export const createSite = async (
   } catch (error) {
     if (error instanceof Error) {
       if (error.message.includes('already taken') || error.message.includes('already in use')) {
-        res.status(409).json({ error: error.message });
+        conflict(res, error.message);
         return;
       }
       if (error.message.includes('not found') || error.message.includes('access denied')) {
-        res.status(404).json({ error: error.message });
+        notFoundMessage(res, error.message);
         return;
       }
     }
@@ -65,7 +67,7 @@ export const getSite = async (
 
     const site = await publishingService.getSite(siteId, userId);
     if (!site) {
-      res.status(404).json({ error: 'Site not found' });
+      notFoundMessage(res, 'Site not found');
       return;
     }
 
@@ -86,7 +88,7 @@ export const updateSite = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
+      validationErrorResponse(res, errors);
       return;
     }
 
@@ -96,7 +98,7 @@ export const updateSite = async (
 
     const site = await publishingService.updateSite(siteId, userId, data);
     if (!site) {
-      res.status(404).json({ error: 'Site not found' });
+      notFoundMessage(res, 'Site not found');
       return;
     }
 
@@ -104,7 +106,7 @@ export const updateSite = async (
   } catch (error) {
     if (error instanceof Error) {
       if (error.message.includes('already taken') || error.message.includes('already in use')) {
-        res.status(409).json({ error: error.message });
+        conflict(res, error.message);
         return;
       }
     }
@@ -126,7 +128,7 @@ export const deleteSite = async (
 
     const deleted = await publishingService.deleteSite(siteId, userId);
     if (!deleted) {
-      res.status(404).json({ error: 'Site not found' });
+      notFoundMessage(res, 'Site not found');
       return;
     }
 
@@ -146,11 +148,12 @@ export const searchSites = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const { page, limit } = extractPagination(req.query, { defaultLimit: 10 });
     const params: PublishedSiteSearchParams = {
       status: req.query.status as PublishedSiteSearchParams['status'],
       search: req.query.search as string,
-      page: req.query.page ? parseInt(req.query.page as string, 10) : 1,
-      limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 10,
+      page,
+      limit,
       sortBy: req.query.sortBy as PublishedSiteSearchParams['sortBy'],
       sortOrder: req.query.sortOrder as PublishedSiteSearchParams['sortOrder'],
     };
@@ -173,7 +176,7 @@ export const publishSite = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
+      validationErrorResponse(res, errors);
       return;
     }
 
@@ -186,7 +189,7 @@ export const publishSite = async (
   } catch (error) {
     if (error instanceof Error) {
       if (error.message.includes('not found') || error.message.includes('access denied')) {
-        res.status(404).json({ error: error.message });
+        notFoundMessage(res, error.message);
         return;
       }
     }
@@ -208,7 +211,7 @@ export const unpublishSite = async (
 
     const site = await publishingService.unpublish(siteId, userId);
     if (!site) {
-      res.status(404).json({ error: 'Site not found' });
+      notFoundMessage(res, 'Site not found');
       return;
     }
 
@@ -232,7 +235,7 @@ export const getDeploymentInfo = async (
 
     const info = await publishingService.getDeploymentInfo(siteId, userId);
     if (!info) {
-      res.status(404).json({ error: 'Site not found' });
+      notFoundMessage(res, 'Site not found');
       return;
     }
 
@@ -253,7 +256,7 @@ export const recordAnalytics = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
+      validationErrorResponse(res, errors);
       return;
     }
 
@@ -311,7 +314,7 @@ export const getAnalyticsSummary = async (
   } catch (error) {
     if (error instanceof Error) {
       if (error.message.includes('not found') || error.message.includes('access denied')) {
-        res.status(404).json({ error: error.message });
+        notFoundMessage(res, error.message);
         return;
       }
     }
@@ -347,7 +350,7 @@ export const servePublishedSite = async (
     }
 
     if (!site || site.status !== 'published' || !site.publishedContent) {
-      res.status(404).json({ error: 'Site not found' });
+      notFoundMessage(res, 'Site not found');
       return;
     }
 
@@ -374,7 +377,7 @@ export const addCustomDomain = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
+      validationErrorResponse(res, errors);
       return;
     }
 
@@ -392,11 +395,11 @@ export const addCustomDomain = async (
   } catch (error) {
     if (error instanceof Error) {
       if (error.message.includes('not found') || error.message.includes('access denied')) {
-        res.status(404).json({ error: error.message });
+        notFoundMessage(res, error.message);
         return;
       }
       if (error.message.includes('already in use')) {
-        res.status(409).json({ error: error.message });
+        conflict(res, error.message);
         return;
       }
     }
@@ -421,11 +424,11 @@ export const verifyCustomDomain = async (
   } catch (error) {
     if (error instanceof Error) {
       if (error.message.includes('not found') || error.message.includes('access denied')) {
-        res.status(404).json({ error: error.message });
+        notFoundMessage(res, error.message);
         return;
       }
       if (error.message.includes('No custom domain')) {
-        res.status(400).json({ error: error.message });
+        badRequest(res, error.message);
         return;
       }
     }
@@ -447,7 +450,7 @@ export const removeCustomDomain = async (
 
     const removed = await publishingService.removeCustomDomain(siteId, userId);
     if (!removed) {
-      res.status(404).json({ error: 'Site not found' });
+      notFoundMessage(res, 'Site not found');
       return;
     }
 
@@ -471,7 +474,7 @@ export const getCustomDomainConfig = async (
 
     const config = await publishingService.getCustomDomainConfig(siteId, userId);
     if (!config) {
-      res.status(404).json({ error: 'No custom domain configured' });
+      notFoundMessage(res, 'No custom domain configured');
       return;
     }
 
@@ -497,7 +500,7 @@ export const getSslInfo = async (
 
     const info = await publishingService.getSslInfo(siteId, userId);
     if (!info) {
-      res.status(404).json({ error: 'Site not found or no domain configured' });
+      notFoundMessage(res, 'Site not found or no domain configured');
       return;
     }
 
@@ -521,7 +524,7 @@ export const provisionSsl = async (
 
     const result = await publishingService.provisionSsl(siteId, userId);
     if (!result.success) {
-      res.status(400).json({ error: result.message });
+      badRequest(res, result.message);
       return;
     }
 
@@ -551,7 +554,7 @@ export const getVersionHistory = async (
   } catch (error) {
     if (error instanceof Error) {
       if (error.message.includes('not found') || error.message.includes('access denied')) {
-        res.status(404).json({ error: error.message });
+        notFoundMessage(res, error.message);
         return;
       }
     }
@@ -573,7 +576,7 @@ export const getVersion = async (
 
     const versionData = await publishingService.getVersion(siteId, userId, version);
     if (!versionData) {
-      res.status(404).json({ error: 'Version not found' });
+      notFoundMessage(res, 'Version not found');
       return;
     }
 
@@ -594,7 +597,7 @@ export const rollbackVersion = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
+      validationErrorResponse(res, errors);
       return;
     }
 
@@ -607,11 +610,11 @@ export const rollbackVersion = async (
   } catch (error) {
     if (error instanceof Error) {
       if (error.message.includes('not found') || error.message.includes('access denied')) {
-        res.status(404).json({ error: error.message });
+        notFoundMessage(res, error.message);
         return;
       }
       if (error.message.includes('no published version') || error.message.includes('Already on this version')) {
-        res.status(400).json({ error: error.message });
+        badRequest(res, error.message);
         return;
       }
     }
@@ -637,7 +640,7 @@ export const pruneVersions = async (
   } catch (error) {
     if (error instanceof Error) {
       if (error.message.includes('not found') || error.message.includes('access denied')) {
-        res.status(404).json({ error: error.message });
+        notFoundMessage(res, error.message);
         return;
       }
     }
@@ -674,7 +677,7 @@ export const invalidateSiteCache = async (
     // Verify site ownership
     const site = await publishingService.getSite(siteId, userId);
     if (!site) {
-      res.status(404).json({ error: 'Site not found' });
+      notFoundMessage(res, 'Site not found');
       return;
     }
 
@@ -695,7 +698,7 @@ export const clearAllCache = async (
 ): Promise<void> => {
   // Check for admin role
   if (req.user?.role !== 'admin') {
-    res.status(403).json({ error: 'Admin access required' });
+    forbidden(res, 'Admin access required');
     return;
   }
 
@@ -732,7 +735,7 @@ export const servePublishedSiteWithCache = async (
     }
 
     if (!site || site.status !== 'published' || !site.publishedContent) {
-      res.status(404).json({ error: 'Site not found' });
+      notFoundMessage(res, 'Site not found');
       return;
     }
 

@@ -3,18 +3,11 @@
  * Handles settings and admin-only pages
  */
 
-import { lazy } from 'react';
 import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
+import { AdminSettings, UserSettings, ApiSettings, NavigationSettings, DataBackup, EmailMarketing } from './adminRouteComponents';
 
 // Lazy load admin pages
-const AdminSettings = lazy(() => import('../pages/admin/AdminSettings'));
-const UserSettings = lazy(() => import('../pages/admin/UserSettings'));
-const ApiSettings = lazy(() => import('../pages/admin/ApiSettings'));
-const AlertsConfig = lazy(() => import('../pages/admin/AlertsConfig'));
-const NavigationSettings = lazy(() => import('../pages/admin/NavigationSettings'));
-const DataBackup = lazy(() => import('../pages/admin/DataBackup'));
-const EmailMarketing = lazy(() => import('../pages/admin/EmailMarketing'));
 
 interface RouteWrapperProps {
   children: ReactNode;
@@ -56,14 +49,3 @@ export function createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRout
     </>
   );
 }
-
-// Re-export lazy components for backwards compatibility
-export {
-  AdminSettings,
-  UserSettings,
-  ApiSettings,
-  AlertsConfig,
-  NavigationSettings,
-  DataBackup,
-  EmailMarketing,
-};

@@ -4,6 +4,7 @@
  */
 
 import { Request, Response, NextFunction, Router } from 'express';
+import { forbidden } from '../utils/responseHelpers';
 
 // Simple in-memory metrics store (for production, use prom-client)
 interface Metrics {
@@ -165,7 +166,7 @@ metricsRouter.get('/', (req: Request, res: Response) => {
   if (process.env.NODE_ENV === 'production' && process.env.METRICS_AUTH_KEY) {
     const authHeader = req.headers['x-metrics-key'];
     if (authHeader !== process.env.METRICS_AUTH_KEY) {
-      res.status(403).json({ error: 'Forbidden' });
+      forbidden(res, 'Forbidden');
       return;
     }
   }
@@ -181,7 +182,7 @@ metricsRouter.get('/json', (req: Request, res: Response) => {
   if (process.env.NODE_ENV === 'production' && process.env.METRICS_AUTH_KEY) {
     const authHeader = req.headers['x-metrics-key'];
     if (authHeader !== process.env.METRICS_AUTH_KEY) {
-      res.status(403).json({ error: 'Forbidden' });
+      forbidden(res, 'Forbidden');
       return;
     }
   }

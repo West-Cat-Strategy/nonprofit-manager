@@ -16,7 +16,7 @@ function getFilenameFromContentDisposition(headerValue: string | undefined): str
     }
   }
 
-  const filenameMatch = headerValue.match(/filename\s*=\s*\"?([^\";]+)\"?/i);
+  const filenameMatch = headerValue.match(/filename\s*=\s*"?([^";]+)"?/i);
   if (filenameMatch?.[1]) return filenameMatch[1].trim();
   return null;
 }
@@ -135,4 +135,3 @@ export default function DataBackup() {
     </div>
   );
 }
-

@@ -20,6 +20,7 @@ import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '../config/jwt';
 import { JWT } from '../config/constants';
 import { trackLoginAttempt } from '../middleware/accountLockout';
+import { badRequest, notFoundMessage, unauthorized, validationErrorResponse } from '../utils/responseHelpers';
 
 const CHALLENGE_TTL_MS = TIME.FIVE_MINUTES;
 
@@ -116,7 +117,7 @@ export const deletePasskey = async (
       [id, req.user!.id]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Passkey not found' });
+      return notFoundMessage(res, 'Passkey not found');
     }
     return res.status(204).send();
   } catch (error) {
@@ -137,7 +138,7 @@ export const registrationOptions = async (
       [req.user!.id]
     );
     if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return notFoundMessage(res, 'User not found');
     }
     const user = userResult.rows[0];
 
@@ -182,7 +183,7 @@ export const registrationVerify = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return validationErrorResponse(res, errors);
     }
 
     const { origins, rpID } = getWebAuthnConfig();
@@ -196,16 +197,16 @@ export const registrationVerify = async (
       [challengeId]
     );
     if (challengeResult.rows.length === 0) {
-      return res.status(400).json({ error: 'Invalid or expired challenge' });
+      return badRequest(res, 'Invalid or expired challenge');
     }
 
     const challenge = challengeResult.rows[0];
     if (challenge.type !== 'registration' || challenge.user_id !== req.user!.id) {
-      return res.status(400).json({ error: 'Invalid or expired challenge' });
+      return badRequest(res, 'Invalid or expired challenge');
     }
     if (new Date() > new Date(challenge.expires_at)) {
       await pool.query('DELETE FROM user_webauthn_challenges WHERE id = $1', [challengeId]);
-      return res.status(400).json({ error: 'Invalid or expired challenge' });
+      return badRequest(res, 'Invalid or expired challenge');
     }
 
     const verification = await verifyRegistrationResponse({
@@ -217,7 +218,7 @@ export const registrationVerify = async (
     });
 
     if (!verification.verified || !verification.registrationInfo) {
-      return res.status(400).json({ error: 'Passkey registration failed' });
+      return badRequest(res, 'Passkey registration failed');
     }
 
     const info = verification.registrationInfo;
@@ -265,7 +266,7 @@ export const loginOptions = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return validationErrorResponse(res, errors);
     }
 
     const { rpID } = getWebAuthnConfig();
@@ -276,7 +277,7 @@ export const loginOptions = async (
       [email]
     );
     if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'No passkeys registered for this user' });
+      return notFoundMessage(res, 'No passkeys registered for this user');
     }
     const user = userResult.rows[0];
 
@@ -285,7 +286,7 @@ export const loginOptions = async (
       [user.id]
     );
     if (credResult.rows.length === 0) {
-      return res.status(404).json({ error: 'No passkeys registered for this user' });
+      return notFoundMessage(res, 'No passkeys registered for this user');
     }
 
     const options = await generateAuthenticationOptions({
@@ -318,7 +319,7 @@ export const loginVerify = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return validationErrorResponse(res, errors);
     }
 
     const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
@@ -335,18 +336,18 @@ export const loginVerify = async (
     );
     if (challengeResult.rows.length === 0) {
       await trackLoginAttempt(email, false, undefined, clientIp);
-      return res.status(400).json({ error: 'Invalid or expired challenge' });
+      return badRequest(res, 'Invalid or expired challenge');
     }
 
     const challenge = challengeResult.rows[0];
     if (challenge.type !== 'authentication') {
       await trackLoginAttempt(email, false, undefined, clientIp);
-      return res.status(400).json({ error: 'Invalid or expired challenge' });
+      return badRequest(res, 'Invalid or expired challenge');
     }
     if (new Date() > new Date(challenge.expires_at)) {
       await pool.query('DELETE FROM user_webauthn_challenges WHERE id = $1', [challengeId]);
       await trackLoginAttempt(email, false, undefined, clientIp);
-      return res.status(400).json({ error: 'Invalid or expired challenge' });
+      return badRequest(res, 'Invalid or expired challenge');
     }
 
     const userResult = await pool.query<UserRow>(
@@ -355,12 +356,12 @@ export const loginVerify = async (
     );
     if (userResult.rows.length === 0) {
       await trackLoginAttempt(email, false, undefined, clientIp);
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return unauthorized(res, 'Invalid credentials');
     }
     const user = userResult.rows[0];
     if (user.email.toLowerCase() !== email.toLowerCase()) {
       await trackLoginAttempt(email, false, undefined, clientIp);
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return unauthorized(res, 'Invalid credentials');
     }
 
     const credentialId = credential.id;
@@ -372,7 +373,7 @@ export const loginVerify = async (
     );
     if (credResult.rows.length === 0) {
       await trackLoginAttempt(email, false, user.id, clientIp);
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return unauthorized(res, 'Invalid credentials');
     }
 
     const dbCred = credResult.rows[0];
@@ -395,7 +396,7 @@ export const loginVerify = async (
 
     if (!verification.verified || !verification.authenticationInfo) {
       await trackLoginAttempt(email, false, user.id, clientIp);
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return unauthorized(res, 'Invalid credentials');
     }
 
     await pool.query(

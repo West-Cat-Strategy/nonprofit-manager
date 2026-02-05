@@ -5,7 +5,7 @@
 
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
-import { handleValidationErrors } from '../middleware/validation';
+import { validateRequest } from '../middleware/validation';
 import { authenticate } from '../middleware/auth';
 import * as templateController from '../controllers/templateController';
 
@@ -77,7 +77,7 @@ router.get(
       .isIn(['asc', 'desc'])
       .withMessage('Sort order must be asc or desc'),
   ],
-  handleValidationErrors,
+  validateRequest,
   templateController.searchTemplates
 );
 
@@ -92,7 +92,7 @@ router.get(
       .isUUID()
       .withMessage('Invalid template ID'),
   ],
-  handleValidationErrors,
+  validateRequest,
   templateController.getTemplateCss
 );
 
@@ -107,7 +107,7 @@ router.get(
       .isUUID()
       .withMessage('Invalid template ID'),
   ],
-  handleValidationErrors,
+  validateRequest,
   templateController.getTemplate
 );
 
@@ -126,7 +126,7 @@ router.get(
       .isString()
       .withMessage('Page slug must be a string'),
   ],
-  handleValidationErrors,
+  validateRequest,
   templateController.previewTemplate
 );
 
@@ -144,7 +144,7 @@ router.post(
       .isUUID()
       .withMessage('paletteId must be a valid UUID'),
   ],
-  handleValidationErrors,
+  validateRequest,
   templateController.applyTemplatePalette
 );
 
@@ -162,7 +162,7 @@ router.post(
       .isUUID()
       .withMessage('fontPairingId must be a valid UUID'),
   ],
-  handleValidationErrors,
+  validateRequest,
   templateController.applyTemplateFontPairing
 );
 
@@ -203,7 +203,7 @@ router.post(
       .isUUID()
       .withMessage('Clone from ID must be a valid UUID'),
   ],
-  handleValidationErrors,
+  validateRequest,
   templateController.createTemplate
 );
 
@@ -240,7 +240,7 @@ router.put(
       .isArray()
       .withMessage('Tags must be an array'),
   ],
-  handleValidationErrors,
+  validateRequest,
   templateController.updateTemplate
 );
 
@@ -255,7 +255,7 @@ router.delete(
       .isUUID()
       .withMessage('Invalid template ID'),
   ],
-  handleValidationErrors,
+  validateRequest,
   templateController.deleteTemplate
 );
 
@@ -275,7 +275,7 @@ router.post(
       .isLength({ min: 1, max: 255 })
       .withMessage('Template name must be 1-255 characters'),
   ],
-  handleValidationErrors,
+  validateRequest,
   templateController.duplicateTemplate
 );
 
@@ -292,7 +292,7 @@ router.get(
       .isUUID()
       .withMessage('Invalid template ID'),
   ],
-  handleValidationErrors,
+  validateRequest,
   templateController.getTemplatePages
 );
 
@@ -310,7 +310,7 @@ router.get(
       .isUUID()
       .withMessage('Invalid page ID'),
   ],
-  handleValidationErrors,
+  validateRequest,
   templateController.getTemplatePage
 );
 
@@ -347,7 +347,7 @@ router.post(
       .isUUID()
       .withMessage('Clone from ID must be a valid UUID'),
   ],
-  handleValidationErrors,
+  validateRequest,
   templateController.createTemplatePage
 );
 
@@ -381,7 +381,7 @@ router.put(
       .isBoolean()
       .withMessage('isHomepage must be a boolean'),
   ],
-  handleValidationErrors,
+  validateRequest,
   templateController.updateTemplatePage
 );
 
@@ -399,7 +399,7 @@ router.delete(
       .isUUID()
       .withMessage('Invalid page ID'),
   ],
-  handleValidationErrors,
+  validateRequest,
   templateController.deleteTemplatePage
 );
 
@@ -420,7 +420,7 @@ router.put(
       .isUUID()
       .withMessage('Each page ID must be a valid UUID'),
   ],
-  handleValidationErrors,
+  validateRequest,
   templateController.reorderTemplatePages
 );
 
@@ -437,7 +437,7 @@ router.get(
       .isUUID()
       .withMessage('Invalid template ID'),
   ],
-  handleValidationErrors,
+  validateRequest,
   templateController.getTemplateVersions
 );
 
@@ -457,7 +457,7 @@ router.post(
       .isLength({ max: 500 })
       .withMessage('Changes description must be less than 500 characters'),
   ],
-  handleValidationErrors,
+  validateRequest,
   templateController.createTemplateVersion
 );
 
@@ -475,7 +475,7 @@ router.post(
       .isUUID()
       .withMessage('Invalid version ID'),
   ],
-  handleValidationErrors,
+  validateRequest,
   templateController.restoreTemplateVersion
 );
 

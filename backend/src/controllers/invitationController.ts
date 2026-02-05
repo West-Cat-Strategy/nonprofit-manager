@@ -14,6 +14,7 @@ import { AuthRequest } from '../middleware/auth';
 import { PASSWORD, JWT } from '../config/constants';
 import * as invitationService from '../services/invitationService';
 import { syncUserRole } from '../services/userRoleService';
+import { badRequest, conflict, forbidden, notFoundMessage, validationErrorResponse } from '../utils/responseHelpers';
 
 /**
  * POST /api/invitations
@@ -26,12 +27,12 @@ export const createInvitation = async (
 ): Promise<Response | void> => {
   try {
     if (req.user?.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
+      return forbidden(res, 'Admin access required');
     }
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return validationErrorResponse(res, errors);
     }
 
     const { email, role, message, expiresInDays } = req.body;
@@ -58,7 +59,7 @@ export const createInvitation = async (
     });
   } catch (error: any) {
     if (error.message.includes('already exists')) {
-      return res.status(409).json({ error: error.message });
+      return conflict(res, error.message);
     }
     next(error);
   }
@@ -75,7 +76,7 @@ export const getInvitations = async (
 ): Promise<Response | void> => {
   try {
     if (req.user?.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
+      return forbidden(res, 'Admin access required');
     }
 
     const includeExpired = req.query.includeExpired === 'true';
@@ -105,14 +106,14 @@ export const getInvitationById = async (
 ): Promise<Response | void> => {
   try {
     if (req.user?.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
+      return forbidden(res, 'Admin access required');
     }
 
     const { id } = req.params;
     const invitation = await invitationService.getInvitationById(id);
 
     if (!invitation) {
-      return res.status(404).json({ error: 'Invitation not found' });
+      return notFoundMessage(res, 'Invitation not found');
     }
 
     return res.json({ invitation });
@@ -169,7 +170,7 @@ export const acceptInvitation = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return validationErrorResponse(res, errors);
     }
 
     const { token } = req.params;
@@ -178,7 +179,7 @@ export const acceptInvitation = async (
     // Validate the invitation
     const validation = await invitationService.validateInvitation(token);
     if (!validation.valid || !validation.invitation) {
-      return res.status(400).json({ error: validation.error || 'Invalid invitation' });
+      return badRequest(res, validation.error || 'Invalid invitation');
     }
 
     const invitation = validation.invitation;
@@ -245,14 +246,14 @@ export const revokeInvitation = async (
 ): Promise<Response | void> => {
   try {
     if (req.user?.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
+      return forbidden(res, 'Admin access required');
     }
 
     const { id } = req.params;
     const invitation = await invitationService.revokeInvitation(id, req.user.id);
 
     if (!invitation) {
-      return res.status(404).json({ error: 'Invitation not found or already revoked/accepted' });
+      return notFoundMessage(res, 'Invitation not found or already revoked/accepted');
     }
 
     return res.json({ message: 'Invitation revoked successfully', invitation });
@@ -272,14 +273,14 @@ export const resendInvitation = async (
 ): Promise<Response | void> => {
   try {
     if (req.user?.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
+      return forbidden(res, 'Admin access required');
     }
 
     const { id } = req.params;
     const invitation = await invitationService.resendInvitation(id, req.user.id);
 
     if (!invitation) {
-      return res.status(404).json({ error: 'Invitation not found or already revoked/accepted' });
+      return notFoundMessage(res, 'Invitation not found or already revoked/accepted');
     }
 
     // Generate the new invitation URL

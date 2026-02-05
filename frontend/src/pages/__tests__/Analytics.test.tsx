@@ -4,7 +4,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import Analytics from '../Analytics';
+import Analytics from '../analytics/Analytics';
 import analyticsReducer from '../../store/slices/analyticsSlice';
 import authReducer from '../../store/slices/authSlice';
 import api from '../../services/api';

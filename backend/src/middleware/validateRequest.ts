@@ -5,6 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { validationResult, ValidationError, ValidationChain } from 'express-validator';
+import { validationError } from '../utils/responseHelpers';
 
 /**
  * Format validation errors into a consistent structure
@@ -44,10 +45,7 @@ export const validateRequest = (
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    res.status(422).json({
-      error: 'Validation failed',
-      details: formatValidationErrors(errors.array()),
-    });
+    validationError(res, formatValidationErrors(errors.array()));
     return;
   }
 
@@ -72,10 +70,7 @@ export const validate = (validations: ValidationChain[]) => {
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
-      res.status(422).json({
-        error: 'Validation failed',
-        details: formatValidationErrors(errors.array()),
-      });
+      validationError(res, formatValidationErrors(errors.array()));
       return;
     }
 

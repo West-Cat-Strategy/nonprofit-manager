@@ -9,6 +9,7 @@ import { taskService } from '../services/taskService';
 import { TaskFilters } from '../types/task';
 import { logger } from '../config/logger';
 import { getString, getBoolean, getInteger } from '../utils/queryHelpers';
+import { notFoundMessage, serverError, unauthorized } from '../utils/responseHelpers';
 
 export const taskController = {
   /**
@@ -35,7 +36,7 @@ export const taskController = {
       res.json(result);
     } catch (error) {
       logger.error('Error in getTasks', { error });
-      res.status(500).json({ message: 'Failed to retrieve tasks' });
+      serverError(res, 'Failed to retrieve tasks');
     }
   },
 
@@ -55,7 +56,7 @@ export const taskController = {
       res.json(summary);
     } catch (error) {
       logger.error('Error in getTaskSummary', { error });
-      res.status(500).json({ message: 'Failed to retrieve task summary' });
+      serverError(res, 'Failed to retrieve task summary');
     }
   },
 
@@ -69,14 +70,14 @@ export const taskController = {
       const task = await taskService.getTaskById(id);
 
       if (!task) {
-        res.status(404).json({ message: 'Task not found' });
+        notFoundMessage(res, 'Task not found');
         return;
       }
 
       res.json(task);
     } catch (error) {
       logger.error('Error in getTaskById', { error });
-      res.status(500).json({ message: 'Failed to retrieve task' });
+      serverError(res, 'Failed to retrieve task');
     }
   },
 
@@ -88,7 +89,7 @@ export const taskController = {
     try {
       const userId = req.user?.id;
       if (!userId) {
-        res.status(401).json({ message: 'User not authenticated' });
+        unauthorized(res, 'User not authenticated');
         return;
       }
 
@@ -96,7 +97,7 @@ export const taskController = {
       res.status(201).json(task);
     } catch (error) {
       logger.error('Error in createTask', { error });
-      res.status(500).json({ message: 'Failed to create task' });
+      serverError(res, 'Failed to create task');
     }
   },
 
@@ -110,21 +111,21 @@ export const taskController = {
       const userId = req.user?.id;
 
       if (!userId) {
-        res.status(401).json({ message: 'User not authenticated' });
+        unauthorized(res, 'User not authenticated');
         return;
       }
 
       const task = await taskService.updateTask(id, req.body, userId);
 
       if (!task) {
-        res.status(404).json({ message: 'Task not found' });
+        notFoundMessage(res, 'Task not found');
         return;
       }
 
       res.json(task);
     } catch (error) {
       logger.error('Error in updateTask', { error });
-      res.status(500).json({ message: 'Failed to update task' });
+      serverError(res, 'Failed to update task');
     }
   },
 
@@ -138,14 +139,14 @@ export const taskController = {
       const success = await taskService.deleteTask(id);
 
       if (!success) {
-        res.status(404).json({ message: 'Task not found' });
+        notFoundMessage(res, 'Task not found');
         return;
       }
 
       res.status(204).send();
     } catch (error) {
       logger.error('Error in deleteTask', { error });
-      res.status(500).json({ message: 'Failed to delete task' });
+      serverError(res, 'Failed to delete task');
     }
   },
 
@@ -159,21 +160,21 @@ export const taskController = {
       const userId = req.user?.id;
 
       if (!userId) {
-        res.status(401).json({ message: 'User not authenticated' });
+        unauthorized(res, 'User not authenticated');
         return;
       }
 
       const task = await taskService.completeTask(id, userId);
 
       if (!task) {
-        res.status(404).json({ message: 'Task not found' });
+        notFoundMessage(res, 'Task not found');
         return;
       }
 
       res.json(task);
     } catch (error) {
       logger.error('Error in completeTask', { error });
-      res.status(500).json({ message: 'Failed to complete task' });
+      serverError(res, 'Failed to complete task');
     }
   },
 };

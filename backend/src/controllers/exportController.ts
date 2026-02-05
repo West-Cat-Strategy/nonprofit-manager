@@ -4,16 +4,15 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { ExportService } from '../services/exportService';
-import { AnalyticsService } from '../services/analyticsService';
-import pool from '../config/database';
+import { services } from '../container/services';
 import { AuthRequest } from '../middleware/auth';
 import type { ExportFormat } from '../services/exportService';
 import { logger } from '../config/logger';
 import type { DataScopeFilter } from '../types/dataScope';
+import { forbidden } from '../utils/responseHelpers';
 
-const exportService = new ExportService();
-const analyticsService = new AnalyticsService(pool);
+const exportService = services.export;
+const analyticsService = services.analytics;
 
 const denyIfScopedExport = (scope: DataScopeFilter | undefined, res: Response): boolean => {
   if (!scope) return false;
@@ -22,7 +21,7 @@ const denyIfScopedExport = (scope: DataScopeFilter | undefined, res: Response): 
     (scope.contactIds && scope.contactIds.length > 0) ||
     (scope.createdByUserIds && scope.createdByUserIds.length > 0);
   if (hasScope) {
-    res.status(403).json({ error: 'Scoped access does not allow exports yet' });
+    forbidden(res, 'Scoped access does not allow exports yet');
     return true;
   }
   return false;
@@ -147,7 +146,7 @@ export const exportDonations = async (
 
     query += ` ORDER BY d.donation_date DESC`;
 
-    const result = await pool.query(query, params);
+    const result = await services.pool.query(query, params);
 
     // Export to file
     const filepath = await exportService.exportDonationAnalytics(result.rows, {
@@ -229,7 +228,7 @@ export const exportVolunteerHours = async (
 
     query += ` ORDER BY vh.log_date DESC`;
 
-    const result = await pool.query(query, params);
+    const result = await services.pool.query(query, params);
 
     // Export to file
     const filepath = await exportService.exportVolunteerHours(result.rows, {
@@ -313,7 +312,7 @@ export const exportEvents = async (
     query += ` GROUP BY e.id, e.name, e.start_date, e.event_type, e.status`;
     query += ` ORDER BY e.start_date DESC`;
 
-    const result = await pool.query(query, params);
+    const result = await services.pool.query(query, params);
 
     // Export to file
     const filepath = await exportService.exportEventAttendance(result.rows, {
@@ -357,7 +356,7 @@ export const exportComprehensive = async (
     // Get all data
     const [summary, donations, volunteerHours, events] = await Promise.all([
       analyticsService.getAnalyticsSummary(filters),
-      pool.query(
+      services.pool.query(
         `SELECT
           d.donation_date,
           d.amount,
@@ -370,7 +369,7 @@ export const exportComprehensive = async (
         LIMIT 1000`,
         [filters.start_date, filters.end_date]
       ),
-      pool.query(
+      services.pool.query(
         `SELECT
           vh.log_date,
           vh.hours,
@@ -383,7 +382,7 @@ export const exportComprehensive = async (
         LIMIT 1000`,
         [filters.start_date, filters.end_date]
       ),
-      pool.query(
+      services.pool.query(
         `SELECT
           e.name as event_name,
           e.start_date,

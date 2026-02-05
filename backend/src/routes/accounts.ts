@@ -15,7 +15,7 @@ import {
 } from '../controllers/accountController';
 import { authenticate } from '../middleware/auth';
 import { loadDataScope } from '../middleware/dataScope';
-import { handleValidationErrors } from '../middleware/validation';
+import { validateRequest } from '../middleware/validation';
 
 const router = Router();
 
@@ -41,7 +41,7 @@ router.get(
       .isIn(['donor', 'volunteer', 'partner', 'vendor', 'beneficiary', 'other']),
     query('is_active').optional().isBoolean(),
   ],
-  handleValidationErrors,
+  validateRequest,
   getAccounts
 );
 
@@ -49,13 +49,13 @@ router.get(
  * GET /api/accounts/:id
  * Get account by ID
  */
-router.get('/:id', [param('id').isUUID()], handleValidationErrors, getAccountById);
+router.get('/:id', [param('id').isUUID()], validateRequest, getAccountById);
 
 /**
  * GET /api/accounts/:id/contacts
  * Get contacts for an account
  */
-router.get('/:id/contacts', [param('id').isUUID()], handleValidationErrors, getAccountContacts);
+router.get('/:id/contacts', [param('id').isUUID()], validateRequest, getAccountContacts);
 
 /**
  * POST /api/accounts
@@ -80,7 +80,7 @@ router.post(
     body('country').optional().isString().trim(),
     body('tax_id').optional().isString().trim(),
   ],
-  handleValidationErrors,
+  validateRequest,
   createAccount
 );
 
@@ -110,7 +110,7 @@ router.put(
     body('tax_id').optional().isString().trim(),
     body('is_active').optional().isBoolean(),
   ],
-  handleValidationErrors,
+  validateRequest,
   updateAccount
 );
 
@@ -118,6 +118,6 @@ router.put(
  * DELETE /api/accounts/:id
  * Soft delete account
  */
-router.delete('/:id', [param('id').isUUID()], handleValidationErrors, deleteAccount);
+router.delete('/:id', [param('id').isUUID()], validateRequest, deleteAccount);
 
 export default router;

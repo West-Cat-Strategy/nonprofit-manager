@@ -6,10 +6,11 @@ import pool from '../config/database';
 import { AuthRequest } from '../middleware/auth';
 import { PASSWORD } from '../config/constants';
 import { getPortalActivity } from '../services/portalActivityService';
+import { badRequest, conflict, forbidden, notFoundMessage, validationErrorResponse } from '../utils/responseHelpers';
 
 const ensureAdmin = (req: AuthRequest, res: Response): boolean => {
   if (req.user?.role !== 'admin') {
-    res.status(403).json({ error: 'Admin access required' });
+    forbidden(res, 'Admin access required');
     return false;
   }
   return true;
@@ -56,13 +57,13 @@ export const approvePortalSignupRequest = async (
     );
 
     if (requestResult.rows.length === 0) {
-      res.status(404).json({ error: 'Signup request not found' });
+      notFoundMessage(res, 'Signup request not found');
       return;
     }
 
     const requestRow = requestResult.rows[0];
     if (requestRow.status !== 'pending') {
-      res.status(400).json({ error: 'Signup request already processed' });
+      badRequest(res, 'Signup request already processed');
       return;
     }
 
@@ -70,7 +71,7 @@ export const approvePortalSignupRequest = async (
       requestRow.email.toLowerCase(),
     ]);
     if (existingUser.rows.length > 0) {
-      res.status(409).json({ error: 'Portal account already exists' });
+      conflict(res, 'Portal account already exists');
       return;
     }
 
@@ -115,12 +116,12 @@ export const rejectPortalSignupRequest = async (
     );
 
     if (requestResult.rows.length === 0) {
-      res.status(404).json({ error: 'Signup request not found' });
+      notFoundMessage(res, 'Signup request not found');
       return;
     }
 
     if (requestResult.rows[0].status !== 'pending') {
-      res.status(400).json({ error: 'Signup request already processed' });
+      badRequest(res, 'Signup request already processed');
       return;
     }
 
@@ -149,7 +150,7 @@ export const createPortalInvitation = async (
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
+      validationErrorResponse(res, errors);
       return;
     }
 
@@ -163,7 +164,7 @@ export const createPortalInvitation = async (
       email.toLowerCase(),
     ]);
     if (existingUser.rows.length > 0) {
-      res.status(409).json({ error: 'Portal account already exists' });
+      conflict(res, 'Portal account already exists');
       return;
     }
 
@@ -173,7 +174,7 @@ export const createPortalInvitation = async (
       [email.toLowerCase()]
     );
     if (existingInvite.rows.length > 0) {
-      res.status(409).json({ error: 'Pending portal invitation already exists' });
+      conflict(res, 'Pending portal invitation already exists');
       return;
     }
 
@@ -279,7 +280,7 @@ export const updatePortalUserStatus = async (
     const { status } = req.body as { status?: string };
 
     if (!status || !['active', 'suspended'].includes(status)) {
-      res.status(400).json({ error: 'Status must be active or suspended' });
+      badRequest(res, 'Status must be active or suspended');
       return;
     }
 
@@ -292,7 +293,7 @@ export const updatePortalUserStatus = async (
     );
 
     if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Portal user not found' });
+      notFoundMessage(res, 'Portal user not found');
       return;
     }
 

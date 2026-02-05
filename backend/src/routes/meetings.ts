@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
 import { authenticate, authorize } from '../middleware/auth';
-import { handleValidationErrors } from '../middleware/validation';
+import { validateRequest } from '../middleware/validation';
 import {
   listCommittees,
   listMeetings,
@@ -30,12 +30,12 @@ router.get(
     query('from').optional().isISO8601(),
     query('to').optional().isISO8601(),
     query('limit').optional().isInt({ min: 1, max: 200 }),
-    handleValidationErrors,
+    validateRequest,
   ],
   listMeetings
 );
 
-router.get('/:id', [param('id').isUUID(), handleValidationErrors], getMeetingDetail);
+router.get('/:id', [param('id').isUUID(), validateRequest], getMeetingDetail);
 
 router.post(
   '/',
@@ -48,7 +48,7 @@ router.post(
     body('committee_id').optional().isUUID(),
     body('presiding_contact_id').optional().isUUID(),
     body('secretary_contact_id').optional().isUUID(),
-    handleValidationErrors,
+    validateRequest,
   ],
   createMeeting
 );
@@ -67,12 +67,12 @@ router.patch(
     body('presiding_contact_id').optional().isUUID(),
     body('secretary_contact_id').optional().isUUID(),
     body('minutes_notes').optional().isString(),
-    handleValidationErrors,
+    validateRequest,
   ],
   updateMeeting
 );
 
-router.get('/:id/minutes/draft', [param('id').isUUID(), handleValidationErrors], getMinutesDraft);
+router.get('/:id/minutes/draft', [param('id').isUUID(), validateRequest], getMinutesDraft);
 
 router.post(
   '/:id/agenda-items',
@@ -83,7 +83,7 @@ router.post(
     body('item_type').optional().isIn(['discussion', 'motion', 'report', 'other']),
     body('duration_minutes').optional().isInt({ min: 1, max: 600 }),
     body('presenter_contact_id').optional().isUUID(),
-    handleValidationErrors,
+    validateRequest,
   ],
   addAgendaItem
 );
@@ -94,7 +94,7 @@ router.post(
     param('id').isUUID(),
     body('orderedIds').isArray({ min: 0 }),
     body('orderedIds.*').isUUID(),
-    handleValidationErrors,
+    validateRequest,
   ],
   reorderAgenda
 );
@@ -108,7 +108,7 @@ router.post(
     body('parent_motion_id').optional().isUUID(),
     body('moved_by_contact_id').optional().isUUID(),
     body('seconded_by_contact_id').optional().isUUID(),
-    handleValidationErrors,
+    validateRequest,
   ],
   addMotion
 );
@@ -123,7 +123,7 @@ router.patch(
     body('votes_against').optional().isInt({ min: 0 }),
     body('votes_abstain').optional().isInt({ min: 0 }),
     body('result_notes').optional().isString(),
-    handleValidationErrors,
+    validateRequest,
   ],
   updateMotion
 );
@@ -137,7 +137,7 @@ router.post(
     body('motion_id').optional().isUUID(),
     body('assigned_contact_id').optional().isUUID(),
     body('due_date').optional().isISO8601(),
-    handleValidationErrors,
+    validateRequest,
   ],
   createActionItem
 );

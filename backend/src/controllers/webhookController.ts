@@ -15,6 +15,7 @@ import type {
   UpdateApiKeyRequest,
 } from '../types/webhook';
 import { PAGINATION } from '../config/constants';
+import { badRequest, notFoundMessage, serverError, unauthorized } from '../utils/responseHelpers';
 
 // ==================== Webhook Endpoints ====================
 
@@ -25,7 +26,7 @@ export const getWebhookEndpoints = async (req: AuthRequest, res: Response): Prom
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -33,7 +34,7 @@ export const getWebhookEndpoints = async (req: AuthRequest, res: Response): Prom
     res.json(endpoints);
   } catch (error) {
     logger.error('Error getting webhook endpoints', { error });
-    res.status(500).json({ error: 'Failed to get webhook endpoints' });
+    serverError(res, 'Failed to get webhook endpoints');
   }
 };
 
@@ -44,19 +45,19 @@ export const createWebhookEndpoint = async (req: AuthRequest, res: Response): Pr
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
     const { url, description, events } = req.body as CreateWebhookEndpointRequest;
 
     if (!url) {
-      res.status(400).json({ error: 'URL is required' });
+      badRequest(res, 'URL is required');
       return;
     }
 
     if (!events || !Array.isArray(events) || events.length === 0) {
-      res.status(400).json({ error: 'At least one event type is required' });
+      badRequest(res, 'At least one event type is required');
       return;
     }
 
@@ -64,19 +65,19 @@ export const createWebhookEndpoint = async (req: AuthRequest, res: Response): Pr
     try {
       new URL(url);
     } catch {
-      res.status(400).json({ error: 'Invalid URL format' });
+      badRequest(res, 'Invalid URL format');
       return;
     }
 
     // Only allow HTTPS URLs in production
     if (process.env.NODE_ENV === 'production' && !url.startsWith('https://')) {
-      res.status(400).json({ error: 'HTTPS URL is required in production' });
+      badRequest(res, 'HTTPS URL is required in production');
       return;
     }
 
     const urlValidation = await webhookService.validateWebhookUrl(url);
     if (!urlValidation.ok) {
-      res.status(400).json({ error: urlValidation.reason || 'Webhook URL is not allowed' });
+      badRequest(res, urlValidation.reason || 'Webhook URL is not allowed');
       return;
     }
 
@@ -89,7 +90,7 @@ export const createWebhookEndpoint = async (req: AuthRequest, res: Response): Pr
     res.status(201).json(endpoint);
   } catch (error) {
     logger.error('Error creating webhook endpoint', { error });
-    res.status(500).json({ error: 'Failed to create webhook endpoint' });
+    serverError(res, 'Failed to create webhook endpoint');
   }
 };
 
@@ -100,7 +101,7 @@ export const getWebhookEndpoint = async (req: AuthRequest, res: Response): Promi
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -109,14 +110,14 @@ export const getWebhookEndpoint = async (req: AuthRequest, res: Response): Promi
     const endpoint = await webhookService.getWebhookEndpoint(id, userId);
 
     if (!endpoint) {
-      res.status(404).json({ error: 'Webhook endpoint not found' });
+      notFoundMessage(res, 'Webhook endpoint not found');
       return;
     }
 
     res.json(endpoint);
   } catch (error) {
     logger.error('Error getting webhook endpoint', { error });
-    res.status(500).json({ error: 'Failed to get webhook endpoint' });
+    serverError(res, 'Failed to get webhook endpoint');
   }
 };
 
@@ -127,7 +128,7 @@ export const updateWebhookEndpoint = async (req: AuthRequest, res: Response): Pr
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -139,18 +140,18 @@ export const updateWebhookEndpoint = async (req: AuthRequest, res: Response): Pr
       try {
         new URL(data.url);
       } catch {
-        res.status(400).json({ error: 'Invalid URL format' });
+        badRequest(res, 'Invalid URL format');
         return;
       }
 
       if (process.env.NODE_ENV === 'production' && !data.url.startsWith('https://')) {
-        res.status(400).json({ error: 'HTTPS URL is required in production' });
+        badRequest(res, 'HTTPS URL is required in production');
         return;
       }
 
       const urlValidation = await webhookService.validateWebhookUrl(data.url);
       if (!urlValidation.ok) {
-        res.status(400).json({ error: urlValidation.reason || 'Webhook URL is not allowed' });
+        badRequest(res, urlValidation.reason || 'Webhook URL is not allowed');
         return;
       }
     }
@@ -158,14 +159,14 @@ export const updateWebhookEndpoint = async (req: AuthRequest, res: Response): Pr
     const endpoint = await webhookService.updateWebhookEndpoint(id, userId, data);
 
     if (!endpoint) {
-      res.status(404).json({ error: 'Webhook endpoint not found' });
+      notFoundMessage(res, 'Webhook endpoint not found');
       return;
     }
 
     res.json(endpoint);
   } catch (error) {
     logger.error('Error updating webhook endpoint', { error });
-    res.status(500).json({ error: 'Failed to update webhook endpoint' });
+    serverError(res, 'Failed to update webhook endpoint');
   }
 };
 
@@ -176,7 +177,7 @@ export const deleteWebhookEndpoint = async (req: AuthRequest, res: Response): Pr
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -185,14 +186,14 @@ export const deleteWebhookEndpoint = async (req: AuthRequest, res: Response): Pr
     const deleted = await webhookService.deleteWebhookEndpoint(id, userId);
 
     if (!deleted) {
-      res.status(404).json({ error: 'Webhook endpoint not found' });
+      notFoundMessage(res, 'Webhook endpoint not found');
       return;
     }
 
     res.status(204).send();
   } catch (error) {
     logger.error('Error deleting webhook endpoint', { error });
-    res.status(500).json({ error: 'Failed to delete webhook endpoint' });
+    serverError(res, 'Failed to delete webhook endpoint');
   }
 };
 
@@ -203,7 +204,7 @@ export const regenerateWebhookSecret = async (req: AuthRequest, res: Response): 
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -212,14 +213,14 @@ export const regenerateWebhookSecret = async (req: AuthRequest, res: Response): 
     const secret = await webhookService.regenerateWebhookSecret(id, userId);
 
     if (!secret) {
-      res.status(404).json({ error: 'Webhook endpoint not found' });
+      notFoundMessage(res, 'Webhook endpoint not found');
       return;
     }
 
     res.json({ secret });
   } catch (error) {
     logger.error('Error regenerating webhook secret', { error });
-    res.status(500).json({ error: 'Failed to regenerate webhook secret' });
+    serverError(res, 'Failed to regenerate webhook secret');
   }
 };
 
@@ -230,7 +231,7 @@ export const getWebhookDeliveries = async (req: AuthRequest, res: Response): Pro
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -241,7 +242,7 @@ export const getWebhookDeliveries = async (req: AuthRequest, res: Response): Pro
     res.json(deliveries);
   } catch (error) {
     logger.error('Error getting webhook deliveries', { error });
-    res.status(500).json({ error: 'Failed to get webhook deliveries' });
+    serverError(res, 'Failed to get webhook deliveries');
   }
 };
 
@@ -252,7 +253,7 @@ export const testWebhookEndpoint = async (req: AuthRequest, res: Response): Prom
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -262,7 +263,7 @@ export const testWebhookEndpoint = async (req: AuthRequest, res: Response): Prom
     res.json(result);
   } catch (error) {
     logger.error('Error testing webhook endpoint', { error });
-    res.status(500).json({ error: 'Failed to test webhook endpoint' });
+    serverError(res, 'Failed to test webhook endpoint');
   }
 };
 
@@ -275,7 +276,7 @@ export const getAvailableWebhookEvents = async (_req: AuthRequest, res: Response
     res.json(events);
   } catch (error) {
     logger.error('Error getting available webhook events', { error });
-    res.status(500).json({ error: 'Failed to get available webhook events' });
+    serverError(res, 'Failed to get available webhook events');
   }
 };
 
@@ -288,7 +289,7 @@ export const getApiKeys = async (req: AuthRequest, res: Response): Promise<void>
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -296,7 +297,7 @@ export const getApiKeys = async (req: AuthRequest, res: Response): Promise<void>
     res.json(keys);
   } catch (error) {
     logger.error('Error getting API keys', { error });
-    res.status(500).json({ error: 'Failed to get API keys' });
+    serverError(res, 'Failed to get API keys');
   }
 };
 
@@ -307,19 +308,19 @@ export const createApiKey = async (req: AuthRequest, res: Response): Promise<voi
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
     const { name, scopes, expiresAt } = req.body as CreateApiKeyRequest;
 
     if (!name) {
-      res.status(400).json({ error: 'API key name is required' });
+      badRequest(res, 'API key name is required');
       return;
     }
 
     if (!scopes || !Array.isArray(scopes) || scopes.length === 0) {
-      res.status(400).json({ error: 'At least one scope is required' });
+      badRequest(res, 'At least one scope is required');
       return;
     }
 
@@ -332,7 +333,7 @@ export const createApiKey = async (req: AuthRequest, res: Response): Promise<voi
     res.status(201).json(key);
   } catch (error) {
     logger.error('Error creating API key', { error });
-    res.status(500).json({ error: 'Failed to create API key' });
+    serverError(res, 'Failed to create API key');
   }
 };
 
@@ -343,7 +344,7 @@ export const getApiKey = async (req: AuthRequest, res: Response): Promise<void> 
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -352,7 +353,7 @@ export const getApiKey = async (req: AuthRequest, res: Response): Promise<void> 
     const key = await apiKeyService.getApiKeyById(id, userId);
 
     if (!key) {
-      res.status(404).json({ error: 'API key not found' });
+      notFoundMessage(res, 'API key not found');
       return;
     }
 
@@ -363,7 +364,7 @@ export const getApiKey = async (req: AuthRequest, res: Response): Promise<void> 
     res.json(safeKey);
   } catch (error) {
     logger.error('Error getting API key', { error });
-    res.status(500).json({ error: 'Failed to get API key' });
+    serverError(res, 'Failed to get API key');
   }
 };
 
@@ -374,7 +375,7 @@ export const updateApiKey = async (req: AuthRequest, res: Response): Promise<voi
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -384,7 +385,7 @@ export const updateApiKey = async (req: AuthRequest, res: Response): Promise<voi
     const key = await apiKeyService.updateApiKey(id, userId, data);
 
     if (!key) {
-      res.status(404).json({ error: 'API key not found' });
+      notFoundMessage(res, 'API key not found');
       return;
     }
 
@@ -395,7 +396,7 @@ export const updateApiKey = async (req: AuthRequest, res: Response): Promise<voi
     res.json(safeKey);
   } catch (error) {
     logger.error('Error updating API key', { error });
-    res.status(500).json({ error: 'Failed to update API key' });
+    serverError(res, 'Failed to update API key');
   }
 };
 
@@ -406,7 +407,7 @@ export const revokeApiKey = async (req: AuthRequest, res: Response): Promise<voi
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -415,14 +416,14 @@ export const revokeApiKey = async (req: AuthRequest, res: Response): Promise<voi
     const revoked = await apiKeyService.revokeApiKey(id, userId);
 
     if (!revoked) {
-      res.status(404).json({ error: 'API key not found or already revoked' });
+      notFoundMessage(res, 'API key not found or already revoked');
       return;
     }
 
     res.json({ success: true, message: 'API key revoked' });
   } catch (error) {
     logger.error('Error revoking API key', { error });
-    res.status(500).json({ error: 'Failed to revoke API key' });
+    serverError(res, 'Failed to revoke API key');
   }
 };
 
@@ -433,7 +434,7 @@ export const deleteApiKey = async (req: AuthRequest, res: Response): Promise<voi
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -442,14 +443,14 @@ export const deleteApiKey = async (req: AuthRequest, res: Response): Promise<voi
     const deleted = await apiKeyService.deleteApiKey(id, userId);
 
     if (!deleted) {
-      res.status(404).json({ error: 'API key not found' });
+      notFoundMessage(res, 'API key not found');
       return;
     }
 
     res.status(204).send();
   } catch (error) {
     logger.error('Error deleting API key', { error });
-    res.status(500).json({ error: 'Failed to delete API key' });
+    serverError(res, 'Failed to delete API key');
   }
 };
 
@@ -460,7 +461,7 @@ export const getApiKeyUsage = async (req: AuthRequest, res: Response): Promise<v
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
+      unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -471,7 +472,7 @@ export const getApiKeyUsage = async (req: AuthRequest, res: Response): Promise<v
     res.json(usage);
   } catch (error) {
     logger.error('Error getting API key usage', { error });
-    res.status(500).json({ error: 'Failed to get API key usage' });
+    serverError(res, 'Failed to get API key usage');
   }
 };
 
@@ -484,7 +485,7 @@ export const getAvailableScopes = async (_req: AuthRequest, res: Response): Prom
     res.json(scopes);
   } catch (error) {
     logger.error('Error getting available scopes', { error });
-    res.status(500).json({ error: 'Failed to get available scopes' });
+    serverError(res, 'Failed to get available scopes');
   }
 };
 

@@ -4,8 +4,7 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { EventService } from '../services/eventService';
-import pool from '../config/database';
+import { services } from '../container/services';
 import { AuthRequest } from '../middleware/auth';
 import type {
   CreateEventDTO,
@@ -16,8 +15,9 @@ import type {
   RegistrationFilters,
 } from '../types/event';
 import type { DataScopeFilter } from '../types/dataScope';
+import { badRequest, notFoundMessage } from '../utils/responseHelpers';
 
-const eventService = new EventService(pool);
+const eventService = services.event;
 
 /**
  * GET /api/events
@@ -78,7 +78,7 @@ export const getEvent = async (
     const event = await eventService.getEventById(id, scope);
 
     if (!event) {
-      res.status(404).json({ error: 'Event not found' });
+      notFoundMessage(res, 'Event not found');
       return;
     }
 
@@ -123,7 +123,7 @@ export const updateEvent = async (
     const event = await eventService.updateEvent(id, data, req.user!.id);
 
     if (!event) {
-      res.status(404).json({ error: 'Event not found' });
+      notFoundMessage(res, 'Event not found');
       return;
     }
 
@@ -215,7 +215,7 @@ export const updateRegistration = async (
     const registration = await eventService.updateRegistration(id, data);
 
     if (!registration) {
-      res.status(404).json({ error: 'Registration not found' });
+      notFoundMessage(res, 'Registration not found');
       return;
     }
 
@@ -240,7 +240,7 @@ export const checkInAttendee = async (
     const result = await eventService.checkInAttendee(id);
 
     if (!result.success) {
-      res.status(400).json({ error: result.message });
+      badRequest(res, result.message);
       return;
     }
 
@@ -311,7 +311,7 @@ export const getRegistrations = async (
     const contactId = req.query.contact_id as string;
 
     if (!contactId) {
-      res.status(400).json({ error: 'contact_id query parameter is required' });
+      badRequest(res, 'contact_id query parameter is required');
       return;
     }
 

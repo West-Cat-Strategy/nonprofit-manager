@@ -7,6 +7,7 @@ import { getJwtSecret } from '../config/jwt';
 import { PASSWORD, JWT } from '../config/constants';
 import { PortalAuthRequest } from '../middleware/portalAuth';
 import { logPortalActivity } from '../services/portalActivityService';
+import { badRequest, conflict, forbidden, notFoundMessage, unauthorized, validationErrorResponse } from '../utils/responseHelpers';
 
 interface PortalSignupRequest {
   email: string;
@@ -59,7 +60,7 @@ export const portalSignup = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return validationErrorResponse(res, errors);
     }
 
     const payload: PortalSignupRequest = req.body;
@@ -67,7 +68,7 @@ export const portalSignup = async (
 
     const existingUser = await pool.query('SELECT id FROM portal_users WHERE email = $1', [email]);
     if (existingUser.rows.length > 0) {
-      return res.status(409).json({ error: 'Portal account already exists' });
+      return conflict(res, 'Portal account already exists');
     }
 
     const existingRequest = await pool.query(
@@ -75,7 +76,7 @@ export const portalSignup = async (
       [email, 'pending']
     );
     if (existingRequest.rows.length > 0) {
-      return res.status(409).json({ error: 'Signup request already pending approval' });
+      return conflict(res, 'Signup request already pending approval');
     }
 
     const contactId = await getOrCreateContactForSignup(payload);
@@ -106,7 +107,7 @@ export const portalLogin = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return validationErrorResponse(res, errors);
     }
 
     const { email, password }: PortalLoginRequest = req.body;
@@ -118,22 +119,22 @@ export const portalLogin = async (
     );
 
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return unauthorized(res, 'Invalid credentials');
     }
 
     const user = result.rows[0];
 
     if (user.status !== 'active') {
-      return res.status(403).json({ error: 'Account is suspended' });
+      return forbidden(res, 'Account is suspended');
     }
 
     if (!user.is_verified) {
-      return res.status(403).json({ error: 'Account pending verification' });
+      return forbidden(res, 'Account pending verification');
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return unauthorized(res, 'Invalid credentials');
     }
 
     await pool.query('UPDATE portal_users SET last_login_at = NOW() WHERE id = $1', [user.id]);
@@ -187,7 +188,7 @@ export const getPortalMe = async (
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Portal user not found' });
+      return notFoundMessage(res, 'Portal user not found');
     }
 
     return res.json(result.rows[0]);
@@ -245,7 +246,7 @@ export const acceptPortalInvitation = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return validationErrorResponse(res, errors);
     }
 
     const { token } = req.params;
@@ -263,17 +264,17 @@ export const acceptPortalInvitation = async (
     );
 
     if (inviteResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Invitation not found' });
+      return notFoundMessage(res, 'Invitation not found');
     }
 
     const invitation = inviteResult.rows[0];
 
     if (invitation.accepted_at) {
-      return res.status(400).json({ error: 'Invitation already accepted' });
+      return badRequest(res, 'Invitation already accepted');
     }
 
     if (new Date(invitation.expires_at) < new Date()) {
-      return res.status(400).json({ error: 'Invitation expired' });
+      return badRequest(res, 'Invitation expired');
     }
 
     const existingUser = await pool.query('SELECT id FROM portal_users WHERE email = $1', [
@@ -281,7 +282,7 @@ export const acceptPortalInvitation = async (
     ]);
 
     if (existingUser.rows.length > 0) {
-      return res.status(409).json({ error: 'Portal account already exists' });
+      return conflict(res, 'Portal account already exists');
     }
 
     let contactId = invitation.contact_id as string | null;

@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express';
 import pool from '../config/database';
 import { logger } from '../config/logger';
 import { AuthRequest } from './auth';
+import { badRequest, notFoundMessage, serverError } from '../utils/responseHelpers';
 
 type OrgContextSource = 'header' | 'query' | 'param';
 
@@ -78,7 +79,7 @@ export const orgContextMiddleware = async (
 
   if (!id) {
     if (shouldRequireContext()) {
-      return res.status(400).json({ error: 'Organization context is required' });
+      return badRequest(res, 'Organization context is required');
     }
     return next();
   }
@@ -95,12 +96,12 @@ export const orgContextMiddleware = async (
     const result = await pool.query('SELECT id FROM accounts WHERE id = $1', [id]);
     if (result.rows.length === 0) {
       logger.warn('Organization context not found', { orgId: id, source });
-      return res.status(404).json({ error: 'Organization context not found' });
+      return notFoundMessage(res, 'Organization context not found');
     }
     return next();
   } catch (error) {
     logger.error('Failed to validate organization context', { error, orgId: id, source });
-    return res.status(500).json({ error: 'Failed to validate organization context' });
+    return serverError(res, 'Failed to validate organization context');
   }
 };
 

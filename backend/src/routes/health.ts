@@ -7,6 +7,7 @@ import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
 import { getRedisClient } from '../config/redis';
 import { logger } from '../config/logger';
+import { forbidden } from '../utils/responseHelpers';
 
 const router = Router();
 
@@ -159,7 +160,7 @@ router.get('/detailed', async (req: Request, res: Response) => {
   if (process.env.NODE_ENV === 'production') {
     const authHeader = req.headers['x-health-check-key'];
     if (authHeader !== process.env.HEALTH_CHECK_KEY) {
-      res.status(403).json({ error: 'Forbidden' });
+      forbidden(res, 'Forbidden');
       return;
     }
   }

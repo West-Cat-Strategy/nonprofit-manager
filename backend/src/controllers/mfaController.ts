@@ -9,11 +9,10 @@ import { AuthRequest } from '../middleware/auth';
 import { trackLoginAttempt } from '../middleware/accountLockout';
 import { JWT, TIME } from '../config/constants';
 import { decrypt, encrypt } from '../utils/encryption';
+import { badRequest, conflict, notFoundMessage, unauthorized, validationErrorResponse } from '../utils/responseHelpers';
 
 const TOTP_PERIOD_SECONDS = 30;
 const TOTP_WINDOW = 1;
-const TOTP_EPOCH_TOLERANCE_SECONDS = TOTP_PERIOD_SECONDS * TOTP_WINDOW;
-
 const MFA_TOKEN_EXPIRY = Math.floor(TIME.FIVE_MINUTES / 1000);
 const TOTP_ISSUER = process.env.TOTP_ISSUER || 'Nonprofit Manager';
 
@@ -42,7 +41,14 @@ interface TotpUserRow {
 }
 
 const normalizeTotpCode = (code: string) => code.replace(/\s+/g, '');
-const loadOtplib = async () => import('otplib');
+const loadOtplib = async () => {
+  const { authenticator } = await import('otplib');
+  authenticator.options = {
+    step: TOTP_PERIOD_SECONDS,
+    window: TOTP_WINDOW,
+  };
+  return authenticator;
+};
 
 const issueAuthTokens = (user: { id: string; email: string; role: string }) => {
   const jwtSecret = getJwtSecret();
@@ -80,7 +86,7 @@ export const getSecurityOverview = async (
       [req.user!.id]
     );
     if (totpResult.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return notFoundMessage(res, 'User not found');
     }
 
     const passkeyResult = await pool.query<{ id: string; name: string | null; created_at: Date; last_used_at: Date | null }>(
@@ -116,20 +122,15 @@ export const enrollTotp = async (
       [req.user!.id]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return notFoundMessage(res, 'User not found');
     }
     if (result.rows[0].mfa_totp_enabled) {
-      return res.status(409).json({ error: '2FA is already enabled' });
+      return conflict(res, '2FA is already enabled');
     }
 
-    const { generateSecret, generateURI } = await loadOtplib();
-    const secret = generateSecret();
-    const otpauthUrl = generateURI({
-      issuer: TOTP_ISSUER,
-      label: result.rows[0].email,
-      secret,
-      period: TOTP_PERIOD_SECONDS,
-    });
+    const authenticator = await loadOtplib();
+    const secret = authenticator.generateSecret();
+    const otpauthUrl = authenticator.keyuri(result.rows[0].email, TOTP_ISSUER, secret);
 
     await pool.query(
       `UPDATE users
@@ -157,7 +158,7 @@ export const enableTotp = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return validationErrorResponse(res, errors);
     }
 
     const { code }: { code: string } = req.body;
@@ -167,25 +168,20 @@ export const enableTotp = async (
       [req.user!.id]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return notFoundMessage(res, 'User not found');
     }
     if (result.rows[0].mfa_totp_enabled) {
-      return res.status(409).json({ error: '2FA is already enabled' });
+      return conflict(res, '2FA is already enabled');
     }
     if (!result.rows[0].mfa_totp_pending_secret_enc) {
-      return res.status(400).json({ error: 'No pending 2FA enrollment. Start setup first.' });
+      return badRequest(res, 'No pending 2FA enrollment. Start setup first.');
     }
 
     const secret = decrypt(result.rows[0].mfa_totp_pending_secret_enc);
-    const { verify } = await loadOtplib();
-    const verifyResult = await verify({
-      secret,
-      token: normalizeTotpCode(code),
-      period: TOTP_PERIOD_SECONDS,
-      epochTolerance: TOTP_EPOCH_TOLERANCE_SECONDS,
-    });
-    if (!verifyResult.valid) {
-      return res.status(401).json({ error: 'Invalid authentication code' });
+    const authenticator = await loadOtplib();
+    const isValid = authenticator.check(normalizeTotpCode(code), secret);
+    if (!isValid) {
+      return unauthorized(res, 'Invalid authentication code');
     }
 
     await pool.query(
@@ -214,7 +210,7 @@ export const disableTotp = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return validationErrorResponse(res, errors);
     }
 
     const { password, code }: { password: string; code: string } = req.body;
@@ -226,29 +222,24 @@ export const disableTotp = async (
       [req.user!.id]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return notFoundMessage(res, 'User not found');
     }
 
     const user = result.rows[0];
     if (!user.mfa_totp_enabled || !user.mfa_totp_secret_enc) {
-      return res.status(409).json({ error: '2FA is not enabled' });
+      return conflict(res, '2FA is not enabled');
     }
 
     const passwordOk = await bcrypt.compare(password, user.password_hash);
     if (!passwordOk) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return unauthorized(res, 'Invalid credentials');
     }
 
     const secret = decrypt(user.mfa_totp_secret_enc);
-    const { verify } = await loadOtplib();
-    const verifyResult = await verify({
-      secret,
-      token: normalizeTotpCode(code),
-      period: TOTP_PERIOD_SECONDS,
-      epochTolerance: TOTP_EPOCH_TOLERANCE_SECONDS,
-    });
-    if (!verifyResult.valid) {
-      return res.status(401).json({ error: 'Invalid authentication code' });
+    const authenticator = await loadOtplib();
+    const isValid = authenticator.check(normalizeTotpCode(code), secret);
+    if (!isValid) {
+      return unauthorized(res, 'Invalid authentication code');
     }
 
     await pool.query(
@@ -277,7 +268,7 @@ export const completeTotpLogin = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return validationErrorResponse(res, errors);
     }
 
     const { email, mfaToken, code }: { email: string; mfaToken: string; code: string } = req.body;
@@ -287,15 +278,15 @@ export const completeTotpLogin = async (
     try {
       decoded = jwt.verify(mfaToken, getJwtSecret()) as typeof decoded;
     } catch {
-      return res.status(401).json({ error: 'Invalid or expired MFA token' });
+      return unauthorized(res, 'Invalid or expired MFA token');
     }
 
     if (decoded.type !== 'mfa' || decoded.method !== 'totp') {
-      return res.status(401).json({ error: 'Invalid MFA token' });
+      return unauthorized(res, 'Invalid MFA token');
     }
 
     if (decoded.email.toLowerCase() !== email.toLowerCase()) {
-      return res.status(401).json({ error: 'Invalid MFA token' });
+      return unauthorized(res, 'Invalid MFA token');
     }
 
     const userResult = await pool.query<TotpUserRow>(
@@ -305,26 +296,21 @@ export const completeTotpLogin = async (
     );
     if (userResult.rows.length === 0) {
       await trackLoginAttempt(email, false, undefined, clientIp);
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return unauthorized(res, 'Invalid credentials');
     }
 
     const user = userResult.rows[0];
     if (!user.mfa_totp_enabled || !user.mfa_totp_secret_enc) {
       await trackLoginAttempt(email, false, user.id, clientIp);
-      return res.status(400).json({ error: '2FA is not enabled for this user' });
+      return badRequest(res, '2FA is not enabled for this user');
     }
 
     const secret = decrypt(user.mfa_totp_secret_enc);
-    const { verify } = await loadOtplib();
-    const verifyResult = await verify({
-      secret,
-      token: normalizeTotpCode(code),
-      period: TOTP_PERIOD_SECONDS,
-      epochTolerance: TOTP_EPOCH_TOLERANCE_SECONDS,
-    });
-    if (!verifyResult.valid) {
+    const authenticator = await loadOtplib();
+    const isValid = authenticator.check(normalizeTotpCode(code), secret);
+    if (!isValid) {
       await trackLoginAttempt(email, false, user.id, clientIp);
-      return res.status(401).json({ error: 'Invalid authentication code' });
+      return unauthorized(res, 'Invalid authentication code');
     }
 
     await trackLoginAttempt(email, true, user.id, clientIp);

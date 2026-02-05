@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '../config/jwt';
+import { forbidden, unauthorized } from '../utils/responseHelpers';
 
 interface JwtPayload {
   id: string;
@@ -30,7 +31,7 @@ export const authenticate = (
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'No token provided' });
+      return unauthorized(res, 'No token provided');
     }
 
     const token = authHeader.substring(7);
@@ -39,18 +40,18 @@ export const authenticate = (
     req.user = decoded;
     next();
   } catch {
-    return res.status(401).json({ error: 'Invalid or expired token' });
+    return unauthorized(res, 'Invalid or expired token');
   }
 };
 
 export const authorize = (...allowedRoles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction): Response | void => {
     if (!req.user) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return unauthorized(res, 'Unauthorized');
     }
 
     if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+      return forbidden(res, 'Forbidden: Insufficient permissions');
     }
 
     next();

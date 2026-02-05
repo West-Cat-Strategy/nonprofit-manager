@@ -4,12 +4,12 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { DashboardService } from '../services/dashboardService';
-import pool from '../config/database';
+import { services } from '../container/services';
 import { AuthRequest } from '../middleware/auth';
 import type { CreateDashboardDTO, UpdateDashboardDTO } from '../types/dashboard';
+import { badRequest, notFoundMessage } from '../utils/responseHelpers';
 
-const dashboardService = new DashboardService(pool);
+const dashboardService = services.dashboard;
 
 /**
  * GET /api/dashboard/configs
@@ -42,7 +42,7 @@ export const getDashboard = async (
     const dashboard = await dashboardService.getDashboard(id, req.user!.id);
 
     if (!dashboard) {
-      res.status(404).json({ error: 'Dashboard configuration not found' });
+      notFoundMessage(res, 'Dashboard configuration not found');
       return;
     }
 
@@ -113,7 +113,7 @@ export const updateDashboard = async (
     const dashboard = await dashboardService.updateDashboard(id, req.user!.id, data);
 
     if (!dashboard) {
-      res.status(404).json({ error: 'Dashboard configuration not found' });
+      notFoundMessage(res, 'Dashboard configuration not found');
       return;
     }
 
@@ -137,14 +137,14 @@ export const updateDashboardLayout = async (
     const { layout } = req.body;
 
     if (!Array.isArray(layout)) {
-      res.status(400).json({ error: 'Layout must be an array' });
+      badRequest(res, 'Layout must be an array');
       return;
     }
 
     const dashboard = await dashboardService.updateDashboardLayout(id, req.user!.id, layout);
 
     if (!dashboard) {
-      res.status(404).json({ error: 'Dashboard configuration not found' });
+      notFoundMessage(res, 'Dashboard configuration not found');
       return;
     }
 
@@ -169,14 +169,14 @@ export const deleteDashboard = async (
     // Check if this is the default dashboard
     const dashboard = await dashboardService.getDashboard(id, req.user!.id);
     if (dashboard?.is_default) {
-      res.status(400).json({ error: 'Cannot delete default dashboard. Set another dashboard as default first.' });
+      badRequest(res, 'Cannot delete default dashboard. Set another dashboard as default first.');
       return;
     }
 
     const deleted = await dashboardService.deleteDashboard(id, req.user!.id);
 
     if (!deleted) {
-      res.status(404).json({ error: 'Dashboard configuration not found' });
+      notFoundMessage(res, 'Dashboard configuration not found');
       return;
     }
 

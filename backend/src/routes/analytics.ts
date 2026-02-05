@@ -30,7 +30,7 @@ import {
   auditAnalyticsMiddleware,
 } from '../middleware/analyticsAuth';
 import { loadDataScope } from '../middleware/dataScope';
-import { handleValidationErrors } from '../middleware/validation';
+import { validateRequest } from '../middleware/validation';
 
 const router = Router();
 
@@ -52,7 +52,7 @@ router.get(
       .optional()
       .isIn(['donor', 'volunteer', 'partner', 'vendor', 'beneficiary', 'other']),
   ],
-  handleValidationErrors,
+  validateRequest,
   requireOrgAnalytics,
   auditAnalyticsMiddleware('view_org_analytics'),
   getAnalyticsSummary
@@ -65,7 +65,7 @@ router.get(
 router.get(
   '/accounts/:id',
   [param('id').isUUID()],
-  handleValidationErrors,
+  validateRequest,
   requireAccountAnalytics,
   auditAnalyticsMiddleware('view_account_analytics'),
   getAccountAnalytics
@@ -78,7 +78,7 @@ router.get(
 router.get(
   '/accounts/:id/donations',
   [param('id').isUUID()],
-  handleValidationErrors,
+  validateRequest,
   requireAccountAnalytics,
   auditAnalyticsMiddleware('view_account_donations'),
   getAccountDonationMetrics
@@ -91,7 +91,7 @@ router.get(
 router.get(
   '/accounts/:id/events',
   [param('id').isUUID()],
-  handleValidationErrors,
+  validateRequest,
   requireAccountAnalytics,
   auditAnalyticsMiddleware('view_account_events'),
   getAccountEventMetrics
@@ -104,7 +104,7 @@ router.get(
 router.get(
   '/contacts/:id',
   [param('id').isUUID()],
-  handleValidationErrors,
+  validateRequest,
   requireContactAnalytics,
   auditAnalyticsMiddleware('view_contact_analytics'),
   getContactAnalytics
@@ -117,7 +117,7 @@ router.get(
 router.get(
   '/contacts/:id/donations',
   [param('id').isUUID()],
-  handleValidationErrors,
+  validateRequest,
   requireContactAnalytics,
   auditAnalyticsMiddleware('view_contact_donations'),
   getContactDonationMetrics
@@ -130,7 +130,7 @@ router.get(
 router.get(
   '/contacts/:id/events',
   [param('id').isUUID()],
-  handleValidationErrors,
+  validateRequest,
   requireContactAnalytics,
   auditAnalyticsMiddleware('view_contact_events'),
   getContactEventMetrics
@@ -143,7 +143,7 @@ router.get(
 router.get(
   '/contacts/:id/volunteer',
   [param('id').isUUID()],
-  handleValidationErrors,
+  validateRequest,
   requireContactAnalytics,
   auditAnalyticsMiddleware('view_volunteer_metrics'),
   getContactVolunteerMetrics
@@ -156,7 +156,7 @@ router.get(
 router.get(
   '/trends/donations',
   [query('months').optional().isInt({ min: 1, max: 24 })],
-  handleValidationErrors,
+  validateRequest,
   requireOrgAnalytics,
   auditAnalyticsMiddleware('view_donation_trends'),
   getDonationTrends
@@ -169,7 +169,7 @@ router.get(
 router.get(
   '/trends/volunteer-hours',
   [query('months').optional().isInt({ min: 1, max: 24 })],
-  handleValidationErrors,
+  validateRequest,
   requireOrgAnalytics,
   auditAnalyticsMiddleware('view_volunteer_trends'),
   getVolunteerHoursTrends
@@ -182,7 +182,7 @@ router.get(
 router.get(
   '/trends/event-attendance',
   [query('months').optional().isInt({ min: 1, max: 24 })],
-  handleValidationErrors,
+  validateRequest,
   requireOrgAnalytics,
   auditAnalyticsMiddleware('view_event_trends'),
   getEventAttendanceTrends
@@ -195,7 +195,7 @@ router.get(
 router.get(
   '/comparative',
   [query('period').optional().isIn(['month', 'quarter', 'year'])],
-  handleValidationErrors,
+  validateRequest,
   requireOrgAnalytics,
   auditAnalyticsMiddleware('view_comparative_analytics'),
   getComparativeAnalytics
@@ -212,7 +212,7 @@ router.get(
     param('metricType').isIn(['donations', 'volunteer_hours', 'event_attendance']),
     query('months').optional().isInt({ min: 1, max: 36 }),
   ],
-  handleValidationErrors,
+  validateRequest,
   requireOrgAnalytics,
   auditAnalyticsMiddleware('view_trend_analysis'),
   getTrendAnalysis
@@ -230,7 +230,7 @@ router.get(
     query('months').optional().isInt({ min: 3, max: 36 }),
     query('sensitivity').optional().isFloat({ min: 1.0, max: 4.0 }),
   ],
-  handleValidationErrors,
+  validateRequest,
   requireAnomalyAccess,
   auditAnalyticsMiddleware('view_anomaly_detection'),
   detectAnomalies

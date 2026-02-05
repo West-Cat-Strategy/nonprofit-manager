@@ -3,9 +3,11 @@
  * Barrel exports for all route modules
  */
 
-export { authRoutes, Setup, Login, AcceptInvitation } from './authRoutes';
+export { authRoutes } from './authRoutes';
+export { Setup, Login, AcceptInvitation } from './authRouteComponents';
+
+export { createPeopleRoutes } from './peopleRoutes';
 export {
-  createPeopleRoutes,
   AccountList,
   AccountDetail,
   AccountCreate,
@@ -20,9 +22,10 @@ export {
   VolunteerEdit,
   AssignmentCreate,
   AssignmentEdit,
-} from './peopleRoutes';
+} from './peopleRouteComponents';
+
+export { createEngagementRoutes } from './engagementRoutes';
 export {
-  createEngagementRoutes,
   EventList,
   EventDetail,
   EventCreate,
@@ -36,9 +39,10 @@ export {
   CaseDetail,
   CaseCreate,
   CaseEdit,
-} from './engagementRoutes';
+} from './engagementRouteComponents';
+
+export { createFinanceRoutes } from './financeRoutes';
 export {
-  createFinanceRoutes,
   DonationList,
   DonationDetail,
   DonationCreate,
@@ -46,16 +50,18 @@ export {
   DonationPayment,
   PaymentResult,
   ReconciliationDashboard,
-} from './financeRoutes';
+} from './financeRouteComponents';
+
+export { createAnalyticsRoutes } from './analyticsRoutes';
 export {
-  createAnalyticsRoutes,
   Analytics,
   CustomDashboard,
   ReportBuilder,
   SavedReports,
-} from './analyticsRoutes';
+} from './analyticsRouteComponents';
+
+export { createAdminRoutes } from './adminRoutes';
 export {
-  createAdminRoutes,
   AdminSettings,
   UserSettings,
   ApiSettings,
@@ -63,15 +69,17 @@ export {
   NavigationSettings,
   DataBackup,
   EmailMarketing,
-} from './adminRoutes';
+} from './adminRouteComponents';
+
+export { createBuilderRoutes } from './builderRoutes';
 export {
-  createBuilderRoutes,
   TemplateGallery,
   PageEditor,
   TemplatePreview,
-} from './builderRoutes';
+} from './builderRouteComponents';
+
+export { createPortalRoutes } from './portalRoutes';
 export {
-  createPortalRoutes,
   PortalLogin,
   PortalSignup,
   PortalAcceptInvitation,
@@ -84,9 +92,7 @@ export {
   PortalNotes,
   PortalForms,
   PortalReminders,
-} from './portalRoutes';
-export {
-  createWorkflowRoutes,
-  IntakeNew,
-  InteractionNote,
-} from './workflowRoutes';
+} from './portalRouteComponents';
+
+export { createWorkflowRoutes } from './workflowRoutes';
+export { IntakeNew, InteractionNote } from './workflowRouteComponents';

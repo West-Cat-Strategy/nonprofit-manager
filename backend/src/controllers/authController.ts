@@ -10,6 +10,7 @@ import { trackLoginAttempt } from '../middleware/accountLockout';
 import { JWT, PASSWORD } from '../config/constants';
 import { syncUserRole } from '../services/userRoleService';
 import { issueTotpMfaChallenge } from './mfaController';
+import { badRequest, conflict, notFoundMessage, unauthorized, validationErrorResponse } from '../utils/responseHelpers';
 
 interface RegisterRequest {
   email: string;
@@ -55,7 +56,7 @@ export const register = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return validationErrorResponse(res, errors);
     }
 
     const { email, password, firstName, lastName }: RegisterRequest = req.body;
@@ -65,7 +66,7 @@ export const register = async (
     const existingUser = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
 
     if (existingUser.rows.length > 0) {
-      return res.status(409).json({ error: 'User already exists' });
+      return conflict(res, 'User already exists');
     }
 
     // Hash password
@@ -123,7 +124,7 @@ export const login = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return validationErrorResponse(res, errors);
     }
 
     const { email, password }: LoginRequest = req.body;
@@ -138,7 +139,7 @@ export const login = async (
     if (result.rows.length === 0) {
       // Track failed attempt for non-existent user
       await trackLoginAttempt(email, false, undefined, clientIp);
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return unauthorized(res, 'Invalid credentials');
     }
 
     const user = result.rows[0];
@@ -151,7 +152,7 @@ export const login = async (
       // Track failed login attempt
       await trackLoginAttempt(email, false, user.id, clientIp);
       logger.warn(`Failed login attempt for user: ${email}`, { ip: clientIp });
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return unauthorized(res, 'Invalid credentials');
     }
 
     // If TOTP is enabled, require second factor before issuing tokens
@@ -231,7 +232,7 @@ export const getCurrentUser = async (
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return notFoundMessage(res, 'User not found');
     }
 
     const user = result.rows[0];
@@ -290,7 +291,7 @@ export const setupFirstUser = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return validationErrorResponse(res, errors);
     }
 
     // Check if any admin users exist
@@ -377,7 +378,7 @@ export const getPreferences = async (
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return notFoundMessage(res, 'User not found');
     }
 
     return res.json({
@@ -401,7 +402,7 @@ export const updatePreferences = async (
     const { preferences } = req.body;
 
     if (!preferences || typeof preferences !== 'object') {
-      return res.status(400).json({ error: 'Preferences must be an object' });
+      return badRequest(res, 'Preferences must be an object');
     }
 
     // Use jsonb_set to merge preferences rather than replace
@@ -415,7 +416,7 @@ export const updatePreferences = async (
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return notFoundMessage(res, 'User not found');
     }
 
     logger.info(`User preferences updated: ${req.user!.id}`);
@@ -442,7 +443,7 @@ export const updatePreferenceKey = async (
     const { value } = req.body;
 
     if (value === undefined) {
-      return res.status(400).json({ error: 'Value is required' });
+      return badRequest(res, 'Value is required');
     }
 
     // Update specific key in preferences
@@ -456,7 +457,7 @@ export const updatePreferenceKey = async (
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return notFoundMessage(res, 'User not found');
     }
 
     logger.info(`User preference '${key}' updated: ${req.user!.id}`);
@@ -525,7 +526,7 @@ export const getProfile = async (
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return notFoundMessage(res, 'User not found');
     }
 
     const user = result.rows[0];
@@ -575,7 +576,7 @@ export const updateProfile = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return validationErrorResponse(res, errors);
     }
 
     const {
@@ -602,7 +603,7 @@ export const updateProfile = async (
         [email, req.user!.id]
       );
       if (emailCheck.rows.length > 0) {
-        return res.status(409).json({ error: 'Email is already in use by another account' });
+        return conflict(res, 'Email is already in use by another account');
       }
     }
 
@@ -649,7 +650,7 @@ export const updateProfile = async (
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return notFoundMessage(res, 'User not found');
     }
 
     const user = result.rows[0];
@@ -701,7 +702,7 @@ export const changePassword = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return validationErrorResponse(res, errors);
     }
 
     const { currentPassword, newPassword } = req.body;
@@ -713,7 +714,7 @@ export const changePassword = async (
     );
 
     if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return notFoundMessage(res, 'User not found');
     }
 
     const user = userResult.rows[0];
@@ -721,7 +722,7 @@ export const changePassword = async (
     // Verify current password
     const isValidPassword = await bcrypt.compare(currentPassword, user.password_hash);
     if (!isValidPassword) {
-      return res.status(401).json({ error: 'Current password is incorrect' });
+      return unauthorized(res, 'Current password is incorrect');
     }
 
     // Hash new password

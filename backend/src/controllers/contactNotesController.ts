@@ -6,6 +6,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import * as contactNoteService from '../services/contactNoteService';
+import { notFoundMessage } from '../utils/responseHelpers';
 
 /**
  * GET /api/contacts/:contactId/notes
@@ -39,7 +40,7 @@ export const getContactNoteById = async (
     const note = await contactNoteService.getContactNoteById(noteId);
 
     if (!note) {
-      res.status(404).json({ error: 'Note not found' });
+      notFoundMessage(res, 'Note not found');
       return;
     }
 
@@ -82,7 +83,7 @@ export const updateContactNote = async (
     const note = await contactNoteService.updateContactNote(noteId, req.body);
 
     if (!note) {
-      res.status(404).json({ error: 'Note not found' });
+      notFoundMessage(res, 'Note not found');
       return;
     }
 
@@ -106,7 +107,7 @@ export const deleteContactNote = async (
     const success = await contactNoteService.deleteContactNote(noteId);
 
     if (!success) {
-      res.status(404).json({ error: 'Note not found' });
+      notFoundMessage(res, 'Note not found');
       return;
     }
 

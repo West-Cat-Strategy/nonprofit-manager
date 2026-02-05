@@ -3,14 +3,11 @@
  * Handles website builder pages
  */
 
-import { lazy } from 'react';
 import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
+import { TemplateGallery, PageEditor, TemplatePreview } from './builderRouteComponents';
 
 // Lazy load builder pages
-const TemplateGallery = lazy(() => import('../pages/builder/TemplateGallery'));
-const PageEditor = lazy(() => import('../pages/builder/PageEditor'));
-const TemplatePreview = lazy(() => import('../pages/builder/TemplatePreview'));
 
 interface RouteWrapperProps {
   children: ReactNode;
@@ -34,10 +31,3 @@ export function createBuilderRoutes(ProtectedRoute: React.ComponentType<RouteWra
     </>
   );
 }
-
-// Re-export lazy components for backwards compatibility
-export {
-  TemplateGallery,
-  PageEditor,
-  TemplatePreview,
-};

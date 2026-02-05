@@ -4,19 +4,17 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { ContactService } from '../services/contactService';
-import { ContactRoleService } from '../services/contactRoleService';
-import pool from '../config/database';
+import { services } from '../container/services';
 import { ContactFilters, PaginationParams } from '../types/contact';
 import { AuthRequest } from '../middleware/auth';
 import * as invitationService from '../services/invitationService';
 import { syncUserRole } from '../services/userRoleService';
-import { getString, getBoolean } from '../utils/queryHelpers';
+import { extractPagination, getString, getBoolean } from '../utils/queryHelpers';
 import { notFound } from '../utils/responseHelpers';
 import type { DataScopeFilter } from '../types/dataScope';
 
-const contactService = new ContactService(pool);
-const contactRoleService = new ContactRoleService(pool);
+const contactService = services.contact;
+const contactRoleService = services.contactRole;
 
 const STAFF_ROLE_MAP: Record<string, string> = {
   'Executive Director': 'admin',
@@ -37,7 +35,7 @@ const ensureStaffUserAccount = async (
   const targetRole = getStaffRoleForContact(roles);
   if (!targetRole) return null;
 
-  const contactResult = await pool.query(
+  const contactResult = await services.pool.query(
     'SELECT email, first_name, last_name FROM contacts WHERE id = $1',
     [contactId]
   );
@@ -47,19 +45,19 @@ const ensureStaffUserAccount = async (
     throw new Error('Staff roles require a contact email to create an account');
   }
 
-  const existingUser = await pool.query('SELECT id, role FROM users WHERE email = $1', [
+  const existingUser = await services.pool.query('SELECT id, role FROM users WHERE email = $1', [
     contact.email.toLowerCase(),
   ]);
 
   if (existingUser.rows.length > 0) {
     const user = existingUser.rows[0];
     if (user.role !== targetRole) {
-      await pool.query('UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2', [
+      await services.pool.query('UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2', [
         targetRole,
         user.id,
       ]);
     }
-    await syncUserRole(user.id, targetRole, pool);
+    await syncUserRole(user.id, targetRole, services.pool);
     return { role: targetRole };
   }
 
@@ -108,12 +106,7 @@ export const getContacts = async (
       is_active: getBoolean(req.query.is_active),
     };
 
-    const pagination: PaginationParams = {
-      page: getString(req.query.page) ? parseInt(req.query.page as string) : undefined,
-      limit: getString(req.query.limit) ? parseInt(req.query.limit as string) : undefined,
-      sort_by: getString(req.query.sort_by),
-      sort_order: getString(req.query.sort_order) as 'asc' | 'desc' | undefined,
-    };
+    const pagination: PaginationParams = extractPagination(req.query);
 
     const scope = req.dataScope?.filter as DataScopeFilter | undefined;
     const result = await contactService.getContacts(filters, pagination, scope);

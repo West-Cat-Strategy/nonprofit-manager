@@ -4,14 +4,14 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { AnalyticsService } from '../services/analyticsService';
-import pool from '../config/database';
+import { services } from '../container/services';
 import { AuthRequest } from '../middleware/auth';
 import type { AnalyticsFilters } from '../types/analytics';
 import { maskFinancialData } from '../middleware/analyticsAuth';
 import type { DataScopeFilter } from '../types/dataScope';
+import { badRequest, forbidden, notFoundMessage } from '../utils/responseHelpers';
 
-const analyticsService = new AnalyticsService(pool);
+const analyticsService = services.analytics;
 
 const denyIfScopedForOrgWide = (
   scope: DataScopeFilter | undefined,
@@ -23,7 +23,7 @@ const denyIfScopedForOrgWide = (
     (scope.contactIds && scope.contactIds.length > 0) ||
     (scope.createdByUserIds && scope.createdByUserIds.length > 0);
   if (hasScope) {
-    res.status(403).json({ error: 'Scoped access does not allow organization-wide analytics' });
+    forbidden(res, 'Scoped access does not allow organization-wide analytics');
     return true;
   }
   return false;
@@ -35,7 +35,7 @@ const denyIfAccountOutOfScope = (
   res: Response
 ): boolean => {
   if (scope?.accountIds && scope.accountIds.length > 0 && !scope.accountIds.includes(accountId)) {
-    res.status(404).json({ error: 'Account not found' });
+    notFoundMessage(res, 'Account not found');
     return true;
   }
   return false;
@@ -47,7 +47,7 @@ const denyIfContactOutOfScope = (
   res: Response
 ): boolean => {
   if (scope?.contactIds && scope.contactIds.length > 0 && !scope.contactIds.includes(contactId)) {
-    res.status(404).json({ error: 'Contact not found' });
+    notFoundMessage(res, 'Contact not found');
     return true;
   }
   return false;
@@ -73,7 +73,7 @@ export const getAccountAnalytics = async (
     res.json(maskedAnalytics);
   } catch (error) {
     if ((error as Error).message === 'Account not found') {
-      res.status(404).json({ error: 'Account not found' });
+      notFoundMessage(res, 'Account not found');
       return;
     }
     next(error);
@@ -100,7 +100,7 @@ export const getContactAnalytics = async (
     res.json(maskedAnalytics);
   } catch (error) {
     if ((error as Error).message === 'Contact not found') {
-      res.status(404).json({ error: 'Contact not found' });
+      notFoundMessage(res, 'Contact not found');
       return;
     }
     next(error);
@@ -244,7 +244,7 @@ export const getContactVolunteerMetrics = async (
     const metrics = await analyticsService.getVolunteerMetrics(id);
 
     if (!metrics) {
-      res.status(404).json({ error: 'Contact is not a volunteer' });
+      notFoundMessage(res, 'Contact is not a volunteer');
       return;
     }
 
@@ -339,7 +339,7 @@ export const getComparativeAnalytics = async (
 
     // Validate period type
     if (!['month', 'quarter', 'year'].includes(periodType)) {
-      res.status(400).json({ error: 'Invalid period type. Must be month, quarter, or year' });
+      badRequest(res, 'Invalid period type. Must be month, quarter, or year');
       return;
     }
 
@@ -369,12 +369,12 @@ export const getTrendAnalysis = async (
     const months = parseInt(req.query.months as string) || 12;
 
     if (!['donations', 'volunteer_hours', 'event_attendance'].includes(metricType)) {
-      res.status(400).json({ error: 'Invalid metric type. Must be donations, volunteer_hours, or event_attendance' });
+      badRequest(res, 'Invalid metric type. Must be donations, volunteer_hours, or event_attendance');
       return;
     }
 
     if (months < 1 || months > 36) {
-      res.status(400).json({ error: 'Months must be between 1 and 36' });
+      badRequest(res, 'Months must be between 1 and 36');
       return;
     }
 
@@ -404,17 +404,17 @@ export const detectAnomalies = async (
     const sensitivity = parseFloat(req.query.sensitivity as string) || 2.0;
 
     if (!['donations', 'volunteer_hours', 'event_attendance'].includes(metricType)) {
-      res.status(400).json({ error: 'Invalid metric type. Must be donations, volunteer_hours, or event_attendance' });
+      badRequest(res, 'Invalid metric type. Must be donations, volunteer_hours, or event_attendance');
       return;
     }
 
     if (months < 3 || months > 36) {
-      res.status(400).json({ error: 'Months must be between 3 and 36 for anomaly detection' });
+      badRequest(res, 'Months must be between 3 and 36 for anomaly detection');
       return;
     }
 
     if (sensitivity < 1.0 || sensitivity > 4.0) {
-      res.status(400).json({ error: 'Sensitivity must be between 1.0 (very sensitive) and 4.0 (less sensitive)' });
+      badRequest(res, 'Sensitivity must be between 1.0 (very sensitive) and 4.0 (less sensitive)');
       return;
     }
 

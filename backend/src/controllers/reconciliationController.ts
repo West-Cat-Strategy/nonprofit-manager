@@ -13,6 +13,7 @@ import type {
   ResolveDiscrepancyRequest,
 } from '../types/reconciliation';
 import pool from '../config/database';
+import { badRequest, notFoundMessage, serverError, serviceUnavailable } from '../utils/responseHelpers';
 
 /**
  * Create a new payment reconciliation
@@ -27,18 +28,18 @@ export const createReconciliation = async (req: AuthRequest, res: Response): Pro
     const endDate = new Date(request.end_date);
 
     if (startDate >= endDate) {
-      res.status(400).json({ error: 'Start date must be before end date' });
+      badRequest(res, 'Start date must be before end date');
       return;
     }
 
     if (endDate > new Date()) {
-      res.status(400).json({ error: 'End date cannot be in the future' });
+      badRequest(res, 'End date cannot be in the future');
       return;
     }
 
     // Check if Stripe is configured
     if (!reconciliationService.isStripeConfigured()) {
-      res.status(503).json({ error: 'Stripe is not configured' });
+      serviceUnavailable(res, 'Stripe is not configured');
       return;
     }
 
@@ -54,7 +55,7 @@ export const createReconciliation = async (req: AuthRequest, res: Response): Pro
     res.status(201).json(reconciliation);
   } catch (error) {
     logger.error('Error creating reconciliation:', error);
-    res.status(500).json({ error: 'Failed to create reconciliation' });
+    serverError(res, 'Failed to create reconciliation');
   }
 };
 
@@ -126,7 +127,7 @@ export const getReconciliations = async (req: Request, res: Response): Promise<v
     });
   } catch (error) {
     logger.error('Error fetching reconciliations:', error);
-    res.status(500).json({ error: 'Failed to fetch reconciliations' });
+    serverError(res, 'Failed to fetch reconciliations');
   }
 };
 
@@ -149,11 +150,11 @@ export const getReconciliationById = async (
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Reconciliation not found') {
-      res.status(404).json({ error: 'Reconciliation not found' });
+      notFoundMessage(res, 'Reconciliation not found');
       return;
     }
     logger.error('Error fetching reconciliation:', error);
-    res.status(500).json({ error: 'Failed to fetch reconciliation' });
+    serverError(res, 'Failed to fetch reconciliation');
   }
 };
 
@@ -185,7 +186,7 @@ export const getReconciliationItems = async (
     });
   } catch (error) {
     logger.error('Error fetching reconciliation items:', error);
-    res.status(500).json({ error: 'Failed to fetch reconciliation items' });
+    serverError(res, 'Failed to fetch reconciliation items');
   }
 };
 
@@ -204,7 +205,7 @@ export const getReconciliationDiscrepancies = async (
     res.json({ discrepancies });
   } catch (error) {
     logger.error('Error fetching discrepancies:', error);
-    res.status(500).json({ error: 'Failed to fetch discrepancies' });
+    serverError(res, 'Failed to fetch discrepancies');
   }
 };
 
@@ -282,7 +283,7 @@ export const getAllDiscrepancies = async (req: Request, res: Response): Promise<
     });
   } catch (error) {
     logger.error('Error fetching all discrepancies:', error);
-    res.status(500).json({ error: 'Failed to fetch discrepancies' });
+    serverError(res, 'Failed to fetch discrepancies');
   }
 };
 
@@ -295,7 +296,7 @@ export const manualMatch = async (req: AuthRequest, res: Response): Promise<void
     const userId = req.user?.id;
 
     if (!donation_id || !stripe_payment_intent_id) {
-      res.status(400).json({ error: 'donation_id and stripe_payment_intent_id are required' });
+      badRequest(res, 'donation_id and stripe_payment_intent_id are required');
       return;
     }
 
@@ -310,7 +311,7 @@ export const manualMatch = async (req: AuthRequest, res: Response): Promise<void
     res.json({ success: true, message: 'Transaction matched successfully' });
   } catch (error) {
     logger.error('Error matching transaction:', error);
-    res.status(500).json({ error: 'Failed to match transaction' });
+    serverError(res, 'Failed to match transaction');
   }
 };
 
@@ -324,12 +325,12 @@ export const resolveDiscrepancy = async (req: AuthRequest, res: Response): Promi
     const userId = req.user?.id;
 
     if (!resolution_notes || !status) {
-      res.status(400).json({ error: 'resolution_notes and status are required' });
+      badRequest(res, 'resolution_notes and status are required');
       return;
     }
 
     if (!['resolved', 'closed', 'ignored'].includes(status)) {
-      res.status(400).json({ error: 'Invalid status. Must be resolved, closed, or ignored' });
+      badRequest(res, 'Invalid status. Must be resolved, closed, or ignored');
       return;
     }
 
@@ -344,7 +345,7 @@ export const resolveDiscrepancy = async (req: AuthRequest, res: Response): Promi
     res.json({ success: true, message: 'Discrepancy resolved successfully' });
   } catch (error) {
     logger.error('Error resolving discrepancy:', error);
-    res.status(500).json({ error: 'Failed to resolve discrepancy' });
+    serverError(res, 'Failed to resolve discrepancy');
   }
 };
 
@@ -399,7 +400,7 @@ export const getReconciliationDashboard = async (_req: Request, res: Response): 
     });
   } catch (error) {
     logger.error('Error fetching reconciliation dashboard:', error);
-    res.status(500).json({ error: 'Failed to fetch dashboard data' });
+    serverError(res, 'Failed to fetch dashboard data');
   }
 };
 
@@ -412,7 +413,7 @@ export const assignDiscrepancy = async (req: AuthRequest, res: Response): Promis
     const { assigned_to, due_date } = req.body;
 
     if (!assigned_to) {
-      res.status(400).json({ error: 'assigned_to is required' });
+      badRequest(res, 'assigned_to is required');
       return;
     }
 
@@ -433,6 +434,6 @@ export const assignDiscrepancy = async (req: AuthRequest, res: Response): Promis
     res.json({ success: true, message: 'Discrepancy assigned successfully' });
   } catch (error) {
     logger.error('Error assigning discrepancy:', error);
-    res.status(500).json({ error: 'Failed to assign discrepancy' });
+    serverError(res, 'Failed to assign discrepancy');
   }
 };

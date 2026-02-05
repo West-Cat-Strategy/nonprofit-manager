@@ -4,7 +4,7 @@
  */
 
 import { Response, NextFunction } from 'express';
-import donationService from '../services/donationService';
+import { services } from '../container/services';
 import {
   CreateDonationDTO,
   PaymentMethod,
@@ -12,9 +12,11 @@ import {
   UpdateDonationDTO,
 } from '../types/donation';
 import { AuthRequest } from '../middleware/auth';
-import { getString, getNumber, getBoolean } from '../utils/queryHelpers';
+import { extractPagination, getString, getNumber, getBoolean } from '../utils/queryHelpers';
 import { notFound } from '../utils/responseHelpers';
 import type { DataScopeFilter } from '../types/dataScope';
+
+const donationService = services.donation;
 
 export class DonationController {
   /**
@@ -36,12 +38,7 @@ export class DonationController {
         end_date: getString(req.query.end_date),
       };
 
-      const pagination = {
-        page: getString(req.query.page) ? parseInt(req.query.page as string) : 1,
-        limit: getString(req.query.limit) ? parseInt(req.query.limit as string) : 20,
-        sort_by: getString(req.query.sort_by),
-        sort_order: getString(req.query.sort_order) as 'asc' | 'desc' | undefined,
-      };
+      const pagination = extractPagination(req.query);
 
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const result = await donationService.getDonations(filters, pagination, scope);

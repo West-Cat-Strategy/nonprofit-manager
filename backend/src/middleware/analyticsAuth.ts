@@ -7,6 +7,7 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from './auth';
 import { logger } from '../config/logger';
 import pool from '../config/database';
+import { forbidden, unauthorized } from '../utils/responseHelpers';
 
 /**
  * Analytics access levels by role
@@ -102,7 +103,7 @@ export const requireOrgAnalytics = (
   next: NextFunction
 ): Response | void => {
   if (!req.user) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return unauthorized(res, 'Unauthorized');
   }
 
   if (!hasAnalyticsPermission(req.user.role, 'canViewOrgAnalytics')) {
@@ -111,7 +112,7 @@ export const requireOrgAnalytics = (
       role: req.user.role,
       endpoint: req.path,
     });
-    return res.status(403).json({ error: 'Forbidden: Insufficient permissions for organizational analytics' });
+    return forbidden(res, 'Forbidden: Insufficient permissions for organizational analytics');
   }
 
   next();
@@ -126,7 +127,7 @@ export const requireAccountAnalytics = (
   next: NextFunction
 ): Response | void => {
   if (!req.user) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return unauthorized(res, 'Unauthorized');
   }
 
   if (!hasAnalyticsPermission(req.user.role, 'canViewAccountAnalytics')) {
@@ -135,7 +136,7 @@ export const requireAccountAnalytics = (
       role: req.user.role,
       accountId: req.params.id,
     });
-    return res.status(403).json({ error: 'Forbidden: Insufficient permissions for account analytics' });
+    return forbidden(res, 'Forbidden: Insufficient permissions for account analytics');
   }
 
   next();
@@ -150,7 +151,7 @@ export const requireContactAnalytics = (
   next: NextFunction
 ): Response | void => {
   if (!req.user) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return unauthorized(res, 'Unauthorized');
   }
 
   if (!hasAnalyticsPermission(req.user.role, 'canViewContactAnalytics')) {
@@ -159,7 +160,7 @@ export const requireContactAnalytics = (
       role: req.user.role,
       contactId: req.params.id,
     });
-    return res.status(403).json({ error: 'Forbidden: Insufficient permissions for contact analytics' });
+    return forbidden(res, 'Forbidden: Insufficient permissions for contact analytics');
   }
 
   next();
@@ -174,7 +175,7 @@ export const requireExportPermission = (
   next: NextFunction
 ): Response | void => {
   if (!req.user) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return unauthorized(res, 'Unauthorized');
   }
 
   if (!hasAnalyticsPermission(req.user.role, 'canExportData')) {
@@ -183,7 +184,7 @@ export const requireExportPermission = (
       role: req.user.role,
       endpoint: req.path,
     });
-    return res.status(403).json({ error: 'Forbidden: Insufficient permissions for data export' });
+    return forbidden(res, 'Forbidden: Insufficient permissions for data export');
   }
 
   next();
@@ -198,7 +199,7 @@ export const requireAnomalyAccess = (
   next: NextFunction
 ): Response | void => {
   if (!req.user) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return unauthorized(res, 'Unauthorized');
   }
 
   if (!hasAnalyticsPermission(req.user.role, 'canViewAnomalies')) {
@@ -206,7 +207,7 @@ export const requireAnomalyAccess = (
       userId: req.user.id,
       role: req.user.role,
     });
-    return res.status(403).json({ error: 'Forbidden: Insufficient permissions for anomaly detection' });
+    return forbidden(res, 'Forbidden: Insufficient permissions for anomaly detection');
   }
 
   next();

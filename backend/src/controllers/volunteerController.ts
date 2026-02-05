@@ -4,8 +4,7 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { VolunteerService } from '../services/volunteerService';
-import pool from '../config/database';
+import { services } from '../container/services';
 import {
   AssignmentFilters,
   AvailabilityStatus,
@@ -14,11 +13,11 @@ import {
   VolunteerFilters,
 } from '../types/volunteer';
 import { AuthRequest } from '../middleware/auth';
-import { getString, getBoolean } from '../utils/queryHelpers';
+import { extractPagination, getString, getBoolean } from '../utils/queryHelpers';
 import { notFound, badRequest } from '../utils/responseHelpers';
 import type { DataScopeFilter } from '../types/dataScope';
 
-const volunteerService = new VolunteerService(pool);
+const volunteerService = services.volunteer;
 
 /**
  * GET /api/volunteers
@@ -41,12 +40,7 @@ export const getVolunteers = async (
       is_active: getBoolean(req.query.is_active),
     };
 
-    const pagination: PaginationParams = {
-      page: getString(req.query.page) ? parseInt(req.query.page as string) : undefined,
-      limit: getString(req.query.limit) ? parseInt(req.query.limit as string) : undefined,
-      sort_by: getString(req.query.sort_by),
-      sort_order: getString(req.query.sort_order) as 'asc' | 'desc' | undefined,
-    };
+    const pagination: PaginationParams = extractPagination(req.query);
 
     const scope = req.dataScope?.filter as DataScopeFilter | undefined;
     const result = await volunteerService.getVolunteers(filters, pagination, scope);

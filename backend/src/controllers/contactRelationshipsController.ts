@@ -6,6 +6,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import * as contactRelationshipService from '../services/contactRelationshipService';
+import { conflict, notFoundMessage } from '../utils/responseHelpers';
 
 /**
  * GET /api/contacts/:contactId/relationships
@@ -39,7 +40,7 @@ export const getContactRelationshipById = async (
     const relationship = await contactRelationshipService.getContactRelationshipById(relationshipId);
 
     if (!relationship) {
-      res.status(404).json({ error: 'Relationship not found' });
+      notFoundMessage(res, 'Relationship not found');
       return;
     }
 
@@ -65,11 +66,11 @@ export const createContactRelationship = async (
     res.status(201).json(relationship);
   } catch (error: any) {
     if (error.message.includes('already exists')) {
-      res.status(409).json({ error: error.message });
+      conflict(res, error.message);
       return;
     }
     if (error.message.includes('not found')) {
-      res.status(404).json({ error: error.message });
+      notFoundMessage(res, error.message);
       return;
     }
     next(error);
@@ -91,7 +92,7 @@ export const updateContactRelationship = async (
     const relationship = await contactRelationshipService.updateContactRelationship(relationshipId, req.body, userId);
 
     if (!relationship) {
-      res.status(404).json({ error: 'Relationship not found' });
+      notFoundMessage(res, 'Relationship not found');
       return;
     }
 
@@ -115,7 +116,7 @@ export const deleteContactRelationship = async (
     const success = await contactRelationshipService.deleteContactRelationship(relationshipId);
 
     if (!success) {
-      res.status(404).json({ error: 'Relationship not found' });
+      notFoundMessage(res, 'Relationship not found');
       return;
     }
 

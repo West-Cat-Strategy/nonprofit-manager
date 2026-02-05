@@ -3,25 +3,19 @@
  * Handles accounts, contacts, and volunteers
  */
 
-import { lazy } from 'react';
 import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
+import { AccountList, AccountDetail, AccountCreate, AccountEdit, ContactList, ContactDetail, ContactCreate, ContactEdit, VolunteerList, VolunteerDetail, VolunteerCreate, VolunteerEdit, AssignmentCreate, AssignmentEdit } from './peopleRouteComponents';
 
 // Lazy load account pages
-const AccountList = lazy(() => import('../pages/people/accounts/AccountList'));
-const AccountDetail = lazy(() => import('../pages/people/accounts/AccountDetail'));
 const AccountCreate = lazy(() => import('../pages/people/accounts/AccountCreate').then(m => ({ default: m.AccountCreate })));
 const AccountEdit = lazy(() => import('../pages/people/accounts/AccountEdit').then(m => ({ default: m.AccountEdit })));
 
 // Lazy load contact pages
-const ContactList = lazy(() => import('../pages/people/contacts/ContactList'));
-const ContactDetail = lazy(() => import('../pages/people/contacts/ContactDetail'));
 const ContactCreate = lazy(() => import('../pages/people/contacts/ContactCreate').then(m => ({ default: m.ContactCreate })));
 const ContactEdit = lazy(() => import('../pages/people/contacts/ContactEdit').then(m => ({ default: m.ContactEdit })));
 
 // Lazy load volunteer pages
-const VolunteerList = lazy(() => import('../pages/people/volunteers/VolunteerList'));
-const VolunteerDetail = lazy(() => import('../pages/people/volunteers/VolunteerDetail'));
 const VolunteerCreate = lazy(() => import('../pages/people/volunteers/VolunteerCreate').then(m => ({ default: m.VolunteerCreate })));
 const VolunteerEdit = lazy(() => import('../pages/people/volunteers/VolunteerEdit').then(m => ({ default: m.VolunteerEdit })));
 const AssignmentCreate = lazy(() => import('../pages/people/volunteers/AssignmentCreate').then(m => ({ default: m.AssignmentCreate })));
@@ -98,21 +92,3 @@ export function createPeopleRoutes(ProtectedRoute: React.ComponentType<RouteWrap
     </>
   );
 }
-
-// Re-export lazy components for backwards compatibility
-export {
-  AccountList,
-  AccountDetail,
-  AccountCreate,
-  AccountEdit,
-  ContactList,
-  ContactDetail,
-  ContactCreate,
-  ContactEdit,
-  VolunteerList,
-  VolunteerDetail,
-  VolunteerCreate,
-  VolunteerEdit,
-  AssignmentCreate,
-  AssignmentEdit,
-};

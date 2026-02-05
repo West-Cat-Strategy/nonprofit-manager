@@ -1,9 +1,9 @@
 import { Response, NextFunction } from 'express';
-import { BackupService } from '../services/backupService';
+import { services } from '../container/services';
 import { AuthRequest } from '../middleware/auth';
 import { logger } from '../config/logger';
 
-const backupService = new BackupService();
+const backupService = services.backup;
 
 /**
  * POST /api/backup/export

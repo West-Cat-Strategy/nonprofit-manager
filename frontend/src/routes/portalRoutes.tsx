@@ -3,9 +3,9 @@
  * Handles client portal pages
  */
 
-import { lazy } from 'react';
 import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
+import { PortalLogin, PortalSignup, PortalAcceptInvitation, PortalDashboard, PortalProfile, PortalPeople, PortalEvents, PortalAppointments, PortalDocuments, PortalNotes, PortalForms, PortalReminders } from './portalRouteComponents';
 
 // Lazy load portal pages (remain in pages/portal directory)
 const PortalLogin = lazy(() => import('../pages/PortalLogin'));
@@ -73,19 +73,3 @@ export function createPortalRoutes(PortalProtectedRoute: React.ComponentType<Rou
     </>
   );
 }
-
-// Re-export lazy components for backwards compatibility
-export {
-  PortalLogin,
-  PortalSignup,
-  PortalAcceptInvitation,
-  PortalDashboard,
-  PortalProfile,
-  PortalPeople,
-  PortalEvents,
-  PortalAppointments,
-  PortalDocuments,
-  PortalNotes,
-  PortalForms,
-  PortalReminders,
-};

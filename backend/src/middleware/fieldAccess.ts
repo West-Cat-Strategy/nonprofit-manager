@@ -7,6 +7,7 @@ import { Request, Response, NextFunction } from 'express';
 import pool from '../config/database';
 import { logger } from '../config/logger';
 import { maskData, maskEmail, maskPhone, decrypt, isEncrypted } from '../utils/encryption';
+import { serverError, unauthorized } from '../utils/responseHelpers';
 
 // Extended request type with user info
 interface AuthRequest extends Request {
@@ -252,7 +253,7 @@ export function checkFieldWriteAccess(resource: string, fields: string[]) {
       }
 
       if (!userId) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        return unauthorized(res, 'Unauthorized');
       }
 
       const rules = await getFieldAccessRules(userId, resource);
@@ -282,7 +283,7 @@ export function checkFieldWriteAccess(resource: string, fields: string[]) {
       next();
     } catch (error) {
       logger.error('Error checking field write access', { error, resource });
-      return res.status(500).json({ error: 'Internal server error' });
+      return serverError(res, 'Internal server error');
     }
   };
 }
@@ -304,7 +305,7 @@ export function requirePermission(permissionName: string) {
       }
 
       if (!userId) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        return unauthorized(res, 'Unauthorized');
       }
 
       const permitted = await hasPermission(userId, permissionName);
@@ -320,7 +321,7 @@ export function requirePermission(permissionName: string) {
       next();
     } catch (error) {
       logger.error('Error checking permission', { error, permissionName });
-      return res.status(500).json({ error: 'Internal server error' });
+      return serverError(res, 'Internal server error');
     }
   };
 }

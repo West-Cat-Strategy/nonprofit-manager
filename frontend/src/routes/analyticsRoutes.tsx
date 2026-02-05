@@ -3,15 +3,11 @@
  * Handles analytics, reports, and custom dashboards
  */
 
-import { lazy } from 'react';
 import type { ReactNode } from 'react';
 import { Route, Navigate } from 'react-router-dom';
+import { Analytics, CustomDashboard, ReportBuilder, SavedReports } from './analyticsRouteComponents';
 
 // Lazy load analytics pages
-const Analytics = lazy(() => import('../pages/analytics/Analytics'));
-const CustomDashboard = lazy(() => import('../pages/analytics/CustomDashboard'));
-const ReportBuilder = lazy(() => import('../pages/analytics/ReportBuilder'));
-const SavedReports = lazy(() => import('../pages/analytics/SavedReports'));
 
 interface RouteWrapperProps {
   children: ReactNode;
@@ -43,11 +39,3 @@ export function createAnalyticsRoutes(ProtectedRoute: React.ComponentType<RouteW
     </>
   );
 }
-
-// Re-export lazy components for backwards compatibility
-export {
-  Analytics,
-  CustomDashboard,
-  ReportBuilder,
-  SavedReports,
-};

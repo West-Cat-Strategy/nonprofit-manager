@@ -6,6 +6,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import * as contactEmailService from '../services/contactEmailService';
+import { conflict, notFoundMessage } from '../utils/responseHelpers';
 
 /**
  * GET /api/contacts/:contactId/emails
@@ -39,7 +40,7 @@ export const getContactEmailById = async (
     const email = await contactEmailService.getContactEmailById(emailId);
 
     if (!email) {
-      res.status(404).json({ error: 'Email address not found' });
+      notFoundMessage(res, 'Email address not found');
       return;
     }
 
@@ -65,7 +66,7 @@ export const createContactEmail = async (
     res.status(201).json(email);
   } catch (error: any) {
     if (error.message.includes('already exists')) {
-      res.status(409).json({ error: error.message });
+      conflict(res, error.message);
       return;
     }
     next(error);
@@ -87,14 +88,14 @@ export const updateContactEmail = async (
     const email = await contactEmailService.updateContactEmail(emailId, req.body, userId);
 
     if (!email) {
-      res.status(404).json({ error: 'Email address not found' });
+      notFoundMessage(res, 'Email address not found');
       return;
     }
 
     res.json(email);
   } catch (error: any) {
     if (error.message.includes('already exists')) {
-      res.status(409).json({ error: error.message });
+      conflict(res, error.message);
       return;
     }
     next(error);
@@ -115,7 +116,7 @@ export const deleteContactEmail = async (
     const success = await contactEmailService.deleteContactEmail(emailId);
 
     if (!success) {
-      res.status(404).json({ error: 'Email address not found' });
+      notFoundMessage(res, 'Email address not found');
       return;
     }
 

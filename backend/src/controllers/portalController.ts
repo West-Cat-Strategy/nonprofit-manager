@@ -3,6 +3,7 @@ import pool from '../config/database';
 import { PortalAuthRequest } from '../middleware/portalAuth';
 import { logger } from '../config/logger';
 import { logPortalActivity } from '../services/portalActivityService';
+import { badRequest, conflict, notFoundMessage } from '../utils/responseHelpers';
 
 const getPortalContactId = (req: PortalAuthRequest): string => {
   if (!req.portalUser?.contactId) {
@@ -41,7 +42,7 @@ export const getPortalProfile = async (
     );
 
     if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Contact not found' });
+      notFoundMessage(res, 'Contact not found');
       return;
     }
 
@@ -87,7 +88,7 @@ export const updatePortalProfile = async (
     });
 
     if (fields.length === 0) {
-      res.status(400).json({ error: 'No valid fields provided' });
+      badRequest(res, 'No valid fields provided');
       return;
     }
 
@@ -103,7 +104,7 @@ export const updatePortalProfile = async (
     );
 
     if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Contact not found' });
+      notFoundMessage(res, 'Contact not found');
       return;
     }
 
@@ -185,7 +186,7 @@ export const createPortalRelationship = async (
     }
 
     if (!relatedContactId) {
-      res.status(400).json({ error: 'Related contact is required' });
+      badRequest(res, 'Related contact is required');
       return;
     }
 
@@ -249,7 +250,7 @@ export const updatePortalRelationship = async (
     }
 
     if (fields.length === 0) {
-      res.status(400).json({ error: 'No updates provided' });
+      badRequest(res, 'No updates provided');
       return;
     }
 
@@ -264,7 +265,7 @@ export const updatePortalRelationship = async (
     );
 
     if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Relationship not found' });
+      notFoundMessage(res, 'Relationship not found');
       return;
     }
 
@@ -299,7 +300,7 @@ export const deletePortalRelationship = async (
     );
 
     if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Relationship not found' });
+      notFoundMessage(res, 'Relationship not found');
       return;
     }
 
@@ -370,7 +371,7 @@ export const registerPortalEvent = async (
     res.status(201).json(registration.rows[0]);
   } catch (error: any) {
     if (error.code === '23505') {
-      res.status(409).json({ error: 'Already registered for this event' });
+      conflict(res, 'Already registered for this event');
       return;
     }
     next(error);
@@ -394,7 +395,7 @@ export const cancelPortalEventRegistration = async (
     );
 
     if (registration.rows.length === 0) {
-      res.status(404).json({ error: 'Registration not found' });
+      notFoundMessage(res, 'Registration not found');
       return;
     }
 
@@ -446,7 +447,7 @@ export const createPortalAppointment = async (
     const { title, description, start_time, end_time, location } = req.body;
 
     if (!title || !start_time) {
-      res.status(400).json({ error: 'Title and start time are required' });
+      badRequest(res, 'Title and start time are required');
       return;
     }
 
@@ -490,7 +491,7 @@ export const cancelPortalAppointment = async (
     );
 
     if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Appointment not found' });
+      notFoundMessage(res, 'Appointment not found');
       return;
     }
 
@@ -635,7 +636,7 @@ export const downloadPortalDocument = async (
     );
 
     if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Document not found' });
+      notFoundMessage(res, 'Document not found');
       return;
     }
 
