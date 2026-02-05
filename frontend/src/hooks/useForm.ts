@@ -3,7 +3,7 @@
  * Consolidates common form patterns: state, errors, validation, submission
  */
 
-import { useState, useCallback, ChangeEvent } from 'react';
+import { useState, useCallback, type ChangeEvent } from 'react';
 
 export type FormErrors<T> = Partial<Record<keyof T | 'submit', string>>;
 

@@ -9,6 +9,7 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchEvents } from '../../../store/slices/eventsSlice';
 import type { Event, EventStatus, EventType } from '../../../types/event';
 import { formatDateTime } from '../../../utils/format';
+import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 
 const EventList: React.FC = () => {
   const navigate = useNavigate();
@@ -83,12 +84,13 @@ const EventList: React.FC = () => {
   };
 
   return (
+    <NeoBrutalistLayout pageTitle="EVENTS">
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Events</h1>
+        <h1 className="text-3xl font-black text-[var(--app-text)]">Events</h1>
         <button
           onClick={() => navigate('/events/new')}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="px-4 py-2 bg-[var(--loop-purple)] text-black border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_var(--shadow-color)] transition-all font-bold uppercase"
         >
           Create Event
         </button>
@@ -104,7 +106,7 @@ const EventList: React.FC = () => {
             setSearch(e.target.value);
             setCurrentPage(1);
           }}
-          className="px-4 py-2 border rounded-md"
+          className="px-4 py-2 border-2 border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] shadow-[2px_2px_0px_0px_var(--shadow-color)] focus:outline-none focus:ring-2 focus:ring-[var(--app-border)]"
         />
 
         <select
@@ -113,7 +115,7 @@ const EventList: React.FC = () => {
             setEventType(e.target.value as EventType | '');
             setCurrentPage(1);
           }}
-          className="px-4 py-2 border rounded-md"
+          className="px-4 py-2 border-2 border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] shadow-[2px_2px_0px_0px_var(--shadow-color)] focus:outline-none focus:ring-2 focus:ring-[var(--app-border)]"
         >
           <option value="">All Types</option>
           <option value="fundraiser">Fundraiser</option>
@@ -131,7 +133,7 @@ const EventList: React.FC = () => {
             setStatus(e.target.value as EventStatus | '');
             setCurrentPage(1);
           }}
-          className="px-4 py-2 border rounded-md"
+          className="px-4 py-2 border-2 border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] shadow-[2px_2px_0px_0px_var(--shadow-color)] focus:outline-none focus:ring-2 focus:ring-[var(--app-border)]"
         >
           <option value="">All Statuses</option>
           <option value="planned">Planned</option>
@@ -142,90 +144,90 @@ const EventList: React.FC = () => {
         </select>
       </div>
 
-      {error && <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-md">{error}</div>}
+      {error && <div className="mb-4 p-4 bg-red-100 border-2 border-red-500 text-red-700 shadow-[4px_4px_0px_0px_var(--shadow-color)]">{error}</div>}
 
       {loading ? (
-        <div className="text-center py-12">Loading events...</div>
+        <div className="text-center py-12 text-[var(--app-text)]">Loading events...</div>
       ) : events.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
+        <div className="text-center py-12 text-[var(--app-text-muted)]">
           No events found. Create your first event to get started.
         </div>
       ) : (
         <>
-          <div className="bg-white shadow-md rounded-lg overflow-hidden">
+          <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-[var(--app-border)]">
+              <thead className="bg-[var(--app-surface-muted)]">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
                     Event
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
                     Type
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
                     Date & Time
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
                     Location
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
                     Capacity
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-[var(--app-surface)] divide-y divide-[var(--app-border)]">
                 {events.map((event) => (
-                  <tr key={event.event_id} className="hover:bg-gray-50">
+                  <tr key={event.event_id} className="hover:bg-[var(--app-surface-muted)]">
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{event.event_name}</div>
+                      <div className="text-sm font-medium text-[var(--app-text)]">{event.event_name}</div>
                       {event.description && (
-                        <div className="text-sm text-gray-500 truncate max-w-xs">
+                        <div className="text-sm text-[var(--app-text-muted)] truncate max-w-xs">
                           {event.description}
                         </div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`px-2 py-1 text-xs font-semibold rounded-full ${getTypeBadge(event.event_type)}`}
+                        className={`px-2 py-1 text-xs font-semibold border-2 border-black ${getTypeBadge(event.event_type)}`}
                       >
                         {event.event_type}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--app-text)]">
                       <div>{formatDateTime(event.start_date)}</div>
                       {event.end_date && event.end_date !== event.start_date && (
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-[var(--app-text-muted)]">
                           to {formatDateTime(event.end_date)}
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td className="px-6 py-4 text-sm text-[var(--app-text)]">
                       {event.location_name ? (
                         <div>
                           <div className="font-medium">{event.location_name}</div>
                           {event.city && event.state_province && (
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-[var(--app-text-muted)]">
                               {event.city}, {event.state_province}
                             </div>
                           )}
                         </div>
                       ) : (
-                        <span className="text-gray-400">TBD</span>
+                        <span className="text-[var(--app-text-subtle)]">TBD</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {getCapacityStatus(event) || <span className="text-gray-400">Unlimited</span>}
+                      {getCapacityStatus(event) || <span className="text-[var(--app-text-subtle)]">Unlimited</span>}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadge(event.status)}`}
+                        className={`px-2 py-1 text-xs font-semibold border-2 border-black ${getStatusBadge(event.status)}`}
                       >
                         {event.status}
                       </span>
@@ -233,13 +235,13 @@ const EventList: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
                         onClick={() => navigate(`/events/${event.event_id}`)}
-                        className="text-blue-600 hover:text-blue-900 mr-4"
+                        className="text-[var(--app-accent-text)] hover:text-[var(--app-accent-text-hover)] mr-4 font-bold"
                       >
                         View
                       </button>
                       <button
                         onClick={() => navigate(`/events/${event.event_id}/edit`)}
-                        className="text-indigo-600 hover:text-indigo-900"
+                        className="text-[var(--app-accent-text)] hover:text-[var(--app-accent-text-hover)] font-bold"
                       >
                         Edit
                       </button>
@@ -254,7 +256,7 @@ const EventList: React.FC = () => {
           {/* Pagination */}
           {pagination.total_pages > 1 && (
             <div className="mt-6 flex justify-between items-center">
-              <div className="text-sm text-gray-700">
+              <div className="text-sm text-[var(--app-text-muted)]">
                 Showing page {pagination.page} of {pagination.total_pages} ({pagination.total} total
                 events)
               </div>
@@ -262,14 +264,14 @@ const EventList: React.FC = () => {
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="px-4 py-2 border-2 border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] shadow-[2px_2px_0px_0px_var(--shadow-color)] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--app-surface-muted)] font-bold"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(pagination.total_pages, p + 1))}
                   disabled={currentPage === pagination.total_pages}
-                  className="px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="px-4 py-2 border-2 border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] shadow-[2px_2px_0px_0px_var(--shadow-color)] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--app-surface-muted)] font-bold"
                 >
                   Next
                 </button>
@@ -279,6 +281,7 @@ const EventList: React.FC = () => {
         </>
       )}
     </div>
+    </NeoBrutalistLayout>
   );
 };
 

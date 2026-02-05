@@ -57,7 +57,10 @@ const initialState: DonationsState = {
 export const fetchDonations = createAsyncThunk(
   'donations/fetchDonations',
   async (params: { filters?: DonationFilters; pagination?: PaginationParams }) => {
-    const queryParams = buildQueryParams(params.filters, params.pagination);
+    const queryParams = buildQueryParams(
+      params.filters as Record<string, unknown> | undefined,
+      params.pagination as Record<string, unknown> | undefined
+    );
     const response = await api.get<PaginatedDonations>(`/donations?${queryParams.toString()}`);
     return response.data;
   }
@@ -106,7 +109,7 @@ export const markReceiptSent = createAsyncThunk(
 export const fetchDonationSummary = createAsyncThunk(
   'donations/fetchDonationSummary',
   async (filters?: DonationFilters) => {
-    const queryParams = buildQueryParams(filters);
+    const queryParams = buildQueryParams(filters as Record<string, unknown> | undefined);
     const response = await api.get<DonationSummary>(`/donations/summary?${queryParams.toString()}`);
     return response.data;
   }
