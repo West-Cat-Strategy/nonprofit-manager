@@ -7,6 +7,7 @@ import {
   deleteContactNote,
 } from '../store/slices/contactsSlice';
 import { fetchCases, selectCasesByContact } from '../store/slices/casesSlice';
+import { useToast } from '../contexts/useToast';
 import type { CreateContactNoteDTO, ContactNoteType } from '../types/contact';
 import { NOTE_TYPES } from '../types/contact';
 
@@ -18,6 +19,7 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
   const dispatch = useAppDispatch();
   const { contactNotes, notesLoading } = useAppSelector((state) => state.contacts);
   const contactCases = useAppSelector((state) => selectCasesByContact(state, contactId));
+  const { showSuccess, showError } = useToast();
 
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [newNote, setNewNote] = useState<CreateContactNoteDTO>({
@@ -40,7 +42,7 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
     e.preventDefault();
 
     if (!newNote.content?.trim()) {
-      alert('Please enter note content');
+      showError('Please enter note content');
       return;
     }
 
@@ -52,6 +54,7 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
         })
       ).unwrap();
 
+      showSuccess('Note added successfully');
       // Reset form
       setNewNote({
         note_type: 'note',
@@ -65,6 +68,7 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
       setIsAddingNote(false);
     } catch (error) {
       console.error('Failed to add note:', error);
+      showError('Failed to add note');
     }
   };
 
@@ -73,8 +77,10 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
 
     try {
       await dispatch(deleteContactNote(noteId)).unwrap();
+      showSuccess('Note deleted');
     } catch (error) {
       console.error('Failed to delete note:', error);
+      showError('Failed to delete note');
     }
   };
 

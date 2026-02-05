@@ -1,7 +1,13 @@
+/**
+ * CaseEdit Page
+ * Page for editing an existing case with neo-brutalist styling
+ */
+
 import { useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchCaseById, clearCurrentCase } from '../../../store/slices/casesSlice';
+import { BrutalButton, BrutalCard } from '../../../components/neo-brutalist';
 import CaseForm from '../../../components/CaseForm';
 import type { CreateCaseDTO } from '../../../types/case';
 
@@ -43,8 +49,13 @@ const CaseEdit = () => {
 
   if (loading && !currentCase) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="p-6">
+        <BrutalCard color="white" className="p-12">
+          <div className="flex flex-col items-center justify-center">
+            <div className="animate-spin h-12 w-12 border-4 border-black border-t-transparent mb-4" />
+            <p className="font-bold text-black">Loading case...</p>
+          </div>
+        </BrutalCard>
       </div>
     );
   }
@@ -52,7 +63,16 @@ const CaseEdit = () => {
   if (error) {
     return (
       <div className="p-6">
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">{error}</div>
+        <BrutalCard color="pink" className="p-6">
+          <div className="text-center">
+            <div className="text-4xl mb-4">⚠️</div>
+            <h2 className="text-xl font-black uppercase text-black mb-2">Error</h2>
+            <p className="font-bold text-black/70 mb-4">{error}</p>
+            <BrutalButton onClick={() => navigate('/cases')} variant="secondary">
+              Back to Cases
+            </BrutalButton>
+          </div>
+        </BrutalCard>
       </div>
     );
   }
@@ -60,37 +80,58 @@ const CaseEdit = () => {
   if (!currentCase) {
     return (
       <div className="p-6">
-        <div className="text-center py-12">
-          <p className="text-gray-600">Case not found</p>
-          <button
-            onClick={() => navigate('/cases')}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Back to Cases
-          </button>
-        </div>
+        <BrutalCard color="yellow" className="p-6">
+          <div className="text-center">
+            <div className="text-4xl mb-4">🔍</div>
+            <h2 className="text-xl font-black uppercase text-black mb-2">Case Not Found</h2>
+            <p className="font-bold text-black/70 mb-4">
+              The case you're looking for doesn't exist or has been removed.
+            </p>
+            <BrutalButton onClick={() => navigate('/cases')} variant="primary">
+              Back to Cases
+            </BrutalButton>
+          </div>
+        </BrutalCard>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Edit Case</h1>
-          <p className="text-gray-600 mt-1">
-            {currentCase.case_number} - {currentCase.title}
-          </p>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <BrutalCard color="purple" className="p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <button
+              onClick={() => navigate(`/cases/${id}`)}
+              className="text-sm font-black uppercase text-black/70 hover:text-black mb-2 flex items-center gap-1"
+              aria-label="Back to case details"
+            >
+              ← Back to Case
+            </button>
+            <h1 className="text-3xl font-black uppercase tracking-tight text-black">
+              Edit Case
+            </h1>
+            <p className="mt-1 font-bold text-black/70">
+              {currentCase.case_number} - {currentCase.title}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <BrutalButton onClick={() => navigate(`/cases/${id}`)} variant="secondary">
+              Cancel
+            </BrutalButton>
+          </div>
         </div>
+      </BrutalCard>
 
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <CaseForm
-            caseId={id}
-            initialData={initialData}
-            onSuccess={() => navigate(`/cases/${id}`)}
-          />
-        </div>
-      </div>
+      {/* Form */}
+      <BrutalCard color="white" className="p-6">
+        <CaseForm
+          caseId={id}
+          initialData={initialData}
+          onSuccess={() => navigate(`/cases/${id}`)}
+        />
+      </BrutalCard>
     </div>
   );
 };
