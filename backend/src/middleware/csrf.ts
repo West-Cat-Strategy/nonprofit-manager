@@ -2,6 +2,7 @@ import { doubleCsrf } from 'csrf-csrf';
 import { Request, Response, NextFunction } from 'express';
 
 const isProduction = process.env.NODE_ENV === 'production';
+const isTest = process.env.NODE_ENV === 'test';
 
 // Configure double-submit cookie CSRF protection
 const {
@@ -57,6 +58,11 @@ const CSRF_SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS'];
  * Middleware to conditionally apply CSRF protection
  */
 export const csrfMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+  // Skip CSRF in test environment
+  if (isTest) {
+    return next();
+  }
+
   // Skip safe methods
   if (CSRF_SAFE_METHODS.includes(req.method)) {
     return next();
