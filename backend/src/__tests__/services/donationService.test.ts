@@ -1,12 +1,4 @@
-// Mock the database pool before imports
-const mockQuery = jest.fn();
-jest.mock('../../config/database', () => ({
-  __esModule: true,
-  default: {
-    query: (...args: unknown[]) => mockQuery(...args),
-  },
-}));
-
+import { Pool } from 'pg';
 import { DonationService } from '../../services/donationService';
 
 // Mock the logger
@@ -19,11 +11,17 @@ jest.mock('../../config/logger', () => ({
   },
 }));
 
+// Create mock pool
+const mockQuery = jest.fn();
+const mockPool = {
+  query: mockQuery,
+} as unknown as Pool;
+
 describe('DonationService', () => {
   let donationService: DonationService;
 
   beforeEach(() => {
-    donationService = new DonationService();
+    donationService = new DonationService(mockPool);
     jest.clearAllMocks();
   });
 

@@ -3,13 +3,13 @@
  */
 
 import { PublishingService } from '../../services/publishingService';
-import pool from '../../config/database';
+import { Pool } from 'pg';
 
-// Mock the database pool
-jest.mock('../../config/database', () => ({
+// Create a mock pool
+const mockPool = {
   query: jest.fn(),
   connect: jest.fn(),
-}));
+} as unknown as Pool;
 
 describe('PublishingService', () => {
   let service: PublishingService;
@@ -18,7 +18,7 @@ describe('PublishingService', () => {
   const mockSiteId = 'site-789';
 
   beforeEach(() => {
-    service = new PublishingService();
+    service = new PublishingService(mockPool);
     jest.clearAllMocks();
   });
 
@@ -43,7 +43,7 @@ describe('PublishingService', () => {
       };
 
       // Mock template existence check
-      (pool.query as jest.Mock)
+      (mockPool.query as jest.Mock)
         .mockResolvedValueOnce({ rows: [{ id: mockTemplateId }] })
         // Mock subdomain check
         .mockResolvedValueOnce({ rows: [] })
@@ -62,11 +62,11 @@ describe('PublishingService', () => {
         subdomain: 'test-site',
         status: 'draft',
       });
-      expect(pool.query).toHaveBeenCalledTimes(3);
+      expect(mockPool.query).toHaveBeenCalledTimes(3);
     });
 
     it('should throw error if template not found', async () => {
-      (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
 
       await expect(
         service.createSite(mockUserId, {
@@ -77,7 +77,7 @@ describe('PublishingService', () => {
     });
 
     it('should throw error if subdomain already taken', async () => {
-      (pool.query as jest.Mock)
+      (mockPool.query as jest.Mock)
         .mockResolvedValueOnce({ rows: [{ id: mockTemplateId }] })
         .mockResolvedValueOnce({ rows: [{ id: 'other-site' }] });
 
@@ -111,7 +111,7 @@ describe('PublishingService', () => {
         updated_at: new Date().toISOString(),
       };
 
-      (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [mockSiteRow] });
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [mockSiteRow] });
 
       const result = await service.getSite(mockSiteId, mockUserId);
 
@@ -123,7 +123,7 @@ describe('PublishingService', () => {
     });
 
     it('should return null when site not found', async () => {
-      (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
 
       const result = await service.getSite(mockSiteId, mockUserId);
 
@@ -152,7 +152,7 @@ describe('PublishingService', () => {
       };
 
       // Mock getSite
-      (pool.query as jest.Mock)
+      (mockPool.query as jest.Mock)
         .mockResolvedValueOnce({ rows: [mockSiteRow] })
         // Mock subdomain check
         .mockResolvedValueOnce({ rows: [] })
@@ -173,7 +173,7 @@ describe('PublishingService', () => {
     });
 
     it('should return null when site not found', async () => {
-      (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
 
       const result = await service.updateSite(mockSiteId, mockUserId, {
         name: 'New Name',
@@ -185,21 +185,21 @@ describe('PublishingService', () => {
 
   describe('deleteSite', () => {
     it('should delete site and return true', async () => {
-      (pool.query as jest.Mock).mockResolvedValueOnce({
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({
         rows: [{ id: mockSiteId }],
       });
 
       const result = await service.deleteSite(mockSiteId, mockUserId);
 
       expect(result).toBe(true);
-      expect(pool.query).toHaveBeenCalledWith(
+      expect(mockPool.query).toHaveBeenCalledWith(
         'DELETE FROM published_sites WHERE id = $1 AND user_id = $2 RETURNING id',
         [mockSiteId, mockUserId]
       );
     });
 
     it('should return false when site not found', async () => {
-      (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
 
       const result = await service.deleteSite(mockSiteId, mockUserId);
 
@@ -227,7 +227,7 @@ describe('PublishingService', () => {
         updated_at: new Date().toISOString(),
       };
 
-      (pool.query as jest.Mock)
+      (mockPool.query as jest.Mock)
         // Count query
         .mockResolvedValueOnce({ rows: [{ count: '1' }] })
         // Results query
@@ -250,7 +250,7 @@ describe('PublishingService', () => {
     });
 
     it('should filter by status', async () => {
-      (pool.query as jest.Mock)
+      (mockPool.query as jest.Mock)
         .mockResolvedValueOnce({ rows: [{ count: '0' }] })
         .mockResolvedValueOnce({ rows: [] });
 
@@ -261,7 +261,7 @@ describe('PublishingService', () => {
       });
 
       expect(result.sites).toHaveLength(0);
-      expect(pool.query).toHaveBeenCalledWith(
+      expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('status = $2'),
         expect.arrayContaining([mockUserId, 'published'])
       );
@@ -288,7 +288,7 @@ describe('PublishingService', () => {
         updated_at: new Date().toISOString(),
       };
 
-      (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [mockSiteRow] });
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [mockSiteRow] });
 
       const result = await service.unpublish(mockSiteId, mockUserId);
 
@@ -299,7 +299,7 @@ describe('PublishingService', () => {
     });
 
     it('should return null when site not found', async () => {
-      (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
 
       const result = await service.unpublish(mockSiteId, mockUserId);
 
@@ -327,7 +327,7 @@ describe('PublishingService', () => {
         created_at: new Date().toISOString(),
       };
 
-      (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [mockEventRow] });
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [mockEventRow] });
 
       const result = await service.recordAnalyticsEvent(mockSiteId, 'pageview', {
         pagePath: '/about',
@@ -370,7 +370,7 @@ describe('PublishingService', () => {
         updated_at: new Date().toISOString(),
       };
 
-      (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [mockSiteRow] });
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [mockSiteRow] });
 
       const result = await service.getDeploymentInfo(mockSiteId, mockUserId);
 
@@ -384,7 +384,7 @@ describe('PublishingService', () => {
     });
 
     it('should return null when site not found', async () => {
-      (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
 
       const result = await service.getDeploymentInfo(mockSiteId, mockUserId);
 
