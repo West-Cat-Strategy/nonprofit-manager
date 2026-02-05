@@ -858,6 +858,13 @@ body .focus\\:border-blue-600:focus {
   color: #000000 !important;
 }
 
+/* Fix for inputs with explicit bg-white - keep black text for readability */
+.dark input.bg-white,
+.dark select.bg-white,
+.dark textarea.bg-white {
+  color: #000000 !important;
+}
+
 /* RULE 9: DARK CONTAINERS - Use theme text on dark surfaces */
 /* Overrides the greedy safety zone for explicit dark containers */
 .dark .dark\:bg-\[\#121212\],
