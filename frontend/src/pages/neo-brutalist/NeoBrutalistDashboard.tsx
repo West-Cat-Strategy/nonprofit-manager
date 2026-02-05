@@ -12,7 +12,7 @@ import LoopApiService from '../../services/LoopApiService';
 import type { DashboardStats } from '../../types/schema';
 
 export default function NeoBrutalistDashboard() {
-    const [stats, setStats] = useState<DashboardStats | null>(null);
+    const [_stats, setStats] = useState<DashboardStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -33,6 +33,7 @@ export default function NeoBrutalistDashboard() {
             }
         };
         fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleNewItem = () => {
@@ -96,17 +97,6 @@ export default function NeoBrutalistDashboard() {
                             <h1 className="text-4xl font-black mb-4 text-black">
                                 Hello, Community Builder.
                             </h1>
-                            <p className="text-lg font-medium text-black mb-6">
-                                You have{' '}
-                                <span className="font-bold border-2 border-black px-3 py-1 bg-white inline-block shadow-[2px_2px_0px_0px_var(--shadow-color)] text-black animate-popIn">
-                                    {stats?.pendingTasks || 0} pending tasks
-                                </span>{' '}
-                                and{' '}
-                                <span className="font-bold border-2 border-black px-3 py-1 bg-white inline-block shadow-[2px_2px_0px_0px_var(--shadow-color)] text-black animate-popIn [animation-delay:0.2s]">
-                                    {stats?.newPeopleRequests || 0} new people requests
-                                </span>{' '}
-                                today.
-                            </p>
                             
                             {/* Quick Lookup Search */}
                             <div className="mb-6">
@@ -170,49 +160,6 @@ export default function NeoBrutalistDashboard() {
                             <div className="w-24 h-24 rounded-full bg-[#C9A020] opacity-40" />
                             <div className="w-32 h-32 rounded-full bg-[#C9A020] opacity-40" />
                         </div>
-                    </div>
-                </div>
-
-                {/* KPI Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                    {/* Active Partners - GREEN */}
-                    <div className="bg-[var(--loop-yellow)] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6">
-                        <div className="flex items-center justify-center w-12 h-12 bg-[var(--loop-green)] border-2 border-black mb-3">
-                            <span className="text-2xl">🔗</span>
-                        </div>
-                        <div className="text-3xl font-black mb-1 text-black">{stats?.activePartners || 0}</div>
-                        <div className="text-sm font-bold uppercase">ACTIVE PARTNERS</div>
-                        <div className="text-xs text-gray-600 mt-1">+2 this month</div>
-                    </div>
-
-                    {/* Ops Efficiency - YELLOW */}
-                    <div className="bg-[var(--loop-yellow)] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6">
-                        <div className="flex items-center justify-center w-12 h-12 bg-[var(--loop-yellow)] border-2 border-black mb-3">
-                            <span className="text-2xl">📊</span>
-                        </div>
-                        <div className="text-3xl font-black mb-1 text-black">{stats?.opsEfficiency || 0}</div>
-                        <div className="text-sm font-bold uppercase">OPS EFFICIENCY</div>
-                        <div className="text-xs text-gray-600 mt-1">5 tasks remaining</div>
-                    </div>
-
-                    {/* Reach - PURPLE */}
-                    <div className="bg-[var(--loop-yellow)] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6">
-                        <div className="flex items-center justify-center w-12 h-12 bg-[var(--loop-purple)] border-2 border-black mb-3">
-                            <span className="text-2xl">📢</span>
-                        </div>
-                        <div className="text-3xl font-black mb-1 text-black">{stats?.reach || 0}</div>
-                        <div className="text-sm font-bold uppercase">REACH</div>
-                        <div className="text-xs text-gray-600 mt-1">campaigns active</div>
-                    </div>
-
-                    {/* People - PINK */}
-                    <div className="bg-[var(--loop-yellow)] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6">
-                        <div className="flex items-center justify-center w-12 h-12 bg-[var(--loop-pink)] border-2 border-black mb-3">
-                            <span className="text-2xl">👥</span>
-                        </div>
-                        <div className="text-3xl font-black mb-1 text-black">{stats?.totalPeople || 0}</div>
-                        <div className="text-sm font-bold uppercase">PEOPLE</div>
-                        <div className="text-xs text-gray-600 mt-1">total active people</div>
                     </div>
                 </div>
 
