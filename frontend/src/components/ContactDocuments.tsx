@@ -11,6 +11,7 @@ import { fetchCases, selectCasesByContact } from '../store/slices/casesSlice';
 import type { CreateContactDocumentDTO, DocumentType, ContactDocument } from '../types/contact';
 import { DOCUMENT_TYPES } from '../types/contact';
 import api from '../services/api';
+import { formatDate, formatBytes } from '../utils/format';
 
 interface ContactDocumentsProps {
   contactId: string;
@@ -152,21 +153,6 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
     if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📗';
     if (mimeType.startsWith('text/')) return '📄';
     return '📎';
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
   };
 
   const getDocumentTypeLabel = (type: DocumentType) => {
@@ -362,7 +348,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                   <p className="text-sm text-gray-500 truncate">{doc.original_name}</p>
 
                   <div className="mt-1 flex items-center gap-3 text-xs text-gray-400">
-                    <span>{formatFileSize(doc.file_size)}</span>
+                    <span>{formatBytes(doc.file_size)}</span>
                     <span>•</span>
                     <span>{formatDate(doc.created_at)}</span>
                     {doc.created_by_first_name && (

@@ -11,6 +11,7 @@ import {
   markReceiptSent,
   clearSelectedDonation,
 } from '../../../store/slices/donationsSlice';
+import { formatDateTime, formatCurrency } from '../../../utils/format';
 
 const DonationDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,24 +28,6 @@ const DonationDetail: React.FC = () => {
       dispatch(clearSelectedDonation());
     };
   }, [id, dispatch]);
-
-  const formatCurrency = (amount: number, currency = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-    }).format(amount);
-  };
-
-  const formatDateTime = (date: string) => {
-    return new Date(date).toLocaleString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-  };
 
   const handleSendReceipt = async () => {
     if (id && confirm('Mark receipt as sent?')) {

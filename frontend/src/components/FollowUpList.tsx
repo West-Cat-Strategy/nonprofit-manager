@@ -15,6 +15,7 @@ import {
 import { useToast } from '../contexts/useToast';
 import FollowUpForm from './FollowUpForm';
 import type { FollowUp, FollowUpEntityType } from '../types/followup';
+import { formatDate, formatTimeString } from '../utils/format';
 
 interface FollowUpListProps {
   entityType: FollowUpEntityType;
@@ -35,21 +36,6 @@ const METHOD_ICONS: Record<string, string> = {
   video_call: '📹',
   other: '📋',
 };
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-function formatTime(timeString: string): string {
-  const [hours, minutes] = timeString.split(':');
-  const date = new Date();
-  date.setHours(parseInt(hours, 10), parseInt(minutes, 10));
-  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-}
 
 function isOverdue(followUp: FollowUp): boolean {
   if (followUp.status !== 'scheduled') return false;
@@ -235,7 +221,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                     <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                       <span>{formatDate(followUp.scheduled_date)}</span>
                       {followUp.scheduled_time && (
-                        <span className="ml-2">at {formatTime(followUp.scheduled_time)}</span>
+                        <span className="ml-2">at {formatTimeString(followUp.scheduled_time)}</span>
                       )}
                       {followUp.assigned_to_name && (
                         <span className="ml-2">• Assigned to {followUp.assigned_to_name}</span>

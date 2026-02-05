@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchEvents } from '../../../store/slices/eventsSlice';
 import type { Event, EventStatus, EventType } from '../../../types/event';
+import { formatDateTime } from '../../../utils/format';
 
 const EventList: React.FC = () => {
   const navigate = useNavigate();
@@ -40,16 +41,6 @@ const EventList: React.FC = () => {
   useEffect(() => {
     loadEvents();
   }, [loadEvents]);
-
-  const formatDateTime = (date: string) => {
-    return new Date(date).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-  };
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {

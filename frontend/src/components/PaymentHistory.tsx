@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import type { Donation, PaginatedDonations } from '../types/donation';
+import { formatDate, formatCurrency } from '../utils/format';
 
 interface PaymentHistoryProps {
   contactId?: string;
@@ -60,21 +61,6 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({
 
     fetchPaymentHistory();
   }, [contactId, accountId, limit]);
-
-  const formatCurrency = (amount: number, currency = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-    }).format(amount);
-  };
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
 
   const getStatusBadge = (status: string) => {
     const statusStyles: Record<string, string> = {

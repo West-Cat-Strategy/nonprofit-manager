@@ -9,6 +9,7 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchTaskById, deleteTask, completeTask } from '../../../store/slices/tasksSlice';
 import { TaskStatus, TaskPriority } from '../../../types/task';
 import FollowUpList from '../../../components/FollowUpList';
+import { formatDateTime } from '../../../utils/format';
 
 const TaskDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -37,15 +38,8 @@ const TaskDetail: React.FC = () => {
     }
   };
 
-  const formatDateTime = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(new Date(dateString));
+  const formatDateTimeOrNA = (dateString: string | null) => {
+    return dateString ? formatDateTime(dateString) : 'N/A';
   };
 
   const getStatusBadge = (status: TaskStatus) => {
@@ -170,12 +164,12 @@ const TaskDetail: React.FC = () => {
             )}
             <dt className="text-sm font-medium text-gray-500">Due Date</dt>
             <dd className={`text-sm ${isOverdue ? 'text-red-600 font-semibold' : 'text-gray-900'}`}>
-              {formatDateTime(selectedTask.due_date)}
+              {formatDateTimeOrNA(selectedTask.due_date)}
             </dd>
             {selectedTask.completed_date && (
               <>
                 <dt className="text-sm font-medium text-gray-500">Completed Date</dt>
-                <dd className="text-sm text-gray-900">{formatDateTime(selectedTask.completed_date)}</dd>
+                <dd className="text-sm text-gray-900">{formatDateTimeOrNA(selectedTask.completed_date)}</dd>
               </>
             )}
             <dt className="text-sm font-medium text-gray-500">Assigned To</dt>

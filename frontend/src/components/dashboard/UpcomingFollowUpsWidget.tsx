@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchUpcomingFollowUps } from '../../store/slices/followUpsSlice';
 import type { FollowUpWithEntity } from '../../types/followup';
+import { formatDateSmart, formatTimeString } from '../../utils/format';
 
 interface UpcomingFollowUpsWidgetProps {
   limit?: number;
@@ -20,32 +21,6 @@ const METHOD_ICONS: Record<string, string> = {
   video_call: '📹',
   other: '📋',
 };
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  if (date.toDateString() === today.toDateString()) {
-    return 'Today';
-  }
-  if (date.toDateString() === tomorrow.toDateString()) {
-    return 'Tomorrow';
-  }
-
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
-function formatTime(timeString: string): string {
-  const [hours, minutes] = timeString.split(':');
-  const date = new Date();
-  date.setHours(parseInt(hours, 10), parseInt(minutes, 10));
-  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-}
 
 function isOverdue(followUp: FollowUpWithEntity): boolean {
   const now = new Date();
@@ -138,8 +113,8 @@ export default function UpcomingFollowUpsWidget({ limit = 5 }: UpcomingFollowUps
                     </div>
                     <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 dark:text-slate-400">
                       <span className={overdue ? 'text-red-600 dark:text-red-400 font-medium' : ''}>
-                        {formatDate(followUp.scheduled_date)}
-                        {followUp.scheduled_time && ` at ${formatTime(followUp.scheduled_time)}`}
+                        {formatDateSmart(followUp.scheduled_date)}
+                        {followUp.scheduled_time && ` at ${formatTimeString(followUp.scheduled_time)}`}
                       </span>
                       <span>•</span>
                       <Link
