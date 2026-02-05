@@ -5,21 +5,22 @@
 
 import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
-import { AccountList, AccountDetail, AccountCreate, AccountEdit, ContactList, ContactDetail, ContactCreate, ContactEdit, VolunteerList, VolunteerDetail, VolunteerCreate, VolunteerEdit, AssignmentCreate, AssignmentEdit } from './peopleRouteComponents';
-
-// Lazy load account pages
-const AccountCreate = lazy(() => import('../pages/people/accounts/AccountCreate').then(m => ({ default: m.AccountCreate })));
-const AccountEdit = lazy(() => import('../pages/people/accounts/AccountEdit').then(m => ({ default: m.AccountEdit })));
-
-// Lazy load contact pages
-const ContactCreate = lazy(() => import('../pages/people/contacts/ContactCreate').then(m => ({ default: m.ContactCreate })));
-const ContactEdit = lazy(() => import('../pages/people/contacts/ContactEdit').then(m => ({ default: m.ContactEdit })));
-
-// Lazy load volunteer pages
-const VolunteerCreate = lazy(() => import('../pages/people/volunteers/VolunteerCreate').then(m => ({ default: m.VolunteerCreate })));
-const VolunteerEdit = lazy(() => import('../pages/people/volunteers/VolunteerEdit').then(m => ({ default: m.VolunteerEdit })));
-const AssignmentCreate = lazy(() => import('../pages/people/volunteers/AssignmentCreate').then(m => ({ default: m.AssignmentCreate })));
-const AssignmentEdit = lazy(() => import('../pages/people/volunteers/AssignmentEdit').then(m => ({ default: m.AssignmentEdit })));
+import {
+  AccountList,
+  AccountDetail,
+  AccountCreate,
+  AccountEdit,
+  ContactList,
+  ContactDetail,
+  ContactCreate,
+  ContactEdit,
+  VolunteerList,
+  VolunteerDetail,
+  VolunteerCreate,
+  VolunteerEdit,
+  AssignmentCreate,
+  AssignmentEdit,
+} from './peopleRouteComponents';
 
 interface RouteWrapperProps {
   children: ReactNode;

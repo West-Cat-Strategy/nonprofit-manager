@@ -10,6 +10,7 @@ import { trackLoginAttempt } from '../middleware/accountLockout';
 import { JWT, TIME } from '../config/constants';
 import { decrypt, encrypt } from '../utils/encryption';
 import { badRequest, conflict, notFoundMessage, unauthorized, validationErrorResponse } from '../utils/responseHelpers';
+import { authenticator } from '@otplib/preset-default';
 
 const TOTP_PERIOD_SECONDS = 30;
 const TOTP_WINDOW = 1;
@@ -42,7 +43,6 @@ interface TotpUserRow {
 
 const normalizeTotpCode = (code: string) => code.replace(/\s+/g, '');
 const loadOtplib = async () => {
-  const { authenticator } = await import('otplib');
   authenticator.options = {
     step: TOTP_PERIOD_SECONDS,
     window: TOTP_WINDOW,

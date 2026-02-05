@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import type { PreloadedState, Store } from '@reduxjs/toolkit';
+import type { Store } from '@reduxjs/toolkit';
 import { configureStore } from '@reduxjs/toolkit';
 import { render } from '@testing-library/react';
 import { Provider } from 'react-redux';
@@ -7,13 +7,15 @@ import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '../contexts/ToastContext';
 import { type RootState, rootReducer } from '../store';
 
+type PreloadedState = Partial<RootState>;
+
 interface RenderOptions {
   store?: Store;
-  preloadedState?: PreloadedState<RootState>;
+  preloadedState?: PreloadedState;
   route?: string;
 }
 
-export const createTestStore = (preloadedState?: PreloadedState<RootState>) =>
+export const createTestStore = (preloadedState?: PreloadedState) =>
   configureStore({
     reducer: rootReducer,
     preloadedState,

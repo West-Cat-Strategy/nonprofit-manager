@@ -296,6 +296,8 @@ export interface CaseFilter {
   intake_end_date?: Date | string;
   due_date_start?: Date | string;
   due_date_end?: Date | string;
+  quick_filter?: 'overdue' | 'due_soon' | 'unassigned' | 'urgent';
+  due_within_days?: number;
   page?: number;
   limit?: number;
   sort_by?: string;

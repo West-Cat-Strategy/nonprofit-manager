@@ -1,46 +1,170 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BrutalBadge, BrutalButton, BrutalCard, BrutalInput } from '../../../components/neo-brutalist';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   fetchCases,
+  fetchCaseSummary,
   fetchCaseTypes,
   fetchCaseStatuses,
   setFilters,
   clearFilters,
 } from '../../../store/slices/casesSlice';
-import type { CasePriority, CaseStatusType } from '../../../types/case';
+import type { CaseFilter, CasePriority, CaseStatusType } from '../../../types/case';
+import { useToast } from '../../../contexts/useToast';
+
+type QuickFilter = 'all' | 'overdue' | 'due_soon' | 'unassigned' | 'urgent';
+type SavedView = {
+  id: string;
+  name: string;
+  filters: CaseFilter;
+  quickFilter: QuickFilter;
+};
+
+const SAVED_VIEWS_KEY = 'cases.savedViews';
 
 const CaseList = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useAppDispatch();
+  const { showSuccess, showError } = useToast();
   const { cases, total, loading, error, filters, caseTypes, caseStatuses } = useAppSelector(
     (state) => state.cases
   );
+  const summary = useAppSelector((state) => state.cases.summary);
+  const hasInitializedFromUrl = useRef(false);
 
   const [searchTerm, setSearchTerm] = useState(filters.search || '');
   const [selectedPriority, setSelectedPriority] = useState(filters.priority || '');
   const [selectedStatus, setSelectedStatus] = useState(filters.status_id || '');
   const [selectedType, setSelectedType] = useState(filters.case_type_id || '');
   const [showUrgentOnly, setShowUrgentOnly] = useState(filters.is_urgent || false);
+  const [selectedSort, setSelectedSort] = useState(filters.sort_by || 'created_at');
+  const [selectedOrder, setSelectedOrder] = useState(filters.sort_order || 'desc');
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>('all');
+  const [dueSoonDays, setDueSoonDays] = useState(7);
+  const [savedViews, setSavedViews] = useState<SavedView[]>([]);
+  const [selectedViewId, setSelectedViewId] = useState('');
+  const [savedViewName, setSavedViewName] = useState('');
 
   useEffect(() => {
     dispatch(fetchCaseTypes());
     dispatch(fetchCaseStatuses());
+    dispatch(fetchCaseSummary());
+  }, [dispatch]);
+
+  useEffect(() => {
     dispatch(fetchCases(filters));
   }, [dispatch, filters]);
 
+  useEffect(() => {
+    if (hasInitializedFromUrl.current) return;
+    const parseBoolean = (value: string | null) => {
+      if (value === 'true') return true;
+      if (value === 'false') return false;
+      return undefined;
+    };
+    const parseNumber = (value: string | null) => {
+      if (!value) return undefined;
+      const parsed = Number(value);
+      return Number.isNaN(parsed) ? undefined : parsed;
+    };
+    const initialQuickFilter = searchParams.get('quick_filter') as QuickFilter | null;
+    const quickFilterValue =
+      initialQuickFilter && ['overdue', 'due_soon', 'unassigned', 'urgent'].includes(initialQuickFilter)
+        ? initialQuickFilter
+        : 'all';
+    const dueWithin = parseNumber(searchParams.get('due_within_days'));
+    const initialFilters: CaseFilter = {
+      search: searchParams.get('search') || undefined,
+      priority: (searchParams.get('priority') as CaseFilter['priority']) || undefined,
+      status_id: searchParams.get('status_id') || undefined,
+      case_type_id: searchParams.get('case_type_id') || undefined,
+      is_urgent: parseBoolean(searchParams.get('is_urgent')),
+      sort_by: searchParams.get('sort_by') || undefined,
+      sort_order: (searchParams.get('sort_order') as CaseFilter['sort_order']) || undefined,
+      page: parseNumber(searchParams.get('page')),
+      limit: parseNumber(searchParams.get('limit')),
+      quick_filter: quickFilterValue === 'all' ? undefined : quickFilterValue,
+      due_within_days: dueWithin,
+    };
+
+    const hasParams = Array.from(searchParams.keys()).length > 0;
+    if (hasParams) {
+      setSearchTerm(initialFilters.search || '');
+      setSelectedPriority(initialFilters.priority || '');
+      setSelectedStatus(initialFilters.status_id || '');
+      setSelectedType(initialFilters.case_type_id || '');
+      setShowUrgentOnly(initialFilters.is_urgent || false);
+      setSelectedSort(initialFilters.sort_by || 'created_at');
+      setSelectedOrder(initialFilters.sort_order || 'desc');
+      setQuickFilter(quickFilterValue);
+      setDueSoonDays(typeof dueWithin === 'number' && dueWithin > 0 ? dueWithin : 7);
+      dispatch(setFilters({ ...filters, ...initialFilters }));
+    }
+    hasInitializedFromUrl.current = true;
+  }, [dispatch, filters, searchParams]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(SAVED_VIEWS_KEY);
+      if (stored) {
+        setSavedViews(JSON.parse(stored));
+      }
+    } catch {
+      setSavedViews([]);
+    }
+  }, []);
+
+  const persistSavedViews = (views: SavedView[]) => {
+    setSavedViews(views);
+    try {
+      localStorage.setItem(SAVED_VIEWS_KEY, JSON.stringify(views));
+    } catch {
+      // no-op if storage is unavailable
+    }
+  };
+
+  const syncUrl = (overrides: Partial<CaseFilter> = {}) => {
+    const baseFilters: CaseFilter = {
+      search: searchTerm.trim() || undefined,
+      priority: selectedPriority || undefined,
+      status_id: selectedStatus || undefined,
+      case_type_id: selectedType || undefined,
+      is_urgent: showUrgentOnly || undefined,
+      sort_by: selectedSort || undefined,
+      sort_order: selectedOrder || undefined,
+      page: filters.page,
+      limit: filters.limit,
+      quick_filter: quickFilter === 'all' ? undefined : quickFilter,
+      due_within_days: quickFilter === 'due_soon' ? dueSoonDays : undefined,
+    };
+    const merged = { ...baseFilters, ...overrides };
+    const params = new URLSearchParams();
+    Object.entries(merged).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') {
+        params.set(key, String(value));
+      }
+    });
+    setSearchParams(params, { replace: true });
+  };
+
   const handleSearch = () => {
-    dispatch(
-      setFilters({
-        search: searchTerm,
-        priority: selectedPriority || undefined,
-        status_id: selectedStatus || undefined,
-        case_type_id: selectedType || undefined,
-        is_urgent: showUrgentOnly || undefined,
-        page: 1,
-      })
-    );
+    const normalizedSearch = searchTerm.trim();
+    const nextFilters: Partial<CaseFilter> = {
+      search: normalizedSearch ? normalizedSearch : undefined,
+      priority: selectedPriority || undefined,
+      status_id: selectedStatus || undefined,
+      case_type_id: selectedType || undefined,
+      is_urgent: showUrgentOnly || undefined,
+      sort_by: selectedSort,
+      sort_order: selectedOrder,
+      quick_filter: quickFilter === 'all' ? undefined : quickFilter,
+      due_within_days: quickFilter === 'due_soon' ? dueSoonDays : undefined,
+      page: 1,
+    };
+    dispatch(setFilters(nextFilters));
+    syncUrl(nextFilters);
   };
 
   const handleClearFilters = () => {
@@ -49,11 +173,64 @@ const CaseList = () => {
     setSelectedStatus('');
     setSelectedType('');
     setShowUrgentOnly(false);
+    setSelectedSort('created_at');
+    setSelectedOrder('desc');
+    setQuickFilter('all');
+    setDueSoonDays(7);
     dispatch(clearFilters());
+    setSearchParams(new URLSearchParams(), { replace: true });
   };
 
   const handlePageChange = (newPage: number) => {
     dispatch(setFilters({ page: newPage }));
+    syncUrl({ page: newPage });
+  };
+
+  const applySavedView = (viewId: string) => {
+    const view = savedViews.find((item) => item.id === viewId);
+    if (!view) return;
+    setSelectedViewId(viewId);
+    setQuickFilter(view.quickFilter);
+    setSearchTerm(view.filters.search || '');
+    setSelectedPriority(view.filters.priority || '');
+    setSelectedStatus(view.filters.status_id || '');
+    setSelectedType(view.filters.case_type_id || '');
+    setShowUrgentOnly(view.filters.is_urgent || false);
+    setSelectedSort(view.filters.sort_by || 'created_at');
+    setSelectedOrder(view.filters.sort_order || 'desc');
+    dispatch(setFilters({ ...filters, ...view.filters, page: 1 }));
+    syncUrl({ ...view.filters, page: 1, quick_filter: view.quickFilter === 'all' ? undefined : view.quickFilter });
+  };
+
+  const handleSaveView = () => {
+    const trimmedName = savedViewName.trim();
+    if (!trimmedName) return;
+    const newView: SavedView = {
+      id: `${Date.now()}`,
+      name: trimmedName,
+      quickFilter,
+      filters: {
+        search: searchTerm.trim() || undefined,
+        priority: selectedPriority || undefined,
+        status_id: selectedStatus || undefined,
+        case_type_id: selectedType || undefined,
+        is_urgent: showUrgentOnly || undefined,
+        sort_by: selectedSort,
+        sort_order: selectedOrder,
+        quick_filter: quickFilter === 'all' ? undefined : quickFilter,
+        due_within_days: quickFilter === 'due_soon' ? dueSoonDays : undefined,
+      },
+    };
+    persistSavedViews([newView, ...savedViews]);
+    setSavedViewName('');
+    setSelectedViewId(newView.id);
+  };
+
+  const handleDeleteView = () => {
+    if (!selectedViewId) return;
+    const updated = savedViews.filter((item) => item.id !== selectedViewId);
+    persistSavedViews(updated);
+    setSelectedViewId('');
   };
 
   const getPriorityBadgeColor = (priority: CasePriority) => {
@@ -79,6 +256,37 @@ const CaseList = () => {
 
   const totalPages = Math.ceil(total / (filters.limit || 20));
   const currentPage = filters.page || 1;
+  const activeFiltersCount = [
+    filters.search,
+    filters.priority,
+    filters.status_id,
+    filters.case_type_id,
+    filters.is_urgent,
+  ].filter(Boolean).length;
+  const hasActiveFilters = activeFiltersCount > 0;
+  const assignedLabel = (caseItem: (typeof cases)[number]) => {
+    if (caseItem.assigned_first_name || caseItem.assigned_last_name) {
+      return `${caseItem.assigned_first_name || ''} ${caseItem.assigned_last_name || ''}`.trim();
+    }
+    return caseItem.assigned_to ? 'Assigned' : 'Unassigned';
+  };
+  const contactLabel = (caseItem: (typeof cases)[number]) => {
+    const name = `${caseItem.contact_first_name || ''} ${caseItem.contact_last_name || ''}`.trim();
+    return name || 'Unknown contact';
+  };
+
+  const paginationPages = (() => {
+    if (totalPages <= 1) return [];
+    const windowSize = 5;
+    const halfWindow = Math.floor(windowSize / 2);
+    const start = Math.max(1, Math.min(currentPage - halfWindow, totalPages - windowSize + 1));
+    const end = Math.min(totalPages, start + windowSize - 1);
+    const pages: number[] = [];
+    for (let page = start; page <= end; page += 1) pages.push(page);
+    return pages;
+  })();
+
+  const visibleCases = cases;
 
   return (
     <div className="p-6 space-y-6">
@@ -95,6 +303,26 @@ const CaseList = () => {
             + New Case
           </BrutalButton>
         </div>
+        {summary && (
+          <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="border-2 border-black bg-white px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)]">
+              <div className="text-xs font-black uppercase text-black/70">Open</div>
+              <div className="text-2xl font-black text-black">{summary.open_cases}</div>
+            </div>
+            <div className="border-2 border-black bg-white px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)]">
+              <div className="text-xs font-black uppercase text-black/70">Urgent</div>
+              <div className="text-2xl font-black text-black">{summary.by_priority.urgent}</div>
+            </div>
+            <div className="border-2 border-black bg-white px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)]">
+              <div className="text-xs font-black uppercase text-black/70">Due This Week</div>
+              <div className="text-2xl font-black text-black">{summary.cases_due_this_week}</div>
+            </div>
+            <div className="border-2 border-black bg-white px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)]">
+              <div className="text-xs font-black uppercase text-black/70">Unassigned</div>
+              <div className="text-2xl font-black text-black">{summary.unassigned_cases}</div>
+            </div>
+          </div>
+        )}
       </BrutalCard>
 
       {/* Filters */}
@@ -159,8 +387,116 @@ const CaseList = () => {
           </div>
         </div>
 
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-black uppercase text-black/70">Sort by</span>
+            <select
+              value={selectedSort}
+              onChange={(e) => setSelectedSort(e.target.value)}
+              className="w-full border-2 border-black dark:border-white bg-white dark:bg-[#000000] text-black dark:text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+            >
+              <option value="created_at">Created date</option>
+              <option value="due_date">Due date</option>
+              <option value="priority">Priority</option>
+              <option value="case_number">Case number</option>
+            </select>
+          </div>
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-black uppercase text-black/70">Order</span>
+            <select
+              value={selectedOrder}
+              onChange={(e) => setSelectedOrder(e.target.value as 'asc' | 'desc')}
+              className="w-full border-2 border-black dark:border-white bg-white dark:bg-[#000000] text-black dark:text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+            >
+              <option value="desc">Newest first</option>
+              <option value="asc">Oldest first</option>
+            </select>
+          </div>
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-black uppercase text-black/70">Saved views</span>
+            <div className="flex gap-2">
+              <select
+                value={selectedViewId}
+                onChange={(e) => applySavedView(e.target.value)}
+                className="flex-1 border-2 border-black dark:border-white bg-white dark:bg-[#000000] text-black dark:text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+              >
+                <option value="">Select view</option>
+                {savedViews.map((view) => (
+                  <option key={view.id} value={view.id}>
+                    {view.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={handleDeleteView}
+                className="border-2 border-black bg-white text-black px-3 py-2 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
+                disabled={!selectedViewId}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-black uppercase text-black/70">Quick filters</span>
+          {([
+            ['all', 'All'],
+            ['overdue', 'Overdue'],
+            ['due_soon', 'Due soon'],
+            ['unassigned', 'Unassigned'],
+            ['urgent', 'Urgent'],
+          ] as Array<[QuickFilter, string]>).map(([value, label]) => (
+            <button
+              key={value}
+              onClick={() => {
+                const nextQuickFilter = value;
+                setQuickFilter(nextQuickFilter);
+                const nextFilters: Partial<CaseFilter> = {
+                  quick_filter: nextQuickFilter === 'all' ? undefined : nextQuickFilter,
+                  due_within_days: nextQuickFilter === 'due_soon' ? dueSoonDays : undefined,
+                  page: 1,
+                };
+                dispatch(setFilters(nextFilters));
+                syncUrl(nextFilters);
+              }}
+              className={`border-2 border-black px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] transition-all ${
+                quickFilter === value
+                  ? 'bg-black text-white'
+                  : 'bg-white text-black hover:bg-[var(--loop-yellow)]'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          {quickFilter === 'due_soon' && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black uppercase text-black/70">Days</span>
+              <input
+                type="number"
+                min={1}
+                max={60}
+                value={dueSoonDays}
+                onChange={(event) => {
+                  const value = Number(event.target.value);
+                  const nextValue = Number.isNaN(value) ? 7 : Math.max(1, Math.min(60, value));
+                  setDueSoonDays(nextValue);
+                  const nextFilters: Partial<CaseFilter> = {
+                    quick_filter: 'due_soon',
+                    due_within_days: nextValue,
+                    page: 1,
+                  };
+                  dispatch(setFilters(nextFilters));
+                  syncUrl(nextFilters);
+                }}
+                className="w-20 border-2 border-black bg-white text-black px-2 py-1 text-xs font-black uppercase focus:outline-none focus:ring-2 focus:ring-black"
+              />
+            </div>
+          )}
+        </div>
+
         {/* Filter Actions */}
-        <div className="mt-4 flex items-center gap-4">
+        <div className="mt-4 flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -173,6 +509,53 @@ const CaseList = () => {
             </span>
           </label>
           <div className="flex-1" />
+          <div className="flex items-center gap-2">
+            <BrutalInput
+              type="text"
+              placeholder="Save current view"
+              value={savedViewName}
+              onChange={(e) => setSavedViewName(e.target.value)}
+            />
+            <BrutalButton onClick={handleSaveView} variant="secondary" size="sm">
+              Save View
+            </BrutalButton>
+          </div>
+          <BrutalButton
+            onClick={async () => {
+              try {
+                if (navigator.clipboard?.writeText) {
+                  await navigator.clipboard.writeText(window.location.href);
+                  showSuccess('Link copied to clipboard');
+                  return;
+                }
+                const fallbackInput = document.createElement('textarea');
+                fallbackInput.value = window.location.href;
+                fallbackInput.style.position = 'fixed';
+                fallbackInput.style.opacity = '0';
+                document.body.appendChild(fallbackInput);
+                fallbackInput.focus();
+                fallbackInput.select();
+                const success = document.execCommand('copy');
+                document.body.removeChild(fallbackInput);
+                if (success) {
+                  showSuccess('Link copied to clipboard');
+                } else {
+                  showError('Failed to copy link');
+                }
+              } catch {
+                showError('Failed to copy link');
+              }
+            }}
+            variant="secondary"
+            size="sm"
+          >
+            Copy Link
+          </BrutalButton>
+          {hasActiveFilters && (
+            <span className="text-xs font-black uppercase text-black/70">
+              {activeFiltersCount} filter{activeFiltersCount === 1 ? '' : 's'} applied
+            </span>
+          )}
           <BrutalButton onClick={handleClearFilters} variant="secondary" size="sm">
             Clear Filters
           </BrutalButton>
@@ -197,133 +580,217 @@ const CaseList = () => {
       )}
 
       {/* Cases Table */}
-      {!loading && cases.length > 0 && (
-        <BrutalCard color="white" className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse">
-              <thead className="bg-[var(--loop-cyan)] border-b-2 border-black">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
-                    Case #
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
-                    Title
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
-                    Client
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
-                    Type
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
-                    Priority
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
-                    Created
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white">
-                {cases.map((caseItem) => (
-                  <tr
-                    key={caseItem.id}
-                    className="border-b-2 border-black hover:bg-[var(--loop-yellow)] cursor-pointer transition-colors"
-                    onClick={() => navigate(`/cases/${caseItem.id}`)}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        {caseItem.is_urgent && (
-                          <span className="text-black" title="Urgent">
-                            ⚠️
-                          </span>
-                        )}
-                        <span className="text-sm font-black text-black">
-                          {caseItem.case_number}
+      {!loading && visibleCases.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 gap-4 md:hidden">
+            {visibleCases.map((caseItem) => (
+              <BrutalCard
+                key={caseItem.id}
+                color="white"
+                className="p-4 cursor-pointer hover:bg-[var(--loop-yellow)] transition-colors"
+                onClick={() => navigate(`/cases/${caseItem.id}`)}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      {caseItem.is_urgent && (
+                        <span className="text-black" title="Urgent">
+                          ⚠️
                         </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-black text-black">{caseItem.title}</div>
-                      {caseItem.description && (
-                        <div className="text-sm text-black/70 truncate max-w-xs">
-                          {caseItem.description}
-                        </div>
                       )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-bold text-black">
-                        {caseItem.contact_first_name} {caseItem.contact_last_name}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className="inline-block border-2 border-black px-3 py-1 text-xs font-black uppercase"
-                        style={{
-                          backgroundColor: caseItem.case_type_color || '#e5e7eb',
-                          color: '#000000',
-                        }}
-                      >
-                        {caseItem.case_type_name}
+                      <span className="text-xs font-black uppercase text-black/70">
+                        {caseItem.case_number}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <BrutalBadge
-                        color={
-                          caseItem.status_type
-                            ? getStatusTypeBadgeColor(caseItem.status_type)
-                            : 'gray'
-                        }
-                        size="sm"
-                      >
-                        {caseItem.status_name}
-                      </BrutalBadge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <BrutalBadge color={getPriorityBadgeColor(caseItem.priority)} size="sm">
-                        {caseItem.priority}
-                      </BrutalBadge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-black">
-                      {new Date(caseItem.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/cases/${caseItem.id}/edit`);
-                          }}
-                          className="border-2 border-black bg-white text-black px-3 py-1 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/cases/${caseItem.id}`);
-                          }}
-                          className="border-2 border-black bg-[var(--loop-green)] text-black px-3 py-1 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
-                        >
-                          View
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                    <div className="text-lg font-black text-black">{caseItem.title}</div>
+                    <div className="text-sm font-bold text-black">{contactLabel(caseItem)}</div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <BrutalBadge
+                      color={
+                        caseItem.status_type
+                          ? getStatusTypeBadgeColor(caseItem.status_type)
+                          : 'gray'
+                      }
+                      size="sm"
+                    >
+                      {caseItem.status_name}
+                    </BrutalBadge>
+                    <BrutalBadge color={getPriorityBadgeColor(caseItem.priority)} size="sm">
+                      {caseItem.priority}
+                    </BrutalBadge>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold text-black/70">
+                  <span
+                    className="inline-block border-2 border-black px-2 py-1 text-xs font-black uppercase"
+                    style={{
+                      backgroundColor: caseItem.case_type_color || '#e5e7eb',
+                      color: '#000000',
+                    }}
+                  >
+                    {caseItem.case_type_name || 'General'}
+                  </span>
+                  <span>Assigned: {assignedLabel(caseItem)}</span>
+                  <span>{new Date(caseItem.created_at).toLocaleDateString()}</span>
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/cases/${caseItem.id}/edit`);
+                    }}
+                    className="flex-1 border-2 border-black bg-white text-black px-3 py-2 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/cases/${caseItem.id}`);
+                    }}
+                    className="flex-1 border-2 border-black bg-[var(--loop-green)] text-black px-3 py-2 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
+                  >
+                    View
+                  </button>
+                </div>
+              </BrutalCard>
+            ))}
           </div>
-        </BrutalCard>
+
+          <BrutalCard color="white" className="hidden md:block overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full border-collapse">
+                <thead className="bg-[var(--loop-cyan)] border-b-2 border-black">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
+                      Case #
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
+                      Title
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
+                      Client
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
+                      Type
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
+                      Status
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
+                      Priority
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
+                      Assigned
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
+                      Created
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white">
+                  {visibleCases.map((caseItem) => (
+                    <tr
+                      key={caseItem.id}
+                      className="border-b-2 border-black hover:bg-[var(--loop-yellow)] cursor-pointer transition-colors"
+                      onClick={() => navigate(`/cases/${caseItem.id}`)}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          {caseItem.is_urgent && (
+                            <span className="text-black" title="Urgent">
+                              ⚠️
+                            </span>
+                          )}
+                          <span className="text-sm font-black text-black">
+                            {caseItem.case_number}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-black text-black">{caseItem.title}</div>
+                        {caseItem.description && (
+                          <div className="text-sm text-black/70 truncate max-w-xs">
+                            {caseItem.description}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-bold text-black">
+                          {contactLabel(caseItem)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className="inline-block border-2 border-black px-3 py-1 text-xs font-black uppercase"
+                          style={{
+                            backgroundColor: caseItem.case_type_color || '#e5e7eb',
+                            color: '#000000',
+                          }}
+                        >
+                          {caseItem.case_type_name || 'General'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <BrutalBadge
+                          color={
+                            caseItem.status_type
+                              ? getStatusTypeBadgeColor(caseItem.status_type)
+                              : 'gray'
+                          }
+                          size="sm"
+                        >
+                          {caseItem.status_name}
+                        </BrutalBadge>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <BrutalBadge color={getPriorityBadgeColor(caseItem.priority)} size="sm">
+                          {caseItem.priority}
+                        </BrutalBadge>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-black">
+                        {assignedLabel(caseItem)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-black">
+                        {new Date(caseItem.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/cases/${caseItem.id}/edit`);
+                            }}
+                            className="border-2 border-black bg-white text-black px-3 py-1 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/cases/${caseItem.id}`);
+                            }}
+                            className="border-2 border-black bg-[var(--loop-green)] text-black px-3 py-1 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
+                          >
+                            View
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </BrutalCard>
+        </>
       )}
 
       {/* Empty State */}
-      {!loading && cases.length === 0 && (
+      {!loading && visibleCases.length === 0 && (
         <BrutalCard color="white" className="p-12 text-center">
           <div className="text-6xl mb-4">📋</div>
           <h3 className="text-xl font-black uppercase mb-2 text-black">No cases found</h3>
@@ -356,22 +823,41 @@ const CaseList = () => {
               Previous
             </button>
             <div className="flex items-center gap-2">
-              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                const page = i + 1;
-                return (
+              {paginationPages[0] !== 1 && (
+                <>
                   <button
-                    key={page}
-                    onClick={() => handlePageChange(page)}
-                    className={`border-2 border-black px-4 py-2 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] transition-colors ${
-                      currentPage === page
-                        ? 'bg-black text-white'
-                        : 'bg-white text-black hover:bg-[var(--loop-yellow)]'
-                    }`}
+                    onClick={() => handlePageChange(1)}
+                    className="border-2 border-black px-4 py-2 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] bg-white text-black hover:bg-[var(--loop-yellow)] transition-colors"
                   >
-                    {page}
+                    1
                   </button>
-                );
-              })}
+                  <span className="text-sm font-black text-black/60">…</span>
+                </>
+              )}
+              {paginationPages.map((page) => (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={`border-2 border-black px-4 py-2 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] transition-colors ${
+                    currentPage === page
+                      ? 'bg-black text-white'
+                      : 'bg-white text-black hover:bg-[var(--loop-yellow)]'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+              {paginationPages[paginationPages.length - 1] !== totalPages && (
+                <>
+                  <span className="text-sm font-black text-black/60">…</span>
+                  <button
+                    onClick={() => handlePageChange(totalPages)}
+                    className="border-2 border-black px-4 py-2 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] bg-white text-black hover:bg-[var(--loop-yellow)] transition-colors"
+                  >
+                    {totalPages}
+                  </button>
+                </>
+              )}
             </div>
             <button
               onClick={() => handlePageChange(currentPage + 1)}

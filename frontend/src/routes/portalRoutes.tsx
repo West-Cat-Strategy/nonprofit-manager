@@ -5,21 +5,20 @@
 
 import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
-import { PortalLogin, PortalSignup, PortalAcceptInvitation, PortalDashboard, PortalProfile, PortalPeople, PortalEvents, PortalAppointments, PortalDocuments, PortalNotes, PortalForms, PortalReminders } from './portalRouteComponents';
-
-// Lazy load portal pages (remain in pages/portal directory)
-const PortalLogin = lazy(() => import('../pages/PortalLogin'));
-const PortalSignup = lazy(() => import('../pages/PortalSignup'));
-const PortalAcceptInvitation = lazy(() => import('../pages/PortalAcceptInvitation'));
-const PortalDashboard = lazy(() => import('../pages/PortalDashboard'));
-const PortalProfile = lazy(() => import('../pages/PortalProfile'));
-const PortalPeople = lazy(() => import('../pages/PortalPeople'));
-const PortalEvents = lazy(() => import('../pages/PortalEvents'));
-const PortalAppointments = lazy(() => import('../pages/PortalAppointments'));
-const PortalDocuments = lazy(() => import('../pages/PortalDocuments'));
-const PortalNotes = lazy(() => import('../pages/PortalNotes'));
-const PortalForms = lazy(() => import('../pages/PortalForms'));
-const PortalReminders = lazy(() => import('../pages/PortalReminders'));
+import {
+  PortalLogin,
+  PortalSignup,
+  PortalAcceptInvitation,
+  PortalDashboard,
+  PortalProfile,
+  PortalPeople,
+  PortalEvents,
+  PortalAppointments,
+  PortalDocuments,
+  PortalNotes,
+  PortalForms,
+  PortalReminders,
+} from './portalRouteComponents';
 
 interface RouteWrapperProps {
   children: ReactNode;
