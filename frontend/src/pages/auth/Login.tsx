@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../../store/hooks';
 import { setCredentials } from '../../store/slices/authSlice';
 import { authService } from '../../services/authService';
+import { formatApiErrorMessage } from '../../utils/apiError';
+import ErrorBanner from '../../components/ErrorBanner';
 import axios from 'axios';
 
 export default function Login() {
@@ -64,9 +66,7 @@ export default function Login() {
       navigate('/dashboard');
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        const apiError =
-          typeof err.response?.data?.error === 'string' ? err.response.data.error : null;
-        setError(apiError || 'Login failed. Please try again.');
+        setError(formatApiErrorMessage(err, 'Login failed. Please try again.'));
       } else {
         setError('Login failed. Please try again.');
       }
@@ -99,9 +99,7 @@ export default function Login() {
       navigate('/dashboard');
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        const apiError =
-          typeof err.response?.data?.error === 'string' ? err.response.data.error : null;
-        setError(apiError || 'Passkey sign-in failed. Please try again.');
+        setError(formatApiErrorMessage(err, 'Passkey sign-in failed. Please try again.'));
       } else {
         setError('Passkey sign-in failed. Please try again.');
       }
@@ -118,11 +116,7 @@ export default function Login() {
           {step === 'password' ? 'Sign In' : 'Two-Factor Authentication'}
         </h3>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
-          </div>
-        )}
+        <ErrorBanner message={error} className="mb-4" />
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import pool from '../config/database';
 import { logger } from '../config/logger';
+import { errorPayload } from '../utils/responseHelpers';
 import { getRedisClient } from '../config/redis';
 
 interface LoginAttempt {
@@ -210,7 +211,15 @@ export const checkAccountLockout = async (
     logger.warn('Login attempt on locked account', { email, minutesRemaining });
 
     res.status(423).json({
-      error: 'Account locked',
+      ...errorPayload(
+        res,
+        'Account locked',
+        {
+          message: `Account is temporarily locked due to too many failed login attempts. Please try again in ${minutesRemaining} minutes.`,
+          lockedUntil: attempt?.lockedUntil,
+        },
+        'account_locked'
+      ),
       message: `Account is temporarily locked due to too many failed login attempts. Please try again in ${minutesRemaining} minutes.`,
       lockedUntil: attempt?.lockedUntil,
     });

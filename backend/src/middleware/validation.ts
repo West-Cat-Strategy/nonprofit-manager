@@ -12,7 +12,7 @@ import { validationErrorResponse } from '../utils/responseHelpers';
  * Middleware to check validation results
  * Use after express-validator validation chains
  */
-export const handleValidationErrors = (
+export const validateRequest = (
   req: Request,
   res: Response,
   next: NextFunction
@@ -33,9 +33,6 @@ export const handleValidationErrors = (
 
   next();
 };
-
-// Legacy alias for consistency with validateRequest middleware
-export const validateRequest = handleValidationErrors;
 
 /**
  * Common validation patterns
@@ -212,7 +209,6 @@ export const rateLimitInfo = (
 };
 
 export default {
-  handleValidationErrors,
   validateRequest,
   validators,
   sanitizeFields,

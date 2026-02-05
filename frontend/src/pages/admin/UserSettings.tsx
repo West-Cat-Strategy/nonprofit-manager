@@ -11,6 +11,7 @@ import { EyeIcon, EyeSlashIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { updateUser } from '../../store/slices/authSlice';
 import api from '../../services/api';
+import { formatApiErrorMessage } from '../../utils/apiError';
 import LoopApiService from '../../services/LoopApiService';
 import NeoBrutalistLayout from '../../components/neo-brutalist/NeoBrutalistLayout';
 import ThemeSelector from '../../components/ThemeSelector';
@@ -199,7 +200,7 @@ export default function UserSettings() {
       setSecurity(response.data);
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
-      setSecurityError(error.response?.data?.error || 'Failed to load security settings');
+      setSecurityError(formatApiErrorMessage(error, 'Failed to load security settings'));
     } finally {
       setSecurityLoading(false);
     }
@@ -370,7 +371,7 @@ export default function UserSettings() {
     } catch (err: unknown) {
       setSaveStatus('error');
       const error = err as { response?: { data?: { error?: string } } };
-      setErrorMessage(error.response?.data?.error || 'Failed to save profile');
+      setErrorMessage(formatApiErrorMessage(error, 'Failed to save profile'));
     } finally {
       setIsSaving(false);
     }
@@ -425,7 +426,7 @@ export default function UserSettings() {
       setTotpEnableCode('');
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
-      setSecurityError(error.response?.data?.error || 'Failed to start 2FA setup');
+      setSecurityError(formatApiErrorMessage(error, 'Failed to start 2FA setup'));
     } finally {
       setSecurityActionLoading(false);
     }
@@ -442,7 +443,7 @@ export default function UserSettings() {
       await refreshSecurity();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
-      setSecurityError(error.response?.data?.error || 'Failed to enable 2FA');
+      setSecurityError(formatApiErrorMessage(error, 'Failed to enable 2FA'));
     } finally {
       setSecurityActionLoading(false);
     }
@@ -462,7 +463,7 @@ export default function UserSettings() {
       await refreshSecurity();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
-      setSecurityError(error.response?.data?.error || 'Failed to disable 2FA');
+      setSecurityError(formatApiErrorMessage(error, 'Failed to disable 2FA'));
     } finally {
       setSecurityActionLoading(false);
     }
@@ -486,7 +487,7 @@ export default function UserSettings() {
       await refreshSecurity();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
-      setSecurityError(error.response?.data?.error || 'Failed to add passkey');
+      setSecurityError(formatApiErrorMessage(error, 'Failed to add passkey'));
     } finally {
       setSecurityActionLoading(false);
     }
@@ -500,7 +501,7 @@ export default function UserSettings() {
       await refreshSecurity();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
-      setSecurityError(error.response?.data?.error || 'Failed to delete passkey');
+      setSecurityError(formatApiErrorMessage(error, 'Failed to delete passkey'));
     } finally {
       setSecurityActionLoading(false);
     }
