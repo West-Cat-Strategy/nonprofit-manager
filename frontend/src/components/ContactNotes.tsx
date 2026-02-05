@@ -10,6 +10,9 @@ import { fetchCases, selectCasesByContact } from '../store/slices/casesSlice';
 import { useToast } from '../contexts/useToast';
 import type { CreateContactNoteDTO, ContactNoteType } from '../types/contact';
 import { NOTE_TYPES } from '../types/contact';
+import { getNoteIcon, getNoteTypeLabel, formatNoteDate } from '../utils/notes';
+import useConfirmDialog, { confirmPresets } from '../hooks/useConfirmDialog';
+import ConfirmDialog from './ConfirmDialog';
 
 interface ContactNotesProps {
   contactId: string;
@@ -20,6 +23,7 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
   const { contactNotes, notesLoading } = useAppSelector((state) => state.contacts);
   const contactCases = useAppSelector((state) => selectCasesByContact(state, contactId));
   const { showSuccess, showError } = useToast();
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
 
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [newNote, setNewNote] = useState<CreateContactNoteDTO>({
@@ -73,7 +77,8 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
   };
 
   const handleDeleteNote = async (noteId: string) => {
-    if (!confirm('Are you sure you want to delete this note?')) return;
+    const confirmed = await confirm(confirmPresets.delete('Note'));
+    if (!confirmed) return;
 
     try {
       await dispatch(deleteContactNote(noteId)).unwrap();
@@ -82,38 +87,6 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
       console.error('Failed to delete note:', error);
       showError('Failed to delete note');
     }
-  };
-
-  const getNoteIcon = (noteType: ContactNoteType) => {
-    const icons: Record<ContactNoteType, string> = {
-      note: '📝',
-      email: '📧',
-      call: '📞',
-      meeting: '🤝',
-      update: '📢',
-      other: '📌',
-    };
-    return icons[noteType] || '📝';
-  };
-
-  const getNoteTypeLabel = (noteType: ContactNoteType) => {
-    const found = NOTE_TYPES.find((t) => t.value === noteType);
-    return found?.label || 'Note';
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    return date.toLocaleDateString();
   };
 
   // Sort notes: pinned first, then by date
@@ -326,7 +299,7 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
                   </div>
                   <div className="text-sm text-gray-500">
                     {note.created_by_first_name} {note.created_by_last_name} •{' '}
-                    {formatDate(note.created_at)}
+                    {formatNoteDate(note.created_at)}
                   </div>
                 </div>
               </div>
@@ -367,6 +340,13 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
           </div>
         ))}
       </div>
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        {...dialogState}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
     </div>
   );
 };
