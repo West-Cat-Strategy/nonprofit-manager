@@ -112,7 +112,7 @@ ${css}
           visitorId: visitorId,
           sessionId: sessionId
         })
-      }).catch(function() {});
+      }).catch(function(err) { if (console && console.debug) console.debug('Analytics tracking failed:', err); });
     })();
   </script>
 </body>

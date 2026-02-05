@@ -13,8 +13,8 @@ interface LoginAttempt {
 const loginAttempts = new Map<string, LoginAttempt>();
 const LOCKOUT_KEY_PREFIX = 'auth:lockout:';
 
-const MAX_LOGIN_ATTEMPTS = parseInt(process.env.MAX_LOGIN_ATTEMPTS || '5');
-const LOCKOUT_DURATION_MS = parseInt(process.env.ACCOUNT_LOCKOUT_DURATION_MS || '900000'); // 15 minutes
+const MAX_LOGIN_ATTEMPTS = parseInt(process.env.MAX_LOGIN_ATTEMPTS || '5', 10);
+const LOCKOUT_DURATION_MS = parseInt(process.env.ACCOUNT_LOCKOUT_DURATION_MS || '900000', 10); // 15 minutes
 
 const getLoginAttempt = async (identifier: string): Promise<LoginAttempt | null> => {
   const key = identifier.toLowerCase();

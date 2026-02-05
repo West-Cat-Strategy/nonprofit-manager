@@ -1,15 +1,37 @@
 import { doubleCsrf } from 'csrf-csrf';
 import { Request, Response, NextFunction } from 'express';
+import { logger } from '../config/logger';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const isTest = process.env.NODE_ENV === 'test';
+
+// Validate CSRF secret in production
+const getCsrfSecret = (): string => {
+  const secret = process.env.CSRF_SECRET;
+
+  if (isProduction) {
+    if (!secret) {
+      logger.error('CSRF_SECRET environment variable is required in production');
+      throw new Error('CSRF_SECRET environment variable is required in production');
+    }
+    if (secret.length < 32) {
+      logger.error('CSRF_SECRET must be at least 32 characters in production');
+      throw new Error('CSRF_SECRET must be at least 32 characters in production');
+    }
+    if (secret.includes('change') || secret.includes('dev') || secret.includes('test')) {
+      logger.warn('CSRF_SECRET appears to contain a placeholder value - please use a secure random secret');
+    }
+  }
+
+  return secret || 'csrf-secret-dev-only-not-for-production';
+};
 
 // Configure double-submit cookie CSRF protection
 const {
   generateCsrfToken,
   doubleCsrfProtection,
 } = doubleCsrf({
-  getSecret: () => process.env.CSRF_SECRET || 'csrf-secret-change-in-production',
+  getSecret: getCsrfSecret,
   // Use IP + User-Agent as session identifier (stateless)
   getSessionIdentifier: (req: Request) => {
     const ip = req.ip || req.socket?.remoteAddress || 'unknown';
