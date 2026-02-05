@@ -26,6 +26,11 @@ jest.mock('express-validator', () => ({
   validationResult: jest.fn(),
 }));
 
+jest.mock('../middleware/accountLockout', () => ({
+  trackLoginAttempt: jest.fn().mockResolvedValue(undefined),
+  isAccountLocked: jest.fn().mockResolvedValue({ locked: false }),
+}));
+
 describe('Auth API', () => {
   const queryMock = pool.query as jest.Mock;
   const validationResultMock = validationResult as unknown as jest.Mock;
@@ -43,18 +48,21 @@ describe('Auth API', () => {
       const hashedPassword = 'hashed-password';
       (bcrypt.hash as jest.Mock).mockResolvedValueOnce(hashedPassword);
 
-      queryMock.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({
-        rows: [
-          {
-            id: 'user-1',
-            email: 'newuser@example.com',
-            first_name: 'New',
-            last_name: 'User',
-            role: 'user',
-            created_at: new Date(),
-          },
-        ],
-      });
+      queryMock
+        .mockResolvedValueOnce({ rows: [] }) // Check existing user
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'user-1',
+              email: 'newuser@example.com',
+              first_name: 'New',
+              last_name: 'User',
+              role: 'user',
+              created_at: new Date(),
+            },
+          ],
+        }) // Insert user
+        .mockResolvedValueOnce({ rows: [{ id: 'org-1' }] }); // Get default organization
 
       const req = {
         body: {
@@ -83,25 +91,28 @@ describe('Auth API', () => {
         })
       );
       expect(next).not.toHaveBeenCalled();
-      expect(queryMock).toHaveBeenCalledTimes(2);
+      expect(queryMock).toHaveBeenCalledTimes(3);
     });
 
     it('ignores requested role and defaults to user', async () => {
       const hashedPassword = 'hashed-password';
       (bcrypt.hash as jest.Mock).mockResolvedValueOnce(hashedPassword);
 
-      queryMock.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({
-        rows: [
-          {
-            id: 'user-2',
-            email: 'role-test@example.com',
-            first_name: 'Role',
-            last_name: 'Test',
-            role: 'user',
-            created_at: new Date(),
-          },
-        ],
-      });
+      queryMock
+        .mockResolvedValueOnce({ rows: [] }) // Check existing user
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'user-2',
+              email: 'role-test@example.com',
+              first_name: 'Role',
+              last_name: 'Test',
+              role: 'user',
+              created_at: new Date(),
+            },
+          ],
+        }) // Insert user
+        .mockResolvedValueOnce({ rows: [{ id: 'org-1' }] }); // Get default organization
 
       const req = {
         body: {
@@ -146,7 +157,9 @@ describe('Auth API', () => {
       await register(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(409);
-      expect(res.json).toHaveBeenCalledWith({ error: 'User already exists' });
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'User already exists', code: 'conflict' })
+      );
       expect(queryMock).toHaveBeenCalledTimes(1);
       expect(next).not.toHaveBeenCalled();
     });
@@ -156,18 +169,21 @@ describe('Auth API', () => {
     it('returns token for valid credentials', async () => {
       (bcrypt.compare as jest.Mock).mockResolvedValueOnce(true);
 
-      queryMock.mockResolvedValueOnce({
-        rows: [
-          {
-            id: 'user-1',
-            email: 'login@example.com',
-            password_hash: 'hashed-password',
-            first_name: 'Login',
-            last_name: 'User',
-            role: 'user',
-          },
-        ],
-      });
+      queryMock
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'user-1',
+              email: 'login@example.com',
+              password_hash: 'hashed-password',
+              first_name: 'Login',
+              last_name: 'User',
+              role: 'user',
+              mfa_totp_enabled: false,
+            },
+          ],
+        }) // Get user
+        .mockResolvedValueOnce({ rows: [{ id: 'org-1' }] }); // Get default organization
 
       const req = {
         body: {
@@ -185,6 +201,7 @@ describe('Auth API', () => {
         expect.objectContaining({
           token: expect.any(String),
           refreshToken: expect.any(String),
+          organizationId: 'org-1',
           user: expect.objectContaining({
             id: 'user-1',
             email: 'login@example.com',
@@ -209,6 +226,7 @@ describe('Auth API', () => {
             first_name: 'Login',
             last_name: 'User',
             role: 'user',
+            mfa_totp_enabled: false,
           },
         ],
       });
@@ -226,15 +244,20 @@ describe('Auth API', () => {
       await login(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Invalid credentials' });
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'Invalid credentials', code: 'unauthorized' })
+      );
       expect(next).not.toHaveBeenCalled();
     });
   });
 });
 
 const createMockResponse = () => {
-  const res: Record<string, jest.Mock> = {};
+  const res: Record<string, jest.Mock | (() => undefined)> = {};
   res.status = jest.fn().mockReturnValue(res);
   res.json = jest.fn().mockReturnValue(res);
+  res.cookie = jest.fn().mockReturnValue(res);
+  res.clearCookie = jest.fn().mockReturnValue(res);
+  res.getHeader = jest.fn().mockReturnValue(undefined);
   return res;
 };

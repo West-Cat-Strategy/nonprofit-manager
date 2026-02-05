@@ -10,6 +10,7 @@ const createMockResponse = () => {
   const res: Record<string, jest.Mock> = {};
   res.status = jest.fn().mockReturnValue(res);
   res.json = jest.fn().mockReturnValue(res);
+  res.getHeader = jest.fn().mockReturnValue(undefined);
   return res;
 };
 
@@ -27,7 +28,7 @@ describe('auth middleware', () => {
       authenticate(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ error: 'No token provided' });
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'No token provided' }));
       expect(next).not.toHaveBeenCalled();
     });
 
@@ -45,7 +46,7 @@ describe('auth middleware', () => {
       authenticate(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Invalid or expired token' });
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Invalid or expired token' }));
       expect(next).not.toHaveBeenCalled();
     });
 
@@ -82,7 +83,7 @@ describe('auth middleware', () => {
       authorize('admin')(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Unauthorized' });
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Unauthorized' }));
       expect(next).not.toHaveBeenCalled();
     });
 
@@ -96,7 +97,7 @@ describe('auth middleware', () => {
       authorize('admin')(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(403);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Forbidden: Insufficient permissions' });
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Forbidden: Insufficient permissions' }));
       expect(next).not.toHaveBeenCalled();
     });
 

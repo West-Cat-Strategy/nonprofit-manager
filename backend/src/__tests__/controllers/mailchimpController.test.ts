@@ -47,6 +47,7 @@ describe('Mailchimp Controller', () => {
       json: mockJson,
       status: mockStatus,
       send: mockSend,
+      getHeader: jest.fn().mockReturnValue(undefined),
     };
   });
 
@@ -77,7 +78,7 @@ describe('Mailchimp Controller', () => {
       );
 
       expect(mockStatus).toHaveBeenCalledWith(500);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'Failed to get Mailchimp status' });
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({ error: 'Failed to get Mailchimp status' }));
     });
   });
 
@@ -107,7 +108,7 @@ describe('Mailchimp Controller', () => {
       );
 
       expect(mockStatus).toHaveBeenCalledWith(503);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'Mailchimp is not configured' });
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({ error: 'Mailchimp is not configured' }));
     });
 
     it('handles service errors', async () => {
@@ -120,7 +121,7 @@ describe('Mailchimp Controller', () => {
       );
 
       expect(mockStatus).toHaveBeenCalledWith(500);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'Failed to get Mailchimp lists' });
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({ error: 'Failed to get Mailchimp lists' }));
     });
   });
 
@@ -155,7 +156,7 @@ describe('Mailchimp Controller', () => {
       );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'List ID is required' });
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({ error: 'List ID is required' }));
     });
 
     it('returns 503 when Mailchimp is not configured', async () => {
@@ -216,7 +217,7 @@ describe('Mailchimp Controller', () => {
       );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'List ID is required' });
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({ error: 'List ID is required' }));
     });
 
     it('returns 400 when email is missing', async () => {
@@ -228,7 +229,7 @@ describe('Mailchimp Controller', () => {
       );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'Email is required' });
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({ error: 'Email is required' }));
     });
   });
 
@@ -268,7 +269,7 @@ describe('Mailchimp Controller', () => {
       );
 
       expect(mockStatus).toHaveBeenCalledWith(404);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'Member not found' });
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({ error: 'Member not found' }));
     });
 
     it('returns 400 when params are missing', async () => {
@@ -359,7 +360,7 @@ describe('Mailchimp Controller', () => {
       );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'Contact ID is required' });
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({ error: 'Contact ID is required' }));
     });
 
     it('returns 400 when listId is missing', async () => {
@@ -371,7 +372,7 @@ describe('Mailchimp Controller', () => {
       );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'List ID is required' });
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({ error: 'List ID is required' }));
     });
   });
 
@@ -414,9 +415,9 @@ describe('Mailchimp Controller', () => {
       );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({
-        error: 'Contact IDs array is required and must not be empty',
-      });
+      expect(mockJson).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'Contact IDs array is required and must not be empty' })
+      );
     });
 
     it('returns 400 when contactIds is not an array', async () => {
@@ -442,9 +443,9 @@ describe('Mailchimp Controller', () => {
       );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({
-        error: 'Maximum 500 contacts can be synced at once',
-      });
+      expect(mockJson).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'Maximum 500 contacts can be synced at once' })
+      );
     });
   });
 
@@ -482,7 +483,7 @@ describe('Mailchimp Controller', () => {
       );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'List ID is required' });
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({ error: 'List ID is required' }));
     });
 
     it('returns 400 when email is missing', async () => {
@@ -494,7 +495,7 @@ describe('Mailchimp Controller', () => {
       );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'Email is required' });
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({ error: 'Email is required' }));
     });
   });
 
@@ -608,7 +609,7 @@ describe('Mailchimp Controller', () => {
       );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'List ID is required' });
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({ error: 'List ID is required' }));
     });
 
     it('returns 400 when name is missing', async () => {
@@ -623,7 +624,7 @@ describe('Mailchimp Controller', () => {
       );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'Segment name is required' });
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({ error: 'Segment name is required' }));
     });
 
     it('returns 400 when conditions are missing', async () => {
@@ -638,7 +639,7 @@ describe('Mailchimp Controller', () => {
       );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'Segment conditions are required' });
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({ error: 'Segment conditions are required' }));
     });
 
     it('returns 400 when conditions are empty', async () => {
@@ -654,7 +655,7 @@ describe('Mailchimp Controller', () => {
       );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'Segment conditions are required' });
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({ error: 'Segment conditions are required' }));
     });
   });
 
