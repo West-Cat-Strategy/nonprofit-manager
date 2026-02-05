@@ -8,7 +8,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAppDispatch } from '../../store/hooks';
 import { setCredentials } from '../../store/slices/authSlice';
 import api from '../../services/api';
-import { formatApiErrorMessage, parseApiError } from '../../utils/apiError';
+import { useApiError } from '../../hooks/useApiError';
 import ErrorBanner from '../../components/ErrorBanner';
 
 interface InvitationInfo {
@@ -27,8 +27,18 @@ export default function AcceptInvitation() {
   const [isValidating, setIsValidating] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [invitation, setInvitation] = useState<InvitationInfo | null>(null);
-  const [validationError, setValidationError] = useState<string | null>(null);
-  const [formError, setFormError] = useState<string | null>(null);
+  const {
+    error: validationError,
+    details: validationDetails,
+    setFromError: setValidationFromError,
+    clear: clearValidationError,
+  } = useApiError({ notify: true });
+  const {
+    error: formError,
+    details: formDetails,
+    setFromError: setFormFromError,
+    clear: clearFormError,
+  } = useApiError({ notify: true });
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -39,7 +49,10 @@ export default function AcceptInvitation() {
   useEffect(() => {
     const validateToken = async () => {
       if (!token) {
-        setValidationError('Invalid invitation link');
+        setValidationFromError(
+          new Error('Invalid invitation link'),
+          'Invalid invitation link'
+        );
         setIsValidating(false);
         return;
       }
@@ -48,22 +61,20 @@ export default function AcceptInvitation() {
         const response = await api.get(`/invitations/validate/${token}`);
         if (response.data.valid) {
           setInvitation(response.data.invitation);
+          clearValidationError();
         } else {
           const message = response.data.error || 'Invalid invitation';
-          const correlationId = response.data.correlationId as string | undefined;
-          setValidationError(
-            correlationId ? `${message} (Ref: ${correlationId})` : message
-          );
+          setValidationFromError(new Error(message), message);
         }
       } catch (error: any) {
-        setValidationError(formatApiErrorMessage(error, 'Failed to validate invitation'));
+        setValidationFromError(error, 'Failed to validate invitation');
       } finally {
         setIsValidating(false);
       }
     };
 
     validateToken();
-  }, [token]);
+  }, [token, clearValidationError, setValidationFromError]);
 
   const validatePassword = (pwd: string): string | null => {
     if (pwd.length < 8) {
@@ -86,26 +97,26 @@ export default function AcceptInvitation() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError(null);
+    clearFormError();
 
     // Validate form
     if (!firstName.trim()) {
-      setFormError('First name is required');
+      setFormFromError(new Error('First name is required'), 'First name is required');
       return;
     }
     if (!lastName.trim()) {
-      setFormError('Last name is required');
+      setFormFromError(new Error('Last name is required'), 'Last name is required');
       return;
     }
 
     const passwordError = validatePassword(password);
     if (passwordError) {
-      setFormError(passwordError);
+      setFormFromError(new Error(passwordError), passwordError);
       return;
     }
 
     if (password !== confirmPassword) {
-      setFormError('Passwords do not match');
+      setFormFromError(new Error('Passwords do not match'), 'Passwords do not match');
       return;
     }
 
@@ -127,8 +138,7 @@ export default function AcceptInvitation() {
       // Navigate to dashboard
       navigate('/dashboard', { replace: true });
     } catch (error: any) {
-      const parsed = parseApiError(error, 'Failed to create account');
-      setFormError(parsed.correlationId ? `${parsed.message} (Ref: ${parsed.correlationId})` : parsed.message);
+      setFormFromError(error, 'Failed to create account');
       setIsSubmitting(false);
     }
   };
@@ -156,7 +166,11 @@ export default function AcceptInvitation() {
             </svg>
           </div>
           <h1 className="text-xl font-bold text-gray-900 mb-2">Invalid Invitation</h1>
-          <ErrorBanner message={validationError} className="mb-6" />
+          <ErrorBanner
+            message={validationError}
+            correlationId={validationDetails?.correlationId}
+            className="mb-6"
+          />
           <Link
             to="/login"
             className="inline-block px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
@@ -186,7 +200,11 @@ export default function AcceptInvitation() {
           </div>
         )}
 
-        <ErrorBanner message={formError} className="mb-4" />
+        <ErrorBanner
+          message={formError}
+          correlationId={formDetails?.correlationId}
+          className="mb-4"
+        />
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

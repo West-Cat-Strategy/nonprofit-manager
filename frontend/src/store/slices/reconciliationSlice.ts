@@ -5,7 +5,7 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../services/api';
-import { formatApiErrorMessage } from '../../utils/apiError';
+import { formatApiErrorMessageWith } from '../../utils/apiError';
 import type {
   PaymentReconciliation,
   ReconciliationItem,
@@ -17,6 +17,8 @@ import type {
   ResolveDiscrepancyRequest,
   AssignDiscrepancyRequest,
 } from '../../types/reconciliation';
+
+const getErrorMessage = (error: unknown, fallbackMessage: string) => formatApiErrorMessageWith(fallbackMessage)(error);
 
 interface ReconciliationState {
   // Dashboard
@@ -97,7 +99,7 @@ export const fetchReconciliationDashboard = createAsyncThunk(
       const response = await api.get('/reconciliation/dashboard');
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to fetch reconciliation dashboard');
+      const message = getErrorMessage(error, 'Failed to fetch reconciliation dashboard');
       return rejectWithValue(message);
     }
   }
@@ -113,7 +115,7 @@ export const createReconciliation = createAsyncThunk<PaymentReconciliation, Crea
       const response = await api.post('/reconciliation', data);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to create reconciliation');
+      const message = getErrorMessage(error, 'Failed to create reconciliation');
       return rejectWithValue(message);
     }
   }
@@ -129,7 +131,7 @@ export const fetchReconciliations = createAsyncThunk(
       const response = await api.get('/reconciliation', { params });
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to fetch reconciliations');
+      const message = getErrorMessage(error, 'Failed to fetch reconciliations');
       return rejectWithValue(message);
     }
   }
@@ -145,7 +147,7 @@ export const fetchReconciliationById = createAsyncThunk<ReconciliationDetail, st
       const response = await api.get(`/reconciliation/${id}`);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to fetch reconciliation');
+      const message = getErrorMessage(error, 'Failed to fetch reconciliation');
       return rejectWithValue(message);
     }
   }
@@ -161,7 +163,7 @@ export const fetchReconciliationItems = createAsyncThunk(
       const response = await api.get(`/reconciliation/${id}/items`, { params });
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to fetch reconciliation items');
+      const message = getErrorMessage(error, 'Failed to fetch reconciliation items');
       return rejectWithValue(message);
     }
   }
@@ -177,7 +179,7 @@ export const fetchReconciliationDiscrepancies = createAsyncThunk(
       const response = await api.get(`/reconciliation/${id}/discrepancies`);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to fetch discrepancies');
+      const message = getErrorMessage(error, 'Failed to fetch discrepancies');
       return rejectWithValue(message);
     }
   }
@@ -193,7 +195,7 @@ export const fetchAllDiscrepancies = createAsyncThunk(
       const response = await api.get('/reconciliation/discrepancies/all', { params });
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to fetch discrepancies');
+      const message = getErrorMessage(error, 'Failed to fetch discrepancies');
       return rejectWithValue(message);
     }
   }
@@ -208,7 +210,7 @@ export const manualMatchTransaction = createAsyncThunk<void, MatchTransactionReq
     try {
       await api.post('/reconciliation/match', data);
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to match transaction');
+      const message = getErrorMessage(error, 'Failed to match transaction');
       return rejectWithValue(message);
     }
   }
@@ -224,7 +226,7 @@ export const resolveDiscrepancy = createAsyncThunk(
       await api.put(`/reconciliation/discrepancies/${id}/resolve`, data);
       return id;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to resolve discrepancy');
+      const message = getErrorMessage(error, 'Failed to resolve discrepancy');
       return rejectWithValue(message);
     }
   }
@@ -240,7 +242,7 @@ export const assignDiscrepancy = createAsyncThunk(
       await api.put(`/reconciliation/discrepancies/${id}/assign`, data);
       return id;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to assign discrepancy');
+      const message = getErrorMessage(error, 'Failed to assign discrepancy');
       return rejectWithValue(message);
     }
   }

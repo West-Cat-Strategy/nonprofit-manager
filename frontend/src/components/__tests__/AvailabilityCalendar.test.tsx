@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import AvailabilityCalendar from '../AvailabilityCalendar';
 import type { VolunteerAssignment } from '../../store/slices/volunteersSlice';
+import { renderWithProviders } from '../../test/testUtils';
 
 describe('AvailabilityCalendar', () => {
   const mockAssignments: VolunteerAssignment[] = [
@@ -64,13 +65,13 @@ describe('AvailabilityCalendar', () => {
   });
 
   it('should render calendar with current month and year', () => {
-    render(<AvailabilityCalendar assignments={[]} />);
+    renderWithProviders(<AvailabilityCalendar assignments={[]} />);
 
     expect(screen.getByText('June 2024')).toBeInTheDocument();
   });
 
   it('should render day headers', () => {
-    render(<AvailabilityCalendar assignments={[]} />);
+    renderWithProviders(<AvailabilityCalendar assignments={[]} />);
 
     expect(screen.getByText('Sun')).toBeInTheDocument();
     expect(screen.getByText('Mon')).toBeInTheDocument();
@@ -82,7 +83,7 @@ describe('AvailabilityCalendar', () => {
   });
 
   it('should render navigation buttons', () => {
-    render(<AvailabilityCalendar assignments={[]} />);
+    renderWithProviders(<AvailabilityCalendar assignments={[]} />);
 
     const buttons = screen.getAllByRole('button');
     expect(buttons.length).toBeGreaterThan(0);
@@ -90,14 +91,14 @@ describe('AvailabilityCalendar', () => {
   });
 
   it('should display availability status', () => {
-    render(<AvailabilityCalendar assignments={[]} availabilityStatus="available" />);
+    renderWithProviders(<AvailabilityCalendar assignments={[]} availabilityStatus="available" />);
 
     expect(screen.getByText('Availability:')).toBeInTheDocument();
     expect(screen.getByText('available')).toBeInTheDocument();
   });
 
   it('should display unavailable status with red color', () => {
-    render(
+    renderWithProviders(
       <AvailabilityCalendar assignments={[]} availabilityStatus="unavailable" />
     );
 
@@ -106,7 +107,7 @@ describe('AvailabilityCalendar', () => {
   });
 
   it('should display limited status with yellow color', () => {
-    render(
+    renderWithProviders(
       <AvailabilityCalendar assignments={[]} availabilityStatus="limited" />
     );
 
@@ -115,7 +116,7 @@ describe('AvailabilityCalendar', () => {
   });
 
   it('should navigate to previous month when clicking previous button', () => {
-    render(<AvailabilityCalendar assignments={[]} />);
+    renderWithProviders(<AvailabilityCalendar assignments={[]} />);
 
     const prevButton = screen.getByLabelText('Previous month');
     fireEvent.click(prevButton);
@@ -124,7 +125,7 @@ describe('AvailabilityCalendar', () => {
   });
 
   it('should navigate to next month when clicking next button', () => {
-    render(<AvailabilityCalendar assignments={[]} />);
+    renderWithProviders(<AvailabilityCalendar assignments={[]} />);
 
     const nextButton = screen.getByLabelText('Next month');
     fireEvent.click(nextButton);
@@ -133,7 +134,7 @@ describe('AvailabilityCalendar', () => {
   });
 
   it('should navigate to current month when clicking Today button', () => {
-    render(<AvailabilityCalendar assignments={[]} />);
+    renderWithProviders(<AvailabilityCalendar assignments={[]} />);
 
     // Navigate to next month
     const nextButton = screen.getByLabelText('Next month');
@@ -148,7 +149,7 @@ describe('AvailabilityCalendar', () => {
   });
 
   it('should display assignments on calendar dates', () => {
-    render(<AvailabilityCalendar assignments={mockAssignments} />);
+    renderWithProviders(<AvailabilityCalendar assignments={mockAssignments} />);
 
     // Check for assignment names
     expect(screen.getByText('Fundraiser')).toBeInTheDocument();
@@ -156,7 +157,7 @@ describe('AvailabilityCalendar', () => {
   });
 
   it('should show "General" for assignments without event or task name', () => {
-    render(<AvailabilityCalendar assignments={mockAssignments} />);
+    renderWithProviders(<AvailabilityCalendar assignments={mockAssignments} />);
 
     const generalAssignments = screen.getAllByText('General');
     expect(generalAssignments.length).toBeGreaterThan(0);
@@ -164,7 +165,7 @@ describe('AvailabilityCalendar', () => {
 
   it('should call onDateClick when clicking on a date with assignments', () => {
     const mockOnDateClick = vi.fn();
-    render(
+    renderWithProviders(
       <AvailabilityCalendar
         assignments={mockAssignments}
         onDateClick={mockOnDateClick}
@@ -187,7 +188,7 @@ describe('AvailabilityCalendar', () => {
 
   it('should not call onDateClick when clicking on a date without assignments', () => {
     const mockOnDateClick = vi.fn();
-    render(
+    renderWithProviders(
       <AvailabilityCalendar
         assignments={mockAssignments}
         onDateClick={mockOnDateClick}
@@ -219,35 +220,35 @@ describe('AvailabilityCalendar', () => {
       },
     ];
 
-    render(<AvailabilityCalendar assignments={manyAssignments} />);
+    renderWithProviders(<AvailabilityCalendar assignments={manyAssignments} />);
 
     // Should show "+1 more" for the 3rd assignment on June 15
     expect(screen.getByText('+1 more')).toBeInTheDocument();
   });
 
   it('should display status colors correctly for completed assignments', () => {
-    render(<AvailabilityCalendar assignments={mockAssignments} />);
+    renderWithProviders(<AvailabilityCalendar assignments={mockAssignments} />);
 
     const completedAssignment = screen.getByText('Fundraiser');
     expect(completedAssignment).toHaveClass('bg-green-100', 'text-green-800');
   });
 
   it('should display status colors correctly for in_progress assignments', () => {
-    render(<AvailabilityCalendar assignments={mockAssignments} />);
+    renderWithProviders(<AvailabilityCalendar assignments={mockAssignments} />);
 
     const inProgressAssignment = screen.getByText('Setup');
     expect(inProgressAssignment).toHaveClass('bg-blue-100', 'text-blue-800');
   });
 
   it('should display status colors correctly for scheduled assignments', () => {
-    render(<AvailabilityCalendar assignments={mockAssignments} />);
+    renderWithProviders(<AvailabilityCalendar assignments={mockAssignments} />);
 
     const scheduledAssignment = screen.getByText('General');
     expect(scheduledAssignment).toHaveClass('bg-gray-100', 'text-gray-800');
   });
 
   it('should render legend with all status types', () => {
-    render(<AvailabilityCalendar assignments={[]} />);
+    renderWithProviders(<AvailabilityCalendar assignments={[]} />);
 
     expect(screen.getByText('In Progress')).toBeInTheDocument();
     expect(screen.getByText('Scheduled')).toBeInTheDocument();
@@ -256,14 +257,14 @@ describe('AvailabilityCalendar', () => {
   });
 
   it('should handle empty assignments array', () => {
-    render(<AvailabilityCalendar assignments={[]} />);
+    renderWithProviders(<AvailabilityCalendar assignments={[]} />);
 
     // Should still render calendar without errors
     expect(screen.getByText('June 2024')).toBeInTheDocument();
   });
 
   it('should highlight today\'s date', () => {
-    render(<AvailabilityCalendar assignments={[]} />);
+    renderWithProviders(<AvailabilityCalendar assignments={[]} />);
 
     // June 10, 2024 should be highlighted (our mocked current date)
     // This would require checking for specific styling on the date cell
@@ -271,7 +272,7 @@ describe('AvailabilityCalendar', () => {
   });
 
   it('should navigate through multiple months correctly', () => {
-    render(<AvailabilityCalendar assignments={[]} />);
+    renderWithProviders(<AvailabilityCalendar assignments={[]} />);
 
     const nextButton = screen.getByLabelText('Next month');
     const prevButton = screen.getByLabelText('Previous month');
@@ -292,7 +293,7 @@ describe('AvailabilityCalendar', () => {
   });
 
   it('should handle year transitions correctly', () => {
-    render(<AvailabilityCalendar assignments={[]} />);
+    renderWithProviders(<AvailabilityCalendar assignments={[]} />);
 
     const nextButton = screen.getByLabelText('Next month');
 
@@ -341,7 +342,7 @@ describe('AvailabilityCalendar', () => {
       },
     ];
 
-    render(<AvailabilityCalendar assignments={sameDay} />);
+    renderWithProviders(<AvailabilityCalendar assignments={sameDay} />);
 
     // Both assignments should be visible on the same date
     expect(screen.getByText('Morning Event')).toBeInTheDocument();

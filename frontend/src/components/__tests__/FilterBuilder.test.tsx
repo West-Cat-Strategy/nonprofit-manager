@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
+import { screen, fireEvent } from '@testing-library/react';
 import FilterBuilder from '../FilterBuilder';
-import reportsReducer from '../../store/slices/reportsSlice';
+import { renderWithProviders, createTestStore } from '../../test/testUtils';
 import type { ReportFilter } from '../../types/report';
 
 // Mock API
@@ -15,21 +13,7 @@ vi.mock('../../services/api', () => ({
 }));
 
 // Create a test store
-const createTestStore = (initialState = {}) => {
-  return configureStore({
-    reducer: {
-      reports: reportsReducer,
-    },
-    preloadedState: initialState,
-  });
-};
-
 // Wrapper component
-const renderWithProviders = (component: React.ReactElement, initialState = {}) => {
-  const store = createTestStore(initialState);
-  return render(<Provider store={store}>{component}</Provider>);
-};
-
 describe('FilterBuilder', () => {
   const mockOnChange = vi.fn();
   const mockFields = [
@@ -44,6 +28,11 @@ describe('FilterBuilder', () => {
     mockOnChange.mockClear();
   });
 
+const renderFilterBuilder = (component: React.ReactElement, initialState = {}) => {
+  const store = createTestStore(initialState);
+  return renderWithProviders(component, { store });
+};
+
   it('shows message when no fields are available', () => {
     const initialState = {
       reports: {
@@ -55,7 +44,7 @@ describe('FilterBuilder', () => {
       },
     };
 
-    renderWithProviders(
+    renderFilterBuilder(
       <FilterBuilder entity="contacts" filters={[]} onChange={mockOnChange} />,
       initialState
     );
@@ -74,7 +63,7 @@ describe('FilterBuilder', () => {
       },
     };
 
-    renderWithProviders(
+    renderFilterBuilder(
       <FilterBuilder entity="contacts" filters={[]} onChange={mockOnChange} />,
       initialState
     );
@@ -93,7 +82,7 @@ describe('FilterBuilder', () => {
       },
     };
 
-    renderWithProviders(
+    renderFilterBuilder(
       <FilterBuilder entity="contacts" filters={[]} onChange={mockOnChange} />,
       initialState
     );
@@ -122,7 +111,7 @@ describe('FilterBuilder', () => {
       { field: 'age', operator: 'gt', value: '18' },
     ];
 
-    renderWithProviders(
+    renderFilterBuilder(
       <FilterBuilder entity="contacts" filters={filters} onChange={mockOnChange} />,
       initialState
     );
@@ -148,7 +137,7 @@ describe('FilterBuilder', () => {
       { field: 'age', operator: 'gt', value: '18' },
     ];
 
-    renderWithProviders(
+    renderFilterBuilder(
       <FilterBuilder entity="contacts" filters={filters} onChange={mockOnChange} />,
       initialState
     );
@@ -176,7 +165,7 @@ describe('FilterBuilder', () => {
       { field: 'name', operator: 'in', value: 'value1,value2' },
     ];
 
-    renderWithProviders(
+    renderFilterBuilder(
       <FilterBuilder entity="contacts" filters={filters} onChange={mockOnChange} />,
       initialState
     );
@@ -200,7 +189,7 @@ describe('FilterBuilder', () => {
       { field: 'active', operator: 'eq', value: '' },
     ];
 
-    renderWithProviders(
+    renderFilterBuilder(
       <FilterBuilder entity="contacts" filters={filters} onChange={mockOnChange} />,
       initialState
     );

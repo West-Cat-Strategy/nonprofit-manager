@@ -1,90 +1,46 @@
 /* eslint-disable react-refresh/only-export-components */
-/**
- * Toast Context
- * Provides global toast notification functionality
- */
-
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useCallback, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import Toast, { type ToastType } from '../components/Toast';
-
-interface ToastMessage {
-  id: string;
-  message: string;
-  type: ToastType;
-  duration?: number;
-}
+import type { ToastItem } from './toastStore';
+import { createToastId } from './toastStore';
 
 interface ToastContextValue {
-  showToast: (message: string, type: ToastType, duration?: number) => void;
-  showSuccess: (message: string, duration?: number) => void;
-  showError: (message: string, duration?: number) => void;
-  showWarning: (message: string, duration?: number) => void;
-  showInfo: (message: string, duration?: number) => void;
+  toasts: ToastItem[];
+  pushToast: (toast: Omit<ToastItem, 'id'>) => void;
+  removeToast: (id: string) => void;
+  showSuccess: (message: string) => void;
+  showError: (message: string, correlationId?: string) => void;
 }
 
-const ToastContext = createContext<ToastContextValue | undefined>(undefined);
+export const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
-export const useToast = () => {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error('useToast must be used within a ToastProvider');
-  }
-  return context;
-};
-
-interface ToastProviderProps {
-  children: ReactNode;
-}
-
-export const ToastProvider = ({ children }: ToastProviderProps) => {
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
-
-  const showToast = useCallback((message: string, type: ToastType, duration: number = 5000) => {
-    const id = `toast-${Date.now()}-${Math.random()}`;
-    setToasts((prev) => [...prev, { id, message, type, duration }]);
-  }, []);
-
-  const showSuccess = useCallback((message: string, duration?: number) => {
-    showToast(message, 'success', duration);
-  }, [showToast]);
-
-  const showError = useCallback((message: string, duration?: number) => {
-    showToast(message, 'error', duration);
-  }, [showToast]);
-
-  const showWarning = useCallback((message: string, duration?: number) => {
-    showToast(message, 'warning', duration);
-  }, [showToast]);
-
-  const showInfo = useCallback((message: string, duration?: number) => {
-    showToast(message, 'info', duration);
-  }, [showToast]);
+export const ToastProvider = ({ children }: { children: ReactNode }) => {
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const removeToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    setToasts((current) => current.filter((toast) => toast.id !== id));
   }, []);
 
-  return (
-    <ToastContext.Provider value={{ showToast, showSuccess, showError, showWarning, showInfo }}>
-      {children}
-      {/* Toast Container */}
-      <div
-        className="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-md"
-        aria-live="polite"
-        aria-atomic="true"
-      >
-        {toasts.map((toast) => (
-          <Toast
-            key={toast.id}
-            id={toast.id}
-            message={toast.message}
-            type={toast.type}
-            duration={toast.duration}
-            onClose={removeToast}
-          />
-        ))}
-      </div>
-    </ToastContext.Provider>
+  const pushToast = useCallback((toast: Omit<ToastItem, 'id'>) => {
+    const id = createToastId();
+    setToasts((current) => [...current, { ...toast, id }]);
+    setTimeout(() => removeToast(id), 6000);
+  }, [removeToast]);
+
+  const showSuccess = useCallback((message: string) => {
+    pushToast({ message, variant: 'success' });
+  }, [pushToast]);
+
+  const showError = useCallback((message: string, correlationId?: string) => {
+    pushToast({ message, variant: 'error', correlationId });
+  }, [pushToast]);
+
+  const value = useMemo(
+    () => ({ toasts, pushToast, removeToast, showSuccess, showError }),
+    [toasts, pushToast, removeToast, showSuccess, showError]
   );
+
+  return <ToastContext.Provider value={value}>{children}</ToastContext.Provider>;
 };
+
+// useToast moved to contexts/useToast.ts

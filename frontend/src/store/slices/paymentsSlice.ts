@@ -5,13 +5,15 @@
 
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import api from '../../services/api';
-import { formatApiErrorMessage } from '../../utils/apiError';
+import { formatApiErrorMessageWith } from '../../utils/apiError';
 import type {
   PaymentState,
   PaymentConfig,
   PaymentIntentResponse,
   CreatePaymentIntentRequest,
 } from '../../types/payment';
+
+const getErrorMessage = (error: unknown, fallbackMessage: string) => formatApiErrorMessageWith(fallbackMessage)(error);
 
 const initialState: PaymentState = {
   config: null,
@@ -31,7 +33,7 @@ export const fetchPaymentConfig = createAsyncThunk<PaymentConfig>(
       const response = await api.get('/payments/config');
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Network error');
+      const message = getErrorMessage(error, 'Network error');
       return rejectWithValue(message);
     }
   }
@@ -50,7 +52,7 @@ export const createPaymentIntent = createAsyncThunk<
       const response = await api.post('/payments/intents', data);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Payment failed');
+      const message = getErrorMessage(error, 'Payment failed');
       return rejectWithValue(message);
     }
   }
@@ -66,7 +68,7 @@ export const getPaymentIntent = createAsyncThunk<PaymentIntentResponse, string>(
       const response = await api.get(`/payments/intents/${intentId}`);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Payment failed');
+      const message = getErrorMessage(error, 'Payment failed');
       return rejectWithValue(message);
     }
   }
@@ -82,7 +84,7 @@ export const cancelPaymentIntent = createAsyncThunk<PaymentIntentResponse, strin
       const response = await api.post(`/payments/intents/${intentId}/cancel`);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Payment failed');
+      const message = getErrorMessage(error, 'Payment failed');
       return rejectWithValue(message);
     }
   }

@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import SortBuilder from '../SortBuilder';
 import type { ReportSort } from '../../types/report';
+import { renderWithProviders } from '../../test/testUtils';
 
 describe('SortBuilder', () => {
   const mockOnChange = vi.fn();
@@ -11,7 +12,7 @@ describe('SortBuilder', () => {
   });
 
   it('shows message when no fields are selected', () => {
-    render(
+    renderWithProviders(
       <SortBuilder
         entity="contacts"
         selectedFields={[]}
@@ -24,7 +25,7 @@ describe('SortBuilder', () => {
   });
 
   it('renders add sort button when fields are available', () => {
-    render(
+    renderWithProviders(
       <SortBuilder
         entity="contacts"
         selectedFields={['name', 'email']}
@@ -37,7 +38,7 @@ describe('SortBuilder', () => {
   });
 
   it('adds new sort when Add Sort button is clicked', () => {
-    render(
+    renderWithProviders(
       <SortBuilder
         entity="contacts"
         selectedFields={['name', 'email']}
@@ -60,7 +61,7 @@ describe('SortBuilder', () => {
       { field: 'email', direction: 'desc' },
     ];
 
-    render(
+    renderWithProviders(
       <SortBuilder
         entity="contacts"
         selectedFields={['name', 'email', 'phone']}
@@ -79,7 +80,7 @@ describe('SortBuilder', () => {
       { field: 'email', direction: 'desc' },
     ];
 
-    render(
+    renderWithProviders(
       <SortBuilder
         entity="contacts"
         selectedFields={['name', 'email']}
@@ -102,7 +103,7 @@ describe('SortBuilder', () => {
       { field: 'email', direction: 'desc' },
     ];
 
-    render(
+    renderWithProviders(
       <SortBuilder
         entity="contacts"
         selectedFields={['name', 'email']}
@@ -126,7 +127,7 @@ describe('SortBuilder', () => {
       { field: 'email', direction: 'desc' },
     ];
 
-    render(
+    renderWithProviders(
       <SortBuilder
         entity="contacts"
         selectedFields={['name', 'email']}
@@ -150,7 +151,7 @@ describe('SortBuilder', () => {
       { field: 'email', direction: 'desc' },
     ];
 
-    render(
+    renderWithProviders(
       <SortBuilder
         entity="contacts"
         selectedFields={['name', 'email']}
@@ -169,7 +170,7 @@ describe('SortBuilder', () => {
       { field: 'email', direction: 'desc' },
     ];
 
-    render(
+    renderWithProviders(
       <SortBuilder
         entity="contacts"
         selectedFields={['name', 'email']}
@@ -187,7 +188,7 @@ describe('SortBuilder', () => {
       { field: 'name', direction: 'asc' },
     ];
 
-    render(
+    renderWithProviders(
       <SortBuilder
         entity="contacts"
         selectedFields={['name', 'email']}
@@ -204,7 +205,7 @@ describe('SortBuilder', () => {
       { field: 'name', direction: 'asc' },
     ];
 
-    render(
+    renderWithProviders(
       <SortBuilder
         entity="contacts"
         selectedFields={['name', 'email']}

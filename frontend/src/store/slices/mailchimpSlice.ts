@@ -5,7 +5,7 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../services/api';
-import { formatApiErrorMessage } from '../../utils/apiError';
+import { formatApiErrorMessageWith } from '../../utils/apiError';
 import type {
   MailchimpState,
   MailchimpStatus,
@@ -19,6 +19,8 @@ import type {
   SyncResult,
   CreateCampaignRequest,
 } from '../../types/mailchimp';
+
+const getErrorMessage = (error: unknown, fallbackMessage: string) => formatApiErrorMessageWith(fallbackMessage)(error);
 
 const initialState: MailchimpState = {
   status: null,
@@ -43,7 +45,7 @@ export const fetchMailchimpStatus = createAsyncThunk<MailchimpStatus>(
       const response = await api.get('/mailchimp/status');
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Network error');
+      const message = getErrorMessage(error, 'Network error');
       return rejectWithValue(message);
     }
   }
@@ -59,7 +61,7 @@ export const fetchMailchimpLists = createAsyncThunk<MailchimpList[]>(
       const response = await api.get('/mailchimp/lists');
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to fetch lists');
+      const message = getErrorMessage(error, 'Failed to fetch lists');
       return rejectWithValue(message);
     }
   }
@@ -75,7 +77,7 @@ export const fetchMailchimpList = createAsyncThunk<MailchimpList, string>(
       const response = await api.get(`/mailchimp/lists/${listId}`);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'List not found');
+      const message = getErrorMessage(error, 'List not found');
       return rejectWithValue(message);
     }
   }
@@ -91,7 +93,7 @@ export const fetchListTags = createAsyncThunk<MailchimpTag[], string>(
       const response = await api.get(`/mailchimp/lists/${listId}/tags`);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to fetch tags');
+      const message = getErrorMessage(error, 'Failed to fetch tags');
       return rejectWithValue(message);
     }
   }
@@ -107,7 +109,7 @@ export const fetchListSegments = createAsyncThunk<MailchimpSegment[], string>(
       const response = await api.get(`/mailchimp/lists/${listId}/segments`);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to fetch segments');
+      const message = getErrorMessage(error, 'Failed to fetch segments');
       return rejectWithValue(message);
     }
   }
@@ -124,7 +126,7 @@ export const fetchCampaigns = createAsyncThunk<MailchimpCampaign[], string | und
       const response = await api.get(url);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to fetch campaigns');
+      const message = getErrorMessage(error, 'Failed to fetch campaigns');
       return rejectWithValue(message);
     }
   }
@@ -140,7 +142,7 @@ export const syncContact = createAsyncThunk<SyncResult, SyncContactRequest>(
       const response = await api.post('/mailchimp/sync/contact', data);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Sync failed');
+      const message = getErrorMessage(error, 'Sync failed');
       return rejectWithValue(message);
     }
   }
@@ -156,7 +158,7 @@ export const bulkSyncContacts = createAsyncThunk<BulkSyncResponse, BulkSyncReque
       const response = await api.post('/mailchimp/sync/bulk', data);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Bulk sync failed');
+      const message = getErrorMessage(error, 'Bulk sync failed');
       return rejectWithValue(message);
     }
   }
@@ -172,7 +174,7 @@ export const createCampaign = createAsyncThunk<MailchimpCampaign, CreateCampaign
       const response = await api.post('/mailchimp/campaigns', data);
       return response.data;
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to create campaign');
+      const message = getErrorMessage(error, 'Failed to create campaign');
       return rejectWithValue(message);
     }
   }
@@ -187,7 +189,7 @@ export const sendCampaign = createAsyncThunk<void, string>(
     try {
       await api.post(`/mailchimp/campaigns/${campaignId}/send`);
     } catch (error) {
-      const message = formatApiErrorMessage(error, 'Failed to send campaign');
+      const message = getErrorMessage(error, 'Failed to send campaign');
       return rejectWithValue(message);
     }
   }

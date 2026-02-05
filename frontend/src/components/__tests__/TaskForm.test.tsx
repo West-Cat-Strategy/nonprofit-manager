@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import TaskForm from '../TaskForm';
+import { renderWithProviders } from '../../test/testUtils';
 import type { Task } from '../../types/task';
 
 // Mock navigate
@@ -15,10 +15,6 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Wrapper component
-const renderWithRouter = (component: React.ReactElement) => {
-  return render(<BrowserRouter>{component}</BrowserRouter>);
-};
-
 describe('TaskForm', () => {
   const mockOnSubmit = vi.fn();
 
@@ -29,7 +25,7 @@ describe('TaskForm', () => {
 
   describe('Create Mode', () => {
     it('renders all form fields', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       expect(screen.getByLabelText(/subject/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
@@ -39,33 +35,33 @@ describe('TaskForm', () => {
     });
 
     it('shows Create Task button', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
       expect(screen.getByRole('button', { name: /create task/i })).toBeInTheDocument();
     });
 
     it('has empty form fields initially', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       const subjectInput = screen.getByLabelText(/subject/i) as HTMLInputElement;
       expect(subjectInput.value).toBe('');
     });
 
     it('has default status as not_started', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       const statusSelect = screen.getByLabelText(/status/i) as HTMLSelectElement;
       expect(statusSelect.value).toBe('not_started');
     });
 
     it('has default priority as normal', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       const prioritySelect = screen.getByLabelText(/priority/i) as HTMLSelectElement;
       expect(prioritySelect.value).toBe('normal');
     });
 
     it('allows user to fill out the form', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       const subjectInput = screen.getByLabelText(/subject/i) as HTMLInputElement;
       fireEvent.change(subjectInput, { target: { value: 'Follow up with donor' } });
@@ -79,7 +75,7 @@ describe('TaskForm', () => {
     });
 
     it('validates subject is required', async () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       const submitButton = screen.getByRole('button', { name: /create task/i });
       fireEvent.click(submitButton);
@@ -92,7 +88,7 @@ describe('TaskForm', () => {
 
     it('calls onSubmit with form data on valid submission', async () => {
       mockOnSubmit.mockResolvedValue(undefined);
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       fireEvent.change(screen.getByLabelText(/subject/i), {
         target: { value: 'Test Task' },
@@ -108,7 +104,7 @@ describe('TaskForm', () => {
 
     it('navigates to tasks list on successful submission', async () => {
       mockOnSubmit.mockResolvedValue(undefined);
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       fireEvent.change(screen.getByLabelText(/subject/i), {
         target: { value: 'Test Task' },
@@ -123,7 +119,7 @@ describe('TaskForm', () => {
     });
 
     it('has cancel button that navigates back', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       const cancelButton = screen.getByRole('button', { name: /cancel/i });
       fireEvent.click(cancelButton);
@@ -149,12 +145,12 @@ describe('TaskForm', () => {
     };
 
     it('shows Update Task button in edit mode', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} task={mockTask} isEdit />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} task={mockTask} isEdit />);
       expect(screen.getByRole('button', { name: /update task/i })).toBeInTheDocument();
     });
 
     it('populates form fields with task data', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} task={mockTask} isEdit />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} task={mockTask} isEdit />);
 
       const subjectInput = screen.getByLabelText(/subject/i) as HTMLInputElement;
       expect(subjectInput.value).toBe('Existing Task');
@@ -170,7 +166,7 @@ describe('TaskForm', () => {
     });
 
     it('allows user to modify form fields', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} task={mockTask} isEdit />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} task={mockTask} isEdit />);
 
       const subjectInput = screen.getByLabelText(/subject/i) as HTMLInputElement;
       fireEvent.change(subjectInput, { target: { value: 'Updated Task Subject' } });
@@ -180,7 +176,7 @@ describe('TaskForm', () => {
 
   describe('Status Selection', () => {
     it('allows selecting not_started status', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       const statusSelect = screen.getByLabelText(/status/i) as HTMLSelectElement;
       fireEvent.change(statusSelect, { target: { value: 'not_started' } });
@@ -188,7 +184,7 @@ describe('TaskForm', () => {
     });
 
     it('allows selecting in_progress status', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       const statusSelect = screen.getByLabelText(/status/i) as HTMLSelectElement;
       fireEvent.change(statusSelect, { target: { value: 'in_progress' } });
@@ -196,7 +192,7 @@ describe('TaskForm', () => {
     });
 
     it('allows selecting completed status', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       const statusSelect = screen.getByLabelText(/status/i) as HTMLSelectElement;
       fireEvent.change(statusSelect, { target: { value: 'completed' } });
@@ -204,7 +200,7 @@ describe('TaskForm', () => {
     });
 
     it('allows selecting waiting status', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       const statusSelect = screen.getByLabelText(/status/i) as HTMLSelectElement;
       fireEvent.change(statusSelect, { target: { value: 'waiting' } });
@@ -212,7 +208,7 @@ describe('TaskForm', () => {
     });
 
     it('allows selecting deferred status', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       const statusSelect = screen.getByLabelText(/status/i) as HTMLSelectElement;
       fireEvent.change(statusSelect, { target: { value: 'deferred' } });
@@ -220,7 +216,7 @@ describe('TaskForm', () => {
     });
 
     it('allows selecting cancelled status', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       const statusSelect = screen.getByLabelText(/status/i) as HTMLSelectElement;
       fireEvent.change(statusSelect, { target: { value: 'cancelled' } });
@@ -230,7 +226,7 @@ describe('TaskForm', () => {
 
   describe('Priority Selection', () => {
     it('allows selecting low priority', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       const prioritySelect = screen.getByLabelText(/priority/i) as HTMLSelectElement;
       fireEvent.change(prioritySelect, { target: { value: 'low' } });
@@ -238,7 +234,7 @@ describe('TaskForm', () => {
     });
 
     it('allows selecting normal priority', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       const prioritySelect = screen.getByLabelText(/priority/i) as HTMLSelectElement;
       fireEvent.change(prioritySelect, { target: { value: 'normal' } });
@@ -246,7 +242,7 @@ describe('TaskForm', () => {
     });
 
     it('allows selecting high priority', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       const prioritySelect = screen.getByLabelText(/priority/i) as HTMLSelectElement;
       fireEvent.change(prioritySelect, { target: { value: 'high' } });
@@ -254,7 +250,7 @@ describe('TaskForm', () => {
     });
 
     it('allows selecting urgent priority', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       const prioritySelect = screen.getByLabelText(/priority/i) as HTMLSelectElement;
       fireEvent.change(prioritySelect, { target: { value: 'urgent' } });
@@ -264,7 +260,7 @@ describe('TaskForm', () => {
 
   describe('Due Date Field', () => {
     it('allows setting due date', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       const dueDateInput = screen.getByLabelText(/due date/i) as HTMLInputElement;
       fireEvent.change(dueDateInput, { target: { value: '2026-03-01T10:00' } });
@@ -272,7 +268,7 @@ describe('TaskForm', () => {
     });
 
     it('allows leaving due date blank', () => {
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       const dueDateInput = screen.getByLabelText(/due date/i) as HTMLInputElement;
       expect(dueDateInput.value).toBe('');
@@ -282,7 +278,7 @@ describe('TaskForm', () => {
   describe('Error Handling', () => {
     it('displays error message on submission failure', async () => {
       mockOnSubmit.mockRejectedValue(new Error('Server error'));
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       fireEvent.change(screen.getByLabelText(/subject/i), {
         target: { value: 'Test Task' },
@@ -298,7 +294,7 @@ describe('TaskForm', () => {
 
     it('displays generic error for non-Error objects', async () => {
       mockOnSubmit.mockRejectedValue('Unknown error');
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       fireEvent.change(screen.getByLabelText(/subject/i), {
         target: { value: 'Test Task' },
@@ -318,7 +314,7 @@ describe('TaskForm', () => {
       mockOnSubmit.mockImplementation(
         () => new Promise((resolve) => setTimeout(resolve, 100))
       );
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       fireEvent.change(screen.getByLabelText(/subject/i), {
         target: { value: 'Test Task' },
@@ -334,7 +330,7 @@ describe('TaskForm', () => {
       mockOnSubmit.mockImplementation(
         () => new Promise((resolve) => setTimeout(resolve, 100))
       );
-      renderWithRouter(<TaskForm onSubmit={mockOnSubmit} />);
+      renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       fireEvent.change(screen.getByLabelText(/subject/i), {
         target: { value: 'Test Task' },

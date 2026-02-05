@@ -3,11 +3,11 @@
  * Recent activity across the organization
  */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import api from '../../services/api';
-import { formatApiErrorMessage } from '../../utils/apiError';
 import WidgetContainer from './WidgetContainer';
 import type { DashboardWidget } from '../../types/dashboard';
+import { useApiError } from '../../hooks/useApiError';
 
 interface ActivityFeedWidgetProps {
   widget: DashboardWidget;
@@ -28,21 +28,21 @@ interface Activity {
 const ActivityFeedWidget = ({ widget, editMode, onRemove }: ActivityFeedWidgetProps) => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { error, setFromError, clear } = useApiError();
 
-  const fetchActivities = async () => {
+  const fetchActivities = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
+      clear();
       const response = await api.get('/activities/recent?limit=10');
       setActivities(response.data.activities || []);
     } catch (err: any) {
       console.error('Error fetching activities:', err);
-      setError(formatApiErrorMessage(err, 'Failed to load activities'));
+      setFromError(err, 'Failed to load activities');
     } finally {
       setLoading(false);
     }
-  };
+  }, [clear, setFromError]);
 
   useEffect(() => {
     fetchActivities();
@@ -51,7 +51,7 @@ const ActivityFeedWidget = ({ widget, editMode, onRemove }: ActivityFeedWidgetPr
     const interval = setInterval(fetchActivities, 60000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchActivities]);
 
   const getActivityIcon = (type: string) => {
     if (type.startsWith('case')) return '📋';
