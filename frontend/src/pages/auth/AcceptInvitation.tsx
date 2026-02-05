@@ -8,6 +8,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAppDispatch } from '../../store/hooks';
 import { setCredentials } from '../../store/slices/authSlice';
 import api from '../../services/api';
+import { formatApiErrorMessage, parseApiError } from '../../utils/apiError';
+import ErrorBanner from '../../components/ErrorBanner';
 
 interface InvitationInfo {
   email: string;
@@ -47,10 +49,14 @@ export default function AcceptInvitation() {
         if (response.data.valid) {
           setInvitation(response.data.invitation);
         } else {
-          setValidationError(response.data.error || 'Invalid invitation');
+          const message = response.data.error || 'Invalid invitation';
+          const correlationId = response.data.correlationId as string | undefined;
+          setValidationError(
+            correlationId ? `${message} (Ref: ${correlationId})` : message
+          );
         }
       } catch (error: any) {
-        setValidationError(error.response?.data?.error || 'Failed to validate invitation');
+        setValidationError(formatApiErrorMessage(error, 'Failed to validate invitation'));
       } finally {
         setIsValidating(false);
       }
@@ -121,7 +127,8 @@ export default function AcceptInvitation() {
       // Navigate to dashboard
       navigate('/dashboard', { replace: true });
     } catch (error: any) {
-      setFormError(error.response?.data?.error || 'Failed to create account');
+      const parsed = parseApiError(error, 'Failed to create account');
+      setFormError(parsed.correlationId ? `${parsed.message} (Ref: ${parsed.correlationId})` : parsed.message);
       setIsSubmitting(false);
     }
   };
@@ -149,7 +156,7 @@ export default function AcceptInvitation() {
             </svg>
           </div>
           <h1 className="text-xl font-bold text-gray-900 mb-2">Invalid Invitation</h1>
-          <p className="text-gray-600 mb-6">{validationError}</p>
+          <ErrorBanner message={validationError} className="mb-6" />
           <Link
             to="/login"
             className="inline-block px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
@@ -179,11 +186,7 @@ export default function AcceptInvitation() {
           </div>
         )}
 
-        {formError && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-            {formError}
-          </div>
-        )}
+        <ErrorBanner message={formError} className="mb-4" />
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

@@ -5,6 +5,7 @@
 
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import api from '../../services/api';
+import { formatApiErrorMessage } from '../../utils/apiError';
 import type {
   PaymentState,
   PaymentConfig,
@@ -30,7 +31,7 @@ export const fetchPaymentConfig = createAsyncThunk<PaymentConfig>(
       const response = await api.get('/payments/config');
       return response.data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to fetch payment config';
+      const message = formatApiErrorMessage(error, 'Network error');
       return rejectWithValue(message);
     }
   }
@@ -49,7 +50,7 @@ export const createPaymentIntent = createAsyncThunk<
       const response = await api.post('/payments/intents', data);
       return response.data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to create payment intent';
+      const message = formatApiErrorMessage(error, 'Payment failed');
       return rejectWithValue(message);
     }
   }
@@ -65,7 +66,7 @@ export const getPaymentIntent = createAsyncThunk<PaymentIntentResponse, string>(
       const response = await api.get(`/payments/intents/${intentId}`);
       return response.data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to get payment intent';
+      const message = formatApiErrorMessage(error, 'Payment failed');
       return rejectWithValue(message);
     }
   }
@@ -81,7 +82,7 @@ export const cancelPaymentIntent = createAsyncThunk<PaymentIntentResponse, strin
       const response = await api.post(`/payments/intents/${intentId}/cancel`);
       return response.data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to cancel payment intent';
+      const message = formatApiErrorMessage(error, 'Payment failed');
       return rejectWithValue(message);
     }
   }

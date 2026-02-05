@@ -7,7 +7,7 @@ import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
 import { getRedisClient } from '../config/redis';
 import { logger } from '../config/logger';
-import { forbidden } from '../utils/responseHelpers';
+import { errorPayload, forbidden } from '../utils/responseHelpers';
 
 const router = Router();
 
@@ -146,7 +146,7 @@ router.get('/ready', async (_req: Request, res: Response) => {
     res.status(503).json({
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
-      error: 'Health check failed',
+      ...errorPayload(res, 'Health check failed', undefined, 'service_unavailable'),
     });
   }
 });

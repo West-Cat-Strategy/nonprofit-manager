@@ -6,6 +6,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { formatApiErrorMessage } from '../../utils/apiError';
+import ErrorBanner from '../../components/ErrorBanner';
 import { useAppDispatch } from '../../store/hooks';
 import { setCredentials } from '../../store/slices/authSlice';
 
@@ -110,12 +112,12 @@ const Setup: React.FC = () => {
       // Redirect to dashboard
       navigate('/dashboard');
     } catch (error: any) {
-      if (error.response?.data?.errors) {
-        setErrors(error.response.data.errors.map((e: any) => e.msg));
+      if (error.response?.data?.details && Array.isArray(error.response.data.details)) {
+        setErrors(error.response.data.details.map((e: any) => e.msg || String(e)));
       } else if (error.response?.data?.error) {
-        setErrors([error.response.data.error]);
+        setErrors([formatApiErrorMessage(error, error.response.data.error)]);
       } else {
-        setErrors(['An error occurred during setup. Please try again.']);
+        setErrors([formatApiErrorMessage(error, 'An error occurred during setup. Please try again.')]);
       }
     } finally {
       setLoading(false);
@@ -152,7 +154,7 @@ const Setup: React.FC = () => {
 
         {/* Error Messages */}
         {errors.length > 0 && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <ErrorBanner className="bg-red-50 border-red-200 text-red-800">
             <div className="flex">
               <svg
                 className="h-5 w-5 text-red-400 mr-2"
@@ -168,17 +170,17 @@ const Setup: React.FC = () => {
                 />
               </svg>
               <div className="flex-1">
-                <h3 className="text-sm font-medium text-red-800">
+                <h3 className="text-sm font-medium">
                   Please fix the following errors:
                 </h3>
-                <ul className="mt-2 text-sm text-red-700 list-disc list-inside">
+                <ul className="mt-2 text-sm list-disc list-inside">
                   {errors.map((error, index) => (
                     <li key={index}>{error}</li>
                   ))}
                 </ul>
               </div>
             </div>
-          </div>
+          </ErrorBanner>
         )}
 
         {/* Setup Form */}

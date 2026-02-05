@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import api from '../../services/api';
+import { formatApiErrorMessage } from '../../utils/apiError';
 
 function getFilenameFromContentDisposition(headerValue: string | undefined): string | null {
   if (!headerValue) return null;
@@ -62,10 +63,10 @@ export default function DataBackup() {
         URL.revokeObjectURL(url);
       }
     } catch (e: any) {
-      const message =
-        e?.response?.data?.error ||
-        e?.message ||
-        'Failed to download backup. Please try again.';
+      const message = formatApiErrorMessage(
+        e,
+        e?.message || 'Failed to download backup. Please try again.'
+      );
       setError(String(message));
     } finally {
       setDownloading(false);

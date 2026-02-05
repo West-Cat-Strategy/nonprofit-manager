@@ -14,7 +14,7 @@ import { AuthRequest } from '../middleware/auth';
 import { PASSWORD, JWT } from '../config/constants';
 import * as invitationService from '../services/invitationService';
 import { syncUserRole } from '../services/userRoleService';
-import { badRequest, conflict, forbidden, notFoundMessage, validationErrorResponse } from '../utils/responseHelpers';
+import { badRequest, conflict, errorPayload, forbidden, notFoundMessage, validationErrorResponse } from '../utils/responseHelpers';
 
 /**
  * POST /api/invitations
@@ -136,9 +136,10 @@ export const validateInvitation = async (
     const result = await invitationService.validateInvitation(token);
 
     if (!result.valid) {
+      const message = result.error || 'Invalid invitation';
       return res.status(400).json({
         valid: false,
-        error: result.error,
+        ...errorPayload(res, message, undefined, 'validation_error'),
       });
     }
 

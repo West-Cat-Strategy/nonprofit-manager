@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import portalApi from '../services/portalApi';
+import { formatApiErrorMessage } from '../utils/apiError';
+import ErrorBanner from '../components/ErrorBanner';
 import { useAppDispatch } from '../store/hooks';
 import { portalLogin } from '../store/slices/portalAuthSlice';
 
@@ -28,7 +30,7 @@ export default function PortalAcceptInvitation() {
         const response = await portalApi.get(`/portal/auth/invitations/validate/${token}`);
         setInvitation(response.data.invitation);
       } catch (err: any) {
-        setError(err.response?.data?.error || 'Invitation is invalid or expired');
+        setError(formatApiErrorMessage(err, 'Invitation is invalid or expired'));
       }
     };
     if (token) {
@@ -47,7 +49,7 @@ export default function PortalAcceptInvitation() {
       await dispatch(portalLogin({ email: invitation!.email, password: formData.password })).unwrap();
       navigate('/portal');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to accept invitation');
+      setError(formatApiErrorMessage(err, 'Failed to accept invitation'));
     }
   };
 
@@ -55,7 +57,7 @@ export default function PortalAcceptInvitation() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="bg-white shadow rounded-lg p-8 w-full max-w-md">
         <h1 className="text-2xl font-semibold text-gray-900">Accept Portal Invitation</h1>
-        {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+        <ErrorBanner message={error} className="mt-4" />
         {invitation && (
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
