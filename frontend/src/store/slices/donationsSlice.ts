@@ -15,6 +15,11 @@ import type {
   DonationSummary,
 } from '../../types/donation';
 import api from '../../services/api';
+import {
+  handlePending,
+  handleRejected,
+  buildQueryParams,
+} from '../sliceHelpers';
 
 interface DonationsState {
   donations: Donation[];
@@ -52,24 +57,7 @@ const initialState: DonationsState = {
 export const fetchDonations = createAsyncThunk(
   'donations/fetchDonations',
   async (params: { filters?: DonationFilters; pagination?: PaginationParams }) => {
-    const queryParams = new URLSearchParams();
-
-    if (params.filters) {
-      Object.entries(params.filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          queryParams.append(key, String(value));
-        }
-      });
-    }
-
-    if (params.pagination) {
-      Object.entries(params.pagination).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          queryParams.append(key, String(value));
-        }
-      });
-    }
-
+    const queryParams = buildQueryParams(params.filters, params.pagination);
     const response = await api.get<PaginatedDonations>(`/donations?${queryParams.toString()}`);
     return response.data;
   }
@@ -118,16 +106,7 @@ export const markReceiptSent = createAsyncThunk(
 export const fetchDonationSummary = createAsyncThunk(
   'donations/fetchDonationSummary',
   async (filters?: DonationFilters) => {
-    const queryParams = new URLSearchParams();
-
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          queryParams.append(key, String(value));
-        }
-      });
-    }
-
+    const queryParams = buildQueryParams(filters);
     const response = await api.get<DonationSummary>(`/donations/summary?${queryParams.toString()}`);
     return response.data;
   }
@@ -146,10 +125,7 @@ const donationsSlice = createSlice({
   },
   extraReducers: (builder) => {
     // Fetch donations
-    builder.addCase(fetchDonations.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    });
+    builder.addCase(fetchDonations.pending, handlePending);
     builder.addCase(
       fetchDonations.fulfilled,
       (state, action: PayloadAction<PaginatedDonations>) => {
@@ -163,43 +139,31 @@ const donationsSlice = createSlice({
       }
     );
     builder.addCase(fetchDonations.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.error.message || 'Failed to fetch donations';
+      handleRejected(state, action, 'Failed to fetch donations');
     });
 
     // Fetch donation by ID
-    builder.addCase(fetchDonationById.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    });
+    builder.addCase(fetchDonationById.pending, handlePending);
     builder.addCase(fetchDonationById.fulfilled, (state, action: PayloadAction<Donation>) => {
       state.loading = false;
       state.selectedDonation = action.payload;
     });
     builder.addCase(fetchDonationById.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.error.message || 'Failed to fetch donation';
+      handleRejected(state, action, 'Failed to fetch donation');
     });
 
     // Create donation
-    builder.addCase(createDonation.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    });
+    builder.addCase(createDonation.pending, handlePending);
     builder.addCase(createDonation.fulfilled, (state, action: PayloadAction<Donation>) => {
       state.loading = false;
       state.donations.unshift(action.payload);
     });
     builder.addCase(createDonation.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.error.message || 'Failed to create donation';
+      handleRejected(state, action, 'Failed to create donation');
     });
 
     // Update donation
-    builder.addCase(updateDonation.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    });
+    builder.addCase(updateDonation.pending, handlePending);
     builder.addCase(updateDonation.fulfilled, (state, action: PayloadAction<Donation>) => {
       state.loading = false;
       const index = state.donations.findIndex((d) => d.donation_id === action.payload.donation_id);
@@ -211,15 +175,11 @@ const donationsSlice = createSlice({
       }
     });
     builder.addCase(updateDonation.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.error.message || 'Failed to update donation';
+      handleRejected(state, action, 'Failed to update donation');
     });
 
     // Delete donation
-    builder.addCase(deleteDonation.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    });
+    builder.addCase(deleteDonation.pending, handlePending);
     builder.addCase(deleteDonation.fulfilled, (state, action: PayloadAction<string>) => {
       state.loading = false;
       state.donations = state.donations.filter((d) => d.donation_id !== action.payload);
@@ -228,15 +188,11 @@ const donationsSlice = createSlice({
       }
     });
     builder.addCase(deleteDonation.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.error.message || 'Failed to delete donation';
+      handleRejected(state, action, 'Failed to delete donation');
     });
 
     // Mark receipt sent
-    builder.addCase(markReceiptSent.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    });
+    builder.addCase(markReceiptSent.pending, handlePending);
     builder.addCase(markReceiptSent.fulfilled, (state, action: PayloadAction<Donation>) => {
       state.loading = false;
       const index = state.donations.findIndex((d) => d.donation_id === action.payload.donation_id);
@@ -248,15 +204,11 @@ const donationsSlice = createSlice({
       }
     });
     builder.addCase(markReceiptSent.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.error.message || 'Failed to mark receipt sent';
+      handleRejected(state, action, 'Failed to mark receipt sent');
     });
 
     // Fetch donation summary
-    builder.addCase(fetchDonationSummary.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    });
+    builder.addCase(fetchDonationSummary.pending, handlePending);
     builder.addCase(
       fetchDonationSummary.fulfilled,
       (state, action: PayloadAction<DonationSummary>) => {
@@ -265,8 +217,7 @@ const donationsSlice = createSlice({
       }
     );
     builder.addCase(fetchDonationSummary.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.error.message || 'Failed to fetch donation summary';
+      handleRejected(state, action, 'Failed to fetch donation summary');
     });
   },
 });
