@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
-interface SearchResult {
+export interface SearchResult {
   contact_id: string;
   first_name: string;
   last_name: string;
@@ -13,9 +13,25 @@ interface SearchResult {
   is_active: boolean;
 }
 
-export type { SearchResult };
+export interface UseQuickLookupOptions {
+  /** Max results to return (default: 8) */
+  limit?: number;
+  /** Only search active contacts (default: true) */
+  activeOnly?: boolean;
+  /** Debounce delay in ms (default: 300) */
+  debounceMs?: number;
+  /** Navigate to contact detail on keyboard Enter (default: false) */
+  navigateOnSelect?: boolean;
+}
 
-export function useQuickLookup() {
+export function useQuickLookup(options: UseQuickLookupOptions = {}) {
+  const {
+    limit = 8,
+    activeOnly = true,
+    debounceMs = 300,
+    navigateOnSelect = false,
+  } = options;
+
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -35,14 +51,10 @@ export function useQuickLookup() {
 
     setIsLoading(true);
     try {
-      const response = await api.get('/contacts', {
-        params: {
-          search: term,
-          limit: 8,
-          is_active: true,
-        },
-      });
-      setResults(response.data.contacts || []);
+      const params: Record<string, unknown> = { search: term, limit };
+      if (activeOnly) params.is_active = true;
+      const response = await api.get('/contacts', { params });
+      setResults(response.data.contacts || response.data.data || []);
       setIsOpen(true);
       setSelectedIndex(-1);
     } catch {
@@ -50,10 +62,10 @@ export function useQuickLookup() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [limit, activeOnly]);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+  const handleSearchChange = (eventOrValue: React.ChangeEvent<HTMLInputElement> | string) => {
+    const value = typeof eventOrValue === 'string' ? eventOrValue : eventOrValue.target.value;
     setSearchTerm(value);
 
     if (debounceTimer.current) {
@@ -62,7 +74,7 @@ export function useQuickLookup() {
 
     debounceTimer.current = setTimeout(() => {
       performSearch(value);
-    }, 300);
+    }, debounceMs);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -79,7 +91,7 @@ export function useQuickLookup() {
         break;
       case 'Enter':
         e.preventDefault();
-        if (selectedIndex >= 0 && results[selectedIndex]) {
+        if (navigateOnSelect && selectedIndex >= 0 && results[selectedIndex]) {
           setIsOpen(false);
           navigate(`/contacts/${results[selectedIndex].contact_id}`);
         }
@@ -95,6 +107,7 @@ export function useQuickLookup() {
     setSearchTerm('');
     setResults([]);
     setIsOpen(false);
+    setSelectedIndex(-1);
     inputRef.current?.focus();
   };
 
@@ -106,6 +119,17 @@ export function useQuickLookup() {
 
   const closeDropdown = () => {
     setIsOpen(false);
+  };
+
+  /**
+   * Select a result and close the dropdown.
+   * Optionally set a display text in the search input.
+   */
+  const selectResult = (displayText?: string) => {
+    if (displayText !== undefined) setSearchTerm(displayText);
+    setResults([]);
+    setIsOpen(false);
+    setSelectedIndex(-1);
   };
 
   // Close dropdown when clicking outside
@@ -147,6 +171,7 @@ export function useQuickLookup() {
     handleFocus,
     clearSearch,
     closeDropdown,
+    selectResult,
   };
 }
 
