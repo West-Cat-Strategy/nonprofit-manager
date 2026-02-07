@@ -9,18 +9,9 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logout } from '../store/slices/authSlice';
 import { useNavigationPreferences } from '../hooks/useNavigationPreferences';
-import api from '../services/api';
 import { useBranding } from '../contexts/BrandingContext';
 import Avatar from './Avatar';
-
-interface SearchResult {
-  contact_id: string;
-  first_name: string;
-  last_name: string;
-  email: string | null;
-  phone: string | null;
-  mobile_phone: string | null;
-}
+import { useQuickLookup } from './dashboard';
 
 const Navigation = () => {
   const navigate = useNavigate();
@@ -32,14 +23,12 @@ const Navigation = () => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const lookup = useQuickLookup({ debounceMs: 250 });
 
   // Close menus on ESC key
   useEffect(() => {
@@ -79,9 +68,7 @@ const Navigation = () => {
 
   const handleSearch = () => {
     setSearchOpen(true);
-    setSearchResults([]);
-    setSearchTerm('');
-    setIsSearching(false);
+    lookup.clearSearch();
   };
 
   const isActive = (path: string) => {
@@ -114,40 +101,6 @@ const Navigation = () => {
     if (!searchOpen) return;
     searchInputRef.current?.focus();
   }, [searchOpen]);
-
-  useEffect(() => {
-    if (!searchOpen) return;
-
-    if (searchTimerRef.current) {
-      clearTimeout(searchTimerRef.current);
-    }
-
-    if (searchTerm.trim().length < 2) {
-      setSearchResults([]);
-      setIsSearching(false);
-      return;
-    }
-
-    setIsSearching(true);
-    searchTimerRef.current = setTimeout(async () => {
-      try {
-        const response = await api.get('/contacts', {
-          params: { search: searchTerm.trim(), limit: 8, is_active: true },
-        });
-        setSearchResults(response.data?.data || response.data?.contacts || []);
-      } catch {
-        setSearchResults([]);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 250);
-
-    return () => {
-      if (searchTimerRef.current) {
-        clearTimeout(searchTimerRef.current);
-      }
-    };
-  }, [searchTerm, searchOpen]);
 
   return (
     <nav className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-50">
@@ -598,12 +551,12 @@ const Navigation = () => {
                 <input
                   ref={searchInputRef}
                   type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={lookup.searchTerm}
+                  onChange={lookup.handleSearchChange}
                   placeholder="Search by name, email, or phone..."
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-                {isSearching && (
+                {lookup.isLoading && (
                   <div className="absolute right-3 top-2.5 text-gray-400 text-sm">
                     Searching...
                   </div>
@@ -611,17 +564,17 @@ const Navigation = () => {
               </div>
 
               <div className="mt-4 max-h-80 overflow-auto border border-gray-200 rounded-lg">
-                {searchTerm.trim().length < 2 ? (
+                {lookup.searchTerm.trim().length < 2 ? (
                   <div className="p-4 text-sm text-gray-500">
                     Type at least 2 characters to search.
                   </div>
-                ) : searchResults.length === 0 ? (
+                ) : lookup.results.length === 0 ? (
                   <div className="p-4 text-sm text-gray-500">
-                    No matches for "{searchTerm}".
+                    No matches for &quot;{lookup.searchTerm}&quot;.
                   </div>
                 ) : (
                   <ul className="divide-y divide-gray-200">
-                    {searchResults.map((result) => (
+                    {lookup.results.map((result) => (
                       <li key={result.contact_id}>
                         <Link
                           to={`/contacts/${result.contact_id}`}
