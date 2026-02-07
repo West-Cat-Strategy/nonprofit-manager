@@ -14,7 +14,7 @@ export { default as PriorityCards } from './PriorityCards';
 export { default as QuickActionsWidget } from './QuickActionsWidget';
 export { default as QuickLookupWidget } from './QuickLookupWidget';
 export { useQuickLookup, highlightMatch } from './useQuickLookup';
-export type { SearchResult } from './useQuickLookup';
+export type { SearchResult, UseQuickLookupOptions } from './useQuickLookup';
 export { default as RecentDonationsWidget } from './RecentDonationsWidget';
 export { default as UpcomingFollowUpsWidget } from './UpcomingFollowUpsWidget';
 export { default as VolunteerHoursWidget } from './VolunteerHoursWidget';

@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import api from '../../services/api';
 import { ContactForm } from '../../components/contactForm';
 import { fetchCases, selectCasesByContact } from '../../store/slices/casesSlice';
 import { createContactNote } from '../../store/slices/contactsSlice';
 import type { Contact } from '../../store/slices/contactsSlice';
 import type { ContactNoteType, CreateContactNoteDTO } from '../../types/contact';
 import { NOTE_TYPES } from '../../types/contact';
+import { useQuickLookup } from '../../components/dashboard';
+import type { SearchResult } from '../../components/dashboard';
 
 type Step = 'select' | 'create' | 'note';
 
@@ -17,19 +18,13 @@ export default function InteractionNote() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>('select');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [results, setResults] = useState<Contact[]>([]);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchLoading, setSearchLoading] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [emailCopies, setEmailCopies] = useState('');
   const [sendCopies, setSendCopies] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const inputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const lookup = useQuickLookup({ debounceMs: 250 });
 
   const contactCases = useAppSelector((state) =>
     selectedContact ? selectCasesByContact(state, selectedContact.contact_id) : []
@@ -44,30 +39,6 @@ export default function InteractionNote() {
     is_pinned: false,
     case_id: undefined,
   });
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
-        inputRef.current &&
-        !inputRef.current.contains(event.target as Node)
-      ) {
-        setSearchOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (selectedContact) {
@@ -88,46 +59,15 @@ export default function InteractionNote() {
     [normalizedEmails]
   );
 
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-
-    if (value.trim().length < 2) {
-      setResults([]);
-      setSearchOpen(false);
-      return;
-    }
-
-    debounceRef.current = setTimeout(async () => {
-      setSearchLoading(true);
-      try {
-        const response = await api.get('/contacts', {
-          params: { search: value.trim(), limit: 8, is_active: true },
-        });
-        setResults(response.data.contacts || []);
-        setSearchOpen(true);
-      } catch {
-        setResults([]);
-        setSearchOpen(false);
-      } finally {
-        setSearchLoading(false);
-      }
-    }, 250);
-  };
-
-  const handleSelectContact = (contact: Contact) => {
-    setSelectedContact(contact);
-    setSearchTerm(`${contact.first_name} ${contact.last_name}${contact.email ? ` • ${contact.email}` : ''}`);
-    setSearchOpen(false);
-    setResults([]);
+  const handleSelectContact = (contact: SearchResult) => {
+    setSelectedContact(contact as Contact);
+    lookup.selectResult(`${contact.first_name} ${contact.last_name}${contact.email ? ` • ${contact.email}` : ''}`);
     setStep('note');
   };
 
   const handleCreateContact = (contact: Contact) => {
     setSelectedContact(contact);
-    setSearchTerm(`${contact.first_name} ${contact.last_name}${contact.email ? ` • ${contact.email}` : ''}`);
+    lookup.selectResult(`${contact.first_name} ${contact.last_name}${contact.email ? ` • ${contact.email}` : ''}`);
     setStep('note');
   };
 
@@ -193,25 +133,25 @@ export default function InteractionNote() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Find a person</label>
               <div className="relative">
                 <input
-                  ref={inputRef}
+                  ref={lookup.inputRef}
                   type="text"
-                  value={searchTerm}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  onFocus={() => searchTerm.trim().length >= 2 && setSearchOpen(true)}
+                  value={lookup.searchTerm}
+                  onChange={(e) => lookup.handleSearchChange(e.target.value)}
+                  onFocus={lookup.handleFocus}
                   placeholder="Search by name, email, or phone..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-                {searchLoading && (
+                {lookup.isLoading && (
                   <div className="absolute inset-y-0 right-3 flex items-center">
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-500" />
                   </div>
                 )}
-                {searchOpen && results.length > 0 && (
+                {lookup.isOpen && lookup.results.length > 0 && (
                   <div
-                    ref={dropdownRef}
+                    ref={lookup.dropdownRef}
                     className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg max-h-64 overflow-y-auto"
                   >
-                    {results.map((contact) => (
+                    {lookup.results.map((contact) => (
                       <button
                         type="button"
                         key={contact.contact_id}

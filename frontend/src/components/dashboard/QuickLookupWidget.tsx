@@ -24,7 +24,7 @@ export default function QuickLookupWidget({ className = '' }: QuickLookupWidgetP
     handleFocus,
     clearSearch,
     closeDropdown,
-  } = useQuickLookup();
+  } = useQuickLookup({ navigateOnSelect: true });
 
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-4 ${className}`}>
