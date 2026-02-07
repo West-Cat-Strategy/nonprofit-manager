@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Link } from 'react-router-dom';
+import { formatCurrency } from '../../utils/format';
 
 interface ModuleCardProps {
   to: string;
@@ -37,10 +38,9 @@ interface AnalyticsSummary {
 interface ModulesGridProps {
   summary: AnalyticsSummary | null;
   activeCasesCount: number;
-  formatCurrency: (amount: number) => string;
 }
 
-function ModulesGrid({ summary, activeCasesCount, formatCurrency }: ModulesGridProps) {
+function ModulesGrid({ summary, activeCasesCount }: ModulesGridProps) {
   const modules = [
     {
       to: '/accounts',

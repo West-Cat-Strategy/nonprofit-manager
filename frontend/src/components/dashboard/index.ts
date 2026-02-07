@@ -1,12 +1,14 @@
 export { default as ActivityFeedWidget } from './ActivityFeedWidget';
 export { default as CaseSummaryWidget } from './CaseSummaryWidget';
 export { default as DashboardCustomizer } from './DashboardCustomizer';
-export type { DashboardSettings, KpiKey } from './DashboardCustomizer';
+export { KPI_LABELS, defaultDashboardSettings } from './types';
+export type { DashboardSettings, KpiKey } from './types';
 export { default as DonationSummaryWidget } from './DonationSummaryWidget';
 export { default as DonationTrendsWidget } from './DonationTrendsWidget';
 export { default as EngagementChart } from './EngagementChart';
 export { default as EventAttendanceWidget } from './EventAttendanceWidget';
 export { default as KPICard } from './KPICard';
+export { default as KPISection } from './KPISection';
 export { default as ModulesGrid } from './ModulesGrid';
 export { default as MyCasesWidget } from './MyCasesWidget';
 export { default as PlausibleStatsWidget } from './PlausibleStatsWidget';

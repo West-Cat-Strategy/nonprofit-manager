@@ -181,11 +181,12 @@ export function useQuickLookup(options: UseQuickLookupOptions = {}) {
 export function highlightMatch(text: string, term: string): React.ReactNode {
   if (!term || term.length < 2) return text;
 
-  const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${escaped})`, 'gi');
   const parts = text.split(regex);
 
   return parts.map((part, i) =>
-    regex.test(part) ? (
+    part.toLowerCase() === term.toLowerCase() ? (
       <mark key={i} className="bg-yellow-200 rounded px-0.5">{part}</mark>
     ) : (
       part

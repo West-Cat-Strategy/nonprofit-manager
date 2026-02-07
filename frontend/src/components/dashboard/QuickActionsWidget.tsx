@@ -78,7 +78,7 @@ const QuickActionsWidget = ({ widget, editMode = false, onRemove }: QuickActions
         <Link
           key={action.title}
           to={action.link}
-          className={`${action.color} rounded-lg p-4 flex flex-col items-center justify-center text-center hover:opacity-80 transition-opacity ${editMode ? 'pointer-events-auto' : ''}`}
+          className={`${action.color} rounded-xl p-4 flex flex-col items-center justify-center text-center hover:opacity-80 transition-opacity ${editMode ? 'pointer-events-auto' : ''}`}
           onClick={(e) => {
             if (editMode) {
               e.stopPropagation();
@@ -101,10 +101,10 @@ const QuickActionsWidget = ({ widget, editMode = false, onRemove }: QuickActions
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <div className="rounded-2xl border border-slate-200/70 bg-white/85 p-5 shadow-sm">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
-        <span className="text-xs text-gray-500">Shortcuts</span>
+        <h3 className="text-lg font-semibold text-slate-900">Quick Actions</h3>
+        <span className="text-xs text-slate-400">Shortcuts</span>
       </div>
       {content}
     </div>

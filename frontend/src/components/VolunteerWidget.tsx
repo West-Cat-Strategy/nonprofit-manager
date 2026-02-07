@@ -1,10 +1,5 @@
-/**
- * VolunteerWidget Component
- * Dashboard widget displaying volunteer summary statistics and quick actions
- */
-
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchVolunteers } from '../store/slices/volunteersSlice';
 
@@ -22,42 +17,54 @@ interface VolunteerWidgetProps {
   showDetailedView?: boolean;
 }
 
+const statCards = [
+  { key: 'total' as const, label: 'Total', bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-600', sub: 'text-sky-700' },
+  { key: 'available' as const, label: 'Available', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600', sub: 'text-emerald-700' },
+  { key: 'limited' as const, label: 'Limited', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-600', sub: 'text-amber-700' },
+  { key: 'unavailable' as const, label: 'Unavailable', bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-600', sub: 'text-rose-700' },
+];
+
+const availabilityBadge: Record<string, string> = {
+  available: 'bg-emerald-100 text-emerald-800',
+  limited: 'bg-amber-100 text-amber-800',
+  unavailable: 'bg-rose-100 text-rose-800',
+};
+
 const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetProps) => {
-  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { volunteers, loading } = useAppSelector((state) => state.volunteers);
 
   useEffect(() => {
-    // Fetch volunteers if stats are not provided
     if (!stats && volunteers.length === 0) {
       dispatch(fetchVolunteers({ limit: 100, is_active: true }));
     }
   }, [dispatch, stats, volunteers.length]);
 
-  // Calculate stats from volunteers if not provided
   const calculatedStats: VolunteerStats = stats || {
     total: volunteers.length,
     available: volunteers.filter((v) => v.availability_status === 'available').length,
     limited: volunteers.filter((v) => v.availability_status === 'limited').length,
     unavailable: volunteers.filter((v) => v.availability_status === 'unavailable').length,
     totalHoursThisMonth: volunteers.reduce((sum, v) => sum + (v.total_hours_logged || 0), 0),
-    activeAssignments: 0, // This would need to come from assignments data
+    activeAssignments: 0,
   };
 
-  // Top volunteers by hours (if we have the full list)
-  const topVolunteers = [...volunteers]
-    .sort((a, b) => (b.total_hours_logged || 0) - (a.total_hours_logged || 0))
-    .slice(0, 5);
+  const topVolunteers = useMemo(
+    () => [...volunteers]
+      .sort((a, b) => (b.total_hours_logged || 0) - (a.total_hours_logged || 0))
+      .slice(0, 5),
+    [volunteers],
+  );
 
   if (loading && volunteers.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="rounded-2xl border border-slate-200/70 bg-white/85 p-6 shadow-sm">
         <div className="animate-pulse">
-          <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="h-6 bg-slate-200 rounded w-1/3 mb-4" />
           <div className="space-y-3">
-            <div className="h-4 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded"></div>
+            <div className="h-4 bg-slate-200 rounded" />
+            <div className="h-4 bg-slate-200 rounded" />
+            <div className="h-4 bg-slate-200 rounded" />
           </div>
         </div>
       </div>
@@ -65,60 +72,43 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+    <div className="rounded-2xl border border-slate-200/70 bg-white/85 shadow-sm">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6 border-b border-slate-200/70">
         <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-gray-900">Volunteer Overview</h3>
-          <button
-            onClick={() => navigate('/volunteers')}
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+          <h3 className="text-lg font-semibold text-slate-900">Volunteer Overview</h3>
+          <Link
+            to="/volunteers"
+            className="text-sm text-sky-600 hover:text-sky-800 font-medium"
           >
-            View All →
-          </button>
+            View All &rarr;
+          </Link>
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="p-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          {/* Total Volunteers */}
-          <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="text-3xl font-bold text-blue-600">{calculatedStats.total}</div>
-            <div className="text-sm text-blue-700 mt-1">Total</div>
-          </div>
-
-          {/* Available */}
-          <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-            <div className="text-3xl font-bold text-green-600">{calculatedStats.available}</div>
-            <div className="text-sm text-green-700 mt-1">Available</div>
-          </div>
-
-          {/* Limited */}
-          <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-            <div className="text-3xl font-bold text-yellow-600">{calculatedStats.limited}</div>
-            <div className="text-sm text-yellow-700 mt-1">Limited</div>
-          </div>
-
-          {/* Unavailable */}
-          <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
-            <div className="text-3xl font-bold text-red-600">{calculatedStats.unavailable}</div>
-            <div className="text-sm text-red-700 mt-1">Unavailable</div>
-          </div>
+          {statCards.map((card) => (
+            <div key={card.key} className={`text-center p-4 ${card.bg} rounded-xl border ${card.border}`}>
+              <div className={`text-3xl font-bold ${card.text}`}>{calculatedStats[card.key]}</div>
+              <div className={`text-sm ${card.sub} mt-1`}>{card.label}</div>
+            </div>
+          ))}
         </div>
 
         {/* Hours Summary */}
-        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-4 mb-6 border border-purple-200">
+        <div className="bg-gradient-to-r from-violet-50 to-indigo-50 rounded-xl p-4 mb-6 border border-violet-200/70">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-purple-700 font-medium">Total Hours Logged</div>
-              <div className="text-2xl font-bold text-purple-900 mt-1">
+              <div className="text-sm text-violet-700 font-medium">Total Hours Logged</div>
+              <div className="text-2xl font-bold text-violet-900 mt-1">
                 {calculatedStats.totalHoursThisMonth.toFixed(1)}
               </div>
             </div>
             <div className="bg-white p-3 rounded-full">
               <svg
-                className="w-8 h-8 text-purple-600"
+                className="w-8 h-8 text-violet-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -134,26 +124,26 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
           </div>
         </div>
 
-        {/* Detailed View */}
+        {/* Top Volunteers */}
         {showDetailedView && topVolunteers.length > 0 && (
           <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">Top Volunteers</h4>
+            <h4 className="text-sm font-semibold text-slate-700 mb-3">Top Volunteers</h4>
             <div className="space-y-3">
               {topVolunteers.map((volunteer, idx) => (
-                <div
+                <Link
                   key={volunteer.volunteer_id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer"
-                  onClick={() => navigate(`/volunteers/${volunteer.volunteer_id}`)}
+                  to={`/volunteers/${volunteer.volunteer_id}`}
+                  className="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition"
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                    <div className="shrink-0 w-8 h-8 bg-sky-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
                       {idx + 1}
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-slate-900">
                         {volunteer.first_name} {volunteer.last_name}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-slate-500">
                         {volunteer.skills && volunteer.skills.length > 0
                           ? volunteer.skills.slice(0, 2).join(', ')
                           : 'No skills listed'}
@@ -161,48 +151,35 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="text-sm font-semibold text-gray-900">
+                    <div className="text-sm font-semibold text-slate-900">
                       {(volunteer.total_hours_logged ?? 0).toFixed(1)}h
                     </div>
-                    <span
-                      className={`px-2 py-1 text-xs rounded-full ${
-                        volunteer.availability_status === 'available'
-                          ? 'bg-green-100 text-green-800'
-                          : volunteer.availability_status === 'limited'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-red-100 text-red-800'
-                      }`}
-                    >
+                    <span className={`px-2 py-1 text-xs rounded-full ${availabilityBadge[volunteer.availability_status] || 'bg-slate-100 text-slate-800'}`}>
                       {volunteer.availability_status}
                     </span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
         )}
 
         {/* Quick Actions */}
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <h4 className="text-sm font-semibold text-gray-700 mb-3">Quick Actions</h4>
+        <div className="mt-6 pt-6 border-t border-slate-200/70">
+          <h4 className="text-sm font-semibold text-slate-700 mb-3">Quick Actions</h4>
           <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => navigate('/volunteers/new')}
-              className="flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
+            <Link
+              to="/volunteers/new"
+              className="flex items-center justify-center space-x-2 px-4 py-2 bg-sky-600 text-white rounded-xl hover:bg-sky-700 transition text-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               <span>Add Volunteer</span>
-            </button>
-            <button
-              onClick={() => navigate('/volunteers/assignments/new')}
-              className="flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm"
+            </Link>
+            <Link
+              to="/volunteers/assignments/new"
+              className="flex items-center justify-center space-x-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition text-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -213,7 +190,7 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
                 />
               </svg>
               <span>New Assignment</span>
-            </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -221,44 +198,28 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
       {/* Availability Breakdown */}
       {calculatedStats.total > 0 && (
         <div className="px-6 pb-6">
-          <h4 className="text-sm font-semibold text-gray-700 mb-3">Availability Breakdown</h4>
-          <div className="relative">
-            <div className="flex h-4 rounded-full overflow-hidden">
-              <div
-                className="bg-green-500"
-                style={{
-                  width: `${(calculatedStats.available / calculatedStats.total) * 100}%`,
-                }}
-                title={`Available: ${calculatedStats.available}`}
-              ></div>
-              <div
-                className="bg-yellow-500"
-                style={{
-                  width: `${(calculatedStats.limited / calculatedStats.total) * 100}%`,
-                }}
-                title={`Limited: ${calculatedStats.limited}`}
-              ></div>
-              <div
-                className="bg-red-500"
-                style={{
-                  width: `${(calculatedStats.unavailable / calculatedStats.total) * 100}%`,
-                }}
-                title={`Unavailable: ${calculatedStats.unavailable}`}
-              ></div>
-            </div>
-            <div className="flex justify-between text-xs text-gray-600 mt-2">
-              <span>
-                {((calculatedStats.available / calculatedStats.total) * 100).toFixed(0)}%
-                available
-              </span>
-              <span>
-                {((calculatedStats.limited / calculatedStats.total) * 100).toFixed(0)}% limited
-              </span>
-              <span>
-                {((calculatedStats.unavailable / calculatedStats.total) * 100).toFixed(0)}%
-                unavailable
-              </span>
-            </div>
+          <h4 className="text-sm font-semibold text-slate-700 mb-3">Availability Breakdown</h4>
+          <div className="flex h-3 rounded-full overflow-hidden bg-slate-100">
+            <div
+              className="bg-emerald-500"
+              style={{ width: `${(calculatedStats.available / calculatedStats.total) * 100}%` }}
+              title={`Available: ${calculatedStats.available}`}
+            />
+            <div
+              className="bg-amber-500"
+              style={{ width: `${(calculatedStats.limited / calculatedStats.total) * 100}%` }}
+              title={`Limited: ${calculatedStats.limited}`}
+            />
+            <div
+              className="bg-rose-500"
+              style={{ width: `${(calculatedStats.unavailable / calculatedStats.total) * 100}%` }}
+              title={`Unavailable: ${calculatedStats.unavailable}`}
+            />
+          </div>
+          <div className="flex justify-between text-xs text-slate-600 mt-2">
+            <span>{((calculatedStats.available / calculatedStats.total) * 100).toFixed(0)}% available</span>
+            <span>{((calculatedStats.limited / calculatedStats.total) * 100).toFixed(0)}% limited</span>
+            <span>{((calculatedStats.unavailable / calculatedStats.total) * 100).toFixed(0)}% unavailable</span>
           </div>
         </div>
       )}
