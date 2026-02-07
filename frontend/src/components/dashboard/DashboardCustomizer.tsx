@@ -1,24 +1,6 @@
 import { memo } from 'react';
-
-export type KpiKey =
-  | 'totalDonations'
-  | 'avgDonation'
-  | 'activeAccounts'
-  | 'activeContacts'
-  | 'activeCases'
-  | 'volunteers'
-  | 'volunteerHours'
-  | 'events'
-  | 'engagement';
-
-export interface DashboardSettings {
-  showQuickLookup: boolean;
-  showQuickActions: boolean;
-  showModules: boolean;
-  showEngagementChart: boolean;
-  showVolunteerWidget: boolean;
-  kpis: Record<KpiKey, boolean>;
-}
+import { KPI_LABELS } from './types';
+import type { KpiKey, DashboardSettings } from './types';
 
 interface CheckboxItemProps {
   id: string;
@@ -47,18 +29,6 @@ interface DashboardCustomizerProps {
   onSettingsChange: (settings: DashboardSettings) => void;
   onReset: () => void;
 }
-
-const KPI_LABELS: Record<KpiKey, string> = {
-  totalDonations: 'Total Donations',
-  avgDonation: 'Avg. Donation',
-  activeAccounts: 'Active Accounts',
-  activeContacts: 'Active Contacts',
-  activeCases: 'Active Cases',
-  volunteers: 'Volunteers',
-  volunteerHours: 'Volunteer Hours',
-  events: 'Events',
-  engagement: 'Engagement',
-};
 
 function DashboardCustomizer({ settings, onSettingsChange, onReset }: DashboardCustomizerProps) {
   const updateSection = (key: keyof Omit<DashboardSettings, 'kpis'>, value: boolean) => {
