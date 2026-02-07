@@ -154,6 +154,7 @@ export class ContactService {
           c.state_province,
           c.postal_code,
           c.country,
+          c.no_fixed_address,
           c.notes,
           c.is_active,
           c.created_at,
@@ -162,7 +163,13 @@ export class ContactService {
           COALESCE(phone_counts.cnt, 0) as phone_count,
           COALESCE(email_counts.cnt, 0) as email_count,
           COALESCE(rel_counts.cnt, 0) as relationship_count,
-          COALESCE(note_counts.cnt, 0) as note_count
+          COALESCE(note_counts.cnt, 0) as note_count,
+          COALESCE(
+            (SELECT ARRAY_AGG(cr.name) FROM contact_role_assignments cra
+             JOIN contact_roles cr ON cr.id = cra.role_id
+             WHERE cra.contact_id = c.id),
+            ARRAY[]::text[]
+          ) as roles
         FROM contacts c
         LEFT JOIN accounts a ON c.account_id = a.id
         LEFT JOIN (
@@ -229,6 +236,7 @@ export class ContactService {
           c.state_province,
           c.postal_code,
           c.country,
+          c.no_fixed_address,
           c.notes,
           c.is_active,
           c.created_at,
@@ -237,7 +245,13 @@ export class ContactService {
           (SELECT COUNT(*) FROM contact_phone_numbers WHERE contact_id = c.id) as phone_count,
           (SELECT COUNT(*) FROM contact_email_addresses WHERE contact_id = c.id) as email_count,
           (SELECT COUNT(*) FROM contact_relationships WHERE contact_id = c.id AND is_active = true) as relationship_count,
-          (SELECT COUNT(*) FROM contact_notes WHERE contact_id = c.id) as note_count
+          (SELECT COUNT(*) FROM contact_notes WHERE contact_id = c.id) as note_count,
+          COALESCE(
+            (SELECT ARRAY_AGG(cr.name) FROM contact_role_assignments cra
+             JOIN contact_roles cr ON cr.id = cra.role_id
+             WHERE cra.contact_id = c.id),
+            ARRAY[]::text[]
+          ) as roles
          FROM contacts c
          LEFT JOIN accounts a ON c.account_id = a.id
          WHERE c.id = $1`,
@@ -304,6 +318,7 @@ export class ContactService {
           c.state_province,
           c.postal_code,
           c.country,
+          c.no_fixed_address,
           c.notes,
           c.is_active,
           c.created_at,
@@ -312,7 +327,13 @@ export class ContactService {
           (SELECT COUNT(*) FROM contact_phone_numbers WHERE contact_id = c.id) as phone_count,
           (SELECT COUNT(*) FROM contact_email_addresses WHERE contact_id = c.id) as email_count,
           (SELECT COUNT(*) FROM contact_relationships WHERE contact_id = c.id AND is_active = true) as relationship_count,
-          (SELECT COUNT(*) FROM contact_notes WHERE contact_id = c.id) as note_count
+          (SELECT COUNT(*) FROM contact_notes WHERE contact_id = c.id) as note_count,
+          COALESCE(
+            (SELECT ARRAY_AGG(cr.name) FROM contact_role_assignments cra
+             JOIN contact_roles cr ON cr.id = cra.role_id
+             WHERE cra.contact_id = c.id),
+            ARRAY[]::text[]
+          ) as roles
          FROM contacts c
          LEFT JOIN accounts a ON c.account_id = a.id
          WHERE ${conditions.join(' AND ')}`,
@@ -337,13 +358,15 @@ export class ContactService {
           birth_date, gender, pronouns,
           email, phone, mobile_phone,
           address_line1, address_line2, city, state_province, postal_code, country,
+          no_fixed_address,
           job_title, department, preferred_contact_method, do_not_email, do_not_phone, notes,
           created_by, modified_by
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $25)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $26)
         RETURNING id as contact_id, account_id, first_name, last_name, middle_name, salutation, suffix,
           birth_date, gender, pronouns,
           email, phone, mobile_phone,
           address_line1, address_line2, city, state_province, postal_code, country,
+          no_fixed_address,
           job_title, department, preferred_contact_method, do_not_email, do_not_phone, notes,
           is_active, created_at, updated_at, created_by, modified_by`,
         [
@@ -365,6 +388,7 @@ export class ContactService {
           data.state_province || null,
           data.postal_code || null,
           data.country || null,
+          data.no_fixed_address || false,
           data.job_title || null,
           data.department || null,
           data.preferred_contact_method || null,
@@ -427,6 +451,7 @@ export class ContactService {
           email, phone, mobile_phone, job_title, department, preferred_contact_method,
           do_not_email, do_not_phone,
           address_line1, address_line2, city, state_province, postal_code, country,
+          no_fixed_address,
           notes, is_active, created_at, updated_at, created_by, modified_by
       `;
 

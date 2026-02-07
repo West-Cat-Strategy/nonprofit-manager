@@ -6,13 +6,16 @@ import { fetchCases, selectActiveCases, selectUrgentCases, selectCasesDueThisWee
 import { formatCurrency, formatNumber } from '../utils/format';
 import { useDashboardSettings } from '../hooks/useDashboardSettings';
 import VolunteerWidget from '../components/VolunteerWidget';
-import QuickLookupWidget from '../components/dashboard/QuickLookupWidget';
-import QuickActionsWidget from '../components/dashboard/QuickActionsWidget';
-import KPICard from '../components/dashboard/KPICard';
-import EngagementChart from '../components/dashboard/EngagementChart';
-import ModulesGrid from '../components/dashboard/ModulesGrid';
-import PriorityCards from '../components/dashboard/PriorityCards';
-import DashboardCustomizer, { type KpiKey } from '../components/dashboard/DashboardCustomizer';
+import {
+  QuickLookupWidget,
+  QuickActionsWidget,
+  KPICard,
+  EngagementChart,
+  ModulesGrid,
+  PriorityCards,
+  DashboardCustomizer,
+} from '../components/dashboard';
+import type { KpiKey } from '../components/dashboard';
 
 export default function Dashboard() {
   const dispatch = useAppDispatch();

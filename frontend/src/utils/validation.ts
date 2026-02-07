@@ -60,7 +60,7 @@ export function validatePhoneNumber(phone: string): string | null {
 }
 
 // URL validation
-const URL_REGEX = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/i;
+const URL_REGEX = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/i;
 
 export function validateUrl(url: string): string | null {
   if (!url) return null; // Empty is valid (optional field)

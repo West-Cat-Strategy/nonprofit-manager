@@ -81,8 +81,8 @@ export async function createContactNote(
       `
       INSERT INTO contact_notes (
         contact_id, case_id, note_type, subject, content,
-        is_internal, is_important, is_pinned, attachments, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        is_internal, is_important, is_pinned, is_alert, attachments, created_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *
       `,
       [
@@ -94,6 +94,7 @@ export async function createContactNote(
         data.is_internal || false,
         data.is_important || false,
         data.is_pinned || false,
+        data.is_alert || false,
         data.attachments ? JSON.stringify(data.attachments) : null,
         userId,
       ]
@@ -147,6 +148,11 @@ export async function updateContactNote(
     if (data.is_pinned !== undefined) {
       fields.push(`is_pinned = $${paramIndex++}`);
       values.push(data.is_pinned);
+    }
+
+    if (data.is_alert !== undefined) {
+      fields.push(`is_alert = $${paramIndex++}`);
+      values.push(data.is_alert);
     }
 
     if (data.attachments !== undefined) {

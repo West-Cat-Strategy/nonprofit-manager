@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchContactById, clearCurrentContact } from '../../../store/slices/contactsSlice';
+import { fetchContactById, clearCurrentContact, fetchContactNotes } from '../../../store/slices/contactsSlice';
 import { fetchCases, selectCasesByContact } from '../../../store/slices/casesSlice';
 import { BrutalBadge, BrutalButton, BrutalCard } from '../../../components/neo-brutalist';
 import PaymentHistory from '../../../components/PaymentHistory';
@@ -23,8 +23,9 @@ const ContactDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { currentContact, loading, error } = useAppSelector((state) => state.contacts);
+  const { currentContact, loading, error, contactNotes } = useAppSelector((state) => state.contacts);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [showAlertModal, setShowAlertModal] = useState(false);
 
   // Get cases for this contact
   const contactCases = useAppSelector((state) => (id ? selectCasesByContact(state, id) : []));
@@ -33,11 +34,20 @@ const ContactDetail = () => {
     if (id) {
       dispatch(fetchContactById(id));
       dispatch(fetchCases({}));
+      dispatch(fetchContactNotes(id));
     }
     return () => {
       dispatch(clearCurrentContact());
     };
   }, [id, dispatch]);
+
+  // Show alert modal when alert notes exist
+  const alertNotes = contactNotes.filter((n) => n.is_alert);
+  useEffect(() => {
+    if (alertNotes.length > 0) {
+      setShowAlertModal(true);
+    }
+  }, [alertNotes.length]);
 
   if (loading) {
     return (
@@ -138,6 +148,22 @@ const ContactDetail = () => {
               <BrutalBadge color={currentContact.is_active ? 'green' : 'gray'} size="sm">
                 {currentContact.is_active ? 'Active' : 'Inactive'}
               </BrutalBadge>
+              {currentContact.roles && currentContact.roles.length > 0 && currentContact.roles.map((role) => (
+                <BrutalBadge
+                  key={role}
+                  color={
+                    role === 'Donor' ? 'green'
+                    : role === 'Staff' || role === 'Executive Director' ? 'blue'
+                    : role === 'Volunteer' ? 'purple'
+                    : role === 'Board Member' ? 'yellow'
+                    : role === 'Client' ? 'red'
+                    : 'gray'
+                  }
+                  size="sm"
+                >
+                  {role}
+                </BrutalBadge>
+              ))}
             </div>
             {currentContact.job_title && (
               <p className="mt-1 font-bold text-black/70">
@@ -248,33 +274,40 @@ const ContactDetail = () => {
               </BrutalCard>
 
               {/* Address */}
-              {(currentContact.address_line1 || currentContact.city) && (
+              {(currentContact.no_fixed_address || currentContact.address_line1 || currentContact.city) && (
                 <BrutalCard color="white" className="p-6">
                   <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
                     Address
                   </h2>
-                  <p className="font-bold text-black">
-                    {currentContact.address_line1 && (
-                      <>
-                        {currentContact.address_line1}
-                        <br />
-                      </>
-                    )}
-                    {currentContact.address_line2 && (
-                      <>
-                        {currentContact.address_line2}
-                        <br />
-                      </>
-                    )}
-                    {currentContact.city && <>{currentContact.city}, </>}
-                    {currentContact.state_province} {currentContact.postal_code}
-                    {currentContact.country && (
-                      <>
-                        <br />
-                        {currentContact.country}
-                      </>
-                    )}
-                  </p>
+                  {currentContact.no_fixed_address ? (
+                    <div className="flex items-center gap-2 p-3 bg-yellow-50 border-2 border-yellow-300">
+                      <span className="text-xl">📍</span>
+                      <span className="font-bold text-black">No fixed address</span>
+                    </div>
+                  ) : (
+                    <p className="font-bold text-black">
+                      {currentContact.address_line1 && (
+                        <>
+                          {currentContact.address_line1}
+                          <br />
+                        </>
+                      )}
+                      {currentContact.address_line2 && (
+                        <>
+                          {currentContact.address_line2}
+                          <br />
+                        </>
+                      )}
+                      {currentContact.city && <>{currentContact.city}, </>}
+                      {currentContact.state_province} {currentContact.postal_code}
+                      {currentContact.country && (
+                        <>
+                          <br />
+                          {currentContact.country}
+                        </>
+                      )}
+                    </p>
+                  )}
                 </BrutalCard>
               )}
 
@@ -405,6 +438,40 @@ const ContactDetail = () => {
           </BrutalCard>
         )}
       </div>
+
+      {/* Alert Notes Modal */}
+      {showAlertModal && alertNotes.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_rgba(0,0,0,1)] max-w-lg w-full max-h-[80vh] overflow-y-auto">
+            <div className="bg-red-500 border-b-4 border-black p-4 flex items-center gap-3">
+              <span className="text-3xl">⚠️</span>
+              <h2 className="text-xl font-black uppercase text-white">Alert Notes</h2>
+            </div>
+            <div className="p-6 space-y-4">
+              {alertNotes.map((note) => (
+                <div key={note.id} className="border-2 border-red-300 bg-red-50 p-4 rounded">
+                  {note.subject && (
+                    <div className="font-black text-black mb-1">{note.subject}</div>
+                  )}
+                  <div className="text-sm text-black/80 whitespace-pre-wrap">{note.content}</div>
+                  <div className="text-xs text-black/50 mt-2">
+                    {note.created_by_first_name} {note.created_by_last_name} &bull;{' '}
+                    {new Date(note.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="p-4 border-t-2 border-black flex justify-end">
+              <button
+                onClick={() => setShowAlertModal(false)}
+                className="px-6 py-2 font-black uppercase text-black bg-[var(--loop-yellow)] border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_rgba(0,0,0,1)] transition-all"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { memo } from 'react';
 
-type KpiKey =
+export type KpiKey =
   | 'totalDonations'
   | 'avgDonation'
   | 'activeAccounts'
@@ -11,7 +11,7 @@ type KpiKey =
   | 'events'
   | 'engagement';
 
-interface DashboardSettings {
+export interface DashboardSettings {
   showQuickLookup: boolean;
   showQuickActions: boolean;
   showModules: boolean;
@@ -148,4 +148,3 @@ function DashboardCustomizer({ settings, onSettingsChange, onReset }: DashboardC
 }
 
 export default memo(DashboardCustomizer);
-export type { DashboardSettings, KpiKey };

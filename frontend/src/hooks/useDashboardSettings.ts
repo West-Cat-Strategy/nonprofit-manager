@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../services/api';
-import type { DashboardSettings, KpiKey } from '../components/dashboard/DashboardCustomizer';
+import type { DashboardSettings, KpiKey } from '../components/dashboard';
 
 const DASHBOARD_SETTINGS_KEY = 'dashboardSettings';
 const DASHBOARD_SETTINGS_PREF_KEY = 'dashboard_settings';

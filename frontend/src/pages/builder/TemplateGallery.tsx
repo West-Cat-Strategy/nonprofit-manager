@@ -15,7 +15,7 @@ import {
   setSearchParams,
   clearError,
 } from '../../store/slices/templateSlice';
-import TemplateCard from '../../components/templates/TemplateCard';
+import { TemplateCard } from '../../components/templates';
 import type { TemplateListItem, TemplateCategory, TemplateStatus } from '../../types/websiteBuilder';
 
 const categories: { value: TemplateCategory | ''; label: string }[] = [

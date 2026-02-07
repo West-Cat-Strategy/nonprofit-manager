@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
-import { ContactForm } from '../ContactForm';
+import { ContactForm } from '../contactForm';
 import { renderWithProviders, createTestStore } from '../../test/testUtils';
 import api from '../../services/api';
 

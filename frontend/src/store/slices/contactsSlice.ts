@@ -45,6 +45,7 @@ export interface Contact {
   state_province: string | null;
   postal_code: string | null;
   country: string | null;
+  no_fixed_address: boolean;
   job_title: string | null;
   department: string | null;
   preferred_contact_method: string | null;
