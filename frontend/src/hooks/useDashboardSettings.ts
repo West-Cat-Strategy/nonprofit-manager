@@ -1,29 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../services/api';
-import type { DashboardSettings, KpiKey } from '../components/dashboard';
+import { defaultDashboardSettings } from '../components/dashboard';
+import type { DashboardSettings } from '../components/dashboard';
 
 const DASHBOARD_SETTINGS_KEY = 'dashboardSettings';
 const DASHBOARD_SETTINGS_PREF_KEY = 'dashboard_settings';
 const SAVE_DEBOUNCE_MS = 400;
-
-const defaultDashboardSettings: DashboardSettings = {
-  showQuickLookup: true,
-  showQuickActions: true,
-  showModules: true,
-  showEngagementChart: true,
-  showVolunteerWidget: true,
-  kpis: {
-    totalDonations: true,
-    avgDonation: true,
-    activeAccounts: true,
-    activeContacts: true,
-    activeCases: true,
-    volunteers: true,
-    volunteerHours: true,
-    events: true,
-    engagement: true,
-  } as Record<KpiKey, boolean>,
-};
 
 const loadDashboardSettings = (): DashboardSettings => {
   try {
@@ -151,6 +133,3 @@ export function useDashboardSettings(): UseDashboardSettingsResult {
     isLoading,
   };
 }
-
-export { defaultDashboardSettings };
-export type { DashboardSettings };
