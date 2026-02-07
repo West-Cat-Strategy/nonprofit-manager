@@ -139,6 +139,7 @@ export interface ContactNote {
   is_internal: boolean;
   is_important: boolean;
   is_pinned: boolean;
+  is_alert: boolean;
   attachments: any | null;
   created_at: Date;
   updated_at: Date;
@@ -158,6 +159,7 @@ export interface CreateContactNoteDTO {
   is_internal?: boolean;
   is_important?: boolean;
   is_pinned?: boolean;
+  is_alert?: boolean;
   attachments?: any;
 }
 
@@ -168,6 +170,7 @@ export interface UpdateContactNoteDTO {
   is_internal?: boolean;
   is_important?: boolean;
   is_pinned?: boolean;
+  is_alert?: boolean;
   attachments?: any;
 }
 
@@ -203,6 +206,7 @@ export interface Contact {
   state_province: string | null;
   postal_code: string | null;
   country: string | null;
+  no_fixed_address: boolean;
 
   // Additional information
   job_title: string | null;
@@ -257,6 +261,7 @@ export interface CreateContactDTO {
   state_province?: string;
   postal_code?: string;
   country?: string;
+  no_fixed_address?: boolean;
   job_title?: string;
   department?: string;
   preferred_contact_method?: string;
@@ -285,6 +290,7 @@ export interface UpdateContactDTO {
   state_province?: string;
   postal_code?: string;
   country?: string;
+  no_fixed_address?: boolean;
   job_title?: string;
   department?: string;
   preferred_contact_method?: string;

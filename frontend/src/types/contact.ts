@@ -132,6 +132,7 @@ export interface ContactNote {
   is_internal: boolean;
   is_important: boolean;
   is_pinned: boolean;
+  is_alert: boolean;
   attachments: any | null;
   created_at: string;
   updated_at: string;
@@ -151,6 +152,7 @@ export interface CreateContactNoteDTO {
   is_internal?: boolean;
   is_important?: boolean;
   is_pinned?: boolean;
+  is_alert?: boolean;
   attachments?: any;
 }
 
@@ -161,6 +163,7 @@ export interface UpdateContactNoteDTO {
   is_internal?: boolean;
   is_important?: boolean;
   is_pinned?: boolean;
+  is_alert?: boolean;
 }
 
 // ============================================================================

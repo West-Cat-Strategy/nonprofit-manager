@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import api from '../../services/api';
-import { ContactForm } from '../../components/ContactForm';
+import { ContactForm } from '../../components/contactForm';
 import { fetchCases, selectCasesByContact } from '../../store/slices/casesSlice';
 import { createContactNote } from '../../store/slices/contactsSlice';
 import type { Contact } from '../../store/slices/contactsSlice';

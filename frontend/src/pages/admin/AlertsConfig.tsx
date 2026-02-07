@@ -14,7 +14,7 @@ import {
   setCurrentConfig,
 } from '../../store/slices/alertsSlice';
 import type { AlertConfig } from '../../types/alert';
-import AlertConfigModal from '../../components/alerts/AlertConfigModal';
+import { AlertConfigModal } from '../../components/alerts';
 
 const AlertsConfig = () => {
   const dispatch = useAppDispatch();

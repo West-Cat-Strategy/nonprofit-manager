@@ -3,13 +3,35 @@ import type { ContactFormErrors, ContactFormValues } from '../types';
 interface AddressSectionProps {
   formData: ContactFormValues;
   errors: ContactFormErrors;
+  noFixedAddress: boolean;
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onNoFixedAddressChange: (checked: boolean) => void;
 }
 
-export default function AddressSection({ formData, errors, onChange }: AddressSectionProps) {
+export default function AddressSection({
+  formData,
+  errors,
+  noFixedAddress,
+  onChange,
+  onNoFixedAddressChange,
+}: AddressSectionProps) {
   return (
     <div className="bg-white shadow rounded-lg p-6">
       <h2 className="text-lg font-medium text-gray-900 mb-4">Address</h2>
+      <div className="mb-4">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            name="no_fixed_address"
+            checked={noFixedAddress}
+            onChange={(e) => onNoFixedAddressChange(e.target.checked)}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          />
+          <span className="text-sm font-medium text-gray-700">No fixed address</span>
+        </label>
+        <p className="mt-1 text-xs text-gray-500 ml-6">Check if this person does not have a fixed address</p>
+      </div>
+      {!noFixedAddress && (
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label htmlFor="address_line1" className="block text-sm font-medium text-gray-700">
@@ -100,6 +122,7 @@ export default function AddressSection({ formData, errors, onChange }: AddressSe
           />
         </div>
       </div>
+      )}
     </div>
   );
 }

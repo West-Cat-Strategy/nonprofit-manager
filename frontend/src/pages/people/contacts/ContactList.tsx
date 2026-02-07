@@ -215,7 +215,7 @@ const ContactList = () => {
                       aria-label={`Contact: ${formatName(contact)}`}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-black text-black dark:text-white">
                             {formatName(contact)}
                           </span>
@@ -224,6 +224,22 @@ const ContactList = () => {
                               ({contact.pronouns})
                             </span>
                           )}
+                          {contact.roles && contact.roles.length > 0 && contact.roles.map((role) => (
+                            <BrutalBadge
+                              key={role}
+                              color={
+                                role === 'Donor' ? 'green'
+                                : role === 'Staff' || role === 'Executive Director' ? 'blue'
+                                : role === 'Volunteer' ? 'purple'
+                                : role === 'Board Member' ? 'yellow'
+                                : role === 'Client' ? 'red'
+                                : 'gray'
+                              }
+                              size="sm"
+                            >
+                              {role}
+                            </BrutalBadge>
+                          ))}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-black/70 dark:text-white/70">
@@ -296,6 +312,26 @@ const ContactList = () => {
                       <div className="text-lg font-black text-black">{formatName(contact)}</div>
                       {contact.pronouns && (
                         <span className="text-xs text-black/50">({contact.pronouns})</span>
+                      )}
+                      {contact.roles && contact.roles.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {contact.roles.map((role) => (
+                            <BrutalBadge
+                              key={role}
+                              color={
+                                role === 'Donor' ? 'green'
+                                : role === 'Staff' || role === 'Executive Director' ? 'blue'
+                                : role === 'Volunteer' ? 'purple'
+                                : role === 'Board Member' ? 'yellow'
+                                : role === 'Client' ? 'red'
+                                : 'gray'
+                              }
+                              size="sm"
+                            >
+                              {role}
+                            </BrutalBadge>
+                          ))}
+                        </div>
                       )}
                       {contact.account_name && (
                         <div className="text-sm font-bold text-black/70">{contact.account_name}</div>
