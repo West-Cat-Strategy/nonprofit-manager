@@ -3,151 +3,28 @@
  * Search by name, email, or phone number
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import api from '../../services/api';
-
-interface SearchResult {
-  contact_id: string;
-  first_name: string;
-  last_name: string;
-  email: string | null;
-  phone: string | null;
-  mobile_phone: string | null;
-  account_name?: string;
-  is_active: boolean;
-}
+import { Link } from 'react-router-dom';
+import { useQuickLookup, highlightMatch } from './useQuickLookup';
 
 interface QuickLookupWidgetProps {
   className?: string;
 }
 
 export default function QuickLookupWidget({ className = '' }: QuickLookupWidgetProps) {
-  const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
-
-  // Debounced search function
-  const performSearch = useCallback(async (term: string) => {
-    if (term.length < 2) {
-      setResults([]);
-      setIsOpen(false);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await api.get('/contacts', {
-        params: {
-          search: term,
-          limit: 8,
-          is_active: true,
-        },
-      });
-      setResults(response.data.contacts || []);
-      setIsOpen(true);
-      setSelectedIndex(-1);
-    } catch {
-      setResults([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Handle search input change with debounce
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-    }
-
-    debounceTimer.current = setTimeout(() => {
-      performSearch(value);
-    }, 300);
-  };
-
-  // Handle keyboard navigation
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!isOpen || results.length === 0) return;
-
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev < results.length - 1 ? prev + 1 : prev));
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev));
-        break;
-      case 'Enter':
-        e.preventDefault();
-        if (selectedIndex >= 0 && results[selectedIndex]) {
-          setIsOpen(false);
-          navigate(`/contacts/${results[selectedIndex].contact_id}`);
-        }
-        break;
-      case 'Escape':
-        setIsOpen(false);
-        setSelectedIndex(-1);
-        break;
-    }
-  };
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
-        inputRef.current &&
-        !inputRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Cleanup debounce timer
-  useEffect(() => {
-    return () => {
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current);
-      }
-    };
-  }, []);
-
-  // Format phone for display
-  const formatPhone = (phone: string | null): string => {
-    if (!phone) return '';
-    return phone;
-  };
-
-  // Highlight matching text
-  const highlightMatch = (text: string, searchTerm: string): React.ReactNode => {
-    if (!searchTerm || searchTerm.length < 2) return text;
-
-    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-    const parts = text.split(regex);
-
-    return parts.map((part, i) =>
-      regex.test(part) ? (
-        <mark key={i} className="bg-yellow-200 rounded px-0.5">{part}</mark>
-      ) : (
-        part
-      )
-    );
-  };
+  const {
+    searchTerm,
+    results,
+    isLoading,
+    isOpen,
+    selectedIndex,
+    inputRef,
+    dropdownRef,
+    handleSearchChange,
+    handleKeyDown,
+    handleFocus,
+    clearSearch,
+    closeDropdown,
+  } = useQuickLookup();
 
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-4 ${className}`}>
@@ -180,7 +57,7 @@ export default function QuickLookupWidget({ className = '' }: QuickLookupWidgetP
             value={searchTerm}
             onChange={handleSearchChange}
             onKeyDown={handleKeyDown}
-            onFocus={() => searchTerm.length >= 2 && results.length > 0 && setIsOpen(true)}
+            onFocus={handleFocus}
             placeholder="Search by name, email, or phone..."
             className="block w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
@@ -209,12 +86,7 @@ export default function QuickLookupWidget({ className = '' }: QuickLookupWidgetP
           )}
           {!isLoading && searchTerm && (
             <button
-              onClick={() => {
-                setSearchTerm('');
-                setResults([]);
-                setIsOpen(false);
-                inputRef.current?.focus();
-              }}
+              onClick={clearSearch}
               className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -243,7 +115,7 @@ export default function QuickLookupWidget({ className = '' }: QuickLookupWidgetP
                       className={`block px-4 py-3 hover:bg-gray-50 transition-colors ${
                         index === selectedIndex ? 'bg-blue-50' : ''
                       }`}
-                      onClick={() => setIsOpen(false)}
+                      onClick={closeDropdown}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
@@ -258,7 +130,7 @@ export default function QuickLookupWidget({ className = '' }: QuickLookupWidgetP
                           <div className="flex items-center gap-3 mt-1">
                             {(contact.phone || contact.mobile_phone) && (
                               <p className="text-xs text-gray-500">
-                                {highlightMatch(formatPhone(contact.phone || contact.mobile_phone), searchTerm)}
+                                {highlightMatch(contact.phone || contact.mobile_phone || '', searchTerm)}
                               </p>
                             )}
                             {contact.account_name && (
@@ -293,7 +165,7 @@ export default function QuickLookupWidget({ className = '' }: QuickLookupWidgetP
                 <Link
                   to={`/contacts?search=${encodeURIComponent(searchTerm)}`}
                   className="block text-center text-xs text-blue-600 hover:text-blue-800 py-1"
-                  onClick={() => setIsOpen(false)}
+                  onClick={closeDropdown}
                 >
                   View all results in People
                 </Link>
