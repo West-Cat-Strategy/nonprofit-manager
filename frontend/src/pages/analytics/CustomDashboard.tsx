@@ -20,17 +20,18 @@ import GridLayout, { type Layout } from 'react-grid-layout';
 import type { DashboardWidget, WidgetType } from '../../types/dashboard';
 import { WIDGET_TEMPLATES } from '../../types/dashboard';
 
-// Widget components (will be created separately)
-import DonationSummaryWidget from '../../components/dashboard/DonationSummaryWidget';
-import RecentDonationsWidget from '../../components/dashboard/RecentDonationsWidget';
-import DonationTrendsWidget from '../../components/dashboard/DonationTrendsWidget';
-import VolunteerHoursWidget from '../../components/dashboard/VolunteerHoursWidget';
-import EventAttendanceWidget from '../../components/dashboard/EventAttendanceWidget';
-import QuickActionsWidget from '../../components/dashboard/QuickActionsWidget';
-import CaseSummaryWidget from '../../components/dashboard/CaseSummaryWidget';
-import MyCasesWidget from '../../components/dashboard/MyCasesWidget';
-import ActivityFeedWidget from '../../components/dashboard/ActivityFeedWidget';
-import PlausibleStatsWidget from '../../components/dashboard/PlausibleStatsWidget';
+import {
+  DonationSummaryWidget,
+  RecentDonationsWidget,
+  DonationTrendsWidget,
+  VolunteerHoursWidget,
+  EventAttendanceWidget,
+  QuickActionsWidget,
+  CaseSummaryWidget,
+  MyCasesWidget,
+  ActivityFeedWidget,
+  PlausibleStatsWidget,
+} from '../../components/dashboard';
 
 const CustomDashboard = () => {
   const dispatch = useAppDispatch();

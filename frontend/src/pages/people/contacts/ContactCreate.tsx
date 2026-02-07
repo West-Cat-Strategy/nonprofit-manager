@@ -5,7 +5,7 @@
 
 import { useNavigate } from 'react-router-dom';
 import { BrutalCard } from '../../../components/neo-brutalist';
-import { ContactForm } from '../../../components/ContactForm';
+import { ContactForm } from '../../../components/contactForm';
 
 export const ContactCreate: React.FC = () => {
   const navigate = useNavigate();

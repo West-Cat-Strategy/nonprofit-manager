@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ContactForm } from '../../components/ContactForm';
+import { ContactForm } from '../../components/contactForm';
 import CaseForm from '../../components/CaseForm';
 import type { Contact } from '../../store/slices/contactsSlice';
 import type { CaseWithDetails } from '../../types/case';

@@ -93,6 +93,7 @@ router.post(
     body('job_title').optional().isString().trim(),
     body('department').optional().isString().trim(),
     body('preferred_contact_method').optional().isString().trim(),
+    body('no_fixed_address').optional().isBoolean(),
     body('do_not_email').optional().isBoolean(),
     body('do_not_phone').optional().isBoolean(),
     body('notes').optional().isString().trim(),
@@ -132,6 +133,7 @@ router.put(
     body('job_title').optional().isString().trim(),
     body('department').optional().isString().trim(),
     body('preferred_contact_method').optional().isString().trim(),
+    body('no_fixed_address').optional().isBoolean(),
     body('do_not_email').optional().isBoolean(),
     body('do_not_phone').optional().isBoolean(),
     body('notes').optional().isString().trim(),
@@ -178,6 +180,7 @@ router.post(
     body('is_internal').optional().isBoolean(),
     body('is_important').optional().isBoolean(),
     body('is_pinned').optional().isBoolean(),
+    body('is_alert').optional().isBoolean(),
   ],
   notesController.createContactNote
 );
@@ -206,6 +209,7 @@ router.put(
     body('is_internal').optional().isBoolean(),
     body('is_important').optional().isBoolean(),
     body('is_pinned').optional().isBoolean(),
+    body('is_alert').optional().isBoolean(),
   ],
   notesController.updateContactNote
 );

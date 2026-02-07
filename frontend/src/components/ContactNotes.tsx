@@ -33,6 +33,7 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
     is_internal: false,
     is_important: false,
     is_pinned: false,
+    is_alert: false,
     case_id: undefined,
   });
 
@@ -67,6 +68,7 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
         is_internal: false,
         is_important: false,
         is_pinned: false,
+        is_alert: false,
         case_id: undefined,
       });
       setIsAddingNote(false);
@@ -89,10 +91,12 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
     }
   };
 
-  // Sort notes: pinned first, then by date
+  // Sort notes: pinned first, then alerts, then by date
   const sortedNotes = [...contactNotes].sort((a, b) => {
     if (a.is_pinned && !b.is_pinned) return -1;
     if (!a.is_pinned && b.is_pinned) return 1;
+    if (a.is_alert && !b.is_alert) return -1;
+    if (!a.is_alert && b.is_alert) return 1;
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 
@@ -220,6 +224,15 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
               />
               <span className="text-sm text-gray-700">Pin to top</span>
             </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={newNote.is_alert}
+                onChange={(e) => setNewNote((prev) => ({ ...prev, is_alert: e.target.checked }))}
+                className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+              />
+              <span className="text-sm text-gray-700">Mark as alert (shows popup when viewing contact)</span>
+            </label>
           </div>
 
           {/* Form Actions */}
@@ -265,7 +278,9 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
           <div
             key={note.id}
             className={`bg-white rounded-lg border p-4 ${
-              note.is_important
+              note.is_alert
+                ? 'border-red-300 bg-red-50'
+                : note.is_important
                 ? 'border-yellow-300 bg-yellow-50'
                 : note.is_pinned
                 ? 'border-blue-300 bg-blue-50'
@@ -294,6 +309,11 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
                     {note.is_important && (
                       <span className="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded">
                         Important
+                      </span>
+                    )}
+                    {note.is_alert && (
+                      <span className="px-2 py-0.5 text-xs bg-red-100 text-red-800 rounded font-semibold">
+                        Alert
                       </span>
                     )}
                   </div>

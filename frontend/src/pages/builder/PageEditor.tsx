@@ -32,11 +32,13 @@ import {
   setCurrentPage,
   updateCurrentPageSections,
 } from '../../store/slices/templateSlice';
-import ComponentPalette from '../../components/editor/ComponentPalette';
-import EditorCanvas from '../../components/editor/EditorCanvas';
-import PropertyPanel from '../../components/editor/PropertyPanel';
-import EditorHeader from '../../components/editor/EditorHeader';
-import PageList from '../../components/editor/PageList';
+import {
+  ComponentPalette,
+  EditorCanvas,
+  PropertyPanel,
+  EditorHeader,
+  PageList,
+} from '../../components/editor';
 import { useEditorHistory } from '../../hooks/useEditorHistory';
 import { useAutoSave } from '../../hooks/useAutoSave';
 import type {
