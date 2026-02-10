@@ -38,11 +38,12 @@ export const BrandingProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      setBranding(defaultBranding);
+      setBrandingState(defaultBranding);
+      applyBrandingToDocument(defaultBranding, { setTitle: false });
       return;
     }
     refreshBranding();
-  }, [isAuthenticated, refreshBranding, setBranding]);
+  }, [isAuthenticated, refreshBranding]);
 
   const value = useMemo<BrandingContextValue>(
     () => ({

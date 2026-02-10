@@ -3,7 +3,7 @@
  * Displays list of all contacts with neo-brutalist styling
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
@@ -12,10 +12,29 @@ import {
   setFilters,
   clearFilters,
   fetchContactTags,
+  bulkUpdateContacts,
+  createContact,
 } from '../../../store/slices/contactsSlice';
 import type { Contact } from '../../../store/slices/contactsSlice';
 import { useToast } from '../../../contexts/useToast';
 import { BrutalBadge, BrutalButton, BrutalCard, BrutalInput } from '../../../components/neo-brutalist';
+import api from '../../../services/api';
+
+const SEGMENT_STORAGE_KEY = 'crm_contact_segments';
+
+type ContactSegment = {
+  id: string;
+  name: string;
+  filters: {
+    search: string;
+    account_id: string;
+    is_active: boolean | null;
+    tags: string[];
+    role: '' | 'staff' | 'volunteer' | 'board';
+    sort_by: string;
+    sort_order: 'asc' | 'desc';
+  };
+};
 
 const ContactList = () => {
   const dispatch = useAppDispatch();
@@ -27,6 +46,15 @@ const ContactList = () => {
 
   const [searchInput, setSearchInput] = useState(filters.search);
   const [tagInput, setTagInput] = useState('');
+  const [bulkTagInput, setBulkTagInput] = useState('');
+  const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
+  const [segments, setSegments] = useState<ContactSegment[]>([]);
+  const [activeSegmentId, setActiveSegmentId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importRows, setImportRows] = useState<Array<Record<string, string | null>>>([]);
+  const [importErrors, setImportErrors] = useState<string[]>([]);
+  const [importFilename, setImportFilename] = useState<string>('');
   const searchDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadContacts = useCallback(() => {
@@ -35,8 +63,11 @@ const ContactList = () => {
         page: pagination.page,
         limit: pagination.limit,
         search: filters.search || undefined,
-        is_active: filters.is_active,
+        is_active: filters.is_active ?? undefined,
         tags: filters.tags.length ? filters.tags : undefined,
+        role: filters.role || undefined,
+        sort_by: filters.sort_by || undefined,
+        sort_order: filters.sort_order || undefined,
       })
     );
   }, [dispatch, filters, pagination.page, pagination.limit]);
@@ -48,6 +79,33 @@ const ContactList = () => {
   useEffect(() => {
     dispatch(fetchContactTags());
   }, [dispatch]);
+
+  useEffect(() => {
+    setSelectedContactIds(new Set());
+  }, [contacts]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(SEGMENT_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as ContactSegment[];
+        setSegments(parsed);
+      }
+    } catch {
+      setSegments([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!activeSegmentId) return;
+    const activeSegment = segments.find((segment) => segment.id === activeSegmentId);
+    if (!activeSegment) return;
+    const current = JSON.stringify(filters);
+    const saved = JSON.stringify(activeSegment.filters);
+    if (current !== saved) {
+      setActiveSegmentId(null);
+    }
+  }, [activeSegmentId, filters, segments]);
 
   // Quick lookup: debounce server-side search as the user types
   useEffect(() => {
@@ -100,8 +158,11 @@ const ContactList = () => {
         page: newPage,
         limit: pagination.limit,
         search: filters.search || undefined,
-        is_active: filters.is_active,
+        is_active: filters.is_active ?? undefined,
         tags: filters.tags.length ? filters.tags : undefined,
+        role: filters.role || undefined,
+        sort_by: filters.sort_by || undefined,
+        sort_order: filters.sort_order || undefined,
       })
     );
   };
@@ -124,6 +185,287 @@ const ContactList = () => {
 
   const formatName = (contact: Contact) => {
     return `${contact.first_name} ${contact.last_name}`;
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedContactIds.size === contacts.length) {
+      setSelectedContactIds(new Set());
+      return;
+    }
+    setSelectedContactIds(new Set(contacts.map((contact) => contact.contact_id)));
+  };
+
+  const toggleSelectContact = (contactId: string) => {
+    setSelectedContactIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(contactId)) {
+        next.delete(contactId);
+      } else {
+        next.add(contactId);
+      }
+      return next;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedContactIds(new Set());
+  };
+
+  const applyBulkTagUpdate = async (mode: 'add' | 'remove') => {
+    const nextTag = bulkTagInput.trim();
+    if (!nextTag || selectedContactIds.size === 0) return;
+    try {
+      await dispatch(
+        bulkUpdateContacts({
+          contactIds: Array.from(selectedContactIds),
+          tags: { [mode]: [nextTag] },
+        })
+      ).unwrap();
+      showSuccess(`Tag ${mode === 'add' ? 'added' : 'removed'} for ${selectedContactIds.size} people`);
+      setBulkTagInput('');
+      clearSelection();
+      loadContacts();
+    } catch {
+      showError('Failed to update tags in bulk');
+    }
+  };
+
+  const applyBulkStatus = async (isActive: boolean) => {
+    if (selectedContactIds.size === 0) return;
+    try {
+      await dispatch(
+        bulkUpdateContacts({
+          contactIds: Array.from(selectedContactIds),
+          is_active: isActive,
+        })
+      ).unwrap();
+      showSuccess(`Updated ${selectedContactIds.size} people`);
+      clearSelection();
+      loadContacts();
+    } catch {
+      showError('Failed to update status in bulk');
+    }
+  };
+
+  const segmentOptions = useMemo(
+    () => segments.map((segment) => ({ value: segment.id, label: segment.name })),
+    [segments]
+  );
+
+  const saveSegment = () => {
+    const name = window.prompt('Name this segment');
+    if (!name) return;
+    const newSegment: ContactSegment = {
+      id: `${Date.now()}`,
+      name,
+      filters,
+    };
+    const next = [...segments, newSegment];
+    setSegments(next);
+    setActiveSegmentId(newSegment.id);
+    localStorage.setItem(SEGMENT_STORAGE_KEY, JSON.stringify(next));
+    showSuccess(`Saved segment "${name}"`);
+  };
+
+  const applySegment = (segmentId: string) => {
+    const segment = segments.find((item) => item.id === segmentId);
+    if (!segment) return;
+    setSearchInput(segment.filters.search);
+    setActiveSegmentId(segmentId);
+    dispatch(setFilters(segment.filters));
+  };
+
+  const deleteSegment = (segmentId: string) => {
+    const next = segments.filter((segment) => segment.id !== segmentId);
+    setSegments(next);
+    localStorage.setItem(SEGMENT_STORAGE_KEY, JSON.stringify(next));
+    if (activeSegmentId === segmentId) {
+      setActiveSegmentId(null);
+    }
+  };
+
+  const handleLimitChange = (value: number) => {
+    dispatch(
+      fetchContacts({
+        page: 1,
+        limit: value,
+        search: filters.search || undefined,
+        is_active: filters.is_active ?? undefined,
+        tags: filters.tags.length ? filters.tags : undefined,
+        role: filters.role || undefined,
+        sort_by: filters.sort_by || undefined,
+        sort_order: filters.sort_order || undefined,
+      })
+    );
+  };
+
+  const buildCsv = (rows: Array<Record<string, unknown>>) => {
+    if (rows.length === 0) return '';
+    const headers = Object.keys(rows[0]);
+    const escape = (value: unknown) => {
+      if (value === null || value === undefined) return '';
+      const stringValue = String(value);
+      if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+      return stringValue;
+    };
+    const lines = [
+      headers.join(','),
+      ...rows.map((row) => headers.map((header) => escape(row[header])).join(',')),
+    ];
+    return lines.join('\n');
+  };
+
+  const downloadCsv = (filename: string, rows: Array<Record<string, unknown>>) => {
+    const csv = buildCsv(rows);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportCurrentView = async () => {
+    setIsExporting(true);
+    try {
+      const allRows: Array<Record<string, unknown>> = [];
+      let page = 1;
+      const limit = 100;
+      let totalPages = 1;
+
+      while (page <= totalPages) {
+        const response = await api.get('/contacts', {
+          params: {
+            page,
+            limit,
+            search: filters.search || undefined,
+            is_active: filters.is_active ?? undefined,
+            tags: filters.tags.length ? filters.tags.join(',') : undefined,
+            role: filters.role || undefined,
+            sort_by: filters.sort_by || undefined,
+            sort_order: filters.sort_order || undefined,
+          },
+        });
+        const data = response.data.data as Contact[];
+        totalPages = response.data.pagination?.total_pages || totalPages;
+        allRows.push(
+          ...data.map((contact) => ({
+            contact_id: contact.contact_id,
+            first_name: contact.first_name,
+            last_name: contact.last_name,
+            email: contact.email,
+            phone: contact.phone,
+            mobile_phone: contact.mobile_phone,
+            job_title: contact.job_title,
+            department: contact.department,
+            preferred_contact_method: contact.preferred_contact_method,
+            account_name: contact.account_name,
+            tags: contact.tags?.join(', ') || '',
+            is_active: contact.is_active,
+            created_at: contact.created_at,
+            updated_at: contact.updated_at,
+          }))
+        );
+        page += 1;
+      }
+
+      downloadCsv('contacts-export.csv', allRows);
+      showSuccess('Export ready');
+    } catch {
+      showError('Failed to export contacts');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportSelected = () => {
+    if (selectedContactIds.size === 0) return;
+    const rows = contacts
+      .filter((contact) => selectedContactIds.has(contact.contact_id))
+      .map((contact) => ({
+        contact_id: contact.contact_id,
+        first_name: contact.first_name,
+        last_name: contact.last_name,
+        email: contact.email,
+        phone: contact.phone,
+        mobile_phone: contact.mobile_phone,
+        job_title: contact.job_title,
+        department: contact.department,
+        account_name: contact.account_name,
+        tags: contact.tags?.join(', ') || '',
+        is_active: contact.is_active,
+      }));
+    downloadCsv('contacts-selected.csv', rows);
+  };
+
+  const parseCsv = async (file: File) => {
+    const text = await file.text();
+    const rows: Array<Record<string, string | null>> = [];
+    const [headerLine, ...lines] = text.split(/\r?\n/).filter(Boolean);
+    if (!headerLine) return rows;
+    const headers = headerLine.split(',').map((header) => header.trim());
+    for (const line of lines) {
+      const values = line.split(',').map((value) => value.trim());
+      const row: Record<string, string | null> = {};
+      headers.forEach((header, index) => {
+        row[header] = values[index] ?? null;
+      });
+      rows.push(row);
+    }
+    return rows;
+  };
+
+  const handleImportFile = async (file: File) => {
+    setImportErrors([]);
+    setImportFilename(file.name);
+    try {
+      const rows = await parseCsv(file);
+      setImportRows(rows);
+    } catch {
+      setImportErrors(['Failed to parse CSV file']);
+    }
+  };
+
+  const runImport = async () => {
+    if (importRows.length === 0) return;
+    setIsImporting(true);
+    const errors: string[] = [];
+    for (const row of importRows) {
+      const firstName = row.first_name || row.firstName;
+      const lastName = row.last_name || row.lastName;
+      if (!firstName || !lastName) {
+        errors.push('Missing first_name or last_name in one or more rows');
+        continue;
+      }
+      try {
+        await dispatch(
+          createContact({
+            first_name: firstName,
+            last_name: lastName,
+            email: row.email || undefined,
+            phone: row.phone || undefined,
+            mobile_phone: row.mobile_phone || undefined,
+            job_title: row.job_title || undefined,
+            department: row.department || undefined,
+            preferred_contact_method: row.preferred_contact_method || undefined,
+            tags: row.tags ? row.tags.split(';').map((tag) => tag.trim()).filter(Boolean) : undefined,
+            is_active: row.is_active ? row.is_active === 'true' || row.is_active === '1' : undefined,
+          })
+        ).unwrap();
+      } catch {
+        errors.push(`Failed to import ${firstName} ${lastName}`);
+      }
+    }
+    setIsImporting(false);
+    setImportErrors(errors);
+    if (errors.length === 0) {
+      showSuccess('Import completed');
+      setImportRows([]);
+      loadContacts();
+    }
   };
 
   // Pagination helpers
@@ -158,6 +500,46 @@ const ContactList = () => {
       {/* Filters */}
       <BrutalCard color="white" className="p-4">
         <form onSubmit={handleSearch} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <label className="text-xs font-black uppercase text-black/60">Segment</label>
+              <select
+                value={activeSegmentId || ''}
+                onChange={(e) => {
+                  if (!e.target.value) {
+                    setActiveSegmentId(null);
+                    return;
+                  }
+                  applySegment(e.target.value);
+                }}
+                className="border-2 border-black px-3 py-2 text-xs font-black uppercase bg-white"
+              >
+                <option value="">All People</option>
+                {segmentOptions.map((segment) => (
+                  <option key={segment.value} value={segment.value}>
+                    {segment.label}
+                  </option>
+                ))}
+              </select>
+              {activeSegmentId && (
+                <button
+                  type="button"
+                  onClick={() => deleteSegment(activeSegmentId)}
+                  className="px-2 py-2 text-xs font-black uppercase border-2 border-black bg-[var(--loop-pink)]"
+                >
+                  Delete Segment
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <BrutalButton type="button" onClick={saveSegment} variant="secondary">
+                Save Segment
+              </BrutalButton>
+              <BrutalButton type="button" onClick={exportCurrentView} variant="secondary" disabled={isExporting}>
+                {isExporting ? 'Exporting...' : 'Export CSV'}
+              </BrutalButton>
+            </div>
+          </div>
           <div className="flex flex-col gap-4 md:flex-row md:items-center">
             <div className="flex-1">
             <BrutalInput
@@ -176,6 +558,79 @@ const ContactList = () => {
               Clear
             </BrutalButton>
           </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-4">
+            <label className="flex flex-col gap-1 text-xs font-black uppercase text-black/70">
+              Status
+              <select
+                value={filters.is_active === null ? 'all' : filters.is_active ? 'active' : 'inactive'}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  dispatch(
+                    setFilters({
+                      is_active: value === 'all' ? null : value === 'active',
+                    })
+                  );
+                }}
+                className="border-2 border-black px-3 py-2 text-sm font-bold bg-white"
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="all">All</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-black uppercase text-black/70">
+              Role
+              <select
+                value={filters.role || ''}
+                onChange={(e) => dispatch(setFilters({ role: e.target.value as ContactSegment['filters']['role'] }))}
+                className="border-2 border-black px-3 py-2 text-sm font-bold bg-white"
+              >
+                <option value="">All</option>
+                <option value="staff">Staff</option>
+                <option value="volunteer">Volunteer</option>
+                <option value="board">Board</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-black uppercase text-black/70">
+              Sort by
+              <select
+                value={filters.sort_by}
+                onChange={(e) => dispatch(setFilters({ sort_by: e.target.value }))}
+                className="border-2 border-black px-3 py-2 text-sm font-bold bg-white"
+              >
+                <option value="created_at">Created Date</option>
+                <option value="updated_at">Last Updated</option>
+                <option value="first_name">First Name</option>
+                <option value="last_name">Last Name</option>
+                <option value="email">Email</option>
+                <option value="account_name">Organization</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-black uppercase text-black/70">
+              Order / Page Size
+              <div className="flex gap-2">
+                <select
+                  value={filters.sort_order}
+                  onChange={(e) =>
+                    dispatch(setFilters({ sort_order: e.target.value as ContactSegment['filters']['sort_order'] }))
+                  }
+                  className="border-2 border-black px-3 py-2 text-sm font-bold bg-white"
+                >
+                  <option value="desc">Desc</option>
+                  <option value="asc">Asc</option>
+                </select>
+                <select
+                  value={pagination.limit}
+                  onChange={(e) => handleLimitChange(Number(e.target.value))}
+                  className="border-2 border-black px-3 py-2 text-sm font-bold bg-white"
+                >
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </label>
           </div>
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap gap-2">
@@ -221,6 +676,157 @@ const ContactList = () => {
         </form>
       </BrutalCard>
 
+      {selectedContactIds.size > 0 && (
+        <BrutalCard color="white" className="p-4 border-4 border-black">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="text-sm font-black uppercase text-black">
+              {selectedContactIds.size} selected
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <input
+                type="text"
+                value={bulkTagInput}
+                onChange={(e) => setBulkTagInput(e.target.value)}
+                list="contact-tag-filter-options"
+                placeholder="Tag name"
+                className="min-w-[160px] px-3 py-2 border-2 border-black text-sm font-bold"
+              />
+              <button
+                type="button"
+                onClick={() => applyBulkTagUpdate('add')}
+                className="px-3 py-2 text-xs font-black uppercase border-2 border-black bg-[var(--loop-green)]"
+              >
+                Add Tag
+              </button>
+              <button
+                type="button"
+                onClick={() => applyBulkTagUpdate('remove')}
+                className="px-3 py-2 text-xs font-black uppercase border-2 border-black bg-[var(--loop-pink)]"
+              >
+                Remove Tag
+              </button>
+              <button
+                type="button"
+                onClick={() => applyBulkStatus(true)}
+                className="px-3 py-2 text-xs font-black uppercase border-2 border-black bg-white"
+              >
+                Set Active
+              </button>
+              <button
+                type="button"
+                onClick={() => applyBulkStatus(false)}
+                className="px-3 py-2 text-xs font-black uppercase border-2 border-black bg-white"
+              >
+                Set Inactive
+              </button>
+              <button
+                type="button"
+                onClick={exportSelected}
+                className="px-3 py-2 text-xs font-black uppercase border-2 border-black bg-[var(--loop-yellow)]"
+              >
+                Export Selected
+              </button>
+              <button
+                type="button"
+                onClick={clearSelection}
+                className="px-3 py-2 text-xs font-black uppercase border-2 border-black bg-white"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        </BrutalCard>
+      )}
+
+      <BrutalCard color="white" className="p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-lg font-black uppercase text-black">Import Contacts</h2>
+            <p className="text-sm font-bold text-black/60">
+              CSV headers: first_name, last_name, email, phone, mobile_phone, job_title, department, preferred_contact_method, tags, is_active
+            </p>
+          </div>
+          <label className="border-2 border-black px-4 py-2 font-black uppercase text-black cursor-pointer bg-white">
+            Select CSV
+            <input
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleImportFile(file);
+              }}
+            />
+          </label>
+        </div>
+        {importFilename && (
+          <div className="mt-3 text-sm font-bold text-black/70">
+            Loaded file: {importFilename}
+          </div>
+        )}
+        {importRows.length > 0 && (
+          <div className="mt-4 space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={runImport}
+                disabled={isImporting}
+                className="px-4 py-2 border-2 border-black bg-[var(--loop-green)] font-black uppercase text-black"
+              >
+                {isImporting ? 'Importing...' : `Import ${importRows.length} rows`}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setImportRows([]);
+                  setImportFilename('');
+                  setImportErrors([]);
+                }}
+                className="px-4 py-2 border-2 border-black bg-white font-black uppercase text-black"
+              >
+                Clear
+              </button>
+            </div>
+            <div className="overflow-x-auto border-2 border-black">
+              <table className="min-w-full text-xs font-bold text-black">
+                <thead className="bg-[var(--loop-yellow)]">
+                  <tr>
+                    {Object.keys(importRows[0]).map((header) => (
+                      <th key={header} className="px-3 py-2 text-left uppercase">
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {importRows.slice(0, 5).map((row, index) => (
+                    <tr key={index} className="border-t-2 border-black">
+                      {Object.keys(row).map((header) => (
+                        <td key={header} className="px-3 py-2">
+                          {row[header] || '-'}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {importRows.length > 5 && (
+              <p className="text-xs font-bold text-black/60">
+                Showing 5 of {importRows.length} rows
+              </p>
+            )}
+          </div>
+        )}
+        {importErrors.length > 0 && (
+          <div className="mt-3 text-sm font-bold text-red-600">
+            {importErrors.slice(0, 3).map((error) => (
+              <div key={error}>{error}</div>
+            ))}
+          </div>
+        )}
+      </BrutalCard>
+
       {/* Error Message */}
       {error && (
         <BrutalCard color="pink" className="p-4">
@@ -246,6 +852,18 @@ const ContactList = () => {
               <table className="min-w-full border-collapse" role="grid" aria-label="Contacts table">
                 <thead className="bg-[var(--loop-purple)] border-b-2 border-black">
                   <tr>
+                    <th scope="col" className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
+                      <input
+                        type="checkbox"
+                        checked={contacts.length > 0 && selectedContactIds.size === contacts.length}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          toggleSelectAll();
+                        }}
+                        aria-label="Select all contacts on this page"
+                        className="h-4 w-4 accent-black"
+                      />
+                    </th>
                     <th scope="col" className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
                       Name
                     </th>
@@ -282,6 +900,15 @@ const ContactList = () => {
                       role="row"
                       aria-label={`Contact: ${formatName(contact)}`}
                     >
+                      <td className="px-4 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedContactIds.has(contact.contact_id)}
+                          onChange={() => toggleSelectContact(contact.contact_id)}
+                          aria-label={`Select ${formatName(contact)}`}
+                          className="h-4 w-4 accent-black"
+                        />
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-black text-black dark:text-white">
@@ -376,6 +1003,16 @@ const ContactList = () => {
                   onClick={() => navigate(`/contacts/${contact.contact_id}`)}
                 >
                   <div className="flex items-start justify-between gap-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedContactIds.has(contact.contact_id)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        toggleSelectContact(contact.contact_id);
+                      }}
+                      aria-label={`Select ${formatName(contact)}`}
+                      className="mt-1 h-4 w-4 accent-black"
+                    />
                     <div>
                       <div className="text-lg font-black text-black">{formatName(contact)}</div>
                       {contact.pronouns && (

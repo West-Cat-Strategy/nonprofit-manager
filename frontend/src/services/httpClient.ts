@@ -102,6 +102,12 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
   // Note: Auth tokens are handled via httpOnly cookies (withCredentials: true)
   client.interceptors.request.use(
     async (config: InternalAxiosRequestConfig) => {
+      const storedToken = localStorage.getItem(_tokenKey);
+      if (storedToken && !config.headers?.Authorization) {
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${storedToken}`;
+      }
+
       if (includeOrganizationHeader) {
         const organizationId = resolveOrganizationId(organizationIdKey, defaultOrganizationId);
         if (organizationId) {

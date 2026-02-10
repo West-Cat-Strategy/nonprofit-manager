@@ -8,11 +8,11 @@ import { Page } from '@playwright/test';
  * Seed database with test data via API
  */
 export async function seedDatabase(page: Page, token: string): Promise<void> {
-  const apiURL = process.env.API_URL || 'http://localhost:3000';
+  const apiURL = process.env.API_URL || 'http://localhost:3001';
 
   // Create test accounts
   await page.request.post(`${apiURL}/api/accounts`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     data: {
       name: 'Test Organization',
       accountType: 'organization',
@@ -24,7 +24,7 @@ export async function seedDatabase(page: Page, token: string): Promise<void> {
 
   // Create test contacts
   await page.request.post(`${apiURL}/api/contacts`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     data: {
       firstName: 'John',
       lastName: 'Doe',
@@ -39,7 +39,7 @@ export async function seedDatabase(page: Page, token: string): Promise<void> {
  * Clear all test data from database
  */
 export async function clearDatabase(page: Page, token: string): Promise<void> {
-  const apiURL = process.env.API_URL || 'http://localhost:3000';
+  const apiURL = process.env.API_URL || 'http://localhost:3001';
 
   // Delete in reverse order of dependencies
   const endpoints = [
@@ -65,7 +65,17 @@ export async function clearDatabase(page: Page, token: string): Promise<void> {
         // Delete each item
         if (Array.isArray(items)) {
           for (const item of items) {
-            await page.request.delete(`${apiURL}${endpoint}/${item.id}`, {
+            const itemId =
+              item.id ||
+              item.account_id ||
+              item.contact_id ||
+              item.donation_id ||
+              item.event_id ||
+              item.task_id;
+            if (!itemId) {
+              continue;
+            }
+            await page.request.delete(`${apiURL}${endpoint}/${itemId}`, {
               headers: { Authorization: `Bearer ${token}` },
             });
           }
@@ -86,24 +96,30 @@ export async function createTestAccount(
   data: {
     name: string;
     accountType?: string;
+    category?: string;
     industry?: string;
     email?: string;
     phone?: string;
+    website?: string;
   }
 ): Promise<{ id: string }> {
-  const apiURL = process.env.API_URL || 'http://localhost:3000';
+  const apiURL = process.env.API_URL || 'http://localhost:3001';
 
   const response = await page.request.post(`${apiURL}/api/accounts`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     data: {
-      accountType: 'organization',
-      industry: 'nonprofit',
-      ...data,
+      account_name: data.name,
+      account_type: data.accountType || 'organization',
+      category: data.category || 'donor',
+      industry: data.industry || 'nonprofit',
+      email: data.email,
+      phone: data.phone,
+      website: data.website,
     },
   });
 
   const result = await response.json();
-  return { id: result.id };
+  return { id: result.account_id || result.id };
 }
 
 /**
@@ -121,10 +137,10 @@ export async function createTestContact(
     accountId?: string;
   }
 ): Promise<{ id: string }> {
-  const apiURL = process.env.API_URL || 'http://localhost:3000';
+  const apiURL = process.env.API_URL || 'http://localhost:3001';
 
   const response = await page.request.post(`${apiURL}/api/contacts`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     data: {
       contactType: 'donor',
       ...data,
@@ -149,10 +165,10 @@ export async function createTestDonation(
     paymentStatus?: string;
   }
 ): Promise<{ id: string }> {
-  const apiURL = process.env.API_URL || 'http://localhost:3000';
+  const apiURL = process.env.API_URL || 'http://localhost:3001';
 
   const response = await page.request.post(`${apiURL}/api/donations`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     data: {
       donationDate: new Date().toISOString(),
       paymentMethod: 'credit_card',
@@ -180,13 +196,13 @@ export async function createTestEvent(
     capacity?: number;
   }
 ): Promise<{ id: string }> {
-  const apiURL = process.env.API_URL || 'http://localhost:3000';
+  const apiURL = process.env.API_URL || 'http://localhost:3001';
 
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
 
   const response = await page.request.post(`${apiURL}/api/events`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     data: {
       eventType: 'fundraiser',
       startDate: tomorrow.toISOString(),

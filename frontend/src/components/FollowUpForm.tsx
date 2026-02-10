@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useAppDispatch } from '../store/hooks';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { createFollowUp, updateFollowUp } from '../store/slices/followUpsSlice';
 import { useToast } from '../contexts/useToast';
 import type {
@@ -33,6 +33,7 @@ export default function FollowUpForm({
   onCancel,
 }: FollowUpFormProps) {
   const dispatch = useAppDispatch();
+  const { loading } = useAppSelector((state) => state.followUps);
   const { showSuccess, showError } = useToast();
 
   // Form state

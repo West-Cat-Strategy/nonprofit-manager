@@ -528,6 +528,75 @@ export class ContactService {
   }
 
   /**
+   * Bulk update contacts (tags and/or active status)
+   */
+  async bulkUpdateContacts(
+    contactIds: string[],
+    options: {
+      is_active?: boolean;
+      tags?: { add?: string[]; remove?: string[]; replace?: string[] };
+    },
+    userId: string
+  ): Promise<number> {
+    try {
+      if (contactIds.length === 0) {
+        return 0;
+      }
+
+      const fields: string[] = [];
+      const values: QueryValue[] = [];
+      let paramCounter = 1;
+
+      if (options.is_active !== undefined) {
+        fields.push(`is_active = $${paramCounter}`);
+        values.push(options.is_active);
+        paramCounter++;
+      }
+
+      if (options.tags?.replace) {
+        fields.push(`tags = $${paramCounter}::text[]`);
+        values.push(options.tags.replace);
+        paramCounter++;
+      } else if (options.tags?.add || options.tags?.remove) {
+        const addTags = options.tags?.add ?? [];
+        const removeTags = options.tags?.remove ?? [];
+        const addParam = paramCounter++;
+        const removeParam = paramCounter++;
+        values.push(addTags, removeTags);
+        fields.push(`tags = (
+          SELECT ARRAY(
+            SELECT DISTINCT t
+            FROM UNNEST(COALESCE(c.tags, ARRAY[]::text[]) || $${addParam}::text[]) t
+            WHERE NOT (t = ANY($${removeParam}::text[]))
+          )
+        )`);
+      }
+
+      if (fields.length === 0) {
+        return 0;
+      }
+
+      fields.push(`modified_by = $${paramCounter}`);
+      values.push(userId);
+      paramCounter++;
+      fields.push('updated_at = CURRENT_TIMESTAMP');
+
+      values.push(contactIds);
+      const query = `
+        UPDATE contacts c
+        SET ${fields.join(', ')}
+        WHERE c.id = ANY($${paramCounter}::uuid[])
+      `;
+
+      const result = await this.pool.query(query, values);
+      return result.rowCount || 0;
+    } catch (error) {
+      logger.error('Error bulk updating contacts:', error);
+      throw new Error('Failed to bulk update contacts');
+    }
+  }
+
+  /**
    * Soft delete contact
    */
   async deleteContact(contactId: string, userId: string): Promise<boolean> {

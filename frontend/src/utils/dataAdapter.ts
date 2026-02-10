@@ -79,10 +79,15 @@ export function adaptPeopleData(apiResponse: unknown): AdaptedPerson[] {
             || undefined;
 
         // Map role/status fields
-        const role = getString(item.role)
+        const rawRole = getString(item.role)
             || getString(item.volunteer_role)
             || getString(item.position)
             || undefined;
+        const normalizedRole = rawRole?.toLowerCase();
+        const role =
+            normalizedRole === 'staff' || normalizedRole === 'volunteer' || normalizedRole === 'board'
+                ? normalizedRole
+                : undefined;
         const status = getString(item.status)
             || getString(item.availability_status)
             || getString(item.active_status)
