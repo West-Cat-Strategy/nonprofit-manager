@@ -5,10 +5,11 @@ import {
   fetchContactNotes,
   createContactNote,
   deleteContactNote,
+  updateContactNote,
 } from '../store/slices/contactsSlice';
 import { fetchCases, selectCasesByContact } from '../store/slices/casesSlice';
 import { useToast } from '../contexts/useToast';
-import type { CreateContactNoteDTO, ContactNoteType } from '../types/contact';
+import type { CreateContactNoteDTO, UpdateContactNoteDTO, ContactNoteType } from '../types/contact';
 import { NOTE_TYPES } from '../types/contact';
 import { getNoteIcon, getNoteTypeLabel, formatNoteDate } from '../utils/notes';
 import useConfirmDialog, { confirmPresets } from '../hooks/useConfirmDialog';
@@ -29,6 +30,8 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
 
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [submitMode, setSubmitMode] = useState<'close' | 'another'>('close');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState<ContactNoteType | 'all'>('all');
   const [newNote, setNewNote] = useState<CreateContactNoteDTO>({
     note_type: 'note',
     subject: '',
@@ -124,6 +127,16 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
     }
   };
 
+  const handleToggleFlag = async (noteId: string, updates: Partial<UpdateContactNoteDTO>) => {
+    try {
+      await dispatch(updateContactNote({ noteId, data: updates })).unwrap();
+      showSuccess('Note updated');
+    } catch (error) {
+      console.error('Failed to update note:', error);
+      showError('Failed to update note');
+    }
+  };
+
   // Sort notes: pinned first, then alerts, then by date
   const sortedNotes = [...contactNotes].sort((a, b) => {
     if (a.is_pinned && !b.is_pinned) return -1;
@@ -131,6 +144,13 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
     if (a.is_alert && !b.is_alert) return -1;
     if (!a.is_alert && b.is_alert) return 1;
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
+  const filteredNotes = sortedNotes.filter((note) => {
+    if (typeFilter !== 'all' && note.note_type !== typeFilter) return false;
+    if (!searchTerm.trim()) return true;
+    const haystack = `${note.subject || ''} ${note.content || ''}`.toLowerCase();
+    return haystack.includes(searchTerm.trim().toLowerCase());
   });
 
   return (
@@ -146,6 +166,29 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
             + {template.label}
           </button>
         ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col gap-2 md:flex-row md:items-center">
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search notes..."
+          className="flex-1 px-3 py-2 border-2 border-black text-sm font-bold"
+        />
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value as ContactNoteType | 'all')}
+          className="px-3 py-2 border-2 border-black text-sm font-bold"
+        >
+          <option value="all">All Types</option>
+          {NOTE_TYPES.map((type) => (
+            <option key={type.value} value={type.value}>
+              {type.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Add Note Button */}
@@ -329,7 +372,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
           </div>
         )}
 
-        {sortedNotes.map((note) => (
+        {filteredNotes.map((note) => (
           <div
             key={note.id}
             className={`bg-white rounded-lg border p-4 ${
@@ -378,20 +421,49 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
                   </div>
                 </div>
               </div>
-              <button
-                onClick={() => handleDeleteNote(note.id)}
-                className="text-gray-400 hover:text-red-500 transition"
-                title="Delete note"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleToggleFlag(note.id, { is_pinned: !note.is_pinned })}
+                  className={`text-xs font-bold uppercase px-2 py-1 border rounded ${
+                    note.is_pinned ? 'border-blue-400 text-blue-700' : 'border-gray-300 text-gray-500'
+                  }`}
+                  title="Toggle pin"
+                >
+                  Pin
+                </button>
+                <button
+                  onClick={() => handleToggleFlag(note.id, { is_important: !note.is_important })}
+                  className={`text-xs font-bold uppercase px-2 py-1 border rounded ${
+                    note.is_important ? 'border-yellow-400 text-yellow-700' : 'border-gray-300 text-gray-500'
+                  }`}
+                  title="Toggle important"
+                >
+                  Important
+                </button>
+                <button
+                  onClick={() => handleToggleFlag(note.id, { is_alert: !note.is_alert })}
+                  className={`text-xs font-bold uppercase px-2 py-1 border rounded ${
+                    note.is_alert ? 'border-red-400 text-red-700' : 'border-gray-300 text-gray-500'
+                  }`}
+                  title="Toggle alert"
+                >
+                  Alert
+                </button>
+                <button
+                  onClick={() => handleDeleteNote(note.id)}
+                  className="text-gray-400 hover:text-red-500 transition"
+                  title="Delete note"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             {/* Note Subject */}

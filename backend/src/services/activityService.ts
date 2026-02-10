@@ -166,12 +166,159 @@ export class ActivityService {
    * Get activities for a specific entity
    */
   async getActivitiesForEntity(
-    _entityType: 'case' | 'donation' | 'volunteer' | 'event' | 'contact',
-    _entityId: string
+    entityType: 'case' | 'donation' | 'volunteer' | 'event' | 'contact',
+    entityId: string
   ): Promise<Activity[]> {
-    // This can be expanded to fetch activities related to a specific entity
-    // For now, return empty array as this is primarily for the dashboard feed
-    return [];
+    if (entityType !== 'contact') {
+      return [];
+    }
+
+    const activities: Activity[] = [];
+
+    const notesResult = await pool.query(
+      `SELECT
+        cn.id,
+        cn.note_type,
+        cn.subject,
+        cn.content,
+        cn.created_at,
+        u.first_name || ' ' || u.last_name as user_name
+      FROM contact_notes cn
+      LEFT JOIN users u ON cn.created_by = u.id
+      WHERE cn.contact_id = $1
+      ORDER BY cn.created_at DESC
+      LIMIT 100`,
+      [entityId]
+    );
+
+    notesResult.rows.forEach((row) => {
+      activities.push({
+        id: `note-${row.id}`,
+        type: 'contact_note_added',
+        title: row.subject ? `Note: ${row.subject}` : 'Note added',
+        description: row.content ? row.content.slice(0, 160) : '',
+        timestamp: row.created_at,
+        user_id: null,
+        user_name: row.user_name,
+        entity_type: 'contact',
+        entity_id: entityId,
+        metadata: {
+          note_type: row.note_type,
+        },
+      });
+    });
+
+    const casesResult = await pool.query(
+      `SELECT id, case_number, title, created_at, status_name
+       FROM cases
+       WHERE contact_id = $1
+       ORDER BY created_at DESC
+       LIMIT 50`,
+      [entityId]
+    );
+
+    casesResult.rows.forEach((row) => {
+      activities.push({
+        id: `case-${row.id}`,
+        type: 'case_created',
+        title: `Case created`,
+        description: `Case ${row.case_number}: ${row.title}`,
+        timestamp: row.created_at,
+        user_id: null,
+        user_name: null,
+        entity_type: 'case',
+        entity_id: row.id,
+        metadata: {
+          case_number: row.case_number,
+          status: row.status_name,
+        },
+      });
+    });
+
+    const donationsResult = await pool.query(
+      `SELECT id, amount, donation_date, payment_status
+       FROM donations
+       WHERE contact_id = $1
+       ORDER BY donation_date DESC
+       LIMIT 50`,
+      [entityId]
+    );
+
+    donationsResult.rows.forEach((row) => {
+      activities.push({
+        id: `donation-${row.id}`,
+        type: 'donation_received',
+        title: 'Donation received',
+        description: `Donation of $${parseFloat(row.amount).toFixed(2)}`,
+        timestamp: row.donation_date,
+        user_id: null,
+        user_name: null,
+        entity_type: 'donation',
+        entity_id: row.id,
+        metadata: {
+          status: row.payment_status,
+        },
+      });
+    });
+
+    const tasksResult = await pool.query(
+      `SELECT id, subject, status, priority, created_at, due_date
+       FROM tasks
+       WHERE related_to_type = 'contact' AND related_to_id = $1
+       ORDER BY created_at DESC
+       LIMIT 50`,
+      [entityId]
+    );
+
+    tasksResult.rows.forEach((row) => {
+      activities.push({
+        id: `task-${row.id}`,
+        type: 'task_created',
+        title: `Task: ${row.subject}`,
+        description: row.due_date ? `Due ${row.due_date}` : 'Task created',
+        timestamp: row.created_at,
+        user_id: null,
+        user_name: null,
+        entity_type: 'task' as Activity['entity_type'],
+        entity_id: row.id,
+        metadata: {
+          status: row.status,
+          priority: row.priority,
+        },
+      });
+    });
+
+    const documentsResult = await pool.query(
+      `SELECT id, title, original_name, created_at
+       FROM contact_documents
+       WHERE contact_id = $1
+       ORDER BY created_at DESC
+       LIMIT 50`,
+      [entityId]
+    );
+
+    documentsResult.rows.forEach((row) => {
+      activities.push({
+        id: `document-${row.id}`,
+        type: 'document_uploaded',
+        title: row.title || row.original_name,
+        description: 'Document uploaded',
+        timestamp: row.created_at,
+        user_id: null,
+        user_name: null,
+        entity_type: 'contact',
+        entity_id: entityId,
+        metadata: {
+          document_id: row.id,
+        },
+      });
+    });
+
+    activities.sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+
+    return activities.slice(0, 200);
   }
 }
 

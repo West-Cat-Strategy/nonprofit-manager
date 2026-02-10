@@ -45,6 +45,10 @@ const AlertConfigModal = ({ config, onClose, onSuccess }: AlertConfigModalProps)
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<AlertTestResult | { error: string } | null>(null);
 
+  const isAlertTestResult = (
+    result: AlertTestResult | { error: string }
+  ): result is AlertTestResult => 'would_trigger' in result;
+
   useEffect(() => {
     if (config) {
       setFormData({
@@ -314,18 +318,24 @@ const AlertConfigModal = ({ config, onClose, onSuccess }: AlertConfigModalProps)
 
           {/* Test Result */}
           {testResult && (
-            <div className={`p-4 rounded-lg ${testResult.would_trigger ? 'bg-orange-50 border border-orange-200' : 'bg-green-50 border border-green-200'}`}>
-              <p className="font-medium text-sm mb-1">
-                {testResult.would_trigger ? '⚠️ Alert would trigger' : '✓ Alert would not trigger'}
-              </p>
-              <p className="text-sm text-gray-600">{testResult.message}</p>
-              {testResult.current_value !== undefined && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Current value: {testResult.current_value}
-                  {testResult.threshold_value !== undefined && ` | Threshold: ${testResult.threshold_value}`}
+            isAlertTestResult(testResult) ? (
+              <div className={`p-4 rounded-lg ${testResult.would_trigger ? 'bg-orange-50 border border-orange-200' : 'bg-green-50 border border-green-200'}`}>
+                <p className="font-medium text-sm mb-1">
+                  {testResult.would_trigger ? '⚠️ Alert would trigger' : '✓ Alert would not trigger'}
                 </p>
-              )}
-            </div>
+                <p className="text-sm text-gray-600">{testResult.message}</p>
+                {testResult.current_value !== undefined && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Current value: {testResult.current_value}
+                    {testResult.threshold_value !== undefined && ` | Threshold: ${testResult.threshold_value}`}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                {testResult.error}
+              </div>
+            )
           )}
         </div>
 

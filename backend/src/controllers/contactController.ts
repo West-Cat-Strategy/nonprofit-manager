@@ -10,7 +10,7 @@ import { AuthRequest } from '../middleware/auth';
 import * as invitationService from '../services/invitationService';
 import { syncUserRole } from '../services/userRoleService';
 import { extractPagination, getString, getBoolean } from '../utils/queryHelpers';
-import { notFound } from '../utils/responseHelpers';
+import { notFound, badRequest } from '../utils/responseHelpers';
 import type { DataScopeFilter } from '../types/dataScope';
 
 const contactService = services.contact;
@@ -121,6 +121,44 @@ export const getContacts = async (
     const scope = req.dataScope?.filter as DataScopeFilter | undefined;
     const result = await contactService.getContacts(filters, pagination, scope);
     res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/contacts/bulk
+ * Bulk update contacts (tags and/or active status)
+ */
+export const bulkUpdateContacts = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const contactIds = Array.isArray(req.body.contactIds)
+      ? req.body.contactIds.filter((id: unknown) => typeof id === 'string')
+      : [];
+
+    if (contactIds.length === 0) {
+      badRequest(res, 'contactIds is required');
+      return;
+    }
+
+    const tags = req.body.tags as
+      | { add?: string[]; remove?: string[]; replace?: string[] }
+      | undefined;
+
+    const is_active =
+      typeof req.body.is_active === 'boolean' ? req.body.is_active : undefined;
+
+    const updated = await contactService.bulkUpdateContacts(
+      contactIds,
+      { is_active, tags },
+      req.user!.id
+    );
+
+    res.json({ updated, contact_ids: contactIds });
   } catch (error) {
     next(error);
   }

@@ -10,6 +10,7 @@ import {
   getContacts,
   getContactTags,
   getContactRoles,
+  bulkUpdateContacts,
   getContactById,
   createContact,
   updateContact,
@@ -66,6 +67,28 @@ router.get('/tags', getContactTags);
  * Get available contact roles
  */
 router.get('/roles', getContactRoles);
+
+/**
+ * POST /api/contacts/bulk
+ * Bulk update contacts (tags and/or active status)
+ */
+router.post(
+  '/bulk',
+  [
+    body('contactIds').isArray({ min: 1 }),
+    body('contactIds.*').isUUID(),
+    body('is_active').optional().isBoolean(),
+    body('tags').optional().isObject(),
+    body('tags.add').optional().isArray(),
+    body('tags.add.*').optional().isString().trim().isLength({ min: 1, max: 40 }),
+    body('tags.remove').optional().isArray(),
+    body('tags.remove.*').optional().isString().trim().isLength({ min: 1, max: 40 }),
+    body('tags.replace').optional().isArray(),
+    body('tags.replace.*').optional().isString().trim().isLength({ min: 1, max: 40 }),
+    validateRequest,
+  ],
+  bulkUpdateContacts
+);
 
 /**
  * GET /api/contacts/:id
