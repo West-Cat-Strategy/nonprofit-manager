@@ -3,14 +3,33 @@
  * Tests for login, logout, and registration flows
  */
 
+import '../helpers/testEnv';
 import { test, expect } from '@playwright/test';
-import { login, logout, clearAuth } from '../helpers/auth';
+import { login, logout, clearAuth, ensureSetupComplete, createTestUser } from '../helpers/auth';
+import { getSharedTestUser } from '../helpers/testUser';
 
-const TEST_USER_EMAIL = process.env.TEST_USER_EMAIL || 'test@example.com';
-const TEST_USER_PASSWORD = process.env.TEST_USER_PASSWORD || 'Test123!@#';
+const getCreds = () => getSharedTestUser();
 
 test.describe('Authentication Flow', () => {
   test.beforeEach(async ({ page }) => {
+    const { email, password } = getCreds();
+    await ensureSetupComplete(page, email, password, {
+      firstName: 'Test',
+      lastName: 'User',
+    });
+    try {
+      await createTestUser(page, {
+        email,
+        password,
+        firstName: 'Test',
+        lastName: 'User',
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.toLowerCase().includes('user already exists')) {
+        throw error;
+      }
+    }
     await clearAuth(page);
   });
 
@@ -58,7 +77,8 @@ test.describe('Authentication Flow', () => {
   });
 
   test('should login successfully with valid credentials', async ({ page }) => {
-    await login(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+    const { email, password } = getCreds();
+    await login(page, email, password);
 
     // Should redirect to dashboard
     await expect(page).toHaveURL('/dashboard');
@@ -75,7 +95,8 @@ test.describe('Authentication Flow', () => {
 
   test('should logout successfully', async ({ page }) => {
     // Login first
-    await login(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+    const { email, password } = getCreds();
+    await login(page, email, password);
     await expect(page).toHaveURL('/dashboard');
 
     // Logout
@@ -102,7 +123,8 @@ test.describe('Authentication Flow', () => {
   });
 
   test('should persist authentication across page reloads', async ({ page }) => {
-    await login(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+    const { email, password } = getCreds();
+    await login(page, email, password);
     await expect(page).toHaveURL('/dashboard');
 
     // Reload page
@@ -166,7 +188,8 @@ test.describe('Authentication Flow', () => {
 test.describe('Session Management', () => {
   test('should handle expired token gracefully', async ({ page }) => {
     await page.goto('/login');
-    await login(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+    const { email, password } = getCreds();
+    await login(page, email, password);
 
     // Set an expired/invalid token
     await page.evaluate(() => {
@@ -183,7 +206,8 @@ test.describe('Session Management', () => {
   });
 
   test('should clear session on logout', async ({ page }) => {
-    await login(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+    const { email, password } = getCreds();
+    await login(page, email, password);
 
     // Logout
     await logout(page);

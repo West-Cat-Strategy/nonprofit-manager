@@ -18,8 +18,10 @@ export type ActivityType =
   | 'event_registration'
   | 'contact_created'
   | 'contact_updated'
+  | 'contact_note_added'
   | 'task_created'
-  | 'task_completed';
+  | 'task_completed'
+  | 'document_uploaded';
 
 export interface Activity {
   id: string;

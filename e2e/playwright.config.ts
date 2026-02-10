@@ -1,14 +1,21 @@
 import { defineConfig, devices } from '@playwright/test';
 import * as dotenv from 'dotenv';
+import { getSharedTestUser } from './helpers/testUser';
 
 // Load environment variables from .env.test if it exists
 dotenv.config({ path: '.env.test' });
+
+getSharedTestUser();
 
 /**
  * Playwright Configuration for Nonprofit Manager E2E Tests
  *
  * See https://playwright.dev/docs/test-configuration
  */
+const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
+const API_URL = process.env.API_URL || 'http://localhost:3001';
+process.env.BASE_URL = BASE_URL;
+process.env.API_URL = API_URL;
 export default defineConfig({
   testDir: './tests',
 
@@ -16,10 +23,10 @@ export default defineConfig({
   timeout: 60 * 1000,
 
   // Test execution settings
-  fullyParallel: true,
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.PW_WORKERS ? Number(process.env.PW_WORKERS) : 1,
 
   // Reporter configuration
   reporter: [
@@ -31,10 +38,10 @@ export default defineConfig({
   // Shared settings for all projects
   use: {
     // Base URL for tests
-    baseURL: process.env.BASE_URL || 'http://localhost:5173',
+    baseURL: BASE_URL,
 
     // API endpoint
-    apiURL: process.env.API_URL || 'http://localhost:3000',
+    apiURL: API_URL,
 
     // Screenshot on failure
     screenshot: 'only-on-failure',
@@ -91,11 +98,13 @@ export default defineConfig({
   webServer: [
     {
       command: 'cd ../backend && npm run dev',
-      url: 'http://localhost:3000/health/live',
+      url: 'http://localhost:3001/health/live',
       timeout: 120 * 1000,
       reuseExistingServer: !process.env.CI,
       env: {
         NODE_ENV: 'test',
+        PORT: '3001',
+        REDIS_ENABLED: 'false',
       },
     },
     {
@@ -103,6 +112,9 @@ export default defineConfig({
       url: 'http://localhost:5173',
       timeout: 120 * 1000,
       reuseExistingServer: !process.env.CI,
+      env: {
+        VITE_API_URL: 'http://localhost:3001/api',
+      },
     },
   ],
 });

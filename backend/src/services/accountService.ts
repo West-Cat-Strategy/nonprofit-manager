@@ -32,28 +32,17 @@ export class AccountService {
    */
   private async generateAccountNumber(db: DbClient = this.pool): Promise<string> {
     const result = await db.query(
-      `SELECT account_number
+      `SELECT MAX(CAST(SPLIT_PART(account_number, '-', 2) AS INTEGER)) AS max_number
        FROM accounts
-       WHERE account_number IS NOT NULL
-       ORDER BY created_at DESC
-       LIMIT 1`
+       WHERE account_number ~ '^ACC-[0-9]+$'`
     );
 
-    if (result.rows.length === 0) {
+    const maxNumber = result.rows[0]?.max_number;
+    if (!maxNumber || Number.isNaN(Number(maxNumber))) {
       return 'ACC-10001';
     }
 
-    const lastNumber = result.rows[0].account_number;
-    if (!lastNumber || typeof lastNumber !== 'string' || !lastNumber.includes('-')) {
-      return 'ACC-10001';
-    }
-
-    const numPart = parseInt(lastNumber.split('-')[1], 10);
-    if (Number.isNaN(numPart)) {
-      return 'ACC-10001';
-    }
-
-    return `ACC-${numPart + 1}`;
+    return `ACC-${Number(maxNumber) + 1}`;
   }
 
   /**
@@ -355,8 +344,28 @@ export class AccountService {
       const values: QueryValue[] = [];
       let paramCounter = 1;
 
-      // Build dynamic update query
+      const allowedFields = new Set([
+        'account_name',
+        'account_type',
+        'email',
+        'phone',
+        'website',
+        'description',
+        'address_line1',
+        'address_line2',
+        'city',
+        'state_province',
+        'postal_code',
+        'country',
+        'tax_id',
+        'is_active',
+      ]);
+
+      // Build dynamic update query (ignore unknown fields like category)
       Object.entries(data).forEach(([key, value]) => {
+        if (!allowedFields.has(key)) {
+          return;
+        }
         if (value !== undefined) {
           fields.push(`${key} = $${paramCounter}`);
           values.push(value);

@@ -11,6 +11,7 @@ import {
   cancelFollowUp,
   deleteFollowUp,
   clearEntityFollowUps,
+  rescheduleFollowUp,
 } from '../store/slices/followUpsSlice';
 import { useToast } from '../contexts/useToast';
 import FollowUpForm from './FollowUpForm';
@@ -59,6 +60,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUp | null>(null);
   const [completingId, setCompletingId] = useState<string | null>(null);
   const [completionNotes, setCompletionNotes] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'scheduled' | 'completed' | 'cancelled' | 'overdue'>('all');
 
   useEffect(() => {
     dispatch(fetchEntityFollowUps({ entityType, entityId }));
@@ -121,6 +123,18 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
     setShowForm(true);
   };
 
+  const handleQuickReschedule = async (followUpId: string, days: number) => {
+    const target = new Date();
+    target.setDate(target.getDate() + days);
+    const newDate = target.toISOString().split('T')[0];
+    try {
+      await dispatch(rescheduleFollowUp({ followUpId, newDate })).unwrap();
+      showSuccess('Follow-up rescheduled');
+    } catch {
+      showError('Failed to reschedule follow-up');
+    }
+  };
+
   // Sort: scheduled first (by date), then completed/cancelled
   const sortedFollowUps = [...entityFollowUps].sort((a, b) => {
     const statusOrder = { scheduled: 0, overdue: 0, completed: 1, cancelled: 2 };
@@ -132,22 +146,44 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
     return new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime();
   });
 
+  const filteredFollowUps = sortedFollowUps.filter((followUp) => {
+    if (statusFilter === 'all') return true;
+    const overdueStatus = isOverdue(followUp);
+    if (statusFilter === 'overdue') return overdueStatus;
+    return followUp.status === statusFilter;
+  });
+
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
           Follow-ups
         </h3>
-        <button
-          onClick={() => {
-            setEditingFollowUp(null);
-            setShowForm(!showForm);
-          }}
-          className="px-3 py-1.5 text-sm font-semibold bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors"
-        >
-          {showForm ? 'Cancel' : '+ Schedule Follow-up'}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {(['all', 'scheduled', 'overdue', 'completed', 'cancelled'] as const).map((status) => (
+            <button
+              key={status}
+              onClick={() => setStatusFilter(status)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-full border ${
+                statusFilter === status
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200'
+              }`}
+            >
+              {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
+            </button>
+          ))}
+          <button
+            onClick={() => {
+              setEditingFollowUp(null);
+              setShowForm(!showForm);
+            }}
+            className="px-3 py-1.5 text-sm font-semibold bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors"
+          >
+            {showForm ? 'Cancel' : '+ Schedule Follow-up'}
+          </button>
+        </div>
       </div>
 
       {/* Form */}
@@ -175,14 +211,14 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
           <div className="animate-spin w-6 h-6 border-2 border-slate-300 border-t-slate-600 rounded-full mx-auto mb-2" />
           Loading follow-ups...
         </div>
-      ) : sortedFollowUps.length === 0 ? (
+      ) : filteredFollowUps.length === 0 ? (
         <div className="py-8 text-center text-slate-500 dark:text-slate-400">
           <p>No follow-ups scheduled</p>
           <p className="text-sm mt-1">Click "Schedule Follow-up" to create one</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {sortedFollowUps.map((followUp) => {
+          {filteredFollowUps.map((followUp) => {
             const overdueStatus = isOverdue(followUp);
             const displayStatus = overdueStatus ? 'overdue' : followUp.status;
 
@@ -266,6 +302,14 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                         >
                           {completingId === followUp.id ? 'Save' : '✓ Complete'}
                         </button>
+                        {completingId !== followUp.id && (
+                          <button
+                            onClick={() => handleQuickReschedule(followUp.id, 1)}
+                            className="px-2 py-1 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+                          >
+                            Reschedule +1d
+                          </button>
+                        )}
                         {completingId === followUp.id && (
                           <button
                             onClick={() => {

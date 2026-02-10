@@ -16,7 +16,7 @@ import {
   removeWidget,
   resetToDefault,
 } from '../../store/slices/dashboardSlice';
-import GridLayout, { type Layout } from 'react-grid-layout';
+import GridLayout from 'react-grid-layout';
 import type { DashboardWidget, WidgetType } from '../../types/dashboard';
 import { WIDGET_TEMPLATES } from '../../types/dashboard';
 
@@ -70,7 +70,20 @@ const CustomDashboard = () => {
     }
   }, [dispatch, token, isAuthenticated]);
 
-  const handleLayoutChange = (layout: Layout[]) => {
+  type GridLayoutItem = {
+    i: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    minW?: number;
+    minH?: number;
+    maxW?: number;
+    maxH?: number;
+    static?: boolean;
+  };
+
+  const handleLayoutChange = (layout: GridLayoutItem[]) => {
     if (editMode && currentDashboard) {
       // Convert react-grid-layout Layout to WidgetLayout
       const widgetLayout = layout.map((item) => ({

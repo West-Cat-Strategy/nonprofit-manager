@@ -78,8 +78,11 @@ export interface ContactsState {
   filters: {
     search: string;
     account_id: string;
-    is_active: boolean;
+    is_active: boolean | null;
     tags: string[];
+    role: '' | 'staff' | 'volunteer' | 'board';
+    sort_by: string;
+    sort_order: 'asc' | 'desc';
   };
   // Sub-resources for current contact
   phones: ContactPhoneNumber[];
@@ -113,6 +116,9 @@ const initialState: ContactsState = {
     account_id: '',
     is_active: true,
     tags: [],
+    role: '',
+    sort_by: 'created_at',
+    sort_order: 'desc',
   },
   // Sub-resources
   phones: [],
@@ -141,6 +147,9 @@ export const fetchContacts = createAsyncThunk(
     account_id?: string;
     is_active?: boolean;
     tags?: string[];
+    role?: 'staff' | 'volunteer' | 'board';
+    sort_by?: string;
+    sort_order?: 'asc' | 'desc';
   }) => {
     const response = await api.get('/contacts', {
       params: {
@@ -189,6 +198,22 @@ export const fetchContactTags = createAsyncThunk(
   async () => {
     const response = await api.get('/contacts/tags');
     return response.data.tags as string[];
+  }
+);
+
+export const bulkUpdateContacts = createAsyncThunk(
+  'contacts/bulkUpdateContacts',
+  async (payload: {
+    contactIds: string[];
+    is_active?: boolean;
+    tags?: {
+      add?: string[];
+      remove?: string[];
+      replace?: string[];
+    };
+  }) => {
+    const response = await api.post('/contacts/bulk', payload);
+    return response.data as { updated: number; contact_ids: string[] };
   }
 );
 
@@ -393,9 +418,11 @@ const contactsSlice = createSlice({
   reducers: {
     setFilters: (state, action: PayloadAction<Partial<ContactsState['filters']>>) => {
       state.filters = { ...state.filters, ...action.payload };
+      state.pagination.page = 1;
     },
     clearFilters: (state) => {
       state.filters = initialState.filters;
+      state.pagination.page = 1;
     },
     clearCurrentContact: (state) => {
       state.currentContact = null;

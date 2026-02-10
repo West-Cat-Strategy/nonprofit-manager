@@ -235,8 +235,10 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-// Start server (skip in test env)
-if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
+// Start server (skip for jest worker or explicit opt-out)
+const shouldStartServer =
+  !process.env.JEST_WORKER_ID && process.env.START_SERVER !== 'false';
+if (shouldStartServer) {
   const HOST = process.env.HOST || '0.0.0.0';
   app.listen(PORT, HOST, () => {
     logger.info(`Nonprofit Manager API running on ${HOST}:${PORT}`);

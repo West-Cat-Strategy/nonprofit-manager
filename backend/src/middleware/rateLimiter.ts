@@ -125,7 +125,7 @@ export const passwordResetLimiter = rateLimit({
 // Rate limiter for registration endpoint
 export const registrationLimiter = rateLimit({
   windowMs: RATE_LIMIT.REGISTRATION_WINDOW_MS,
-  max: RATE_LIMIT.REGISTRATION_MAX_ATTEMPTS,
+  max: isTestEnv ? 10000 : RATE_LIMIT.REGISTRATION_MAX_ATTEMPTS,
   skipSuccessfulRequests: false,
   message: ERROR_MESSAGES.TOO_MANY_REGISTRATIONS,
   standardHeaders: true,

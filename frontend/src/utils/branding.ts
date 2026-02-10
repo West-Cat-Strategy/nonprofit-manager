@@ -1,8 +1,16 @@
 import type { BrandingConfig } from '../types/branding';
 
-export const applyBrandingToDocument = (branding: BrandingConfig) => {
+type BrandingDocumentOptions = {
+  setTitle?: boolean;
+};
+
+export const applyBrandingToDocument = (
+  branding: BrandingConfig,
+  options: BrandingDocumentOptions = {}
+) => {
+  const shouldSetTitle = options.setTitle !== false;
   // Update document title
-  if (branding.appName) {
+  if (shouldSetTitle && branding.appName) {
     document.title = branding.appName;
   }
 
@@ -22,4 +30,3 @@ export const applyBrandingToDocument = (branding: BrandingConfig) => {
   document.documentElement.style.setProperty('--brand-primary', branding.primaryColour);
   document.documentElement.style.setProperty('--brand-secondary', branding.secondaryColour);
 };
-

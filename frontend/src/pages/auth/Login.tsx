@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../../store/hooks';
@@ -19,6 +19,10 @@ export default function Login() {
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    document.title = 'Login | Nonprofit Manager';
+  }, []);
 
   const persistOrganizationId = (organizationId?: string | null) => {
     if (organizationId) {
@@ -184,6 +188,7 @@ export default function Login() {
                 </label>
                 <input
                   id="email"
+                  name="email"
                   type="email"
                   required
                   autoComplete="email"
@@ -201,6 +206,7 @@ export default function Login() {
                   </label>
                   <input
                     id="password"
+                    name="password"
                     type="password"
                     required
                     autoComplete="current-password"
