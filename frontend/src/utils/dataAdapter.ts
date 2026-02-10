@@ -86,12 +86,17 @@ export function adaptPeopleData(apiResponse: unknown): AdaptedPerson[] {
         const normalizedRole = rawRole?.toLowerCase();
         const role =
             normalizedRole === 'staff' || normalizedRole === 'volunteer' || normalizedRole === 'board'
-                ? normalizedRole
+                ? (normalizedRole as AdaptedPerson['role'])
                 : undefined;
-        const status = getString(item.status)
+        const rawStatus = getString(item.status)
             || getString(item.availability_status)
             || getString(item.active_status)
             || undefined;
+        const normalizedStatus = rawStatus?.toLowerCase();
+        const status =
+            normalizedStatus === 'active' || normalizedStatus === 'inactive' || normalizedStatus === 'away'
+                ? (normalizedStatus as AdaptedPerson['status'])
+                : undefined;
         const title = getString(item.title) || getString(item.job_title) || undefined;
 
         return {

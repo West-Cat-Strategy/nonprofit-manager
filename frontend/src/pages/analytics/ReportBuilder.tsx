@@ -23,6 +23,7 @@ function ReportBuilder() {
   const [searchParams] = useSearchParams();
   const dispatch = useAppDispatch();
   const { currentReport, loading, availableFields } = useAppSelector((state) => state.reports);
+  const reportRows = currentReport?.data ?? [];
   const { currentSavedReport } = useAppSelector((state) => state.savedReports);
 
   const [entity, setEntity] = useState<ReportEntity>('contacts');
@@ -240,7 +241,7 @@ function ReportBuilder() {
         </div>
 
         {/* Report Preview */}
-        {(currentReport?.data?.length ?? 0) > 0 && (
+        {reportRows.length > 0 && (
           <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6">
             <h2 className="text-lg font-bold text-[var(--app-text)] mb-4 uppercase">Report Preview</h2>
             <div className="overflow-x-auto">
@@ -258,7 +259,7 @@ function ReportBuilder() {
                   </tr>
                 </thead>
                 <tbody className="bg-[var(--app-surface)]">
-                  {currentReport.data.slice(0, 10).map((row, idx) => (
+                  {reportRows.slice(0, 10).map((row, idx) => (
                     <tr key={idx} className="border-b border-[var(--app-border)]">
                       {selectedFields.map((field) => (
                         <td key={field} className="px-6 py-4 whitespace-nowrap text-sm text-[var(--app-text)]">
@@ -272,16 +273,16 @@ function ReportBuilder() {
                 </tbody>
               </table>
             </div>
-            {currentReport.data.length > 10 && (
+            {reportRows.length > 10 && (
               <p className="mt-4 text-sm text-[var(--app-text-muted)]">
-                Showing first 10 of {currentReport.data.length} records. Export to CSV to view all
+                Showing first 10 of {reportRows.length} records. Export to CSV to view all
                 data.
               </p>
             )}
           </div>
         )}
 
-        {currentReport?.data.length === 0 && (
+        {currentReport && reportRows.length === 0 && (
           <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6">
             <p className="text-[var(--app-text-muted)]">No data found matching your criteria.</p>
           </div>
