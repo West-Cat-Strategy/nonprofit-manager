@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { useAppDispatch } from '../store/hooks';
 import { createFollowUp, updateFollowUp } from '../store/slices/followUpsSlice';
 import { useToast } from '../contexts/useToast';
 import type {
@@ -34,7 +34,6 @@ export default function FollowUpForm({
 }: FollowUpFormProps) {
   const dispatch = useAppDispatch();
   const { showSuccess, showError } = useToast();
-  const { loading } = useAppSelector((state) => state.followUps);
 
   // Form state
   const [title, setTitle] = useState(existingFollowUp?.title || '');
@@ -119,7 +118,7 @@ export default function FollowUpForm({
         showSuccess('Follow-up scheduled successfully');
         onSuccess?.(result);
       }
-    } catch (err) {
+    } catch {
       showError(isEditing ? 'Failed to update follow-up' : 'Failed to schedule follow-up');
     }
   };

@@ -11,6 +11,7 @@ import {
   deleteContact,
   setFilters,
   clearFilters,
+  fetchContactTags,
 } from '../../../store/slices/contactsSlice';
 import type { Contact } from '../../../store/slices/contactsSlice';
 import { useToast } from '../../../contexts/useToast';
@@ -20,11 +21,12 @@ const ContactList = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
-  const { contacts, loading, error, pagination, filters } = useAppSelector(
+  const { contacts, loading, error, pagination, filters, availableTags } = useAppSelector(
     (state) => state.contacts
   );
 
   const [searchInput, setSearchInput] = useState(filters.search);
+  const [tagInput, setTagInput] = useState('');
   const searchDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadContacts = useCallback(() => {
@@ -34,6 +36,7 @@ const ContactList = () => {
         limit: pagination.limit,
         search: filters.search || undefined,
         is_active: filters.is_active,
+        tags: filters.tags.length ? filters.tags : undefined,
       })
     );
   }, [dispatch, filters, pagination.page, pagination.limit]);
@@ -41,6 +44,10 @@ const ContactList = () => {
   useEffect(() => {
     loadContacts();
   }, [loadContacts]);
+
+  useEffect(() => {
+    dispatch(fetchContactTags());
+  }, [dispatch]);
 
   // Quick lookup: debounce server-side search as the user types
   useEffect(() => {
@@ -71,6 +78,7 @@ const ContactList = () => {
 
   const handleClearFilters = () => {
     setSearchInput('');
+    setTagInput('');
     dispatch(clearFilters());
   };
 
@@ -93,8 +101,25 @@ const ContactList = () => {
         limit: pagination.limit,
         search: filters.search || undefined,
         is_active: filters.is_active,
+        tags: filters.tags.length ? filters.tags : undefined,
       })
     );
+  };
+
+  const handleAddTagFilter = (value?: string) => {
+    const nextTag = (value ?? tagInput).trim();
+    if (!nextTag) return;
+    const existing = filters.tags || [];
+    if (existing.some((tag) => tag.toLowerCase() === nextTag.toLowerCase())) {
+      setTagInput('');
+      return;
+    }
+    dispatch(setFilters({ tags: [...existing, nextTag] }));
+    setTagInput('');
+  };
+
+  const handleRemoveTagFilter = (tag: string) => {
+    dispatch(setFilters({ tags: (filters.tags || []).filter((item) => item !== tag) }));
   };
 
   const formatName = (contact: Contact) => {
@@ -132,8 +157,9 @@ const ContactList = () => {
 
       {/* Filters */}
       <BrutalCard color="white" className="p-4">
-        <form onSubmit={handleSearch} className="flex flex-col gap-4 md:flex-row">
-          <div className="flex-1">
+        <form onSubmit={handleSearch} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center">
+            <div className="flex-1">
             <BrutalInput
               type="text"
               placeholder="Quick lookup (name, email, phone)..."
@@ -142,13 +168,55 @@ const ContactList = () => {
               aria-label="Search contacts"
             />
           </div>
-          <div className="flex gap-2">
+            <div className="flex gap-2">
             <BrutalButton type="submit" variant="primary">
               Search
             </BrutalButton>
             <BrutalButton type="button" onClick={handleClearFilters} variant="secondary">
               Clear
             </BrutalButton>
+          </div>
+          </div>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap gap-2">
+              {filters.tags.length === 0 && (
+                <span className="text-sm font-bold text-black/60">No tag filters</span>
+              )}
+              {filters.tags.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => handleRemoveTagFilter(tag)}
+                  className="px-2 py-1 text-xs font-black uppercase border-2 border-black bg-[var(--loop-yellow)]"
+                >
+                  {tag} ×
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddTagFilter();
+                  }
+                }}
+                list="contact-tag-filter-options"
+                placeholder="Filter by tag..."
+                className="flex-1 min-w-[200px] px-3 py-2 border-2 border-black text-sm font-bold"
+              />
+              <BrutalButton type="button" onClick={() => handleAddTagFilter()} variant="secondary">
+                Add Tag Filter
+              </BrutalButton>
+            </div>
+            <datalist id="contact-tag-filter-options">
+              {availableTags.map((tag) => (
+                <option key={tag} value={tag} />
+              ))}
+            </datalist>
           </div>
         </form>
       </BrutalCard>

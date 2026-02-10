@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from 'react';
+import { isAxiosError } from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import ErrorBanner from '../../components/ErrorBanner';
@@ -126,9 +127,19 @@ const Setup: React.FC = () => {
 
       // Redirect to dashboard
       navigate('/dashboard');
-    } catch (error: any) {
-      if (error.response?.data?.details && Array.isArray(error.response.data.details)) {
-        setErrors(error.response.data.details.map((e: any) => e.msg || String(e)));
+    } catch (error) {
+      if (isAxiosError(error) && Array.isArray(error.response?.data?.details)) {
+        const details = error.response?.data?.details as unknown[];
+        setErrors(
+          details.map((detail) => {
+            if (typeof detail === 'string') return detail;
+            if (detail && typeof detail === 'object' && 'msg' in detail) {
+              const msg = (detail as { msg?: unknown }).msg;
+              return typeof msg === 'string' ? msg : String(detail);
+            }
+            return String(detail);
+          })
+        );
       } else {
         setFromError(error, 'An error occurred during setup. Please try again.');
         setErrors(['An error occurred during setup. Please try again.']);

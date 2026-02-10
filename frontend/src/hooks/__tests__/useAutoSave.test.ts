@@ -166,7 +166,7 @@ describe('useAutoSave', () => {
   });
 
   it('should set isSaving during save operation', async () => {
-    let resolvePromise: () => void;
+    let resolvePromise: (() => void) | null = null;
     const slowSave = vi.fn().mockImplementation(
       () => new Promise<void>((resolve) => {
         resolvePromise = resolve;
@@ -195,7 +195,10 @@ describe('useAutoSave', () => {
 
     // Complete the save
     await act(async () => {
-      resolvePromise!();
+      if (!resolvePromise) {
+        throw new Error('Save promise was not initialized');
+      }
+      resolvePromise();
     });
 
     expect(result.current.isSaving).toBe(false);

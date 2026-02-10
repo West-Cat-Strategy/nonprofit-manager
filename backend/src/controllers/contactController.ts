@@ -93,6 +93,15 @@ const getRoleFilter = (
   return undefined;
 };
 
+const getTagsFilter = (value: unknown): string[] | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const tags = value
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter((tag) => tag.length > 0);
+  return tags.length > 0 ? tags : undefined;
+};
+
 export const getContacts = async (
   req: AuthRequest,
   res: Response,
@@ -104,6 +113,7 @@ export const getContacts = async (
       role: getRoleFilter(req.query.role),
       account_id: getString(req.query.account_id),
       is_active: getBoolean(req.query.is_active),
+      tags: getTagsFilter(req.query.tags),
     };
 
     const pagination: PaginationParams = extractPagination(req.query);
@@ -111,6 +121,24 @@ export const getContacts = async (
     const scope = req.dataScope?.filter as DataScopeFilter | undefined;
     const result = await contactService.getContacts(filters, pagination, scope);
     res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/contacts/tags
+ * Get distinct tags used on contacts
+ */
+export const getContactTags = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+    const tags = await contactService.getContactTags(scope);
+    res.json({ tags });
   } catch (error) {
     next(error);
   }

@@ -4,7 +4,7 @@ import type { ApiErrorResponse } from '../types/api';
 type UnknownError = {
   message?: string;
   response?: {
-    data?: ApiErrorResponse | { error?: string; errors?: any };
+    data?: ApiErrorResponse | { error?: string; errors?: unknown };
   };
 };
 

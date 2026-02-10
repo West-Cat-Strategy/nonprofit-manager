@@ -150,8 +150,11 @@ const DonationPayment: React.FC = () => {
     const searchResponse = await api.get('/contacts', {
       params: { search: formData.donorEmail, limit: 1, is_active: true },
     });
-    const contacts = searchResponse.data?.data || searchResponse.data?.contacts || [];
-    const match = contacts.find((contact: any) =>
+    const contacts = (searchResponse.data?.data || searchResponse.data?.contacts || []) as Array<{
+      email?: string;
+      contact_id?: string;
+    }>;
+    const match = contacts.find((contact) =>
       (contact.email || '').toLowerCase() === formData.donorEmail.toLowerCase()
     );
     if (match?.contact_id) {

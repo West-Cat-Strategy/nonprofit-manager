@@ -48,6 +48,7 @@ const baseCase = (overrides: Partial<CaseWithDetails>): CaseWithDetails => ({
 
 const mockDispatch = vi.fn();
 let mockState: { cases: { cases: CaseWithDetails[]; loading: boolean; error: string | null } };
+type MockSelector<T> = (state: typeof mockState) => T;
 
 const renderWidget = () =>
   render(
@@ -101,7 +102,9 @@ describe('CaseSummaryWidget', () => {
     };
 
     (useAppDispatch as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockDispatch);
-    (useAppSelector as unknown as ReturnType<typeof vi.fn>).mockImplementation((selector: any) => selector(mockState));
+    (useAppSelector as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (selector: MockSelector<unknown>) => selector(mockState)
+    );
   });
 
   afterEach(() => {

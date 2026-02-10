@@ -215,6 +215,7 @@ export interface Contact {
   do_not_email: boolean;
   do_not_phone: boolean;
   notes: string | null;
+  tags: string[];
 
   // Lifecycle tracking
   is_active: boolean;
@@ -268,6 +269,7 @@ export interface CreateContactDTO {
   do_not_email?: boolean;
   do_not_phone?: boolean;
   notes?: string;
+  tags?: string[];
   roles?: string[];
 }
 
@@ -298,6 +300,7 @@ export interface UpdateContactDTO {
   do_not_phone?: boolean;
   notes?: string;
   is_active?: boolean;
+  tags?: string[];
   roles?: string[];
 }
 
@@ -313,6 +316,7 @@ export interface ContactFilters {
   account_id?: string;
   is_active?: boolean;
   role?: 'staff' | 'volunteer' | 'board';
+  tags?: string[];
 }
 
 export type { PaginationParams } from './pagination';
