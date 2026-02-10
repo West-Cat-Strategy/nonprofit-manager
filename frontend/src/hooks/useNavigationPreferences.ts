@@ -106,7 +106,7 @@ export function useNavigationPreferences() {
         const response = await api.get('/auth/preferences');
         const serverPrefs = response.data.preferences;
 
-        if (serverPrefs && serverPrefs[PREFERENCE_KEY]) {
+        if (serverPrefs?.[PREFERENCE_KEY]) {
           const mergedItems = mergeWithDefaults(serverPrefs[PREFERENCE_KEY].items);
           const newPrefs = { items: mergedItems };
           setPreferences(newPrefs);

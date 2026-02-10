@@ -110,6 +110,7 @@ describe('ContactForm', () => {
       preferred_contact_method: 'email',
       do_not_email: false,
       do_not_phone: false,
+      tags: [],
       is_active: true,
     };
 

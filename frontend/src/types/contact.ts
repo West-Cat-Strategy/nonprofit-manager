@@ -133,7 +133,7 @@ export interface ContactNote {
   is_important: boolean;
   is_pinned: boolean;
   is_alert: boolean;
-  attachments: any | null;
+  attachments: unknown | null;
   created_at: string;
   updated_at: string;
   created_by: string | null;
@@ -153,7 +153,7 @@ export interface CreateContactNoteDTO {
   is_important?: boolean;
   is_pinned?: boolean;
   is_alert?: boolean;
-  attachments?: any;
+  attachments?: unknown;
 }
 
 export interface UpdateContactNoteDTO {

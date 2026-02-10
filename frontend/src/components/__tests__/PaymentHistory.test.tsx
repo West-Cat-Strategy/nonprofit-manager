@@ -105,9 +105,9 @@ describe('PaymentHistory', () => {
       renderWithProviders(<PaymentHistory contactId="contact-123" />);
 
       await waitFor(() => {
-        expect(screen.getByText('$100.00')).toBeInTheDocument();
-        expect(screen.getByText('$250.00')).toBeInTheDocument();
-        expect(screen.getByText('$50.00')).toBeInTheDocument();
+        expect(screen.getByText('$100')).toBeInTheDocument();
+        expect(screen.getByText('$250')).toBeInTheDocument();
+        expect(screen.getByText('$50')).toBeInTheDocument();
       });
 
       // Check status badges
@@ -136,7 +136,7 @@ describe('PaymentHistory', () => {
 
       await waitFor(() => {
         expect(screen.getByText(/3 donations totaling/)).toBeInTheDocument();
-        expect(screen.getByText('$400.00')).toBeInTheDocument();
+        expect(screen.getByText('$400')).toBeInTheDocument();
       });
     });
 

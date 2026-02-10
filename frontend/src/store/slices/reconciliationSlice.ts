@@ -126,7 +126,7 @@ export const createReconciliation = createAsyncThunk<PaymentReconciliation, Crea
  */
 export const fetchReconciliations = createAsyncThunk(
   'reconciliation/fetchAll',
-  async (params: any = {}, { rejectWithValue }) => {
+  async (params: Record<string, unknown> = {}, { rejectWithValue }) => {
     try {
       const response = await api.get('/reconciliation', { params });
       return response.data;
@@ -158,7 +158,10 @@ export const fetchReconciliationById = createAsyncThunk<ReconciliationDetail, st
  */
 export const fetchReconciliationItems = createAsyncThunk(
   'reconciliation/fetchItems',
-  async ({ id, params = {} }: { id: string; params?: any }, { rejectWithValue }) => {
+  async (
+    { id, params = {} }: { id: string; params?: Record<string, unknown> },
+    { rejectWithValue }
+  ) => {
     try {
       const response = await api.get(`/reconciliation/${id}/items`, { params });
       return response.data;
@@ -190,7 +193,7 @@ export const fetchReconciliationDiscrepancies = createAsyncThunk(
  */
 export const fetchAllDiscrepancies = createAsyncThunk(
   'reconciliation/fetchAllDiscrepancies',
-  async (params: any = {}, { rejectWithValue }) => {
+  async (params: Record<string, unknown> = {}, { rejectWithValue }) => {
     try {
       const response = await api.get('/reconciliation/discrepancies/all', { params });
       return response.data;

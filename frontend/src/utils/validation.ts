@@ -113,7 +113,7 @@ export function validatePostalCode(postalCode: string, country?: string | null):
 
 // Required field validation
 export function validateRequired(value: string | null | undefined, fieldName: string): string | null {
-  if (!value || !value.trim()) {
+  if (!value?.trim()) {
     return `${fieldName} is required`;
   }
   return null;

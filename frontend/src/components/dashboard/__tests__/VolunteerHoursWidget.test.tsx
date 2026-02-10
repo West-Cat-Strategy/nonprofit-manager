@@ -17,6 +17,8 @@ vi.mock('../../../services/api', () => ({
   },
 }));
 
+const mockApi = api as { get: ReturnType<typeof vi.fn> };
+
 describe('VolunteerHoursWidget', () => {
   const mockWidget: DashboardWidget = {
     id: 'volunteer-hours-1',
@@ -33,7 +35,7 @@ describe('VolunteerHoursWidget', () => {
   };
 
   const mockPending = () => {
-    (api.get as any).mockReturnValue(new Promise(() => {}));
+    mockApi.get.mockReturnValue(new Promise(() => {}));
   };
 
   beforeEach(() => {
@@ -70,7 +72,7 @@ describe('VolunteerHoursWidget', () => {
     });
 
     it('displays volunteer hours data when loaded', async () => {
-      (api.get as any).mockResolvedValue({ data: mockVolunteerData });
+      mockApi.get.mockResolvedValue({ data: mockVolunteerData });
 
       render(
         <VolunteerHoursWidget
@@ -87,7 +89,7 @@ describe('VolunteerHoursWidget', () => {
     });
 
     it('displays active volunteers count', async () => {
-      (api.get as any).mockResolvedValue({ data: mockVolunteerData });
+      mockApi.get.mockResolvedValue({ data: mockVolunteerData });
 
       render(
         <VolunteerHoursWidget
@@ -104,7 +106,7 @@ describe('VolunteerHoursWidget', () => {
     });
 
     it('displays hours this month', async () => {
-      (api.get as any).mockResolvedValue({ data: mockVolunteerData });
+      mockApi.get.mockResolvedValue({ data: mockVolunteerData });
 
       render(
         <VolunteerHoursWidget
@@ -123,7 +125,7 @@ describe('VolunteerHoursWidget', () => {
 
   describe('API Integration', () => {
     it('calls volunteer summary API on mount', async () => {
-      (api.get as any).mockResolvedValue({ data: mockVolunteerData });
+      mockApi.get.mockResolvedValue({ data: mockVolunteerData });
 
       render(
         <VolunteerHoursWidget
@@ -140,7 +142,7 @@ describe('VolunteerHoursWidget', () => {
 
     it('handles API errors gracefully', async () => {
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-      (api.get as any).mockRejectedValue(new Error('API Error'));
+      mockApi.get.mockRejectedValue(new Error('API Error'));
 
       render(
         <VolunteerHoursWidget
@@ -159,7 +161,7 @@ describe('VolunteerHoursWidget', () => {
     });
 
     it('handles missing data fields gracefully', async () => {
-      (api.get as any).mockResolvedValue({ data: {} });
+      mockApi.get.mockResolvedValue({ data: {} });
 
       render(
         <VolunteerHoursWidget
@@ -208,7 +210,7 @@ describe('VolunteerHoursWidget', () => {
 
   describe('Data Formatting', () => {
     it('formats large numbers with commas', async () => {
-      (api.get as any).mockResolvedValue({
+      mockApi.get.mockResolvedValue({
         data: {
           total_hours: 123456,
           active_volunteers: 1234,
@@ -230,7 +232,7 @@ describe('VolunteerHoursWidget', () => {
     });
 
     it('handles zero values correctly', async () => {
-      (api.get as any).mockResolvedValue({
+      mockApi.get.mockResolvedValue({
         data: {
           total_hours: 0,
           active_volunteers: 0,
@@ -253,7 +255,7 @@ describe('VolunteerHoursWidget', () => {
     });
 
     it('handles decimal hours correctly', async () => {
-      (api.get as any).mockResolvedValue({
+      mockApi.get.mockResolvedValue({
         data: {
           total_hours: 1245.5,
           active_volunteers: 32,
@@ -315,7 +317,7 @@ describe('VolunteerHoursWidget', () => {
 
   describe('Accessibility', () => {
     it('has semantic HTML structure', async () => {
-      (api.get as any).mockResolvedValue({ data: mockVolunteerData });
+      mockApi.get.mockResolvedValue({ data: mockVolunteerData });
 
       const { container } = render(
         <VolunteerHoursWidget
@@ -332,7 +334,7 @@ describe('VolunteerHoursWidget', () => {
     });
 
     it('provides meaningful labels for data', async () => {
-      (api.get as any).mockResolvedValue({ data: mockVolunteerData });
+      mockApi.get.mockResolvedValue({ data: mockVolunteerData });
 
       render(
         <VolunteerHoursWidget
@@ -380,7 +382,7 @@ describe('VolunteerHoursWidget', () => {
 
   describe('Edge Cases', () => {
     it('handles null volunteer data', async () => {
-      (api.get as any).mockResolvedValue({ data: null });
+      mockApi.get.mockResolvedValue({ data: null });
 
       render(
         <VolunteerHoursWidget
@@ -397,7 +399,7 @@ describe('VolunteerHoursWidget', () => {
     });
 
     it('handles undefined volunteer data', async () => {
-      (api.get as any).mockResolvedValue({});
+      mockApi.get.mockResolvedValue({});
 
       render(
         <VolunteerHoursWidget
@@ -414,7 +416,7 @@ describe('VolunteerHoursWidget', () => {
     });
 
     it('handles network timeout', async () => {
-      (api.get as any).mockRejectedValue(new Error('Network timeout'));
+      mockApi.get.mockRejectedValue(new Error('Network timeout'));
 
       render(
         <VolunteerHoursWidget

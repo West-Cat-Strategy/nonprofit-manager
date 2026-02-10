@@ -15,6 +15,7 @@ import ContactEmailAddresses from '../../../components/ContactEmailAddresses';
 import ContactRelationships from '../../../components/ContactRelationships';
 import ContactNotes from '../../../components/ContactNotes';
 import ContactDocuments from '../../../components/ContactDocuments';
+import ContactTags from '../../../components/ContactTags';
 import { formatDate } from '../../../utils/format';
 
 type TabType = 'overview' | 'notes' | 'documents' | 'payments';
@@ -26,6 +27,7 @@ const ContactDetail = () => {
   const { currentContact, loading, error, contactNotes } = useAppSelector((state) => state.contacts);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [showAlertModal, setShowAlertModal] = useState(false);
+  const [openNoteForm, setOpenNoteForm] = useState(false);
 
   // Get cases for this contact
   const contactCases = useAppSelector((state) => (id ? selectCasesByContact(state, id) : []));
@@ -123,6 +125,14 @@ const ContactDetail = () => {
     { id: 'payments', label: 'Payments' },
   ];
 
+  const snapshotItems = [
+    { label: 'Notes', value: currentContact.note_count || 0 },
+    { label: 'Cases', value: contactCases.length },
+    { label: 'Relationships', value: currentContact.relationship_count || 0 },
+    { label: 'Emails', value: currentContact.email_count || 0 },
+    { label: 'Phones', value: currentContact.phone_count || 0 },
+  ];
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -178,11 +188,29 @@ const ContactDetail = () => {
             )}
           </div>
           <div className="flex gap-2">
+            <BrutalButton
+              onClick={() => {
+                setActiveTab('notes');
+                setOpenNoteForm(true);
+              }}
+              variant="secondary"
+            >
+              Add Note
+            </BrutalButton>
             <BrutalButton onClick={() => navigate(`/contacts/${id}/edit`)} variant="primary">
               Edit Contact
             </BrutalButton>
           </div>
         </div>
+        {currentContact.tags && currentContact.tags.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {currentContact.tags.map((tag) => (
+              <BrutalBadge key={tag} color="yellow" size="sm">
+                {tag}
+              </BrutalBadge>
+            ))}
+          </div>
+        )}
       </BrutalCard>
 
       {/* Tabs */}
@@ -218,6 +246,27 @@ const ContactDetail = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column */}
             <div className="lg:col-span-2 space-y-6">
+              {/* Snapshot */}
+              <BrutalCard color="white" className="p-6">
+                <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
+                  Snapshot
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {snapshotItems.map((item) => (
+                    <div key={item.label} className="border-2 border-black p-3 bg-white">
+                      <div className="text-xs font-black uppercase text-black/60">{item.label}</div>
+                      <div className="text-2xl font-black text-black">{item.value}</div>
+                    </div>
+                  ))}
+                  <div className="border-2 border-black p-3 bg-white">
+                    <div className="text-xs font-black uppercase text-black/60">Last Updated</div>
+                    <div className="text-sm font-black text-black">
+                      {formatDate(currentContact.updated_at)}
+                    </div>
+                  </div>
+                </div>
+              </BrutalCard>
+
               {/* Personal Information */}
               <BrutalCard color="white" className="p-6">
                 <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
@@ -384,6 +433,14 @@ const ContactDetail = () => {
 
             {/* Right Column */}
             <div className="space-y-6">
+              {/* Tags */}
+              <BrutalCard color="white" className="p-6">
+                <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
+                  Tags
+                </h2>
+                {id && <ContactTags contactId={id} tags={currentContact.tags || []} />}
+              </BrutalCard>
+
               {/* Phone Numbers */}
               <BrutalCard color="white" className="p-6">
                 <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
@@ -416,7 +473,13 @@ const ContactDetail = () => {
             <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
               Notes Timeline
             </h2>
-            {id && <ContactNotes contactId={id} />}
+            {id && (
+              <ContactNotes
+                contactId={id}
+                openOnMount={openNoteForm}
+                onOpenHandled={() => setOpenNoteForm(false)}
+              />
+            )}
           </BrutalCard>
         )}
 

@@ -40,13 +40,13 @@ const renderLayout = (role: string) => {
 describe('NeoBrutalistLayout', () => {
   it('shows Organization Admin in menu for admins', () => {
     renderLayout('admin');
-    fireEvent.click(screen.getByLabelText('Open user menu'));
+    fireEvent.click(screen.getByLabelText(/User menu for/i));
     expect(screen.getByText('Organization Admin')).toBeInTheDocument();
   });
 
   it('hides Organization Admin in menu for non-admins', () => {
     renderLayout('user');
-    fireEvent.click(screen.getByLabelText('Open user menu'));
+    fireEvent.click(screen.getByLabelText(/User menu for/i));
     expect(screen.queryByText('Organization Admin')).not.toBeInTheDocument();
   });
 });

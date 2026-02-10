@@ -50,7 +50,7 @@ export interface DashboardWidget {
   title: string;
   enabled: boolean;
   layout: WidgetLayout;
-  settings?: Record<string, any>;
+  settings?: Record<string, unknown>;
 }
 
 /**

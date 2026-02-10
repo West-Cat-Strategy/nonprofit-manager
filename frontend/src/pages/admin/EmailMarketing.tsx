@@ -18,7 +18,12 @@ import {
   setSelectedList,
 } from '../../store/slices/mailchimpSlice';
 import { fetchContacts } from '../../store/slices/contactsSlice';
-import type { MailchimpList, MailchimpCampaign, CreateCampaignRequest } from '../../types/mailchimp';
+import type {
+  MailchimpList,
+  MailchimpCampaign,
+  CreateCampaignRequest,
+  MailchimpSegment,
+} from '../../types/mailchimp';
 import type { Contact } from '../../store/slices/contactsSlice';
 
 /**
@@ -202,7 +207,7 @@ function CampaignCreateModal({
   onSubmit,
 }: {
   lists: MailchimpList[];
-  segments: any[];
+  segments: MailchimpSegment[];
   onClose: () => void;
   onSubmit: (data: CreateCampaignRequest, sendNow: boolean) => void;
 }) {

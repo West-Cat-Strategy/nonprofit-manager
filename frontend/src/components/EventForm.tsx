@@ -73,7 +73,12 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
 
     try {
       // Validate dates
-      if (new Date(formData.start_date!) >= new Date(formData.end_date!)) {
+      const startDate = formData.start_date ? new Date(formData.start_date) : null;
+      const endDate = formData.end_date ? new Date(formData.end_date) : null;
+      if (!startDate || !endDate) {
+        throw new Error('Start date and end date are required');
+      }
+      if (startDate >= endDate) {
         throw new Error('End date must be after start date');
       }
 
