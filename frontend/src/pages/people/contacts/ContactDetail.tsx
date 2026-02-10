@@ -489,7 +489,7 @@ const ContactDetail = () => {
 
         {activeTab === 'tasks' && (
           <BrutalCard color="white" className="p-6">
-            <ContactTasks contactId={id} />
+            {id && <ContactTasks contactId={id} />}
           </BrutalCard>
         )}
 
@@ -516,7 +516,7 @@ const ContactDetail = () => {
             <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
               Payment History
             </h2>
-            <PaymentHistory contactId={id} limit={20} showViewAll={false} />
+            {id && <PaymentHistory contactId={id} limit={20} showViewAll={false} />}
           </BrutalCard>
         )}
       </div>
