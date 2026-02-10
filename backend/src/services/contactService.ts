@@ -101,6 +101,12 @@ export class ContactService {
         paramCounter++;
       }
 
+      if (filters.tags && filters.tags.length > 0) {
+        conditions.push(`c.tags && $${paramCounter}::text[]`);
+        values.push(filters.tags);
+        paramCounter++;
+      }
+
       if (scope?.accountIds && scope.accountIds.length > 0) {
         conditions.push(`c.account_id = ANY($${paramCounter}::uuid[])`);
         values.push(scope.accountIds);
@@ -156,6 +162,7 @@ export class ContactService {
           c.country,
           c.no_fixed_address,
           c.notes,
+          c.tags,
           c.is_active,
           c.created_at,
           c.updated_at,
@@ -206,6 +213,52 @@ export class ContactService {
   }
 
   /**
+   * Get distinct tags applied to contacts
+   */
+  async getContactTags(scope?: DataScopeFilter): Promise<string[]> {
+    try {
+      const conditions: string[] = [];
+      const values: QueryValue[] = [];
+      let paramCounter = 1;
+
+      if (scope?.accountIds && scope.accountIds.length > 0) {
+        conditions.push(`c.account_id = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.accountIds);
+        paramCounter++;
+      }
+
+      if (scope?.contactIds && scope.contactIds.length > 0) {
+        conditions.push(`c.id = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.contactIds);
+        paramCounter++;
+      }
+
+      if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
+        conditions.push(`c.created_by = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.createdByUserIds);
+        paramCounter++;
+      }
+
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+      const result = await this.pool.query(
+        `
+          SELECT DISTINCT UNNEST(COALESCE(c.tags, ARRAY[]::text[])) AS tag
+          FROM contacts c
+          ${whereClause}
+          ORDER BY tag ASC
+        `,
+        values
+      );
+
+      return result.rows.map((row) => row.tag).filter((tag) => Boolean(tag));
+    } catch (error) {
+      logger.error('Error getting contact tags:', error);
+      throw new Error('Failed to retrieve contact tags');
+    }
+  }
+
+  /**
    * Get contact by ID
    */
   async getContactById(contactId: string): Promise<Contact | null> {
@@ -238,6 +291,7 @@ export class ContactService {
           c.country,
           c.no_fixed_address,
           c.notes,
+          c.tags,
           c.is_active,
           c.created_at,
           c.updated_at,
@@ -320,6 +374,7 @@ export class ContactService {
           c.country,
           c.no_fixed_address,
           c.notes,
+          c.tags,
           c.is_active,
           c.created_at,
           c.updated_at,
@@ -360,14 +415,16 @@ export class ContactService {
           address_line1, address_line2, city, state_province, postal_code, country,
           no_fixed_address,
           job_title, department, preferred_contact_method, do_not_email, do_not_phone, notes,
+          tags,
           created_by, modified_by
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $26)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $27)
         RETURNING id as contact_id, account_id, first_name, last_name, middle_name, salutation, suffix,
           birth_date, gender, pronouns,
           email, phone, mobile_phone,
           address_line1, address_line2, city, state_province, postal_code, country,
           no_fixed_address,
           job_title, department, preferred_contact_method, do_not_email, do_not_phone, notes,
+          tags,
           is_active, created_at, updated_at, created_by, modified_by`,
         [
           data.account_id || null,
@@ -395,6 +452,7 @@ export class ContactService {
           data.do_not_email || false,
           data.do_not_phone || false,
           data.notes || null,
+          data.tags || [],
           userId,
         ]
       );
@@ -452,7 +510,7 @@ export class ContactService {
           do_not_email, do_not_phone,
           address_line1, address_line2, city, state_province, postal_code, country,
           no_fixed_address,
-          notes, is_active, created_at, updated_at, created_by, modified_by
+          notes, tags, is_active, created_at, updated_at, created_by, modified_by
       `;
 
       const result = await this.pool.query(query, values);

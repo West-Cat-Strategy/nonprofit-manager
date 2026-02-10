@@ -96,7 +96,7 @@ export interface AlertInstance {
   current_value: number;
   threshold_value?: number;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   acknowledged_by?: string;
   acknowledged_at?: string;
 }
@@ -149,7 +149,7 @@ export interface AlertTestResult {
   current_value: number;
   threshold_value?: number;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export default {

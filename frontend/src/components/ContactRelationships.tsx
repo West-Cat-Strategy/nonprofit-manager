@@ -20,6 +20,8 @@ const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
   const { relationships, relationshipsLoading, contacts } = useAppSelector(
     (state) => state.contacts
   );
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback;
 
   const [isAdding, setIsAdding] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -67,8 +69,8 @@ const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
     try {
       await dispatch(createContactRelationship({ contactId, data: formData })).unwrap();
       resetForm();
-    } catch (error: any) {
-      alert(error.message || 'Failed to create relationship');
+    } catch (error) {
+      alert(getErrorMessage(error, 'Failed to create relationship'));
     }
   };
 

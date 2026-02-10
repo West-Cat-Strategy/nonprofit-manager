@@ -1,16 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import VolunteerWidget from '../VolunteerWidget';
 import type { Volunteer } from '../../store/slices/volunteersSlice';
 import { renderWithProviders, createTestStore } from '../../test/testUtils';
 
-// Mock navigate
-const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
-    useNavigate: () => mockNavigate,
   };
 });
 
@@ -125,7 +122,7 @@ const renderWidget = (component: React.ReactElement, storeState = {}) => {
 
 describe('VolunteerWidget', () => {
   beforeEach(() => {
-    mockNavigate.mockClear();
+    vi.clearAllMocks();
   });
 
   it('should render Volunteer Overview heading', () => {
@@ -142,9 +139,7 @@ describe('VolunteerWidget', () => {
     renderWidget(<VolunteerWidget />);
 
     const viewAllButton = screen.getByText('View All →');
-    fireEvent.click(viewAllButton);
-
-    expect(mockNavigate).toHaveBeenCalledWith('/volunteers');
+    expect(viewAllButton.closest('a')).toHaveAttribute('href', '/volunteers');
   });
 
   it('should display total volunteers count', () => {
@@ -204,18 +199,14 @@ describe('VolunteerWidget', () => {
     renderWidget(<VolunteerWidget />);
 
     const addButton = screen.getByText('Add Volunteer');
-    fireEvent.click(addButton);
-
-    expect(mockNavigate).toHaveBeenCalledWith('/volunteers/new');
+    expect(addButton.closest('a')).toHaveAttribute('href', '/volunteers/new');
   });
 
   it('should navigate to assignment creation when New Assignment is clicked', () => {
     renderWidget(<VolunteerWidget />);
 
     const assignButton = screen.getByText('New Assignment');
-    fireEvent.click(assignButton);
-
-    expect(mockNavigate).toHaveBeenCalledWith('/volunteers/assignments/new');
+    expect(assignButton.closest('a')).toHaveAttribute('href', '/volunteers/assignments/new');
   });
 
   it('should display Availability Breakdown heading', () => {
@@ -287,10 +278,9 @@ describe('VolunteerWidget', () => {
   it('should navigate to volunteer detail when clicking on a volunteer card', () => {
     renderWidget(<VolunteerWidget showDetailedView={true} />);
 
-    const johnDoeCard = screen.getByText('John Doe').closest('div');
+    const johnDoeCard = screen.getByText('John Doe').closest('a');
     if (johnDoeCard) {
-      fireEvent.click(johnDoeCard);
-      expect(mockNavigate).toHaveBeenCalledWith('/volunteers/vol-1');
+      expect(johnDoeCard).toHaveAttribute('href', '/volunteers/vol-1');
     }
   });
 
@@ -298,17 +288,17 @@ describe('VolunteerWidget', () => {
     renderWidget(<VolunteerWidget showDetailedView={true} />);
 
     const availableBadges = screen.getAllByText('available');
-    const volunteerBadge = availableBadges.find((badge) => badge.className.includes('bg-green-100'));
+    const volunteerBadge = availableBadges.find((badge) => badge.className.includes('bg-emerald-100'));
     expect(volunteerBadge).toBeTruthy();
     if (volunteerBadge) {
-      expect(volunteerBadge).toHaveClass('bg-green-100', 'text-green-800');
+      expect(volunteerBadge).toHaveClass('bg-emerald-100', 'text-emerald-800');
     }
 
     const limitedBadge = screen.getByText('limited');
-    expect(limitedBadge).toHaveClass('bg-yellow-100', 'text-yellow-800');
+    expect(limitedBadge).toHaveClass('bg-amber-100', 'text-amber-800');
 
     const unavailableBadge = screen.getByText('unavailable');
-    expect(unavailableBadge).toHaveClass('bg-red-100', 'text-red-800');
+    expect(unavailableBadge).toHaveClass('bg-rose-100', 'text-rose-800');
   });
 
   it('should show ranking numbers for top volunteers', () => {

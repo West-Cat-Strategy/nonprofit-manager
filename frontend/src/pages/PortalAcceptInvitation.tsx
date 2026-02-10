@@ -30,7 +30,7 @@ export default function PortalAcceptInvitation() {
         const response = await portalApi.get(`/portal/auth/invitations/validate/${token}`);
         setInvitation(response.data.invitation);
         clear();
-      } catch (err: any) {
+      } catch (err) {
         setFromError(err, 'Invitation is invalid or expired');
       }
     };
@@ -47,9 +47,13 @@ export default function PortalAcceptInvitation() {
     e.preventDefault();
     try {
       await portalApi.post(`/portal/auth/invitations/accept/${token}`, formData);
-      await dispatch(portalLogin({ email: invitation!.email, password: formData.password })).unwrap();
+      if (!invitation?.email) {
+        setFromError(new Error('Invitation details are missing'), 'Invitation details are missing');
+        return;
+      }
+      await dispatch(portalLogin({ email: invitation.email, password: formData.password })).unwrap();
       navigate('/portal');
-    } catch (err: any) {
+    } catch (err) {
       setFromError(err, 'Failed to accept invitation');
     }
   };

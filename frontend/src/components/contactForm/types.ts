@@ -26,6 +26,7 @@ export type ContactFormValues = {
   do_not_email?: boolean;
   do_not_phone?: boolean;
   notes?: string | null;
+  tags?: string[];
   is_active?: boolean;
   roles?: string[];
 };

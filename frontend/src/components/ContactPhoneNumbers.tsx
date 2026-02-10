@@ -16,6 +16,8 @@ interface ContactPhoneNumbersProps {
 const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
   const dispatch = useAppDispatch();
   const { phones, phonesLoading } = useAppSelector((state) => state.contacts);
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback;
 
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -50,8 +52,8 @@ const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
         await dispatch(createContactPhone({ contactId, data: formData })).unwrap();
       }
       resetForm();
-    } catch (error: any) {
-      alert(error.message || 'Failed to save phone number');
+    } catch (error) {
+      alert(getErrorMessage(error, 'Failed to save phone number'));
     }
   };
 

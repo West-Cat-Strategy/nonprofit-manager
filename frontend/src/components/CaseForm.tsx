@@ -78,7 +78,7 @@ const CaseForm = ({
     if (formData.contact_id && !selectedContact) {
       loadSelectedContact(formData.contact_id);
     }
-  }, [formData.contact_id, selectedContact]);
+  }, [formData.contact_id, selectedContact, lookup]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>

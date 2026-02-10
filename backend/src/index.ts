@@ -47,6 +47,10 @@ import plausibleRoutes from './routes/plausibleProxy';
 import { setPaymentPool } from './controllers/paymentController';
 import { Pool } from 'pg';
 
+if (process.env.JEST_WORKER_ID && !process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'test';
+}
+
 dotenv.config();
 
 // Production secrets validation
@@ -96,7 +100,7 @@ setHealthCheckPool(pool);
 setPaymentPool(pool);
 
 const app: Application = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 // Security Middleware
 app.use(
@@ -232,9 +236,10 @@ process.on('SIGINT', async () => {
 });
 
 // Start server (skip in test env)
-if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    logger.info(`Nonprofit Manager API running on port ${PORT}`);
+if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
+  const HOST = process.env.HOST || '0.0.0.0';
+  app.listen(PORT, HOST, () => {
+    logger.info(`Nonprofit Manager API running on ${HOST}:${PORT}`);
   });
 }
 

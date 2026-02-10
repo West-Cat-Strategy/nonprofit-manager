@@ -244,7 +244,11 @@ const AlertsConfig = () => {
 
                   <div className="flex items-center space-x-2 ml-4">
                     <button
-                      onClick={() => handleToggle(config.id!)}
+                      onClick={() => {
+                        if (config.id) {
+                          handleToggle(config.id);
+                        }
+                      }}
                       className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
                       title={config.enabled ? 'Pause alert' : 'Enable alert'}
                     >
@@ -269,7 +273,11 @@ const AlertsConfig = () => {
                       </svg>
                     </button>
                     <button
-                      onClick={() => handleDelete(config.id!)}
+                      onClick={() => {
+                        if (config.id) {
+                          handleDelete(config.id);
+                        }
+                      }}
                       className="p-2 text-gray-400 hover:text-red-600 transition-colors"
                       title="Delete alert"
                     >

@@ -228,7 +228,7 @@ function ReportBuilder() {
             >
               View Saved Reports
             </button>
-            {currentReport && currentReport.data.length > 0 && (
+            {(currentReport?.data?.length ?? 0) > 0 && (
               <button
                 onClick={handleExportCSV}
                 className="px-6 py-3 bg-[var(--loop-green)] text-black border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
@@ -240,7 +240,7 @@ function ReportBuilder() {
         </div>
 
         {/* Report Preview */}
-        {currentReport && currentReport.data.length > 0 && (
+        {(currentReport?.data?.length ?? 0) > 0 && (
           <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6">
             <h2 className="text-lg font-bold text-[var(--app-text)] mb-4 uppercase">Report Preview</h2>
             <div className="overflow-x-auto">
@@ -281,7 +281,7 @@ function ReportBuilder() {
           </div>
         )}
 
-        {currentReport && currentReport.data.length === 0 && (
+        {currentReport?.data.length === 0 && (
           <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6">
             <p className="text-[var(--app-text-muted)]">No data found matching your criteria.</p>
           </div>

@@ -19,7 +19,7 @@ export interface CaseType {
   is_active: boolean;
   requires_intake: boolean;
   average_duration_days?: number | null;
-  custom_fields?: Record<string, any> | null;
+  custom_fields?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }
@@ -65,8 +65,8 @@ export interface Case {
   outcome?: CaseOutcome | null;
   outcome_notes?: string | null;
   closure_reason?: string | null;
-  intake_data?: Record<string, any> | null;
-  custom_data?: Record<string, any> | null;
+  intake_data?: Record<string, unknown> | null;
+  custom_data?: Record<string, unknown> | null;
   is_urgent: boolean;
   requires_followup: boolean;
   followup_date?: string | null;
@@ -112,7 +112,7 @@ export interface CaseNote {
   is_important: boolean;
   previous_status_id?: string | null;
   new_status_id?: string | null;
-  attachments?: any[] | null;
+  attachments?: unknown[] | null;
   created_at: string;
   created_by?: string | null;
   first_name?: string;
@@ -134,8 +134,8 @@ export interface CreateCaseDTO {
   assigned_to?: string;
   assigned_team?: string;
   due_date?: string;
-  intake_data?: Record<string, any>;
-  custom_data?: Record<string, any>;
+  intake_data?: Record<string, unknown>;
+  custom_data?: Record<string, unknown>;
   tags?: string[];
   is_urgent?: boolean;
 }
@@ -153,7 +153,7 @@ export interface UpdateCaseDTO {
   outcome?: CaseOutcome;
   outcome_notes?: string;
   closure_reason?: string;
-  custom_data?: Record<string, any>;
+  custom_data?: Record<string, unknown>;
   tags?: string[];
   is_urgent?: boolean;
   requires_followup?: boolean;
@@ -224,7 +224,7 @@ export interface CreateCaseNoteDTO {
   content: string;
   is_internal?: boolean;
   is_important?: boolean;
-  attachments?: any[];
+  attachments?: unknown[];
 }
 
 /**

@@ -16,6 +16,8 @@ interface ContactEmailAddressesProps {
 const ContactEmailAddresses = ({ contactId }: ContactEmailAddressesProps) => {
   const dispatch = useAppDispatch();
   const { emails, emailsLoading } = useAppSelector((state) => state.contacts);
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback;
 
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -50,8 +52,8 @@ const ContactEmailAddresses = ({ contactId }: ContactEmailAddressesProps) => {
         await dispatch(createContactEmail({ contactId, data: formData })).unwrap();
       }
       resetForm();
-    } catch (error: any) {
-      alert(error.message || 'Failed to save email address');
+    } catch (error) {
+      alert(getErrorMessage(error, 'Failed to save email address'));
     }
   };
 

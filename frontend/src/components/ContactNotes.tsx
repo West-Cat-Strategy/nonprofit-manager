@@ -16,9 +16,11 @@ import ConfirmDialog from './ConfirmDialog';
 
 interface ContactNotesProps {
   contactId: string;
+  openOnMount?: boolean;
+  onOpenHandled?: () => void;
 }
 
-const ContactNotes = ({ contactId }: ContactNotesProps) => {
+const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: ContactNotesProps) => {
   const dispatch = useAppDispatch();
   const { contactNotes, notesLoading } = useAppSelector((state) => state.contacts);
   const contactCases = useAppSelector((state) => selectCasesByContact(state, contactId));
@@ -26,6 +28,7 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
 
   const [isAddingNote, setIsAddingNote] = useState(false);
+  const [submitMode, setSubmitMode] = useState<'close' | 'another'>('close');
   const [newNote, setNewNote] = useState<CreateContactNoteDTO>({
     note_type: 'note',
     subject: '',
@@ -42,6 +45,35 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
     // Fetch cases for the case selector dropdown
     dispatch(fetchCases({}));
   }, [dispatch, contactId]);
+
+  useEffect(() => {
+    if (openOnMount) {
+      setIsAddingNote(true);
+      onOpenHandled?.();
+    }
+  }, [openOnMount, onOpenHandled]);
+
+  const noteTemplates: Array<{
+    label: string;
+    note_type: ContactNoteType;
+    subject: string;
+    content: string;
+  }> = [
+    { label: 'Call', note_type: 'call', subject: 'Phone call', content: '' },
+    { label: 'Email', note_type: 'email', subject: 'Email sent', content: '' },
+    { label: 'Meeting', note_type: 'meeting', subject: 'Meeting notes', content: '' },
+    { label: 'Update', note_type: 'update', subject: 'Status update', content: '' },
+  ];
+
+  const applyTemplate = (template: (typeof noteTemplates)[number]) => {
+    setIsAddingNote(true);
+    setNewNote((prev) => ({
+      ...prev,
+      note_type: template.note_type,
+      subject: template.subject,
+      content: template.content,
+    }));
+  };
 
   const handleSubmitNote = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +103,8 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
         is_alert: false,
         case_id: undefined,
       });
-      setIsAddingNote(false);
+      setIsAddingNote(submitMode === 'another');
+      setSubmitMode('close');
     } catch (error) {
       console.error('Failed to add note:', error);
       showError('Failed to add note');
@@ -102,6 +135,19 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Quick Templates */}
+      <div className="flex flex-wrap gap-2">
+        {noteTemplates.map((template) => (
+          <button
+            key={template.label}
+            onClick={() => applyTemplate(template)}
+            className="px-3 py-2 text-xs font-black uppercase border-2 border-black bg-white hover:bg-[var(--loop-yellow)] transition"
+          >
+            + {template.label}
+          </button>
+        ))}
+      </div>
+
       {/* Add Note Button */}
       {!isAddingNote && (
         <button
@@ -247,6 +293,15 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
             <button
               type="submit"
               disabled={notesLoading}
+              onClick={() => setSubmitMode('another')}
+              className="px-4 py-2 border-2 border-black bg-white text-black font-semibold rounded-lg hover:bg-gray-50 disabled:opacity-50 transition"
+            >
+              Save & Add Another
+            </button>
+            <button
+              type="submit"
+              disabled={notesLoading}
+              onClick={() => setSubmitMode('close')}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
             >
               {notesLoading ? 'Saving...' : 'Add Note'}

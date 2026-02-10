@@ -6,7 +6,16 @@
 import { useState, useEffect } from 'react';
 import { useAppDispatch } from '../../store/hooks';
 import { createAlertConfig, updateAlertConfig, testAlertConfig } from '../../store/slices/alertsSlice';
-import type { AlertConfig, CreateAlertDTO, AlertMetricType, AlertCondition, AlertFrequency, AlertChannel, AlertSeverity } from '../../types/alert';
+import type {
+  AlertConfig,
+  CreateAlertDTO,
+  AlertMetricType,
+  AlertCondition,
+  AlertFrequency,
+  AlertChannel,
+  AlertSeverity,
+  AlertTestResult,
+} from '../../types/alert';
 
 interface AlertConfigModalProps {
   config: AlertConfig | null;
@@ -34,7 +43,7 @@ const AlertConfigModal = ({ config, onClose, onSuccess }: AlertConfigModalProps)
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<any>(null);
+  const [testResult, setTestResult] = useState<AlertTestResult | { error: string } | null>(null);
 
   useEffect(() => {
     if (config) {
@@ -56,7 +65,7 @@ const AlertConfigModal = ({ config, onClose, onSuccess }: AlertConfigModalProps)
     }
   }, [config]);
 
-  const handleChange = (field: keyof CreateAlertDTO, value: any) => {
+  const handleChange = <K extends keyof CreateAlertDTO>(field: K, value: CreateAlertDTO[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: '' }));
   };
@@ -113,7 +122,10 @@ const AlertConfigModal = ({ config, onClose, onSuccess }: AlertConfigModalProps)
 
     try {
       if (config) {
-        await dispatch(updateAlertConfig({ id: config.id!, config: formData })).unwrap();
+        if (!config.id) {
+          throw new Error('Missing alert configuration id');
+        }
+        await dispatch(updateAlertConfig({ id: config.id, config: formData })).unwrap();
       } else {
         await dispatch(createAlertConfig(formData)).unwrap();
       }

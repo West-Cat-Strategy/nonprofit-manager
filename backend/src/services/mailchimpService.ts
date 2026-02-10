@@ -28,7 +28,6 @@ import type {
 // Note: @mailchimp/mailchimp_marketing has incomplete TypeScript definitions.
 // We use 'any' here because the library's types don't expose the actual API methods
 // (ping, lists, campaigns, etc.) that are available at runtime.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mailchimpClient = mailchimp as any;
 
 // Mailchimp configuration

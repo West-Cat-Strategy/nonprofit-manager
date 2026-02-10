@@ -52,6 +52,7 @@ export interface Contact {
   do_not_email: boolean;
   do_not_phone: boolean;
   notes: string | null;
+  tags: string[];
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -78,6 +79,7 @@ export interface ContactsState {
     search: string;
     account_id: string;
     is_active: boolean;
+    tags: string[];
   };
   // Sub-resources for current contact
   phones: ContactPhoneNumber[];
@@ -90,6 +92,7 @@ export interface ContactsState {
   relationshipsLoading: boolean;
   notesLoading: boolean;
   documentsLoading: boolean;
+  availableTags: string[];
 }
 
 type ContactInput = Partial<Contact>;
@@ -109,6 +112,7 @@ const initialState: ContactsState = {
     search: '',
     account_id: '',
     is_active: true,
+    tags: [],
   },
   // Sub-resources
   phones: [],
@@ -121,6 +125,7 @@ const initialState: ContactsState = {
   relationshipsLoading: false,
   notesLoading: false,
   documentsLoading: false,
+  availableTags: [],
 };
 
 // ============================================================================
@@ -135,8 +140,14 @@ export const fetchContacts = createAsyncThunk(
     search?: string;
     account_id?: string;
     is_active?: boolean;
+    tags?: string[];
   }) => {
-    const response = await api.get('/contacts', { params });
+    const response = await api.get('/contacts', {
+      params: {
+        ...params,
+        tags: params.tags?.length ? params.tags.join(',') : undefined,
+      },
+    });
     return response.data;
   }
 );
@@ -170,6 +181,14 @@ export const deleteContact = createAsyncThunk(
   async (contactId: string) => {
     await api.delete(`/contacts/${contactId}`);
     return contactId;
+  }
+);
+
+export const fetchContactTags = createAsyncThunk(
+  'contacts/fetchContactTags',
+  async () => {
+    const response = await api.get('/contacts/tags');
+    return response.data.tags as string[];
   }
 );
 
@@ -461,6 +480,9 @@ const contactsSlice = createSlice({
       .addCase(deleteContact.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to delete contact';
+      })
+      .addCase(fetchContactTags.fulfilled, (state, action) => {
+        state.availableTags = action.payload || [];
       })
 
       // ========== PHONES ==========

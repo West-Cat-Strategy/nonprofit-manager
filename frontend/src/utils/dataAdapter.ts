@@ -19,45 +19,75 @@ export type { AdaptedPerson };
  * Adapts API response to standardized People format
  * Logs original data for debugging
  */
-export function adaptPeopleData(apiResponse: any): AdaptedPerson[] {
+export function adaptPeopleData(apiResponse: unknown): AdaptedPerson[] {
     console.group('[LOOP Data Adapter] People Data');
     console.log('Raw API Response:', apiResponse);
 
     // Handle different response structures
-    let dataArray: any[] = [];
+    let dataArray: unknown[] = [];
+    const response = apiResponse as Record<string, unknown> | null;
 
     if (Array.isArray(apiResponse)) {
         dataArray = apiResponse;
-    } else if (apiResponse?.data) {
-        dataArray = Array.isArray(apiResponse.data) ? apiResponse.data : [];
-    } else if (apiResponse?.volunteers) {
-        dataArray = Array.isArray(apiResponse.volunteers) ? apiResponse.volunteers : [];
-    } else if (apiResponse?.members) {
-        dataArray = Array.isArray(apiResponse.members) ? apiResponse.members : [];
-    } else if (apiResponse?.contacts) {
-        dataArray = Array.isArray(apiResponse.contacts) ? apiResponse.contacts : [];
+    } else if (response?.data) {
+        dataArray = Array.isArray(response.data) ? (response.data as unknown[]) : [];
+    } else if (response?.volunteers) {
+        dataArray = Array.isArray(response.volunteers) ? (response.volunteers as unknown[]) : [];
+    } else if (response?.members) {
+        dataArray = Array.isArray(response.members) ? (response.members as unknown[]) : [];
+    } else if (response?.contacts) {
+        dataArray = Array.isArray(response.contacts) ? (response.contacts as unknown[]) : [];
     }
 
     console.log(`Detected ${dataArray.length} records`);
 
-    const adapted = dataArray.map((item: any) => {
+    const getString = (value: unknown): string | undefined => {
+        if (typeof value === 'string') return value;
+        if (typeof value === 'number') return String(value);
+        return undefined;
+    };
+
+    const adapted = dataArray.map((rawItem) => {
+        const item = rawItem as Record<string, unknown>;
         // Map ID field (could be volunteer_id, member_id, contact_id, user_id, id)
-        const id = item.volunteer_id || item.member_id || item.contact_id ||
-            item.user_id || item.id || `unknown-${Math.random()}`;
+        const id = getString(item.volunteer_id)
+            || getString(item.member_id)
+            || getString(item.contact_id)
+            || getString(item.user_id)
+            || getString(item.id)
+            || `unknown-${Math.random()}`;
 
         // Map name fields
-        const firstName = item.first_name || item.firstName || item.fname || 'Unknown';
-        const lastName = item.last_name || item.lastName || item.lname || '';
+        const firstName = getString(item.first_name)
+            || getString(item.firstName)
+            || getString(item.fname)
+            || 'Unknown';
+        const lastName = getString(item.last_name)
+            || getString(item.lastName)
+            || getString(item.lname)
+            || '';
 
         // Map contact fields
-        const email = item.email || item.email_address || item.contact_email || '';
-        const phone = item.phone || item.mobile_phone || item.phone_number ||
-            item.phoneNumber || undefined;
+        const email = getString(item.email)
+            || getString(item.email_address)
+            || getString(item.contact_email)
+            || '';
+        const phone = getString(item.phone)
+            || getString(item.mobile_phone)
+            || getString(item.phone_number)
+            || getString(item.phoneNumber)
+            || undefined;
 
         // Map role/status fields
-        const role = item.role || item.volunteer_role || item.position || undefined;
-        const status = item.status || item.availability_status || item.active_status || undefined;
-        const title = item.title || item.job_title || undefined;
+        const role = getString(item.role)
+            || getString(item.volunteer_role)
+            || getString(item.position)
+            || undefined;
+        const status = getString(item.status)
+            || getString(item.availability_status)
+            || getString(item.active_status)
+            || undefined;
+        const title = getString(item.title) || getString(item.job_title) || undefined;
 
         return {
             id,

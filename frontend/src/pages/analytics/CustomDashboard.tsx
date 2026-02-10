@@ -73,7 +73,7 @@ const CustomDashboard = () => {
   const handleLayoutChange = (layout: Layout[]) => {
     if (editMode && currentDashboard) {
       // Convert react-grid-layout Layout to WidgetLayout
-      const widgetLayout = layout.map((item: any) => ({
+      const widgetLayout = layout.map((item) => ({
         i: item.i,
         x: item.x,
         y: item.y,

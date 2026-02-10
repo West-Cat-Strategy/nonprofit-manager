@@ -103,7 +103,7 @@ const TemplateGallery: React.FC = () => {
     (template: TemplateListItem) => {
       if (template.isSystemTemplate) {
         // For system templates, duplicate and then edit
-        dispatch(duplicateTemplate({ id: template.id })).then((result: any) => {
+        dispatch(duplicateTemplate({ id: template.id })).then((result) => {
           if (duplicateTemplate.fulfilled.match(result)) {
             navigate(`/website-builder/${result.payload.id}`);
           }
@@ -123,7 +123,7 @@ const TemplateGallery: React.FC = () => {
 
   const handleDuplicateTemplate = useCallback(
     (template: TemplateListItem) => {
-      dispatch(duplicateTemplate({ id: template.id })).then((result: any) => {
+      dispatch(duplicateTemplate({ id: template.id })).then((result) => {
         if (duplicateTemplate.fulfilled.match(result)) {
           // Refresh list to show new template
           dispatch(searchTemplates());

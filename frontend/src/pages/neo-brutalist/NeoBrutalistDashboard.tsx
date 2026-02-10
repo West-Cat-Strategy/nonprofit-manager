@@ -33,7 +33,7 @@ export default function NeoBrutalistDashboard() {
             }
         };
         fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     }, []);
 
     const handleNewItem = () => {

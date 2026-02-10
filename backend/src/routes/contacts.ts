@@ -8,6 +8,7 @@ import { body, param, query } from 'express-validator';
 import { validateRequest } from '../middleware/validation';
 import {
   getContacts,
+  getContactTags,
   getContactRoles,
   getContactById,
   createContact,
@@ -48,10 +49,17 @@ router.get(
     query('role').optional().isIn(['staff', 'volunteer', 'board']),
     query('account_id').optional().isUUID(),
     query('is_active').optional().isBoolean(),
+    query('tags').optional().isString(),
     validateRequest,
   ],
   getContacts
 );
+
+/**
+ * GET /api/contacts/tags
+ * Get distinct tags used on contacts
+ */
+router.get('/tags', getContactTags);
 
 /**
  * GET /api/contacts/roles
@@ -97,6 +105,8 @@ router.post(
     body('do_not_email').optional().isBoolean(),
     body('do_not_phone').optional().isBoolean(),
     body('notes').optional().isString().trim(),
+    body('tags').optional().isArray(),
+    body('tags.*').optional().isString().trim().isLength({ min: 1, max: 40 }),
     body('roles').optional().isArray(),
     body('roles.*').optional().isString().trim(),
     validateRequest,
@@ -138,6 +148,8 @@ router.put(
     body('do_not_phone').optional().isBoolean(),
     body('notes').optional().isString().trim(),
     body('is_active').optional().isBoolean(),
+    body('tags').optional().isArray(),
+    body('tags.*').optional().isString().trim().isLength({ min: 1, max: 40 }),
     body('roles').optional().isArray(),
     body('roles.*').optional().isString().trim(),
     validateRequest,

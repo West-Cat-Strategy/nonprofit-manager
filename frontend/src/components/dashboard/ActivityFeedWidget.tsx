@@ -36,7 +36,7 @@ const ActivityFeedWidget = ({ widget, editMode, onRemove }: ActivityFeedWidgetPr
       clear();
       const response = await api.get('/activities/recent?limit=10');
       setActivities(response.data.activities || []);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching activities:', err);
       setFromError(err, 'Failed to load activities');
     } finally {

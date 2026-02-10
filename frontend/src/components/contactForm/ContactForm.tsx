@@ -4,6 +4,7 @@ import PersonalInfoSection from './sections/PersonalInfoSection';
 import ContactInfoSection from './sections/ContactInfoSection';
 import AddressSection from './sections/AddressSection';
 import RolesSection from './sections/RolesSection';
+import TagsSection from './sections/TagsSection';
 import NotesSection from './sections/NotesSection';
 import RelationshipsSection from './sections/RelationshipsSection';
 import FormActions from './sections/FormActions';
@@ -30,9 +31,12 @@ export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode, onCreat
     relationshipSearch,
     relationshipData,
     filteredContacts,
+    availableTags,
     handleChange,
     handleToggleRole,
     handleNoFixedAddressChange,
+    handleAddTag,
+    handleRemoveTag,
     handleSubmit,
     handleCancel,
     setIsAddingRelationship,
@@ -88,6 +92,13 @@ export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode, onCreat
         availableRoles={availableRoles}
         selectedRoles={formData.roles || []}
         onToggleRole={handleToggleRole}
+      />
+
+      <TagsSection
+        formData={formData}
+        availableTags={availableTags}
+        onAddTag={handleAddTag}
+        onRemoveTag={handleRemoveTag}
       />
 
       <ContactInfoSection

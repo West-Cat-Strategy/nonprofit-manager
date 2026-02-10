@@ -158,7 +158,7 @@ const dashboardSlice = createSlice({
 
     updateWidgetSettings: (
       state,
-      action: PayloadAction<{ widgetId: string; settings: Record<string, any> }>
+      action: PayloadAction<{ widgetId: string; settings: Record<string, unknown> }>
     ) => {
       if (state.currentDashboard) {
         const widget = state.currentDashboard.widgets.find((w) => w.id === action.payload.widgetId);

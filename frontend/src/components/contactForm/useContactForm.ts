@@ -8,6 +8,7 @@ import {
   createContactRelationship,
   deleteContactRelationship,
   fetchContacts,
+  fetchContactTags,
 } from '../../store/slices/contactsSlice';
 import type { ContactRole, CreateContactRelationshipDTO, RelationshipType } from '../../types/contact';
 import { useToast } from '../../contexts/useToast';
@@ -27,7 +28,11 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
   const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
   const { showSuccess, showError } = useToast();
-  const { relationships, relationshipsLoading, contacts } = useAppSelector((state) => state.contacts);
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback;
+  const { relationships, relationshipsLoading, contacts, availableTags } = useAppSelector(
+    (state) => state.contacts
+  );
   const [availableRoles, setAvailableRoles] = useState<ContactRole[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
 
@@ -61,6 +66,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
     do_not_email: false,
     do_not_phone: false,
     notes: '',
+    tags: [],
     is_active: true,
     roles: [],
   });
@@ -116,6 +122,10 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
     fetchRoles();
   }, []);
 
+  useEffect(() => {
+    dispatch(fetchContactTags());
+  }, [dispatch]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
@@ -159,6 +169,28 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
         postal_code: '',
         country: '',
       } : {}),
+    }));
+  };
+
+  const handleAddTag = (tag: string) => {
+    const normalized = tag.trim();
+    if (!normalized) return;
+    setFormData((prev) => {
+      const existing = prev.tags || [];
+      if (existing.some((value) => value.toLowerCase() === normalized.toLowerCase())) {
+        return prev;
+      }
+      return {
+        ...prev,
+        tags: [...existing, normalized],
+      };
+    });
+  };
+
+  const handleRemoveTag = (tag: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      tags: (prev.tags || []).filter((value) => value !== tag),
     }));
   };
 
@@ -206,6 +238,10 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
     setIsSubmitting(true);
 
     try {
+      const cleanedTags = (formData.tags || [])
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0);
+
       const cleanedData = {
         ...formData,
         middle_name: formData.middle_name || undefined,
@@ -228,6 +264,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
         department: formData.department || undefined,
         preferred_contact_method: formData.preferred_contact_method || undefined,
         notes: formData.notes || undefined,
+        tags: cleanedTags,
         roles: formData.roles || [],
       };
 
@@ -331,8 +368,8 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
       ).unwrap();
       showSuccess('Relationship added successfully');
       resetRelationshipForm();
-    } catch (error: any) {
-      showError(error.message || 'Failed to add relationship');
+    } catch (error) {
+      showError(getErrorMessage(error, 'Failed to add relationship'));
     }
   };
 
@@ -378,6 +415,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
     relationships,
     relationshipsLoading,
     contacts,
+    availableTags,
     isAddingRelationship,
     relationshipSearch,
     relationshipData,
@@ -385,6 +423,8 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
     handleChange,
     handleToggleRole,
     handleNoFixedAddressChange,
+    handleAddTag,
+    handleRemoveTag,
     handleSubmit,
     handleCancel,
     setIsAddingRelationship,

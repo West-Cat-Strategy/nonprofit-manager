@@ -21,6 +21,8 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
   const dispatch = useAppDispatch();
   const { documents, documentsLoading } = useAppSelector((state) => state.contacts);
   const contactCases = useAppSelector((state) => selectCasesByContact(state, contactId));
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback;
 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -87,8 +89,8 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    } catch (error: any) {
-      setUploadError(error.message || 'Failed to upload document');
+    } catch (error) {
+      setUploadError(getErrorMessage(error, 'Failed to upload document'));
     } finally {
       setIsUploading(false);
     }

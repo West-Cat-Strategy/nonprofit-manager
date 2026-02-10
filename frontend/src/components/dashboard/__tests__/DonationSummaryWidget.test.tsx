@@ -17,6 +17,8 @@ vi.mock('../../../services/api', () => ({
   },
 }));
 
+const mockApi = api as { get: ReturnType<typeof vi.fn> };
+
 describe('DonationSummaryWidget', () => {
   const mockWidget: DashboardWidget = {
     id: 'donation-summary-1',
@@ -39,7 +41,7 @@ describe('DonationSummaryWidget', () => {
 
   describe('Rendering', () => {
     it('renders without crashing', () => {
-      (api.get as any).mockReturnValue(new Promise(() => {}));
+      mockApi.get.mockReturnValue(new Promise(() => {}));
 
       render(
         <DonationSummaryWidget
@@ -53,7 +55,7 @@ describe('DonationSummaryWidget', () => {
     });
 
     it('displays all four metrics', async () => {
-      (api.get as any).mockResolvedValue({ data: mockDonationData });
+      mockApi.get.mockResolvedValue({ data: mockDonationData });
 
       render(
         <DonationSummaryWidget
@@ -72,7 +74,7 @@ describe('DonationSummaryWidget', () => {
     });
 
     it('displays total donations count', async () => {
-      (api.get as any).mockResolvedValue({ data: mockDonationData });
+      mockApi.get.mockResolvedValue({ data: mockDonationData });
 
       render(
         <DonationSummaryWidget
@@ -88,7 +90,7 @@ describe('DonationSummaryWidget', () => {
     });
 
     it('displays total amount with currency formatting', async () => {
-      (api.get as any).mockResolvedValue({ data: mockDonationData });
+      mockApi.get.mockResolvedValue({ data: mockDonationData });
 
       render(
         <DonationSummaryWidget
@@ -104,7 +106,7 @@ describe('DonationSummaryWidget', () => {
     });
 
     it('displays average donation with currency formatting', async () => {
-      (api.get as any).mockResolvedValue({ data: mockDonationData });
+      mockApi.get.mockResolvedValue({ data: mockDonationData });
 
       render(
         <DonationSummaryWidget
@@ -120,7 +122,7 @@ describe('DonationSummaryWidget', () => {
     });
 
     it('displays month-over-month change with percentage', async () => {
-      (api.get as any).mockResolvedValue({ data: mockDonationData });
+      mockApi.get.mockResolvedValue({ data: mockDonationData });
 
       render(
         <DonationSummaryWidget
@@ -138,7 +140,7 @@ describe('DonationSummaryWidget', () => {
 
   describe('API Integration', () => {
     it('calls analytics summary API on mount', async () => {
-      (api.get as any).mockResolvedValue({ data: mockDonationData });
+      mockApi.get.mockResolvedValue({ data: mockDonationData });
 
       render(
         <DonationSummaryWidget
@@ -155,7 +157,7 @@ describe('DonationSummaryWidget', () => {
 
     it('handles API errors gracefully', async () => {
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-      (api.get as any).mockRejectedValue(new Error('API Error'));
+      mockApi.get.mockRejectedValue(new Error('API Error'));
 
       render(
         <DonationSummaryWidget
@@ -173,7 +175,7 @@ describe('DonationSummaryWidget', () => {
     });
 
     it('handles missing data fields with defaults', async () => {
-      (api.get as any).mockResolvedValue({ data: {} });
+      mockApi.get.mockResolvedValue({ data: {} });
 
       render(
         <DonationSummaryWidget
@@ -193,7 +195,7 @@ describe('DonationSummaryWidget', () => {
 
   describe('Currency Formatting', () => {
     it('formats large amounts with commas', async () => {
-      (api.get as any).mockResolvedValue({
+      mockApi.get.mockResolvedValue({
         data: {
           ...mockDonationData,
           total_donation_amount: 1234567,
@@ -214,7 +216,7 @@ describe('DonationSummaryWidget', () => {
     });
 
     it('formats zero amounts correctly', async () => {
-      (api.get as any).mockResolvedValue({
+      mockApi.get.mockResolvedValue({
         data: {
           total_donations: 0,
           total_donation_amount: 0,
@@ -237,7 +239,7 @@ describe('DonationSummaryWidget', () => {
     });
 
     it('rounds amounts to nearest dollar', async () => {
-      (api.get as any).mockResolvedValue({
+      mockApi.get.mockResolvedValue({
         data: {
           ...mockDonationData,
           average_donation: 123.56,
@@ -261,7 +263,7 @@ describe('DonationSummaryWidget', () => {
 
   describe('Percentage Formatting', () => {
     it('shows positive change with plus sign', async () => {
-      (api.get as any).mockResolvedValue({
+      mockApi.get.mockResolvedValue({
         data: {
           ...mockDonationData,
           donations_month_over_month: 25.3,
@@ -282,7 +284,7 @@ describe('DonationSummaryWidget', () => {
     });
 
     it('shows negative change without extra minus sign', async () => {
-      (api.get as any).mockResolvedValue({
+      mockApi.get.mockResolvedValue({
         data: {
           ...mockDonationData,
           donations_month_over_month: -12.5,
@@ -303,7 +305,7 @@ describe('DonationSummaryWidget', () => {
     });
 
     it('shows zero change correctly', async () => {
-      (api.get as any).mockResolvedValue({
+      mockApi.get.mockResolvedValue({
         data: {
           ...mockDonationData,
           donations_month_over_month: 0,
@@ -324,7 +326,7 @@ describe('DonationSummaryWidget', () => {
     });
 
     it('applies green color for positive change', async () => {
-      (api.get as any).mockResolvedValue({
+      mockApi.get.mockResolvedValue({
         data: {
           ...mockDonationData,
           donations_month_over_month: 15.5,
@@ -346,7 +348,7 @@ describe('DonationSummaryWidget', () => {
     });
 
     it('applies red color for negative change', async () => {
-      (api.get as any).mockResolvedValue({
+      mockApi.get.mockResolvedValue({
         data: {
           ...mockDonationData,
           donations_month_over_month: -8.2,
@@ -368,7 +370,7 @@ describe('DonationSummaryWidget', () => {
     });
 
     it('applies green color for zero change', async () => {
-      (api.get as any).mockResolvedValue({
+      mockApi.get.mockResolvedValue({
         data: {
           ...mockDonationData,
           donations_month_over_month: 0,
@@ -392,7 +394,7 @@ describe('DonationSummaryWidget', () => {
 
   describe('Grid Layout', () => {
     it('displays metrics in 2x2 grid', async () => {
-      (api.get as any).mockResolvedValue({ data: mockDonationData });
+      mockApi.get.mockResolvedValue({ data: mockDonationData });
 
       const { container } = render(
         <DonationSummaryWidget
@@ -411,7 +413,7 @@ describe('DonationSummaryWidget', () => {
 
   describe('Edge Cases', () => {
     it('handles very large numbers', async () => {
-      (api.get as any).mockResolvedValue({
+      mockApi.get.mockResolvedValue({
         data: {
           total_donations: 999999,
           total_donation_amount: 99999999,
@@ -436,7 +438,7 @@ describe('DonationSummaryWidget', () => {
     });
 
     it('handles decimal donation counts gracefully', async () => {
-      (api.get as any).mockResolvedValue({
+      mockApi.get.mockResolvedValue({
         data: {
           ...mockDonationData,
           total_donations: 123.5, // Shouldn't happen, but handle gracefully
@@ -457,7 +459,7 @@ describe('DonationSummaryWidget', () => {
     });
 
     it('handles null donation data', async () => {
-      (api.get as any).mockResolvedValue({ data: null });
+      mockApi.get.mockResolvedValue({ data: null });
 
       render(
         <DonationSummaryWidget
@@ -476,7 +478,7 @@ describe('DonationSummaryWidget', () => {
 
   describe('Performance', () => {
     it('fetches data only once on mount', async () => {
-      (api.get as any).mockResolvedValue({ data: mockDonationData });
+      mockApi.get.mockResolvedValue({ data: mockDonationData });
 
       const { rerender } = render(
         <DonationSummaryWidget

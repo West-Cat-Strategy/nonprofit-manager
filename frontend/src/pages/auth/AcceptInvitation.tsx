@@ -67,7 +67,7 @@ export default function AcceptInvitation() {
           const message = response.data.error || 'Invalid invitation';
           setValidationFromError(new Error(message), message);
         }
-      } catch (error: any) {
+      } catch (error) {
         setValidationFromError(error, 'Failed to validate invitation');
       } finally {
         setIsValidating(false);
@@ -119,7 +119,7 @@ export default function AcceptInvitation() {
 
       // Navigate to dashboard
       navigate('/dashboard', { replace: true });
-    } catch (error: any) {
+    } catch (error) {
       setFormFromError(error, 'Failed to create account');
       setIsSubmitting(false);
     }

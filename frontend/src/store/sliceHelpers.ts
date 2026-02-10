@@ -87,8 +87,7 @@ export function handleFetchItemByIdFulfilled<S extends BaseCrudState<T>, T>(
   action: PayloadAction<T>
 ): void {
   state.loading = false;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (state as any).selectedItem = action.payload;
+  state.selectedItem = action.payload as Draft<T>;
 }
 
 /**
@@ -118,13 +117,11 @@ export function handleUpdateItemFulfilled<S extends BaseCrudState<T>, T>(
     (item) => (item as T)[idField] === itemId
   );
   if (index !== -1) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (state.items as any)[index] = updatedItem;
+    state.items[index] = updatedItem as Draft<T>;
   }
 
   if (state.selectedItem && (state.selectedItem as T)[idField] === itemId) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (state as any).selectedItem = updatedItem;
+    state.selectedItem = updatedItem as Draft<T>;
   }
 }
 
@@ -139,14 +136,12 @@ export function handleDeleteItemFulfilled<S extends BaseCrudState<T>, T>(
   state.loading = false;
   const deletedId = action.payload;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (state as any).items = state.items.filter(
+  state.items = state.items.filter(
     (item) => (item as T)[idField] !== deletedId
   );
 
   if (state.selectedItem && (state.selectedItem as T)[idField] === deletedId) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (state as any).selectedItem = null;
+    state.selectedItem = null;
   }
 }
 
@@ -155,13 +150,13 @@ export function handleDeleteItemFulfilled<S extends BaseCrudState<T>, T>(
  */
 export function createClearReducers<T>() {
   return {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     clearSelectedItem: (state: Draft<BaseCrudState<T>>) => {
-      (state as any).selectedItem = null;
+      state.selectedItem = null;
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     clearError: (state: Draft<BaseCrudState<T>>) => {
-      (state as any).error = null;
+      state.error = null;
     },
   };
 }

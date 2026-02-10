@@ -56,9 +56,9 @@ class ErrorBoundary extends Component<Props, State> {
           {import.meta.env.DEV && (
             <details style={{ whiteSpace: 'pre-wrap', marginTop: '12px' }}>
               <summary>Error Details</summary>
-              {this.state.error && this.state.error.toString()}
+              {this.state.error?.toString()}
               <br />
-              {this.state.error && this.state.error.stack}
+              {this.state.error?.stack}
             </details>
           )}
         </div>
