@@ -19,6 +19,9 @@ interface RegisterRequest {
   firstName: string;
   lastName: string;
 }
+interface SetupRequest extends RegisterRequest {
+  organizationName?: string;
+}
 
 interface LoginRequest {
   email: string;
@@ -320,7 +323,7 @@ export const setupFirstUser = async (
       return forbidden(res, 'Setup has already been completed. An admin user already exists.');
     }
 
-    const { email, password, firstName, lastName }: RegisterRequest = req.body;
+    const { email, password, firstName, lastName, organizationName }: SetupRequest = req.body;
 
     // Hash password
     const salt = await bcrypt.genSalt(10);
@@ -336,12 +339,14 @@ export const setupFirstUser = async (
 
     const user = result.rows[0];
 
+    const trimmedOrgName = organizationName?.trim();
     const defaultOrgName = process.env.ORG_DEFAULT_NAME || 'Default Organization';
+    const orgName = trimmedOrgName && trimmedOrgName.length > 0 ? trimmedOrgName : defaultOrgName;
     const orgResult = await pool.query(
       `INSERT INTO accounts (account_name, account_type, created_by, modified_by)
        VALUES ($1, 'organization', $2, $2)
        RETURNING id`,
-      [defaultOrgName, user.id]
+      [orgName, user.id]
     );
     const organizationId = orgResult.rows[0]?.id || null;
 

@@ -17,65 +17,67 @@ interface RouteWrapperProps {
   children: ReactNode;
 }
 
-export function createEngagementRoutes(ProtectedRoute: React.ComponentType<RouteWrapperProps>) {
+export function createEngagementRoutes(
+  NeoBrutalistRoute: React.ComponentType<RouteWrapperProps>
+) {
   return (
     <>
       {/* Event Routes */}
       <Route
         path="/events"
-        element={<ProtectedRoute><EventList /></ProtectedRoute>}
+        element={<NeoBrutalistRoute><EventList /></NeoBrutalistRoute>}
       />
       <Route
         path="/events/calendar"
-        element={<ProtectedRoute><EventCalendarPage /></ProtectedRoute>}
+        element={<NeoBrutalistRoute><EventCalendarPage /></NeoBrutalistRoute>}
       />
       <Route
         path="/events/new"
-        element={<ProtectedRoute><EventCreate /></ProtectedRoute>}
+        element={<NeoBrutalistRoute><EventCreate /></NeoBrutalistRoute>}
       />
       <Route
         path="/events/:id/edit"
-        element={<ProtectedRoute><EventEdit /></ProtectedRoute>}
+        element={<NeoBrutalistRoute><EventEdit /></NeoBrutalistRoute>}
       />
       <Route
         path="/events/:id"
-        element={<ProtectedRoute><EventDetail /></ProtectedRoute>}
+        element={<NeoBrutalistRoute><EventDetail /></NeoBrutalistRoute>}
       />
 
       {/* Task Routes */}
       <Route
         path="/tasks"
-        element={<ProtectedRoute><TaskList /></ProtectedRoute>}
+        element={<NeoBrutalistRoute><TaskList /></NeoBrutalistRoute>}
       />
       <Route
         path="/tasks/new"
-        element={<ProtectedRoute><TaskCreate /></ProtectedRoute>}
+        element={<NeoBrutalistRoute><TaskCreate /></NeoBrutalistRoute>}
       />
       <Route
         path="/tasks/:id/edit"
-        element={<ProtectedRoute><TaskEdit /></ProtectedRoute>}
+        element={<NeoBrutalistRoute><TaskEdit /></NeoBrutalistRoute>}
       />
       <Route
         path="/tasks/:id"
-        element={<ProtectedRoute><TaskDetail /></ProtectedRoute>}
+        element={<NeoBrutalistRoute><TaskDetail /></NeoBrutalistRoute>}
       />
 
       {/* Case Routes */}
       <Route
         path="/cases"
-        element={<ProtectedRoute><CaseList /></ProtectedRoute>}
+        element={<NeoBrutalistRoute><CaseList /></NeoBrutalistRoute>}
       />
       <Route
         path="/cases/new"
-        element={<ProtectedRoute><CaseCreate /></ProtectedRoute>}
+        element={<NeoBrutalistRoute><CaseCreate /></NeoBrutalistRoute>}
       />
       <Route
         path="/cases/:id/edit"
-        element={<ProtectedRoute><CaseEdit /></ProtectedRoute>}
+        element={<NeoBrutalistRoute><CaseEdit /></NeoBrutalistRoute>}
       />
       <Route
         path="/cases/:id"
-        element={<ProtectedRoute><CaseDetail /></ProtectedRoute>}
+        element={<NeoBrutalistRoute><CaseDetail /></NeoBrutalistRoute>}
       />
     </>
   );

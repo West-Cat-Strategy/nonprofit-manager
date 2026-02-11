@@ -130,34 +130,11 @@ export default function NeoBrutalistSidebar() {
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(`${path}/`);
 
-  // Get current date in format "FEB 03 2026"
-  const getCurrentDate = () => {
-    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-    const now = new Date();
-    const month = months[now.getMonth()];
-    const day = String(now.getDate()).padStart(2, '0');
-    const year = now.getFullYear();
-    return `${month} ${day} ${year}`;
-  };
-
   return (
     <aside
       className="w-48 bg-[var(--app-bg)] border-r-2 border-[var(--app-border)] flex flex-col h-screen transition-colors duration-300"
       aria-label="Main navigation"
     >
-      {/* Yellow LOOP Branding Header */}
-      <div className="bg-[var(--loop-yellow)] border-b-2 border-[var(--app-border)] p-4 shadow-[6px_0px_0px_0px_var(--shadow-color)] transition-colors duration-300">
-        <h1 className="font-black text-xl leading-tight text-black">
-          COMMUNITY<br />LOOP
-        </h1>
-        <div
-          className="mt-2 inline-block border-2 border-black bg-white px-2 py-1 text-xs font-bold shadow-[2px_2px_0px_0px_black] text-black"
-          aria-label={`Today's date: ${getCurrentDate()}`}
-        >
-          {getCurrentDate()}
-        </div>
-      </div>
-
       {/* Primary Navigation */}
       <nav aria-label="Primary navigation">
         <NavButton

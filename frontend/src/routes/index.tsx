@@ -117,7 +117,7 @@ const AppRoutes = () => {
       />
 
       {/* Engagement Routes (Events, Tasks, Cases) */}
-      {createEngagementRoutes(ProtectedRoute)}
+      {createEngagementRoutes(NeoBrutalistRoute)}
 
       {/* Finance Routes (Donations, Reconciliation) */}
       {createFinanceRoutes(ProtectedRoute)}

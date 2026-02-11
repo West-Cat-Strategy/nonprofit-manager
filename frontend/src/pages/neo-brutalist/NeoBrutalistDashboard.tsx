@@ -129,29 +129,33 @@ export default function NeoBrutalistDashboard() {
 
                             {/* Quick Action Buttons */}
                             <div className="flex flex-wrap gap-3">
-                                <Link to="/people/new">
-                                    <button className="flex items-center gap-2 px-4 py-2 bg-[var(--loop-pink)] text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_black] transition-all font-bold text-sm uppercase">
-                                        <UserPlusIcon className="w-4 h-4" />
-                                        Add Person
-                                    </button>
+                                <Link
+                                    to="/contacts/new"
+                                    className="flex items-center gap-2 px-4 py-2 bg-[var(--loop-pink)] text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_black] transition-all font-bold text-sm uppercase"
+                                >
+                                    <UserPlusIcon className="w-4 h-4" />
+                                    Add Person
                                 </Link>
-                                <Link to="/cases/new">
-                                    <button className="flex items-center gap-2 px-4 py-2 bg-[var(--loop-blue)] text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_black] transition-all font-bold text-sm uppercase">
-                                        <ClipboardDocumentListIcon className="w-4 h-4" />
-                                        New Case
-                                    </button>
+                                <Link
+                                    to="/cases/new"
+                                    className="flex items-center gap-2 px-4 py-2 bg-[var(--loop-blue)] text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_black] transition-all font-bold text-sm uppercase"
+                                >
+                                    <ClipboardDocumentListIcon className="w-4 h-4" />
+                                    New Case
                                 </Link>
-                                <Link to="/events/new">
-                                    <button className="flex items-center gap-2 px-4 py-2 bg-[var(--loop-purple)] text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_black] transition-all font-bold text-sm uppercase">
-                                        <CalendarDaysIcon className="w-4 h-4" />
-                                        Create Event
-                                    </button>
+                                <Link
+                                    to="/events/new"
+                                    className="flex items-center gap-2 px-4 py-2 bg-[var(--loop-purple)] text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_black] transition-all font-bold text-sm uppercase"
+                                >
+                                    <CalendarDaysIcon className="w-4 h-4" />
+                                    Create Event
                                 </Link>
-                                <Link to="/tasks/new">
-                                    <button className="flex items-center gap-2 px-4 py-2 bg-[var(--loop-green)] text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_black] transition-all font-bold text-sm uppercase">
-                                        <DocumentPlusIcon className="w-4 h-4" />
-                                        Add Task
-                                    </button>
+                                <Link
+                                    to="/tasks/new"
+                                    className="flex items-center gap-2 px-4 py-2 bg-[var(--loop-green)] text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_black] transition-all font-bold text-sm uppercase"
+                                >
+                                    <DocumentPlusIcon className="w-4 h-4" />
+                                    Add Task
                                 </Link>
                             </div>
                         </div>

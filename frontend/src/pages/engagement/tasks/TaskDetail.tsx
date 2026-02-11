@@ -10,6 +10,7 @@ import { fetchTaskById, deleteTask, completeTask } from '../../../store/slices/t
 import { TaskStatus, TaskPriority } from '../../../types/task';
 import FollowUpList from '../../../components/FollowUpList';
 import { formatDateTime } from '../../../utils/format';
+import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 
 const TaskDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -76,25 +77,31 @@ const TaskDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-lg text-gray-600">Loading...</div>
-      </div>
+      <NeoBrutalistLayout pageTitle="TASKS">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg text-gray-600">Loading...</div>
+        </div>
+      </NeoBrutalistLayout>
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="p-4 bg-red-100 text-red-700 rounded-md">Error: {error}</div>
-      </div>
+      <NeoBrutalistLayout pageTitle="TASKS">
+        <div className="container mx-auto px-4 py-8">
+          <div className="p-4 bg-red-100 text-red-700 rounded-md">Error: {error}</div>
+        </div>
+      </NeoBrutalistLayout>
     );
   }
 
   if (!selectedTask) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="p-4 bg-yellow-100 text-yellow-700 rounded-md">Task not found</div>
-      </div>
+      <NeoBrutalistLayout pageTitle="TASKS">
+        <div className="container mx-auto px-4 py-8">
+          <div className="p-4 bg-yellow-100 text-yellow-700 rounded-md">Task not found</div>
+        </div>
+      </NeoBrutalistLayout>
     );
   }
 
@@ -105,7 +112,8 @@ const TaskDetail: React.FC = () => {
     selectedTask.status !== TaskStatus.CANCELLED;
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <NeoBrutalistLayout pageTitle="TASKS">
+      <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
         <button
           onClick={() => navigate('/tasks')}
@@ -206,7 +214,8 @@ const TaskDetail: React.FC = () => {
           <FollowUpList entityType="task" entityId={id} />
         </div>
       )}
-    </div>
+      </div>
+    </NeoBrutalistLayout>
   );
 };
 

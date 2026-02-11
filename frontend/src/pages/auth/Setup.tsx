@@ -18,6 +18,7 @@ interface SetupFormData {
   confirmPassword: string;
   firstName: string;
   lastName: string;
+  organizationName: string;
 }
 
 const Setup: React.FC = () => {
@@ -29,6 +30,7 @@ const Setup: React.FC = () => {
     confirmPassword: '',
     firstName: '',
     lastName: '',
+    organizationName: '',
   });
   const [errors, setErrors] = useState<string[]>([]);
   const { details, setFromError, clear } = useApiError({ notify: true });
@@ -76,6 +78,10 @@ const Setup: React.FC = () => {
       newErrors.push('Last name is required');
     }
 
+    if (!formData.organizationName.trim()) {
+      newErrors.push('Organization name is required');
+    }
+
     if (!formData.password) {
       newErrors.push('Password is required');
     } else if (formData.password.length < 8) {
@@ -113,6 +119,7 @@ const Setup: React.FC = () => {
         password: formData.password,
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
+        organizationName: formData.organizationName.trim(),
       });
 
       // Store token
@@ -311,6 +318,23 @@ const Setup: React.FC = () => {
                     placeholder="Lee"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label htmlFor="organizationName" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Organization Name
+                </label>
+                <input
+                  id="organizationName"
+                  name="organizationName"
+                  type="text"
+                  required
+                  autoComplete="organization"
+                  value={formData.organizationName}
+                  onChange={handleChange}
+                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                  placeholder="Community Aid Network"
+                />
               </div>
 
               <div>

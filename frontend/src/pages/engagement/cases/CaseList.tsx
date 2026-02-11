@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { BrutalBadge, BrutalButton, BrutalCard, BrutalInput } from '../../../components/neo-brutalist';
+import { BrutalBadge, BrutalButton, BrutalCard, BrutalInput, NeoBrutalistLayout } from '../../../components/neo-brutalist';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   fetchCases,
@@ -289,7 +289,8 @@ const CaseList = () => {
   const visibleCases = cases;
 
   return (
-    <div className="p-6 space-y-6">
+    <NeoBrutalistLayout pageTitle="Cases">
+      <div className="p-6 space-y-6">
       {/* Header */}
       <BrutalCard color="yellow" className="p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -869,7 +870,8 @@ const CaseList = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </NeoBrutalistLayout>
   );
 };
 
