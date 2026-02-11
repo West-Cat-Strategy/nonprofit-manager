@@ -192,6 +192,7 @@ router.post(
       .withMessage('Password must contain uppercase, lowercase, number, and special character'),
     body('firstName').trim().notEmpty().withMessage('First name is required'),
     body('lastName').trim().notEmpty().withMessage('Last name is required'),
+    body('organizationName').trim().notEmpty().withMessage('Organization name is required'),
     validateRequest,
   ],
   setupFirstUser

@@ -18,6 +18,7 @@ import AddToCalendar from '../../../components/AddToCalendar';
 import SocialShare from '../../../components/SocialShare';
 import { useDocumentMeta } from '../../../hooks/useDocumentMeta';
 import { formatDateTime } from '../../../utils/format';
+import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -78,7 +79,11 @@ const EventDetail: React.FC = () => {
     : registrations;
 
   if (loading || !event) {
-    return <div className="p-6 text-center">Loading event details...</div>;
+    return (
+      <NeoBrutalistLayout pageTitle="EVENTS">
+        <div className="p-6 text-center">Loading event details...</div>
+      </NeoBrutalistLayout>
+    );
   }
 
   const capacityPercentage = event.capacity
@@ -86,7 +91,8 @@ const EventDetail: React.FC = () => {
     : 0;
 
   return (
-    <div className="p-6">
+    <NeoBrutalistLayout pageTitle="EVENTS">
+      <div className="p-6">
       {/* Header */}
       <div className="mb-6 flex justify-between items-start">
         <div>
@@ -349,7 +355,8 @@ const EventDetail: React.FC = () => {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </NeoBrutalistLayout>
   );
 };
 
