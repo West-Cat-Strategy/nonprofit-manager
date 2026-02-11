@@ -809,18 +809,6 @@ body .focus\\:border-blue-600:focus {
   color: var(--app-text-subtle) !important;
 }
 
-/* RULE 5: SIDEBAR HEADER - "COMMUNITY LOOP" stays BLACK on yellow */
-.dark .bg-\[var\(--loop-yellow\)\] h1,
-.dark .bg-\[var\(--loop-yellow\)\] .font-black {
-  color: #000000 !important;
-}
-
-/* Date box in sidebar */
-.dark .bg-\[var\(--loop-yellow\)\]>div:last-child {
-  background-color: #000000 !important;
-  color: #FFFFFF !important;
-}
-
 /* RULE 6: HEADER USER NAME - Force visibility */
 .dark header span,
 .dark [class*="header"] span,

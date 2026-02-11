@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import EventCalendar from '../../../components/EventCalendar';
 import type { Event } from '../../../types/event';
 import { format, parseISO } from 'date-fns';
+import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 
 export const EventCalendarPage: React.FC = () => {
   const navigate = useNavigate();
@@ -54,70 +55,71 @@ export const EventCalendarPage: React.FC = () => {
   };
 
   return (
-    <div className="container px-4 py-8 mx-auto max-w-7xl">
-      {/* Page Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Event Calendar
-            </h1>
-            <p className="mt-1 text-sm text-gray-600">
-              View and manage upcoming events
-            </p>
+    <NeoBrutalistLayout pageTitle="EVENTS">
+      <div className="container px-4 py-8 mx-auto max-w-7xl">
+        {/* Page Header */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Event Calendar
+              </h1>
+              <p className="mt-1 text-sm text-gray-600">
+                View and manage upcoming events
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/events/new')}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+            >
+              Create Event
+            </button>
           </div>
-          <button
-            onClick={() => navigate('/events/new')}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-          >
-            Create Event
-          </button>
-        </div>
-      </div>
-
-      {/* Calendar and Details Grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Calendar - takes up 2 columns on large screens */}
-        <div className="lg:col-span-2">
-          <EventCalendar onEventClick={handleEventClick} />
         </div>
 
-        {/* Event Details Panel - takes up 1 column on large screens */}
-        <div className="lg:col-span-1">
-          {selectedEvent ? (
-            <div className="bg-white rounded-lg shadow">
-              {/* Panel Header */}
-              <div className="flex items-start justify-between p-4 border-b">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Event Details
-                </h3>
-                <button
-                  onClick={handleClosePanel}
-                  className="text-gray-400 hover:text-gray-600"
-                  aria-label="Close panel"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+        {/* Calendar and Details Grid */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {/* Calendar - takes up 2 columns on large screens */}
+          <div className="lg:col-span-2">
+            <EventCalendar onEventClick={handleEventClick} />
+          </div>
+
+          {/* Event Details Panel - takes up 1 column on large screens */}
+          <div className="lg:col-span-1">
+            {selectedEvent ? (
+              <div className="bg-white rounded-lg shadow">
+                {/* Panel Header */}
+                <div className="flex items-start justify-between p-4 border-b">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Event Details
+                  </h3>
+                  <button
+                    onClick={handleClosePanel}
+                    className="text-gray-400 hover:text-gray-600"
+                    aria-label="Close panel"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
 
-              {/* Panel Content */}
-              <div className="p-4 space-y-4">
-                {/* Event Name */}
-                <div>
-                  <h4 className="text-xl font-semibold text-gray-900">
-                    {selectedEvent.event_name}
+                {/* Panel Content */}
+                <div className="p-4 space-y-4">
+                  {/* Event Name */}
+                  <div>
+                    <h4 className="text-xl font-semibold text-gray-900">
+                      {selectedEvent.event_name}
                   </h4>
                   <div className="flex items-center gap-2 mt-2">
                     {getStatusBadge(selectedEvent.status)}
@@ -283,6 +285,7 @@ export const EventCalendarPage: React.FC = () => {
         </div>
       </div>
     </div>
+    </NeoBrutalistLayout>
   );
 };
 

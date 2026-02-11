@@ -8,6 +8,7 @@ import { useAppDispatch } from '../../../store/hooks';
 import { createTask } from '../../../store/slices/tasksSlice';
 import TaskForm from '../../../components/TaskForm';
 import type { CreateTaskDTO, UpdateTaskDTO } from '../../../types/task';
+import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 
 const TaskCreate: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -17,14 +18,16 @@ const TaskCreate: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Create New Task</h1>
-        <p className="mt-2 text-gray-600">Enter the task details below.</p>
-      </div>
+    <NeoBrutalistLayout pageTitle="TASKS">
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Create New Task</h1>
+          <p className="mt-2 text-gray-600">Enter the task details below.</p>
+        </div>
 
-      <TaskForm onSubmit={handleSubmit} />
-    </div>
+        <TaskForm onSubmit={handleSubmit} />
+      </div>
+    </NeoBrutalistLayout>
   );
 };
 
