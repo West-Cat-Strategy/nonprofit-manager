@@ -131,6 +131,8 @@ typecheck:
 	@echo "$(GREEN)Type checking complete!$(RESET)"
 
 test:
+	@echo "$(BLUE)Ensuring test infrastructure is running (Postgres/Redis)...$(RESET)"
+	docker-compose up -d postgres redis
 	@echo "$(BLUE)Running backend tests...$(RESET)"
 	cd backend && npm test -- --runInBand
 	@echo "$(BLUE)Running frontend tests...$(RESET)"
@@ -138,6 +140,8 @@ test:
 	@echo "$(GREEN)Tests complete!$(RESET)"
 
 test-coverage:
+	@echo "$(BLUE)Ensuring test infrastructure is running (Postgres/Redis)...$(RESET)"
+	docker-compose up -d postgres redis
 	@echo "$(BLUE)Running backend tests with coverage...$(RESET)"
 	cd backend && npm test -- --coverage --runInBand
 	@echo "$(BLUE)Running frontend tests with coverage...$(RESET)"
@@ -145,6 +149,7 @@ test-coverage:
 	@echo "$(GREEN)Coverage reports generated!$(RESET)"
 
 test-backend:
+	docker-compose up -d postgres redis
 	cd backend && npm test -- --runInBand
 
 test-frontend:
