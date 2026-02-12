@@ -12,6 +12,7 @@ jest.mock('pg', () => {
   const mockPool = {
     query: jest.fn(),
     connect: jest.fn(),
+    on: jest.fn(),
   };
   return { Pool: jest.fn(() => mockPool) };
 });

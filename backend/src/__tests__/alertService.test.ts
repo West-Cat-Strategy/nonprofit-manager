@@ -10,6 +10,7 @@ import type { CreateAlertDTO } from '../types/alert';
 jest.mock('pg', () => {
   const mockPool = {
     query: jest.fn(),
+    on: jest.fn(),
   };
   return { Pool: jest.fn(() => mockPool) };
 });

@@ -10,6 +10,8 @@
     "test": "jest --forceExit",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:unit": "jest --forceExit --testPathIgnorePatterns=src/__tests__/integration/",
+    "test:unit:coverage": "jest --forceExit --coverage --testPathIgnorePatterns=src/__tests__/integration/",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write \"src/**/*.ts\"",
