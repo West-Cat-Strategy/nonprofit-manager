@@ -1,7 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import type { AuthRequest } from '@middleware/auth';
-import { meetingService } from '@services';
+import { meetingService } from '@services/domains/engagement';
 import { notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
 
 export const listCommittees = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {

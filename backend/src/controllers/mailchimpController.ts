@@ -5,7 +5,7 @@
 
 import { Request, Response } from 'express';
 import { logger } from '@config/logger';
-import { mailchimpService } from '@services';
+import { mailchimpService } from '@services/domains/integration';
 import type { AuthRequest } from '@middleware/auth';
 import type {
   SyncContactRequest,

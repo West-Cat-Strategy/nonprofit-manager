@@ -33,6 +33,15 @@ const config: Config = {
   restoreMocks: true,
   verbose: true,
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
+  collectCoverageFrom: ['<rootDir>/src/**/*.ts', '!<rootDir>/src/**/__tests__/**', '!<rootDir>/src/index.ts'],
+  coverageThreshold: {
+    global: {
+      branches: 60,
+      functions: 70,
+      lines: 70,
+      statements: 70,
+    },
+  },
 };
 
 export default config;

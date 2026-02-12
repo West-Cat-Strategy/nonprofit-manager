@@ -64,29 +64,29 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Step 1: Lint
-run_step "Backend Lint" "cd backend && npm run lint" || true
-run_step "Frontend Lint" "cd frontend && npm run lint" || true
+run_step "Backend Lint" "cd backend && npm run lint"
+run_step "Frontend Lint" "cd frontend && npm run lint"
 
 # Step 2: Type Check (skip in quick mode)
 if [ "$QUICK" = false ]; then
-    run_step "Backend TypeCheck" "cd backend && npx tsc --noEmit" || true
-    run_step "Frontend TypeCheck" "cd frontend && npx tsc --noEmit" || true
+    run_step "Backend TypeCheck" "cd backend && npx tsc --noEmit"
+    run_step "Frontend TypeCheck" "cd frontend && npx tsc --noEmit"
 fi
 
 # Step 3: Tests
 if [ "$SKIP_TESTS" = false ]; then
     if [ "$COVERAGE" = true ]; then
-        run_step "Backend Tests" "cd backend && npm test -- --coverage --watchAll=false" || true
-        run_step "Frontend Tests" "cd frontend && npm test -- --coverage --watchAll=false" || true
+        run_step "Backend Tests" "cd backend && npm test -- --coverage --watchAll=false"
+        run_step "Frontend Tests" "cd frontend && npm test -- --coverage --watchAll=false"
     else
-        run_step "Backend Tests" "cd backend && npm test -- --watchAll=false" || true
-        run_step "Frontend Tests" "cd frontend && npm test -- --watchAll=false" || true
+        run_step "Backend Tests" "cd backend && npm test -- --watchAll=false"
+        run_step "Frontend Tests" "cd frontend && npm test -- --watchAll=false"
     fi
 fi
 
 # Step 4: Build
-run_step "Backend Build" "cd backend && npm run build" || true
-run_step "Frontend Build" "cd frontend && npm run build" || true
+run_step "Backend Build" "cd backend && npm run build"
+run_step "Frontend Build" "cd frontend && npm run build"
 
 # Summary
 echo ""

@@ -6,7 +6,7 @@ import pool from '@config/database';
 import { getJwtSecret } from '@config/jwt';
 import { PASSWORD, JWT } from '@config/constants';
 import { PortalAuthRequest } from '@middleware/portalAuth';
-import { logPortalActivity } from '@services';
+import { logPortalActivity } from '@services/domains/integration';
 import { badRequest, conflict, errorPayload, forbidden, notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
 
 interface PortalSignupRequest {

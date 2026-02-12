@@ -123,3 +123,12 @@ export const defaultPermissions: PermissionDefinition[] = [
   { key: 'admin.roles', label: 'Manage Roles', category: 'Admin' },
   { key: 'admin.settings', label: 'Manage Settings', category: 'Admin' },
 ];
+
+export const adminSettingsTabs = [
+  { id: 'organization', label: 'Organization' },
+  { id: 'branding', label: 'Branding' },
+  { id: 'users', label: 'Users & Security' },
+  { id: 'portal', label: 'Client Portal' },
+  { id: 'roles', label: 'Roles & Permissions' },
+  { id: 'other', label: 'Other Settings' },
+] as const;
