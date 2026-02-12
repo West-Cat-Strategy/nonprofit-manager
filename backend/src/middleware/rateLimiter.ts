@@ -1,5 +1,5 @@
 import rateLimit, { MemoryStore, Store, Options } from 'express-rate-limit';
-import { Request } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { RATE_LIMIT, ERROR_MESSAGES, HTTP_STATUS } from '../config/constants';
 import { getRedisClient } from '../config/redis';
 
@@ -11,6 +11,7 @@ interface RateLimitRequest extends Request {
 
 // Disable rate limiting in test environment
 const isTestEnv = process.env.NODE_ENV === 'test';
+const noopLimiter = (_req: Request, _res: Response, next: NextFunction) => next();
 
 class HybridRateLimitStore implements Store {
   localKeys = false;
@@ -83,6 +84,7 @@ export const apiLimiter = rateLimit({
     });
   },
 });
+export const apiLimiterMiddleware = isTestEnv ? noopLimiter : apiLimiter;
 
 // Strict rate limiter for authentication endpoints
 export const authLimiter = rateLimit({
@@ -102,6 +104,7 @@ export const authLimiter = rateLimit({
     });
   },
 });
+export const authLimiterMiddleware = isTestEnv ? noopLimiter : authLimiter;
 
 // Rate limiter for password reset endpoints
 export const passwordResetLimiter = rateLimit({
@@ -121,6 +124,7 @@ export const passwordResetLimiter = rateLimit({
     });
   },
 });
+export const passwordResetLimiterMiddleware = isTestEnv ? noopLimiter : passwordResetLimiter;
 
 // Rate limiter for registration endpoint
 export const registrationLimiter = rateLimit({
@@ -140,3 +144,4 @@ export const registrationLimiter = rateLimit({
     });
   },
 });
+export const registrationLimiterMiddleware = isTestEnv ? noopLimiter : registrationLimiter;

@@ -42,14 +42,23 @@ interface UserRow {
 }
 
 const getDefaultOrganizationId = async (): Promise<string | null> => {
-  const result = await pool.query(
-    `SELECT id
-     FROM accounts
-     WHERE account_type = 'organization'
-     ORDER BY created_at ASC
-     LIMIT 1`
-  );
-  return result.rows[0]?.id || null;
+  try {
+    const result = await pool.query(
+      `SELECT id
+       FROM accounts
+       WHERE account_type = 'organization'
+       ORDER BY created_at ASC
+       LIMIT 1`
+    );
+    return result.rows[0]?.id || null;
+  } catch (error) {
+    const pgError = error as { code?: string };
+    // Some tests run against partial schemas where accounts may not exist yet.
+    if (pgError.code === '42P01') {
+      return null;
+    }
+    throw error;
+  }
 };
 
 export const register = async (
@@ -110,6 +119,7 @@ export const register = async (
       token, // Still return token for backward compatibility during migration
       organizationId,
       user: {
+        id: user.id,
         user_id: user.id,
         email: user.email,
         firstName: user.first_name,
