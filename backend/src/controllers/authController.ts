@@ -8,7 +8,7 @@ import { getJwtSecret } from '@config/jwt';
 import { AuthRequest } from '@middleware/auth';
 import { trackLoginAttempt } from '@middleware/accountLockout';
 import { JWT, PASSWORD } from '@config/constants';
-import { syncUserRole } from '@services';
+import { syncUserRole } from '@services/domains/integration';
 import { issueTotpMfaChallenge } from './mfaController';
 import { badRequest, conflict, forbidden, notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
 import { setAuthCookie, setRefreshCookie, clearAuthCookies } from '@utils/cookieHelper';

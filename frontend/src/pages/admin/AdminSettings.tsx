@@ -27,7 +27,7 @@ import type {
   PortalContactLookup,
   SaveStatus,
 } from './adminSettings/types';
-import { defaultConfig, defaultPermissions } from './adminSettings/constants';
+import { adminSettingsTabs, defaultConfig, defaultPermissions } from './adminSettings/constants';
 import { formatCanadianPhone, formatCanadianPostalCode } from './adminSettings/utils';
 import OrganizationSection from './adminSettings/sections/OrganizationSection';
 import BrandingSection from './adminSettings/sections/BrandingSection';
@@ -680,14 +680,7 @@ export default function AdminSettings() {
         {/* Navigation Tabs */}
         <div className="mb-6 border-b-2 border-[var(--app-border)]">
           <nav className="-mb-px flex space-x-4 overflow-x-auto">
-            {[
-              { id: 'organization', label: 'Organization' },
-              { id: 'branding', label: 'Branding' },
-              { id: 'users', label: 'Users & Security' },
-              { id: 'portal', label: 'Client Portal' },
-              { id: 'roles', label: 'Roles & Permissions' },
-              { id: 'other', label: 'Other Settings' },
-            ].map((tab) => (
+            {adminSettingsTabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"

@@ -7,7 +7,7 @@ import { Response, NextFunction } from 'express';
 import { services } from '../container/services';
 import { ContactFilters, PaginationParams } from '@app-types/contact';
 import { AuthRequest } from '@middleware/auth';
-import { invitationService, syncUserRole } from '@services';
+import { invitationService, syncUserRole } from '@services/domains/integration';
 import { extractPagination, getString, getBoolean } from '@utils/queryHelpers';
 import { notFound, badRequest } from '@utils/responseHelpers';
 import type { DataScopeFilter } from '@app-types/dataScope';

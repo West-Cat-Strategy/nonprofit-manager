@@ -5,7 +5,7 @@
 
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '@middleware/auth';
-import { contactDocumentService as documentService } from '@services';
+import { contactDocumentService as documentService } from '@services/domains/engagement';
 import { services } from '../container/services';
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { badRequest, notFoundMessage } from '@utils/responseHelpers';

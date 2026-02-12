@@ -5,7 +5,7 @@
 
 import { Response } from 'express';
 import { AuthRequest } from '@middleware/auth';
-import { taskService } from '@services';
+import { taskService } from '@services/domains/engagement';
 import { TaskFilters, TaskStatus, TaskPriority, RelatedToType } from '@app-types/task';
 import { logger } from '@config/logger';
 import { getString, getBoolean, getInteger } from '@utils/queryHelpers';

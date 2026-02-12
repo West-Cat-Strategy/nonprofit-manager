@@ -2,7 +2,7 @@ import { Response, NextFunction } from 'express';
 import pool from '@config/database';
 import { PortalAuthRequest } from '@middleware/portalAuth';
 import { logger } from '@config/logger';
-import { logPortalActivity } from '@services';
+import { logPortalActivity } from '@services/domains/integration';
 import { badRequest, conflict, notFoundMessage } from '@utils/responseHelpers';
 
 const getPortalContactId = (req: PortalAuthRequest): string => {

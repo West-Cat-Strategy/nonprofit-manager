@@ -7,6 +7,15 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
-    globals: true
-  }
+    globals: true,
+    coverage: {
+      reporter: ['text', 'json-summary', 'html'],
+      thresholds: {
+        lines: 65,
+        functions: 65,
+        statements: 65,
+        branches: 55,
+      },
+    },
+  },
 })

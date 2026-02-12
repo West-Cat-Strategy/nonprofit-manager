@@ -5,7 +5,7 @@
 
 import type { Response, NextFunction } from 'express';
 import type { AuthRequest } from '@middleware/auth';
-import { activityService } from '@services';
+import { activityService } from '@services/domains/engagement';
 import { logger } from '@config/logger';
 import { PAGINATION, HTTP_STATUS } from '@config/constants';
 

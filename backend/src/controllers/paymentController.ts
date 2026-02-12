@@ -6,7 +6,7 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { logger } from '@config/logger';
-import { stripeService } from '@services';
+import { stripeService } from '@services/domains/operations';
 import type { AuthRequest } from '@middleware/auth';
 import type {
   CreatePaymentIntentRequest,

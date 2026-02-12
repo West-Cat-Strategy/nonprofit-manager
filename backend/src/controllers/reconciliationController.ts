@@ -5,7 +5,7 @@
 
 import { Request, Response } from 'express';
 import { logger } from '@config/logger';
-import { reconciliationService } from '@services';
+import { reconciliationService } from '@services/domains/operations';
 import type { AuthRequest } from '@middleware/auth';
 import type {
   CreateReconciliationRequest,

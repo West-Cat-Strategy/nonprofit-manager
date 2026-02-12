@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import type { AuthRequest } from '@middleware/auth';
-import { caseService } from '@services';
+import { caseService } from '@services/domains/engagement';
 import type { CreateCaseDTO, UpdateCaseDTO, CaseFilter, CreateCaseNoteDTO, UpdateCaseStatusDTO } from '@app-types/case';
 import { logger } from '@config/logger';
 import { PAGINATION } from '@config/constants';
