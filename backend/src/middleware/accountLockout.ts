@@ -15,6 +15,8 @@ const LOCKOUT_KEY_PREFIX = 'auth:lockout:';
 
 const MAX_LOGIN_ATTEMPTS = parseInt(process.env.MAX_LOGIN_ATTEMPTS || '5', 10);
 const LOCKOUT_DURATION_MS = parseInt(process.env.ACCOUNT_LOCKOUT_DURATION_MS || '900000', 10); // 15 minutes
+const isLockoutDisabledForTests = () =>
+  process.env.NODE_ENV === 'test' && process.env.ENABLE_ACCOUNT_LOCKOUT_IN_TEST !== 'true';
 
 const getLoginAttempt = async (identifier: string): Promise<LoginAttempt | null> => {
   const key = identifier.toLowerCase();
@@ -45,7 +47,7 @@ export const trackLoginAttempt = async (
   userId?: string,
   ipAddress?: string
 ): Promise<void> => {
-  if (process.env.NODE_ENV === 'test') {
+  if (isLockoutDisabledForTests()) {
     return;
   }
   const key = identifier.toLowerCase();
@@ -202,7 +204,7 @@ export const checkAccountLockout = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  if (process.env.NODE_ENV === 'test') {
+  if (isLockoutDisabledForTests()) {
     next();
     return;
   }
@@ -239,7 +241,7 @@ export const checkAccountLockout = async (
 /**
  * Clean up expired lockouts periodically
  */
-if (process.env.NODE_ENV !== 'test') {
+if (!isLockoutDisabledForTests()) {
   setInterval(() => {
     const now = new Date();
     for (const [key, attempt] of loginAttempts.entries()) {

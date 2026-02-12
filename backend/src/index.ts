@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 import { logger } from './config/logger';
 import { initializeRedis, closeRedis } from './config/redis';
 import { errorHandler } from './middleware/errorHandler';
-import { apiLimiter } from './middleware/rateLimiter';
+import { apiLimiterMiddleware } from './middleware/rateLimiter';
 import { csrfMiddleware } from './middleware/csrf';
 import { correlationIdMiddleware, CORRELATION_ID_HEADER } from './middleware/correlationId';
 import { metricsMiddleware, metricsRouter } from './middleware/metrics';
@@ -51,7 +51,14 @@ if (process.env.JEST_WORKER_ID && !process.env.NODE_ENV) {
   process.env.NODE_ENV = 'test';
 }
 
-dotenv.config();
+// Load env files without overriding explicit runtime env vars.
+// In test mode, prefer values from .env.test and use .env as fallback.
+if (process.env.NODE_ENV === 'test') {
+  dotenv.config({ path: '.env.test' });
+  dotenv.config({ path: '.env' });
+} else {
+  dotenv.config({ path: '.env' });
+}
 
 // Production secrets validation
 if (process.env.NODE_ENV === 'production') {
@@ -173,7 +180,7 @@ app.use(
 );
 
 // Rate limiting for all API routes
-app.use('/api', apiLimiter);
+app.use('/api', apiLimiterMiddleware);
 
 // Health check routes
 app.use('/health', healthRoutes);
