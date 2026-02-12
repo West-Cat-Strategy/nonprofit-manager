@@ -9,6 +9,7 @@ run_audit=0
 run_db_verify=0
 run_build=0
 run_coverage=0
+run_unit_only=0
 
 for arg in "$@"; do
   case "$arg" in
@@ -27,6 +28,9 @@ for arg in "$@"; do
       ;;
     --coverage)
       run_coverage=1
+      ;;
+    --unit-only)
+      run_unit_only=1
       ;;
     --no-tests)
       run_tests=0
@@ -61,9 +65,17 @@ if [[ $run_backend -eq 1 ]]; then
     run_section "Backend type-check" bash -lc "cd '${root_dir}/backend' && npm run type-check"
     if [[ $run_tests -eq 1 ]]; then
       if [[ $run_coverage -eq 1 ]]; then
-        run_section "Backend tests (coverage)" bash -lc "cd '${root_dir}/backend' && npm test -- --coverage --runInBand"
+        if [[ $run_unit_only -eq 1 ]]; then
+          run_section "Backend unit tests (coverage)" bash -lc "cd '${root_dir}/backend' && npm run test:unit:coverage -- --runInBand"
+        else
+          run_section "Backend tests (coverage)" bash -lc "cd '${root_dir}/backend' && npm test -- --coverage --runInBand"
+        fi
       else
-        run_section "Backend tests" bash -lc "cd '${root_dir}/backend' && npm test -- --runInBand"
+        if [[ $run_unit_only -eq 1 ]]; then
+          run_section "Backend unit tests" bash -lc "cd '${root_dir}/backend' && npm run test:unit -- --runInBand"
+        else
+          run_section "Backend tests" bash -lc "cd '${root_dir}/backend' && npm test -- --runInBand"
+        fi
       fi
     else
       echo "==> Backend tests skipped (${mode})"

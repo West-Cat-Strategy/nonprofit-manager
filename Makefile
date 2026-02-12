@@ -5,7 +5,7 @@
 # All CI/CD operations can be run locally or via git hooks.
 
 .PHONY: help install lint typecheck test test-coverage quality-baseline build \
-        security-audit security-scan ci ci-fast ci-full \
+        security-audit security-scan ci ci-fast ci-full ci-unit \
         deploy deploy-staging deploy-local \
         docker-build docker-up docker-down docker-logs docker-rebuild \
         db-migrate db-verify clean hooks
@@ -46,6 +46,7 @@ help:
 	@echo "  make ci             Run full CI (lint + typecheck + test + build)"
 	@echo "  make ci-fast        Run quick CI (lint + typecheck only)"
 	@echo "  make ci-full        Run CI with coverage and security audit"
+	@echo "  make ci-unit        Run CI with unit-test coverage (no integration tests)"
 	@echo ""
 	@echo "$(GREEN)Security:$(RESET)"
 	@echo "  make security-audit Run npm audit on all projects"
@@ -228,6 +229,18 @@ ci-full:
 	@echo ""
 	@echo "$(GREEN)========================================$(RESET)"
 	@echo "$(GREEN)  Full CI Pipeline Passed!$(RESET)"
+	@echo "$(GREEN)========================================$(RESET)"
+
+ci-unit:
+	@echo ""
+	@echo "$(BLUE)========================================$(RESET)"
+	@echo "$(BLUE)  Running Unit CI + Coverage$(RESET)"
+	@echo "$(BLUE)========================================$(RESET)"
+	@echo ""
+	@./scripts/local-ci.sh --build --coverage --unit-only
+	@echo ""
+	@echo "$(GREEN)========================================$(RESET)"
+	@echo "$(GREEN)  Unit CI Pipeline Passed!$(RESET)"
 	@echo "$(GREEN)========================================$(RESET)"
 
 #------------------------------------------------------------------------------

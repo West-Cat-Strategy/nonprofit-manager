@@ -3,23 +3,23 @@
  * Tests for custom report generation and data extraction
  */
 
-import { Pool } from 'pg';
 import { ReportService } from '../../../src/services/reportService';
 import type { ReportDefinition, ReportEntity } from '../../../src/types/report';
 
 describe('ReportService', () => {
-  let pool: Pool;
+  const query = jest.fn();
+  let pool: { query: typeof query };
   let reportService: ReportService;
 
-  beforeAll(() => {
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+  beforeEach(() => {
+    query.mockImplementation(async (sql: string) => {
+      if (sql.includes('COUNT(*) as count')) {
+        return { rows: [{ count: '0' }] };
+      }
+      return { rows: [] };
     });
-    reportService = new ReportService(pool);
-  });
-
-  afterAll(async () => {
-    await pool.end();
+    pool = { query };
+    reportService = new ReportService(pool as any);
   });
 
   describe('getAvailableFields', () => {
