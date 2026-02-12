@@ -5,11 +5,11 @@
 
 import { Response, NextFunction } from 'express';
 import { services } from '../container/services';
-import { AuthRequest } from '../middleware/auth';
-import type { AnalyticsFilters } from '../types/analytics';
-import { maskFinancialData } from '../middleware/analyticsAuth';
-import type { DataScopeFilter } from '../types/dataScope';
-import { badRequest, forbidden, notFoundMessage } from '../utils/responseHelpers';
+import { AuthRequest } from '@middleware/auth';
+import type { AnalyticsFilters } from '@app-types/analytics';
+import { maskFinancialData } from '@middleware/analyticsAuth';
+import type { DataScopeFilter } from '@app-types/dataScope';
+import { badRequest, forbidden, notFoundMessage } from '@utils/responseHelpers';
 
 const analyticsService = services.analytics;
 

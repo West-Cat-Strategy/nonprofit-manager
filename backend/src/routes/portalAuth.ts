@@ -6,9 +6,9 @@ import {
   getPortalMe,
   validatePortalInvitation,
   acceptPortalInvitation,
-} from '../controllers/portalAuthController';
-import { authenticatePortal } from '../middleware/portalAuth';
-import { validateRequest } from '../middleware/validation';
+} from '@controllers/domains/portal';
+import { authenticatePortal } from '@middleware/domains/auth';
+import { validateRequest } from '@middleware/domains/security';
 
 const router = Router();
 

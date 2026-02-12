@@ -13,9 +13,9 @@ import {
   acceptInvitation,
   revokeInvitation,
   resendInvitation,
-} from '../controllers/invitationController';
-import { authenticate } from '../middleware/auth';
-import { validateRequest } from '../middleware/validation';
+} from '@controllers/domains/engagement';
+import { authenticate } from '@middleware/domains/auth';
+import { validateRequest } from '@middleware/domains/security';
 
 const router = Router();
 

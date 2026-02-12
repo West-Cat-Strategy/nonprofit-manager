@@ -3,8 +3,8 @@
  * Fetches and aggregates activities across the application
  */
 
-import pool from '../config/database';
-import type { Activity } from '../types/activity';
+import pool from '@config/database';
+import type { Activity } from '@app-types/activity';
 
 export class ActivityService {
   /**

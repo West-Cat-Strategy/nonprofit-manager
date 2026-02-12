@@ -4,9 +4,9 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { AuthRequest } from '../middleware/auth';
-import * as contactRelationshipService from '../services/contactRelationshipService';
-import { conflict, notFoundMessage } from '../utils/responseHelpers';
+import { AuthRequest } from '@middleware/auth';
+import { contactRelationshipService } from '@services';
+import { conflict, notFoundMessage } from '@utils/responseHelpers';
 
 /**
  * GET /api/contacts/:contactId/relationships

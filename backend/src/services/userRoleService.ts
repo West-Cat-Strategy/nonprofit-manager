@@ -1,6 +1,6 @@
 import { Pool, PoolClient } from 'pg';
-import { logger } from '../config/logger';
-import pool from '../config/database';
+import { logger } from '@config/logger';
+import pool from '@config/database';
 
 type DbClient = Pool | PoolClient;
 

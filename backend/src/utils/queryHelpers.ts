@@ -3,7 +3,7 @@
  * Utilities for parsing and validating query parameters from HTTP requests
  */
 
-import type { PaginationParams } from '../types/pagination';
+import type { PaginationParams } from '@app-types/pagination';
 
 /**
  * Parse a query parameter as a string

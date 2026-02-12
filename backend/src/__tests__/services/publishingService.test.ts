@@ -2,7 +2,7 @@
  * Publishing Service Tests
  */
 
-import { PublishingService } from '../../services/publishingService';
+import { PublishingService } from '@services';
 import { Pool } from 'pg';
 
 // Create a mock pool

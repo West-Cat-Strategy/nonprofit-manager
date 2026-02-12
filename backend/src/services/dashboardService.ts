@@ -8,7 +8,7 @@ import type {
   DashboardConfig,
   CreateDashboardDTO,
   UpdateDashboardDTO,
-} from '../types/dashboard';
+} from '@app-types/dashboard';
 
 export class DashboardService {
   constructor(private pool: Pool) {}

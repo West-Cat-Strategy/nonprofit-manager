@@ -5,9 +5,9 @@
 
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
-import { authenticate } from '../middleware/auth';
-import { validateRequest } from '../middleware/validation';
-import * as mailchimpController from '../controllers/mailchimpController';
+import { authenticate } from '@middleware/domains/auth';
+import { validateRequest } from '@middleware/domains/security';
+import * as mailchimpController from '@controllers/domains/engagement';
 
 const router = Router();
 

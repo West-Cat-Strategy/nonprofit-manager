@@ -4,8 +4,8 @@
  */
 
 import { Router } from 'express';
-import { getRecentActivities, getEntityActivities } from '../controllers/activityController';
-import { authenticate } from '../middleware/auth';
+import { getRecentActivities, getEntityActivities } from '@controllers/domains/engagement';
+import { authenticate } from '@middleware/domains/auth';
 
 const router = Router();
 

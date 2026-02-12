@@ -4,8 +4,8 @@
  */
 
 import crypto from 'crypto';
-import pool from '../config/database';
-import { logger } from '../config/logger';
+import pool from '@config/database';
+import { logger } from '@config/logger';
 import type {
   ApiKey,
   ApiKeyScope,
@@ -15,7 +15,7 @@ import type {
   UpdateApiKeyRequest,
   ApiKeyWithStats,
   ApiKeyUsage,
-} from '../types/webhook';
+} from '@app-types/webhook';
 
 const API_KEY_PREFIX = 'npm_'; // nonprofit-manager prefix
 const KEY_LENGTH = 32;

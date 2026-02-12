@@ -4,10 +4,10 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import pool from '../config/database';
-import { logger } from '../config/logger';
-import { maskData, maskEmail, maskPhone, decrypt, isEncrypted } from '../utils/encryption';
-import { errorPayload, serverError, unauthorized } from '../utils/responseHelpers';
+import pool from '@config/database';
+import { logger } from '@config/logger';
+import { maskData, maskEmail, maskPhone, decrypt, isEncrypted } from '@utils/encryption';
+import { errorPayload, serverError, unauthorized } from '@utils/responseHelpers';
 
 // Extended request type with user info
 interface AuthRequest extends Request {

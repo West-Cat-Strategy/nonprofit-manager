@@ -5,7 +5,7 @@
 
 import { Request, Response } from 'express';
 import * as mailchimpController from '../../controllers/mailchimpController';
-import * as mailchimpService from '../../services/mailchimpService';
+import { mailchimpService } from '@services';
 import { AuthRequest } from '../../middleware/auth';
 
 // Mock the mailchimp service

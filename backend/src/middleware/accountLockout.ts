@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import pool from '../config/database';
-import { logger } from '../config/logger';
-import { errorPayload } from '../utils/responseHelpers';
-import { getRedisClient } from '../config/redis';
+import pool from '@config/database';
+import { logger } from '@config/logger';
+import { errorPayload } from '@utils/responseHelpers';
+import { getRedisClient } from '@config/redis';
 
 interface LoginAttempt {
   userId: string;

@@ -5,7 +5,7 @@
 
 import { Response, NextFunction } from 'express';
 import { services } from '../container/services';
-import { AuthRequest } from '../middleware/auth';
+import { AuthRequest } from '@middleware/auth';
 import type {
   CreateEventDTO,
   UpdateEventDTO,
@@ -13,10 +13,10 @@ import type {
   UpdateRegistrationDTO,
   EventFilters,
   RegistrationFilters,
-} from '../types/event';
-import { EventType, EventStatus, RegistrationStatus } from '../types/event';
-import type { DataScopeFilter } from '../types/dataScope';
-import { badRequest, notFoundMessage } from '../utils/responseHelpers';
+} from '@app-types/event';
+import { EventType, EventStatus, RegistrationStatus } from '@app-types/event';
+import type { DataScopeFilter } from '@app-types/dataScope';
+import { badRequest, notFoundMessage } from '@utils/responseHelpers';
 
 const eventService = services.event;
 

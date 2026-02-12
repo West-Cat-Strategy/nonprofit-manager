@@ -3,11 +3,11 @@
  */
 
 import {
+  CacheProfiles,
+  getCacheControlHeader,
   SiteCacheService,
   siteCacheService,
-  getCacheControlHeader,
-  CacheProfiles,
-} from '../../services/siteCacheService';
+} from '@services';
 
 describe('SiteCacheService', () => {
   let service: SiteCacheService;

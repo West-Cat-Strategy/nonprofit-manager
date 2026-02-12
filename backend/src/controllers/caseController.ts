@@ -1,10 +1,10 @@
 import { Response } from 'express';
-import type { AuthRequest } from '../middleware/auth';
-import * as caseService from '../services/caseService';
-import type { CreateCaseDTO, UpdateCaseDTO, CaseFilter, CreateCaseNoteDTO, UpdateCaseStatusDTO } from '../types/case';
-import { logger } from '../config/logger';
-import { PAGINATION } from '../config/constants';
-import { notFound, serverError } from '../utils/responseHelpers';
+import type { AuthRequest } from '@middleware/auth';
+import { caseService } from '@services';
+import type { CreateCaseDTO, UpdateCaseDTO, CaseFilter, CreateCaseNoteDTO, UpdateCaseStatusDTO } from '@app-types/case';
+import { logger } from '@config/logger';
+import { PAGINATION } from '@config/constants';
+import { notFound, serverError } from '@utils/responseHelpers';
 
 export const createCase = async (req: AuthRequest, res: Response): Promise<void> => {
   try {

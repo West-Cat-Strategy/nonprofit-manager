@@ -1,7 +1,7 @@
 import express from 'express';
-import { authenticate } from '../middleware/auth';
-import * as caseController from '../controllers/caseController';
-import * as documentController from '../controllers/contactDocumentsController';
+import { authenticate } from '@middleware/domains/auth';
+import * as caseController from '@controllers/domains/engagement';
+import * as documentController from '@controllers/domains/engagement';
 
 const router = express.Router();
 

@@ -9,7 +9,7 @@ import type {
   SiteVersion,
   SiteVersionHistory,
   RollbackResult,
-} from '../../types/publishing';
+} from '@app-types/publishing';
 import { SiteManagementService } from './siteManagementService';
 
 export class VersionService {

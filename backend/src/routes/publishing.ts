@@ -5,9 +5,9 @@
 
 import { Router } from 'express';
 import { body, query, param } from 'express-validator';
-import { authenticate } from '../middleware/auth';
-import { validateRequest } from '../middleware/validation';
-import * as publishingController from '../controllers/publishingController';
+import { authenticate } from '@middleware/domains/auth';
+import { validateRequest } from '@middleware/domains/security';
+import * as publishingController from '@controllers/domains/operations';
 
 const router = Router();
 

@@ -1,6 +1,6 @@
-import pool from '../../config/database';
-import { logger } from '../../config/logger';
-import type { TemplateVersion } from '../../types/websiteBuilder';
+import pool from '@config/database';
+import { logger } from '@config/logger';
+import type { TemplateVersion } from '@app-types/websiteBuilder';
 import { incrementVersion } from './helpers';
 import { getTemplate } from './templateCrud';
 

@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { EventService } from '../../services/eventService';
+import { EventService } from '@services';
 import { EventType, EventStatus, RegistrationStatus } from '../../types/event';
 
 // Create mock pool

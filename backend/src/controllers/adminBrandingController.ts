@@ -1,8 +1,8 @@
 import type { Response } from 'express';
-import pool from '../config/database';
-import { logger } from '../config/logger';
-import type { AuthRequest } from '../middleware/auth';
-import { badRequest, serverError } from '../utils/responseHelpers';
+import pool from '@config/database';
+import { logger } from '@config/logger';
+import type { AuthRequest } from '@middleware/auth';
+import { badRequest, serverError } from '@utils/responseHelpers';
 
 type BrandingConfig = {
   appName: string;

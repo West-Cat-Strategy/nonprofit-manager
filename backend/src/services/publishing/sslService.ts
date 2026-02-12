@@ -8,7 +8,7 @@ import type {
   SslCertificateInfo,
   SslStatus,
   SslProvisionResult,
-} from '../../types/publishing';
+} from '@app-types/publishing';
 import { SiteManagementService } from './siteManagementService';
 import { CustomDomainService } from './customDomainService';
 

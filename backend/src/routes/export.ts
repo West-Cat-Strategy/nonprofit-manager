@@ -11,11 +11,11 @@ import {
   exportVolunteerHours,
   exportEvents,
   exportComprehensive,
-} from '../controllers/exportController';
-import { authenticate } from '../middleware/auth';
-import { validateRequest } from '../middleware/validation';
-import { requireExportPermission } from '../middleware/analyticsAuth';
-import { loadDataScope } from '../middleware/dataScope';
+} from '@controllers/domains/operations';
+import { authenticate } from '@middleware/domains/auth';
+import { validateRequest } from '@middleware/domains/security';
+import { requireExportPermission } from '@middleware/domains/security';
+import { loadDataScope } from '@middleware/domains/data';
 
 const router = Router();
 

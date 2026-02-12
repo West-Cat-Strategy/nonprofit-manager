@@ -4,9 +4,9 @@
  */
 
 import { Pool } from 'pg';
-import pool from '../../config/database';
-import { logger } from '../../config/logger';
-import { getCached, setCached } from '../../config/redis';
+import pool from '@config/database';
+import { logger } from '@config/logger';
+import { getCached, setCached } from '@config/redis';
 import type {
   AccountAnalytics,
   ContactAnalytics,
@@ -19,7 +19,7 @@ import type {
   ComparativeAnalytics,
   TrendAnalysis,
   AnomalyDetectionResult,
-} from '../../types/analytics';
+} from '@app-types/analytics';
 
 // Export individual service classes
 export { DonationAnalyticsService } from './donationAnalytics';

@@ -2,11 +2,11 @@ import { Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
-import pool from '../config/database';
-import { AuthRequest } from '../middleware/auth';
-import { PASSWORD } from '../config/constants';
-import { getPortalActivity } from '../services/portalActivityService';
-import { badRequest, conflict, forbidden, notFoundMessage, validationErrorResponse } from '../utils/responseHelpers';
+import pool from '@config/database';
+import { AuthRequest } from '@middleware/auth';
+import { PASSWORD } from '@config/constants';
+import { getPortalActivity } from '@services';
+import { badRequest, conflict, forbidden, notFoundMessage, validationErrorResponse } from '@utils/responseHelpers';
 
 const ensureAdmin = (req: AuthRequest, res: Response): boolean => {
   if (req.user?.role !== 'admin') {

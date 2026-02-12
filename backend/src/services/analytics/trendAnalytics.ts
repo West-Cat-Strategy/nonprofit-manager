@@ -4,8 +4,8 @@
  */
 
 import { Pool } from 'pg';
-import { logger } from '../../config/logger';
-import { getCached, setCached } from '../../config/redis';
+import { logger } from '@config/logger';
+import { getCached, setCached } from '@config/redis';
 import type {
   ComparativeAnalytics,
   PeriodComparison,
@@ -13,7 +13,7 @@ import type {
   TrendDataPoint,
   AnomalyDetectionResult,
   Anomaly,
-} from '../../types/analytics';
+} from '@app-types/analytics';
 import { DonationAnalyticsService } from './donationAnalytics';
 import { VolunteerAnalyticsService } from './volunteerAnalytics';
 import { EventAnalyticsService } from './eventAnalytics';

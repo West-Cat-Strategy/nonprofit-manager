@@ -11,11 +11,11 @@ import {
   BackgroundCheckStatus,
   PaginationParams,
   VolunteerFilters,
-} from '../types/volunteer';
-import { AuthRequest } from '../middleware/auth';
-import { extractPagination, getString, getBoolean } from '../utils/queryHelpers';
-import { notFound, badRequest } from '../utils/responseHelpers';
-import type { DataScopeFilter } from '../types/dataScope';
+} from '@app-types/volunteer';
+import { AuthRequest } from '@middleware/auth';
+import { extractPagination, getString, getBoolean } from '@utils/queryHelpers';
+import { notFound, badRequest } from '@utils/responseHelpers';
+import type { DataScopeFilter } from '@app-types/dataScope';
 
 const volunteerService = services.volunteer;
 

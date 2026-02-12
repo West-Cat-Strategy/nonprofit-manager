@@ -4,7 +4,7 @@
  */
 
 import { Pool } from 'pg';
-import { DashboardService } from '../services/dashboardService';
+import { DashboardService } from '@services';
 import type { CreateDashboardDTO } from '../types/dashboard';
 
 // Mock the pool

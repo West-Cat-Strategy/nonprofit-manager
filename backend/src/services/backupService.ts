@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { pipeline } from 'stream/promises';
 import * as zlib from 'zlib';
-import pool from '../config/database';
+import pool from '@config/database';
 
 export interface BackupExportOptions {
   filename?: string;

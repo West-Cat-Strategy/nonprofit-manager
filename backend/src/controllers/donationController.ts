@@ -10,11 +10,11 @@ import {
   PaymentMethod,
   PaymentStatus,
   UpdateDonationDTO,
-} from '../types/donation';
-import { AuthRequest } from '../middleware/auth';
-import { extractPagination, getString, getNumber, getBoolean } from '../utils/queryHelpers';
-import { notFound } from '../utils/responseHelpers';
-import type { DataScopeFilter } from '../types/dataScope';
+} from '@app-types/donation';
+import { AuthRequest } from '@middleware/auth';
+import { extractPagination, getString, getNumber, getBoolean } from '@utils/queryHelpers';
+import { notFound } from '@utils/responseHelpers';
+import type { DataScopeFilter } from '@app-types/dataScope';
 
 const donationService = services.donation;
 

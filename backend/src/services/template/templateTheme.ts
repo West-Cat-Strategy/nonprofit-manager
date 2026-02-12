@@ -1,9 +1,9 @@
-import pool from '../../config/database';
-import { logger } from '../../config/logger';
-import { SiteGeneratorService } from '../siteGeneratorService';
-import type { Template, TemplateListItem } from '../../types/websiteBuilder';
-import type { PublishedContent, GeneratedPage } from '../../types/publishing';
-import type { ColorPalette } from '../../types/websiteBuilder';
+import pool from '@config/database';
+import { logger } from '@config/logger';
+import { SiteGeneratorService } from '../site-generator.service';
+import type { Template, TemplateListItem } from '@app-types/websiteBuilder';
+import type { PublishedContent, GeneratedPage } from '@app-types/publishing';
+import type { ColorPalette } from '@app-types/websiteBuilder';
 import { mapRowToListItem, generateThemeCssVariables, convertToPublishedTheme, convertToPublishedPage } from './helpers';
 import { getTemplate } from './templateCrud';
 import { createTemplate, updateTemplate } from './templateCrud';

@@ -4,7 +4,7 @@
  */
 
 import { Pool } from 'pg';
-import pool from '../config/database';
+import pool from '@config/database';
 import {
   Event,
   CreateEventDTO,
@@ -17,9 +17,9 @@ import {
   UpdateRegistrationDTO,
   RegistrationFilters,
   CheckInResult,
-} from '../types/event';
-import { resolveSort } from '../utils/queryHelpers';
-import type { DataScopeFilter } from '../types/dataScope';
+} from '@app-types/event';
+import { resolveSort } from '@utils/queryHelpers';
+import type { DataScopeFilter } from '@app-types/dataScope';
 
 type QueryValue = string | number | boolean | Date | null | string[];
 

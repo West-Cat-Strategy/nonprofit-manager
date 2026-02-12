@@ -8,7 +8,7 @@ import type {
   SiteAnalyticsSummary,
   SiteAnalyticsRecord,
   AnalyticsEventType,
-} from '../../types/publishing';
+} from '@app-types/publishing';
 import { SiteManagementService } from './siteManagementService';
 
 export class SiteAnalyticsService {

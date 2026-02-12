@@ -5,7 +5,7 @@
 
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
-import { validateRequest } from '../middleware/validation';
+import { validateRequest } from '@middleware/domains/security';
 import {
   getContacts,
   getContactTags,
@@ -15,15 +15,15 @@ import {
   createContact,
   updateContact,
   deleteContact,
-} from '../controllers/contactController';
-import * as notesController from '../controllers/contactNotesController';
-import * as phonesController from '../controllers/contactPhonesController';
-import * as emailsController from '../controllers/contactEmailsController';
-import * as relationshipsController from '../controllers/contactRelationshipsController';
-import * as documentsController from '../controllers/contactDocumentsController';
-import { authenticate } from '../middleware/auth';
-import { loadDataScope } from '../middleware/dataScope';
-import { documentUpload, handleMulterError } from '../middleware/upload';
+} from '@controllers/domains/engagement';
+import * as notesController from '@controllers/domains/engagement';
+import * as phonesController from '@controllers/domains/engagement';
+import * as emailsController from '@controllers/domains/engagement';
+import * as relationshipsController from '@controllers/domains/engagement';
+import * as documentsController from '@controllers/domains/engagement';
+import { authenticate } from '@middleware/domains/auth';
+import { loadDataScope } from '@middleware/domains/data';
+import { documentUpload, handleMulterError } from '@middleware/domains/platform';
 
 const router = Router();
 

@@ -4,7 +4,7 @@
  */
 
 import { Request, Response, NextFunction, Router } from 'express';
-import { forbidden } from '../utils/responseHelpers';
+import { forbidden } from '@utils/responseHelpers';
 
 // Simple in-memory metrics store (for production, use prom-client)
 interface Metrics {

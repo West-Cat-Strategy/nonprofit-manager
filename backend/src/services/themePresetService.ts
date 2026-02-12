@@ -3,9 +3,9 @@
  * Provides access to color palettes and font pairings for templates.
  */
 
-import pool from '../config/database';
-import { logger } from '../config/logger';
-import type { ColorPalette, Typography } from '../types/websiteBuilder';
+import pool from '@config/database';
+import { logger } from '@config/logger';
+import type { ColorPalette, Typography } from '@app-types/websiteBuilder';
 
 export type ThemeColorPalette = {
   id: string;

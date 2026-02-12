@@ -4,10 +4,10 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { AuthRequest } from '../middleware/auth';
+import { AuthRequest } from '@middleware/auth';
 import { ingestPreviewFromBuffer, ingestPreviewFromText, ingestPreviewFromTextAuto } from '../ingest/preview';
 import type { IngestSourceType } from '../ingest/types';
-import { badRequest } from '../utils/responseHelpers';
+import { badRequest } from '@utils/responseHelpers';
 
 export const previewUpload = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {

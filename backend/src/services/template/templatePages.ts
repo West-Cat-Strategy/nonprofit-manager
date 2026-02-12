@@ -1,12 +1,12 @@
-import pool from '../../config/database';
-import { logger } from '../../config/logger';
+import pool from '@config/database';
+import { logger } from '@config/logger';
 import type {
   TemplatePage,
   CreatePageRequest,
   UpdatePageRequest,
   PageSEO,
   PageSection,
-} from '../../types/websiteBuilder';
+} from '@app-types/websiteBuilder';
 import { mapRowToPage } from './helpers';
 
 /**
