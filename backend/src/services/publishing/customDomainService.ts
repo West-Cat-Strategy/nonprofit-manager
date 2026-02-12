@@ -12,7 +12,7 @@ import type {
   DomainVerificationResult,
   DomainVerificationStatus,
   DnsRecord,
-} from '../../types/publishing';
+} from '@app-types/publishing';
 import { SiteManagementService } from './siteManagementService';
 
 const resolveCname = promisify(dns.resolveCname);

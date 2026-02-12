@@ -5,9 +5,9 @@
 
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from './auth';
-import { logger } from '../config/logger';
-import pool from '../config/database';
-import { forbidden, unauthorized } from '../utils/responseHelpers';
+import { logger } from '@config/logger';
+import pool from '@config/database';
+import { forbidden, unauthorized } from '@utils/responseHelpers';
 
 /**
  * Analytics access levels by role

@@ -4,8 +4,8 @@
  */
 
 import Stripe from 'stripe';
-import { logger } from '../config/logger';
-import pool from '../config/database';
+import { logger } from '@config/logger';
+import pool from '@config/database';
 import type {
   PaymentReconciliation,
   ReconciliationItem,
@@ -16,7 +16,7 @@ import type {
   MatchStatus,
   MatchConfidence,
   DiscrepancySeverity,
-} from '../types/reconciliation';
+} from '@app-types/reconciliation';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 let stripe: Stripe | null = null;

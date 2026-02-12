@@ -2,12 +2,12 @@ import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { validationResult } from 'express-validator';
-import pool from '../config/database';
-import { getJwtSecret } from '../config/jwt';
-import { PASSWORD, JWT } from '../config/constants';
-import { PortalAuthRequest } from '../middleware/portalAuth';
-import { logPortalActivity } from '../services/portalActivityService';
-import { badRequest, conflict, errorPayload, forbidden, notFoundMessage, unauthorized, validationErrorResponse } from '../utils/responseHelpers';
+import pool from '@config/database';
+import { getJwtSecret } from '@config/jwt';
+import { PASSWORD, JWT } from '@config/constants';
+import { PortalAuthRequest } from '@middleware/portalAuth';
+import { logPortalActivity } from '@services';
+import { badRequest, conflict, errorPayload, forbidden, notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
 
 interface PortalSignupRequest {
   email: string;

@@ -4,7 +4,7 @@
  */
 
 import crypto from 'crypto';
-import { logger } from '../config/logger';
+import { logger } from '@config/logger';
 
 // Configuration
 const ALGORITHM = 'aes-256-gcm';

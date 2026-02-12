@@ -291,4 +291,3 @@ export function parseSqlToDatasets(sql: string, options: SqlParseOptions = {}): 
 
   return datasets;
 }
-

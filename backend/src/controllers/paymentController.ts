@@ -5,15 +5,15 @@
 
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
-import { logger } from '../config/logger';
-import * as stripeService from '../services/stripeService';
-import type { AuthRequest } from '../middleware/auth';
+import { logger } from '@config/logger';
+import { stripeService } from '@services';
+import type { AuthRequest } from '@middleware/auth';
 import type {
   CreatePaymentIntentRequest,
   RefundRequest,
   CreateCustomerRequest,
-} from '../types/payment';
-import { badRequest, serverError } from '../utils/responseHelpers';
+} from '@app-types/payment';
+import { badRequest, serverError } from '@utils/responseHelpers';
 
 // Database pool
 let pool: Pool;

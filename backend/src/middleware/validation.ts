@@ -5,8 +5,8 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { validationResult, ValidationChain, body, param, query } from 'express-validator';
-import { logger } from '../config/logger';
-import { validationErrorResponse } from '../utils/responseHelpers';
+import { logger } from '@config/logger';
+import { validationErrorResponse } from '@utils/responseHelpers';
 
 /**
  * Middleware to check validation results

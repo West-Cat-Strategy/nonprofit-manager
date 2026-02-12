@@ -3,7 +3,7 @@
  * Used for caching analytics query results
  */
 
-import { CACHE } from '../config/constants';
+import { CACHE } from '@config/constants';
 
 interface CacheEntry<T> {
   value: T;

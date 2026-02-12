@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { body, param } from 'express-validator';
-import { authenticate } from '../middleware/auth';
-import { validateRequest } from '../middleware/validation';
+import { authenticate } from '@middleware/domains/auth';
+import { validateRequest } from '@middleware/domains/security';
 import {
   listPortalSignupRequests,
   approvePortalSignupRequest,
@@ -12,7 +12,7 @@ import {
   updatePortalUserStatus,
   getPortalUserActivity,
   resetPortalUserPassword,
-} from '../controllers/portalAdminController';
+} from '@controllers/domains/portal';
 
 const router = Router();
 

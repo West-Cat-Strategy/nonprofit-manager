@@ -4,7 +4,7 @@
  */
 
 import { Pool } from 'pg';
-import pool from '../config/database';
+import pool from '@config/database';
 import {
   Donation,
   CreateDonationDTO,
@@ -13,9 +13,9 @@ import {
   PaginationParams,
   PaginatedDonations,
   DonationSummary,
-} from '../types/donation';
-import { resolveSort } from '../utils/queryHelpers';
-import type { DataScopeFilter } from '../types/dataScope';
+} from '@app-types/donation';
+import { resolveSort } from '@utils/queryHelpers';
+import type { DataScopeFilter } from '@app-types/dataScope';
 
 type QueryValue = string | number | boolean | Date | null | string[];
 

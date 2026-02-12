@@ -4,8 +4,8 @@
  */
 
 import { Pool } from 'pg';
-import pool from '../config/database';
-import { logger } from '../config/logger';
+import pool from '@config/database';
+import { logger } from '@config/logger';
 import type {
   Case,
   CaseWithDetails,
@@ -16,7 +16,7 @@ import type {
   CaseNote,
   CreateCaseNoteDTO,
   UpdateCaseStatusDTO,
-} from '../types/case';
+} from '@app-types/case';
 
 export class CaseService {
   constructor(private pool: Pool) {}

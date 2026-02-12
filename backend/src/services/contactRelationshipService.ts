@@ -3,13 +3,13 @@
  * Handles CRUD operations for contact relationships
  */
 
-import pool from '../config/database';
-import { logger } from '../config/logger';
+import pool from '@config/database';
+import { logger } from '@config/logger';
 import type {
   ContactRelationship,
   CreateContactRelationshipDTO,
   UpdateContactRelationshipDTO,
-} from '../types/contact';
+} from '@app-types/contact';
 
 /**
  * Get all relationships for a contact

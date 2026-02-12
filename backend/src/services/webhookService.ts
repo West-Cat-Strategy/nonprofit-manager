@@ -6,8 +6,8 @@
 import crypto from 'crypto';
 import dns from 'dns/promises';
 import net from 'net';
-import pool from '../config/database';
-import { logger } from '../config/logger';
+import pool from '@config/database';
+import { logger } from '@config/logger';
 import type {
   WebhookEndpoint,
   WebhookDelivery,
@@ -18,7 +18,7 @@ import type {
   UpdateWebhookEndpointRequest,
   WebhookEndpointWithStats,
   WebhookTestResponse,
-} from '../types/webhook';
+} from '@app-types/webhook';
 
 const MAX_RETRY_ATTEMPTS = 5;
 const RETRY_DELAYS = [60, 300, 900, 3600, 7200]; // seconds: 1m, 5m, 15m, 1h, 2h

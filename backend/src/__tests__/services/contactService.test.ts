@@ -1,4 +1,4 @@
-import { ContactService } from '../../services/contactService';
+import { ContactService } from '@services';
 import { Pool } from 'pg';
 
 // Mock the logger

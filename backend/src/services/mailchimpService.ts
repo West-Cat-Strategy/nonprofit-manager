@@ -5,8 +5,8 @@
 
 import mailchimp from '@mailchimp/mailchimp_marketing';
 import crypto from 'crypto';
-import { logger } from '../config/logger';
-import pool from '../config/database';
+import { logger } from '@config/logger';
+import pool from '@config/database';
 import type {
   MailchimpStatus,
   MailchimpList,
@@ -23,7 +23,7 @@ import type {
   CreateSegmentRequest,
   MailchimpSegment,
   CreateCampaignRequest,
-} from '../types/mailchimp';
+} from '@app-types/mailchimp';
 
 // Note: @mailchimp/mailchimp_marketing has incomplete TypeScript definitions.
 // We use 'any' here because the library's types don't expose the actual API methods

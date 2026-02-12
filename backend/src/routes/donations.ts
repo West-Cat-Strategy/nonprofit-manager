@@ -5,10 +5,10 @@
 
 import { Router } from 'express';
 import { body, query } from 'express-validator';
-import donationController from '../controllers/donationController';
-import { authenticate } from '../middleware/auth';
-import { loadDataScope } from '../middleware/dataScope';
-import { validateRequest } from '../middleware/validation';
+import { donationController } from '@controllers/domains/engagement';
+import { authenticate } from '@middleware/domains/auth';
+import { loadDataScope } from '@middleware/domains/data';
+import { validateRequest } from '@middleware/domains/security';
 
 const router = Router();
 

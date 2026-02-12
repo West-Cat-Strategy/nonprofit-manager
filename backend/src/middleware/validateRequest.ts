@@ -5,7 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { validationResult, ValidationError, ValidationChain } from 'express-validator';
-import { validationError } from '../utils/responseHelpers';
+import { validationError } from '@utils/responseHelpers';
 
 /**
  * Format validation errors into a consistent structure

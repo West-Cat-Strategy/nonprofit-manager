@@ -1,4 +1,4 @@
-import type { DonationMetrics, EventMetrics, TaskMetrics, VolunteerMetrics } from '../../types/analytics';
+import type { DonationMetrics, EventMetrics, TaskMetrics, VolunteerMetrics } from '@app-types/analytics';
 
 /**
  * Calculate engagement score based on various metrics (0-100).

@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { getJwtSecret } from '../config/jwt';
-import { forbidden, unauthorized } from '../utils/responseHelpers';
-import { extractToken, AUTH_COOKIE_NAME } from '../utils/cookieHelper';
+import { getJwtSecret } from '@config/jwt';
+import { forbidden, unauthorized } from '@utils/responseHelpers';
+import { extractToken, AUTH_COOKIE_NAME } from '@utils/cookieHelper';
 
 interface JwtPayload {
   id: string;

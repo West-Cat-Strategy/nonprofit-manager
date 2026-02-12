@@ -7,8 +7,8 @@ import type {
   TemplateStatus,
   PageSEO,
   PageSection,
-} from '../../types/websiteBuilder';
-import type { PublishedPage, PublishedTheme, PublishedSection } from '../../types/publishing';
+} from '@app-types/websiteBuilder';
+import type { PublishedPage, PublishedTheme, PublishedSection } from '@app-types/publishing';
 
 /**
  * Map database row to Template object

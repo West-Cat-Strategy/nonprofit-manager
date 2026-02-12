@@ -4,8 +4,8 @@
  */
 
 import express from 'express';
-import { authenticate } from '../middleware/auth';
-import * as reconciliationController from '../controllers/reconciliationController';
+import { authenticate } from '@middleware/domains/auth';
+import * as reconciliationController from '@controllers/domains/operations';
 
 const router = express.Router();
 

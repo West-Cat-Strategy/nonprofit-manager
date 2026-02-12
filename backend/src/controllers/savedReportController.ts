@@ -5,9 +5,9 @@
 
 import { Response, NextFunction } from 'express';
 import { services } from '../container/services';
-import { AuthRequest } from '../middleware/auth';
-import type { CreateSavedReportRequest, UpdateSavedReportRequest } from '../types/savedReport';
-import { badRequest, notFoundMessage, unauthorized } from '../utils/responseHelpers';
+import { AuthRequest } from '@middleware/auth';
+import type { CreateSavedReportRequest, UpdateSavedReportRequest } from '@app-types/savedReport';
+import { badRequest, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 
 const savedReportService = services.savedReport;
 

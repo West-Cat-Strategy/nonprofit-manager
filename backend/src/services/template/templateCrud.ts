@@ -1,12 +1,12 @@
-import pool from '../../config/database';
-import { logger } from '../../config/logger';
+import pool from '@config/database';
+import { logger } from '@config/logger';
 import type {
   Template,
   TemplateSearchParams,
   TemplateSearchResponse,
   CreateTemplateRequest,
   UpdateTemplateRequest,
-} from '../../types/websiteBuilder';
+} from '@app-types/websiteBuilder';
 import { defaultTheme, defaultGlobalSettings } from './constants';
 import { mapRowToTemplate, mapRowToListItem, mapRowToPage } from './helpers';
 import { getTemplatePages } from './templatePages';

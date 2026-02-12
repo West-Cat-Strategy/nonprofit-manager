@@ -4,8 +4,8 @@
  */
 
 import { Pool } from 'pg';
-import { logger } from '../../config/logger';
-import type { TaskMetrics } from '../../types/analytics';
+import { logger } from '@config/logger';
+import type { TaskMetrics } from '@app-types/analytics';
 
 export class TaskAnalyticsService {
   constructor(private pool: Pool) {}

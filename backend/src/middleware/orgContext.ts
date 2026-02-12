@@ -1,8 +1,8 @@
 import { Response, NextFunction } from 'express';
-import pool from '../config/database';
-import { logger } from '../config/logger';
+import pool from '@config/database';
+import { logger } from '@config/logger';
 import { AuthRequest } from './auth';
-import { badRequest, forbidden, notFoundMessage, serverError } from '../utils/responseHelpers';
+import { badRequest, forbidden, notFoundMessage, serverError } from '@utils/responseHelpers';
 
 type OrgContextSource = 'header' | 'query' | 'param';
 

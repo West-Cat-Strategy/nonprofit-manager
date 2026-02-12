@@ -1,4 +1,4 @@
-import { AnalyticsService } from '../../services/analyticsService';
+import { AnalyticsService } from '@services';
 import { Pool } from 'pg';
 
 // Mock the logger

@@ -3,13 +3,13 @@
  * Handles CRUD operations for contact phone numbers
  */
 
-import pool from '../config/database';
-import { logger } from '../config/logger';
+import pool from '@config/database';
+import { logger } from '@config/logger';
 import type {
   ContactPhoneNumber,
   CreateContactPhoneDTO,
   UpdateContactPhoneDTO,
-} from '../types/contact';
+} from '@app-types/contact';
 
 /**
  * Get all phone numbers for a contact

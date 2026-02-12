@@ -1,6 +1,6 @@
 import express from 'express';
-import { authenticate, authorize } from '../middleware/auth';
-import { getBranding, putBranding } from '../controllers/adminBrandingController';
+import { authenticate, authorize } from '@middleware/domains/auth';
+import { getBranding, putBranding } from '@controllers/domains/core';
 
 const router = express.Router();
 

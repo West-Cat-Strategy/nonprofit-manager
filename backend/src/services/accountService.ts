@@ -11,11 +11,11 @@ import {
   AccountFilters,
   PaginationParams,
   PaginatedAccounts,
-} from '../types/account';
-import { Contact } from '../types/contact';
-import { logger } from '../config/logger';
-import { resolveSort } from '../utils/queryHelpers';
-import type { DataScopeFilter } from '../types/dataScope';
+} from '@app-types/account';
+import { Contact } from '@app-types/contact';
+import { logger } from '@config/logger';
+import { resolveSort } from '@utils/queryHelpers';
+import type { DataScopeFilter } from '@app-types/dataScope';
 
 type QueryValue = string | number | boolean | null | string[];
 type DbClient = Pick<Pool, 'query'>;

@@ -4,17 +4,17 @@
  */
 
 import { Request, Response } from 'express';
-import { logger } from '../config/logger';
-import * as reconciliationService from '../services/reconciliationService';
-import type { AuthRequest } from '../middleware/auth';
+import { logger } from '@config/logger';
+import { reconciliationService } from '@services';
+import type { AuthRequest } from '@middleware/auth';
 import type {
   CreateReconciliationRequest,
   MatchTransactionRequest,
   ResolveDiscrepancyRequest,
   MatchStatus,
-} from '../types/reconciliation';
-import pool from '../config/database';
-import { badRequest, notFoundMessage, serverError, serviceUnavailable } from '../utils/responseHelpers';
+} from '@app-types/reconciliation';
+import pool from '@config/database';
+import { badRequest, notFoundMessage, serverError, serviceUnavailable } from '@utils/responseHelpers';
 
 /**
  * Create a new payment reconciliation

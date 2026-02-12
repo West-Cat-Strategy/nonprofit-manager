@@ -5,9 +5,9 @@
 
 import express from 'express';
 import { body, query, param } from 'express-validator';
-import { taskController } from '../controllers/taskController';
-import { authenticate } from '../middleware/auth';
-import { validateRequest } from '../middleware/validation';
+import { taskController } from '@controllers/domains/engagement';
+import { authenticate } from '@middleware/domains/auth';
+import { validateRequest } from '@middleware/domains/security';
 
 const router = express.Router();
 

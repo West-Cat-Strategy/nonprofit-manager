@@ -4,7 +4,7 @@
  */
 
 import { Pool, QueryResult } from 'pg';
-import { SavedReportService } from '../../services/savedReportService';
+import { SavedReportService } from '@services';
 import type { CreateSavedReportRequest, UpdateSavedReportRequest, SavedReport } from '../../types/savedReport';
 
 // Create mock pool

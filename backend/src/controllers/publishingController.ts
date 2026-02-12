@@ -5,18 +5,17 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
-import publishingService from '../services/publishingService';
-import { siteCacheService, getCacheControlHeader } from '../services/siteCacheService';
-import { logger } from '../config/logger';
-import type { AuthRequest } from '../middleware/auth';
+import { getCacheControlHeader, publishingService, siteCacheService } from '@services';
+import { logger } from '@config/logger';
+import type { AuthRequest } from '@middleware/auth';
 import type {
   CreatePublishedSiteDTO,
   UpdatePublishedSiteDTO,
   PublishedSiteSearchParams,
   AnalyticsEventType,
-} from '../types/publishing';
-import { badRequest, conflict, forbidden, notFoundMessage, validationErrorResponse } from '../utils/responseHelpers';
-import { extractPagination } from '../utils/queryHelpers';
+} from '@app-types/publishing';
+import { badRequest, conflict, forbidden, notFoundMessage, validationErrorResponse } from '@utils/responseHelpers';
+import { extractPagination } from '@utils/queryHelpers';
 
 /**
  * Create a new published site entry

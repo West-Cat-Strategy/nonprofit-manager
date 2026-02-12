@@ -10,7 +10,7 @@ import * as path from 'path';
 import type {
   AnalyticsSummary,
   TrendAnalysis,
-} from '../types/analytics';
+} from '@app-types/analytics';
 
 export type ExportFormat = 'csv' | 'excel';
 
