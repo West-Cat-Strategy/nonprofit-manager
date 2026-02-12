@@ -142,13 +142,18 @@ export async function createTestContact(
   const response = await page.request.post(`${apiURL}/api/contacts`, {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     data: {
-      contactType: 'donor',
-      ...data,
+      first_name: data.firstName,
+      last_name: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      account_id: data.accountId,
+      // Keep legacy field for older backends that still parse it.
+      contactType: data.contactType || 'donor',
     },
   });
 
   const result = await response.json();
-  return { id: result.id };
+  return { id: result.contact_id || result.id };
 }
 
 /**
@@ -167,18 +172,24 @@ export async function createTestDonation(
 ): Promise<{ id: string }> {
   const apiURL = process.env.API_URL || 'http://localhost:3001';
 
+  const donationDate = data.donationDate || new Date().toISOString();
   const response = await page.request.post(`${apiURL}/api/donations`, {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     data: {
-      donationDate: new Date().toISOString(),
-      paymentMethod: 'credit_card',
-      paymentStatus: 'completed',
-      ...data,
+      account_id: data.accountId,
+      amount: data.amount,
+      donation_date: donationDate,
+      payment_method: data.paymentMethod || 'credit_card',
+      payment_status: data.paymentStatus || 'completed',
     },
   });
 
+  if (!response.ok()) {
+    throw new Error(`Failed to create test donation (${response.status()}): ${await response.text()}`);
+  }
+
   const result = await response.json();
-  return { id: result.id };
+  return { id: result.donation_id || result.id };
 }
 
 /**
@@ -200,19 +211,25 @@ export async function createTestEvent(
 
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
+  const startDate = data.startDate || tomorrow.toISOString();
+  const endDate = data.endDate || tomorrow.toISOString();
 
   const response = await page.request.post(`${apiURL}/api/events`, {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     data: {
-      eventType: 'fundraiser',
-      startDate: tomorrow.toISOString(),
-      endDate: tomorrow.toISOString(),
-      location: 'Test Location',
-      capacity: 100,
-      ...data,
+      event_name: data.name,
+      event_type: data.eventType || 'fundraiser',
+      start_date: startDate,
+      end_date: endDate,
+      location_name: data.location || 'Test Location',
+      capacity: data.capacity ?? 100,
     },
   });
 
+  if (!response.ok()) {
+    throw new Error(`Failed to create test event (${response.status()}): ${await response.text()}`);
+  }
+
   const result = await response.json();
-  return { id: result.id };
+  return { id: result.event_id || result.id };
 }

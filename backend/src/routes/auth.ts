@@ -32,14 +32,14 @@ import {
   registrationVerify as passkeyRegistrationVerify,
 } from '../controllers/passkeyController';
 import { authenticate } from '../middleware/auth';
-import { authLimiter, registrationLimiter } from '../middleware/rateLimiter';
+import { authLimiterMiddleware, registrationLimiterMiddleware } from '../middleware/rateLimiter';
 import { checkAccountLockout } from '../middleware/accountLockout';
 
 const router = Router();
 
 router.post(
   '/register',
-  registrationLimiter,
+  registrationLimiterMiddleware,
   [
     body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
     body('password')
@@ -56,7 +56,7 @@ router.post(
 
 router.post(
   '/login',
-  authLimiter,
+  authLimiterMiddleware,
   checkAccountLockout,
   [
     body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
@@ -68,7 +68,7 @@ router.post(
 
 router.post(
   '/login/2fa',
-  authLimiter,
+  authLimiterMiddleware,
   checkAccountLockout,
   [
     body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
@@ -160,14 +160,14 @@ router.post(
 );
 router.post(
   '/passkeys/login/options',
-  authLimiter,
+  authLimiterMiddleware,
   checkAccountLockout,
   [body('email').isEmail().normalizeEmail().withMessage('Valid email is required'), validateRequest],
   passkeyLoginOptions
 );
 router.post(
   '/passkeys/login/verify',
-  authLimiter,
+  authLimiterMiddleware,
   checkAccountLockout,
   [
     body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),

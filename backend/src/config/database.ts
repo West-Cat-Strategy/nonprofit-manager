@@ -1,6 +1,18 @@
 import { Pool, PoolConfig } from 'pg';
+import dotenv from 'dotenv';
 import { logger } from './logger';
 import { DATABASE } from './constants';
+
+if (process.env.JEST_WORKER_ID && !process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'test';
+}
+
+if (process.env.NODE_ENV === 'test') {
+  dotenv.config({ path: '.env.test' });
+  dotenv.config({ path: '.env' });
+} else {
+  dotenv.config({ path: '.env' });
+}
 
 const config: PoolConfig = {
   host: process.env.DB_HOST || 'localhost',

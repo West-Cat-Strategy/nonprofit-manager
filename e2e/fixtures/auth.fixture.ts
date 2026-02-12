@@ -5,7 +5,7 @@
 
 import '../helpers/testEnv';
 import { test as base, Page } from '@playwright/test';
-import { createTestUser, login, loginViaAPI, clearAuth, ensureSetupComplete } from '../helpers/auth';
+import { ensureLoginViaAPI, clearAuth } from '../helpers/auth';
 import { clearDatabase } from '../helpers/database';
 import { getSharedTestUser } from '../helpers/testUser';
 
@@ -27,24 +27,11 @@ type AuthFixtures = {
 export const test = base.extend<AuthFixtures>({
   authenticatedPage: async ({ page }, use) => {
     const { email: TEST_USER_EMAIL, password: TEST_USER_PASSWORD } = getSharedTestUser();
-    await ensureSetupComplete(page, TEST_USER_EMAIL, TEST_USER_PASSWORD, {
+    await ensureLoginViaAPI(page, TEST_USER_EMAIL, TEST_USER_PASSWORD, {
       firstName: 'Test',
       lastName: 'User',
     });
-    try {
-      await createTestUser(page, {
-        email: TEST_USER_EMAIL,
-        password: TEST_USER_PASSWORD,
-        firstName: 'Test',
-        lastName: 'User',
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (!message.toLowerCase().includes('user already exists')) {
-        throw error;
-      }
-    }
-    await login(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+    await page.goto('/dashboard');
 
     // Provide authenticated page to test
     await use(page);
@@ -55,24 +42,10 @@ export const test = base.extend<AuthFixtures>({
 
   authToken: async ({ page }, use) => {
     const { email: TEST_USER_EMAIL, password: TEST_USER_PASSWORD } = getSharedTestUser();
-    await ensureSetupComplete(page, TEST_USER_EMAIL, TEST_USER_PASSWORD, {
+    const { token } = await ensureLoginViaAPI(page, TEST_USER_EMAIL, TEST_USER_PASSWORD, {
       firstName: 'Test',
       lastName: 'User',
     });
-    try {
-      await createTestUser(page, {
-        email: TEST_USER_EMAIL,
-        password: TEST_USER_PASSWORD,
-        firstName: 'Test',
-        lastName: 'User',
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (!message.toLowerCase().includes('user already exists')) {
-        throw error;
-      }
-    }
-    const { token } = await loginViaAPI(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
 
     // Provide token to test
     await use(token);
@@ -93,25 +66,11 @@ export const test = base.extend<AuthFixtures>({
 export const testWithCleanDB = test.extend({
   authenticatedPage: async ({ page }, use) => {
     const { email: TEST_USER_EMAIL, password: TEST_USER_PASSWORD } = getSharedTestUser();
-    await ensureSetupComplete(page, TEST_USER_EMAIL, TEST_USER_PASSWORD, {
+    const { token } = await ensureLoginViaAPI(page, TEST_USER_EMAIL, TEST_USER_PASSWORD, {
       firstName: 'Test',
       lastName: 'User',
     });
-    try {
-      await createTestUser(page, {
-        email: TEST_USER_EMAIL,
-        password: TEST_USER_PASSWORD,
-        firstName: 'Test',
-        lastName: 'User',
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (!message.toLowerCase().includes('user already exists')) {
-        throw error;
-      }
-    }
-    await login(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
-    const { token } = await loginViaAPI(page, TEST_USER_EMAIL, TEST_USER_PASSWORD);
+    await page.goto('/dashboard');
     await clearDatabase(page, token);
 
     // Provide authenticated page to test

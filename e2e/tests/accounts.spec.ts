@@ -125,18 +125,27 @@ test.describe('Accounts Module', () => {
   }) => {
     // Create test accounts
     const suffix = Date.now();
-    await createTestAccount(authenticatedPage, authToken, {
-      name: `Apple Foundation ${suffix}`,
-      email: `apple+${suffix}@example.com`,
-    });
-    await createTestAccount(authenticatedPage, authToken, {
-      name: `Banana Charity ${suffix}`,
-      email: `banana+${suffix}@example.com`,
-    });
-    await createTestAccount(authenticatedPage, authToken, {
-      name: `Cherry Nonprofit ${suffix}`,
-      email: `cherry+${suffix}@example.com`,
-    });
+    const accountNames = [
+      `Apple Foundation ${suffix}`,
+      `Banana Charity ${suffix}`,
+      `Cherry Nonprofit ${suffix}`,
+    ];
+
+    for (const [index, name] of accountNames.entries()) {
+      const response = await authenticatedPage.request.post(
+        `${process.env.API_URL || 'http://localhost:3001'}/api/accounts`,
+        {
+          headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+          data: {
+            account_name: name,
+            account_type: 'organization',
+            category: 'donor',
+            email: `acct.${suffix}.${index}@example.com`,
+          },
+        }
+      );
+      await expect(response.status()).toBe(201);
+    }
 
     await authenticatedPage.goto('/accounts');
 
@@ -149,9 +158,9 @@ test.describe('Accounts Module', () => {
       .click();
 
     // Wait for search results
-    await expect(
-      authenticatedPage.locator(`text=Apple Foundation ${suffix}`)
-    ).toBeVisible({ timeout: 10000 });
+    await expect(authenticatedPage.locator(`text=Apple Foundation ${suffix}`)).toBeVisible({
+      timeout: 10000,
+    });
 
     // Should show Apple Foundation
     // Search is server-side; ensure at least the expected result is present.
@@ -288,8 +297,7 @@ test.describe('Accounts Module', () => {
 
     // Click next page
     await nextButton.click();
-
-    await expect(authenticatedPage.locator('text=/Showing page 2 of/i')).toBeVisible({
+    await expect(authenticatedPage.getByRole('button', { name: /previous/i })).toBeEnabled({
       timeout: 10000,
     });
 

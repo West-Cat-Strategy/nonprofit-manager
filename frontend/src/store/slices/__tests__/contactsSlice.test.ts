@@ -60,6 +60,9 @@ const initialState: ContactsState = {
     account_id: '',
     is_active: true,
     tags: [],
+    role: '',
+    sort_by: 'created_at',
+    sort_order: 'desc',
   },
   phones: [],
   emails: [],
@@ -90,7 +93,15 @@ describe('contactsSlice', () => {
     it('clears filters to initial state', () => {
       const stateWithFilters = {
         ...initialState,
-        filters: { search: 'test', account_id: 'acc-1', is_active: false, tags: ['vip'] },
+        filters: {
+          search: 'test',
+          account_id: 'acc-1',
+          is_active: false,
+          tags: ['vip'],
+          role: 'staff',
+          sort_by: 'first_name',
+          sort_order: 'asc',
+        },
       };
       const state = reducer(stateWithFilters, clearFilters());
       expect(state.filters).toEqual(initialState.filters);

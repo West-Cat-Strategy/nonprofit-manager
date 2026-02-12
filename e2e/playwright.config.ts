@@ -16,6 +16,7 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
 const API_URL = process.env.API_URL || 'http://localhost:3001';
 process.env.BASE_URL = BASE_URL;
 process.env.API_URL = API_URL;
+const SKIP_WEBSERVER = process.env.SKIP_WEBSERVER === '1';
 export default defineConfig({
   testDir: './tests',
 
@@ -95,26 +96,33 @@ export default defineConfig({
   ],
 
   // Run local dev servers before starting tests
-  webServer: [
-    {
-      command: 'cd ../backend && npm run dev',
-      url: 'http://localhost:3001/health/live',
-      timeout: 120 * 1000,
-      reuseExistingServer: !process.env.CI,
-      env: {
-        NODE_ENV: 'test',
-        PORT: '3001',
-        REDIS_ENABLED: 'false',
-      },
-    },
-    {
-      command: 'cd ../frontend && npm run dev',
-      url: 'http://localhost:5173',
-      timeout: 120 * 1000,
-      reuseExistingServer: !process.env.CI,
-      env: {
-        VITE_API_URL: 'http://localhost:3001/api',
-      },
-    },
-  ],
+  webServer: SKIP_WEBSERVER
+    ? undefined
+    : [
+        {
+          command: 'cd ../backend && npm run dev',
+          url: 'http://localhost:3001/health/live',
+          timeout: 120 * 1000,
+          reuseExistingServer: false,
+          env: {
+            NODE_ENV: 'test',
+            PORT: '3001',
+            REDIS_ENABLED: 'false',
+            DB_HOST: 'localhost',
+            DB_PORT: '5433',
+            DB_NAME: 'nonprofit_manager',
+            DB_USER: 'postgres',
+            DB_PASSWORD: 'postgres',
+          },
+        },
+        {
+          command: 'cd ../frontend && npm run dev',
+          url: 'http://localhost:5173',
+          timeout: 120 * 1000,
+          reuseExistingServer: false,
+          env: {
+            VITE_API_URL: 'http://localhost:3001/api',
+          },
+        },
+      ],
 });

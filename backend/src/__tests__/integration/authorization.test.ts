@@ -82,20 +82,29 @@ describe('Authorization Integration Tests', () => {
   afterAll(async () => {
     // Clean up test data
     try {
+      const testUserIds = Object.values(userIds);
+      if (testUserIds.length > 0) {
+        // Accounts reference users via created_by; remove any leftovers before deleting users.
+        await pool.query('DELETE FROM accounts WHERE created_by = ANY($1::uuid[])', [testUserIds]);
+      }
       if (testData.contactId) {
         await pool.query('DELETE FROM contacts WHERE id = $1', [testData.contactId]);
       }
       if (testData.accountId) {
         await pool.query('DELETE FROM accounts WHERE id = $1', [testData.accountId]);
       }
-      for (const userId of Object.values(userIds)) {
+      for (const userId of testUserIds) {
         // user_roles table may not exist if migration hasn't run
         try {
           await pool.query('DELETE FROM user_roles WHERE user_id = $1', [userId]);
         } catch {
           // Ignore if table doesn't exist
         }
-        await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+        try {
+          await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+        } catch {
+          // Ignore FK cleanup failures; test users are uniquely namespaced per run.
+        }
       }
     } finally {
       await pool.end();
