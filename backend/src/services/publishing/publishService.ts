@@ -9,8 +9,8 @@ import type {
   PublishedContent,
   PublishResult,
   SiteDeploymentInfo,
-} from '../../types/publishing';
-import type { TemplatePage, PageSection } from '../../types/websiteBuilder';
+} from '@app-types/publishing';
+import type { TemplatePage, PageSection } from '@app-types/websiteBuilder';
 import { SiteManagementService } from './siteManagementService';
 
 export class PublishService {

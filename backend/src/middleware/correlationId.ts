@@ -5,7 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { randomUUID } from 'crypto';
-import { logger } from '../config/logger';
+import { logger } from '@config/logger';
 
 export const CORRELATION_ID_HEADER = 'x-correlation-id';
 

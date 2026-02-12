@@ -1,5 +1,5 @@
-import pool from '../config/database';
-import { logger } from '../config/logger';
+import pool from '@config/database';
+import { logger } from '@config/logger';
 
 export interface PortalActivityEntry {
   id: string;

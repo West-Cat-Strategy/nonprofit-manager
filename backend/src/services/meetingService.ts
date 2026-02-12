@@ -1,6 +1,6 @@
-import pool from '../config/database';
-import { logger } from '../config/logger';
-import type { Committee, Meeting, MeetingAgendaItem, MeetingMotion, MeetingActionItem, MeetingDetail } from '../types/meeting';
+import pool from '@config/database';
+import { logger } from '@config/logger';
+import type { Committee, Meeting, MeetingAgendaItem, MeetingMotion, MeetingActionItem, MeetingDetail } from '@app-types/meeting';
 
 export const listCommittees = async (): Promise<Committee[]> => {
   const result = await pool.query(

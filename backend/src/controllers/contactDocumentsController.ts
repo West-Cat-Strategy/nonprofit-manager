@@ -4,11 +4,11 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { AuthRequest } from '../middleware/auth';
-import * as documentService from '../services/contactDocumentService';
+import { AuthRequest } from '@middleware/auth';
+import { contactDocumentService as documentService } from '@services';
 import { services } from '../container/services';
-import type { DataScopeFilter } from '../types/dataScope';
-import { badRequest, notFoundMessage } from '../utils/responseHelpers';
+import type { DataScopeFilter } from '@app-types/dataScope';
+import { badRequest, notFoundMessage } from '@utils/responseHelpers';
 
 const contactService = services.contact;
 

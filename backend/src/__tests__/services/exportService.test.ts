@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { ExportService } from '../../services/exportService';
+import { ExportService } from '@services';
 
 describe('ExportService', () => {
   const exportService = new ExportService();

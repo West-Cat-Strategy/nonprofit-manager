@@ -4,9 +4,9 @@
  */
 
 import { Request, Response } from 'express';
-import { logger } from '../config/logger';
-import * as mailchimpService from '../services/mailchimpService';
-import type { AuthRequest } from '../middleware/auth';
+import { logger } from '@config/logger';
+import { mailchimpService } from '@services';
+import type { AuthRequest } from '@middleware/auth';
 import type {
   SyncContactRequest,
   BulkSyncRequest,
@@ -15,8 +15,8 @@ import type {
   AddMemberRequest,
   MailchimpWebhookPayload,
   CreateCampaignRequest,
-} from '../types/mailchimp';
-import { badRequest, notFoundMessage, serverError, serviceUnavailable } from '../utils/responseHelpers';
+} from '@app-types/mailchimp';
+import { badRequest, notFoundMessage, serverError, serviceUnavailable } from '@utils/responseHelpers';
 
 /**
  * Get Mailchimp configuration status

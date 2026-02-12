@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { logger } from '../config/logger';
+import { logger } from '@config/logger';
 
 export interface ContactRole {
   id: string;

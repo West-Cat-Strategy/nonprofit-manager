@@ -3,13 +3,13 @@
  * Handles CRUD operations for contact notes
  */
 
-import pool from '../config/database';
-import { logger } from '../config/logger';
+import pool from '@config/database';
+import { logger } from '@config/logger';
 import type {
   ContactNote,
   CreateContactNoteDTO,
   UpdateContactNoteDTO,
-} from '../types/contact';
+} from '@app-types/contact';
 
 /**
  * Get all notes for a contact

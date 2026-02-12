@@ -5,9 +5,9 @@
 
 import { Response, NextFunction } from 'express';
 import { services } from '../container/services';
-import { AuthRequest } from '../middleware/auth';
-import type { ReportDefinition, ReportEntity } from '../types/report';
-import { badRequest } from '../utils/responseHelpers';
+import { AuthRequest } from '@middleware/auth';
+import type { ReportDefinition, ReportEntity } from '@app-types/report';
+import { badRequest } from '@utils/responseHelpers';
 
 const reportService = services.report;
 

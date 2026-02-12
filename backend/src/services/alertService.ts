@@ -10,7 +10,7 @@ import type {
   CreateAlertDTO,
   UpdateAlertDTO,
   AlertTestResult,
-} from '../types/alert';
+} from '@app-types/alert';
 
 export class AlertService {
   constructor(private pool: Pool) {}

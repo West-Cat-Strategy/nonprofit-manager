@@ -5,13 +5,12 @@
 
 import { Response, NextFunction } from 'express';
 import { services } from '../container/services';
-import { ContactFilters, PaginationParams } from '../types/contact';
-import { AuthRequest } from '../middleware/auth';
-import * as invitationService from '../services/invitationService';
-import { syncUserRole } from '../services/userRoleService';
-import { extractPagination, getString, getBoolean } from '../utils/queryHelpers';
-import { notFound, badRequest } from '../utils/responseHelpers';
-import type { DataScopeFilter } from '../types/dataScope';
+import { ContactFilters, PaginationParams } from '@app-types/contact';
+import { AuthRequest } from '@middleware/auth';
+import { invitationService, syncUserRole } from '@services';
+import { extractPagination, getString, getBoolean } from '@utils/queryHelpers';
+import { notFound, badRequest } from '@utils/responseHelpers';
+import type { DataScopeFilter } from '@app-types/dataScope';
 
 const contactService = services.contact;
 const contactRoleService = services.contactRole;

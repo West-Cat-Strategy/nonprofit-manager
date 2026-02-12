@@ -15,10 +15,10 @@ import {
   getVolunteerAssignments,
   createAssignment,
   updateAssignment,
-} from '../controllers/volunteerController';
-import { authenticate } from '../middleware/auth';
-import { loadDataScope } from '../middleware/dataScope';
-import { validateRequest } from '../middleware/validation';
+} from '@controllers/domains/engagement';
+import { authenticate } from '@middleware/domains/auth';
+import { loadDataScope } from '@middleware/domains/data';
+import { validateRequest } from '@middleware/domains/security';
 
 const router = Router();
 

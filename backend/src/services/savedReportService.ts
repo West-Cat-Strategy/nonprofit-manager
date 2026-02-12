@@ -4,12 +4,12 @@
  */
 
 import { Pool } from 'pg';
-import { logger } from '../config/logger';
+import { logger } from '@config/logger';
 import type {
   SavedReport,
   CreateSavedReportRequest,
   UpdateSavedReportRequest,
-} from '../types/savedReport';
+} from '@app-types/savedReport';
 
 export class SavedReportService {
   constructor(private pool: Pool) {}

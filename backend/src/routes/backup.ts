@@ -5,9 +5,9 @@
 
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { exportBackup } from '../controllers/backupController';
-import { authenticate, authorize } from '../middleware/auth';
-import { validateRequest } from '../middleware/validation';
+import { exportBackup } from '@controllers/domains/core';
+import { authenticate, authorize } from '@middleware/domains/auth';
+import { validateRequest } from '@middleware/domains/security';
 
 const router = Router();
 

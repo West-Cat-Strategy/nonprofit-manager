@@ -5,10 +5,10 @@
 
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { authenticate } from '../middleware/auth';
-import { validateRequest } from '../middleware/validation';
-import { documentUpload, handleMulterError } from '../middleware/upload';
-import { previewText, previewUpload } from '../controllers/ingestController';
+import { authenticate } from '@middleware/domains/auth';
+import { validateRequest } from '@middleware/domains/security';
+import { documentUpload, handleMulterError } from '@middleware/domains/platform';
+import { previewText, previewUpload } from '@controllers/domains/core';
 
 const router = Router();
 

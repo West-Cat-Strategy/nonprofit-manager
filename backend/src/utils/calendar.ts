@@ -3,7 +3,7 @@
  * Generates iCalendar (.ics) files for events
  */
 
-import type { Event } from '../types/event';
+import type { Event } from '@app-types/event';
 
 /**
  * Format date to iCalendar format (YYYYMMDDTHHMMSSZ)

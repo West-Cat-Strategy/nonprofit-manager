@@ -5,9 +5,9 @@
 
 import { Response, NextFunction } from 'express';
 import { services } from '../container/services';
-import { AuthRequest } from '../middleware/auth';
-import type { CreateAlertDTO, UpdateAlertDTO } from '../types/alert';
-import { notFoundMessage } from '../utils/responseHelpers';
+import { AuthRequest } from '@middleware/auth';
+import type { CreateAlertDTO, UpdateAlertDTO } from '@app-types/alert';
+import { notFoundMessage } from '@utils/responseHelpers';
 
 const alertService = services.alert;
 

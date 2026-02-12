@@ -1,6 +1,6 @@
 import { Router, Response, NextFunction } from 'express';
-import { authenticate, authorize, AuthRequest } from '../middleware/auth';
-import { logger } from '../config/logger';
+import { authenticate, authorize, AuthRequest } from '@middleware/domains/auth';
+import { logger } from '@config/logger';
 
 const router = Router();
 

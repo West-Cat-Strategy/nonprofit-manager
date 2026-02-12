@@ -3,8 +3,8 @@
  * Handles CRUD operations for contact documents
  */
 
-import pool from '../config/database';
-import { logger } from '../config/logger';
+import pool from '@config/database';
+import { logger } from '@config/logger';
 import {
   uploadFile,
   deleteFile,
@@ -15,8 +15,8 @@ import type {
   ContactDocument,
   CreateContactDocumentDTO,
   UpdateContactDocumentDTO,
-} from '../types/contact';
-import type { DataScopeFilter } from '../types/dataScope';
+} from '@app-types/contact';
+import type { DataScopeFilter } from '@app-types/dataScope';
 
 /**
  * Get all documents for a contact

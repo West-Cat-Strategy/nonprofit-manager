@@ -4,14 +4,14 @@
  */
 
 import { Pool } from 'pg';
-import { logger } from '../config/logger';
+import { logger } from '@config/logger';
 import type {
   ReportDefinition,
   ReportResult,
   ReportEntity,
   ReportFilter,
   ReportSort,
-} from '../types/report';
+} from '@app-types/report';
 
 export class ReportService {
   constructor(private pool: Pool) {}

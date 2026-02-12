@@ -4,7 +4,7 @@
  */
 
 import { Pool } from 'pg';
-import pool from '../../config/database';
+import pool from '@config/database';
 
 // Export individual service classes
 export { SiteManagementService } from './siteManagementService';
@@ -43,7 +43,7 @@ export type {
   SiteVersion,
   SiteVersionHistory,
   RollbackResult,
-} from '../../types/publishing';
+} from '@app-types/publishing';
 
 /**
  * Publishing Service Facade

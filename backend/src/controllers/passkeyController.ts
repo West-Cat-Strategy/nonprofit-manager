@@ -11,16 +11,16 @@ import type {
   RegistrationResponseJSON,
   WebAuthnCredential,
 } from '@simplewebauthn/server';
-import pool from '../config/database';
-import { getWebAuthnConfig } from '../config/webauthn';
-import { AuthRequest } from '../middleware/auth';
-import { TIME } from '../config/constants';
-import { fromBase64Url, toBase64Url } from '../utils/base64url';
+import pool from '@config/database';
+import { getWebAuthnConfig } from '@config/webauthn';
+import { AuthRequest } from '@middleware/auth';
+import { TIME } from '@config/constants';
+import { fromBase64Url, toBase64Url } from '@utils/base64url';
 import jwt from 'jsonwebtoken';
-import { getJwtSecret } from '../config/jwt';
-import { JWT } from '../config/constants';
-import { trackLoginAttempt } from '../middleware/accountLockout';
-import { badRequest, notFoundMessage, unauthorized, validationErrorResponse } from '../utils/responseHelpers';
+import { getJwtSecret } from '@config/jwt';
+import { JWT } from '@config/constants';
+import { trackLoginAttempt } from '@middleware/accountLockout';
+import { badRequest, notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
 
 const CHALLENGE_TTL_MS = TIME.FIVE_MINUTES;
 

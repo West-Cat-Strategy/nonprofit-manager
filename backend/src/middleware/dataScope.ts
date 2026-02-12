@@ -1,8 +1,8 @@
 import { Response, NextFunction } from 'express';
-import pool from '../config/database';
-import { logger } from '../config/logger';
+import pool from '@config/database';
+import { logger } from '@config/logger';
 import { AuthRequest } from './auth';
-import type { DataScopeContext, DataScopeFilter } from '../types/dataScope';
+import type { DataScopeContext, DataScopeFilter } from '@app-types/dataScope';
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);

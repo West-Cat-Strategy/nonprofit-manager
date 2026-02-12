@@ -1,4 +1,4 @@
-import { AccountService } from '../../services/accountService';
+import { AccountService } from '@services';
 import { AccountType, AccountCategory } from '../../types/account';
 import { Pool } from 'pg';
 

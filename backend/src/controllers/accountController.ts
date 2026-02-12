@@ -5,11 +5,11 @@
 
 import { Response, NextFunction } from 'express';
 import { services } from '../container/services';
-import { AccountCategory, AccountFilters, AccountType, PaginationParams } from '../types/account';
-import { AuthRequest } from '../middleware/auth';
-import { extractPagination, getString, getBoolean } from '../utils/queryHelpers';
-import { notFound } from '../utils/responseHelpers';
-import type { DataScopeFilter } from '../types/dataScope';
+import { AccountCategory, AccountFilters, AccountType, PaginationParams } from '@app-types/account';
+import { AuthRequest } from '@middleware/auth';
+import { extractPagination, getString, getBoolean } from '@utils/queryHelpers';
+import { notFound } from '@utils/responseHelpers';
+import type { DataScopeFilter } from '@app-types/dataScope';
 
 const accountService = services.account;
 

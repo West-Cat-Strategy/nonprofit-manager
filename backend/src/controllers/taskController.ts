@@ -4,12 +4,12 @@
  */
 
 import { Response } from 'express';
-import { AuthRequest } from '../middleware/auth';
-import { taskService } from '../services/taskService';
-import { TaskFilters, TaskStatus, TaskPriority, RelatedToType } from '../types/task';
-import { logger } from '../config/logger';
-import { getString, getBoolean, getInteger } from '../utils/queryHelpers';
-import { notFoundMessage, serverError, unauthorized } from '../utils/responseHelpers';
+import { AuthRequest } from '@middleware/auth';
+import { taskService } from '@services';
+import { TaskFilters, TaskStatus, TaskPriority, RelatedToType } from '@app-types/task';
+import { logger } from '@config/logger';
+import { getString, getBoolean, getInteger } from '@utils/queryHelpers';
+import { notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
 
 // Type-safe enum parsers
 const parseTaskStatus = (value: string | undefined): TaskStatus | undefined => {

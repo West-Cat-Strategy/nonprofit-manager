@@ -3,13 +3,13 @@
  * Handles CRUD operations for contact email addresses
  */
 
-import pool from '../config/database';
-import { logger } from '../config/logger';
+import pool from '@config/database';
+import { logger } from '@config/logger';
 import type {
   ContactEmailAddress,
   CreateContactEmailDTO,
   UpdateContactEmailDTO,
-} from '../types/contact';
+} from '@app-types/contact';
 
 /**
  * Get all email addresses for a contact

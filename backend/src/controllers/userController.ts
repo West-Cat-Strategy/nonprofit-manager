@@ -6,12 +6,12 @@
 import { Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
-import pool from '../config/database';
-import { logger } from '../config/logger';
-import { AuthRequest } from '../middleware/auth';
-import { PASSWORD } from '../config/constants';
-import { syncUserRole } from '../services/userRoleService';
-import { badRequest, conflict, forbidden, notFoundMessage, validationErrorResponse } from '../utils/responseHelpers';
+import pool from '@config/database';
+import { logger } from '@config/logger';
+import { AuthRequest } from '@middleware/auth';
+import { PASSWORD } from '@config/constants';
+import { syncUserRole } from '@services';
+import { badRequest, conflict, forbidden, notFoundMessage, validationErrorResponse } from '@utils/responseHelpers';
 
 interface UserRow {
   id: string;

@@ -7,14 +7,13 @@ import { Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import pool from '../config/database';
-import { logger } from '../config/logger';
-import { getJwtSecret } from '../config/jwt';
-import { AuthRequest } from '../middleware/auth';
-import { PASSWORD, JWT } from '../config/constants';
-import * as invitationService from '../services/invitationService';
-import { syncUserRole } from '../services/userRoleService';
-import { badRequest, conflict, errorPayload, forbidden, notFoundMessage, validationErrorResponse } from '../utils/responseHelpers';
+import pool from '@config/database';
+import { logger } from '@config/logger';
+import { getJwtSecret } from '@config/jwt';
+import { AuthRequest } from '@middleware/auth';
+import { PASSWORD, JWT } from '@config/constants';
+import { invitationService, syncUserRole } from '@services';
+import { badRequest, conflict, errorPayload, forbidden, notFoundMessage, validationErrorResponse } from '@utils/responseHelpers';
 
 /**
  * POST /api/invitations

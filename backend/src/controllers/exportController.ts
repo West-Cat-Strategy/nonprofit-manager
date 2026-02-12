@@ -5,11 +5,11 @@
 
 import { Response, NextFunction } from 'express';
 import { services } from '../container/services';
-import { AuthRequest } from '../middleware/auth';
-import type { ExportFormat } from '../services/exportService';
-import { logger } from '../config/logger';
-import type { DataScopeFilter } from '../types/dataScope';
-import { forbidden } from '../utils/responseHelpers';
+import { AuthRequest } from '@middleware/auth';
+import type { ExportFormat } from '@services';
+import { logger } from '@config/logger';
+import type { DataScopeFilter } from '@app-types/dataScope';
+import { forbidden } from '@utils/responseHelpers';
 
 const exportService = services.export;
 const analyticsService = services.analytics;

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { getJwtSecret } from '../config/jwt';
-import { unauthorized } from '../utils/responseHelpers';
+import { getJwtSecret } from '@config/jwt';
+import { unauthorized } from '@utils/responseHelpers';
 
 interface PortalJwtPayload {
   id: string;

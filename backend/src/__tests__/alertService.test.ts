@@ -4,7 +4,7 @@
  */
 
 import { Pool } from 'pg';
-import { AlertService } from '../services/alertService';
+import { AlertService } from '@services';
 import type { CreateAlertDTO } from '../types/alert';
 
 jest.mock('pg', () => {

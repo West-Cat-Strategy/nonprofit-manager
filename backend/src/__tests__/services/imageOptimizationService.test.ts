@@ -5,7 +5,7 @@
 import {
   ImageOptimizationService,
   imageOptimizationService,
-} from '../../services/imageOptimizationService';
+} from '@services';
 
 describe('ImageOptimizationService', () => {
   let service: ImageOptimizationService;

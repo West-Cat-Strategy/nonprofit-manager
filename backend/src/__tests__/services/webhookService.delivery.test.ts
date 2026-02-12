@@ -18,7 +18,7 @@ jest.mock('../../config/database', () => ({
   },
 }));
 
-import { triggerWebhooks } from '../../services/webhookService';
+import { webhookService } from '@services';
 
 describe('webhookService delivery behavior', () => {
   beforeEach(() => {
@@ -44,7 +44,7 @@ describe('webhookService delivery behavior', () => {
       .mockResolvedValueOnce({ rows: [] }) // UPDATE delivery status
       .mockResolvedValueOnce({ rows: [] }); // UPDATE endpoint status
 
-    await triggerWebhooks('contact.created' as WebhookEventType, { id: 'contact-1' });
+    await webhookService.triggerWebhooks('contact.created' as WebhookEventType, { id: 'contact-1' });
 
     const updateDeliveryCall = mockQuery.mock.calls.find((call) =>
       String(call[0]).includes('UPDATE webhook_deliveries')

@@ -2,16 +2,16 @@ import { Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import pool from '../config/database';
-import { logger } from '../config/logger';
-import { getJwtSecret } from '../config/jwt';
-import { AuthRequest } from '../middleware/auth';
-import { trackLoginAttempt } from '../middleware/accountLockout';
-import { JWT, PASSWORD } from '../config/constants';
-import { syncUserRole } from '../services/userRoleService';
+import pool from '@config/database';
+import { logger } from '@config/logger';
+import { getJwtSecret } from '@config/jwt';
+import { AuthRequest } from '@middleware/auth';
+import { trackLoginAttempt } from '@middleware/accountLockout';
+import { JWT, PASSWORD } from '@config/constants';
+import { syncUserRole } from '@services';
 import { issueTotpMfaChallenge } from './mfaController';
-import { badRequest, conflict, forbidden, notFoundMessage, unauthorized, validationErrorResponse } from '../utils/responseHelpers';
-import { setAuthCookie, setRefreshCookie, clearAuthCookies } from '../utils/cookieHelper';
+import { badRequest, conflict, forbidden, notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
+import { setAuthCookie, setRefreshCookie, clearAuthCookies } from '@utils/cookieHelper';
 
 interface RegisterRequest {
   email: string;

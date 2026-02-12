@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
-import { authenticate, authorize } from '../middleware/auth';
-import { validateRequest } from '../middleware/validation';
+import { authenticate, authorize } from '@middleware/domains/auth';
+import { validateRequest } from '@middleware/domains/security';
 import {
   listCommittees,
   listMeetings,
@@ -14,7 +14,7 @@ import {
   updateMotion,
   createActionItem,
   getMinutesDraft,
-} from '../controllers/meetingController';
+} from '@controllers/domains/engagement';
 
 const router = Router();
 

@@ -1,7 +1,7 @@
 import rateLimit, { MemoryStore, Store, Options } from 'express-rate-limit';
 import { Request, Response, NextFunction } from 'express';
-import { RATE_LIMIT, ERROR_MESSAGES, HTTP_STATUS } from '../config/constants';
-import { getRedisClient } from '../config/redis';
+import { RATE_LIMIT, ERROR_MESSAGES, HTTP_STATUS } from '@config/constants';
+import { getRedisClient } from '@config/redis';
 
 interface RateLimitRequest extends Request {
   rateLimit?: {

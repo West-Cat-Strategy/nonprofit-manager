@@ -4,8 +4,8 @@
  */
 
 import { Pool } from 'pg';
-import pool from '../config/database';
-import { Task, CreateTaskDTO, UpdateTaskDTO, TaskFilters, TaskSummary, TaskStatus, TaskPriority } from '../types/task';
+import pool from '@config/database';
+import { Task, CreateTaskDTO, UpdateTaskDTO, TaskFilters, TaskSummary, TaskStatus, TaskPriority } from '@app-types/task';
 
 export class TaskService {
   constructor(private pool: Pool) {}

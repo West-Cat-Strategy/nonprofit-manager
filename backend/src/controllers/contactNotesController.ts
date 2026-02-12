@@ -4,9 +4,9 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { AuthRequest } from '../middleware/auth';
-import * as contactNoteService from '../services/contactNoteService';
-import { notFoundMessage } from '../utils/responseHelpers';
+import { AuthRequest } from '@middleware/auth';
+import { contactNoteService } from '@services';
+import { notFoundMessage } from '@utils/responseHelpers';
 
 /**
  * GET /api/contacts/:contactId/notes

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { validateRequest } from '../middleware/validation';
+import { validateRequest } from '@middleware/domains/security';
 import {
   login,
   register,
@@ -14,15 +14,15 @@ import {
   getProfile,
   updateProfile,
   changePassword,
-} from '../controllers/authController';
-import { getCsrfToken } from '../middleware/csrf';
+} from '@controllers/domains/core';
+import { getCsrfToken } from '@middleware/domains/security';
 import {
   completeTotpLogin,
   disableTotp,
   enableTotp,
   enrollTotp,
   getSecurityOverview,
-} from '../controllers/mfaController';
+} from '@controllers/domains/core';
 import {
   deletePasskey,
   listPasskeys,
@@ -30,10 +30,10 @@ import {
   loginVerify as passkeyLoginVerify,
   registrationOptions as passkeyRegistrationOptions,
   registrationVerify as passkeyRegistrationVerify,
-} from '../controllers/passkeyController';
-import { authenticate } from '../middleware/auth';
-import { authLimiterMiddleware, registrationLimiterMiddleware } from '../middleware/rateLimiter';
-import { checkAccountLockout } from '../middleware/accountLockout';
+} from '@controllers/domains/core';
+import { authenticate } from '@middleware/domains/auth';
+import { authLimiterMiddleware, registrationLimiterMiddleware } from '@middleware/domains/platform';
+import { checkAccountLockout } from '@middleware/domains/auth';
 
 const router = Router();
 

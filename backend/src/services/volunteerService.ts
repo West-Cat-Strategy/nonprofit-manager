@@ -15,10 +15,10 @@ import {
   CreateAssignmentDTO,
   UpdateAssignmentDTO,
   AssignmentFilters,
-} from '../types/volunteer';
-import { logger } from '../config/logger';
-import { resolveSort } from '../utils/queryHelpers';
-import type { DataScopeFilter } from '../types/dataScope';
+} from '@app-types/volunteer';
+import { logger } from '@config/logger';
+import { resolveSort } from '@utils/queryHelpers';
+import type { DataScopeFilter } from '@app-types/dataScope';
 
 type QueryValue = string | number | boolean | string[] | null;
 

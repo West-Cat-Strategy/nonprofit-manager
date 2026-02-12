@@ -1,0 +1,17 @@
+export { default as accountRoutes } from '@routes/accounts';
+export { default as activityRoutes } from '@routes/activities';
+export { default as alertRoutes } from '@routes/alerts';
+export { default as analyticsRoutes } from '@routes/analytics';
+export { default as caseRoutes } from '@routes/cases';
+export { default as contactRoutes } from '@routes/contacts';
+export { default as dashboardRoutes } from '@routes/dashboard';
+export { default as donationRoutes } from '@routes/donations';
+export { default as eventRoutes } from '@routes/events';
+export { default as invitationRoutes } from '@routes/invitations';
+export { default as mailchimpRoutes } from '@routes/mailchimp';
+export { default as meetingRoutes } from '@routes/meetings';
+export { default as reportRoutes } from '@routes/reports';
+export { default as savedReportRoutes } from '@routes/savedReports';
+export { default as taskRoutes } from '@routes/tasks';
+export { default as volunteerRoutes } from '@routes/volunteers';
+export { default as webhookRoutes } from '@routes/webhooks';

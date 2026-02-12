@@ -5,9 +5,9 @@
 
 import { Response, NextFunction } from 'express';
 import { services } from '../container/services';
-import { AuthRequest } from '../middleware/auth';
-import type { CreateDashboardDTO, UpdateDashboardDTO } from '../types/dashboard';
-import { badRequest, notFoundMessage } from '../utils/responseHelpers';
+import { AuthRequest } from '@middleware/auth';
+import type { CreateDashboardDTO, UpdateDashboardDTO } from '@app-types/dashboard';
+import { badRequest, notFoundMessage } from '@utils/responseHelpers';
 
 const dashboardService = services.dashboard;
 

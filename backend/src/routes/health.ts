@@ -5,9 +5,9 @@
 
 import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
-import { getRedisClient } from '../config/redis';
-import { logger } from '../config/logger';
-import { errorPayload, forbidden } from '../utils/responseHelpers';
+import { getRedisClient } from '@config/redis';
+import { logger } from '@config/logger';
+import { errorPayload, forbidden } from '@utils/responseHelpers';
 
 const router = Router();
 

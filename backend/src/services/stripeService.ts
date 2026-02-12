@@ -4,7 +4,7 @@
  */
 
 import Stripe from 'stripe';
-import { logger } from '../config/logger';
+import { logger } from '@config/logger';
 import type {
   CreatePaymentIntentRequest,
   PaymentIntentResponse,
@@ -16,7 +16,7 @@ import type {
   WebhookEvent,
   CreateSubscriptionRequest,
   SubscriptionResponse,
-} from '../types/payment';
+} from '@app-types/payment';
 
 // Initialize Stripe client
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;

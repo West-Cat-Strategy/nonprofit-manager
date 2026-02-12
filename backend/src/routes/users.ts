@@ -13,9 +13,9 @@ import {
   resetUserPassword,
   deleteUser,
   getRoles,
-} from '../controllers/userController';
-import { authenticate } from '../middleware/auth';
-import { validateRequest } from '../middleware/validation';
+} from '@controllers/domains/core';
+import { authenticate } from '@middleware/domains/auth';
+import { validateRequest } from '@middleware/domains/security';
 
 const router = Router();
 

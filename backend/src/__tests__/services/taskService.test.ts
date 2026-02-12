@@ -7,7 +7,7 @@ jest.mock('../../config/database', () => ({
   },
 }));
 
-import { taskService } from '../../services/taskService';
+import { taskService } from '@services';
 import { TaskStatus, TaskPriority, RelatedToType } from '../../types/task';
 
 describe('TaskService', () => {

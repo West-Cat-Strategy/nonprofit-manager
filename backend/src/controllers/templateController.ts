@@ -4,10 +4,9 @@
  */
 
 import { Response } from 'express';
-import { logger } from '../config/logger';
-import * as templateService from '../services/template';
-import * as themePresetService from '../services/themePresetService';
-import type { AuthRequest } from '../middleware/auth';
+import { logger } from '@config/logger';
+import { templateService, themePresetService } from '@services';
+import type { AuthRequest } from '@middleware/auth';
 import type {
   CreateTemplateRequest,
   UpdateTemplateRequest,
@@ -16,9 +15,9 @@ import type {
   TemplateSearchParams,
   TemplateCategory,
   TemplateStatus,
-} from '../types/websiteBuilder';
-import { badRequest, notFoundMessage, serverError, unauthorized } from '../utils/responseHelpers';
-import { extractPagination } from '../utils/queryHelpers';
+} from '@app-types/websiteBuilder';
+import { badRequest, notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
+import { extractPagination } from '@utils/queryHelpers';
 
 // ==================== Templates ====================
 

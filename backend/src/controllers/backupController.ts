@@ -1,7 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { services } from '../container/services';
-import { AuthRequest } from '../middleware/auth';
-import { logger } from '../config/logger';
+import { AuthRequest } from '@middleware/auth';
+import { logger } from '@config/logger';
 
 const backupService = services.backup;
 

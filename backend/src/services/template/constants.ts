@@ -1,4 +1,4 @@
-import type { TemplateTheme, TemplateGlobalSettings } from '../../types/websiteBuilder';
+import type { TemplateTheme, TemplateGlobalSettings } from '@app-types/websiteBuilder';
 
 export const defaultTheme: TemplateTheme = {
   colors: {

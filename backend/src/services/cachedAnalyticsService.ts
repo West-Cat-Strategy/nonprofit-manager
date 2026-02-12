@@ -5,7 +5,7 @@
 
 import { Pool } from 'pg';
 import { AnalyticsService } from './analyticsService';
-import { analyticsCache, CacheKeys, invalidateAnalyticsCache } from '../utils/cache';
+import { analyticsCache, CacheKeys, invalidateAnalyticsCache } from '@utils/cache';
 import type {
   AccountAnalytics,
   ContactAnalytics,
@@ -13,7 +13,7 @@ import type {
   AnalyticsFilters,
   ComparativeAnalytics,
   TrendAnalysis,
-} from '../types/analytics';
+} from '@app-types/analytics';
 
 export class CachedAnalyticsService {
   private analyticsService: AnalyticsService;

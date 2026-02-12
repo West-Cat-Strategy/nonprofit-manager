@@ -4,18 +4,17 @@
  */
 
 import { Response } from 'express';
-import { logger } from '../config/logger';
-import * as webhookService from '../services/webhookService';
-import * as apiKeyService from '../services/apiKeyService';
-import type { AuthRequest } from '../middleware/auth';
+import { logger } from '@config/logger';
+import { apiKeyService, webhookService } from '@services';
+import type { AuthRequest } from '@middleware/auth';
 import type {
   CreateWebhookEndpointRequest,
   UpdateWebhookEndpointRequest,
   CreateApiKeyRequest,
   UpdateApiKeyRequest,
-} from '../types/webhook';
-import { PAGINATION } from '../config/constants';
-import { badRequest, notFoundMessage, serverError, unauthorized } from '../utils/responseHelpers';
+} from '@app-types/webhook';
+import { PAGINATION } from '@config/constants';
+import { badRequest, notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
 
 // ==================== Webhook Endpoints ====================
 

@@ -20,17 +20,17 @@ import {
   getComparativeAnalytics,
   getTrendAnalysis,
   detectAnomalies,
-} from '../controllers/analyticsController';
-import { authenticate } from '../middleware/auth';
+} from '@controllers/domains/engagement';
+import { authenticate } from '@middleware/domains/auth';
 import {
   requireOrgAnalytics,
   requireAccountAnalytics,
   requireContactAnalytics,
   requireAnomalyAccess,
   auditAnalyticsMiddleware,
-} from '../middleware/analyticsAuth';
-import { loadDataScope } from '../middleware/dataScope';
-import { validateRequest } from '../middleware/validation';
+} from '@middleware/domains/security';
+import { loadDataScope } from '@middleware/domains/data';
+import { validateRequest } from '@middleware/domains/security';
 
 const router = Router();
 

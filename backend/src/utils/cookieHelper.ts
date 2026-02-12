@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { logger } from '../config/logger';
+import { logger } from '@config/logger';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const enforceHttps = process.env.ENFORCE_HTTPS_COOKIES === 'true' || isProduction;

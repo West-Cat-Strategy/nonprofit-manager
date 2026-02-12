@@ -4,9 +4,9 @@
  */
 
 import { Pool } from 'pg';
-import { logger } from '../../config/logger';
-import { getCached, setCached } from '../../config/redis';
-import type { DonationMetrics } from '../../types/analytics';
+import { logger } from '@config/logger';
+import { getCached, setCached } from '@config/redis';
+import type { DonationMetrics } from '@app-types/analytics';
 
 export class DonationAnalyticsService {
   constructor(private pool: Pool) {}
