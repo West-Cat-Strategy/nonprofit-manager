@@ -4,7 +4,7 @@
 # This replaces GitHub Actions with local commands.
 # All CI/CD operations can be run locally or via git hooks.
 
-.PHONY: help install lint typecheck test test-coverage build \
+.PHONY: help install lint typecheck test test-coverage quality-baseline build \
         security-audit security-scan ci ci-fast ci-full \
         deploy deploy-staging deploy-local \
         docker-build docker-up docker-down docker-logs docker-rebuild \
@@ -40,6 +40,7 @@ help:
 	@echo "  make typecheck      Run TypeScript type checking"
 	@echo "  make test           Run all unit tests"
 	@echo "  make test-coverage  Run tests with coverage report"
+	@echo "  make quality-baseline Generate code quality baseline report"
 	@echo ""
 	@echo "$(GREEN)CI Pipelines:$(RESET)"
 	@echo "  make ci             Run full CI (lint + typecheck + test + build)"
@@ -136,7 +137,7 @@ test:
 	@echo "$(BLUE)Running backend tests...$(RESET)"
 	cd backend && npm test -- --runInBand
 	@echo "$(BLUE)Running frontend tests...$(RESET)"
-	cd frontend && npm test -- --run || true
+	cd frontend && npm test -- --run
 	@echo "$(GREEN)Tests complete!$(RESET)"
 
 test-coverage:
@@ -145,7 +146,7 @@ test-coverage:
 	@echo "$(BLUE)Running backend tests with coverage...$(RESET)"
 	cd backend && npm test -- --coverage --runInBand
 	@echo "$(BLUE)Running frontend tests with coverage...$(RESET)"
-	cd frontend && npm test -- --run --coverage || true
+	cd frontend && npm test -- --run --coverage
 	@echo "$(GREEN)Coverage reports generated!$(RESET)"
 
 test-backend:
@@ -154,6 +155,9 @@ test-backend:
 
 test-frontend:
 	cd frontend && npm test -- --run
+
+quality-baseline:
+	@./scripts/quality-baseline.sh
 
 #------------------------------------------------------------------------------
 # Security
@@ -220,7 +224,7 @@ ci-full:
 	@echo "$(BLUE)  Running Full CI + Security$(RESET)"
 	@echo "$(BLUE)========================================$(RESET)"
 	@echo ""
-	@./scripts/local-ci.sh --build --audit
+	@./scripts/local-ci.sh --build --audit --coverage
 	@echo ""
 	@echo "$(GREEN)========================================$(RESET)"
 	@echo "$(GREEN)  Full CI Pipeline Passed!$(RESET)"

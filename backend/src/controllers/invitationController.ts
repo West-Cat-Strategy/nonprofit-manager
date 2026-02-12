@@ -12,7 +12,7 @@ import { logger } from '@config/logger';
 import { getJwtSecret } from '@config/jwt';
 import { AuthRequest } from '@middleware/auth';
 import { PASSWORD, JWT } from '@config/constants';
-import { invitationService, syncUserRole } from '@services';
+import { invitationService, syncUserRole } from '@services/domains/integration';
 import { badRequest, conflict, errorPayload, forbidden, notFoundMessage, validationErrorResponse } from '@utils/responseHelpers';
 
 /**

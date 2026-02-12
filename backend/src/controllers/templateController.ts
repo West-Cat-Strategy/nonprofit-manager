@@ -5,7 +5,7 @@
 
 import { Response } from 'express';
 import { logger } from '@config/logger';
-import { templateService, themePresetService } from '@services';
+import { templateService, themePresetService } from '@services/domains/content';
 import type { AuthRequest } from '@middleware/auth';
 import type {
   CreateTemplateRequest,

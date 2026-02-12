@@ -10,7 +10,7 @@ import pool from '@config/database';
 import { logger } from '@config/logger';
 import { AuthRequest } from '@middleware/auth';
 import { PASSWORD } from '@config/constants';
-import { syncUserRole } from '@services';
+import { syncUserRole } from '@services/domains/integration';
 import { badRequest, conflict, forbidden, notFoundMessage, validationErrorResponse } from '@utils/responseHelpers';
 
 interface UserRow {

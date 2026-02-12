@@ -5,7 +5,7 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
-import { getCacheControlHeader, publishingService, siteCacheService } from '@services';
+import { getCacheControlHeader, publishingService, siteCacheService } from '@services/domains/content';
 import { logger } from '@config/logger';
 import type { AuthRequest } from '@middleware/auth';
 import type {
@@ -17,6 +17,61 @@ import type {
 import { badRequest, conflict, forbidden, notFoundMessage, validationErrorResponse } from '@utils/responseHelpers';
 import { extractPagination } from '@utils/queryHelpers';
 
+const hasValidationErrors = (req: Request, res: Response): boolean => {
+  const errors = validationResult(req);
+  if (errors.isEmpty()) return false;
+  validationErrorResponse(res, errors);
+  return true;
+};
+
+const parseIntQuery = (value: unknown, fallback: number): number => {
+  if (typeof value !== 'string') return fallback;
+  const parsed = parseInt(value, 10);
+  return Number.isNaN(parsed) ? fallback : parsed;
+};
+
+const resolvePublishedSiteFromRequest = async (req: Request) => {
+  const subdomainParam = req.params.subdomain;
+  const subdomain =
+    req.subdomains[0] ||
+    (Array.isArray(subdomainParam) ? subdomainParam[0] : subdomainParam);
+
+  if (subdomain) {
+    const siteBySubdomain = await publishingService.getSiteBySubdomain(subdomain);
+    if (siteBySubdomain) return siteBySubdomain;
+  }
+
+  return publishingService.getSiteByDomain(req.hostname);
+};
+
+const handleKnownPublishingError = (
+  error: unknown,
+  res: Response,
+  opts: { conflict?: boolean; notFound?: boolean; badRequest?: boolean }
+): boolean => {
+  if (!(error instanceof Error)) return false;
+
+  if (opts.conflict && (error.message.includes('already taken') || error.message.includes('already in use'))) {
+    conflict(res, error.message);
+    return true;
+  }
+  if (opts.notFound && (error.message.includes('not found') || error.message.includes('access denied'))) {
+    notFoundMessage(res, error.message);
+    return true;
+  }
+  if (
+    opts.badRequest &&
+    (error.message.includes('No custom domain') ||
+      error.message.includes('no published version') ||
+      error.message.includes('Already on this version'))
+  ) {
+    badRequest(res, error.message);
+    return true;
+  }
+
+  return false;
+};
+
 /**
  * Create a new published site entry
  */
@@ -26,11 +81,7 @@ export const createSite = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      validationErrorResponse(res, errors);
-      return;
-    }
+    if (hasValidationErrors(req, res)) return;
 
     const userId = req.user!.id;
     const data: CreatePublishedSiteDTO = req.body;
@@ -38,16 +89,7 @@ export const createSite = async (
     const site = await publishingService.createSite(userId, data);
     res.status(201).json(site);
   } catch (error) {
-    if (error instanceof Error) {
-      if (error.message.includes('already taken') || error.message.includes('already in use')) {
-        conflict(res, error.message);
-        return;
-      }
-      if (error.message.includes('not found') || error.message.includes('access denied')) {
-        notFoundMessage(res, error.message);
-        return;
-      }
-    }
+    if (handleKnownPublishingError(error, res, { conflict: true, notFound: true })) return;
     next(error);
   }
 };
@@ -85,11 +127,7 @@ export const updateSite = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      validationErrorResponse(res, errors);
-      return;
-    }
+    if (hasValidationErrors(req, res)) return;
 
     const userId = req.user!.id;
     const { siteId } = req.params;
@@ -103,12 +141,7 @@ export const updateSite = async (
 
     res.json(site);
   } catch (error) {
-    if (error instanceof Error) {
-      if (error.message.includes('already taken') || error.message.includes('already in use')) {
-        conflict(res, error.message);
-        return;
-      }
-    }
+    if (handleKnownPublishingError(error, res, { conflict: true })) return;
     next(error);
   }
 };
@@ -173,11 +206,7 @@ export const publishSite = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      validationErrorResponse(res, errors);
-      return;
-    }
+    if (hasValidationErrors(req, res)) return;
 
     const userId = req.user!.id;
     const { templateId } = req.body;
@@ -186,12 +215,7 @@ export const publishSite = async (
     const result = await publishingService.publish(userId, templateId, siteId);
     res.json(result);
   } catch (error) {
-    if (error instanceof Error) {
-      if (error.message.includes('not found') || error.message.includes('access denied')) {
-        notFoundMessage(res, error.message);
-        return;
-      }
-    }
+    if (handleKnownPublishingError(error, res, { notFound: true })) return;
     next(error);
   }
 };
@@ -253,11 +277,7 @@ export const recordAnalytics = async (
   _next: NextFunction
 ): Promise<void> => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      validationErrorResponse(res, errors);
-      return;
-    }
+    if (hasValidationErrors(req, res)) return;
 
     const { siteId } = req.params;
     const eventType = req.body.eventType as AnalyticsEventType;
@@ -300,9 +320,7 @@ export const getAnalyticsSummary = async (
   try {
     const userId = req.user!.id;
     const { siteId } = req.params;
-    const periodDays = req.query.period
-      ? parseInt(req.query.period as string, 10)
-      : 30;
+    const periodDays = parseIntQuery(req.query.period, 30);
 
     const summary = await publishingService.getAnalyticsSummary(
       siteId,
@@ -311,12 +329,7 @@ export const getAnalyticsSummary = async (
     );
     res.json(summary);
   } catch (error) {
-    if (error instanceof Error) {
-      if (error.message.includes('not found') || error.message.includes('access denied')) {
-        notFoundMessage(res, error.message);
-        return;
-      }
-    }
+    if (handleKnownPublishingError(error, res, { notFound: true })) return;
     next(error);
   }
 };
@@ -330,23 +343,7 @@ export const servePublishedSite = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const subdomainParam = req.params.subdomain;
-    const subdomain =
-      req.subdomains[0] ||
-      (Array.isArray(subdomainParam) ? subdomainParam[0] : subdomainParam);
-    const customDomain = req.hostname;
-
-    let site = null;
-
-    // Try subdomain first
-    if (subdomain) {
-      site = await publishingService.getSiteBySubdomain(subdomain);
-    }
-
-    // Try custom domain if no subdomain match
-    if (!site && customDomain) {
-      site = await publishingService.getSiteByDomain(customDomain);
-    }
+    const site = await resolvePublishedSiteFromRequest(req);
 
     if (!site || site.status !== 'published' || !site.publishedContent) {
       notFoundMessage(res, 'Site not found');
@@ -374,11 +371,7 @@ export const addCustomDomain = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      validationErrorResponse(res, errors);
-      return;
-    }
+    if (hasValidationErrors(req, res)) return;
 
     const userId = req.user!.id;
     const { siteId } = req.params;
@@ -392,16 +385,7 @@ export const addCustomDomain = async (
     );
     res.status(201).json(config);
   } catch (error) {
-    if (error instanceof Error) {
-      if (error.message.includes('not found') || error.message.includes('access denied')) {
-        notFoundMessage(res, error.message);
-        return;
-      }
-      if (error.message.includes('already in use')) {
-        conflict(res, error.message);
-        return;
-      }
-    }
+    if (handleKnownPublishingError(error, res, { notFound: true, conflict: true })) return;
     next(error);
   }
 };
@@ -421,16 +405,7 @@ export const verifyCustomDomain = async (
     const result = await publishingService.verifyCustomDomain(siteId, userId);
     res.json(result);
   } catch (error) {
-    if (error instanceof Error) {
-      if (error.message.includes('not found') || error.message.includes('access denied')) {
-        notFoundMessage(res, error.message);
-        return;
-      }
-      if (error.message.includes('No custom domain')) {
-        badRequest(res, error.message);
-        return;
-      }
-    }
+    if (handleKnownPublishingError(error, res, { notFound: true, badRequest: true })) return;
     next(error);
   }
 };
@@ -546,17 +521,12 @@ export const getVersionHistory = async (
   try {
     const userId = req.user!.id;
     const { siteId } = req.params;
-    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+    const limit = parseIntQuery(req.query.limit, 10);
 
     const history = await publishingService.getVersionHistory(siteId, userId, limit);
     res.json(history);
   } catch (error) {
-    if (error instanceof Error) {
-      if (error.message.includes('not found') || error.message.includes('access denied')) {
-        notFoundMessage(res, error.message);
-        return;
-      }
-    }
+    if (handleKnownPublishingError(error, res, { notFound: true })) return;
     next(error);
   }
 };
@@ -594,11 +564,7 @@ export const rollbackVersion = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      validationErrorResponse(res, errors);
-      return;
-    }
+    if (hasValidationErrors(req, res)) return;
 
     const userId = req.user!.id;
     const { siteId } = req.params;
@@ -607,16 +573,7 @@ export const rollbackVersion = async (
     const result = await publishingService.rollback(siteId, userId, version);
     res.json(result);
   } catch (error) {
-    if (error instanceof Error) {
-      if (error.message.includes('not found') || error.message.includes('access denied')) {
-        notFoundMessage(res, error.message);
-        return;
-      }
-      if (error.message.includes('no published version') || error.message.includes('Already on this version')) {
-        badRequest(res, error.message);
-        return;
-      }
-    }
+    if (handleKnownPublishingError(error, res, { notFound: true, badRequest: true })) return;
     next(error);
   }
 };
@@ -632,17 +589,12 @@ export const pruneVersions = async (
   try {
     const userId = req.user!.id;
     const { siteId } = req.params;
-    const keepCount = req.query.keep ? parseInt(req.query.keep as string, 10) : 10;
+    const keepCount = parseIntQuery(req.query.keep, 10);
 
     const deletedCount = await publishingService.pruneVersions(siteId, userId, keepCount);
     res.json({ deleted: deletedCount });
   } catch (error) {
-    if (error instanceof Error) {
-      if (error.message.includes('not found') || error.message.includes('access denied')) {
-        notFoundMessage(res, error.message);
-        return;
-      }
-    }
+    if (handleKnownPublishingError(error, res, { notFound: true })) return;
     next(error);
   }
 };
@@ -714,24 +666,8 @@ export const servePublishedSiteWithCache = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const subdomainParam = req.params.subdomain;
-    const subdomain =
-      req.subdomains[0] ||
-      (Array.isArray(subdomainParam) ? subdomainParam[0] : subdomainParam);
-    const customDomain = req.hostname;
+    const site = await resolvePublishedSiteFromRequest(req);
     const pageSlug = (req.params.page as string) || 'index';
-
-    let site = null;
-
-    // Try subdomain first
-    if (subdomain) {
-      site = await publishingService.getSiteBySubdomain(subdomain);
-    }
-
-    // Try custom domain if no subdomain match
-    if (!site && customDomain) {
-      site = await publishingService.getSiteByDomain(customDomain);
-    }
 
     if (!site || site.status !== 'published' || !site.publishedContent) {
       notFoundMessage(res, 'Site not found');

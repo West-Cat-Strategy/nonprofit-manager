@@ -8,6 +8,7 @@ run_tests=1
 run_audit=0
 run_db_verify=0
 run_build=0
+run_coverage=0
 
 for arg in "$@"; do
   case "$arg" in
@@ -23,6 +24,9 @@ for arg in "$@"; do
       ;;
     --build)
       run_build=1
+      ;;
+    --coverage)
+      run_coverage=1
       ;;
     --no-tests)
       run_tests=0
@@ -56,7 +60,11 @@ if [[ $run_backend -eq 1 ]]; then
     run_section "Backend lint" bash -lc "cd '${root_dir}/backend' && npm run lint"
     run_section "Backend type-check" bash -lc "cd '${root_dir}/backend' && npm run type-check"
     if [[ $run_tests -eq 1 ]]; then
-      run_section "Backend tests" bash -lc "cd '${root_dir}/backend' && npm test -- --runInBand"
+      if [[ $run_coverage -eq 1 ]]; then
+        run_section "Backend tests (coverage)" bash -lc "cd '${root_dir}/backend' && npm test -- --coverage --runInBand"
+      else
+        run_section "Backend tests" bash -lc "cd '${root_dir}/backend' && npm test -- --runInBand"
+      fi
     else
       echo "==> Backend tests skipped (${mode})"
     fi
@@ -77,7 +85,11 @@ if [[ $run_frontend -eq 1 ]]; then
     run_section "Frontend type-check" bash -lc "cd '${root_dir}/frontend' && npm run type-check"
     if [[ $run_tests -eq 1 ]]; then
       if bash -lc "cd '${root_dir}/frontend' && node -e \"require.resolve('vitest')\"" >/dev/null 2>&1; then
-        run_section "Frontend tests" bash -lc "cd '${root_dir}/frontend' && npm test -- --run"
+        if [[ $run_coverage -eq 1 ]]; then
+          run_section "Frontend tests (coverage)" bash -lc "cd '${root_dir}/frontend' && npm test -- --run --coverage"
+        else
+          run_section "Frontend tests" bash -lc "cd '${root_dir}/frontend' && npm test -- --run"
+        fi
       else
         echo "==> Frontend tests skipped (vitest not installed)"
       fi

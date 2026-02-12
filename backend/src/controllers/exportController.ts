@@ -6,7 +6,7 @@
 import { Response, NextFunction } from 'express';
 import { services } from '../container/services';
 import { AuthRequest } from '@middleware/auth';
-import type { ExportFormat } from '@services';
+import type { ExportFormat } from '@services/domains/operations';
 import { logger } from '@config/logger';
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { forbidden } from '@utils/responseHelpers';
