@@ -44,12 +44,8 @@ export default function Login() {
           setTotpCode('');
           return;
         }
-        // Narrow explicitly: successful login responses include a token.
-        if (!('token' in response)) {
-          throw new Error('Unexpected login response');
-        }
         persistOrganizationId(response.organizationId);
-        dispatch(setCredentials({ user: response.user, token: response.token }));
+        dispatch(setCredentials({ user: response.user }));
         navigate('/dashboard');
         return;
       }
@@ -66,7 +62,7 @@ export default function Login() {
         code: totpCode.trim(),
       });
       persistOrganizationId(response.organizationId);
-      dispatch(setCredentials(response));
+      dispatch(setCredentials({ user: response.user }));
       navigate('/dashboard');
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
@@ -99,7 +95,7 @@ export default function Login() {
         credential,
       });
       persistOrganizationId(response.organizationId);
-      dispatch(setCredentials(response));
+      dispatch(setCredentials({ user: response.user }));
       navigate('/dashboard');
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {

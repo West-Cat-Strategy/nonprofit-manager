@@ -4,7 +4,6 @@ import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosReques
 type UnauthorizedHandler = (error: AxiosError) => void;
 
 export interface ApiClientOptions {
-  tokenKey: string;
   onUnauthorized: UnauthorizedHandler;
   baseURL?: string;
   includeOrganizationHeader?: boolean;
@@ -66,7 +65,6 @@ const isRetryableError = (error: AxiosError, config: RetryConfig): boolean => {
 
 export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
   const {
-    tokenKey: _tokenKey,
     onUnauthorized,
     baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
     includeOrganizationHeader = true,
@@ -102,12 +100,6 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
   // Note: Auth tokens are handled via httpOnly cookies (withCredentials: true)
   client.interceptors.request.use(
     async (config: InternalAxiosRequestConfig) => {
-      const storedToken = localStorage.getItem(_tokenKey);
-      if (storedToken && !config.headers?.Authorization) {
-        config.headers = config.headers || {};
-        config.headers.Authorization = `Bearer ${storedToken}`;
-      }
-
       if (includeOrganizationHeader) {
         const organizationId = resolveOrganizationId(organizationIdKey, defaultOrganizationId);
         if (organizationId) {

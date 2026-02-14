@@ -122,15 +122,13 @@ const Setup: React.FC = () => {
         organizationName: formData.organizationName.trim(),
       });
 
-      // Store token
-      localStorage.setItem('token', response.data.token);
       if (response.data.organizationId) {
         localStorage.setItem('organizationId', response.data.organizationId);
       }
 
       // Hydrate Redux auth state so route protection works.
       const me = await api.get('/auth/me');
-      dispatch(setCredentials({ user: me.data, token: response.data.token }));
+      dispatch(setCredentials({ user: me.data }));
 
       // Redirect to dashboard
       navigate('/dashboard');

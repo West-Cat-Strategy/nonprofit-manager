@@ -32,19 +32,17 @@ const ThemeAudit = lazy(() => import('../pages/neo-brutalist/ThemeAudit'));
 
 // AppRoutes component with setup check logic
 const AppRoutes = () => {
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, authLoading } = useAppSelector((state) => state.auth);
   const { setupRequired, loading } = useSetupCheck();
   const location = useLocation();
 
-  // Show loader while checking setup status
-  if (loading) {
+  // Show loader while verifying auth cookie or checking setup status
+  if (authLoading || loading) {
     return <PageLoader />;
   }
 
   // Redirect to setup if required and not already on setup page
   if (setupRequired && location.pathname !== '/setup') {
-    // Clear any old tokens before redirecting to setup
-    localStorage.removeItem('token');
     return <Navigate to="/setup" replace />;
   }
 

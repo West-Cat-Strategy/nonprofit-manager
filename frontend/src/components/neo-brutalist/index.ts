@@ -2,7 +2,6 @@
  * Neo-Brutalist Components - Index
  */
 
-export { default as NeoBrutalistSidebar } from './NeoBrutalistSidebar';
 export { default as NeoBrutalistLayout } from './NeoBrutalistLayout';
 export { default as PeopleCard } from './PeopleCard';
 

@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../services/api';
+import { useAppSelector } from '../store/hooks';
 
 export interface NavigationItem {
   id: string;
@@ -94,6 +95,7 @@ function saveToLocalStorage(preferences: NavigationPreferences): void {
 }
 
 export function useNavigationPreferences() {
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
   const [preferences, setPreferences] = useState<NavigationPreferences>(loadFromLocalStorage);
   const [isLoading, setIsLoading] = useState(true);
   const [isSynced, setIsSynced] = useState(false);
@@ -122,13 +124,12 @@ export function useNavigationPreferences() {
     };
 
     // Only fetch if user is authenticated
-    const token = localStorage.getItem('token');
-    if (token) {
+    if (isAuthenticated) {
       fetchPreferences();
     } else {
       setIsLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   // Save to API with debounce
   const saveToApi = useCallback((newPrefs: NavigationPreferences) => {
@@ -176,11 +177,10 @@ export function useNavigationPreferences() {
     saveToLocalStorage(newPrefs);
 
     // Save to API if authenticated
-    const token = localStorage.getItem('token');
-    if (token) {
+    if (isAuthenticated) {
       saveToApi(newPrefs);
     }
-  }, [saveToApi]);
+  }, [isAuthenticated, saveToApi]);
 
   const toggleItem = useCallback((itemId: string) => {
     setPreferences((prev) => {
@@ -193,14 +193,13 @@ export function useNavigationPreferences() {
       const newPrefs = { items: newItems };
       saveToLocalStorage(newPrefs);
 
-      const token = localStorage.getItem('token');
-      if (token) {
+      if (isAuthenticated) {
         saveToApi(newPrefs);
       }
 
       return newPrefs;
     });
-  }, [saveToApi]);
+  }, [isAuthenticated, saveToApi]);
 
   const setItemEnabled = useCallback((itemId: string, enabled: boolean) => {
     setPreferences((prev) => {
