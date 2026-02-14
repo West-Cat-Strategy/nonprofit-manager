@@ -26,6 +26,16 @@ const config: PoolConfig = {
   // Avoid Jest hanging on open TCP handles while still allowing real connections during tests.
   // https://node-postgres.com/api/pool
   allowExitOnIdle: process.env.NODE_ENV === 'test',
+  // SSL/TLS Configuration for Database Connection
+  // In production, enforce SSL for secure database communication
+  ssl:
+    process.env.NODE_ENV === 'production'
+      ? {
+          rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false', // Default: true (strict)
+          // Optional: ca certificate path for self-signed certs
+          // ca: process.env.DB_SSL_CA_PATH ? fs.readFileSync(process.env.DB_SSL_CA_PATH, 'utf8') : undefined,
+        }
+      : false,
 };
 
 const pool = new Pool(config);

@@ -14,20 +14,20 @@ const TemplatePreview: React.FC = () => {
   const [searchParams] = useSearchParams();
   const pageSlug = searchParams.get('page') || 'home';
 
-  const { token } = useSelector((state: RootState) => state.auth);
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   const [previewHtml, setPreviewHtml] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const previewUrl = useMemo(() => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
     const baseUrl = apiUrl.endsWith('/api') ? apiUrl.slice(0, -4) : apiUrl;
     return `${baseUrl}/api/templates/${templateId}/preview?page=${encodeURIComponent(pageSlug)}`;
   }, [templateId, pageSlug]);
 
   useEffect(() => {
     const fetchPreview = async () => {
-      if (!templateId || !token) {
+      if (!templateId || !isAuthenticated) {
         setError('Missing template ID or authentication');
         setIsLoading(false);
         return;
@@ -38,8 +38,8 @@ const TemplatePreview: React.FC = () => {
         const organizationId =
           localStorage.getItem('organizationId') || import.meta.env.VITE_DEFAULT_ORGANIZATION_ID;
         const response = await fetch(previewUrl, {
+          credentials: 'include',
           headers: {
-            'Authorization': `Bearer ${token}`,
             ...(organizationId ? { 'X-Organization-Id': organizationId } : {}),
           },
         });
@@ -59,7 +59,7 @@ const TemplatePreview: React.FC = () => {
     };
 
     fetchPreview();
-  }, [templateId, token, previewUrl]);
+  }, [templateId, isAuthenticated, previewUrl]);
 
   const handleClose = () => {
     navigate('/website-builder');

@@ -1,5 +1,10 @@
+/**
+ * Volunteer List Page
+ * Displays all volunteers with advanced filtering, bulk operations, and import/export
+ */
+
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   fetchVolunteers,
@@ -8,6 +13,15 @@ import {
   clearFilters,
 } from '../../../store/slices/volunteersSlice';
 import type { Volunteer } from '../../../store/slices/volunteersSlice';
+import {
+  PeopleListContainer,
+  FilterPanel,
+  BulkActionBar,
+  ImportExportModal,
+} from '../../../components/people';
+import { useBulkSelect, useImportExport } from '../../../hooks';
+import { BrutalBadge } from '../../../components/neo-brutalist';
+import type { TableColumn } from '../../../types/people';
 
 const VolunteerList = () => {
   const dispatch = useAppDispatch();
@@ -16,11 +30,24 @@ const VolunteerList = () => {
     (state) => state.volunteers
   );
 
+  const {
+    selectedIds,
+    selectedCount,
+    toggleRow,
+    selectAll,
+    deselectAll,
+  } = useBulkSelect();
+
+  const { exportToCSV } = useImportExport();
   const [searchInput, setSearchInput] = useState(filters.search);
-  const [availabilityFilter, setAvailabilityFilter] = useState(filters.availability_status);
+  const [availabilityFilter, setAvailabilityFilter] = useState(
+    filters.availability_status
+  );
   const [backgroundCheckFilter, setBackgroundCheckFilter] = useState(
     filters.background_check_status
   );
+  const [showImportExport, setShowImportExport] = useState(false);
+  const [filterCollapsed, setFilterCollapsed] = useState(false);
 
   const loadVolunteers = useCallback(() => {
     dispatch(
@@ -30,7 +57,6 @@ const VolunteerList = () => {
         search: filters.search || undefined,
         availability_status: filters.availability_status || undefined,
         background_check_status: filters.background_check_status || undefined,
-        is_active: filters.is_active,
       })
     );
   }, [dispatch, filters, pagination.page, pagination.limit]);
@@ -39,19 +65,24 @@ const VolunteerList = () => {
     loadVolunteers();
   }, [loadVolunteers]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    dispatch(setFilters({ search: searchInput }));
+  const handleFilterChange = (filterId: string, value: string) => {
+    if (filterId === 'search') {
+      setSearchInput(value);
+    } else if (filterId === 'availability_status') {
+      setAvailabilityFilter(value);
+    } else if (filterId === 'background_check_status') {
+      setBackgroundCheckFilter(value);
+    }
   };
 
-  const handleFilterChange = (filterType: string, value: string) => {
-    if (filterType === 'availability_status') {
-      setAvailabilityFilter(value);
-      dispatch(setFilters({ availability_status: value }));
-    } else if (filterType === 'background_check_status') {
-      setBackgroundCheckFilter(value);
-      dispatch(setFilters({ background_check_status: value }));
-    }
+  const handleApplyFilters = () => {
+    dispatch(
+      setFilters({
+        search: searchInput,
+        availability_status: availabilityFilter,
+        background_check_status: backgroundCheckFilter,
+      })
+    );
   };
 
   const handleClearFilters = () => {
@@ -61,250 +92,316 @@ const VolunteerList = () => {
     dispatch(clearFilters());
   };
 
-  const handleDelete = async (volunteerId: string, name: string) => {
-    if (window.confirm(`Are you sure you want to remove ${name} from volunteers?`)) {
-      await dispatch(deleteVolunteer(volunteerId));
-      loadVolunteers();
+  const handleSelectAll = () => {
+    if (selectedCount === volunteers.length) {
+      deselectAll();
+    } else {
+      selectAll(volunteers.map((v) => v.volunteer_id));
     }
   };
 
-  const formatName = (volunteer: Volunteer) => {
-    return `${volunteer.first_name} ${volunteer.last_name}`;
+  const handleBulkDelete = async () => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete ${selectedCount} volunteer(s)?`
+      )
+    ) {
+      return;
+    }
+
+    const ids = Array.from(selectedIds);
+    for (const id of ids) {
+      await dispatch(deleteVolunteer(id));
+    }
+
+    deselectAll();
+    loadVolunteers();
+  };
+
+  const handleBulkExport = () => {
+    const ids = Array.from(selectedIds);
+    const selectedVolunteers = volunteers.filter((v) =>
+      ids.includes(v.volunteer_id)
+    );
+
+    const columns = [
+      'first_name',
+      'last_name',
+      'email',
+      'phone',
+      'skills',
+      'availability_status',
+      'background_check_status',
+      'total_hours_logged',
+    ] as const;
+
+    exportToCSV(
+      selectedVolunteers.map((v) => ({
+        first_name: v.first_name,
+        last_name: v.last_name,
+        email: v.email,
+        phone: v.phone,
+        skills: v.skills?.join('; ') || '',
+        availability_status: v.availability_status,
+        background_check_status: v.background_check_status,
+        total_hours_logged: v.total_hours_logged,
+      })),
+      columns,
+      {
+        filename: 'volunteers-export',
+        includeHeaders: true,
+      }
+    );
   };
 
   const getStatusBadge = (status: string) => {
-    const colors = {
-      available: 'bg-green-100 text-green-800',
-      unavailable: 'bg-red-100 text-red-800',
-      limited: 'bg-yellow-100 text-yellow-800',
+    const statusConfig = {
+      available: { bg: 'bg-green-100', text: 'text-green-800', label: 'Available' },
+      unavailable: { bg: 'bg-red-100', text: 'text-red-800', label: 'Unavailable' },
+      limited: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Limited' },
     };
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return statusConfig[status as keyof typeof statusConfig] || {
+      bg: 'bg-gray-100',
+      text: 'text-gray-800',
+      label: status,
+    };
   };
 
   const getBackgroundCheckBadge = (status: string) => {
-    const colors = {
-      not_required: 'bg-gray-100 text-gray-800',
-      pending: 'bg-yellow-100 text-yellow-800',
-      in_progress: 'bg-blue-100 text-blue-800',
-      approved: 'bg-green-100 text-green-800',
-      rejected: 'bg-red-100 text-red-800',
-      expired: 'bg-orange-100 text-orange-800',
+    const statusConfig = {
+      not_required: { bg: 'bg-gray-100', text: 'text-gray-800' },
+      pending: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+      in_progress: { bg: 'bg-blue-100', text: 'text-blue-800' },
+      approved: { bg: 'bg-green-100', text: 'text-green-800' },
+      rejected: { bg: 'bg-red-100', text: 'text-red-800' },
+      expired: { bg: 'bg-orange-100', text: 'text-orange-800' },
     };
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return statusConfig[status as keyof typeof statusConfig] || {
+      bg: 'bg-gray-100',
+      text: 'text-gray-800',
+    };
   };
 
-  return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-6 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Volunteers</h1>
-            <p className="text-gray-600 mt-1">Manage volunteer profiles and assignments</p>
-          </div>
+  const columns: TableColumn[] = [
+    {
+      key: 'name',
+      label: 'Name',
+      width: '280px',
+      render: (_, row: Volunteer) => (
+        <div
+          className="cursor-pointer hover:opacity-75 transition"
+          onClick={() => navigate(`/volunteers/${row.volunteer_id}`)}
+        >
+          <p className="text-blue-600 hover:text-blue-900 font-medium">
+            {row.first_name} {row.last_name}
+          </p>
+          <p className="text-sm text-gray-500">{row.email}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'skills',
+      label: 'Skills',
+      width: '180px',
+      render: (_, row: Volunteer) => (
+        <div className="flex flex-wrap gap-1">
+          {row.skills && row.skills.length > 0 ? (
+            <>
+              {row.skills.slice(0, 2).map((skill, idx) => (
+                <BrutalBadge key={idx} variant="primary" className="text-xs">
+                  {skill}
+                </BrutalBadge>
+              ))}
+              {row.skills.length > 2 && (
+                <span className="text-xs text-gray-500">
+                  +{row.skills.length - 2}
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="text-sm text-gray-400">—</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'availability_status',
+      label: 'Availability',
+      width: '140px',
+      render: (_, row: Volunteer) => {
+        const config = getStatusBadge(row.availability_status);
+        return (
+          <span className={`px-3 py-1 text-xs font-medium rounded ${config.bg} ${config.text}`}>
+            {config.label}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'background_check_status',
+      label: 'Background Check',
+      width: '160px',
+      render: (_, row: Volunteer) => {
+        const config = getBackgroundCheckBadge(row.background_check_status);
+        return (
+          <span className={`px-3 py-1 text-xs font-medium rounded ${config.bg} ${config.text}`}>
+            {row.background_check_status.replace(/_/g, ' ')}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'total_hours_logged',
+      label: 'Hours',
+      width: '100px',
+      render: (_, row: Volunteer) => (
+        <span className="font-mono text-sm">{row.total_hours_logged || 0}h</span>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      width: '140px',
+      render: (_, row: Volunteer) => (
+        <div className="flex gap-2">
           <button
-            onClick={() => navigate('/volunteers/new')}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+            onClick={() => navigate(`/volunteers/${row.volunteer_id}/edit`)}
+            className="text-indigo-600 hover:text-indigo-900 font-mono text-sm"
           >
-            + New Volunteer
+            Edit
+          </button>
+          <button
+            onClick={() => {
+              if (
+                window.confirm(`Remove ${row.first_name} ${row.last_name}?`)
+              ) {
+                dispatch(deleteVolunteer(row.volunteer_id));
+              }
+            }}
+            className="text-red-600 hover:text-red-900 font-mono text-sm"
+          >
+            Delete
           </button>
         </div>
+      ),
+    },
+  ];
 
-        {/* Filters */}
-        <div className="bg-white p-4 rounded-lg shadow mb-6">
-          <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <input
-              type="text"
-              placeholder="Search volunteers..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+  return (
+    <>
+      <PeopleListContainer
+        title="Volunteers"
+        description="Manage volunteer profiles and assignments"
+        onCreateNew={() => navigate('/volunteers/new')}
+        createButtonLabel="New Volunteer"
+        filters={
+          <FilterPanel
+            fields={[
+              {
+                id: 'search',
+                label: 'Search',
+                type: 'text',
+                placeholder: 'Name, email, or phone...',
+                value: searchInput,
+              },
+              {
+                id: 'availability_status',
+                label: 'Availability',
+                type: 'select',
+                value: availabilityFilter,
+                options: [
+                  { value: 'available', label: 'Available' },
+                  { value: 'limited', label: 'Limited' },
+                  { value: 'unavailable', label: 'Unavailable' },
+                ],
+              },
+              {
+                id: 'background_check_status',
+                label: 'Background Check',
+                type: 'select',
+                value: backgroundCheckFilter,
+                options: [
+                  { value: 'approved', label: 'Approved' },
+                  { value: 'pending', label: 'Pending' },
+                  { value: 'in_progress', label: 'In Progress' },
+                  { value: 'expired', label: 'Expired' },
+                  { value: 'not_required', label: 'Not Required' },
+                ],
+              },
+            ]}
+            onFilterChange={handleFilterChange}
+            onApply={handleApplyFilters}
+            onClear={handleClearFilters}
+            isCollapsed={filterCollapsed}
+            onToggleCollapse={() => setFilterCollapsed(!filterCollapsed)}
+            activeFilterCount={
+              [searchInput, availabilityFilter, backgroundCheckFilter].filter(
+                (f) => f
+              ).length
+            }
+          />
+        }
+        loading={loading}
+        error={error}
+        data={volunteers.map((v) => ({ ...v, id: v.volunteer_id }))}
+        columns={columns}
+        pagination={pagination}
+        onPageChange={(page) =>
+          dispatch(
+            fetchVolunteers({
+              page,
+              limit: pagination.limit,
+              search: filters.search || undefined,
+              availability_status: filters.availability_status || undefined,
+              background_check_status: filters.background_check_status || undefined,
+            })
+          )
+        }
+        selectedRows={selectedIds}
+        onSelectRow={(id) => toggleRow(id)}
+        onSelectAll={handleSelectAll}
+        bulkActions={
+          selectedCount > 0 && (
+            <BulkActionBar
+              selectedCount={selectedCount}
+              actions={[
+                {
+                  id: 'export',
+                  label: 'Export',
+                  onClick: handleBulkExport,
+                },
+                {
+                  id: 'import',
+                  label: 'Import',
+                  onClick: () => setShowImportExport(true),
+                },
+                {
+                  id: 'delete',
+                  label: 'Delete',
+                  variant: 'danger',
+                  onClick: handleBulkDelete,
+                },
+              ]}
+              onClearSelection={deselectAll}
             />
+          )
+        }
+        emptyStateTitle="No volunteers found"
+        emptyStateDescription="Get started by adding your first volunteer"
+        emptyStateAction={{
+          label: 'Create First Volunteer',
+          onClick: () => navigate('/volunteers/new'),
+        }}
+      />
 
-            <select
-              value={availabilityFilter}
-              onChange={(e) => handleFilterChange('availability_status', e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Availability</option>
-              <option value="available">Available</option>
-              <option value="limited">Limited</option>
-              <option value="unavailable">Unavailable</option>
-            </select>
-
-            <select
-              value={backgroundCheckFilter}
-              onChange={(e) => handleFilterChange('background_check_status', e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Background Checks</option>
-              <option value="approved">Approved</option>
-              <option value="pending">Pending</option>
-              <option value="in_progress">In Progress</option>
-              <option value="expired">Expired</option>
-              <option value="not_required">Not Required</option>
-            </select>
-
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-              >
-                Search
-              </button>
-              <button
-                type="button"
-                onClick={handleClearFilters}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-              >
-                Clear
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
-            {error}
-          </div>
-        )}
-
-        {/* Loading State */}
-        {loading && (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading volunteers...</p>
-          </div>
-        )}
-
-        {/* Volunteers Table */}
-        {!loading && (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Skills
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Availability
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Background Check
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Hours Logged
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {volunteers.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                      No volunteers found. Add your first volunteer to get started!
-                    </td>
-                  </tr>
-                ) : (
-                  volunteers.map((volunteer) => (
-                    <tr key={volunteer.volunteer_id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Link
-                          to={`/volunteers/${volunteer.volunteer_id}`}
-                          className="text-blue-600 hover:text-blue-900 font-medium"
-                        >
-                          {formatName(volunteer)}
-                        </Link>
-                        <p className="text-sm text-gray-500">{volunteer.email}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-wrap gap-1">
-                          {volunteer.skills && volunteer.skills.length > 0 ? (
-                            volunteer.skills.slice(0, 3).map((skill, idx) => (
-                              <span
-                                key={idx}
-                                className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
-                              >
-                                {skill}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-sm text-gray-400">No skills listed</span>
-                          )}
-                          {volunteer.skills && volunteer.skills.length > 3 && (
-                            <span className="text-xs text-gray-500">
-                              +{volunteer.skills.length - 3} more
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 py-1 text-xs rounded-full capitalize ${getStatusBadge(
-                            volunteer.availability_status
-                          )}`}
-                        >
-                          {volunteer.availability_status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 py-1 text-xs rounded-full capitalize ${getBackgroundCheckBadge(
-                            volunteer.background_check_status
-                          )}`}
-                        >
-                          {volunteer.background_check_status.replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {volunteer.total_hours_logged || 0} hrs
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => navigate(`/volunteers/${volunteer.volunteer_id}/edit`)}
-                          className="text-indigo-600 hover:text-indigo-900 mr-4"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() =>
-                            handleDelete(volunteer.volunteer_id, formatName(volunteer))
-                          }
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-            </div>
-
-            {/* Pagination */}
-            {pagination.total_pages > 1 && (
-              <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200">
-                <div>
-                  <p className="text-sm text-gray-700">
-                    Showing page <span className="font-medium">{pagination.page}</span> of{' '}
-                    <span className="font-medium">{pagination.total_pages}</span> (
-                    {pagination.total} total)
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+      {/* Import/Export Modal */}
+      <ImportExportModal
+        isOpen={showImportExport}
+        onClose={() => setShowImportExport(false)}
+        entityType="volunteers"
+        sampleData={volunteers}
+      />
+    </>
   );
 };
 

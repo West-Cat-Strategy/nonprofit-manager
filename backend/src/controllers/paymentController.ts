@@ -250,6 +250,11 @@ export const listPaymentMethods = async (
 
 /**
  * Handle Stripe webhook
+ * 
+ * Security measures:
+ * - Signature verification (via stripeService.constructWebhookEvent)
+ * - Timestamp validation (prevent replay attacks >5 minutes old)
+ * - Idempotent event processing (via event ID)
  */
 export const handleWebhook = async (req: Request, res: Response): Promise<void> => {
   const signature = req.headers['stripe-signature'] as string;
@@ -262,7 +267,24 @@ export const handleWebhook = async (req: Request, res: Response): Promise<void> 
   try {
     const event = stripeService.constructWebhookEvent(req.body, signature);
 
-    logger.info('Webhook received', { eventType: event.type, eventId: event.id });
+    // Validate webhook timestamp (reject if >5 minutes old)
+    // This prevents replay attacks if a webhook is intercepted
+    const webhookMaxAge = 5 * 60 * 1000; // 5 minutes in milliseconds
+    const webhookAge = Date.now() - event.created.getTime();
+    
+    if (webhookAge > webhookMaxAge) {
+      logger.warn('Webhook rejected: too old', {
+        eventId: event.id,
+        eventType: event.type,
+        webhookAge,
+        maxAge: webhookMaxAge,
+      });
+      // Return 200 to prevent Stripe from retrying
+      res.json({ received: true, rejected: true });
+      return;
+    }
+
+    logger.info('Webhook received', { eventType: event.type, eventId: event.id, age: webhookAge });
 
     // Handle different event types
     switch (event.type) {

@@ -5,6 +5,7 @@ This guide covers deploying the Nonprofit Manager platform to production.
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
+- [Security: TLS/HTTPS & Encryption](#security-tlshttps--encryption)
 - [Environment Setup](#environment-setup)
 - [Docker Deployment](#docker-deployment)
 - [Manual Deployment](#manual-deployment)
@@ -59,6 +60,253 @@ AUTH_RATE_LIMIT_MAX_REQUESTS=5
 # Security
 MAX_LOGIN_ATTEMPTS=5
 ACCOUNT_LOCKOUT_DURATION_MS=900000
+
+# Monitoring
+SENTRY_DSN=your_sentry_dsn
+ENABLE_MONITORING=true
+```
+
+**Frontend `.env`:**
+```bash
+VITE_API_URL=https://api.your-domain.com/api
+VITE_ENABLE_ANALYTICS=true
+VITE_ANALYTICS_ID=your_analytics_id
+```
+
+## Security: TLS/HTTPS & Encryption
+
+**CRITICAL: These steps are required before production deployment.**
+
+### HTTPS & TLS Termination Strategy
+
+The Nonprofit Manager application **must be served over HTTPS** in production. We recommend using a reverse proxy (nginx, AWS ALB, or Cloudflare) to handle TLS termination.
+
+#### Option 1: Docker with Nginx Reverse Proxy (Recommended)
+
+Set up Nginx as a reverse proxy in front of the Nonprofit Manager backend:
+
+1. **Get SSL Certificate** (using Let's Encrypt):
+```bash
+# Install certbot
+sudo apt-get install certbot python3-certbot-nginx
+
+# Get certificate (replace with your domain)
+sudo certbot certonly --standalone -d your-domain.com -d api.your-domain.com
+```
+
+2. **Configure Nginx** (see full config below in "Nginx Configuration" section)
+
+3. **Key Points:**
+   - Enable HTTP/2 for better performance
+   - Set `Strict-Transport-Security` (HSTS) header with `max-age=31536000` (1 year) to force HTTPS
+   - Redirect all HTTP traffic to HTTPS
+   - Configure security headers (X-Frame-Options, X-Content-Type-Options, etc.)
+
+#### Option 2: Application Load Balancer (AWS, Azure, GCP)
+
+If using a managed load balancer:
+
+1. **Configure TLS Termination at Load Balancer:**
+   - Upload your SSL certificate (or use AWS Certificate Manager)
+   - Configure HTTPS listener on port 443
+   - Forward only HTTP traffic to backend containers (internal only)
+
+2. **Backend Configuration:**
+   - Backend listens only on HTTP (internal port 3000)
+   - Add `X-Forwarded-Proto: https` header detection
+   - The backend already handles this in Helmet middleware
+
+3. **Update Environment:**
+   ```bash
+   # Use HTTPS URLs in CORS and frontend config
+   CORS_ORIGIN=https://your-domain.com
+   VITE_API_URL=https://api.your-domain.com/api
+   # Don't expose HTTP ports directly
+   ```
+
+#### Option 3: Cloud Provider Managed Certificate (Cloudflare, etc.)
+
+If using Cloudflare or similar:
+
+1. Set "Full (strict)" SSL mode to validate your origin certificate
+2. Add page rules to force HTTPS
+3. Enable "Always Use HTTPS" setting
+4. The backend will receive `X-Forwarded-Proto: https` headers automatically
+
+### Database Encryption in Transit
+
+**CRITICAL: All database connections must use SSL/TLS in production.**
+
+#### PostgreSQL Configuration
+
+The application automatically enables SSL in production. Ensure your PostgreSQL server:
+
+1. **Has SSL Enabled:**
+```sql
+-- Check if SSL is enabled
+SHOW ssl;  -- Should return 'on'
+```
+
+2. **Use Managed Database Service (Recommended):**
+   - AWS RDS: Enable "IAM DB authentication" or managed certificates
+   - Azure Database: Use TLS 1.2 minimum
+   - GCP Cloud SQL: Automatically enforces SSL
+
+3. **Manual Setup (if not using managed service):**
+```bash
+# Generate certificate (self-signed for testing):
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout /var/lib/postgresql/server.key \
+  -out /var/lib/postgresql/server.crt
+
+# Set permissions
+chmod 600 /var/lib/postgresql/server.key
+chown postgres:postgres /var/lib/postgresql/server.*
+
+# Update postgresql.conf
+echo "ssl = on" >> /etc/postgresql/14/main/postgresql.conf
+echo "ssl_cert_file = '/var/lib/postgresql/server.crt'" >> /etc/postgresql/14/main/postgresql.conf
+echo "ssl_key_file = '/var/lib/postgresql/server.key'" >> /etc/postgresql/14/main/postgresql.conf
+```
+
+#### Backend Database Connection
+
+The Node.js backend in `backend/src/config/database.ts` automatically:
+- Enables SSL in production (`NODE_ENV=production`)
+- Rejects untrusted certificates by default
+- Can be configured via environment variables:
+
+```bash
+# Production database config
+DB_HOST=your-prod-database.com
+DB_PORT=5432
+DB_NAME=nonprofit_manager
+DB_USER=nonprofit_app_user
+DB_PASSWORD=your_strong_random_password
+
+# SSL enforcement (recommended: true for strict validation)
+# Set to false ONLY for self-signed certificates in development
+DB_SSL_REJECT_UNAUTHORIZED=true
+
+# (Optional) Custom CA certificate path
+# DB_SSL_CA_PATH=/path/to/ca-bundle.crt
+```
+
+### Redis Encryption in Transit
+
+**Redis should use TLS in production for sensitive data caching.**
+
+#### Managed Redis Service (Recommended)
+
+Use AWS ElastiCache, Azure Cache for Redis, or GCP Memorystore:
+
+1. Enable "Encryption at rest" and "Encryption in transit" options
+2. They automatically provide rediss:// (TLS) endpoints
+3. Update environment variable:
+
+```bash
+# Production Redis with TLS
+REDIS_URL=rediss://:AUTH_TOKEN_HERE@your-redis.cache.amazonaws.com:6380
+REDIS_ENABLED=true
+REDIS_TLS_REJECT_UNAUTHORIZED=true
+```
+
+#### Self-Hosted Redis with TLS
+
+If running Redis yourself:
+
+```bash
+# Generate TLS certificates for Redis
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout /etc/redis/redis.key \
+  -out /etc/redis/redis.crt
+
+# Configure Redis (redis.conf)
+port 0  # Disable unencrypted port
+tls-port 6380
+tls-cert-file /etc/redis/redis.crt
+tls-key-file /etc/redis/redis.key
+requirepass YOUR_STRONG_PASSWORD
+
+# Connect backend via TLS
+REDIS_URL=rediss://:YOUR_STRONG_PASSWORD@localhost:6380
+```
+
+### HSTS (HTTP Strict Transport Security)
+
+The backend automatically sets HSTS headers in production:
+
+```typescript
+// Set by Helmet.js middleware in backend/src/index.ts
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+```
+
+This tells browsers to **always** use HTTPS for your domain. To enable HSTS preload:
+1. Visit https://hstspreload.org
+2. Submit your domain (requires HSTS header with max-age ≥ 31536000)
+3. Add to browser preload list (prevents even the first request from being HTTP)
+
+### Security Headers Verification
+
+After deployment, verify your security headers:
+
+```bash
+# Check HSTS header
+curl -I https://your-domain.com
+
+# Expected headers:
+# Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+# X-Content-Type-Options: nosniff
+# X-Frame-Options: DENY
+# Referrer-Policy: no-referrer
+
+# Use online checker: https://securityheaders.com
+```
+
+---
+
+## Environment Setup
+
+### Environment Variables
+Create production `.env` files for backend and frontend:
+
+**Backend `.env`:**
+```bash
+NODE_ENV=production
+PORT=3000
+LOG_LEVEL=info
+
+# Database
+DB_HOST=your_db_host
+DB_PORT=5432
+DB_NAME=nonprofit_manager
+DB_USER=your_db_user
+DB_PASSWORD=strong_password_here
+DB_SSL_REJECT_UNAUTHORIZED=true
+
+# Redis
+REDIS_URL=rediss://:your_redis_password@your-redis-host:6380
+REDIS_ENABLED=true
+REDIS_TLS_REJECT_UNAUTHORIZED=true
+
+# JWT - CHANGE THESE!
+JWT_SECRET=your_strong_secret_key_minimum_32_characters
+JWT_EXPIRES_IN=24h
+JWT_REFRESH_EXPIRES_IN=7d
+
+# CORS (must be HTTPS in production)
+CORS_ORIGIN=https://your-domain.com
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+AUTH_RATE_LIMIT_WINDOW_MS=900000
+AUTH_RATE_LIMIT_MAX_REQUESTS=5
+
+# Security
+MAX_LOGIN_ATTEMPTS=5
+ACCOUNT_LOCKOUT_DURATION_MS=900000
+ENFORCE_SECURE_CONFIG=true
 
 # Monitoring
 SENTRY_DSN=your_sentry_dsn

@@ -8,6 +8,7 @@ import { PASSWORD, JWT } from '@config/constants';
 import { PortalAuthRequest } from '@middleware/portalAuth';
 import { logPortalActivity } from '@services/domains/integration';
 import { badRequest, conflict, errorPayload, forbidden, notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
+import { setPortalAuthCookie, clearAuthCookies } from '@utils/cookieHelper';
 
 interface PortalSignupRequest {
   email: string;
@@ -148,8 +149,10 @@ export const portalLogin = async (
 
     const token = buildPortalToken({ id: user.id, email: user.email, contactId: user.contact_id });
 
+    // Set HTTP-only cookie instead of returning token in JSON
+    setPortalAuthCookie(res, token);
+
     return res.json({
-      token,
       user: {
         id: user.id,
         email: user.email,

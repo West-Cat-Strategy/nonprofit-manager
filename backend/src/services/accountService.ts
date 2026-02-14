@@ -438,16 +438,29 @@ export class AccountService {
   /**
    * Get contacts for an account
    */
-  async getAccountContacts(accountId: string): Promise<Contact[]> {
+  async getAccountContacts(
+    accountId: string,
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<{ contacts: Contact[]; total: number }> {
     try {
+      // Get total count
+      const countResult = await this.pool.query(
+        'SELECT COUNT(*) as total FROM contacts WHERE account_id = $1 AND is_active = true',
+        [accountId]
+      );
+      const total = parseInt(countResult.rows[0]?.total || '0', 10);
+
+      // Get paginated contacts
       const result = await this.pool.query(
         `SELECT * FROM contacts 
          WHERE account_id = $1 AND is_active = true
-         ORDER BY created_at DESC`,
-        [accountId]
+         ORDER BY created_at DESC
+         LIMIT $2 OFFSET $3`,
+        [accountId, limit, offset]
       );
 
-      return result.rows;
+      return { contacts: result.rows, total };
     } catch (error) {
       logger.error('Error getting account contacts:', error);
       throw new Error('Failed to retrieve account contacts');

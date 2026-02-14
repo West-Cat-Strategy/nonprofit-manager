@@ -352,3 +352,41 @@ export interface UpdateCaseStatusDTO {
   reason?: string;
   notes?: string;
 }
+
+/**
+ * Create Case Milestone DTO
+ */
+export interface CreateCaseMilestoneDTO {
+  milestone_name: string;
+  description?: string;
+  due_date?: string;
+  sort_order?: number;
+}
+
+/**
+ * Update Case Milestone DTO
+ */
+export interface UpdateCaseMilestoneDTO {
+  milestone_name?: string;
+  description?: string;
+  due_date?: string;
+  is_completed?: boolean;
+  sort_order?: number;
+}
+
+/**
+ * Reassign Case DTO
+ */
+export interface ReassignCaseDTO {
+  assigned_to: string | null;
+  reason?: string;
+}
+
+/**
+ * Bulk Status Update DTO
+ */
+export interface BulkStatusUpdateDTO {
+  case_ids: string[];
+  new_status_id: string;
+  notes?: string;
+}

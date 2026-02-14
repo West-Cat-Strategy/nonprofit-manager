@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import type { AuthRequest } from '@middleware/auth';
 import { caseService } from '@services/domains/engagement';
-import type { CreateCaseDTO, UpdateCaseDTO, CaseFilter, CreateCaseNoteDTO, UpdateCaseStatusDTO } from '@app-types/case';
+import type { CreateCaseDTO, UpdateCaseDTO, CaseFilter, CreateCaseNoteDTO, UpdateCaseStatusDTO, CreateCaseMilestoneDTO, UpdateCaseMilestoneDTO, ReassignCaseDTO, BulkStatusUpdateDTO } from '@app-types/case';
 import { logger } from '@config/logger';
 import { PAGINATION } from '@config/constants';
 import { notFound, serverError } from '@utils/responseHelpers';
@@ -168,5 +168,89 @@ export const deleteCase = async (req: AuthRequest, res: Response): Promise<void>
   } catch (error) {
     logger.error('Error deleting case:', error);
     serverError(res, 'Failed to delete case');
+  }
+};
+
+export const getCaseMilestones = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const milestones = await caseService.getCaseMilestones(id);
+    res.json({ milestones });
+  } catch (error) {
+    logger.error('Error fetching milestones:', error);
+    serverError(res, 'Failed to fetch milestones');
+  }
+};
+
+export const createCaseMilestone = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const data = req.body as CreateCaseMilestoneDTO;
+    const userId = req.user?.id;
+
+    if (!data.milestone_name?.trim()) {
+      res.status(400).json({ error: { message: 'Milestone name is required', code: 'VALIDATION_ERROR' } });
+      return;
+    }
+
+    const milestone = await caseService.createCaseMilestone(id, data, userId);
+    res.status(201).json(milestone);
+  } catch (error) {
+    logger.error('Error creating milestone:', error);
+    serverError(res, 'Failed to create milestone');
+  }
+};
+
+export const updateCaseMilestone = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { milestoneId } = req.params;
+    const data = req.body as UpdateCaseMilestoneDTO;
+    const milestone = await caseService.updateCaseMilestone(milestoneId, data);
+    res.json(milestone);
+  } catch (error) {
+    logger.error('Error updating milestone:', error);
+    serverError(res, 'Failed to update milestone');
+  }
+};
+
+export const deleteCaseMilestone = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { milestoneId } = req.params;
+    await caseService.deleteCaseMilestone(milestoneId);
+    res.json({ success: true, message: 'Milestone deleted' });
+  } catch (error) {
+    logger.error('Error deleting milestone:', error);
+    serverError(res, 'Failed to delete milestone');
+  }
+};
+
+export const reassignCase = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const data = req.body as ReassignCaseDTO;
+    const userId = req.user?.id;
+    const updated = await caseService.reassignCase(id, data.assigned_to, data.reason, userId);
+    res.json(updated);
+  } catch (error) {
+    logger.error('Error reassigning case:', error);
+    serverError(res, 'Failed to reassign case');
+  }
+};
+
+export const bulkUpdateCaseStatus = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const data = req.body as BulkStatusUpdateDTO;
+    const userId = req.user?.id;
+
+    if (!data.case_ids?.length || !data.new_status_id) {
+      res.status(400).json({ error: { message: 'case_ids and new_status_id are required', code: 'VALIDATION_ERROR' } });
+      return;
+    }
+
+    const result = await caseService.bulkUpdateStatus(data.case_ids, data.new_status_id, data.notes, userId);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    logger.error('Error bulk updating cases:', error);
+    serverError(res, 'Failed to bulk update cases');
   }
 };

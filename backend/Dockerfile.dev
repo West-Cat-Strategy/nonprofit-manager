@@ -1,22 +1,24 @@
-# Development Dockerfile for backend with hot reload
-FROM node:20-alpine AS development
+# Development backend — hot reload with ts-node / nodemon
+# syntax=docker/dockerfile:1
+FROM node:20-alpine3.20 AS development
 
 WORKDIR /app
 
-# Install development dependencies
-RUN apk add --no-cache python3 make g++
+ENV NODE_ENV=development \
+    PORT=8004
 
-# Copy package files
+# Native module build tools (required by bcrypt, sharp, etc.)
+RUN apk add --no-cache dumb-init python3 make g++
+
+# Install deps before copying source for better layer caching
 COPY package*.json ./
-
-# Install all dependencies (including devDependencies)
 RUN npm ci --no-audit --no-fund
 
-# Copy source code
+# Copy source (overridden by bind-mount in docker-compose.dev.yml)
 COPY . .
 
-# Expose application and debugger ports
-EXPOSE 3000 9229
+# Application port + Node.js inspector (shifted to 800x)
+EXPOSE 8004 8009
 
-# Start with hot reload using ts-node-dev or nodemon
+ENTRYPOINT ["dumb-init", "--"]
 CMD ["npm", "run", "dev"]
