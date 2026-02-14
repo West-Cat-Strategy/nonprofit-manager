@@ -10,6 +10,8 @@ import { trackLoginAttempt } from '@middleware/accountLockout';
 import { JWT, TIME } from '@config/constants';
 import { decrypt, encrypt } from '@utils/encryption';
 import { badRequest, conflict, notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
+import { setAuthCookie, setRefreshCookie } from '@utils/cookieHelper';
+import { buildAuthTokenResponse } from '@utils/authResponse';
 import { authenticator } from '@otplib/preset-default';
 
 const TOTP_PERIOD_SECONDS = 30;
@@ -316,10 +318,11 @@ export const completeTotpLogin = async (
     await trackLoginAttempt(email, true, user.id, clientIp);
 
     const { token, refreshToken } = issueAuthTokens(user);
+    setAuthCookie(res, token);
+    setRefreshCookie(res, refreshToken);
     const organizationId = await getDefaultOrganizationId();
     return res.json({
-      token,
-      refreshToken,
+      ...buildAuthTokenResponse(token, refreshToken),
       organizationId,
       user: {
         id: user.id,

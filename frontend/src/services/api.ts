@@ -16,7 +16,7 @@ const api = createApiClient({
     maxRetries: 3,
     baseDelayMs: 1000,
     maxDelayMs: 10000,
-    retryableStatuses: [408, 429, 500, 502, 503, 504],
+    retryableStatuses: [408, 500, 502, 503, 504],
   },
 });
 
@@ -30,4 +30,3 @@ const typedApi = api as typeof api & {
 export type { ApiErrorResponse };
 export { createRequestController, createCancellableRequest };
 export default typedApi;
-

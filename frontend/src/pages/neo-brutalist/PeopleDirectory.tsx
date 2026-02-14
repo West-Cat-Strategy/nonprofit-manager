@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
+import type { AxiosError } from 'axios';
 import NeoBrutalistLayout from '../../components/neo-brutalist/NeoBrutalistLayout';
 import PeopleCard from '../../components/neo-brutalist/PeopleCard';
 import BrutalInput from '../../components/neo-brutalist/BrutalInput';
@@ -38,6 +39,8 @@ type ContactsResponse = {
 };
 
 const DEFAULT_PAGE_SIZE = 100;
+const FALLBACK_NAME = 'Unknown';
+const DEFAULT_RETRY_AFTER_SECONDS = 60;
 
 export default function PeopleDirectory() {
     const navigate = useNavigate();
@@ -52,10 +55,17 @@ export default function PeopleDirectory() {
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+    const [rateLimitedUntil, setRateLimitedUntil] = useState<number | null>(null);
     const searchDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const previousTabRef = useRef<TabType | null>(null);
 
     const fetchPeople = useCallback(async (tab: TabType, query: string) => {
+        if (rateLimitedUntil && Date.now() < rateLimitedUntil) {
+            setLoading(false);
+            setError(true);
+            return;
+        }
+
         setLoading(true);
         try {
             setError(false);
@@ -71,28 +81,44 @@ export default function PeopleDirectory() {
 
             const data = res.data.data.map((c) => ({
                 id: c.contact_id,
-                firstName: c.first_name,
-                lastName: c.last_name,
+                firstName: c.first_name?.trim() || FALLBACK_NAME,
+                lastName: c.last_name?.trim() || '',
                 email: c.email || '',
                 phone: c.phone || c.mobile_phone || undefined,
                 role: tab === 'all' ? undefined : tab,
                 status: c.is_active ? 'active' : 'inactive',
                 title: c.job_title || undefined,
-                fullName: `${c.first_name} ${c.last_name}`.trim(),
+                fullName:
+                    `${c.first_name || ''} ${c.last_name || ''}`.trim()
+                    || c.email
+                    || FALLBACK_NAME,
                 cardColor: 'gray',
             })) satisfies AdaptedPerson[];
 
             setPeople(data);
         } catch (err) {
             console.error('[PeopleDirectory] Failed to fetch people:', err);
+            const error = err as AxiosError;
+            if (error.response?.status === 429) {
+                const retryAfterHeader = error.response.headers?.['retry-after'];
+                const retryAfterSeconds = Number(retryAfterHeader);
+                const safeRetrySeconds = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+                    ? retryAfterSeconds
+                    : DEFAULT_RETRY_AFTER_SECONDS;
+                setRateLimitedUntil(Date.now() + safeRetrySeconds * 1000);
+            }
             setError(true);
             setPeople([]);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [rateLimitedUntil]);
 
     const fetchCounts = useCallback(async (query: string) => {
+        if (rateLimitedUntil && Date.now() < rateLimitedUntil) {
+            return;
+        }
+
         try {
             const search = query.trim() === '' ? undefined : query.trim();
             const baseParams = { page: 1, limit: 1, search, is_active: true as const };
@@ -113,13 +139,18 @@ export default function PeopleDirectory() {
         } catch (err) {
             console.error('[PeopleDirectory] Failed to fetch counts:', err);
         }
-    }, []);
+    }, [rateLimitedUntil]);
 
     const refresh = useCallback(
         async (tab: TabType, query: string) => {
+            if (rateLimitedUntil && Date.now() < rateLimitedUntil) {
+                setLoading(false);
+                setError(true);
+                return;
+            }
             await Promise.all([fetchPeople(tab, query), fetchCounts(query)]);
         },
-        [fetchCounts, fetchPeople]
+        [fetchCounts, fetchPeople, rateLimitedUntil]
     );
 
     // Handle tab change
@@ -185,13 +216,23 @@ export default function PeopleDirectory() {
     }
 
     if (error) {
+        const waitSeconds = rateLimitedUntil ? Math.max(0, Math.ceil((rateLimitedUntil - Date.now()) / 1000)) : 0;
+        const isRateLimited = waitSeconds > 0;
         return (
             <NeoBrutalistLayout pageTitle="DIRECTORY">
                 <div className="p-6">
                     <div className="bg-red-100 border-2 border-red-500 p-6 text-center shadow-[4px_4px_0px_0px_var(--shadow-color)]">
                         <h2 className="text-2xl font-black text-red-600 mb-2 uppercase">Directory Unavailable</h2>
-                        <p className="font-bold">Failed to load people data. Please try again later.</p>
-                        <button onClick={() => refresh(activeTab, searchTerm)} className="mt-4 px-6 py-2 bg-red-500 text-white font-bold border-2 border-black hover:bg-red-600 uppercase">
+                        <p className="font-bold">
+                            {isRateLimited
+                                ? `Rate limit reached. Try again in about ${waitSeconds} seconds.`
+                                : 'Failed to load people data. Please try again later.'}
+                        </p>
+                        <button
+                            onClick={() => refresh(activeTab, searchTerm)}
+                            disabled={isRateLimited}
+                            className="mt-4 px-6 py-2 bg-red-500 text-white font-bold border-2 border-black hover:bg-red-600 uppercase disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
                             Retry
                         </button>
                     </div>

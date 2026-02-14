@@ -21,6 +21,8 @@ import { getJwtSecret } from '@config/jwt';
 import { JWT } from '@config/constants';
 import { trackLoginAttempt } from '@middleware/accountLockout';
 import { badRequest, notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
+import { setAuthCookie, setRefreshCookie } from '@utils/cookieHelper';
+import { buildAuthTokenResponse } from '@utils/authResponse';
 
 const CHALLENGE_TTL_MS = TIME.FIVE_MINUTES;
 
@@ -411,10 +413,11 @@ export const loginVerify = async (
     await trackLoginAttempt(email, true, user.id, clientIp);
 
     const { token, refreshToken } = issueAuthTokens(user);
+    setAuthCookie(res, token);
+    setRefreshCookie(res, refreshToken);
     const organizationId = await getDefaultOrganizationId();
     return res.json({
-      token,
-      refreshToken,
+      ...buildAuthTokenResponse(token, refreshToken),
       organizationId,
       user: {
         id: user.id,

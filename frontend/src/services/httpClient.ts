@@ -24,7 +24,7 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
   maxRetries: 3,
   baseDelayMs: 1000,
   maxDelayMs: 10000,
-  retryableStatuses: [408, 429, 500, 502, 503, 504],
+  retryableStatuses: [408, 500, 502, 503, 504],
 };
 
 interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
