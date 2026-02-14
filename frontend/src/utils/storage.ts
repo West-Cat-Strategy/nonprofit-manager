@@ -209,7 +209,6 @@ export function clearAllAppStorage(): void {
   const keys = Object.keys(localStorage).filter(key => key.startsWith(STORAGE_PREFIX));
   keys.forEach(key => localStorage.removeItem(key));
   // Also clear legacy keys
-  localStorage.removeItem('token');
   localStorage.removeItem('organizationId');
   localStorage.removeItem('dashboardSettings');
 }

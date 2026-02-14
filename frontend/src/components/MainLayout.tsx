@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { logout } from '../store/slices/authSlice';
+import { logoutAsync } from '../store/slices/authSlice';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -13,8 +13,7 @@ function MainLayout({ children }: MainLayoutProps) {
   const { user } = useAppSelector((state) => state.auth);
 
   const handleLogout = () => {
-    dispatch(logout());
-    navigate('/login');
+    dispatch(logoutAsync()).finally(() => navigate('/login'));
   };
 
   const navItems = [

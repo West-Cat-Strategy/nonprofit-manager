@@ -7,7 +7,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { logout } from '../store/slices/authSlice';
+import { logoutAsync } from '../store/slices/authSlice';
 import { useNavigationPreferences } from '../hooks/useNavigationPreferences';
 import { useBranding } from '../contexts/BrandingContext';
 import Avatar from './Avatar';
@@ -62,8 +62,7 @@ const Navigation = () => {
   }, [mobileMenuOpen, searchOpen]);
 
   const handleLogout = () => {
-    dispatch(logout());
-    navigate('/login');
+    dispatch(logoutAsync()).finally(() => navigate('/login'));
   };
 
   const handleSearch = () => {

@@ -2,13 +2,12 @@ import { createApiClient, createRequestController, createCancellableRequest } fr
 import type { ApiErrorResponse } from '../types/api';
 
 const api = createApiClient({
-  tokenKey: 'token',
   onUnauthorized: (error) => {
     const isSetupCheck = error.config?.url?.includes('/auth/setup-status');
+    const isAuthMe = error.config?.url?.includes('/auth/me');
     const isSetupPage = window.location.pathname === '/setup';
 
-    if (!isSetupCheck && !isSetupPage) {
-      localStorage.removeItem('token');
+    if (!isSetupCheck && !isAuthMe && !isSetupPage) {
       window.location.href = '/login';
     }
   },

@@ -1,12 +1,20 @@
-import { Suspense } from 'react';
+import { useEffect, Suspense } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ToastHost from './components/ToastHost';
 import AppRoutes from './routes/index';
 import PageLoader from './components/PageLoader';
+import { useAppDispatch } from './store/hooks';
+import { initializeAuth } from './store/slices/authSlice';
 import './App.css';
 
 function App() {
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    dispatch(initializeAuth());
+  }, [dispatch]);
+
   return (
     <Router>
       <div className="min-h-screen bg-app-bg text-app-text transition-colors duration-300">
