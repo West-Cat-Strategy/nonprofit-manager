@@ -3,7 +3,7 @@
  * State management for scheduleable follow-ups on cases and tasks
  */
 
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import api from '../../services/api';
 import type {
@@ -376,10 +376,25 @@ export const {
 export default followUpsSlice.reducer;
 
 // Selectors
-export const selectEntityFollowUps = (state: { followUps: FollowUpsState }) => state.followUps.entityFollowUps;
-export const selectScheduledFollowUps = (state: { followUps: FollowUpsState }) =>
-  state.followUps.entityFollowUps.filter(f => f.status === 'scheduled');
-export const selectOverdueFollowUps = (state: { followUps: FollowUpsState }) =>
-  state.followUps.entityFollowUps.filter(f => f.status === 'overdue');
-export const selectCompletedFollowUps = (state: { followUps: FollowUpsState }) =>
-  state.followUps.entityFollowUps.filter(f => f.status === 'completed');
+const selectFollowUpsState = (state: { followUps: FollowUpsState }) => state.followUps;
+const selectEntityFollowUpsArray = createSelector(
+  [selectFollowUpsState],
+  (state) => state.entityFollowUps
+);
+
+export const selectEntityFollowUps = selectEntityFollowUpsArray;
+
+export const selectScheduledFollowUps = createSelector(
+  [selectEntityFollowUpsArray],
+  (followUps) => followUps.filter(f => f.status === 'scheduled')
+);
+
+export const selectOverdueFollowUps = createSelector(
+  [selectEntityFollowUpsArray],
+  (followUps) => followUps.filter(f => f.status === 'overdue')
+);
+
+export const selectCompletedFollowUps = createSelector(
+  [selectEntityFollowUpsArray],
+  (followUps) => followUps.filter(f => f.status === 'completed')
+);

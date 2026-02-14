@@ -113,7 +113,6 @@ export default function AcceptInvitation() {
 
       // Store the token and user info
       dispatch(setCredentials({
-        token: response.data.token,
         user: response.data.user,
       }));
 

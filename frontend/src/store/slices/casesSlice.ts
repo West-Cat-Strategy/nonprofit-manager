@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSelector } from 'reselect';
 import api from '../../services/api';
 import { formatApiErrorMessageWith } from '../../utils/apiError';
 import type {
@@ -15,6 +16,12 @@ import type {
   CaseNotesResponse,
   CaseSummary,
   CaseStatusType,
+  CaseMilestonesResponse,
+  CaseMilestone,
+  CreateCaseMilestoneDTO,
+  UpdateCaseMilestoneDTO,
+  BulkStatusUpdateDTO,
+  ReassignCaseDTO,
 } from '../../types/case';
 
 const getErrorMessage = (error: unknown, fallbackMessage: string) => formatApiErrorMessageWith(fallbackMessage)(error);
@@ -25,6 +32,7 @@ const initialState: CasesState = {
   caseTypes: [],
   caseStatuses: [],
   caseNotes: [],
+  caseMilestones: [],
   summary: null,
   total: 0,
   loading: false,
@@ -35,6 +43,7 @@ const initialState: CasesState = {
     sort_by: 'created_at',
     sort_order: 'desc',
   },
+  selectedCaseIds: [],
 };
 
 // Async Thunks
@@ -177,6 +186,82 @@ export const fetchCaseSummary = createAsyncThunk(
   }
 );
 
+// Milestones
+
+export const fetchCaseMilestones = createAsyncThunk(
+  'cases/fetchCaseMilestones',
+  async (caseId: string, { rejectWithValue }) => {
+    try {
+      const response = await api.get<CaseMilestonesResponse>(`/cases/${caseId}/milestones`);
+      return response.data.milestones;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch milestones'));
+    }
+  }
+);
+
+export const createCaseMilestone = createAsyncThunk(
+  'cases/createCaseMilestone',
+  async ({ caseId, data }: { caseId: string; data: CreateCaseMilestoneDTO }, { rejectWithValue }) => {
+    try {
+      const response = await api.post<CaseMilestone>(`/cases/${caseId}/milestones`, data);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to create milestone'));
+    }
+  }
+);
+
+export const updateCaseMilestone = createAsyncThunk(
+  'cases/updateCaseMilestone',
+  async ({ milestoneId, data }: { milestoneId: string; data: UpdateCaseMilestoneDTO }, { rejectWithValue }) => {
+    try {
+      const response = await api.put<CaseMilestone>(`/cases/milestones/${milestoneId}`, data);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to update milestone'));
+    }
+  }
+);
+
+export const deleteCaseMilestone = createAsyncThunk(
+  'cases/deleteCaseMilestone',
+  async (milestoneId: string, { rejectWithValue }) => {
+    try {
+      await api.delete(`/cases/milestones/${milestoneId}`);
+      return milestoneId;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to delete milestone'));
+    }
+  }
+);
+
+// Bulk & reassignment
+
+export const bulkUpdateCaseStatus = createAsyncThunk(
+  'cases/bulkUpdateStatus',
+  async (data: BulkStatusUpdateDTO, { rejectWithValue }) => {
+    try {
+      const response = await api.post('/cases/bulk-status', data);
+      return { ...response.data, case_ids: data.case_ids, new_status_id: data.new_status_id };
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to bulk update status'));
+    }
+  }
+);
+
+export const reassignCase = createAsyncThunk(
+  'cases/reassignCase',
+  async ({ id, data }: { id: string; data: ReassignCaseDTO }, { rejectWithValue }) => {
+    try {
+      const response = await api.put<CaseWithDetails>(`/cases/${id}/reassign`, data);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to reassign case'));
+    }
+  }
+);
+
 // Slice
 
 const casesSlice = createSlice({
@@ -192,9 +277,25 @@ const casesSlice = createSlice({
     clearCurrentCase: (state) => {
       state.currentCase = null;
       state.caseNotes = [];
+      state.caseMilestones = [];
     },
     clearError: (state) => {
       state.error = null;
+    },
+    toggleCaseSelection: (state, action) => {
+      const caseId = action.payload as string;
+      const idx = state.selectedCaseIds.indexOf(caseId);
+      if (idx === -1) {
+        state.selectedCaseIds.push(caseId);
+      } else {
+        state.selectedCaseIds.splice(idx, 1);
+      }
+    },
+    selectAllCases: (state) => {
+      state.selectedCaseIds = state.cases.map((c) => c.id);
+    },
+    clearCaseSelection: (state) => {
+      state.selectedCaseIds = [];
     },
   },
   extraReducers: (builder) => {
@@ -335,11 +436,44 @@ const casesSlice = createSlice({
       // Fetch Case Summary
       .addCase(fetchCaseSummary.fulfilled, (state, action) => {
         state.summary = action.payload;
+      })
+      // Fetch Milestones
+      .addCase(fetchCaseMilestones.fulfilled, (state, action) => {
+        state.caseMilestones = action.payload;
+      })
+      // Create Milestone
+      .addCase(createCaseMilestone.fulfilled, (state, action) => {
+        state.caseMilestones.push(action.payload);
+      })
+      // Update Milestone
+      .addCase(updateCaseMilestone.fulfilled, (state, action) => {
+        const idx = state.caseMilestones.findIndex((m) => m.id === action.payload.id);
+        if (idx !== -1) {
+          state.caseMilestones[idx] = action.payload;
+        }
+      })
+      // Delete Milestone
+      .addCase(deleteCaseMilestone.fulfilled, (state, action) => {
+        state.caseMilestones = state.caseMilestones.filter((m) => m.id !== action.payload);
+      })
+      // Bulk Update Status
+      .addCase(bulkUpdateCaseStatus.fulfilled, (state) => {
+        state.selectedCaseIds = [];
+      })
+      // Reassign Case
+      .addCase(reassignCase.fulfilled, (state, action) => {
+        const idx = state.cases.findIndex((c) => c.id === action.payload.id);
+        if (idx !== -1) {
+          state.cases[idx] = action.payload;
+        }
+        if (state.currentCase?.id === action.payload.id) {
+          state.currentCase = action.payload;
+        }
       });
   },
 });
 
-export const { setFilters, clearFilters, clearCurrentCase, clearError } = casesSlice.actions;
+export const { setFilters, clearFilters, clearCurrentCase, clearError, toggleCaseSelection, selectAllCases, clearCaseSelection } = casesSlice.actions;
 export default casesSlice.reducer;
 
 // Selectors
@@ -351,86 +485,121 @@ const parseDate = (value?: string | null) => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
+// Base selector
+const selectCasesState = (state: { cases: CasesState }) => state.cases;
+const selectCasesList = createSelector([selectCasesState], (state) => state.cases);
+
 /**
  * Select cases assigned to a specific user
  */
-export const selectCasesByAssignee = (state: { cases: CasesState }, userId: string) =>
-  state.cases.cases.filter((case_) => case_.assigned_to === userId);
+export const selectCasesByAssignee = createSelector(
+  [selectCasesList, (_, userId: string) => userId],
+  (cases, userId) => cases.filter((case_) => case_.assigned_to === userId)
+);
 
 /**
  * Select cases for a specific contact
  */
-export const selectCasesByContact = (state: { cases: CasesState }, contactId: string) =>
-  state.cases.cases.filter((case_) => case_.contact_id === contactId);
+export const selectCasesByContact = createSelector(
+  [selectCasesList, (_, contactId: string) => contactId],
+  (cases, contactId) => cases.filter((case_) => case_.contact_id === contactId)
+);
 
 /**
  * Select urgent cases
  */
-export const selectUrgentCases = (state: { cases: CasesState }) =>
-  state.cases.cases.filter((case_) => case_.is_urgent || case_.priority === 'urgent');
+export const selectUrgentCases = createSelector(
+  [selectCasesList],
+  (cases) => cases.filter((case_) => case_.is_urgent || case_.priority === 'urgent')
+);
 
 /**
  * Select overdue cases (due_date is past and case is not closed)
  */
-export const selectOverdueCases = (state: { cases: CasesState }) => {
-  const now = new Date();
-  return state.cases.cases.filter((case_) => {
-    if (!isActiveStatus(case_.status_type)) return false;
-    const dueDate = parseDate(case_.due_date);
-    if (!dueDate) return false;
-    return dueDate < now;
-  });
-};
+export const selectOverdueCases = createSelector(
+  [selectCasesList],
+  (cases) => {
+    const now = new Date();
+    return cases.filter((case_) => {
+      if (!isActiveStatus(case_.status_type)) return false;
+      const dueDate = parseDate(case_.due_date);
+      if (!dueDate) return false;
+      return dueDate < now;
+    });
+  }
+);
 
 /**
  * Select cases due within a specified number of days
  */
-export const selectCasesDueWithinDays = (state: { cases: CasesState }, days: number = 7) => {
-  const now = new Date();
-  const futureDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+export const selectCasesDueWithinDays = createSelector(
+  [selectCasesList, (_, days: number = 7) => days],
+  (cases, days) => {
+    const now = new Date();
+    const futureDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
 
-  return state.cases.cases.filter((case_) => {
-    if (!isActiveStatus(case_.status_type)) return false;
-    const dueDate = parseDate(case_.due_date);
-    if (!dueDate) return false;
-    return dueDate >= now && dueDate <= futureDate;
-  });
-};
+    return cases.filter((case_) => {
+      if (!isActiveStatus(case_.status_type)) return false;
+      const dueDate = parseDate(case_.due_date);
+      if (!dueDate) return false;
+      return dueDate >= now && dueDate <= futureDate;
+    });
+  }
+);
 
 /**
- * Select cases due this week
+ * Select cases due this week (memoized version of selectCasesDueWithinDays with 7 days)
  */
-export const selectCasesDueThisWeek = (state: { cases: CasesState }) =>
-  selectCasesDueWithinDays(state, 7);
+export const selectCasesDueThisWeek = createSelector(
+  [selectCasesList],
+  (cases) => {
+    const now = new Date();
+    const futureDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    return cases.filter((case_) => {
+      if (!isActiveStatus(case_.status_type)) return false;
+      const dueDate = parseDate(case_.due_date);
+      if (!dueDate) return false;
+      return dueDate >= now && dueDate <= futureDate;
+    });
+  }
+);
 
 /**
  * Select unassigned cases
  */
-export const selectUnassignedCases = (state: { cases: CasesState }) =>
-  state.cases.cases.filter((case_) => !case_.assigned_to && isActiveStatus(case_.status_type));
+export const selectUnassignedCases = createSelector(
+  [selectCasesList],
+  (cases) => cases.filter((case_) => !case_.assigned_to && isActiveStatus(case_.status_type))
+);
 
 /**
  * Select active cases (not closed or cancelled)
  */
-export const selectActiveCases = (state: { cases: CasesState }) =>
-  state.cases.cases.filter((case_) => isActiveStatus(case_.status_type));
+export const selectActiveCases = createSelector(
+  [selectCasesList],
+  (cases) => cases.filter((case_) => isActiveStatus(case_.status_type))
+);
 
 /**
- * Count cases by priority
+ * Count cases by priority (memoized)
  */
-export const selectCasesByPriority = (state: { cases: CasesState }) => {
-  const counts = {
-    low: 0,
-    medium: 0,
-    high: 0,
-    urgent: 0,
-  };
+export const selectCasesByPriority = createSelector(
+  [selectCasesList],
+  (cases) => {
+    const counts = {
+      low: 0,
+      medium: 0,
+      high: 0,
+      urgent: 0,
+    };
 
-  state.cases.cases.forEach((case_) => {
-    if (isActiveStatus(case_.status_type)) {
-      counts[case_.priority]++;
-    }
-  });
+    cases.forEach((case_) => {
+      if (isActiveStatus(case_.status_type)) {
+        counts[case_.priority]++;
+      }
+    });
 
-  return counts;
-};
+    return counts;
+  }
+);

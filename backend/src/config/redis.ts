@@ -16,17 +16,32 @@ export async function initializeRedis(): Promise<void> {
   }
 
   try {
+    // Parse Redis URL and determine TLS settings
+    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // In production, require secure Redis connections
+    // Support rediss:// protocol for TLS
+    const socketOptions: Record<string, unknown> = {
+      reconnectStrategy: (retries) => {
+        if (retries > 10) {
+          logger.error('Redis reconnection failed after 10 attempts');
+          return new Error('Redis reconnection limit reached');
+        }
+        return Math.min(retries * 100, 3000);
+      },
+    };
+
+    // Add TLS config in production if using rediss:// URL
+    if (isProduction && redisUrl.startsWith('rediss://')) {
+      (socketOptions as any).tls = {
+        rejectUnauthorized: process.env.REDIS_TLS_REJECT_UNAUTHORIZED !== 'false', // Default: true (strict)
+      };
+    }
+
     redisClient = createClient({
       url: redisUrl,
-      socket: {
-        reconnectStrategy: (retries) => {
-          if (retries > 10) {
-            logger.error('Redis reconnection failed after 10 attempts');
-            return new Error('Redis reconnection limit reached');
-          }
-          return Math.min(retries * 100, 3000);
-        },
-      },
+      socket: socketOptions,
     });
 
     redisClient.on('error', (err) => {

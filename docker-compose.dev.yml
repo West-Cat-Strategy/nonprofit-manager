@@ -3,12 +3,13 @@ services:
     image: postgres:14-alpine
     container_name: nonprofit-db-dev
     restart: unless-stopped
+    env_file:
+      - .env.development
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: nonprofit_manager
     ports:
-      - "5432:5432"
+      - "8002:5432"
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
       - ./database/initdb:/docker-entrypoint-initdb.d:ro
@@ -27,7 +28,7 @@ services:
     container_name: nonprofit-redis-dev
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "8003:6379"
     volumes:
       - redis_data_dev:/data
     healthcheck:
@@ -48,26 +49,17 @@ services:
     container_name: nonprofit-backend-dev
     restart: unless-stopped
     ports:
-      - "3000:3000"
-      - "9229:9229"  # Node.js debugger port
+      - "8004:8004"
+      - "8009:8009"  # Node.js debugger port
+    env_file:
+      - .env.development
     environment:
       NODE_ENV: development
       PORT: 3000
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_NAME: nonprofit_manager
-      DB_USER: postgres
-      DB_PASSWORD: postgres
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: dev_secret_key_change_in_production
-      JWT_EXPIRES_IN: 24h
-      EXPOSE_AUTH_TOKENS_IN_RESPONSE: "false"
-      CORS_ORIGIN: http://localhost:5173
-      LOG_LEVEL: debug
-      RATE_LIMIT_MAX_REQUESTS: 10000
-      RATE_LIMIT_WINDOW_MS: 60000
-      AUTH_RATE_LIMIT_MAX_REQUESTS: 200
-      AUTH_RATE_LIMIT_WINDOW_MS: 60000
+      CORS_ORIGIN: http://localhost:8005
     depends_on:
       postgres:
         condition: service_healthy
@@ -90,9 +82,9 @@ services:
     container_name: nonprofit-frontend-dev
     restart: unless-stopped
     ports:
-      - "5173:5173"
+      - "8005:8005"
     environment:
-      VITE_API_URL: http://localhost:3000/api
+      VITE_API_URL: http://localhost:8004/api
     depends_on:
       - backend-dev
     volumes:
@@ -100,7 +92,7 @@ services:
       - /app/node_modules
     networks:
       - nonprofit-dev-network
-    command: npm run dev -- --host
+    command: npm run dev -- --host --port 8005
 
 volumes:
   postgres_data_dev:

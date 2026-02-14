@@ -16,28 +16,36 @@ import type {
   CaseNote,
   CreateCaseNoteDTO,
   UpdateCaseStatusDTO,
+  CaseMilestone,
 } from '@app-types/case';
 
 export class CaseService {
   constructor(private pool: Pool) {}
 
   /**
-   * Generate unique case number
+   * Generate unique case number using a sequence query to avoid collisions
    */
-  private generateCaseNumber(): string {
+  private async generateCaseNumber(): Promise<string> {
     const date = new Date();
     const year = date.getFullYear().toString().slice(-2);
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
-    return `CASE-${year}${month}${day}-${random}`;
+    const prefix = `CASE-${year}${month}${day}`;
+
+    // Count existing cases today and increment
+    const result = await this.pool.query(
+      `SELECT COUNT(*) FROM cases WHERE case_number LIKE $1`,
+      [`${prefix}-%`]
+    );
+    const seq = (parseInt(result.rows[0].count) + 1).toString().padStart(5, '0');
+    return `${prefix}-${seq}`;
   }
 
   /**
    * Create a new case
    */
   async createCase(data: CreateCaseDTO, userId?: string): Promise<Case> {
-    const caseNumber = this.generateCaseNumber();
+    const caseNumber = await this.generateCaseNumber();
 
     // Get default "Intake" status
     const statusResult = await this.pool.query(
@@ -405,10 +413,26 @@ export class CaseService {
         COUNT(*) FILTER (WHERE cs.status_type = 'cancelled') as status_cancelled,
         COUNT(*) FILTER (WHERE c.due_date <= CURRENT_DATE + INTERVAL '7 days' AND c.due_date >= CURRENT_DATE) as due_this_week,
         COUNT(*) FILTER (WHERE c.due_date < CURRENT_DATE AND cs.status_type NOT IN ('closed', 'cancelled')) as overdue,
-        COUNT(*) FILTER (WHERE c.assigned_to IS NULL AND cs.status_type NOT IN ('closed', 'cancelled')) as unassigned
+        COUNT(*) FILTER (WHERE c.assigned_to IS NULL AND cs.status_type NOT IN ('closed', 'cancelled')) as unassigned,
+        AVG(EXTRACT(EPOCH FROM (COALESCE(c.closed_date, NOW()) - c.intake_date)) / 86400)
+          FILTER (WHERE cs.status_type IN ('closed', 'cancelled')) as avg_duration
       FROM cases c
       LEFT JOIN case_statuses cs ON c.status_id = cs.id
     `);
+
+    // Get counts by case type
+    const typeResult = await this.pool.query(`
+      SELECT ct.name, COUNT(*) as count
+      FROM cases c
+      JOIN case_types ct ON c.case_type_id = ct.id
+      GROUP BY ct.name
+      ORDER BY count DESC
+    `);
+
+    const byCaseType: Record<string, number> = {};
+    for (const row of typeResult.rows) {
+      byCaseType[row.name] = parseInt(row.count);
+    }
 
     const row = result.rows[0];
     return {
@@ -428,7 +452,8 @@ export class CaseService {
         closed: parseInt(row.status_closed),
         cancelled: parseInt(row.status_cancelled),
       },
-      by_case_type: {},
+      by_case_type: byCaseType,
+      average_case_duration_days: row.avg_duration ? Math.round(parseFloat(row.avg_duration)) : undefined,
       cases_due_this_week: parseInt(row.due_this_week),
       overdue_cases: parseInt(row.overdue),
       unassigned_cases: parseInt(row.unassigned),
@@ -456,6 +481,186 @@ export class CaseService {
   }
 
   /**
+   * Get case milestones
+   */
+  async getCaseMilestones(caseId: string): Promise<CaseMilestone[]> {
+    const result = await this.pool.query(
+      `SELECT * FROM case_milestones WHERE case_id = $1 ORDER BY sort_order, due_date`,
+      [caseId]
+    );
+    return result.rows;
+  }
+
+  /**
+   * Create a case milestone
+   */
+  async createCaseMilestone(
+    caseId: string,
+    data: { milestone_name: string; description?: string; due_date?: string; sort_order?: number },
+    userId?: string
+  ): Promise<CaseMilestone> {
+    const result = await this.pool.query(
+      `INSERT INTO case_milestones (case_id, milestone_name, description, due_date, sort_order, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [caseId, data.milestone_name, data.description || null, data.due_date || null, data.sort_order ?? 0, userId]
+    );
+    logger.info('Milestone created', { caseId, milestoneId: result.rows[0].id });
+    return result.rows[0];
+  }
+
+  /**
+   * Update a case milestone
+   */
+  async updateCaseMilestone(
+    milestoneId: string,
+    data: { milestone_name?: string; description?: string; due_date?: string; is_completed?: boolean; sort_order?: number }
+  ): Promise<CaseMilestone> {
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    let idx = 1;
+
+    if (data.milestone_name !== undefined) {
+      fields.push(`milestone_name = $${idx++}`);
+      values.push(data.milestone_name);
+    }
+    if (data.description !== undefined) {
+      fields.push(`description = $${idx++}`);
+      values.push(data.description);
+    }
+    if (data.due_date !== undefined) {
+      fields.push(`due_date = $${idx++}`);
+      values.push(data.due_date);
+    }
+    if (data.is_completed !== undefined) {
+      fields.push(`is_completed = $${idx++}`);
+      values.push(data.is_completed);
+      if (data.is_completed) {
+        fields.push(`completed_date = CURRENT_DATE`);
+      } else {
+        fields.push(`completed_date = NULL`);
+      }
+    }
+    if (data.sort_order !== undefined) {
+      fields.push(`sort_order = $${idx++}`);
+      values.push(data.sort_order);
+    }
+
+    if (fields.length === 0) {
+      throw new Error('No fields to update');
+    }
+
+    values.push(milestoneId);
+    const result = await this.pool.query(
+      `UPDATE case_milestones SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      values
+    );
+
+    if (!result.rows[0]) {
+      throw new Error('Milestone not found');
+    }
+
+    return result.rows[0];
+  }
+
+  /**
+   * Delete a case milestone
+   */
+  async deleteCaseMilestone(milestoneId: string): Promise<void> {
+    await this.pool.query(`DELETE FROM case_milestones WHERE id = $1`, [milestoneId]);
+    logger.info('Milestone deleted', { milestoneId });
+  }
+
+  /**
+   * Reassign a case with audit trail
+   */
+  async reassignCase(
+    caseId: string,
+    newAssigneeId: string | null,
+    reason?: string,
+    userId?: string
+  ): Promise<Case> {
+    // Get current assignment
+    const currentCase = await this.pool.query(
+      `SELECT assigned_to FROM cases WHERE id = $1`,
+      [caseId]
+    );
+    const previousAssignee = currentCase.rows[0]?.assigned_to;
+
+    // Record in assignment history (if assigning to someone)
+    if (previousAssignee) {
+      await this.pool.query(
+        `UPDATE case_assignments SET unassigned_at = NOW(), unassigned_by = $1
+         WHERE case_id = $2 AND assigned_to = $3 AND unassigned_at IS NULL`,
+        [userId, caseId, previousAssignee]
+      );
+    }
+
+    if (newAssigneeId) {
+      await this.pool.query(
+        `INSERT INTO case_assignments (case_id, assigned_from, assigned_to, assignment_reason, assigned_by)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [caseId, previousAssignee || null, newAssigneeId, reason || null, userId]
+      );
+    }
+
+    // Update the case
+    const result = await this.pool.query(
+      `UPDATE cases SET assigned_to = $1, modified_by = $2, updated_at = NOW() WHERE id = $3 RETURNING *`,
+      [newAssigneeId, userId, caseId]
+    );
+
+    // Add a note about the reassignment
+    const noteContent = newAssigneeId
+      ? `Case reassigned${reason ? `: ${reason}` : ''}`
+      : `Case unassigned${reason ? `: ${reason}` : ''}`;
+
+    await this.pool.query(
+      `INSERT INTO case_notes (case_id, note_type, content, created_by)
+       VALUES ($1, 'update', $2, $3)`,
+      [caseId, noteContent, userId]
+    );
+
+    logger.info('Case reassigned', { caseId, from: previousAssignee, to: newAssigneeId });
+    return result.rows[0];
+  }
+
+  /**
+   * Bulk update case status
+   */
+  async bulkUpdateStatus(
+    caseIds: string[],
+    newStatusId: string,
+    notes?: string,
+    userId?: string
+  ): Promise<{ updated: number }> {
+    if (caseIds.length === 0) return { updated: 0 };
+
+    // Get current statuses for all cases
+    const currentCases = await this.pool.query(
+      `SELECT id, status_id FROM cases WHERE id = ANY($1)`,
+      [caseIds]
+    );
+
+    // Update all cases
+    const updateResult = await this.pool.query(
+      `UPDATE cases SET status_id = $1, modified_by = $2, updated_at = NOW() WHERE id = ANY($3)`,
+      [newStatusId, userId, caseIds]
+    );
+
+    // Create status change notes for each case
+    for (const row of currentCases.rows) {
+      await this.pool.query(
+        `INSERT INTO case_notes (case_id, note_type, content, previous_status_id, new_status_id, created_by)
+         VALUES ($1, 'status_change', $2, $3, $4, $5)`,
+        [row.id, notes || 'Bulk status update', row.status_id, newStatusId, userId]
+      );
+    }
+
+    logger.info('Bulk status update', { count: updateResult.rowCount, newStatusId });
+    return { updated: updateResult.rowCount || 0 };
+  }
+
+  /**
    * Delete case
    */
   async deleteCase(caseId: string): Promise<void> {
@@ -478,3 +683,9 @@ export const getCaseSummary = caseServiceInstance.getCaseSummary.bind(caseServic
 export const getCaseTypes = caseServiceInstance.getCaseTypes.bind(caseServiceInstance);
 export const getCaseStatuses = caseServiceInstance.getCaseStatuses.bind(caseServiceInstance);
 export const deleteCase = caseServiceInstance.deleteCase.bind(caseServiceInstance);
+export const getCaseMilestones = caseServiceInstance.getCaseMilestones.bind(caseServiceInstance);
+export const createCaseMilestone = caseServiceInstance.createCaseMilestone.bind(caseServiceInstance);
+export const updateCaseMilestone = caseServiceInstance.updateCaseMilestone.bind(caseServiceInstance);
+export const deleteCaseMilestone = caseServiceInstance.deleteCaseMilestone.bind(caseServiceInstance);
+export const reassignCase = caseServiceInstance.reassignCase.bind(caseServiceInstance);
+export const bulkUpdateStatus = caseServiceInstance.bulkUpdateStatus.bind(caseServiceInstance);

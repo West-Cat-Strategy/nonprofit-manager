@@ -1,9 +1,14 @@
 /**
  * Prometheus Metrics Middleware
  * Collects and exposes application metrics for monitoring
+ *
+ * NOTE: For high-traffic production systems, use the `prom-client` npm package
+ * instead of this in-memory implementation. This is designed for small to medium
+ * deployments and includes automatic cleanup to prevent memory leaks.
  */
 
 import { Request, Response, NextFunction, Router } from 'express';
+import { logger } from '../config/logger';
 import { forbidden } from '@utils/responseHelpers';
 
 // Simple in-memory metrics store (for production, use prom-client)
@@ -22,6 +27,34 @@ const metrics: Metrics = {
   errorCount: 0,
   startTime: Date.now(),
 };
+
+// Periodic cleanup of stale metric entries to prevent unbounded memory growth
+// Removes endpoints that haven't been accessed in MAX_AGE_MS
+const METRICS_CLEANUP_INTERVAL_MS = 3600000; // 1 hour
+const MAX_ENDPOINT_AGE_MS = 7200000; // 2 hours max idle before removal
+const lastAccessTimes = new Map<string, number>();
+
+const cleanupInterval = setInterval(() => {
+  const now = Date.now();
+  let deletedCount = 0;
+
+  for (const [key] of metrics.httpRequestsTotal) {
+    const lastAccess = lastAccessTimes.get(key) || 0;
+    if (now - lastAccess > MAX_ENDPOINT_AGE_MS) {
+      metrics.httpRequestsTotal.delete(key);
+      metrics.httpRequestDuration.delete(key);
+      lastAccessTimes.delete(key);
+      deletedCount++;
+    }
+  }
+
+  if (deletedCount > 0) {
+    logger.debug(`Metrics cleanup: removed ${deletedCount} stale endpoint entries`);
+  }
+}, METRICS_CLEANUP_INTERVAL_MS);
+
+// Allow process to exit even with this interval running
+cleanupInterval.unref();
 
 /**
  * Get metric key for request
@@ -51,6 +84,9 @@ export const metricsMiddleware = (
   res.on('finish', () => {
     const duration = Date.now() - startTime;
     const key = getMetricKey(req.method, req.path, res.statusCode);
+
+    // Track last access time for cleanup
+    lastAccessTimes.set(key, Date.now());
 
     // Increment request count
     const currentCount = metrics.httpRequestsTotal.get(key) || 0;

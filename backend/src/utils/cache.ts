@@ -18,6 +18,7 @@ export class Cache<T = any> {
   private hits = 0;
   private misses = 0;
   private evictions = 0;
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   /**
    * Create a new cache instance
@@ -28,8 +29,12 @@ export class Cache<T = any> {
     this.defaultTTL = defaultTTL * 1000; // Convert to milliseconds
     this.maxEntries = CACHE.MAX_ENTRIES;
 
-    // Clean up expired entries every minute
-    setInterval(() => this.cleanup(), CACHE.CLEANUP_INTERVAL_MS);
+    // Clean up expired entries periodically
+    // Use unref() so this interval doesn't keep the process alive
+    this.cleanupInterval = setInterval(() => this.cleanup(), CACHE.CLEANUP_INTERVAL_MS);
+    if (this.cleanupInterval.unref) {
+      this.cleanupInterval.unref();
+    }
   }
 
   /**
@@ -112,6 +117,18 @@ export class Cache<T = any> {
     this.hits = 0;
     this.misses = 0;
     this.evictions = 0;
+  }
+
+  /**
+   * Destroy the cache and clear its cleanup interval
+   * Call this if the cache instance is being disposed
+   */
+  destroy(): void {
+    this.clear();
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
   }
 
   /**

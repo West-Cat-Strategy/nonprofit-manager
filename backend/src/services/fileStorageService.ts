@@ -137,32 +137,30 @@ export const getFullPath = (
  * Check if a file exists
  * @param filePath - Relative path from uploads directory
  */
-export const fileExists = (
+export const fileExists = async (
   filePath: string,
   config: FileStorageConfig = DEFAULT_CONFIG
-): boolean => {
+): Promise<boolean> => {
   try {
     const fullPath = assertPathWithinBase(config.baseUploadDir, path.join(config.baseUploadDir, filePath));
-    return fs.existsSync(fullPath);
+    await fs.promises.access(fullPath);
+    return true;
   } catch {
     return false;
   }
 };
 
 /**
- * Get file stats
+ * Get file stats asynchronously
  * @param filePath - Relative path from uploads directory
  */
-export const getFileStats = (
+export const getFileStats = async (
   filePath: string,
   config: FileStorageConfig = DEFAULT_CONFIG
-): fs.Stats | null => {
+): Promise<fs.Stats | null> => {
   try {
     const fullPath = assertPathWithinBase(config.baseUploadDir, path.join(config.baseUploadDir, filePath));
-    if (fs.existsSync(fullPath)) {
-      return fs.statSync(fullPath);
-    }
-    return null;
+    return await fs.promises.stat(fullPath);
   } catch {
     return null;
   }

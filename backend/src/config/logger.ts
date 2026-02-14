@@ -1,4 +1,6 @@
 import winston from 'winston';
+import * as http from 'http';
+import * as https from 'https';
 
 // Fields that should be masked in logs
 const SENSITIVE_FIELDS = [
@@ -85,14 +87,104 @@ const logFormat = winston.format.combine(
   winston.format.json()
 );
 
+// Custom HTTP transport for log aggregation (e.g., ELK, Loki, Datadog)
+class HttpLogTransport extends winston.transports.Stream {
+  private host: string;
+  private port: number;
+  private path: string;
+  private protocol: string;
+
+  constructor(options: any = {}) {
+    super(options);
+    this.host = options.host;
+    this.port = options.port;
+    this.path = options.path || '/logs';
+    this.protocol = options.protocol || 'http';
+  }
+
+  log(info: any, callback?: () => void): void {
+    setImmediate(() => {
+      this.send(info).catch((error: Error) => {
+        if (callback) {
+          callback();
+        }
+        // Log transport errors to console without failing
+        console.error('HttpLogTransport error:', error.message);
+      });
+    });
+
+    if (callback) {
+      callback();
+    }
+  }
+
+  private async send(info: any): Promise<void> {
+    try {
+      const data = JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: info.level,
+        message: info.message,
+        service: info.service || 'nonprofit-manager-api',
+        environment: process.env.NODE_ENV || 'development',
+        version: process.env.RELEASE_VERSION || '1.0.0',
+        ...info,
+      });
+
+      const options = {
+        hostname: this.host,
+        port: this.port,
+        path: this.path,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(data),
+          'X-API-Key': process.env.LOG_AGGREGATION_API_KEY || '',
+        },
+      };
+
+      const protocol = this.protocol === 'https' ? https : http;
+      const request = protocol.request(options, (response) => {
+        if (response.statusCode && response.statusCode > 299) {
+          console.error(`Log aggregation returned status ${response.statusCode}`);
+        }
+        response.on('data', () => {});
+        response.on('end', () => {});
+      });
+
+      request.on('error', (error: Error) => {
+        console.error('Failed to send logs to aggregation service:', error.message);
+      });
+
+      request.write(data);
+      request.end();
+    } catch (error) {
+      console.error('Error sending log to aggregation service:', error instanceof Error ? error.message : String(error));
+    }
+  }
+}
+
+const transports: winston.transport[] = [
+  new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+  new winston.transports.File({ filename: 'logs/combined.log' }),
+];
+
+// Add log aggregation transport if configured
+if (process.env.LOG_AGGREGATION_ENABLED === 'true' && process.env.LOG_AGGREGATION_HOST) {
+  (transports as any).push(
+    new HttpLogTransport({
+      host: process.env.LOG_AGGREGATION_HOST,
+      port: parseInt(process.env.LOG_AGGREGATION_PORT || '8080'),
+      path: process.env.LOG_AGGREGATION_PATH || '/logs',
+      protocol: process.env.LOG_AGGREGATION_PROTOCOL || 'http',
+    })
+  );
+}
+
 export const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
   format: logFormat,
   defaultMeta: { service: 'nonprofit-manager-api' },
-  transports: [
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' }),
-  ],
+  transports,
 });
 
 if (process.env.NODE_ENV !== 'production') {

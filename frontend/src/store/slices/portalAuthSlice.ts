@@ -16,7 +16,7 @@ interface PortalAuthState {
 }
 
 const initialState: PortalAuthState = {
-  token: localStorage.getItem('portal_token'),
+  token: null, // Token is now stored in HTTP-only cookie, not localStorage
   user: null,
   loading: false,
   error: null,
@@ -52,7 +52,7 @@ const portalAuthSlice = createSlice({
       state.token = null;
       state.user = null;
       state.error = null;
-      localStorage.removeItem('portal_token');
+      // Token is now in HTTP-only cookie; no need to remove from localStorage
     },
     clearPortalError: (state) => {
       state.error = null;
@@ -66,9 +66,10 @@ const portalAuthSlice = createSlice({
       })
       .addCase(portalLogin.fulfilled, (state, action) => {
         state.loading = false;
-        state.token = action.payload.token;
+        // Token is now stored in HTTP-only cookie; don't store in Redux state
+        state.token = null;
         state.user = action.payload.user;
-        localStorage.setItem('portal_token', action.payload.token);
+        // Don't store token in localStorage anymore
       })
       .addCase(portalLogin.rejected, (state, action) => {
         state.loading = false;

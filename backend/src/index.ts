@@ -1,4 +1,5 @@
 import express, { Application } from 'express';
+import compression from 'compression';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -15,7 +16,7 @@ import { orgContextMiddleware } from './middleware/orgContext';
 import healthRoutes, { setHealthCheckPool } from '@routes/health';
 import { registerApiRoutes } from '@routes/registrars';
 import { setPaymentPool } from '@controllers/domains';
-import { Pool } from 'pg';
+import pool from './config/database';
 
 if (process.env.JEST_WORKER_ID && !process.env.NODE_ENV) {
   process.env.NODE_ENV = 'test';
@@ -33,44 +34,45 @@ if (process.env.NODE_ENV === 'test') {
 // Production secrets validation
 if (process.env.NODE_ENV === 'production') {
   const warnings: string[] = [];
+  const errors: string[] = [];
 
   const jwtSecret = process.env.JWT_SECRET || '';
-  if (jwtSecret.includes('dev') || jwtSecret.length < 32) {
-    warnings.push('JWT_SECRET appears insecure (contains "dev" or is less than 32 characters)');
+  if (jwtSecret.includes('dev') || jwtSecret.includes('placeholder') || jwtSecret.length < 32) {
+    warnings.push('JWT_SECRET appears insecure (contains "dev"/"placeholder" or is less than 32 characters)');
   }
 
   if (process.env.DB_PASSWORD === 'postgres') {
-    warnings.push('DB_PASSWORD is set to default value "postgres"');
+    errors.push('DB_PASSWORD is set to default value "postgres"');
   }
 
   const csrfSecret = process.env.CSRF_SECRET || '';
-  if (csrfSecret.includes('change') || csrfSecret.length < 32) {
-    warnings.push('CSRF_SECRET appears insecure (contains "change" or is less than 32 characters)');
+  if (csrfSecret.includes('change') || csrfSecret.includes('placeholder') || csrfSecret.length < 32) {
+    warnings.push('CSRF_SECRET appears insecure (contains "change"/"placeholder" or is less than 32 characters)');
   }
 
+  const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
+  if (stripeWebhookSecret.includes('placeholder') || stripeWebhookSecret.includes('test')) {
+    errors.push('STRIPE_WEBHOOK_SECRET must be set to actual Stripe webhook secret (not placeholder or test value)');
+  }
+
+  const encryptionKey = process.env.ENCRYPTION_KEY || '';
+  if (encryptionKey.length < 64) {
+    warnings.push('ENCRYPTION_KEY should be 64 hex characters (256-bit). Current length: ' + encryptionKey.length);
+  }
+
+  // Report all warnings and errors
   if (warnings.length > 0) {
     warnings.forEach((w) => logger.warn(`SECURITY WARNING: ${w}`));
+  }
+
+  if (errors.length > 0) {
+    errors.forEach((e) => logger.error(`SECURITY ERROR: ${e}`));
     if (process.env.ENFORCE_SECURE_CONFIG === 'true') {
       logger.error('Exiting due to insecure configuration. Set ENFORCE_SECURE_CONFIG=false to disable.');
       process.exit(1);
     }
   }
 }
-
-const dbPassword = process.env.DB_PASSWORD;
-if (!dbPassword && process.env.NODE_ENV === 'production') {
-  logger.error('DB_PASSWORD environment variable is not set');
-  throw new Error('DB_PASSWORD must be configured in production');
-}
-
-// Database pool for health checks
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'nonprofit_manager',
-  user: process.env.DB_USER || 'postgres',
-  password: dbPassword || 'postgres',
-});
 
 // Set pool for health checks and payments
 setHealthCheckPool(pool);
@@ -84,37 +86,97 @@ app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
+        // Default to self for anything not explicitly allowed
         defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
+        // Scripts: only from self + nonce for inline if needed
         scriptSrc: ["'self'"],
+        // Styles: from self (avoid unsafe-inline; use CSS files instead)
+        styleSrc: ["'self'"],
+        // Images: self, data URIs (for small inlined images), and https:// 
         imgSrc: ["'self'", 'data:', 'https:'],
+        // Fonts: self and Google Fonts if used
+        fontSrc: ["'self'", 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'],
+        // Connect: self + configured API backend
+        connectSrc: ["'self'", `${process.env.API_ORIGIN || 'http://localhost:3000'}`],
+        // Frame options: prevent clickjacking
+        frameSrc: ["'none'"],
+        // Object/embed: restrict plugins
+        objectSrc: ["'none'"],
+        // Base URI: prevent injection attacks
+        baseUri: ["'self'"],
+        // Form submissions: only to same origin
+        formAction: ["'self'"],
+        // Upgrade insecure requests to HTTPS in production
+        upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : undefined,
       },
+      // Report CSP violations for monitoring (optional, for production)
+      reportUri: process.env.CSP_REPORT_URI ? [process.env.CSP_REPORT_URI] : undefined,
+      // Report-Only mode in development for testing without blocking
+      reportOnly: process.env.NODE_ENV === 'development',
     },
     hsts: {
       maxAge: 31536000,
       includeSubDomains: true,
       preload: true,
     },
+    // Prevent browsers from MIME-sniffing
+    noSniff: true,
+    // Prevent clickjacking
+    frameguard: { action: 'deny' },
+    // Prevent XSS attacks
+    xssFilter: true,
+    // Referrer policy
+    referrerPolicy: { policy: 'no-referrer' },
   })
 );
+
+// Response compression — gzip/brotli for all text-based responses (JSON, HTML, etc.)
+app.use(compression({
+  threshold: 1024, // Only compress responses larger than 1KB
+  level: 6,        // Balanced compression level (1=fast, 9=max)
+  filter: (req, res) => {
+    // Don't compress SSE or streaming responses
+    if (req.headers['accept'] === 'text/event-stream') return false;
+    return compression.filter(req, res);
+  },
+}));
 
 // CORS configuration
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
+
+// In production, require at least one allowed origin to be configured
+if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
+  logger.error('CORS_ORIGIN must be configured in production');
+  process.exit(1);
+}
+
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (like mobile apps, curl, or same-site requests)
     if (!origin) return callback(null, true);
 
+    // Only allow configured origins
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      logger.warn(`CORS request from unauthorized origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
+  // Only allow credentials from same-origin or explicitly listed origins
   credentials: true,
+  // Allowed methods
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+  // Allowed headers
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+  // Expose headers to client
+  exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
+  // Cache preflight for 24 hours (in seconds)
+  maxAge: 86400,
+  // Treat Origin header strictly
   optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));

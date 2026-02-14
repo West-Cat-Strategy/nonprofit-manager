@@ -239,16 +239,49 @@ export const checkAccountLockout = async (
 };
 
 /**
- * Clean up expired lockouts periodically
+ * Clean up expired lockouts and failed attempts periodically
+ *
+ * This prevents unbounded memory growth in the loginAttempts Map.
+ * Two cleanup policies:
+ * 1. Always remove lockout entries that have expired
+ * 2. Remove failed attempt entries (non-locked) if they're older than 30 minutes
+ *    (allows tracking of recent failures but prevents accumulation of old entries)
  */
 if (!isLockoutDisabledForTests()) {
-  setInterval(() => {
-    const now = new Date();
+  const ATTEMPT_CLEANUP_INTERVAL_MS = 300000; // 5 minutes
+  const MAX_FAILED_ATTEMPT_AGE_MS = 1800000; // 30 minutes
+  const attemptCreationTimes = new Map<string, number>();
+
+  const cleanupInterval = setInterval(() => {
+    const now = Date.now();
+    const nowDate = new Date();
+    let cleanedCount = 0;
+
     for (const [key, attempt] of loginAttempts.entries()) {
-      if (attempt.lockedUntil && now > attempt.lockedUntil) {
+      // Always remove expired lockouts
+      if (attempt.lockedUntil && nowDate > attempt.lockedUntil) {
         loginAttempts.delete(key);
-        logger.info('Account lockout expired and cleared', { identifier: key });
+        attemptCreationTimes.delete(key);
+        cleanedCount++;
+        continue;
+      }
+
+      // Remove old failed attempt entries (those that are NOT currently locked)
+      if (!attempt.lockedUntil) {
+        const createdAt = attemptCreationTimes.get(key) || 0;
+        if (now - createdAt > MAX_FAILED_ATTEMPT_AGE_MS) {
+          loginAttempts.delete(key);
+          attemptCreationTimes.delete(key);
+          cleanedCount++;
+        }
       }
     }
-  }, 300000); // Clean up every 5 minutes
+
+    if (cleanedCount > 0) {
+      logger.debug(`Account lockout cleanup: removed ${cleanedCount} stale entries`);
+    }
+  }, ATTEMPT_CLEANUP_INTERVAL_MS);
+
+  // Allow process to exit even with this interval running (don't keep process alive)
+  cleanupInterval.unref();
 }

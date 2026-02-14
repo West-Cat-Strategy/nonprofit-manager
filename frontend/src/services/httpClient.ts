@@ -9,6 +9,9 @@ export interface ApiClientOptions {
   includeOrganizationHeader?: boolean;
   organizationIdKey?: string;
   defaultOrganizationId?: string;
+  tokenKey?: string;
+  tokenHeaderName?: string;
+  tokenPrefix?: string;
   retryConfig?: RetryConfig;
 }
 
@@ -70,6 +73,9 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
     includeOrganizationHeader = true,
     organizationIdKey = 'organizationId',
     defaultOrganizationId = import.meta.env.VITE_DEFAULT_ORGANIZATION_ID,
+    tokenKey,
+    tokenHeaderName = 'Authorization',
+    tokenPrefix = 'Bearer ',
     retryConfig = DEFAULT_RETRY_CONFIG,
   } = options;
 
@@ -105,6 +111,15 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
         if (organizationId) {
           config.headers = config.headers || {};
           config.headers['X-Organization-Id'] = organizationId;
+        }
+      }
+
+      // Attach bearer token from localStorage when configured (e.g., portal auth)
+      if (tokenKey) {
+        const token = localStorage.getItem(tokenKey);
+        if (token) {
+          config.headers = config.headers || {};
+          config.headers[tokenHeaderName] = `${tokenPrefix}${token}`.trim();
         }
       }
 

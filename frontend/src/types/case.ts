@@ -237,6 +237,60 @@ export interface UpdateCaseStatusDTO {
 }
 
 /**
+ * Case Milestone
+ */
+export interface CaseMilestone {
+  id: string;
+  case_id: string;
+  milestone_name: string;
+  description?: string | null;
+  due_date?: string | null;
+  completed_date?: string | null;
+  is_completed: boolean;
+  sort_order: number;
+  created_at: string;
+  created_by?: string | null;
+}
+
+/**
+ * Create Case Milestone DTO
+ */
+export interface CreateCaseMilestoneDTO {
+  milestone_name: string;
+  description?: string;
+  due_date?: string;
+  sort_order?: number;
+}
+
+/**
+ * Update Case Milestone DTO
+ */
+export interface UpdateCaseMilestoneDTO {
+  milestone_name?: string;
+  description?: string;
+  due_date?: string;
+  is_completed?: boolean;
+  sort_order?: number;
+}
+
+/**
+ * Reassign Case DTO
+ */
+export interface ReassignCaseDTO {
+  assigned_to: string | null;
+  reason?: string;
+}
+
+/**
+ * Bulk Status Update DTO
+ */
+export interface BulkStatusUpdateDTO {
+  case_ids: string[];
+  new_status_id: string;
+  notes?: string;
+}
+
+/**
  * Redux State Types
  */
 export interface CasesState {
@@ -245,11 +299,13 @@ export interface CasesState {
   caseTypes: CaseType[];
   caseStatuses: CaseStatus[];
   caseNotes: CaseNote[];
+  caseMilestones: CaseMilestone[];
   summary: CaseSummary | null;
   total: number;
   loading: boolean;
   error: string | null;
   filters: CaseFilter;
+  selectedCaseIds: string[];
 }
 
 /**
@@ -274,4 +330,8 @@ export interface CaseStatusesResponse {
 
 export interface CaseNotesResponse {
   notes: CaseNote[];
+}
+
+export interface CaseMilestonesResponse {
+  milestones: CaseMilestone[];
 }

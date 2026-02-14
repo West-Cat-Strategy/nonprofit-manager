@@ -1,5 +1,10 @@
+/**
+ * Account List Page
+ * Displays all accounts with advanced filtering, bulk operations, and import/export
+ */
+
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   fetchAccounts,
@@ -7,6 +12,16 @@ import {
   setFilters,
   clearFilters,
 } from '../../../store/slices/accountsSlice';
+import type { Account } from '../../../store/slices/accountsSlice';
+import {
+  PeopleListContainer,
+  FilterPanel,
+  BulkActionBar,
+  ImportExportModal,
+} from '../../../components/people';
+import { useBulkSelect, useImportExport } from '../../../hooks';
+import { BrutalBadge } from '../../../components/neo-brutalist';
+import type { TableColumn } from '../../../types/people';
 
 const AccountList = () => {
   const dispatch = useAppDispatch();
@@ -15,43 +30,58 @@ const AccountList = () => {
     (state) => state.accounts
   );
 
-  const [searchInput, setSearchInput] = useState(filters.search);
-  const [accountTypeFilter, setAccountTypeFilter] = useState(filters.account_type);
-  const [categoryFilter, setCategoryFilter] = useState(filters.category);
+  const {
+    selectedIds,
+    selectedCount,
+    toggleRow,
+    selectAll,
+    deselectAll,
+  } = useBulkSelect();
 
-  const loadAccounts = useCallback(
-    (pageOverride?: number) => {
-      dispatch(
-        fetchAccounts({
-          page: pageOverride ?? pagination.page,
-          limit: pagination.limit,
-          search: filters.search || undefined,
-          account_type: filters.account_type || undefined,
-          category: filters.category || undefined,
-          is_active: filters.is_active,
-        })
-      );
-    },
-    [dispatch, filters, pagination.page, pagination.limit]
+  const { exportToCSV } = useImportExport();
+  const [searchInput, setSearchInput] = useState(filters.search);
+  const [accountTypeFilter, setAccountTypeFilter] = useState(
+    filters.account_type
   );
+  const [categoryFilter, setCategoryFilter] = useState(filters.category);
+  const [showImportExport, setShowImportExport] = useState(false);
+  const [filterCollapsed, setFilterCollapsed] = useState(false);
+
+  const loadAccounts = useCallback(() => {
+    dispatch(
+      fetchAccounts({
+        page: pagination.page,
+        limit: pagination.limit,
+        search: filters.search || undefined,
+        account_type: filters.account_type || undefined,
+        category: filters.category || undefined,
+        is_active: filters.is_active,
+      })
+    );
+  }, [dispatch, filters, pagination.page, pagination.limit]);
 
   useEffect(() => {
     loadAccounts();
   }, [loadAccounts]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    dispatch(setFilters({ search: searchInput }));
+  const handleFilterChange = (filterId: string, value: string) => {
+    if (filterId === 'search') {
+      setSearchInput(value);
+    } else if (filterId === 'account_type') {
+      setAccountTypeFilter(value);
+    } else if (filterId === 'category') {
+      setCategoryFilter(value);
+    }
   };
 
-  const handleFilterChange = (filterType: string, value: string) => {
-    if (filterType === 'account_type') {
-      setAccountTypeFilter(value);
-      dispatch(setFilters({ account_type: value }));
-    } else if (filterType === 'category') {
-      setCategoryFilter(value);
-      dispatch(setFilters({ category: value }));
-    }
+  const handleApplyFilters = () => {
+    dispatch(
+      setFilters({
+        search: searchInput,
+        account_type: accountTypeFilter,
+        category: categoryFilter,
+      })
+    );
   };
 
   const handleClearFilters = () => {
@@ -61,229 +91,258 @@ const AccountList = () => {
     dispatch(clearFilters());
   };
 
-  const handleDelete = async (accountId: string, accountName: string) => {
-    if (window.confirm(`Are you sure you want to delete ${accountName}?`)) {
-      await dispatch(deleteAccount(accountId));
-      loadAccounts();
+  const handleSelectAll = () => {
+    if (selectedCount === accounts.length) {
+      deselectAll();
+    } else {
+      selectAll(accounts.map((a) => a.account_id));
     }
   };
 
-  const handlePageChange = (newPage: number) => {
-    loadAccounts(newPage);
+  const handleBulkDelete = async () => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete ${selectedCount} account(s)?`
+      )
+    ) {
+      return;
+    }
+
+    const ids = Array.from(selectedIds);
+    for (const id of ids) {
+      await dispatch(deleteAccount(id));
+    }
+
+    deselectAll();
+    loadAccounts();
   };
 
-  return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-6 flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">Accounts</h1>
+  const handleBulkExport = () => {
+    const ids = Array.from(selectedIds);
+    const selectedAccounts = accounts.filter((a) => ids.includes(a.account_id));
+
+    const columns = [
+      'account_number',
+      'account_name',
+      'account_type',
+      'category',
+      'email',
+    ] as const;
+
+    exportToCSV(
+      selectedAccounts.map((a) => ({
+        account_number: a.account_number,
+        account_name: a.account_name,
+        account_type: a.account_type,
+        category: a.category,
+        email: a.email,
+      })),
+      columns,
+      {
+        filename: 'accounts-export',
+        includeHeaders: true,
+      }
+    );
+  };
+
+  const columns: TableColumn[] = [
+    {
+      key: 'account_number',
+      label: 'Number',
+      width: '140px',
+      render: (_, row: Account) => (
+        <span className="font-mono text-sm font-medium">
+          {row.account_number}
+        </span>
+      ),
+    },
+    {
+      key: 'account_name',
+      label: 'Name',
+      width: '240px',
+      render: (_, row: Account) => (
+        <div
+          className="cursor-pointer hover:opacity-75 transition"
+          onClick={() => navigate(`/accounts/${row.account_id}`)}
+        >
+          <p className="text-blue-600 hover:text-blue-900 font-medium">
+            {row.account_name}
+          </p>
+          <p className="text-sm text-gray-500">{row.email || 'No email'}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'account_type',
+      label: 'Type',
+      width: '120px',
+      render: (_, row: Account) => (
+        <BrutalBadge variant="primary" className="text-xs capitalize">
+          {row.account_type}
+        </BrutalBadge>
+      ),
+    },
+    {
+      key: 'category',
+      label: 'Category',
+      width: '140px',
+      render: (_, row: Account) => (
+        <span className="px-3 py-1 text-xs font-medium rounded bg-gray-100 text-gray-800 capitalize">
+          {row.category}
+        </span>
+      ),
+    },
+    {
+      key: 'email',
+      label: 'Email',
+      width: '220px',
+      render: (_, row: Account) => (
+        <span className="text-sm text-gray-600">{row.email || '—'}</span>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      width: '140px',
+      render: (_, row: Account) => (
+        <div className="flex gap-2">
           <button
-            onClick={() => navigate('/accounts/new')}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+            onClick={() => navigate(`/accounts/${row.account_id}/edit`)}
+            className="text-indigo-600 hover:text-indigo-900 font-mono text-sm"
           >
-            + New Account
+            Edit
+          </button>
+          <button
+            onClick={() => {
+              if (window.confirm(`Remove ${row.account_name}?`)) {
+                dispatch(deleteAccount(row.account_id));
+              }
+            }}
+            className="text-red-600 hover:text-red-900 font-mono text-sm"
+          >
+            Delete
           </button>
         </div>
+      ),
+    },
+  ];
 
-        {/* Filters */}
-        <div className="bg-white p-4 rounded-lg shadow mb-6">
-          <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <input
-              type="text"
-              placeholder="Search accounts..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+  return (
+    <>
+      <PeopleListContainer
+        title="Accounts"
+        description="Manage organizational and individual accounts"
+        onCreateNew={() => navigate('/accounts/new')}
+        createButtonLabel="New Account"
+        filters={
+          <FilterPanel
+            fields={[
+              {
+                id: 'search',
+                label: 'Search',
+                type: 'text',
+                placeholder: 'Account name, number, or email...',
+                value: searchInput,
+              },
+              {
+                id: 'account_type',
+                label: 'Type',
+                type: 'select',
+                value: accountTypeFilter,
+                options: [
+                  { value: 'organization', label: 'Organization' },
+                  { value: 'individual', label: 'Individual' },
+                ],
+              },
+              {
+                id: 'category',
+                label: 'Category',
+                type: 'select',
+                value: categoryFilter,
+                options: [
+                  { value: 'donor', label: 'Donor' },
+                  { value: 'volunteer', label: 'Volunteer' },
+                  { value: 'partner', label: 'Partner' },
+                  { value: 'vendor', label: 'Vendor' },
+                  { value: 'beneficiary', label: 'Beneficiary' },
+                  { value: 'other', label: 'Other' },
+                ],
+              },
+            ]}
+            onFilterChange={handleFilterChange}
+            onApply={handleApplyFilters}
+            onClear={handleClearFilters}
+            isCollapsed={filterCollapsed}
+            onToggleCollapse={() => setFilterCollapsed(!filterCollapsed)}
+            activeFilterCount={
+              [searchInput, accountTypeFilter, categoryFilter].filter(
+                (f) => f
+              ).length
+            }
+          />
+        }
+        loading={loading}
+        error={error}
+        data={accounts.map((a) => ({ ...a, id: a.account_id }))}
+        columns={columns}
+        pagination={pagination}
+        onPageChange={(page) =>
+          dispatch(
+            fetchAccounts({
+              page,
+              limit: pagination.limit,
+              search: filters.search || undefined,
+              account_type: filters.account_type || undefined,
+              category: filters.category || undefined,
+              is_active: filters.is_active,
+            })
+          )
+        }
+        selectedRows={selectedIds}
+        onSelectRow={(id) => toggleRow(id)}
+        onSelectAll={handleSelectAll}
+        bulkActions={
+          selectedCount > 0 && (
+            <BulkActionBar
+              selectedCount={selectedCount}
+              actions={[
+                {
+                  id: 'export',
+                  label: 'Export',
+                  onClick: handleBulkExport,
+                },
+                {
+                  id: 'import',
+                  label: 'Import',
+                  onClick: () => setShowImportExport(true),
+                },
+                {
+                  id: 'delete',
+                  label: 'Delete',
+                  variant: 'danger',
+                  onClick: handleBulkDelete,
+                },
+              ]}
+              onClearSelection={deselectAll}
             />
+          )
+        }
+        emptyStateTitle="No accounts found"
+        emptyStateDescription="Get started by creating your first account"
+        emptyStateAction={{
+          label: 'Create First Account',
+          onClick: () => navigate('/accounts/new'),
+        }}
+      />
 
-            <select
-              value={accountTypeFilter}
-              onChange={(e) => handleFilterChange('account_type', e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Types</option>
-              <option value="organization">Organization</option>
-              <option value="individual">Individual</option>
-            </select>
-
-            <select
-              value={categoryFilter}
-              onChange={(e) => handleFilterChange('category', e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Categories</option>
-              <option value="donor">Donor</option>
-              <option value="volunteer">Volunteer</option>
-              <option value="partner">Partner</option>
-              <option value="vendor">Vendor</option>
-              <option value="beneficiary">Beneficiary</option>
-              <option value="other">Other</option>
-            </select>
-
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-              >
-                Search
-              </button>
-              <button
-                type="button"
-                onClick={handleClearFilters}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-              >
-                Clear
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
-            {error}
-          </div>
-        )}
-
-        {/* Loading State */}
-        {loading && (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading accounts...</p>
-          </div>
-        )}
-
-        {/* Accounts Table */}
-        {!loading && (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Account Number
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Category
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {accounts.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                      No accounts found. Create your first account to get started!
-                    </td>
-                  </tr>
-                ) : (
-                  accounts.map((account) => (
-                    <tr key={account.account_id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {account.account_number}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Link
-                          to={`/accounts/${account.account_id}`}
-                          className="text-blue-600 hover:text-blue-900 font-medium"
-                        >
-                          {account.account_name}
-                        </Link>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
-                        {account.account_type}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
-                        {account.category}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {account.email || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => navigate(`/accounts/${account.account_id}/edit`)}
-                          className="text-indigo-600 hover:text-indigo-900 mr-4"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(account.account_id, account.account_name)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-            </div>
-
-            {/* Pagination */}
-            {pagination.total_pages > 1 && (
-              <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-                <div className="flex-1 flex justify-between sm:hidden">
-                  <button
-                    onClick={() => handlePageChange(pagination.page - 1)}
-                    disabled={pagination.page === 1}
-                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => handlePageChange(pagination.page + 1)}
-                    disabled={pagination.page === pagination.total_pages}
-                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                </div>
-                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm text-gray-700">
-                      Showing page <span className="font-medium">{pagination.page}</span> of{' '}
-                      <span className="font-medium">{pagination.total_pages}</span> (
-                      {pagination.total} total)
-                    </p>
-                  </div>
-                  <div>
-                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                      <button
-                        onClick={() => handlePageChange(pagination.page - 1)}
-                        disabled={pagination.page === 1}
-                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                      >
-                        Previous
-                      </button>
-                      <button
-                        onClick={() => handlePageChange(pagination.page + 1)}
-                        disabled={pagination.page === pagination.total_pages}
-                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                      >
-                        Next
-                      </button>
-                    </nav>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+      {/* Import/Export Modal */}
+      <ImportExportModal
+        isOpen={showImportExport}
+        onClose={() => setShowImportExport(false)}
+        entityType="accounts"
+        sampleData={accounts}
+      />
+    </>
   );
 };
 

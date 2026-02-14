@@ -362,27 +362,30 @@ export async function syncContact(request: SyncContactRequest): Promise<SyncResu
 
 /**
  * Bulk sync contacts to Mailchimp
+ * Uses Promise.all for parallel syncing instead of sequential operations
  */
 export async function bulkSyncContacts(request: BulkSyncRequest): Promise<BulkSyncResponse> {
   if (!isConfigured) {
     throw new Error('Mailchimp is not configured');
   }
 
-  const results: SyncResult[] = [];
+  // Execute all syncs in parallel for better performance
+  const syncPromises = request.contactIds.map((contactId) =>
+    syncContact({
+      contactId,
+      listId: request.listId,
+      tags: request.tags,
+    })
+  );
+
+  const results = await Promise.all(syncPromises);
+
   let added = 0;
   let updated = 0;
   let skipped = 0;
   let errors = 0;
 
-  for (const contactId of request.contactIds) {
-    const result = await syncContact({
-      contactId,
-      listId: request.listId,
-      tags: request.tags,
-    });
-
-    results.push(result);
-
+  for (const result of results) {
     if (result.success) {
       if (result.action === 'added') added++;
       else if (result.action === 'updated') updated++;

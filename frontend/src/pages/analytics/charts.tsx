@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import {
   PieChart,
   Pie,
@@ -28,7 +29,7 @@ interface EngagementPieChartProps {
 
 const ENGAGEMENT_COLORS = ['#22c55e', '#eab308', '#f97316', '#9ca3af'];
 
-export function EngagementPieChart({ distribution }: EngagementPieChartProps) {
+function EngagementPieChartComponent({ distribution }: EngagementPieChartProps) {
   const total = distribution.high + distribution.medium + distribution.low + distribution.inactive;
   if (total === 0) return <div className="text-gray-500 text-center py-8">No engagement data</div>;
 
@@ -82,13 +83,15 @@ export function EngagementPieChart({ distribution }: EngagementPieChartProps) {
   );
 }
 
+export const EngagementPieChart = memo(EngagementPieChartComponent);
+
 interface ConstituentBarChartProps {
   accounts: { total: number; active: number };
   contacts: { total: number; active: number };
   volunteers: number;
 }
 
-export function ConstituentBarChart({ accounts, contacts, volunteers }: ConstituentBarChartProps) {
+function ConstituentBarChartComponent({ accounts, contacts, volunteers }: ConstituentBarChartProps) {
   const data = [
     { name: 'Accounts', total: accounts.total, active: accounts.active },
     { name: 'Contacts', total: contacts.total, active: contacts.active },
@@ -115,13 +118,15 @@ export function ConstituentBarChart({ accounts, contacts, volunteers }: Constitu
   );
 }
 
+export const ConstituentBarChart = memo(ConstituentBarChartComponent);
+
 interface SummaryStatsChartProps {
   donations: number;
   events: number;
   volunteerHours: number;
 }
 
-export function SummaryStatsChart({ donations, events, volunteerHours }: SummaryStatsChartProps) {
+function SummaryStatsChartComponent({ donations, events, volunteerHours }: SummaryStatsChartProps) {
   const data = [
     { name: 'Donations', value: donations, fill: '#8b5cf6' },
     { name: 'Events', value: events, fill: '#06b6d4' },
@@ -146,12 +151,14 @@ export function SummaryStatsChart({ donations, events, volunteerHours }: Summary
   );
 }
 
+export const SummaryStatsChart = memo(SummaryStatsChartComponent);
+
 interface DonationTrendsChartProps {
   data: DonationTrendPoint[];
   loading: boolean;
 }
 
-export function DonationTrendsChart({ data, loading }: DonationTrendsChartProps) {
+export function DonationTrendsChartComponent({ data, loading }: DonationTrendsChartProps) {
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
@@ -228,12 +235,14 @@ export function DonationTrendsChart({ data, loading }: DonationTrendsChartProps)
   );
 }
 
+export const DonationTrendsChart = memo(DonationTrendsChartComponent);
+
 interface VolunteerTrendsChartProps {
   data: VolunteerHoursTrendPoint[];
   loading: boolean;
 }
 
-export function VolunteerTrendsChart({ data, loading }: VolunteerTrendsChartProps) {
+export function VolunteerTrendsChartComponent({ data, loading }: VolunteerTrendsChartProps) {
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
@@ -310,12 +319,14 @@ export function VolunteerTrendsChart({ data, loading }: VolunteerTrendsChartProp
   );
 }
 
+export const VolunteerTrendsChart = memo(VolunteerTrendsChartComponent);
+
 interface EventAttendanceTrendsChartProps {
   data: EventTrendPoint[];
   loading: boolean;
 }
 
-export function EventAttendanceTrendsChart({ data, loading }: EventAttendanceTrendsChartProps) {
+function EventAttendanceTrendsChartComponent({ data, loading }: EventAttendanceTrendsChartProps) {
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
@@ -409,3 +420,5 @@ export function EventAttendanceTrendsChart({ data, loading }: EventAttendanceTre
     </div>
   );
 }
+
+export const EventAttendanceTrendsChart = memo(EventAttendanceTrendsChartComponent);

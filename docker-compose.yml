@@ -4,12 +4,13 @@ services:
     image: postgres:14-alpine
     container_name: nonprofit-db
     restart: unless-stopped
+    env_file:
+      - .env.production
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: nonprofit_manager
     ports:
-      - "5433:5432"
+      - "8012:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/migrations:/docker-entrypoint-initdb.d
@@ -27,7 +28,7 @@ services:
     container_name: nonprofit-redis
     restart: unless-stopped
     ports:
-      - "6380:6379"
+      - "8013:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -47,26 +48,15 @@ services:
     container_name: nonprofit-backend
     restart: unless-stopped
     ports:
-      - "3001:3000"
+      - "8000:8000"
+    env_file:
+      - .env.production
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       PORT: 3000
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_NAME: nonprofit_manager
-      DB_USER: postgres
-      DB_PASSWORD: postgres
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: dev_secret_key_change_in_production
-      JWT_EXPIRES_IN: 24h
-      CORS_ORIGIN: http://localhost:8081,http://localhost:5174
-      LOG_LEVEL: debug
-      RATE_LIMIT_MAX_REQUESTS: 10000
-      RATE_LIMIT_WINDOW_MS: 60000
-      AUTH_RATE_LIMIT_MAX_REQUESTS: 50
-      AUTH_RATE_LIMIT_WINDOW_MS: 60000
-      ORG_CONTEXT_REQUIRE: "true"
-      ORG_CONTEXT_VALIDATE: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -79,7 +69,7 @@ services:
     networks:
       - nonprofit-network
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -91,13 +81,13 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://localhost:3001/api
+        VITE_API_URL: http://localhost:8000/api
     container_name: nonprofit-frontend
     restart: unless-stopped
     ports:
-      - "8081:8080"
+      - "8001:8001"
     environment:
-      VITE_API_URL: http://localhost:3001/api
+      VITE_API_URL: http://localhost:8000/api
       VITE_DEFAULT_ORGANIZATION_ID: 82c6f7af-7d6f-4527-a5ae-60db86c5c619
     depends_on:
       backend:
@@ -105,7 +95,7 @@ services:
     networks:
       - nonprofit-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8001/health"]
       interval: 30s
       timeout: 10s
       retries: 3
