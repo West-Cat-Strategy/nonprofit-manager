@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { body, param, query } from 'express-validator';
+import { validateBody, validateQuery, validateParams } from '@middleware/zodValidation';
 import {
   getVolunteers,
   getVolunteerById,
@@ -18,7 +18,14 @@ import {
 } from '@controllers/domains/engagement';
 import { authenticate } from '@middleware/domains/auth';
 import { loadDataScope } from '@middleware/domains/data';
-import { validateRequest } from '@middleware/domains/security';
+import {
+  createVolunteerSchema,
+  updateVolunteerSchema,
+  volunteerAssignmentSchema,
+  updateVolunteerAssignmentSchema,
+  uuidSchema,
+} from '@validations/volunteer';
+import { z } from 'zod';
 
 const router = Router();
 
@@ -32,7 +39,9 @@ router.use(loadDataScope('volunteers'));
  */
 router.get(
   '/search/skills',
-  [query('skills').notEmpty().withMessage('Skills parameter is required'), validateRequest],
+  validateQuery(z.object({
+    skills: z.string().min(1, 'Skills parameter is required'),
+  })),
   findVolunteersBySkills
 );
 
@@ -42,20 +51,17 @@ router.get(
  */
 router.get(
   '/',
-  [
-    query('page').optional().isInt({ min: 1 }).toInt(),
-    query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
-    query('sort_by').optional().isString(),
-    query('sort_order').optional().isIn(['asc', 'desc']),
-    query('search').optional().isString(),
-    query('skills').optional().isString(),
-    query('availability_status').optional().isIn(['available', 'unavailable', 'limited']),
-    query('background_check_status')
-      .optional()
-      .isIn(['not_required', 'pending', 'in_progress', 'approved', 'rejected', 'expired']),
-    query('is_active').optional().isBoolean(),
-    validateRequest,
-  ],
+  validateQuery(z.object({
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    sort_by: z.string().optional(),
+    sort_order: z.enum(['asc', 'desc']).optional(),
+    search: z.string().optional(),
+    skills: z.string().optional(),
+    availability_status: z.enum(['available', 'unavailable', 'limited']).optional(),
+    background_check_status: z.enum(['not_required', 'pending', 'in_progress', 'approved', 'rejected', 'expired']).optional(),
+    is_active: z.boolean().optional(),
+  })),
   getVolunteers
 );
 
@@ -63,13 +69,21 @@ router.get(
  * GET /api/volunteers/:id
  * Get volunteer by ID
  */
-router.get('/:id', [param('id').isUUID(), validateRequest], getVolunteerById);
+router.get(
+  '/:id',
+  validateParams(z.object({ id: uuidSchema })),
+  getVolunteerById
+);
 
 /**
  * GET /api/volunteers/:id/assignments
  * Get assignments for a volunteer
  */
-router.get('/:id/assignments', [param('id').isUUID(), validateRequest], getVolunteerAssignments);
+router.get(
+  '/:id/assignments',
+  validateParams(z.object({ id: uuidSchema })),
+  getVolunteerAssignments
+);
 
 /**
  * POST /api/volunteers
@@ -77,24 +91,7 @@ router.get('/:id/assignments', [param('id').isUUID(), validateRequest], getVolun
  */
 router.post(
   '/',
-  [
-    body('contact_id').isUUID().withMessage('Valid contact_id is required'),
-    body('skills').optional().isArray(),
-    body('skills.*').optional().isString(),
-    body('availability_status').optional().isIn(['available', 'unavailable', 'limited']),
-    body('availability_notes').optional().isString().trim(),
-    body('background_check_status')
-      .optional()
-      .isIn(['not_required', 'pending', 'in_progress', 'approved', 'rejected', 'expired']),
-    body('background_check_date').optional().isISO8601(),
-    body('background_check_expiry').optional().isISO8601(),
-    body('preferred_roles').optional().isArray(),
-    body('max_hours_per_week').optional().isInt({ min: 0 }),
-    body('emergency_contact_name').optional().isString().trim(),
-    body('emergency_contact_phone').optional().isString().trim(),
-    body('emergency_contact_relationship').optional().isString().trim(),
-    validateRequest,
-  ],
+  validateBody(createVolunteerSchema),
   createVolunteer
 );
 
@@ -104,25 +101,8 @@ router.post(
  */
 router.put(
   '/:id',
-  [
-    param('id').isUUID(),
-    body('skills').optional().isArray(),
-    body('skills.*').optional().isString(),
-    body('availability_status').optional().isIn(['available', 'unavailable', 'limited']),
-    body('availability_notes').optional().isString().trim(),
-    body('background_check_status')
-      .optional()
-      .isIn(['not_required', 'pending', 'in_progress', 'approved', 'rejected', 'expired']),
-    body('background_check_date').optional().isISO8601(),
-    body('background_check_expiry').optional().isISO8601(),
-    body('preferred_roles').optional().isArray(),
-    body('max_hours_per_week').optional().isInt({ min: 0 }),
-    body('emergency_contact_name').optional().isString().trim(),
-    body('emergency_contact_phone').optional().isString().trim(),
-    body('emergency_contact_relationship').optional().isString().trim(),
-    body('is_active').optional().isBoolean(),
-    validateRequest,
-  ],
+  validateParams(z.object({ id: uuidSchema })),
+  validateBody(updateVolunteerSchema),
   updateVolunteer
 );
 
@@ -130,7 +110,11 @@ router.put(
  * DELETE /api/volunteers/:id
  * Soft delete volunteer
  */
-router.delete('/:id', [param('id').isUUID(), validateRequest], deleteVolunteer);
+router.delete(
+  '/:id',
+  validateParams(z.object({ id: uuidSchema })),
+  deleteVolunteer
+);
 
 /**
  * POST /api/volunteers/assignments
@@ -138,17 +122,7 @@ router.delete('/:id', [param('id').isUUID(), validateRequest], deleteVolunteer);
  */
 router.post(
   '/assignments',
-  [
-    body('volunteer_id').isUUID(),
-    body('event_id').optional().isUUID(),
-    body('task_id').optional().isUUID(),
-    body('assignment_type').isIn(['event', 'task', 'general']),
-    body('role').optional().isString().trim(),
-    body('start_time').isISO8601(),
-    body('end_time').optional().isISO8601(),
-    body('notes').optional().isString().trim(),
-    validateRequest,
-  ],
+  validateBody(volunteerAssignmentSchema),
   createAssignment
 );
 
@@ -158,16 +132,8 @@ router.post(
  */
 router.put(
   '/assignments/:id',
-  [
-    param('id').isUUID(),
-    body('role').optional().isString().trim(),
-    body('start_time').optional().isISO8601(),
-    body('end_time').optional().isISO8601(),
-    body('hours_logged').optional().isFloat({ min: 0 }),
-    body('status').optional().isIn(['scheduled', 'in_progress', 'completed', 'cancelled']),
-    body('notes').optional().isString().trim(),
-    validateRequest,
-  ],
+  validateParams(z.object({ id: uuidSchema })),
+  validateBody(updateVolunteerAssignmentSchema),
   updateAssignment
 );
 

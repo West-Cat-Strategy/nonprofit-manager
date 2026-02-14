@@ -29,6 +29,8 @@
       "@config/*": ["src/config/*"],
       "@utils/*": ["src/utils/*"],
       "@app-types/*": ["src/types/*"],
+      "@validations": ["src/validations/index.ts"],
+      "@validations/*": ["src/validations/*"],
       "@middleware": ["src/middleware/index.ts"],
       "@middleware/*": ["src/middleware/*"],
       "@controllers/*": ["src/controllers/*"],

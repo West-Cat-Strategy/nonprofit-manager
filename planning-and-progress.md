@@ -1,7 +1,7 @@
 # 📊 Nonprofit Manager - Planning & Progress
 
-**Current Phase:** 🏗️ Phase 1 - Foundation (In Progress)  
-**Last Updated:** February 1, 2026  
+**Current Phase:** 🚀 Phase 2 - Validation & Authorization (In Progress)  
+**Last Updated:** February 14, 2026 (Phase 2.6 Complete)  
 **Lead Developer:** Bryan Crockett (@bcroc), Example Organization
 
 ---
@@ -43,61 +43,42 @@ All active work must be **signed out** in the Workboard below before code change
 
 | ID | Task | Phase | Status | Owner | Started | Target | PR/Branch |
 |----|------|-------|--------|-------|---------|--------|-----------|
-| P1-T1.5-TESTS | Set up Jest for backend + first auth tests | Phase 1 | Done | Codex | Feb 1, 2026 | Feb 8, 2026 | — |
-| P1-T1.5-UI-TESTS | Add RTL + Login tests | Phase 1 | Done | Codex | Feb 1, 2026 | Feb 12, 2026 | — |
-| P1-T1.5-AUTH-MW | Add auth middleware tests | Phase 1 | Done | Codex | Feb 1, 2026 | Feb 8, 2026 | — |
-| P1-T1.6-LOCAL-CI | Add local CI runner + optional git hooks | Phase 1 | Done | Codex | Feb 1, 2026 | Feb 12, 2026 | — |
-| P1-T1.2-SEC | Auth security hardening (rate-limit, lockout, Helmet) | Phase 1 | Done | Codex | Feb 1, 2026 | Feb 1, 2026 | — |
-| P1-T1.3-DB-SETUP | Local DB setup + migrations runbook | Phase 1 | Done | Codex | Feb 1, 2026 | Feb 1, 2026 | — |
+| P2-T1 | Implement Zod validation framework + 38 schemas | Phase 2 | Done | Codex | Feb 1, 2026 | Feb 1, 2026 | — |
+| P2-T2 | Create permission system (45+ permissions, 5 roles) | Phase 2 | Done | Codex | Feb 1, 2026 | Feb 1, 2026 | — |
+| P2-T3 | Create auth guards service + validation middleware | Phase 2 | Done | Codex | Feb 1, 2026 | Feb 1, 2026 | — |
+| P2-T4 | Add domain validation schemas (contact, donation, case, task) | Phase 2 | Done | Codex | Feb 1, 2026 | Feb 1, 2026 | — |
+| P2-T5 | Migrate auth routes to Zod validation (12/12 endpoints) | Phase 2 | Done | Codex | Feb 1, 2026 | Feb 1, 2026 | — |
+| P2-T6 | Create advanced rate limiting middleware | Phase 2 | Done | Codex | Feb 1, 2026 | Feb 1, 2026 | — |
+| P2-T7 | Update auth controller to use auth guards | Phase 2 | Done | Codex | Feb 14, 2026 | Feb 14, 2026 | — |
+| P2-T8 | Migrate volunteer routes to Zod validation | Phase 2 | Ready | — | — | Feb 3, 2026 | — |
+| P2-T9 | Standardize error responses across all endpoints | Phase 2 | Ready | — | — | Feb 2, 2026 | — |
+| P2-T10 | Add Phase 2 integration tests (rate limiting, validation) | Phase 2 | Ready | — | — | Feb 4, 2026 | — |
 
-### ✅ Recently Completed (February 1, 2026 - Late Evening Update)
+### ✅ Recently Completed (February 1, 2026 - Late Evening + Phase 2 Completion)
 
-**🎉 Volunteer Management Components - COMPLETE (February 1, 2026)**
+**🎉 Phase 2 - Validation & Authorization Infrastructure - COMPLETE**
 
-- ✅ Created **AvailabilityCalendar** component with monthly calendar view
-  - Displays volunteer assignments by date with color-coded status indicators
-  - Month navigation (previous, next, today buttons)
-  - Assignment indicators on calendar dates (shows up to 2 per day + count)
-  - Click on dates to view assignment details
-  - Availability status indicator (available, limited, unavailable)
-  - Legend for assignment statuses (scheduled, in progress, completed, cancelled)
-- ✅ Created **TimeTracker** component for volunteer hour tracking
-  - Live timer functionality with start/stop controls
-  - Manual hours entry for quick logging
-  - Active assignments section with timer and manual entry
-  - Total hours logged display with volunteer name
-  - Recently completed assignments summary
-  - Integration with Redux for updating assignment hours
-- ✅ Created **VolunteerWidget** dashboard component
-  - Summary statistics (total, available, limited, unavailable volunteers)
-  - Total hours logged display with icon
-  - Top volunteers list with hours and availability status
-  - Availability breakdown progress bar
-  - Quick actions (Add Volunteer, New Assignment buttons)
-  - Integrated into main Dashboard page
-- ✅ Integrated new components into **VolunteerDetail** page
-  - Added "Calendar" tab with AvailabilityCalendar component
-  - Added "Time Tracker" tab with TimeTracker component
-  - Date click handler to show assignment details modal
-  - Connected hour update handlers to Redux actions
-- ✅ Updated Dashboard to include VolunteerWidget with detailed view
-- ✅ Fixed type-only import errors for VolunteerAssignment type
-- ✅ **Created comprehensive test suite for all new components**
-  - AvailabilityCalendar.test.tsx: 23 tests (calendar rendering, navigation, assignment display, status colors)
-  - TimeTracker.test.tsx: 29 tests (timer functionality, manual hours, validation, active/completed assignments)
-  - VolunteerWidget.test.tsx: 31 tests (stats display, top volunteers, navigation, availability breakdown)
-  - **Total: 83 new tests, all passing (100% success rate)**
-- ✅ **Frontend builds successfully - 0 TypeScript errors**
+- ✅ **Phase 1 Summary** (previously completed):
+  - 38 Zod validation schemas across 5 files (shared, auth, user, volunteer, event)
+  - Permission system with 45+ granular permissions across 5 roles
+  - Auth guards service with 10+ safety helper functions
+  - Validation & permission middleware for route protection
+  - 21 passing unit tests for all schemas
+  - 4 comprehensive documentation guides
 
-**🎉 Frontend Build Errors - FIXED**
+- ✅ **Phase 2.1-2.4 - Infrastructure Completion**:
+  - Created 4 domain validation schema files (contact: 6, donation: 6, case: 4, task: 4 schemas)
+  - Enhanced auth validation with 4 new schemas (passport register/verify, login, setup)
+  - **Migrated ALL 12 auth endpoints** from express-validator to Zod validation
+  - Auth routes now use clean `validateBody(schema)` middleware pattern
+  - Removed ~80 lines of scattered express-validator validation chains
+  - Created advanced rate limiting middleware with 6 configurable strategies
+  - Integrated rate limiting into auth routes (login, register, passkey operations)
+  - Updated TypeScript config with `@validations` path alias
+  - All new files compile with zero TypeScript errors
+  - All 21 validation tests still passing (100% success rate)
 
-- ✅ Fixed type-only imports (DragStartEvent, DragEndEvent, PayloadAction)
-- ✅ Removed unused variables in PageEditor.tsx
-- ✅ Fixed JSX namespace error in EditorCanvas.tsx (React.createElement)
-- ✅ Fixed PageSection[] type mismatch with proper type assertion
-- ✅ **Frontend now builds successfully - 0 TypeScript errors**
-
-**🎉 Comprehensive E2E Test Suite - COMPLETE**
+### ✅ Authentication Routes - 100% Migrated to Zod
 
 - ✅ Set up Playwright E2E testing framework with configuration
 - ✅ Created test directory structure (tests/, fixtures/, helpers/)

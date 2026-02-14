@@ -1,6 +1,5 @@
 import { Router } from 'express';
-import { body } from 'express-validator';
-import { validateRequest } from '@middleware/domains/security';
+import { validateBody } from '@middleware/zodValidation';
 import {
   login,
   register,
@@ -34,23 +33,26 @@ import {
 import { authenticate } from '@middleware/domains/auth';
 import { authLimiterMiddleware, registrationLimiterMiddleware } from '@middleware/domains/platform';
 import { checkAccountLockout } from '@middleware/domains/auth';
+import {
+  registerSchema,
+  loginSchema,
+  changePasswordSchema,
+  twoFactorVerifySchema,
+  twoFactorSetupSchema,
+  twoFactorDisableSchema,
+  passkeyRegistrationVerifySchema,
+  passkeyLoginOptionsSchema,
+  passkeyLoginVerifySchema,
+  setupFirstUserSchema,
+} from '@validations/auth';
+import { updateUserProfileSchema } from '@validations/user';
 
 const router = Router();
 
 router.post(
   '/register',
   registrationLimiterMiddleware,
-  [
-    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
-    body('password')
-      .isLength({ min: 8 })
-      .withMessage('Password must be at least 8 characters')
-      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-      .withMessage('Password must contain uppercase, lowercase, number, and special character'),
-    body('firstName').trim().notEmpty().withMessage('First name is required'),
-    body('lastName').trim().notEmpty().withMessage('Last name is required'),
-    validateRequest,
-  ],
+  validateBody(registerSchema),
   register
 );
 
@@ -58,11 +60,7 @@ router.post(
   '/login',
   authLimiterMiddleware,
   checkAccountLockout,
-  [
-    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
-    body('password').notEmpty().withMessage('Password is required'),
-    validateRequest,
-  ],
+  validateBody(loginSchema),
   login
 );
 
@@ -70,15 +68,9 @@ router.post(
   '/login/2fa',
   authLimiterMiddleware,
   checkAccountLockout,
-  [
-    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
-    body('mfaToken').notEmpty().withMessage('MFA token is required'),
-    body('code')
-      .trim()
-      .matches(/^[0-9]{6}$/)
-      .withMessage('Authentication code must be 6 digits'),
-    validateRequest,
-  ],
+  validateBody(twoFactorVerifySchema.extend({
+    email: loginSchema.shape.email,
+  })),
   completeTotpLogin
 );
 
@@ -101,12 +93,7 @@ router.get('/profile', authenticate, getProfile);
 router.put(
   '/profile',
   authenticate,
-  [
-    body('firstName').optional().trim().notEmpty().withMessage('First name cannot be empty'),
-    body('lastName').optional().trim().notEmpty().withMessage('Last name cannot be empty'),
-    body('email').optional().isEmail().normalizeEmail().withMessage('Valid email is required'),
-    validateRequest,
-  ],
+  validateBody(updateUserProfileSchema),
   updateProfile
 );
 
@@ -114,15 +101,7 @@ router.put(
 router.put(
   '/password',
   authenticate,
-  [
-    body('currentPassword').notEmpty().withMessage('Current password is required'),
-    body('newPassword')
-      .isLength({ min: 8 })
-      .withMessage('Password must be at least 8 characters')
-      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-      .withMessage('Password must contain uppercase, lowercase, number, and special character'),
-    validateRequest,
-  ],
+  validateBody(changePasswordSchema),
   changePassword
 );
 
@@ -131,20 +110,13 @@ router.post('/2fa/totp/enroll', authenticate, enrollTotp);
 router.post(
   '/2fa/totp/enable',
   authenticate,
-  [body('code').trim().matches(/^[0-9]{6}$/).withMessage('Authentication code must be 6 digits'), validateRequest],
+  validateBody(twoFactorSetupSchema),
   enableTotp
 );
 router.post(
   '/2fa/totp/disable',
   authenticate,
-  [
-    body('password').notEmpty().withMessage('Password is required'),
-    body('code')
-      .trim()
-      .matches(/^[0-9]{6}$/)
-      .withMessage('Authentication code must be 6 digits'),
-    validateRequest,
-  ],
+  validateBody(twoFactorDisableSchema),
   disableTotp
 );
 
@@ -155,26 +127,21 @@ router.post('/passkeys/register/options', authenticate, passkeyRegistrationOptio
 router.post(
   '/passkeys/register/verify',
   authenticate,
-  [body('challengeId').notEmpty().withMessage('challengeId is required'), body('credential').notEmpty(), validateRequest],
+  validateBody(passkeyRegistrationVerifySchema),
   passkeyRegistrationVerify
 );
 router.post(
   '/passkeys/login/options',
   authLimiterMiddleware,
   checkAccountLockout,
-  [body('email').isEmail().normalizeEmail().withMessage('Valid email is required'), validateRequest],
+  validateBody(passkeyLoginOptionsSchema),
   passkeyLoginOptions
 );
 router.post(
   '/passkeys/login/verify',
   authLimiterMiddleware,
   checkAccountLockout,
-  [
-    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
-    body('challengeId').notEmpty().withMessage('challengeId is required'),
-    body('credential').notEmpty(),
-    validateRequest,
-  ],
+  validateBody(passkeyLoginVerifySchema),
   passkeyLoginVerify
 );
 
@@ -183,18 +150,8 @@ router.get('/setup-status', checkSetupStatus);
 
 router.post(
   '/setup',
-  [
-    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
-    body('password')
-      .isLength({ min: 8 })
-      .withMessage('Password must be at least 8 characters')
-      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-      .withMessage('Password must contain uppercase, lowercase, number, and special character'),
-    body('firstName').trim().notEmpty().withMessage('First name is required'),
-    body('lastName').trim().notEmpty().withMessage('Last name is required'),
-    body('organizationName').trim().notEmpty().withMessage('Organization name is required'),
-    validateRequest,
-  ],
+  registrationLimiterMiddleware,
+  validateBody(setupFirstUserSchema),
   setupFirstUser
 );
 

@@ -4,83 +4,96 @@
  */
 
 import { Router } from 'express';
-import { body, query } from 'express-validator';
+import { validateBody, validateQuery, validateParams } from '@middleware/zodValidation';
 import { donationController } from '@controllers/domains/engagement';
 import { authenticate } from '@middleware/domains/auth';
 import { loadDataScope } from '@middleware/domains/data';
-import { validateRequest } from '@middleware/domains/security';
+import {
+  createDonationSchema,
+  updateDonationSchema,
+  uuidSchema,
+} from '@validations/donation';
+import { z } from 'zod';
 
 const router = Router();
 
-// Validation rules
-const createDonationValidation = [
-  body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be greater than 0'),
-  body('currency').optional().isLength({ min: 3, max: 3 }).withMessage('Currency must be 3 characters'),
-  body('donation_date').isISO8601().withMessage('Invalid donation date'),
-  body('payment_method')
-    .optional()
-    .isIn(['cash', 'check', 'credit_card', 'debit_card', 'bank_transfer', 'paypal', 'stock', 'in_kind', 'other'])
-    .withMessage('Invalid payment method'),
-  body('payment_status')
-    .optional()
-    .isIn(['pending', 'completed', 'failed', 'refunded', 'cancelled'])
-    .withMessage('Invalid payment status'),
-  body('account_id').optional().isUUID().withMessage('Invalid account ID'),
-  body('contact_id').optional().isUUID().withMessage('Invalid contact ID'),
-  body('is_recurring').optional().isBoolean().withMessage('is_recurring must be boolean'),
-  body('recurring_frequency')
-    .optional()
-    .isIn(['weekly', 'monthly', 'quarterly', 'annually', 'one_time'])
-    .withMessage('Invalid recurring frequency'),
-];
-
-const updateDonationValidation = [
-  body('amount').optional().isFloat({ min: 0.01 }).withMessage('Amount must be greater than 0'),
-  body('currency').optional().isLength({ min: 3, max: 3 }).withMessage('Currency must be 3 characters'),
-  body('donation_date').optional().isISO8601().withMessage('Invalid donation date'),
-  body('payment_method')
-    .optional()
-    .isIn(['cash', 'check', 'credit_card', 'debit_card', 'bank_transfer', 'paypal', 'stock', 'in_kind', 'other'])
-    .withMessage('Invalid payment method'),
-  body('payment_status')
-    .optional()
-    .isIn(['pending', 'completed', 'failed', 'refunded', 'cancelled'])
-    .withMessage('Invalid payment status'),
-  body('account_id').optional().isUUID().withMessage('Invalid account ID'),
-  body('contact_id').optional().isUUID().withMessage('Invalid contact ID'),
-  body('is_recurring').optional().isBoolean().withMessage('is_recurring must be boolean'),
-  body('recurring_frequency')
-    .optional()
-    .isIn(['weekly', 'monthly', 'quarterly', 'annually', 'one_time'])
-    .withMessage('Invalid recurring frequency'),
-  body('receipt_sent').optional().isBoolean().withMessage('receipt_sent must be boolean'),
-];
-
-const donationQueryValidation = [
-  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
-  query('payment_method')
-    .optional()
-    .isIn(['cash', 'check', 'credit_card', 'debit_card', 'bank_transfer', 'paypal', 'stock', 'in_kind', 'other'])
-    .withMessage('Invalid payment method'),
-  query('payment_status')
-    .optional()
-    .isIn(['pending', 'completed', 'failed', 'refunded', 'cancelled'])
-    .withMessage('Invalid payment status'),
-  query('is_recurring').optional().isBoolean().withMessage('is_recurring must be boolean'),
-  query('min_amount').optional().isFloat({ min: 0 }).withMessage('min_amount must be non-negative'),
-  query('max_amount').optional().isFloat({ min: 0 }).withMessage('max_amount must be non-negative'),
-];
-
-// Donation routes
+// All routes require authentication
 router.use(authenticate);
 router.use(loadDataScope('donations'));
-router.get('/', donationQueryValidation, validateRequest, donationController.getDonations);
+
+/**
+ * GET /api/donations
+ * Get all donations with filtering and pagination
+ */
+router.get(
+  '/',
+  validateQuery(z.object({
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    payment_method: z.enum(['cash', 'check', 'credit_card', 'debit_card', 'bank_transfer', 'paypal', 'stock', 'in_kind', 'other']).optional(),
+    payment_status: z.enum(['pending', 'completed', 'failed', 'refunded', 'cancelled']).optional(),
+    is_recurring: z.boolean().optional(),
+    min_amount: z.coerce.number().nonnegative().optional(),
+    max_amount: z.coerce.number().nonnegative().optional(),
+  })),
+  donationController.getDonations
+);
+
+/**
+ * GET /api/donations/summary
+ * Get donation summary
+ */
 router.get('/summary', donationController.getDonationSummary);
-router.get('/:id', donationController.getDonationById);
-router.post('/', createDonationValidation, validateRequest, donationController.createDonation);
-router.put('/:id', updateDonationValidation, validateRequest, donationController.updateDonation);
-router.delete('/:id', donationController.deleteDonation);
-router.post('/:id/receipt', donationController.markReceiptSent);
+
+/**
+ * GET /api/donations/:id
+ * Get donation by ID
+ */
+router.get(
+  '/:id',
+  validateParams(z.object({ id: uuidSchema })),
+  donationController.getDonationById
+);
+
+/**
+ * POST /api/donations
+ * Create new donation
+ */
+router.post(
+  '/',
+  validateBody(createDonationSchema),
+  donationController.createDonation
+);
+
+/**
+ * PUT /api/donations/:id
+ * Update donation
+ */
+router.put(
+  '/:id',
+  validateParams(z.object({ id: uuidSchema })),
+  validateBody(updateDonationSchema),
+  donationController.updateDonation
+);
+
+/**
+ * DELETE /api/donations/:id
+ * Delete donation
+ */
+router.delete(
+  '/:id',
+  validateParams(z.object({ id: uuidSchema })),
+  donationController.deleteDonation
+);
+
+/**
+ * POST /api/donations/:id/receipt
+ * Mark receipt as sent
+ */
+router.post(
+  '/:id/receipt',
+  validateParams(z.object({ id: uuidSchema })),
+  donationController.markReceiptSent
+);
 
 export default router;
