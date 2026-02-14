@@ -9,7 +9,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies (including devDependencies needed for build)
-RUN npm ci && \
+RUN npm ci --no-audit --no-fund && \
     npm cache clean --force
 
 # Copy source code
@@ -22,6 +22,7 @@ RUN npm run build
 FROM node:20-alpine AS production
 
 WORKDIR /app
+ENV NODE_ENV=production
 
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init
@@ -34,7 +35,7 @@ RUN addgroup -g 1001 -S nodejs && \
 COPY package*.json ./
 
 # Install production dependencies only
-RUN npm ci --only=production && \
+RUN npm ci --omit=dev --no-audit --no-fund && \
     npm cache clean --force
 
 # Copy built application from builder
