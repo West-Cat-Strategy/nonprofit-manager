@@ -74,8 +74,8 @@ const TaskList: React.FC = () => {
 
   const getStatusBadge = (status: TaskStatus) => {
     const statusColors: Record<TaskStatus, string> = {
-      [TaskStatus.NOT_STARTED]: 'bg-gray-100 text-gray-800',
-      [TaskStatus.IN_PROGRESS]: 'bg-blue-100 text-blue-800',
+      [TaskStatus.NOT_STARTED]: 'bg-app-surface-muted text-app-text',
+      [TaskStatus.IN_PROGRESS]: 'bg-app-accent-soft text-app-accent-text',
       [TaskStatus.WAITING]: 'bg-yellow-100 text-yellow-800',
       [TaskStatus.COMPLETED]: 'bg-green-100 text-green-800',
       [TaskStatus.DEFERRED]: 'bg-purple-100 text-purple-800',
@@ -91,8 +91,8 @@ const TaskList: React.FC = () => {
 
   const getPriorityBadge = (priority: TaskPriority) => {
     const priorityColors: Record<TaskPriority, string> = {
-      [TaskPriority.LOW]: 'bg-gray-100 text-gray-600',
-      [TaskPriority.NORMAL]: 'bg-blue-100 text-blue-600',
+      [TaskPriority.LOW]: 'bg-app-surface-muted text-app-text-muted',
+      [TaskPriority.NORMAL]: 'bg-app-accent-soft text-app-accent',
       [TaskPriority.HIGH]: 'bg-orange-100 text-orange-600',
       [TaskPriority.URGENT]: 'bg-red-100 text-red-600',
     };

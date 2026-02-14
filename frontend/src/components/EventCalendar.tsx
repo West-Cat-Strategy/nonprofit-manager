@@ -101,19 +101,19 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({ onEventClick }) =>
       case 'fundraiser':
         return 'bg-green-100 text-green-800 hover:bg-green-200';
       case 'volunteer':
-        return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
+        return 'bg-app-accent-soft text-app-accent-text hover:bg-app-accent-soft-hover';
       case 'community':
         return 'bg-purple-100 text-purple-800 hover:bg-purple-200';
       case 'training':
         return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
       case 'meeting':
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+        return 'bg-app-surface-muted text-app-text hover:bg-app-surface-muted';
       case 'social':
         return 'bg-pink-100 text-pink-800 hover:bg-pink-200';
       case 'other':
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+        return 'bg-app-surface-muted text-app-text hover:bg-app-surface-muted';
       default:
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+        return 'bg-app-surface-muted text-app-text hover:bg-app-surface-muted';
     }
   };
 
@@ -123,22 +123,22 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({ onEventClick }) =>
   };
 
   return (
-    <div className="bg-white rounded-lg shadow">
+    <div className="bg-app-surface rounded-lg shadow">
       {/* Calendar Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b">
-        <h2 className="text-xl font-semibold text-gray-900">
+        <h2 className="text-xl font-semibold text-app-text">
           {format(currentMonth, 'MMMM yyyy')}
         </h2>
         <div className="flex items-center space-x-2">
           <button
             onClick={handleToday}
-            className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            className="px-3 py-2 text-sm font-medium text-app-text-muted bg-app-surface border border-app-input-border rounded-md hover:bg-app-surface-muted"
           >
             Today
           </button>
           <button
             onClick={handlePreviousMonth}
-            className="p-2 text-gray-600 hover:text-gray-900"
+            className="p-2 text-app-text-muted hover:text-app-text"
             aria-label="Previous month"
           >
             <svg
@@ -157,7 +157,7 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({ onEventClick }) =>
           </button>
           <button
             onClick={handleNextMonth}
-            className="p-2 text-gray-600 hover:text-gray-900"
+            className="p-2 text-app-text-muted hover:text-app-text"
             aria-label="Next month"
           >
             <svg
@@ -184,7 +184,7 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({ onEventClick }) =>
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
             <div
               key={day}
-              className="py-2 text-xs font-semibold text-center text-gray-600"
+              className="py-2 text-xs font-semibold text-center text-app-text-muted"
             >
               {day}
             </div>
@@ -204,23 +204,23 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({ onEventClick }) =>
                 key={index}
                 className={`min-h-24 p-2 border rounded-lg cursor-pointer transition-colors ${
                   !isCurrentMonth
-                    ? 'bg-gray-50 text-gray-400'
-                    : 'bg-white hover:bg-gray-50'
-                } ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
+                    ? 'bg-app-surface-muted text-app-text-subtle'
+                    : 'bg-app-surface hover:bg-app-surface-muted'
+                } ${isSelected ? 'ring-2 ring-app-accent' : ''}`}
                 onClick={() => handleDateClick(day)}
               >
                 <div className="flex items-center justify-between mb-1">
                   <span
                     className={`text-sm font-medium ${
                       isDayToday
-                        ? 'flex items-center justify-center w-6 h-6 text-white bg-blue-600 rounded-full'
+                        ? 'flex items-center justify-center w-6 h-6 text-white bg-app-accent rounded-full'
                         : ''
                     }`}
                   >
                     {format(day, 'd')}
                   </span>
                   {dayEvents.length > 0 && (
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-app-text-muted">
                       {dayEvents.length}
                     </span>
                   )}
@@ -245,7 +245,7 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({ onEventClick }) =>
                     </div>
                   ))}
                   {dayEvents.length > 3 && (
-                    <div className="text-xs text-center text-gray-500">
+                    <div className="text-xs text-center text-app-text-muted">
                       +{dayEvents.length - 3} more
                     </div>
                   )}
@@ -258,37 +258,37 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({ onEventClick }) =>
 
       {/* Loading indicator */}
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
-          <div className="w-8 h-8 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+        <div className="absolute inset-0 flex items-center justify-center bg-app-surface bg-opacity-75">
+          <div className="w-8 h-8 border-4 border-app-accent rounded-full border-t-transparent animate-spin"></div>
         </div>
       )}
 
       {/* Legend */}
-      <div className="px-6 py-4 border-t bg-gray-50">
+      <div className="px-6 py-4 border-t bg-app-surface-muted">
         <div className="flex flex-wrap gap-3 text-xs">
           <div className="flex items-center">
             <div className="w-3 h-3 mr-1 bg-green-100 rounded"></div>
-            <span className="text-gray-600">Fundraiser</span>
+            <span className="text-app-text-muted">Fundraiser</span>
           </div>
           <div className="flex items-center">
-            <div className="w-3 h-3 mr-1 bg-blue-100 rounded"></div>
-            <span className="text-gray-600">Volunteer</span>
+            <div className="w-3 h-3 mr-1 bg-app-accent-soft rounded"></div>
+            <span className="text-app-text-muted">Volunteer</span>
           </div>
           <div className="flex items-center">
             <div className="w-3 h-3 mr-1 bg-purple-100 rounded"></div>
-            <span className="text-gray-600">Community</span>
+            <span className="text-app-text-muted">Community</span>
           </div>
           <div className="flex items-center">
             <div className="w-3 h-3 mr-1 bg-yellow-100 rounded"></div>
-            <span className="text-gray-600">Training</span>
+            <span className="text-app-text-muted">Training</span>
           </div>
           <div className="flex items-center">
             <div className="w-3 h-3 mr-1 bg-orange-100 rounded"></div>
-            <span className="text-gray-600">Workshop</span>
+            <span className="text-app-text-muted">Workshop</span>
           </div>
           <div className="flex items-center">
             <div className="w-3 h-3 mr-1 bg-indigo-100 rounded"></div>
-            <span className="text-gray-600">Conference</span>
+            <span className="text-app-text-muted">Conference</span>
           </div>
         </div>
       </div>

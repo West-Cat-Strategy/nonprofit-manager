@@ -144,11 +144,11 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
       )}
 
       {/* Basic Information */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h2>
+      <div className="bg-app-surface shadow rounded-lg p-6">
+        <h2 className="text-lg font-medium text-app-text-heading mb-4">Basic Information</h2>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <label htmlFor="account_name" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="account_name" className="block text-sm font-medium text-app-text-label">
               Account Name *
             </label>
             <input
@@ -158,8 +158,8 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               value={values.account_name}
               onChange={handleChange}
               className={`mt-1 block w-full border ${
-                errors.account_name ? 'border-red-300' : 'border-gray-300'
-              } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+                errors.account_name ? 'border-red-300' : 'border-app-input-border'
+              } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
             />
             {errors.account_name && (
               <p className="mt-1 text-sm text-red-600">{errors.account_name}</p>
@@ -167,7 +167,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
           </div>
 
           <div>
-            <label htmlFor="account_type" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="account_type" className="block text-sm font-medium text-app-text-label">
               Account Type *
             </label>
             <select
@@ -175,7 +175,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               id="account_type"
               value={values.account_type}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             >
               <option value="individual">Individual</option>
               <option value="organization">Organization</option>
@@ -183,7 +183,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
           </div>
 
           <div>
-            <label htmlFor="category" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="category" className="block text-sm font-medium text-app-text-label">
               Category *
             </label>
             <select
@@ -191,7 +191,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               id="category"
               value={values.category}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             >
               <option value="donor">Donor</option>
               <option value="volunteer">Volunteer</option>
@@ -205,11 +205,11 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
       </div>
 
       {/* Contact Information */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Contact Information</h2>
+      <div className="bg-app-surface shadow rounded-lg p-6">
+        <h2 className="text-lg font-medium text-app-text-heading mb-4">Contact Information</h2>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="email" className="block text-sm font-medium text-app-text-label">
               Email
             </label>
             <input
@@ -219,14 +219,14 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               value={values.email}
               onChange={handleChange}
               className={`mt-1 block w-full border ${
-                errors.email ? 'border-red-300' : 'border-gray-300'
-              } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+                errors.email ? 'border-red-300' : 'border-app-input-border'
+              } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
             />
             {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
           </div>
 
           <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="phone" className="block text-sm font-medium text-app-text-label">
               Phone
             </label>
             <input
@@ -236,14 +236,14 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               value={values.phone}
               onChange={handleChange}
               className={`mt-1 block w-full border ${
-                errors.phone ? 'border-red-300' : 'border-gray-300'
-              } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+                errors.phone ? 'border-red-300' : 'border-app-input-border'
+              } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
             />
             {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
           </div>
 
           <div className="sm:col-span-2">
-            <label htmlFor="website" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="website" className="block text-sm font-medium text-app-text-label">
               Website
             </label>
             <input
@@ -254,8 +254,8 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               onChange={handleChange}
               placeholder="https://example.com"
               className={`mt-1 block w-full border ${
-                errors.website ? 'border-red-300' : 'border-gray-300'
-              } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+                errors.website ? 'border-red-300' : 'border-app-input-border'
+              } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
             />
             {errors.website && <p className="mt-1 text-sm text-red-600">{errors.website}</p>}
           </div>
@@ -263,11 +263,11 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
       </div>
 
       {/* Address Information */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Address</h2>
+      <div className="bg-app-surface shadow rounded-lg p-6">
+        <h2 className="text-lg font-medium text-app-text-heading mb-4">Address</h2>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <label htmlFor="address_line1" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="address_line1" className="block text-sm font-medium text-app-text-label">
               Address Line 1
             </label>
             <input
@@ -276,12 +276,12 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               id="address_line1"
               value={values.address_line1}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             />
           </div>
 
           <div className="sm:col-span-2">
-            <label htmlFor="address_line2" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="address_line2" className="block text-sm font-medium text-app-text-label">
               Address Line 2
             </label>
             <input
@@ -290,12 +290,12 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               id="address_line2"
               value={values.address_line2}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             />
           </div>
 
           <div>
-            <label htmlFor="city" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="city" className="block text-sm font-medium text-app-text-label">
               City
             </label>
             <input
@@ -304,12 +304,12 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               id="city"
               value={values.city}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             />
           </div>
 
           <div>
-            <label htmlFor="state_province" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="state_province" className="block text-sm font-medium text-app-text-label">
               State/Province
             </label>
             <input
@@ -318,12 +318,12 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               id="state_province"
               value={values.state_province}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             />
           </div>
 
           <div>
-            <label htmlFor="postal_code" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="postal_code" className="block text-sm font-medium text-app-text-label">
               Postal Code
             </label>
             <input
@@ -332,12 +332,12 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               id="postal_code"
               value={values.postal_code}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             />
           </div>
 
           <div>
-            <label htmlFor="country" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="country" className="block text-sm font-medium text-app-text-label">
               Country
             </label>
             <input
@@ -346,18 +346,18 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               id="country"
               value={values.country}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             />
           </div>
         </div>
       </div>
 
       {/* Additional Information */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Additional Information</h2>
+      <div className="bg-app-surface shadow rounded-lg p-6">
+        <h2 className="text-lg font-medium text-app-text-heading mb-4">Additional Information</h2>
         <div className="grid grid-cols-1 gap-6">
           <div>
-            <label htmlFor="tax_id" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="tax_id" className="block text-sm font-medium text-app-text-label">
               Tax ID / EIN
             </label>
             <input
@@ -366,12 +366,12 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               id="tax_id"
               value={values.tax_id}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             />
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="description" className="block text-sm font-medium text-app-text-label">
               Description
             </label>
             <textarea
@@ -380,7 +380,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               rows={3}
               value={values.description}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             />
           </div>
 
@@ -392,9 +392,9 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
                 id="is_active"
                 checked={values.is_active}
                 onChange={handleChange}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-app-accent focus:ring-app-accent border-app-input-border rounded"
               />
-              <label htmlFor="is_active" className="ml-2 block text-sm text-gray-900">
+              <label htmlFor="is_active" className="ml-2 block text-sm text-app-text">
                 Active Account
               </label>
             </div>
@@ -407,14 +407,14 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
         <button
           type="button"
           onClick={handleCancel}
-          className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="bg-app-surface py-2 px-4 border border-app-border rounded-md shadow-sm text-sm font-medium text-app-text-label hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-app-accent"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="bg-blue-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="bg-app-accent py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-app-accent disabled:bg-app-text-subtle disabled:cursor-not-allowed"
         >
           {isSubmitting ? 'Saving...' : mode === 'create' ? 'Create Account' : 'Update Account'}
         </button>

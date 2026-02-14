@@ -22,7 +22,9 @@ RUN npm run build
 FROM nginx:1.27-alpine3.20 AS production
 
 # dumb-init: proper PID-1 signal handling
-RUN apk add --no-cache dumb-init
+RUN apk update && apk upgrade && \
+    apk add --no-cache dumb-init curl && \
+    rm -rf /var/cache/apk/*
 
 # Non-root user — must be done before USER directive
 RUN addgroup -g 1001 -S nginx-user && \
@@ -43,7 +45,7 @@ USER nginx-user
 EXPOSE 8001
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:8001/health || exit 1
+    CMD curl -f http://127.0.0.1:8001/health || exit 1
 
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["nginx", "-g", "daemon off;"]

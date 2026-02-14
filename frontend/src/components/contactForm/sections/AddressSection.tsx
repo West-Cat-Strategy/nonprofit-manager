@@ -16,8 +16,8 @@ export default function AddressSection({
   onNoFixedAddressChange,
 }: AddressSectionProps) {
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <h2 className="text-lg font-medium text-gray-900 mb-4">Address</h2>
+    <div className="bg-app-surface shadow rounded-lg p-6">
+      <h2 className="text-lg font-medium text-app-text mb-4">Address</h2>
       <div className="mb-4">
         <label className="flex items-center gap-2">
           <input
@@ -25,16 +25,16 @@ export default function AddressSection({
             name="no_fixed_address"
             checked={noFixedAddress}
             onChange={(e) => onNoFixedAddressChange(e.target.checked)}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            className="h-4 w-4 text-app-accent focus:ring-app-accent border-app-input-border rounded"
           />
-          <span className="text-sm font-medium text-gray-700">No fixed address</span>
+          <span className="text-sm font-medium text-app-text-muted">No fixed address</span>
         </label>
-        <p className="mt-1 text-xs text-gray-500 ml-6">Check if this person does not have a fixed address</p>
+        <p className="mt-1 text-xs text-app-text-muted ml-6">Check if this person does not have a fixed address</p>
       </div>
       {!noFixedAddress && (
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label htmlFor="address_line1" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="address_line1" className="block text-sm font-medium text-app-text-muted">
             Address Line 1
           </label>
           <input
@@ -43,12 +43,12 @@ export default function AddressSection({
             id="address_line1"
             value={formData.address_line1 ?? ''}
             onChange={onChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
           />
         </div>
 
         <div className="sm:col-span-2">
-          <label htmlFor="address_line2" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="address_line2" className="block text-sm font-medium text-app-text-muted">
             Address Line 2
           </label>
           <input
@@ -57,12 +57,12 @@ export default function AddressSection({
             id="address_line2"
             value={formData.address_line2 ?? ''}
             onChange={onChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
           />
         </div>
 
         <div>
-          <label htmlFor="city" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="city" className="block text-sm font-medium text-app-text-muted">
             City
           </label>
           <input
@@ -71,12 +71,12 @@ export default function AddressSection({
             id="city"
             value={formData.city ?? ''}
             onChange={onChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
           />
         </div>
 
         <div>
-          <label htmlFor="state_province" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="state_province" className="block text-sm font-medium text-app-text-muted">
             State/Province
           </label>
           <input
@@ -85,12 +85,12 @@ export default function AddressSection({
             id="state_province"
             value={formData.state_province ?? ''}
             onChange={onChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
           />
         </div>
 
         <div>
-          <label htmlFor="postal_code" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="postal_code" className="block text-sm font-medium text-app-text-muted">
             Postal Code
           </label>
           <input
@@ -100,8 +100,8 @@ export default function AddressSection({
             value={formData.postal_code ?? ''}
             onChange={onChange}
             className={`mt-1 block w-full border ${
-              errors.postal_code ? 'border-red-300' : 'border-gray-300'
-            } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+              errors.postal_code ? 'border-red-300' : 'border-app-input-border'
+            } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
           />
           {errors.postal_code && (
             <p className="mt-1 text-sm text-red-600">{errors.postal_code}</p>
@@ -109,7 +109,7 @@ export default function AddressSection({
         </div>
 
         <div>
-          <label htmlFor="country" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="country" className="block text-sm font-medium text-app-text-muted">
             Country
           </label>
           <input
@@ -118,7 +118,7 @@ export default function AddressSection({
             id="country"
             value={formData.country ?? ''}
             onChange={onChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
           />
         </div>
       </div>

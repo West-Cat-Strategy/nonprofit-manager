@@ -11,13 +11,13 @@ interface CheckboxItemProps {
 
 const CheckboxItem = memo(function CheckboxItem({ id, label, checked, onChange }: CheckboxItemProps) {
   return (
-    <label htmlFor={id} className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+    <label htmlFor={id} className="flex items-center gap-2 text-sm text-app-text-muted cursor-pointer">
       <input
         id={id}
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+        className="rounded border-app-input-border text-app-text focus:ring-app-accent"
       />
       {label}
     </label>
@@ -44,27 +44,27 @@ function DashboardCustomizer({ settings, onSettingsChange, onReset }: DashboardC
 
   return (
     <div
-      className="mt-6 rounded-2xl border border-slate-200/70 bg-white/85 p-5 shadow-sm"
+      className="mt-6 rounded-2xl border border-app-border/70 bg-app-surface/85 p-5 shadow-sm"
       role="region"
       aria-label="Dashboard customization"
     >
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Visible Metrics</h2>
-          <p className="text-sm text-slate-500">Choose which metrics and sections to show.</p>
+          <h2 className="text-lg font-semibold text-app-text">Visible Metrics</h2>
+          <p className="text-sm text-app-text-muted">Choose which metrics and sections to show.</p>
         </div>
         <button
           type="button"
           onClick={onReset}
-          className="text-sm font-semibold text-slate-700 hover:text-slate-900 focus:outline-none focus:underline"
+          className="text-sm font-semibold text-app-text-muted hover:text-app-text focus:outline-none focus:underline"
           aria-label="Reset dashboard settings to defaults"
         >
           Reset defaults
         </button>
       </div>
       <div className="mt-5 grid gap-6 md:grid-cols-2">
-        <fieldset className="rounded-xl border border-slate-200/70 bg-slate-50/70 p-4">
-          <legend className="text-sm font-semibold text-slate-700 mb-3">Sections</legend>
+        <fieldset className="rounded-xl border border-app-border/70 bg-app-surface-muted/70 p-4">
+          <legend className="text-sm font-semibold text-app-text-muted mb-3">Sections</legend>
           <div className="space-y-2">
             <CheckboxItem
               id="section-quick-lookup"
@@ -98,8 +98,8 @@ function DashboardCustomizer({ settings, onSettingsChange, onReset }: DashboardC
             />
           </div>
         </fieldset>
-        <fieldset className="rounded-xl border border-slate-200/70 bg-slate-50/70 p-4">
-          <legend className="text-sm font-semibold text-slate-700 mb-3">KPI cards</legend>
+        <fieldset className="rounded-xl border border-app-border/70 bg-app-surface-muted/70 p-4">
+          <legend className="text-sm font-semibold text-app-text-muted mb-3">KPI cards</legend>
           <div className="grid grid-cols-2 gap-2">
             {(Object.keys(settings.kpis) as KpiKey[]).map((key) => (
               <CheckboxItem

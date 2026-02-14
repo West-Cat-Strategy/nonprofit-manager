@@ -85,13 +85,13 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <BrutalCard className="w-full max-w-lg m-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b-2 border-gray-900">
-          <h2 className="text-2xl font-bold text-gray-900">
+        <div className="flex items-center justify-between p-6 border-b-2 border-app-text">
+          <h2 className="text-2xl font-bold text-app-text">
             Import/Export {entityType}
           </h2>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100"
+            className="p-1 hover:bg-app-surface-muted"
             aria-label="Close"
           >
             <XMarkIcon className="w-6 h-6" />
@@ -99,13 +99,13 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b-2 border-gray-900">
+        <div className="flex border-b-2 border-app-text">
           <button
             onClick={() => setTab('export')}
             className={`flex-1 px-4 py-3 font-bold text-center ${
               tab === 'export'
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-600'
+                ? 'border-b-2 border-app-accent text-app-accent'
+                : 'text-app-text-muted'
             }`}
           >
             Export
@@ -114,8 +114,8 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
             onClick={() => setTab('import')}
             className={`flex-1 px-4 py-3 font-bold text-center ${
               tab === 'import'
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-600'
+                ? 'border-b-2 border-app-accent text-app-accent'
+                : 'text-app-text-muted'
             }`}
           >
             Import
@@ -127,8 +127,8 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
           {tab === 'export' ? (
             <>
               <div className="space-y-4">
-                <h3 className="font-bold text-gray-900">Export {entityType}</h3>
-                <p className="text-sm text-gray-600">
+                <h3 className="font-bold text-app-text">Export {entityType}</h3>
+                <p className="text-sm text-app-text-muted">
                   Download all {entityType} data as a CSV file. You can edit the file
                   and import it back.
                 </p>
@@ -157,8 +157,8 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
               </div>
 
               <div>
-                <h4 className="font-bold text-gray-900 mb-2">Formats</h4>
-                <p className="text-sm text-gray-600 mb-3">
+                <h4 className="font-bold text-app-text mb-2">Formats</h4>
+                <p className="text-sm text-app-text-muted mb-3">
                   Choose a format to export your data:
                 </p>
                 <BrutalButton
@@ -174,10 +174,10 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
           ) : (
             <>
               <div className="space-y-4">
-                <h3 className="font-bold text-gray-900">
+                <h3 className="font-bold text-app-text">
                   Import {entityType}
                 </h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-app-text-muted">
                   Upload a CSV file to import or update {entityType}. The file
                   must have column headers matching the fields below.
                 </p>
@@ -200,15 +200,15 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
               </div>
 
               <div>
-                <h4 className="font-bold text-gray-900 mb-2">
+                <h4 className="font-bold text-app-text mb-2">
                   Required Columns
                 </h4>
-                <div className="bg-gray-50 p-3 rounded border border-gray-300 mb-4">
-                  <p className="text-xs font-mono text-gray-600">
+                <div className="bg-app-surface-muted p-3 rounded border border-app-input-border mb-4">
+                  <p className="text-xs font-mono text-app-text-muted">
                     Your CSV file must include headers in the first row.
                     Common fields:
                   </p>
-                  <ul className="mt-2 space-y-1 text-xs font-mono text-gray-600">
+                  <ul className="mt-2 space-y-1 text-xs font-mono text-app-text-muted">
                     {entityType === 'volunteers' && (
                       <>
                         <li>• first_name, last_name, email</li>
@@ -253,7 +253,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="border-t-2 border-gray-900 p-6 flex justify-end gap-2">
+        <div className="border-t-2 border-app-text p-6 flex justify-end gap-2">
           <BrutalButton
             variant="secondary"
             onClick={onClose}

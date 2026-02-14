@@ -29,7 +29,7 @@ const DonationEdit: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-lg text-gray-600">Loading...</div>
+        <div className="text-lg text-app-text-muted">Loading...</div>
       </div>
     );
   }
@@ -53,8 +53,8 @@ const DonationEdit: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Edit Donation</h1>
-        <p className="mt-2 text-gray-600">Donation #{selectedDonation.donation_number}</p>
+        <h1 className="text-3xl font-bold text-app-text">Edit Donation</h1>
+        <p className="mt-2 text-app-text-muted">Donation #{selectedDonation.donation_number}</p>
       </div>
 
       <DonationForm donation={selectedDonation} onSubmit={handleSubmit} isEdit />

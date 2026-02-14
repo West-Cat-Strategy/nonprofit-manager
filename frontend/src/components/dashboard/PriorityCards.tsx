@@ -22,15 +22,15 @@ const PriorityCard = memo(function PriorityCard({
 }: PriorityCardProps) {
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/85 p-5 shadow-sm"
+      className="relative overflow-hidden rounded-2xl border border-app-border/70 bg-app-surface/85 p-5 shadow-sm"
       role="article"
       aria-label={`${label}: ${value} - ${description}`}
     >
       <div className={`absolute -right-10 -top-10 h-20 w-20 rounded-full ${accentColor}`} aria-hidden="true" />
       <div className="relative">
         <p className={`text-xs font-semibold uppercase tracking-wide ${textColor}`}>{label}</p>
-        <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
-        <p className="mt-1 text-sm text-slate-600">{description}</p>
+        <p className="mt-2 text-2xl font-semibold text-app-text">{value}</p>
+        <p className="mt-1 text-sm text-app-text-muted">{description}</p>
         <Link
           className={`mt-3 inline-flex text-xs font-semibold ${textColor} hover:opacity-80 focus:outline-none focus:underline`}
           to={linkTo}

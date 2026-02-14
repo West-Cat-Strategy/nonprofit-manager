@@ -174,25 +174,25 @@ const VolunteerListEnhanced = () => {
     };
     const config =
       statusConfig[status as keyof typeof statusConfig] || {
-        bg: 'bg-gray-100',
-        text: 'text-gray-800',
+        bg: 'bg-app-surface-muted',
+        text: 'text-app-text',
       };
     return config;
   };
 
   const getBackgroundCheckBadge = (status: string) => {
     const statusConfig = {
-      not_required: { bg: 'bg-gray-100', text: 'text-gray-800' },
+      not_required: { bg: 'bg-app-surface-muted', text: 'text-app-text' },
       pending: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
-      in_progress: { bg: 'bg-blue-100', text: 'text-blue-800' },
+      in_progress: { bg: 'bg-app-accent-soft', text: 'text-app-accent-text' },
       approved: { bg: 'bg-green-100', text: 'text-green-800' },
       rejected: { bg: 'bg-red-100', text: 'text-red-800' },
       expired: { bg: 'bg-orange-100', text: 'text-orange-800' },
     };
     const config =
       statusConfig[status as keyof typeof statusConfig] || {
-        bg: 'bg-gray-100',
-        text: 'text-gray-800',
+        bg: 'bg-app-surface-muted',
+        text: 'text-app-text',
       };
     return config;
   };
@@ -205,12 +205,12 @@ const VolunteerListEnhanced = () => {
       render: (_, row) => (
         <div>
           <p
-            className="text-blue-600 hover:text-blue-900 font-medium cursor-pointer"
+            className="text-app-accent hover:text-app-accent-text font-medium cursor-pointer"
             onClick={() => navigate(`/volunteers/${row.volunteer_id}`)}
           >
             {row.first_name} {row.last_name}
           </p>
-          <p className="text-sm text-gray-500">{row.email}</p>
+          <p className="text-sm text-app-text-muted">{row.email}</p>
         </div>
       ),
     },
@@ -228,13 +228,13 @@ const VolunteerListEnhanced = () => {
                 </BrutalBadge>
               ))}
               {row.skills.length > 2 && (
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-app-text-muted">
                   +{row.skills.length - 2} more
                 </span>
               )}
             </>
           ) : (
-            <span className="text-sm text-gray-400">No skills</span>
+            <span className="text-sm text-app-text-subtle">No skills</span>
           )}
         </div>
       ),

@@ -16,13 +16,13 @@ interface TemplateCardProps {
 }
 
 const categoryColors: Record<TemplateCategory, string> = {
-  'landing-page': 'bg-blue-100 text-blue-800',
+  'landing-page': 'bg-app-accent-soft text-app-accent-text',
   event: 'bg-purple-100 text-purple-800',
   donation: 'bg-green-100 text-green-800',
   blog: 'bg-yellow-100 text-yellow-800',
   'multi-page': 'bg-indigo-100 text-indigo-800',
   portfolio: 'bg-pink-100 text-pink-800',
-  contact: 'bg-gray-100 text-gray-800',
+  contact: 'bg-app-surface-muted text-app-text',
 };
 
 const categoryLabels: Record<TemplateCategory, string> = {
@@ -36,7 +36,7 @@ const categoryLabels: Record<TemplateCategory, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  draft: 'bg-gray-100 text-gray-600',
+  draft: 'bg-app-surface-muted text-app-text-muted',
   published: 'bg-green-100 text-green-600',
   archived: 'bg-red-100 text-red-600',
 };
@@ -50,10 +50,10 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
   showActions = true,
 }) => {
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow duration-200">
+    <div className="bg-app-surface rounded-lg shadow-md overflow-hidden border border-app-border hover:shadow-lg transition-shadow duration-200">
       {/* Thumbnail */}
       <div
-        className="h-40 bg-gradient-to-br from-gray-100 to-gray-200 relative cursor-pointer"
+        className="h-40 bg-gradient-to-br from-app-surface-muted to-app-surface-muted relative cursor-pointer"
         onClick={() => onSelect(template)}
       >
         {template.thumbnailImage ? (
@@ -65,7 +65,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <svg
-              className="w-16 h-16 text-gray-400"
+              className="w-16 h-16 text-app-text-subtle"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -82,7 +82,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
 
         {/* System template badge */}
         {template.isSystemTemplate && (
-          <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+          <div className="absolute top-2 left-2 bg-app-accent text-white text-xs px-2 py-1 rounded">
             Starter
           </div>
         )}
@@ -101,7 +101,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
       <div className="p-4">
         <div className="flex items-start justify-between mb-2">
           <h3
-            className="font-semibold text-gray-900 truncate cursor-pointer hover:text-blue-600"
+            className="font-semibold text-app-text truncate cursor-pointer hover:text-app-accent"
             onClick={() => onSelect(template)}
             title={template.name}
           >
@@ -109,7 +109,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
           </h3>
         </div>
 
-        <p className="text-sm text-gray-600 mb-3 line-clamp-2" title={template.description}>
+        <p className="text-sm text-app-text-muted mb-3 line-clamp-2" title={template.description}>
           {template.description || 'No description'}
         </p>
 
@@ -120,7 +120,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
           >
             {categoryLabels[template.category]}
           </span>
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-app-text-muted">
             {template.pageCount} {template.pageCount === 1 ? 'page' : 'pages'}
           </span>
         </div>
@@ -131,23 +131,23 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
             {template.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded"
+                className="text-xs bg-app-surface-muted text-app-text-muted px-2 py-0.5 rounded"
               >
                 {tag}
               </span>
             ))}
             {template.tags.length > 3 && (
-              <span className="text-xs text-gray-500">+{template.tags.length - 3}</span>
+              <span className="text-xs text-app-text-muted">+{template.tags.length - 3}</span>
             )}
           </div>
         )}
 
         {/* Actions */}
         {showActions && (
-          <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+          <div className="flex items-center gap-2 pt-3 border-t border-app-border-muted">
             <button
               onClick={() => onSelect(template)}
-              className="flex-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+              className="flex-1 px-3 py-1.5 bg-app-accent text-white text-sm rounded hover:bg-app-accent-hover transition-colors"
             >
               {template.isSystemTemplate ? 'Use Template' : 'Edit'}
             </button>
@@ -155,7 +155,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
             {onPreview && (
               <button
                 onClick={() => onPreview(template)}
-                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                className="p-1.5 text-app-text-muted hover:text-app-text-muted hover:bg-app-surface-muted rounded transition-colors"
                 title="Preview"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -178,7 +178,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
             {onDuplicate && (
               <button
                 onClick={() => onDuplicate(template)}
-                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                className="p-1.5 text-app-text-muted hover:text-app-text-muted hover:bg-app-surface-muted rounded transition-colors"
                 title="Duplicate"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -195,7 +195,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
             {onDelete && !template.isSystemTemplate && (
               <button
                 onClick={() => onDelete(template)}
-                className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                className="p-1.5 text-app-text-muted hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                 title="Delete"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

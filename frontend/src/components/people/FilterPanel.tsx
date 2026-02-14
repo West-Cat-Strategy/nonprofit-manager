@@ -41,12 +41,12 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
       <div className="flex items-center justify-between">
         <button
           onClick={onToggleCollapse}
-          className="flex items-center gap-2 font-bold text-gray-900 hover:text-blue-600"
+          className="flex items-center gap-2 font-bold text-app-text hover:text-app-accent"
         >
           <AdjustmentsHorizontalIcon className="w-5 h-5" />
           Filters
           {activeFilterCount > 0 && (
-            <span className="bg-blue-600 text-white px-2 py-1 text-xs rounded">
+            <span className="bg-app-accent text-white px-2 py-1 text-xs rounded">
               {activeFilterCount}
             </span>
           )}
@@ -54,7 +54,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         {!isCollapsed && onClear && (
           <button
             onClick={onClear}
-            className="text-sm text-gray-600 hover:text-gray-900 font-mono"
+            className="text-sm text-app-text-muted hover:text-app-text font-mono"
           >
             Clear all
           </button>
@@ -67,7 +67,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {fields.map((field) => (
               <div key={field.id} className="space-y-2">
-                <label className="block text-sm font-bold text-gray-900">
+                <label className="block text-sm font-bold text-app-text">
                   {field.label}
                 </label>
 
@@ -79,8 +79,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                     onChange={(e) =>
                       onFilterChange(field.id, e.target.value)
                     }
-                    className="w-full px-3 py-2 border-2 border-gray-900 bg-white text-gray-900
-                      font-mono placeholder-gray-400 focus:outline-none focus:border-blue-600"
+                    className="w-full px-3 py-2 border-2 border-app-text bg-app-surface text-app-text
+                      font-mono placeholder-app-text-subtle focus:outline-none focus:border-app-accent"
                   />
                 )}
 
@@ -90,8 +90,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                     onChange={(e) =>
                       onFilterChange(field.id, e.target.value)
                     }
-                    className="w-full px-3 py-2 border-2 border-gray-900 bg-white text-gray-900
-                      font-mono focus:outline-none focus:border-blue-600 cursor-pointer"
+                    className="w-full px-3 py-2 border-2 border-app-text bg-app-surface text-app-text
+                      font-mono focus:outline-none focus:border-app-accent cursor-pointer"
                   >
                     <option value="">All</option>
                     {field.options?.map((opt) => (
@@ -109,8 +109,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                     onChange={(e) =>
                       onFilterChange(field.id, e.target.value)
                     }
-                    className="w-full px-3 py-2 border-2 border-gray-900 bg-white text-gray-900
-                      font-mono focus:outline-none focus:border-blue-600"
+                    className="w-full px-3 py-2 border-2 border-app-text bg-app-surface text-app-text
+                      font-mono focus:outline-none focus:border-app-accent"
                   />
                 )}
 
@@ -122,9 +122,9 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                       onChange={(e) =>
                         onFilterChange(field.id, e.target.checked ? 'true' : 'false')
                       }
-                      className="w-4 h-4 border-2 border-gray-900 accent-gray-900 cursor-pointer"
+                      className="w-4 h-4 border-2 border-app-text accent-app-text cursor-pointer"
                     />
-                    <span className="text-sm text-gray-600">{field.label}</span>
+                    <span className="text-sm text-app-text-muted">{field.label}</span>
                   </label>
                 )}
 
@@ -146,9 +146,9 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                                 : values.filter((v) => v !== opt.value);
                               onFilterChange(field.id, newValues);
                             }}
-                            className="w-4 h-4 border-2 border-gray-900 accent-gray-900 cursor-pointer"
+                            className="w-4 h-4 border-2 border-app-text accent-app-text cursor-pointer"
                           />
-                          <span className="text-sm text-gray-600">
+                          <span className="text-sm text-app-text-muted">
                             {opt.label}
                           </span>
                         </label>
@@ -161,7 +161,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2 pt-4 border-t-2 border-gray-900">
+          <div className="flex gap-2 pt-4 border-t-2 border-app-text">
             {onApply && (
               <BrutalButton onClick={onApply} className="flex-1">
                 Apply

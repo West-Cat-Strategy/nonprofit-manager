@@ -165,10 +165,10 @@ const AccountList = () => {
           className="cursor-pointer hover:opacity-75 transition"
           onClick={() => navigate(`/accounts/${row.account_id}`)}
         >
-          <p className="text-blue-600 hover:text-blue-900 font-medium">
+          <p className="text-app-accent hover:text-app-accent-text font-medium">
             {row.account_name}
           </p>
-          <p className="text-sm text-gray-500">{row.email || 'No email'}</p>
+          <p className="text-sm text-app-text-muted">{row.email || 'No email'}</p>
         </div>
       ),
     },
@@ -187,7 +187,7 @@ const AccountList = () => {
       label: 'Category',
       width: '140px',
       render: (_, row: Account) => (
-        <span className="px-3 py-1 text-xs font-medium rounded bg-gray-100 text-gray-800 capitalize">
+        <span className="px-3 py-1 text-xs font-medium rounded bg-app-surface-muted text-app-text capitalize">
           {row.category}
         </span>
       ),
@@ -197,7 +197,7 @@ const AccountList = () => {
       label: 'Email',
       width: '220px',
       render: (_, row: Account) => (
-        <span className="text-sm text-gray-600">{row.email || '—'}</span>
+        <span className="text-sm text-app-text-muted">{row.email || '—'}</span>
       ),
     },
     {

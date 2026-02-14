@@ -72,17 +72,17 @@ const EventAttendanceWidget = ({ widget, editMode, onRemove }: EventAttendanceWi
     <WidgetContainer widget={widget} editMode={editMode} onRemove={onRemove}>
       <div className="space-y-4">
         <div>
-          <p className="text-sm text-gray-500">Upcoming Events</p>
-          <p className="text-3xl font-bold text-gray-900">{upcomingValue}</p>
+          <p className="text-sm text-app-text-muted">Upcoming Events</p>
+          <p className="text-3xl font-bold text-app-text">{upcomingValue}</p>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs text-gray-500">Total This Month</p>
-            <p className="text-xl font-semibold text-gray-900">{totalThisMonthValue}</p>
+            <p className="text-xs text-app-text-muted">Total This Month</p>
+            <p className="text-xl font-semibold text-app-text">{totalThisMonthValue}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Avg. Attendance</p>
-            <p className="text-xl font-semibold text-gray-900">{avgAttendanceValue}</p>
+            <p className="text-xs text-app-text-muted">Avg. Attendance</p>
+            <p className="text-xl font-semibold text-app-text">{avgAttendanceValue}</p>
           </div>
         </div>
         {error && (

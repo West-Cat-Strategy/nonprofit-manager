@@ -30,11 +30,11 @@ export default function TagsSection({
   };
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <h2 className="text-lg font-medium text-gray-900 mb-4">Tags</h2>
+    <div className="bg-app-surface shadow rounded-lg p-6">
+      <h2 className="text-lg font-medium text-app-text mb-4">Tags</h2>
       <div className="flex flex-wrap gap-2">
         {selectedTags.length === 0 && (
-          <p className="text-sm text-gray-500">No tags yet</p>
+          <p className="text-sm text-app-text-muted">No tags yet</p>
         )}
         {selectedTags.map((tag) => (
           <div key={tag} className="flex items-center gap-2 px-2 py-1 border-2 border-black">
@@ -82,7 +82,7 @@ export default function TagsSection({
               key={tag}
               type="button"
               onClick={() => handleAdd(tag)}
-              className="px-2 py-1 text-xs font-black uppercase border-2 border-black bg-white hover:bg-[var(--loop-yellow)] transition"
+              className="px-2 py-1 text-xs font-black uppercase border-2 border-black bg-app-surface hover:bg-[var(--loop-yellow)] transition"
             >
               + {tag}
             </button>

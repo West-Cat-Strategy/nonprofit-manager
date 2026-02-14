@@ -4,12 +4,13 @@
  * Fully responsive with mobile, tablet, and desktop optimizations
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logoutAsync } from '../store/slices/authSlice';
 import { useNavigationPreferences } from '../hooks/useNavigationPreferences';
 import { useBranding } from '../contexts/BrandingContext';
+import { useTheme } from '../contexts/ThemeContext';
 import Avatar from './Avatar';
 import { useQuickLookup } from './dashboard';
 
@@ -19,14 +20,32 @@ const Navigation = () => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { branding } = useBranding();
+  const { theme, setTheme, isDarkMode, toggleDarkMode, availableThemes } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const themeMenuRef = useRef<HTMLDivElement>(null);
+
+  const themeLabels: Record<string, string> = {
+    'neobrutalist': '🎨',
+    'sea-breeze': '🌊',
+    'corporate': '💼',
+    'clean-modern': '✨',
+    'glass': '🔮',
+    'high-contrast': '👁️',
+  };
+
+  const handleQuickThemeCycle = useCallback(() => {
+    const idx = availableThemes.indexOf(theme);
+    const nextIdx = (idx + 1) % availableThemes.length;
+    setTheme(availableThemes[nextIdx]);
+  }, [theme, availableThemes, setTheme]);
 
   const lookup = useQuickLookup({ debounceMs: 250 });
 
@@ -38,6 +57,7 @@ const Navigation = () => {
         setUserMenuOpen(false);
         setMoreMenuOpen(false);
         setSearchOpen(false);
+        setThemeMenuOpen(false);
       }
     };
     document.addEventListener('keydown', handleEscape);
@@ -102,7 +122,7 @@ const Navigation = () => {
   }, [searchOpen]);
 
   return (
-    <nav className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-50">
+    <nav className="bg-app-surface shadow-md border-b border-app-border sticky top-0 z-50">
       <div className="mx-auto px-3 sm:px-4 lg:px-6 max-w-[1920px]">
         <div className="flex justify-between h-14 sm:h-16">
           {/* Logo and primary navigation */}
@@ -123,7 +143,7 @@ const Navigation = () => {
                   </span>
                 )}
               </div>
-              <span className="text-lg sm:text-xl font-bold text-gray-900 hidden sm:block truncate">
+              <span className="text-lg sm:text-xl font-bold text-app-text-heading hidden sm:block truncate">
                 {branding.appName || 'Nonprofit Manager'}
               </span>
             </Link>
@@ -136,8 +156,8 @@ const Navigation = () => {
                   to={link.path}
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                     isActive(link.path)
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                      ? 'bg-app-accent-soft text-app-accent-text'
+                      : 'text-app-text-muted hover:bg-app-hover hover:text-app-text'
                   }`}
                 >
                   <span className="mr-1.5">{link.icon}</span>
@@ -151,8 +171,8 @@ const Navigation = () => {
                   onClick={() => setMoreMenuOpen(!moreMenuOpen)}
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                     secondaryNavLinks.some(link => isActive(link.path))
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                      ? 'bg-app-accent-soft text-app-accent-text'
+                      : 'text-app-text-muted hover:bg-app-hover hover:text-app-text'
                   }`}
                 >
                   More
@@ -170,7 +190,7 @@ const Navigation = () => {
                     />
                     <div
                       ref={moreMenuRef}
-                      className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20 animate-fadeIn"
+                      className="absolute left-0 mt-2 w-48 bg-app-surface-elevated rounded-lg shadow-lg border border-app-border py-1 z-20 animate-fadeIn"
                     >
                       {secondaryNavLinks.map((link) => (
                         <Link
@@ -179,8 +199,8 @@ const Navigation = () => {
                           onClick={() => setMoreMenuOpen(false)}
                           className={`block px-4 py-2 text-sm ${
                             isActive(link.path)
-                              ? 'bg-blue-50 text-blue-700 font-medium'
-                              : 'text-gray-700 hover:bg-gray-100'
+                              ? 'bg-app-accent-soft text-app-accent-text font-medium'
+                              : 'text-app-text-muted hover:bg-app-hover'
                           }`}
                         >
                           <span className="mr-2">{link.icon}</span>
@@ -199,7 +219,7 @@ const Navigation = () => {
             {/* Search button - hidden on mobile and tablet */}
             <button
               type="button"
-              className="hidden xl:flex items-center px-3 py-1.5 text-sm text-gray-500 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              className="hidden xl:flex items-center px-3 py-1.5 text-sm text-app-text-subtle bg-app-surface-muted rounded-md hover:bg-app-hover transition-colors"
               onClick={() => {
                 handleSearch();
               }}
@@ -218,7 +238,7 @@ const Navigation = () => {
             {/* Reports link - hidden on mobile */}
             <Link
               to="/reports/builder"
-              className="hidden lg:flex items-center px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-100 transition-colors whitespace-nowrap"
+              className="hidden lg:flex items-center px-3 py-2 text-sm font-medium text-app-text-muted rounded-md hover:bg-app-hover transition-colors whitespace-nowrap"
             >
               <svg className="w-4 h-4 lg:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -234,7 +254,7 @@ const Navigation = () => {
             {/* User Settings link - hidden on mobile */}
             <Link
               to="/settings/user"
-              className="hidden lg:flex items-center px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-100 transition-colors whitespace-nowrap"
+              className="hidden lg:flex items-center px-3 py-2 text-sm font-medium text-app-text-muted rounded-md hover:bg-app-hover transition-colors whitespace-nowrap"
             >
               <svg className="w-4 h-4 lg:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -247,12 +267,70 @@ const Navigation = () => {
               <span className="hidden xl:inline">My Profile</span>
             </Link>
 
+            {/* Theme quick-access */}
+            <div className="relative hidden lg:block">
+              <button
+                type="button"
+                onClick={() => setThemeMenuOpen(!themeMenuOpen)}
+                onDoubleClick={handleQuickThemeCycle}
+                className="flex items-center px-2 py-2 text-sm rounded-md hover:bg-app-hover transition-colors"
+                aria-label="Theme settings"
+                aria-expanded={themeMenuOpen}
+                title="Click to pick theme, double-click to cycle"
+              >
+                <span className="text-base">{themeLabels[theme] || '🎨'}</span>
+                {isDarkMode && <span className="ml-0.5 text-xs">🌙</span>}
+              </button>
+
+              {themeMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setThemeMenuOpen(false)}
+                    aria-hidden="true"
+                  />
+                  <div
+                    ref={themeMenuRef}
+                    className="absolute right-0 mt-2 w-52 bg-app-surface-elevated rounded-lg shadow-lg border border-app-border py-2 z-20 animate-fadeIn"
+                  >
+                    <div className="px-3 pb-2 mb-1 border-b border-app-border-muted">
+                      <p className="text-xs font-semibold text-app-text-muted uppercase tracking-wider">Theme</p>
+                    </div>
+                    {availableThemes.map(t => (
+                      <button
+                        key={t}
+                        onClick={() => { setTheme(t); setThemeMenuOpen(false); }}
+                        className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 transition-colors ${
+                          theme === t
+                            ? 'bg-app-accent-soft text-app-accent-text font-medium'
+                            : 'text-app-text hover:bg-app-hover'
+                        }`}
+                      >
+                        <span>{themeLabels[t] || '🎨'}</span>
+                        <span className="capitalize">{t.replace(/-/g, ' ')}</span>
+                        {theme === t && <span className="ml-auto text-app-accent">✓</span>}
+                      </button>
+                    ))}
+                    <div className="px-3 pt-2 mt-1 border-t border-app-border-muted">
+                      <button
+                        onClick={() => { toggleDarkMode(); }}
+                        className="w-full text-left text-sm flex items-center gap-2 py-1.5 text-app-text hover:bg-app-hover rounded px-1 transition-colors"
+                      >
+                        <span>{isDarkMode ? '☀️' : '🌙'}</span>
+                        <span>{isDarkMode ? 'Switch to Light' : 'Switch to Dark'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
             {/* User menu */}
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center space-x-1.5 sm:space-x-2 px-2 sm:px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-100 transition-colors"
+                className="flex items-center space-x-1.5 sm:space-x-2 px-2 sm:px-3 py-2 text-sm font-medium text-app-text-muted rounded-md hover:bg-app-hover transition-colors"
                 aria-label="User menu"
                 aria-expanded={userMenuOpen ? "true" : "false"}
               >
@@ -280,18 +358,18 @@ const Navigation = () => {
                   />
                   <div
                     ref={userMenuRef}
-                    className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20 animate-fadeIn"
+                    className="absolute right-0 mt-2 w-56 bg-app-surface-elevated rounded-lg shadow-lg border border-app-border py-1 z-20 animate-fadeIn"
                   >
-                    <div className="px-4 py-3 border-b border-gray-200">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                    <div className="px-4 py-3 border-b border-app-border">
+                      <p className="text-sm font-medium text-app-text truncate">
                         {user?.firstName} {user?.lastName}
                       </p>
-                      <p className="text-xs text-gray-500 truncate">{user?.email}</p>
-                      <p className="text-xs text-gray-400 mt-1 capitalize">{user?.role}</p>
+                      <p className="text-xs text-app-text-muted truncate">{user?.email}</p>
+                      <p className="text-xs text-app-text-subtle mt-1 capitalize">{user?.role}</p>
                     </div>
                     <Link
                       to="/dashboard"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                      className="block px-4 py-2 text-sm text-app-text-muted hover:bg-app-hover transition-colors"
                       onClick={() => setUserMenuOpen(false)}
                     >
                       <svg className="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -301,7 +379,7 @@ const Navigation = () => {
                     </Link>
                     <Link
                       to="/settings/user"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                      className="block px-4 py-2 text-sm text-app-text-muted hover:bg-app-hover transition-colors"
                       onClick={() => setUserMenuOpen(false)}
                     >
                       <svg className="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -312,7 +390,7 @@ const Navigation = () => {
                     {user?.role === 'admin' && (
                       <Link
                         to="/settings/admin"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                        className="block px-4 py-2 text-sm text-app-text-muted hover:bg-app-hover transition-colors"
                         onClick={() => setUserMenuOpen(false)}
                       >
                         <svg className="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -347,7 +425,7 @@ const Navigation = () => {
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors"
+              className="lg:hidden inline-flex items-center justify-center p-2 rounded-md text-app-text-muted hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-inset focus:ring-app-accent transition-colors"
               aria-label="Main menu"
               aria-expanded={mobileMenuOpen ? "true" : "false"}
             >
@@ -391,20 +469,20 @@ const Navigation = () => {
           {/* Slide-in menu panel */}
           <div
             ref={mobileMenuRef}
-            className="fixed inset-y-0 right-0 max-w-xs w-full bg-white shadow-xl z-50 lg:hidden overflow-y-auto transform transition-transform duration-300 ease-in-out"
+            className="fixed inset-y-0 right-0 max-w-xs w-full bg-app-surface shadow-xl z-50 lg:hidden overflow-y-auto transform transition-transform duration-300 ease-in-out"
           >
             {/* Mobile menu header */}
-            <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between px-4 py-4 border-b border-app-border">
               <div className="flex items-center space-x-2">
                 <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-lg">
                   <span className="text-white text-lg font-bold">N</span>
                 </div>
-                <span className="text-lg font-bold text-gray-900">Menu</span>
+                <span className="text-lg font-bold text-app-text-heading">Menu</span>
               </div>
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-2 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+                className="p-2 rounded-md text-app-text-muted hover:bg-app-hover transition-colors"
                 aria-label="Close menu"
               >
                 <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -415,7 +493,7 @@ const Navigation = () => {
 
             {/* Navigation links */}
             <div className="px-3 py-4 space-y-1">
-              <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
+              <div className="text-xs font-semibold text-app-text-subtle uppercase tracking-wider px-3 mb-2">
                 Main Navigation
               </div>
               {allNavLinks.map((link) => (
@@ -425,14 +503,14 @@ const Navigation = () => {
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
                     isActive(link.path)
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-app-accent-soft text-app-accent-text'
+                      : 'text-app-text-muted hover:bg-app-hover'
                   }`}
                 >
                   <span className="text-xl mr-3">{link.icon}</span>
                   <span>{link.name}</span>
                   {isActive(link.path) && (
-                    <svg className="ml-auto w-5 h-5 text-blue-700" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="ml-auto w-5 h-5 text-app-accent-text" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   )}
@@ -441,14 +519,14 @@ const Navigation = () => {
             </div>
 
             {/* Utilities section */}
-            <div className="px-3 py-4 border-t border-gray-200 space-y-1">
-              <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
+            <div className="px-3 py-4 border-t border-app-border space-y-1">
+              <div className="text-xs font-semibold text-app-text-subtle uppercase tracking-wider px-3 mb-2">
                 Utilities
               </div>
               <Link
                 to="/reports/builder"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center px-3 py-3 rounded-lg text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                className="flex items-center px-3 py-3 rounded-lg text-base font-medium text-app-text-muted hover:bg-app-hover transition-colors"
               >
                 <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -458,7 +536,7 @@ const Navigation = () => {
               <Link
                 to="/settings/user"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center px-3 py-3 rounded-lg text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                className="flex items-center px-3 py-3 rounded-lg text-base font-medium text-app-text-muted hover:bg-app-hover transition-colors"
               >
                 <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -469,7 +547,7 @@ const Navigation = () => {
                 <Link
                   to="/settings/admin"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center px-3 py-3 rounded-lg text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                  className="flex items-center px-3 py-3 rounded-lg text-base font-medium text-app-text-muted hover:bg-app-hover transition-colors"
                 >
                   <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -487,7 +565,7 @@ const Navigation = () => {
                   setMobileMenuOpen(false);
                   handleSearch();
                 }}
-                className="flex items-center w-full px-3 py-3 rounded-lg text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                className="flex items-center w-full px-3 py-3 rounded-lg text-base font-medium text-app-text-muted hover:bg-app-hover transition-colors"
               >
                 <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -497,8 +575,8 @@ const Navigation = () => {
             </div>
 
             {/* User section at bottom */}
-            <div className="px-3 py-4 border-t border-gray-200 mt-auto">
-              <div className="flex items-center space-x-3 px-3 py-3 bg-gray-50 rounded-lg">
+            <div className="px-3 py-4 border-t border-app-border mt-auto">
+              <div className="flex items-center space-x-3 px-3 py-3 bg-app-surface-muted rounded-lg">
                 <Avatar
                   src={user?.profilePicture}
                   firstName={user?.firstName}
@@ -506,10 +584,10 @@ const Navigation = () => {
                   size="md"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-app-text truncate">
                     {user?.firstName} {user?.lastName}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                  <p className="text-xs text-app-text-muted truncate">{user?.email}</p>
                 </div>
               </div>
               <button
@@ -531,12 +609,12 @@ const Navigation = () => {
       )}
       {searchOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-40 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mt-16">
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Search People</h2>
+          <div className="bg-app-surface rounded-lg shadow-xl w-full max-w-2xl mt-16">
+            <div className="p-4 border-b border-app-border flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-app-text-heading">Search People</h2>
               <button
                 onClick={() => setSearchOpen(false)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                className="p-1 text-app-text-subtle hover:text-app-text-muted rounded"
                 type="button"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -553,37 +631,37 @@ const Navigation = () => {
                   value={lookup.searchTerm}
                   onChange={lookup.handleSearchChange}
                   placeholder="Search by name, email, or phone..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent bg-app-input-bg text-app-text"
                 />
                 {lookup.isLoading && (
-                  <div className="absolute right-3 top-2.5 text-gray-400 text-sm">
+                  <div className="absolute right-3 top-2.5 text-app-text-subtle text-sm">
                     Searching...
                   </div>
                 )}
               </div>
 
-              <div className="mt-4 max-h-80 overflow-auto border border-gray-200 rounded-lg">
+              <div className="mt-4 max-h-80 overflow-auto border border-app-border rounded-lg">
                 {lookup.searchTerm.trim().length < 2 ? (
-                  <div className="p-4 text-sm text-gray-500">
+                  <div className="p-4 text-sm text-app-text-muted">
                     Type at least 2 characters to search.
                   </div>
                 ) : lookup.results.length === 0 ? (
-                  <div className="p-4 text-sm text-gray-500">
+                  <div className="p-4 text-sm text-app-text-muted">
                     No matches for &quot;{lookup.searchTerm}&quot;.
                   </div>
                 ) : (
-                  <ul className="divide-y divide-gray-200">
+                  <ul className="divide-y divide-app-border">
                     {lookup.results.map((result) => (
                       <li key={result.contact_id}>
                         <Link
                           to={`/contacts/${result.contact_id}`}
                           onClick={() => setSearchOpen(false)}
-                          className="block px-4 py-3 hover:bg-gray-50"
+                          className="block px-4 py-3 hover:bg-app-hover"
                         >
-                          <div className="font-medium text-gray-900">
+                          <div className="font-medium text-app-text">
                             {result.first_name} {result.last_name}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-app-text-muted">
                             {result.email || result.mobile_phone || result.phone || 'No contact info'}
                           </div>
                         </Link>
@@ -600,7 +678,7 @@ const Navigation = () => {
                     setSearchOpen(false);
                     navigate('/contacts');
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                  className="px-4 py-2 border border-app-border rounded-lg text-sm text-app-text hover:bg-app-hover"
                 >
                   View All People
                 </button>

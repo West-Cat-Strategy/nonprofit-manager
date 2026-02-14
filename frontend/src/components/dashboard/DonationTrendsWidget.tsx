@@ -15,7 +15,7 @@ interface DonationTrendsWidgetProps {
 const DonationTrendsWidget = ({ widget, editMode, onRemove }: DonationTrendsWidgetProps) => {
   return (
     <WidgetContainer widget={widget} editMode={editMode} onRemove={onRemove}>
-      <div className="flex items-center justify-center h-full text-gray-400">
+      <div className="flex items-center justify-center h-full text-app-text-subtle">
         <div className="text-center">
           <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />

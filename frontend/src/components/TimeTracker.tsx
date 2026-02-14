@@ -134,24 +134,24 @@ const TimeTracker = ({
   const completedAssignments = assignments.filter((a) => a.status === 'completed');
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+    <div className="bg-app-surface rounded-lg shadow-sm border border-app-border">
       {/* Header with total hours */}
-      <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">Time Tracker</h3>
+      <div className="p-6 border-b border-app-border bg-gradient-to-r from-app-accent-soft to-app-accent-soft">
+        <h3 className="text-2xl font-bold text-app-text mb-2">Time Tracker</h3>
         <div className="flex items-baseline space-x-2">
-          <span className="text-4xl font-bold text-blue-600">{totalHoursLogged.toFixed(1)}</span>
-          <span className="text-lg text-gray-600">total hours logged</span>
+          <span className="text-4xl font-bold text-app-accent">{totalHoursLogged.toFixed(1)}</span>
+          <span className="text-lg text-app-text-muted">total hours logged</span>
         </div>
-        <p className="text-sm text-gray-500 mt-1">by {volunteerName}</p>
+        <p className="text-sm text-app-text-muted mt-1">by {volunteerName}</p>
       </div>
 
       {/* Active Timer Display */}
       {timerState.assignmentId && (
-        <div className="p-6 border-b border-gray-200 bg-green-50">
+        <div className="p-6 border-b border-app-border bg-green-50">
           <div className="flex justify-between items-center">
             <div>
-              <h4 className="font-semibold text-gray-900 mb-1">Timer Running</h4>
-              <p className="text-sm text-gray-600">
+              <h4 className="font-semibold text-app-text mb-1">Timer Running</h4>
+              <p className="text-sm text-app-text-muted">
                 {
                   assignments.find((a) => a.assignment_id === timerState.assignmentId)
                     ?.event_name ||
@@ -178,10 +178,10 @@ const TimeTracker = ({
 
       {/* Active Assignments */}
       <div className="p-6">
-        <h4 className="font-semibold text-gray-900 mb-4">Active Assignments</h4>
+        <h4 className="font-semibold text-app-text mb-4">Active Assignments</h4>
 
         {activeAssignments.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">No active assignments</p>
+          <p className="text-app-text-muted text-center py-8">No active assignments</p>
         ) : (
           <div className="space-y-4">
             {activeAssignments.map((assignment) => {
@@ -191,20 +191,20 @@ const TimeTracker = ({
                 <div
                   key={assignment.assignment_id}
                   className={`border rounded-lg p-4 ${
-                    isTimerActive ? 'border-green-500 bg-green-50' : 'border-gray-200'
+                    isTimerActive ? 'border-green-500 bg-green-50' : 'border-app-border'
                   }`}
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
-                      <h5 className="font-medium text-gray-900">
+                      <h5 className="font-medium text-app-text">
                         {assignment.event_name ||
                           assignment.task_name ||
                           'General Assignment'}
                       </h5>
                       {assignment.role && (
-                        <p className="text-sm text-gray-600 mt-1">Role: {assignment.role}</p>
+                        <p className="text-sm text-app-text-muted mt-1">Role: {assignment.role}</p>
                       )}
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-sm text-app-text-muted mt-1">
                         {new Date(assignment.start_time).toLocaleDateString()}
                         {assignment.end_time &&
                           ` - ${new Date(assignment.end_time).toLocaleDateString()}`}
@@ -213,8 +213,8 @@ const TimeTracker = ({
                     <span
                       className={`px-2 py-1 text-xs rounded-full capitalize ${
                         assignment.status === 'in_progress'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-gray-100 text-gray-800'
+                          ? 'bg-app-accent-soft text-app-accent-text'
+                          : 'bg-app-surface-muted text-app-text'
                       }`}
                     >
                       {assignment.status.replace('_', ' ')}
@@ -222,7 +222,7 @@ const TimeTracker = ({
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-app-text-muted">
                       Hours logged: <span className="font-medium">{assignment.hours_logged}</span>
                     </div>
 
@@ -267,11 +267,11 @@ const TimeTracker = ({
                           onChange={(e) =>
                             handleManualHoursChange(assignment.assignment_id, e.target.value)
                           }
-                          className="w-20 px-2 py-1.5 border border-gray-300 rounded-lg text-sm"
+                          className="w-20 px-2 py-1.5 border border-app-input-border rounded-lg text-sm"
                         />
                         <button
                           onClick={() => handleSubmitManualHours(assignment.assignment_id)}
-                          className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition text-sm"
+                          className="bg-app-accent text-white px-3 py-1.5 rounded-lg hover:bg-app-accent-hover transition text-sm"
                         >
                           Log
                         </button>
@@ -287,8 +287,8 @@ const TimeTracker = ({
 
       {/* Recent Completed Assignments */}
       {completedAssignments.length > 0 && (
-        <div className="p-6 border-t border-gray-200 bg-gray-50">
-          <h4 className="font-semibold text-gray-900 mb-4">Recently Completed</h4>
+        <div className="p-6 border-t border-app-border bg-app-surface-muted">
+          <h4 className="font-semibold text-app-text mb-4">Recently Completed</h4>
           <div className="space-y-3">
             {completedAssignments.slice(0, 5).map((assignment) => (
               <div
@@ -296,12 +296,12 @@ const TimeTracker = ({
                 className="flex justify-between items-center text-sm"
               >
                 <div>
-                  <span className="text-gray-900">
+                  <span className="text-app-text">
                     {assignment.event_name ||
                       assignment.task_name ||
                       'General Assignment'}
                   </span>
-                  <span className="text-gray-500 ml-2">
+                  <span className="text-app-text-muted ml-2">
                     ({new Date(assignment.start_time).toLocaleDateString()})
                   </span>
                 </div>

@@ -30,7 +30,7 @@ const actions = [
     title: 'Add Person',
     icon: '👤',
     link: '/contacts/new',
-    color: 'bg-blue-100 text-blue-700',
+    color: 'bg-app-accent-soft text-app-accent',
   },
   {
     title: 'Create Case',
@@ -48,7 +48,7 @@ const actions = [
     title: 'Note an Interaction',
     icon: '📝',
     link: '/interactions/new',
-    color: 'bg-blue-100 text-blue-700',
+    color: 'bg-app-accent-soft text-app-accent',
   },
   {
     title: 'New Event',
@@ -101,10 +101,10 @@ const QuickActionsWidget = ({ widget, editMode = false, onRemove }: QuickActions
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200/70 bg-white/85 p-5 shadow-sm">
+    <div className="rounded-2xl border border-app-border/70 bg-app-surface/85 p-5 shadow-sm">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold text-slate-900">Quick Actions</h3>
-        <span className="text-xs text-slate-400">Shortcuts</span>
+        <h3 className="text-lg font-semibold text-app-text">Quick Actions</h3>
+        <span className="text-xs text-app-text-subtle">Shortcuts</span>
       </div>
       {content}
     </div>

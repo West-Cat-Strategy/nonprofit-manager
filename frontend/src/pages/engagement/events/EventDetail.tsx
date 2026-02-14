@@ -98,10 +98,10 @@ const EventDetail: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold mb-2">{event.event_name}</h1>
           <div className="flex gap-2">
-            <span className="px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800">
+            <span className="px-3 py-1 text-sm font-semibold rounded-full bg-app-accent-soft text-app-accent-text">
               {event.event_type}
             </span>
-            <span className="px-3 py-1 text-sm font-semibold rounded-full bg-gray-100 text-gray-800">
+            <span className="px-3 py-1 text-sm font-semibold rounded-full bg-app-surface-muted text-app-text">
               {event.status}
             </span>
           </div>
@@ -117,13 +117,13 @@ const EventDetail: React.FC = () => {
           />
           <button
             onClick={() => navigate(`/events/${id}/edit`)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover"
           >
             Edit Event
           </button>
           <button
             onClick={() => navigate('/events')}
-            className="px-4 py-2 border rounded-md hover:bg-gray-50"
+            className="px-4 py-2 border rounded-md hover:bg-app-surface-muted"
           >
             Back to Events
           </button>
@@ -137,8 +137,8 @@ const EventDetail: React.FC = () => {
             onClick={() => setActiveTab('info')}
             className={`px-4 py-2 font-medium border-b-2 ${
               activeTab === 'info'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-app-accent text-app-accent'
+                : 'border-transparent text-app-text-muted hover:text-app-text-muted'
             }`}
           >
             Event Info
@@ -147,8 +147,8 @@ const EventDetail: React.FC = () => {
             onClick={() => setActiveTab('registrations')}
             className={`px-4 py-2 font-medium border-b-2 ${
               activeTab === 'registrations'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-app-accent text-app-accent'
+                : 'border-transparent text-app-text-muted hover:text-app-text-muted'
             }`}
           >
             Registrations ({registrations.length})
@@ -158,12 +158,12 @@ const EventDetail: React.FC = () => {
 
       {/* Event Info Tab */}
       {activeTab === 'info' && (
-        <div className="bg-white shadow-md rounded-lg p-6 space-y-6">
+        <div className="bg-app-surface shadow-md rounded-lg p-6 space-y-6">
           {/* Description */}
           {event.description && (
             <div>
               <h3 className="text-lg font-semibold mb-2">Description</h3>
-              <p className="text-gray-700 whitespace-pre-wrap">{event.description}</p>
+              <p className="text-app-text-muted whitespace-pre-wrap">{event.description}</p>
             </div>
           )}
 
@@ -171,11 +171,11 @@ const EventDetail: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <h3 className="text-lg font-semibold mb-2">Start Date & Time</h3>
-              <p className="text-gray-700">{formatEventDateTime(event.start_date)}</p>
+              <p className="text-app-text-muted">{formatEventDateTime(event.start_date)}</p>
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-2">End Date & Time</h3>
-              <p className="text-gray-700">{formatEventDateTime(event.end_date)}</p>
+              <p className="text-app-text-muted">{formatEventDateTime(event.end_date)}</p>
             </div>
           </div>
 
@@ -183,7 +183,7 @@ const EventDetail: React.FC = () => {
           <div>
             <h3 className="text-lg font-semibold mb-2">Location</h3>
             {event.location_name ? (
-              <div className="text-gray-700">
+              <div className="text-app-text-muted">
                 <p className="font-medium">{event.location_name}</p>
                 {event.address_line1 && <p>{event.address_line1}</p>}
                 {event.address_line2 && <p>{event.address_line2}</p>}
@@ -197,7 +197,7 @@ const EventDetail: React.FC = () => {
                 {event.country && <p>{event.country}</p>}
               </div>
             ) : (
-              <p className="text-gray-500">Location to be determined</p>
+              <p className="text-app-text-muted">Location to be determined</p>
             )}
           </div>
 
@@ -208,7 +208,7 @@ const EventDetail: React.FC = () => {
               {event.capacity ? (
                 <div>
                   <p className="text-2xl font-bold">{event.capacity}</p>
-                  <div className="mt-2 bg-gray-200 rounded-full h-2">
+                  <div className="mt-2 bg-app-surface-muted rounded-full h-2">
                     <div
                       className={`h-2 rounded-full ${
                         capacityPercentage >= 100
@@ -220,17 +220,17 @@ const EventDetail: React.FC = () => {
                       style={{ width: `${Math.min(capacityPercentage, 100)}%` }}
                     ></div>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-app-text-muted mt-1">
                     {Math.round(capacityPercentage)}% full
                   </p>
                 </div>
               ) : (
-                <p className="text-gray-500">Unlimited</p>
+                <p className="text-app-text-muted">Unlimited</p>
               )}
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-2">Registered</h3>
-              <p className="text-2xl font-bold text-blue-600">{event.registered_count || 0}</p>
+              <p className="text-2xl font-bold text-app-accent">{event.registered_count || 0}</p>
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-2">Attended</h3>
@@ -241,7 +241,7 @@ const EventDetail: React.FC = () => {
           {/* Metadata */}
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold mb-2">Metadata</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-app-text-muted">
               <div>
                 <span className="font-medium">Created:</span>{' '}
                 {new Date(event.created_at).toLocaleDateString()}
@@ -257,7 +257,7 @@ const EventDetail: React.FC = () => {
 
       {/* Registrations Tab */}
       {activeTab === 'registrations' && (
-        <div className="bg-white shadow-md rounded-lg p-6">
+        <div className="bg-app-surface shadow-md rounded-lg p-6">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">Event Registrations</h3>
             <select
@@ -275,42 +275,42 @@ const EventDetail: React.FC = () => {
           </div>
 
           {filteredRegistrations.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-app-text-muted">
               No registrations found for this event.
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-app-border">
+                <thead className="bg-app-surface-muted">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
                       Contact
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
                       Checked In
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
                       Registered At
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-app-surface divide-y divide-app-border">
                   {filteredRegistrations.map((registration) => (
                     <tr key={registration.registration_id}>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-app-text">
                           {registration.contact_name}
                         </div>
-                        <div className="text-sm text-gray-500">{registration.contact_email}</div>
+                        <div className="text-sm text-app-text-muted">{registration.contact_email}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-app-accent-soft text-app-accent-text">
                           {registration.registration_status}
                         </span>
                       </td>
@@ -319,16 +319,16 @@ const EventDetail: React.FC = () => {
                           <div>
                             <span className="text-green-600 font-semibold">✓ Yes</span>
                             {registration.check_in_time && (
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-app-text-muted">
                                 {new Date(registration.check_in_time).toLocaleString()}
                               </div>
                             )}
                           </div>
                         ) : (
-                          <span className="text-gray-400">No</span>
+                          <span className="text-app-text-subtle">No</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-app-text-muted">
                         {new Date(registration.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

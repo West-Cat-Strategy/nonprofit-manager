@@ -1,27 +1,21 @@
 #!/bin/bash
-
 # Security Scanning Script
 # Runs local security scans on the Nonprofit Manager project
 
 set -e
 
-echo "======================================"
-echo "  Nonprofit Manager Security Scan"
-echo "======================================"
-echo ""
-
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+# Load common utilities and configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
+source "$SCRIPT_DIR/lib/config.sh"
 
 # Create reports directory
-mkdir -p security-reports
-REPORT_DIR="security-reports/$(date +%Y-%m-%d)"
-mkdir -p "$REPORT_DIR"
+REPORT_DIR="$SECURITY_REPORT_DIR/$(date +%Y-%m-%d)"
+ensure_dir "$REPORT_DIR"
 
-echo "Reports will be saved to: $REPORT_DIR"
+print_header "Security Scan"
+
+log_info "Reports will be saved to: $REPORT_DIR"
 echo ""
 
 # 1. NPM Audit - Backend

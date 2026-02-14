@@ -60,7 +60,7 @@ function FilterBuilder({ entity, filters, onChange }: FilterBuilderProps) {
           value={String(filter.value)}
           onChange={(e) => handleUpdateFilter(index, { value: e.target.value })}
           placeholder="value1,value2,value3"
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+          className="flex-1 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
         />
       );
     }
@@ -70,7 +70,7 @@ function FilterBuilder({ entity, filters, onChange }: FilterBuilderProps) {
         <select
           value={String(filter.value)}
           onChange={(e) => handleUpdateFilter(index, { value: e.target.value })}
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+          className="flex-1 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
         >
           <option value="">Select...</option>
           <option value="true">True</option>
@@ -85,7 +85,7 @@ function FilterBuilder({ entity, filters, onChange }: FilterBuilderProps) {
           type="date"
           value={String(filter.value)}
           onChange={(e) => handleUpdateFilter(index, { value: e.target.value })}
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+          className="flex-1 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
         />
       );
     }
@@ -98,7 +98,7 @@ function FilterBuilder({ entity, filters, onChange }: FilterBuilderProps) {
           onChange={(e) => handleUpdateFilter(index, { value: e.target.value })}
           placeholder="Enter value"
           step={fieldType === 'currency' ? '0.01' : '1'}
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+          className="flex-1 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
         />
       );
     }
@@ -109,14 +109,14 @@ function FilterBuilder({ entity, filters, onChange }: FilterBuilderProps) {
         value={String(filter.value)}
         onChange={(e) => handleUpdateFilter(index, { value: e.target.value })}
         placeholder="Enter value"
-        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+        className="flex-1 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
       />
     );
   };
 
   if (currentFields.length === 0) {
     return (
-      <div className="text-center py-4 text-gray-500">
+      <div className="text-center py-4 text-app-text-muted">
         Select fields first to add filters
       </div>
     );
@@ -144,7 +144,7 @@ function FilterBuilder({ entity, filters, onChange }: FilterBuilderProps) {
                     value: '',
                   });
                 }}
-                className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-48 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
               >
                 {currentFields.map((field) => (
                   <option key={field.field} value={field.field}>
@@ -159,7 +159,7 @@ function FilterBuilder({ entity, filters, onChange }: FilterBuilderProps) {
                 onChange={(e) =>
                   handleUpdateFilter(index, { operator: e.target.value as FilterOperator })
                 }
-                className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-48 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
               >
                 {availableOperators.map((op) => (
                   <option key={op.value} value={op.value}>
@@ -198,14 +198,14 @@ function FilterBuilder({ entity, filters, onChange }: FilterBuilderProps) {
 
       <button
         onClick={handleAddFilter}
-        className="mt-4 px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium"
+        className="mt-4 px-4 py-2 text-sm bg-app-surface-muted text-app-text-muted rounded-lg hover:bg-app-surface-muted font-medium"
       >
         + Add Filter
       </button>
 
       {filters.length > 0 && (
-        <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-          <p className="text-sm text-blue-800">
+        <div className="mt-4 p-3 bg-app-accent-soft rounded-lg">
+          <p className="text-sm text-app-accent-text">
             <strong>Tip:</strong> For "In List" operator, enter comma-separated values (e.g.,
             "value1,value2,value3")
           </p>

@@ -24,10 +24,10 @@ export default function PortalSignup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="bg-white shadow rounded-lg p-8 w-full max-w-md">
-        <h1 className="text-2xl font-semibold text-gray-900">Request Portal Access</h1>
-        <p className="text-sm text-gray-600 mt-2">
+    <div className="min-h-screen flex items-center justify-center bg-app-surface-muted px-4">
+      <div className="bg-app-surface shadow rounded-lg p-8 w-full max-w-md">
+        <h1 className="text-2xl font-semibold text-app-text">Request Portal Access</h1>
+        <p className="text-sm text-app-text-muted mt-2">
           Submit your details and a staff member will approve your access.
         </p>
 
@@ -36,7 +36,7 @@ export default function PortalSignup() {
             <p className="text-green-700 text-sm">
               Request submitted. A staff member will approve your access and share next steps.
             </p>
-            <Link to="/portal/login" className="mt-4 inline-block text-blue-600 hover:underline">
+            <Link to="/portal/login" className="mt-4 inline-block text-app-accent hover:underline">
               Back to login
             </Link>
           </div>
@@ -44,56 +44,56 @@ export default function PortalSignup() {
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             {error && <p className="text-sm text-red-600">{error}</p>}
             <div>
-              <label className="block text-sm font-medium text-gray-700">First Name</label>
+              <label className="block text-sm font-medium text-app-text-muted">First Name</label>
               <input
                 type="text"
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Last Name</label>
+              <label className="block text-sm font-medium text-app-text-muted">Last Name</label>
               <input
                 type="text"
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Email</label>
+              <label className="block text-sm font-medium text-app-text-muted">Email</label>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Phone (optional)</label>
+              <label className="block text-sm font-medium text-app-text-muted">Phone (optional)</label>
               <input
                 type="text"
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Password</label>
+              <label className="block text-sm font-medium text-app-text-muted">Password</label>
               <input
                 type="password"
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
                 required
                 minLength={8}
               />
@@ -101,16 +101,16 @@ export default function PortalSignup() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="w-full py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover disabled:opacity-50"
             >
               {loading ? 'Submitting...' : 'Submit Request'}
             </button>
           </form>
         )}
 
-        <div className="mt-4 text-sm text-gray-600">
+        <div className="mt-4 text-sm text-app-text-muted">
           Already have access?{' '}
-          <Link to="/portal/login" className="text-blue-600 hover:underline">
+          <Link to="/portal/login" className="text-app-accent hover:underline">
             Sign in
           </Link>
         </div>

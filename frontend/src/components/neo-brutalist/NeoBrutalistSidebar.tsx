@@ -80,7 +80,7 @@ interface ModuleButtonProps {
 }
 
 function ModuleButton({ to, icon, label, activeColor, active }: ModuleButtonProps) {
-  const bgColor = activeColor || 'bg-gray-200';
+  const bgColor = activeColor || 'bg-app-surface-muted';
 
   return (
     <Link

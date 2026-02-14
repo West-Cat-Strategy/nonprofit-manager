@@ -10,14 +10,14 @@ export default function FormActions({ isSubmitting, mode, onCancel }: FormAction
       <button
         type="button"
         onClick={onCancel}
-        className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        className="bg-app-surface py-2 px-4 border border-app-input-border rounded-md shadow-sm text-sm font-medium text-app-text-muted hover:bg-app-surface-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-app-accent"
       >
         Cancel
       </button>
       <button
         type="submit"
         disabled={isSubmitting}
-        className="bg-blue-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+        className="bg-app-accent py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-app-accent disabled:bg-app-text-subtle disabled:cursor-not-allowed"
       >
         {isSubmitting ? 'Saving...' : mode === 'create' ? 'Create Contact' : 'Update Contact'}
       </button>

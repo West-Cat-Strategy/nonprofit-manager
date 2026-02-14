@@ -25,23 +25,23 @@ export const BrutalFormInput = React.forwardRef<
     return (
       <div className="space-y-1">
         {label && (
-          <label className="block text-sm font-bold text-gray-900">
+          <label className="block text-sm font-bold text-app-text">
             {label}
             {required && <span className="text-red-600 ml-1">*</span>}
           </label>
         )}
         <div className="relative">
           {icon && (
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-app-text-muted">
               {icon}
             </div>
           )}
           <input
             ref={ref}
-            className={`w-full px-3 py-2 border-2 border-gray-900 bg-white text-gray-900 font-mono
-              placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-0
-              disabled:bg-gray-100 disabled:cursor-not-allowed
-              ${error ? 'border-red-600' : 'border-gray-900'}
+            className={`w-full px-3 py-2 border-2 border-app-text bg-app-surface text-app-text font-mono
+              placeholder-app-text-subtle focus:outline-none focus:border-app-accent focus:ring-0
+              disabled:bg-app-surface-muted disabled:cursor-not-allowed
+              ${error ? 'border-red-600' : 'border-app-text'}
               ${icon ? 'pl-10' : ''}
               ${className}`}
             {...props}
@@ -51,7 +51,7 @@ export const BrutalFormInput = React.forwardRef<
           <p className="text-xs font-bold text-red-600">{error}</p>
         )}
         {hint && !error && (
-          <p className="text-xs text-gray-500">{hint}</p>
+          <p className="text-xs text-app-text-muted">{hint}</p>
         )}
       </div>
     );

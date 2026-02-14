@@ -165,7 +165,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
   if (documentsLoading) {
     return (
       <div className="flex justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-app-accent"></div>
       </div>
     );
   }
@@ -173,12 +173,12 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
   return (
     <div className="space-y-6">
       {/* Upload Form */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Upload Document</h3>
+      <div className="bg-app-surface-muted rounded-lg p-4">
+        <h3 className="text-sm font-medium text-app-text-label mb-3">Upload Document</h3>
         <form onSubmit={handleUpload} className="space-y-4">
           {/* File Input */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-app-text-label mb-1">
               Select File
             </label>
             <input
@@ -186,10 +186,10 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
               type="file"
               onChange={handleFileSelect}
               accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.jpg,.jpeg,.png,.gif,.webp"
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              className="block w-full text-sm text-app-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-app-accent-soft file:text-app-accent-text hover:file:bg-app-accent-soft"
               title="Select a file to upload"
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-app-text-muted">
               Supported: PDF, Word, Excel, Images, Text (max 10MB)
             </p>
           </div>
@@ -198,7 +198,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
             <>
               {/* Title */}
               <div>
-                <label htmlFor="doc-title" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="doc-title" className="block text-sm font-medium text-app-text-label mb-1">
                   Title
                 </label>
                 <input
@@ -207,13 +207,13 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                   value={newDocument.title || ''}
                   onChange={(e) => setNewDocument((prev) => ({ ...prev, title: e.target.value }))}
                   placeholder="Document title"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent text-sm"
                 />
               </div>
 
               {/* Document Type */}
               <div>
-                <label htmlFor="doc-type" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="doc-type" className="block text-sm font-medium text-app-text-label mb-1">
                   Document Type
                 </label>
                 <select
@@ -225,7 +225,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                       document_type: e.target.value as DocumentType,
                     }))
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent text-sm"
                   title="Select document type"
                 >
                   {DOCUMENT_TYPES.map((type) => (
@@ -239,7 +239,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
               {/* Case Association */}
               {contactCases.length > 0 && (
                 <div>
-                  <label htmlFor="doc-case" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="doc-case" className="block text-sm font-medium text-app-text-label mb-1">
                     Associate with Case (Optional)
                   </label>
                   <select
@@ -251,7 +251,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                         case_id: e.target.value || undefined,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent text-sm"
                     title="Select case to associate"
                   >
                     <option value="">No case (profile document)</option>
@@ -266,7 +266,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
 
               {/* Description */}
               <div>
-                <label htmlFor="doc-desc" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="doc-desc" className="block text-sm font-medium text-app-text-label mb-1">
                   Description (Optional)
                 </label>
                 <textarea
@@ -275,7 +275,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                   onChange={(e) => setNewDocument((prev) => ({ ...prev, description: e.target.value }))}
                   placeholder="Brief description of the document"
                   rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent text-sm"
                 />
               </div>
             </>
@@ -292,7 +292,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
               <button
                 type="submit"
                 disabled={isUploading}
-                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 bg-app-accent text-white text-sm font-medium rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
               >
                 {isUploading ? 'Uploading...' : 'Upload Document'}
               </button>
@@ -310,7 +310,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                     fileInputRef.current.value = '';
                   }
                 }}
-                className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300"
+                className="px-4 py-2 bg-app-surface-muted text-app-text-muted text-sm font-medium rounded-lg hover:bg-app-hover"
               >
                 Cancel
               </button>
@@ -321,7 +321,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
 
       {/* Documents List */}
       {documents.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-app-text-muted">
           <div className="text-4xl mb-2">📁</div>
           <p>No documents uploaded yet</p>
         </div>
@@ -330,7 +330,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
           {documents.map((doc) => (
             <div
               key={doc.id}
-              className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition"
+              className="bg-app-surface border border-app-border rounded-lg p-4 hover:shadow-sm transition"
             >
               <div className="flex items-start gap-4">
                 {/* File Icon */}
@@ -339,17 +339,17 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                 {/* Document Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h4 className="font-medium text-gray-900 truncate">
+                    <h4 className="font-medium text-app-text truncate">
                       {doc.title || doc.original_name}
                     </h4>
-                    <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
+                    <span className="px-2 py-0.5 bg-app-surface-muted text-app-text-muted text-xs rounded">
                       {getDocumentTypeLabel(doc.document_type)}
                     </span>
                   </div>
 
-                  <p className="text-sm text-gray-500 truncate">{doc.original_name}</p>
+                  <p className="text-sm text-app-text-muted truncate">{doc.original_name}</p>
 
-                  <div className="mt-1 flex items-center gap-3 text-xs text-gray-400">
+                  <div className="mt-1 flex items-center gap-3 text-xs text-app-text-subtle">
                     <span>{formatBytes(doc.file_size)}</span>
                     <span>•</span>
                     <span>{formatDate(doc.created_at)}</span>
@@ -367,7 +367,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                     <div className="mt-2">
                       <Link
                         to={`/cases/${doc.case_id}`}
-                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                        className="inline-flex items-center gap-1 text-xs text-app-accent hover:text-app-accent-hover"
                       >
                         <span>📁</span>
                         <span>
@@ -378,7 +378,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                   )}
 
                   {doc.description && (
-                    <p className="mt-2 text-sm text-gray-600">{doc.description}</p>
+                    <p className="mt-2 text-sm text-app-text-muted">{doc.description}</p>
                   )}
                 </div>
 
@@ -386,7 +386,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleDownload(doc)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                    className="p-2 text-app-accent hover:bg-app-accent-soft rounded-lg transition"
                     title="Download"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -400,7 +400,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                   </button>
                   <button
                     onClick={() => setEditingDocument(doc)}
-                    className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                    className="p-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg transition"
                     title="Edit"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -436,11 +436,11 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
       {/* Edit Modal */}
       {editingDocument && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+          <div className="bg-app-surface rounded-lg shadow-xl p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Edit Document</h3>
             <form onSubmit={handleUpdateDocument} className="space-y-4">
               <div>
-                <label htmlFor="edit-title" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="edit-title" className="block text-sm font-medium text-app-text-label mb-1">
                   Title
                 </label>
                 <input
@@ -452,12 +452,12 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                       prev ? { ...prev, title: e.target.value } : null
                     )
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
                 />
               </div>
 
               <div>
-                <label htmlFor="edit-type" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="edit-type" className="block text-sm font-medium text-app-text-label mb-1">
                   Document Type
                 </label>
                 <select
@@ -468,7 +468,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                       prev ? { ...prev, document_type: e.target.value as DocumentType } : null
                     )
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
                   title="Select document type"
                 >
                   {DOCUMENT_TYPES.map((type) => (
@@ -480,7 +480,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
               </div>
 
               <div>
-                <label htmlFor="edit-desc" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="edit-desc" className="block text-sm font-medium text-app-text-label mb-1">
                   Description
                 </label>
                 <textarea
@@ -492,7 +492,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                     )
                   }
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
                 />
               </div>
 
@@ -500,13 +500,13 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                 <button
                   type="button"
                   onClick={() => setEditingDocument(null)}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                  className="px-4 py-2 bg-app-surface-muted text-app-text-muted rounded-lg hover:bg-app-hover"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
                 >
                   Save Changes
                 </button>
