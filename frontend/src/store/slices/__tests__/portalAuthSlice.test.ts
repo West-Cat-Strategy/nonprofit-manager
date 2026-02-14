@@ -50,10 +50,10 @@ describe('portalAuthSlice reducers', () => {
     expect(state.error).toBeNull();
   });
 
-  it('portalLogout removes portal_token from localStorage', () => {
-    localStorageMock.setItem('portal_token', 'tok-abc');
-    reducer({ ...initialState, token: 'tok-abc' } as never, portalLogout());
-    expect(localStorageMock.getItem('portal_token')).toBeNull();
+  it('portalLogout clears token from state (HTTP-only cookie)', () => {
+    const loggedIn = { ...initialState, token: null, user: mockUser };
+    const state = reducer(loggedIn as never, portalLogout());
+    expect(state.token).toBeNull();
   });
 
   it('clearPortalError sets error to null', () => {
@@ -74,7 +74,7 @@ describe('portalLogin thunk', () => {
     expect(state.error).toBeNull();
   });
 
-  it('sets token and user on fulfilled', () => {
+  it('sets user on fulfilled (token stays null for HTTP-only cookie)', () => {
     const payload = {
       token: 'portal-jwt-token',
       user: { id: 'portal-user-1', email: 'member@example.com', contact_id: 'contact-1' },
@@ -84,17 +84,19 @@ describe('portalLogin thunk', () => {
       { type: portalLogin.fulfilled.type, payload }
     );
     expect(state.loading).toBe(false);
-    expect(state.token).toBe('portal-jwt-token');
+    // Token is now in HTTP-only cookie, not stored in Redux state
+    expect(state.token).toBeNull();
     expect(state.user).toEqual(payload.user);
   });
 
-  it('persists token to localStorage on fulfilled', () => {
+  it('does not persist token to localStorage (HTTP-only cookie)', () => {
     const payload = { token: 'portal-jwt-token', user: mockUser };
     reducer(
       { ...initialState, loading: true } as never,
       { type: portalLogin.fulfilled.type, payload }
     );
-    expect(localStorageMock.getItem('portal_token')).toBe('portal-jwt-token');
+    // Token is in HTTP-only cookie, not localStorage
+    expect(localStorageMock.getItem('portal_token')).toBeNull();
   });
 
   it('sets error on rejected', () => {

@@ -1,9 +1,12 @@
 /**
  * Site Cache Service
  * Handles caching for published sites to improve performance
+ * Uses Redis as the primary cache backend with in-memory fallback
  */
 
 import crypto from 'crypto';
+import { getRedisClient, isRedisAvailable } from '../config/redis';
+import { logger } from '../config/logger';
 
 // Cache entry structure
 export interface CacheEntry<T> {
@@ -43,9 +46,12 @@ export interface CacheStats {
 // Default TTL values (in seconds)
 const DEFAULT_TTL = 3600; // 1 hour
 const STALE_WHILE_REVALIDATE = 86400; // 24 hours
-const MAX_CACHE_SIZE = 1000; // Maximum cache entries
+const MAX_CACHE_SIZE = 1000; // Maximum cache entries (for in-memory fallback)
+const CACHE_KEY_PREFIX = 'site_cache:';
+const TAG_KEY_PREFIX = 'site_cache_tag:';
+const STATS_KEY = 'site_cache:stats';
 
-// In-memory cache (use Redis in production)
+// In-memory fallback when Redis is unavailable
 const memoryCache = new Map<string, CacheEntry<unknown>>();
 let cacheStats: CacheStats = {
   hits: 0,
@@ -57,12 +63,19 @@ let cacheStats: CacheStats = {
 };
 
 export class SiteCacheService {
-  private cache: Map<string, CacheEntry<unknown>>;
-  private tagIndex: Map<string, Set<string>>; // tag -> cache keys
+  private fallbackCache: Map<string, CacheEntry<unknown>>;
+  private tagIndex: Map<string, Set<string>>; // tag -> cache keys (fallback only)
 
   constructor() {
-    this.cache = memoryCache;
+    this.fallbackCache = memoryCache;
     this.tagIndex = new Map();
+  }
+
+  /**
+   * Check if Redis is available for caching
+   */
+  private useRedis(): boolean {
+    return isRedisAvailable();
   }
 
   /**
@@ -90,8 +103,48 @@ export class SiteCacheService {
   /**
    * Get item from cache
    */
-  get<T>(key: string): CacheEntry<T> | null {
-    const entry = this.cache.get(key) as CacheEntry<T> | undefined;
+  async get<T>(key: string): Promise<CacheEntry<T> | null> {
+    if (this.useRedis()) {
+      return this.redisGet<T>(key);
+    }
+    return this.memoryGet<T>(key);
+  }
+
+  private async redisGet<T>(key: string): Promise<CacheEntry<T> | null> {
+    try {
+      const client = getRedisClient();
+      if (!client) return null;
+
+      const raw = await client.get(`${CACHE_KEY_PREFIX}${key}`);
+      if (!raw) {
+        cacheStats.misses++;
+        return null;
+      }
+
+      const entry = JSON.parse(raw) as CacheEntry<T>;
+      const now = Date.now();
+
+      if (now > entry.expiresAt) {
+        const staleLimit = entry.expiresAt + STALE_WHILE_REVALIDATE * 1000;
+        if (now > staleLimit) {
+          await client.del(`${CACHE_KEY_PREFIX}${key}`);
+          cacheStats.misses++;
+          return null;
+        }
+        cacheStats.staleHits++;
+        return entry;
+      }
+
+      cacheStats.hits++;
+      return entry;
+    } catch (error) {
+      logger.error('Redis cache get error, falling back to memory', { key, error });
+      return this.memoryGet<T>(key);
+    }
+  }
+
+  private memoryGet<T>(key: string): CacheEntry<T> | null {
+    const entry = this.fallbackCache.get(key) as CacheEntry<T> | undefined;
 
     if (!entry) {
       cacheStats.misses++;
@@ -100,17 +153,13 @@ export class SiteCacheService {
 
     const now = Date.now();
 
-    // Check if entry is expired
     if (now > entry.expiresAt) {
-      // Check if we're within stale-while-revalidate window
       const staleLimit = entry.expiresAt + STALE_WHILE_REVALIDATE * 1000;
       if (now > staleLimit) {
-        // Fully expired, remove from cache
-        this.delete(key);
+        this.memoryDelete(key);
         cacheStats.misses++;
         return null;
       }
-      // Return stale entry (caller should trigger background refresh)
       cacheStats.staleHits++;
       return { ...entry, data: entry.data };
     }
@@ -122,18 +171,13 @@ export class SiteCacheService {
   /**
    * Set item in cache
    */
-  set<T>(
+  async set<T>(
     key: string,
     data: T,
     version: string,
     options: CacheOptions = {}
-  ): CacheEntry<T> {
+  ): Promise<CacheEntry<T>> {
     const { ttlSeconds = DEFAULT_TTL, tags = [] } = options;
-
-    // Evict if at capacity
-    if (this.cache.size >= MAX_CACHE_SIZE) {
-      this.evictLRU();
-    }
 
     const now = Date.now();
     const entry: CacheEntry<T> = {
@@ -144,10 +188,38 @@ export class SiteCacheService {
       version,
     };
 
-    this.cache.set(key, entry as CacheEntry<unknown>);
-    cacheStats.size = this.cache.size;
+    if (this.useRedis()) {
+      try {
+        const client = getRedisClient();
+        if (client) {
+          const totalTtl = ttlSeconds + STALE_WHILE_REVALIDATE;
+          await client.setEx(
+            `${CACHE_KEY_PREFIX}${key}`,
+            totalTtl,
+            JSON.stringify(entry)
+          );
 
-    // Update tag index
+          // Update tag index in Redis
+          for (const tag of tags) {
+            await client.sAdd(`${TAG_KEY_PREFIX}${tag}`, key);
+          }
+
+          cacheStats.size++;
+          return entry;
+        }
+      } catch (error) {
+        logger.error('Redis cache set error, falling back to memory', { key, error });
+      }
+    }
+
+    // In-memory fallback
+    if (this.fallbackCache.size >= MAX_CACHE_SIZE) {
+      this.evictLRU();
+    }
+
+    this.fallbackCache.set(key, entry as CacheEntry<unknown>);
+    cacheStats.size = this.fallbackCache.size;
+
     for (const tag of tags) {
       if (!this.tagIndex.has(tag)) {
         this.tagIndex.set(tag, new Set());
@@ -161,10 +233,27 @@ export class SiteCacheService {
   /**
    * Delete item from cache
    */
-  delete(key: string): boolean {
-    const deleted = this.cache.delete(key);
+  async delete(key: string): Promise<boolean> {
+    if (this.useRedis()) {
+      try {
+        const client = getRedisClient();
+        if (client) {
+          const result = await client.del(`${CACHE_KEY_PREFIX}${key}`);
+          if (result > 0) cacheStats.size = Math.max(0, cacheStats.size - 1);
+          return result > 0;
+        }
+      } catch (error) {
+        logger.error('Redis cache delete error, falling back to memory', { key, error });
+      }
+    }
+
+    return this.memoryDelete(key);
+  }
+
+  private memoryDelete(key: string): boolean {
+    const deleted = this.fallbackCache.delete(key);
     if (deleted) {
-      cacheStats.size = this.cache.size;
+      cacheStats.size = this.fallbackCache.size;
     }
     return deleted;
   }
@@ -172,7 +261,26 @@ export class SiteCacheService {
   /**
    * Invalidate all entries with a specific tag
    */
-  invalidateByTag(tag: string): number {
+  async invalidateByTag(tag: string): Promise<number> {
+    if (this.useRedis()) {
+      try {
+        const client = getRedisClient();
+        if (client) {
+          const keys = await client.sMembers(`${TAG_KEY_PREFIX}${tag}`);
+          let count = 0;
+          for (const key of keys) {
+            const result = await client.del(`${CACHE_KEY_PREFIX}${key}`);
+            if (result > 0) count++;
+          }
+          await client.del(`${TAG_KEY_PREFIX}${tag}`);
+          cacheStats.size = Math.max(0, cacheStats.size - count);
+          return count;
+        }
+      } catch (error) {
+        logger.error('Redis tag invalidation error, falling back to memory', { tag, error });
+      }
+    }
+
     const keys = this.tagIndex.get(tag);
     if (!keys) {
       return 0;
@@ -180,7 +288,7 @@ export class SiteCacheService {
 
     let count = 0;
     for (const key of keys) {
-      if (this.delete(key)) {
+      if (this.memoryDelete(key)) {
         count++;
       }
     }
@@ -192,11 +300,29 @@ export class SiteCacheService {
   /**
    * Invalidate all entries for a specific site
    */
-  invalidateSite(siteId: string): number {
+  async invalidateSite(siteId: string): Promise<number> {
+    if (this.useRedis()) {
+      try {
+        const client = getRedisClient();
+        if (client) {
+          const pattern = `${CACHE_KEY_PREFIX}site:${siteId}:*`;
+          const keys = await client.keys(pattern);
+          let count = 0;
+          if (keys.length > 0) {
+            count = await client.del(keys);
+            cacheStats.size = Math.max(0, cacheStats.size - count);
+          }
+          return count;
+        }
+      } catch (error) {
+        logger.error('Redis site invalidation error, falling back to memory', { siteId, error });
+      }
+    }
+
     let count = 0;
-    for (const key of this.cache.keys()) {
+    for (const key of this.fallbackCache.keys()) {
       if (key.startsWith(`site:${siteId}:`)) {
-        this.delete(key);
+        this.memoryDelete(key);
         count++;
       }
     }
@@ -206,20 +332,36 @@ export class SiteCacheService {
   /**
    * Clear entire cache
    */
-  clear(): void {
-    this.cache.clear();
+  async clear(): Promise<void> {
+    if (this.useRedis()) {
+      try {
+        const client = getRedisClient();
+        if (client) {
+          const keys = await client.keys(`${CACHE_KEY_PREFIX}*`);
+          const tagKeys = await client.keys(`${TAG_KEY_PREFIX}*`);
+          const allKeys = [...keys, ...tagKeys];
+          if (allKeys.length > 0) {
+            await client.del(allKeys);
+          }
+        }
+      } catch (error) {
+        logger.error('Redis cache clear error', { error });
+      }
+    }
+
+    this.fallbackCache.clear();
     this.tagIndex.clear();
     cacheStats.size = 0;
   }
 
   /**
-   * Evict least recently used entry
+   * Evict least recently used entry (in-memory fallback only)
    */
   private evictLRU(): void {
     let oldestKey: string | null = null;
     let oldestTime = Infinity;
 
-    for (const [key, entry] of this.cache.entries()) {
+    for (const [key, entry] of this.fallbackCache.entries()) {
       if (entry.createdAt < oldestTime) {
         oldestTime = entry.createdAt;
         oldestKey = key;
@@ -227,7 +369,7 @@ export class SiteCacheService {
     }
 
     if (oldestKey) {
-      this.delete(oldestKey);
+      this.memoryDelete(oldestKey);
       cacheStats.evictions++;
     }
   }
@@ -290,7 +432,7 @@ export class SiteCacheService {
       misses: 0,
       staleHits: 0,
       evictions: 0,
-      size: this.cache.size,
+      size: this.fallbackCache.size,
       maxSize: MAX_CACHE_SIZE,
     };
   }
@@ -305,7 +447,7 @@ export class SiteCacheService {
   ): Promise<void> {
     for (const page of pages) {
       const key = this.generateCacheKey(siteId, page.slug);
-      this.set(key, page.content, version, {
+      await this.set(key, page.content, version, {
         tags: [`site:${siteId}`],
       });
     }

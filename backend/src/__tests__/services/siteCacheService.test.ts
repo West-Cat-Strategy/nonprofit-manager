@@ -12,9 +12,9 @@ import {
 describe('SiteCacheService', () => {
   let service: SiteCacheService;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     service = new SiteCacheService();
-    service.clear();
+    await service.clear();
     service.resetStats();
   });
 
@@ -51,129 +51,129 @@ describe('SiteCacheService', () => {
   });
 
   describe('get and set', () => {
-    it('should store and retrieve data', () => {
+    it('should store and retrieve data', async () => {
       const key = 'test-key';
       const data = { content: 'test content' };
 
-      service.set(key, data, 'v1');
-      const result = service.get(key);
+      await service.set(key, data, 'v1');
+      const result = await service.get(key);
 
       expect(result).not.toBeNull();
       expect(result?.data).toEqual(data);
     });
 
-    it('should return null for non-existent key', () => {
-      const result = service.get('non-existent');
+    it('should return null for non-existent key', async () => {
+      const result = await service.get('non-existent');
       expect(result).toBeNull();
     });
 
-    it('should include version in cache entry', () => {
+    it('should include version in cache entry', async () => {
       const key = 'test-key';
-      service.set(key, { test: 'data' }, 'v2.0');
-      const result = service.get(key);
+      await service.set(key, { test: 'data' }, 'v2.0');
+      const result = await service.get(key);
 
       expect(result?.version).toBe('v2.0');
     });
 
-    it('should generate ETag for cache entry', () => {
+    it('should generate ETag for cache entry', async () => {
       const key = 'test-key';
-      service.set(key, { test: 'data' }, 'v1');
-      const result = service.get(key);
+      await service.set(key, { test: 'data' }, 'v1');
+      const result = await service.get(key);
 
       expect(result?.etag).toMatch(/^"[a-f0-9]{32}"$/);
     });
 
-    it('should set expiration time', () => {
+    it('should set expiration time', async () => {
       const key = 'test-key';
-      service.set(key, { test: 'data' }, 'v1', { ttlSeconds: 3600 });
-      const result = service.get(key);
+      await service.set(key, { test: 'data' }, 'v1', { ttlSeconds: 3600 });
+      const result = await service.get(key);
 
       expect(result?.expiresAt).toBeGreaterThan(Date.now());
     });
   });
 
   describe('delete', () => {
-    it('should delete existing entry', () => {
+    it('should delete existing entry', async () => {
       const key = 'test-key';
-      service.set(key, { test: 'data' }, 'v1');
+      await service.set(key, { test: 'data' }, 'v1');
 
-      const deleted = service.delete(key);
+      const deleted = await service.delete(key);
       expect(deleted).toBe(true);
-      expect(service.get(key)).toBeNull();
+      expect(await service.get(key)).toBeNull();
     });
 
-    it('should return false for non-existent key', () => {
-      const deleted = service.delete('non-existent');
+    it('should return false for non-existent key', async () => {
+      const deleted = await service.delete('non-existent');
       expect(deleted).toBe(false);
     });
   });
 
   describe('invalidateByTag', () => {
-    it('should invalidate entries with specific tag', () => {
-      service.set('key1', { data: 1 }, 'v1', { tags: ['site:123'] });
-      service.set('key2', { data: 2 }, 'v1', { tags: ['site:123'] });
-      service.set('key3', { data: 3 }, 'v1', { tags: ['site:456'] });
+    it('should invalidate entries with specific tag', async () => {
+      await service.set('key1', { data: 1 }, 'v1', { tags: ['site:123'] });
+      await service.set('key2', { data: 2 }, 'v1', { tags: ['site:123'] });
+      await service.set('key3', { data: 3 }, 'v1', { tags: ['site:456'] });
 
-      const count = service.invalidateByTag('site:123');
+      const count = await service.invalidateByTag('site:123');
 
       expect(count).toBe(2);
-      expect(service.get('key1')).toBeNull();
-      expect(service.get('key2')).toBeNull();
-      expect(service.get('key3')).not.toBeNull();
+      expect(await service.get('key1')).toBeNull();
+      expect(await service.get('key2')).toBeNull();
+      expect(await service.get('key3')).not.toBeNull();
     });
 
-    it('should return 0 for non-existent tag', () => {
-      const count = service.invalidateByTag('non-existent-tag');
+    it('should return 0 for non-existent tag', async () => {
+      const count = await service.invalidateByTag('non-existent-tag');
       expect(count).toBe(0);
     });
   });
 
   describe('invalidateSite', () => {
-    it('should invalidate all entries for a site', () => {
+    it('should invalidate all entries for a site', async () => {
       const siteId = 'site-123';
-      service.set(service.generateCacheKey(siteId, 'home'), { page: 'home' }, 'v1');
-      service.set(service.generateCacheKey(siteId, 'about'), { page: 'about' }, 'v1');
-      service.set(service.generateCacheKey('site-456', 'home'), { page: 'other' }, 'v1');
+      await service.set(service.generateCacheKey(siteId, 'home'), { page: 'home' }, 'v1');
+      await service.set(service.generateCacheKey(siteId, 'about'), { page: 'about' }, 'v1');
+      await service.set(service.generateCacheKey('site-456', 'home'), { page: 'other' }, 'v1');
 
-      const count = service.invalidateSite(siteId);
+      const count = await service.invalidateSite(siteId);
 
       expect(count).toBe(2);
     });
   });
 
   describe('clear', () => {
-    it('should clear all cache entries', () => {
-      service.set('key1', { data: 1 }, 'v1');
-      service.set('key2', { data: 2 }, 'v1');
+    it('should clear all cache entries', async () => {
+      await service.set('key1', { data: 1 }, 'v1');
+      await service.set('key2', { data: 2 }, 'v1');
 
-      service.clear();
+      await service.clear();
 
-      expect(service.get('key1')).toBeNull();
-      expect(service.get('key2')).toBeNull();
+      expect(await service.get('key1')).toBeNull();
+      expect(await service.get('key2')).toBeNull();
     });
   });
 
   describe('getStats', () => {
-    it('should track cache hits', () => {
-      service.set('key', { data: 'test' }, 'v1');
-      service.get('key');
-      service.get('key');
+    it('should track cache hits', async () => {
+      await service.set('key', { data: 'test' }, 'v1');
+      await service.get('key');
+      await service.get('key');
 
       const stats = service.getStats();
       expect(stats.hits).toBe(2);
     });
 
-    it('should track cache misses', () => {
-      service.get('non-existent-1');
-      service.get('non-existent-2');
+    it('should track cache misses', async () => {
+      await service.get('non-existent-1');
+      await service.get('non-existent-2');
 
       const stats = service.getStats();
       expect(stats.misses).toBe(2);
     });
 
-    it('should track cache size', () => {
-      service.set('key1', { data: 1 }, 'v1');
-      service.set('key2', { data: 2 }, 'v1');
+    it('should track cache size', async () => {
+      await service.set('key1', { data: 1 }, 'v1');
+      await service.set('key2', { data: 2 }, 'v1');
 
       const stats = service.getStats();
       expect(stats.size).toBe(2);
@@ -181,10 +181,10 @@ describe('SiteCacheService', () => {
   });
 
   describe('resetStats', () => {
-    it('should reset statistics', () => {
-      service.set('key', { data: 'test' }, 'v1');
-      service.get('key');
-      service.get('non-existent');
+    it('should reset statistics', async () => {
+      await service.set('key', { data: 'test' }, 'v1');
+      await service.get('key');
+      await service.get('non-existent');
 
       service.resetStats();
 
@@ -195,9 +195,9 @@ describe('SiteCacheService', () => {
   });
 
   describe('generateCacheHeaders', () => {
-    it('should generate cache headers for cache entry', () => {
-      service.set('key', { data: 'test' }, 'v1');
-      const entry = service.get('key');
+    it('should generate cache headers for cache entry', async () => {
+      await service.set('key', { data: 'test' }, 'v1');
+      const entry = await service.get('key');
 
       const headers = service.generateCacheHeaders(entry);
 
@@ -221,16 +221,16 @@ describe('SiteCacheService', () => {
   });
 
   describe('isNotModified', () => {
-    it('should return true when ETag matches', () => {
-      service.set('key', { data: 'test' }, 'v1');
-      const entry = service.get('key');
+    it('should return true when ETag matches', async () => {
+      await service.set('key', { data: 'test' }, 'v1');
+      const entry = await service.get('key');
 
       expect(service.isNotModified(entry, entry?.etag)).toBe(true);
     });
 
-    it('should return false when ETag does not match', () => {
-      service.set('key', { data: 'test' }, 'v1');
-      const entry = service.get('key');
+    it('should return false when ETag does not match', async () => {
+      await service.set('key', { data: 'test' }, 'v1');
+      const entry = await service.get('key');
 
       expect(service.isNotModified(entry, '"different-etag"')).toBe(false);
     });
@@ -239,16 +239,16 @@ describe('SiteCacheService', () => {
       expect(service.isNotModified(null, '"some-etag"')).toBe(false);
     });
 
-    it('should return false for undefined ETag', () => {
-      service.set('key', { data: 'test' }, 'v1');
-      const entry = service.get('key');
+    it('should return false for undefined ETag', async () => {
+      await service.set('key', { data: 'test' }, 'v1');
+      const entry = await service.get('key');
 
       expect(service.isNotModified(entry, undefined)).toBe(false);
     });
 
-    it('should handle weak ETags', () => {
-      service.set('key', { data: 'test' }, 'v1');
-      const entry = service.get('key');
+    it('should handle weak ETags', async () => {
+      await service.set('key', { data: 'test' }, 'v1');
+      const entry = await service.get('key');
       const weakEtag = `W/${entry?.etag}`;
 
       expect(service.isNotModified(entry, weakEtag)).toBe(true);
@@ -266,9 +266,9 @@ describe('SiteCacheService', () => {
 
       await service.warmCache(siteId, pages, 'v1');
 
-      expect(service.get(service.generateCacheKey(siteId, 'home'))).not.toBeNull();
-      expect(service.get(service.generateCacheKey(siteId, 'about'))).not.toBeNull();
-      expect(service.get(service.generateCacheKey(siteId, 'contact'))).not.toBeNull();
+      expect(await service.get(service.generateCacheKey(siteId, 'home'))).not.toBeNull();
+      expect(await service.get(service.generateCacheKey(siteId, 'about'))).not.toBeNull();
+      expect(await service.get(service.generateCacheKey(siteId, 'contact'))).not.toBeNull();
     });
   });
 });

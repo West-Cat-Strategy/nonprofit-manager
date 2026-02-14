@@ -6,11 +6,15 @@
 import { useEffect, useState } from 'react';
 import NeoBrutalistLayout from '../../components/neo-brutalist/NeoBrutalistLayout';
 import LoopApiService from '../../services/LoopApiService';
-import type { Task } from '../../types/schema';
+import type { Task, TaskCategory } from '../../types/schema';
 
 export default function OperationsBoard() {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
+    const [filterCategory, setFilterCategory] = useState<TaskCategory | 'all'>('all');
+    const [sortBy, setSortBy] = useState<'dueDate' | 'title' | 'category'>('dueDate');
+    const [showFilterMenu, setShowFilterMenu] = useState(false);
+    const [showSortMenu, setShowSortMenu] = useState(false);
 
     useEffect(() => {
         const fetchTasks = async () => {
@@ -26,8 +30,32 @@ export default function OperationsBoard() {
         fetchTasks();
     }, []);
 
-    const handleFilter = () => console.log('Open Filter Menu');
-    const handleSort = () => console.log('Open Sort Menu');
+    const handleFilter = () => setShowFilterMenu(!showFilterMenu);
+    const handleSort = () => setShowSortMenu(!showSortMenu);
+
+    const applyFilter = (category: TaskCategory | 'all') => {
+        setFilterCategory(category);
+        setShowFilterMenu(false);
+    };
+
+    const applySort = (field: 'dueDate' | 'title' | 'category') => {
+        setSortBy(field);
+        setShowSortMenu(false);
+    };
+
+    const filteredTasks = filterCategory === 'all'
+        ? tasks
+        : tasks.filter(t => t.category === filterCategory);
+
+    const sortedTasks = [...filteredTasks].sort((a, b) => {
+        if (sortBy === 'title') return a.title.localeCompare(b.title);
+        if (sortBy === 'category') return a.category.localeCompare(b.category);
+        // Sort by due date, tasks without dates go last
+        if (!a.dueDate && !b.dueDate) return 0;
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    });
 
     const getCategoryColor = (category: string) => {
         switch (category) {
@@ -44,9 +72,9 @@ export default function OperationsBoard() {
         }
     };
 
-    const todoTasks = tasks.filter(t => t.status === 'todo');
-    const inProgressTasks = tasks.filter(t => t.status === 'in-progress');
-    const doneTasks = tasks.filter(t => t.status === 'done');
+    const todoTasks = sortedTasks.filter(t => t.status === 'todo');
+    const inProgressTasks = sortedTasks.filter(t => t.status === 'in-progress');
+    const doneTasks = sortedTasks.filter(t => t.status === 'done');
 
     const TaskCard = ({ task }: { task: Task }) => (
         <div className="bg-[var(--loop-blue)] border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] p-4 mb-3">
@@ -103,19 +131,49 @@ export default function OperationsBoard() {
                     <h2 className="text-3xl font-black mb-2 uppercase">OPERATIONS</h2>
                 </div>
                 {/* Filter/Sort Buttons */}
-                <div className="mb-6 flex justify-end gap-4">
-                    <button
-                        onClick={handleFilter}
-                        className="px-6 py-2 bg-app-surface text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-app-surface-muted font-bold uppercase"
-                    >
-                        FILTER
-                    </button>
-                    <button
-                        onClick={handleSort}
-                        className="px-6 py-2 bg-app-surface text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-app-surface-muted font-bold uppercase"
-                    >
-                        SORT
-                    </button>
+                <div className="mb-6 flex justify-end gap-4 relative">
+                    <div className="relative">
+                        <button
+                            onClick={handleFilter}
+                            className="px-6 py-2 bg-app-surface text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-app-surface-muted font-bold uppercase"
+                        >
+                            FILTER{filterCategory !== 'all' ? ` (${filterCategory.toUpperCase()})` : ''}
+                        </button>
+                        {showFilterMenu && (
+                            <div className="absolute top-full mt-1 right-0 z-10 bg-app-surface border-2 border-black shadow-[4px_4px_0px_0px_var(--shadow-color)] min-w-[160px]">
+                                {(['all', 'hr', 'admin', 'finance', 'tech'] as const).map((cat) => (
+                                    <button
+                                        key={cat}
+                                        onClick={() => applyFilter(cat)}
+                                        className={`block w-full text-left px-4 py-2 font-bold uppercase hover:bg-app-hover border-b border-black last:border-b-0 ${filterCategory === cat ? 'bg-[var(--loop-blue)]' : ''}`}
+                                    >
+                                        {cat === 'all' ? 'All Categories' : cat}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    <div className="relative">
+                        <button
+                            onClick={handleSort}
+                            className="px-6 py-2 bg-app-surface text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-app-surface-muted font-bold uppercase"
+                        >
+                            SORT
+                        </button>
+                        {showSortMenu && (
+                            <div className="absolute top-full mt-1 right-0 z-10 bg-app-surface border-2 border-black shadow-[4px_4px_0px_0px_var(--shadow-color)] min-w-[160px]">
+                                {([['dueDate', 'Due Date'], ['title', 'Title'], ['category', 'Category']] as const).map(([field, label]) => (
+                                    <button
+                                        key={field}
+                                        onClick={() => applySort(field)}
+                                        className={`block w-full text-left px-4 py-2 font-bold uppercase hover:bg-app-hover border-b border-black last:border-b-0 ${sortBy === field ? 'bg-[var(--loop-blue)]' : ''}`}
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Kanban Columns */}
