@@ -1,5 +1,4 @@
 import { Response, NextFunction } from 'express';
-import { validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '@config/database';
@@ -9,8 +8,9 @@ import { AuthRequest } from '@middleware/auth';
 import { trackLoginAttempt } from '@middleware/accountLockout';
 import { JWT, PASSWORD } from '@config/constants';
 import { syncUserRole } from '@services/domains/integration';
+import { requireUserOrError } from '@services/authGuardService';
 import { issueTotpMfaChallenge } from './mfaController';
-import { badRequest, conflict, forbidden, notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
+import { badRequest, conflict, forbidden, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import { setAuthCookie, setRefreshCookie, clearAuthCookies } from '@utils/cookieHelper';
 import { buildAuthTokenResponse } from '@utils/authResponse';
 import { generateCsrfToken } from '@middleware/domains/security';
@@ -70,11 +70,6 @@ export const register = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return validationErrorResponse(res, errors);
-    }
-
     const { email, password, firstName, lastName }: RegisterRequest = req.body;
     const role = 'user';
 
@@ -142,11 +137,6 @@ export const login = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return validationErrorResponse(res, errors);
-    }
-
     const { email, password }: LoginRequest = req.body;
     const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
 
@@ -285,9 +275,17 @@ export const getCurrentUser = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
+    // Require authenticated user
+    const guardResult = requireUserOrError(req);
+    if (!guardResult.success) {
+      return unauthorized(res, guardResult.error || 'Authentication required');
+    }
+
+    const userId = guardResult.user!.id;
+
     const result = await pool.query<UserRow>(
       'SELECT id, email, first_name, last_name, role, profile_picture, created_at FROM users WHERE id = $1',
-      [req.user!.id]
+      [userId]
     );
 
     if (result.rows.length === 0) {
@@ -348,11 +346,6 @@ export const setupFirstUser = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return validationErrorResponse(res, errors);
-    }
-
     // Check if any admin users exist
     const countResult = await pool.query("SELECT COUNT(*) as count FROM users WHERE role = 'admin'");
     const adminCount = parseInt(countResult.rows[0].count);
@@ -434,9 +427,17 @@ export const getPreferences = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
+    // Require authenticated user
+    const guardResult = requireUserOrError(req);
+    if (!guardResult.success) {
+      return unauthorized(res, guardResult.error || 'Authentication required');
+    }
+
+    const userId = guardResult.user!.id;
+
     const result = await pool.query(
       'SELECT preferences FROM users WHERE id = $1',
-      [req.user!.id]
+      [userId]
     );
 
     if (result.rows.length === 0) {
@@ -461,6 +462,13 @@ export const updatePreferences = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
+    // Require authenticated user
+    const guardResult = requireUserOrError(req);
+    if (!guardResult.success) {
+      return unauthorized(res, guardResult.error || 'Authentication required');
+    }
+
+    const userId = guardResult.user!.id;
     const { preferences } = req.body;
 
     if (!preferences || typeof preferences !== 'object') {
@@ -474,14 +482,14 @@ export const updatePreferences = async (
            updated_at = NOW()
        WHERE id = $2
        RETURNING preferences`,
-      [JSON.stringify(preferences), req.user!.id]
+      [JSON.stringify(preferences), userId]
     );
 
     if (result.rows.length === 0) {
       return notFoundMessage(res, 'User not found');
     }
 
-    logger.info(`User preferences updated: ${req.user!.id}`);
+    logger.info(`User preferences updated: ${userId}`);
 
     return res.json({
       preferences: result.rows[0].preferences,
@@ -501,6 +509,13 @@ export const updatePreferenceKey = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
+    // Require authenticated user
+    const guardResult = requireUserOrError(req);
+    if (!guardResult.success) {
+      return unauthorized(res, guardResult.error || 'Authentication required');
+    }
+
+    const userId = guardResult.user!.id;
     const { key } = req.params;
     const { value } = req.body;
 
@@ -515,14 +530,14 @@ export const updatePreferenceKey = async (
            updated_at = NOW()
        WHERE id = $3
        RETURNING preferences`,
-      [key, JSON.stringify(value), req.user!.id]
+      [key, JSON.stringify(value), userId]
     );
 
     if (result.rows.length === 0) {
       return notFoundMessage(res, 'User not found');
     }
 
-    logger.info(`User preference '${key}' updated: ${req.user!.id}`);
+    logger.info(`User preference '${key}' updated: ${userId}`);
 
     return res.json({
       preferences: result.rows[0].preferences,
@@ -577,6 +592,14 @@ export const getProfile = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
+    // Require authenticated user
+    const guardResult = requireUserOrError(req);
+    if (!guardResult.success) {
+      return unauthorized(res, guardResult.error || 'Authentication required');
+    }
+
+    const userId = guardResult.user!.id;
+
     const result = await pool.query<ProfileRow>(
       `SELECT id, email, first_name, last_name, role,
               display_name, alternative_name, pronouns, title,
@@ -584,7 +607,7 @@ export const getProfile = async (
               email_shared_with_clients, email_shared_with_users,
               alternative_emails, notifications
        FROM users WHERE id = $1`,
-      [req.user!.id]
+      [userId]
     );
 
     if (result.rows.length === 0) {
@@ -636,10 +659,13 @@ export const updateProfile = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return validationErrorResponse(res, errors);
+    // Require authenticated user
+    const guardResult = requireUserOrError(req);
+    if (!guardResult.success) {
+      return unauthorized(res, guardResult.error || 'Authentication required');
     }
+
+    const userId = guardResult.user!.id;
 
     const {
       firstName,
@@ -662,7 +688,7 @@ export const updateProfile = async (
     if (email) {
       const emailCheck = await pool.query(
         'SELECT id FROM users WHERE email = $1 AND id != $2',
-        [email, req.user!.id]
+        [email, userId]
       );
       if (emailCheck.rows.length > 0) {
         return conflict(res, 'Email is already in use by another account');
@@ -707,7 +733,7 @@ export const updateProfile = async (
         emailSharedWithUsers,
         alternativeEmails ? JSON.stringify(alternativeEmails) : null,
         notifications ? JSON.stringify(notifications) : null,
-        req.user!.id,
+        userId,
       ]
     );
 
@@ -762,17 +788,20 @@ export const changePassword = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return validationErrorResponse(res, errors);
+    // Require authenticated user
+    const guardResult = requireUserOrError(req);
+    if (!guardResult.success) {
+      return unauthorized(res, guardResult.error || 'Authentication required');
     }
+
+    const userId = guardResult.user!.id;
 
     const { currentPassword, newPassword } = req.body;
 
     // Get current password hash
     const userResult = await pool.query<{ password_hash: string; email: string }>(
       'SELECT password_hash, email FROM users WHERE id = $1',
-      [req.user!.id]
+      [userId]
     );
 
     if (userResult.rows.length === 0) {
@@ -793,7 +822,7 @@ export const changePassword = async (
     // Update password
     await pool.query(
       `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`,
-      [hashedPassword, req.user!.id]
+      [hashedPassword, userId]
     );
 
     logger.info(`Password changed for user: ${user.email}`);

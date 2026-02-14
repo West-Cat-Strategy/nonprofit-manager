@@ -4,8 +4,7 @@
  */
 
 import { Router } from 'express';
-import { body, param, query } from 'express-validator';
-import { validateRequest } from '@middleware/domains/security';
+import { validateBody, validateQuery, validateParams } from '@middleware/zodValidation';
 import {
   getContacts,
   getContactTags,
@@ -24,6 +23,22 @@ import * as documentsController from '@controllers/domains/engagement';
 import { authenticate } from '@middleware/domains/auth';
 import { loadDataScope } from '@middleware/domains/data';
 import { documentUpload, handleMulterError } from '@middleware/domains/platform';
+import {
+  createContactSchema,
+  updateContactSchema,
+  bulkUpdateContactsSchema,
+  contactNoteSchema,
+  updateContactNoteSchema,
+  contactPhoneSchema,
+  updateContactPhoneSchema,
+  contactEmailSchema,
+  updateContactEmailSchema,
+  contactRelationshipSchema,
+  updateContactRelationshipSchema,
+  updateContactDocumentSchema,
+  uuidSchema,
+} from '@validations/contact';
+import { z } from 'zod';
 
 const router = Router();
 
@@ -41,18 +56,17 @@ router.use(loadDataScope('contacts'));
  */
 router.get(
   '/',
-  [
-    query('page').optional().isInt({ min: 1 }).toInt(),
-    query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
-    query('sort_by').optional().isString(),
-    query('sort_order').optional().isIn(['asc', 'desc']),
-    query('search').optional().isString(),
-    query('role').optional().isIn(['staff', 'volunteer', 'board']),
-    query('account_id').optional().isUUID(),
-    query('is_active').optional().isBoolean(),
-    query('tags').optional().isString(),
-    validateRequest,
-  ],
+  validateQuery(z.object({
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    sort_by: z.string().optional(),
+    sort_order: z.enum(['asc', 'desc']).optional(),
+    search: z.string().optional(),
+    role: z.enum(['staff', 'volunteer', 'board']).optional(),
+    account_id: uuidSchema.optional(),
+    is_active: z.boolean().optional(),
+    tags: z.string().optional(),
+  })),
   getContacts
 );
 
@@ -74,19 +88,7 @@ router.get('/roles', getContactRoles);
  */
 router.post(
   '/bulk',
-  [
-    body('contactIds').isArray({ min: 1 }),
-    body('contactIds.*').isUUID(),
-    body('is_active').optional().isBoolean(),
-    body('tags').optional().isObject(),
-    body('tags.add').optional().isArray(),
-    body('tags.add.*').optional().isString().trim().isLength({ min: 1, max: 40 }),
-    body('tags.remove').optional().isArray(),
-    body('tags.remove.*').optional().isString().trim().isLength({ min: 1, max: 40 }),
-    body('tags.replace').optional().isArray(),
-    body('tags.replace.*').optional().isString().trim().isLength({ min: 1, max: 40 }),
-    validateRequest,
-  ],
+  validateBody(bulkUpdateContactsSchema),
   bulkUpdateContacts
 );
 
@@ -94,7 +96,11 @@ router.post(
  * GET /api/contacts/:id
  * Get contact by ID
  */
-router.get('/:id', [param('id').isUUID(), validateRequest], getContactById);
+router.get(
+  '/:id',
+  validateParams(z.object({ id: uuidSchema })),
+  getContactById
+);
 
 /**
  * POST /api/contacts
@@ -102,38 +108,7 @@ router.get('/:id', [param('id').isUUID(), validateRequest], getContactById);
  */
 router.post(
   '/',
-  [
-    body('account_id').optional().isUUID(),
-    body('first_name').notEmpty().trim().isLength({ min: 1, max: 100 }),
-    body('last_name').notEmpty().trim().isLength({ min: 1, max: 100 }),
-    body('middle_name').optional().isString().trim(),
-    body('salutation').optional().isString().trim(),
-    body('suffix').optional().isString().trim(),
-    body('birth_date').optional().isISO8601(),
-    body('gender').optional().isString().trim(),
-    body('pronouns').optional().isString().trim(),
-    body('email').optional().isEmail().normalizeEmail(),
-    body('phone').optional().isString().trim(),
-    body('mobile_phone').optional().isString().trim(),
-    body('address_line1').optional().isString().trim(),
-    body('address_line2').optional().isString().trim(),
-    body('city').optional().isString().trim(),
-    body('state_province').optional().isString().trim(),
-    body('postal_code').optional().isString().trim(),
-    body('country').optional().isString().trim(),
-    body('job_title').optional().isString().trim(),
-    body('department').optional().isString().trim(),
-    body('preferred_contact_method').optional().isString().trim(),
-    body('no_fixed_address').optional().isBoolean(),
-    body('do_not_email').optional().isBoolean(),
-    body('do_not_phone').optional().isBoolean(),
-    body('notes').optional().isString().trim(),
-    body('tags').optional().isArray(),
-    body('tags.*').optional().isString().trim().isLength({ min: 1, max: 40 }),
-    body('roles').optional().isArray(),
-    body('roles.*').optional().isString().trim(),
-    validateRequest,
-  ],
+  validateBody(createContactSchema),
   createContact
 );
 
@@ -143,40 +118,8 @@ router.post(
  */
 router.put(
   '/:id',
-  [
-    param('id').isUUID(),
-    body('account_id').optional().isUUID(),
-    body('first_name').optional().notEmpty().trim().isLength({ min: 1, max: 100 }),
-    body('last_name').optional().notEmpty().trim().isLength({ min: 1, max: 100 }),
-    body('middle_name').optional().isString().trim(),
-    body('salutation').optional().isString().trim(),
-    body('suffix').optional().isString().trim(),
-    body('birth_date').optional({ nullable: true }).isISO8601(),
-    body('gender').optional({ nullable: true }).isString().trim(),
-    body('pronouns').optional({ nullable: true }).isString().trim(),
-    body('email').optional().isEmail().normalizeEmail(),
-    body('phone').optional().isString().trim(),
-    body('mobile_phone').optional().isString().trim(),
-    body('address_line1').optional().isString().trim(),
-    body('address_line2').optional().isString().trim(),
-    body('city').optional().isString().trim(),
-    body('state_province').optional().isString().trim(),
-    body('postal_code').optional().isString().trim(),
-    body('country').optional().isString().trim(),
-    body('job_title').optional().isString().trim(),
-    body('department').optional().isString().trim(),
-    body('preferred_contact_method').optional().isString().trim(),
-    body('no_fixed_address').optional().isBoolean(),
-    body('do_not_email').optional().isBoolean(),
-    body('do_not_phone').optional().isBoolean(),
-    body('notes').optional().isString().trim(),
-    body('is_active').optional().isBoolean(),
-    body('tags').optional().isArray(),
-    body('tags.*').optional().isString().trim().isLength({ min: 1, max: 40 }),
-    body('roles').optional().isArray(),
-    body('roles.*').optional().isString().trim(),
-    validateRequest,
-  ],
+  validateParams(z.object({ id: uuidSchema })),
+  validateBody(updateContactSchema),
   updateContact
 );
 
@@ -184,7 +127,11 @@ router.put(
  * DELETE /api/contacts/:id
  * Soft delete contact
  */
-router.delete('/:id', [param('id').isUUID(), validateRequest], deleteContact);
+router.delete(
+  '/:id',
+  validateParams(z.object({ id: uuidSchema })),
+  deleteContact
+);
 
 // ============================================================================
 // CONTACT NOTES ROUTES
@@ -196,7 +143,7 @@ router.delete('/:id', [param('id').isUUID(), validateRequest], deleteContact);
  */
 router.get(
   '/:contactId/notes',
-  [param('contactId').isUUID()],
+  validateParams(z.object({ contactId: uuidSchema })),
   notesController.getContactNotes
 );
 
@@ -206,17 +153,8 @@ router.get(
  */
 router.post(
   '/:contactId/notes',
-  [
-    param('contactId').isUUID(),
-    body('case_id').optional().isUUID(),
-    body('note_type').optional().isIn(['note', 'email', 'call', 'meeting', 'update', 'other']),
-    body('subject').optional().isString().trim(),
-    body('content').notEmpty().isString(),
-    body('is_internal').optional().isBoolean(),
-    body('is_important').optional().isBoolean(),
-    body('is_pinned').optional().isBoolean(),
-    body('is_alert').optional().isBoolean(),
-  ],
+  validateParams(z.object({ contactId: uuidSchema })),
+  validateBody(contactNoteSchema),
   notesController.createContactNote
 );
 
@@ -226,7 +164,7 @@ router.post(
  */
 router.get(
   '/notes/:noteId',
-  [param('noteId').isUUID()],
+  validateParams(z.object({ noteId: uuidSchema })),
   notesController.getContactNoteById
 );
 
@@ -236,16 +174,8 @@ router.get(
  */
 router.put(
   '/notes/:noteId',
-  [
-    param('noteId').isUUID(),
-    body('note_type').optional().isIn(['note', 'email', 'call', 'meeting', 'update', 'other']),
-    body('subject').optional().isString().trim(),
-    body('content').optional().isString(),
-    body('is_internal').optional().isBoolean(),
-    body('is_important').optional().isBoolean(),
-    body('is_pinned').optional().isBoolean(),
-    body('is_alert').optional().isBoolean(),
-  ],
+  validateParams(z.object({ noteId: uuidSchema })),
+  validateBody(updateContactNoteSchema),
   notesController.updateContactNote
 );
 
@@ -255,7 +185,7 @@ router.put(
  */
 router.delete(
   '/notes/:noteId',
-  [param('noteId').isUUID()],
+  validateParams(z.object({ noteId: uuidSchema })),
   notesController.deleteContactNote
 );
 
@@ -269,7 +199,7 @@ router.delete(
  */
 router.get(
   '/:contactId/phones',
-  [param('contactId').isUUID()],
+  validateParams(z.object({ contactId: uuidSchema })),
   phonesController.getContactPhones
 );
 
@@ -279,12 +209,8 @@ router.get(
  */
 router.post(
   '/:contactId/phones',
-  [
-    param('contactId').isUUID(),
-    body('phone_number').notEmpty().isString().trim(),
-    body('label').optional().isIn(['home', 'work', 'mobile', 'fax', 'other']),
-    body('is_primary').optional().isBoolean(),
-  ],
+  validateParams(z.object({ contactId: uuidSchema })),
+  validateBody(contactPhoneSchema),
   phonesController.createContactPhone
 );
 
@@ -294,7 +220,7 @@ router.post(
  */
 router.get(
   '/phones/:phoneId',
-  [param('phoneId').isUUID()],
+  validateParams(z.object({ phoneId: uuidSchema })),
   phonesController.getContactPhoneById
 );
 
@@ -304,12 +230,8 @@ router.get(
  */
 router.put(
   '/phones/:phoneId',
-  [
-    param('phoneId').isUUID(),
-    body('phone_number').optional().isString().trim(),
-    body('label').optional().isIn(['home', 'work', 'mobile', 'fax', 'other']),
-    body('is_primary').optional().isBoolean(),
-  ],
+  validateParams(z.object({ phoneId: uuidSchema })),
+  validateBody(updateContactPhoneSchema),
   phonesController.updateContactPhone
 );
 
@@ -319,7 +241,7 @@ router.put(
  */
 router.delete(
   '/phones/:phoneId',
-  [param('phoneId').isUUID()],
+  validateParams(z.object({ phoneId: uuidSchema })),
   phonesController.deleteContactPhone
 );
 
@@ -333,7 +255,7 @@ router.delete(
  */
 router.get(
   '/:contactId/emails',
-  [param('contactId').isUUID()],
+  validateParams(z.object({ contactId: uuidSchema })),
   emailsController.getContactEmails
 );
 
@@ -343,12 +265,8 @@ router.get(
  */
 router.post(
   '/:contactId/emails',
-  [
-    param('contactId').isUUID(),
-    body('email_address').notEmpty().isEmail().normalizeEmail(),
-    body('label').optional().isIn(['personal', 'work', 'other']),
-    body('is_primary').optional().isBoolean(),
-  ],
+  validateParams(z.object({ contactId: uuidSchema })),
+  validateBody(contactEmailSchema),
   emailsController.createContactEmail
 );
 
@@ -358,7 +276,7 @@ router.post(
  */
 router.get(
   '/emails/:emailId',
-  [param('emailId').isUUID()],
+  validateParams(z.object({ emailId: uuidSchema })),
   emailsController.getContactEmailById
 );
 
@@ -368,12 +286,8 @@ router.get(
  */
 router.put(
   '/emails/:emailId',
-  [
-    param('emailId').isUUID(),
-    body('email_address').optional().isEmail().normalizeEmail(),
-    body('label').optional().isIn(['personal', 'work', 'other']),
-    body('is_primary').optional().isBoolean(),
-  ],
+  validateParams(z.object({ emailId: uuidSchema })),
+  validateBody(updateContactEmailSchema),
   emailsController.updateContactEmail
 );
 
@@ -383,7 +297,7 @@ router.put(
  */
 router.delete(
   '/emails/:emailId',
-  [param('emailId').isUUID()],
+  validateParams(z.object({ emailId: uuidSchema })),
   emailsController.deleteContactEmail
 );
 
@@ -397,7 +311,7 @@ router.delete(
  */
 router.get(
   '/:contactId/relationships',
-  [param('contactId').isUUID()],
+  validateParams(z.object({ contactId: uuidSchema })),
   relationshipsController.getContactRelationships
 );
 
@@ -407,23 +321,8 @@ router.get(
  */
 router.post(
   '/:contactId/relationships',
-  [
-    param('contactId').isUUID(),
-    body('related_contact_id').notEmpty().isUUID(),
-    body('relationship_type').notEmpty().isIn([
-      'contact_person', 'spouse', 'parent', 'child', 'sibling', 'family_member',
-      'emergency_contact', 'social_worker', 'caregiver', 'advocate',
-      'support_person', 'roommate', 'friend', 'colleague', 'other'
-    ]),
-    body('relationship_label').optional().isString().trim(),
-    body('is_bidirectional').optional().isBoolean(),
-    body('inverse_relationship_type').optional().isIn([
-      'contact_person', 'spouse', 'parent', 'child', 'sibling', 'family_member',
-      'emergency_contact', 'social_worker', 'caregiver', 'advocate',
-      'support_person', 'roommate', 'friend', 'colleague', 'other'
-    ]),
-    body('notes').optional().isString().trim(),
-  ],
+  validateParams(z.object({ contactId: uuidSchema })),
+  validateBody(contactRelationshipSchema),
   relationshipsController.createContactRelationship
 );
 
@@ -433,7 +332,7 @@ router.post(
  */
 router.get(
   '/relationships/:relationshipId',
-  [param('relationshipId').isUUID()],
+  validateParams(z.object({ relationshipId: uuidSchema })),
   relationshipsController.getContactRelationshipById
 );
 
@@ -443,23 +342,8 @@ router.get(
  */
 router.put(
   '/relationships/:relationshipId',
-  [
-    param('relationshipId').isUUID(),
-    body('relationship_type').optional().isIn([
-      'contact_person', 'spouse', 'parent', 'child', 'sibling', 'family_member',
-      'emergency_contact', 'social_worker', 'caregiver', 'advocate',
-      'support_person', 'roommate', 'friend', 'colleague', 'other'
-    ]),
-    body('relationship_label').optional().isString().trim(),
-    body('is_bidirectional').optional().isBoolean(),
-    body('inverse_relationship_type').optional().isIn([
-      'contact_person', 'spouse', 'parent', 'child', 'sibling', 'family_member',
-      'emergency_contact', 'social_worker', 'caregiver', 'advocate',
-      'support_person', 'roommate', 'friend', 'colleague', 'other'
-    ]),
-    body('notes').optional().isString().trim(),
-    body('is_active').optional().isBoolean(),
-  ],
+  validateParams(z.object({ relationshipId: uuidSchema })),
+  validateBody(updateContactRelationshipSchema),
   relationshipsController.updateContactRelationship
 );
 
@@ -469,7 +353,7 @@ router.put(
  */
 router.delete(
   '/relationships/:relationshipId',
-  [param('relationshipId').isUUID()],
+  validateParams(z.object({ relationshipId: uuidSchema })),
   relationshipsController.deleteContactRelationship
 );
 
@@ -483,7 +367,7 @@ router.delete(
  */
 router.get(
   '/:contactId/documents',
-  [param('contactId').isUUID()],
+  validateParams(z.object({ contactId: uuidSchema })),
   documentsController.getContactDocuments
 );
 
@@ -493,7 +377,7 @@ router.get(
  */
 router.post(
   '/:contactId/documents',
-  [param('contactId').isUUID()],
+  validateParams(z.object({ contactId: uuidSchema })),
   documentUpload.single('file'),
   handleMulterError,
   documentsController.uploadDocument
@@ -505,7 +389,7 @@ router.post(
  */
 router.get(
   '/documents/:documentId',
-  [param('documentId').isUUID()],
+  validateParams(z.object({ documentId: uuidSchema })),
   documentsController.getDocumentById
 );
 
@@ -515,7 +399,7 @@ router.get(
  */
 router.get(
   '/documents/:documentId/download',
-  [param('documentId').isUUID()],
+  validateParams(z.object({ documentId: uuidSchema })),
   documentsController.downloadDocument
 );
 
@@ -525,15 +409,8 @@ router.get(
  */
 router.put(
   '/documents/:documentId',
-  [
-    param('documentId').isUUID(),
-    body('document_type').optional().isIn([
-      'identification', 'legal', 'medical', 'financial',
-      'correspondence', 'photo', 'consent_form', 'assessment', 'report', 'other'
-    ]),
-    body('title').optional().isString().trim(),
-    body('description').optional().isString().trim(),
-  ],
+  validateParams(z.object({ documentId: uuidSchema })),
+  validateBody(updateContactDocumentSchema),
   documentsController.updateDocument
 );
 
@@ -543,7 +420,7 @@ router.put(
  */
 router.delete(
   '/documents/:documentId',
-  [param('documentId').isUUID()],
+  validateParams(z.object({ documentId: uuidSchema })),
   documentsController.deleteDocument
 );
 
