@@ -61,7 +61,7 @@ export default function PortalProfile() {
   };
 
   if (loading) {
-    return <p className="text-sm text-gray-500">Loading profile...</p>;
+    return <p className="text-sm text-app-text-muted">Loading profile...</p>;
   }
 
   if (!formData) {
@@ -70,111 +70,111 @@ export default function PortalProfile() {
 
   return (
     <div>
-      <h2 className="text-xl font-semibold text-gray-900">Your Profile</h2>
-      {message && <p className="text-sm mt-2 text-gray-600">{message}</p>}
+      <h2 className="text-xl font-semibold text-app-text">Your Profile</h2>
+      {message && <p className="text-sm mt-2 text-app-text-muted">{message}</p>}
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">First Name</label>
+            <label className="block text-sm font-medium text-app-text-muted">First Name</label>
             <input
               name="first_name"
               value={formData.first_name || ''}
               onChange={handleChange}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Last Name</label>
+            <label className="block text-sm font-medium text-app-text-muted">Last Name</label>
             <input
               name="last_name"
               value={formData.last_name || ''}
               onChange={handleChange}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
+            <label className="block text-sm font-medium text-app-text-muted">Email</label>
             <input
               name="email"
               type="email"
               value={formData.email || ''}
               onChange={handleChange}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Phone</label>
+            <label className="block text-sm font-medium text-app-text-muted">Phone</label>
             <input
               name="phone"
               value={formData.phone || ''}
               onChange={handleChange}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Mobile Phone</label>
+            <label className="block text-sm font-medium text-app-text-muted">Mobile Phone</label>
             <input
               name="mobile_phone"
               value={formData.mobile_phone || ''}
               onChange={handleChange}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Preferred Contact Method</label>
+            <label className="block text-sm font-medium text-app-text-muted">Preferred Contact Method</label>
             <input
               name="preferred_contact_method"
               value={formData.preferred_contact_method || ''}
               onChange={handleChange}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Pronouns</label>
+            <label className="block text-sm font-medium text-app-text-muted">Pronouns</label>
             <input
               name="pronouns"
               value={formData.pronouns || ''}
               onChange={handleChange}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Gender</label>
+            <label className="block text-sm font-medium text-app-text-muted">Gender</label>
             <input
               name="gender"
               value={formData.gender || ''}
               onChange={handleChange}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Address Line 1</label>
+          <label className="block text-sm font-medium text-app-text-muted">Address Line 1</label>
           <input
             name="address_line1"
             value={formData.address_line1 || ''}
             onChange={handleChange}
-            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Address Line 2</label>
+          <label className="block text-sm font-medium text-app-text-muted">Address Line 2</label>
           <input
             name="address_line2"
             value={formData.address_line2 || ''}
             onChange={handleChange}
-            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -183,37 +183,37 @@ export default function PortalProfile() {
             placeholder="City"
             value={formData.city || ''}
             onChange={handleChange}
-            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
           />
           <input
             name="state_province"
             placeholder="State"
             value={formData.state_province || ''}
             onChange={handleChange}
-            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
           />
           <input
             name="postal_code"
             placeholder="Postal Code"
             value={formData.postal_code || ''}
             onChange={handleChange}
-            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Country</label>
+          <label className="block text-sm font-medium text-app-text-muted">Country</label>
           <input
             name="country"
             value={formData.country || ''}
             onChange={handleChange}
-            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
           />
         </div>
 
         <button
           type="submit"
           disabled={saving}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover"
         >
           {saving ? 'Saving...' : 'Save Changes'}
         </button>

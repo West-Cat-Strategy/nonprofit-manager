@@ -14,7 +14,6 @@ import api from '../../services/api';
 import LoopApiService from '../../services/LoopApiService';
 import NeoBrutalistLayout from '../../components/neo-brutalist/NeoBrutalistLayout';
 import ThemeSelector from '../../components/ThemeSelector';
-import { useTheme } from '../../contexts/ThemeContext';
 import ErrorBanner from '../../components/ErrorBanner';
 import { useApiError } from '../../hooks/useApiError';
 
@@ -167,7 +166,6 @@ export default function UserSettings() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
-  useTheme();
 
   // Visual-only state for field visibility (not persisted per instructions)
   const [fieldVisibility, setFieldVisibility] = useState<Record<string, boolean>>({
@@ -599,15 +597,20 @@ export default function UserSettings() {
             </div>
           )}
 
+          {/* Interface Theme */}
+          <div className="w-full">
+            <ThemeSelector />
+          </div>
+
           {/* Profile Picture Card - CYAN Theme */}
-          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
+          <div className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
             <div className="bg-[var(--loop-cyan)] border-b-4 border-black p-4">
               <h2 className="text-2xl font-black uppercase">Profile</h2>
             </div>
 
             <div className="p-8 flex flex-col md:flex-row items-center gap-8">
               <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                <div className="w-40 h-40 border-4 border-black shadow-[6px_6px_0px_0px_var(--shadow-color)] overflow-hidden bg-gray-100">
+                <div className="w-40 h-40 border-4 border-black shadow-[6px_6px_0px_0px_var(--shadow-color)] overflow-hidden bg-app-surface-muted">
                   {previewImage ? (
                     <img
                       src={previewImage}
@@ -660,7 +663,7 @@ export default function UserSettings() {
                   className={`border-4 border-dashed rounded-none p-6 text-center cursor-pointer transition-all uppercase font-bold
                     ${isDragging
                       ? 'border-[#4DD0E1] bg-[#E0F7FA] text-black scale-[1.02]'
-                      : 'border-gray-300 hover:border-black hover:bg-gray-50 text-gray-500 hover:text-black'
+                      : 'border-app-input-border hover:border-black hover:bg-app-surface-muted text-app-text-muted hover:text-black'
                     }`}
                 >
                   <p className="text-lg">Click to Upload Avatar</p>
@@ -671,7 +674,7 @@ export default function UserSettings() {
           </div>
 
           {/* Personal Information Card - PINK Theme */}
-          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
+          <div className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
             <div className="bg-[var(--loop-pink)] border-b-4 border-black p-4">
               <h2 className="text-2xl font-black uppercase">Bio</h2>
             </div>
@@ -691,7 +694,7 @@ export default function UserSettings() {
                     </label>
                     <button
                       onClick={() => toggleFieldVisibility(item.field)}
-                      className="text-gray-500 hover:text-black transition-all border-2 border-transparent hover:border-black hover:shadow-[2px_2px_0px_0px_var(--shadow-color)] p-1 rounded-sm"
+                      className="text-app-text-muted hover:text-black transition-all border-2 border-transparent hover:border-black hover:shadow-[2px_2px_0px_0px_var(--shadow-color)] p-1 rounded-sm"
                       title="Toggle Public Visibility"
                     >
                       {fieldVisibility[item.field] ? (
@@ -718,7 +721,7 @@ export default function UserSettings() {
                   <select
                     value={profile.pronouns}
                     onChange={(e) => handleChange('pronouns', e.target.value)}
-                    className="w-full p-3 border-2 border-black font-medium bg-white focus:outline-none focus:shadow-[4px_4px_0px_0px_var(--shadow-color)] focus:-translate-y-1 transition-all"
+                    className="w-full p-3 border-2 border-black font-medium bg-app-surface focus:outline-none focus:shadow-[4px_4px_0px_0px_var(--shadow-color)] focus:-translate-y-1 transition-all"
                   >
                     {pronounOptions.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -741,7 +744,7 @@ export default function UserSettings() {
           </div>
 
           {/* Contact Information Card - GREEN Theme */}
-          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
+          <div className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
             <div className="bg-[var(--loop-green)] border-b-4 border-black p-4">
               <h2 className="text-2xl font-black uppercase">Contact Info</h2>
             </div>
@@ -754,7 +757,7 @@ export default function UserSettings() {
                 <div className="flex justify-between items-center mb-1">
                   <button
                     onClick={() => toggleFieldVisibility('cellPhone')}
-                    className="text-gray-500 hover:text-black transition-colors ml-auto"
+                    className="text-app-text-muted hover:text-black transition-colors ml-auto"
                     title="Toggle Public Visibility"
                   >
                     {fieldVisibility['cellPhone'] ? (
@@ -780,16 +783,16 @@ export default function UserSettings() {
                   type="email"
                   value={profile.email}
                   onChange={(e) => handleChange('email', e.target.value)}
-                  className="w-full p-3 border-2 border-black bg-gray-100 font-mono text-gray-500 cursor-not-allowed"
+                  className="w-full p-3 border-2 border-black bg-app-surface-muted font-mono text-app-text-muted cursor-not-allowed"
                   disabled // Making email read-only typically good for primary ID, or changing it requires re-auth usually
                 />
               </div>
 
               {/* Visibility Toggles */}
-              <div className="border-2 border-black p-4 bg-gray-50 flex flex-col gap-3">
+              <div className="border-2 border-black p-4 bg-app-surface-muted flex flex-col gap-3">
                 <h3 className="font-bold text-sm uppercase">Visibility Settings</h3>
                 <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-6 h-6 border-2 border-black flex items-center justify-center transition-all ${profile.emailSharedWithUsers ? 'bg-black' : 'bg-white'}`}>
+                  <div className={`w-6 h-6 border-2 border-black flex items-center justify-center transition-all ${profile.emailSharedWithUsers ? 'bg-black' : 'bg-app-surface'}`}>
                     {profile.emailSharedWithUsers && <span className="text-white text-xs">✓</span>}
                   </div>
                   <input
@@ -801,7 +804,7 @@ export default function UserSettings() {
                   <span className="font-medium group-hover:underline">Broadcast email to other staff</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-6 h-6 border-2 border-black flex items-center justify-center transition-all ${profile.emailSharedWithClients ? 'bg-black' : 'bg-white'}`}>
+                  <div className={`w-6 h-6 border-2 border-black flex items-center justify-center transition-all ${profile.emailSharedWithClients ? 'bg-black' : 'bg-app-surface'}`}>
                     {profile.emailSharedWithClients && <span className="text-white text-xs">✓</span>}
                   </div>
                   <input
@@ -817,21 +820,21 @@ export default function UserSettings() {
           </div>
 
           {/* Notifications - PURPLE Theme */}
-          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
+          <div className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
             <div className="bg-[var(--loop-purple)] border-b-4 border-black p-4">
               <h2 className="text-2xl font-black uppercase">Notification Settings</h2>
             </div>
 
             <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-4">
               {Object.entries(profile.notifications).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between border-2 border-black p-3 bg-white hover:bg-gray-50 transition-colors shadow-[4px_4px_0px_0px_var(--shadow-color)]">
+                <div key={key} className="flex items-center justify-between border-2 border-black p-3 bg-app-surface hover:bg-app-surface-muted transition-colors shadow-[4px_4px_0px_0px_var(--shadow-color)]">
                   <span className="font-bold uppercase text-sm">
                     {key.replace(/([A-Z])/g, ' $1').trim()}
                   </span>
                   <button
                     type="button"
                     onClick={() => handleNotificationChange(key as keyof NotificationSettings, !value)}
-                    className={`w-12 h-6 border-2 border-black rounded-full relative transition-colors shadow-[2px_2px_0px_0px_var(--shadow-color)] ${value ? 'bg-[#90EE90]' : 'bg-gray-200'
+                    className={`w-12 h-6 border-2 border-black rounded-full relative transition-colors shadow-[2px_2px_0px_0px_var(--shadow-color)] ${value ? 'bg-[#90EE90]' : 'bg-app-surface-muted'
                       }`}
                   >
                     <div className={`absolute top-0.5 bottom-0.5 w-4 h-4 bg-black border border-black rounded-full transition-all ${value ? 'right-1' : 'left-1'
@@ -842,31 +845,27 @@ export default function UserSettings() {
             </div>
           </div>
 
-          {/* Interface Theme - Moved to Bottom */}
-          <div className="w-full">
-            <ThemeSelector />
-          </div>
 
           {/* Security */}
-          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
+          <div className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
             <div className="bg-[var(--loop-cyan)] border-b-4 border-black p-4">
               <h2 className="text-2xl font-black uppercase">Security</h2>
             </div>
             <div className="p-8">
 
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-900">Two-Factor Authentication (2FA)</h3>
-              <p className="mt-1 text-sm text-gray-500">
+            <div className="mt-8 pt-6 border-t border-app-border">
+              <h3 className="text-sm font-semibold text-app-text-heading">Two-Factor Authentication (2FA)</h3>
+              <p className="mt-1 text-sm text-app-text-muted">
                 Use an authenticator app (TOTP) to protect your account.
               </p>
 
               {securityLoading ? (
-                <div className="mt-3 text-sm text-gray-500">Loading security settings…</div>
+                <div className="mt-3 text-sm text-app-text-muted">Loading security settings…</div>
               ) : (
                 <div className="mt-3 flex items-center justify-between">
-                  <div className="text-sm text-gray-700">
+                  <div className="text-sm text-app-text-muted">
                     Status:{' '}
-                    <span className={security.totpEnabled ? 'text-green-700 font-medium' : 'text-gray-700 font-medium'}>
+                    <span className={security.totpEnabled ? 'text-green-700 font-medium' : 'text-app-text-muted font-medium'}>
                       {security.totpEnabled ? 'Enabled' : 'Not enabled'}
                     </span>
                   </div>
@@ -875,7 +874,7 @@ export default function UserSettings() {
                       type="button"
                       onClick={handleStartTotpSetup}
                       disabled={securityActionLoading}
-                      className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                      className="px-4 py-2 bg-app-accent text-white font-medium rounded-lg hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
                     >
                       {securityActionLoading ? 'Starting…' : 'Enable 2FA'}
                     </button>
@@ -890,7 +889,7 @@ export default function UserSettings() {
               />
 
               {!security.totpEnabled && totpSetup && (
-                <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="mt-4 bg-app-surface-muted border border-app-border rounded-lg p-4">
                   {/* Timeout warning banner */}
                   {totpSecondsRemaining > 0 && (
                     <div className={`mb-4 p-3 rounded-lg border ${totpSecondsRemaining < 60 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-yellow-50 border-yellow-200 text-yellow-700'}`}>
@@ -910,21 +909,21 @@ export default function UserSettings() {
                       <img
                         src={totpSetup.qrDataUrl}
                         alt="2FA QR code"
-                        className="w-48 h-48 border border-gray-200 rounded bg-white"
+                        className="w-48 h-48 border border-app-border rounded bg-app-surface"
                       />
                     )}
                     <div className="mt-4 md:mt-0 flex-1">
-                      <p className="text-sm text-gray-700">
+                      <p className="text-sm text-app-text-muted">
                         Scan this QR code with your authenticator app, or enter the secret manually.
                       </p>
                       <div className="mt-3">
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Secret</label>
-                        <div className="font-mono text-sm bg-white border border-gray-200 rounded px-3 py-2 break-all">
+                        <label className="block text-xs font-medium text-app-text-muted mb-1">Secret</label>
+                        <div className="font-mono text-sm bg-app-surface border border-app-border rounded px-3 py-2 break-all">
                           {totpSetup.secret}
                         </div>
                       </div>
                       <div className="mt-4">
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                        <label className="block text-xs font-medium text-app-text-muted mb-1">
                           Enter 6-digit code to confirm
                         </label>
                         <input
@@ -932,7 +931,7 @@ export default function UserSettings() {
                           autoComplete="one-time-code"
                           value={totpEnableCode}
                           onChange={(e) => setTotpEnableCode(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent focus:border-transparent"
                         />
                       </div>
                       <div className="mt-4 flex space-x-3">
@@ -940,7 +939,7 @@ export default function UserSettings() {
                           type="button"
                           onClick={handleEnableTotp}
                           disabled={securityActionLoading}
-                          className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                          className="px-4 py-2 bg-app-accent text-white font-medium rounded-lg hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
                         >
                           {securityActionLoading ? 'Enabling…' : 'Confirm & Enable'}
                         </button>
@@ -951,7 +950,7 @@ export default function UserSettings() {
                             setTotpSetupExpiresAt(null);
                             setTotpEnableCode('');
                           }}
-                          className="px-4 py-2 text-gray-700 font-medium rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                          className="px-4 py-2 text-app-text-muted font-medium rounded-lg hover:bg-app-surface-muted focus:outline-none focus:ring-2 focus:ring-app-accent"
                         >
                           Cancel
                         </button>
@@ -962,28 +961,28 @@ export default function UserSettings() {
               )}
 
               {security.totpEnabled && (
-                <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <p className="text-sm text-gray-700">
+                <div className="mt-4 bg-app-surface-muted border border-app-border rounded-lg p-4">
+                  <p className="text-sm text-app-text-muted">
                     To disable 2FA, confirm your password and a current authentication code.
                   </p>
                   <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Password</label>
+                      <label className="block text-xs font-medium text-app-text-muted mb-1">Password</label>
                       <input
                         type="password"
                         value={totpDisablePassword}
                         onChange={(e) => setTotpDisablePassword(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent focus:border-transparent"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">6-digit code</label>
+                      <label className="block text-xs font-medium text-app-text-muted mb-1">6-digit code</label>
                       <input
                         inputMode="numeric"
                         autoComplete="one-time-code"
                         value={totpDisableCode}
                         onChange={(e) => setTotpDisableCode(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent focus:border-transparent"
                       />
                     </div>
                   </div>
@@ -1001,21 +1000,21 @@ export default function UserSettings() {
               )}
             </div>
 
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-900">Passkeys</h3>
-              <p className="mt-1 text-sm text-gray-500">
+            <div className="mt-8 pt-6 border-t border-app-border">
+              <h3 className="text-sm font-semibold text-app-text-heading">Passkeys</h3>
+              <p className="mt-1 text-sm text-app-text-muted">
                 Use passkeys to sign in with your device biometrics or screen lock.
               </p>
 
               <div className="mt-3 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
                 <div className="w-full md:max-w-sm">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                  <label className="block text-xs font-medium text-app-text-muted mb-1">
                     Passkey name (optional)
                   </label>
                   <input
                     value={newPasskeyName}
                     onChange={(e) => setNewPasskeyName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent focus:border-transparent"
                     placeholder="e.g., MacBook Touch ID"
                   />
                 </div>
@@ -1023,23 +1022,23 @@ export default function UserSettings() {
                   type="button"
                   onClick={handleAddPasskey}
                   disabled={securityActionLoading}
-                  className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                  className="px-4 py-2 bg-app-accent text-white font-medium rounded-lg hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
                 >
                   {securityActionLoading ? 'Adding…' : 'Add passkey'}
                 </button>
               </div>
 
               {security.passkeys.length === 0 ? (
-                <div className="mt-4 text-sm text-gray-600">No passkeys registered.</div>
+                <div className="mt-4 text-sm text-app-text-muted">No passkeys registered.</div>
               ) : (
-                <ul className="mt-4 divide-y divide-gray-200 border border-gray-200 rounded-lg bg-white overflow-hidden">
+                <ul className="mt-4 divide-y divide-app-border border border-app-border rounded-lg bg-app-surface overflow-hidden">
                   {security.passkeys.map((pk) => (
                     <li key={pk.id} className="px-4 py-3 flex items-center justify-between">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-app-text">
                           {pk.name || 'Passkey'}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-app-text-muted">
                           Added {new Date(pk.createdAt).toLocaleString('en-CA')}
                           {pk.lastUsedAt ? ` • Last used ${new Date(pk.lastUsedAt).toLocaleString('en-CA')}` : ''}
                         </div>

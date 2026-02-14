@@ -26,7 +26,7 @@ describe('PaymentHistory', () => {
 
       expect(screen.getByText('Payment History')).toBeInTheDocument();
       // Should show loading skeleton (3 placeholder divs)
-      const loadingSkeletons = document.querySelectorAll('.animate-pulse .bg-gray-200');
+      const loadingSkeletons = document.querySelectorAll('.animate-pulse .bg-app-surface-muted');
       expect(loadingSkeletons.length).toBe(3);
     });
   });
@@ -273,7 +273,7 @@ describe('PaymentHistory', () => {
         expect(screen.getByText('pending')).toHaveClass('bg-yellow-100');
         expect(screen.getByText('failed')).toHaveClass('bg-red-100');
         expect(screen.getByText('refunded')).toHaveClass('bg-purple-100');
-        expect(screen.getByText('cancelled')).toHaveClass('bg-gray-100');
+        expect(screen.getByText('cancelled')).toHaveClass('bg-app-surface-muted');
       });
     });
   });

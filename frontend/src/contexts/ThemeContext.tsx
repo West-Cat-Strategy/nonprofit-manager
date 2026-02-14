@@ -1,17 +1,25 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+
+export type ColorSchemePreference = 'light' | 'dark' | 'system';
 
 export interface ThemeContextType {
     theme: string;
     setTheme: (theme: string) => void;
     isDarkMode: boolean;
     toggleDarkMode: () => void;
+    colorScheme: ColorSchemePreference;
+    setColorScheme: (pref: ColorSchemePreference) => void;
     availableThemes: string[];
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export const availableThemes = ['neobrutalist', 'sea-breeze', 'corporate', 'clean-modern', 'glass'];
+export const availableThemes = ['neobrutalist', 'sea-breeze', 'corporate', 'clean-modern', 'glass', 'high-contrast'];
+
+function getSystemDarkMode(): boolean {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const [theme, setTheme] = useState(() => {
@@ -20,13 +28,38 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         return normalized && availableThemes.includes(normalized) ? normalized : 'neobrutalist';
     });
 
-    const [isDarkMode, setIsDarkMode] = useState(() => {
-        return localStorage.getItem('app-dark-mode') === 'true';
+    const [colorScheme, setColorSchemeState] = useState<ColorSchemePreference>(() => {
+        const saved = localStorage.getItem('app-color-scheme');
+        if (saved === 'light' || saved === 'dark' || saved === 'system') return saved;
+        // Migrate legacy dark mode preference
+        const legacyDark = localStorage.getItem('app-dark-mode');
+        if (legacyDark === 'true') return 'dark';
+        if (legacyDark === 'false') return 'light';
+        return 'system';
     });
 
-    const toggleDarkMode = () => {
-        setIsDarkMode(prev => !prev);
-    };
+    const [systemDark, setSystemDark] = useState(getSystemDarkMode);
+
+    const isDarkMode = colorScheme === 'system' ? systemDark : colorScheme === 'dark';
+
+    const setColorScheme = useCallback((pref: ColorSchemePreference) => {
+        setColorSchemeState(pref);
+        localStorage.setItem('app-color-scheme', pref);
+        // Clean up legacy key
+        localStorage.removeItem('app-dark-mode');
+    }, []);
+
+    const toggleDarkMode = useCallback(() => {
+        setColorScheme(isDarkMode ? 'light' : 'dark');
+    }, [isDarkMode, setColorScheme]);
+
+    // Listen for OS color scheme changes
+    useEffect(() => {
+        const mq = window.matchMedia('(prefers-color-scheme: dark)');
+        const handler = (e: MediaQueryListEvent) => setSystemDark(e.matches);
+        mq.addEventListener('change', handler);
+        return () => mq.removeEventListener('change', handler);
+    }, []);
 
     useEffect(() => {
         const root = document.body;
@@ -36,6 +69,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         availableThemes.forEach(t => {
             if (t !== 'neobrutalist') root.classList.remove(`theme-${t}`);
         });
+
+        // Apply theme transition class for smooth switching
+        root.classList.add('theme-transitioning');
+        const transitionTimeout = setTimeout(() => {
+            root.classList.remove('theme-transitioning');
+        }, 400);
 
         // Apply Theme Class
         if (theme !== 'neobrutalist') {
@@ -48,16 +87,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         // Apply Dark Mode Class
         if (isDarkMode) {
             root.classList.add('dark');
-            localStorage.setItem('app-dark-mode', 'true');
         } else {
             root.classList.remove('dark');
-            localStorage.setItem('app-dark-mode', 'false');
         }
 
+        return () => clearTimeout(transitionTimeout);
     }, [theme, isDarkMode]);
 
     return (
-        <ThemeContext.Provider value={{ theme, setTheme, isDarkMode, toggleDarkMode, availableThemes }}>
+        <ThemeContext.Provider value={{ theme, setTheme, isDarkMode, toggleDarkMode, colorScheme, setColorScheme, availableThemes }}>
             {children}
         </ThemeContext.Provider>
     );

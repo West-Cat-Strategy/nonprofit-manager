@@ -11,6 +11,7 @@ All orchestration is done via `make`. Run `make help` for the full list.
 make dev              # Start full dev environment (Docker)
 make docker-up        # Start Docker services
 make docker-down      # Stop Docker services
+make docker-tools     # Start development tools (pgAdmin, Redis Commander, MailHog)
 
 # Quality
 make lint             # ESLint (backend + frontend)
@@ -39,15 +40,38 @@ cd backend && npx jest --testPathPattern="<pattern>" --forceExit
 cd frontend && npx vitest run <pattern>
 ```
 
-### Database migrations
+### Database operations
 ```bash
 ./scripts/db-migrate.sh
+./scripts/db-backup.sh
+./scripts/db-restore.sh backup_file.sql --confirm-destructive
 ./scripts/verify-migrations.sh
+```
+
+### Quality assurance
+```bash
+./scripts/ci.sh --quick              # Fast CI (lint + typecheck)
+./scripts/ci.sh --build --coverage   # Full CI with build and coverage
+./scripts/quality-baseline.sh        # Code quality report
+./scripts/security-scan.sh           # Security scanning
+```
+
+### Testing
+```bash
+./scripts/test-auth-flow.sh          # End-to-end auth testing
+```
+
+### Git hooks
+```bash
+./scripts/install-git-hooks.sh       # Install pre-commit/pre-push hooks
 ```
 
 ## Architecture
 
 Full-stack TypeScript monorepo: React frontend, Express.js backend, PostgreSQL database, Redis cache. All services run via Docker Compose (`docker-compose.dev.yml` for development, `docker-compose.yml` for production).
+
+**Current Phase:** Phase 2 - Validation & Authorization (In Progress)  
+**Last Updated:** February 14, 2026
 
 **Ports**: Dev DB=5432, Redis=6379, API=3000, Frontend=5173. Prod DB=5433, Redis=6380, API=3001, Frontend=8081.
 
@@ -111,9 +135,10 @@ Conventional Commits: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:` w
 
 ## Documentation
 
-- `docs/AGENT_INSTRUCTIONS.md` — Development guidelines and common task patterns
-- `docs/CONVENTIONS.md` — Naming, file structure, error codes, CSS class ordering
-- `docs/ARCHITECTURE.md` — Architecture Decision Records (ADRs)
-- `docs/API_REFERENCE*.md` — API endpoint documentation
-- `planning-and-progress.md` — Project roadmap, Workboard, current status
-- `product-spec.md` — Product requirements
+- `docs/development/AGENT_INSTRUCTIONS.md` — Development guidelines and common task patterns
+- `docs/development/CONVENTIONS.md` — Naming, file structure, error codes, CSS class ordering
+- `docs/development/ARCHITECTURE.md` — Architecture Decision Records (ADRs)
+- `docs/api/API_REFERENCE*.md` — API endpoint documentation
+- `docs/phases/planning-and-progress.md` — Project roadmap, Workboard, current status
+- `docs/product/product-spec.md` — Product requirements
+- `scripts/README.md` — Complete documentation for all utility scripts

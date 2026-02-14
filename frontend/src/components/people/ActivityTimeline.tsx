@@ -27,7 +27,7 @@ const getEventIcon = (type: ActivityEventType) => {
     case 'created':
       return <CheckCircleIcon className={`${iconClass} text-green-600`} />;
     case 'updated':
-      return <PencilIcon className={`${iconClass} text-blue-600`} />;
+      return <PencilIcon className={`${iconClass} text-app-accent`} />;
     case 'deleted':
       return <TrashIcon className={`${iconClass} text-red-600`} />;
     case 'status_changed':
@@ -37,13 +37,13 @@ const getEventIcon = (type: ActivityEventType) => {
     case 'assigned':
       return <LinkIcon className={`${iconClass} text-indigo-600`} />;
     case 'unassigned':
-      return <LinkIcon className={`${iconClass} text-gray-600`} />;
+      return <LinkIcon className={`${iconClass} text-app-text-muted`} />;
     case 'status_updated':
       return <CheckIcon className={`${iconClass} text-yellow-600`} />;
     case 'field_changed':
-      return <PencilIcon className={`${iconClass} text-blue-600`} />;
+      return <PencilIcon className={`${iconClass} text-app-accent`} />;
     default:
-      return <ClockIcon className={`${iconClass} text-gray-600`} />;
+      return <ClockIcon className={`${iconClass} text-app-text-muted`} />;
   }
 };
 
@@ -52,7 +52,7 @@ const getEventColor = (type: ActivityEventType) => {
     case 'created':
       return 'bg-green-50 border-green-200';
     case 'updated':
-      return 'bg-blue-50 border-blue-200';
+      return 'bg-app-accent-soft border-app-accent-soft';
     case 'deleted':
       return 'bg-red-50 border-red-200';
     case 'status_changed':
@@ -62,13 +62,13 @@ const getEventColor = (type: ActivityEventType) => {
     case 'assigned':
       return 'bg-indigo-50 border-indigo-200';
     case 'unassigned':
-      return 'bg-gray-50 border-gray-200';
+      return 'bg-app-surface-muted border-app-border';
     case 'status_updated':
       return 'bg-yellow-50 border-yellow-200';
     case 'field_changed':
-      return 'bg-blue-50 border-blue-200';
+      return 'bg-app-accent-soft border-app-accent-soft';
     default:
-      return 'bg-gray-50 border-gray-200';
+      return 'bg-app-surface-muted border-app-border';
   }
 };
 
@@ -100,11 +100,11 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
     return (
       <div className="space-y-4">
         {[...Array(3)].map((_, idx) => (
-          <div key={idx} className="animate-pulse flex gap-4 pb-4 border-b border-gray-200">
-            <div className="w-10 h-10 bg-gray-200 rounded-full flex-shrink-0"></div>
+          <div key={idx} className="animate-pulse flex gap-4 pb-4 border-b border-app-border">
+            <div className="w-10 h-10 bg-app-surface-muted rounded-full flex-shrink-0"></div>
             <div className="flex-1 space-y-2">
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-3 bg-gray-100 rounded w-1/2"></div>
+              <div className="h-4 bg-app-surface-muted rounded w-3/4"></div>
+              <div className="h-3 bg-app-surface-muted rounded w-1/2"></div>
             </div>
           </div>
         ))}
@@ -115,8 +115,8 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
   if (events.length === 0) {
     return (
       <div className="text-center py-12">
-        <ClockIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-        <p className="text-gray-500 font-mono text-sm">{emptyMessage}</p>
+        <ClockIcon className="w-12 h-12 text-app-text-subtle mx-auto mb-3" />
+        <p className="text-app-text-muted font-mono text-sm">{emptyMessage}</p>
       </div>
     );
   }
@@ -130,8 +130,8 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
       {sortedEvents.map((event, index) => (
         <div
           key={event.id}
-          className={`border-l-4 border-gray-900 pl-4 pb-4 ${
-            index !== sortedEvents.length - 1 ? 'border-b border-gray-200 pb-4' : ''
+          className={`border-l-4 border-app-text pl-4 pb-4 ${
+            index !== sortedEvents.length - 1 ? 'border-b border-app-border pb-4' : ''
           }`}
         >
           {/* Event Header */}
@@ -141,33 +141,33 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
                 {getEventIcon(event.type)}
               </div>
               <div>
-                <h4 className="font-bold text-gray-900 text-sm">{event.title}</h4>
+                <h4 className="font-bold text-app-text text-sm">{event.title}</h4>
                 {event.user && (
-                  <p className="text-xs text-gray-600 font-mono mt-0.5">
+                  <p className="text-xs text-app-text-muted font-mono mt-0.5">
                     By {event.user.name}
                     {event.user.email && ` (${event.user.email})`}
                   </p>
                 )}
               </div>
             </div>
-            <time className="text-xs text-gray-500 whitespace-nowrap ml-2">
+            <time className="text-xs text-app-text-muted whitespace-nowrap ml-2">
               {formatTimeAgo(new Date(event.timestamp))}
             </time>
           </div>
 
           {/* Event Description */}
           {event.description && (
-            <p className="text-sm text-gray-700 ml-8 mb-2">
+            <p className="text-sm text-app-text-muted ml-8 mb-2">
               {event.description}
             </p>
           )}
 
           {/* Event Details - Field Changes */}
           {event.details && Object.keys(event.details).length > 0 && (
-            <div className="ml-8 bg-gray-50 border border-gray-200 rounded p-3 text-xs font-mono space-y-2">
+            <div className="ml-8 bg-app-surface-muted border border-app-border rounded p-3 text-xs font-mono space-y-2">
               {Object.entries(event.details).map(([field, change]) => (
-                <div key={field} className="border-b border-gray-200 last:border-b-0 pb-2 last:pb-0">
-                  <div className="text-gray-600 font-bold mb-1">
+                <div key={field} className="border-b border-app-border last:border-b-0 pb-2 last:pb-0">
+                  <div className="text-app-text-muted font-bold mb-1">
                     {field.replace(/_/g, ' ')}
                   </div>
                   <div className="ml-2 space-y-1">
@@ -195,9 +195,9 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
               {Object.entries(event.metadata).map(([key, value]) => (
                 <span
                   key={key}
-                  className="text-xs bg-gray-100 border border-gray-300 px-2 py-1 rounded font-mono"
+                  className="text-xs bg-app-surface-muted border border-app-input-border px-2 py-1 rounded font-mono"
                 >
-                  <span className="text-gray-600">{key}:</span> {String(value)}
+                  <span className="text-app-text-muted">{key}:</span> {String(value)}
                 </span>
               ))}
             </div>

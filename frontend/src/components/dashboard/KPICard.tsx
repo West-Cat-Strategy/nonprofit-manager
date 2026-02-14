@@ -32,7 +32,7 @@ const accentText: Record<KPICardProps['color'], string> = {
 function KPICard({ title, value, subtitle, caption, color }: KPICardProps) {
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/85 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+      className="relative overflow-hidden rounded-2xl border border-app-border/70 bg-app-surface/85 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
       role="article"
       aria-label={`${title}: ${value}`}
     >
@@ -41,9 +41,9 @@ function KPICard({ title, value, subtitle, caption, color }: KPICardProps) {
         <p className={`text-xs font-semibold uppercase tracking-wide ${accentText[color]}`}>
           {title}
         </p>
-        <p className="font-display mt-2 text-2xl font-semibold text-slate-900">{value}</p>
-        {subtitle && <p className="mt-1 text-xs text-slate-500">{subtitle}</p>}
-        {caption && <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{caption}</p>}
+        <p className="font-display mt-2 text-2xl font-semibold text-app-text">{value}</p>
+        {subtitle && <p className="mt-1 text-xs text-app-text-muted">{subtitle}</p>}
+        {caption && <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-app-text-subtle">{caption}</p>}
       </div>
     </div>
   );

@@ -273,7 +273,7 @@ describe('EventAttendanceWidget', () => {
       );
 
       const label = screen.getByText('Upcoming Events');
-      expect(label).toHaveClass('text-sm', 'text-gray-500');
+      expect(label).toHaveClass('text-sm', 'text-app-text-muted');
     });
 
     it('displays correct label for total this month', () => {
@@ -286,7 +286,7 @@ describe('EventAttendanceWidget', () => {
       );
 
       const label = screen.getByText('Total This Month');
-      expect(label).toHaveClass('text-xs', 'text-gray-500');
+      expect(label).toHaveClass('text-xs', 'text-app-text-muted');
     });
 
     it('displays correct label for average attendance', () => {
@@ -299,7 +299,7 @@ describe('EventAttendanceWidget', () => {
       );
 
       const label = screen.getByText('Avg. Attendance');
-      expect(label).toHaveClass('text-xs', 'text-gray-500');
+      expect(label).toHaveClass('text-xs', 'text-app-text-muted');
     });
 
     it('uses abbreviated form for average', () => {
@@ -355,9 +355,9 @@ describe('EventAttendanceWidget', () => {
         />
       );
 
-      // Values should be dark gray (text-gray-900) for high contrast
+      // Values should be dark gray (text-app-text) for high contrast
       const value = screen.getAllByText('--')[0];
-      expect(value).toHaveClass('text-gray-900');
+      expect(value).toHaveClass('text-app-text');
     });
 
     it('distinguishes labels from values with color', () => {
@@ -369,13 +369,13 @@ describe('EventAttendanceWidget', () => {
         />
       );
 
-      // Labels should be lighter (text-gray-500)
+      // Labels should be lighter (text-app-text-muted)
       const label = screen.getByText('Upcoming Events');
-      expect(label).toHaveClass('text-gray-500');
+      expect(label).toHaveClass('text-app-text-muted');
 
-      // Values should be darker (text-gray-900)
+      // Values should be darker (text-app-text)
       const value = screen.getAllByText('--')[0];
-      expect(value).toHaveClass('text-gray-900');
+      expect(value).toHaveClass('text-app-text');
     });
   });
 

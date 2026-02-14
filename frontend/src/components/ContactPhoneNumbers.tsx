@@ -93,12 +93,12 @@ const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
       {/* Phone List */}
       {phonesLoading && phones.length === 0 ? (
         <div className="text-center py-4">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-app-accent mx-auto"></div>
         </div>
       ) : phones.length === 0 && !isAdding ? (
-        <div className="text-center py-6 bg-gray-50 rounded-lg">
-          <div className="text-gray-400 text-2xl mb-1">📞</div>
-          <p className="text-gray-500 text-sm">No phone numbers</p>
+        <div className="text-center py-6 bg-app-surface-muted rounded-lg">
+          <div className="text-app-text-subtle text-2xl mb-1">📞</div>
+          <p className="text-app-text-muted text-sm">No phone numbers</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -106,7 +106,7 @@ const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
             <div
               key={phone.id}
               className={`flex items-center justify-between p-3 rounded-lg border ${
-                phone.is_primary ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'
+                phone.is_primary ? 'bg-app-accent-soft border-app-accent-soft' : 'bg-app-surface border-app-border'
               }`}
             >
               <div className="flex items-center gap-3">
@@ -115,23 +115,23 @@ const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
                   <div className="flex items-center gap-2">
                     <a
                       href={`tel:${phone.phone_number}`}
-                      className="font-medium text-gray-900 hover:text-blue-600"
+                      className="font-medium text-app-text hover:text-app-accent"
                     >
                       {phone.phone_number}
                     </a>
                     {phone.is_primary && (
-                      <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded">
+                      <span className="px-2 py-0.5 text-xs bg-app-accent-soft text-app-accent-text rounded">
                         Primary
                       </span>
                     )}
                   </div>
-                  <div className="text-sm text-gray-500 capitalize">{phone.label}</div>
+                  <div className="text-sm text-app-text-muted capitalize">{phone.label}</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleEdit(phone)}
-                  className="p-1 text-gray-400 hover:text-blue-600 transition"
+                  className="p-1 text-app-text-subtle hover:text-app-accent transition"
                   title="Edit"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -145,7 +145,7 @@ const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
                 </button>
                 <button
                   onClick={() => handleDelete(phone.id)}
-                  className="p-1 text-gray-400 hover:text-red-500 transition"
+                  className="p-1 text-app-text-subtle hover:text-red-500 transition"
                   title="Delete"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,29 +165,29 @@ const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
 
       {/* Add/Edit Form */}
       {isAdding ? (
-        <form onSubmit={handleSubmit} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+        <form onSubmit={handleSubmit} className="bg-app-surface-muted rounded-lg p-4 border border-app-border">
           <h4 className="font-medium mb-3">{editingId ? 'Edit Phone Number' : 'Add Phone Number'}</h4>
 
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">Phone Number</label>
               <input
                 type="tel"
                 value={formData.phone_number}
                 onChange={(e) => setFormData((prev) => ({ ...prev, phone_number: e.target.value }))}
                 placeholder="(555) 123-4567"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">Label</label>
               <select
                 value={formData.label}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, label: e.target.value as PhoneLabel }))
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
               >
                 {PHONE_LABELS.map((label) => (
                   <option key={label.value} value={label.value}>
@@ -203,22 +203,22 @@ const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
               type="checkbox"
               checked={formData.is_primary}
               onChange={(e) => setFormData((prev) => ({ ...prev, is_primary: e.target.checked }))}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
             />
-            <span className="text-sm text-gray-700">Set as primary phone number</span>
+            <span className="text-sm text-app-text-muted">Set as primary phone number</span>
           </label>
 
           <div className="flex justify-end gap-2">
             <button
               type="button"
               onClick={resetForm}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              className="px-3 py-1.5 text-sm border border-app-input-border rounded-lg hover:bg-app-surface-muted transition"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className="px-3 py-1.5 text-sm bg-app-accent text-white rounded-lg hover:bg-app-accent-hover transition"
             >
               {editingId ? 'Save' : 'Add'}
             </button>
@@ -227,7 +227,7 @@ const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
       ) : (
         <button
           onClick={() => setIsAdding(true)}
-          className="w-full px-3 py-2 text-sm text-blue-600 border border-dashed border-blue-300 rounded-lg hover:bg-blue-50 transition"
+          className="w-full px-3 py-2 text-sm text-app-accent border border-dashed border-app-accent rounded-lg hover:bg-app-accent-soft transition"
         >
           + Add Phone Number
         </button>

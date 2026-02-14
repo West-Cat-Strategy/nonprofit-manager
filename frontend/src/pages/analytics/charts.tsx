@@ -31,7 +31,7 @@ const ENGAGEMENT_COLORS = ['#22c55e', '#eab308', '#f97316', '#9ca3af'];
 
 function EngagementPieChartComponent({ distribution }: EngagementPieChartProps) {
   const total = distribution.high + distribution.medium + distribution.low + distribution.inactive;
-  if (total === 0) return <div className="text-gray-500 text-center py-8">No engagement data</div>;
+  if (total === 0) return <div className="text-app-text-muted text-center py-8">No engagement data</div>;
 
   const data = [
     { name: 'Highly Engaged', value: distribution.high, color: '#22c55e' },
@@ -41,8 +41,8 @@ function EngagementPieChartComponent({ distribution }: EngagementPieChartProps) 
   ].filter((item) => item.value > 0);
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">Engagement Distribution</h3>
+    <div className="bg-app-surface rounded-lg shadow p-6">
+      <h3 className="text-lg font-medium text-app-text mb-4">Engagement Distribution</h3>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -70,12 +70,12 @@ function EngagementPieChartComponent({ distribution }: EngagementPieChartProps) 
           { label: 'High', value: distribution.high, color: 'bg-green-500' },
           { label: 'Medium', value: distribution.medium, color: 'bg-yellow-500' },
           { label: 'Low', value: distribution.low, color: 'bg-orange-500' },
-          { label: 'Inactive', value: distribution.inactive, color: 'bg-gray-400' },
+          { label: 'Inactive', value: distribution.inactive, color: 'bg-app-text-subtle' },
         ].map((item) => (
           <div key={item.label} className="flex flex-col items-center">
             <div className={`w-4 h-4 rounded-full ${item.color} mb-1`} />
-            <p className="text-lg font-bold text-gray-900">{item.value}</p>
-            <p className="text-xs text-gray-500">{item.label}</p>
+            <p className="text-lg font-bold text-app-text">{item.value}</p>
+            <p className="text-xs text-app-text-muted">{item.label}</p>
           </div>
         ))}
       </div>
@@ -99,8 +99,8 @@ function ConstituentBarChartComponent({ accounts, contacts, volunteers }: Consti
   ];
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">Constituent Overview</h3>
+    <div className="bg-app-surface rounded-lg shadow p-6">
+      <h3 className="text-lg font-medium text-app-text mb-4">Constituent Overview</h3>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
@@ -134,8 +134,8 @@ function SummaryStatsChartComponent({ donations, events, volunteerHours }: Summa
   ];
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">Activity Summary (YTD)</h3>
+    <div className="bg-app-surface rounded-lg shadow p-6">
+      <h3 className="text-lg font-medium text-app-text mb-4">Activity Summary (YTD)</h3>
       <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
@@ -161,8 +161,8 @@ interface DonationTrendsChartProps {
 export function DonationTrendsChartComponent({ data, loading }: DonationTrendsChartProps) {
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Donation Trends (12 Months)</h3>
+      <div className="bg-app-surface rounded-lg shadow p-6">
+        <h3 className="text-lg font-medium text-app-text mb-4">Donation Trends (12 Months)</h3>
         <div className="h-64 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
         </div>
@@ -172,9 +172,9 @@ export function DonationTrendsChartComponent({ data, loading }: DonationTrendsCh
 
   if (data.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Donation Trends (12 Months)</h3>
-        <div className="h-64 flex items-center justify-center text-gray-500">
+      <div className="bg-app-surface rounded-lg shadow p-6">
+        <h3 className="text-lg font-medium text-app-text mb-4">Donation Trends (12 Months)</h3>
+        <div className="h-64 flex items-center justify-center text-app-text-muted">
           No donation trend data available
         </div>
       </div>
@@ -182,13 +182,13 @@ export function DonationTrendsChartComponent({ data, loading }: DonationTrendsCh
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 relative">
+    <div className="bg-app-surface rounded-lg shadow p-6 relative">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium text-gray-900">Donation Trends (12 Months)</h3>
+        <h3 className="text-lg font-medium text-app-text">Donation Trends (12 Months)</h3>
         <button
           type="button"
           onClick={() => exportDonationTrendsToPDF(data)}
-          className="p-2 text-gray-400 hover:text-red-600 hover:bg-gray-100 rounded"
+          className="p-2 text-app-text-subtle hover:text-red-600 hover:bg-app-surface-muted rounded"
           title="Export to PDF"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -245,8 +245,8 @@ interface VolunteerTrendsChartProps {
 export function VolunteerTrendsChartComponent({ data, loading }: VolunteerTrendsChartProps) {
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Volunteer Hours Trends (12 Months)</h3>
+      <div className="bg-app-surface rounded-lg shadow p-6">
+        <h3 className="text-lg font-medium text-app-text mb-4">Volunteer Hours Trends (12 Months)</h3>
         <div className="h-64 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
         </div>
@@ -256,9 +256,9 @@ export function VolunteerTrendsChartComponent({ data, loading }: VolunteerTrends
 
   if (data.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Volunteer Hours Trends (12 Months)</h3>
-        <div className="h-64 flex items-center justify-center text-gray-500">
+      <div className="bg-app-surface rounded-lg shadow p-6">
+        <h3 className="text-lg font-medium text-app-text mb-4">Volunteer Hours Trends (12 Months)</h3>
+        <div className="h-64 flex items-center justify-center text-app-text-muted">
           No volunteer hours trend data available
         </div>
       </div>
@@ -266,13 +266,13 @@ export function VolunteerTrendsChartComponent({ data, loading }: VolunteerTrends
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 relative">
+    <div className="bg-app-surface rounded-lg shadow p-6 relative">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium text-gray-900">Volunteer Hours Trends (12 Months)</h3>
+        <h3 className="text-lg font-medium text-app-text">Volunteer Hours Trends (12 Months)</h3>
         <button
           type="button"
           onClick={() => exportVolunteerTrendsToPDF(data)}
-          className="p-2 text-gray-400 hover:text-red-600 hover:bg-gray-100 rounded"
+          className="p-2 text-app-text-subtle hover:text-red-600 hover:bg-app-surface-muted rounded"
           title="Export to PDF"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -329,10 +329,10 @@ interface EventAttendanceTrendsChartProps {
 function EventAttendanceTrendsChartComponent({ data, loading }: EventAttendanceTrendsChartProps) {
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-app-surface rounded-lg shadow p-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
+          <div className="h-4 bg-app-surface-muted rounded w-1/4"></div>
+          <div className="h-64 bg-app-surface-muted rounded"></div>
         </div>
       </div>
     );
@@ -340,9 +340,9 @@ function EventAttendanceTrendsChartComponent({ data, loading }: EventAttendanceT
 
   if (!data || data.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Event Attendance Trends</h3>
-        <div className="text-gray-500 text-center py-8">No event attendance data</div>
+      <div className="bg-app-surface rounded-lg shadow p-6">
+        <h3 className="text-lg font-medium text-app-text mb-4">Event Attendance Trends</h3>
+        <div className="text-app-text-muted text-center py-8">No event attendance data</div>
       </div>
     );
   }
@@ -356,8 +356,8 @@ function EventAttendanceTrendsChartComponent({ data, loading }: EventAttendanceT
   }));
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">Event Attendance Trends</h3>
+    <div className="bg-app-surface rounded-lg shadow p-6">
+      <h3 className="text-lg font-medium text-app-text mb-4">Event Attendance Trends</h3>
       <div className="h-96">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={formattedData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
@@ -399,22 +399,22 @@ function EventAttendanceTrendsChartComponent({ data, loading }: EventAttendanceT
       </div>
       <div className="mt-4 grid grid-cols-3 gap-4 text-center">
         <div>
-          <p className="text-2xl font-bold text-blue-600">
+          <p className="text-2xl font-bold text-app-accent">
             {data.reduce((sum, t) => sum + t.total_events, 0)}
           </p>
-          <p className="text-sm text-gray-600">Total Events</p>
+          <p className="text-sm text-app-text-muted">Total Events</p>
         </div>
         <div>
           <p className="text-2xl font-bold text-purple-600">
             {data.reduce((sum, t) => sum + t.total_registrations, 0)}
           </p>
-          <p className="text-sm text-gray-600">Total Registrations</p>
+          <p className="text-sm text-app-text-muted">Total Registrations</p>
         </div>
         <div>
           <p className="text-2xl font-bold text-green-600">
             {data.reduce((sum, t) => sum + t.total_attendance, 0)}
           </p>
-          <p className="text-sm text-gray-600">Total Attendance</p>
+          <p className="text-sm text-app-text-muted">Total Attendance</p>
         </div>
       </div>
     </div>

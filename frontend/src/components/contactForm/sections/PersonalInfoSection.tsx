@@ -9,11 +9,11 @@ interface PersonalInfoSectionProps {
 
 export default function PersonalInfoSection({ formData, errors, onChange }: PersonalInfoSectionProps) {
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <h2 className="text-lg font-medium text-gray-900 mb-4">Personal Information</h2>
+    <div className="bg-app-surface shadow rounded-lg p-6">
+      <h2 className="text-lg font-medium text-app-text mb-4">Personal Information</h2>
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div>
-          <label htmlFor="salutation" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="salutation" className="block text-sm font-medium text-app-text-muted">
             Salutation
           </label>
           <input
@@ -23,14 +23,14 @@ export default function PersonalInfoSection({ formData, errors, onChange }: Pers
             placeholder="Mr., Ms., Dr., etc."
             value={formData.salutation ?? ''}
             onChange={onChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
           />
         </div>
 
         <div></div>
 
         <div>
-          <label htmlFor="first_name" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="first_name" className="block text-sm font-medium text-app-text-muted">
             First Name *
           </label>
           <input
@@ -40,14 +40,14 @@ export default function PersonalInfoSection({ formData, errors, onChange }: Pers
             value={formData.first_name}
             onChange={onChange}
             className={`mt-1 block w-full border ${
-              errors.first_name ? 'border-red-300' : 'border-gray-300'
-            } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+              errors.first_name ? 'border-red-300' : 'border-app-input-border'
+            } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
           />
           {errors.first_name && <p className="mt-1 text-sm text-red-600">{errors.first_name}</p>}
         </div>
 
         <div>
-          <label htmlFor="middle_name" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="middle_name" className="block text-sm font-medium text-app-text-muted">
             Middle Name
           </label>
           <input
@@ -56,12 +56,12 @@ export default function PersonalInfoSection({ formData, errors, onChange }: Pers
             id="middle_name"
             value={formData.middle_name ?? ''}
             onChange={onChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
           />
         </div>
 
         <div>
-          <label htmlFor="last_name" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="last_name" className="block text-sm font-medium text-app-text-muted">
             Last Name *
           </label>
           <input
@@ -71,14 +71,14 @@ export default function PersonalInfoSection({ formData, errors, onChange }: Pers
             value={formData.last_name}
             onChange={onChange}
             className={`mt-1 block w-full border ${
-              errors.last_name ? 'border-red-300' : 'border-gray-300'
-            } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+              errors.last_name ? 'border-red-300' : 'border-app-input-border'
+            } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
           />
           {errors.last_name && <p className="mt-1 text-sm text-red-600">{errors.last_name}</p>}
         </div>
 
         <div>
-          <label htmlFor="suffix" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="suffix" className="block text-sm font-medium text-app-text-muted">
             Suffix
           </label>
           <input
@@ -88,12 +88,12 @@ export default function PersonalInfoSection({ formData, errors, onChange }: Pers
             placeholder="Jr., Sr., III, etc."
             value={formData.suffix ?? ''}
             onChange={onChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
           />
         </div>
 
         <div>
-          <label htmlFor="job_title" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="job_title" className="block text-sm font-medium text-app-text-muted">
             Job Title
           </label>
           <input
@@ -102,12 +102,12 @@ export default function PersonalInfoSection({ formData, errors, onChange }: Pers
             id="job_title"
             value={formData.job_title ?? ''}
             onChange={onChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
           />
         </div>
 
         <div>
-          <label htmlFor="department" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="department" className="block text-sm font-medium text-app-text-muted">
             Department
           </label>
           <input
@@ -116,12 +116,12 @@ export default function PersonalInfoSection({ formData, errors, onChange }: Pers
             id="department"
             value={formData.department ?? ''}
             onChange={onChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
           />
         </div>
 
         <div>
-          <label htmlFor="birth_date" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="birth_date" className="block text-sm font-medium text-app-text-muted">
             Date of Birth
           </label>
           <input
@@ -130,12 +130,12 @@ export default function PersonalInfoSection({ formData, errors, onChange }: Pers
             id="birth_date"
             value={formData.birth_date ?? ''}
             onChange={onChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
           />
         </div>
 
         <div>
-          <label htmlFor="gender" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="gender" className="block text-sm font-medium text-app-text-muted">
             Gender
           </label>
           <select
@@ -143,7 +143,7 @@ export default function PersonalInfoSection({ formData, errors, onChange }: Pers
             id="gender"
             value={formData.gender ?? ''}
             onChange={onChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
           >
             {GENDER_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -154,7 +154,7 @@ export default function PersonalInfoSection({ formData, errors, onChange }: Pers
         </div>
 
         <div>
-          <label htmlFor="pronouns" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="pronouns" className="block text-sm font-medium text-app-text-muted">
             Pronouns
           </label>
           <select
@@ -162,7 +162,7 @@ export default function PersonalInfoSection({ formData, errors, onChange }: Pers
             id="pronouns"
             value={formData.pronouns ?? ''}
             onChange={onChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
           >
             {PRONOUNS_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>

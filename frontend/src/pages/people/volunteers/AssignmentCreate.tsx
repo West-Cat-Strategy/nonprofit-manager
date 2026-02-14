@@ -14,7 +14,7 @@ export const AssignmentCreate: React.FC = () => {
         </div>
         <button
           onClick={() => navigate('/volunteers')}
-          className="mt-4 text-blue-600 hover:text-blue-800"
+          className="mt-4 text-app-accent hover:text-app-accent-text"
         >
           ← Back to Volunteers
         </button>
@@ -27,12 +27,12 @@ export const AssignmentCreate: React.FC = () => {
       <div className="mb-6">
         <button
           onClick={() => navigate(`/volunteers/${volunteerId}`)}
-          className="text-blue-600 hover:text-blue-800 mb-2"
+          className="text-app-accent hover:text-app-accent-text mb-2"
         >
           ← Back to Volunteer
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Create Assignment</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-app-text">Create Assignment</h1>
+        <p className="mt-1 text-sm text-app-text-muted">
           Create a new assignment for this volunteer. Required fields are marked with an asterisk
           (*).
         </p>

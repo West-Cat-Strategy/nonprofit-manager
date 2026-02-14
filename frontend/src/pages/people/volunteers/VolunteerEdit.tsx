@@ -23,7 +23,7 @@ export const VolunteerEdit: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-app-accent"></div>
       </div>
     );
   }
@@ -36,7 +36,7 @@ export const VolunteerEdit: React.FC = () => {
         </div>
         <button
           onClick={() => navigate('/volunteers')}
-          className="mt-4 text-blue-600 hover:text-blue-800"
+          className="mt-4 text-app-accent hover:text-app-accent-text"
         >
           ← Back to Volunteers
         </button>
@@ -52,7 +52,7 @@ export const VolunteerEdit: React.FC = () => {
         </div>
         <button
           onClick={() => navigate('/volunteers')}
-          className="mt-4 text-blue-600 hover:text-blue-800"
+          className="mt-4 text-app-accent hover:text-app-accent-text"
         >
           ← Back to Volunteers
         </button>
@@ -63,8 +63,8 @@ export const VolunteerEdit: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Edit Volunteer</h1>
-        <p className="mt-1 text-sm text-gray-600">Update volunteer information and preferences.</p>
+        <h1 className="text-2xl font-bold text-app-text">Edit Volunteer</h1>
+        <p className="mt-1 text-sm text-app-text-muted">Update volunteer information and preferences.</p>
       </div>
       <VolunteerForm volunteer={currentVolunteer} mode="edit" />
     </div>

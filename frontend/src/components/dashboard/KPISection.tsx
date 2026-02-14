@@ -135,15 +135,15 @@ function KPISection({
 
   return (
     <section className="mt-6" aria-labelledby="key-metrics-heading">
-      <h2 id="key-metrics-heading" className="text-lg font-semibold text-slate-900">Key Metrics (YTD)</h2>
-      <p className="mt-1 text-sm text-slate-500">
+      <h2 id="key-metrics-heading" className="text-lg font-semibold text-app-text">Key Metrics (YTD)</h2>
+      <p className="mt-1 text-sm text-app-text-muted">
         Snapshot of year-to-date activity across fundraising and engagement.
       </p>
       <div className="mt-4">
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4" aria-busy="true" aria-label="Loading metrics">
             {Array.from({ length: 8 }, (_, i) => (
-              <div key={i} className="h-24 rounded-2xl bg-slate-100 animate-pulse" />
+              <div key={i} className="h-24 rounded-2xl bg-app-surface-muted animate-pulse" />
             ))}
           </div>
         ) : error ? (
@@ -163,7 +163,7 @@ function KPISection({
             ))}
           </div>
         ) : (
-          <div className="text-slate-500">No analytics data available</div>
+          <div className="text-app-text-muted">No analytics data available</div>
         )}
       </div>
     </section>

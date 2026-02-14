@@ -124,19 +124,19 @@ const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
       {/* Relationships List */}
       {relationshipsLoading && relationships.length === 0 ? (
         <div className="text-center py-4">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-app-accent mx-auto"></div>
         </div>
       ) : relationships.length === 0 && !isAdding ? (
-        <div className="text-center py-6 bg-gray-50 rounded-lg">
-          <div className="text-gray-400 text-2xl mb-1">🔗</div>
-          <p className="text-gray-500 text-sm">No associated contacts</p>
+        <div className="text-center py-6 bg-app-surface-muted rounded-lg">
+          <div className="text-app-text-subtle text-2xl mb-1">🔗</div>
+          <p className="text-app-text-muted text-sm">No associated contacts</p>
         </div>
       ) : (
         <div className="space-y-2">
           {relationships.map((rel) => (
             <div
               key={rel.id}
-              className="flex items-center justify-between p-3 rounded-lg border bg-white border-gray-200"
+              className="flex items-center justify-between p-3 rounded-lg border bg-app-surface border-app-border"
             >
               <div className="flex items-center gap-3">
                 <span className="text-xl">{getRelationshipIcon(rel.relationship_type)}</span>
@@ -144,24 +144,24 @@ const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => navigate(`/contacts/${rel.related_contact_id}`)}
-                      className="font-medium text-gray-900 hover:text-blue-600"
+                      className="font-medium text-app-text hover:text-app-accent"
                     >
                       {rel.related_contact_first_name} {rel.related_contact_last_name}
                     </button>
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-app-text-muted">
                     {rel.relationship_label || getRelationshipLabel(rel.relationship_type)}
                     {rel.is_bidirectional && (
-                      <span className="ml-2 text-xs text-gray-400">(bidirectional)</span>
+                      <span className="ml-2 text-xs text-app-text-subtle">(bidirectional)</span>
                     )}
                   </div>
-                  {rel.notes && <div className="text-xs text-gray-400 mt-1">{rel.notes}</div>}
+                  {rel.notes && <div className="text-xs text-app-text-subtle mt-1">{rel.notes}</div>}
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => navigate(`/contacts/${rel.related_contact_id}`)}
-                  className="p-1 text-gray-400 hover:text-blue-600 transition"
+                  className="p-1 text-app-text-subtle hover:text-app-accent transition"
                   title="View contact"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -181,7 +181,7 @@ const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
                 </button>
                 <button
                   onClick={() => handleDelete(rel.id)}
-                  className="p-1 text-gray-400 hover:text-red-500 transition"
+                  className="p-1 text-app-text-subtle hover:text-red-500 transition"
                   title="Remove"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,21 +201,21 @@ const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
 
       {/* Add Form */}
       {isAdding ? (
-        <form onSubmit={handleSubmit} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+        <form onSubmit={handleSubmit} className="bg-app-surface-muted rounded-lg p-4 border border-app-border">
           <h4 className="font-medium mb-3">Add Associated Contact</h4>
 
           {/* Contact Search */}
           <div className="mb-3">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Search Contact</label>
+            <label className="block text-sm font-medium text-app-text-muted mb-1">Search Contact</label>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by name or email..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
             />
             {searchTerm && (
-              <div className="mt-1 max-h-40 overflow-y-auto border border-gray-200 rounded-lg bg-white">
+              <div className="mt-1 max-h-40 overflow-y-auto border border-app-border rounded-lg bg-app-surface">
                 {filteredContacts.length > 0 ? (
                   filteredContacts.slice(0, 10).map((c) => (
                     <button
@@ -225,19 +225,19 @@ const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
                         setFormData((prev) => ({ ...prev, related_contact_id: c.contact_id }));
                         setSearchTerm(`${c.first_name} ${c.last_name}`);
                       }}
-                      className={`w-full text-left px-3 py-2 hover:bg-gray-50 ${
-                        formData.related_contact_id === c.contact_id ? 'bg-blue-50' : ''
+                      className={`w-full text-left px-3 py-2 hover:bg-app-surface-muted ${
+                        formData.related_contact_id === c.contact_id ? 'bg-app-accent-soft' : ''
                       }`}
                     >
                       <div className="font-medium">
                         {c.first_name} {c.last_name}
                       </div>
-                      {c.email && <div className="text-sm text-gray-500">{c.email}</div>}
+                      {c.email && <div className="text-sm text-app-text-muted">{c.email}</div>}
                     </button>
                   ))
                 ) : (
                   <div className="px-3 py-3 text-center">
-                    <p className="text-sm text-gray-500 mb-2">No matching people found</p>
+                    <p className="text-sm text-app-text-muted mb-2">No matching people found</p>
                     <button
                       type="button"
                       onClick={() => {
@@ -250,7 +250,7 @@ const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
                         params.set('return_to', contactId);
                         window.open(`/contacts/new?${params.toString()}`, '_blank');
                       }}
-                      className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                      className="text-sm text-app-accent hover:text-app-accent-text font-medium"
                     >
                       + Create "{searchTerm}" as new person
                     </button>
@@ -262,7 +262,7 @@ const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
 
           {/* Relationship Type */}
           <div className="mb-3">
-            <label htmlFor="rel_relationship_type" className="block text-sm font-medium text-gray-700 mb-1">Relationship Type</label>
+            <label htmlFor="rel_relationship_type" className="block text-sm font-medium text-app-text-muted mb-1">Relationship Type</label>
             <select
               id="rel_relationship_type"
               value={formData.relationship_type}
@@ -272,7 +272,7 @@ const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
                   relationship_type: e.target.value as RelationshipType,
                 }))
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
             >
               {RELATIONSHIP_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>
@@ -284,7 +284,7 @@ const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
 
           {/* Custom Label */}
           <div className="mb-3">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-app-text-muted mb-1">
               Custom Label (optional)
             </label>
             <input
@@ -294,19 +294,19 @@ const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
                 setFormData((prev) => ({ ...prev, relationship_label: e.target.value }))
               }
               placeholder="e.g., Mother, Case Worker, etc."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
             />
           </div>
 
           {/* Notes */}
           <div className="mb-3">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+            <label className="block text-sm font-medium text-app-text-muted mb-1">Notes (optional)</label>
             <textarea
               value={formData.notes || ''}
               onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
               rows={2}
               placeholder="Additional information about this relationship..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
             />
           </div>
 
@@ -314,14 +314,14 @@ const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
             <button
               type="button"
               onClick={resetForm}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              className="px-3 py-1.5 text-sm border border-app-input-border rounded-lg hover:bg-app-surface-muted transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!formData.related_contact_id}
-              className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+              className="px-3 py-1.5 text-sm bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50 transition"
             >
               Add Relationship
             </button>
@@ -330,7 +330,7 @@ const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
       ) : (
         <button
           onClick={() => setIsAdding(true)}
-          className="w-full px-3 py-2 text-sm text-blue-600 border border-dashed border-blue-300 rounded-lg hover:bg-blue-50 transition"
+          className="w-full px-3 py-2 text-sm text-app-accent border border-dashed border-app-accent rounded-lg hover:bg-app-accent-soft transition"
         >
           + Add Associated Contact
         </button>

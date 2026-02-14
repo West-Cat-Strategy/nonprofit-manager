@@ -81,13 +81,13 @@ export default function OutreachCenter() {
                             <div className="mt-8 flex gap-4">
                                 <button
                                     onClick={handleNewBlast}
-                                    className="px-6 py-3 bg-white text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-gray-100 font-bold uppercase"
+                                    className="px-6 py-3 bg-app-surface text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-app-surface-muted font-bold uppercase"
                                 >
                                     NEW BLAST
                                 </button>
                                 <button
                                     onClick={handleViewReports}
-                                    className="px-6 py-3 bg-white text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-gray-100 font-bold uppercase"
+                                    className="px-6 py-3 bg-app-surface text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-app-surface-muted font-bold uppercase"
                                 >
                                     VIEW REPORTS
                                 </button>
@@ -117,7 +117,7 @@ export default function OutreachCenter() {
                     </div>
 
                     <div className="bg-[var(--loop-purple)] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 text-center">
-                        <GlobeAltIcon className="w-12 h-12 mx-auto mb-3 text-blue-600" />
+                        <GlobeAltIcon className="w-12 h-12 mx-auto mb-3 text-app-accent" />
                         <h3 className="font-black text-lg mb-2 uppercase text-black">Social</h3>
                         <p className="text-sm text-black">{stats?.socialHandle}</p>
                     </div>
@@ -133,7 +133,7 @@ export default function OutreachCenter() {
                         {events.map((event) => (
                             <div key={event.id} className="flex items-center justify-between border-b-2 border-black/10 pb-4">
                                 <div className="flex items-center gap-6">
-                                    <div className="bg-white border-2 border-black p-3 text-center min-w-[80px]">
+                                    <div className="bg-app-surface border-2 border-black p-3 text-center min-w-[80px]">
                                         <div className="text-xs font-bold uppercase text-black">{event.date.split(' ')[0]}</div>
                                         <div className="text-2xl font-black text-black">{event.date.split(' ')[1]}</div>
                                     </div>
@@ -149,7 +149,7 @@ export default function OutreachCenter() {
 
                                 <button
                                     onClick={() => handleManageEvent(event.id)}
-                                    className="px-4 py-2 bg-white text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-gray-100 font-bold uppercase text-sm"
+                                    className="px-4 py-2 bg-app-surface text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-app-surface-muted font-bold uppercase text-sm"
                                 >
                                     MANAGE
                                 </button>

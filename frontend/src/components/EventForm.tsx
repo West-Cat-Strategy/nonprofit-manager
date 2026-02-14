@@ -93,7 +93,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 bg-white shadow-md rounded-lg p-6">
+    <form onSubmit={handleSubmit} className="space-y-6 bg-app-surface shadow-md rounded-lg p-6">
       {error && <div className="p-4 bg-red-100 text-red-700 rounded-md">{error}</div>}
 
       {/* Basic Information */}
@@ -312,7 +312,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
         <div className="max-w-md">
           <label htmlFor="capacity" className="block text-sm font-medium mb-1">
             Maximum Capacity
-            <span className="text-gray-500 font-normal ml-2">(Leave blank for unlimited)</span>
+            <span className="text-app-text-muted font-normal ml-2">(Leave blank for unlimited)</span>
           </label>
           <input
             type="number"
@@ -324,7 +324,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
             className="w-full px-4 py-2 border rounded-md"
             placeholder="100"
           />
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-app-text-muted mt-1">
             Set the maximum number of attendees allowed to register for this event.
           </p>
         </div>
@@ -335,14 +335,14 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
         <button
           type="button"
           onClick={() => navigate('/events')}
-          className="px-6 py-2 border rounded-md hover:bg-gray-50"
+          className="px-6 py-2 border rounded-md hover:bg-app-surface-muted"
           disabled={loading}
         >
           Cancel
         </button>
         <button
           type="submit"
-          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          className="px-6 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover disabled:opacity-50"
           disabled={loading}
         >
           {loading ? 'Saving...' : isEdit ? 'Update Event' : 'Create Event'}

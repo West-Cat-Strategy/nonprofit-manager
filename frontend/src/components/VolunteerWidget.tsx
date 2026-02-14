@@ -61,13 +61,13 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
 
   if (loading && volunteers.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-200/70 bg-white/85 p-6 shadow-sm">
+      <div className="rounded-2xl border border-app-border bg-app-surface p-6 shadow-sm">
         <div className="animate-pulse">
-          <div className="h-6 bg-slate-200 rounded w-1/3 mb-4" />
+          <div className="h-6 bg-app-surface-muted rounded w-1/3 mb-4" />
           <div className="space-y-3">
-            <div className="h-4 bg-slate-200 rounded" />
-            <div className="h-4 bg-slate-200 rounded" />
-            <div className="h-4 bg-slate-200 rounded" />
+            <div className="h-4 bg-app-surface-muted rounded" />
+            <div className="h-4 bg-app-surface-muted rounded" />
+            <div className="h-4 bg-app-surface-muted rounded" />
           </div>
         </div>
       </div>
@@ -75,11 +75,11 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200/70 bg-white/85 shadow-sm">
+    <div className="rounded-2xl border border-app-border bg-app-surface shadow-sm">
       {/* Header */}
-      <div className="p-6 border-b border-slate-200/70">
+      <div className="p-6 border-b border-app-border">
         <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-slate-900">Volunteer Overview</h3>
+          <h3 className="text-lg font-semibold text-app-text-heading">Volunteer Overview</h3>
           <Link
             to="/volunteers"
             className="text-sm text-sky-600 hover:text-sky-800 font-medium"
@@ -130,23 +130,23 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
         {/* Top Volunteers */}
         {showDetailedView && topVolunteers.length > 0 && (
           <div>
-            <h4 className="text-sm font-semibold text-slate-700 mb-3">Top Volunteers</h4>
+            <h4 className="text-sm font-semibold text-app-text-label mb-3">Top Volunteers</h4>
             <div className="space-y-3">
               {topVolunteers.map((volunteer, idx) => (
                 <Link
                   key={volunteer.volunteer_id}
                   to={`/volunteers/${volunteer.volunteer_id}`}
-                  className="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition"
+                  className="flex items-center justify-between p-3 bg-app-surface-muted rounded-xl hover:bg-app-hover transition"
                 >
                   <div className="flex items-center space-x-3">
                     <div className="shrink-0 w-8 h-8 bg-sky-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
                       {idx + 1}
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-slate-900">
+                      <div className="text-sm font-medium text-app-text-heading">
                         {volunteer.first_name} {volunteer.last_name}
                       </div>
-                      <div className="text-xs text-slate-500">
+                      <div className="text-xs text-app-text-muted">
                         {volunteer.skills && volunteer.skills.length > 0
                           ? volunteer.skills.slice(0, 2).join(', ')
                           : 'No skills listed'}
@@ -154,10 +154,10 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="text-sm font-semibold text-slate-900">
+                    <div className="text-sm font-semibold text-app-text-heading">
                       {(volunteer.total_hours_logged ?? 0).toFixed(1)}h
                     </div>
-                    <span className={`px-2 py-1 text-xs rounded-full ${availabilityBadge[volunteer.availability_status] || 'bg-slate-100 text-slate-800'}`}>
+                    <span className={`px-2 py-1 text-xs rounded-full ${availabilityBadge[volunteer.availability_status] || 'bg-app-surface-muted text-app-text'}`}>
                       {volunteer.availability_status}
                     </span>
                   </div>
@@ -168,8 +168,8 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
         )}
 
         {/* Quick Actions */}
-        <div className="mt-6 pt-6 border-t border-slate-200/70">
-          <h4 className="text-sm font-semibold text-slate-700 mb-3">Quick Actions</h4>
+        <div className="mt-6 pt-6 border-t border-app-border">
+          <h4 className="text-sm font-semibold text-app-text-label mb-3">Quick Actions</h4>
           <div className="grid grid-cols-2 gap-3">
             <Link
               to="/volunteers/new"
@@ -201,8 +201,8 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
       {/* Availability Breakdown */}
       {calculatedStats.total > 0 && (
         <div className="px-6 pb-6">
-          <h4 className="text-sm font-semibold text-slate-700 mb-3">Availability Breakdown</h4>
-          <div className="flex h-3 rounded-full overflow-hidden bg-slate-100">
+          <h4 className="text-sm font-semibold text-app-text-label mb-3">Availability Breakdown</h4>
+          <div className="flex h-3 rounded-full overflow-hidden bg-app-surface-muted">
             <div
               className="bg-emerald-500"
               style={{ width: `${(calculatedStats.available / calculatedStats.total) * 100}%` }}
@@ -219,7 +219,7 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
               title={`Unavailable: ${calculatedStats.unavailable}`}
             />
           </div>
-          <div className="flex justify-between text-xs text-slate-600 mt-2">
+          <div className="flex justify-between text-xs text-app-text-muted mt-2">
             <span>{((calculatedStats.available / calculatedStats.total) * 100).toFixed(0)}% available</span>
             <span>{((calculatedStats.limited / calculatedStats.total) * 100).toFixed(0)}% limited</span>
             <span>{((calculatedStats.unavailable / calculatedStats.total) * 100).toFixed(0)}% unavailable</span>

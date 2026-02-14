@@ -233,10 +233,10 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
 
       {/* Contact Association (only for create mode) */}
       {mode === 'create' && (
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Contact Information</h2>
+        <div className="bg-app-surface shadow rounded-lg p-6">
+          <h2 className="text-lg font-medium text-app-text-heading mb-4">Contact Information</h2>
           <div>
-            <label htmlFor="contact_id" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="contact_id" className="block text-sm font-medium text-app-text-label">
               Select Contact *
             </label>
             <select
@@ -245,8 +245,8 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
               value={formData.contact_id}
               onChange={handleChange}
               className={`mt-1 block w-full border ${
-                errors.contact_id ? 'border-red-300' : 'border-gray-300'
-              } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+                errors.contact_id ? 'border-red-300' : 'border-app-input-border'
+              } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
             >
               <option value="">Select a contact...</option>
               {contacts.map((contact) => (
@@ -257,7 +257,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
               ))}
             </select>
             {errors.contact_id && <p className="mt-1 text-sm text-red-600">{errors.contact_id}</p>}
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-app-text-muted">
               Volunteers must be associated with an existing contact. Create a contact first if
               needed.
             </p>
@@ -266,24 +266,24 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
       )}
 
       {/* Skills and Roles */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Skills and Roles</h2>
+      <div className="bg-app-surface shadow rounded-lg p-6">
+        <h2 className="text-lg font-medium text-app-text-heading mb-4">Skills and Roles</h2>
         <div className="space-y-6">
           <div>
-            <label htmlFor="skills" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="skills" className="block text-sm font-medium text-app-text-label mb-2">
               Skills
             </label>
             <div className="flex flex-wrap gap-2 mb-2">
               {formData.skills.map((skill) => (
                 <span
                   key={skill}
-                  className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+                  className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-app-accent-soft text-app-accent-text"
                 >
                   {skill}
                   <button
                     type="button"
                     onClick={() => handleRemoveSkill(skill)}
-                    className="ml-2 text-blue-600 hover:text-blue-800"
+                    className="ml-2 text-app-accent hover:text-app-accent-hover"
                   >
                     ×
                   </button>
@@ -297,9 +297,9 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
               onChange={(e) => setSkillInput(e.target.value)}
               onKeyDown={handleAddSkill}
               placeholder="Type a skill and press Enter"
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             />
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-app-text-muted">
               Press Enter to add each skill (e.g., "Event Planning", "Photography", "Teaching")
             </p>
           </div>
@@ -307,7 +307,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
           <div>
             <label
               htmlFor="preferred_roles"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-app-text-label mb-2"
             >
               Preferred Roles
             </label>
@@ -334,9 +334,9 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
               onChange={(e) => setRoleInput(e.target.value)}
               onKeyDown={handleAddRole}
               placeholder="Type a role and press Enter"
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             />
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-app-text-muted">
               Press Enter to add each preferred role (e.g., "Team Leader", "Event Coordinator")
             </p>
           </div>
@@ -344,13 +344,13 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
       </div>
 
       {/* Availability */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Availability</h2>
+      <div className="bg-app-surface shadow rounded-lg p-6">
+        <h2 className="text-lg font-medium text-app-text-heading mb-4">Availability</h2>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
             <label
               htmlFor="availability_status"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-app-text-label"
             >
               Availability Status
             </label>
@@ -359,7 +359,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
               id="availability_status"
               value={formData.availability_status}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             >
               <option value="available">Available</option>
               <option value="limited">Limited</option>
@@ -368,7 +368,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
           </div>
 
           <div>
-            <label htmlFor="max_hours_per_week" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="max_hours_per_week" className="block text-sm font-medium text-app-text-label">
               Max Hours Per Week
             </label>
             <input
@@ -379,12 +379,12 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
               step="1"
               value={formData.max_hours_per_week || ''}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             />
           </div>
 
           <div className="sm:col-span-2">
-            <label htmlFor="availability_notes" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="availability_notes" className="block text-sm font-medium text-app-text-label">
               Availability Notes
             </label>
             <textarea
@@ -394,20 +394,20 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
               value={formData.availability_notes ?? ''}
               onChange={handleChange}
               placeholder="e.g., Available weekends only, Not available during summer"
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             />
           </div>
         </div>
       </div>
 
       {/* Background Check */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Background Check</h2>
+      <div className="bg-app-surface shadow rounded-lg p-6">
+        <h2 className="text-lg font-medium text-app-text-heading mb-4">Background Check</h2>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
             <label
               htmlFor="background_check_status"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-app-text-label"
             >
               Background Check Status
             </label>
@@ -416,7 +416,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
               id="background_check_status"
               value={formData.background_check_status}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             >
               <option value="not_required">Not Required</option>
               <option value="pending">Pending</option>
@@ -432,7 +432,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
           <div>
             <label
               htmlFor="background_check_date"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-app-text-label"
             >
               Background Check Date
             </label>
@@ -442,14 +442,14 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
               id="background_check_date"
               value={formData.background_check_date ?? ''}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             />
           </div>
 
           <div>
             <label
               htmlFor="background_check_expiry"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-app-text-label"
             >
               Background Check Expiry
             </label>
@@ -459,20 +459,20 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
               id="background_check_expiry"
               value={formData.background_check_expiry ?? ''}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             />
           </div>
         </div>
       </div>
 
       {/* Emergency Contact */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Emergency Contact</h2>
+      <div className="bg-app-surface shadow rounded-lg p-6">
+        <h2 className="text-lg font-medium text-app-text-heading mb-4">Emergency Contact</h2>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
             <label
               htmlFor="emergency_contact_name"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-app-text-label"
             >
               Name
             </label>
@@ -482,14 +482,14 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
               id="emergency_contact_name"
               value={formData.emergency_contact_name ?? ''}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             />
           </div>
 
           <div>
             <label
               htmlFor="emergency_contact_relationship"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-app-text-label"
             >
               Relationship
             </label>
@@ -500,14 +500,14 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
               value={formData.emergency_contact_relationship ?? ''}
               onChange={handleChange}
               placeholder="e.g., Spouse, Parent, Sibling"
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             />
           </div>
 
           <div className="sm:col-span-2">
             <label
               htmlFor="emergency_contact_phone"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-app-text-label"
             >
               Phone
             </label>
@@ -518,8 +518,8 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
               value={formData.emergency_contact_phone ?? ''}
               onChange={handleChange}
               className={`mt-1 block w-full border ${
-                errors.emergency_contact_phone ? 'border-red-300' : 'border-gray-300'
-              } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+                errors.emergency_contact_phone ? 'border-red-300' : 'border-app-input-border'
+              } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
             />
             {errors.emergency_contact_phone && (
               <p className="mt-1 text-sm text-red-600">{errors.emergency_contact_phone}</p>
@@ -530,7 +530,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
 
       {/* Status */}
       {mode === 'edit' && (
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="bg-app-surface shadow rounded-lg p-6">
           <div className="flex items-center">
             <input
               type="checkbox"
@@ -538,9 +538,9 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
               id="is_active"
               checked={formData.is_active}
               onChange={handleChange}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="h-4 w-4 text-app-accent focus:ring-app-accent border-app-input-border rounded"
             />
-            <label htmlFor="is_active" className="ml-2 block text-sm text-gray-900">
+            <label htmlFor="is_active" className="ml-2 block text-sm text-app-text">
               Active Volunteer
             </label>
           </div>
@@ -552,14 +552,14 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
         <button
           type="button"
           onClick={handleCancel}
-          className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="bg-app-surface py-2 px-4 border border-app-border rounded-md shadow-sm text-sm font-medium text-app-text-label hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-app-accent"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="bg-blue-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="bg-app-accent py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-app-accent disabled:bg-app-text-subtle disabled:cursor-not-allowed"
         >
           {isSubmitting ? 'Saving...' : mode === 'create' ? 'Create Volunteer' : 'Update Volunteer'}
         </button>

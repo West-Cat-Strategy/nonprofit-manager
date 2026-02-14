@@ -28,18 +28,18 @@ export default function PortalReminders() {
 
   return (
     <div>
-      <h2 className="text-xl font-semibold text-gray-900">Reminders</h2>
+      <h2 className="text-xl font-semibold text-app-text">Reminders</h2>
       {loading ? (
-        <p className="text-sm text-gray-500 mt-2">Loading reminders...</p>
+        <p className="text-sm text-app-text-muted mt-2">Loading reminders...</p>
       ) : reminders.length === 0 ? (
-        <p className="text-sm text-gray-500 mt-2">No reminders available.</p>
+        <p className="text-sm text-app-text-muted mt-2">No reminders available.</p>
       ) : (
         <ul className="mt-4 space-y-3">
           {reminders.map((reminder) => (
             <li key={`${reminder.type}-${reminder.id}`} className="p-3 border rounded-lg">
-              <div className="text-sm text-gray-500 uppercase">{reminder.type}</div>
-              <div className="font-medium text-gray-900">{reminder.title}</div>
-              <div className="text-sm text-gray-600">{new Date(reminder.date).toLocaleString()}</div>
+              <div className="text-sm text-app-text-muted uppercase">{reminder.type}</div>
+              <div className="font-medium text-app-text">{reminder.title}</div>
+              <div className="text-sm text-app-text-muted">{new Date(reminder.date).toLocaleString()}</div>
             </li>
           ))}
         </ul>

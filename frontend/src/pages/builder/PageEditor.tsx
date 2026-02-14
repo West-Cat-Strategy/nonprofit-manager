@@ -465,8 +465,8 @@ const PageEditor: React.FC = () => {
 
   if (!currentTemplate || !currentPage) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-app-surface-muted">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-app-accent"></div>
       </div>
     );
   }
@@ -478,7 +478,7 @@ const PageEditor: React.FC = () => {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="h-screen flex flex-col bg-gray-100">
+      <div className="h-screen flex flex-col bg-app-surface-muted">
         {/* Editor Header */}
         <EditorHeader
           template={currentTemplate}
@@ -505,9 +505,9 @@ const PageEditor: React.FC = () => {
           <ComponentPalette />
 
           {/* Center - Canvas */}
-          <div className="flex-1 overflow-auto bg-gray-200 p-4">
+          <div className="flex-1 overflow-auto bg-app-surface-muted p-4">
             <div
-              className={`mx-auto bg-white shadow-lg transition-all duration-300 ${
+              className={`mx-auto bg-app-surface shadow-lg transition-all duration-300 ${
                 viewMode === 'desktop'
                   ? 'max-w-full'
                   : viewMode === 'tablet'
@@ -550,7 +550,7 @@ const PageEditor: React.FC = () => {
         {/* Drag Overlay */}
         <DragOverlay>
           {activeId && (
-            <div className="bg-white shadow-lg rounded p-2 opacity-80">
+            <div className="bg-app-surface shadow-lg rounded p-2 opacity-80">
               Dragging...
             </div>
           )}
@@ -569,12 +569,12 @@ const PageEditor: React.FC = () => {
 
         {showTemplateSettings && (
           <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
-              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Template Settings</h2>
+            <div className="bg-app-surface rounded-lg shadow-xl w-full max-w-lg mx-4">
+              <div className="p-4 border-b border-app-border flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-app-text">Template Settings</h2>
                 <button
                   onClick={() => setShowTemplateSettings(false)}
-                  className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                  className="p-1 text-app-text-subtle hover:text-app-text-muted rounded"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -590,7 +590,7 @@ const PageEditor: React.FC = () => {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-app-text-muted mb-1">
                     Template Name
                   </label>
                   <input
@@ -599,12 +599,12 @@ const PageEditor: React.FC = () => {
                     onChange={(e) =>
                       setTemplateSettings((prev) => ({ ...prev, name: e.target.value }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-app-text-muted mb-1">
                     Description
                   </label>
                   <textarea
@@ -613,12 +613,12 @@ const PageEditor: React.FC = () => {
                       setTemplateSettings((prev) => ({ ...prev, description: e.target.value }))
                     }
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-app-text-muted mb-1">
                     Status
                   </label>
                   <select
@@ -629,7 +629,7 @@ const PageEditor: React.FC = () => {
                         status: e.target.value as TemplateStatus,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
                   >
                     <option value="draft">Draft</option>
                     <option value="published">Published</option>
@@ -638,16 +638,16 @@ const PageEditor: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-4 border-t border-gray-200 flex justify-end gap-2">
+              <div className="p-4 border-t border-app-border flex justify-end gap-2">
                 <button
                   onClick={() => setShowTemplateSettings(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
+                  className="px-4 py-2 border border-app-input-border rounded-md text-sm hover:bg-app-surface-muted"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveTemplateSettings}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+                  className="px-4 py-2 bg-app-accent text-white rounded-md text-sm hover:bg-app-accent-hover"
                 >
                   Save Changes
                 </button>

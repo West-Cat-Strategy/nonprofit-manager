@@ -62,14 +62,14 @@ const SortableComponent: React.FC<SortableComponentProps> = ({
         onSelect();
       }}
       className={`relative group cursor-pointer ${
-        isSelected ? 'ring-2 ring-blue-500' : 'hover:ring-2 hover:ring-blue-300'
+        isSelected ? 'ring-2 ring-app-accent' : 'hover:ring-2 hover:ring-app-accent'
       }`}
     >
       <ComponentRenderer component={component} theme={theme} />
 
       {/* Component overlay with actions */}
       <div
-        className={`absolute inset-0 bg-blue-500 bg-opacity-0 group-hover:bg-opacity-5 transition-all ${
+        className={`absolute inset-0 bg-app-accent bg-opacity-0 group-hover:bg-opacity-5 transition-all ${
           isSelected ? 'bg-opacity-10' : ''
         }`}
       >
@@ -169,7 +169,7 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
         style={{ maxWidth: section.maxWidth || '1200px' }}
       >
         {section.components.length === 0 ? (
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-500">
+          <div className="border-2 border-dashed border-app-input-border rounded-lg p-8 text-center text-app-text-muted">
             <p>Drop components here</p>
           </div>
         ) : (
@@ -226,13 +226,13 @@ const EditorCanvas: React.FC<EditorCanvasProps> = ({
       ))}
 
       {/* Add Section Button */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-app-border">
         <button
           onClick={(e) => {
             e.stopPropagation();
             onAddSection();
           }}
-          className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-500 hover:text-blue-500 transition-colors"
+          className="w-full py-3 border-2 border-dashed border-app-input-border rounded-lg text-app-text-muted hover:border-app-accent hover:text-app-accent transition-colors"
         >
           + Add Section
         </button>
@@ -376,20 +376,20 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
             />
           ) : (
             <div
-              className="bg-gray-200 flex items-center justify-center"
+              className="bg-app-surface-muted flex items-center justify-center"
               style={{
                 width: component.width || '100%',
                 height: component.height || '200px',
                 borderRadius: component.borderRadius || theme.borderRadius.md,
               }}
             >
-              <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-12 h-12 text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
           )}
           {component.caption && (
-            <p className="text-sm text-gray-500 mt-2 text-center">{component.caption}</p>
+            <p className="text-sm text-app-text-muted mt-2 text-center">{component.caption}</p>
           )}
         </div>
       );
@@ -430,7 +430,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
             </div>
           ))}
           {component.items.length === 0 && (
-            <div className="col-span-full text-center text-gray-400 py-4">
+            <div className="col-span-full text-center text-app-text-subtle py-4">
               Add statistics items in the property panel
             </div>
           )}
@@ -472,8 +472,8 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
     case 'newsletter-signup':
     case 'donation-form':
       return (
-        <div style={baseStyle} className="p-6 bg-gray-50 rounded-lg">
-          <div className="text-center text-gray-500">
+        <div style={baseStyle} className="p-6 bg-app-surface-muted rounded-lg">
+          <div className="text-center text-app-text-muted">
             <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
@@ -485,8 +485,8 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
 
     case 'event-list':
       return (
-        <div style={baseStyle} className="p-6 bg-gray-50 rounded-lg">
-          <div className="text-center text-gray-500">
+        <div style={baseStyle} className="p-6 bg-app-surface-muted rounded-lg">
+          <div className="text-center text-app-text-muted">
             <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
@@ -510,7 +510,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
               {component.items.map((item) => (
                 <div
                   key={item.id}
-                  className="relative overflow-hidden rounded-lg bg-gray-100"
+                  className="relative overflow-hidden rounded-lg bg-app-surface-muted"
                   style={{ aspectRatio: component.aspectRatio || '1' }}
                 >
                   {item.src ? (
@@ -520,7 +520,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                    <div className="w-full h-full flex items-center justify-center text-app-text-subtle">
                       <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
@@ -535,7 +535,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
               ))}
             </div>
           ) : (
-            <div className="p-6 bg-gray-50 rounded-lg text-center text-gray-500">
+            <div className="p-6 bg-app-surface-muted rounded-lg text-center text-app-text-muted">
               <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -584,7 +584,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
             </div>
           ) : (
             <div
-              className="bg-gray-900 rounded-lg flex items-center justify-center text-gray-400"
+              className="bg-app-text rounded-lg flex items-center justify-center text-app-text-subtle"
               style={{
                 aspectRatio: component.aspectRatio || '16/9',
                 backgroundImage: component.poster ? `url(${component.poster})` : undefined,
@@ -610,12 +610,12 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
         <div style={baseStyle}>
           {component.address || (component.latitude && component.longitude) ? (
             <div
-              className="relative w-full rounded-lg overflow-hidden bg-gray-200"
+              className="relative w-full rounded-lg overflow-hidden bg-app-surface-muted"
               style={{ height: component.height || '300px' }}
             >
               {/* In production, integrate with Google Maps or OpenStreetMap */}
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-                <div className="text-center text-gray-500">
+              <div className="absolute inset-0 flex items-center justify-center bg-app-surface-muted">
+                <div className="text-center text-app-text-muted">
                   <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -626,7 +626,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
                       {component.latitude.toFixed(4)}, {component.longitude.toFixed(4)}
                     </p>
                   )}
-                  <p className="text-xs mt-2 text-gray-400">
+                  <p className="text-xs mt-2 text-app-text-subtle">
                     Map preview in published site
                   </p>
                 </div>
@@ -634,7 +634,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
             </div>
           ) : (
             <div
-              className="bg-gray-100 rounded-lg flex items-center justify-center text-gray-400"
+              className="bg-app-surface-muted rounded-lg flex items-center justify-center text-app-text-subtle"
               style={{ height: component.height || '300px' }}
             >
               <div className="text-center">
@@ -729,10 +729,10 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
                   rel="noopener noreferrer"
                   className={`p-2 rounded-lg transition-colors ${
                     component.iconStyle === 'filled'
-                      ? 'bg-gray-800 text-white hover:bg-gray-700'
+                      ? 'bg-app-text text-white hover:bg-app-accent-hover'
                       : component.iconStyle === 'rounded'
-                      ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-full'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-app-surface-muted text-app-text-muted hover:bg-app-surface-muted rounded-full'
+                      : 'text-app-text-muted hover:text-app-text'
                   }`}
                   style={{ color: component.iconStyle === 'outline' ? theme.colors.primary : undefined }}
                 >
@@ -741,7 +741,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
               ))}
             </div>
           ) : (
-            <div className="p-6 bg-gray-50 rounded-lg text-center text-gray-500">
+            <div className="p-6 bg-app-surface-muted rounded-lg text-center text-app-text-muted">
               <div className="flex justify-center gap-4 mb-2">
                 {getSocialIcon('facebook')}
                 {getSocialIcon('twitter')}
@@ -757,7 +757,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
 
     default:
       return (
-        <div style={baseStyle} className="p-4 bg-gray-100 rounded text-gray-500 text-center">
+        <div style={baseStyle} className="p-4 bg-app-surface-muted rounded text-app-text-muted text-center">
           {component.type} component
         </div>
       );

@@ -57,14 +57,14 @@ export default function UpcomingFollowUpsWidget({ limit = 5 }: UpcomingFollowUps
   }, [dispatch, limit]);
 
   return (
-    <div className="rounded-2xl border border-slate-200/70 bg-white/85 p-5 shadow-sm dark:bg-slate-800/85 dark:border-slate-700">
+    <div className="rounded-2xl border border-app-border/70 bg-app-surface/85 p-5 shadow-sm dark:bg-app-text/85">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+        <h3 className="text-lg font-semibold text-app-text dark:text-white">
           Upcoming Follow-ups
         </h3>
         <Link
           to="/follow-ups"
-          className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+          className="text-sm font-medium text-app-accent hover:text-app-accent"
         >
           View all →
         </Link>
@@ -72,10 +72,10 @@ export default function UpcomingFollowUpsWidget({ limit = 5 }: UpcomingFollowUps
 
       {loading ? (
         <div className="py-8 text-center">
-          <div className="animate-spin w-6 h-6 border-2 border-slate-300 border-t-slate-600 rounded-full mx-auto" />
+          <div className="animate-spin w-6 h-6 border-2 border-app-input-border border-t-app-accent rounded-full mx-auto" />
         </div>
       ) : upcoming.length === 0 ? (
-        <div className="py-8 text-center text-slate-500 dark:text-slate-400">
+        <div className="py-8 text-center text-app-text-muted dark:text-app-text-subtle">
           <p className="text-sm">No upcoming follow-ups</p>
           <p className="text-xs mt-1">Schedule follow-ups from cases or tasks</p>
         </div>
@@ -90,7 +90,7 @@ export default function UpcomingFollowUpsWidget({ limit = 5 }: UpcomingFollowUps
                 className={`p-3 rounded-lg border ${
                   overdue
                     ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20'
-                    : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-700/50'
+                    : 'border-app-border bg-app-surface-muted'
                 }`}
               >
                 <div className="flex items-start gap-3">
@@ -102,7 +102,7 @@ export default function UpcomingFollowUpsWidget({ limit = 5 }: UpcomingFollowUps
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-slate-900 dark:text-white truncate">
+                      <span className="font-medium text-app-text dark:text-white truncate">
                         {followUp.title}
                       </span>
                       {overdue && (
@@ -111,7 +111,7 @@ export default function UpcomingFollowUpsWidget({ limit = 5 }: UpcomingFollowUps
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    <div className="flex items-center gap-2 mt-1 text-xs text-app-text-muted dark:text-app-text-subtle">
                       <span className={overdue ? 'text-red-600 dark:text-red-400 font-medium' : ''}>
                         {formatDateSmart(followUp.scheduled_date)}
                         {followUp.scheduled_time && ` at ${formatTimeString(followUp.scheduled_time)}`}
@@ -119,13 +119,13 @@ export default function UpcomingFollowUpsWidget({ limit = 5 }: UpcomingFollowUps
                       <span>•</span>
                       <Link
                         to={getEntityLink(followUp)}
-                        className="text-blue-600 hover:underline dark:text-blue-400"
+                        className="text-app-accent hover:underline"
                       >
                         {getEntityLabel(followUp)}
                       </Link>
                     </div>
                     {followUp.contact_name && (
-                      <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      <div className="mt-1 text-xs text-app-text-muted dark:text-app-text-subtle">
                         {followUp.contact_name}
                       </div>
                     )}

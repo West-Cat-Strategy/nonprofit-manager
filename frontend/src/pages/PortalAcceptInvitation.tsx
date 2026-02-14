@@ -59,58 +59,58 @@ export default function PortalAcceptInvitation() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="bg-white shadow rounded-lg p-8 w-full max-w-md">
-        <h1 className="text-2xl font-semibold text-gray-900">Accept Portal Invitation</h1>
+    <div className="min-h-screen flex items-center justify-center bg-app-surface-muted px-4">
+      <div className="bg-app-surface shadow rounded-lg p-8 w-full max-w-md">
+        <h1 className="text-2xl font-semibold text-app-text">Accept Portal Invitation</h1>
         <ErrorBanner message={error} correlationId={details?.correlationId} className="mt-4" />
         {invitation && (
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Email</label>
+              <label className="block text-sm font-medium text-app-text-muted">Email</label>
               <input
                 type="email"
                 value={invitation.email}
                 disabled
-                className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-100"
+                className="mt-1 w-full px-3 py-2 border border-app-border rounded-md bg-app-surface-muted"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">First Name</label>
+              <label className="block text-sm font-medium text-app-text-muted">First Name</label>
               <input
                 type="text"
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Last Name</label>
+              <label className="block text-sm font-medium text-app-text-muted">Last Name</label>
               <input
                 type="text"
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Password</label>
+              <label className="block text-sm font-medium text-app-text-muted">Password</label>
               <input
                 type="password"
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
                 minLength={8}
                 required
               />
             </div>
             <button
               type="submit"
-              className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="w-full py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover"
             >
               Activate Portal Account
             </button>

@@ -29,19 +29,19 @@ export default function PortalNotes() {
 
   return (
     <div>
-      <h2 className="text-xl font-semibold text-gray-900">Notes</h2>
+      <h2 className="text-xl font-semibold text-app-text">Notes</h2>
       {loading ? (
-        <p className="text-sm text-gray-500 mt-2">Loading notes...</p>
+        <p className="text-sm text-app-text-muted mt-2">Loading notes...</p>
       ) : notes.length === 0 ? (
-        <p className="text-sm text-gray-500 mt-2">No notes available.</p>
+        <p className="text-sm text-app-text-muted mt-2">No notes available.</p>
       ) : (
         <ul className="mt-4 space-y-3">
           {notes.map((note) => (
             <li key={note.id} className="p-3 border rounded-lg">
-              <div className="text-sm text-gray-500 uppercase">{note.note_type}</div>
-              {note.subject && <div className="font-medium text-gray-900">{note.subject}</div>}
-              <p className="text-sm text-gray-700 mt-1">{note.content}</p>
-              <div className="text-xs text-gray-400 mt-2">
+              <div className="text-sm text-app-text-muted uppercase">{note.note_type}</div>
+              {note.subject && <div className="font-medium text-app-text">{note.subject}</div>}
+              <p className="text-sm text-app-text-muted mt-1">{note.content}</p>
+              <div className="text-xs text-app-text-subtle mt-2">
                 {new Date(note.created_at).toLocaleString()}
               </div>
             </li>

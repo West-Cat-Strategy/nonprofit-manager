@@ -29,12 +29,12 @@ function MainLayout({ children }: MainLayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-sm">
+    <div className="min-h-screen bg-app-bg">
+      <nav className="bg-app-surface shadow-sm border-b border-app-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center space-x-8">
-              <h1 className="text-xl font-bold text-gray-900">Nonprofit Manager</h1>
+              <h1 className="text-xl font-bold text-app-text-heading">Nonprofit Manager</h1>
               <div className="hidden md:flex space-x-4">
                 {navItems.map((item) => (
                   <button
@@ -42,8 +42,8 @@ function MainLayout({ children }: MainLayoutProps) {
                     onClick={() => navigate(item.path)}
                     className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                       window.location.pathname === item.path
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? 'bg-app-accent-soft text-app-accent-text'
+                        : 'text-app-text-muted hover:bg-app-hover'
                     }`}
                   >
                     {item.label}
@@ -52,7 +52,7 @@ function MainLayout({ children }: MainLayoutProps) {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-app-text-muted">
                 {user?.firstName} {user?.lastName}
               </span>
               <button

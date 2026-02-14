@@ -49,20 +49,20 @@ const RecentDonationsWidget = ({ widget, editMode, onRemove }: RecentDonationsWi
     <WidgetContainer widget={widget} editMode={editMode} onRemove={onRemove} loading={loading} error={error}>
       <div className="space-y-3">
         {donations.length === 0 ? (
-          <p className="text-sm text-gray-500 text-center py-4">No recent donations</p>
+          <p className="text-sm text-app-text-muted text-center py-4">No recent donations</p>
         ) : (
           donations.map((donation) => (
             <Link
               key={donation.id}
               to={`/donations/${donation.id}`}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+              className="flex items-center justify-between p-3 bg-app-surface-muted rounded-lg hover:bg-app-surface-muted transition-colors"
             >
               <div>
-                <p className="font-medium text-gray-900">{donation.donor_name}</p>
-                <p className="text-xs text-gray-500">{formatDate(donation.date)}</p>
+                <p className="font-medium text-app-text">{donation.donor_name}</p>
+                <p className="text-xs text-app-text-muted">{formatDate(donation.date)}</p>
               </div>
               <div className="text-right">
-                <p className="font-semibold text-gray-900">{formatCurrency(donation.amount)}</p>
+                <p className="font-semibold text-app-text">{formatCurrency(donation.amount)}</p>
                 <span
                   className={`text-xs px-2 py-1 rounded ${
                     donation.status === 'completed'
@@ -78,7 +78,7 @@ const RecentDonationsWidget = ({ widget, editMode, onRemove }: RecentDonationsWi
         )}
         <Link
           to="/donations"
-          className="block text-center text-sm text-blue-600 hover:text-blue-700 font-medium mt-4"
+          className="block text-center text-sm text-app-accent hover:text-app-accent font-medium mt-4"
         >
           View All Donations →
         </Link>

@@ -174,10 +174,10 @@ const ContactList = () => {
           className="cursor-pointer hover:opacity-75 transition"
           onClick={() => navigate(`/contacts/${row.contact_id}`)}
         >
-          <p className="text-blue-600 hover:text-blue-900 font-medium">
+          <p className="text-app-accent hover:text-app-accent-text font-medium">
             {row.first_name} {row.last_name}
           </p>
-          <p className="text-sm text-gray-500">{row.email || 'No email'}</p>
+          <p className="text-sm text-app-text-muted">{row.email || 'No email'}</p>
         </div>
       ),
     },
@@ -188,7 +188,7 @@ const ContactList = () => {
       render: (_, row: Contact) => (
         <div className="text-sm">
           <p className="font-medium">{row.job_title || '—'}</p>
-          <p className="text-gray-500">{row.department || '—'}</p>
+          <p className="text-app-text-muted">{row.department || '—'}</p>
         </div>
       ),
     },
@@ -197,7 +197,7 @@ const ContactList = () => {
       label: 'Account',
       width: '180px',
       render: (_, row: Contact) => (
-        <span className="text-sm text-gray-700">{row.account_name || '—'}</span>
+        <span className="text-sm text-app-text-muted">{row.account_name || '—'}</span>
       ),
     },
     {
@@ -214,11 +214,11 @@ const ContactList = () => {
                 </BrutalBadge>
               ))}
               {row.tags.length > 2 && (
-                <span className="text-xs text-gray-500">+{row.tags.length - 2}</span>
+                <span className="text-xs text-app-text-muted">+{row.tags.length - 2}</span>
               )}
             </>
           ) : (
-            <span className="text-sm text-gray-400">—</span>
+            <span className="text-sm text-app-text-subtle">—</span>
           )}
         </div>
       ),
@@ -232,7 +232,7 @@ const ContactList = () => {
           className={`px-3 py-1 text-xs font-medium rounded ${
             row.is_active
               ? 'bg-green-100 text-green-800'
-              : 'bg-gray-100 text-gray-800'
+              : 'bg-app-surface-muted text-app-text'
           }`}
         >
           {row.is_active ? 'Active' : 'Inactive'}

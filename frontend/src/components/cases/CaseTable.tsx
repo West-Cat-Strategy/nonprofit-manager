@@ -111,11 +111,11 @@ export default function CaseTable({ cases }: CaseTableProps) {
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white dark:bg-slate-900">
+          <tbody className="bg-app-surface dark:bg-app-text">
             {cases.map((caseItem) => (
               <tr
                 key={caseItem.id}
-                className="border-b-2 border-black dark:border-slate-700 hover:bg-[var(--loop-yellow)] dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                className="border-b-2 border-black dark:border-app-border hover:bg-[var(--loop-yellow)] dark:hover:bg-app-text cursor-pointer transition-colors"
                 onClick={() => navigate(`/cases/${caseItem.id}`)}
                 tabIndex={0}
                 onKeyDown={(e) => {
@@ -193,7 +193,7 @@ export default function CaseTable({ cases }: CaseTableProps) {
                         e.stopPropagation();
                         navigate(`/cases/${caseItem.id}/edit`);
                       }}
-                      className="border-2 border-black dark:border-white bg-white dark:bg-black text-black dark:text-white px-3 py-1 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
+                      className="border-2 border-black dark:border-white bg-app-surface dark:bg-black text-black dark:text-white px-3 py-1 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
                       aria-label={`Edit case ${caseItem.case_number}`}
                     >
                       Edit

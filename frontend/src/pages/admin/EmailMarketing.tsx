@@ -32,16 +32,16 @@ import type { Contact } from '../../store/slices/contactsSlice';
 function StatusBadge({ status }: { status: string }) {
   const statusColors: Record<string, string> = {
     sent: 'bg-green-100 text-green-800',
-    sending: 'bg-blue-100 text-blue-800',
+    sending: 'bg-app-accent-soft text-app-accent-text',
     schedule: 'bg-yellow-100 text-yellow-800',
-    paused: 'bg-gray-100 text-gray-800',
-    save: 'bg-gray-100 text-gray-800',
+    paused: 'bg-app-surface-muted text-app-text',
+    save: 'bg-app-surface-muted text-app-text',
     canceled: 'bg-red-100 text-red-800',
-    archived: 'bg-gray-100 text-gray-600',
+    archived: 'bg-app-surface-muted text-app-text-muted',
   };
 
   return (
-    <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[status] || 'bg-gray-100 text-gray-800'}`}>
+    <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[status] || 'bg-app-surface-muted text-app-text'}`}>
       {status.charAt(0).toUpperCase() + status.slice(1)}
     </span>
   );
@@ -52,12 +52,12 @@ function StatusBadge({ status }: { status: string }) {
  */
 function CampaignCard({ campaign }: { campaign: MailchimpCampaign }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+    <div className="bg-app-surface border border-app-border rounded-lg p-4 hover:shadow-md transition-shadow">
       <div className="flex justify-between items-start">
         <div className="flex-1">
-          <h4 className="font-medium text-gray-900">{campaign.title}</h4>
+          <h4 className="font-medium text-app-text">{campaign.title}</h4>
           {campaign.subject && (
-            <p className="text-sm text-gray-500 mt-1">{campaign.subject}</p>
+            <p className="text-sm text-app-text-muted mt-1">{campaign.subject}</p>
           )}
         </div>
         <StatusBadge status={campaign.status} />
@@ -66,31 +66,31 @@ function CampaignCard({ campaign }: { campaign: MailchimpCampaign }) {
       {campaign.reportSummary && (
         <div className="mt-4 grid grid-cols-4 gap-4 text-center">
           <div>
-            <p className="text-2xl font-bold text-gray-900">{campaign.emailsSent}</p>
-            <p className="text-xs text-gray-500">Sent</p>
+            <p className="text-2xl font-bold text-app-text-heading">{campaign.emailsSent}</p>
+            <p className="text-xs text-app-text-muted">Sent</p>
           </div>
           <div>
-            <p className="text-2xl font-bold text-blue-600">
+            <p className="text-2xl font-bold text-app-accent">
               {(campaign.reportSummary.openRate * 100).toFixed(1)}%
             </p>
-            <p className="text-xs text-gray-500">Open Rate</p>
+            <p className="text-xs text-app-text-muted">Open Rate</p>
           </div>
           <div>
             <p className="text-2xl font-bold text-green-600">
               {(campaign.reportSummary.clickRate * 100).toFixed(1)}%
             </p>
-            <p className="text-xs text-gray-500">Click Rate</p>
+            <p className="text-xs text-app-text-muted">Click Rate</p>
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-2xl font-bold text-app-text-heading">
               {campaign.reportSummary.unsubscribes}
             </p>
-            <p className="text-xs text-gray-500">Unsubscribes</p>
+            <p className="text-xs text-app-text-muted">Unsubscribes</p>
           </div>
         </div>
       )}
 
-      <div className="mt-4 text-xs text-gray-400">
+      <div className="mt-4 text-xs text-app-text-subtle">
         Created: {new Date(campaign.createdAt).toLocaleDateString()}
         {campaign.sendTime && ` | Sent: ${new Date(campaign.sendTime).toLocaleDateString()}`}
       </div>
@@ -111,19 +111,19 @@ function ListCard({ list, isSelected, onSelect }: {
       onClick={onSelect}
       className={`cursor-pointer border rounded-lg p-4 transition-all ${
         isSelected
-          ? 'border-blue-500 bg-blue-50 shadow-md'
-          : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+          ? 'border-app-accent bg-app-accent-soft shadow-md'
+          : 'border-app-border bg-app-surface hover:border-app-input-border hover:shadow-sm'
       }`}
     >
       <div className="flex justify-between items-center">
-        <h4 className="font-medium text-gray-900">{list.name}</h4>
+        <h4 className="font-medium text-app-text">{list.name}</h4>
         {isSelected && (
-          <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="w-5 h-5 text-app-accent" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
           </svg>
         )}
       </div>
-      <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
+      <div className="mt-2 flex items-center gap-4 text-sm text-app-text-muted">
         <span>{list.memberCount.toLocaleString()} subscribers</span>
         {list.doubleOptIn && (
           <span className="flex items-center gap-1">
@@ -149,11 +149,11 @@ function SyncResultModal({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+    <div className="fixed inset-0 bg-app-surface-muted0 bg-opacity-75 flex items-center justify-center z-50">
+      <div className="bg-app-surface rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Sync Complete</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <h3 className="text-lg font-medium text-app-text-heading">Sync Complete</h3>
+          <button onClick={onClose} className="text-app-text-subtle hover:text-app-text-muted">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -161,34 +161,34 @@ function SyncResultModal({
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-gray-50 rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold text-gray-900">{result.total}</p>
-            <p className="text-sm text-gray-500">Total Processed</p>
+          <div className="bg-app-surface-muted rounded-lg p-4 text-center">
+            <p className="text-2xl font-bold text-app-text-heading">{result.total}</p>
+            <p className="text-sm text-app-text-muted">Total Processed</p>
           </div>
           <div className="bg-green-50 rounded-lg p-4 text-center">
             <p className="text-2xl font-bold text-green-600">{result.added}</p>
-            <p className="text-sm text-gray-500">Added</p>
+            <p className="text-sm text-app-text-muted">Added</p>
           </div>
-          <div className="bg-blue-50 rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold text-blue-600">{result.updated}</p>
-            <p className="text-sm text-gray-500">Updated</p>
+          <div className="bg-app-accent-soft rounded-lg p-4 text-center">
+            <p className="text-2xl font-bold text-app-accent">{result.updated}</p>
+            <p className="text-sm text-app-text-muted">Updated</p>
           </div>
           <div className="bg-yellow-50 rounded-lg p-4 text-center">
             <p className="text-2xl font-bold text-yellow-600">{result.skipped}</p>
-            <p className="text-sm text-gray-500">Skipped</p>
+            <p className="text-sm text-app-text-muted">Skipped</p>
           </div>
         </div>
 
         {result.errors > 0 && (
           <div className="mt-4 bg-red-50 rounded-lg p-4 text-center">
             <p className="text-2xl font-bold text-red-600">{result.errors}</p>
-            <p className="text-sm text-gray-500">Errors</p>
+            <p className="text-sm text-app-text-muted">Errors</p>
           </div>
         )}
 
         <button
           onClick={onClose}
-          className="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+          className="mt-6 w-full bg-app-accent text-white py-2 px-4 rounded-lg hover:bg-app-accent-hover transition-colors"
         >
           Close
         </button>
@@ -263,11 +263,11 @@ function CampaignCreateModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full mx-4 my-8">
-        <div className="flex justify-between items-center p-6 border-b border-gray-200">
-          <h3 className="text-xl font-medium text-gray-900">Create Email Campaign</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+    <div className="fixed inset-0 bg-app-surface-muted0 bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
+      <div className="bg-app-surface rounded-lg shadow-xl max-w-3xl w-full mx-4 my-8">
+        <div className="flex justify-between items-center p-6 border-b border-app-border">
+          <h3 className="text-xl font-medium text-app-text">Create Email Campaign</h3>
+          <button onClick={onClose} className="text-app-text-subtle hover:text-app-text-muted">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -277,13 +277,13 @@ function CampaignCreateModal({
         <form className="p-6 space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto">
           {/* Audience Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-app-text-label mb-1">
               Audience <span className="text-red-500">*</span>
             </label>
             <select
               value={formData.listId}
               onChange={(e) => setFormData({ ...formData, listId: e.target.value, segmentId: undefined })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
             >
               {lists.map((list) => (
                 <option key={list.id} value={list.id}>
@@ -297,7 +297,7 @@ function CampaignCreateModal({
           {/* Segment Selection (Optional) */}
           {segments.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-app-text-label mb-1">
                 Segment (Optional)
               </label>
               <select
@@ -305,7 +305,7 @@ function CampaignCreateModal({
                 onChange={(e) =>
                   setFormData({ ...formData, segmentId: e.target.value ? Number(e.target.value) : undefined })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
               >
                 <option value="">All subscribers</option>
                 {segments.map((segment) => (
@@ -319,14 +319,14 @@ function CampaignCreateModal({
 
           {/* Campaign Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-app-text-label mb-1">
               Campaign Title <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
               placeholder="Internal campaign name"
             />
             {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
@@ -334,14 +334,14 @@ function CampaignCreateModal({
 
           {/* Subject Line */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-app-text-label mb-1">
               Subject Line <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={formData.subject}
               onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
               placeholder="What subscribers will see in their inbox"
             />
             {errors.subject && <p className="mt-1 text-sm text-red-600">{errors.subject}</p>}
@@ -349,14 +349,14 @@ function CampaignCreateModal({
 
           {/* Preview Text */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-app-text-label mb-1">
               Preview Text (Optional)
             </label>
             <input
               type="text"
               value={formData.previewText}
               onChange={(e) => setFormData({ ...formData, previewText: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
               placeholder="Text displayed after subject in inbox preview"
             />
           </div>
@@ -364,28 +364,28 @@ function CampaignCreateModal({
           {/* From Name and Reply-To */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-app-text-label mb-1">
                 From Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={formData.fromName}
                 onChange={(e) => setFormData({ ...formData, fromName: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
                 placeholder="Your Organization"
               />
               {errors.fromName && <p className="mt-1 text-sm text-red-600">{errors.fromName}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-app-text-label mb-1">
                 Reply-To Email <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
                 value={formData.replyTo}
                 onChange={(e) => setFormData({ ...formData, replyTo: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
                 placeholder="contact@organization.org"
               />
               {errors.replyTo && <p className="mt-1 text-sm text-red-600">{errors.replyTo}</p>}
@@ -394,36 +394,36 @@ function CampaignCreateModal({
 
           {/* HTML Content */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-app-text-label mb-1">
               HTML Content (Optional)
             </label>
             <textarea
               value={formData.htmlContent}
               onChange={(e) => setFormData({ ...formData, htmlContent: e.target.value })}
               rows={6}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent font-mono text-sm"
               placeholder="<h1>Welcome!</h1><p>Your email content here...</p>"
             />
-            <p className="mt-1 text-xs text-gray-500">You can edit this later in Mailchimp's editor</p>
+            <p className="mt-1 text-xs text-app-text-muted">You can edit this later in Mailchimp's editor</p>
           </div>
 
           {/* Plain Text Content */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-app-text-label mb-1">
               Plain Text Content (Optional)
             </label>
             <textarea
               value={formData.plainTextContent}
               onChange={(e) => setFormData({ ...formData, plainTextContent: e.target.value })}
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
               placeholder="Plain text version for email clients that don't support HTML"
             />
           </div>
 
           {/* Schedule Send Time */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-app-text-label mb-1">
               Schedule Send Time (Optional)
             </label>
             <input
@@ -431,31 +431,31 @@ function CampaignCreateModal({
               value={formData.sendTime || ''}
               onChange={(e) => setFormData({ ...formData, sendTime: e.target.value })}
               min={new Date().toISOString().slice(0, 16)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
             />
             {errors.sendTime && <p className="mt-1 text-sm text-red-600">{errors.sendTime}</p>}
-            <p className="mt-1 text-xs text-gray-500">Leave empty to save as draft</p>
+            <p className="mt-1 text-xs text-app-text-muted">Leave empty to save as draft</p>
           </div>
         </form>
 
         {/* Footer Actions */}
-        <div className="flex justify-between items-center p-6 border-t border-gray-200 bg-gray-50">
+        <div className="flex justify-between items-center p-6 border-t border-app-border bg-app-surface-muted">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 text-app-text-muted bg-app-surface border border-app-input-border rounded-lg hover:bg-app-surface-muted transition-colors"
           >
             Cancel
           </button>
           <div className="flex gap-3">
             <button
               onClick={(e) => handleSubmit(e, false)}
-              className="px-4 py-2 text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+              className="px-4 py-2 text-app-accent bg-app-accent-soft border border-app-accent rounded-lg hover:bg-app-accent-soft transition-colors"
             >
               Save as Draft
             </button>
             <button
               onClick={(e) => handleSubmit(e, true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover transition-colors"
             >
               Send Now
             </button>
@@ -618,8 +618,8 @@ export default function EmailMarketing() {
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Email Marketing</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-2xl font-bold text-app-text-heading">Email Marketing</h1>
+        <p className="mt-1 text-sm text-app-text-muted">
           Manage your Mailchimp integration and sync contacts
         </p>
       </div>
@@ -651,12 +651,12 @@ export default function EmailMarketing() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Audiences Column */}
         <div className="lg:col-span-1">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Audiences</h2>
+          <h2 className="text-lg font-medium text-app-text-heading mb-4">Audiences</h2>
 
           {isLoading && lists.length === 0 ? (
             <div className="animate-pulse space-y-3">
               {[1, 2, 3].map(i => (
-                <div key={i} className="h-24 bg-gray-200 rounded-lg"></div>
+                <div key={i} className="h-24 bg-app-surface-muted rounded-lg"></div>
               ))}
             </div>
           ) : (
@@ -675,17 +675,17 @@ export default function EmailMarketing() {
 
         {/* Contact Sync Column */}
         <div className="lg:col-span-2">
-          <div className="bg-white border border-gray-200 rounded-lg">
-            <div className="p-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Sync Contacts</h2>
-              <p className="text-sm text-gray-500 mt-1">
+          <div className="bg-app-surface border border-app-border rounded-lg">
+            <div className="p-4 border-b border-app-border">
+              <h2 className="text-lg font-medium text-app-text-heading">Sync Contacts</h2>
+              <p className="text-sm text-app-text-muted mt-1">
                 Select contacts to sync with {selectedList?.name || 'a Mailchimp audience'}
               </p>
             </div>
 
             {!selectedList ? (
-              <div className="p-8 text-center text-gray-500">
-                <svg className="w-12 h-12 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-8 text-center text-app-text-muted">
+                <svg className="w-12 h-12 mx-auto text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
                 <p className="mt-2">Select an audience to sync contacts</p>
@@ -693,15 +693,15 @@ export default function EmailMarketing() {
             ) : (
               <>
                 {/* Toolbar */}
-                <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                <div className="p-4 bg-app-surface-muted border-b border-app-border flex items-center justify-between">
                   <label className="flex items-center gap-2">
                     <input
                       type="checkbox"
                       checked={selectAll}
                       onChange={handleSelectAll}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
                     />
-                    <span className="text-sm text-gray-700">
+                    <span className="text-sm text-app-text-muted">
                       Select all ({contacts.filter((c: Contact) => c.email && !c.do_not_email).length} contacts with email)
                     </span>
                   </label>
@@ -709,7 +709,7 @@ export default function EmailMarketing() {
                   <button
                     onClick={handleSync}
                     disabled={selectedContactIds.length === 0 || isSyncing}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-app-accent text-white text-sm font-medium rounded-lg hover:bg-app-accent-hover disabled:bg-app-text-subtle disabled:cursor-not-allowed transition-colors"
                   >
                     {isSyncing ? (
                       <>
@@ -735,7 +735,7 @@ export default function EmailMarketing() {
                   {contacts.filter((c: Contact) => c.email).map((contact: Contact) => (
                     <label
                       key={contact.contact_id}
-                      className={`flex items-center gap-3 p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
+                      className={`flex items-center gap-3 p-4 border-b border-app-border-muted hover:bg-app-surface-muted cursor-pointer ${
                         contact.do_not_email ? 'opacity-50' : ''
                       }`}
                     >
@@ -744,13 +744,13 @@ export default function EmailMarketing() {
                         checked={selectedContactIds.includes(contact.contact_id)}
                         onChange={() => handleContactSelect(contact.contact_id)}
                         disabled={contact.do_not_email}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                        <p className="text-sm font-medium text-app-text truncate">
                           {contact.first_name} {contact.last_name}
                         </p>
-                        <p className="text-sm text-gray-500 truncate">{contact.email}</p>
+                        <p className="text-sm text-app-text-muted truncate">{contact.email}</p>
                       </div>
                       {contact.do_not_email && (
                         <span className="text-xs text-red-500">Do not email</span>
@@ -767,13 +767,13 @@ export default function EmailMarketing() {
       {/* Campaigns Section */}
       <div className="mt-8">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-medium text-gray-900">
+          <h2 className="text-lg font-medium text-app-text-heading">
             {campaigns.length > 0 ? 'Recent Campaigns' : 'Campaigns'}
           </h2>
           <button
             onClick={handleOpenCampaignModal}
             disabled={lists.length === 0}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-app-accent text-white text-sm font-medium rounded-lg hover:bg-app-accent-hover disabled:bg-app-text-subtle disabled:cursor-not-allowed transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -789,9 +789,9 @@ export default function EmailMarketing() {
             ))}
           </div>
         ) : (
-          <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
+          <div className="bg-app-surface border-2 border-dashed border-app-input-border rounded-lg p-12 text-center">
             <svg
-              className="w-12 h-12 mx-auto text-gray-400"
+              className="w-12 h-12 mx-auto text-app-text-subtle"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -803,14 +803,14 @@ export default function EmailMarketing() {
                 d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
               />
             </svg>
-            <h3 className="mt-4 text-lg font-medium text-gray-900">No campaigns yet</h3>
-            <p className="mt-2 text-sm text-gray-500">
+            <h3 className="mt-4 text-lg font-medium text-app-text-heading">No campaigns yet</h3>
+            <p className="mt-2 text-sm text-app-text-muted">
               Create your first email campaign to start engaging with your audience
             </p>
             {lists.length > 0 && (
               <button
                 onClick={handleOpenCampaignModal}
-                className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-app-accent text-white text-sm font-medium rounded-lg hover:bg-app-accent-hover transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

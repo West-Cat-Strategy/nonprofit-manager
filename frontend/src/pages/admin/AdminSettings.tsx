@@ -857,8 +857,8 @@ export default function AdminSettings() {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4">
             <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowResetPasswordModal(false)} />
-            <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
+              <h3 className="text-lg font-semibold text-app-text-heading mb-4">
                 Reset Password for {selectedUser.firstName} {selectedUser.lastName}
               </h3>
 
@@ -866,23 +866,23 @@ export default function AdminSettings() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                  <label className="block text-sm font-medium text-app-text-label mb-1">New Password</label>
                   <input
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Enter new password"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                  <label className="block text-sm font-medium text-app-text-label mb-1">Confirm Password</label>
                   <input
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirm new password"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
                   />
                 </div>
               </div>
@@ -896,14 +896,14 @@ export default function AdminSettings() {
                     setConfirmPassword('');
                     clearFormError();
                   }}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+                  className="px-4 py-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleResetUserPassword}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
                 >
                   Reset Password
                 </button>
@@ -918,21 +918,21 @@ export default function AdminSettings() {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4">
             <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowResetEmailModal(false)} />
-            <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
+              <h3 className="text-lg font-semibold text-app-text-heading mb-4">
                 Change Email for {selectedUser.firstName} {selectedUser.lastName}
               </h3>
 
               <ErrorBanner message={formError} className="mb-4" />
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">New Email Address</label>
+                <label className="block text-sm font-medium text-app-text-label mb-1">New Email Address</label>
                 <input
                   type="email"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   placeholder="user@example.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
                 />
               </div>
 
@@ -944,14 +944,14 @@ export default function AdminSettings() {
                     setNewEmail('');
                     clearFormError();
                   }}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+                  className="px-4 py-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleResetUserEmail}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
                 >
                   Update Email
                 </button>
@@ -966,38 +966,38 @@ export default function AdminSettings() {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4">
             <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowRoleModal(false)} />
-            <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="relative bg-app-surface rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+              <h3 className="text-lg font-semibold text-app-text-heading mb-4">
                 {editingRole.id ? 'Edit Role' : 'Create Role'}
               </h3>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Role Name</label>
+                  <label className="block text-sm font-medium text-app-text-label mb-1">Role Name</label>
                   <input
                     type="text"
                     value={editingRole.name}
                     onChange={(e) => setEditingRole({ ...editingRole, name: e.target.value })}
                     placeholder="Enter role name"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
                     disabled={editingRole.isSystem}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <label className="block text-sm font-medium text-app-text-label mb-1">Description</label>
                   <input
                     type="text"
                     value={editingRole.description}
                     onChange={(e) => setEditingRole({ ...editingRole, description: e.target.value })}
                     placeholder="Describe this role's purpose"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Permissions</label>
-                  <div className="border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto">
+                  <label className="block text-sm font-medium text-app-text-label mb-2">Permissions</label>
+                  <div className="border border-app-border rounded-lg p-4 max-h-64 overflow-y-auto">
                     {Object.entries(
                       defaultPermissions.reduce((acc, perm) => {
                         if (!acc[perm.category]) acc[perm.category] = [];
@@ -1006,7 +1006,7 @@ export default function AdminSettings() {
                       }, {} as Record<string, typeof defaultPermissions>)
                     ).map(([category, perms]) => (
                       <div key={category} className="mb-4 last:mb-0">
-                        <h4 className="font-medium text-gray-900 mb-2">{category}</h4>
+                        <h4 className="font-medium text-app-text mb-2">{category}</h4>
                         <div className="grid grid-cols-2 gap-2">
                           {perms.map((perm) => (
                             <label key={perm.key} className="flex items-center">
@@ -1028,7 +1028,7 @@ export default function AdminSettings() {
                                 }}
                                 className="mr-2"
                               />
-                              <span className="text-sm text-gray-700">{perm.label}</span>
+                              <span className="text-sm text-app-text-muted">{perm.label}</span>
                             </label>
                           ))}
                         </div>
@@ -1045,14 +1045,14 @@ export default function AdminSettings() {
                     setShowRoleModal(false);
                     setEditingRole(null);
                   }}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+                  className="px-4 py-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleSaveRole}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
                 >
                   {editingRole.id ? 'Save Changes' : 'Create Role'}
                 </button>
@@ -1067,8 +1067,8 @@ export default function AdminSettings() {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4">
             <div className="fixed inset-0 bg-black bg-opacity-50" onClick={resetInviteModal} />
-            <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
+              <h3 className="text-lg font-semibold text-app-text-heading mb-4">
                 Invite New User
               </h3>
 
@@ -1088,14 +1088,14 @@ export default function AdminSettings() {
                     </p>
                   </div>
 
-                  <div className="p-3 bg-gray-100 rounded-lg">
+                  <div className="p-3 bg-app-surface-muted rounded-lg">
                     <input
                       type="text"
                       value={inviteUrl}
                       readOnly
                       title="Invitation URL"
                       aria-label="Invitation URL"
-                      className="w-full bg-transparent text-sm text-gray-700 border-none focus:outline-none"
+                      className="w-full bg-transparent text-sm text-app-text-muted border-none focus:outline-none"
                     />
                   </div>
 
@@ -1105,7 +1105,7 @@ export default function AdminSettings() {
                       navigator.clipboard.writeText(inviteUrl);
                       alert('Link copied to clipboard!');
                     }}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="w-full px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
                   >
                     Copy Link
                   </button>
@@ -1113,7 +1113,7 @@ export default function AdminSettings() {
                   <button
                     type="button"
                     onClick={resetInviteModal}
-                    className="w-full px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+                    className="w-full px-4 py-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg"
                   >
                     Close
                   </button>
@@ -1121,7 +1121,7 @@ export default function AdminSettings() {
               ) : (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-app-text-label mb-1">
                       Email Address *
                     </label>
                     <input
@@ -1129,32 +1129,32 @@ export default function AdminSettings() {
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
                       placeholder="user@example.com"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-app-text-label mb-1">
                       Role *
                     </label>
                     <select
                       value={inviteRole}
                       onChange={(e) => setInviteRole(e.target.value)}
                       title="Select user role"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
                     >
                       <option value="user">User</option>
                       <option value="manager">Manager</option>
                       <option value="admin">Administrator</option>
                       <option value="readonly">Read Only</option>
                     </select>
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-app-text-muted">
                       The user will be assigned this role when they create their account
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-app-text-label mb-1">
                       Personal Message (optional)
                     </label>
                     <textarea
@@ -1162,7 +1162,7 @@ export default function AdminSettings() {
                       onChange={(e) => setInviteMessage(e.target.value)}
                       placeholder="Welcome to our team! Looking forward to working with you."
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
                     />
                   </div>
 
@@ -1170,7 +1170,7 @@ export default function AdminSettings() {
                     <button
                       type="button"
                       onClick={resetInviteModal}
-                      className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+                      className="px-4 py-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg"
                     >
                       Cancel
                     </button>
@@ -1178,7 +1178,7 @@ export default function AdminSettings() {
                       type="button"
                       onClick={handleCreateInvitation}
                       disabled={isCreatingInvite || !inviteEmail}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                      className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
                     >
                       {isCreatingInvite ? 'Creating...' : 'Create Invitation'}
                     </button>

@@ -24,9 +24,9 @@ interface FollowUpListProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  scheduled: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+  scheduled: 'bg-app-accent-soft text-app-accent-text',
   completed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-  cancelled: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
+  cancelled: 'bg-app-surface-muted text-app-text-muted',
   overdue: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
 };
 
@@ -157,7 +157,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
     <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+        <h3 className="text-lg font-semibold text-app-text-heading">
           Follow-ups
         </h3>
         <div className="flex flex-wrap gap-2">
@@ -167,8 +167,8 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
               onClick={() => setStatusFilter(status)}
               className={`px-3 py-1.5 text-xs font-semibold rounded-full border ${
                 statusFilter === status
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200'
+                  ? 'bg-app-accent text-white'
+                  : 'bg-app-surface text-app-text-muted'
               }`}
             >
               {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
@@ -179,7 +179,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
               setEditingFollowUp(null);
               setShowForm(!showForm);
             }}
-            className="px-3 py-1.5 text-sm font-semibold bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors"
+            className="px-3 py-1.5 text-sm font-semibold bg-app-accent text-white rounded-lg hover:bg-app-accent-hover transition-colors"
           >
             {showForm ? 'Cancel' : '+ Schedule Follow-up'}
           </button>
@@ -188,8 +188,8 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
 
       {/* Form */}
       {showForm && (
-        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border-2 border-slate-200 dark:border-slate-700">
-          <h4 className="text-md font-semibold text-slate-800 dark:text-slate-100 mb-4">
+        <div className="p-4 bg-app-surface-muted rounded-lg border-2 border-app-border">
+          <h4 className="text-md font-semibold text-app-text-heading mb-4">
             {editingFollowUp ? 'Edit Follow-up' : 'Schedule New Follow-up'}
           </h4>
           <FollowUpForm
@@ -207,12 +207,12 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
 
       {/* List */}
       {entityLoading ? (
-        <div className="py-8 text-center text-slate-500">
-          <div className="animate-spin w-6 h-6 border-2 border-slate-300 border-t-slate-600 rounded-full mx-auto mb-2" />
+        <div className="py-8 text-center text-app-text-muted">
+          <div className="animate-spin w-6 h-6 border-2 border-app-border border-t-app-accent rounded-full mx-auto mb-2" />
           Loading follow-ups...
         </div>
       ) : filteredFollowUps.length === 0 ? (
-        <div className="py-8 text-center text-slate-500 dark:text-slate-400">
+        <div className="py-8 text-center text-app-text-muted">
           <p>No follow-ups scheduled</p>
           <p className="text-sm mt-1">Click "Schedule Follow-up" to create one</p>
         </div>
@@ -228,7 +228,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                 className={`p-4 rounded-lg border-2 ${
                   overdueStatus
                     ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
-                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'
+                    : 'border-app-border bg-app-surface'
                 }`}
               >
                 <div className="flex items-start justify-between gap-4">
@@ -240,7 +240,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                           {METHOD_ICONS[followUp.method] || '📋'}
                         </span>
                       )}
-                      <h4 className="font-semibold text-slate-900 dark:text-white">
+                      <h4 className="font-semibold text-app-text-heading">
                         {followUp.title}
                       </h4>
                       <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${STATUS_COLORS[displayStatus]}`}>
@@ -254,7 +254,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                     </div>
 
                     {/* Date and Time */}
-                    <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                    <div className="mt-1 text-sm text-app-text-muted">
                       <span>{formatDate(followUp.scheduled_date)}</span>
                       {followUp.scheduled_time && (
                         <span className="ml-2">at {formatTimeString(followUp.scheduled_time)}</span>
@@ -266,7 +266,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
 
                     {/* Description */}
                     {followUp.description && (
-                      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                      <p className="mt-2 text-sm text-app-text-muted">
                         {followUp.description}
                       </p>
                     )}
@@ -279,7 +279,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                           onChange={(e) => setCompletionNotes(e.target.value)}
                           placeholder="Add completion notes (optional)..."
                           rows={2}
-                          className="w-full px-3 py-2 text-sm border-2 border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                          className="w-full px-3 py-2 text-sm border-2 border-app-input-border rounded-lg bg-app-input-bg text-app-text-heading"
                         />
                       </div>
                     )}
@@ -305,7 +305,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                         {completingId !== followUp.id && (
                           <button
                             onClick={() => handleQuickReschedule(followUp.id, 1)}
-                            className="px-2 py-1 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+                            className="px-2 py-1 text-xs font-medium text-app-text-muted hover:bg-app-hover rounded transition-colors"
                           >
                             Reschedule +1d
                           </button>
@@ -316,7 +316,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                               setCompletingId(null);
                               setCompletionNotes('');
                             }}
-                            className="px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+                            className="px-2 py-1 text-xs font-medium text-app-text-muted hover:bg-app-hover rounded transition-colors"
                           >
                             Cancel
                           </button>
@@ -325,7 +325,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                           <>
                             <button
                               onClick={() => handleEdit(followUp)}
-                              className="px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded transition-colors"
+                              className="px-2 py-1 text-xs font-medium text-app-accent-text hover:bg-app-accent-soft-hover rounded transition-colors"
                             >
                               Edit
                             </button>

@@ -75,19 +75,19 @@ const DonationSummaryWidget = ({ widget, editMode, onRemove }: DonationSummaryWi
       {data && (
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-sm text-gray-500">Total Donations</p>
-            <p className="text-2xl font-bold text-gray-900">{data.total_donations}</p>
+            <p className="text-sm text-app-text-muted">Total Donations</p>
+            <p className="text-2xl font-bold text-app-text">{data.total_donations}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-500">Total Amount</p>
-            <p className="text-2xl font-bold text-gray-900">{formatCurrency(data.total_amount)}</p>
+            <p className="text-sm text-app-text-muted">Total Amount</p>
+            <p className="text-2xl font-bold text-app-text">{formatCurrency(data.total_amount)}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-500">Avg. Donation</p>
-            <p className="text-2xl font-bold text-gray-900">{formatCurrency(data.average_donation)}</p>
+            <p className="text-sm text-app-text-muted">Avg. Donation</p>
+            <p className="text-2xl font-bold text-app-text">{formatCurrency(data.average_donation)}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-500">MoM Change</p>
+            <p className="text-sm text-app-text-muted">MoM Change</p>
             <p className={`text-2xl font-bold ${data.month_over_month >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {formatChange(data.month_over_month)}
             </p>

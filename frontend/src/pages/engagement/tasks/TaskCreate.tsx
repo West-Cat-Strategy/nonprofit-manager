@@ -21,8 +21,8 @@ const TaskCreate: React.FC = () => {
     <NeoBrutalistLayout pageTitle="TASKS">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Create New Task</h1>
-          <p className="mt-2 text-gray-600">Enter the task details below.</p>
+          <h1 className="text-3xl font-bold text-app-text">Create New Task</h1>
+          <p className="mt-2 text-app-text-muted">Enter the task details below.</p>
         </div>
 
         <TaskForm onSubmit={handleSubmit} />

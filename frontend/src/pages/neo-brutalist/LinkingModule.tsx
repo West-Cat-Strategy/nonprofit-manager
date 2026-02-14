@@ -41,7 +41,7 @@ export default function LinkingModule() {
             case 'review':
                 return 'bg-[var(--loop-purple)] text-black border-black';
             default:
-                return 'bg-gray-300 text-black border-black';
+                return 'bg-app-hover text-black border-black';
         }
     };
 
@@ -84,7 +84,7 @@ export default function LinkingModule() {
                 </div>
 
                 {/* Data Table */}
-                <div className="bg-white dark:bg-[#121212] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] overflow-hidden">
+                <div className="bg-app-surface dark:bg-[#121212] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] overflow-hidden">
                     <table className="w-full">
                         <thead className="bg-[var(--loop-green)]">
                             <tr>
@@ -107,7 +107,7 @@ export default function LinkingModule() {
                         </thead>
                         <tbody>
                             {organizations.map((org) => (
-                                <tr key={org.id} className="border-b-2 border-black hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                <tr key={org.id} className="border-b-2 border-black hover:bg-app-surface-muted dark:hover:bg-app-text transition-colors">
                                     <td className="px-6 py-4 font-bold bg-[var(--loop-green)] border-r-2 border-black text-black">{org.name}</td>
                                     <td className="px-6 py-4 capitalize font-medium text-black dark:text-white">{org.type}</td>
                                     <td className="px-6 py-4">
@@ -119,7 +119,7 @@ export default function LinkingModule() {
                                     <td className="px-6 py-4">
                                         <button
                                             onClick={() => handleEdit(org.id)}
-                                            className="px-4 py-2 bg-white text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-gray-100 font-bold uppercase text-sm"
+                                            className="px-4 py-2 bg-app-surface text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-app-surface-muted font-bold uppercase text-sm"
                                         >
                                             EDIT
                                         </button>

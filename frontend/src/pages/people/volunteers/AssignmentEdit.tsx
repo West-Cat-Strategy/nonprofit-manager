@@ -24,7 +24,7 @@ export const AssignmentEdit: React.FC = () => {
         </div>
         <button
           onClick={() => navigate('/volunteers')}
-          className="mt-4 text-blue-600 hover:text-blue-800"
+          className="mt-4 text-app-accent hover:text-app-accent-text"
         >
           ← Back to Volunteers
         </button>
@@ -35,7 +35,7 @@ export const AssignmentEdit: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-app-accent"></div>
       </div>
     );
   }
@@ -48,7 +48,7 @@ export const AssignmentEdit: React.FC = () => {
         </div>
         <button
           onClick={() => navigate(`/volunteers/${volunteerId}`)}
-          className="mt-4 text-blue-600 hover:text-blue-800"
+          className="mt-4 text-app-accent hover:text-app-accent-text"
         >
           ← Back to Volunteer
         </button>
@@ -66,7 +66,7 @@ export const AssignmentEdit: React.FC = () => {
         </div>
         <button
           onClick={() => navigate(`/volunteers/${volunteerId}`)}
-          className="mt-4 text-blue-600 hover:text-blue-800"
+          className="mt-4 text-app-accent hover:text-app-accent-text"
         >
           ← Back to Volunteer
         </button>
@@ -79,12 +79,12 @@ export const AssignmentEdit: React.FC = () => {
       <div className="mb-6">
         <button
           onClick={() => navigate(`/volunteers/${volunteerId}`)}
-          className="text-blue-600 hover:text-blue-800 mb-2"
+          className="text-app-accent hover:text-app-accent-text mb-2"
         >
           ← Back to Volunteer
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Edit Assignment</h1>
-        <p className="mt-1 text-sm text-gray-600">Update assignment details and track hours.</p>
+        <h1 className="text-2xl font-bold text-app-text">Edit Assignment</h1>
+        <p className="mt-1 text-sm text-app-text-muted">Update assignment details and track hours.</p>
       </div>
       <AssignmentForm assignment={assignment} volunteerId={volunteerId} mode="edit" />
     </div>

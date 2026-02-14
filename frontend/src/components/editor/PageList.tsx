@@ -23,13 +23,13 @@ const PageList: React.FC<PageListProps> = ({
 }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[80vh] flex flex-col">
+      <div className="bg-app-surface rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[80vh] flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Pages</h2>
+        <div className="p-4 border-b border-app-border flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-app-text">Pages</h2>
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-600 rounded"
+            className="p-1 text-app-text-subtle hover:text-app-text-muted rounded"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -45,16 +45,16 @@ const PageList: React.FC<PageListProps> = ({
               onClick={() => onSelectPage(page.id)}
               className={`w-full p-3 text-left rounded-lg mb-1 flex items-center gap-3 transition-colors ${
                 page.id === currentPageId
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'hover:bg-gray-50 text-gray-700'
+                  ? 'bg-app-accent-soft text-app-accent'
+                  : 'hover:bg-app-surface-muted text-app-text-muted'
               }`}
             >
               {/* Page icon */}
               <div
                 className={`w-10 h-10 rounded flex items-center justify-center ${
                   page.id === currentPageId
-                    ? 'bg-blue-100'
-                    : 'bg-gray-100'
+                    ? 'bg-app-accent-soft'
+                    : 'bg-app-surface-muted'
                 }`}
               >
                 {page.isHomepage ? (
@@ -71,19 +71,19 @@ const PageList: React.FC<PageListProps> = ({
               {/* Page info */}
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">{page.name}</div>
-                <div className="text-sm text-gray-500 truncate">/{page.slug}</div>
+                <div className="text-sm text-app-text-muted truncate">/{page.slug}</div>
               </div>
 
               {/* Homepage badge */}
               {page.isHomepage && (
-                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                <span className="text-xs bg-app-accent-soft text-app-accent px-2 py-0.5 rounded">
                   Home
                 </span>
               )}
 
               {/* Selected indicator */}
               {page.id === currentPageId && (
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-app-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               )}
@@ -92,10 +92,10 @@ const PageList: React.FC<PageListProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-app-border">
           <button
             onClick={onAddPage}
-            className="w-full py-2 px-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-500 hover:text-blue-500 transition-colors flex items-center justify-center gap-2"
+            className="w-full py-2 px-4 border-2 border-dashed border-app-input-border rounded-lg text-app-text-muted hover:border-app-accent hover:text-app-accent transition-colors flex items-center justify-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

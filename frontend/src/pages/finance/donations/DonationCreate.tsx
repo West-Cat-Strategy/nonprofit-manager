@@ -19,8 +19,8 @@ const DonationCreate: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Record New Donation</h1>
-        <p className="mt-2 text-gray-600">Enter the donation details below.</p>
+        <h1 className="text-3xl font-bold text-app-text">Record New Donation</h1>
+        <p className="mt-2 text-app-text-muted">Enter the donation details below.</p>
       </div>
 
       <DonationForm onSubmit={handleSubmit} />

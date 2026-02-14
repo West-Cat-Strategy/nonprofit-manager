@@ -98,15 +98,15 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Amount Display */}
-      <div className="bg-gray-50 rounded-lg p-4 mb-4">
-        <div className="text-sm text-gray-500">Amount to pay</div>
-        <div className="text-2xl font-bold text-gray-900">
+      <div className="bg-app-surface-muted rounded-lg p-4 mb-4">
+        <div className="text-sm text-app-text-muted">Amount to pay</div>
+        <div className="text-2xl font-bold text-app-text">
           {formatAmount(amount, currency)}
         </div>
       </div>
 
       {/* Stripe Payment Element */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
+      <div className="bg-app-surface border border-app-border rounded-lg p-4">
         <PaymentElement
           options={{
             layout: 'tabs',
@@ -128,7 +128,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             type="button"
             onClick={onCancel}
             disabled={isProcessing}
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-3 border border-app-input-border rounded-lg text-app-text-muted hover:bg-app-surface-muted disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
@@ -136,7 +136,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         <button
           type="submit"
           disabled={!stripe || isProcessing}
-          className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="flex-1 px-4 py-3 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {isProcessing ? (
             <>
@@ -184,7 +184,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       </div>
 
       {/* Security Notice */}
-      <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+      <div className="flex items-center justify-center gap-2 text-sm text-app-text-muted">
         <svg
           className="h-4 w-4"
           fill="none"

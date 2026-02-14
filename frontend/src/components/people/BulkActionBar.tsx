@@ -50,10 +50,10 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
   const allActions = actions.length > 0 ? actions : defaultActions;
 
   return (
-    <div className="bg-blue-50 border-2 border-blue-600 p-4 flex items-center justify-between">
+    <div className="bg-app-accent-soft border-2 border-app-accent p-4 flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <CheckIcon className="w-5 h-5 text-blue-600" />
-        <p className="font-bold text-gray-900">
+        <CheckIcon className="w-5 h-5 text-app-accent" />
+        <p className="font-bold text-app-text">
           {selectedCount} selected
           {selectedCount > 1 ? ' items' : ' item'}
         </p>
@@ -74,7 +74,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
         ))}
         <button
           onClick={onClearSelection}
-          className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900 font-mono"
+          className="px-3 py-1 text-sm text-app-text-muted hover:text-app-text font-mono"
         >
           Clear
         </button>

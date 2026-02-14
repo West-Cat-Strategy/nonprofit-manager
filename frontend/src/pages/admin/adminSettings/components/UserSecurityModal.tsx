@@ -28,13 +28,13 @@ export default function UserSecurityModal({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4">
         <div className="fixed inset-0 bg-black bg-opacity-50" onClick={onClose} />
-        <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">User Security Details</h3>
+        <div className="relative bg-app-surface rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="px-6 py-4 border-b border-app-border flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-app-text">User Security Details</h3>
             <button
               type="button"
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-500"
+              className="text-app-text-subtle hover:text-app-text-muted"
               aria-label="Close modal"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,13 +52,13 @@ export default function UserSecurityModal({
                 size="lg"
               />
               <div>
-                <h4 className="text-xl font-semibold text-gray-900">
+                <h4 className="text-xl font-semibold text-app-text">
                   {selectedUser.firstName} {selectedUser.lastName}
                 </h4>
-                <p className="text-gray-500">{selectedUser.email}</p>
+                <p className="text-app-text-muted">{selectedUser.email}</p>
                 <div className="flex items-center space-x-2 mt-1">
                   <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                    selectedUser.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
+                    selectedUser.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-app-surface-muted text-app-text'
                   }`}>
                     {selectedUser.role}
                   </span>
@@ -76,28 +76,28 @@ export default function UserSecurityModal({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-2 gap-4 p-4 bg-app-surface-muted rounded-lg">
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Last Login</p>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-xs text-app-text-muted uppercase tracking-wide">Last Login</p>
+                <p className="text-sm font-medium text-app-text">
                   {selectedUser.lastLoginAt ? new Date(selectedUser.lastLoginAt).toLocaleString('en-CA') : 'Never'}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Last Password Change</p>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-xs text-app-text-muted uppercase tracking-wide">Last Password Change</p>
+                <p className="text-sm font-medium text-app-text">
                   {selectedUser.lastPasswordChange
                     ? new Date(selectedUser.lastPasswordChange).toLocaleString('en-CA')
                     : 'Never'}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Failed Login Attempts</p>
-                <p className="text-sm font-medium text-gray-900">{selectedUser.failedLoginAttempts}</p>
+                <p className="text-xs text-app-text-muted uppercase tracking-wide">Failed Login Attempts</p>
+                <p className="text-sm font-medium text-app-text">{selectedUser.failedLoginAttempts}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Account Created</p>
-                <p className="text-sm font-medium text-gray-900">{new Date(selectedUser.createdAt).toLocaleString('en-CA')}</p>
+                <p className="text-xs text-app-text-muted uppercase tracking-wide">Account Created</p>
+                <p className="text-sm font-medium text-app-text">{new Date(selectedUser.createdAt).toLocaleString('en-CA')}</p>
               </div>
             </div>
 
@@ -105,14 +105,14 @@ export default function UserSecurityModal({
               <button
                 type="button"
                 onClick={onOpenResetPassword}
-                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
+                className="px-4 py-2 bg-app-accent text-white text-sm font-medium rounded-lg hover:bg-app-accent-hover"
               >
                 Reset Password
               </button>
               <button
                 type="button"
                 onClick={onOpenResetEmail}
-                className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200"
+                className="px-4 py-2 bg-app-surface-muted text-app-text-muted text-sm font-medium rounded-lg hover:bg-app-surface-muted"
               >
                 Change Email
               </button>
@@ -130,24 +130,24 @@ export default function UserSecurityModal({
             </div>
 
             <div>
-              <h4 className="text-sm font-semibold text-gray-900 mb-3">Recent Activity</h4>
+              <h4 className="text-sm font-semibold text-app-text mb-3">Recent Activity</h4>
               {userAuditLogs.length > 0 ? (
-                <div className="border border-gray-200 rounded-lg divide-y divide-gray-200 max-h-64 overflow-y-auto">
+                <div className="border border-app-border rounded-lg divide-y divide-app-border max-h-64 overflow-y-auto">
                   {userAuditLogs.map((log) => (
                     <div key={log.id} className="p-3 text-sm">
                       <div className="flex items-center justify-between">
-                        <span className="font-medium text-gray-900">{log.action}</span>
-                        <span className="text-xs text-gray-500">
+                        <span className="font-medium text-app-text">{log.action}</span>
+                        <span className="text-xs text-app-text-muted">
                           {new Date(log.createdAt).toLocaleString('en-CA')}
                         </span>
                       </div>
-                      {log.details && <p className="text-gray-600 mt-1">{log.details}</p>}
-                      <p className="text-xs text-gray-400 mt-1">IP: {log.ipAddress}</p>
+                      {log.details && <p className="text-app-text-muted mt-1">{log.details}</p>}
+                      <p className="text-xs text-app-text-subtle mt-1">IP: {log.ipAddress}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">No recent activity logs</p>
+                <p className="text-sm text-app-text-muted">No recent activity logs</p>
               )}
             </div>
           </div>

@@ -29,8 +29,18 @@
 \i /migrations/024_organization_branding.sql
 \i /migrations/025_theme_presets.sql
 \i /migrations/026_data_scopes.sql
+\i /migrations/027_contact_alerts_and_address.sql
+\i /migrations/028_contact_tags.sql
+\i /migrations/029_enforce_mfa_for_roles.sql
+\i /migrations/030_api_key_authentication.sql
+\i /migrations/031_add_pii_encryption_fields.sql
+\i /migrations/032_row_level_security_fixed.sql
+\i /migrations/033_audit_logging.sql
 
+\i /seeds/001_default_users.sql
+\i /seeds/002_starter_templates.sql
+\i /seeds/003_mock_data.sql
+\i /seeds/004_mock_data_no_users.sql
 \i /seeds/005_kingdom_hearts_mock_data.sql
 \i /seeds/006_theme_presets.sql
 \i /seeds/007_data_scopes.sql
-\i /seeds/006_theme_presets.sql

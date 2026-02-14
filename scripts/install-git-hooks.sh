@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Load common utilities and configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
+source "$SCRIPT_DIR/lib/config.sh"
 
-if ! command -v git >/dev/null 2>&1; then
-  echo "git is required to install hooks" >&2
+if ! is_git_repo; then
+  log_error "git is required to install hooks"
   exit 1
 fi
 
-git -C "$root_dir" config core.hooksPath scripts/hooks
+log_info "Installing git hooks..."
+git -C "$PROJECT_ROOT" config core.hooksPath "$GIT_HOOKS_DIR"
 
-echo "Git hooks installed. Hooks path set to scripts/hooks."
+log_success "Git hooks installed. Hooks path set to $GIT_HOOKS_DIR."

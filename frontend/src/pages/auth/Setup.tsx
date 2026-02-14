@@ -167,7 +167,7 @@ const Setup: React.FC = () => {
       <div className="relative mx-auto flex min-h-screen max-w-6xl items-center px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid w-full gap-10 lg:grid-cols-[1.05fr_1fr]">
           <div className="flex flex-col justify-center">
-            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-app-surface/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
               First-time setup
             </span>
             <h1 className="font-display mt-4 text-4xl font-semibold text-slate-900 sm:text-5xl">
@@ -183,7 +183,7 @@ const Setup: React.FC = () => {
                 'Invite teammates and configure modules after setup.',
                 'Personalize dashboards for fundraising and programs.',
               ].map((copy) => (
-                <div key={copy} className="flex items-start gap-3 rounded-xl bg-white/70 p-3 shadow-sm">
+                <div key={copy} className="flex items-start gap-3 rounded-xl bg-app-surface/70 p-3 shadow-sm">
                   <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
                     <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                       <path
@@ -197,7 +197,7 @@ const Setup: React.FC = () => {
                 </div>
               ))}
             </div>
-            <div className="mt-8 rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm">
+            <div className="mt-8 rounded-2xl border border-slate-200 bg-app-surface/80 p-5 shadow-sm">
               <div className="flex items-start gap-3">
                 <span className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 text-sky-600">
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -226,7 +226,7 @@ const Setup: React.FC = () => {
             </p>
           </div>
 
-          <div className="rounded-3xl border border-slate-200/80 bg-white/90 p-8 shadow-xl backdrop-blur">
+          <div className="rounded-3xl border border-slate-200/80 bg-app-surface/90 p-8 shadow-xl backdrop-blur">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white">
                 <svg
@@ -296,7 +296,7 @@ const Setup: React.FC = () => {
                     autoComplete="given-name"
                     value={formData.firstName}
                     onChange={handleChange}
-                    className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                    className="mt-2 block w-full rounded-xl border border-slate-200 bg-app-surface px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
                     placeholder="Jordan"
                   />
                 </div>
@@ -312,7 +312,7 @@ const Setup: React.FC = () => {
                     autoComplete="family-name"
                     value={formData.lastName}
                     onChange={handleChange}
-                    className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                    className="mt-2 block w-full rounded-xl border border-slate-200 bg-app-surface px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
                     placeholder="Lee"
                   />
                 </div>
@@ -330,7 +330,7 @@ const Setup: React.FC = () => {
                   autoComplete="organization"
                   value={formData.organizationName}
                   onChange={handleChange}
-                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-app-surface px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
                   placeholder="Community Aid Network"
                 />
               </div>
@@ -347,7 +347,7 @@ const Setup: React.FC = () => {
                   autoComplete="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-app-surface px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
                   placeholder="admin@nonprofit.org"
                 />
                 {formData.email.length > 0 && !emailValid && (
@@ -367,7 +367,7 @@ const Setup: React.FC = () => {
                   autoComplete="new-password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-app-surface px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
                   placeholder="Create a strong password"
                 />
                 <div className="mt-3 grid gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-600 sm:grid-cols-2">
@@ -402,7 +402,7 @@ const Setup: React.FC = () => {
                   autoComplete="new-password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-app-surface px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
                   placeholder="Re-enter your password"
                 />
                 {formData.confirmPassword.length > 0 && !passwordsMatch && (

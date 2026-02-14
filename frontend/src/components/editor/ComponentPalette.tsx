@@ -302,12 +302,12 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({ component }) =>
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      className={`flex items-center gap-2 p-2 rounded cursor-grab hover:bg-gray-100 transition-colors ${
+      className={`flex items-center gap-2 p-2 rounded cursor-grab hover:bg-app-surface-muted transition-colors ${
         isDragging ? 'opacity-50' : ''
       }`}
     >
-      <span className="text-gray-500">{component.icon}</span>
-      <span className="text-sm text-gray-700">{component.label}</span>
+      <span className="text-app-text-muted">{component.icon}</span>
+      <span className="text-sm text-app-text-muted">{component.label}</span>
     </div>
   );
 };
@@ -338,10 +338,10 @@ const ComponentPalette: React.FC = () => {
   }, {} as Record<string, ComponentDefinition[]>);
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto">
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="font-semibold text-gray-900">Components</h2>
-        <p className="text-xs text-gray-500 mt-1">Drag to add to page</p>
+    <div className="w-64 bg-app-surface border-r border-app-border overflow-y-auto">
+      <div className="p-4 border-b border-app-border">
+        <h2 className="font-semibold text-app-text">Components</h2>
+        <p className="text-xs text-app-text-muted mt-1">Drag to add to page</p>
       </div>
 
       <div className="p-2">
@@ -349,7 +349,7 @@ const ComponentPalette: React.FC = () => {
           <div key={category} className="mb-2">
             <button
               onClick={() => toggleCategory(category)}
-              className="w-full flex items-center justify-between p-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded"
+              className="w-full flex items-center justify-between p-2 text-sm font-medium text-app-text-muted hover:bg-app-surface-muted rounded"
             >
               {categoryLabels[category]}
               <svg

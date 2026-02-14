@@ -50,9 +50,9 @@ const DonationList: React.FC = () => {
       completed: 'bg-green-100 text-green-800',
       failed: 'bg-red-100 text-red-800',
       refunded: 'bg-purple-100 text-purple-800',
-      cancelled: 'bg-gray-100 text-gray-800',
+      cancelled: 'bg-app-surface-muted text-app-text',
     };
-    return badges[status] || 'bg-gray-100 text-gray-800';
+    return badges[status] || 'bg-app-surface-muted text-app-text';
   };
 
   const getPaymentMethodLabel = (method: string | null) => {
@@ -66,7 +66,7 @@ const DonationList: React.FC = () => {
         <h1 className="text-3xl font-bold">Donations</h1>
         <button
           onClick={() => navigate('/donations/new')}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover"
         >
           Record Donation
         </button>
@@ -74,16 +74,16 @@ const DonationList: React.FC = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white shadow-md rounded-lg p-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Total Donations</h3>
+        <div className="bg-app-surface shadow-md rounded-lg p-6">
+          <h3 className="text-sm font-medium text-app-text-muted mb-2">Total Donations</h3>
           <p className="text-3xl font-bold text-green-600">{formatCurrency(totalAmount)}</p>
         </div>
-        <div className="bg-white shadow-md rounded-lg p-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Average Donation</h3>
-          <p className="text-3xl font-bold text-blue-600">{formatCurrency(averageAmount)}</p>
+        <div className="bg-app-surface shadow-md rounded-lg p-6">
+          <h3 className="text-sm font-medium text-app-text-muted mb-2">Average Donation</h3>
+          <p className="text-3xl font-bold text-app-accent">{formatCurrency(averageAmount)}</p>
         </div>
-        <div className="bg-white shadow-md rounded-lg p-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Total Count</h3>
+        <div className="bg-app-surface shadow-md rounded-lg p-6">
+          <h3 className="text-sm font-medium text-app-text-muted mb-2">Total Count</h3>
           <p className="text-3xl font-bold text-purple-600">{pagination.total}</p>
         </div>
       </div>
@@ -146,70 +146,70 @@ const DonationList: React.FC = () => {
       {loading ? (
         <div className="text-center py-12">Loading donations...</div>
       ) : donations.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
+        <div className="text-center py-12 text-app-text-muted">
           No donations found. Record your first donation to get started.
         </div>
       ) : (
         <>
-          <div className="bg-white shadow-md rounded-lg overflow-hidden">
+          <div className="bg-app-surface shadow-md rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-app-border">
+              <thead className="bg-app-surface-muted">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
                     Donation #
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
                     Donor
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
                     Amount
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
                     Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
                     Payment
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
                     Receipt
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-app-surface divide-y divide-app-border">
                 {donations.map((donation) => (
-                  <tr key={donation.donation_id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <tr key={donation.donation_id} className="hover:bg-app-surface-muted">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-app-text">
                       {donation.donation_number}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-app-text">
                         {donation.account_name || donation.contact_name || 'Anonymous'}
                       </div>
                       {donation.campaign_name && (
-                        <div className="text-xs text-gray-500">{donation.campaign_name}</div>
+                        <div className="text-xs text-app-text-muted">{donation.campaign_name}</div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-gray-900">
+                      <div className="text-sm font-semibold text-app-text">
                         {formatCurrency(donation.amount, donation.currency)}
                       </div>
                       {donation.is_recurring && (
-                        <div className="text-xs text-blue-600">
+                        <div className="text-xs text-app-accent">
                           Recurring ({donation.recurring_frequency})
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-app-text">
                       {formatDate(donation.donation_date)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-app-text">
                       {getPaymentMethodLabel(donation.payment_method)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -223,13 +223,13 @@ const DonationList: React.FC = () => {
                       {donation.receipt_sent ? (
                         <span className="text-green-600">✓ Sent</span>
                       ) : (
-                        <span className="text-gray-400">Not Sent</span>
+                        <span className="text-app-text-subtle">Not Sent</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
                         onClick={() => navigate(`/donations/${donation.donation_id}`)}
-                        className="text-blue-600 hover:text-blue-900 mr-4"
+                        className="text-app-accent hover:text-app-accent-text mr-4"
                       >
                         View
                       </button>
@@ -250,7 +250,7 @@ const DonationList: React.FC = () => {
           {/* Pagination */}
           {pagination.total_pages > 1 && (
             <div className="mt-6 flex justify-between items-center">
-              <div className="text-sm text-gray-700">
+              <div className="text-sm text-app-text-muted">
                 Showing page {pagination.page} of {pagination.total_pages} ({pagination.total} total
                 donations)
               </div>
@@ -258,14 +258,14 @@ const DonationList: React.FC = () => {
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-app-surface-muted"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(pagination.total_pages, p + 1))}
                   disabled={currentPage === pagination.total_pages}
-                  className="px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-app-surface-muted"
                 >
                   Next
                 </button>

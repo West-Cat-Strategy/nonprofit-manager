@@ -1,31 +1,16 @@
 #!/bin/bash
 # Deployment Script
 # Deploys the application locally, to staging, or to production
-#
-# Usage:
-#   ./scripts/deploy.sh local      - Rebuild and restart Docker containers
-#   ./scripts/deploy.sh staging    - Deploy to staging server
-#   ./scripts/deploy.sh production - Deploy to production server
 
 set -e
 
+# Load common utilities and configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+source "$SCRIPT_DIR/lib/common.sh"
+source "$SCRIPT_DIR/lib/config.sh"
 
 # Configuration file for remote deployments
-CONFIG_FILE="$PROJECT_ROOT/.deploy.conf"
+CONFIG_FILE="${DEPLOY_CONFIG_FILE:-$PROJECT_ROOT/.deploy.conf}"
 
 # Load configuration if exists
 if [ -f "$CONFIG_FILE" ]; then
@@ -35,19 +20,20 @@ fi
 # Environment argument
 ENVIRONMENT="${1:-local}"
 
-cd "$PROJECT_ROOT"
-
-echo ""
-echo "========================================"
-echo "  Deploying to: $ENVIRONMENT"
-echo "========================================"
-echo ""
+# Validate environment
+validate_environment "$ENVIRONMENT" || exit 1
 
 # Get git info
-GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
-GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || echo "")
-GIT_DIRTY=$(git status --porcelain 2>/dev/null | head -1)
+get_git_info
+
+print_header "Deploying to $ENVIRONMENT"
+
+log_info "Git info:"
+echo "  Branch: $GIT_BRANCH"
+echo "  Commit: $GIT_COMMIT"
+[ -n "$GIT_TAG" ] && echo "  Tag: $GIT_TAG"
+[ -n "$GIT_DIRTY" ] && log_warn "Working directory has uncommitted changes"
+echo ""
 
 log_info "Git info:"
 echo "  Branch: $GIT_BRANCH"

@@ -44,7 +44,7 @@ function SortBuilder({ selectedFields, sorts, onChange }: SortBuilderProps) {
 
   if (selectedFields.length === 0) {
     return (
-      <div className="text-center py-4 text-gray-500">
+      <div className="text-center py-4 text-app-text-muted">
         Select fields first to add sorting
       </div>
     );
@@ -60,7 +60,7 @@ function SortBuilder({ selectedFields, sorts, onChange }: SortBuilderProps) {
               <button
                 onClick={() => handleMoveUp(index)}
                 disabled={index === 0}
-                className="p-1 text-gray-500 hover:text-gray-700 disabled:text-gray-300 disabled:cursor-not-allowed"
+                className="p-1 text-app-text-muted hover:text-app-text-muted disabled:text-app-text-subtle disabled:cursor-not-allowed"
                 title="Move up"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -75,7 +75,7 @@ function SortBuilder({ selectedFields, sorts, onChange }: SortBuilderProps) {
               <button
                 onClick={() => handleMoveDown(index)}
                 disabled={index === sorts.length - 1}
-                className="p-1 text-gray-500 hover:text-gray-700 disabled:text-gray-300 disabled:cursor-not-allowed"
+                className="p-1 text-app-text-muted hover:text-app-text-muted disabled:text-app-text-subtle disabled:cursor-not-allowed"
                 title="Move down"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,7 +90,7 @@ function SortBuilder({ selectedFields, sorts, onChange }: SortBuilderProps) {
             </div>
 
             {/* Priority Badge */}
-            <div className="w-8 h-8 flex items-center justify-center bg-blue-100 text-blue-700 rounded-full font-semibold text-sm">
+            <div className="w-8 h-8 flex items-center justify-center bg-app-accent-soft text-app-accent rounded-full font-semibold text-sm">
               {index + 1}
             </div>
 
@@ -98,7 +98,7 @@ function SortBuilder({ selectedFields, sorts, onChange }: SortBuilderProps) {
             <select
               value={sort.field}
               onChange={(e) => handleUpdateSort(index, { field: e.target.value })}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              className="flex-1 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
             >
               {selectedFields.map((field) => (
                 <option key={field} value={field}>
@@ -113,7 +113,7 @@ function SortBuilder({ selectedFields, sorts, onChange }: SortBuilderProps) {
               onChange={(e) =>
                 handleUpdateSort(index, { direction: e.target.value as 'asc' | 'desc' })
               }
-              className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              className="w-48 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
             >
               <option value="asc">Ascending (A-Z, 0-9)</option>
               <option value="desc">Descending (Z-A, 9-0)</option>
@@ -141,14 +141,14 @@ function SortBuilder({ selectedFields, sorts, onChange }: SortBuilderProps) {
       <button
         onClick={handleAddSort}
         disabled={selectedFields.length === 0}
-        className="mt-4 px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium"
+        className="mt-4 px-4 py-2 text-sm bg-app-surface-muted text-app-text-muted rounded-lg hover:bg-app-surface-muted disabled:bg-app-hover disabled:cursor-not-allowed font-medium"
       >
         + Add Sort
       </button>
 
       {sorts.length > 0 && (
-        <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-          <p className="text-sm text-blue-800">
+        <div className="mt-4 p-3 bg-app-accent-soft rounded-lg">
+          <p className="text-sm text-app-accent-text">
             <strong>Sorting Order:</strong> Records will be sorted by the fields in the order
             shown above. Use the arrows to reorder.
           </p>

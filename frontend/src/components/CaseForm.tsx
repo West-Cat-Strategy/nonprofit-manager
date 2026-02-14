@@ -171,7 +171,7 @@ const CaseForm = ({
 
       {/* Contact Selection */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-app-text-label mb-2">
           Client <span className="text-red-500">*</span>
         </label>
         <div className="relative">
@@ -184,29 +184,29 @@ const CaseForm = ({
             onFocus={lookup.handleFocus}
             placeholder="Search by name, email, or phone..."
             disabled={isEditMode || (disableContactSelection && Boolean(formData.contact_id))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+            className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent disabled:bg-app-surface-muted"
           />
           {lookup.isLoading && (
             <div className="absolute inset-y-0 right-3 flex items-center">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-500" />
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-app-input-border border-t-app-accent" />
             </div>
           )}
           {lookup.isOpen && lookup.results.length > 0 && !isEditMode && (
             <div
               ref={lookup.dropdownRef}
-              className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg max-h-64 overflow-y-auto"
+              className="absolute z-10 mt-1 w-full rounded-lg border border-app-border bg-app-surface shadow-lg max-h-64 overflow-y-auto"
             >
               {lookup.results.map((contact) => (
                 <button
                   type="button"
                   key={contact.contact_id}
                   onClick={() => handleSelectContact(contact)}
-                  className="w-full text-left px-4 py-2 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
+                  className="w-full text-left px-4 py-2 hover:bg-app-accent-soft focus:bg-app-accent-soft focus:outline-none"
                 >
-                  <div className="text-sm font-medium text-gray-900">
+                  <div className="text-sm font-medium text-app-text">
                     {contact.first_name} {contact.last_name}
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-app-text-muted">
                     {contact.email || contact.phone || contact.mobile_phone || 'No contact info'}
                   </div>
                 </button>
@@ -216,13 +216,13 @@ const CaseForm = ({
         </div>
         <input type="hidden" name="contact_id" value={formData.contact_id} />
         {isEditMode && (
-          <p className="mt-1 text-sm text-gray-500">Client cannot be changed after case creation</p>
+          <p className="mt-1 text-sm text-app-text-muted">Client cannot be changed after case creation</p>
         )}
       </div>
 
       {/* Case Type */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-app-text-label mb-2">
           Case Type <span className="text-red-500">*</span>
         </label>
         <select
@@ -231,7 +231,7 @@ const CaseForm = ({
           onChange={handleChange}
           required
           disabled={isEditMode}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+          className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent disabled:bg-app-surface-muted"
         >
           <option value="">Select a case type...</option>
           {caseTypes.map((type) => (
@@ -241,7 +241,7 @@ const CaseForm = ({
           ))}
         </select>
         {isEditMode && (
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-app-text-muted">
             Case type cannot be changed after case creation
           </p>
         )}
@@ -249,7 +249,7 @@ const CaseForm = ({
 
       {/* Title */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-app-text-label mb-2">
           Title <span className="text-red-500">*</span>
         </label>
         <input
@@ -259,32 +259,32 @@ const CaseForm = ({
           onChange={handleChange}
           required
           placeholder="Brief description of the case"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
         />
       </div>
 
       {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+        <label className="block text-sm font-medium text-app-text-label mb-2">Description</label>
         <textarea
           name="description"
           value={formData.description}
           onChange={handleChange}
           rows={4}
           placeholder="Detailed description of the case..."
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
         />
       </div>
 
       {/* Priority and Source */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+          <label className="block text-sm font-medium text-app-text-label mb-2">Priority</label>
           <select
             name="priority"
             value={formData.priority}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
           >
             <option value="low">Low</option>
             <option value="medium">Medium</option>
@@ -294,13 +294,13 @@ const CaseForm = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Source</label>
+          <label className="block text-sm font-medium text-app-text-label mb-2">Source</label>
           <select
             name="source"
             value={formData.source || ''}
             onChange={handleChange}
             disabled={isEditMode}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+            className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent disabled:bg-app-surface-muted"
           >
             <option value="">Select source...</option>
             <option value="phone">Phone</option>
@@ -316,27 +316,27 @@ const CaseForm = ({
       {/* Referral Source (if source is referral) */}
       {formData.source === 'referral' && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Referral Source</label>
+          <label className="block text-sm font-medium text-app-text-label mb-2">Referral Source</label>
           <input
             type="text"
             name="referral_source"
             value={formData.referral_source}
             onChange={handleChange}
             placeholder="Name of organization or person who referred"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
           />
         </div>
       )}
 
       {/* Due Date */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
+        <label className="block text-sm font-medium text-app-text-label mb-2">Due Date</label>
         <input
           type="date"
           name="due_date"
           value={formData.due_date}
           onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
         />
       </div>
 
@@ -348,18 +348,18 @@ const CaseForm = ({
             name="is_urgent"
             checked={formData.is_urgent}
             onChange={handleChange}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
           />
-          <span className="text-sm font-medium text-gray-700">Mark as urgent</span>
+          <span className="text-sm font-medium text-app-text-label">Mark as urgent</span>
         </label>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-app-text-muted">
           Urgent cases are highlighted and prioritized in the case list
         </p>
       </div>
 
       {/* Tags */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+        <label className="block text-sm font-medium text-app-text-label mb-2">Tags</label>
         <div className="flex gap-2 mb-2">
           <input
             type="text"
@@ -367,12 +367,12 @@ const CaseForm = ({
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
             placeholder="Add a tag..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="flex-1 px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
           />
           <button
             type="button"
             onClick={handleAddTag}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+            className="px-4 py-2 bg-app-surface-muted text-app-text-muted rounded-lg hover:bg-app-surface-muted transition"
           >
             Add
           </button>
@@ -382,13 +382,13 @@ const CaseForm = ({
             {formData.tags.map((tag) => (
               <span
                 key={tag}
-                className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full flex items-center gap-2"
+                className="px-3 py-1 bg-app-accent-soft text-app-accent-text text-sm rounded-full flex items-center gap-2"
               >
                 {tag}
                 <button
                   type="button"
                   onClick={() => handleRemoveTag(tag)}
-                  className="text-blue-600 hover:text-blue-800"
+                  className="text-app-accent hover:text-app-accent-hover"
                 >
                   ×
                 </button>
@@ -399,18 +399,18 @@ const CaseForm = ({
       </div>
 
       {/* Form Actions */}
-      <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+      <div className="flex justify-end gap-4 pt-6 border-t border-app-border">
         <button
           type="button"
           onClick={() => navigate('/cases')}
-          className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+          className="px-6 py-2 border border-app-input-border rounded-lg hover:bg-app-hover transition"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          className="px-6 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
           {loading ? 'Saving...' : isEditMode ? 'Update Case' : 'Create Case'}
         </button>

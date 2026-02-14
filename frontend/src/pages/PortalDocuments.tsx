@@ -32,22 +32,22 @@ export default function PortalDocuments() {
 
   return (
     <div>
-      <h2 className="text-xl font-semibold text-gray-900">Documents</h2>
+      <h2 className="text-xl font-semibold text-app-text">Documents</h2>
       {loading ? (
-        <p className="text-sm text-gray-500 mt-2">Loading documents...</p>
+        <p className="text-sm text-app-text-muted mt-2">Loading documents...</p>
       ) : documents.length === 0 ? (
-        <p className="text-sm text-gray-500 mt-2">No documents available.</p>
+        <p className="text-sm text-app-text-muted mt-2">No documents available.</p>
       ) : (
         <ul className="mt-4 space-y-3">
           {documents.map((doc) => (
             <li key={doc.id} className="p-3 border rounded-lg flex justify-between items-center">
               <div>
-                <div className="font-medium text-gray-900">{doc.title || doc.original_name}</div>
-                <div className="text-sm text-gray-500">{doc.document_type}</div>
+                <div className="font-medium text-app-text">{doc.title || doc.original_name}</div>
+                <div className="text-sm text-app-text-muted">{doc.document_type}</div>
               </div>
               <a
                 href={`/api/portal/documents/${doc.id}/download`}
-                className="text-sm text-blue-600 hover:underline"
+                className="text-sm text-app-accent hover:underline"
               >
                 Download
               </a>

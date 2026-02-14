@@ -66,7 +66,7 @@ const PaymentResult: React.FC = () => {
     switch (status) {
       case 'loading':
         return (
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent" />
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-app-accent border-t-transparent" />
         );
       case 'success':
         return (
@@ -139,34 +139,34 @@ const PaymentResult: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
+    <div className="min-h-screen bg-app-surface-muted flex items-center justify-center p-4">
+      <div className="bg-app-surface rounded-lg shadow-lg p-8 max-w-md text-center">
         <div className="flex justify-center mb-6">{getStatusIcon()}</div>
 
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">{getTitle()}</h1>
+        <h1 className="text-2xl font-bold text-app-text mb-2">{getTitle()}</h1>
 
-        <p className="text-gray-600 mb-6">{message}</p>
+        <p className="text-app-text-muted mb-6">{message}</p>
 
         {status !== 'loading' && (
           <div className="flex gap-4 justify-center">
             {status === 'failed' && (
               <button
                 onClick={() => navigate('/donations/payment')}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-6 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
               >
                 Try Again
               </button>
             )}
             <button
               onClick={() => navigate('/donations')}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              className="px-6 py-2 border border-app-input-border text-app-text-muted rounded-lg hover:bg-app-surface-muted"
             >
               View Donations
             </button>
             {status === 'success' && (
               <button
                 onClick={() => navigate('/donations/payment')}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-6 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
               >
                 Donate Again
               </button>

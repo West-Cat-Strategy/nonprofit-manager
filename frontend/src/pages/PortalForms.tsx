@@ -30,22 +30,22 @@ export default function PortalForms() {
 
   return (
     <div>
-      <h2 className="text-xl font-semibold text-gray-900">Forms</h2>
+      <h2 className="text-xl font-semibold text-app-text">Forms</h2>
       {loading ? (
-        <p className="text-sm text-gray-500 mt-2">Loading forms...</p>
+        <p className="text-sm text-app-text-muted mt-2">Loading forms...</p>
       ) : forms.length === 0 ? (
-        <p className="text-sm text-gray-500 mt-2">No forms available.</p>
+        <p className="text-sm text-app-text-muted mt-2">No forms available.</p>
       ) : (
         <ul className="mt-4 space-y-3">
           {forms.map((form) => (
             <li key={form.id} className="p-3 border rounded-lg flex justify-between items-center">
               <div>
-                <div className="font-medium text-gray-900">{form.title || form.original_name}</div>
-                <div className="text-sm text-gray-500">{form.document_type}</div>
+                <div className="font-medium text-app-text">{form.title || form.original_name}</div>
+                <div className="text-sm text-app-text-muted">{form.document_type}</div>
               </div>
               <a
                 href={`/api/portal/documents/${form.id}/download`}
-                className="text-sm text-blue-600 hover:underline"
+                className="text-sm text-app-accent hover:underline"
               >
                 Download
               </a>

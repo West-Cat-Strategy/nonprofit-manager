@@ -128,7 +128,7 @@ export default function FollowUpForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Title */}
       <div>
-        <label htmlFor="followup-title" className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+        <label htmlFor="followup-title" className="block text-sm font-semibold text-app-text-label mb-1">
           Title <span className="text-red-500">*</span>
         </label>
         <input
@@ -137,14 +137,14 @@ export default function FollowUpForm({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="e.g., Check-in call, Status update"
-          className="w-full px-3 py-2 border-2 border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-slate-500 dark:focus:border-slate-400"
+          className="w-full px-3 py-2 border-2 border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:border-app-accent"
           required
         />
       </div>
 
       {/* Description */}
       <div>
-        <label htmlFor="followup-description" className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+        <label htmlFor="followup-description" className="block text-sm font-semibold text-app-text-label mb-1">
           Description
         </label>
         <textarea
@@ -153,14 +153,14 @@ export default function FollowUpForm({
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Additional notes or context for this follow-up..."
           rows={3}
-          className="w-full px-3 py-2 border-2 border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-slate-500 dark:focus:border-slate-400"
+          className="w-full px-3 py-2 border-2 border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:border-app-accent"
         />
       </div>
 
       {/* Date and Time */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="followup-date" className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+          <label htmlFor="followup-date" className="block text-sm font-semibold text-app-text-label mb-1">
             Date <span className="text-red-500">*</span>
           </label>
           <input
@@ -169,12 +169,12 @@ export default function FollowUpForm({
             value={scheduledDate}
             onChange={(e) => setScheduledDate(e.target.value)}
             min={new Date().toISOString().split('T')[0]}
-            className="w-full px-3 py-2 border-2 border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-slate-500 dark:focus:border-slate-400"
+            className="w-full px-3 py-2 border-2 border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:border-app-accent"
             required
           />
         </div>
         <div>
-          <label htmlFor="followup-time" className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+          <label htmlFor="followup-time" className="block text-sm font-semibold text-app-text-label mb-1">
             Time
           </label>
           <input
@@ -182,21 +182,21 @@ export default function FollowUpForm({
             type="time"
             value={scheduledTime}
             onChange={(e) => setScheduledTime(e.target.value)}
-            className="w-full px-3 py-2 border-2 border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-slate-500 dark:focus:border-slate-400"
+            className="w-full px-3 py-2 border-2 border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:border-app-accent"
           />
         </div>
       </div>
 
       {/* Method */}
       <div>
-        <label htmlFor="followup-method" className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+        <label htmlFor="followup-method" className="block text-sm font-semibold text-app-text-label mb-1">
           Method
         </label>
         <select
           id="followup-method"
           value={method}
           onChange={(e) => setMethod(e.target.value as FollowUpMethod | '')}
-          className="w-full px-3 py-2 border-2 border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-slate-500 dark:focus:border-slate-400"
+          className="w-full px-3 py-2 border-2 border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:border-app-accent"
         >
           <option value="">Select method...</option>
           {METHOD_OPTIONS.map((opt) => (
@@ -209,14 +209,14 @@ export default function FollowUpForm({
 
       {/* Frequency */}
       <div>
-        <label htmlFor="followup-frequency" className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+        <label htmlFor="followup-frequency" className="block text-sm font-semibold text-app-text-label mb-1">
           Repeat
         </label>
         <select
           id="followup-frequency"
           value={frequency}
           onChange={(e) => setFrequency(e.target.value as FollowUpFrequency)}
-          className="w-full px-3 py-2 border-2 border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-slate-500 dark:focus:border-slate-400"
+          className="w-full px-3 py-2 border-2 border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:border-app-accent"
         >
           {FREQUENCY_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -229,7 +229,7 @@ export default function FollowUpForm({
       {/* Frequency End Date (only shown if recurring) */}
       {frequency !== 'once' && (
         <div>
-          <label htmlFor="followup-end-date" className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+          <label htmlFor="followup-end-date" className="block text-sm font-semibold text-app-text-label mb-1">
             Repeat Until
           </label>
           <input
@@ -238,22 +238,22 @@ export default function FollowUpForm({
             value={frequencyEndDate}
             onChange={(e) => setFrequencyEndDate(e.target.value)}
             min={scheduledDate}
-            className="w-full px-3 py-2 border-2 border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-slate-500 dark:focus:border-slate-400"
+            className="w-full px-3 py-2 border-2 border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:border-app-accent"
           />
-          <p className="text-xs text-slate-500 mt-1">Leave empty for indefinite recurrence</p>
+          <p className="text-xs text-app-text-muted mt-1">Leave empty for indefinite recurrence</p>
         </div>
       )}
 
       {/* Reminder */}
       <div>
-        <label htmlFor="followup-reminder" className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+        <label htmlFor="followup-reminder" className="block text-sm font-semibold text-app-text-label mb-1">
           Reminder
         </label>
         <select
           id="followup-reminder"
           value={reminderMinutes}
           onChange={(e) => setReminderMinutes(e.target.value === '' ? '' : Number(e.target.value))}
-          className="w-full px-3 py-2 border-2 border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-slate-500 dark:focus:border-slate-400"
+          className="w-full px-3 py-2 border-2 border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:border-app-accent"
         >
           <option value="">No reminder</option>
           {REMINDER_OPTIONS.map((opt) => (
@@ -266,7 +266,7 @@ export default function FollowUpForm({
 
       {/* Assigned To - could be enhanced with user picker */}
       <div>
-        <label htmlFor="followup-assigned" className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">
+        <label htmlFor="followup-assigned" className="block text-sm font-semibold text-app-text-label mb-1">
           Assigned To
         </label>
         <input
@@ -275,7 +275,7 @@ export default function FollowUpForm({
           value={assignedTo}
           onChange={(e) => setAssignedTo(e.target.value)}
           placeholder="User ID or name"
-          className="w-full px-3 py-2 border-2 border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-slate-500 dark:focus:border-slate-400"
+          className="w-full px-3 py-2 border-2 border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:border-app-accent"
         />
       </div>
 
@@ -284,7 +284,7 @@ export default function FollowUpForm({
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold rounded-lg hover:bg-slate-800 dark:hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex-1 px-4 py-2 bg-app-accent text-white font-semibold rounded-lg hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? 'Saving...' : isEditing ? 'Update Follow-up' : 'Schedule Follow-up'}
         </button>
@@ -293,7 +293,7 @@ export default function FollowUpForm({
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="px-4 py-2 border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:opacity-50 transition-colors"
+            className="px-4 py-2 border-2 border-app-input-border text-app-text-label font-semibold rounded-lg hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent disabled:opacity-50 transition-colors"
           >
             Cancel
           </button>

@@ -364,7 +364,7 @@ const CaseDetail = () => {
                 <select
                   value={newStatusId}
                   onChange={(e) => setNewStatusId(e.target.value)}
-                  className="w-full px-3 py-2 border-2 border-black bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
+                  className="w-full px-3 py-2 border-2 border-black bg-app-surface text-black focus:outline-none focus:ring-2 focus:ring-black"
                   aria-label="Select new status"
                 >
                   <option value="">Select new status...</option>
@@ -384,7 +384,7 @@ const CaseDetail = () => {
                   onChange={(e) => setStatusChangeNotes(e.target.value)}
                   rows={3}
                   placeholder="Reason for status change..."
-                  className="w-full px-3 py-2 border-2 border-black bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
+                  className="w-full px-3 py-2 border-2 border-black bg-app-surface text-black focus:outline-none focus:ring-2 focus:ring-black"
                 />
               </div>
               <div className="flex justify-end gap-3">
@@ -424,12 +424,12 @@ const CaseDetail = () => {
               className={`px-4 py-3 font-black uppercase text-sm border-b-4 transition-colors ${
                 activeTab === tab.key
                   ? 'border-black dark:border-white text-black dark:text-white bg-[var(--loop-yellow)]'
-                  : 'border-transparent text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
+                  : 'border-transparent text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white hover:bg-app-surface-muted dark:hover:bg-app-text'
               }`}
             >
               {tab.label}
               {tab.count !== undefined && (
-                <span className="ml-2 px-2 py-0.5 text-xs bg-black text-white dark:bg-white dark:text-black rounded-none">
+                <span className="ml-2 px-2 py-0.5 text-xs bg-black text-white dark:bg-app-surface dark:text-black rounded-none">
                   {tab.count}
                 </span>
               )}
@@ -620,7 +620,7 @@ const CaseDetail = () => {
                   + Add Milestone
                 </BrutalButton>
               </div>
-              <div className="w-full h-4 border-2 border-black bg-white">
+              <div className="w-full h-4 border-2 border-black bg-app-surface">
                 <div
                   className="h-full bg-[var(--loop-green)] transition-all duration-300"
                   style={{ width: caseMilestones.length > 0 ? `${(completedMilestones / caseMilestones.length) * 100}%` : '0%' }}
@@ -642,7 +642,7 @@ const CaseDetail = () => {
                       value={milestoneName}
                       onChange={(e) => setMilestoneName(e.target.value)}
                       placeholder="Milestone name..."
-                      className="w-full px-3 py-2 border-2 border-black bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
+                      className="w-full px-3 py-2 border-2 border-black bg-app-surface text-black focus:outline-none focus:ring-2 focus:ring-black"
                     />
                   </div>
                   <div>
@@ -652,7 +652,7 @@ const CaseDetail = () => {
                       onChange={(e) => setMilestoneDescription(e.target.value)}
                       rows={2}
                       placeholder="Optional description..."
-                      className="w-full px-3 py-2 border-2 border-black bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
+                      className="w-full px-3 py-2 border-2 border-black bg-app-surface text-black focus:outline-none focus:ring-2 focus:ring-black"
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -662,7 +662,7 @@ const CaseDetail = () => {
                         type="date"
                         value={milestoneDueDate}
                         onChange={(e) => setMilestoneDueDate(e.target.value)}
-                        className="w-full px-3 py-2 border-2 border-black bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
+                        className="w-full px-3 py-2 border-2 border-black bg-app-surface text-black focus:outline-none focus:ring-2 focus:ring-black"
                       />
                     </div>
                     {editingMilestone && (
@@ -713,7 +713,7 @@ const CaseDetail = () => {
                         <button
                           onClick={() => handleToggleMilestoneComplete(milestone)}
                           className={`mt-1 w-6 h-6 border-2 border-black flex items-center justify-center flex-shrink-0 transition-colors ${
-                            milestone.is_completed ? 'bg-(--loop-green)' : 'bg-white hover:bg-gray-100'
+                            milestone.is_completed ? 'bg-(--loop-green)' : 'bg-app-surface hover:bg-app-surface-muted'
                           }`}
                           title={milestone.is_completed ? 'Mark incomplete' : 'Mark complete'}
                         >
@@ -753,7 +753,7 @@ const CaseDetail = () => {
                         <div className="flex gap-2 shrink-0">
                           <button
                             onClick={() => handleEditMilestone(milestone)}
-                            className="border-2 border-black bg-white text-black px-2 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-px hover:translate-y-px hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
+                            className="border-2 border-black bg-app-surface text-black px-2 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-px hover:translate-y-px hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
                           >
                             Edit
                           </button>

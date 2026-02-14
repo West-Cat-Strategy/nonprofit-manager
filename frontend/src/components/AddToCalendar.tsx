@@ -117,14 +117,14 @@ const AddToCalendar: React.FC<AddToCalendarProps> = ({ event, className = '' }) 
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+        <div className="absolute right-0 mt-2 w-48 bg-app-surface rounded-lg shadow-lg border border-app-border py-1 z-50">
           {calendarOptions.map((option) => (
             <a
               key={option.name}
               href={option.url}
               target={option.download ? '_self' : '_blank'}
               rel={option.download ? undefined : 'noopener noreferrer'}
-              className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-3 px-4 py-2 text-sm text-app-text-muted hover:bg-app-surface-muted transition-colors"
               onClick={() => setIsOpen(false)}
             >
               {option.icon}

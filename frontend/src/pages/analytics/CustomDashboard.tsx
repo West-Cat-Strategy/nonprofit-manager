@@ -183,8 +183,8 @@ const CustomDashboard = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="text-gray-600 mb-2">Please sign in to customize your dashboard.</div>
-          <Link to="/login" className="text-blue-600 hover:text-blue-700 text-sm">
+          <div className="text-app-text-muted mb-2">Please sign in to customize your dashboard.</div>
+          <Link to="/login" className="text-app-accent hover:text-app-accent text-sm">
             Go to login
           </Link>
         </div>
@@ -197,10 +197,10 @@ const CustomDashboard = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="text-red-600 mb-2">Failed to load dashboard.</div>
-          <div className="text-sm text-gray-500 mb-4">{error}</div>
+          <div className="text-sm text-app-text-muted mb-4">{error}</div>
           <button
             onClick={() => dispatch(fetchDefaultDashboard())}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 text-sm font-medium text-white bg-app-accent rounded-lg hover:bg-app-accent-hover"
           >
             Retry
           </button>
@@ -213,8 +213,8 @@ const CustomDashboard = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <div className="text-gray-500">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-app-accent mx-auto mb-4"></div>
+          <div className="text-app-text-muted">
             {creatingDefault ? 'Creating your dashboard...' : 'Loading dashboard...'}
           </div>
         </div>
@@ -227,8 +227,8 @@ const CustomDashboard = () => {
       {/* Dashboard Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{currentDashboard.name}</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-app-text">{currentDashboard.name}</h1>
+          <p className="text-sm text-app-text-muted">
             {editMode ? 'Drag widgets to rearrange, resize by dragging corners' : 'Your personalized dashboard'}
           </p>
         </div>
@@ -244,21 +244,21 @@ const CustomDashboard = () => {
               </button>
               <button
                 onClick={handleResetToDefault}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="px-4 py-2 text-sm font-medium text-app-text-muted bg-app-surface border border-app-input-border rounded-lg hover:bg-app-surface-muted"
               >
                 Reset to Default
               </button>
               <button
                 onClick={handleCancelEdit}
                 disabled={saving}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-app-text-muted bg-app-surface border border-app-input-border rounded-lg hover:bg-app-surface-muted disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveLayout}
                 disabled={saving}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-white bg-app-accent rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save Layout'}
               </button>
@@ -266,7 +266,7 @@ const CustomDashboard = () => {
           ) : (
             <button
               onClick={() => dispatch(setEditMode(true))}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+              className="px-4 py-2 text-sm font-medium text-white bg-app-accent rounded-lg hover:bg-app-accent-hover"
             >
               Customize Dashboard
             </button>
@@ -295,7 +295,7 @@ const CustomDashboard = () => {
         {currentDashboard.widgets.map((widget) => (
           <div
             key={widget.id}
-            className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+            className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden"
           >
             {renderWidget(widget)}
           </div>
@@ -305,10 +305,10 @@ const CustomDashboard = () => {
       {/* Add Widget Modal */}
       {showAddWidget && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Add Widget</h2>
-              <p className="text-sm text-gray-500 mt-1">Choose a widget to add to your dashboard</p>
+          <div className="bg-app-surface rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="p-6 border-b border-app-border">
+              <h2 className="text-xl font-semibold text-app-text">Add Widget</h2>
+              <p className="text-sm text-app-text-muted mt-1">Choose a widget to add to your dashboard</p>
             </div>
 
             <div className="p-6">
@@ -322,15 +322,15 @@ const CustomDashboard = () => {
                       disabled={alreadyAdded}
                       className={`p-4 text-left border-2 rounded-lg transition-all ${
                         alreadyAdded
-                          ? 'border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed'
-                          : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'
+                          ? 'border-app-border bg-app-surface-muted opacity-50 cursor-not-allowed'
+                          : 'border-app-border hover:border-app-accent hover:bg-app-accent-soft'
                       }`}
                     >
                       <div className="text-3xl mb-2">{template.icon}</div>
-                      <h3 className="font-medium text-gray-900">{template.title}</h3>
-                      <p className="text-xs text-gray-500 mt-1">{template.description}</p>
+                      <h3 className="font-medium text-app-text">{template.title}</h3>
+                      <p className="text-xs text-app-text-muted mt-1">{template.description}</p>
                       {alreadyAdded && (
-                        <p className="text-xs text-blue-600 mt-2">Already added</p>
+                        <p className="text-xs text-app-accent mt-2">Already added</p>
                       )}
                     </button>
                   );
@@ -338,10 +338,10 @@ const CustomDashboard = () => {
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-200 flex justify-end">
+            <div className="p-6 border-t border-app-border flex justify-end">
               <button
                 onClick={() => setShowAddWidget(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="px-4 py-2 text-sm font-medium text-app-text-muted bg-app-surface border border-app-input-border rounded-lg hover:bg-app-surface-muted"
               >
                 Close
               </button>

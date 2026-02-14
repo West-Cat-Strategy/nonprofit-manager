@@ -73,29 +73,29 @@ export default function DataBackup() {
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Data Backup</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-3xl font-bold text-app-text">Data Backup</h1>
+        <p className="mt-2 text-app-text-muted">
           Download a backup of your database as a gzipped JSON file.
         </p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-          <h2 className="text-lg font-semibold text-gray-900">Export Backup</h2>
-          <p className="text-sm text-gray-500 mt-1">Admin-only. File is generated on-demand.</p>
+      <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
+        <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
+          <h2 className="text-lg font-semibold text-app-text">Export Backup</h2>
+          <p className="text-sm text-app-text-muted mt-1">Admin-only. File is generated on-demand.</p>
         </div>
         <div className="p-6 space-y-4">
           <label className="flex items-start gap-3">
             <input
               type="checkbox"
-              className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded"
+              className="mt-1 h-4 w-4 text-app-accent border-app-input-border rounded"
               checked={includeSecrets}
               onChange={(e) => setIncludeSecrets(e.target.checked)}
               disabled={downloading}
             />
             <span>
-              <span className="font-medium text-gray-900">Include secrets (full backup)</span>
-              <p className="text-sm text-gray-500">
+              <span className="font-medium text-app-text">Include secrets (full backup)</span>
+              <p className="text-sm text-app-text-muted">
                 When off, secret fields are redacted for safer sharing/storage.
               </p>
             </span>
@@ -112,7 +112,7 @@ export default function DataBackup() {
           <div className="pt-2">
             <button
               type="button"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-app-accent hover:bg-app-accent-hover disabled:opacity-50"
               onClick={downloadBackup}
               disabled={downloading}
             >
@@ -120,7 +120,7 @@ export default function DataBackup() {
             </button>
           </div>
 
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-app-text-muted">
             Tip: For point-in-time disaster recovery, database-level backups (e.g. <code>pg_dump</code>) are still
             recommended.
           </p>

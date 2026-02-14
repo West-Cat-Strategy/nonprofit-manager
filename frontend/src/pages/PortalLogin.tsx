@@ -21,46 +21,46 @@ export default function PortalLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="bg-white shadow rounded-lg p-8 w-full max-w-md">
-        <h1 className="text-2xl font-semibold text-gray-900">Client Portal Login</h1>
-        <p className="text-sm text-gray-600 mt-2">Access your portal to manage your information.</p>
+    <div className="min-h-screen flex items-center justify-center bg-app-surface-muted px-4">
+      <div className="bg-app-surface shadow rounded-lg p-8 w-full max-w-md">
+        <h1 className="text-2xl font-semibold text-app-text">Client Portal Login</h1>
+        <p className="text-sm text-app-text-muted mt-2">Access your portal to manage your information.</p>
 
         {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
+            <label className="block text-sm font-medium text-app-text-muted">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
+            <label className="block text-sm font-medium text-app-text-muted">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
               required
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="w-full py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover disabled:opacity-50"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
-        <div className="mt-4 text-sm text-gray-600">
+        <div className="mt-4 text-sm text-app-text-muted">
           New here?{' '}
-          <Link to="/portal/signup" className="text-blue-600 hover:underline">
+          <Link to="/portal/signup" className="text-app-accent hover:underline">
             Request access
           </Link>
         </div>

@@ -86,10 +86,10 @@ export default function PortalPeople() {
 
   return (
     <div>
-      <h2 className="text-xl font-semibold text-gray-900">Associated People</h2>
+      <h2 className="text-xl font-semibold text-app-text">Associated People</h2>
 
       <div className="mt-6">
-        <h3 className="text-lg font-medium text-gray-900">Add Person</h3>
+        <h3 className="text-lg font-medium text-app-text">Add Person</h3>
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
@@ -97,7 +97,7 @@ export default function PortalPeople() {
               placeholder="First name"
               value={formData.first_name}
               onChange={handleChange}
-              className="px-3 py-2 border border-gray-300 rounded-md"
+              className="px-3 py-2 border border-app-input-border rounded-md"
               required
             />
             <input
@@ -105,7 +105,7 @@ export default function PortalPeople() {
               placeholder="Last name"
               value={formData.last_name}
               onChange={handleChange}
-              className="px-3 py-2 border border-gray-300 rounded-md"
+              className="px-3 py-2 border border-app-input-border rounded-md"
               required
             />
           </div>
@@ -115,14 +115,14 @@ export default function PortalPeople() {
               placeholder="Email"
               value={formData.email}
               onChange={handleChange}
-              className="px-3 py-2 border border-gray-300 rounded-md"
+              className="px-3 py-2 border border-app-input-border rounded-md"
             />
             <input
               name="phone"
               placeholder="Phone"
               value={formData.phone}
               onChange={handleChange}
-              className="px-3 py-2 border border-gray-300 rounded-md"
+              className="px-3 py-2 border border-app-input-border rounded-md"
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -130,7 +130,7 @@ export default function PortalPeople() {
               name="relationship_type"
               value={formData.relationship_type}
               onChange={handleChange}
-              className="px-3 py-2 border border-gray-300 rounded-md"
+              className="px-3 py-2 border border-app-input-border rounded-md"
             >
               {RELATIONSHIP_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>
@@ -143,7 +143,7 @@ export default function PortalPeople() {
               placeholder="Custom label"
               value={formData.relationship_label}
               onChange={handleChange}
-              className="px-3 py-2 border border-gray-300 rounded-md"
+              className="px-3 py-2 border border-app-input-border rounded-md"
             />
           </div>
           <textarea
@@ -151,29 +151,29 @@ export default function PortalPeople() {
             placeholder="Notes"
             value={formData.notes}
             onChange={handleChange}
-            className="px-3 py-2 border border-gray-300 rounded-md w-full"
+            className="px-3 py-2 border border-app-input-border rounded-md w-full"
           />
-          <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md">
+          <button type="submit" className="px-4 py-2 bg-app-accent text-white rounded-md">
             Add Person
           </button>
         </form>
       </div>
 
       <div className="mt-8">
-        <h3 className="text-lg font-medium text-gray-900">Current People</h3>
+        <h3 className="text-lg font-medium text-app-text">Current People</h3>
         {loading ? (
-          <p className="text-sm text-gray-500 mt-2">Loading...</p>
+          <p className="text-sm text-app-text-muted mt-2">Loading...</p>
         ) : relationships.length === 0 ? (
-          <p className="text-sm text-gray-500 mt-2">No associated people yet.</p>
+          <p className="text-sm text-app-text-muted mt-2">No associated people yet.</p>
         ) : (
           <ul className="mt-4 space-y-3">
             {relationships.map((rel) => (
               <li key={rel.id} className="p-3 border rounded-lg flex justify-between items-center">
                 <div>
-                  <div className="font-medium text-gray-900">
+                  <div className="font-medium text-app-text">
                     {rel.related_contact_first_name} {rel.related_contact_last_name}
                   </div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-app-text-muted">
                     {rel.relationship_label || rel.relationship_type}
                   </div>
                 </div>

@@ -67,22 +67,22 @@ export const BrutalMultiSelect: React.FC<BrutalMultiSelectProps> = ({
   return (
     <div className="space-y-1" ref={containerRef}>
       {label && (
-        <label className="block text-sm font-bold text-gray-900">
+        <label className="block text-sm font-bold text-app-text">
           {label}
           {required && <span className="text-red-600 ml-1">*</span>}
         </label>
       )}
       <div
-        className={`border-2 bg-white cursor-pointer
-          ${error ? 'border-red-600' : 'border-gray-900'}
-          ${isOpen ? 'border-blue-600' : 'border-gray-900'}
-          focus:outline-none focus:border-blue-600`}
+        className={`border-2 bg-app-surface cursor-pointer
+          ${error ? 'border-red-600' : 'border-app-text'}
+          ${isOpen ? 'border-app-accent' : 'border-app-text'}
+          focus:outline-none focus:border-app-accent`}
       >
         <div className="p-2 flex flex-wrap gap-2">
           {selectedLabels.map((label) => (
             <span
               key={label}
-              className="bg-gray-900 text-white px-2 py-1 text-xs font-bold flex items-center gap-1"
+              className="bg-app-text text-white px-2 py-1 text-xs font-bold flex items-center gap-1"
             >
               {label}
               <button
@@ -110,12 +110,12 @@ export const BrutalMultiSelect: React.FC<BrutalMultiSelectProps> = ({
       </div>
 
       {isOpen && filteredOptions.length > 0 && (
-        <div className="border-2 border-gray-900 border-t-0 bg-white">
+        <div className="border-2 border-app-text border-t-0 bg-app-surface">
           {filteredOptions.map((option) => (
             <button
               key={option.value}
               onClick={() => handleSelect(option.value)}
-              className="w-full px-3 py-2 text-left hover:bg-gray-100 font-mono text-sm border-b border-gray-200 last:border-b-0"
+              className="w-full px-3 py-2 text-left hover:bg-app-surface-muted font-mono text-sm border-b border-app-border last:border-b-0"
             >
               {option.label}
             </button>
@@ -127,7 +127,7 @@ export const BrutalMultiSelect: React.FC<BrutalMultiSelectProps> = ({
         <p className="text-xs font-bold text-red-600">{error}</p>
       )}
       {hint && !error && (
-        <p className="text-xs text-gray-500">{hint}</p>
+        <p className="text-xs text-app-text-muted">{hint}</p>
       )}
     </div>
   );
