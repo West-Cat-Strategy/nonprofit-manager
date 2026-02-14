@@ -72,15 +72,15 @@ export default function RelationshipsSection({
   onCreateNewContact,
 }: RelationshipsSectionProps) {
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <h2 className="text-lg font-medium text-gray-900 mb-4">
+    <div className="bg-app-surface shadow rounded-lg p-6">
+      <h2 className="text-lg font-medium text-app-text mb-4">
         {firstName ? `${firstName}'s People` : 'Associated People'}
       </h2>
 
       {mode === 'create' ? (
-        <div className="text-center py-6 bg-gray-50 rounded-lg">
-          <div className="text-gray-400 text-2xl mb-2">👥</div>
-          <p className="text-gray-500 text-sm">
+        <div className="text-center py-6 bg-app-surface-muted rounded-lg">
+          <div className="text-app-text-subtle text-2xl mb-2">👥</div>
+          <p className="text-app-text-muted text-sm">
             Save this person first, then you can add relationships.
           </p>
         </div>
@@ -88,19 +88,19 @@ export default function RelationshipsSection({
         <div className="space-y-4">
           {relationshipsLoading && relationships.length === 0 ? (
             <div className="text-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-app-accent mx-auto"></div>
             </div>
           ) : relationships.length === 0 && !isAddingRelationship ? (
-            <div className="text-center py-6 bg-gray-50 rounded-lg">
-              <div className="text-gray-400 text-2xl mb-1">👥</div>
-              <p className="text-gray-500 text-sm">No associated people yet</p>
+            <div className="text-center py-6 bg-app-surface-muted rounded-lg">
+              <div className="text-app-text-subtle text-2xl mb-1">👥</div>
+              <p className="text-app-text-muted text-sm">No associated people yet</p>
             </div>
           ) : (
             <div className="space-y-2">
               {relationships.map((rel) => (
                 <div
                   key={rel.id}
-                  className="flex items-center justify-between p-3 rounded-lg border bg-gray-50 border-gray-200"
+                  className="flex items-center justify-between p-3 rounded-lg border bg-app-surface-muted border-app-border"
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-xl">{getRelationshipIcon(rel.relationship_type)}</span>
@@ -108,11 +108,11 @@ export default function RelationshipsSection({
                       <button
                         type="button"
                         onClick={() => onNavigateToContact(rel.related_contact_id)}
-                        className="font-medium text-gray-900 hover:text-blue-600"
+                        className="font-medium text-app-text hover:text-app-accent"
                       >
                         {rel.related_contact_first_name} {rel.related_contact_last_name}
                       </button>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-app-text-muted">
                         {rel.relationship_label || getRelationshipLabel(rel.relationship_type)}
                       </div>
                     </div>
@@ -120,7 +120,7 @@ export default function RelationshipsSection({
                   <button
                     type="button"
                     onClick={() => onDeleteRelationship(rel.id)}
-                    className="p-1 text-gray-400 hover:text-red-500 transition"
+                    className="p-1 text-app-text-subtle hover:text-red-500 transition"
                     title="Remove"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -140,12 +140,12 @@ export default function RelationshipsSection({
           {isAddingRelationship ? (
             <form
               onSubmit={onSubmitRelationship}
-              className="bg-blue-50 rounded-lg p-4 border border-blue-200"
+              className="bg-app-accent-soft rounded-lg p-4 border border-app-accent-soft"
             >
               <h4 className="font-medium mb-3">Add Person</h4>
 
               <div className="mb-3">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-app-text-muted mb-1">
                   Find Person
                 </label>
                 <input
@@ -153,35 +153,35 @@ export default function RelationshipsSection({
                   value={relationshipSearch}
                   onChange={(e) => onRelationshipSearchChange(e.target.value)}
                   placeholder="Search by name or email..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
                 />
                 {relationshipSearch && (
-                  <div className="mt-1 max-h-40 overflow-y-auto border border-gray-200 rounded-lg bg-white">
+                  <div className="mt-1 max-h-40 overflow-y-auto border border-app-border rounded-lg bg-app-surface">
                     {filteredContacts.length > 0 ? (
                       filteredContacts.slice(0, 10).map((contact) => (
                         <button
                           key={contact.contact_id}
                           type="button"
                           onClick={() => onSelectRelationshipContact(contact)}
-                          className={`w-full text-left px-3 py-2 hover:bg-gray-50 ${
+                          className={`w-full text-left px-3 py-2 hover:bg-app-surface-muted ${
                             relationshipData.related_contact_id === contact.contact_id
-                              ? 'bg-blue-50'
+                              ? 'bg-app-accent-soft'
                               : ''
                           }`}
                         >
                           <div className="font-medium">
                             {contact.first_name} {contact.last_name}
                           </div>
-                          {contact.email && <div className="text-sm text-gray-500">{contact.email}</div>}
+                          {contact.email && <div className="text-sm text-app-text-muted">{contact.email}</div>}
                         </button>
                       ))
                     ) : (
                       <div className="px-3 py-3 text-center">
-                        <p className="text-sm text-gray-500 mb-2">No matching people found</p>
+                        <p className="text-sm text-app-text-muted mb-2">No matching people found</p>
                         <button
                           type="button"
                           onClick={() => onCreateNewContact(relationshipSearch)}
-                          className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                          className="text-sm text-app-accent hover:text-app-accent-text font-medium"
                         >
                           + Create "{relationshipSearch}" as new person
                         </button>
@@ -192,14 +192,14 @@ export default function RelationshipsSection({
               </div>
 
               <div className="mb-3">
-                <label htmlFor="relationship_type" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="relationship_type" className="block text-sm font-medium text-app-text-muted mb-1">
                   Relationship
                 </label>
                 <select
                   id="relationship_type"
                   value={relationshipData.relationship_type}
                   onChange={(e) => onRelationshipTypeChange(e.target.value as RelationshipType)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
                 >
                   {RELATIONSHIP_TYPES.map((type) => (
                     <option key={type.value} value={type.value}>
@@ -210,7 +210,7 @@ export default function RelationshipsSection({
               </div>
 
               <div className="mb-3">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-app-text-muted mb-1">
                   Custom Label (optional)
                 </label>
                 <input
@@ -218,7 +218,7 @@ export default function RelationshipsSection({
                   value={relationshipData.relationship_label || ''}
                   onChange={(e) => onRelationshipLabelChange(e.target.value)}
                   placeholder="e.g., Mother, Case Worker, etc."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
                 />
               </div>
 
@@ -226,14 +226,14 @@ export default function RelationshipsSection({
                 <button
                   type="button"
                   onClick={onCancelRelationship}
-                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                  className="px-3 py-1.5 text-sm border border-app-input-border rounded-lg hover:bg-app-surface-muted transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={!relationshipData.related_contact_id}
-                  className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+                  className="px-3 py-1.5 text-sm bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50 transition"
                 >
                   Add
                 </button>
@@ -243,7 +243,7 @@ export default function RelationshipsSection({
             <button
               type="button"
               onClick={onStartRelationship}
-              className="w-full px-3 py-2 text-sm text-blue-600 border border-dashed border-blue-300 rounded-lg hover:bg-blue-50 transition"
+              className="w-full px-3 py-2 text-sm text-app-accent border border-dashed border-app-accent rounded-lg hover:bg-app-accent-soft transition"
             >
               + Add Person
             </button>

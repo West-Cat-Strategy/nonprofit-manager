@@ -105,12 +105,12 @@ const AvailabilityCalendar = ({
       case 'completed':
         return 'bg-green-100 text-green-800 border-green-300';
       case 'in_progress':
-        return 'bg-blue-100 text-blue-800 border-blue-300';
+        return 'bg-app-accent-soft text-app-accent-text border-app-accent';
       case 'cancelled':
         return 'bg-red-100 text-red-800 border-red-300';
       case 'scheduled':
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-300';
+        return 'bg-app-surface-muted text-app-text border-app-input-border';
     }
   };
 
@@ -132,21 +132,21 @@ const AvailabilityCalendar = ({
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+    <div className="bg-app-surface rounded-lg shadow-sm border border-app-border">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-app-border">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-app-text">
             {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
           </h3>
           <div className="flex items-center space-x-2">
             <button
               onClick={goToPreviousMonth}
-              className="p-2 hover:bg-gray-100 rounded-lg transition"
+              className="p-2 hover:bg-app-surface-muted rounded-lg transition"
               aria-label="Previous month"
             >
               <svg
-                className="w-5 h-5 text-gray-600"
+                className="w-5 h-5 text-app-text-muted"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -161,17 +161,17 @@ const AvailabilityCalendar = ({
             </button>
             <button
               onClick={goToToday}
-              className="px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
+              className="px-3 py-1 text-sm bg-app-accent-soft text-app-accent rounded-lg hover:bg-app-accent-soft transition"
             >
               Today
             </button>
             <button
               onClick={goToNextMonth}
-              className="p-2 hover:bg-gray-100 rounded-lg transition"
+              className="p-2 hover:bg-app-surface-muted rounded-lg transition"
               aria-label="Next month"
             >
               <svg
-                className="w-5 h-5 text-gray-600"
+                className="w-5 h-5 text-app-text-muted"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -189,7 +189,7 @@ const AvailabilityCalendar = ({
 
         {/* Availability Status Indicator */}
         <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-600">Availability:</span>
+          <span className="text-sm text-app-text-muted">Availability:</span>
           <span
             className={`px-2 py-1 text-xs rounded-full capitalize ${
               availabilityStatus === 'available'
@@ -209,7 +209,7 @@ const AvailabilityCalendar = ({
         {/* Day headers */}
         <div className="grid grid-cols-7 gap-2 mb-2">
           {dayNames.map((day) => (
-            <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
+            <div key={day} className="text-center text-sm font-medium text-app-text-muted py-2">
               {day}
             </div>
           ))}
@@ -221,7 +221,7 @@ const AvailabilityCalendar = ({
           {calendarData.prevMonthDays.map((day, idx) => (
             <div
               key={`prev-${idx}`}
-              className="min-h-[80px] p-2 bg-gray-50 rounded-lg text-gray-400 text-sm"
+              className="min-h-[80px] p-2 bg-app-surface-muted rounded-lg text-app-text-subtle text-sm"
             >
               {day}
             </div>
@@ -248,15 +248,15 @@ const AvailabilityCalendar = ({
                 }}
                 className={`min-h-[80px] p-2 rounded-lg border transition ${
                   isTodayDate
-                    ? 'border-blue-500 bg-blue-50'
+                    ? 'border-app-accent bg-app-accent-soft'
                     : hasAssignments
-                      ? 'border-gray-300 bg-white hover:bg-gray-50 cursor-pointer'
-                      : 'border-gray-200 bg-white'
+                      ? 'border-app-input-border bg-app-surface hover:bg-app-surface-muted cursor-pointer'
+                      : 'border-app-border bg-app-surface'
                 }`}
               >
                 <div
                   className={`text-sm font-medium mb-1 ${
-                    isTodayDate ? 'text-blue-600' : 'text-gray-900'
+                    isTodayDate ? 'text-app-accent' : 'text-app-text'
                   }`}
                 >
                   {day}
@@ -281,7 +281,7 @@ const AvailabilityCalendar = ({
                       </div>
                     ))}
                     {dayAssignments.length > 2 && (
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-app-text-muted">
                         +{dayAssignments.length - 2} more
                       </div>
                     )}
@@ -295,7 +295,7 @@ const AvailabilityCalendar = ({
           {calendarData.nextMonthDays.map((day, idx) => (
             <div
               key={`next-${idx}`}
-              className="min-h-[80px] p-2 bg-gray-50 rounded-lg text-gray-400 text-sm"
+              className="min-h-[80px] p-2 bg-app-surface-muted rounded-lg text-app-text-subtle text-sm"
             >
               {day}
             </div>
@@ -304,23 +304,23 @@ const AvailabilityCalendar = ({
       </div>
 
       {/* Legend */}
-      <div className="p-4 border-t border-gray-200 bg-gray-50">
+      <div className="p-4 border-t border-app-border bg-app-surface-muted">
         <div className="flex flex-wrap gap-4 text-xs">
           <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-blue-100 border border-blue-300 rounded"></div>
-            <span className="text-gray-600">In Progress</span>
+            <div className="w-4 h-4 bg-app-accent-soft border border-app-accent rounded"></div>
+            <span className="text-app-text-muted">In Progress</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-gray-100 border border-gray-300 rounded"></div>
-            <span className="text-gray-600">Scheduled</span>
+            <div className="w-4 h-4 bg-app-surface-muted border border-app-input-border rounded"></div>
+            <span className="text-app-text-muted">Scheduled</span>
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
-            <span className="text-gray-600">Completed</span>
+            <span className="text-app-text-muted">Completed</span>
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-red-100 border border-red-300 rounded"></div>
-            <span className="text-gray-600">Cancelled</span>
+            <span className="text-app-text-muted">Cancelled</span>
           </div>
         </div>
       </div>

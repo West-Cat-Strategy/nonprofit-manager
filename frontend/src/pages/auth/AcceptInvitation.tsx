@@ -127,10 +127,10 @@ export default function AcceptInvitation() {
   // Loading state
   if (isValidating) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-app-surface-muted flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Validating invitation...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-app-accent mx-auto"></div>
+          <p className="mt-4 text-app-text-muted">Validating invitation...</p>
         </div>
       </div>
     );
@@ -139,14 +139,14 @@ export default function AcceptInvitation() {
   // Error state
   if (validationError) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+      <div className="min-h-screen bg-app-surface-muted flex items-center justify-center p-4">
+        <div className="bg-app-surface rounded-lg shadow-lg p-8 max-w-md w-full text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Invalid Invitation</h1>
+          <h1 className="text-xl font-bold text-app-text mb-2">Invalid Invitation</h1>
           <ErrorBanner
             message={validationError}
             correlationId={validationDetails?.correlationId}
@@ -154,7 +154,7 @@ export default function AcceptInvitation() {
           />
           <Link
             to="/login"
-            className="inline-block px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
+            className="inline-block px-6 py-2 bg-app-accent text-white font-medium rounded-lg hover:bg-app-accent-hover"
           >
             Go to Login
           </Link>
@@ -165,19 +165,19 @@ export default function AcceptInvitation() {
 
   // Registration form
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+    <div className="min-h-screen bg-app-surface-muted flex items-center justify-center p-4">
+      <div className="bg-app-surface rounded-lg shadow-lg p-8 max-w-md w-full">
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Complete Your Registration</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="text-2xl font-bold text-app-text">Complete Your Registration</h1>
+          <p className="mt-2 text-app-text-muted">
             You&apos;ve been invited to join as a <strong>{invitation?.role}</strong>
           </p>
         </div>
 
         {invitation?.message && (
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800 italic">&quot;{invitation.message}&quot;</p>
-            <p className="text-xs text-blue-600 mt-2">- {invitation.invitedBy}</p>
+          <div className="mb-6 p-4 bg-app-accent-soft border border-app-accent-soft rounded-lg">
+            <p className="text-sm text-app-accent-text italic">&quot;{invitation.message}&quot;</p>
+            <p className="text-xs text-app-accent mt-2">- {invitation.invitedBy}</p>
           </div>
         )}
 
@@ -189,20 +189,20 @@ export default function AcceptInvitation() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-app-text-muted mb-1">
               Email Address
             </label>
             <input
               type="email"
               value={invitation?.email || ''}
               disabled
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
+              className="w-full px-3 py-2 border border-app-input-border rounded-lg bg-app-surface-muted text-app-text-muted"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="firstName" className="block text-sm font-medium text-app-text-muted mb-1">
                 First Name *
               </label>
               <input
@@ -212,11 +212,11 @@ export default function AcceptInvitation() {
                 onChange={(e) => setFirstName(e.target.value)}
                 placeholder="John"
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
               />
             </div>
             <div>
-              <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="lastName" className="block text-sm font-medium text-app-text-muted mb-1">
                 Last Name *
               </label>
               <input
@@ -226,13 +226,13 @@ export default function AcceptInvitation() {
                 onChange={(e) => setLastName(e.target.value)}
                 placeholder="Doe"
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="password" className="block text-sm font-medium text-app-text-muted mb-1">
               Password *
             </label>
             <input
@@ -242,15 +242,15 @@ export default function AcceptInvitation() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Create a strong password"
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-app-text-muted">
               Must be 8+ characters with uppercase, lowercase, number, and special character
             </p>
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-app-text-muted mb-1">
               Confirm Password *
             </label>
             <input
@@ -260,22 +260,22 @@ export default function AcceptInvitation() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm your password"
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
             />
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full px-4 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+            className="w-full px-4 py-3 bg-app-accent text-white font-medium rounded-lg hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
           >
             {isSubmitting ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-500">
+        <p className="mt-6 text-center text-sm text-app-text-muted">
           Already have an account?{' '}
-          <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium">
+          <Link to="/login" className="text-app-accent hover:text-app-accent font-medium">
             Sign in
           </Link>
         </p>

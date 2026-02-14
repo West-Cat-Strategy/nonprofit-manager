@@ -228,8 +228,8 @@ const DonationPayment: React.FC = () => {
   // Check if Stripe is configured
   if (!config?.stripe.configured) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
+      <div className="min-h-screen bg-app-surface-muted flex items-center justify-center p-4">
+        <div className="bg-app-surface rounded-lg shadow-lg p-8 max-w-md text-center">
           <div className="text-yellow-500 mb-4">
             <svg className="h-16 w-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -240,15 +240,15 @@ const DonationPayment: React.FC = () => {
               />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          <h2 className="text-xl font-semibold text-app-text mb-2">
             Payment System Not Configured
           </h2>
-          <p className="text-gray-600 mb-4">
+          <p className="text-app-text-muted mb-4">
             Online donations are temporarily unavailable. Please contact us for other ways to donate.
           </p>
           <button
             onClick={() => navigate('/donations')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
           >
             Go to Donations
           </button>
@@ -258,12 +258,12 @@ const DonationPayment: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-app-surface-muted py-8 px-4">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Make a Donation</h1>
-          <p className="text-gray-600">Your support makes a difference</p>
+          <h1 className="text-3xl font-bold text-app-text mb-2">Make a Donation</h1>
+          <p className="text-app-text-muted">Your support makes a difference</p>
         </div>
 
         {/* Progress Steps */}
@@ -273,10 +273,10 @@ const DonationPayment: React.FC = () => {
               <div
                 className={`flex items-center justify-center w-8 h-8 rounded-full ${
                   step === s
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-app-accent text-white'
                     : ['amount', 'details', 'payment', 'success'].indexOf(step) > index
                       ? 'bg-green-500 text-white'
-                      : 'bg-gray-200 text-gray-500'
+                      : 'bg-app-surface-muted text-app-text-muted'
                 }`}
               >
                 {['amount', 'details', 'payment', 'success'].indexOf(step) > index ? (
@@ -296,7 +296,7 @@ const DonationPayment: React.FC = () => {
                   className={`w-16 h-1 ${
                     ['amount', 'details', 'payment', 'success'].indexOf(step) > index
                       ? 'bg-green-500'
-                      : 'bg-gray-200'
+                      : 'bg-app-surface-muted'
                   }`}
                 />
               )}
@@ -313,8 +313,8 @@ const DonationPayment: React.FC = () => {
 
         {/* Step 1: Amount Selection */}
         {step === 'amount' && (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Select Amount</h2>
+          <div className="bg-app-surface rounded-lg shadow-lg p-6">
+            <h2 className="text-xl font-semibold text-app-text mb-6">Select Amount</h2>
 
             {/* Preset Amounts */}
             <div className="grid grid-cols-3 gap-3 mb-6">
@@ -324,8 +324,8 @@ const DonationPayment: React.FC = () => {
                   onClick={() => handleAmountSelect(amount)}
                   className={`py-3 px-4 rounded-lg border-2 font-semibold transition-colors ${
                     formData.amount === amount * 100
-                      ? 'border-blue-600 bg-blue-50 text-blue-600'
-                      : 'border-gray-200 hover:border-blue-300'
+                      ? 'border-app-accent bg-app-accent-soft text-app-accent'
+                      : 'border-app-border hover:border-app-accent'
                   }`}
                 >
                   ${amount}
@@ -335,11 +335,11 @@ const DonationPayment: React.FC = () => {
 
             {/* Custom Amount */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-app-text-muted mb-2">
                 Or enter a custom amount
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-app-text-muted">$</span>
                 <input
                   type="number"
                   min="1"
@@ -347,7 +347,7 @@ const DonationPayment: React.FC = () => {
                   value={customAmount}
                   onChange={handleCustomAmountChange}
                   placeholder="0.00"
-                  className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-8 pr-4 py-3 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
                 />
               </div>
             </div>
@@ -360,9 +360,9 @@ const DonationPayment: React.FC = () => {
                   name="isRecurring"
                   checked={formData.isRecurring}
                   onChange={handleDetailsChange}
-                  className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-5 h-5 text-app-accent border-app-input-border rounded focus:ring-app-accent"
                 />
-                <span className="text-gray-700">Make this a monthly donation</span>
+                <span className="text-app-text-muted">Make this a monthly donation</span>
               </label>
             </div>
 
@@ -370,7 +370,7 @@ const DonationPayment: React.FC = () => {
             <button
               onClick={handleContinueToDetails}
               disabled={formData.amount < 100}
-              className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+              className="w-full py-3 px-4 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
             >
               Continue with {formData.amount > 0 ? formatCurrency(formData.amount) : '$0.00'}
             </button>
@@ -379,12 +379,12 @@ const DonationPayment: React.FC = () => {
 
         {/* Step 2: Donor Details */}
         {step === 'details' && (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Your Information</h2>
+          <div className="bg-app-surface rounded-lg shadow-lg p-6">
+            <h2 className="text-xl font-semibold text-app-text mb-6">Your Information</h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-app-text-muted mb-1">
                   Email Address *
                 </label>
                 <input
@@ -393,25 +393,25 @@ const DonationPayment: React.FC = () => {
                   value={formData.donorEmail}
                   onChange={handleDetailsChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
                   placeholder="your@email.com"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <label className="block text-sm font-medium text-app-text-muted mb-1">Full Name</label>
                 <input
                   type="text"
                   name="donorName"
                   value={formData.donorName}
                   onChange={handleDetailsChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
                   placeholder="John Doe"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-app-text-muted mb-1">
                   Designation (Optional)
                 </label>
                 <input
@@ -419,13 +419,13 @@ const DonationPayment: React.FC = () => {
                   name="designation"
                   value={formData.designation}
                   onChange={handleDetailsChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
                   placeholder="e.g., General Fund, Education, etc."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-app-text-muted mb-1">
                   Notes (Optional)
                 </label>
                 <textarea
@@ -433,7 +433,7 @@ const DonationPayment: React.FC = () => {
                   value={formData.notes}
                   onChange={handleDetailsChange}
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
                   placeholder="Any special instructions or messages..."
                 />
               </div>
@@ -445,9 +445,9 @@ const DonationPayment: React.FC = () => {
                     name="isAnonymous"
                     checked={formData.isAnonymous}
                     onChange={handleDetailsChange}
-                    className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-5 h-5 text-app-accent border-app-input-border rounded focus:ring-app-accent"
                   />
-                  <span className="text-gray-700">Make this donation anonymous</span>
+                  <span className="text-app-text-muted">Make this donation anonymous</span>
                 </label>
               </div>
             </div>
@@ -456,14 +456,14 @@ const DonationPayment: React.FC = () => {
             <div className="flex gap-4 mt-6">
               <button
                 onClick={handleBack}
-                className="flex-1 py-3 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                className="flex-1 py-3 px-4 border border-app-input-border text-app-text-muted rounded-lg hover:bg-app-surface-muted"
               >
                 Back
               </button>
               <button
                 onClick={handleContinueToPayment}
                 disabled={!formData.donorEmail || isProcessing}
-                className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                className="flex-1 py-3 px-4 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
               >
                 {isProcessing ? 'Processing...' : 'Continue to Payment'}
               </button>
@@ -473,17 +473,17 @@ const DonationPayment: React.FC = () => {
 
         {/* Step 3: Payment */}
         {step === 'payment' && currentIntent && stripePromise && (
-          <div className="bg-white rounded-lg shadow-lg p-6">
+          <div className="bg-app-surface rounded-lg shadow-lg p-6">
             <div className="flex items-center gap-2 mb-6">
               <button
                 onClick={handleBack}
-                className="p-2 hover:bg-gray-100 rounded-full"
+                className="p-2 hover:bg-app-surface-muted rounded-full"
               >
-                <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 text-app-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              <h2 className="text-xl font-semibold text-gray-900">Payment Details</h2>
+              <h2 className="text-xl font-semibold text-app-text">Payment Details</h2>
             </div>
 
             <Elements
@@ -512,7 +512,7 @@ const DonationPayment: React.FC = () => {
 
 	        {/* Step 4: Success */}
 	        {step === 'success' && (
-	          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+	          <div className="bg-app-surface rounded-lg shadow-lg p-8 text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <svg
                 className="h-8 w-8 text-green-500"
@@ -528,8 +528,8 @@ const DonationPayment: React.FC = () => {
                 />
               </svg>
             </div>
-	            <h2 className="text-2xl font-bold text-gray-900 mb-2">Thank You!</h2>
-	            <p className="text-gray-600 mb-6">
+	            <h2 className="text-2xl font-bold text-app-text mb-2">Thank You!</h2>
+	            <p className="text-app-text-muted mb-6">
 	              Your donation of {formatCurrency(formData.amount)} has been processed successfully.
 	              A receipt has been sent to {formData.donorEmail}.
 	            </p>
@@ -541,7 +541,7 @@ const DonationPayment: React.FC = () => {
 	            <div className="flex gap-4 justify-center">
 	              <button
 	                onClick={() => navigate('/donations')}
-	                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+	                className="px-6 py-2 border border-app-input-border text-app-text-muted rounded-lg hover:bg-app-surface-muted"
               >
                 View Donations
               </button>
@@ -562,7 +562,7 @@ const DonationPayment: React.FC = () => {
                   });
                   setStep('amount');
                 }}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-6 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
               >
                 Make Another Donation
               </button>

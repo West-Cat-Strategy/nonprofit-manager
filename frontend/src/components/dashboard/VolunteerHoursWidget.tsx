@@ -59,17 +59,17 @@ const VolunteerHoursWidget = ({ widget, editMode, onRemove }: VolunteerHoursWidg
       {data && (
         <div className="space-y-4">
           <div>
-            <p className="text-sm text-gray-500">Total Hours</p>
-            <p className="text-3xl font-bold text-gray-900">{data.total_hours.toLocaleString()}</p>
+            <p className="text-sm text-app-text-muted">Total Hours</p>
+            <p className="text-3xl font-bold text-app-text">{data.total_hours.toLocaleString()}</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-xs text-gray-500">Active Volunteers</p>
-              <p className="text-xl font-semibold text-gray-900">{data.active_volunteers}</p>
+              <p className="text-xs text-app-text-muted">Active Volunteers</p>
+              <p className="text-xl font-semibold text-app-text">{data.active_volunteers}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">This Month</p>
-              <p className="text-xl font-semibold text-gray-900">{data.hours_this_month}</p>
+              <p className="text-xs text-app-text-muted">This Month</p>
+              <p className="text-xl font-semibold text-app-text">{data.hours_this_month}</p>
             </div>
           </div>
         </div>

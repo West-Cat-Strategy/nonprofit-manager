@@ -14,14 +14,14 @@ const ModuleCard = memo(function ModuleCard({ to, title, description, stat, acce
   return (
     <Link
       to={to}
-      className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+      className="group relative overflow-hidden rounded-2xl border border-app-border/70 bg-app-surface p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
       aria-label={`${title} - ${description}${stat ? `. ${stat}` : ''}`}
     >
       <div className={`absolute -right-10 -top-10 h-24 w-24 rounded-full ${accentColor}`} aria-hidden="true" />
       <div className="relative">
-        <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-        <p className="mt-1 text-sm text-slate-600">{description}</p>
-        {stat && <p className="mt-3 text-xs text-slate-500">{stat}</p>}
+        <h3 className="text-lg font-semibold text-app-text">{title}</h3>
+        <p className="mt-1 text-sm text-app-text-muted">{description}</p>
+        {stat && <p className="mt-3 text-xs text-app-text-muted">{stat}</p>}
       </div>
     </Link>
   );
@@ -99,11 +99,11 @@ function ModulesGrid({ summary, activeCasesCount }: ModulesGridProps) {
   ];
 
   return (
-    <section className="mt-6 rounded-2xl border border-slate-200/70 bg-white/85 p-6 shadow-sm">
+    <section className="mt-6 rounded-2xl border border-app-border/70 bg-app-surface/85 p-6 shadow-sm">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-slate-900">Modules</h2>
-          <p className="text-sm text-slate-500">Jump into the workstreams you manage most.</p>
+          <h2 className="text-xl font-semibold text-app-text">Modules</h2>
+          <p className="text-sm text-app-text-muted">Jump into the workstreams you manage most.</p>
         </div>
       </div>
       <nav className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3" aria-label="Application modules">

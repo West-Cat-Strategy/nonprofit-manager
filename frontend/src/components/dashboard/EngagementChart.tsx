@@ -24,7 +24,7 @@ function EngagementChart({ distribution }: EngagementChartProps) {
       { label: 'High', value: distribution.high, color: 'bg-green-500' },
       { label: 'Medium', value: distribution.medium, color: 'bg-yellow-500' },
       { label: 'Low', value: distribution.low, color: 'bg-orange-500' },
-      { label: 'Inactive', value: distribution.inactive, color: 'bg-gray-400' },
+      { label: 'Inactive', value: distribution.inactive, color: 'bg-app-text-subtle' },
     ];
     return { total, segments };
   }, [distribution]);
@@ -33,16 +33,16 @@ function EngagementChart({ distribution }: EngagementChartProps) {
 
   return (
     <div
-      className="rounded-2xl border border-slate-200/70 bg-white/85 p-5 shadow-sm"
+      className="rounded-2xl border border-app-border/70 bg-app-surface/85 p-5 shadow-sm"
       role="figure"
       aria-label="Engagement distribution chart"
     >
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-700">Engagement Distribution</h3>
-        <span className="text-xs text-slate-400">Last 30 days</span>
+        <h3 className="text-sm font-semibold text-app-text-muted">Engagement Distribution</h3>
+        <span className="text-xs text-app-text-subtle">Last 30 days</span>
       </div>
       <div
-        className="mt-4 flex h-3 rounded-full overflow-hidden bg-slate-100"
+        className="mt-4 flex h-3 rounded-full overflow-hidden bg-app-surface-muted"
         role="progressbar"
         aria-label="Engagement breakdown"
       >
@@ -63,7 +63,7 @@ function EngagementChart({ distribution }: EngagementChartProps) {
         {segments.map((segment) => (
           <div key={segment.label} className="flex items-center gap-1" role="listitem">
             <div className={`w-3 h-3 rounded ${segment.color}`} aria-hidden="true" />
-            <span className="text-slate-600">
+            <span className="text-app-text-muted">
               {segment.label}: {segment.value}
             </span>
           </div>

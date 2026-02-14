@@ -43,14 +43,14 @@ const VolunteerDetail = () => {
 
   if (error && !currentVolunteer) {
     return (
-      <div className="min-h-screen bg-gray-100 p-6">
+      <div className="min-h-screen bg-app-surface-muted p-6">
         <div className="max-w-6xl mx-auto">
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
             {error || 'Volunteer not found'}
           </div>
           <button
             onClick={() => navigate('/volunteers')}
-            className="mt-4 text-blue-600 hover:text-blue-900"
+            className="mt-4 text-app-accent hover:text-app-accent-text"
           >
             ← Back to Volunteers
           </button>
@@ -61,10 +61,10 @@ const VolunteerDetail = () => {
 
   if (!currentVolunteer) {
     return (
-      <div className="min-h-screen bg-gray-100 p-6">
-        <div className="max-w-6xl mx-auto bg-white rounded-lg shadow p-8 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading volunteer...</p>
+      <div className="min-h-screen bg-app-surface-muted p-6">
+        <div className="max-w-6xl mx-auto bg-app-surface rounded-lg shadow p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-app-accent mx-auto"></div>
+          <p className="mt-4 text-app-text-muted">Loading volunteer...</p>
         </div>
       </div>
     );
@@ -102,13 +102,13 @@ const VolunteerDetail = () => {
             <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-500">
+                <label className="block text-sm font-medium text-app-text-muted">
                   Email
                 </label>
                 <p className="mt-1">{currentVolunteer.email || '-'}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-500">
+                <label className="block text-sm font-medium text-app-text-muted">
                   Phone
                 </label>
                 <p className="mt-1">
@@ -128,13 +128,13 @@ const VolunteerDetail = () => {
                 currentVolunteer.skills.map((skill, idx) => (
                   <span
                     key={idx}
-                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                    className="px-3 py-1 bg-app-accent-soft text-app-accent-text rounded-full text-sm"
                   >
                     {skill}
                   </span>
                 ))
               ) : (
-                <p className="text-gray-500">No skills listed</p>
+                <p className="text-app-text-muted">No skills listed</p>
               )}
             </div>
           </div>
@@ -144,7 +144,7 @@ const VolunteerDetail = () => {
             <h3 className="text-lg font-semibold mb-4">Availability</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-500">
+                <label className="block text-sm font-medium text-app-text-muted">
                   Status
                 </label>
                 <p className="mt-1 capitalize">
@@ -152,7 +152,7 @@ const VolunteerDetail = () => {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-500">
+                <label className="block text-sm font-medium text-app-text-muted">
                   Max Hours Per Week
                 </label>
                 <p className="mt-1">
@@ -162,10 +162,10 @@ const VolunteerDetail = () => {
             </div>
             {currentVolunteer.availability_notes && (
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-500">
+                <label className="block text-sm font-medium text-app-text-muted">
                   Notes
                 </label>
-                <p className="mt-1 text-gray-700">
+                <p className="mt-1 text-app-text-muted">
                   {currentVolunteer.availability_notes}
                 </p>
               </div>
@@ -177,7 +177,7 @@ const VolunteerDetail = () => {
             <h3 className="text-lg font-semibold mb-4">Background Check</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-500">
+                <label className="block text-sm font-medium text-app-text-muted">
                   Status
                 </label>
                 <p className="mt-1 capitalize">
@@ -185,7 +185,7 @@ const VolunteerDetail = () => {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-500">
+                <label className="block text-sm font-medium text-app-text-muted">
                   Check Date
                 </label>
                 <p className="mt-1">
@@ -197,7 +197,7 @@ const VolunteerDetail = () => {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-500">
+                <label className="block text-sm font-medium text-app-text-muted">
                   Expiry Date
                 </label>
                 <p className="mt-1">
@@ -217,7 +217,7 @@ const VolunteerDetail = () => {
               <h3 className="text-lg font-semibold mb-4">Emergency Contact</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-500">
+                  <label className="block text-sm font-medium text-app-text-muted">
                     Name
                   </label>
                   <p className="mt-1">
@@ -225,7 +225,7 @@ const VolunteerDetail = () => {
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-500">
+                  <label className="block text-sm font-medium text-app-text-muted">
                     Phone
                   </label>
                   <p className="mt-1">
@@ -233,7 +233,7 @@ const VolunteerDetail = () => {
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-500">
+                  <label className="block text-sm font-medium text-app-text-muted">
                     Relationship
                   </label>
                   <p className="mt-1">
@@ -255,7 +255,7 @@ const VolunteerDetail = () => {
               onClick={() => {
                 navigate(`/volunteers/${id}/assignments/new`);
               }}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm"
+              className="bg-app-accent text-white px-4 py-2 rounded-lg hover:bg-app-accent-hover transition text-sm"
               type="button"
             >
               + New Assignment
@@ -263,22 +263,22 @@ const VolunteerDetail = () => {
           </div>
 
           {assignments.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No assignments yet</p>
+            <p className="text-app-text-muted text-center py-8">No assignments yet</p>
           ) : (
             <div className="space-y-4">
               {assignments.map((assignment) => (
                 <div
                   key={assignment.assignment_id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition"
+                  className="border border-app-border rounded-lg p-4 hover:shadow-md transition"
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">
+                      <h4 className="font-medium text-app-text">
                         {assignment.event_name ||
                           assignment.task_name ||
                           'General Assignment'}
                       </h4>
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-sm text-app-text-muted mt-1">
                         {assignment.role && (
                           <span>Role: {assignment.role} • </span>
                         )}
@@ -286,7 +286,7 @@ const VolunteerDetail = () => {
                           {assignment.assignment_type}
                         </span>
                       </p>
-                      <p className="text-sm text-gray-600 mt-2">
+                      <p className="text-sm text-app-text-muted mt-2">
                         {new Date(assignment.start_time).toLocaleDateString()} -{' '}
                         {assignment.end_time
                           ? new Date(assignment.end_time).toLocaleDateString()
@@ -300,7 +300,7 @@ const VolunteerDetail = () => {
                             `/volunteers/${id}/assignments/${assignment.assignment_id}/edit`
                           )
                         }
-                        className="text-blue-600 hover:text-blue-800 text-sm"
+                        className="text-app-accent hover:text-app-accent-text text-sm"
                       >
                         Edit
                       </button>
@@ -309,21 +309,21 @@ const VolunteerDetail = () => {
                           assignment.status === 'completed'
                             ? 'bg-green-100 text-green-800'
                             : assignment.status === 'in_progress'
-                              ? 'bg-blue-100 text-blue-800'
+                              ? 'bg-app-accent-soft text-app-accent-text'
                               : assignment.status === 'cancelled'
                                 ? 'bg-red-100 text-red-800'
-                                : 'bg-gray-100 text-gray-800'
+                                : 'bg-app-surface-muted text-app-text'
                         }`}
                       >
                         {assignment.status}
                       </span>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-app-text-muted">
                         {assignment.hours_logged} hours
                       </p>
                     </div>
                   </div>
                   {assignment.notes && (
-                    <p className="text-sm text-gray-600 mt-3 border-t pt-3">
+                    <p className="text-sm text-app-text-muted mt-3 border-t pt-3">
                       {assignment.notes}
                     </p>
                   )}
@@ -347,16 +347,16 @@ const VolunteerDetail = () => {
 
           {/* Assignment Details Modal/Section */}
           {selectedDateAssignments && (
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="mt-6 p-4 bg-app-accent-soft rounded-lg border border-app-accent-soft">
               <div className="flex justify-between items-center mb-3">
-                <h4 className="font-semibold text-gray-900">
+                <h4 className="font-semibold text-app-text">
                   Assignments for{' '}
                   {selectedDateAssignments.date.toLocaleDateString()}
                 </h4>
                 <button
                   type="button"
                   onClick={() => setSelectedDateAssignments(null)}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-app-text-muted hover:text-app-text-muted"
                 >
                   ✕
                 </button>
@@ -365,21 +365,21 @@ const VolunteerDetail = () => {
                 {selectedDateAssignments.assignments.map((assignment) => (
                   <div
                     key={assignment.assignment_id}
-                    className="bg-white p-3 rounded-lg border border-gray-200"
+                    className="bg-app-surface p-3 rounded-lg border border-app-border"
                   >
                     <div className="flex justify-between items-start">
                       <div>
-                        <h5 className="font-medium text-gray-900">
+                        <h5 className="font-medium text-app-text">
                           {assignment.event_name ||
                             assignment.task_name ||
                             'General Assignment'}
                         </h5>
                         {assignment.role && (
-                          <p className="text-sm text-gray-600 mt-1">
+                          <p className="text-sm text-app-text-muted mt-1">
                             Role: {assignment.role}
                           </p>
                         )}
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className="text-sm text-app-text-muted mt-1">
                           {assignment.hours_logged} hours logged
                         </p>
                       </div>
@@ -388,17 +388,17 @@ const VolunteerDetail = () => {
                           assignment.status === 'completed'
                             ? 'bg-green-100 text-green-800'
                             : assignment.status === 'in_progress'
-                              ? 'bg-blue-100 text-blue-800'
+                              ? 'bg-app-accent-soft text-app-accent-text'
                               : assignment.status === 'cancelled'
                                 ? 'bg-red-100 text-red-800'
-                                : 'bg-gray-100 text-gray-800'
+                                : 'bg-app-surface-muted text-app-text'
                         }`}
                       >
                         {assignment.status.replace('_', ' ')}
                       </span>
                     </div>
                     {assignment.notes && (
-                      <p className="text-sm text-gray-600 mt-2 pt-2 border-t">
+                      <p className="text-sm text-app-text-muted mt-2 pt-2 border-t">
                         {assignment.notes}
                       </p>
                     )}

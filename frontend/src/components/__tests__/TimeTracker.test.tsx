@@ -546,7 +546,7 @@ describe('TimeTracker', () => {
     );
 
     const statusBadge = screen.getByText('in progress');
-    expect(statusBadge).toHaveClass('bg-blue-100', 'text-blue-800');
+    expect(statusBadge).toHaveClass('bg-app-accent-soft', 'text-app-accent-text');
   });
 
   it('should not show Recently Completed section if no completed assignments', () => {

@@ -41,15 +41,15 @@ interface StatCardProps {
 }
 
 const StatCard = ({ title, value, change, icon }: StatCardProps) => {
-  const changeColor = change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-gray-500';
+  const changeColor = change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-app-text-muted';
   const changePrefix = change > 0 ? '+' : '';
 
   return (
-    <div className="p-4 bg-white rounded-lg border border-gray-200">
+    <div className="p-4 bg-app-surface rounded-lg border border-app-border">
       <div className="flex justify-between items-start">
         <div className="flex-1">
-          <p className="text-sm text-gray-500 mb-1">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mb-1">{value}</p>
+          <p className="text-sm text-app-text-muted mb-1">{title}</p>
+          <p className="text-2xl font-bold text-app-text mb-1">{value}</p>
           <p className={`text-sm ${changeColor}`}>
             {changePrefix}{change.toFixed(1)}%
           </p>
@@ -137,7 +137,7 @@ const PlausibleStatsWidget = ({ widget, editMode, onRemove }: PlausibleStatsWidg
     >
       {stats ? (
         <div className="p-4 space-y-4 overflow-auto">
-          <p className="text-sm text-gray-600 mb-4">Last 30 Days</p>
+          <p className="text-sm text-app-text-muted mb-4">Last 30 Days</p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <StatCard
@@ -177,7 +177,7 @@ const PlausibleStatsWidget = ({ widget, editMode, onRemove }: PlausibleStatsWidg
         </div>
       ) : (
         <div className="p-4">
-          <p className="text-gray-500">No analytics data available</p>
+          <p className="text-app-text-muted">No analytics data available</p>
         </div>
       )}
     </WidgetContainer>

@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Load common utilities and configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
+source "$SCRIPT_DIR/lib/config.sh"
 
 if ! command -v psql >/dev/null 2>&1; then
-  echo "psql is required for migration verification" >&2
+  log_error "psql is required for migration verification"
   exit 1
 fi
 
@@ -13,7 +16,7 @@ fi
 shopt -s nullglob
 
 if [[ "${DB_NAME}" != *_test ]]; then
-  echo "Refusing to run migrations unless DB_NAME ends with _test" >&2
+  log_error "Refusing to run migrations unless DB_NAME ends with _test"
   exit 1
 fi
 
@@ -23,18 +26,18 @@ export PGDATABASE="${DB_NAME}"
 export PGUSER="${DB_USER:-postgres}"
 export PGPASSWORD="${DB_PASSWORD:-}"
 
-migrations=("${root_dir}"/database/migrations/*.sql)
+migrations=("${SCRIPT_DIR}/../database/migrations"/*.sql)
 
 if [[ ${#migrations[@]} -eq 0 ]]; then
-  echo "No migration files found in database/migrations" >&2
+  log_error "No migration files found in database/migrations"
   exit 1
 fi
 
-echo "==> Verifying migrations against ${PGDATABASE}"
+log_info "Verifying migrations against ${PGDATABASE}"
 
 for file in "${migrations[@]}"; do
-  echo "==> Applying ${file##*/}"
+  log_info "Applying ${file##*/}"
   psql -v ON_ERROR_STOP=1 -f "$file" >/dev/null
 done
 
-exit 0
+log_success "Migration verification complete"

@@ -115,7 +115,7 @@ export default function NeoBrutalistDashboard() {
                                                     navigate(`/people?search=${encodeURIComponent(quickSearch)}`);
                                                 }
                                             }}
-                                            className="bg-white"
+                                            className="bg-app-surface"
                                         />
                                     </div>
                                     <button 
@@ -168,7 +168,7 @@ export default function NeoBrutalistDashboard() {
                 </div>
 
                 {/* Quick Tools Section */}
-                <div className="bg-white dark:bg-[#121212] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6">
+                <div className="bg-app-surface dark:bg-[#121212] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6">
                     <h2 className="text-xl font-black mb-6 uppercase text-black dark:text-white">Quick Tools</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Link to="/linking">
@@ -177,7 +177,7 @@ export default function NeoBrutalistDashboard() {
                                     <div className="text-4xl">🔗</div>
                                     <div>
                                         <h3 className="font-bold text-lg text-black">Linking Network</h3>
-                                        <p className="text-sm text-gray-600">Manage partnerships</p>
+                                        <p className="text-sm text-app-text-muted">Manage partnerships</p>
                                     </div>
                                 </div>
                             </div>
@@ -189,7 +189,7 @@ export default function NeoBrutalistDashboard() {
                                     <div className="text-4xl">📋</div>
                                     <div>
                                         <h3 className="font-bold text-lg text-black">Operations Board</h3>
-                                        <p className="text-sm text-gray-600">Track tasks & projects</p>
+                                        <p className="text-sm text-app-text-muted">Track tasks & projects</p>
                                     </div>
                                 </div>
                             </div>
@@ -201,7 +201,7 @@ export default function NeoBrutalistDashboard() {
                                     <div className="text-4xl">📧</div>
                                     <div>
                                         <h3 className="font-bold text-lg text-black">Outreach Center</h3>
-                                        <p className="text-sm text-gray-600">Campaigns & engagement</p>
+                                        <p className="text-sm text-app-text-muted">Campaigns & engagement</p>
                                     </div>
                                 </div>
                             </div>
@@ -213,7 +213,7 @@ export default function NeoBrutalistDashboard() {
                                     <div className="text-4xl">👥</div>
                                     <div>
                                         <h3 className="font-bold text-lg text-black">People Directory</h3>
-                                        <p className="text-sm text-gray-600">Manage your team</p>
+                                        <p className="text-sm text-app-text-muted">Manage your team</p>
                                     </div>
                                 </div>
                             </div>

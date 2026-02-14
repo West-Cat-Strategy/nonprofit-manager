@@ -61,10 +61,10 @@ export default function PortalAppointments() {
 
   return (
     <div>
-      <h2 className="text-xl font-semibold text-gray-900">Appointments</h2>
+      <h2 className="text-xl font-semibold text-app-text">Appointments</h2>
 
       <div className="mt-6">
-        <h3 className="text-lg font-medium text-gray-900">Request an Appointment</h3>
+        <h3 className="text-lg font-medium text-app-text">Request an Appointment</h3>
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <input
             name="title"
@@ -105,29 +105,29 @@ export default function PortalAppointments() {
             onChange={handleChange}
             className="w-full px-3 py-2 border rounded-md"
           />
-          <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md">
+          <button type="submit" className="px-4 py-2 bg-app-accent text-white rounded-md">
             Request Appointment
           </button>
         </form>
       </div>
 
       <div className="mt-8">
-        <h3 className="text-lg font-medium text-gray-900">Your Appointments</h3>
+        <h3 className="text-lg font-medium text-app-text">Your Appointments</h3>
         {loading ? (
-          <p className="text-sm text-gray-500 mt-2">Loading appointments...</p>
+          <p className="text-sm text-app-text-muted mt-2">Loading appointments...</p>
         ) : appointments.length === 0 ? (
-          <p className="text-sm text-gray-500 mt-2">No appointments yet.</p>
+          <p className="text-sm text-app-text-muted mt-2">No appointments yet.</p>
         ) : (
           <ul className="mt-4 space-y-3">
             {appointments.map((appointment) => (
               <li key={appointment.id} className="p-3 border rounded-lg">
                 <div className="flex justify-between">
                   <div>
-                    <div className="font-medium text-gray-900">{appointment.title}</div>
-                    <div className="text-sm text-gray-600">
+                    <div className="font-medium text-app-text">{appointment.title}</div>
+                    <div className="text-sm text-app-text-muted">
                       {new Date(appointment.start_time).toLocaleString()}
                     </div>
-                    <div className="text-sm text-gray-500">Status: {appointment.status}</div>
+                    <div className="text-sm text-app-text-muted">Status: {appointment.status}</div>
                   </div>
                   {appointment.status !== 'cancelled' && (
                     <button

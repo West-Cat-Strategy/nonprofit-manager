@@ -157,20 +157,20 @@ const TemplateGallery: React.FC = () => {
   const displayedTemplates = activeTab === 'starter-templates' ? systemTemplates : templates;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-app-surface-muted">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-app-surface border-b border-app-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Website Builder</h1>
-              <p className="mt-1 text-sm text-gray-500">
+              <h1 className="text-2xl font-bold text-app-text">Website Builder</h1>
+              <p className="mt-1 text-sm text-app-text-muted">
                 Create and manage your nonprofit's website
               </p>
             </div>
             <button
               onClick={() => setShowNewModal(true)}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover transition-colors"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -182,19 +182,19 @@ const TemplateGallery: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-app-surface border-b border-app-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex space-x-8" aria-label="Tabs">
             <button
               onClick={() => setActiveTab('starter-templates')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'starter-templates'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-app-accent text-app-accent'
+                  : 'border-transparent text-app-text-muted hover:text-app-text-muted hover:border-app-input-border'
               }`}
             >
               Starter Templates
-              <span className="ml-2 bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">
+              <span className="ml-2 bg-app-surface-muted text-app-text-muted py-0.5 px-2 rounded-full text-xs">
                 {systemTemplates.length}
               </span>
             </button>
@@ -202,12 +202,12 @@ const TemplateGallery: React.FC = () => {
               onClick={() => setActiveTab('my-templates')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'my-templates'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-app-accent text-app-accent'
+                  : 'border-transparent text-app-text-muted hover:text-app-text-muted hover:border-app-input-border'
               }`}
             >
               My Templates
-              <span className="ml-2 bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">
+              <span className="ml-2 bg-app-surface-muted text-app-text-muted py-0.5 px-2 rounded-full text-xs">
                 {pagination.total}
               </span>
             </button>
@@ -222,7 +222,7 @@ const TemplateGallery: React.FC = () => {
           <div className="flex-1">
             <div className="relative">
               <svg
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-app-text-subtle"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -239,7 +239,7 @@ const TemplateGallery: React.FC = () => {
                 placeholder="Search templates..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-10 pr-4 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
               />
             </div>
           </div>
@@ -248,7 +248,7 @@ const TemplateGallery: React.FC = () => {
           <select
             value={searchParams.category || ''}
             onChange={(e) => handleCategoryChange(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="px-4 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
           >
             {categories.map((cat) => (
               <option key={cat.value} value={cat.value}>
@@ -262,7 +262,7 @@ const TemplateGallery: React.FC = () => {
             <select
               value={searchParams.status || ''}
               onChange={(e) => handleStatusChange(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="px-4 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
             >
               {statuses.map((status) => (
                 <option key={status.value} value={status.value}>
@@ -292,12 +292,12 @@ const TemplateGallery: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-app-accent"></div>
           </div>
         ) : displayedTemplates.length === 0 ? (
           <div className="text-center py-12">
             <svg
-              className="mx-auto h-12 w-12 text-gray-400"
+              className="mx-auto h-12 w-12 text-app-text-subtle"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -309,8 +309,8 @@ const TemplateGallery: React.FC = () => {
                 d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
               />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No templates found</h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <h3 className="mt-2 text-sm font-medium text-app-text">No templates found</h3>
+            <p className="mt-1 text-sm text-app-text-muted">
               {activeTab === 'my-templates'
                 ? 'Get started by selecting a starter template.'
                 : 'No starter templates available.'}
@@ -318,7 +318,7 @@ const TemplateGallery: React.FC = () => {
             {activeTab === 'my-templates' && (
               <button
                 onClick={() => setActiveTab('starter-templates')}
-                className="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="mt-4 inline-flex items-center px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
               >
                 Browse Starter Templates
               </button>
@@ -345,17 +345,17 @@ const TemplateGallery: React.FC = () => {
             <button
               onClick={() => handlePageChange(pagination.page - 1)}
               disabled={pagination.page === 1}
-              className="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-3 py-2 text-sm border border-app-input-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-app-surface-muted"
             >
               Previous
             </button>
-            <span className="px-4 py-2 text-sm text-gray-600">
+            <span className="px-4 py-2 text-sm text-app-text-muted">
               Page {pagination.page} of {pagination.totalPages}
             </span>
             <button
               onClick={() => handlePageChange(pagination.page + 1)}
               disabled={pagination.page === pagination.totalPages}
-              className="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-3 py-2 text-sm border border-app-input-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-app-surface-muted"
             >
               Next
             </button>
@@ -366,9 +366,9 @@ const TemplateGallery: React.FC = () => {
       {/* New Template Modal */}
       {showNewModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Create New Website</h2>
-            <p className="text-gray-600 mb-6">
+          <div className="bg-app-surface rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <h2 className="text-xl font-semibold text-app-text mb-4">Create New Website</h2>
+            <p className="text-app-text-muted mb-6">
               Choose how you'd like to start:
             </p>
             <div className="space-y-3">
@@ -377,10 +377,10 @@ const TemplateGallery: React.FC = () => {
                   setShowNewModal(false);
                   setActiveTab('starter-templates');
                 }}
-                className="w-full p-4 text-left border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                className="w-full p-4 text-left border border-app-border rounded-lg hover:border-app-accent hover:bg-app-accent-soft transition-colors"
               >
-                <div className="font-medium text-gray-900">Start from a Template</div>
-                <div className="text-sm text-gray-500">
+                <div className="font-medium text-app-text">Start from a Template</div>
+                <div className="text-sm text-app-text-muted">
                   Choose from our collection of professional templates
                 </div>
               </button>
@@ -389,17 +389,17 @@ const TemplateGallery: React.FC = () => {
                   setShowNewModal(false);
                   navigate('/website-builder/new');
                 }}
-                className="w-full p-4 text-left border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                className="w-full p-4 text-left border border-app-border rounded-lg hover:border-app-accent hover:bg-app-accent-soft transition-colors"
               >
-                <div className="font-medium text-gray-900">Start from Scratch</div>
-                <div className="text-sm text-gray-500">
+                <div className="font-medium text-app-text">Start from Scratch</div>
+                <div className="text-sm text-app-text-muted">
                   Begin with a blank template and build your own design
                 </div>
               </button>
             </div>
             <button
               onClick={() => setShowNewModal(false)}
-              className="mt-4 w-full py-2 text-gray-600 hover:text-gray-800"
+              className="mt-4 w-full py-2 text-app-text-muted hover:text-app-text"
             >
               Cancel
             </button>
@@ -410,15 +410,15 @@ const TemplateGallery: React.FC = () => {
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Delete Template</h2>
-            <p className="text-gray-600 mb-6">
+          <div className="bg-app-surface rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <h2 className="text-xl font-semibold text-app-text mb-4">Delete Template</h2>
+            <p className="text-app-text-muted mb-6">
               Are you sure you want to delete "{deleteConfirm.name}"? This action cannot be undone.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                className="flex-1 py-2 px-4 border border-app-input-border rounded-lg text-app-text-muted hover:bg-app-surface-muted"
               >
                 Cancel
               </button>

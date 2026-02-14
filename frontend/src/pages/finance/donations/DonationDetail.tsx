@@ -57,7 +57,7 @@ const DonationDetail: React.FC = () => {
               {donation.payment_status}
             </span>
             {donation.is_recurring && (
-              <span className="px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800">
+              <span className="px-3 py-1 text-sm font-semibold rounded-full bg-app-accent-soft text-app-accent-text">
                 Recurring
               </span>
             )}
@@ -74,37 +74,37 @@ const DonationDetail: React.FC = () => {
           )}
           <button
             onClick={() => navigate(`/donations/${id}/edit`)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover"
           >
             Edit
           </button>
           <button
             onClick={() => navigate('/donations')}
-            className="px-4 py-2 border rounded-md hover:bg-gray-50"
+            className="px-4 py-2 border rounded-md hover:bg-app-surface-muted"
           >
             Back
           </button>
         </div>
       </div>
 
-      <div className="bg-white shadow-md rounded-lg p-6 space-y-6">
+      <div className="bg-app-surface shadow-md rounded-lg p-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h3 className="text-lg font-semibold mb-4">Donation Information</h3>
             <dl className="space-y-3">
               <div>
-                <dt className="text-sm font-medium text-gray-500">Amount</dt>
+                <dt className="text-sm font-medium text-app-text-muted">Amount</dt>
                 <dd className="text-2xl font-bold text-green-600">
                   {formatCurrency(donation.amount, donation.currency)}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Donation Date</dt>
-                <dd className="text-sm text-gray-900">{formatDateTime(donation.donation_date)}</dd>
+                <dt className="text-sm font-medium text-app-text-muted">Donation Date</dt>
+                <dd className="text-sm text-app-text">{formatDateTime(donation.donation_date)}</dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Payment Method</dt>
-                <dd className="text-sm text-gray-900">
+                <dt className="text-sm font-medium text-app-text-muted">Payment Method</dt>
+                <dd className="text-sm text-app-text">
                   {donation.payment_method
                     ?.replace('_', ' ')
                     .replace(/\b\w/g, (l) => l.toUpperCase()) || 'N/A'}
@@ -112,8 +112,8 @@ const DonationDetail: React.FC = () => {
               </div>
               {donation.transaction_id && (
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">Transaction ID</dt>
-                  <dd className="text-sm text-gray-900 font-mono">{donation.transaction_id}</dd>
+                  <dt className="text-sm font-medium text-app-text-muted">Transaction ID</dt>
+                  <dd className="text-sm text-app-text font-mono">{donation.transaction_id}</dd>
                 </div>
               )}
             </dl>
@@ -123,21 +123,21 @@ const DonationDetail: React.FC = () => {
             <h3 className="text-lg font-semibold mb-4">Donor Information</h3>
             <dl className="space-y-3">
               <div>
-                <dt className="text-sm font-medium text-gray-500">Donor</dt>
-                <dd className="text-sm text-gray-900">
+                <dt className="text-sm font-medium text-app-text-muted">Donor</dt>
+                <dd className="text-sm text-app-text">
                   {donation.account_name || donation.contact_name || 'Anonymous'}
                 </dd>
               </div>
               {donation.campaign_name && (
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">Campaign</dt>
-                  <dd className="text-sm text-gray-900">{donation.campaign_name}</dd>
+                  <dt className="text-sm font-medium text-app-text-muted">Campaign</dt>
+                  <dd className="text-sm text-app-text">{donation.campaign_name}</dd>
                 </div>
               )}
               {donation.designation && (
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">Designation</dt>
-                  <dd className="text-sm text-gray-900">{donation.designation}</dd>
+                  <dt className="text-sm font-medium text-app-text-muted">Designation</dt>
+                  <dd className="text-sm text-app-text">{donation.designation}</dd>
                 </div>
               )}
             </dl>
@@ -149,8 +149,8 @@ const DonationDetail: React.FC = () => {
             <h3 className="text-lg font-semibold mb-4">Recurring Donation</h3>
             <dl className="space-y-3">
               <div>
-                <dt className="text-sm font-medium text-gray-500">Frequency</dt>
-                <dd className="text-sm text-gray-900 capitalize">
+                <dt className="text-sm font-medium text-app-text-muted">Frequency</dt>
+                <dd className="text-sm text-app-text capitalize">
                   {donation.recurring_frequency?.replace('_', ' ')}
                 </dd>
               </div>
@@ -161,7 +161,7 @@ const DonationDetail: React.FC = () => {
         {donation.notes && (
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold mb-2">Notes</h3>
-            <p className="text-gray-700 whitespace-pre-wrap">{donation.notes}</p>
+            <p className="text-app-text-muted whitespace-pre-wrap">{donation.notes}</p>
           </div>
         )}
 
@@ -169,7 +169,7 @@ const DonationDetail: React.FC = () => {
           <h3 className="text-lg font-semibold mb-4">Receipt Information</h3>
           <dl className="space-y-3">
             <div>
-              <dt className="text-sm font-medium text-gray-500">Receipt Status</dt>
+              <dt className="text-sm font-medium text-app-text-muted">Receipt Status</dt>
               <dd className="text-sm">
                 {donation.receipt_sent ? (
                   <span className="text-green-600 font-semibold">✓ Sent</span>
@@ -180,8 +180,8 @@ const DonationDetail: React.FC = () => {
             </div>
             {donation.receipt_sent_date && (
               <div>
-                <dt className="text-sm font-medium text-gray-500">Receipt Sent Date</dt>
-                <dd className="text-sm text-gray-900">
+                <dt className="text-sm font-medium text-app-text-muted">Receipt Sent Date</dt>
+                <dd className="text-sm text-app-text">
                   {formatDateTime(donation.receipt_sent_date)}
                 </dd>
               </div>
@@ -191,7 +191,7 @@ const DonationDetail: React.FC = () => {
 
         <div className="border-t pt-6">
           <h3 className="text-lg font-semibold mb-2">Metadata</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-app-text-muted">
             <div>
               <span className="font-medium">Created:</span>{' '}
               {new Date(donation.created_at).toLocaleDateString()}

@@ -51,8 +51,8 @@ const AlertsConfig = () => {
 
   const getSeverityColor = (severity: string) => {
     const colors = {
-      low: 'text-gray-600 bg-gray-100',
-      medium: 'text-blue-600 bg-blue-100',
+      low: 'text-app-text-muted bg-app-surface-muted',
+      medium: 'text-app-accent bg-app-accent-soft',
       high: 'text-orange-600 bg-orange-100',
       critical: 'text-red-600 bg-red-100',
     };
@@ -87,14 +87,14 @@ const AlertsConfig = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Alert Configuration</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-app-text-heading">Alert Configuration</h1>
+          <p className="text-sm text-app-text-muted mt-1">
             Configure alerts to monitor key metrics and detect anomalies
           </p>
         </div>
         <button
           onClick={handleCreate}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+          className="px-4 py-2 text-sm font-medium text-white bg-app-accent rounded-lg hover:bg-app-accent-hover"
         >
           Create Alert
         </button>
@@ -103,21 +103,21 @@ const AlertsConfig = () => {
       {/* Statistics Cards */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <p className="text-sm text-gray-500">Total Alerts</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.total_alerts}</p>
+          <div className="bg-app-surface rounded-lg shadow-sm border border-app-border p-4">
+            <p className="text-sm text-app-text-muted">Total Alerts</p>
+            <p className="text-2xl font-bold text-app-text-heading">{stats.total_alerts}</p>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <p className="text-sm text-gray-500">Active Alerts</p>
+          <div className="bg-app-surface rounded-lg shadow-sm border border-app-border p-4">
+            <p className="text-sm text-app-text-muted">Active Alerts</p>
             <p className="text-2xl font-bold text-green-600">{stats.active_alerts}</p>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <p className="text-sm text-gray-500">Triggered Today</p>
+          <div className="bg-app-surface rounded-lg shadow-sm border border-app-border p-4">
+            <p className="text-sm text-app-text-muted">Triggered Today</p>
             <p className="text-2xl font-bold text-orange-600">{stats.triggered_today}</p>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <p className="text-sm text-gray-500">This Week</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.triggered_this_week}</p>
+          <div className="bg-app-surface rounded-lg shadow-sm border border-app-border p-4">
+            <p className="text-sm text-app-text-muted">This Week</p>
+            <p className="text-2xl font-bold text-app-text-heading">{stats.triggered_this_week}</p>
           </div>
         </div>
       )}
@@ -126,28 +126,28 @@ const AlertsConfig = () => {
       <div className="flex space-x-4">
         <Link
           to="/alerts/instances"
-          className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:bg-gray-50 transition-colors"
+          className="flex-1 bg-app-surface rounded-lg shadow-sm border border-app-border p-4 hover:bg-app-surface-muted transition-colors"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-gray-900">View Triggered Alerts</p>
-              <p className="text-sm text-gray-500">See all active and resolved alerts</p>
+              <p className="font-medium text-app-text">View Triggered Alerts</p>
+              <p className="text-sm text-app-text-muted">See all active and resolved alerts</p>
             </div>
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </div>
         </Link>
         <Link
           to="/alerts/history"
-          className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:bg-gray-50 transition-colors"
+          className="flex-1 bg-app-surface rounded-lg shadow-sm border border-app-border p-4 hover:bg-app-surface-muted transition-colors"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-gray-900">Alert History</p>
-              <p className="text-sm text-gray-500">View historical alert data</p>
+              <p className="font-medium text-app-text">Alert History</p>
+              <p className="text-sm text-app-text-muted">View historical alert data</p>
             </div>
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </div>
@@ -155,46 +155,46 @@ const AlertsConfig = () => {
       </div>
 
       {/* Alert Configurations List */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Alert Configurations</h2>
+      <div className="bg-app-surface rounded-lg shadow-sm border border-app-border">
+        <div className="p-4 border-b border-app-border">
+          <h2 className="text-lg font-semibold text-app-text-heading">Alert Configurations</h2>
         </div>
 
         {loading ? (
-          <div className="p-8 text-center text-gray-500">Loading alerts...</div>
+          <div className="p-8 text-center text-app-text-muted">Loading alerts...</div>
         ) : configs.length === 0 ? (
           <div className="p-8 text-center">
-            <p className="text-gray-500">No alert configurations yet</p>
+            <p className="text-app-text-muted">No alert configurations yet</p>
             <button
               onClick={handleCreate}
-              className="mt-4 text-sm text-blue-600 hover:text-blue-700 font-medium"
+              className="mt-4 text-sm text-app-accent hover:text-app-accent-hover font-medium"
             >
               Create your first alert
             </button>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-app-border">
             {configs.map((config) => (
-              <div key={config.id} className="p-4 hover:bg-gray-50 transition-colors">
+              <div key={config.id} className="p-4 hover:bg-app-surface-muted transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3">
-                      <h3 className="font-medium text-gray-900">{config.name}</h3>
+                      <h3 className="font-medium text-app-text">{config.name}</h3>
                       <span className={`px-2 py-1 text-xs font-medium rounded ${getSeverityColor(config.severity)}`}>
                         {config.severity}
                       </span>
                       <span className={`px-2 py-1 text-xs font-medium rounded ${
-                        config.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                        config.enabled ? 'bg-green-100 text-green-700' : 'bg-app-surface-muted text-app-text-muted'
                       }`}>
                         {config.enabled ? 'Active' : 'Paused'}
                       </span>
                     </div>
 
                     {config.description && (
-                      <p className="text-sm text-gray-500 mt-1">{config.description}</p>
+                      <p className="text-sm text-app-text-muted mt-1">{config.description}</p>
                     )}
 
-                    <div className="flex items-center space-x-6 mt-3 text-sm text-gray-600">
+                    <div className="flex items-center space-x-6 mt-3 text-sm text-app-text-muted">
                       <div>
                         <span className="font-medium">Metric:</span>{' '}
                         {getMetricLabel(config.metric_type)}
@@ -222,7 +222,7 @@ const AlertsConfig = () => {
                       {config.channels.map((channel) => (
                         <span
                           key={channel}
-                          className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded"
+                          className="px-2 py-1 text-xs font-medium bg-app-surface-muted text-app-text-muted rounded"
                         >
                           {channel}
                         </span>
@@ -230,7 +230,7 @@ const AlertsConfig = () => {
                     </div>
 
                     {config.last_triggered && (
-                      <p className="text-xs text-gray-500 mt-2">
+                      <p className="text-xs text-app-text-muted mt-2">
                         Last triggered:{' '}
                         {new Date(config.last_triggered).toLocaleString('en-US', {
                           month: 'short',
@@ -249,7 +249,7 @@ const AlertsConfig = () => {
                           handleToggle(config.id);
                         }
                       }}
-                      className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                      className="p-2 text-app-text-subtle hover:text-app-text-muted transition-colors"
                       title={config.enabled ? 'Pause alert' : 'Enable alert'}
                     >
                       {config.enabled ? (
@@ -265,7 +265,7 @@ const AlertsConfig = () => {
                     </button>
                     <button
                       onClick={() => handleEdit(config)}
-                      className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                      className="p-2 text-app-text-subtle hover:text-app-accent transition-colors"
                       title="Edit alert"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -278,7 +278,7 @@ const AlertsConfig = () => {
                           handleDelete(config.id);
                         }
                       }}
-                      className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                      className="p-2 text-app-text-subtle hover:text-red-600 transition-colors"
                       title="Delete alert"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

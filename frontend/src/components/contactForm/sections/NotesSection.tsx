@@ -8,10 +8,10 @@ interface NotesSectionProps {
 
 export default function NotesSection({ formData, mode, onChange }: NotesSectionProps) {
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <h2 className="text-lg font-medium text-gray-900 mb-4">Initial Notes</h2>
+    <div className="bg-app-surface shadow rounded-lg p-6">
+      <h2 className="text-lg font-medium text-app-text mb-4">Initial Notes</h2>
       <div>
-        <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="notes" className="block text-sm font-medium text-app-text-muted">
           Notes
         </label>
         <textarea
@@ -21,9 +21,9 @@ export default function NotesSection({ formData, mode, onChange }: NotesSectionP
           value={formData.notes ?? ''}
           onChange={onChange}
           placeholder="Add any initial notes about this contact..."
-          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
         />
-        <p className="mt-2 text-sm text-gray-500">
+        <p className="mt-2 text-sm text-app-text-muted">
           For detailed notes with timestamps, use the Notes section on the contact detail page.
         </p>
       </div>
@@ -36,9 +36,9 @@ export default function NotesSection({ formData, mode, onChange }: NotesSectionP
             id="is_active"
             checked={formData.is_active}
             onChange={onChange}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            className="h-4 w-4 text-app-accent focus:ring-app-accent border-app-input-border rounded"
           />
-          <label htmlFor="is_active" className="ml-2 block text-sm text-gray-900">
+          <label htmlFor="is_active" className="ml-2 block text-sm text-app-text">
             Active Contact
           </label>
         </div>

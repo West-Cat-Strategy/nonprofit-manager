@@ -45,8 +45,8 @@ const TaskDetail: React.FC = () => {
 
   const getStatusBadge = (status: TaskStatus) => {
     const statusColors: Record<TaskStatus, string> = {
-      [TaskStatus.NOT_STARTED]: 'bg-gray-100 text-gray-800',
-      [TaskStatus.IN_PROGRESS]: 'bg-blue-100 text-blue-800',
+      [TaskStatus.NOT_STARTED]: 'bg-app-surface-muted text-app-text',
+      [TaskStatus.IN_PROGRESS]: 'bg-app-accent-soft text-app-accent-text',
       [TaskStatus.WAITING]: 'bg-yellow-100 text-yellow-800',
       [TaskStatus.COMPLETED]: 'bg-green-100 text-green-800',
       [TaskStatus.DEFERRED]: 'bg-purple-100 text-purple-800',
@@ -62,8 +62,8 @@ const TaskDetail: React.FC = () => {
 
   const getPriorityBadge = (priority: TaskPriority) => {
     const priorityColors: Record<TaskPriority, string> = {
-      [TaskPriority.LOW]: 'bg-gray-100 text-gray-600',
-      [TaskPriority.NORMAL]: 'bg-blue-100 text-blue-600',
+      [TaskPriority.LOW]: 'bg-app-surface-muted text-app-text-muted',
+      [TaskPriority.NORMAL]: 'bg-app-accent-soft text-app-accent',
       [TaskPriority.HIGH]: 'bg-orange-100 text-orange-600',
       [TaskPriority.URGENT]: 'bg-red-100 text-red-600',
     };
@@ -79,7 +79,7 @@ const TaskDetail: React.FC = () => {
     return (
       <NeoBrutalistLayout pageTitle="TASKS">
         <div className="flex justify-center items-center h-64">
-          <div className="text-lg text-gray-600">Loading...</div>
+          <div className="text-lg text-app-text-muted">Loading...</div>
         </div>
       </NeoBrutalistLayout>
     );
@@ -117,13 +117,13 @@ const TaskDetail: React.FC = () => {
       <div className="mb-6">
         <button
           onClick={() => navigate('/tasks')}
-          className="text-blue-600 hover:text-blue-800 mb-4"
+          className="text-app-accent hover:text-app-accent-text mb-4"
         >
           ← Back to Tasks
         </button>
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{selectedTask.subject}</h1>
+            <h1 className="text-3xl font-bold text-app-text mb-2">{selectedTask.subject}</h1>
             <div className="flex gap-2 items-center">
               {getStatusBadge(selectedTask.status)}
               {getPriorityBadge(selectedTask.priority)}
@@ -145,7 +145,7 @@ const TaskDetail: React.FC = () => {
             )}
             <button
               onClick={() => navigate(`/tasks/${id}/edit`)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover"
             >
               Edit
             </button>
@@ -161,56 +161,56 @@ const TaskDetail: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Task Information */}
-        <div className="bg-white shadow-md rounded-lg p-6">
+        <div className="bg-app-surface shadow-md rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4">Task Information</h2>
           <dl className="space-y-3">
             {selectedTask.description && (
               <>
-                <dt className="text-sm font-medium text-gray-500">Description</dt>
-                <dd className="text-sm text-gray-900 mb-3">{selectedTask.description}</dd>
+                <dt className="text-sm font-medium text-app-text-muted">Description</dt>
+                <dd className="text-sm text-app-text mb-3">{selectedTask.description}</dd>
               </>
             )}
-            <dt className="text-sm font-medium text-gray-500">Due Date</dt>
-            <dd className={`text-sm ${isOverdue ? 'text-red-600 font-semibold' : 'text-gray-900'}`}>
+            <dt className="text-sm font-medium text-app-text-muted">Due Date</dt>
+            <dd className={`text-sm ${isOverdue ? 'text-red-600 font-semibold' : 'text-app-text'}`}>
               {formatDateTimeOrNA(selectedTask.due_date)}
             </dd>
             {selectedTask.completed_date && (
               <>
-                <dt className="text-sm font-medium text-gray-500">Completed Date</dt>
-                <dd className="text-sm text-gray-900">{formatDateTimeOrNA(selectedTask.completed_date)}</dd>
+                <dt className="text-sm font-medium text-app-text-muted">Completed Date</dt>
+                <dd className="text-sm text-app-text">{formatDateTimeOrNA(selectedTask.completed_date)}</dd>
               </>
             )}
-            <dt className="text-sm font-medium text-gray-500">Assigned To</dt>
-            <dd className="text-sm text-gray-900">
+            <dt className="text-sm font-medium text-app-text-muted">Assigned To</dt>
+            <dd className="text-sm text-app-text">
               {selectedTask.assigned_to_name || 'Unassigned'}
             </dd>
           </dl>
         </div>
 
         {/* Related Information */}
-        <div className="bg-white shadow-md rounded-lg p-6">
+        <div className="bg-app-surface shadow-md rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4">Related Information</h2>
           <dl className="space-y-3">
             {selectedTask.related_to_type && selectedTask.related_to_name && (
               <>
-                <dt className="text-sm font-medium text-gray-500">Related To</dt>
-                <dd className="text-sm text-gray-900">
+                <dt className="text-sm font-medium text-app-text-muted">Related To</dt>
+                <dd className="text-sm text-app-text">
                   <span className="capitalize">{selectedTask.related_to_type}</span>:{' '}
                   {selectedTask.related_to_name}
                 </dd>
               </>
             )}
-            <dt className="text-sm font-medium text-gray-500">Created</dt>
-            <dd className="text-sm text-gray-900">{formatDateTime(selectedTask.created_at)}</dd>
-            <dt className="text-sm font-medium text-gray-500">Last Updated</dt>
-            <dd className="text-sm text-gray-900">{formatDateTime(selectedTask.updated_at)}</dd>
+            <dt className="text-sm font-medium text-app-text-muted">Created</dt>
+            <dd className="text-sm text-app-text">{formatDateTime(selectedTask.created_at)}</dd>
+            <dt className="text-sm font-medium text-app-text-muted">Last Updated</dt>
+            <dd className="text-sm text-app-text">{formatDateTime(selectedTask.updated_at)}</dd>
           </dl>
         </div>
       </div>
 
       {/* Follow-ups Section */}
       {id && (
-        <div className="mt-6 bg-white shadow-md rounded-lg p-6">
+        <div className="mt-6 bg-app-surface shadow-md rounded-lg p-6">
           <FollowUpList entityType="task" entityId={id} />
         </div>
       )}

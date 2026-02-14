@@ -45,26 +45,26 @@ const EventList: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {
-      planned: 'bg-blue-100 text-blue-800',
+      planned: 'bg-app-accent-soft text-app-accent-text',
       active: 'bg-green-100 text-green-800',
-      completed: 'bg-gray-100 text-gray-800',
+      completed: 'bg-app-surface-muted text-app-text',
       cancelled: 'bg-red-100 text-red-800',
       postponed: 'bg-yellow-100 text-yellow-800',
     };
-    return badges[status] || 'bg-gray-100 text-gray-800';
+    return badges[status] || 'bg-app-surface-muted text-app-text';
   };
 
   const getTypeBadge = (type: string) => {
     const badges: Record<string, string> = {
       fundraiser: 'bg-purple-100 text-purple-800',
-      community: 'bg-blue-100 text-blue-800',
+      community: 'bg-app-accent-soft text-app-accent-text',
       training: 'bg-indigo-100 text-indigo-800',
-      meeting: 'bg-gray-100 text-gray-800',
+      meeting: 'bg-app-surface-muted text-app-text',
       volunteer: 'bg-green-100 text-green-800',
       social: 'bg-pink-100 text-pink-800',
-      other: 'bg-gray-100 text-gray-800',
+      other: 'bg-app-surface-muted text-app-text',
     };
-    return badges[type] || 'bg-gray-100 text-gray-800';
+    return badges[type] || 'bg-app-surface-muted text-app-text';
   };
 
   const getCapacityStatus = (event: Event) => {
@@ -77,7 +77,7 @@ const EventList: React.FC = () => {
       return <span className="text-orange-600">Almost Full</span>;
     }
     return (
-      <span className="text-gray-600">
+      <span className="text-app-text-muted">
         {event.registered_count}/{event.capacity}
       </span>
     );

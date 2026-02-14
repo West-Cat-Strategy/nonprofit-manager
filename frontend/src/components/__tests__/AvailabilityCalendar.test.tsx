@@ -237,14 +237,14 @@ describe('AvailabilityCalendar', () => {
     renderWithProviders(<AvailabilityCalendar assignments={mockAssignments} />);
 
     const inProgressAssignment = screen.getByText('Setup');
-    expect(inProgressAssignment).toHaveClass('bg-blue-100', 'text-blue-800');
+    expect(inProgressAssignment).toHaveClass('bg-app-accent-soft', 'text-app-accent-text');
   });
 
   it('should display status colors correctly for scheduled assignments', () => {
     renderWithProviders(<AvailabilityCalendar assignments={mockAssignments} />);
 
     const scheduledAssignment = screen.getByText('General');
-    expect(scheduledAssignment).toHaveClass('bg-gray-100', 'text-gray-800');
+    expect(scheduledAssignment).toHaveClass('bg-app-surface-muted', 'text-app-text');
   });
 
   it('should render legend with all status types', () => {

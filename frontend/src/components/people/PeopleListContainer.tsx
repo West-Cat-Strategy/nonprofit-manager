@@ -67,14 +67,14 @@ export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
   const someSelected = selectedRows.size > 0 && !allSelected;
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="min-h-screen bg-app-surface-muted p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
+            <h1 className="text-3xl font-bold text-app-text">{title}</h1>
             {description && (
-              <p className="text-gray-600 mt-1">{description}</p>
+              <p className="text-app-text-muted mt-1">{description}</p>
             )}
           </div>
           {onCreateNew && (
@@ -93,8 +93,8 @@ export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
 
         {/* Bulk Actions Bar */}
         {selectedRows.size > 0 && (
-          <div className="bg-blue-50 border-2 border-blue-600 p-4 mb-6 flex items-center justify-between">
-            <p className="font-bold text-gray-900">
+          <div className="bg-app-accent-soft border-2 border-app-accent p-4 mb-6 flex items-center justify-between">
+            <p className="font-bold text-app-text">
               {selectedRows.size} selected
             </p>
             {bulkActions && <div>{bulkActions}</div>}
@@ -111,17 +111,17 @@ export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
         {/* Loading State */}
         {loading ? (
           <BrutalCard className="p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-            <p className="mt-4 font-mono text-gray-600">Loading...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-app-text mx-auto"></div>
+            <p className="mt-4 font-mono text-app-text-muted">Loading...</p>
           </BrutalCard>
         ) : data.length === 0 ? (
           // Empty State
           <BrutalCard className="p-8 text-center">
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
+            <h3 className="text-xl font-bold text-app-text mb-2">
               {emptyStateTitle || 'No records found'}
             </h3>
             {emptyStateDescription && (
-              <p className="text-gray-600 mb-4">{emptyStateDescription}</p>
+              <p className="text-app-text-muted mb-4">{emptyStateDescription}</p>
             )}
             {emptyStateAction && (
               <BrutalButton onClick={emptyStateAction.onClick}>
@@ -135,7 +135,7 @@ export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b-2 border-gray-900">
+                  <tr className="border-b-2 border-app-text">
                     {onSelectRow && (
                       <th className="px-6 py-3 text-left">
                         <input
@@ -143,14 +143,14 @@ export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
                           checked={allSelected}
                           indeterminate={someSelected}
                           onChange={(e) => onSelectAll?.(e.target.checked)}
-                          className="w-4 h-4 border-2 border-gray-900 accent-gray-900"
+                          className="w-4 h-4 border-2 border-app-text accent-app-text"
                         />
                       </th>
                     )}
                     {columns.map((col) => (
                       <th
                         key={col.key}
-                        className="px-6 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider"
+                        className="px-6 py-3 text-left text-xs font-bold text-app-text uppercase tracking-wider"
                         style={{ width: col.width }}
                       >
                         {col.label}
@@ -162,8 +162,8 @@ export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
                   {data.map((row, idx) => (
                     <tr
                       key={row.id}
-                      className={`border-b border-gray-200 hover:bg-gray-50 ${
-                        selectedRows.has(row.id) ? 'bg-blue-50' : ''
+                      className={`border-b border-app-border hover:bg-app-surface-muted ${
+                        selectedRows.has(row.id) ? 'bg-app-accent-soft' : ''
                       }
                       ${idx === data.length - 1 ? 'border-b-0' : ''}`}
                     >
@@ -175,7 +175,7 @@ export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
                             onChange={(e) =>
                               onSelectRow(row.id, e.target.checked)
                             }
-                            className="w-4 h-4 border-2 border-gray-900 accent-gray-900"
+                            className="w-4 h-4 border-2 border-app-text accent-app-text"
                           />
                         </td>
                       )}
@@ -194,7 +194,7 @@ export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
 
             {/* Pagination */}
             {pagination && pagination.totalPages > 1 && (
-              <div className="border-t-2 border-gray-900 p-4 flex items-center justify-between">
+              <div className="border-t-2 border-app-text p-4 flex items-center justify-between">
                 <p className="text-sm font-mono">
                   Page <strong>{pagination.page}</strong> of{' '}
                   <strong>{pagination.totalPages}</strong> ({pagination.total}{' '}

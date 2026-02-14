@@ -31,7 +31,7 @@ const TaskEdit: React.FC = () => {
     return (
       <NeoBrutalistLayout pageTitle="TASKS">
         <div className="flex justify-center items-center h-64">
-          <div className="text-lg text-gray-600">Loading...</div>
+          <div className="text-lg text-app-text-muted">Loading...</div>
         </div>
       </NeoBrutalistLayout>
     );
@@ -65,8 +65,8 @@ const TaskEdit: React.FC = () => {
     <NeoBrutalistLayout pageTitle="TASKS">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Edit Task</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="text-3xl font-bold text-app-text">Edit Task</h1>
+          <p className="mt-2 text-app-text-muted">
             {selectedTask.subject}
           </p>
         </div>

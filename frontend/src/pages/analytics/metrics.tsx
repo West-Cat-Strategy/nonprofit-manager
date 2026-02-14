@@ -13,7 +13,7 @@ export function MetricCard({ title, value, subtitle, trend, trendValue }: Metric
   const trendColors = {
     up: 'text-green-600',
     down: 'text-red-600',
-    neutral: 'text-gray-500',
+    neutral: 'text-app-text-muted',
   };
 
   const trendIcons = {
@@ -23,10 +23,10 @@ export function MetricCard({ title, value, subtitle, trend, trendValue }: Metric
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <p className="text-sm font-medium text-gray-500">{title}</p>
-      <p className="mt-2 text-3xl font-bold text-gray-900">{value}</p>
-      {subtitle && <p className="mt-1 text-sm text-gray-600">{subtitle}</p>}
+    <div className="bg-app-surface rounded-lg shadow p-6">
+      <p className="text-sm font-medium text-app-text-muted">{title}</p>
+      <p className="mt-2 text-3xl font-bold text-app-text">{value}</p>
+      {subtitle && <p className="mt-1 text-sm text-app-text-muted">{subtitle}</p>}
       {trend && trendValue && (
         <p className={`mt-2 text-sm ${trendColors[trend]}`}>
           {trendIcons[trend]} {trendValue}
@@ -67,22 +67,22 @@ export function ComparisonCard({ title, comparison, format = 'number' }: Compari
       );
     }
     return (
-      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" />
       </svg>
     );
   };
 
   const trendColor =
-    comparison.trend === 'up' ? 'text-green-600' : comparison.trend === 'down' ? 'text-red-600' : 'text-gray-500';
+    comparison.trend === 'up' ? 'text-green-600' : comparison.trend === 'down' ? 'text-red-600' : 'text-app-text-muted';
 
   return (
-    <div className="bg-white rounded-lg shadow p-4">
-      <h4 className="text-sm font-medium text-gray-600 mb-2">{title}</h4>
+    <div className="bg-app-surface rounded-lg shadow p-4">
+      <h4 className="text-sm font-medium text-app-text-muted mb-2">{title}</h4>
       <div className="flex items-baseline justify-between">
         <div className="flex-1">
-          <div className="text-2xl font-bold text-gray-900">{formatValue(comparison.current)}</div>
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-2xl font-bold text-app-text">{formatValue(comparison.current)}</div>
+          <div className="text-xs text-app-text-muted mt-1">
             Previous: {formatValue(comparison.previous)}
           </div>
         </div>

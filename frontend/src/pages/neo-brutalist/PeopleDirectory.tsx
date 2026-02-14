@@ -198,7 +198,7 @@ export default function PeopleDirectory() {
             disabled={loading}
             className={`px-6 py-3 font-bold uppercase border-2 border-black dark:border-white transition-all disabled:opacity-50 ${activeTab === tab
                 ? 'bg-[var(--loop-pink)] text-black shadow-[2px_2px_0px_0px_var(--shadow-color)]'
-                : 'bg-white dark:bg-[#121212] text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-900'
+                : 'bg-app-surface dark:bg-[#121212] text-black dark:text-white hover:bg-app-surface-muted dark:hover:bg-app-text'
                 }`}
         >
             {label} {!loading && `(${count})`}
@@ -288,9 +288,9 @@ export default function PeopleDirectory() {
 
                 {/* Empty State */}
                 {people.length === 0 && (
-                    <div className="bg-white dark:bg-[#121212] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-12 text-center">
+                    <div className="bg-app-surface dark:bg-[#121212] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-12 text-center">
                         <h3 className="font-black text-2xl mb-2 uppercase text-black dark:text-white">No People Found</h3>
-                        <p className="text-gray-600 dark:text-gray-400">
+                        <p className="text-app-text-muted dark:text-app-text-subtle">
                             {searchTerm ? 'Try adjusting your search term' : 'No people in this category'}
                         </p>
                     </div>

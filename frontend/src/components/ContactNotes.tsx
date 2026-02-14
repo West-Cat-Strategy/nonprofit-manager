@@ -161,7 +161,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
           <button
             key={template.label}
             onClick={() => applyTemplate(template)}
-            className="px-3 py-2 text-xs font-black uppercase border-2 border-black bg-white hover:bg-[var(--loop-yellow)] transition"
+            className="px-3 py-2 text-xs font-black uppercase border-2 border-black bg-app-surface hover:bg-[var(--loop-yellow)] transition"
           >
             + {template.label}
           </button>
@@ -195,7 +195,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
       {!isAddingNote && (
         <button
           onClick={() => setIsAddingNote(true)}
-          className="w-full px-4 py-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition border border-blue-200"
+          className="w-full px-4 py-3 bg-app-accent-soft text-app-accent-text rounded-lg hover:bg-app-accent-soft-hover transition border border-app-accent"
         >
           + Add Note
         </button>
@@ -203,19 +203,19 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
 
       {/* Add Note Form */}
       {isAddingNote && (
-        <form onSubmit={handleSubmitNote} className="bg-white rounded-lg border border-gray-200 p-4">
+        <form onSubmit={handleSubmitNote} className="bg-app-surface rounded-lg border border-app-border p-4">
           <h3 className="text-lg font-semibold mb-4">Add Note</h3>
 
           {/* Note Type */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Note Type</label>
+            <label className="block text-sm font-medium text-app-text-label mb-2">Note Type</label>
             <select
               value={newNote.note_type}
               onChange={(e) =>
                 setNewNote((prev) => ({ ...prev, note_type: e.target.value as ContactNoteType }))
               }
               title="Select note type"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
             >
               {NOTE_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>
@@ -228,7 +228,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
           {/* Case Association */}
           {contactCases.length > 0 && (
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-app-text-label mb-2">
                 Associate with Case (Optional)
               </label>
               <select
@@ -240,7 +240,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
                   }))
                 }
                 title="Select case to associate with this note"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
               >
                 <option value="">No case (general note)</option>
                 {contactCases.map((caseItem) => (
@@ -249,7 +249,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
                   </option>
                 ))}
               </select>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-app-text-muted">
                 Link this note to a specific case for this person
               </p>
             </div>
@@ -257,19 +257,19 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
 
           {/* Subject */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+            <label className="block text-sm font-medium text-app-text-label mb-2">Subject</label>
             <input
               type="text"
               value={newNote.subject || ''}
               onChange={(e) => setNewNote((prev) => ({ ...prev, subject: e.target.value }))}
               placeholder="Brief summary (optional)"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
             />
           </div>
 
           {/* Content */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-app-text-label mb-2">
               Content <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -278,7 +278,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
               rows={4}
               required
               placeholder="Enter note details..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
             />
           </div>
 
@@ -289,9 +289,9 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
                 type="checkbox"
                 checked={newNote.is_internal}
                 onChange={(e) => setNewNote((prev) => ({ ...prev, is_internal: e.target.checked }))}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
               />
-              <span className="text-sm text-gray-700">Internal note (staff only)</span>
+              <span className="text-sm text-app-text-muted">Internal note (staff only)</span>
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -300,27 +300,27 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
                 onChange={(e) =>
                   setNewNote((prev) => ({ ...prev, is_important: e.target.checked }))
                 }
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
               />
-              <span className="text-sm text-gray-700">Mark as important</span>
+              <span className="text-sm text-app-text-muted">Mark as important</span>
             </label>
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={newNote.is_pinned}
                 onChange={(e) => setNewNote((prev) => ({ ...prev, is_pinned: e.target.checked }))}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
               />
-              <span className="text-sm text-gray-700">Pin to top</span>
+              <span className="text-sm text-app-text-muted">Pin to top</span>
             </label>
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={newNote.is_alert}
                 onChange={(e) => setNewNote((prev) => ({ ...prev, is_alert: e.target.checked }))}
-                className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                className="rounded border-app-input-border text-red-600 focus:ring-red-500"
               />
-              <span className="text-sm text-gray-700">Mark as alert (shows popup when viewing contact)</span>
+              <span className="text-sm text-app-text-muted">Mark as alert (shows popup when viewing contact)</span>
             </label>
           </div>
 
@@ -329,7 +329,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
             <button
               type="button"
               onClick={() => setIsAddingNote(false)}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              className="px-4 py-2 border border-app-input-border rounded-lg hover:bg-app-hover transition"
             >
               Cancel
             </button>
@@ -337,7 +337,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
               type="submit"
               disabled={notesLoading}
               onClick={() => setSubmitMode('another')}
-              className="px-4 py-2 border-2 border-black bg-white text-black font-semibold rounded-lg hover:bg-gray-50 disabled:opacity-50 transition"
+              className="px-4 py-2 border-2 border-black bg-app-surface text-black font-semibold rounded-lg hover:bg-app-hover disabled:opacity-50 transition"
             >
               Save & Add Another
             </button>
@@ -345,7 +345,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
               type="submit"
               disabled={notesLoading}
               onClick={() => setSubmitMode('close')}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+              className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50 transition"
             >
               {notesLoading ? 'Saving...' : 'Add Note'}
             </button>
@@ -357,16 +357,16 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
       <div className="space-y-4">
         {notesLoading && contactNotes.length === 0 && (
           <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="text-gray-500 mt-2">Loading notes...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-app-accent mx-auto"></div>
+            <p className="text-app-text-muted mt-2">Loading notes...</p>
           </div>
         )}
 
         {!notesLoading && contactNotes.length === 0 && (
-          <div className="text-center py-12 bg-gray-50 rounded-lg">
-            <div className="text-gray-400 text-4xl mb-2">📝</div>
-            <p className="text-gray-600">No notes yet</p>
-            <p className="text-sm text-gray-500 mt-1">
+          <div className="text-center py-12 bg-app-surface-muted rounded-lg">
+            <div className="text-app-text-subtle text-4xl mb-2">📝</div>
+            <p className="text-app-text-muted">No notes yet</p>
+            <p className="text-sm text-app-text-muted mt-1">
               Add your first note to start tracking activity
             </p>
           </div>
@@ -375,14 +375,14 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
         {filteredNotes.map((note) => (
           <div
             key={note.id}
-            className={`bg-white rounded-lg border p-4 ${
+            className={`bg-app-surface rounded-lg border p-4 ${
               note.is_alert
                 ? 'border-red-300 bg-red-50'
                 : note.is_important
                 ? 'border-yellow-300 bg-yellow-50'
                 : note.is_pinned
-                ? 'border-blue-300 bg-blue-50'
-                : 'border-gray-200'
+                ? 'border-app-accent bg-app-accent-soft'
+                : 'border-app-border'
             }`}
           >
             {/* Note Header */}
@@ -391,16 +391,16 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
                 <span className="text-2xl">{getNoteIcon(note.note_type)}</span>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-gray-900">
+                    <span className="font-medium text-app-text">
                       {getNoteTypeLabel(note.note_type)}
                     </span>
                     {note.is_pinned && (
-                      <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded">
+                      <span className="px-2 py-0.5 text-xs bg-app-accent-soft text-app-accent-text rounded">
                         Pinned
                       </span>
                     )}
                     {note.is_internal && (
-                      <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">
+                      <span className="px-2 py-0.5 text-xs bg-app-surface-muted text-app-text-muted rounded">
                         Internal
                       </span>
                     )}
@@ -415,7 +415,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
                       </span>
                     )}
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-app-text-muted">
                     {note.created_by_first_name} {note.created_by_last_name} •{' '}
                     {formatNoteDate(note.created_at)}
                   </div>
@@ -425,7 +425,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
                 <button
                   onClick={() => handleToggleFlag(note.id, { is_pinned: !note.is_pinned })}
                   className={`text-xs font-bold uppercase px-2 py-1 border rounded ${
-                    note.is_pinned ? 'border-blue-400 text-blue-700' : 'border-gray-300 text-gray-500'
+                    note.is_pinned ? 'border-app-accent text-app-accent-text' : 'border-app-input-border text-app-text-muted'
                   }`}
                   title="Toggle pin"
                 >
@@ -434,7 +434,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
                 <button
                   onClick={() => handleToggleFlag(note.id, { is_important: !note.is_important })}
                   className={`text-xs font-bold uppercase px-2 py-1 border rounded ${
-                    note.is_important ? 'border-yellow-400 text-yellow-700' : 'border-gray-300 text-gray-500'
+                    note.is_important ? 'border-yellow-400 text-yellow-700' : 'border-app-input-border text-app-text-muted'
                   }`}
                   title="Toggle important"
                 >
@@ -443,7 +443,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
                 <button
                   onClick={() => handleToggleFlag(note.id, { is_alert: !note.is_alert })}
                   className={`text-xs font-bold uppercase px-2 py-1 border rounded ${
-                    note.is_alert ? 'border-red-400 text-red-700' : 'border-gray-300 text-gray-500'
+                    note.is_alert ? 'border-red-400 text-red-700' : 'border-app-input-border text-app-text-muted'
                   }`}
                   title="Toggle alert"
                 >
@@ -451,7 +451,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
                 </button>
                 <button
                   onClick={() => handleDeleteNote(note.id)}
-                  className="text-gray-400 hover:text-red-500 transition"
+                  className="text-app-text-subtle hover:text-red-500 transition"
                   title="Delete note"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -467,18 +467,18 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
             </div>
 
             {/* Note Subject */}
-            {note.subject && <div className="font-medium text-gray-900 mb-2">{note.subject}</div>}
+            {note.subject && <div className="font-medium text-app-text mb-2">{note.subject}</div>}
 
             {/* Note Content */}
-            <div className="text-gray-700 whitespace-pre-wrap">{note.content}</div>
+            <div className="text-app-text-muted whitespace-pre-wrap">{note.content}</div>
 
             {/* Case Association */}
             {note.case_id && (
-              <div className="mt-3 pt-3 border-t border-gray-200 text-sm">
-                <span className="text-gray-500">Associated with case: </span>
+              <div className="mt-3 pt-3 border-t border-app-border text-sm">
+                <span className="text-app-text-muted">Associated with case: </span>
                 <Link
                   to={`/cases/${note.case_id}`}
-                  className="text-blue-600 hover:text-blue-800 font-medium"
+                  className="text-app-accent hover:text-app-accent-hover font-medium"
                 >
                   {note.case_number || note.case_title || 'View Case'}
                 </Link>

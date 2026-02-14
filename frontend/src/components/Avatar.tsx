@@ -61,7 +61,7 @@ export default function Avatar({
     <div
       className={[
         containerClasses,
-        'bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold',
+        'bg-gradient-to-br from-app-accent-soft0 to-indigo-600 flex items-center justify-center text-white font-semibold',
         sizeClasses.text,
       ].join(' ')}
       aria-label={alt || 'User avatar'}

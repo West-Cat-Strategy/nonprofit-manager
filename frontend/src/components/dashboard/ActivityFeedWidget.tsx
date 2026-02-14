@@ -90,7 +90,7 @@ const ActivityFeedWidget = ({ widget, editMode, onRemove }: ActivityFeedWidgetPr
         {activities.length === 0 && !loading ? (
           <div className="text-center py-8">
             <svg
-              className="mx-auto h-12 w-12 text-gray-400"
+              className="mx-auto h-12 w-12 text-app-text-subtle"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -102,19 +102,19 @@ const ActivityFeedWidget = ({ widget, editMode, onRemove }: ActivityFeedWidgetPr
                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
               />
             </svg>
-            <p className="mt-2 text-sm text-gray-500">No recent activity</p>
+            <p className="mt-2 text-sm text-app-text-muted">No recent activity</p>
           </div>
         ) : (
           activities.map((activity) => (
             <div
               key={activity.id}
-              className="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded-lg transition"
+              className="flex items-start space-x-3 p-2 hover:bg-app-surface-muted rounded-lg transition"
             >
               <span className="text-2xl flex-shrink-0">{getActivityIcon(activity.type)}</span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{activity.title}</p>
-                <p className="text-xs text-gray-500 truncate">{activity.description}</p>
-                <p className="text-xs text-gray-400 mt-1">{formatTimestamp(activity.timestamp)}</p>
+                <p className="text-sm font-medium text-app-text truncate">{activity.title}</p>
+                <p className="text-xs text-app-text-muted truncate">{activity.description}</p>
+                <p className="text-xs text-app-text-subtle mt-1">{formatTimestamp(activity.timestamp)}</p>
               </div>
             </div>
           ))

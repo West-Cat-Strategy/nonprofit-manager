@@ -43,12 +43,12 @@ export default function PortalEvents() {
   };
 
   if (loading) {
-    return <p className="text-sm text-gray-500">Loading events...</p>;
+    return <p className="text-sm text-app-text-muted">Loading events...</p>;
   }
 
   return (
     <div>
-      <h2 className="text-xl font-semibold text-gray-900">Events</h2>
+      <h2 className="text-xl font-semibold text-app-text">Events</h2>
       <ul className="mt-4 space-y-3">
         {events.map((event) => {
           const isRegistered = Boolean(event.registration_id);
@@ -56,33 +56,33 @@ export default function PortalEvents() {
             <li key={event.id} className="p-4 border rounded-lg">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900">{event.name}</h3>
-                  <p className="text-sm text-gray-600">
+                  <h3 className="text-lg font-medium text-app-text">{event.name}</h3>
+                  <p className="text-sm text-app-text-muted">
                     {new Date(event.start_date).toLocaleString()} - {new Date(event.end_date).toLocaleString()}
                   </p>
                   {event.location_name && (
-                    <p className="text-sm text-gray-500">{event.location_name}</p>
+                    <p className="text-sm text-app-text-muted">{event.location_name}</p>
                   )}
                 </div>
                 <div>
                   {isRegistered ? (
                     <button
                       onClick={() => handleCancel(event.id)}
-                      className="px-3 py-1 text-sm bg-gray-200 rounded-md hover:bg-gray-300"
+                      className="px-3 py-1 text-sm bg-app-surface-muted rounded-md hover:bg-app-hover"
                     >
                       Cancel
                     </button>
                   ) : (
                     <button
                       onClick={() => handleRegister(event.id)}
-                      className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                      className="px-3 py-1 text-sm bg-app-accent text-white rounded-md hover:bg-app-accent-hover"
                     >
                       Register
                     </button>
                   )}
                 </div>
               </div>
-              {event.description && <p className="mt-2 text-sm text-gray-600">{event.description}</p>}
+              {event.description && <p className="mt-2 text-sm text-app-text-muted">{event.description}</p>}
             </li>
           );
         })}

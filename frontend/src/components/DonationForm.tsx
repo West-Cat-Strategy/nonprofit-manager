@@ -93,7 +93,7 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 bg-white shadow-md rounded-lg p-6">
+    <form onSubmit={handleSubmit} className="space-y-6 bg-app-surface shadow-md rounded-lg p-6">
       {error && <div className="p-4 bg-red-100 text-red-700 rounded-md">{error}</div>}
 
       <div>
@@ -239,9 +239,9 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
               id="is_recurring"
               checked={formData.is_recurring}
               onChange={handleChange}
-              className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+              className="h-4 w-4 text-app-accent border-app-input-border rounded"
             />
-            <label htmlFor="is_recurring" className="ml-2 text-sm font-medium text-gray-700">
+            <label htmlFor="is_recurring" className="ml-2 text-sm font-medium text-app-text-muted">
               This is a recurring donation
             </label>
           </div>
@@ -286,14 +286,14 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
         <button
           type="button"
           onClick={() => navigate('/donations')}
-          className="px-6 py-2 border rounded-md hover:bg-gray-50"
+          className="px-6 py-2 border rounded-md hover:bg-app-surface-muted"
           disabled={loading}
         >
           Cancel
         </button>
         <button
           type="submit"
-          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          className="px-6 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover disabled:opacity-50"
           disabled={loading}
         >
           {loading ? 'Saving...' : isEdit ? 'Update Donation' : 'Record Donation'}

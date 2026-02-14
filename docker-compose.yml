@@ -9,18 +9,28 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_DB: nonprofit_manager
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
     ports:
       - "8012:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/migrations:/docker-entrypoint-initdb.d
+      # Note: Migrations should be applied manually in production
+      # using the db-migrate.sh script, not auto-mounted
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d nonprofit_manager"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     networks:
       - nonprofit-network
+    # Resource limits for production
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
 
   # Redis Cache (for future use)
   redis:

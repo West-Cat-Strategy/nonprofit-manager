@@ -40,13 +40,13 @@ function StatusBadge({ status }: { status: string }) {
     success: 'bg-green-100 text-green-800',
     revoked: 'bg-red-100 text-red-800',
     failed: 'bg-red-100 text-red-800',
-    expired: 'bg-gray-100 text-gray-800',
+    expired: 'bg-app-surface-muted text-app-text',
     pending: 'bg-yellow-100 text-yellow-800',
     retrying: 'bg-orange-100 text-orange-800',
   };
 
   return (
-    <span className={`px-2 py-1 text-xs font-medium rounded-full ${colors[status] || 'bg-gray-100 text-gray-800'}`}>
+    <span className={`px-2 py-1 text-xs font-medium rounded-full ${colors[status] || 'bg-app-surface-muted text-app-text'}`}>
       {status}
     </span>
   );
@@ -67,19 +67,19 @@ function SecretDisplay({ secret, onRegenerate }: { secret: string; onRegenerate:
 
   return (
     <div className="flex items-center gap-2">
-      <code className="flex-1 bg-gray-100 px-3 py-2 rounded text-sm font-mono">
+      <code className="flex-1 bg-app-surface-muted px-3 py-2 rounded text-sm font-mono">
         {isVisible ? secret : '••••••••••••••••••••••••'}
       </code>
       <button
         onClick={() => setIsVisible(!isVisible)}
-        className="px-3 py-2 text-gray-600 hover:text-gray-800"
+        className="px-3 py-2 text-app-text-muted hover:text-app-text"
         title={isVisible ? 'Hide' : 'Show'}
       >
         {isVisible ? 'Hide' : 'Show'}
       </button>
       <button
         onClick={handleCopy}
-        className="px-3 py-2 text-blue-600 hover:text-blue-800"
+        className="px-3 py-2 text-app-accent hover:text-app-accent-hover"
         title="Copy"
       >
         {copied ? 'Copied!' : 'Copy'}
@@ -114,27 +114,27 @@ function WebhookEndpointCard({
   onRegenerateSecret: () => void;
 }) {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+    <div className="bg-app-surface rounded-lg border border-app-border p-6 space-y-4">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="font-medium text-gray-900 truncate">{endpoint.url}</h3>
+            <h3 className="font-medium text-app-text truncate">{endpoint.url}</h3>
             <StatusBadge status={endpoint.isActive ? 'active' : 'inactive'} />
           </div>
           {endpoint.description && (
-            <p className="mt-1 text-sm text-gray-500">{endpoint.description}</p>
+            <p className="mt-1 text-sm text-app-text-muted">{endpoint.description}</p>
           )}
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={onTest}
-            className="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded"
+            className="px-3 py-1.5 text-sm text-app-accent hover:bg-app-accent-soft rounded"
           >
             Test
           </button>
           <button
             onClick={onEdit}
-            className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 rounded"
+            className="px-3 py-1.5 text-sm text-app-text-muted hover:bg-app-surface-muted rounded"
           >
             Edit
           </button>
@@ -148,12 +148,12 @@ function WebhookEndpointCard({
       </div>
 
       <div>
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Events</h4>
+        <h4 className="text-sm font-medium text-app-text-label mb-2">Events</h4>
         <div className="flex flex-wrap gap-1">
           {endpoint.events.map((event) => (
             <span
               key={event}
-              className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded"
+              className="px-2 py-0.5 text-xs bg-app-surface-muted text-app-text-muted rounded"
             >
               {event}
             </span>
@@ -162,12 +162,12 @@ function WebhookEndpointCard({
       </div>
 
       <div>
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Signing Secret</h4>
+        <h4 className="text-sm font-medium text-app-text-label mb-2">Signing Secret</h4>
         <SecretDisplay secret={endpoint.secret} onRegenerate={onRegenerateSecret} />
       </div>
 
-      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-        <div className="text-sm text-gray-500">
+      <div className="flex items-center justify-between pt-4 border-t border-app-border-muted">
+        <div className="text-sm text-app-text-muted">
           {endpoint.lastDeliveryAt ? (
             <>
               Last delivery: {new Date(endpoint.lastDeliveryAt).toLocaleString()} -{' '}
@@ -179,25 +179,25 @@ function WebhookEndpointCard({
         </div>
         <button
           onClick={onViewDeliveries}
-          className="text-sm text-blue-600 hover:underline"
+          className="text-sm text-app-accent hover:underline"
         >
           View deliveries
         </button>
       </div>
 
       {endpoint.totalDeliveries !== undefined && (
-        <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100 text-center">
+        <div className="grid grid-cols-3 gap-4 pt-4 border-t border-app-border-muted text-center">
           <div>
-            <div className="text-2xl font-semibold text-gray-900">{endpoint.totalDeliveries}</div>
-            <div className="text-xs text-gray-500">Total</div>
+            <div className="text-2xl font-semibold text-app-text-heading">{endpoint.totalDeliveries}</div>
+            <div className="text-xs text-app-text-muted">Total</div>
           </div>
           <div>
             <div className="text-2xl font-semibold text-green-600">{endpoint.successfulDeliveries}</div>
-            <div className="text-xs text-gray-500">Successful</div>
+            <div className="text-xs text-app-text-muted">Successful</div>
           </div>
           <div>
             <div className="text-2xl font-semibold text-red-600">{endpoint.failedDeliveries}</div>
-            <div className="text-xs text-gray-500">Failed</div>
+            <div className="text-xs text-app-text-muted">Failed</div>
           </div>
         </div>
       )}
@@ -218,14 +218,14 @@ function ApiKeyCard({
   onDelete: () => void;
 }) {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+    <div className="bg-app-surface rounded-lg border border-app-border p-6 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="font-medium text-gray-900">{apiKey.name}</h3>
+            <h3 className="font-medium text-app-text">{apiKey.name}</h3>
             <StatusBadge status={apiKey.status} />
           </div>
-          <p className="mt-1 text-sm text-gray-500 font-mono">{apiKey.keyPrefix}...</p>
+          <p className="mt-1 text-sm text-app-text-muted font-mono">{apiKey.keyPrefix}...</p>
         </div>
         <div className="flex items-center gap-2">
           {apiKey.status === 'active' && (
@@ -246,12 +246,12 @@ function ApiKeyCard({
       </div>
 
       <div>
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Scopes</h4>
+        <h4 className="text-sm font-medium text-app-text-label mb-2">Scopes</h4>
         <div className="flex flex-wrap gap-1">
           {apiKey.scopes.map((scope) => (
             <span
               key={scope}
-              className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded"
+              className="px-2 py-0.5 text-xs bg-app-accent-soft text-app-accent-text rounded"
             >
               {scope}
             </span>
@@ -259,7 +259,7 @@ function ApiKeyCard({
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-4 border-t border-gray-100 text-sm text-gray-500">
+      <div className="flex items-center justify-between pt-4 border-t border-app-border-muted text-sm text-app-text-muted">
         <div>Created: {new Date(apiKey.createdAt).toLocaleDateString()}</div>
         <div>
           {apiKey.lastUsedAt
@@ -269,20 +269,20 @@ function ApiKeyCard({
       </div>
 
       {apiKey.totalRequests !== undefined && (
-        <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100 text-center">
+        <div className="grid grid-cols-3 gap-4 pt-4 border-t border-app-border-muted text-center">
           <div>
-            <div className="text-2xl font-semibold text-gray-900">{apiKey.totalRequests}</div>
-            <div className="text-xs text-gray-500">Total Requests</div>
+            <div className="text-2xl font-semibold text-app-text-heading">{apiKey.totalRequests}</div>
+            <div className="text-xs text-app-text-muted">Total Requests</div>
           </div>
           <div>
-            <div className="text-2xl font-semibold text-blue-600">{apiKey.requestsThisMonth}</div>
-            <div className="text-xs text-gray-500">This Month</div>
+            <div className="text-2xl font-semibold text-app-accent">{apiKey.requestsThisMonth}</div>
+            <div className="text-xs text-app-text-muted">This Month</div>
           </div>
           <div>
-            <div className="text-2xl font-semibold text-gray-600">
+            <div className="text-2xl font-semibold text-app-text-muted">
               {apiKey.averageResponseTime?.toFixed(0) || 0}ms
             </div>
-            <div className="text-xs text-gray-500">Avg Response</div>
+            <div className="text-xs text-app-text-muted">Avg Response</div>
           </div>
         </div>
       )}
@@ -302,49 +302,49 @@ function DeliveryHistoryModal({
 }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+      <div className="bg-app-surface rounded-lg shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b border-app-border">
           <h3 className="text-lg font-semibold">Delivery History</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <button onClick={onClose} className="text-app-text-muted hover:text-app-text-muted">
             Close
           </button>
         </div>
         <div className="overflow-auto max-h-[60vh]">
           {deliveries.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">No deliveries yet</div>
+            <div className="p-8 text-center text-app-text-muted">No deliveries yet</div>
           ) : (
             <table className="w-full">
-              <thead className="bg-gray-50 sticky top-0">
+              <thead className="bg-app-surface-muted sticky top-0">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-app-text-muted uppercase">
                     Event
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-app-text-muted uppercase">
                     Status
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-app-text-muted uppercase">
                     Response
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-app-text-muted uppercase">
                     Attempts
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-app-text-muted uppercase">
                     Time
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-app-border">
                 {deliveries.map((delivery) => (
-                  <tr key={delivery.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm text-gray-900">{delivery.eventType}</td>
+                  <tr key={delivery.id} className="hover:bg-app-surface-muted">
+                    <td className="px-4 py-3 text-sm text-app-text">{delivery.eventType}</td>
                     <td className="px-4 py-3">
                       <StatusBadge status={delivery.status} />
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
+                    <td className="px-4 py-3 text-sm text-app-text-muted">
                       {delivery.responseStatus || '-'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{delivery.attempts}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
+                    <td className="px-4 py-3 text-sm text-app-text-muted">{delivery.attempts}</td>
+                    <td className="px-4 py-3 text-sm text-app-text-muted">
                       {new Date(delivery.createdAt).toLocaleString()}
                     </td>
                   </tr>
@@ -377,25 +377,25 @@ function NewApiKeyModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
+      <div className="bg-app-surface rounded-lg shadow-xl w-full max-w-lg p-6">
         <div className="text-center mb-6">
           <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
             <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900">API Key Created</h3>
-          <p className="mt-2 text-sm text-gray-500">
+          <h3 className="text-lg font-semibold text-app-text-heading">API Key Created</h3>
+          <p className="mt-2 text-sm text-app-text-muted">
             Copy your API key now. You won't be able to see it again!
           </p>
         </div>
 
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-app-text-label mb-1">
             {apiKey.name}
           </label>
           <div className="flex gap-2">
-            <code className="flex-1 bg-gray-100 px-3 py-2 rounded font-mono text-sm break-all">
+            <code className="flex-1 bg-app-surface-muted px-3 py-2 rounded font-mono text-sm break-all">
               {apiKey.key}
             </code>
             <button
@@ -403,7 +403,7 @@ function NewApiKeyModal({
               className={`px-4 py-2 rounded font-medium ${
                 copied
                   ? 'bg-green-600 text-white'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-app-accent text-white hover:bg-app-accent-hover'
               }`}
             >
               {copied ? 'Copied!' : 'Copy'}
@@ -419,7 +419,7 @@ function NewApiKeyModal({
 
         <button
           onClick={onClose}
-          className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200"
+          className="w-full px-4 py-2 bg-app-surface-muted text-app-text-muted rounded-lg font-medium hover:bg-app-surface-muted"
         >
           Done
         </button>
@@ -582,8 +582,8 @@ export default function ApiSettings() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">API Settings</h1>
-        <p className="mt-1 text-gray-500">
+        <h1 className="text-2xl font-bold text-app-text-heading">API Settings</h1>
+        <p className="mt-1 text-app-text-muted">
           Manage webhooks and API keys for external integrations
         </p>
       </div>
@@ -617,14 +617,14 @@ export default function ApiSettings() {
       )}
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-app-border">
         <nav className="-mb-px flex gap-6">
           <button
             onClick={() => setActiveTab('webhooks')}
             className={`pb-4 text-sm font-medium border-b-2 ${
               activeTab === 'webhooks'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-app-accent text-app-accent'
+                : 'border-transparent text-app-text-muted hover:text-app-text-muted'
             }`}
           >
             Webhooks ({endpoints.length})
@@ -633,8 +633,8 @@ export default function ApiSettings() {
             onClick={() => setActiveTab('apiKeys')}
             className={`pb-4 text-sm font-medium border-b-2 ${
               activeTab === 'apiKeys'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-app-accent text-app-accent'
+                : 'border-transparent text-app-text-muted hover:text-app-text-muted'
             }`}
           >
             API Keys ({apiKeys.length})
@@ -646,12 +646,12 @@ export default function ApiSettings() {
       {activeTab === 'webhooks' && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <p className="text-gray-600">
+            <p className="text-app-text-muted">
               Receive real-time notifications when events occur in your account.
             </p>
             <button
               onClick={() => setShowCreateWebhook(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
+              className="px-4 py-2 bg-app-accent text-white rounded-lg font-medium hover:bg-app-accent-hover"
             >
               Add Webhook
             </button>
@@ -659,11 +659,11 @@ export default function ApiSettings() {
 
           {/* Create Webhook Form */}
           {showCreateWebhook && (
-            <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+            <div className="bg-app-surface rounded-lg border border-app-border p-6 space-y-4">
               <h3 className="text-lg font-semibold">Create Webhook Endpoint</h3>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-app-text-label mb-1">
                   Endpoint URL *
                 </label>
                 <input
@@ -671,12 +671,12 @@ export default function ApiSettings() {
                   value={webhookUrl}
                   onChange={(e) => setWebhookUrl(e.target.value)}
                   placeholder="https://your-server.com/webhook"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-app-text-label mb-1">
                   Description
                 </label>
                 <input
@@ -684,18 +684,18 @@ export default function ApiSettings() {
                   value={webhookDescription}
                   onChange={(e) => setWebhookDescription(e.target.value)}
                   placeholder="Optional description"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-app-text-label mb-2">
                   Events to subscribe *
                 </label>
-                <div className="space-y-4 max-h-64 overflow-y-auto border border-gray-200 rounded-lg p-4">
+                <div className="space-y-4 max-h-64 overflow-y-auto border border-app-border rounded-lg p-4">
                   {Object.entries(groupedEvents).map(([category, events]) => (
                     <div key={category}>
-                      <h4 className="text-sm font-medium text-gray-900 capitalize mb-2">
+                      <h4 className="text-sm font-medium text-app-text capitalize mb-2">
                         {category}
                       </h4>
                       <div className="grid grid-cols-2 gap-2">
@@ -708,7 +708,7 @@ export default function ApiSettings() {
                               type="checkbox"
                               checked={webhookEvents.includes(event.type)}
                               onChange={() => handleEventToggle(event.type)}
-                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
                             />
                             <span>{event.name}</span>
                           </label>
@@ -723,13 +723,13 @@ export default function ApiSettings() {
                 <button
                   onClick={handleCreateWebhook}
                   disabled={!webhookUrl || webhookEvents.length === 0 || isLoading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-app-accent text-white rounded-lg font-medium hover:bg-app-accent-hover disabled:bg-app-text-subtle disabled:cursor-not-allowed"
                 >
                   {isLoading ? 'Creating...' : 'Create Webhook'}
                 </button>
                 <button
                   onClick={resetWebhookForm}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200"
+                  className="px-4 py-2 bg-app-surface-muted text-app-text-muted rounded-lg font-medium hover:bg-app-surface-muted"
                 >
                   Cancel
                 </button>
@@ -739,11 +739,11 @@ export default function ApiSettings() {
 
           {/* Webhook List */}
           {isLoading && endpoints.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">Loading...</div>
+            <div className="text-center py-8 text-app-text-muted">Loading...</div>
           ) : endpoints.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-lg">
-              <p className="text-gray-500">No webhook endpoints configured</p>
-              <p className="text-sm text-gray-400 mt-1">
+            <div className="text-center py-12 bg-app-surface-muted rounded-lg">
+              <p className="text-app-text-muted">No webhook endpoints configured</p>
+              <p className="text-sm text-app-text-subtle mt-1">
                 Create a webhook to receive real-time event notifications
               </p>
             </div>
@@ -769,12 +769,12 @@ export default function ApiSettings() {
       {activeTab === 'apiKeys' && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <p className="text-gray-600">
+            <p className="text-app-text-muted">
               Create API keys to access your data programmatically.
             </p>
             <button
               onClick={() => setShowCreateApiKey(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
+              className="px-4 py-2 bg-app-accent text-white rounded-lg font-medium hover:bg-app-accent-hover"
             >
               Create API Key
             </button>
@@ -782,11 +782,11 @@ export default function ApiSettings() {
 
           {/* Create API Key Form */}
           {showCreateApiKey && (
-            <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+            <div className="bg-app-surface rounded-lg border border-app-border p-6 space-y-4">
               <h3 className="text-lg font-semibold">Create API Key</h3>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-app-text-label mb-1">
                   Key Name *
                 </label>
                 <input
@@ -794,29 +794,29 @@ export default function ApiSettings() {
                   value={apiKeyName}
                   onChange={(e) => setApiKeyName(e.target.value)}
                   placeholder="e.g., Production Integration"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-app-text-label mb-2">
                   Permissions *
                 </label>
-                <div className="grid grid-cols-2 gap-2 border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto">
+                <div className="grid grid-cols-2 gap-2 border border-app-border rounded-lg p-4 max-h-64 overflow-y-auto">
                   {availableScopes.map((scopeInfo) => (
                     <label
                       key={scopeInfo.scope}
-                      className="flex items-start gap-2 text-sm cursor-pointer p-2 rounded hover:bg-gray-50"
+                      className="flex items-start gap-2 text-sm cursor-pointer p-2 rounded hover:bg-app-surface-muted"
                     >
                       <input
                         type="checkbox"
                         checked={apiKeyScopes.includes(scopeInfo.scope)}
                         onChange={() => handleScopeToggle(scopeInfo.scope)}
-                        className="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="mt-0.5 rounded border-app-input-border text-app-accent focus:ring-app-accent"
                       />
                       <div>
                         <span className="font-medium">{scopeInfo.name}</span>
-                        <p className="text-xs text-gray-500">{scopeInfo.description}</p>
+                        <p className="text-xs text-app-text-muted">{scopeInfo.description}</p>
                       </div>
                     </label>
                   ))}
@@ -827,13 +827,13 @@ export default function ApiSettings() {
                 <button
                   onClick={handleCreateApiKey}
                   disabled={!apiKeyName || apiKeyScopes.length === 0 || isLoading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-app-accent text-white rounded-lg font-medium hover:bg-app-accent-hover disabled:bg-app-text-subtle disabled:cursor-not-allowed"
                 >
                   {isLoading ? 'Creating...' : 'Create API Key'}
                 </button>
                 <button
                   onClick={resetApiKeyForm}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200"
+                  className="px-4 py-2 bg-app-surface-muted text-app-text-muted rounded-lg font-medium hover:bg-app-surface-muted"
                 >
                   Cancel
                 </button>
@@ -843,11 +843,11 @@ export default function ApiSettings() {
 
           {/* API Key List */}
           {isLoading && apiKeys.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">Loading...</div>
+            <div className="text-center py-8 text-app-text-muted">Loading...</div>
           ) : apiKeys.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-lg">
-              <p className="text-gray-500">No API keys created</p>
-              <p className="text-sm text-gray-400 mt-1">
+            <div className="text-center py-12 bg-app-surface-muted rounded-lg">
+              <p className="text-app-text-muted">No API keys created</p>
+              <p className="text-sm text-app-text-subtle mt-1">
                 Create an API key to access your data programmatically
               </p>
             </div>
@@ -883,9 +883,9 @@ export default function ApiSettings() {
 
       {isTesting && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Sending test webhook...</p>
+          <div className="bg-app-surface rounded-lg p-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-app-accent mx-auto mb-4"></div>
+            <p className="text-app-text-muted">Sending test webhook...</p>
           </div>
         </div>
       )}

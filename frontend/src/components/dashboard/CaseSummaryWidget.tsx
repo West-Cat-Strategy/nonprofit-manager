@@ -46,10 +46,10 @@ const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProp
         <div className="grid grid-cols-2 gap-3">
           <Link
             to="/cases?status=active"
-            className="p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition"
+            className="p-3 bg-app-accent-soft rounded-lg hover:bg-app-accent-soft transition"
           >
-            <p className="text-xs text-blue-600 font-medium">Active Cases</p>
-            <p className="text-2xl font-bold text-blue-900">{activeCases.length}</p>
+            <p className="text-xs text-app-accent font-medium">Active Cases</p>
+            <p className="text-2xl font-bold text-app-accent-text">{activeCases.length}</p>
           </Link>
 
           <Link
@@ -78,10 +78,10 @@ const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProp
 
           <Link
             to="/cases"
-            className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+            className="p-3 bg-app-surface-muted rounded-lg hover:bg-app-surface-muted transition"
           >
-            <p className="text-xs text-gray-600 font-medium">Unassigned</p>
-            <p className="text-2xl font-bold text-gray-900">{unassignedCases.length}</p>
+            <p className="text-xs text-app-text-muted font-medium">Unassigned</p>
+            <p className="text-2xl font-bold text-app-text">{unassignedCases.length}</p>
           </Link>
         </div>
 
@@ -99,24 +99,24 @@ const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProp
         </div>
 
         {/* Priority Distribution */}
-        <div className="pt-2 border-t border-gray-200">
-          <p className="text-xs text-gray-500 font-medium mb-2">Priority Distribution</p>
+        <div className="pt-2 border-t border-app-border">
+          <p className="text-xs text-app-text-muted font-medium mb-2">Priority Distribution</p>
           <div className="grid grid-cols-4 gap-2 text-center">
             <div>
               <div className="text-lg font-bold text-green-600">{priorityCounts.low}</div>
-              <div className="text-xs text-gray-500">Low</div>
+              <div className="text-xs text-app-text-muted">Low</div>
             </div>
             <div>
               <div className="text-lg font-bold text-yellow-600">{priorityCounts.medium}</div>
-              <div className="text-xs text-gray-500">Med</div>
+              <div className="text-xs text-app-text-muted">Med</div>
             </div>
             <div>
               <div className="text-lg font-bold text-orange-600">{priorityCounts.high}</div>
-              <div className="text-xs text-gray-500">High</div>
+              <div className="text-xs text-app-text-muted">High</div>
             </div>
             <div>
               <div className="text-lg font-bold text-red-600">{priorityCounts.urgent}</div>
-              <div className="text-xs text-gray-500">Urg</div>
+              <div className="text-xs text-app-text-muted">Urg</div>
             </div>
           </div>
         </div>
@@ -125,13 +125,13 @@ const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProp
         <div className="flex gap-2 pt-2">
           <Link
             to="/cases"
-            className="flex-1 text-center px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition"
+            className="flex-1 text-center px-3 py-2 text-xs font-medium text-app-text-muted bg-app-surface border border-app-input-border rounded hover:bg-app-surface-muted transition"
           >
             View All
           </Link>
           <Link
             to="/cases/new"
-            className="flex-1 text-center px-3 py-2 text-xs font-medium text-white bg-blue-600 border border-transparent rounded hover:bg-blue-700 transition"
+            className="flex-1 text-center px-3 py-2 text-xs font-medium text-white bg-app-accent border border-transparent rounded hover:bg-app-accent-hover transition"
           >
             New Case
           </Link>

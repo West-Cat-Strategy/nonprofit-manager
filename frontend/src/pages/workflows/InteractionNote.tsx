@@ -120,17 +120,17 @@ export default function InteractionNote() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Note an Interaction</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="text-2xl font-bold text-app-text">Note an Interaction</h1>
+        <p className="text-sm text-app-text-muted mt-1">
           Capture interactions with people and attach them to their records.
         </p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-app-surface rounded-lg shadow-sm border border-app-border p-6">
         {step === 'select' && (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Find a person</label>
+              <label className="block text-sm font-medium text-app-text-muted mb-2">Find a person</label>
               <div className="relative">
                 <input
                   ref={lookup.inputRef}
@@ -139,29 +139,29 @@ export default function InteractionNote() {
                   onChange={(e) => lookup.handleSearchChange(e.target.value)}
                   onFocus={lookup.handleFocus}
                   placeholder="Search by name, email, or phone..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
                 />
                 {lookup.isLoading && (
                   <div className="absolute inset-y-0 right-3 flex items-center">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-500" />
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-app-input-border border-t-app-accent" />
                   </div>
                 )}
                 {lookup.isOpen && lookup.results.length > 0 && (
                   <div
                     ref={lookup.dropdownRef}
-                    className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg max-h-64 overflow-y-auto"
+                    className="absolute z-10 mt-1 w-full rounded-lg border border-app-border bg-app-surface shadow-lg max-h-64 overflow-y-auto"
                   >
                     {lookup.results.map((contact) => (
                       <button
                         type="button"
                         key={contact.contact_id}
                         onClick={() => handleSelectContact(contact)}
-                        className="w-full text-left px-4 py-2 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
+                        className="w-full text-left px-4 py-2 hover:bg-app-accent-soft focus:bg-app-accent-soft focus:outline-none"
                       >
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-app-text">
                           {contact.first_name} {contact.last_name}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-app-text-muted">
                           {contact.email || contact.phone || contact.mobile_phone || 'No contact info'}
                         </div>
                       </button>
@@ -172,11 +172,11 @@ export default function InteractionNote() {
             </div>
 
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500">Can't find them?</p>
+              <p className="text-sm text-app-text-muted">Can't find them?</p>
               <button
                 type="button"
                 onClick={() => setStep('create')}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                className="px-4 py-2 text-sm font-medium text-white bg-app-accent rounded-lg hover:bg-app-accent-hover"
               >
                 Create new person
               </button>
@@ -187,11 +187,11 @@ export default function InteractionNote() {
         {step === 'create' && (
           <div>
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Create new person</h2>
+              <h2 className="text-lg font-semibold text-app-text">Create new person</h2>
               <button
                 type="button"
                 onClick={() => setStep('select')}
-                className="text-sm text-gray-600 hover:text-gray-800"
+                className="text-sm text-app-text-muted hover:text-app-text"
               >
                 Back to search
               </button>
@@ -204,15 +204,15 @@ export default function InteractionNote() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Add interaction note</h2>
-                <p className="text-sm text-gray-500">
+                <h2 className="text-lg font-semibold text-app-text">Add interaction note</h2>
+                <p className="text-sm text-app-text-muted">
                   For {selectedContact.first_name} {selectedContact.last_name}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setStep('select')}
-                className="text-sm text-gray-600 hover:text-gray-800"
+                className="text-sm text-app-text-muted hover:text-app-text"
               >
                 Change person
               </button>
@@ -226,13 +226,13 @@ export default function InteractionNote() {
 
             <form onSubmit={handleSubmitNote} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Note Type</label>
+                <label className="block text-sm font-medium text-app-text-muted mb-2">Note Type</label>
                 <select
                   value={noteForm.note_type}
                   onChange={(e) =>
                     setNoteForm((prev) => ({ ...prev, note_type: e.target.value as ContactNoteType }))
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
                 >
                   {NOTE_TYPES.map((type) => (
                     <option key={type.value} value={type.value}>
@@ -244,7 +244,7 @@ export default function InteractionNote() {
 
               {contactCases.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-app-text-muted mb-2">
                     Associate with Case (Optional)
                   </label>
                   <select
@@ -255,7 +255,7 @@ export default function InteractionNote() {
                         case_id: e.target.value || undefined,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
                   >
                     <option value="">No case (general note)</option>
                     {contactCases.map((caseItem) => (
@@ -268,18 +268,18 @@ export default function InteractionNote() {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                <label className="block text-sm font-medium text-app-text-muted mb-2">Subject</label>
                 <input
                   type="text"
                   value={noteForm.subject || ''}
                   onChange={(e) => setNoteForm((prev) => ({ ...prev, subject: e.target.value }))}
                   placeholder="Brief summary"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-app-text-muted mb-2">
                   Interaction Details
                 </label>
                 <textarea
@@ -287,12 +287,12 @@ export default function InteractionNote() {
                   onChange={(e) => setNoteForm((prev) => ({ ...prev, content: e.target.value }))}
                   rows={5}
                   placeholder="Record the interaction details..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <label className="flex items-center gap-2 text-sm text-gray-700">
+                <label className="flex items-center gap-2 text-sm text-app-text-muted">
                   <input
                     type="checkbox"
                     checked={noteForm.is_internal || false}
@@ -300,7 +300,7 @@ export default function InteractionNote() {
                   />
                   Internal only
                 </label>
-                <label className="flex items-center gap-2 text-sm text-gray-700">
+                <label className="flex items-center gap-2 text-sm text-app-text-muted">
                   <input
                     type="checkbox"
                     checked={noteForm.is_important || false}
@@ -308,7 +308,7 @@ export default function InteractionNote() {
                   />
                   Mark important
                 </label>
-                <label className="flex items-center gap-2 text-sm text-gray-700">
+                <label className="flex items-center gap-2 text-sm text-app-text-muted">
                   <input
                     type="checkbox"
                     checked={noteForm.is_pinned || false}
@@ -318,9 +318,9 @@ export default function InteractionNote() {
                 </label>
               </div>
 
-              <div className="border-t border-gray-200 pt-4">
+              <div className="border-t border-app-border pt-4">
                 <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <label className="flex items-center gap-2 text-sm font-medium text-app-text-muted">
                     <input
                       type="checkbox"
                       checked={sendCopies}
@@ -328,7 +328,7 @@ export default function InteractionNote() {
                     />
                     Send copies by email
                   </label>
-                  <span className="text-xs text-gray-500">Optional</span>
+                  <span className="text-xs text-app-text-muted">Optional</span>
                 </div>
 
                 {sendCopies && (
@@ -338,12 +338,12 @@ export default function InteractionNote() {
                       value={emailCopies}
                       onChange={(e) => setEmailCopies(e.target.value)}
                       placeholder="Add emails, separated by commas"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
                     />
                     {hasInvalidEmails && (
                       <p className="text-xs text-red-600 mt-1">One or more email addresses look invalid.</p>
                     )}
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-app-text-muted mt-1">
                       Copies will be stored with this note. Configure an email provider to send automatically.
                     </p>
                   </div>
@@ -353,14 +353,14 @@ export default function InteractionNote() {
               <div className="flex items-center justify-between pt-2">
                 <Link
                   to={`/contacts/${selectedContact.contact_id}`}
-                  className="text-sm text-gray-600 hover:text-gray-800"
+                  className="text-sm text-app-text-muted hover:text-app-text"
                 >
                   View contact
                 </Link>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-60"
+                  className="px-5 py-2 text-sm font-medium text-white bg-app-accent rounded-lg hover:bg-app-accent-hover disabled:opacity-60"
                 >
                   {saving ? 'Saving...' : 'Save Note'}
                 </button>

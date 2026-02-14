@@ -74,20 +74,20 @@ export default function Analytics() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-app-surface-muted">
       {/* Header */}
-      <div className="bg-white shadow">
+      <div className="bg-app-surface shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
                 type="button"
                 onClick={() => navigate('/dashboard')}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-app-text-muted hover:text-app-text-muted"
               >
                 ← Back
               </button>
-              <h1 className="text-2xl font-bold text-gray-900">Analytics & Reports</h1>
+              <h1 className="text-2xl font-bold text-app-text-heading">Analytics & Reports</h1>
             </div>
             {summary && (
               <div className="flex gap-2">
@@ -119,10 +119,10 @@ export default function Analytics() {
 
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {/* Date Filters */}
-        <div className="bg-white rounded-lg shadow p-4 mb-6">
+        <div className="bg-app-surface rounded-lg shadow p-4 mb-6">
           <div className="flex flex-wrap items-end gap-4">
             <div>
-              <label htmlFor="start_date" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="start_date" className="block text-sm font-medium text-app-text-label">
                 Start Date
               </label>
               <input
@@ -130,11 +130,11 @@ export default function Analytics() {
                 id="start_date"
                 value={dateRange.start_date}
                 onChange={(e) => setDateRange({ ...dateRange, start_date: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                className="mt-1 block w-full rounded-md border-app-input-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
               />
             </div>
             <div>
-              <label htmlFor="end_date" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="end_date" className="block text-sm font-medium text-app-text-label">
                 End Date
               </label>
               <input
@@ -142,7 +142,7 @@ export default function Analytics() {
                 id="end_date"
                 value={dateRange.end_date}
                 onChange={(e) => setDateRange({ ...dateRange, end_date: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                className="mt-1 block w-full rounded-md border-app-input-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
               />
             </div>
             <button
@@ -155,7 +155,7 @@ export default function Analytics() {
             <button
               type="button"
               onClick={handleClearFilters}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm"
+              className="px-4 py-2 bg-app-surface-muted text-app-text-muted rounded-md hover:bg-app-hover text-sm"
             >
               Clear
             </button>
@@ -166,7 +166,7 @@ export default function Analytics() {
         {summaryLoading && (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-            <p className="mt-4 text-gray-500">Loading analytics...</p>
+            <p className="mt-4 text-app-text-muted">Loading analytics...</p>
           </div>
         )}
 
@@ -182,7 +182,7 @@ export default function Analytics() {
           <>
             {/* Key Metrics */}
             <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Key Performance Indicators</h2>
+              <h2 className="text-lg font-semibold text-app-text-heading mb-4">Key Performance Indicators</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard
                   title="Total Donations (YTD)"
@@ -214,7 +214,7 @@ export default function Analytics() {
                 <button
                   type="button"
                   onClick={() => exportEngagementToCSV(summary.engagement_distribution)}
-                  className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+                  className="absolute top-4 right-4 p-2 text-app-text-subtle hover:text-app-text-muted hover:bg-app-surface-muted rounded"
                   title="Export Engagement Data (CSV)"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -240,7 +240,7 @@ export default function Analytics() {
                       volunteerHours: summary.total_volunteer_hours_ytd,
                     })
                   }
-                  className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+                  className="absolute top-4 right-4 p-2 text-app-text-subtle hover:text-app-text-muted hover:bg-app-surface-muted rounded"
                   title="Export Constituent Data (CSV)"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -271,12 +271,12 @@ export default function Analytics() {
             </div>
 
             {/* Comparative Analytics Section */}
-            <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <div className="bg-app-surface rounded-lg shadow p-6 mb-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-medium text-gray-900">
+                <h3 className="text-lg font-medium text-app-text-heading">
                   Period Comparison
                   {comparativeAnalytics && (
-                    <span className="ml-2 text-sm font-normal text-gray-500">
+                    <span className="ml-2 text-sm font-normal text-app-text-muted">
                       ({comparativeAnalytics.previous_period} vs {comparativeAnalytics.current_period})
                     </span>
                   )}
@@ -287,8 +287,8 @@ export default function Analytics() {
                     onClick={() => setComparisonPeriod('month')}
                     className={`px-3 py-1 text-sm rounded ${
                       comparisonPeriod === 'month'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-app-accent text-white'
+                        : 'bg-app-surface-muted text-app-text-muted hover:bg-app-surface-muted'
                     }`}
                   >
                     Month
@@ -298,8 +298,8 @@ export default function Analytics() {
                     onClick={() => setComparisonPeriod('quarter')}
                     className={`px-3 py-1 text-sm rounded ${
                       comparisonPeriod === 'quarter'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-app-accent text-white'
+                        : 'bg-app-surface-muted text-app-text-muted hover:bg-app-surface-muted'
                     }`}
                   >
                     Quarter
@@ -309,8 +309,8 @@ export default function Analytics() {
                     onClick={() => setComparisonPeriod('year')}
                     className={`px-3 py-1 text-sm rounded ${
                       comparisonPeriod === 'year'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-app-accent text-white'
+                        : 'bg-app-surface-muted text-app-text-muted hover:bg-app-surface-muted'
                     }`}
                   >
                     Year
@@ -320,8 +320,8 @@ export default function Analytics() {
 
               {comparativeLoading ? (
                 <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
-                  <p className="text-gray-500 mt-4">Loading comparisons...</p>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-app-accent mx-auto" />
+                  <p className="text-app-text-muted mt-4">Loading comparisons...</p>
                 </div>
               ) : comparativeAnalytics ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -357,7 +357,7 @@ export default function Analytics() {
                   />
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-app-text-muted">
                   No comparison data available
                 </div>
               )}
@@ -365,20 +365,20 @@ export default function Analytics() {
 
             {/* Detailed Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-sm font-medium text-gray-500 mb-4">Accounts</h3>
+              <div className="bg-app-surface rounded-lg shadow p-6">
+                <h3 className="text-sm font-medium text-app-text-muted mb-4">Accounts</h3>
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-2xl font-bold text-gray-900">{summary.total_accounts}</p>
-                    <p className="text-sm text-gray-500">Total</p>
+                    <p className="text-2xl font-bold text-app-text-heading">{summary.total_accounts}</p>
+                    <p className="text-sm text-app-text-muted">Total</p>
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-green-600">{summary.active_accounts}</p>
-                    <p className="text-sm text-gray-500">Active</p>
+                    <p className="text-sm text-app-text-muted">Active</p>
                   </div>
                 </div>
                 <div className="mt-4">
-                  <div className="bg-gray-200 rounded-full h-2">
+                  <div className="bg-app-surface-muted rounded-full h-2">
                     <div
                       className="bg-green-500 rounded-full h-2"
                       style={{
@@ -389,7 +389,7 @@ export default function Analytics() {
                       }}
                     />
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-app-text-muted mt-1">
                     {summary.total_accounts > 0
                       ? `${((summary.active_accounts / summary.total_accounts) * 100).toFixed(1)}% active`
                       : 'No accounts'}
@@ -397,20 +397,20 @@ export default function Analytics() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-sm font-medium text-gray-500 mb-4">Contacts</h3>
+              <div className="bg-app-surface rounded-lg shadow p-6">
+                <h3 className="text-sm font-medium text-app-text-muted mb-4">Contacts</h3>
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-2xl font-bold text-gray-900">{summary.total_contacts}</p>
-                    <p className="text-sm text-gray-500">Total</p>
+                    <p className="text-2xl font-bold text-app-text-heading">{summary.total_contacts}</p>
+                    <p className="text-sm text-app-text-muted">Total</p>
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-green-600">{summary.active_contacts}</p>
-                    <p className="text-sm text-gray-500">Active</p>
+                    <p className="text-sm text-app-text-muted">Active</p>
                   </div>
                 </div>
                 <div className="mt-4">
-                  <div className="bg-gray-200 rounded-full h-2">
+                  <div className="bg-app-surface-muted rounded-full h-2">
                     <div
                       className="bg-green-500 rounded-full h-2"
                       style={{
@@ -421,7 +421,7 @@ export default function Analytics() {
                       }}
                     />
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-app-text-muted mt-1">
                     {summary.total_contacts > 0
                       ? `${((summary.active_contacts / summary.total_contacts) * 100).toFixed(1)}% active`
                       : 'No contacts'}
@@ -429,22 +429,22 @@ export default function Analytics() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-sm font-medium text-gray-500 mb-4">Volunteers</h3>
+              <div className="bg-app-surface rounded-lg shadow p-6">
+                <h3 className="text-sm font-medium text-app-text-muted mb-4">Volunteers</h3>
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-2xl font-bold text-gray-900">{summary.total_volunteers}</p>
-                    <p className="text-sm text-gray-500">Registered</p>
+                    <p className="text-2xl font-bold text-app-text-heading">{summary.total_volunteers}</p>
+                    <p className="text-sm text-app-text-muted">Registered</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-blue-600">
+                    <p className="text-2xl font-bold text-app-accent">
                       {formatNumber(summary.total_volunteer_hours_ytd)}
                     </p>
-                    <p className="text-sm text-gray-500">Hours YTD</p>
+                    <p className="text-sm text-app-text-muted">Hours YTD</p>
                   </div>
                 </div>
                 <div className="mt-4">
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-app-text-muted">
                     Avg{' '}
                     {summary.total_volunteers > 0
                       ? (summary.total_volunteer_hours_ytd / summary.total_volunteers).toFixed(1)
@@ -457,14 +457,14 @@ export default function Analytics() {
 
             {/* Events & Donations Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Events Summary</h3>
+              <div className="bg-app-surface rounded-lg shadow p-6">
+                <h3 className="text-lg font-medium text-app-text-heading mb-4">Events Summary</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center pb-3 border-b">
-                    <span className="text-gray-600">Total Events (YTD)</span>
-                    <span className="text-xl font-bold text-gray-900">{summary.total_events_ytd}</span>
+                    <span className="text-app-text-muted">Total Events (YTD)</span>
+                    <span className="text-xl font-bold text-app-text">{summary.total_events_ytd}</span>
                   </div>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-app-text-muted">
                     View event details in the{' '}
                     <button
                       type="button"
@@ -477,26 +477,26 @@ export default function Analytics() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Donations Summary</h3>
+              <div className="bg-app-surface rounded-lg shadow p-6">
+                <h3 className="text-lg font-medium text-app-text-heading mb-4">Donations Summary</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center pb-3 border-b">
-                    <span className="text-gray-600">Total Amount (YTD)</span>
+                    <span className="text-app-text-muted">Total Amount (YTD)</span>
                     <span className="text-xl font-bold text-green-600">
                       {formatCurrency(summary.total_donations_ytd)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center pb-3 border-b">
-                    <span className="text-gray-600">Number of Donations</span>
-                    <span className="font-medium text-gray-900">{summary.donation_count_ytd}</span>
+                    <span className="text-app-text-muted">Number of Donations</span>
+                    <span className="font-medium text-app-text">{summary.donation_count_ytd}</span>
                   </div>
                   <div className="flex justify-between items-center pb-3 border-b">
-                    <span className="text-gray-600">Average Donation</span>
-                    <span className="font-medium text-gray-900">
+                    <span className="text-app-text-muted">Average Donation</span>
+                    <span className="font-medium text-app-text">
                       {formatCurrency(summary.average_donation_ytd)}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-app-text-muted">
                     View donation details in the{' '}
                     <button
                       type="button"
@@ -515,7 +515,7 @@ export default function Analytics() {
         {/* Empty State */}
         {!summaryLoading && !error && !summary && (
           <div className="text-center py-12">
-            <p className="text-gray-500">No analytics data available</p>
+            <p className="text-app-text-muted">No analytics data available</p>
           </div>
         )}
       </main>

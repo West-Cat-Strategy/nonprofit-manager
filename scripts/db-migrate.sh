@@ -4,34 +4,18 @@
 
 set -e
 
+# Load common utilities and configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/lib/common.sh"
+source "$SCRIPT_DIR/lib/config.sh"
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+# Configuration overrides
+DB_CONTAINER="${DB_CONTAINER:-$DB_CONTAINER}"
+DB_USER="${DB_USER:-$DB_USER}"
+DB_NAME="${DB_NAME:-$DB_NAME}"
+MIGRATIONS_DIR="${MIGRATIONS_DIR:-$MIGRATIONS_DIR}"
 
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
-
-cd "$PROJECT_ROOT"
-
-# Database settings
-DB_CONTAINER="${DB_CONTAINER:-nonprofit-db}"
-DB_USER="${DB_USER:-postgres}"
-DB_NAME="${DB_NAME:-nonprofit_manager}"
-MIGRATIONS_DIR="$PROJECT_ROOT/database/migrations"
-
-echo ""
-echo "========================================"
-echo "  Database Migrations"
-echo "========================================"
-echo ""
+print_header "Database Migrations"
 
 # Check if migrations directory exists
 if [ ! -d "$MIGRATIONS_DIR" ]; then
@@ -40,25 +24,10 @@ if [ ! -d "$MIGRATIONS_DIR" ]; then
 fi
 
 # Check if database container is running
-if ! docker ps --format '{{.Names}}' | grep -q "^${DB_CONTAINER}$"; then
-    log_error "Database container '$DB_CONTAINER' is not running"
-    log_info "Start it with: docker-compose up -d db"
-    exit 1
-fi
+check_docker_containers "$DB_CONTAINER" || exit 1
 
 # Wait for database to be ready
-log_info "Checking database connection..."
-for i in {1..10}; do
-    if docker exec "$DB_CONTAINER" pg_isready -U "$DB_USER" -d "$DB_NAME" > /dev/null 2>&1; then
-        break
-    fi
-    if [ $i -eq 10 ]; then
-        log_error "Database not ready after 10 attempts"
-        exit 1
-    fi
-    sleep 1
-done
-log_success "Database is ready"
+wait_for_db "$DB_CONTAINER" "$DB_USER" "$DB_NAME" || exit 1
 
 # Create migrations tracking table if not exists
 log_info "Ensuring migrations table exists..."
@@ -87,7 +56,7 @@ done
 
 if [ $PENDING_COUNT -eq 0 ]; then
     log_success "No pending migrations"
-    echo ""
+    print_footer "Migration check complete"
     exit 0
 fi
 

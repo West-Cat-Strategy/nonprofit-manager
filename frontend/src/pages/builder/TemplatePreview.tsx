@@ -67,19 +67,19 @@ const TemplatePreview: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
+      <div className="min-h-screen bg-app-surface-muted flex items-center justify-center">
+        <div className="max-w-md w-full bg-app-surface shadow-lg rounded-lg p-6">
           <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
             <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 text-center mb-2">Preview Error</h2>
-          <p className="text-gray-600 text-center mb-6">{error}</p>
+          <h2 className="text-xl font-semibold text-app-text text-center mb-2">Preview Error</h2>
+          <p className="text-app-text-muted text-center mb-6">{error}</p>
           <button
             type="button"
             onClick={handleClose}
-            className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="w-full py-2 px-4 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover transition-colors"
           >
             Back to Templates
           </button>
@@ -89,14 +89,14 @@ const TemplatePreview: React.FC = () => {
   }
 
   return (
-    <div className="fixed inset-0 bg-gray-900 flex flex-col">
+    <div className="fixed inset-0 bg-app-text flex flex-col">
       {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 px-4 py-3 flex items-center justify-between">
+      <div className="bg-app-text border-b border-app-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <button
             type="button"
             onClick={handleClose}
-            className="text-gray-300 hover:text-white transition-colors"
+            className="text-app-text-subtle hover:text-white transition-colors"
             title="Close Preview"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -105,16 +105,16 @@ const TemplatePreview: React.FC = () => {
           </button>
           <div className="text-white">
             <h1 className="text-lg font-semibold">Template Preview</h1>
-            <p className="text-sm text-gray-400">Page: {pageSlug}</p>
+            <p className="text-sm text-app-text-subtle">Page: {pageSlug}</p>
           </div>
         </div>
 
         <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-400">Preview Mode</span>
+          <span className="text-sm text-app-text-subtle">Preview Mode</span>
           <button
             type="button"
             onClick={handleClose}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover transition-colors"
           >
             Exit Preview
           </button>
@@ -122,10 +122,10 @@ const TemplatePreview: React.FC = () => {
       </div>
 
       {/* Preview Frame */}
-      <div className="flex-1 bg-white overflow-hidden">
+      <div className="flex-1 bg-app-surface overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-app-accent"></div>
           </div>
         ) : (
           <iframe

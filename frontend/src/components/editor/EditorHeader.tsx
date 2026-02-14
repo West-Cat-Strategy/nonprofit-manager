@@ -56,12 +56,12 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
     return date.toLocaleTimeString();
   };
   return (
-    <header className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between">
+    <header className="bg-app-surface border-b border-app-border px-4 py-2 flex items-center justify-between">
       {/* Left side */}
       <div className="flex items-center gap-4">
         <button
           onClick={onBack}
-          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+          className="p-2 text-app-text-muted hover:text-app-text-muted hover:bg-app-surface-muted rounded-lg"
           title="Back to templates"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,11 +69,11 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
           </svg>
         </button>
 
-        <div className="border-l border-gray-200 pl-4">
-          <h1 className="font-semibold text-gray-900">{template.name}</h1>
+        <div className="border-l border-app-border pl-4">
+          <h1 className="font-semibold text-app-text">{template.name}</h1>
           <button
             onClick={onShowPages}
-            className="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1"
+            className="text-sm text-app-text-muted hover:text-app-accent flex items-center gap-1"
           >
             <span>{currentPage.name}</span>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -93,15 +93,15 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
         ) : null}
 
         {/* Undo/Redo buttons */}
-        <div className="flex items-center border-l border-gray-200 pl-4 ml-2">
+        <div className="flex items-center border-l border-app-border pl-4 ml-2">
           <button
             type="button"
             onClick={onUndo}
             disabled={!canUndo}
             className={`p-2 rounded-lg transition-colors ${
               canUndo
-                ? 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                : 'text-gray-300 cursor-not-allowed'
+                ? 'text-app-text-muted hover:text-app-text-muted hover:bg-app-surface-muted'
+                : 'text-app-text-subtle cursor-not-allowed'
             }`}
             title="Undo (Ctrl+Z)"
           >
@@ -115,8 +115,8 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
             disabled={!canRedo}
             className={`p-2 rounded-lg transition-colors ${
               canRedo
-                ? 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                : 'text-gray-300 cursor-not-allowed'
+                ? 'text-app-text-muted hover:text-app-text-muted hover:bg-app-surface-muted'
+                : 'text-app-text-subtle cursor-not-allowed'
             }`}
             title="Redo (Ctrl+Shift+Z)"
           >
@@ -128,13 +128,13 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
       </div>
 
       {/* Center - View mode */}
-      <div className="flex items-center bg-gray-100 rounded-lg p-1">
+      <div className="flex items-center bg-app-surface-muted rounded-lg p-1">
         <button
           onClick={() => onViewModeChange('desktop')}
           className={`p-2 rounded-md transition-colors ${
             viewMode === 'desktop'
-              ? 'bg-white shadow text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'bg-app-surface shadow text-app-accent'
+              : 'text-app-text-muted hover:text-app-text-muted'
           }`}
           title="Desktop view"
         >
@@ -146,8 +146,8 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
           onClick={() => onViewModeChange('tablet')}
           className={`p-2 rounded-md transition-colors ${
             viewMode === 'tablet'
-              ? 'bg-white shadow text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'bg-app-surface shadow text-app-accent'
+              : 'text-app-text-muted hover:text-app-text-muted'
           }`}
           title="Tablet view"
         >
@@ -159,8 +159,8 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
           onClick={() => onViewModeChange('mobile')}
           className={`p-2 rounded-md transition-colors ${
             viewMode === 'mobile'
-              ? 'bg-white shadow text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'bg-app-surface shadow text-app-accent'
+              : 'text-app-text-muted hover:text-app-text-muted'
           }`}
           title="Mobile view"
         >
@@ -177,8 +177,8 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
           disabled={isSaving || !hasUnsavedChanges}
           className={`px-4 py-2 text-sm rounded-lg transition-colors ${
             hasUnsavedChanges
-              ? 'bg-blue-600 text-white hover:bg-blue-700'
-              : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              ? 'bg-app-accent text-white hover:bg-app-accent-hover'
+              : 'bg-app-surface-muted text-app-text-subtle cursor-not-allowed'
           }`}
         >
           {isSaving ? (
@@ -196,7 +196,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
 
         <div className="relative group">
           <button
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+            className="p-2 text-app-text-muted hover:text-app-text-muted hover:bg-app-surface-muted rounded-lg"
             title="More options"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -205,10 +205,10 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
           </button>
 
           {/* Dropdown menu */}
-          <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 hidden group-hover:block z-50">
+          <div className="absolute right-0 mt-1 w-48 bg-app-surface rounded-lg shadow-lg border border-app-border py-1 hidden group-hover:block z-50">
             <button
               onClick={onSaveVersion}
-              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+              className="w-full px-4 py-2 text-left text-sm text-app-text-muted hover:bg-app-surface-muted flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -217,7 +217,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
             </button>
             <button
               onClick={() => window.open(`/website-builder/${template.id}/preview`, '_blank')}
-              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+              className="w-full px-4 py-2 text-left text-sm text-app-text-muted hover:bg-app-surface-muted flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -225,10 +225,10 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
               </svg>
               Preview Site
             </button>
-            <hr className="my-1 border-gray-200" />
+            <hr className="my-1 border-app-border" />
             <button
               onClick={onOpenSettings}
-              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+              className="w-full px-4 py-2 text-left text-sm text-app-text-muted hover:bg-app-surface-muted flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
