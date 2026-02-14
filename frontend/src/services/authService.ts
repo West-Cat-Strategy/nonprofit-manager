@@ -13,7 +13,7 @@ export interface RegisterData {
 }
 
 export interface AuthResponse {
-  token: string;
+  token?: string;
   refreshToken?: string;
   organizationId?: string | null;
   user: {
@@ -83,7 +83,7 @@ export const authService = {
     return response.data;
   },
 
-  logout: () => {
-    localStorage.removeItem('token');
+  logout: async () => {
+    await api.post('/auth/logout');
   },
 };

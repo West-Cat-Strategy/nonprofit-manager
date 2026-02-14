@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../services/api';
 import { defaultDashboardSettings } from '../components/dashboard';
 import type { DashboardSettings } from '../components/dashboard';
+import { useAppSelector } from '../store/hooks';
 
 const DASHBOARD_SETTINGS_KEY = 'dashboardSettings';
 const DASHBOARD_SETTINGS_PREF_KEY = 'dashboard_settings';
@@ -41,6 +42,7 @@ interface UseDashboardSettingsResult {
 }
 
 export function useDashboardSettings(): UseDashboardSettingsResult {
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
   const [settings, setSettingsState] = useState<DashboardSettings>(defaultDashboardSettings);
   const [isLoading, setIsLoading] = useState(true);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -54,8 +56,7 @@ export function useDashboardSettings(): UseDashboardSettingsResult {
 
     const fetchServerSettings = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
+        if (!isAuthenticated) {
           setIsLoading(false);
           return;
         }
@@ -87,7 +88,7 @@ export function useDashboardSettings(): UseDashboardSettingsResult {
     return () => {
       isMountedRef.current = false;
     };
-  }, []);
+  }, [isAuthenticated]);
 
   // Save settings with debounce
   useEffect(() => {
@@ -101,8 +102,7 @@ export function useDashboardSettings(): UseDashboardSettingsResult {
 
     saveTimerRef.current = setTimeout(async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
+        if (!isAuthenticated) return;
         await api.patch(`/auth/preferences/${DASHBOARD_SETTINGS_PREF_KEY}`, {
           value: settings,
         });
@@ -116,7 +116,7 @@ export function useDashboardSettings(): UseDashboardSettingsResult {
         clearTimeout(saveTimerRef.current);
       }
     };
-  }, [settings, isLoading]);
+  }, [settings, isLoading, isAuthenticated]);
 
   const setSettings = useCallback((newSettings: DashboardSettings) => {
     setSettingsState(newSettings);
