@@ -361,7 +361,10 @@ const VolunteerListEnhanced = () => {
         error={error}
         data={volunteers}
         columns={columns}
-        pagination={pagination}
+        pagination={{
+          ...pagination,
+          totalPages: pagination.total_pages,
+        }}
         onPageChange={(page) =>
           dispatch(
             fetchVolunteers({
@@ -413,7 +416,7 @@ const VolunteerListEnhanced = () => {
         sampleData={volunteers}
         onExport={() => {
           const columns = ['first_name', 'last_name', 'email', 'phone', 'skills', 'availability_status'] as const;
-          exportToCSV(volunteers as any, columns, {
+          exportToCSV(volunteers as any, columns as any, {
             filename: 'volunteers',
           });
         }}
