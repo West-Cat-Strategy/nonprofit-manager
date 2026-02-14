@@ -34,7 +34,10 @@ export default function PeopleCard({ person }: PeopleCardProps) {
     const statusColor = STATUS_COLORS[person.status?.toLowerCase() || 'active'] || STATUS_COLORS.active;
 
     // Generate initials
-    const initials = `${person.firstName[0]}${person.lastName[0]}`;
+    const firstName = person.firstName?.trim() || 'Unknown';
+    const lastName = person.lastName?.trim() || '';
+    const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.trim() || 'U';
+    const fullName = person.fullName?.trim() || `${firstName} ${lastName}`.trim();
 
     return (
         <div className={`${cardBg} border-2 border-black shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 flex flex-col items-center`}>
@@ -46,7 +49,7 @@ export default function PeopleCard({ person }: PeopleCardProps) {
             </div>
 
             {/* Name - Truncate to prevent overflow */}
-            <h3 className="font-black text-lg mb-1 text-center truncate w-full max-w-full px-2">{person.fullName}</h3>
+            <h3 className="font-black text-lg mb-1 text-center truncate w-full max-w-full px-2">{fullName}</h3>
 
             {/* Role/Title - Truncate to prevent overflow */}
             <p className="text-xs text-gray-700 dark:text-gray-300 mb-3 uppercase font-bold tracking-wide text-center truncate w-full max-w-full px-2">

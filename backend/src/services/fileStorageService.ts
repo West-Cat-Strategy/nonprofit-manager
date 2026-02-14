@@ -22,6 +22,20 @@ const DEFAULT_CONFIG: FileStorageConfig = {
   baseUploadDir: process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads'),
 };
 
+const resolveBaseDir = (baseDir: string): string => path.resolve(baseDir);
+
+const assertPathWithinBase = (baseDir: string, candidatePath: string): string => {
+  const resolvedBase = resolveBaseDir(baseDir);
+  const resolvedCandidate = path.resolve(candidatePath);
+  const relative = path.relative(resolvedBase, resolvedCandidate);
+
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
+    throw new Error('Invalid file path: outside upload directory');
+  }
+
+  return resolvedCandidate;
+};
+
 /**
  * Ensure directory exists, creating it if necessary
  */
@@ -51,9 +65,21 @@ export const uploadFile = async (
   subPath: string,
   config: FileStorageConfig = DEFAULT_CONFIG
 ): Promise<UploadResult> => {
+  const normalizedSubPath = subPath
+    .replace(/\\/g, '/')
+    .split('/')
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0)
+    .join('/');
+
+  if (!normalizedSubPath || normalizedSubPath.includes('..')) {
+    throw new Error('Invalid upload path');
+  }
+
   const uniqueFileName = generateUniqueFileName(file.originalname);
-  const targetDir = path.join(config.baseUploadDir, subPath);
+  const targetDir = assertPathWithinBase(config.baseUploadDir, path.join(config.baseUploadDir, normalizedSubPath));
   const targetPath = path.join(targetDir, uniqueFileName);
+  assertPathWithinBase(config.baseUploadDir, targetPath);
 
   // Ensure target directory exists
   await ensureDir(targetDir);
@@ -68,7 +94,7 @@ export const uploadFile = async (
   }
 
   // Store relative path from uploads root for database
-  const relativePath = path.join(subPath, uniqueFileName);
+  const relativePath = path.posix.join(normalizedSubPath, uniqueFileName);
 
   return {
     fileName: uniqueFileName,
@@ -85,7 +111,7 @@ export const deleteFile = async (
   filePath: string,
   config: FileStorageConfig = DEFAULT_CONFIG
 ): Promise<void> => {
-  const fullPath = path.join(config.baseUploadDir, filePath);
+  const fullPath = assertPathWithinBase(config.baseUploadDir, path.join(config.baseUploadDir, filePath));
 
   try {
     await fs.promises.unlink(fullPath);
@@ -104,7 +130,7 @@ export const getFullPath = (
   filePath: string,
   config: FileStorageConfig = DEFAULT_CONFIG
 ): string => {
-  return path.join(config.baseUploadDir, filePath);
+  return assertPathWithinBase(config.baseUploadDir, path.join(config.baseUploadDir, filePath));
 };
 
 /**
@@ -115,8 +141,12 @@ export const fileExists = (
   filePath: string,
   config: FileStorageConfig = DEFAULT_CONFIG
 ): boolean => {
-  const fullPath = path.join(config.baseUploadDir, filePath);
-  return fs.existsSync(fullPath);
+  try {
+    const fullPath = assertPathWithinBase(config.baseUploadDir, path.join(config.baseUploadDir, filePath));
+    return fs.existsSync(fullPath);
+  } catch {
+    return false;
+  }
 };
 
 /**
@@ -127,11 +157,15 @@ export const getFileStats = (
   filePath: string,
   config: FileStorageConfig = DEFAULT_CONFIG
 ): fs.Stats | null => {
-  const fullPath = path.join(config.baseUploadDir, filePath);
-  if (fs.existsSync(fullPath)) {
-    return fs.statSync(fullPath);
+  try {
+    const fullPath = assertPathWithinBase(config.baseUploadDir, path.join(config.baseUploadDir, filePath));
+    if (fs.existsSync(fullPath)) {
+      return fs.statSync(fullPath);
+    }
+    return null;
+  } catch {
+    return null;
   }
-  return null;
 };
 
 /**
