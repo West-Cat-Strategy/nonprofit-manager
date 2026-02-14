@@ -37,7 +37,7 @@ export default function NeoBrutalistDashboard() {
     }, []);
 
     const handleNewItem = () => {
-        console.log('Open New Item Modal');
+        navigate('/contacts/new');
     };
 
     if (loading) {

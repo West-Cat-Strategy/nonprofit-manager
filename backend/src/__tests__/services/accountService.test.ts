@@ -329,20 +329,25 @@ describe('AccountService', () => {
         { id: 'c2', first_name: 'Jane', last_name: 'Smith' },
       ];
 
-      mockQuery.mockResolvedValueOnce({ rows: mockContacts });
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ total: '2' }] })   // count query
+        .mockResolvedValueOnce({ rows: mockContacts });        // data query
 
       const result = await accountService.getAccountContacts('123');
 
-      expect(result).toEqual(mockContacts);
-      expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('account_id'), ['123']);
+      expect(result.contacts).toEqual(mockContacts);
+      expect(result.total).toBe(2);
     });
 
     it('should return empty array when no contacts found', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [] });
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ total: '0' }] })
+        .mockResolvedValueOnce({ rows: [] });
 
       const result = await accountService.getAccountContacts('123');
 
-      expect(result).toEqual([]);
+      expect(result.contacts).toEqual([]);
+      expect(result.total).toBe(0);
     });
 
     it('should throw error on database failure', async () => {

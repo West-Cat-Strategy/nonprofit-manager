@@ -2,8 +2,7 @@
  * LOOP API Service Layer
  *
  * Unified service class for all backend interactions.
- * Phase 1: Returns mock data with simulated network latency (500ms)
- * Phase 2: Will swap to real fetch() calls without breaking UI
+ * Connects to real backend API endpoints via the httpClient.
  */
 
 import type {

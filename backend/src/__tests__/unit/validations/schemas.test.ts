@@ -250,12 +250,13 @@ describe('Event Schemas', () => {
 
     it('should validate correct event data', () => {
       const validData = {
-        title: 'Community Cleanup',
+        event_name: 'Community Cleanup',
         description: 'Clean up the local park',
+        event_type: 'community',
         start_date: baseDate,
         end_date: endDate,
-        location: 'Central Park',
-        max_volunteers: 20,
+        location_name: 'Central Park',
+        capacity: 20,
       };
 
       const result = createEventSchema.safeParse(validData);
@@ -264,7 +265,8 @@ describe('Event Schemas', () => {
 
     it('should reject end date before start date', () => {
       const invalidData = {
-        title: 'Event',
+        event_name: 'Event',
+        event_type: 'community',
         start_date: endDate,
         end_date: baseDate,
       };
@@ -275,7 +277,8 @@ describe('Event Schemas', () => {
 
     it('should provide default status', () => {
       const data = {
-        title: 'Event',
+        event_name: 'Event',
+        event_type: 'community',
         start_date: baseDate,
         end_date: endDate,
       };

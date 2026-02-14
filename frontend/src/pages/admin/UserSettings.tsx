@@ -206,6 +206,13 @@ export default function UserSettings() {
   const [securityActionLoading, setSecurityActionLoading] = useState(false);
   const [newPasskeyName, setNewPasskeyName] = useState('');
 
+  // Password change state
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordStatus, setPasswordStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
   const refreshSecurity = useCallback(async () => {
     clearSecurityError();
     try {
@@ -418,9 +425,7 @@ export default function UserSettings() {
     }
   };
 
-  // Password change functionality - Currently disabled in UI
-  // TODO: Implement via LoopApiService in Phase 2
-  /*
+  // Password change functionality
   const handleChangePassword = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       setPasswordError('New passwords do not match');
@@ -443,7 +448,6 @@ export default function UserSettings() {
     setPasswordError('');
 
     try {
-      // TODO: Implement LoopApiService.updatePassword()
       await api.put('/auth/password', {
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword,
@@ -453,7 +457,18 @@ export default function UserSettings() {
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setShowPasswordSection(false);
       setTimeout(() => setPasswordStatus('idle'), 3000);
-  */
+    } catch (err: unknown) {
+      setPasswordStatus('error');
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosErr = err as { response?: { data?: { error?: { message?: string } } } };
+        setPasswordError(axiosErr.response?.data?.error?.message || 'Failed to change password');
+      } else {
+        setPasswordError('Failed to change password');
+      }
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
 
   const handleStartTotpSetup = async () => {
     clearSecurityError();
@@ -852,6 +867,77 @@ export default function UserSettings() {
               <h2 className="text-2xl font-black uppercase">Security</h2>
             </div>
             <div className="p-8">
+
+            {/* Password Change */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-app-text-heading">Password</h3>
+                  <p className="text-sm text-app-text-muted">Change your account password</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordSection(!showPasswordSection)}
+                  className="px-4 py-2 bg-app-surface text-app-text font-bold uppercase text-sm border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_var(--shadow-color)] transition-all"
+                >
+                  {showPasswordSection ? 'Cancel' : 'Change Password'}
+                </button>
+              </div>
+
+              {passwordStatus === 'success' && (
+                <div className="bg-green-100 border-2 border-green-600 p-3 mb-3">
+                  <span className="font-bold text-green-800">Password changed successfully!</span>
+                </div>
+              )}
+
+              {showPasswordSection && (
+                <div className="space-y-3 border-2 border-black p-4 bg-app-surface-muted shadow-[4px_4px_0px_0px_var(--shadow-color)]">
+                  {passwordError && (
+                    <div className="bg-red-100 border-2 border-red-500 p-3">
+                      <span className="font-bold text-red-700">{passwordError}</span>
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-sm font-bold uppercase mb-1">Current Password</label>
+                    <input
+                      type="password"
+                      value={passwordData.currentPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                      className="w-full px-3 py-2 border-2 border-black bg-app-surface font-medium shadow-[2px_2px_0px_0px_var(--shadow-color)]"
+                      placeholder="Enter current password"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold uppercase mb-1">New Password</label>
+                    <input
+                      type="password"
+                      value={passwordData.newPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                      className="w-full px-3 py-2 border-2 border-black bg-app-surface font-medium shadow-[2px_2px_0px_0px_var(--shadow-color)]"
+                      placeholder="Min 8 chars, upper, lower, number, special"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold uppercase mb-1">Confirm New Password</label>
+                    <input
+                      type="password"
+                      value={passwordData.confirmPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      className="w-full px-3 py-2 border-2 border-black bg-app-surface font-medium shadow-[2px_2px_0px_0px_var(--shadow-color)]"
+                      placeholder="Re-enter new password"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleChangePassword}
+                    disabled={isChangingPassword || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+                    className="px-6 py-2 bg-[var(--loop-cyan)] text-black font-bold uppercase border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_var(--shadow-color)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isChangingPassword ? 'Changing...' : 'Update Password'}
+                  </button>
+                </div>
+              )}
+            </div>
 
             <div className="mt-8 pt-6 border-t border-app-border">
               <h3 className="text-sm font-semibold text-app-text-heading">Two-Factor Authentication (2FA)</h3>

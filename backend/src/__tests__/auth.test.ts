@@ -31,6 +31,22 @@ jest.mock('../middleware/accountLockout', () => ({
   isAccountLocked: jest.fn().mockResolvedValue({ locked: false }),
 }));
 
+jest.mock('../utils/cookieHelper', () => ({
+  setAuthCookie: jest.fn(),
+  setRefreshCookie: jest.fn(),
+  clearAuthCookies: jest.fn(),
+}));
+
+jest.mock('../utils/authResponse', () => ({
+  buildAuthTokenResponse: jest.fn().mockReturnValue({}),
+  shouldExposeAuthTokensInResponse: jest.fn().mockReturnValue(false),
+}));
+
+jest.mock('../middleware/csrf', () => ({
+  generateCsrfToken: jest.fn().mockReturnValue('mock-csrf-token'),
+  doubleCsrfProtection: jest.fn((_req: unknown, _res: unknown, next: () => void) => next()),
+}));
+
 describe('Auth API', () => {
   const queryMock = pool.query as jest.Mock;
   const validationResultMock = validationResult as unknown as jest.Mock;
@@ -80,7 +96,6 @@ describe('Auth API', () => {
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          token: expect.any(String),
           user: expect.objectContaining({
             user_id: 'user-1',
             email: 'newuser@example.com',
@@ -199,8 +214,6 @@ describe('Auth API', () => {
 
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          token: expect.any(String),
-          refreshToken: expect.any(String),
           organizationId: 'org-1',
           user: expect.objectContaining({
             id: 'user-1',

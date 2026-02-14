@@ -20,9 +20,6 @@ export type { AdaptedPerson };
  * Logs original data for debugging
  */
 export function adaptPeopleData(apiResponse: unknown): AdaptedPerson[] {
-    console.group('[LOOP Data Adapter] People Data');
-    console.log('Raw API Response:', apiResponse);
-
     // Handle different response structures
     let dataArray: unknown[] = [];
     const response = apiResponse as Record<string, unknown> | null;
@@ -38,8 +35,6 @@ export function adaptPeopleData(apiResponse: unknown): AdaptedPerson[] {
     } else if (response?.contacts) {
         dataArray = Array.isArray(response.contacts) ? (response.contacts as unknown[]) : [];
     }
-
-    console.log(`Detected ${dataArray.length} records`);
 
     const getString = (value: unknown): string | undefined => {
         if (typeof value === 'string') return value;
@@ -111,9 +106,6 @@ export function adaptPeopleData(apiResponse: unknown): AdaptedPerson[] {
             fullName: `${firstName} ${lastName}`.trim(),
         };
     });
-
-    console.log('Adapted People:', adapted);
-    console.groupEnd();
 
     return adapted;
 }

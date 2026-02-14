@@ -653,7 +653,7 @@ export const clearAllCache = async (
     return;
   }
 
-  siteCacheService.clear();
+  await siteCacheService.clear();
   res.json({ message: 'Cache cleared successfully' });
 };
 
@@ -676,7 +676,7 @@ export const servePublishedSiteWithCache = async (
 
     // Check cache
     const cacheKey = siteCacheService.generateCacheKey(site.id, pageSlug);
-    const cachedEntry = siteCacheService.get(cacheKey);
+    const cachedEntry = await siteCacheService.get(cacheKey);
 
     // Handle conditional GET
     const requestETag = req.headers['if-none-match'] as string;
@@ -707,7 +707,7 @@ export const servePublishedSiteWithCache = async (
     };
 
     // Store in cache
-    siteCacheService.set(cacheKey, content, site.publishedVersion || 'v1', {
+    await siteCacheService.set(cacheKey, content, site.publishedVersion || 'v1', {
       tags: [`site:${site.id}`],
     });
 

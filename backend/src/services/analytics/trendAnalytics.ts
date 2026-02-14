@@ -506,7 +506,24 @@ export class TrendAnalyticsService {
             currentVolunteer ? parseFloat(currentVolunteer.hours) : 0,
             previousVolunteer ? parseFloat(previousVolunteer.hours) : 0
           ),
-          engagement_score: calculateComparison(0, 0), // Placeholder for now
+          engagement_score: (() => {
+            // Composite engagement score: weighted sum of normalized activity metrics
+            // Weights: donations (30%), contacts (20%), events (25%), volunteer hours (25%)
+            const currentScore =
+              (currentDonations ? parseInt(currentDonations.count) : 0) * 0.3 +
+              (currentContacts ? parseInt(currentContacts.count) : 0) * 0.2 +
+              (currentEvents ? parseInt(currentEvents.count) : 0) * 0.25 +
+              (currentVolunteer ? parseFloat(currentVolunteer.hours) : 0) * 0.25;
+            const previousScore =
+              (previousDonations ? parseInt(previousDonations.count) : 0) * 0.3 +
+              (previousContacts ? parseInt(previousContacts.count) : 0) * 0.2 +
+              (previousEvents ? parseInt(previousEvents.count) : 0) * 0.25 +
+              (previousVolunteer ? parseFloat(previousVolunteer.hours) : 0) * 0.25;
+            return calculateComparison(
+              parseFloat(currentScore.toFixed(2)),
+              parseFloat(previousScore.toFixed(2))
+            );
+          })(),
         },
       };
 

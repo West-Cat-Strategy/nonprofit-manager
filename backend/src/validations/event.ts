@@ -31,7 +31,7 @@ export const createEventSchema = z.object({
   postal_code: z.string().max(20).optional(),
   country: z.string().max(100).optional(),
   capacity: z.number().int().positive().optional(),
-  status: eventStatusSchema.optional(),
+  status: eventStatusSchema.default('planned'),
 }).refine(
   (data) => data.start_date < data.end_date,
   {
