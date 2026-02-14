@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import NeoBrutalistLayout from '../../components/neo-brutalist/NeoBrutalistLayout';
 import BrutalInput from '../../components/neo-brutalist/BrutalInput';
@@ -14,6 +15,7 @@ export default function LinkingModule() {
     const [organizations, setOrganizations] = useState<Organization[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchOrgs = async () => {
@@ -29,8 +31,8 @@ export default function LinkingModule() {
         fetchOrgs();
     }, []);
 
-    const handleNewItem = () => console.log('Open New Organization Modal');
-    const handleEdit = (id: string) => console.log(`Edit Organization ${id}`);
+    const handleNewItem = () => navigate('/accounts/new');
+    const handleEdit = (id: string) => navigate(`/accounts/${id}/edit`);
 
     const getStatusColor = (status: string) => {
         switch (status) {

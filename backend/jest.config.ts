@@ -22,6 +22,8 @@ const config: Config = {
     '^@config/(.*)$': '<rootDir>/src/config/$1',
     '^@utils/(.*)$': '<rootDir>/src/utils/$1',
     '^@app-types/(.*)$': '<rootDir>/src/types/$1',
+    '^@validations$': '<rootDir>/src/validations/index.ts',
+    '^@validations/(.*)$': '<rootDir>/src/validations/$1',
     '^@middleware$': '<rootDir>/src/middleware/index.ts',
     '^@middleware/(.*)$': '<rootDir>/src/middleware/$1',
     '^@controllers/(.*)$': '<rootDir>/src/controllers/$1',

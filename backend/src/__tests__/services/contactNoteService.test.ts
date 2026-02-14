@@ -55,15 +55,20 @@ describe('getContactNotes', () => {
 
   it('returns all notes for a contact', async () => {
     const rows = [makeNoteRow(), makeNoteRow({ id: 'note-2', is_pinned: true })];
-    mockQuery.mockResolvedValueOnce({ rows });
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ total: '2' }] })  // count query
+      .mockResolvedValueOnce({ rows });                     // data query
 
     const result = await getContactNotes('contact-1');
-    expect(result).toHaveLength(2);
-    expect(result[0].id).toBe('note-uuid');
+    expect(result.notes).toHaveLength(2);
+    expect(result.notes[0].id).toBe('note-uuid');
+    expect(result.total).toBe(2);
   });
 
   it('passes the contactId as the query parameter', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [] });
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ total: '0' }] })
+      .mockResolvedValueOnce({ rows: [] });
 
     await getContactNotes('contact-abc');
 
@@ -72,10 +77,13 @@ describe('getContactNotes', () => {
   });
 
   it('returns an empty array when there are no notes', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [] });
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ total: '0' }] })
+      .mockResolvedValueOnce({ rows: [] });
 
     const result = await getContactNotes('contact-no-notes');
-    expect(result).toHaveLength(0);
+    expect(result.notes).toHaveLength(0);
+    expect(result.total).toBe(0);
   });
 
   it('throws a user-friendly error on query failure', async () => {

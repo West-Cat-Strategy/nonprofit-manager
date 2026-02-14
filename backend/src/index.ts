@@ -107,10 +107,10 @@ app.use(
         // Form submissions: only to same origin
         formAction: ["'self'"],
         // Upgrade insecure requests to HTTPS in production
-        upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : undefined,
+        ...(process.env.NODE_ENV === 'production' ? { upgradeInsecureRequests: [] } : {}),
       },
       // Report CSP violations for monitoring (optional, for production)
-      reportUri: process.env.CSP_REPORT_URI ? [process.env.CSP_REPORT_URI] : undefined,
+      ...(process.env.CSP_REPORT_URI ? { reportUri: [process.env.CSP_REPORT_URI] } : {}),
       // Report-Only mode in development for testing without blocking
       reportOnly: process.env.NODE_ENV === 'development',
     },
