@@ -13,6 +13,7 @@ import { issueTotpMfaChallenge } from './mfaController';
 import { badRequest, conflict, forbidden, notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
 import { setAuthCookie, setRefreshCookie, clearAuthCookies } from '@utils/cookieHelper';
 import { buildAuthTokenResponse } from '@utils/authResponse';
+import { generateCsrfToken } from '@middleware/domains/security';
 
 interface RegisterRequest {
   email: string;
@@ -40,6 +41,7 @@ interface UserRow {
   profile_picture?: string | null;
   preferences?: Record<string, unknown>;
   mfa_totp_enabled?: boolean;
+  mfa_required_by_role?: boolean;
 }
 
 const getDefaultOrganizationId = async (): Promise<string | null> => {
@@ -148,9 +150,17 @@ export const login = async (
     const { email, password }: LoginRequest = req.body;
     const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
 
-    // Get user
+    // Get user with role information
     const result = await pool.query<UserRow>(
-      'SELECT id, email, password_hash, first_name, last_name, role, profile_picture, mfa_totp_enabled FROM users WHERE email = $1',
+      `SELECT 
+        u.id, u.email, u.password_hash, u.first_name, u.last_name, u.role, 
+        u.profile_picture, u.mfa_totp_enabled,
+        COALESCE(bool_or(r.mfa_required), FALSE) as mfa_required_by_role
+      FROM users u
+      LEFT JOIN user_roles ur ON u.id = ur.user_id
+      LEFT JOIN roles r ON ur.role_id = r.id
+      WHERE u.email = $1
+      GROUP BY u.id`,
       [email]
     );
 
@@ -173,8 +183,21 @@ export const login = async (
       return unauthorized(res, 'Invalid credentials');
     }
 
-    // If TOTP is enabled, require second factor before issuing tokens
-    if (user.mfa_totp_enabled) {
+    // Check if MFA is required by role or user preference
+    const mfaRequired = user.mfa_totp_enabled || user.mfa_required_by_role;
+
+    // If TOTP is required (by role or user), require second factor before issuing tokens
+    if (mfaRequired) {
+      if (user.mfa_required_by_role && !user.mfa_totp_enabled) {
+        logger.warn(`MFA enforced by role for user: ${user.email} but not yet enrolled`, { ip: clientIp });
+        return res.status(403).json({
+          error: {
+            message: 'Multi-factor authentication is required for your role. Please enroll in MFA to continue.',
+            code: 'MFA_REQUIRED_NOT_ENROLLED',
+          },
+        });
+      }
+
       logger.info(`MFA required for user: ${user.email}`, { ip: clientIp });
       const organizationId = await getDefaultOrganizationId();
       return res.json({
@@ -223,9 +246,14 @@ export const login = async (
     setAuthCookie(res, token);
     setRefreshCookie(res, refreshToken);
 
+    // Regenerate CSRF token after successful login
+    const csrfToken = generateCsrfToken(req, res);
+
     const organizationId = await getDefaultOrganizationId();
     return res.json({
       ...buildAuthTokenResponse(token, refreshToken),
+      csrfToken, // Include new CSRF token in response
+
       organizationId,
       user: {
         id: user.id,

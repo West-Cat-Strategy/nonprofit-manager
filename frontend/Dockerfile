@@ -1,60 +1,49 @@
-# Multi-stage build for production-optimized frontend
+# Multi-stage production build for frontend (Vite → nginx)
+# syntax=docker/dockerfile:1
 
-# Stage 1: Build
-FROM node:20-alpine AS builder
+# ── Stage 1: Build ────────────────────────────────────────────────────────────
+FROM node:20-alpine3.20 AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Install deps before copying source for better layer caching
 COPY package*.json ./
-
-# Install dependencies
 RUN npm ci --no-audit --no-fund && \
     npm cache clean --force
 
-# Copy source code
-COPY . .
-
-# Build argument for API URL
-ARG VITE_API_URL=http://localhost:3000/api
+# API URL is baked into the static bundle at build time
+ARG VITE_API_URL=http://localhost:8000/api
 ENV VITE_API_URL=$VITE_API_URL
 
-# Build application
+COPY . .
 RUN npm run build
 
-# Stage 2: Production with nginx
-FROM nginx:alpine AS production
+# ── Stage 2: Production (nginx) ───────────────────────────────────────────────
+FROM nginx:1.27-alpine3.20 AS production
 
-# Install dumb-init
+# dumb-init: proper PID-1 signal handling
 RUN apk add --no-cache dumb-init
 
-# Copy custom nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Copy built application from builder
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Create non-root user for nginx
+# Non-root user — must be done before USER directive
 RUN addgroup -g 1001 -S nginx-user && \
     adduser -S nginx-user -u 1001 && \
-    chown -R nginx-user:nginx-user /usr/share/nginx/html && \
-    chown -R nginx-user:nginx-user /var/cache/nginx && \
-    chown -R nginx-user:nginx-user /var/log/nginx && \
+    # Grant nginx-user write access to dirs nginx needs at runtime
+    chown -R nginx-user:nginx-user \
+        /usr/share/nginx/html \
+        /var/cache/nginx \
+        /var/log/nginx && \
     touch /var/run/nginx.pid && \
-    chown -R nginx-user:nginx-user /var/run/nginx.pid
+    chown nginx-user:nginx-user /var/run/nginx.pid
 
-# Switch to non-root user
+COPY --chown=nginx-user:nginx-user nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder --chown=nginx-user:nginx-user /app/dist /usr/share/nginx/html
+
 USER nginx-user
 
-# Expose port
-EXPOSE 8080
+EXPOSE 8001
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/health || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:8001/health || exit 1
 
-# Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
-
-# Start nginx
 CMD ["nginx", "-g", "daemon off;"]

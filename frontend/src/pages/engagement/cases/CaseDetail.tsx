@@ -13,33 +13,46 @@ import {
   deleteCase,
   clearCurrentCase,
   fetchCaseStatuses,
+  fetchCaseMilestones,
+  createCaseMilestone,
+  updateCaseMilestone,
+  deleteCaseMilestone,
 } from '../../../store/slices/casesSlice';
 import { useToast } from '../../../contexts/useToast';
 import { BrutalBadge, BrutalButton, BrutalCard, NeoBrutalistLayout } from '../../../components/neo-brutalist';
 import CaseNotes from '../../../components/CaseNotes';
 import CaseDocuments from '../../../components/CaseDocuments';
 import FollowUpList from '../../../components/FollowUpList';
-import type { CasePriority, CaseStatusType } from '../../../types/case';
+import type { CasePriority, CaseStatusType, CaseMilestone } from '../../../types/case';
 
-type TabType = 'overview' | 'notes' | 'documents' | 'followups';
+type TabType = 'overview' | 'notes' | 'documents' | 'milestones' | 'followups';
 
 const CaseDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { showSuccess, showError } = useToast();
-  const { currentCase, caseStatuses, loading, error } = useAppSelector((state) => state.cases);
+  const { currentCase, caseStatuses, caseMilestones, loading, error } = useAppSelector((state) => state.cases);
 
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [isChangingStatus, setIsChangingStatus] = useState(false);
   const [newStatusId, setNewStatusId] = useState('');
   const [statusChangeNotes, setStatusChangeNotes] = useState('');
 
+  // Milestone form state
+  const [showMilestoneForm, setShowMilestoneForm] = useState(false);
+  const [editingMilestone, setEditingMilestone] = useState<CaseMilestone | null>(null);
+  const [milestoneName, setMilestoneName] = useState('');
+  const [milestoneDescription, setMilestoneDescription] = useState('');
+  const [milestoneDueDate, setMilestoneDueDate] = useState('');
+  const [milestoneCompleted, setMilestoneCompleted] = useState(false);
+
   useEffect(() => {
     if (id) {
       dispatch(fetchCaseById(id));
       dispatch(fetchCaseNotes(id));
       dispatch(fetchCaseStatuses());
+      dispatch(fetchCaseMilestones(id));
     }
 
     return () => {
@@ -70,6 +83,88 @@ const CaseDetail = () => {
       console.error('Failed to update status:', err);
       showError('Failed to update status');
     }
+  };
+
+  const resetMilestoneForm = () => {
+    setShowMilestoneForm(false);
+    setEditingMilestone(null);
+    setMilestoneName('');
+    setMilestoneDescription('');
+    setMilestoneDueDate('');
+    setMilestoneCompleted(false);
+  };
+
+  const handleEditMilestone = (milestone: CaseMilestone) => {
+    setEditingMilestone(milestone);
+    setMilestoneName(milestone.milestone_name);
+    setMilestoneDescription(milestone.description || '');
+    setMilestoneDueDate(milestone.due_date ? milestone.due_date.split('T')[0] : '');
+    setMilestoneCompleted(milestone.is_completed);
+    setShowMilestoneForm(true);
+  };
+
+  const handleSaveMilestone = async () => {
+    if (!id || !milestoneName.trim()) return;
+
+    try {
+      if (editingMilestone) {
+        await dispatch(updateCaseMilestone({
+          milestoneId: editingMilestone.id,
+          data: {
+            milestone_name: milestoneName,
+            description: milestoneDescription || undefined,
+            due_date: milestoneDueDate || undefined,
+            is_completed: milestoneCompleted,
+          },
+        })).unwrap();
+        showSuccess('Milestone updated');
+      } else {
+        await dispatch(createCaseMilestone({
+          caseId: id,
+          data: {
+            milestone_name: milestoneName,
+            description: milestoneDescription || undefined,
+            due_date: milestoneDueDate || undefined,
+          },
+        })).unwrap();
+        showSuccess('Milestone created');
+      }
+      resetMilestoneForm();
+      dispatch(fetchCaseMilestones(id));
+    } catch (err) {
+      console.error('Failed to save milestone:', err);
+      showError('Failed to save milestone');
+    }
+  };
+
+  const handleDeleteMilestone = async (milestoneId: string) => {
+    if (!id || !confirm('Delete this milestone?')) return;
+    try {
+      await dispatch(deleteCaseMilestone(milestoneId)).unwrap();
+      showSuccess('Milestone deleted');
+      dispatch(fetchCaseMilestones(id));
+    } catch (err) {
+      console.error('Failed to delete milestone:', err);
+      showError('Failed to delete milestone');
+    }
+  };
+
+  const handleToggleMilestoneComplete = async (milestone: CaseMilestone) => {
+    if (!id) return;
+    try {
+      await dispatch(updateCaseMilestone({
+        milestoneId: milestone.id,
+        data: { is_completed: !milestone.is_completed },
+      })).unwrap();
+      dispatch(fetchCaseMilestones(id));
+    } catch (err) {
+      console.error('Failed to toggle milestone:', err);
+      showError('Failed to update milestone');
+    }
+  };
+
+  const getMilestoneStatusColor = (isCompleted: boolean): 'green' | 'gray' => {
+    return isCompleted ? 'green' : 'gray';
   };
 
   const handleDelete = async () => {
@@ -167,10 +262,13 @@ const CaseDetail = () => {
     );
   }
 
+  const completedMilestones = caseMilestones.filter(m => m.is_completed).length;
+
   const tabs: Array<{ key: TabType; label: string; count?: number }> = [
     { key: 'overview', label: 'Overview' },
     { key: 'notes', label: 'Notes', count: currentCase.notes_count || 0 },
     { key: 'documents', label: 'Documents', count: currentCase.documents_count || 0 },
+    { key: 'milestones', label: 'Milestones', count: caseMilestones.length },
     { key: 'followups', label: 'Follow-ups' },
   ];
 
@@ -506,6 +604,172 @@ const CaseDetail = () => {
         {activeTab === 'documents' && id && (
           <div id="panel-documents" role="tabpanel" aria-labelledby="tab-documents">
             <CaseDocuments caseId={id} contactId={currentCase.contact_id} />
+          </div>
+        )}
+
+        {/* Milestones Tab */}
+        {activeTab === 'milestones' && id && (
+          <div id="panel-milestones" role="tabpanel" aria-labelledby="tab-milestones" className="space-y-4">
+            {/* Progress Bar */}
+            <BrutalCard color="white" className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-black uppercase text-black dark:text-white">
+                  Progress: {completedMilestones} / {caseMilestones.length} completed
+                </h3>
+                <BrutalButton onClick={() => { resetMilestoneForm(); setShowMilestoneForm(true); }} variant="primary" size="sm">
+                  + Add Milestone
+                </BrutalButton>
+              </div>
+              <div className="w-full h-4 border-2 border-black bg-white">
+                <div
+                  className="h-full bg-[var(--loop-green)] transition-all duration-300"
+                  style={{ width: caseMilestones.length > 0 ? `${(completedMilestones / caseMilestones.length) * 100}%` : '0%' }}
+                />
+              </div>
+            </BrutalCard>
+
+            {/* Milestone Form */}
+            {showMilestoneForm && (
+              <BrutalCard color="white" className="p-6 border-2 border-black bg-[var(--loop-cyan)]">
+                <h3 className="text-lg font-black uppercase mb-4 text-black">
+                  {editingMilestone ? 'Edit Milestone' : 'New Milestone'}
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-black uppercase text-black/70 mb-1">Name *</label>
+                    <input
+                      type="text"
+                      value={milestoneName}
+                      onChange={(e) => setMilestoneName(e.target.value)}
+                      placeholder="Milestone name..."
+                      className="w-full px-3 py-2 border-2 border-black bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black uppercase text-black/70 mb-1">Description</label>
+                    <textarea
+                      value={milestoneDescription}
+                      onChange={(e) => setMilestoneDescription(e.target.value)}
+                      rows={2}
+                      placeholder="Optional description..."
+                      className="w-full px-3 py-2 border-2 border-black bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-black uppercase text-black/70 mb-1">Due Date</label>
+                      <input
+                        type="date"
+                        value={milestoneDueDate}
+                        onChange={(e) => setMilestoneDueDate(e.target.value)}
+                        className="w-full px-3 py-2 border-2 border-black bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
+                      />
+                    </div>
+                    {editingMilestone && (
+                      <div className="flex items-end">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={milestoneCompleted}
+                            onChange={(e) => setMilestoneCompleted(e.target.checked)}
+                            className="w-4 h-4 border-2 border-black accent-black"
+                          />
+                          <span className="text-xs font-black uppercase text-black/70">Mark Complete</span>
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex justify-end gap-3">
+                    <BrutalButton onClick={resetMilestoneForm} variant="secondary">Cancel</BrutalButton>
+                    <BrutalButton onClick={handleSaveMilestone} disabled={!milestoneName.trim() || loading} variant="primary">
+                      {editingMilestone ? 'Update' : 'Create'}
+                    </BrutalButton>
+                  </div>
+                </div>
+              </BrutalCard>
+            )}
+
+            {/* Milestone List */}
+            {caseMilestones.length === 0 ? (
+              <BrutalCard color="white" className="p-8">
+                <div className="text-center">
+                  <div className="text-4xl mb-3">🎯</div>
+                  <h3 className="text-lg font-black uppercase text-black dark:text-white mb-1">No Milestones Yet</h3>
+                  <p className="text-sm text-black/60 dark:text-white/60">Add milestones to track progress on this case.</p>
+                </div>
+              </BrutalCard>
+            ) : (
+              <div className="space-y-3">
+                {caseMilestones.map((milestone, index) => {
+                  const isOverdueMilestone = milestone.due_date && new Date(milestone.due_date) < new Date() && !milestone.is_completed;
+                  return (
+                    <BrutalCard
+                      key={milestone.id}
+                      color={milestone.is_completed ? 'green' : isOverdueMilestone ? 'pink' : 'white'}
+                      className={`p-4 ${milestone.is_completed ? 'opacity-80' : ''}`}
+                    >
+                      <div className="flex items-start gap-4">
+                        {/* Completion checkbox */}
+                        <button
+                          onClick={() => handleToggleMilestoneComplete(milestone)}
+                          className={`mt-1 w-6 h-6 border-2 border-black flex items-center justify-center flex-shrink-0 transition-colors ${
+                            milestone.is_completed ? 'bg-(--loop-green)' : 'bg-white hover:bg-gray-100'
+                          }`}
+                          title={milestone.is_completed ? 'Mark incomplete' : 'Mark complete'}
+                        >
+                          {milestone.is_completed && <span className="text-black font-black">✓</span>}
+                        </button>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-1">
+                            <span className="text-xs font-black text-black/50 dark:text-white/50">#{index + 1}</span>
+                            <h4 className={`font-black text-black dark:text-white ${
+                              milestone.is_completed ? 'line-through' : ''
+                            }`}>
+                              {milestone.milestone_name}
+                            </h4>
+                            <BrutalBadge color={getMilestoneStatusColor(milestone.is_completed)} size="sm">
+                              {milestone.is_completed ? 'Complete' : 'Pending'}
+                            </BrutalBadge>
+                          </div>
+                          {milestone.description && (
+                            <p className="text-sm text-black/70 dark:text-white/70 mb-1">{milestone.description}</p>
+                          )}
+                          <div className="flex gap-4 text-xs font-bold text-black/50 dark:text-white/50">
+                            {milestone.due_date && (
+                              <span className={isOverdueMilestone ? 'text-red-600 font-black' : ''}>
+                                Due: {new Date(milestone.due_date).toLocaleDateString()}
+                                {isOverdueMilestone && ' (OVERDUE)'}
+                              </span>
+                            )}
+                            {milestone.completed_date && (
+                              <span className="text-green-700">Completed: {new Date(milestone.completed_date).toLocaleDateString()}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-2 shrink-0">
+                          <button
+                            onClick={() => handleEditMilestone(milestone)}
+                            className="border-2 border-black bg-white text-black px-2 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-px hover:translate-y-px hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMilestone(milestone.id)}
+                            className="border-2 border-black bg-red-100 text-black px-2 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-px hover:translate-y-px hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    </BrutalCard>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

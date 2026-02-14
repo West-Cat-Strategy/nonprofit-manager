@@ -5,7 +5,7 @@
 
 import { createObjectCsvWriter } from 'csv-writer';
 import ExcelJS from 'exceljs';
-import * as fs from 'fs';
+import { promises as fsPromises } from 'fs';
 import * as path from 'path';
 import type {
   AnalyticsSummary,
@@ -23,12 +23,32 @@ export interface ExportOptions {
 export class ExportService {
   private exportDir: string;
   private readonly maxFilenameLength = 80;
+  private dirInitialized = false;
 
   constructor() {
-    // Create exports directory if it doesn't exist
     this.exportDir = path.join(__dirname, '../../exports');
-    if (!fs.existsSync(this.exportDir)) {
-      fs.mkdirSync(this.exportDir, { recursive: true });
+    // Initialize directory asynchronously on construction (non-blocking)
+    // Don't await - let it complete in the background
+    this.initializeExportDir().catch((err) => {
+      console.error('Warning: Failed to initialize export directory:', err);
+    });
+  }
+
+  /**
+   * Initialize export directory if it doesn't exist
+   * Uses async file operations to avoid blocking the event loop
+   */
+  private async initializeExportDir(): Promise<void> {
+    if (this.dirInitialized) return;
+    try {
+      await fsPromises.mkdir(this.exportDir, { recursive: true });
+      this.dirInitialized = true;
+    } catch (error) {
+      // If directory exists, that's fine
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
+        throw error;
+      }
+      this.dirInitialized = true;
     }
   }
 
@@ -332,34 +352,49 @@ export class ExportService {
   }
 
   /**
-   * Delete an export file
+   * Delete an export file asynchronously
    */
-  deleteExport(filepath: string): void {
-    if (fs.existsSync(filepath)) {
-      fs.unlinkSync(filepath);
+  async deleteExport(filepath: string): Promise<void> {
+    try {
+      await fsPromises.unlink(filepath);
+    } catch (error) {
+      // File doesn't exist or already deleted - that's fine
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw error;
+      }
     }
   }
 
   /**
    * Clean up old export files (older than 1 hour)
+   * Uses async/await instead of callbacks to avoid event loop blocking
    */
-  cleanupOldExports(): void {
+  async cleanupOldExports(): Promise<void> {
     const oneHourAgo = Date.now() - 60 * 60 * 1000;
 
-    fs.readdir(this.exportDir, (err, files) => {
-      if (err) return;
+    try {
+      const files = await fsPromises.readdir(this.exportDir);
 
-      files.forEach((file) => {
+      for (const file of files) {
         const filepath = path.join(this.exportDir, file);
-        fs.stat(filepath, (err, stats) => {
-          if (err) return;
+        try {
+          const stats = await fsPromises.stat(filepath);
 
           if (stats.mtimeMs < oneHourAgo) {
-            fs.unlink(filepath, () => {});
+            await fsPromises.unlink(filepath);
           }
-        });
-      });
-    });
+        } catch (error) {
+          // Skip individual file errors (file may have been deleted, etc.)
+          const errno = (error as NodeJS.ErrnoException).code;
+          if (errno !== 'ENOENT' && errno !== 'EACCES') {
+            console.warn(`Failed to clean up export file ${filepath}:`, error);
+          }
+        }
+      }
+    } catch (error) {
+      // Directory might not exist yet or other errors - non-critical
+      console.warn('Failed to cleanup old exports:', error);
+    }
   }
 
   private sanitizeFilename(input: string | undefined, fallback: string): string {

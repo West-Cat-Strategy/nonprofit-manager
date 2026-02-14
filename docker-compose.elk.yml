@@ -1,0 +1,94 @@
+# Docker Compose Example: ELK Stack for Log Aggregation
+# 
+# This file provides a complete ELK (Elasticsearch, Logstash, Kibana) stack setup
+# for centralizing application logs.
+#
+# Usage:
+#   docker-compose -f docker-compose.elk.yml up -d
+#
+# After startup:
+#   - Kibana: http://localhost:5601
+#   - Elasticsearch: http://localhost:9200
+#   - Logstash: http://localhost:8080 (HTTP input)
+#
+# Note: This is a development example. For production, use:
+#   - Managed Elasticsearch service (AWS, Elastic Cloud, etc.)
+#   - Hardened Logstash with authentication
+#   - Secured Kibana with OIDC/SAML authentication
+#
+
+version: '3.8'
+
+services:
+  # Elasticsearch - Search and analytics engine
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.5.0
+    container_name: nonprofit-manager-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false  # Disable for development; enable for production
+      - xpack.security.enrollment.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+      - elasticsearch_logs:/usr/share/elasticsearch/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nonprofit-manager-network
+
+  # Logstash - Log pipeline and ingestion
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.5.0
+    container_name: nonprofit-manager-logstash
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/02-output.conf:ro
+      - logstash_data:/usr/share/logstash/data
+    environment:
+      - "LS_JAVA_OPTS=-Xms256m -Xmx256m"
+    ports:
+      - "8080:8080"  # HTTP input for application logs
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - nonprofit-manager-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9600/?pretty"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Kibana - Visualization and exploration
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.5.0
+    container_name: nonprofit-manager-kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - XPACK_SECURITY_ENABLED=false  # Disable for development
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - nonprofit-manager-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5601/api/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  elasticsearch_data:
+  elasticsearch_logs:
+  logstash_data:
+
+networks:
+  nonprofit-manager-network:
+    driver: bridge

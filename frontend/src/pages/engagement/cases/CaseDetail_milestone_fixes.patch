@@ -1,0 +1,10 @@
+// Line 157: Remove completed_date from data object
+// OLD: data: { is_completed: !milestone.is_completed, completed_date: !milestone.is_completed ? new Date().toISOString() : undefined },
+// NEW: data: { is_completed: !milestone.is_completed },
+
+// Line 166-175: Replace old getMilestoneStatusColor with new one
+// OLD function returns pending/in_progress/completed/skipped
+// NEW function returns based on is_completed boolean
+
+// Line 271: Check usages of milestone.status
+// Should be milestone.is_completed

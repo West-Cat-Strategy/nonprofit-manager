@@ -12,10 +12,25 @@ import type {
 } from '@app-types/contact';
 
 /**
- * Get all notes for a contact
+ * Get all notes for a contact with pagination
+ * @param contactId - Contact ID
+ * @param limit - Maximum number of notes to return (default: 50)
+ * @param offset - Number of notes to skip (default: 0)
  */
-export async function getContactNotes(contactId: string): Promise<ContactNote[]> {
+export async function getContactNotes(
+  contactId: string,
+  limit: number = 50,
+  offset: number = 0
+): Promise<{ notes: ContactNote[]; total: number }> {
   try {
+    // Get total count
+    const countResult = await pool.query(
+      'SELECT COUNT(*) as total FROM contact_notes WHERE contact_id = $1',
+      [contactId]
+    );
+    const total = parseInt(countResult.rows[0]?.total || '0', 10);
+
+    // Get paginated notes
     const result = await pool.query(
       `
       SELECT
@@ -29,11 +44,12 @@ export async function getContactNotes(contactId: string): Promise<ContactNote[]>
       LEFT JOIN cases c ON cn.case_id = c.id
       WHERE cn.contact_id = $1
       ORDER BY cn.is_pinned DESC, cn.created_at DESC
+      LIMIT $2 OFFSET $3
       `,
-      [contactId]
+      [contactId, limit, offset]
     );
 
-    return result.rows;
+    return { notes: result.rows, total };
   } catch (error) {
     logger.error('Error getting contact notes:', error);
     throw new Error('Failed to retrieve contact notes');

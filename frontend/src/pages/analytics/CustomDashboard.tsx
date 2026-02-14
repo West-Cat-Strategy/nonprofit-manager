@@ -36,7 +36,7 @@ import {
 const CustomDashboard = () => {
   const dispatch = useAppDispatch();
   const { currentDashboard, loading, saving, editMode, error } = useAppSelector((state) => state.dashboard);
-  const { token, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
   const [showAddWidget, setShowAddWidget] = useState(false);
   const [creatingDefault, setCreatingDefault] = useState(false);
   const hasInitializedRef = useRef(false);
@@ -65,10 +65,10 @@ const CustomDashboard = () => {
       }
     };
 
-    if (token || isAuthenticated) {
+    if (isAuthenticated) {
       initializeDashboard();
     }
-  }, [dispatch, token, isAuthenticated]);
+  }, [dispatch, isAuthenticated]);
 
   const handleLayoutChange = (layout: Layout) => {
     if (editMode && currentDashboard) {
@@ -179,7 +179,7 @@ const CustomDashboard = () => {
     }
   };
 
-  if (!token && !isAuthenticated) {
+  if (!isAuthenticated) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">

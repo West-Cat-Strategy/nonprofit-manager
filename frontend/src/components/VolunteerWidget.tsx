@@ -40,14 +40,17 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
     }
   }, [dispatch, stats, volunteers.length]);
 
-  const calculatedStats: VolunteerStats = stats || {
-    total: volunteers.length,
-    available: volunteers.filter((v) => v.availability_status === 'available').length,
-    limited: volunteers.filter((v) => v.availability_status === 'limited').length,
-    unavailable: volunteers.filter((v) => v.availability_status === 'unavailable').length,
-    totalHoursThisMonth: volunteers.reduce((sum, v) => sum + (v.total_hours_logged || 0), 0),
-    activeAssignments: 0,
-  };
+  const calculatedStats: VolunteerStats = useMemo(() => 
+    stats || {
+      total: volunteers.length,
+      available: volunteers.filter((v) => v.availability_status === 'available').length,
+      limited: volunteers.filter((v) => v.availability_status === 'limited').length,
+      unavailable: volunteers.filter((v) => v.availability_status === 'unavailable').length,
+      totalHoursThisMonth: volunteers.reduce((sum, v) => sum + (v.total_hours_logged || 0), 0),
+      activeAssignments: 0,
+    },
+    [stats, volunteers],
+  );
 
   const topVolunteers = useMemo(
     () => [...volunteers]
