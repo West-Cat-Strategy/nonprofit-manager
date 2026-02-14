@@ -12,6 +12,7 @@ import { syncUserRole } from '@services/domains/integration';
 import { issueTotpMfaChallenge } from './mfaController';
 import { badRequest, conflict, forbidden, notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
 import { setAuthCookie, setRefreshCookie, clearAuthCookies } from '@utils/cookieHelper';
+import { buildAuthTokenResponse } from '@utils/authResponse';
 
 interface RegisterRequest {
   email: string;
@@ -116,7 +117,7 @@ export const register = async (
 
     const organizationId = await getDefaultOrganizationId();
     return res.status(201).json({
-      token, // Still return token for backward compatibility during migration
+      ...buildAuthTokenResponse(token),
       organizationId,
       user: {
         id: user.id,
@@ -224,8 +225,7 @@ export const login = async (
 
     const organizationId = await getDefaultOrganizationId();
     return res.json({
-      token, // Still return token for backward compatibility during migration
-      refreshToken,
+      ...buildAuthTokenResponse(token, refreshToken),
       organizationId,
       user: {
         id: user.id,
@@ -379,7 +379,7 @@ export const setupFirstUser = async (
 
     return res.status(201).json({
       message: 'Setup completed successfully',
-      token, // Still return token for backward compatibility during migration
+      ...buildAuthTokenResponse(token),
       organizationId,
       user: {
         user_id: user.id,
