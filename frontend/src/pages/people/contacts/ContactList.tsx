@@ -65,6 +65,18 @@ const ContactList = () => {
   }, [loadContacts]);
 
   useEffect(() => {
+    if (searchInput === filters.search) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      dispatch(setFilters({ search: searchInput }));
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [dispatch, filters.search, searchInput]);
+
+  useEffect(() => {
     dispatch(fetchContactTags());
   }, [dispatch]);
 
@@ -272,10 +284,10 @@ const ContactList = () => {
   return (
     <>
       <PeopleListContainer
-        title="Contacts"
+        title="People"
         description="Manage all organizational contacts and relationships"
         onCreateNew={() => navigate('/contacts/new')}
-        createButtonLabel="New Contact"
+        createButtonLabel="New Person"
         filters={
           <FilterPanel
             fields={[
@@ -283,8 +295,9 @@ const ContactList = () => {
                 id: 'search',
                 label: 'Search',
                 type: 'text',
-                placeholder: 'Name, email, or company...',
+                placeholder: 'Quick lookup...',
                 value: searchInput,
+                ariaLabel: 'Search contacts',
               },
               {
                 id: 'role',
@@ -311,6 +324,7 @@ const ContactList = () => {
             onFilterChange={handleFilterChange}
             onApply={handleApplyFilters}
             onClear={handleClearFilters}
+            applyLabel="Search"
             isCollapsed={filterCollapsed}
             onToggleCollapse={() => setFilterCollapsed(!filterCollapsed)}
             activeFilterCount={

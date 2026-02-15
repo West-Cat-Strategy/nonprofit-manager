@@ -9,7 +9,7 @@ test.describe('Cases Module', () => {
     test('should display cases list page', async ({ authenticatedPage }) => {
         await authenticatedPage.goto('/cases');
 
-        await expect(authenticatedPage.getByRole('heading', { name: /cases/i })).toBeVisible();
+        await expect(authenticatedPage.getByRole('heading', { name: /cases/i }).first()).toBeVisible();
         await expect(authenticatedPage.getByRole('button', { name: /new case/i })).toBeVisible();
     });
 

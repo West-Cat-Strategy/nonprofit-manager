@@ -5,6 +5,7 @@ import { validateRequest } from '@middleware/domains/security';
 import {
   getPortalProfile,
   updatePortalProfile,
+  changePortalPassword,
   getPortalRelationships,
   createPortalRelationship,
   updatePortalRelationship,
@@ -29,6 +30,19 @@ router.use(authenticatePortal);
 router.get('/profile', getPortalProfile);
 
 router.patch('/profile', updatePortalProfile);
+
+router.post(
+  '/change-password',
+  [
+    body('currentPassword').isString().notEmpty(),
+    body('newPassword')
+      .isLength({ min: 8 })
+      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+      .withMessage('Password must contain uppercase, lowercase, number, and special character'),
+    validateRequest,
+  ],
+  changePortalPassword
+);
 
 router.get('/relationships', getPortalRelationships);
 

@@ -64,7 +64,7 @@ router.get(
     search: z.string().optional(),
     role: z.enum(['staff', 'volunteer', 'board']).optional(),
     account_id: uuidSchema.optional(),
-    is_active: z.boolean().optional(),
+    is_active: z.coerce.boolean().optional(),
     tags: z.string().optional(),
   })),
   getContacts

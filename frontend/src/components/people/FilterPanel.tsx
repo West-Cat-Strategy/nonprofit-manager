@@ -14,6 +14,7 @@ interface FilterField {
   options?: Array<{ value: string; label: string }>;
   value?: string | string[];
   placeholder?: string;
+  ariaLabel?: string;
 }
 
 interface FilterPanelProps {
@@ -24,6 +25,7 @@ interface FilterPanelProps {
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   activeFilterCount?: number;
+  applyLabel?: string;
 }
 
 export const FilterPanel: React.FC<FilterPanelProps> = ({
@@ -34,13 +36,20 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   isCollapsed = false,
   onToggleCollapse,
   activeFilterCount = 0,
+  applyLabel = 'Apply',
 }) => {
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    onApply?.();
+  };
+
   return (
-    <div className="space-y-4">
+    <form className="space-y-4" onSubmit={handleSubmit}>
       {/* Filter Header */}
       <div className="flex items-center justify-between">
         <button
           onClick={onToggleCollapse}
+          type="button"
           className="flex items-center gap-2 font-bold text-app-text hover:text-app-accent"
         >
           <AdjustmentsHorizontalIcon className="w-5 h-5" />
@@ -54,6 +63,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         {!isCollapsed && onClear && (
           <button
             onClick={onClear}
+            type="button"
             className="text-sm text-app-text-muted hover:text-app-text font-mono"
           >
             Clear all
@@ -76,6 +86,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                     type="text"
                     placeholder={field.placeholder}
                     value={(field.value as string) || ''}
+                    aria-label={field.ariaLabel || field.label}
                     onChange={(e) =>
                       onFilterChange(field.id, e.target.value)
                     }
@@ -87,6 +98,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                 {field.type === 'select' && (
                   <select
                     value={(field.value as string) || ''}
+                    aria-label={field.ariaLabel || field.label}
                     onChange={(e) =>
                       onFilterChange(field.id, e.target.value)
                     }
@@ -163,13 +175,13 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
           {/* Action Buttons */}
           <div className="flex gap-2 pt-4 border-t-2 border-app-text">
             {onApply && (
-              <BrutalButton onClick={onApply} className="flex-1">
-                Apply
+              <BrutalButton type="submit" className="flex-1">
+                {applyLabel}
               </BrutalButton>
             )}
           </div>
         </BrutalCard>
       )}
-    </div>
+    </form>
   );
 };

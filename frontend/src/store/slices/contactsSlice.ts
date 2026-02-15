@@ -114,7 +114,7 @@ const initialState: ContactsState = {
   filters: {
     search: '',
     account_id: '',
-    is_active: true,
+    is_active: null,
     tags: [],
     role: '',
     sort_by: 'created_at',
@@ -592,7 +592,9 @@ const contactsSlice = createSlice({
       })
       .addCase(fetchContactNotes.fulfilled, (state, action) => {
         state.notesLoading = false;
-        state.contactNotes = action.payload;
+        state.contactNotes = Array.isArray(action.payload)
+          ? action.payload
+          : (action.payload?.data || []);
       })
       .addCase(fetchContactNotes.rejected, (state) => {
         state.notesLoading = false;
