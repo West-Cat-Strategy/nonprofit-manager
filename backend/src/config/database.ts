@@ -29,12 +29,12 @@ const config: PoolConfig = {
   // SSL/TLS Configuration for Database Connection
   // In production, enforce SSL for secure database communication
   ssl:
-    process.env.NODE_ENV === 'production'
+    process.env.NODE_ENV === 'production' && process.env.DB_SSL_ENABLED !== 'false'
       ? {
-          rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false', // Default: true (strict)
-          // Optional: ca certificate path for self-signed certs
-          // ca: process.env.DB_SSL_CA_PATH ? fs.readFileSync(process.env.DB_SSL_CA_PATH, 'utf8') : undefined,
-        }
+        rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false', // Default: true (strict)
+        // Optional: ca certificate path for self-signed certs
+        // ca: process.env.DB_SSL_CA_PATH ? fs.readFileSync(process.env.DB_SSL_CA_PATH, 'utf8') : undefined,
+      }
       : false,
 };
 

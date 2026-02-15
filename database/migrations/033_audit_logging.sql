@@ -9,7 +9,7 @@
 -- ============================================================
 
 CREATE TABLE audit_log (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID DEFAULT uuid_generate_v4(),
   
   -- What was changed
   table_name VARCHAR(100) NOT NULL,
@@ -43,8 +43,10 @@ CREATE TABLE audit_log (
   
   -- Indexing and search
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  is_active BOOLEAN DEFAULT true
-);
+  is_active BOOLEAN DEFAULT true,
+
+  PRIMARY KEY (id, changed_at)
+) PARTITION BY RANGE (changed_at);
 
 -- Create indexes for efficient querying
 CREATE INDEX idx_audit_log_table_record 
@@ -183,7 +185,7 @@ BEGIN
     current_setting('app.request_id', true),
     current_query(),
     v_is_sensitive,
-    current_setting('app.environment', 'production')
+    COALESCE(current_setting('app.environment', true), 'production')
   );
   
   -- Return appropriate row based on operation
