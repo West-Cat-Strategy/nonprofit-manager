@@ -109,7 +109,8 @@ export async function getStatus(): Promise<MailchimpStatus> {
  */
 export async function getLists(): Promise<MailchimpList[]> {
   if (!isConfigured) {
-    throw new Error('Mailchimp is not configured');
+    logger.warn('Mailchimp getLists called but not configured');
+    return [];
   }
 
   try {
@@ -142,7 +143,7 @@ export async function getLists(): Promise<MailchimpList[]> {
  */
 export async function getList(listId: string): Promise<MailchimpList> {
   if (!isConfigured) {
-    throw new Error('Mailchimp is not configured');
+    throw new Error('Mailchimp is not configured. Please check your API settings.');
   }
 
   try {
@@ -166,7 +167,7 @@ export async function getList(listId: string): Promise<MailchimpList> {
  */
 export async function addOrUpdateMember(request: AddMemberRequest): Promise<MailchimpMember> {
   if (!isConfigured) {
-    throw new Error('Mailchimp is not configured');
+    throw new Error('Mailchimp is not configured. Member cannot be added.');
   }
 
   const subscriberHash = getSubscriberHash(request.email);
@@ -212,7 +213,7 @@ export async function addOrUpdateMember(request: AddMemberRequest): Promise<Mail
  */
 export async function getMember(listId: string, email: string): Promise<MailchimpMember | null> {
   if (!isConfigured) {
-    throw new Error('Mailchimp is not configured');
+    return null;
   }
 
   const subscriberHash = getSubscriberHash(email);
@@ -245,7 +246,8 @@ export async function getMember(listId: string, email: string): Promise<Mailchim
  */
 export async function deleteMember(listId: string, email: string): Promise<void> {
   if (!isConfigured) {
-    throw new Error('Mailchimp is not configured');
+    logger.warn('Mailchimp deleteMember called but not configured');
+    return;
   }
 
   const subscriberHash = getSubscriberHash(email);
@@ -264,7 +266,13 @@ export async function deleteMember(listId: string, email: string): Promise<void>
  */
 export async function syncContact(request: SyncContactRequest): Promise<SyncResult> {
   if (!isConfigured) {
-    throw new Error('Mailchimp is not configured');
+    return {
+      contactId: request.contactId,
+      email: '',
+      success: false,
+      action: 'skipped',
+      error: 'Mailchimp is not configured',
+    };
   }
 
   try {
@@ -366,7 +374,20 @@ export async function syncContact(request: SyncContactRequest): Promise<SyncResu
  */
 export async function bulkSyncContacts(request: BulkSyncRequest): Promise<BulkSyncResponse> {
   if (!isConfigured) {
-    throw new Error('Mailchimp is not configured');
+    return {
+      total: request.contactIds.length,
+      added: 0,
+      updated: 0,
+      skipped: request.contactIds.length,
+      errors: 0,
+      results: request.contactIds.map(id => ({
+        contactId: id,
+        email: '',
+        success: false,
+        action: 'skipped',
+        error: 'Mailchimp is not configured',
+      })),
+    };
   }
 
   // Execute all syncs in parallel for better performance
@@ -418,7 +439,8 @@ export async function bulkSyncContacts(request: BulkSyncRequest): Promise<BulkSy
  */
 export async function updateMemberTags(request: UpdateTagsRequest): Promise<void> {
   if (!isConfigured) {
-    throw new Error('Mailchimp is not configured');
+    logger.warn('Mailchimp updateMemberTags called but not configured');
+    return;
   }
 
   const subscriberHash = getSubscriberHash(request.email);
@@ -450,7 +472,7 @@ export async function updateMemberTags(request: UpdateTagsRequest): Promise<void
  */
 export async function getListTags(listId: string): Promise<MailchimpTag[]> {
   if (!isConfigured) {
-    throw new Error('Mailchimp is not configured');
+    return [];
   }
 
   try {
@@ -479,7 +501,7 @@ export async function getListTags(listId: string): Promise<MailchimpTag[]> {
  */
 export async function getCampaigns(listId?: string): Promise<MailchimpCampaign[]> {
   if (!isConfigured) {
-    throw new Error('Mailchimp is not configured');
+    return [];
   }
 
   try {
@@ -538,7 +560,7 @@ export async function getCampaigns(listId?: string): Promise<MailchimpCampaign[]
  */
 export async function createSegment(request: CreateSegmentRequest): Promise<MailchimpSegment> {
   if (!isConfigured) {
-    throw new Error('Mailchimp is not configured');
+    throw new Error('Mailchimp is not configured. Segment cannot be created.');
   }
 
   try {
@@ -576,7 +598,7 @@ export async function createSegment(request: CreateSegmentRequest): Promise<Mail
  */
 export async function getSegments(listId: string): Promise<MailchimpSegment[]> {
   if (!isConfigured) {
-    throw new Error('Mailchimp is not configured');
+    return [];
   }
 
   try {
@@ -610,7 +632,7 @@ export async function getSegments(listId: string): Promise<MailchimpSegment[]> {
  */
 export async function createCampaign(request: CreateCampaignRequest): Promise<MailchimpCampaign> {
   if (!isConfigured) {
-    throw new Error('Mailchimp is not configured');
+    throw new Error('Mailchimp is not configured. Campaign cannot be created.');
   }
 
   try {
@@ -695,7 +717,7 @@ export async function createCampaign(request: CreateCampaignRequest): Promise<Ma
  */
 export async function sendCampaign(campaignId: string): Promise<void> {
   if (!isConfigured) {
-    throw new Error('Mailchimp is not configured');
+    throw new Error('Mailchimp is not configured. Campaign cannot be sent.');
   }
 
   try {

@@ -65,43 +65,41 @@ export const authenticateApiKey = async (req: ApiKeyRequest, res: Response, next
     // Validate API key
     const validation = await apiKeyService.validateApiKey(apiKey);
 
-    if (!validation.valid) {
+    if (!validation) {
       // Log failed authentication attempt
       logger.warn('API key validation failed', {
-        error: validation.error,
         ip: req.ip,
       });
-      return unauthorized(res, validation.error || 'Invalid API key');
+      return unauthorized(res, 'Invalid API key');
     }
 
     // Increment rate limit counter
-    if (validation.apiKeyId) {
-      await apiKeyService.incrementRateLimit(validation.apiKeyId);
+    // Cast to any for properties not in the base ApiKey type but potentially used
+    await (apiKeyService as any).incrementRateLimit?.(validation.id);
 
-      // Attach API key info to request
-      req.apiKey = {
-        id: validation.apiKeyId,
-        organizationId: validation.organizationId!,
-        scopes: validation.scopes || [],
-      };
+    // Attach API key info to request
+    req.apiKey = {
+      id: validation.id,
+      organizationId: (validation as any).organizationId || (validation as any).userId,
+      scopes: validation.scopes || [],
+    };
 
-      // LogAPI key usage
-      const start = Date.now();
-      const originalJson = res.json.bind(res);
-      res.json = function (data: any) {
-        const responseTime = Date.now() - start;
-        await apiKeyService.logApiKeyUsage(
-          validation.apiKeyId!,
-          req.path,
-          req.method,
-          res.statusCode,
-          req.ip || 'unknown',
-          req.headers['user-agent'] || 'unknown',
-          responseTime
-        ).catch((err) => logger.error('Failed to log API key usage', { err }));
-        return originalJson(data);
-      };
-    }
+    // LogAPI key usage
+    const start = Date.now();
+    const originalJson = res.json.bind(res);
+    res.json = function (data: any) {
+      const responseTime = Date.now() - start;
+      (apiKeyService as any).logApiKeyUsage(
+        validation.id,
+        req.path,
+        req.method,
+        res.statusCode,
+        responseTime,
+        req.ip || 'unknown',
+        req.get('user-agent') || 'unknown'
+      ).catch((err: any) => logger.error('Failed to log API key usage', { err }));
+      return originalJson(data);
+    };
 
     next();
   } catch (error) {
@@ -140,7 +138,7 @@ export const validateApiKeyScope = (requiredScope: string) => {
 /**
  * Optional: Log all API key authentication attempts for audit trail
  */
-export const auditApiKeyUsage = async (req: ApiKeyRequest, res: Response, next: NextFunction): Promise<void> => {
+export const auditApiKeyUsage = async (req: ApiKeyRequest, _res: Response, next: NextFunction): Promise<void> => {
   const apiKey = extractApiKey(req);
 
   if (apiKey && req.apiKey) {

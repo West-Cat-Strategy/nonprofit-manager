@@ -4,8 +4,8 @@
 # This replaces GitHub Actions with local commands.
 # All CI/CD operations can be run locally or via git hooks.
 
-.PHONY: help install lint typecheck test test-coverage quality-baseline build \
-        security-audit security-scan ci ci-fast ci-full ci-unit \
+.PHONY: help install lint typecheck test test-coverage quality-baseline check-links build \
+	security-audit security-scan ci ci-fast ci-full ci-unit \
         deploy deploy-staging deploy-local \
         docker-build docker-up docker-down docker-logs docker-rebuild \
         db-migrate db-verify clean hooks
@@ -41,6 +41,7 @@ help:
 	@echo "  make test           Run all unit tests"
 	@echo "  make test-coverage  Run tests with coverage report"
 	@echo "  make quality-baseline Generate code quality baseline report"
+	@echo "  make check-links    Validate markdown links"
 	@echo ""
 	@echo "$(GREEN)CI Pipelines:$(RESET)"
 	@echo "  make ci             Run full CI (lint + typecheck + test + build)"
@@ -159,6 +160,9 @@ test-frontend:
 
 quality-baseline:
 	@./scripts/quality-baseline.sh
+
+check-links:
+	@./scripts/check-links.sh
 
 #------------------------------------------------------------------------------
 # Security

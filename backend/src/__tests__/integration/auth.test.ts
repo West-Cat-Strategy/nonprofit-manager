@@ -51,8 +51,9 @@ describe('Auth API Integration Tests', () => {
         .send({
           email: testEmail,
           password: testPassword,
-          firstName: 'Auth',
-          lastName: 'Test',
+          password_confirm: testPassword,
+          first_name: 'Auth',
+          last_name: 'Test',
         })
         .expect(201);
 
@@ -70,8 +71,9 @@ describe('Auth API Integration Tests', () => {
         .send({
           email: testEmail,
           password: 'AnotherPassword123!',
-          firstName: 'Duplicate',
-          lastName: 'User',
+          password_confirm: 'AnotherPassword123!',
+          first_name: 'Duplicate',
+          last_name: 'User',
         })
         .expect(409);
 
@@ -85,8 +87,9 @@ describe('Auth API Integration Tests', () => {
         .send({
           email: newEmail,
           password: testPassword,
-          firstName: 'Hash',
-          lastName: 'Test',
+          password_confirm: testPassword,
+          first_name: 'Hash',
+          last_name: 'Test',
         })
         .expect(201);
 
@@ -196,8 +199,9 @@ describe('Auth API Integration Tests', () => {
       await request(app).post('/api/auth/register').send({
         email: lockoutEmail,
         password: testPassword,
-        firstName: 'Lockout',
-        lastName: 'Test',
+        password_confirm: testPassword,
+        first_name: 'Lockout',
+        last_name: 'Test',
       });
 
       // Make multiple failed login attempts sequentially

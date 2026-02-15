@@ -3,13 +3,27 @@ import { vi } from 'vitest';
 
 vi.mock('../services/api', () => ({
   default: {
-    get: vi.fn(() => new Promise(() => {})),
-    post: vi.fn(() => new Promise(() => {})),
-    put: vi.fn(() => new Promise(() => {})),
-    delete: vi.fn(() => new Promise(() => {})),
-    patch: vi.fn(() => new Promise(() => {})),
+    get: vi.fn(() => new Promise(() => { })),
+    post: vi.fn(() => new Promise(() => { })),
+    put: vi.fn(() => new Promise(() => { })),
+    delete: vi.fn(() => new Promise(() => { })),
+    patch: vi.fn(() => new Promise(() => { })),
   },
 }));
+
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation((query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(), // Deprecated
+    removeListener: vi.fn(), // Deprecated
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
 
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
@@ -60,8 +74,8 @@ class ResizeObserverMock {
     );
   }
 
-  unobserve() {}
-  disconnect() {}
+  unobserve() { }
+  disconnect() { }
 }
 
 Object.defineProperty(globalThis, 'ResizeObserver', {

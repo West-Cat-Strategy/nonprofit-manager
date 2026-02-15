@@ -1,5 +1,5 @@
 /**
- * Mock Data - Kingdom Hearts Dataset
+ * Mock Data - Professional Nonprofit Dataset
  * High-volume test data for Neo-Brutalist UI
  */
 
@@ -43,14 +43,14 @@ export interface MockCampaignEvent {
     rsvpCount: number;
 }
 
-// Kingdom Hearts Characters - 15 People
+// Professional Staff & Volunteers - 15 People
 export const mockPeople: MockPerson[] = [
     {
         id: '1',
-        firstName: 'Sora',
-        lastName: 'Keyblade',
-        email: 'sora@destinyislands.org',
-        phone: '(555) 001-0001',
+        firstName: 'Sarah',
+        lastName: 'Chen',
+        email: 's.chen@global-edu.org',
+        phone: '(555) 123-4567',
         role: 'staff',
         status: 'active',
         title: 'Executive Director',
@@ -58,10 +58,10 @@ export const mockPeople: MockPerson[] = [
     },
     {
         id: '2',
-        firstName: 'Riku',
-        lastName: 'Dawn',
-        email: 'riku@destinyislands.org',
-        phone: '(555) 001-0002',
+        firstName: 'Marcus',
+        lastName: 'Johnson',
+        email: 'm.johnson@global-edu.org',
+        phone: '(555) 234-5678',
         role: 'staff',
         status: 'active',
         title: 'Operations Manager',
@@ -69,10 +69,10 @@ export const mockPeople: MockPerson[] = [
     },
     {
         id: '3',
-        firstName: 'Kairi',
-        lastName: 'Light',
-        email: 'kairi@destinyislands.org',
-        phone: '(555) 001-0003',
+        firstName: 'Elena',
+        lastName: 'Rodriguez',
+        email: 'e.rodriguez@global-edu.org',
+        phone: '(555) 345-6789',
         role: 'staff',
         status: 'active',
         title: 'Community Outreach Lead',
@@ -80,10 +80,10 @@ export const mockPeople: MockPerson[] = [
     },
     {
         id: '4',
-        firstName: 'Aqua',
-        lastName: 'Wayfinder',
-        email: 'aqua@landofdeparture.org',
-        phone: '(555) 001-0004',
+        firstName: 'David',
+        lastName: 'Kim',
+        email: 'd.kim@global-edu.org',
+        phone: '(555) 456-7890',
         role: 'staff',
         status: 'active',
         title: 'Program Director',
@@ -91,10 +91,10 @@ export const mockPeople: MockPerson[] = [
     },
     {
         id: '5',
-        firstName: 'Terra',
-        lastName: 'Guardian',
-        email: 'terra@landofdeparture.org',
-        phone: '(555) 001-0005',
+        firstName: 'Olivia',
+        lastName: 'Wilson',
+        email: 'o.wilson@global-edu.org',
+        phone: '(555) 567-8901',
         role: 'staff',
         status: 'away',
         title: 'Field Coordinator',
@@ -102,10 +102,10 @@ export const mockPeople: MockPerson[] = [
     },
     {
         id: '6',
-        firstName: 'Ventus',
-        lastName: 'Wind',
-        email: 'ventus@landofdeparture.org',
-        phone: '(555) 001-0006',
+        firstName: 'James',
+        lastName: 'Taylor',
+        email: 'j.taylor@volunteers.org',
+        phone: '(555) 678-9012',
         role: 'volunteer',
         status: 'active',
         title: 'Volunteer Lead',
@@ -113,10 +113,10 @@ export const mockPeople: MockPerson[] = [
     },
     {
         id: '7',
-        firstName: 'Roxas',
-        lastName: 'Twilight',
-        email: 'roxas@twilighttown.org',
-        phone: '(555) 001-0007',
+        firstName: 'Sophia',
+        lastName: 'Brown',
+        email: 's.brown@volunteers.org',
+        phone: '(555) 789-0123',
         role: 'volunteer',
         status: 'active',
         title: 'Event Coordinator',
@@ -124,10 +124,10 @@ export const mockPeople: MockPerson[] = [
     },
     {
         id: '8',
-        firstName: 'Axel',
-        lastName: 'Flame',
-        email: 'axel@twilighttown.org',
-        phone: '(555) 001-0008',
+        firstName: 'Michael',
+        lastName: 'Davis',
+        email: 'm.davis@volunteers.org',
+        phone: '(555) 890-1234',
         role: 'volunteer',
         status: 'active',
         title: 'Logistics Volunteer',
@@ -135,10 +135,10 @@ export const mockPeople: MockPerson[] = [
     },
     {
         id: '9',
-        firstName: 'Naminé',
-        lastName: 'Memory',
-        email: 'namine@castleoblivion.org',
-        phone: '(555) 001-0009',
+        firstName: 'Emily',
+        lastName: 'Miller',
+        email: 'e.miller@volunteers.org',
+        phone: '(555) 901-2345',
         role: 'volunteer',
         status: 'active',
         title: 'Communications Volunteer',
@@ -146,10 +146,10 @@ export const mockPeople: MockPerson[] = [
     },
     {
         id: '10',
-        firstName: 'Xion',
-        lastName: 'Replica',
-        email: 'xion@organization13.org',
-        phone: '(555) 001-0010',
+        firstName: 'Robert',
+        lastName: 'Garcia',
+        email: 'r.garcia@volunteers.org',
+        phone: '(555) 012-3456',
         role: 'volunteer',
         status: 'inactive',
         title: 'Research Volunteer',
@@ -157,10 +157,10 @@ export const mockPeople: MockPerson[] = [
     },
     {
         id: '11',
-        firstName: 'Mickey',
-        lastName: 'Mouse',
-        email: 'mickey@disneycastle.org',
-        phone: '(555) 001-0011',
+        firstName: 'Linda',
+        lastName: 'Smith',
+        email: 'l.smith@board.org',
+        phone: '(555) 123-0001',
         role: 'board',
         status: 'active',
         title: 'Board Chair',
@@ -168,10 +168,10 @@ export const mockPeople: MockPerson[] = [
     },
     {
         id: '12',
-        firstName: 'Donald',
-        lastName: 'Duck',
-        email: 'donald@disneycastle.org',
-        phone: '(555) 001-0012',
+        firstName: 'William',
+        lastName: 'Anderson',
+        email: 'w.anderson@board.org',
+        phone: '(555) 123-0002',
         role: 'board',
         status: 'active',
         title: 'Board Treasurer',
@@ -179,10 +179,10 @@ export const mockPeople: MockPerson[] = [
     },
     {
         id: '13',
-        firstName: 'Goofy',
-        lastName: 'Goof',
-        email: 'goofy@disneycastle.org',
-        phone: '(555) 001-0013',
+        firstName: 'Elizabeth',
+        lastName: 'Thomas',
+        email: 'e.thomas@board.org',
+        phone: '(555) 123-0003',
         role: 'board',
         status: 'active',
         title: 'Board Secretary',
@@ -190,10 +190,10 @@ export const mockPeople: MockPerson[] = [
     },
     {
         id: '14',
-        firstName: 'Leon',
-        lastName: 'Squall',
-        email: 'leon@hollowbastion.org',
-        phone: '(555) 001-0014',
+        firstName: 'Richard',
+        lastName: 'Moore',
+        email: 'r.moore@board.org',
+        phone: '(555) 123-0004',
         role: 'board',
         status: 'active',
         title: 'Board Member',
@@ -201,10 +201,10 @@ export const mockPeople: MockPerson[] = [
     },
     {
         id: '15',
-        firstName: 'Yuffie',
-        lastName: 'Kisaragi',
-        email: 'yuffie@hollowbastion.org',
-        phone: '(555) 001-0015',
+        firstName: 'Jessica',
+        lastName: 'Jackson',
+        email: 'j.jackson@board.org',
+        phone: '(555) 123-0005',
         role: 'board',
         status: 'active',
         title: 'Board Member',
@@ -212,151 +212,151 @@ export const mockPeople: MockPerson[] = [
     },
 ];
 
-// Organizations - 6 Kingdom Hearts Worlds
+// Organizations - 6 Partners & Grantors
 export const mockOrganizations: MockOrganization[] = [
     {
         id: '1',
-        name: 'Destiny Islands Foundation',
+        name: 'Global Education Initiative',
         type: 'partner',
         status: 'active',
-        contact: 'Sora K.',
+        contact: 'Sarah Chen',
     },
     {
         id: '2',
-        name: 'Radiant Garden Council',
+        name: 'Coastal Wildlife Trust',
         type: 'government',
         status: 'active',
-        contact: 'Leon S.',
+        contact: 'Marcus Johnson',
     },
     {
         id: '3',
-        name: 'Disney Castle Trust',
+        name: 'Heritage Grant Foundation',
         type: 'grantor',
         status: 'active',
-        contact: 'Mickey M.',
+        contact: 'Linda Smith',
     },
     {
         id: '4',
-        name: 'Twilight Town Alliance',
+        name: 'Urban Renewal Project',
         type: 'partner',
         status: 'pending',
-        contact: 'Roxas T.',
+        contact: 'Elena Rodriguez',
     },
     {
         id: '5',
-        name: 'Land of Departure Institute',
+        name: 'Pacific Sustainability Institute',
         type: 'partner',
         status: 'review',
-        contact: 'Aqua W.',
+        contact: 'David Kim',
     },
     {
         id: '6',
-        name: 'Hollow Bastion Restoration',
+        name: 'Community Housing Alliance',
         type: 'government',
         status: 'active',
-        contact: 'Yuffie K.',
+        contact: 'Marcus Johnson',
     },
 ];
 
-// Tasks - 8 Kingdom Hearts Missions
+// Tasks - 8 Operational Tasks
 export const mockTasks: MockTask[] = [
     {
         id: '1',
-        title: 'Keyblade Training Program',
-        category: 'hr',
+        title: 'Q1 Financial Audit',
+        category: 'finance',
         status: 'in-progress',
         dueDate: 'Due in 3 days',
-        assignees: ['Sora', 'Riku'],
+        assignees: ['William Anderson'],
     },
     {
         id: '2',
-        title: 'Heartless Defense Strategy',
-        category: 'admin',
+        title: 'Volunteer Orientation Session',
+        category: 'hr',
         status: 'todo',
         dueDate: 'Due next week',
-        assignees: ['Terra', 'Aqua'],
+        assignees: ['James Taylor'],
     },
     {
         id: '3',
-        title: 'Munny Grant Application',
+        title: 'Grant Proposal - Youth Arts',
         category: 'finance',
         status: 'in-progress',
         dueDate: 'Due in 5 days',
-        assignees: ['Donald'],
+        assignees: ['Sarah Chen'],
     },
     {
         id: '4',
-        title: 'Gummi Ship Maintenance',
+        title: 'IT Infrastructure Review',
         category: 'tech',
         status: 'todo',
         dueDate: 'Due next month',
-        assignees: ['Goofy', 'Chip', 'Dale'],
+        assignees: ['Marcus Johnson'],
     },
     {
         id: '5',
-        title: 'World Restoration Report',
+        title: 'Annual Impact Report',
         category: 'admin',
         status: 'in-progress',
         dueDate: 'Due this week',
-        assignees: ['Leon', 'Yuffie'],
+        assignees: ['Elena Rodriguez'],
     },
     {
         id: '6',
-        title: 'Memory Archive Update',
+        title: 'CRM Database Cleanup',
         category: 'tech',
         status: 'done',
-        assignees: ['Naminé'],
+        assignees: ['Elena Rodriguez'],
     },
     {
         id: '7',
-        title: 'Organization XIII Monitoring',
+        title: 'Board Meeting Prep',
         category: 'admin',
         status: 'in-progress',
         dueDate: 'Ongoing',
-        assignees: ['Riku', 'Mickey'],
+        assignees: ['Linda Smith', 'Sarah Chen'],
     },
     {
         id: '8',
-        title: 'Light Gathering Campaign',
+        title: 'Sustainability Campaign',
         category: 'finance',
         status: 'done',
-        assignees: ['Kairi', 'Aqua'],
+        assignees: ['David Kim'],
     },
 ];
 
-// Events - 4 Kingdom Hearts Gatherings
+// Events - 4 Resource Events
 export const mockCampaignEvents: MockCampaignEvent[] = [
     {
         id: '1',
-        title: 'Keyblade War Memorial',
+        title: 'Annual Charity Auction',
         date: 'AUG 15',
         time: '14:00 - 18:00',
         rsvpCount: 287,
     },
     {
         id: '2',
-        title: 'Worlds United Gala',
+        title: 'Community Garden Workshop',
         date: 'SEP 3',
         time: '19:00 - 23:00',
         rsvpCount: 456,
     },
     {
         id: '3',
-        title: 'Heartless Awareness Day',
+        title: 'Sustainability Summit',
         date: 'SEP 20',
         time: '10:00 - 16:00',
         rsvpCount: 623,
     },
     {
         id: '4',
-        title: 'Light Festival',
+        title: 'Winter Gala',
         date: 'OCT 7',
         time: '12:00 - 20:00',
         rsvpCount: 892,
     },
 ];
 
-// Dashboard Stats - Kingdom Hearts Scale
+// Dashboard Stats
 export const mockDashboardStats = {
     pendingTasks: 5,
     newPeopleRequests: 12,
@@ -366,11 +366,11 @@ export const mockDashboardStats = {
     totalPeople: 850,
 };
 
-// Campaign Stats - Outreach Center Metrics
+// Campaign Stats
 export const mockCampaignStats = {
     peopleEngaged: 12504,
     newsletterSubs: '2.5k Subs',
     upcomingEvents: '3 Upcoming',
     activeDonors: 'Active Drive',
-    socialHandle: '@Handle',
+    socialHandle: '@nonprofit_manager',
 };

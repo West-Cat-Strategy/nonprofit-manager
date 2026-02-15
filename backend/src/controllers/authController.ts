@@ -70,7 +70,17 @@ export const register = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const { email, password, firstName, lastName }: RegisterRequest = req.body;
+    const {
+      email,
+      password,
+      firstName,
+      lastName,
+      first_name,
+      last_name
+    } = req.body;
+
+    const resolvedFirstName = firstName ?? first_name;
+    const resolvedLastName = lastName ?? last_name;
     const role = 'user';
 
     // Check if user exists
@@ -88,7 +98,7 @@ export const register = async (
       `INSERT INTO users (email, password_hash, first_name, last_name, role, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
        RETURNING id, email, first_name, last_name, role, created_at`,
-      [email, hashedPassword, firstName, lastName, role]
+      [email, hashedPassword, resolvedFirstName, resolvedLastName, role]
     );
 
     const user = result.rows[0];
@@ -354,7 +364,24 @@ export const setupFirstUser = async (
       return forbidden(res, 'Setup has already been completed. An admin user already exists.');
     }
 
-    const { email, password, firstName, lastName, organizationName }: SetupRequest = req.body;
+    const {
+      email,
+      password,
+      firstName,
+      lastName,
+      organizationName,
+      first_name,
+      last_name,
+      organization_name,
+    }: SetupRequest & {
+      first_name?: string;
+      last_name?: string;
+      organization_name?: string;
+    } = req.body;
+
+    const resolvedFirstName = firstName ?? first_name;
+    const resolvedLastName = lastName ?? last_name;
+    const resolvedOrganizationName = organizationName ?? organization_name;
 
     // Hash password
     const salt = await bcrypt.genSalt(10);
@@ -365,12 +392,12 @@ export const setupFirstUser = async (
       `INSERT INTO users (email, password_hash, first_name, last_name, role)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING id, email, first_name, last_name, role, created_at`,
-      [email, passwordHash, firstName, lastName, 'admin']
+      [email, passwordHash, resolvedFirstName, resolvedLastName, 'admin']
     );
 
     const user = result.rows[0];
 
-    const trimmedOrgName = organizationName?.trim();
+    const trimmedOrgName = resolvedOrganizationName?.trim();
     const defaultOrgName = process.env.ORG_DEFAULT_NAME || 'Default Organization';
     const orgName = trimmedOrgName && trimmedOrgName.length > 0 ? trimmedOrgName : defaultOrgName;
     const orgResult = await pool.query(

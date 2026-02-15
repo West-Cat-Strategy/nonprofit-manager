@@ -37,7 +37,7 @@ const CaseForm = ({
   const isEditMode = Boolean(caseId);
 
   // Form state
-  const [formData, setFormData] = useState<CreateCaseDTO>({
+  const [formData, setFormData] = useState<CreateCaseDTO & Partial<UpdateCaseDTO>>({
     contact_id: initialData?.contact_id || '',
     case_type_id: initialData?.case_type_id || '',
     title: initialData?.title || '',
@@ -49,6 +49,9 @@ const CaseForm = ({
     due_date: initialData?.due_date || '',
     is_urgent: initialData?.is_urgent || false,
     tags: initialData?.tags || [],
+    outcome: (initialData as any)?.outcome || undefined,
+    outcome_notes: (initialData as any)?.outcome_notes || '',
+    closure_reason: (initialData as any)?.closure_reason || '',
   });
 
   const [tagInput, setTagInput] = useState('');
@@ -415,6 +418,52 @@ const CaseForm = ({
           {loading ? 'Saving...' : isEditMode ? 'Update Case' : 'Create Case'}
         </button>
       </div>
+
+      {isEditMode && (
+        <div className="mt-8 pt-8 border-t border-app-border">
+          <h3 className="text-lg font-bold mb-4 uppercase">Case Outcome / Closure</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-app-text-label mb-2">Outcome</label>
+              <select
+                name="outcome"
+                value={formData.outcome || ''}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
+              >
+                <option value="">Select outcome...</option>
+                <option value="successful">Successful</option>
+                <option value="unsuccessful">Unsuccessful</option>
+                <option value="referred">Referred</option>
+                <option value="withdrawn">Withdrawn</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-app-text-label mb-2">Closure Reason</label>
+              <input
+                type="text"
+                name="closure_reason"
+                value={formData.closure_reason || ''}
+                onChange={handleChange}
+                placeholder="e.g., Client reached goal"
+                className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
+              />
+            </div>
+          </div>
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-app-text-label mb-2">Outcome Notes</label>
+            <textarea
+              name="outcome_notes"
+              value={formData.outcome_notes || ''}
+              onChange={handleChange}
+              rows={3}
+              placeholder="Final notes on the case outcome..."
+              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
+            />
+          </div>
+        </div>
+      )}
     </form>
   );
 };

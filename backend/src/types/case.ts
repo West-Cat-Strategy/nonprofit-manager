@@ -390,3 +390,48 @@ export interface BulkStatusUpdateDTO {
   new_status_id: string;
   notes?: string;
 }
+
+/**
+ * Create Case Relationship DTO
+ */
+export interface CreateCaseRelationshipDTO {
+  related_case_id: string;
+  relationship_type: RelationshipType;
+  description?: string;
+}
+
+/**
+ * Create Case Service DTO
+ */
+export interface CreateCaseServiceDTO {
+  service_name: string;
+  service_type?: ServiceType;
+  service_provider?: string;
+  service_date: Date | string;
+  start_time?: string;
+  end_time?: string;
+  duration_minutes?: number;
+  status?: ServiceStatus;
+  outcome?: string;
+  cost?: number;
+  currency?: string;
+  notes?: string;
+}
+
+/**
+ * Update Case Service DTO
+ */
+export interface UpdateCaseServiceDTO {
+  service_name?: string;
+  service_type?: ServiceType;
+  service_provider?: string;
+  service_date?: Date | string;
+  start_time?: string;
+  end_time?: string;
+  duration_minutes?: number;
+  status?: ServiceStatus;
+  outcome?: string;
+  cost?: number;
+  currency?: string;
+  notes?: string;
+}

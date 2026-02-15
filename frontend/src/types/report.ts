@@ -3,16 +3,34 @@
  * Frontend type definitions for custom report generation
  */
 
-export type ReportEntity = 'accounts' | 'contacts' | 'donations' | 'events' | 'volunteers' | 'tasks';
+export type ReportEntity =
+  | 'accounts'
+  | 'contacts'
+  | 'donations'
+  | 'events'
+  | 'volunteers'
+  | 'tasks'
+  | 'expenses'
+  | 'grants'
+  | 'programs';
 
-export type ReportFormat = 'json' | 'csv' | 'pdf';
+export type ReportFormat = 'json' | 'csv' | 'pdf' | 'xlsx';
 
 export type FilterOperator = 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'like' | 'in' | 'between';
+
+export type AggregateFunction = 'sum' | 'avg' | 'count' | 'min' | 'max';
+
+export interface ReportAggregation {
+  field: string;
+  function: AggregateFunction;
+  alias?: string;
+}
 
 export interface ReportField {
   field: string;
   label: string;
   type: 'string' | 'number' | 'date' | 'boolean' | 'currency';
+  is_aggregate?: boolean;
 }
 
 export interface ReportFilter {
@@ -31,6 +49,8 @@ export interface ReportDefinition {
   description?: string;
   entity: ReportEntity;
   fields: string[];
+  aggregations?: ReportAggregation[];
+  groupBy?: string[];
   filters?: ReportFilter[];
   sort?: ReportSort[];
   limit?: number;

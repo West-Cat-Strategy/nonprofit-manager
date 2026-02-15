@@ -10,12 +10,16 @@
     "test:report": "playwright show-report",
     "test:codegen": "playwright codegen http://localhost:5173"
   },
-  "keywords": ["e2e", "testing", "playwright"],
+  "keywords": [
+    "e2e",
+    "testing",
+    "playwright"
+  ],
   "author": "Bryan Crockett",
   "license": "MIT",
   "devDependencies": {
-    "@playwright/test": "^1.58.1",
-    "@types/node": "^25.2.0",
-    "dotenv": "^17.2.3"
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^25.2.3",
+    "dotenv": "^17.3.1"
   }
 }

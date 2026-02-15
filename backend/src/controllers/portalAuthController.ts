@@ -8,7 +8,7 @@ import { PASSWORD, JWT } from '@config/constants';
 import { PortalAuthRequest } from '@middleware/portalAuth';
 import { logPortalActivity } from '@services/domains/integration';
 import { badRequest, conflict, errorPayload, forbidden, notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
-import { setPortalAuthCookie, clearAuthCookies } from '@utils/cookieHelper';
+import { setPortalAuthCookie } from '@utils/cookieHelper';
 
 interface PortalSignupRequest {
   email: string;

@@ -2,8 +2,8 @@
 
 This directory contains all documentation for the Nonprofit Manager project, organized by category.
 
-**Current Phase:** Phase 2 - Validation & Authorization (In Progress)  
-**Last Updated:** February 14, 2026
+**Current Phase:** Phase 3 - Feature Integration & Optimization (In Progress)  
+**Last Updated:** February 15, 2026
 
 ## Categories
 
@@ -33,6 +33,10 @@ This directory contains all documentation for the Nonprofit Manager project, org
 
 ### [Features](features/)
 - Feature-specific documentation and implementation details
+- [Advanced Task Management](features/TASK_MANAGEMENT.md)
+- [CRM Enhancements](features/CRM_ENHANCEMENTS.md)
+- [Report Generator Guide](features/REPORTING_GUIDE.md)
+- [Telemetry and Monitoring](features/TELEMETRY.md)
 - [Case Management System](features/CASE_MANAGEMENT_SYSTEM.md)
 - [Dashboard Customization](features/DASHBOARD_CUSTOMIZATION.md)
 - [Template System](features/TEMPLATE_SYSTEM.md)
@@ -47,7 +51,6 @@ This directory contains all documentation for the Nonprofit Manager project, org
 ### [Phases](phases/)
 - Project phase completion summaries and planning
 - [Planning and Progress](phases/planning-and-progress.md)
-- [Product Specification](phases/product-spec.md)
 - Phase completion summaries (Phase 1, 2, etc.)
 
 ### [Product](product/)

@@ -14,8 +14,9 @@ describe('Event API Integration Tests', () => {
       .send({
         email: `event-test-${unique()}@example.com`,
         password: 'Test123!Strong',
-        firstName: 'Event',
-        lastName: 'Tester',
+        password_confirm: 'Test123!Strong',
+        first_name: 'Event',
+        last_name: 'Tester',
       });
 
     authToken = registerResponse.body.token;

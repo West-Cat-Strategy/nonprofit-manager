@@ -17,10 +17,15 @@ import type {
   CreateCaseNoteDTO,
   UpdateCaseStatusDTO,
   CaseMilestone,
+  CreateCaseRelationshipDTO,
+  CaseRelationship,
+  CreateCaseServiceDTO,
+  UpdateCaseServiceDTO,
+  CaseService as CaseServiceType,
 } from '@app-types/case';
 
 export class CaseService {
-  constructor(private pool: Pool) {}
+  constructor(private pool: Pool) { }
 
   /**
    * Generate unique case number using a sequence query to avoid collisions
@@ -300,6 +305,31 @@ export class CaseService {
     if (data.custom_data !== undefined) {
       fields.push(`custom_data = $${paramIndex++}`);
       values.push(JSON.stringify(data.custom_data));
+    }
+
+    if (data.outcome !== undefined) {
+      fields.push(`outcome = $${paramIndex++}`);
+      values.push(data.outcome);
+    }
+
+    if (data.outcome_notes !== undefined) {
+      fields.push(`outcome_notes = $${paramIndex++}`);
+      values.push(data.outcome_notes);
+    }
+
+    if (data.closure_reason !== undefined) {
+      fields.push(`closure_reason = $${paramIndex++}`);
+      values.push(data.closure_reason);
+    }
+
+    if (data.requires_followup !== undefined) {
+      fields.push(`requires_followup = $${paramIndex++}`);
+      values.push(data.requires_followup);
+    }
+
+    if (data.followup_date !== undefined) {
+      fields.push(`followup_date = $${paramIndex++}`);
+      values.push(data.followup_date);
     }
 
     fields.push(`modified_by = $${paramIndex++}`);
@@ -667,6 +697,132 @@ export class CaseService {
     await this.pool.query(`DELETE FROM cases WHERE id = $1`, [caseId]);
     logger.info(`Case deleted`, { caseId });
   }
+
+  /**
+   * Get case relationships
+   */
+  async getCaseRelationships(caseId: string): Promise<CaseRelationship[]> {
+    const result = await this.pool.query(
+      `SELECT cr.*, 
+              c.case_number as related_case_number, 
+              c.title as related_case_title
+       FROM case_relationships cr
+       JOIN cases c ON cr.related_case_id = c.id
+       WHERE cr.case_id = $1
+       ORDER BY cr.created_at DESC`,
+      [caseId]
+    );
+    return result.rows;
+  }
+
+  /**
+   * Create case relationship
+   */
+  async createCaseRelationship(
+    caseId: string,
+    data: CreateCaseRelationshipDTO,
+    userId?: string
+  ): Promise<CaseRelationship> {
+    const result = await this.pool.query(
+      `INSERT INTO case_relationships (case_id, related_case_id, relationship_type, description, created_by)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [caseId, data.related_case_id, data.relationship_type, data.description || null, userId]
+    );
+    logger.info('Case relationship created', { caseId, relatedCaseId: data.related_case_id });
+    return result.rows[0];
+  }
+
+  /**
+   * Delete case relationship
+   */
+  async deleteCaseRelationship(relationshipId: string): Promise<void> {
+    await this.pool.query(`DELETE FROM case_relationships WHERE id = $1`, [relationshipId]);
+    logger.info('Case relationship deleted', { relationshipId });
+  }
+
+  /**
+   * Get case services
+   */
+  async getCaseServices(caseId: string): Promise<CaseServiceType[]> {
+    const result = await this.pool.query(
+      `SELECT * FROM case_services WHERE case_id = $1 ORDER BY service_date DESC, start_time DESC`,
+      [caseId]
+    );
+    return result.rows;
+  }
+
+  /**
+   * Create case service
+   */
+  async createCaseService(
+    caseId: string,
+    data: CreateCaseServiceDTO,
+    userId?: string
+  ): Promise<CaseServiceType> {
+    const result = await this.pool.query(
+      `INSERT INTO case_services (
+        case_id, service_name, service_type, service_provider, 
+        service_date, start_time, end_time, duration_minutes, 
+        status, outcome, cost, currency, notes, created_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
+      [
+        caseId,
+        data.service_name,
+        data.service_type || null,
+        data.service_provider || null,
+        data.service_date,
+        data.start_time || null,
+        data.end_time || null,
+        data.duration_minutes || null,
+        data.status || 'scheduled',
+        data.outcome || null,
+        data.cost || null,
+        data.currency || 'USD',
+        data.notes || null,
+        userId,
+      ]
+    );
+    logger.info('Case service created', { caseId, serviceId: result.rows[0].id });
+    return result.rows[0];
+  }
+
+  /**
+   * Update case service
+   */
+  async updateCaseService(
+    serviceId: string,
+    data: UpdateCaseServiceDTO
+  ): Promise<CaseServiceType> {
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    let idx = 1;
+
+    Object.entries(data).forEach(([key, value]) => {
+      if (value !== undefined) {
+        fields.push(`${key} = $${idx++}`);
+        values.push(value);
+      }
+    });
+
+    if (fields.length === 0) throw new Error('No fields to update');
+
+    values.push(serviceId);
+    const result = await this.pool.query(
+      `UPDATE case_services SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      values
+    );
+
+    if (!result.rows[0]) throw new Error('Service not found');
+    return result.rows[0];
+  }
+
+  /**
+   * Delete case service
+   */
+  async deleteCaseService(serviceId: string): Promise<void> {
+    await this.pool.query(`DELETE FROM case_services WHERE id = $1`, [serviceId]);
+    logger.info('Case service deleted', { serviceId });
+  }
 }
 
 // Backwards compatible exports for existing code
@@ -689,3 +845,11 @@ export const updateCaseMilestone = caseServiceInstance.updateCaseMilestone.bind(
 export const deleteCaseMilestone = caseServiceInstance.deleteCaseMilestone.bind(caseServiceInstance);
 export const reassignCase = caseServiceInstance.reassignCase.bind(caseServiceInstance);
 export const bulkUpdateStatus = caseServiceInstance.bulkUpdateStatus.bind(caseServiceInstance);
+
+export const getCaseRelationships = caseServiceInstance.getCaseRelationships.bind(caseServiceInstance);
+export const createCaseRelationship = caseServiceInstance.createCaseRelationship.bind(caseServiceInstance);
+export const deleteCaseRelationship = caseServiceInstance.deleteCaseRelationship.bind(caseServiceInstance);
+export const getCaseServices = caseServiceInstance.getCaseServices.bind(caseServiceInstance);
+export const createCaseService = caseServiceInstance.createCaseService.bind(caseServiceInstance);
+export const updateCaseService = caseServiceInstance.updateCaseService.bind(caseServiceInstance);
+export const deleteCaseService = caseServiceInstance.deleteCaseService.bind(caseServiceInstance);

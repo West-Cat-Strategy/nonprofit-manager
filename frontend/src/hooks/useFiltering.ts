@@ -25,7 +25,7 @@ interface UseFilteringReturn {
   getActiveFilterCount: () => number;
 }
 
-const STORAGE_KEY_PREFIX = 'filter_preset_';
+
 
 export const useFiltering = (
   initialFilters: Record<string, any> = {},

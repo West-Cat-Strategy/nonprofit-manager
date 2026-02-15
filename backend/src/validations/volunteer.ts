@@ -43,6 +43,7 @@ export type CreateVolunteerInput = z.infer<typeof createVolunteerSchema>;
 // Update volunteer
 export const updateVolunteerSchema = z.object({
   status: volunteerStatusSchema.optional(),
+  volunteer_status: z.union([volunteerStatusSchema, availabilityStatusSchema]).optional(),
   background_check_status: backgroundCheckStatusSchema.optional(),
   background_check_date: z.coerce.date().optional(),
   availability_status: availabilityStatusSchema.optional(),

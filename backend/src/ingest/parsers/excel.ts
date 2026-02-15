@@ -129,9 +129,9 @@ export async function parseExcelToDatasets(buffer: Buffer, options: ExcelParseOp
 
     const headers = hasHeader
       ? firstRow.map((h, i) => {
-          const s = h === null || h === undefined ? '' : String(h).trim();
-          return s ? s : `column_${i + 1}`;
-        })
+        const s = h === null || h === undefined ? '' : String(h).trim();
+        return s ? s : `column_${i + 1}`;
+      })
       : firstRow.map((_, i) => `column_${i + 1}`);
 
     const normalizedHeaders = headers.map((h) => normalizeName(h) || h);
@@ -193,9 +193,3 @@ export async function parseExcelToDatasets(buffer: Buffer, options: ExcelParseOp
   return datasets;
 }
 
-// Synchronous wrapper for backward compatibility (uses sync parsing where possible)
-export function parseExcelToDatasetsSynced(_buffer: Buffer, _options: ExcelParseOptions = {}): IngestDataset[] {
-  // For ExcelJS we need to use the async API, so this is a placeholder
-  // that will throw an error if called - callers should use the async version
-  throw new Error('parseExcelToDatasetsSynced is not supported with ExcelJS. Use parseExcelToDatasets instead.');
-}

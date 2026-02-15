@@ -12,11 +12,11 @@ getSharedTestUser();
  *
  * See https://playwright.dev/docs/test-configuration
  */
-const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
-const API_URL = process.env.API_URL || 'http://localhost:3001';
+const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:8005';
+const API_URL = process.env.API_URL || 'http://127.0.0.1:8004';
 process.env.BASE_URL = BASE_URL;
 process.env.API_URL = API_URL;
-const SKIP_WEBSERVER = process.env.SKIP_WEBSERVER === '1';
+const SKIP_WEBSERVER = process.env.SKIP_WEBSERVER !== '0';
 export default defineConfig({
   testDir: './tests',
 
@@ -40,9 +40,6 @@ export default defineConfig({
   use: {
     // Base URL for tests
     baseURL: BASE_URL,
-
-    // API endpoint
-    apiURL: API_URL,
 
     // Screenshot on failure
     screenshot: 'only-on-failure',
@@ -99,30 +96,30 @@ export default defineConfig({
   webServer: SKIP_WEBSERVER
     ? undefined
     : [
-        {
-          command: 'cd ../backend && npm run dev',
-          url: 'http://localhost:3001/health/live',
-          timeout: 120 * 1000,
-          reuseExistingServer: false,
-          env: {
-            NODE_ENV: 'test',
-            PORT: '3001',
-            REDIS_ENABLED: 'false',
-            DB_HOST: 'localhost',
-            DB_PORT: '5433',
-            DB_NAME: 'nonprofit_manager',
-            DB_USER: 'postgres',
-            DB_PASSWORD: 'postgres',
-          },
+      {
+        command: 'cd ../backend && npm run dev',
+        url: 'http://127.0.0.1:3001/health/live',
+        timeout: 120 * 1000,
+        reuseExistingServer: true,
+        env: {
+          NODE_ENV: 'test',
+          PORT: '3001',
+          REDIS_ENABLED: 'false',
+          DB_HOST: '127.0.0.1',
+          DB_PORT: '5433',
+          DB_NAME: 'nonprofit_manager',
+          DB_USER: 'postgres',
+          DB_PASSWORD: 'postgres',
         },
-        {
-          command: 'cd ../frontend && npm run dev',
-          url: 'http://localhost:5173',
-          timeout: 120 * 1000,
-          reuseExistingServer: false,
-          env: {
-            VITE_API_URL: 'http://localhost:3001/api',
-          },
+      },
+      {
+        command: 'cd ../frontend && npm run dev',
+        url: 'http://127.0.0.1:5173',
+        timeout: 120 * 1000,
+        reuseExistingServer: true,
+        env: {
+          VITE_API_URL: 'http://127.0.0.1:3001/api',
         },
-      ],
+      },
+    ],
 });

@@ -8,6 +8,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { logoutAsync } from '../../store/slices/authSlice';
 import SkipLink from '../SkipLink';
+import ThemeSelector from '../ThemeSelector';
 
 interface TopNavLinkProps {
   to: string;
@@ -20,11 +21,10 @@ function TopNavLink({ to, label, active }: TopNavLinkProps) {
     <Link
       to={to}
       aria-current={active ? 'page' : undefined}
-      className={`flex items-center px-5 h-full border-r-2 border-[var(--app-border)] font-bold text-sm transition-colors ${
-        active
-          ? 'bg-[var(--app-border)] text-[var(--app-bg)]'
-          : 'bg-[var(--app-bg)] text-[var(--app-text)] hover:bg-[var(--app-surface)]'
-      }`}
+      className={`flex items-center px-5 h-full border-r-2 border-[var(--app-border)] font-bold text-sm transition-colors ${active
+        ? 'bg-[var(--app-border)] text-[var(--app-bg)]'
+        : 'bg-[var(--app-bg)] text-[var(--app-text)] hover:bg-[var(--app-surface)]'
+        }`}
     >
       {label}
     </Link>
@@ -189,7 +189,18 @@ export default function NeoBrutalistLayout({ children, pageTitle }: NeoBrutalist
         role="main"
         aria-label={pageTitle || 'Main content'}
       >
-        {children}
+        <div className="min-h-full flex flex-col">
+          <div className="flex-1">
+            {children}
+          </div>
+
+          {/* Global Theme Controls - Required for E2E and User Preference */}
+          <footer className="p-6 border-t-2 border-[var(--app-border)] bg-[var(--app-surface-muted)] mt-auto">
+            <div className="max-w-7xl mx-auto">
+              <ThemeSelector />
+            </div>
+          </footer>
+        </div>
       </main>
     </div>
   );

@@ -204,7 +204,7 @@ export function guardWithPermission(
 /**
  * Extract user safely from request
  */
-export function getUser(req: AuthRequest) {
+export function getUser(req: AuthRequest): any {
   return req.user;
 }
 

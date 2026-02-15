@@ -51,87 +51,67 @@ function SortBuilder({ selectedFields, sorts, onChange }: SortBuilderProps) {
   }
 
   return (
-    <div>
-      <div className="space-y-3">
+    <div className="space-y-4">
+      <div className="space-y-4">
         {sorts.map((sort, index) => (
-          <div key={index} className="flex gap-3 items-center">
-            {/* Order Indicator */}
+          <div key={index} className="flex gap-4 items-center bg-[var(--app-surface-muted)] p-4 border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)]">
             <div className="flex flex-col gap-1">
               <button
                 onClick={() => handleMoveUp(index)}
                 disabled={index === 0}
-                className="p-1 text-app-text-muted hover:text-app-text-muted disabled:text-app-text-subtle disabled:cursor-not-allowed"
-                title="Move up"
+                data-testid={`move-up-${index}`}
+                className="p-1 text-black hover:bg-[var(--loop-yellow)] disabled:opacity-30 border-2 border-transparent hover:border-black transition-all"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 15l7-7 7 7"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 15l7-7 7 7" />
                 </svg>
               </button>
               <button
                 onClick={() => handleMoveDown(index)}
                 disabled={index === sorts.length - 1}
-                className="p-1 text-app-text-muted hover:text-app-text-muted disabled:text-app-text-subtle disabled:cursor-not-allowed"
-                title="Move down"
+                data-testid={`move-down-${index}`}
+                className="p-1 text-black hover:bg-[var(--loop-yellow)] disabled:opacity-30 border-2 border-transparent hover:border-black transition-all"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
             </div>
 
-            {/* Priority Badge */}
-            <div className="w-8 h-8 flex items-center justify-center bg-app-accent-soft text-app-accent rounded-full font-semibold text-sm">
+            <div className="w-10 h-10 flex items-center justify-center bg-black text-white font-black text-lg">
               {index + 1}
             </div>
 
-            {/* Field Selector */}
             <select
               value={sort.field}
               onChange={(e) => handleUpdateSort(index, { field: e.target.value })}
-              className="flex-1 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
+              className="flex-1 px-4 py-3 bg-white border-2 border-black font-bold uppercase focus:ring-0"
             >
               {selectedFields.map((field) => (
                 <option key={field} value={field}>
-                  {field.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                  {field.replace(/_/g, ' ').toUpperCase()}
                 </option>
               ))}
             </select>
 
-            {/* Direction Selector */}
             <select
               value={sort.direction}
               onChange={(e) =>
                 handleUpdateSort(index, { direction: e.target.value as 'asc' | 'desc' })
               }
-              className="w-48 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
+              className="w-48 px-4 py-3 bg-white border-2 border-black font-bold uppercase focus:ring-0"
             >
-              <option value="asc">Ascending (A-Z, 0-9)</option>
-              <option value="desc">Descending (Z-A, 9-0)</option>
+              <option value="asc">ASC (A-Z)</option>
+              <option value="desc">DESC (Z-A)</option>
             </select>
 
-            {/* Remove Button */}
             <button
               onClick={() => handleRemoveSort(index)}
-              className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              title="Remove sort"
+              data-testid={`remove-sort-${index}`}
+              className="px-4 py-3 bg-[var(--loop-red)] text-white border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
@@ -141,19 +121,10 @@ function SortBuilder({ selectedFields, sorts, onChange }: SortBuilderProps) {
       <button
         onClick={handleAddSort}
         disabled={selectedFields.length === 0}
-        className="mt-4 px-4 py-2 text-sm bg-app-surface-muted text-app-text-muted rounded-lg hover:bg-app-surface-muted disabled:bg-app-hover disabled:cursor-not-allowed font-medium"
+        className="px-6 py-3 bg-[var(--loop-blue)] text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] font-black uppercase hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all disabled:opacity-50"
       >
-        + Add Sort
+        + Add Sorting Rule
       </button>
-
-      {sorts.length > 0 && (
-        <div className="mt-4 p-3 bg-app-accent-soft rounded-lg">
-          <p className="text-sm text-app-accent-text">
-            <strong>Sorting Order:</strong> Records will be sorted by the fields in the order
-            shown above. Use the arrows to reorder.
-          </p>
-        </div>
-      )}
     </div>
   );
 }

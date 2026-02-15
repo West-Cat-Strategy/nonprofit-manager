@@ -16,7 +16,7 @@ services:
       - ./database/migrations:/migrations:ro
       - ./database/seeds:/seeds:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,7 +32,7 @@ services:
     volumes:
       - redis_data_dev:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -49,8 +49,8 @@ services:
     container_name: nonprofit-backend-dev
     restart: unless-stopped
     ports:
-      - "8004:8004"
-      - "8009:8009"  # Node.js debugger port
+      - "8004:3000"
+      - "8009:8009" # Node.js debugger port
     env_file:
       - .env.development
     environment:
@@ -59,7 +59,10 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       REDIS_URL: redis://redis:6379
-      CORS_ORIGIN: http://localhost:8005
+      CORS_ORIGIN: http://127.0.0.1:8005,http://localhost:8005
+      EXPOSE_AUTH_TOKENS_IN_RESPONSE: 'true'
+      RATE_LIMIT_MAX_REQUESTS: 1000000
+      AUTH_RATE_LIMIT_MAX_REQUESTS: 1000000
     depends_on:
       postgres:
         condition: service_healthy
@@ -84,7 +87,7 @@ services:
     ports:
       - "8005:8005"
     environment:
-      VITE_API_URL: http://localhost:8004/api
+      VITE_API_URL: http://127.0.0.1:8004/api
     depends_on:
       - backend-dev
     volumes:

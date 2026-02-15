@@ -8,6 +8,7 @@ import {
   ReportService,
   SavedReportService,
 } from '@services/domains/operations';
+import { ReportTemplateService } from '@services/reportTemplateService';
 
 export interface OperationsProviders {
   readonly alert: AlertService;
@@ -17,6 +18,7 @@ export interface OperationsProviders {
   readonly export: ExportService;
   readonly report: ReportService;
   readonly savedReport: SavedReportService;
+  readonly reportTemplate: ReportTemplateService;
 }
 
 export function createOperationsProviders(dbPool: Pool): OperationsProviders {
@@ -27,6 +29,7 @@ export function createOperationsProviders(dbPool: Pool): OperationsProviders {
   let exportService: ExportService | null = null;
   let reportService: ReportService | null = null;
   let savedReportService: SavedReportService | null = null;
+  let reportTemplateService: ReportTemplateService | null = null;
 
   return {
     get alert() {
@@ -70,6 +73,12 @@ export function createOperationsProviders(dbPool: Pool): OperationsProviders {
         savedReportService = new SavedReportService(dbPool);
       }
       return savedReportService;
+    },
+    get reportTemplate() {
+      if (!reportTemplateService) {
+        reportTemplateService = new ReportTemplateService(dbPool);
+      }
+      return reportTemplateService;
     },
   };
 }

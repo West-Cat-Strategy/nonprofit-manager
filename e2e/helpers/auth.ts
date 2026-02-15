@@ -22,12 +22,19 @@ export async function ensureSetupComplete(
   password: string,
   profile?: { firstName?: string; lastName?: string; organizationName?: string }
 ): Promise<void> {
-  const apiURL = process.env.API_URL || 'http://localhost:3001';
+  const apiURL = process.env.API_URL || 'http://127.0.0.1:3001';
   const firstName = profile?.firstName || 'Test';
   const lastName = profile?.lastName || 'User';
   const organizationName = profile?.organizationName || 'E2E Organization';
   const setupResponse = await page.request.post(`${apiURL}/api/auth/setup`, {
-    data: { email, password, firstName, lastName, organizationName },
+    data: {
+      email,
+      password,
+      password_confirm: password,
+      first_name: firstName,
+      last_name: lastName,
+      organization_name: organizationName
+    },
     headers: { 'Content-Type': 'application/json' },
   });
 
@@ -42,6 +49,7 @@ export async function ensureSetupComplete(
   }
 
   const responseText = await setupResponse.text().catch(() => '');
+  console.log(`Setup failed with status ${status}. Response: ${responseText}`);
   throw new Error(`Setup failed with status ${status}: ${responseText}`);
 }
 
@@ -58,9 +66,9 @@ export async function login(page: Page, email: string, password: string): Promis
   await page.waitForURL('/dashboard', { timeout: 10000 });
   await expect(page).toHaveURL('/dashboard');
 
-  const token = await page.evaluate(() => localStorage.getItem('token'));
-  if (!token) {
-    throw new Error('Login succeeded but no auth token stored in localStorage');
+  const user = await page.evaluate(() => localStorage.getItem('user'));
+  if (!user) {
+    throw new Error('Login succeeded but no user data found in localStorage');
   }
 }
 
@@ -73,7 +81,7 @@ export async function loginViaAPI(
   email: string,
   password: string
 ): Promise<{ token: string; user: any }> {
-  const apiURL = process.env.API_URL || 'http://localhost:3001';
+  const apiURL = process.env.API_URL || 'http://127.0.0.1:3001';
 
   const response = await page.request.post(`${apiURL}/api/auth/login`, {
     data: { email, password },
@@ -92,6 +100,7 @@ export async function loginViaAPI(
   }
 
   const data = await response.json();
+  console.log(`Login response for ${email}:`, JSON.stringify(data));
 
   expect(data.token).toBeDefined();
   expect(data.user).toBeDefined();
@@ -101,7 +110,7 @@ export async function loginViaAPI(
     {
       name: AUTH_COOKIE_NAME,
       value: data.token,
-      domain: 'localhost',
+      domain: '127.0.0.1',
       httpOnly: true,
       sameSite: 'Lax',
       path: '/',
@@ -113,11 +122,11 @@ export async function loginViaAPI(
   await page.goto('/');
   await page.evaluate(
     ({ token, organizationId }) => {
-    localStorage.setItem('token', token);
-    if (organizationId) {
-      localStorage.setItem('organizationId', organizationId);
-    }
-  },
+      localStorage.setItem('token', token);
+      if (organizationId) {
+        localStorage.setItem('organizationId', organizationId);
+      }
+    },
     { token: data.token, organizationId: data.organizationId }
   );
 
@@ -292,7 +301,8 @@ export async function ensureLoginViaAPI(
  */
 export async function logout(page: Page): Promise<void> {
   // Open user menu from top navigation.
-  await page.locator('button[aria-haspopup="menu"][aria-controls="user-menu"]').first().click({
+  const userMenu = page.locator('button[aria-haspopup="menu"][aria-controls="user-menu"]').first();
+  await userMenu.click({
     timeout: 5000,
   });
 
@@ -323,15 +333,15 @@ export async function clearAuth(page: Page): Promise<void> {
  * Check if user is authenticated
  */
 export async function isAuthenticated(page: Page): Promise<boolean> {
-  const token = await page.evaluate(() => localStorage.getItem('token'));
-  return !!token;
+  const user = await page.evaluate(() => localStorage.getItem('user'));
+  return !!user;
 }
 
 /**
  * Get auth token from localStorage
  */
 export async function getAuthToken(page: Page): Promise<string | null> {
-  return await page.evaluate(() => localStorage.getItem('token'));
+  return await page.evaluate(() => localStorage.getItem('token') || localStorage.getItem('user'));
 }
 
 /**
@@ -347,8 +357,9 @@ export async function createTestUser(
     data: {
       email: user.email,
       password: user.password,
-      firstName: user.firstName,
-      lastName: user.lastName,
+      password_confirm: user.password,
+      first_name: user.firstName,
+      last_name: user.lastName,
     },
     headers: { 'Content-Type': 'application/json' },
   });
@@ -357,6 +368,7 @@ export async function createTestUser(
     const errorText = await response.text().catch(() => '');
     let message = 'Unknown error';
     if (errorText) {
+      console.log(`Registration failed for ${user.email}. Response: ${errorText}`);
       try {
         const parsed = JSON.parse(errorText);
         if (typeof parsed?.error === 'string') {

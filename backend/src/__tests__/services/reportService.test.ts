@@ -29,7 +29,7 @@ describe('ReportService', () => {
       expect(result.entity).toBe('accounts');
       expect(result.fields).toBeInstanceOf(Array);
       expect(result.fields.length).toBeGreaterThan(0);
-      
+
       // Check that each field has required properties
       result.fields.forEach((field) => {
         expect(field).toHaveProperty('field');
@@ -94,7 +94,7 @@ describe('ReportService', () => {
       expect(result.data).toBeInstanceOf(Array);
       expect(result.total_count).toBeGreaterThanOrEqual(0);
       expect(result.generated_at).toBeDefined();
-      
+
       if (result.data.length > 0) {
         expect(result.data[0]).toHaveProperty('first_name');
         expect(result.data[0]).toHaveProperty('last_name');
@@ -119,7 +119,7 @@ describe('ReportService', () => {
       const result = await reportService.generateReport(definition);
 
       expect(result.data).toBeInstanceOf(Array);
-      
+
       // All returned records should match the filter
       result.data.forEach((row) => {
         if (row.email) {
@@ -145,7 +145,7 @@ describe('ReportService', () => {
       const result = await reportService.generateReport(definition);
 
       expect(result.data).toBeInstanceOf(Array);
-      
+
       // Check that data is sorted
       if (result.data.length > 1) {
         for (let i = 0; i < result.data.length - 1; i++) {
@@ -191,7 +191,7 @@ describe('ReportService', () => {
       const result = await reportService.generateReport(definition);
 
       expect(result.data).toBeInstanceOf(Array);
-      
+
       // All returned records should have email and created_at >= 2020-01-01
       result.data.forEach((row) => {
         expect(row.email).toBeTruthy();
@@ -212,7 +212,7 @@ describe('ReportService', () => {
       const result = await reportService.generateReport(definition);
 
       expect(result.data).toBeInstanceOf(Array);
-      
+
       if (result.data.length > 0) {
         // Should have contact fields (from JOIN)
         expect(result.data[0]).toHaveProperty('first_name');
@@ -235,7 +235,7 @@ describe('ReportService', () => {
       const result = await reportService.generateReport(definition);
 
       expect(result.data).toBeInstanceOf(Array);
-      
+
       if (result.data.length > 0) {
         expect(result.data[0]).toHaveProperty('donation_number');
         expect(result.data[0]).toHaveProperty('amount');
@@ -266,7 +266,7 @@ describe('ReportService', () => {
       };
 
       await expect(reportService.generateReport(definition)).rejects.toThrow(
-        'At least one field must be selected'
+        'At least one field or aggregation must be selected'
       );
     });
 

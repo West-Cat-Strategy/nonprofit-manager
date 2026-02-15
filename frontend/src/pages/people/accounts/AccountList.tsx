@@ -18,10 +18,10 @@ import {
   FilterPanel,
   BulkActionBar,
   ImportExportModal,
+  type TableColumn,
 } from '../../../components/people';
 import { useBulkSelect, useImportExport } from '../../../hooks';
 import { BrutalBadge } from '../../../components/neo-brutalist';
-import type { TableColumn } from '../../../types/people';
 
 const AccountList = () => {
   const dispatch = useAppDispatch();
@@ -64,12 +64,12 @@ const AccountList = () => {
     loadAccounts();
   }, [loadAccounts]);
 
-  const handleFilterChange = (filterId: string, value: string) => {
-    if (filterId === 'search') {
+  const handleFilterChange = (filterId: string, value: string | string[]) => {
+    if (filterId === 'search' && typeof value === 'string') {
       setSearchInput(value);
-    } else if (filterId === 'account_type') {
+    } else if (filterId === 'account_type' && typeof value === 'string') {
       setAccountTypeFilter(value);
-    } else if (filterId === 'category') {
+    } else if (filterId === 'category' && typeof value === 'string') {
       setCategoryFilter(value);
     }
   };
@@ -137,7 +137,7 @@ const AccountList = () => {
         category: a.category,
         email: a.email,
       })),
-      columns,
+      columns as any,
       {
         filename: 'accounts-export',
         includeHeaders: true,
@@ -145,12 +145,12 @@ const AccountList = () => {
     );
   };
 
-  const columns: TableColumn[] = [
+  const columns: TableColumn<Account>[] = [
     {
       key: 'account_number',
       label: 'Number',
       width: '140px',
-      render: (_, row: Account) => (
+      render: (_, row) => (
         <span className="font-mono text-sm font-medium">
           {row.account_number}
         </span>
@@ -160,7 +160,7 @@ const AccountList = () => {
       key: 'account_name',
       label: 'Name',
       width: '240px',
-      render: (_, row: Account) => (
+      render: (_, row) => (
         <div
           className="cursor-pointer hover:opacity-75 transition"
           onClick={() => navigate(`/accounts/${row.account_id}`)}
@@ -176,8 +176,8 @@ const AccountList = () => {
       key: 'account_type',
       label: 'Type',
       width: '120px',
-      render: (_, row: Account) => (
-        <BrutalBadge variant="primary" className="text-xs capitalize">
+      render: (_, row) => (
+        <BrutalBadge color="blue" className="text-xs capitalize">
           {row.account_type}
         </BrutalBadge>
       ),
@@ -186,7 +186,7 @@ const AccountList = () => {
       key: 'category',
       label: 'Category',
       width: '140px',
-      render: (_, row: Account) => (
+      render: (_, row) => (
         <span className="px-3 py-1 text-xs font-medium rounded bg-app-surface-muted text-app-text capitalize">
           {row.category}
         </span>
@@ -196,7 +196,7 @@ const AccountList = () => {
       key: 'email',
       label: 'Email',
       width: '220px',
-      render: (_, row: Account) => (
+      render: (_, row) => (
         <span className="text-sm text-app-text-muted">{row.email || '—'}</span>
       ),
     },
@@ -204,7 +204,7 @@ const AccountList = () => {
       key: 'actions',
       label: 'Actions',
       width: '140px',
-      render: (_, row: Account) => (
+      render: (_, row) => (
         <div className="flex gap-2">
           <button
             onClick={() => navigate(`/accounts/${row.account_id}/edit`)}
@@ -282,10 +282,13 @@ const AccountList = () => {
           />
         }
         loading={loading}
-        error={error}
-        data={accounts.map((a) => ({ ...a, id: a.account_id }))}
+        error={error || undefined}
+        data={accounts}
         columns={columns}
-        pagination={pagination}
+        pagination={{
+          ...pagination,
+          totalPages: pagination.total_pages,
+        }}
         onPageChange={(page) =>
           dispatch(
             fetchAccounts({

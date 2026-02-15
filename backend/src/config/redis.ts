@@ -17,13 +17,12 @@ export async function initializeRedis(): Promise<void> {
 
   try {
     // Parse Redis URL and determine TLS settings
-    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
     const isProduction = process.env.NODE_ENV === 'production';
 
     // In production, require secure Redis connections
     // Support rediss:// protocol for TLS
     const socketOptions: Record<string, unknown> = {
-      reconnectStrategy: (retries) => {
+      reconnectStrategy: (retries: number) => {
         if (retries > 10) {
           logger.error('Redis reconnection failed after 10 attempts');
           return new Error('Redis reconnection limit reached');

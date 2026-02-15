@@ -25,8 +25,9 @@ describe('Authorization Integration Tests', () => {
         .send({
           email,
           password: 'Test123!Strong',
-          firstName: `Test`,
-          lastName: role.charAt(0).toUpperCase() + role.slice(1),
+          password_confirm: 'Test123!Strong',
+          first_name: `Test`,
+          last_name: role.charAt(0).toUpperCase() + role.slice(1),
         });
 
       tokens[role] = response.body.token;

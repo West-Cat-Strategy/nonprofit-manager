@@ -88,4 +88,64 @@ router.delete(
   deleteSavedReport
 );
 
+/**
+ * Sharing Routes
+ */
+import * as sharingController from '@controllers/reportSharingController';
+
+/**
+ * POST /api/saved-reports/:id/share
+ * Share report with users or roles
+ */
+router.post(
+  '/:id/share',
+  [
+    param('id').isUUID().withMessage('Invalid report ID'),
+    body('user_ids').optional().isArray(),
+    body('role_names').optional().isArray(),
+    body('share_settings').optional().isObject(),
+    validateRequest,
+  ],
+  sharingController.shareReport
+);
+
+/**
+ * DELETE /api/saved-reports/:id/share
+ * Remove share access
+ */
+router.delete(
+  '/:id/share',
+  [
+    param('id').isUUID().withMessage('Invalid report ID'),
+    body('user_ids').optional().isArray(),
+    body('role_names').optional().isArray(),
+    validateRequest,
+  ],
+  sharingController.removeShare
+);
+
+/**
+ * POST /api/saved-reports/:id/public-link
+ * Generate public shareable link
+ */
+router.post(
+  '/:id/public-link',
+  [
+    param('id').isUUID().withMessage('Invalid report ID'),
+    body('expires_at').optional().isISO8601(),
+    validateRequest,
+  ],
+  sharingController.generatePublicLink
+);
+
+/**
+ * DELETE /api/saved-reports/:id/public-link
+ * Revoke public link
+ */
+router.delete(
+  '/:id/public-link',
+  [param('id').isUUID().withMessage('Invalid report ID'), validateRequest],
+  sharingController.revokePublicLink
+);
+
 export default router;

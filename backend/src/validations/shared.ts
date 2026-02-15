@@ -31,7 +31,7 @@ export const weakPasswordSchema = z
 // Phone number validation
 export const phoneSchema = z
   .string()
-  .regex(/^[\d\s\-\+\(\)]+$/, 'Invalid phone number format')
+  .regex(/^[\d\s\-+()]+$/, 'Invalid phone number format')
   .min(10, 'Phone number must be at least 10 digits')
   .optional()
   .or(z.literal(''));

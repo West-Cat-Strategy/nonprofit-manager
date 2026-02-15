@@ -19,16 +19,12 @@ import {
   FilterPanel,
   BulkActionBar,
   ImportExportModal,
+  type TableColumn,
 } from '../../../components/people';
 import { useBulkSelect, useImportExport } from '../../../hooks';
 import { BrutalBadge } from '../../../components/neo-brutalist';
 
-interface TableColumn {
-  key: string;
-  label: string;
-  width?: string;
-  render?: (value: any, row: any) => React.ReactNode;
-}
+
 
 const VolunteerListEnhanced = () => {
   const dispatch = useAppDispatch();
@@ -73,12 +69,12 @@ const VolunteerListEnhanced = () => {
     loadVolunteers();
   }, [loadVolunteers]);
 
-  const handleFilterChange = (filterId: string, value: string) => {
-    if (filterId === 'search') {
+  const handleFilterChange = (filterId: string, value: string | string[]) => {
+    if (filterId === 'search' && typeof value === 'string') {
       setSearchInput(value);
-    } else if (filterId === 'availability_status') {
+    } else if (filterId === 'availability_status' && typeof value === 'string') {
       setAvailabilityFilter(value);
-    } else if (filterId === 'background_check_status') {
+    } else if (filterId === 'background_check_status' && typeof value === 'string') {
       setBackgroundCheckFilter(value);
     }
   };
@@ -158,7 +154,7 @@ const VolunteerListEnhanced = () => {
         background_check_status: v.background_check_status,
         total_hours_logged: v.total_hours_logged,
       })),
-      columns,
+      columns as any,
       {
         filename: 'volunteers-export',
         includeHeaders: true,
@@ -223,7 +219,7 @@ const VolunteerListEnhanced = () => {
           {row.skills && row.skills.length > 0 ? (
             <>
               {row.skills.slice(0, 2).map((skill, idx) => (
-                <BrutalBadge key={idx} variant="primary">
+                <BrutalBadge key={idx} color="blue">
                   {skill}
                 </BrutalBadge>
               ))}
@@ -358,7 +354,7 @@ const VolunteerListEnhanced = () => {
           />
         }
         loading={loading}
-        error={error}
+        error={error || undefined}
         data={volunteers}
         columns={columns}
         pagination={{

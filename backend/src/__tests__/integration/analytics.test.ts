@@ -21,8 +21,9 @@ describe('Analytics API Integration Tests', () => {
     const registerResponse = await request(app).post('/api/auth/register').send({
       email,
       password: 'Test123!Strong',
-      firstName: 'Analytics',
-      lastName: 'Test',
+      password_confirm: 'Test123!Strong',
+      first_name: 'Analytics',
+      last_name: 'Test',
     });
 
     authToken = registerResponse.body.token;

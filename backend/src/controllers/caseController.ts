@@ -1,7 +1,20 @@
 import { Response } from 'express';
 import type { AuthRequest } from '@middleware/auth';
 import { caseService } from '@services/domains/engagement';
-import type { CreateCaseDTO, UpdateCaseDTO, CaseFilter, CreateCaseNoteDTO, UpdateCaseStatusDTO, CreateCaseMilestoneDTO, UpdateCaseMilestoneDTO, ReassignCaseDTO, BulkStatusUpdateDTO } from '@app-types/case';
+import type {
+  CreateCaseDTO,
+  UpdateCaseDTO,
+  CaseFilter,
+  CreateCaseNoteDTO,
+  UpdateCaseStatusDTO,
+  CreateCaseMilestoneDTO,
+  UpdateCaseMilestoneDTO,
+  ReassignCaseDTO,
+  BulkStatusUpdateDTO,
+  CreateCaseRelationshipDTO,
+  CreateCaseServiceDTO,
+  UpdateCaseServiceDTO
+} from '@app-types/case';
 import { logger } from '@config/logger';
 import { PAGINATION } from '@config/constants';
 import { notFound, serverError } from '@utils/responseHelpers';
@@ -252,5 +265,87 @@ export const bulkUpdateCaseStatus = async (req: AuthRequest, res: Response): Pro
   } catch (error) {
     logger.error('Error bulk updating cases:', error);
     serverError(res, 'Failed to bulk update cases');
+  }
+};
+
+export const getCaseRelationships = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const relationships = await caseService.getCaseRelationships(id);
+    res.json({ relationships });
+  } catch (error) {
+    logger.error('Error fetching case relationships:', error);
+    serverError(res, 'Failed to fetch relationships');
+  }
+};
+
+export const createCaseRelationship = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const data = req.body as CreateCaseRelationshipDTO;
+    const userId = req.user?.id;
+    const relationship = await caseService.createCaseRelationship(id, data, userId);
+    res.status(201).json(relationship);
+  } catch (error) {
+    logger.error('Error creating case relationship:', error);
+    serverError(res, 'Failed to create relationship');
+  }
+};
+
+export const deleteCaseRelationship = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { relationshipId } = req.params;
+    await caseService.deleteCaseRelationship(relationshipId);
+    res.json({ success: true, message: 'Relationship deleted' });
+  } catch (error) {
+    logger.error('Error deleting case relationship:', error);
+    serverError(res, 'Failed to delete relationship');
+  }
+};
+
+export const getCaseServices = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const services = await caseService.getCaseServices(id);
+    res.json({ services });
+  } catch (error) {
+    logger.error('Error fetching case services:', error);
+    serverError(res, 'Failed to fetch services');
+  }
+};
+
+export const createCaseService = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const data = req.body as CreateCaseServiceDTO;
+    const userId = req.user?.id;
+    const service = await caseService.createCaseService(id, data, userId);
+    res.status(201).json(service);
+  } catch (error) {
+    logger.error('Error creating case service:', error);
+    serverError(res, 'Failed to create service');
+  }
+};
+
+export const updateCaseService = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { serviceId } = req.params;
+    const data = req.body as UpdateCaseServiceDTO;
+    const service = await caseService.updateCaseService(serviceId, data);
+    res.json(service);
+  } catch (error) {
+    logger.error('Error updating case service:', error);
+    serverError(res, 'Failed to update service');
+  }
+};
+
+export const deleteCaseService = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { serviceId } = req.params;
+    await caseService.deleteCaseService(serviceId);
+    res.json({ success: true, message: 'Service deleted' });
+  } catch (error) {
+    logger.error('Error deleting case service:', error);
+    serverError(res, 'Failed to delete service');
   }
 };

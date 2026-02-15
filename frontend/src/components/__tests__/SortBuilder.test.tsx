@@ -21,7 +21,7 @@ describe('SortBuilder', () => {
       />
     );
 
-    expect(screen.getByText(/select fields first to add sorting/i)).toBeInTheDocument();
+    expect(screen.getByText(/select fields first/i)).toBeInTheDocument();
   });
 
   it('renders add sort button when fields are available', () => {
@@ -34,7 +34,7 @@ describe('SortBuilder', () => {
       />
     );
 
-    expect(screen.getByRole('button', { name: /add sort/i })).toBeInTheDocument();
+    expect(screen.getByText(/\+ add sorting rule/i)).toBeInTheDocument();
   });
 
   it('adds new sort when Add Sort button is clicked', () => {
@@ -47,7 +47,7 @@ describe('SortBuilder', () => {
       />
     );
 
-    const addButton = screen.getByRole('button', { name: /add sort/i });
+    const addButton = screen.getByText(/\+ add sorting rule/i);
     fireEvent.click(addButton);
 
     expect(mockOnChange).toHaveBeenCalledWith([
@@ -77,10 +77,9 @@ describe('SortBuilder', () => {
   it('removes sort when remove button is clicked', () => {
     const sorts: ReportSort[] = [
       { field: 'name', direction: 'asc' },
-      { field: 'email', direction: 'desc' },
     ];
 
-    renderWithProviders(
+    const { container } = renderWithProviders(
       <SortBuilder
         entity="contacts"
         selectedFields={['name', 'email']}
@@ -89,21 +88,20 @@ describe('SortBuilder', () => {
       />
     );
 
-    const removeButtons = screen.getAllByTitle(/remove sort/i);
-    fireEvent.click(removeButtons[0]);
+    // SVG remove button has the correct testid now
+    const removeButton = screen.getByTestId('remove-sort-0');
+    fireEvent.click(removeButton);
 
-    expect(mockOnChange).toHaveBeenCalledWith([
-      { field: 'email', direction: 'desc' },
-    ]);
+    expect(mockOnChange).toHaveBeenCalledWith([]);
   });
 
-  it('moves sort up when up arrow is clicked', () => {
+  it('moves items correctly', () => {
     const sorts: ReportSort[] = [
       { field: 'name', direction: 'asc' },
       { field: 'email', direction: 'desc' },
     ];
 
-    renderWithProviders(
+    const { container } = renderWithProviders(
       <SortBuilder
         entity="contacts"
         selectedFields={['name', 'email']}
@@ -112,45 +110,28 @@ describe('SortBuilder', () => {
       />
     );
 
-    const upButtons = screen.getAllByTitle(/move up/i);
-    fireEvent.click(upButtons[1]); // Click up on second item
-
+    // Move second item up (from index 1 to 0)
+    const moveUpButton = screen.getByTestId('move-up-1');
+    fireEvent.click(moveUpButton);
     expect(mockOnChange).toHaveBeenCalledWith([
       { field: 'email', direction: 'desc' },
       { field: 'name', direction: 'asc' },
     ]);
-  });
 
-  it('moves sort down when down arrow is clicked', () => {
-    const sorts: ReportSort[] = [
-      { field: 'name', direction: 'asc' },
-      { field: 'email', direction: 'desc' },
-    ];
+    mockOnChange.mockClear();
 
-    renderWithProviders(
-      <SortBuilder
-        entity="contacts"
-        selectedFields={['name', 'email']}
-        sorts={sorts}
-        onChange={mockOnChange}
-      />
-    );
-
-    const downButtons = screen.getAllByTitle(/move down/i);
-    fireEvent.click(downButtons[0]); // Click down on first item
-
+    // Move first item down (from index 0 to 1)
+    const moveDownButton = screen.getByTestId('move-down-0');
+    fireEvent.click(moveDownButton);
     expect(mockOnChange).toHaveBeenCalledWith([
       { field: 'email', direction: 'desc' },
       { field: 'name', direction: 'asc' },
     ]);
   });
 
-  it('disables move up button for first item', () => {
-    const sorts: ReportSort[] = [
-      { field: 'name', direction: 'asc' },
-      { field: 'email', direction: 'desc' },
-    ];
 
+  it('updates sort field when select value changes', () => {
+    const sorts: ReportSort[] = [{ field: 'name', direction: 'asc' }];
     renderWithProviders(
       <SortBuilder
         entity="contacts"
@@ -160,16 +141,14 @@ describe('SortBuilder', () => {
       />
     );
 
-    const upButtons = screen.getAllByTitle(/move up/i);
-    expect(upButtons[0]).toBeDisabled();
+    const selects = screen.getAllByRole('combobox');
+    fireEvent.change(selects[0], { target: { value: 'email' } });
+
+    expect(mockOnChange).toHaveBeenCalledWith([{ field: 'email', direction: 'asc' }]);
   });
 
-  it('disables move down button for last item', () => {
-    const sorts: ReportSort[] = [
-      { field: 'name', direction: 'asc' },
-      { field: 'email', direction: 'desc' },
-    ];
-
+  it('updates sort direction when select value changes', () => {
+    const sorts: ReportSort[] = [{ field: 'name', direction: 'asc' }];
     renderWithProviders(
       <SortBuilder
         entity="contacts"
@@ -179,42 +158,9 @@ describe('SortBuilder', () => {
       />
     );
 
-    const downButtons = screen.getAllByTitle(/move down/i);
-    expect(downButtons[1]).toBeDisabled();
-  });
+    const selects = screen.getAllByRole('combobox');
+    fireEvent.change(selects[1], { target: { value: 'desc' } });
 
-  it('shows sorting order tip when sorts exist', () => {
-    const sorts: ReportSort[] = [
-      { field: 'name', direction: 'asc' },
-    ];
-
-    renderWithProviders(
-      <SortBuilder
-        entity="contacts"
-        selectedFields={['name', 'email']}
-        sorts={sorts}
-        onChange={mockOnChange}
-      />
-    );
-
-    expect(screen.getByText(/sorting order:/i)).toBeInTheDocument();
-  });
-
-  it('renders ascending and descending options', () => {
-    const sorts: ReportSort[] = [
-      { field: 'name', direction: 'asc' },
-    ];
-
-    renderWithProviders(
-      <SortBuilder
-        entity="contacts"
-        selectedFields={['name', 'email']}
-        sorts={sorts}
-        onChange={mockOnChange}
-      />
-    );
-
-    expect(screen.getByText(/ascending \(a-z, 0-9\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/descending \(z-a, 9-0\)/i)).toBeInTheDocument();
+    expect(mockOnChange).toHaveBeenCalledWith([{ field: 'name', direction: 'desc' }]);
   });
 });

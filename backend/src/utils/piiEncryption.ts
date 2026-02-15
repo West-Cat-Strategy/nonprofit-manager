@@ -18,8 +18,6 @@ import { logger } from '../config/logger';
 // Algorithm: AES-256-GCM (Galois/Counter Mode provides authenticated encryption)
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16; // Initialization Vector length in bytes
-const AUTH_TAG_LENGTH = 16; // Authentication tag length in bytes
-const SALT_LENGTH = 16; // Salt for key derivation
 
 /**
  * Get encryption key from environment
@@ -27,18 +25,18 @@ const SALT_LENGTH = 16; // Salt for key derivation
  */
 function getEncryptionKey(): Buffer {
   const keyHex = process.env.ENCRYPTION_KEY;
-  
+
   if (!keyHex) {
     throw new Error('ENCRYPTION_KEY environment variable is not set');
   }
-  
+
   if (keyHex.length !== 64) {
     throw new Error(`ENCRYPTION_KEY must be 64 hex characters (256 bits). Current length: ${keyHex.length}`);
   }
-  
+
   try {
     return Buffer.from(keyHex, 'hex');
-  } catch (error) {
+  } catch {
     throw new Error('ENCRYPTION_KEY must be valid hexadecimal');
   }
 }
@@ -59,24 +57,24 @@ export function encryptPII(plaintext: string | null | undefined): string | null 
 
   try {
     const key = getEncryptionKey();
-    
+
     // Generate random IV (different for each encryption)
     const iv = crypto.randomBytes(IV_LENGTH);
-    
+
     // Create cipher
     const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
-    
+
     // Encrypt data
     let encrypted = cipher.update(plaintext, 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    
+
     // Get authentication tag
     const authTag = cipher.getAuthTag();
-    
+
     // Return: IV:encryptedData:authTag (all hex)
     // Format: iv|encryptedData|authTag
     const result = [iv.toString('hex'), encrypted, authTag.toString('hex')].join('|');
-    
+
     return result;
   } catch (error) {
     logger.error('Failed to encrypt PII', { error });
@@ -100,25 +98,25 @@ export function decryptPII(encrypted: string | null | undefined): string | null 
 
   try {
     const key = getEncryptionKey();
-    
+
     // Parse format: iv|encryptedData|authTag
     const parts = encrypted.split('|');
     if (parts.length !== 3) {
       throw new Error('Invalid encrypted format');
     }
-    
+
     const [ivHex, encryptedHex, authTagHex] = parts;
     const iv = Buffer.from(ivHex, 'hex');
     const authTag = Buffer.from(authTagHex, 'hex');
-    
+
     // Create decipher
     const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
     decipher.setAuthTag(authTag);
-    
+
     // Decrypt
     let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
-    
+
     return decrypted;
   } catch (error) {
     logger.error('Failed to decrypt PII', { error });
@@ -135,12 +133,12 @@ export function isEncrypted(value: string | null | undefined): boolean {
   if (!value) {
     return false;
   }
-  
+
   const parts = value.split('|');
   if (parts.length !== 3) {
     return false;
   }
-  
+
   // All parts should be valid hex
   return parts.every(part => /^[0-9a-f]+$/i.test(part));
 }
@@ -169,10 +167,11 @@ export function maskSensitiveField(value: string | null | undefined, type: 'ssn'
     case 'phone':
       return value.length >= 4 ? '*'.repeat(value.length - 4) + value.slice(-4) : '***';
     case 'partial':
-    default:
+    default: {
       // Show only 25% of the string
       const visibleLength = Math.ceil(value.length / 4);
       return '*'.repeat(value.length - visibleLength) + value.slice(-visibleLength);
+    }
   }
 }
 

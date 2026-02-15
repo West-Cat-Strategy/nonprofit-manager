@@ -219,19 +219,20 @@ export function createCustomLimiter(
 export function rateLimitWarningMiddleware(req: Request, res: Response, next: NextFunction) {
   const originalJson = res.json.bind(res);
 
-  res.json = function(data: any) {
+  res.json = function (data: any) {
     // Add rate limit info to response headers if available
-    if (req.rateLimit) {
-      res.set('X-RateLimit-Limit', req.rateLimit.limit.toString());
-      res.set('X-RateLimit-Remaining', req.rateLimit.current.toString());
-      res.set('X-RateLimit-Reset', new Date(req.rateLimit.resetTime).toISOString());
+    const rateLimit = (req as any).rateLimit;
+    if (rateLimit) {
+      res.set('X-RateLimit-Limit', rateLimit.limit.toString());
+      res.set('X-RateLimit-Remaining', rateLimit.current.toString());
+      res.set('X-RateLimit-Reset', new Date(rateLimit.resetTime).toISOString());
 
       // Warn if approaching limit (90% consumed)
-      if (req.rateLimit.current >= req.rateLimit.limit * 0.9) {
+      if (rateLimit.current >= rateLimit.limit * 0.9) {
         logger.warn('Rate limit warning: approaching limit', {
           ip: req.ip,
-          current: req.rateLimit.current,
-          limit: req.rateLimit.limit,
+          current: rateLimit.current,
+          limit: rateLimit.limit,
         });
       }
     }

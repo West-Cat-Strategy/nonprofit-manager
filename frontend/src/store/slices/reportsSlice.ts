@@ -29,6 +29,9 @@ const initialState: ReportsState = {
     events: null,
     volunteers: null,
     tasks: null,
+    expenses: null,
+    grants: null,
+    programs: null,
   },
   loading: false,
   fieldsLoading: false,
@@ -90,7 +93,7 @@ const reportsSlice = createSlice({
       .addCase(fetchAvailableFields.pending, (state) => {
         state.fieldsLoading = true;
       })
-  .addCase(fetchAvailableFields.fulfilled, (state, action) => {
+      .addCase(fetchAvailableFields.fulfilled, (state, action) => {
         state.fieldsLoading = false;
         const entity = action.payload.entity as ReportEntity;
         state.availableFields[entity] = action.payload.fields || [];

@@ -111,6 +111,13 @@ End-to-end testing of the authentication flow.
 ./scripts/test-auth-flow.sh
 ```
 
+#### `check-links.sh` - Link Checking
+Validates markdown links and highlights any broken references.
+
+```bash
+./scripts/check-links.sh
+```
+
 ### Git Hooks
 
 #### `install-git-hooks.sh` - Git Hook Installation

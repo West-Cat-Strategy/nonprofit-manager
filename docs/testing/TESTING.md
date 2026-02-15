@@ -149,10 +149,42 @@ npm run dev
 - TTY/stream errors when running backend with `nohup` - use regular `npm run dev` in a dedicated terminal instead
 - Rate limiting may block rapid test runs - wait 15 minutes or adjust rate limits in `.env`
 
-## Next Steps
+## Automated Testing
 
-After manual testing passes:
+### Unit Tests
+Backend unit tests use Jest and are located in `backend/src/__tests__/`. Run with:
 
-1. Write automated integration tests with Jest/Supertest
-2. Add E2E tests for frontend with Playwright
-3. Set up CI pipeline to run tests automatically
+```bash
+cd backend
+npm test
+```
+
+### Integration Tests
+Integration tests verify end-to-end API workflows. Run with:
+
+```bash
+cd backend
+npm run test:integration
+```
+
+### E2E Tests (Playwright)
+✅ **Implemented** - See [e2e/README.md](../../e2e/README.md) for comprehensive guide.
+
+```bash
+cd e2e
+npm test
+```
+
+Current coverage includes:
+- Authentication flows
+- Finance module (Donations, Invoices)
+- Engagement modules (Tasks, Wiki, Chat, Calendar, Events)
+- Theme system
+- Report generation
+
+## CI/CD Integration
+
+Tests run automatically in GitHub Actions on every pull request. E2E tests use Playwright with:
+- 2 retries on failure
+- Video recording on first failure
+- Screenshots on all failures

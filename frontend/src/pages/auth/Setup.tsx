@@ -117,9 +117,10 @@ const Setup: React.FC = () => {
       const response = await api.post('/auth/setup', {
         email: formData.email.trim(),
         password: formData.password,
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        organizationName: formData.organizationName.trim(),
+        password_confirm: formData.confirmPassword,
+        first_name: formData.firstName.trim(),
+        last_name: formData.lastName.trim(),
+        organization_name: formData.organizationName.trim(),
       });
 
       if (response.data.organizationId) {

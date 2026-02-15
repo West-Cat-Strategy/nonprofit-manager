@@ -14,6 +14,7 @@ import {
   ClockIcon,
 } from '@heroicons/react/24/outline';
 import type { ActivityEvent, ActivityEventType } from '../../types/people';
+import { BrutalCard } from '../neo-brutalist';
 
 interface ActivityTimelineProps {
   events: ActivityEvent[];
@@ -22,53 +23,27 @@ interface ActivityTimelineProps {
 }
 
 const getEventIcon = (type: ActivityEventType) => {
-  const iconClass = 'w-5 h-5';
+  const iconClass = 'w-6 h-6 stroke-[3px]';
   switch (type) {
     case 'created':
       return <CheckCircleIcon className={`${iconClass} text-green-600`} />;
     case 'updated':
-      return <PencilIcon className={`${iconClass} text-app-accent`} />;
+      return <PencilIcon className={`${iconClass} text-[var(--app-accent)]`} />;
     case 'deleted':
       return <TrashIcon className={`${iconClass} text-red-600`} />;
     case 'status_changed':
+    case 'status_updated':
       return <CheckIcon className={`${iconClass} text-yellow-600`} />;
     case 'comment':
       return <ChatBubbleLeftIcon className={`${iconClass} text-purple-600`} />;
     case 'assigned':
       return <LinkIcon className={`${iconClass} text-indigo-600`} />;
     case 'unassigned':
-      return <LinkIcon className={`${iconClass} text-app-text-muted`} />;
-    case 'status_updated':
-      return <CheckIcon className={`${iconClass} text-yellow-600`} />;
+      return <LinkIcon className={`${iconClass} text-[var(--app-text-muted)]`} />;
     case 'field_changed':
-      return <PencilIcon className={`${iconClass} text-app-accent`} />;
+      return <PencilIcon className={`${iconClass} text-[var(--app-accent)]`} />;
     default:
-      return <ClockIcon className={`${iconClass} text-app-text-muted`} />;
-  }
-};
-
-const getEventColor = (type: ActivityEventType) => {
-  switch (type) {
-    case 'created':
-      return 'bg-green-50 border-green-200';
-    case 'updated':
-      return 'bg-app-accent-soft border-app-accent-soft';
-    case 'deleted':
-      return 'bg-red-50 border-red-200';
-    case 'status_changed':
-      return 'bg-yellow-50 border-yellow-200';
-    case 'comment':
-      return 'bg-purple-50 border-purple-200';
-    case 'assigned':
-      return 'bg-indigo-50 border-indigo-200';
-    case 'unassigned':
-      return 'bg-app-surface-muted border-app-border';
-    case 'status_updated':
-      return 'bg-yellow-50 border-yellow-200';
-    case 'field_changed':
-      return 'bg-app-accent-soft border-app-accent-soft';
-    default:
-      return 'bg-app-surface-muted border-app-border';
+      return <ClockIcon className={`${iconClass} text-[var(--app-text-muted)]`} />;
   }
 };
 
@@ -98,13 +73,13 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
 }) => {
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         {[...Array(3)].map((_, idx) => (
-          <div key={idx} className="animate-pulse flex gap-4 pb-4 border-b border-app-border">
-            <div className="w-10 h-10 bg-app-surface-muted rounded-full flex-shrink-0"></div>
-            <div className="flex-1 space-y-2">
-              <div className="h-4 bg-app-surface-muted rounded w-3/4"></div>
-              <div className="h-3 bg-app-surface-muted rounded w-1/2"></div>
+          <div key={idx} className="animate-pulse flex gap-6 pb-6 border-b-4 border-[var(--app-border)] last:border-b-0">
+            <div className="w-12 h-12 bg-[var(--app-surface-muted)] border-4 border-black flex-shrink-0 transform rotate-3"></div>
+            <div className="flex-1 space-y-3">
+              <div className="h-6 bg-[var(--app-surface-muted)] border-2 border-black w-3/4"></div>
+              <div className="h-4 bg-[var(--app-surface-muted)] border-2 border-black w-1/2"></div>
             </div>
           </div>
         ))}
@@ -114,9 +89,9 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
 
   if (events.length === 0) {
     return (
-      <div className="text-center py-12">
-        <ClockIcon className="w-12 h-12 text-app-text-subtle mx-auto mb-3" />
-        <p className="text-app-text-muted font-mono text-sm">{emptyMessage}</p>
+      <div className="text-center py-16 bg-[var(--app-surface-muted)] border-4 border-dashed border-[var(--app-border)]">
+        <ClockIcon className="w-16 h-16 text-[var(--app-text-muted)] mx-auto mb-4" />
+        <p className="text-[var(--app-text-muted)] font-black uppercase tracking-widest text-lg">{emptyMessage}</p>
       </div>
     );
   }
@@ -126,82 +101,83 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
   );
 
   return (
-    <div className="space-y-6">
-      {sortedEvents.map((event, index) => (
+    <div className="space-y-8 relative before:absolute before:left-[1.45rem] before:top-4 before:bottom-4 before:w-1 before:bg-black">
+      {sortedEvents.map((event) => (
         <div
           key={event.id}
-          className={`border-l-4 border-app-text pl-4 pb-4 ${
-            index !== sortedEvents.length - 1 ? 'border-b border-app-border pb-4' : ''
-          }`}
+          className="relative pl-12 pb-2"
         >
-          {/* Event Header */}
-          <div className="flex items-start justify-between mb-2">
-            <div className="flex items-center gap-3 flex-1">
-              <div className="flex-shrink-0">
-                {getEventIcon(event.type)}
-              </div>
+          {/* Timeline Node */}
+          <div className="absolute left-0 top-0 w-12 h-12 bg-white border-4 border-black flex items-center justify-center z-10 shadow-[4px_4px_0px_0px_var(--shadow-color)] transform -rotate-3">
+            {getEventIcon(event.type)}
+          </div>
+
+          <BrutalCard className="p-6 border-4 border-black bg-[var(--app-surface)] shadow-[8px_8px_0px_0px_var(--shadow-color)] transform rotate-1">
+            {/* Event Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-4">
               <div>
-                <h4 className="font-bold text-app-text text-sm">{event.title}</h4>
+                <h4 className="font-black uppercase tracking-tight text-[var(--app-text)] text-lg leading-none">
+                  {event.title}
+                </h4>
                 {event.user && (
-                  <p className="text-xs text-app-text-muted font-mono mt-0.5">
+                  <p className="text-sm font-black uppercase text-[var(--app-text-muted)] mt-1 tracking-widest">
                     By {event.user.name}
-                    {event.user.email && ` (${event.user.email})`}
                   </p>
                 )}
               </div>
+              <time className="text-xs font-black uppercase bg-black text-white px-3 py-1 self-start md:self-center transform -rotate-2">
+                {formatTimeAgo(new Date(event.timestamp))}
+              </time>
             </div>
-            <time className="text-xs text-app-text-muted whitespace-nowrap ml-2">
-              {formatTimeAgo(new Date(event.timestamp))}
-            </time>
-          </div>
 
-          {/* Event Description */}
-          {event.description && (
-            <p className="text-sm text-app-text-muted ml-8 mb-2">
-              {event.description}
-            </p>
-          )}
+            {/* Event Description */}
+            {event.description && (
+              <p className="text-[var(--app-text)] font-medium mb-4 italic border-l-4 border-[var(--app-accent)] pl-4">
+                {event.description}
+              </p>
+            )}
 
-          {/* Event Details - Field Changes */}
-          {event.details && Object.keys(event.details).length > 0 && (
-            <div className="ml-8 bg-app-surface-muted border border-app-border rounded p-3 text-xs font-mono space-y-2">
-              {Object.entries(event.details).map(([field, change]) => (
-                <div key={field} className="border-b border-app-border last:border-b-0 pb-2 last:pb-0">
-                  <div className="text-app-text-muted font-bold mb-1">
-                    {field.replace(/_/g, ' ')}
+            {/* Event Details - Field Changes */}
+            {event.details && Object.keys(event.details).length > 0 && (
+              <div className="bg-[var(--app-surface-muted)] border-4 border-black p-4 space-y-3">
+                {Object.entries(event.details).map(([field, change]) => (
+                  <div key={field} className="border-b-2 border-black last:border-b-0 pb-3 last:pb-0">
+                    <div className="text-[var(--app-text-muted)] font-black uppercase text-xs mb-2 tracking-widest">
+                      {field.replace(/_/g, ' ')}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {change.oldValue !== undefined && (
+                        <div className="bg-red-100 border-2 border-red-900 p-2 text-red-900 font-black flex items-center gap-2">
+                          <span className="text-2xl leading-none">−</span>
+                          <span className="truncate">{String(change.oldValue)}</span>
+                        </div>
+                      )}
+                      {change.newValue !== undefined && (
+                        <div className="bg-green-100 border-2 border-green-900 p-2 text-green-900 font-black flex items-center gap-2">
+                          <span className="text-2xl leading-none">+</span>
+                          <span className="truncate">{String(change.newValue)}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="ml-2 space-y-1">
-                    {change.oldValue !== undefined && (
-                      <div className="text-red-700">
-                        <span className="text-red-500 mr-1">−</span>
-                        {String(change.oldValue)}
-                      </div>
-                    )}
-                    {change.newValue !== undefined && (
-                      <div className="text-green-700">
-                        <span className="text-green-500 mr-1">+</span>
-                        {String(change.newValue)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
 
-          {/* Metadata Tags */}
-          {event.metadata && Object.keys(event.metadata).length > 0 && (
-            <div className="ml-8 mt-3 flex flex-wrap gap-2">
-              {Object.entries(event.metadata).map(([key, value]) => (
-                <span
-                  key={key}
-                  className="text-xs bg-app-surface-muted border border-app-input-border px-2 py-1 rounded font-mono"
-                >
-                  <span className="text-app-text-muted">{key}:</span> {String(value)}
-                </span>
-              ))}
-            </div>
-          )}
+            {/* Metadata Tags */}
+            {event.metadata && Object.keys(event.metadata).length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-3">
+                {Object.entries(event.metadata).map(([key, value]) => (
+                  <span
+                    key={key}
+                    className="text-xs bg-black text-white px-3 py-1 font-black uppercase tracking-widest"
+                  >
+                    {key}: {String(value)}
+                  </span>
+                ))}
+              </div>
+            )}
+          </BrutalCard>
         </div>
       ))}
     </div>

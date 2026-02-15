@@ -19,10 +19,10 @@ import {
   FilterPanel,
   BulkActionBar,
   ImportExportModal,
+  type TableColumn,
 } from '../../../components/people';
 import { useBulkSelect, useImportExport } from '../../../hooks';
 import { BrutalBadge } from '../../../components/neo-brutalist';
-import type { TableColumn } from '../../../types/people';
 
 const ContactList = () => {
   const dispatch = useAppDispatch();
@@ -68,12 +68,12 @@ const ContactList = () => {
     dispatch(fetchContactTags());
   }, [dispatch]);
 
-  const handleFilterChange = (filterId: string, value: string) => {
-    if (filterId === 'search') {
+  const handleFilterChange = (filterId: string, value: string | string[]) => {
+    if (filterId === 'search' && typeof value === 'string') {
       setSearchInput(value);
-    } else if (filterId === 'role') {
-      setRoleFilter(value);
-    } else if (filterId === 'is_active') {
+    } else if (filterId === 'role' && typeof value === 'string') {
+      setRoleFilter(value as any);
+    } else if (filterId === 'is_active' && typeof value === 'string') {
       setActiveFilter(value);
     }
   };
@@ -154,9 +154,9 @@ const ContactList = () => {
         job_title: c.job_title,
         department: c.department,
         account_name: c.account_name,
-        role: c.role || 'contact',
+        role: c.roles?.join(', ') || '',
       })),
-      columns,
+      columns as any,
       {
         filename: 'contacts-export',
         includeHeaders: true,
@@ -164,12 +164,12 @@ const ContactList = () => {
     );
   };
 
-  const columns: TableColumn[] = [
+  const columns: TableColumn<Contact>[] = [
     {
       key: 'full_name',
       label: 'Name',
       width: '220px',
-      render: (_, row: Contact) => (
+      render: (_, row) => (
         <div
           className="cursor-pointer hover:opacity-75 transition"
           onClick={() => navigate(`/contacts/${row.contact_id}`)}
@@ -185,7 +185,7 @@ const ContactList = () => {
       key: 'job_title',
       label: 'Role',
       width: '160px',
-      render: (_, row: Contact) => (
+      render: (_, row) => (
         <div className="text-sm">
           <p className="font-medium">{row.job_title || '—'}</p>
           <p className="text-app-text-muted">{row.department || '—'}</p>
@@ -196,7 +196,7 @@ const ContactList = () => {
       key: 'account_name',
       label: 'Account',
       width: '180px',
-      render: (_, row: Contact) => (
+      render: (_, row) => (
         <span className="text-sm text-app-text-muted">{row.account_name || '—'}</span>
       ),
     },
@@ -204,12 +204,12 @@ const ContactList = () => {
       key: 'tags',
       label: 'Tags',
       width: '160px',
-      render: (_, row: Contact) => (
+      render: (_, row) => (
         <div className="flex flex-wrap gap-1">
           {row.tags && row.tags.length > 0 ? (
             <>
-              {row.tags.slice(0, 2).map((tag, idx) => (
-                <BrutalBadge key={idx} variant="secondary" className="text-xs">
+              {row.tags.slice(0, 2).map((tag: any, idx: number) => (
+                <BrutalBadge key={idx} color="blue" className="text-xs">
                   {tag}
                 </BrutalBadge>
               ))}
@@ -227,13 +227,12 @@ const ContactList = () => {
       key: 'is_active',
       label: 'Status',
       width: '100px',
-      render: (_, row: Contact) => (
+      render: (_, row) => (
         <span
-          className={`px-3 py-1 text-xs font-medium rounded ${
-            row.is_active
-              ? 'bg-green-100 text-green-800'
-              : 'bg-app-surface-muted text-app-text'
-          }`}
+          className={`px-3 py-1 text-xs font-medium rounded ${row.is_active
+            ? 'bg-green-100 text-green-800'
+            : 'bg-app-surface-muted text-app-text'
+            }`}
         >
           {row.is_active ? 'Active' : 'Inactive'}
         </span>
@@ -243,7 +242,7 @@ const ContactList = () => {
       key: 'actions',
       label: 'Actions',
       width: '140px',
-      render: (_, row: Contact) => (
+      render: (_, row) => (
         <div className="flex gap-2">
           <button
             onClick={() => navigate(`/contacts/${row.contact_id}/edit`)}
@@ -320,10 +319,13 @@ const ContactList = () => {
           />
         }
         loading={loading}
-        error={error}
-        data={contacts.map((c) => ({ ...c, id: c.contact_id }))}
+        error={error || undefined}
+        data={contacts}
         columns={columns}
-        pagination={pagination}
+        pagination={{
+          ...pagination,
+          totalPages: pagination.total_pages,
+        }}
         onPageChange={(page) =>
           dispatch(
             fetchContacts({
