@@ -32,6 +32,9 @@ export const createDonationSchema = z.object({
   contact_id: uuidSchema.optional(),
   is_recurring: z.boolean().optional(),
   recurring_frequency: recurringFrequencySchema.optional(),
+  campaign_name: z.string().max(100).optional(),
+  designation: z.string().max(100).optional(),
+  notes: z.string().max(500).optional(),
 });
 
 export type CreateDonationInput = z.infer<typeof createDonationSchema>;
@@ -47,6 +50,9 @@ export const updateDonationSchema = z.object({
   contact_id: uuidSchema.optional(),
   is_recurring: z.boolean().optional(),
   recurring_frequency: recurringFrequencySchema.optional(),
+  campaign_name: z.string().max(100).optional(),
+  designation: z.string().max(100).optional(),
+  notes: z.string().max(500).optional(),
   receipt_sent: z.boolean().optional(),
 });
 

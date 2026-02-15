@@ -15,8 +15,9 @@ describe('Volunteer API Integration Tests', () => {
       .send({
         email: `volunteer-test-${unique()}@example.com`,
         password: 'Test123!Strong',
-        firstName: 'Volunteer',
-        lastName: 'Tester',
+        password_confirm: 'Test123!Strong',
+        first_name: 'Volunteer',
+        last_name: 'Tester',
       });
 
     authToken = registerResponse.body.token;

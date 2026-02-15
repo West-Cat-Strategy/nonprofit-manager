@@ -5,6 +5,7 @@ import { render } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '../contexts/ToastContext';
+import { ThemeProvider } from '../contexts/ThemeContext';
 import { type RootState, rootReducer } from '../store';
 
 type PreloadedState = Partial<RootState>;
@@ -26,7 +27,9 @@ export const renderWithProviders = (ui: ReactElement, { store, preloadedState, r
   return render(
     <Provider store={resolvedStore}>
       <MemoryRouter initialEntries={[route]}>
-        <ToastProvider>{ui}</ToastProvider>
+        <ThemeProvider>
+          <ToastProvider>{ui}</ToastProvider>
+        </ThemeProvider>
       </MemoryRouter>
     </Provider>
   );

@@ -14,8 +14,9 @@ describe('Donation API Integration Tests', () => {
       .send({
         email: `donation-test-${unique()}@example.com`,
         password: 'Test123!Strong',
-        firstName: 'Donation',
-        lastName: 'Tester',
+        password_confirm: 'Test123!Strong',
+        first_name: 'Donation',
+        last_name: 'Tester',
       });
 
     authToken = registerResponse.body.token;

@@ -4,6 +4,7 @@
  */
 
 import { Link, useLocation } from 'react-router-dom';
+import ThemeSelector from '../ThemeSelector';
 
 // SVG Icon Components
 const DashboardIcon = () => (
@@ -58,11 +59,10 @@ function NavButton({ to, icon, label, active }: NavButtonProps) {
       aria-label={label}
     >
       <div
-        className={`flex items-center gap-3 px-4 py-3 border-b-2 border-[var(--app-border)] transition-all ${
-          active
-            ? 'bg-[var(--app-border)] text-[var(--app-bg)]'
-            : 'bg-[var(--app-surface-muted)] text-[var(--app-text)] hover:bg-[var(--app-surface)]'
-        }`}
+        className={`flex items-center gap-3 px-4 py-3 border-b-2 border-[var(--app-border)] transition-all ${active
+          ? 'bg-[var(--app-border)] text-[var(--app-bg)]'
+          : 'bg-[var(--app-surface-muted)] text-[var(--app-text)] hover:bg-[var(--app-surface)]'
+          }`}
       >
         <span aria-hidden="true">{icon}</span>
         <span className="font-bold">{label}</span>
@@ -90,16 +90,14 @@ function ModuleButton({ to, icon, label, activeColor, active }: ModuleButtonProp
       aria-label={label}
     >
       <div
-        className={`flex items-center gap-3 px-4 py-3 border-2 border-[var(--app-border)] transition-all ${
-          active
-            ? `${bgColor} text-black shadow-[6px_6px_0px_0px_var(--shadow-color)]`
-            : 'bg-[var(--app-surface-muted)] hover:bg-[var(--app-surface)] shadow-[4px_4px_0px_0px_var(--shadow-color)]'
-        }`}
+        className={`flex items-center gap-3 px-4 py-3 border-2 border-[var(--app-border)] transition-all ${active
+          ? `${bgColor} text-black shadow-[6px_6px_0px_0px_var(--shadow-color)]`
+          : 'bg-[var(--app-surface-muted)] hover:bg-[var(--app-surface)] shadow-[4px_4px_0px_0px_var(--shadow-color)]'
+          }`}
       >
         <div
-          className={`w-7 h-7 flex items-center justify-center border-2 border-[var(--app-border)] ${
-            active ? 'bg-black text-white' : 'bg-[var(--app-border)] text-[var(--app-bg)]'
-          }`}
+          className={`w-7 h-7 flex items-center justify-center border-2 border-[var(--app-border)] ${active ? 'bg-black text-white' : 'bg-[var(--app-border)] text-[var(--app-bg)]'
+            }`}
           aria-hidden="true"
         >
           {icon}
@@ -179,6 +177,13 @@ export default function NeoBrutalistSidebar() {
           active={isActive('/reports')}
         />
       </nav>
+
+      {/* Global Theme Selector */}
+      <div className="p-2 border-t-2 border-[var(--app-border)] bg-[var(--app-surface-muted)]">
+        <div className="scale-[0.85] origin-bottom">
+          <ThemeSelector />
+        </div>
+      </div>
     </aside>
   );
 }

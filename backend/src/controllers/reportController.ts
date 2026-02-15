@@ -53,7 +53,17 @@ export const getAvailableFields = async (
   try {
     const entity = req.params.entity as ReportEntity;
 
-    const validEntities = ['accounts', 'contacts', 'donations', 'events', 'volunteers', 'tasks'];
+    const validEntities = [
+      'accounts',
+      'contacts',
+      'donations',
+      'events',
+      'volunteers',
+      'tasks',
+      'expenses',
+      'grants',
+      'programs',
+    ];
     if (!validEntities.includes(entity)) {
       badRequest(res, 'Invalid entity type');
       return;
@@ -66,7 +76,46 @@ export const getAvailableFields = async (
   }
 };
 
+/**
+ * POST /api/reports/export
+ * Generate and export a report
+ */
+export const exportReport = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { definition, format } = req.body;
+
+    if (!definition || !format) {
+      badRequest(res, 'Definition and format are required');
+      return;
+    }
+
+    if (!['csv', 'xlsx'].includes(format)) {
+      badRequest(res, 'Invalid format. Supported formats: csv, xlsx');
+      return;
+    }
+
+    const result = await reportService.generateReport(definition);
+    const buffer = await reportService.exportReport(result, format as 'csv' | 'xlsx');
+
+    const fileName = `${definition.entity}_report_${new Date().toISOString().split('T')[0]}.${format}`;
+    const contentType = format === 'xlsx'
+      ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      : 'text/csv';
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export default {
   generateReport,
   getAvailableFields,
+  exportReport,
 };

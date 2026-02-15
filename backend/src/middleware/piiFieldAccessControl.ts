@@ -9,7 +9,6 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { PIIService } from '../services/piiService';
-import { decryptPII } from '../utils/piiEncryption';
 import { logger } from '../config/logger';
 
 interface AuthenticatedRequest extends Request {
@@ -26,7 +25,7 @@ interface AuthenticatedRequest extends Request {
  * Usage in routes:
  *   router.get('/contacts/:id', authenticate, piiFieldAccessControl(piiService), controller.getContact);
  */
-export function piiFieldAccessControl(piiService: PIIService) {
+export function piiFieldAccessControl(_piiService: PIIService) {
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     // Store original res.json to intercept responses
     const originalJson = res.json.bind(res);

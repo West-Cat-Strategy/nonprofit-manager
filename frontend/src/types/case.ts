@@ -119,6 +119,47 @@ export interface CaseNote {
   last_name?: string;
 }
 
+export type RelationshipType = 'duplicate' | 'related' | 'parent' | 'child' | 'blocked_by' | 'blocks';
+export type ServiceType = 'counseling' | 'legal' | 'financial' | 'housing' | 'healthcare' | 'education' | 'employment' | 'other';
+export type ServiceStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+
+/**
+ * Case Relationship
+ */
+export interface CaseRelationship {
+  id: string;
+  case_id: string;
+  related_case_id: string;
+  relationship_type: RelationshipType;
+  description?: string | null;
+  related_case_number?: string;
+  related_case_title?: string;
+  created_at: string;
+  created_by?: string | null;
+}
+
+/**
+ * Case Service
+ */
+export interface CaseService {
+  id: string;
+  case_id: string;
+  service_name: string;
+  service_type?: ServiceType | null;
+  service_provider?: string | null;
+  service_date: string;
+  start_time?: string | null;
+  end_time?: string | null;
+  duration_minutes?: number | null;
+  status: ServiceStatus;
+  outcome?: string | null;
+  cost?: number | null;
+  currency: string;
+  notes?: string | null;
+  created_at: string;
+  created_by?: string | null;
+}
+
 /**
  * Create Case DTO
  */
@@ -291,6 +332,51 @@ export interface BulkStatusUpdateDTO {
 }
 
 /**
+ * Create Case Relationship DTO
+ */
+export interface CreateCaseRelationshipDTO {
+  related_case_id: string;
+  relationship_type: RelationshipType;
+  description?: string;
+}
+
+/**
+ * Create Case Service DTO
+ */
+export interface CreateCaseServiceDTO {
+  service_name: string;
+  service_type?: ServiceType;
+  service_provider?: string;
+  service_date: string;
+  start_time?: string;
+  end_time?: string;
+  duration_minutes?: number;
+  status?: ServiceStatus;
+  outcome?: string;
+  cost?: number;
+  currency?: string;
+  notes?: string;
+}
+
+/**
+ * Update Case Service DTO
+ */
+export interface UpdateCaseServiceDTO {
+  service_name?: string;
+  service_type?: ServiceType;
+  service_provider?: string;
+  service_date?: string;
+  start_time?: string;
+  end_time?: string;
+  duration_minutes?: number;
+  status?: ServiceStatus;
+  outcome?: string;
+  cost?: number;
+  currency?: string;
+  notes?: string;
+}
+
+/**
  * Redux State Types
  */
 export interface CasesState {
@@ -300,6 +386,8 @@ export interface CasesState {
   caseStatuses: CaseStatus[];
   caseNotes: CaseNote[];
   caseMilestones: CaseMilestone[];
+  caseRelationships: CaseRelationship[];
+  caseServices: CaseService[];
   summary: CaseSummary | null;
   total: number;
   loading: boolean;
@@ -334,4 +422,12 @@ export interface CaseNotesResponse {
 
 export interface CaseMilestonesResponse {
   milestones: CaseMilestone[];
+}
+
+export interface CaseRelationshipsResponse {
+  relationships: CaseRelationship[];
+}
+
+export interface CaseServicesResponse {
+  services: CaseService[];
 }

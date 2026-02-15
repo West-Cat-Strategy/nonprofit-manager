@@ -67,9 +67,9 @@ test.describe('Authentication Flow', () => {
       timeout: 5000,
     });
 
-    // Check that auth token is set
-    const token = await page.evaluate(() => localStorage.getItem('token'));
-    expect(token).toBeTruthy();
+    // Check that user data is set in localStorage
+    const user = await page.evaluate(() => localStorage.getItem('user'));
+    expect(user).toBeTruthy();
   });
 
   test('should logout successfully', async ({ page }) => {
@@ -84,9 +84,9 @@ test.describe('Authentication Flow', () => {
     // Should redirect to login page
     await expect(page).toHaveURL('/login');
 
-    // Check that auth token is cleared
-    const token = await page.evaluate(() => localStorage.getItem('token'));
-    expect(token).toBeFalsy();
+    // Check that user data is cleared
+    const user = await page.evaluate(() => localStorage.getItem('user'));
+    expect(user).toBeFalsy();
   });
 
   test('should redirect to login when accessing protected route without auth', async ({
@@ -113,8 +113,8 @@ test.describe('Authentication Flow', () => {
     await expect(page).toHaveURL('/dashboard');
 
     // Check that we're still authenticated
-    const token = await page.evaluate(() => localStorage.getItem('token'));
-    expect(token).toBeTruthy();
+    const user = await page.evaluate(() => localStorage.getItem('user'));
+    expect(user).toBeTruthy();
   });
 
   test('should show password when toggle is clicked', async ({ page }) => {
@@ -170,9 +170,9 @@ test.describe('Session Management', () => {
     const { email, password } = getCreds();
     await login(page, email, password);
 
-    // Simulate expired local token and expired session cookie.
+    // Simulate expired local state and expired session cookie.
     await page.evaluate(() => {
-      localStorage.setItem('token', 'expired-token-12345');
+      localStorage.setItem('user', 'expired-user-data');
     });
     await page.context().clearCookies();
 
@@ -191,7 +191,7 @@ test.describe('Session Management', () => {
     await logout(page);
 
     // Check that localStorage is cleared
-    const token = await page.evaluate(() => localStorage.getItem('token'));
-    expect(token).toBeFalsy();
+    const user = await page.evaluate(() => localStorage.getItem('user'));
+    expect(user).toBeFalsy();
   });
 });

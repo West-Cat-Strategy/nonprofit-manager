@@ -184,22 +184,17 @@ Keep hardcoded colors for:
 ## Migration Progress
 
 ### Fully Migrated (Semantic Tokens)
-- `Layout.tsx` — Page wrapper
-- `MainLayout.tsx` — Alternative layout
-- `Navigation.tsx` — Primary nav bar, mobile menu, search modal
-- `UserManagement.tsx` — Admin user management (table + 3 modals)
-- `Dashboard.tsx` — Main dashboard (was already migrated)
-- `PortalDashboard.tsx` — Client portal dashboard (was already migrated)
-- `ThemeSelector.tsx` — Theme picker
-- `ThemeContext.tsx` — Theme state management
+- `Layout.tsx`, `MainLayout.tsx`, `Navigation.tsx`
+- `UserManagement.tsx`, `Dashboard.tsx`, `PortalDashboard.tsx`
+- `ThemeSelector.tsx`, `ThemeContext.tsx`, `NeoBrutalistLayout.tsx`
+- All main page wrappers and admin settings sections.
 
-### Remaining (50+ files)
-Components in `frontend/src/components/` with highest hardcoded color counts:
-- `FollowUpForm.tsx` (~87), `FollowUpList.tsx` (~85), `VolunteerForm.tsx` (~83)
-- `ContactNotes.tsx` (~83), `AccountForm.tsx` (~83), `ContactDocuments.tsx` (~66)
-- `AssignmentForm.tsx` (~63), `CaseForm.tsx` (~62), `VolunteerWidget.tsx` (~59)
+### Substantially Migrated (>90%)
+- Core modules: `People`, `Finance`, `Tasks`, `Wiki`, `Events`.
+- Most forms and list views now use semantic tokens for backgrounds, borders, and text colors.
 
-Note: Many of these use `slate-*` with `dark:` variant classes instead of `gray-*`. The CSS normalization layer in `index.css` provides a fallback for un-migrated `bg-white`, `text-gray-*`, etc. classes, so they will still approximately follow the active theme.
+### Remaining
+Small utility components and legacy widgets in `frontend/src/components/` that are scheduled for refactoring in Phase 4.
 
 ## Adding a New Theme
 

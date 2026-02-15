@@ -252,4 +252,72 @@ describe('CaseService', () => {
       expect(noteParams).toContain('status-new');
     });
   });
+
+  // ─── getCaseSummary ────────────────────────────────────────────────────────
+
+  describe('getCaseSummary', () => {
+    it('returns summary statistics accurately', async () => {
+      const mockStats = {
+        rows: [{
+          total_cases: '10',
+          open_cases: '5',
+          closed_cases: '5',
+          priority_low: '2',
+          priority_medium: '3',
+          priority_high: '4',
+          priority_urgent: '1',
+          status_intake: '1',
+          status_active: '2',
+          status_review: '2',
+          status_closed: '4',
+          status_cancelled: '1',
+          due_this_week: '2',
+          overdue: '1',
+          unassigned: '1',
+          avg_duration: '5.5',
+        }]
+      };
+      const mockTypeStats = {
+        rows: [
+          { name: 'Legal', count: '6' },
+          { name: 'Health', count: '4' },
+        ]
+      };
+
+      mockQuery
+        .mockResolvedValueOnce(mockStats)
+        .mockResolvedValueOnce(mockTypeStats);
+
+      const result = await service.getCaseSummary();
+
+      expect(result.total_cases).toBe(10);
+      expect(result.open_cases).toBe(5);
+      expect(result.by_case_type['Legal']).toBe(6);
+      expect(result.by_case_type['Health']).toBe(4);
+      expect(result.average_case_duration_days).toBe(6); // rounded 5.5
+      expect(mockQuery).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  // ─── reassignCase ──────────────────────────────────────────────────────────
+
+  describe('reassignCase', () => {
+    it('updates assignee and records history', async () => {
+      const updatedCase = { id: 'case-1', assigned_to: 'user-new' };
+
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ assigned_to: 'user-old' }] }) // current assignment
+        .mockResolvedValueOnce({ rows: [] })                           // update history (unassign)
+        .mockResolvedValueOnce({ rows: [] })                           // insert history (assign)
+        .mockResolvedValueOnce({ rows: [updatedCase] })               // update case
+        .mockResolvedValueOnce({ rows: [] });                         // insert note
+
+      const result = await service.reassignCase('case-1', 'user-new', 'Project shift', 'admin-1');
+
+      expect(result).toEqual(updatedCase);
+      expect(mockQuery).toHaveBeenCalledTimes(5);
+      expect(mockQuery.mock.calls[4][1]).toContain('Case reassigned: Project shift');
+    });
+  });
 });
+

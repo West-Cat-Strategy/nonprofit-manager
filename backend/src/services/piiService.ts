@@ -9,8 +9,8 @@
  * - Applying field-level access control
  */
 
-import { Pool, QueryResult } from 'pg';
-import { encryptPII, decryptPII, maskSensitiveField, isEncrypted } from '../utils/piiEncryption';
+import { Pool } from 'pg';
+import { encryptPII, decryptPII, maskSensitiveField } from '../utils/piiEncryption';
 import { logger } from '../config/logger';
 
 export interface PIIField {
@@ -38,7 +38,7 @@ const ENCRYPTED_PII_FIELDS: Record<string, string[]> = {
 };
 
 export class PIIService {
-  constructor(private pool: Pool) {}
+  constructor(private pool: Pool) { }
 
   /**
    * Encrypt PII fields in an object before saving to database

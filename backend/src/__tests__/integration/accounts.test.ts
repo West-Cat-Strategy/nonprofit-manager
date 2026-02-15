@@ -14,8 +14,9 @@ describe('Account API Integration Tests', () => {
       .send({
         email: `account-test-${unique()}@example.com`,
         password: 'Test123!Strong',
-        firstName: 'Account',
-        lastName: 'Tester',
+        password_confirm: 'Test123!Strong',
+        first_name: 'Account',
+        last_name: 'Tester',
       });
 
     authToken = registerResponse.body.token;

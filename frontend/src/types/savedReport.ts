@@ -5,6 +5,11 @@
 
 import type { ReportDefinition, ReportEntity } from './report';
 
+export interface ShareSettings {
+  can_edit: boolean;
+  expires_at?: string;
+}
+
 export interface SavedReport {
   id: string;
   name: string;
@@ -15,6 +20,10 @@ export interface SavedReport {
   created_at: string;
   updated_at: string;
   is_public: boolean;
+  shared_with_users?: string[];
+  shared_with_roles?: string[];
+  public_token?: string;
+  share_settings?: ShareSettings;
 }
 
 export interface CreateSavedReportRequest {

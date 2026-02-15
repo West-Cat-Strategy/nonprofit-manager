@@ -34,8 +34,9 @@ describe('Admin Branding API', () => {
     const adminRegister = await request(app).post('/api/auth/register').send({
       email: adminEmail,
       password,
-      firstName: 'Branding',
-      lastName: 'Admin',
+      password_confirm: password,
+      first_name: 'Branding',
+      last_name: 'Admin',
     });
     const adminUserId = adminRegister.body?.user?.user_id;
     await pool.query("UPDATE users SET role = 'admin' WHERE id = $1", [adminUserId]);
@@ -51,8 +52,9 @@ describe('Admin Branding API', () => {
     await request(app).post('/api/auth/register').send({
       email: userEmail,
       password,
-      firstName: 'Branding',
-      lastName: 'User',
+      password_confirm: password,
+      first_name: 'Branding',
+      last_name: 'User',
     });
     const userLogin = await request(app).post('/api/auth/login').send({
       email: userEmail,

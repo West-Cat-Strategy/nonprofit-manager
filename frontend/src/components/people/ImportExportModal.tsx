@@ -3,9 +3,9 @@
  */
 
 import React, { useState } from 'react';
-import { BrutalButton, BrutalCard } from './neo-brutalist';
+import { BrutalButton, BrutalCard } from '../neo-brutalist';
 import { XMarkIcon, ArrowUpTrayIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
-import { useImportExport } from '../hooks';
+import { useImportExport } from '../../hooks';
 
 interface ImportExportModalProps {
   isOpen: boolean;
@@ -20,11 +20,10 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
   isOpen,
   onClose,
   entityType,
-  onExport,
   onImport,
   sampleData = [],
 }) => {
-  const { exportToCSV, importFromCSV, isLoading, error } = useImportExport();
+  const { exportToCSV, importFromCSV, isLoading, error: exportError } = useImportExport();
   const [tab, setTab] = useState<'import' | 'export'>('export');
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState(false);
@@ -102,21 +101,19 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
         <div className="flex border-b-2 border-app-text">
           <button
             onClick={() => setTab('export')}
-            className={`flex-1 px-4 py-3 font-bold text-center ${
-              tab === 'export'
-                ? 'border-b-2 border-app-accent text-app-accent'
-                : 'text-app-text-muted'
-            }`}
+            className={`flex-1 px-4 py-3 font-bold text-center ${tab === 'export'
+              ? 'border-b-2 border-app-accent text-app-accent'
+              : 'text-app-text-muted'
+              }`}
           >
             Export
           </button>
           <button
             onClick={() => setTab('import')}
-            className={`flex-1 px-4 py-3 font-bold text-center ${
-              tab === 'import'
-                ? 'border-b-2 border-app-accent text-app-accent'
-                : 'text-app-text-muted'
-            }`}
+            className={`flex-1 px-4 py-3 font-bold text-center ${tab === 'import'
+              ? 'border-b-2 border-app-accent text-app-accent'
+              : 'text-app-text-muted'
+              }`}
           >
             Import
           </button>
@@ -149,9 +146,9 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
                   </div>
                 )}
 
-                {error && (
+                {exportError && (
                   <div className="bg-red-50 border-2 border-red-600 p-3 rounded">
-                    <p className="text-sm font-mono text-red-800">{error}</p>
+                    <p className="text-sm font-mono text-red-800">{exportError}</p>
                   </div>
                 )}
               </div>
@@ -164,10 +161,10 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
                 <BrutalButton
                   onClick={handleExport}
                   disabled={sampleData.length === 0 || isLoading}
-                  className="w-full"
+                  className="w-full bg-[var(--app-accent)] text-white"
                 >
-                  <ArrowDownTrayIcon className="w-4 h-4 inline mr-2" />
-                  CSV
+                  <ArrowDownTrayIcon className="w-5 h-5 inline mr-2 stroke-[3px]" />
+                  DOWNLOAD CSV
                 </BrutalButton>
               </div>
             </>

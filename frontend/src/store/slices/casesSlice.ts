@@ -22,6 +22,13 @@ import type {
   UpdateCaseMilestoneDTO,
   BulkStatusUpdateDTO,
   ReassignCaseDTO,
+  CaseRelationship,
+  CaseService,
+  CreateCaseRelationshipDTO,
+  CreateCaseServiceDTO,
+  UpdateCaseServiceDTO,
+  CaseRelationshipsResponse,
+  CaseServicesResponse,
 } from '../../types/case';
 
 const getErrorMessage = (error: unknown, fallbackMessage: string) => formatApiErrorMessageWith(fallbackMessage)(error);
@@ -33,6 +40,8 @@ const initialState: CasesState = {
   caseStatuses: [],
   caseNotes: [],
   caseMilestones: [],
+  caseRelationships: [],
+  caseServices: [],
   summary: null,
   total: 0,
   loading: false,
@@ -262,6 +271,94 @@ export const reassignCase = createAsyncThunk(
   }
 );
 
+// Relationships
+
+export const fetchCaseRelationships = createAsyncThunk(
+  'cases/fetchCaseRelationships',
+  async (caseId: string, { rejectWithValue }) => {
+    try {
+      const response = await api.get<CaseRelationshipsResponse>(`/cases/${caseId}/relationships`);
+      return response.data.relationships;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch relationships'));
+    }
+  }
+);
+
+export const createCaseRelationship = createAsyncThunk(
+  'cases/createCaseRelationship',
+  async ({ caseId, data }: { caseId: string; data: CreateCaseRelationshipDTO }, { rejectWithValue }) => {
+    try {
+      const response = await api.post<CaseRelationship>(`/cases/${caseId}/relationships`, data);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to create relationship'));
+    }
+  }
+);
+
+export const deleteCaseRelationship = createAsyncThunk(
+  'cases/deleteCaseRelationship',
+  async (relationshipId: string, { rejectWithValue }) => {
+    try {
+      await api.delete(`/cases/relationships/${relationshipId}`);
+      return relationshipId;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to delete relationship'));
+    }
+  }
+);
+
+// Services
+
+export const fetchCaseServices = createAsyncThunk(
+  'cases/fetchCaseServices',
+  async (caseId: string, { rejectWithValue }) => {
+    try {
+      const response = await api.get<CaseServicesResponse>(`/cases/${caseId}/services`);
+      return response.data.services;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch services'));
+    }
+  }
+);
+
+export const createCaseService = createAsyncThunk(
+  'cases/createCaseService',
+  async ({ caseId, data }: { caseId: string; data: CreateCaseServiceDTO }, { rejectWithValue }) => {
+    try {
+      const response = await api.post<CaseService>(`/cases/${caseId}/services`, data);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to create service'));
+    }
+  }
+);
+
+export const updateCaseService = createAsyncThunk(
+  'cases/updateCaseService',
+  async ({ serviceId, data }: { serviceId: string; data: UpdateCaseServiceDTO }, { rejectWithValue }) => {
+    try {
+      const response = await api.put<CaseService>(`/cases/services/${serviceId}`, data);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to update service'));
+    }
+  }
+);
+
+export const deleteCaseService = createAsyncThunk(
+  'cases/deleteCaseService',
+  async (serviceId: string, { rejectWithValue }) => {
+    try {
+      await api.delete(`/cases/services/${serviceId}`);
+      return serviceId;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to delete service'));
+    }
+  }
+);
+
 // Slice
 
 const casesSlice = createSlice({
@@ -278,6 +375,8 @@ const casesSlice = createSlice({
       state.currentCase = null;
       state.caseNotes = [];
       state.caseMilestones = [];
+      state.caseRelationships = [];
+      state.caseServices = [];
     },
     clearError: (state) => {
       state.error = null;
@@ -468,6 +567,43 @@ const casesSlice = createSlice({
         }
         if (state.currentCase?.id === action.payload.id) {
           state.currentCase = action.payload;
+        }
+      })
+      // Fetch Relationships
+      .addCase(fetchCaseRelationships.fulfilled, (state, action) => {
+        state.caseRelationships = action.payload;
+      })
+      // Create Relationship
+      .addCase(createCaseRelationship.fulfilled, (state, action) => {
+        state.caseRelationships.unshift(action.payload);
+      })
+      // Delete Relationship
+      .addCase(deleteCaseRelationship.fulfilled, (state, action) => {
+        state.caseRelationships = state.caseRelationships.filter((r) => r.id !== action.payload);
+      })
+      // Fetch Services
+      .addCase(fetchCaseServices.fulfilled, (state, action) => {
+        state.caseServices = action.payload;
+      })
+      // Create Service
+      .addCase(createCaseService.fulfilled, (state, action) => {
+        state.caseServices.unshift(action.payload);
+        if (state.currentCase) {
+          state.currentCase.services_count = (state.currentCase.services_count || 0) + 1;
+        }
+      })
+      // Update Service
+      .addCase(updateCaseService.fulfilled, (state, action) => {
+        const idx = state.caseServices.findIndex((s) => s.id === action.payload.id);
+        if (idx !== -1) {
+          state.caseServices[idx] = action.payload;
+        }
+      })
+      // Delete Service
+      .addCase(deleteCaseService.fulfilled, (state, action) => {
+        state.caseServices = state.caseServices.filter((s) => s.id !== action.payload);
+        if (state.currentCase) {
+          state.currentCase.services_count = Math.max(0, (state.currentCase.services_count || 0) - 1);
         }
       });
   },

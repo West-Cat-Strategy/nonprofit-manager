@@ -7,23 +7,15 @@ import {
   loginSchema,
   registerSchema,
   passwordResetRequestSchema,
-  changePasswordSchema,
-  type LoginInput,
-  type RegisterInput,
-  type ChangePasswordInput,
 } from '../../../validations/auth';
 import {
   createVolunteerSchema,
   updateVolunteerSchema,
-  type CreateVolunteerInput,
-  type UpdateVolunteerInput,
 } from '../../../validations/volunteer';
 import {
   createEventSchema,
-  updateEventSchema,
-  type CreateEventInput,
 } from '../../../validations/event';
-import { paginationSchema, type PaginationInput } from '../../../validations/shared';
+import { paginationSchema } from '../../../validations/shared';
 
 describe('Authentication Schemas', () => {
   describe('loginSchema', () => {
