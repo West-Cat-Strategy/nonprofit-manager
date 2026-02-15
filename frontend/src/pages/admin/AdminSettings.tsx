@@ -34,8 +34,11 @@ import UsersSection from './adminSettings/sections/UsersSection';
 import PortalSection from './adminSettings/sections/PortalSection';
 import RolesSection from './adminSettings/sections/RolesSection';
 import OtherSettingsSection from './adminSettings/sections/OtherSettingsSection';
+import DashboardSection from './adminSettings/sections/DashboardSection';
+import AuditLogsSection from './adminSettings/sections/AuditLogsSection';
 import UserSecurityModal from './adminSettings/components/UserSecurityModal';
 import PortalResetPasswordModal from './adminSettings/components/PortalResetPasswordModal';
+
 
 // ============================================================================
 // Main Component
@@ -48,8 +51,9 @@ export default function AdminSettings() {
   const { setBranding: setGlobalBranding } = useBranding();
 
   // State
-  const [activeSection, setActiveSection] = useState<string>('organization');
+  const [activeSection, setActiveSection] = useState<string>('dashboard');
   const [config, setConfig] = useState<OrganizationConfig>(defaultConfig);
+
   const [branding, setBranding] = useState<BrandingConfig>(defaultBranding);
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -661,535 +665,541 @@ export default function AdminSettings() {
 
   return (
     <NeoBrutalistLayout pageTitle="ADMIN SETTINGS">
-    <div className="min-h-screen bg-[var(--app-bg)] p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-black text-[var(--app-text)] uppercase">Admin Settings</h1>
-              <p className="mt-2 text-[var(--app-text-muted)]">
-                Configure organization settings, branding, users, roles, and security.
-              </p>
+      <div className="min-h-screen bg-[var(--app-bg)] p-6">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-black text-[var(--app-text)] uppercase">Admin Settings</h1>
+                <p className="mt-2 text-[var(--app-text-muted)]">
+                  Configure organization settings, branding, users, roles, and security.
+                </p>
+              </div>
+              <span className="px-3 py-1 text-xs font-bold bg-[var(--loop-purple)] text-black border-2 border-[var(--app-border)] uppercase">
+                Admin Only
+              </span>
             </div>
-            <span className="px-3 py-1 text-xs font-bold bg-[var(--loop-purple)] text-black border-2 border-[var(--app-border)] uppercase">
-              Admin Only
-            </span>
           </div>
-        </div>
 
-        {/* Navigation Tabs */}
-        <div className="mb-6 border-b-2 border-[var(--app-border)]">
-          <nav className="-mb-px flex space-x-4 overflow-x-auto">
-            {adminSettingsTabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveSection(tab.id)}
-                className={`py-3 px-4 border-b-4 font-bold text-sm uppercase whitespace-nowrap transition-colors ${
-                  activeSection === tab.id
+          {/* Navigation Tabs */}
+          <div className="mb-6 border-b-2 border-[var(--app-border)]">
+            <nav className="-mb-px flex space-x-4 overflow-x-auto">
+              {adminSettingsTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveSection(tab.id)}
+                  className={`py-3 px-4 border-b-4 font-bold text-sm uppercase whitespace-nowrap transition-colors ${activeSection === tab.id
                     ? 'border-[var(--loop-yellow)] text-[var(--app-text)] bg-[var(--loop-yellow)]'
                     : 'border-transparent text-[var(--app-text-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-muted)]'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        {/* Organization Section */}
-        {activeSection === 'organization' && (
-          <OrganizationSection
-            config={config}
-            onChange={handleChange}
-            onAddressChange={handleAddressChange}
-            onPhoneChange={handlePhoneChange}
-            onSave={handleSaveOrganization}
-            isSaving={isSaving}
-            saveStatus={saveStatus}
-          />
-        )}
-
-        {/* Branding Section */}
-        {activeSection === 'branding' && (
-          <BrandingSection
-            branding={branding}
-            onBrandingChange={handleBrandingChange}
-            onImageUpload={handleImageUpload}
-            onRemoveIcon={() => setBranding((prev) => ({ ...prev, appIcon: null }))}
-            onRemoveFavicon={() => setBranding((prev) => ({ ...prev, favicon: null }))}
-            iconInputRef={iconInputRef}
-            faviconInputRef={faviconInputRef}
-            onSave={handleSaveBranding}
-            isSaving={isSaving}
-            saveStatus={saveStatus}
-          />
-        )}
-
-        {/* Users & Security Section */}
-        {activeSection === 'users' && (
-          <UsersSection
-            userSearchQuery={userSearchQuery}
-            onSearchChange={setUserSearchQuery}
-            isSearching={isSearching}
-            userSearchResults={userSearchResults}
-            onSelectUser={fetchUserSecurityInfo}
-            onShowInvite={() => setShowInviteModal(true)}
-            onGoToRoles={() => setActiveSection('roles')}
-            invitations={invitations}
-            onResendInvitation={handleResendInvitation}
-            onRevokeInvitation={handleRevokeInvitation}
-          />
-        )}
-
-        {/* Client Portal Section */}
-        {activeSection === 'portal' && (
-          <PortalSection
-            portalInviteUrl={portalInviteUrl}
-            portalLoading={portalLoading}
-            portalRequests={portalRequests}
-            portalInviteEmail={portalInviteEmail}
-            portalContactSearch={portalContactSearch}
-            portalContactLoading={portalContactLoading}
-            portalContactResults={portalContactResults}
-            selectedPortalContact={selectedPortalContact}
-            portalInvitations={portalInvitations}
-            portalUsers={portalUsers}
-            portalUsersLoading={portalUsersLoading}
-            portalUserSearch={portalUserSearch}
-            selectedPortalUser={selectedPortalUser}
-            portalUserActivity={portalUserActivity}
-            portalActivityLoading={portalActivityLoading}
-            formError={formError}
-            onRefreshPortal={refreshPortalData}
-            onApproveRequest={handleApprovePortalRequest}
-            onRejectRequest={handleRejectPortalRequest}
-            onPortalInviteEmailChange={setPortalInviteEmail}
-            onPortalContactSearchChange={setPortalContactSearch}
-            onSelectPortalContact={(contact) => {
-              setSelectedPortalContact(contact);
-              setPortalInviteContactId(contact.contact_id);
-              if (contact.email) {
-                setPortalInviteEmail(contact.email);
-              }
-              setPortalContactResults([]);
-              setPortalContactSearch('');
-            }}
-            onClearPortalContact={() => {
-              setSelectedPortalContact(null);
-              setPortalInviteContactId('');
-            }}
-            onCreateInvitation={handleCreatePortalInvite}
-            onPortalUserSearchChange={setPortalUserSearch}
-            onRefreshUsers={() => fetchPortalUsers(portalUserSearch)}
-            onViewUserActivity={handlePortalUserActivity}
-            onToggleUserStatus={handlePortalUserStatusChange}
-            onOpenResetModal={(user) => {
-              setPortalResetTarget(user);
-              setPortalResetPassword('');
-              setPortalResetConfirmPassword('');
-              setShowPortalResetModal(true);
-            }}
-          />
-        )}
-
-        {/* Roles & Permissions Section */}
-        {activeSection === 'roles' && (
-          <RolesSection
-            roles={roles}
-            onCreateRole={() => {
-              setEditingRole({
-                id: '',
-                name: '',
-                description: '',
-                permissions: [],
-                isSystem: false,
-                userCount: 0,
-              });
-              setShowRoleModal(true);
-            }}
-            onEditRole={(role) => {
-              setEditingRole(role);
-              setShowRoleModal(true);
-            }}
-            onDeleteRole={handleDeleteRole}
-          />
-        )}
-
-        {/* Other Settings Section */}
-        {activeSection === 'other' && <OtherSettingsSection />}
-      </div>
-
-      <UserSecurityModal
-        open={showSecurityModal}
-        selectedUser={selectedUser}
-        userAuditLogs={userAuditLogs}
-        onClose={() => setShowSecurityModal(false)}
-        onOpenResetPassword={() => setShowResetPasswordModal(true)}
-        onOpenResetEmail={() => {
-          if (!selectedUser) return;
-          setNewEmail(selectedUser.email);
-          setShowResetEmailModal(true);
-        }}
-        onToggleUserLock={handleToggleUserLock}
-      />
-
-      <PortalResetPasswordModal
-        open={showPortalResetModal}
-        target={portalResetTarget}
-        password={portalResetPassword}
-        confirmPassword={portalResetConfirmPassword}
-        loading={portalResetLoading}
-        onPasswordChange={setPortalResetPassword}
-        onConfirmPasswordChange={setPortalResetConfirmPassword}
-        onClose={() => {
-          setShowPortalResetModal(false);
-          setPortalResetTarget(null);
-          setPortalResetPassword('');
-          setPortalResetConfirmPassword('');
-        }}
-        onSubmit={handlePortalPasswordReset}
-      />
-
-      {/* Reset Password Modal */}
-      {showResetPasswordModal && selectedUser && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4">
-            <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowResetPasswordModal(false)} />
-            <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
-              <h3 className="text-lg font-semibold text-app-text-heading mb-4">
-                Reset Password for {selectedUser.firstName} {selectedUser.lastName}
-              </h3>
-
-              <ErrorBanner message={formError} className="mb-4" />
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-app-text-label mb-1">New Password</label>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter new password"
-                    className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-app-text-label mb-1">Confirm Password</label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm new password"
-                    className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowResetPasswordModal(false);
-                    setNewPassword('');
-                    setConfirmPassword('');
-                    clearFormError();
-                  }}
-                  className="px-4 py-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg"
+                    }`}
                 >
-                  Cancel
+                  {tab.label}
                 </button>
-                <button
-                  type="button"
-                  onClick={handleResetUserPassword}
-                  className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
-                >
-                  Reset Password
-                </button>
-              </div>
-            </div>
+              ))}
+            </nav>
           </div>
+
+          {/* Dashboard Section */}
+          {activeSection === 'dashboard' && <DashboardSection />}
+
+          {/* Organization Section */}
+          {activeSection === 'organization' && (
+
+            <OrganizationSection
+              config={config}
+              onChange={handleChange}
+              onAddressChange={handleAddressChange}
+              onPhoneChange={handlePhoneChange}
+              onSave={handleSaveOrganization}
+              isSaving={isSaving}
+              saveStatus={saveStatus}
+            />
+          )}
+
+          {/* Branding Section */}
+          {activeSection === 'branding' && (
+            <BrandingSection
+              branding={branding}
+              onBrandingChange={handleBrandingChange}
+              onImageUpload={handleImageUpload}
+              onRemoveIcon={() => setBranding((prev) => ({ ...prev, appIcon: null }))}
+              onRemoveFavicon={() => setBranding((prev) => ({ ...prev, favicon: null }))}
+              iconInputRef={iconInputRef}
+              faviconInputRef={faviconInputRef}
+              onSave={handleSaveBranding}
+              isSaving={isSaving}
+              saveStatus={saveStatus}
+            />
+          )}
+
+          {/* Users & Security Section */}
+          {activeSection === 'users' && (
+            <UsersSection
+              userSearchQuery={userSearchQuery}
+              onSearchChange={setUserSearchQuery}
+              isSearching={isSearching}
+              userSearchResults={userSearchResults}
+              onSelectUser={fetchUserSecurityInfo}
+              onShowInvite={() => setShowInviteModal(true)}
+              onGoToRoles={() => setActiveSection('roles')}
+              invitations={invitations}
+              onResendInvitation={handleResendInvitation}
+              onRevokeInvitation={handleRevokeInvitation}
+            />
+          )}
+
+          {/* Client Portal Section */}
+          {activeSection === 'portal' && (
+            <PortalSection
+              portalInviteUrl={portalInviteUrl}
+              portalLoading={portalLoading}
+              portalRequests={portalRequests}
+              portalInviteEmail={portalInviteEmail}
+              portalContactSearch={portalContactSearch}
+              portalContactLoading={portalContactLoading}
+              portalContactResults={portalContactResults}
+              selectedPortalContact={selectedPortalContact}
+              portalInvitations={portalInvitations}
+              portalUsers={portalUsers}
+              portalUsersLoading={portalUsersLoading}
+              portalUserSearch={portalUserSearch}
+              selectedPortalUser={selectedPortalUser}
+              portalUserActivity={portalUserActivity}
+              portalActivityLoading={portalActivityLoading}
+              formError={formError}
+              onRefreshPortal={refreshPortalData}
+              onApproveRequest={handleApprovePortalRequest}
+              onRejectRequest={handleRejectPortalRequest}
+              onPortalInviteEmailChange={setPortalInviteEmail}
+              onPortalContactSearchChange={setPortalContactSearch}
+              onSelectPortalContact={(contact) => {
+                setSelectedPortalContact(contact);
+                setPortalInviteContactId(contact.contact_id);
+                if (contact.email) {
+                  setPortalInviteEmail(contact.email);
+                }
+                setPortalContactResults([]);
+                setPortalContactSearch('');
+              }}
+              onClearPortalContact={() => {
+                setSelectedPortalContact(null);
+                setPortalInviteContactId('');
+              }}
+              onCreateInvitation={handleCreatePortalInvite}
+              onPortalUserSearchChange={setPortalUserSearch}
+              onRefreshUsers={() => fetchPortalUsers(portalUserSearch)}
+              onViewUserActivity={handlePortalUserActivity}
+              onToggleUserStatus={handlePortalUserStatusChange}
+              onOpenResetModal={(user) => {
+                setPortalResetTarget(user);
+                setPortalResetPassword('');
+                setPortalResetConfirmPassword('');
+                setShowPortalResetModal(true);
+              }}
+            />
+          )}
+
+          {/* Roles & Permissions Section */}
+          {activeSection === 'roles' && (
+            <RolesSection
+              roles={roles}
+              onCreateRole={() => {
+                setEditingRole({
+                  id: '',
+                  name: '',
+                  description: '',
+                  permissions: [],
+                  isSystem: false,
+                  userCount: 0
+                });
+                setShowRoleModal(true);
+              }}
+              onEditRole={(role) => {
+                setEditingRole(role);
+                setShowRoleModal(true);
+              }}
+              onDeleteRole={handleDeleteRole}
+            />
+          )}
+
+          {/* Audit Logs Section */}
+          {activeSection === 'audit_logs' && <AuditLogsSection />}
+
+          {/* Other Settings Section */}
+          {activeSection === 'other' && <OtherSettingsSection />}
         </div>
-      )}
 
-      {/* Reset Email Modal */}
-      {showResetEmailModal && selectedUser && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4">
-            <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowResetEmailModal(false)} />
-            <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
-              <h3 className="text-lg font-semibold text-app-text-heading mb-4">
-                Change Email for {selectedUser.firstName} {selectedUser.lastName}
-              </h3>
+        <UserSecurityModal
+          open={showSecurityModal}
+          selectedUser={selectedUser}
+          userAuditLogs={userAuditLogs}
+          onClose={() => setShowSecurityModal(false)}
+          onOpenResetPassword={() => setShowResetPasswordModal(true)}
+          onOpenResetEmail={() => {
+            if (!selectedUser) return;
+            setNewEmail(selectedUser.email);
+            setShowResetEmailModal(true);
+          }}
+          onToggleUserLock={handleToggleUserLock}
+        />
 
-              <ErrorBanner message={formError} className="mb-4" />
+        <PortalResetPasswordModal
+          open={showPortalResetModal}
+          target={portalResetTarget}
+          password={portalResetPassword}
+          confirmPassword={portalResetConfirmPassword}
+          loading={portalResetLoading}
+          onPasswordChange={setPortalResetPassword}
+          onConfirmPasswordChange={setPortalResetConfirmPassword}
+          onClose={() => {
+            setShowPortalResetModal(false);
+            setPortalResetTarget(null);
+            setPortalResetPassword('');
+            setPortalResetConfirmPassword('');
+          }}
+          onSubmit={handlePortalPasswordReset}
+        />
 
-              <div>
-                <label className="block text-sm font-medium text-app-text-label mb-1">New Email Address</label>
-                <input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="user@example.com"
-                  className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
-                />
-              </div>
+        {/* Reset Password Modal */}
+        {showResetPasswordModal && selectedUser && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen px-4">
+              <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowResetPasswordModal(false)} />
+              <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
+                <h3 className="text-lg font-semibold text-app-text-heading mb-4">
+                  Reset Password for {selectedUser.firstName} {selectedUser.lastName}
+                </h3>
 
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowResetEmailModal(false);
-                    setNewEmail('');
-                    clearFormError();
-                  }}
-                  className="px-4 py-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleResetUserEmail}
-                  className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
-                >
-                  Update Email
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+                <ErrorBanner message={formError} className="mb-4" />
 
-      {/* Role Edit Modal */}
-      {showRoleModal && editingRole && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4">
-            <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowRoleModal(false)} />
-            <div className="relative bg-app-surface rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
-              <h3 className="text-lg font-semibold text-app-text-heading mb-4">
-                {editingRole.id ? 'Edit Role' : 'Create Role'}
-              </h3>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-app-text-label mb-1">Role Name</label>
-                  <input
-                    type="text"
-                    value={editingRole.name}
-                    onChange={(e) => setEditingRole({ ...editingRole, name: e.target.value })}
-                    placeholder="Enter role name"
-                    className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
-                    disabled={editingRole.isSystem}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-app-text-label mb-1">Description</label>
-                  <input
-                    type="text"
-                    value={editingRole.description}
-                    onChange={(e) => setEditingRole({ ...editingRole, description: e.target.value })}
-                    placeholder="Describe this role's purpose"
-                    className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-app-text-label mb-2">Permissions</label>
-                  <div className="border border-app-border rounded-lg p-4 max-h-64 overflow-y-auto">
-                    {Object.entries(
-                      defaultPermissions.reduce((acc, perm) => {
-                        if (!acc[perm.category]) acc[perm.category] = [];
-                        acc[perm.category].push(perm);
-                        return acc;
-                      }, {} as Record<string, typeof defaultPermissions>)
-                    ).map(([category, perms]) => (
-                      <div key={category} className="mb-4 last:mb-0">
-                        <h4 className="font-medium text-app-text mb-2">{category}</h4>
-                        <div className="grid grid-cols-2 gap-2">
-                          {perms.map((perm) => (
-                            <label key={perm.key} className="flex items-center">
-                              <input
-                                type="checkbox"
-                                checked={editingRole.permissions.includes(perm.key)}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setEditingRole({
-                                      ...editingRole,
-                                      permissions: [...editingRole.permissions, perm.key],
-                                    });
-                                  } else {
-                                    setEditingRole({
-                                      ...editingRole,
-                                      permissions: editingRole.permissions.filter((p) => p !== perm.key),
-                                    });
-                                  }
-                                }}
-                                className="mr-2"
-                              />
-                              <span className="text-sm text-app-text-muted">{perm.label}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowRoleModal(false);
-                    setEditingRole(null);
-                  }}
-                  className="px-4 py-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveRole}
-                  className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
-                >
-                  {editingRole.id ? 'Save Changes' : 'Create Role'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Invite User Modal */}
-      {showInviteModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4">
-            <div className="fixed inset-0 bg-black bg-opacity-50" onClick={resetInviteModal} />
-            <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
-              <h3 className="text-lg font-semibold text-app-text-heading mb-4">
-                Invite New User
-              </h3>
-
-              <ErrorBanner message={formError} className="mb-4" />
-
-              {inviteUrl ? (
                 <div className="space-y-4">
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex items-center gap-2 text-green-800 font-medium mb-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Invitation Created
-                    </div>
-                    <p className="text-sm text-green-700">
-                      Share this link with <strong>{inviteEmail}</strong> to allow them to create their account:
-                    </p>
-                  </div>
-
-                  <div className="p-3 bg-app-surface-muted rounded-lg">
+                  <div>
+                    <label className="block text-sm font-medium text-app-text-label mb-1">New Password</label>
                     <input
-                      type="text"
-                      value={inviteUrl}
-                      readOnly
-                      title="Invitation URL"
-                      aria-label="Invitation URL"
-                      className="w-full bg-transparent text-sm text-app-text-muted border-none focus:outline-none"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new password"
+                      className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-app-text-label mb-1">Confirm Password</label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm new password"
+                      className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
+                    />
+                  </div>
+                </div>
 
+                <div className="flex justify-end space-x-3 mt-6">
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(inviteUrl);
-                      alert('Link copied to clipboard!');
+                      setShowResetPasswordModal(false);
+                      setNewPassword('');
+                      setConfirmPassword('');
+                      clearFormError();
                     }}
-                    className="w-full px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
+                    className="px-4 py-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg"
                   >
-                    Copy Link
+                    Cancel
                   </button>
-
                   <button
                     type="button"
-                    onClick={resetInviteModal}
-                    className="w-full px-4 py-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg"
+                    onClick={handleResetUserPassword}
+                    className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
                   >
-                    Close
+                    Reset Password
                   </button>
                 </div>
-              ) : (
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Reset Email Modal */}
+        {showResetEmailModal && selectedUser && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen px-4">
+              <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowResetEmailModal(false)} />
+              <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
+                <h3 className="text-lg font-semibold text-app-text-heading mb-4">
+                  Change Email for {selectedUser.firstName} {selectedUser.lastName}
+                </h3>
+
+                <ErrorBanner message={formError} className="mb-4" />
+
+                <div>
+                  <label className="block text-sm font-medium text-app-text-label mb-1">New Email Address</label>
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="user@example.com"
+                    className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowResetEmailModal(false);
+                      setNewEmail('');
+                      clearFormError();
+                    }}
+                    className="px-4 py-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResetUserEmail}
+                    className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
+                  >
+                    Update Email
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Role Edit Modal */}
+        {showRoleModal && editingRole && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen px-4">
+              <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowRoleModal(false)} />
+              <div className="relative bg-app-surface rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+                <h3 className="text-lg font-semibold text-app-text-heading mb-4">
+                  {editingRole.id ? 'Edit Role' : 'Create Role'}
+                </h3>
+
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-app-text-label mb-1">
-                      Email Address *
-                    </label>
+                    <label className="block text-sm font-medium text-app-text-label mb-1">Role Name</label>
                     <input
-                      type="email"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                      placeholder="user@example.com"
+                      type="text"
+                      value={editingRole.name}
+                      onChange={(e) => setEditingRole({ ...editingRole, name: e.target.value })}
+                      placeholder="Enter role name"
+                      className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
+                      disabled={editingRole.isSystem}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-app-text-label mb-1">Description</label>
+                    <input
+                      type="text"
+                      value={editingRole.description}
+                      onChange={(e) => setEditingRole({ ...editingRole, description: e.target.value })}
+                      placeholder="Describe this role's purpose"
                       className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-app-text-label mb-1">
-                      Role *
-                    </label>
-                    <select
-                      value={inviteRole}
-                      onChange={(e) => setInviteRole(e.target.value)}
-                      title="Select user role"
-                      className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
+                    <label className="block text-sm font-medium text-app-text-label mb-2">Permissions</label>
+                    <div className="border border-app-border rounded-lg p-4 max-h-64 overflow-y-auto">
+                      {Object.entries(
+                        defaultPermissions.reduce((acc, perm) => {
+                          if (!acc[perm.category]) acc[perm.category] = [];
+                          acc[perm.category].push(perm);
+                          return acc;
+                        }, {} as Record<string, typeof defaultPermissions>)
+                      ).map(([category, perms]) => (
+                        <div key={category} className="mb-4 last:mb-0">
+                          <h4 className="font-medium text-app-text mb-2">{category}</h4>
+                          <div className="grid grid-cols-2 gap-2">
+                            {perms.map((perm) => (
+                              <label key={perm.key} className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={editingRole.permissions.includes(perm.key)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setEditingRole({
+                                        ...editingRole,
+                                        permissions: [...editingRole.permissions, perm.key],
+                                      });
+                                    } else {
+                                      setEditingRole({
+                                        ...editingRole,
+                                        permissions: editingRole.permissions.filter((p) => p !== perm.key),
+                                      });
+                                    }
+                                  }}
+                                  className="mr-2"
+                                />
+                                <span className="text-sm text-app-text-muted">{perm.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowRoleModal(false);
+                      setEditingRole(null);
+                    }}
+                    className="px-4 py-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveRole}
+                    className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
+                  >
+                    {editingRole.id ? 'Save Changes' : 'Create Role'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Invite User Modal */}
+        {showInviteModal && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen px-4">
+              <div className="fixed inset-0 bg-black bg-opacity-50" onClick={resetInviteModal} />
+              <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
+                <h3 className="text-lg font-semibold text-app-text-heading mb-4">
+                  Invite New User
+                </h3>
+
+                <ErrorBanner message={formError} className="mb-4" />
+
+                {inviteUrl ? (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center gap-2 text-green-800 font-medium mb-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Invitation Created
+                      </div>
+                      <p className="text-sm text-green-700">
+                        Share this link with <strong>{inviteEmail}</strong> to allow them to create their account:
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-app-surface-muted rounded-lg">
+                      <input
+                        type="text"
+                        value={inviteUrl}
+                        readOnly
+                        title="Invitation URL"
+                        aria-label="Invitation URL"
+                        className="w-full bg-transparent text-sm text-app-text-muted border-none focus:outline-none"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(inviteUrl);
+                        alert('Link copied to clipboard!');
+                      }}
+                      className="w-full px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
                     >
-                      <option value="user">User</option>
-                      <option value="manager">Manager</option>
-                      <option value="admin">Administrator</option>
-                      <option value="readonly">Read Only</option>
-                    </select>
-                    <p className="mt-1 text-xs text-app-text-muted">
-                      The user will be assigned this role when they create their account
-                    </p>
-                  </div>
+                      Copy Link
+                    </button>
 
-                  <div>
-                    <label className="block text-sm font-medium text-app-text-label mb-1">
-                      Personal Message (optional)
-                    </label>
-                    <textarea
-                      value={inviteMessage}
-                      onChange={(e) => setInviteMessage(e.target.value)}
-                      placeholder="Welcome to our team! Looking forward to working with you."
-                      rows={3}
-                      className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
-                    />
-                  </div>
-
-                  <div className="flex justify-end space-x-3 mt-6">
                     <button
                       type="button"
                       onClick={resetInviteModal}
-                      className="px-4 py-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg"
+                      className="w-full px-4 py-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg"
                     >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCreateInvitation}
-                      disabled={isCreatingInvite || !inviteEmail}
-                      className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
-                    >
-                      {isCreatingInvite ? 'Creating...' : 'Create Invitation'}
+                      Close
                     </button>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-app-text-label mb-1">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                        placeholder="user@example.com"
+                        className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-app-text-label mb-1">
+                        Role *
+                      </label>
+                      <select
+                        value={inviteRole}
+                        onChange={(e) => setInviteRole(e.target.value)}
+                        title="Select user role"
+                        className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
+                      >
+                        <option value="user">User</option>
+                        <option value="manager">Manager</option>
+                        <option value="admin">Administrator</option>
+                        <option value="readonly">Read Only</option>
+                      </select>
+                      <p className="mt-1 text-xs text-app-text-muted">
+                        The user will be assigned this role when they create their account
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-app-text-label mb-1">
+                        Personal Message (optional)
+                      </label>
+                      <textarea
+                        value={inviteMessage}
+                        onChange={(e) => setInviteMessage(e.target.value)}
+                        placeholder="Welcome to our team! Looking forward to working with you."
+                        rows={3}
+                        className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
+                      />
+                    </div>
+
+                    <div className="flex justify-end space-x-3 mt-6">
+                      <button
+                        type="button"
+                        onClick={resetInviteModal}
+                        className="px-4 py-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCreateInvitation}
+                        disabled={isCreatingInvite || !inviteEmail}
+                        className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
+                      >
+                        {isCreatingInvite ? 'Creating...' : 'Create Invitation'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
     </NeoBrutalistLayout>
   );
 }

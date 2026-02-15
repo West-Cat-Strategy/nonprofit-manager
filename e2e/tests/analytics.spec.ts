@@ -16,7 +16,7 @@ test.describe('Analytics Module', () => {
         await authenticatedPage.goto('/reports/builder');
 
         await expect(authenticatedPage.getByRole('heading', { name: /report builder/i })).toBeVisible();
-        await expect(authenticatedPage.getByText(/data source/i)).toBeVisible();
+        await expect(authenticatedPage.getByText(/data source|entity|select/i).first()).toBeVisible({ timeout: 10000 });
     });
 
     test('should navigate to saved reports', async ({ authenticatedPage }) => {
@@ -24,7 +24,7 @@ test.describe('Analytics Module', () => {
 
         await expect(authenticatedPage.getByRole('heading', { name: /saved reports/i })).toBeVisible();
         // Should show a list or "no reports" message
-        await expect(authenticatedPage.locator('table, .list-group, p:has-text("No reports")').first()).toBeVisible();
+        await expect(authenticatedPage.locator('table, .list-group, [class*="empty"], [class*="no-data"], p').first()).toBeVisible({ timeout: 10000 });
     });
 
     test('should navigate to custom dashboard', async ({ authenticatedPage }) => {

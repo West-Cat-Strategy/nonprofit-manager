@@ -213,8 +213,22 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
       newErrors.phone = 'Invalid phone number format';
     }
 
+    if (formData.phone) {
+      const digitCount = formData.phone.replace(/\D/g, '').length;
+      if (digitCount > 0 && digitCount < 10) {
+        newErrors.phone = 'Phone number must be at least 10 digits';
+      }
+    }
+
     if (formData.mobile_phone && !/^[\d\s+() -]+$/.test(formData.mobile_phone)) {
       newErrors.mobile_phone = 'Invalid mobile phone number format';
+    }
+
+    if (formData.mobile_phone) {
+      const digitCount = formData.mobile_phone.replace(/\D/g, '').length;
+      if (digitCount > 0 && digitCount < 10) {
+        newErrors.mobile_phone = 'Mobile phone number must be at least 10 digits';
+      }
     }
 
     if (formData.postal_code) {
