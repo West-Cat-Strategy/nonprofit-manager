@@ -3,14 +3,32 @@
  * Type definitions for custom report generation
  */
 
-export type ReportEntity = 'accounts' | 'contacts' | 'donations' | 'events' | 'volunteers' | 'tasks';
+export type ReportEntity =
+  | 'accounts'
+  | 'contacts'
+  | 'donations'
+  | 'events'
+  | 'volunteers'
+  | 'tasks'
+  | 'expenses'
+  | 'grants'
+  | 'programs';
 
-export type ReportFormat = 'json' | 'csv' | 'pdf';
+export type ReportFormat = 'json' | 'csv' | 'pdf' | 'xlsx';
+
+export type AggregateFunction = 'sum' | 'avg' | 'count' | 'min' | 'max';
+
+export interface ReportAggregation {
+  field: string;
+  function: AggregateFunction;
+  alias?: string;
+}
 
 export interface ReportField {
   field: string;
   label: string;
   type: 'string' | 'number' | 'date' | 'boolean' | 'currency';
+  is_aggregate?: boolean;
 }
 
 export interface ReportFilter {
@@ -29,6 +47,8 @@ export interface ReportDefinition {
   description?: string;
   entity: ReportEntity;
   fields: string[];
+  aggregations?: ReportAggregation[];
+  groupBy?: string[];
   filters?: ReportFilter[];
   sort?: ReportSort[];
   limit?: number;
@@ -112,6 +132,36 @@ export const AVAILABLE_FIELDS: Record<ReportEntity, ReportField[]> = {
     { field: 'due_date', label: 'Due Date', type: 'date' },
     { field: 'completed_date', label: 'Completed Date', type: 'date' },
     { field: 'related_to_type', label: 'Related To', type: 'string' },
+    { field: 'created_at', label: 'Created Date', type: 'date' },
+  ],
+  expenses: [
+    { field: 'id', label: 'Expense ID', type: 'string' },
+    { field: 'amount', label: 'Amount', type: 'currency' },
+    { field: 'category', label: 'Category', type: 'string' },
+    { field: 'description', label: 'Description', type: 'string' },
+    { field: 'expense_date', label: 'Expense Date', type: 'date' },
+    { field: 'payment_method', label: 'Payment Method', type: 'string' },
+    { field: 'status', label: 'Status', type: 'string' },
+    { field: 'created_at', label: 'Created Date', type: 'date' },
+  ],
+  grants: [
+    { field: 'id', label: 'Grant ID', type: 'string' },
+    { field: 'name', label: 'Grant Name', type: 'string' },
+    { field: 'funder', label: 'Funder', type: 'string' },
+    { field: 'amount', label: 'Amount', type: 'currency' },
+    { field: 'status', label: 'Status', type: 'string' },
+    { field: 'award_date', label: 'Award Date', type: 'date' },
+    { field: 'expiry_date', label: 'Expiry Date', type: 'date' },
+    { field: 'created_at', label: 'Created Date', type: 'date' },
+  ],
+  programs: [
+    { field: 'id', label: 'Program ID', type: 'string' },
+    { field: 'name', label: 'Program Name', type: 'string' },
+    { field: 'description', label: 'Description', type: 'string' },
+    { field: 'status', label: 'Status', type: 'string' },
+    { field: 'start_date', label: 'Start Date', type: 'date' },
+    { field: 'end_date', label: 'End Date', type: 'date' },
+    { field: 'budget', label: 'Budget', type: 'currency' },
     { field: 'created_at', label: 'Created Date', type: 'date' },
   ],
 };

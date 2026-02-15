@@ -12,6 +12,19 @@ interface RateLimitRequest extends Request {
 // Disable rate limiting in test environment
 const isTestEnv = process.env.NODE_ENV === 'test';
 const noopLimiter = (_req: Request, _res: Response, next: NextFunction) => next();
+const isDevEnv = process.env.NODE_ENV === 'development';
+const shouldSkipRateLimit = (req: Request): boolean => {
+  if (!isDevEnv) return false;
+  const ip = req.ip || req.connection.remoteAddress || '';
+  return (
+    ip === '127.0.0.1' ||
+    ip === '::1' ||
+    ip.startsWith('::ffff:127.0.0.1') ||
+    ip.startsWith('192.168.') || // Docker/LAN
+    ip.startsWith('172.') ||     // Docker
+    ip.startsWith('10.')         // LAN
+  );
+};
 
 class HybridRateLimitStore implements Store {
   localKeys = false;
@@ -71,6 +84,7 @@ const buildStore = (prefix: string): Store => new HybridRateLimitStore(prefix);
 export const apiLimiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || String(RATE_LIMIT.WINDOW_MS)),
   max: isTestEnv ? 10000 : parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || String(RATE_LIMIT.MAX_REQUESTS)),
+  skip: shouldSkipRateLimit,
   message: ERROR_MESSAGES.TOO_MANY_REQUESTS,
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
@@ -91,6 +105,7 @@ export const authLimiter = rateLimit({
   windowMs: parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS || String(RATE_LIMIT.AUTH_WINDOW_MS)),
   max: isTestEnv ? 10000 : parseInt(process.env.AUTH_RATE_LIMIT_MAX_REQUESTS || String(RATE_LIMIT.AUTH_MAX_ATTEMPTS)),
   skipSuccessfulRequests: true, // Don't count successful requests
+  skip: shouldSkipRateLimit,
   message: ERROR_MESSAGES.TOO_MANY_LOGIN_ATTEMPTS,
   standardHeaders: true,
   legacyHeaders: false,
@@ -111,6 +126,7 @@ export const passwordResetLimiter = rateLimit({
   windowMs: RATE_LIMIT.PASSWORD_RESET_WINDOW_MS,
   max: RATE_LIMIT.PASSWORD_RESET_MAX_ATTEMPTS,
   skipSuccessfulRequests: false,
+  skip: shouldSkipRateLimit,
   message: ERROR_MESSAGES.TOO_MANY_PASSWORD_RESETS,
   standardHeaders: true,
   legacyHeaders: false,
@@ -131,6 +147,7 @@ export const registrationLimiter = rateLimit({
   windowMs: RATE_LIMIT.REGISTRATION_WINDOW_MS,
   max: isTestEnv ? 10000 : RATE_LIMIT.REGISTRATION_MAX_ATTEMPTS,
   skipSuccessfulRequests: false,
+  skip: shouldSkipRateLimit,
   message: ERROR_MESSAGES.TOO_MANY_REGISTRATIONS,
   standardHeaders: true,
   legacyHeaders: false,

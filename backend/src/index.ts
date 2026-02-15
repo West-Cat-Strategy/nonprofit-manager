@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { logger } from './config/logger';
 import { initializeRedis, closeRedis } from './config/redis';
+import { initializeSentry, sentryErrorHandler } from './config/sentry';
 import { errorHandler } from './middleware/errorHandler';
 import { apiLimiterMiddleware } from './middleware/rateLimiter';
 import { csrfMiddleware } from './middleware/csrf';
@@ -77,6 +78,9 @@ if (process.env.NODE_ENV === 'production') {
 // Set pool for health checks and payments
 setHealthCheckPool(pool);
 setPaymentPool(pool);
+
+// Initialize Sentry
+initializeSentry();
 
 const app: Application = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -171,7 +175,7 @@ const corsOptions = {
   // Allowed methods
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
   // Allowed headers
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Organization-Id'],
   // Expose headers to client
   exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
   // Cache preflight for 24 hours (in seconds)
@@ -222,6 +226,9 @@ app.use('/metrics', metricsRouter);
 
 // API Routes
 registerApiRoutes(app);
+
+// Sentry error handler (must be after all controllers, before other error handlers)
+sentryErrorHandler(app);
 
 // Error handling
 app.use(errorHandler);

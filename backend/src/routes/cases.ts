@@ -23,6 +23,18 @@ router.get('/:id/milestones', authenticate, caseController.getCaseMilestones);
 router.post('/:id/milestones', authenticate, caseController.createCaseMilestone);
 router.put('/milestones/:milestoneId', authenticate, caseController.updateCaseMilestone);
 router.delete('/milestones/:milestoneId', authenticate, caseController.deleteCaseMilestone);
+
+// Case relationships
+router.get('/:id/relationships', authenticate, caseController.getCaseRelationships);
+router.post('/:id/relationships', authenticate, caseController.createCaseRelationship);
+router.delete('/relationships/:relationshipId', authenticate, caseController.deleteCaseRelationship);
+
+// Case services
+router.get('/:id/services', authenticate, caseController.getCaseServices);
+router.post('/:id/services', authenticate, caseController.createCaseService);
+router.put('/services/:serviceId', authenticate, caseController.updateCaseService);
+router.delete('/services/:serviceId', authenticate, caseController.deleteCaseService);
+
 router.post('/notes', authenticate, caseController.createCaseNote);
 
 export default router;

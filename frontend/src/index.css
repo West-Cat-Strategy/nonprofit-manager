@@ -197,6 +197,7 @@ body.theme-sea-breeze.dark {
   --app-surface-elevated: #00695C;
 
   --shadow-color: #000000;
+}
 
 /* Sea Breeze Overrides */
 body.theme-sea-breeze .border-brutal,
@@ -220,7 +221,7 @@ body.theme-sea-breeze button.p-4 {
    ========================================================================== */
 
 /* RULE 1: Main Dark Backgrounds need White/Cream borders */
-body.dark .border-black:not(.bg-loop-yellow):not(.bg-loop-green):not(.bg-loop-purple):not(.bg-loop-pink):not([class*="bg-[var(--loop"]]):not([class*="bg-loop-"]) {
+body.dark .border-black:not([class*="bg-loop-"]):not([class*="bg-\[var\(--loop"]) {
   border-color: #F5F5DC !important;
   /* Cream borders on dark backgrounds */
 }
@@ -825,13 +826,13 @@ body .border-blue-600 {
   border-color: var(--app-accent) !important;
 }
 
-body .focus\\:ring-blue-500:focus,
-body .focus\\:ring-blue-600:focus {
+body [class*="focus:ring-blue-500"]:focus,
+body [class*="focus:ring-blue-600"]:focus {
   --tw-ring-color: var(--app-accent) !important;
 }
 
-body .focus\\:border-blue-500:focus,
-body .focus\\:border-blue-600:focus {
+body [class*="focus:border-blue-500"]:focus,
+body [class*="focus:border-blue-600"]:focus {
   border-color: var(--app-accent) !important;
 }
 

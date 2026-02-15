@@ -92,7 +92,7 @@ const VolunteerDetail = () => {
         label: tab.label,
       }))}
       activeTab={activeTab}
-      onTabChange={(tab) => setActiveTab(tab as typeof activeTab)}
+      onTabChange={(tabId) => setActiveTab(tabId as any)}
     >
       {/* Info Tab */}
       {activeTab === 'info' && (
@@ -191,8 +191,8 @@ const VolunteerDetail = () => {
                 <p className="mt-1">
                   {currentVolunteer.background_check_date
                     ? new Date(
-                        currentVolunteer.background_check_date
-                      ).toLocaleDateString()
+                      currentVolunteer.background_check_date
+                    ).toLocaleDateString()
                     : '-'}
                 </p>
               </div>
@@ -203,8 +203,8 @@ const VolunteerDetail = () => {
                 <p className="mt-1">
                   {currentVolunteer.background_check_expiry
                     ? new Date(
-                        currentVolunteer.background_check_expiry
-                      ).toLocaleDateString()
+                      currentVolunteer.background_check_expiry
+                    ).toLocaleDateString()
                     : '-'}
                 </p>
               </div>
@@ -305,15 +305,14 @@ const VolunteerDetail = () => {
                         Edit
                       </button>
                       <span
-                        className={`px-2 py-1 text-xs rounded-full capitalize ${
-                          assignment.status === 'completed'
+                        className={`px-2 py-1 text-xs rounded-full capitalize ${assignment.status === 'completed'
                             ? 'bg-green-100 text-green-800'
                             : assignment.status === 'in_progress'
                               ? 'bg-app-accent-soft text-app-accent-text'
                               : assignment.status === 'cancelled'
                                 ? 'bg-red-100 text-red-800'
                                 : 'bg-app-surface-muted text-app-text'
-                        }`}
+                          }`}
                       >
                         {assignment.status}
                       </span>
@@ -384,15 +383,14 @@ const VolunteerDetail = () => {
                         </p>
                       </div>
                       <span
-                        className={`px-2 py-1 text-xs rounded-full capitalize ${
-                          assignment.status === 'completed'
+                        className={`px-2 py-1 text-xs rounded-full capitalize ${assignment.status === 'completed'
                             ? 'bg-green-100 text-green-800'
                             : assignment.status === 'in_progress'
                               ? 'bg-app-accent-soft text-app-accent-text'
                               : assignment.status === 'cancelled'
                                 ? 'bg-red-100 text-red-800'
                                 : 'bg-app-surface-muted text-app-text'
-                        }`}
+                          }`}
                       >
                         {assignment.status.replace('_', ' ')}
                       </span>

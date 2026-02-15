@@ -49,7 +49,6 @@ const STALE_WHILE_REVALIDATE = 86400; // 24 hours
 const MAX_CACHE_SIZE = 1000; // Maximum cache entries (for in-memory fallback)
 const CACHE_KEY_PREFIX = 'site_cache:';
 const TAG_KEY_PREFIX = 'site_cache_tag:';
-const STATS_KEY = 'site_cache:stats';
 
 // In-memory fallback when Redis is unavailable
 const memoryCache = new Map<string, CacheEntry<unknown>>();

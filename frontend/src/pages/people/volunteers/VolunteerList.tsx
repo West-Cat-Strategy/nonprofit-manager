@@ -18,10 +18,10 @@ import {
   FilterPanel,
   BulkActionBar,
   ImportExportModal,
+  type TableColumn,
 } from '../../../components/people';
 import { useBulkSelect, useImportExport } from '../../../hooks';
 import { BrutalBadge } from '../../../components/neo-brutalist';
-import type { TableColumn } from '../../../types/people';
 
 const VolunteerList = () => {
   const dispatch = useAppDispatch();
@@ -65,12 +65,12 @@ const VolunteerList = () => {
     loadVolunteers();
   }, [loadVolunteers]);
 
-  const handleFilterChange = (filterId: string, value: string) => {
-    if (filterId === 'search') {
+  const handleFilterChange = (filterId: string, value: string | string[]) => {
+    if (filterId === 'search' && typeof value === 'string') {
       setSearchInput(value);
-    } else if (filterId === 'availability_status') {
+    } else if (filterId === 'availability_status' && typeof value === 'string') {
       setAvailabilityFilter(value);
-    } else if (filterId === 'background_check_status') {
+    } else if (filterId === 'background_check_status' && typeof value === 'string') {
       setBackgroundCheckFilter(value);
     }
   };
@@ -146,7 +146,7 @@ const VolunteerList = () => {
         background_check_status: v.background_check_status,
         total_hours_logged: v.total_hours_logged,
       })),
-      columns,
+      columns as any,
       {
         filename: 'volunteers-export',
         includeHeaders: true,
@@ -187,7 +187,7 @@ const VolunteerList = () => {
       key: 'name',
       label: 'Name',
       width: '280px',
-      render: (_, row: Volunteer) => (
+      render: (_: any, row: Volunteer) => (
         <div
           className="cursor-pointer hover:opacity-75 transition"
           onClick={() => navigate(`/volunteers/${row.volunteer_id}`)}
@@ -208,7 +208,7 @@ const VolunteerList = () => {
           {row.skills && row.skills.length > 0 ? (
             <>
               {row.skills.slice(0, 2).map((skill, idx) => (
-                <BrutalBadge key={idx} variant="primary" className="text-xs">
+                <BrutalBadge key={idx} color="blue" className="text-xs">
                   {skill}
                 </BrutalBadge>
               ))}
@@ -342,10 +342,13 @@ const VolunteerList = () => {
           />
         }
         loading={loading}
-        error={error}
+        error={error || undefined}
         data={volunteers.map((v) => ({ ...v, id: v.volunteer_id }))}
         columns={columns}
-        pagination={pagination}
+        pagination={{
+          ...pagination,
+          totalPages: pagination.total_pages,
+        }}
         onPageChange={(page) =>
           dispatch(
             fetchVolunteers({

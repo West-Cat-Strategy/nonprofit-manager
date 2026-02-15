@@ -14,8 +14,9 @@ describe('Contact API Integration Tests', () => {
       .send({
         email: `contact-test-${unique()}@example.com`,
         password: 'Test123!Strong',
-        firstName: 'Contact',
-        lastName: 'Tester',
+        password_confirm: 'Test123!Strong',
+        first_name: 'Contact',
+        last_name: 'Tester',
       });
 
     authToken = registerResponse.body.token;
@@ -51,7 +52,7 @@ describe('Contact API Integration Tests', () => {
           first_name: 'John',
           last_name: 'Doe',
           email: 'john.doe@example.com',
-          phone: '555-0200',
+          phone: '555-123-4567',
         })
         .expect(201);
 

@@ -109,6 +109,7 @@ class HttpLogTransport extends winston.transports.Stream {
           callback();
         }
         // Log transport errors to console without failing
+        // eslint-disable-next-line no-console
         console.error('HttpLogTransport error:', error.message);
       });
     });
@@ -145,19 +146,22 @@ class HttpLogTransport extends winston.transports.Stream {
       const protocol = this.protocol === 'https' ? https : http;
       const request = protocol.request(options, (response) => {
         if (response.statusCode && response.statusCode > 299) {
+          // eslint-disable-next-line no-console
           console.error(`Log aggregation returned status ${response.statusCode}`);
         }
-        response.on('data', () => {});
-        response.on('end', () => {});
+        response.on('data', () => { });
+        response.on('end', () => { });
       });
 
       request.on('error', (error: Error) => {
+        // eslint-disable-next-line no-console
         console.error('Failed to send logs to aggregation service:', error.message);
       });
 
       request.write(data);
       request.end();
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Error sending log to aggregation service:', error instanceof Error ? error.message : String(error));
     }
   }

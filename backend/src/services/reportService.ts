@@ -14,7 +14,7 @@ import type {
 } from '@app-types/report';
 
 export class ReportService {
-  constructor(private pool: Pool) {}
+  constructor(private pool: Pool) { }
 
   private getFieldSpecs(entity: ReportEntity): Record<
     string,
@@ -101,6 +101,39 @@ export class ReportService {
           related_to_type: { label: 'Related To', type: 'string', column: 't.related_to_type' },
           created_at: { label: 'Created Date', type: 'date', column: 't.created_at' },
         };
+      case 'expenses':
+        return {
+          id: { label: 'Expense ID', type: 'string', column: 'ex.id' },
+          amount: { label: 'Amount', type: 'currency', column: 'ex.amount' },
+          category: { label: 'Category', type: 'string', column: 'ex.category' },
+          description: { label: 'Description', type: 'string', column: 'ex.description' },
+          expense_date: { label: 'Expense Date', type: 'date', column: 'ex.expense_date' },
+          payment_method: { label: 'Payment Method', type: 'string', column: 'ex.payment_method' },
+          status: { label: 'Status', type: 'string', column: 'ex.status' },
+          created_at: { label: 'Created Date', type: 'date', column: 'ex.created_at' },
+        };
+      case 'grants':
+        return {
+          id: { label: 'Grant ID', type: 'string', column: 'g.id' },
+          name: { label: 'Grant Name', type: 'string', column: 'g.name' },
+          funder: { label: 'Funder', type: 'string', column: 'g.funder' },
+          amount: { label: 'Amount', type: 'currency', column: 'g.amount' },
+          status: { label: 'Status', type: 'string', column: 'g.status' },
+          award_date: { label: 'Award Date', type: 'date', column: 'g.award_date' },
+          expiry_date: { label: 'Expiry Date', type: 'date', column: 'g.expiry_date' },
+          created_at: { label: 'Created Date', type: 'date', column: 'g.created_at' },
+        };
+      case 'programs':
+        return {
+          id: { label: 'Program ID', type: 'string', column: 'p.id' },
+          name: { label: 'Program Name', type: 'string', column: 'p.name' },
+          description: { label: 'Description', type: 'string', column: 'p.description' },
+          status: { label: 'Status', type: 'string', column: 'p.status' },
+          start_date: { label: 'Start Date', type: 'date', column: 'p.start_date' },
+          end_date: { label: 'End Date', type: 'date', column: 'p.end_date' },
+          budget: { label: 'Budget', type: 'currency', column: 'p.budget' },
+          created_at: { label: 'Created Date', type: 'date', column: 'p.created_at' },
+        };
       default:
         return {};
     }
@@ -128,7 +161,7 @@ export class ReportService {
       }
       const column = fieldSpec.column;
       const value = filter.value;
-      
+
       switch (filter.operator) {
         case 'eq':
           if (value === undefined || value === null || value === '') break;
@@ -249,6 +282,9 @@ export class ReportService {
       events: 'events e',
       volunteers: 'volunteers v INNER JOIN contacts c ON v.contact_id = c.id',
       tasks: 'tasks t',
+      expenses: 'expenses ex',
+      grants: 'grants g',
+      programs: 'programs p',
     };
 
     return tableMap[entity];
@@ -258,27 +294,60 @@ export class ReportService {
    * Generate a custom report based on definition
    */
   async generateReport(definition: ReportDefinition): Promise<ReportResult> {
-    // Validate fields (throw before try block so error message is preserved)
-    if (!definition.fields || definition.fields.length === 0) {
-      throw new Error('At least one field must be selected');
-    }
-
     try {
       const tableName = this.getTableName(definition.entity);
       const fieldSpecs = this.getFieldSpecs(definition.entity);
-      const invalidFields = definition.fields.filter((field) => !fieldSpecs[field]);
-      if (invalidFields.length > 0) {
-        throw new Error(`Invalid fields: ${invalidFields.join(', ')}`);
+
+      const selectParts: string[] = [];
+
+      // Handle grouping fields
+      if (definition.groupBy && definition.groupBy.length > 0) {
+        for (const field of definition.groupBy) {
+          if (!fieldSpecs[field]) {
+            throw new Error(`Invalid group by field: ${field}`);
+          }
+          selectParts.push(`${fieldSpecs[field].column} AS ${field}`);
+        }
+      } else {
+        // Handle regular fields if not grouping
+        if (definition.fields && definition.fields.length > 0) {
+          const invalidFields = definition.fields.filter((field) => !fieldSpecs[field]);
+          if (invalidFields.length > 0) {
+            throw new Error(`Invalid fields: ${invalidFields.join(', ')}`);
+          }
+          definition.fields.forEach((field) => {
+            selectParts.push(`${fieldSpecs[field].column} AS ${field}`);
+          });
+        }
       }
-      const selectFields = definition.fields
-        .map((field) => `${fieldSpecs[field].column} AS ${field}`)
-        .join(', ');
+
+      // Handle aggregations
+      if (definition.aggregations && definition.aggregations.length > 0) {
+        for (const agg of definition.aggregations) {
+          if (!fieldSpecs[agg.field]) {
+            throw new Error(`Invalid aggregation field: ${agg.field}`);
+          }
+          const alias = agg.alias || `${agg.function}_${agg.field}`;
+          selectParts.push(`${agg.function.toUpperCase()}(${fieldSpecs[agg.field].column}) AS ${alias}`);
+        }
+      }
+
+      if (selectParts.length === 0) {
+        throw new Error('At least one field or aggregation must be selected');
+      }
+
+      const selectFields = selectParts.join(', ');
 
       // Build WHERE clause
       const { clause: whereClause, values } = this.buildWhereClause(
         definition.filters || [],
         fieldSpecs
       );
+
+      // Build GROUP BY clause
+      const groupByClause = definition.groupBy && definition.groupBy.length > 0
+        ? `GROUP BY ${definition.groupBy.map(f => fieldSpecs[f].column).join(', ')}`
+        : '';
 
       // Build ORDER BY clause
       const orderByClause = this.buildOrderByClause(definition.sort, fieldSpecs);
@@ -291,24 +360,30 @@ export class ReportService {
         SELECT ${selectFields}
         FROM ${tableName}
         ${whereClause}
+        ${groupByClause}
         ${orderByClause}
         ${limitClause}
-      `.trim();
+      `.trim().replace(/\s+/g, ' ');
 
       logger.debug('Executing report query', { query, values });
 
       // Execute query
       const result = await this.pool.query(query, values);
 
-      // Get total count (without limit)
-      const countQuery = `
-        SELECT COUNT(*) as count
-        FROM ${tableName}
-        ${whereClause}
-      `.trim();
+      // Get total count (for non-grouped reports)
+      let totalCount = 0;
+      if (!definition.groupBy || definition.groupBy.length === 0) {
+        const countQuery = `
+          SELECT COUNT(*) as count
+          FROM ${tableName}
+          ${whereClause}
+        `.trim().replace(/\s+/g, ' ');
 
-      const countResult = await this.pool.query(countQuery, values);
-      const totalCount = parseInt(countResult.rows[0].count);
+        const countResult = await this.pool.query(countQuery, values);
+        totalCount = parseInt(countResult.rows[0].count);
+      } else {
+        totalCount = result.rows.length;
+      }
 
       return {
         definition,
@@ -317,8 +392,70 @@ export class ReportService {
         generated_at: new Date().toISOString(),
       };
     } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes('Invalid') || error.message.includes('At least one field')) {
+          throw error;
+        }
+      }
       logger.error('Error generating report', { error, definition });
       throw new Error('Failed to generate report');
+    }
+  }
+
+  /**
+   * Export report to a specific format
+   */
+  async exportReport(result: ReportResult, format: 'csv' | 'xlsx'): Promise<Buffer> {
+    try {
+      const { definition, data } = result;
+      const fieldSpecs = this.getFieldSpecs(definition.entity);
+
+      // Determine columns to include
+      const columns = (definition.groupBy || []).concat(definition.fields || []);
+      const aggs = (definition.aggregations || []).map(a => a.alias || `${a.function}_${a.field}`);
+      const allColumns = columns.concat(aggs);
+
+      if (format === 'xlsx') {
+        const Workbook = (await import('exceljs')).default.Workbook;
+        const workbook = new Workbook();
+        const worksheet = workbook.addWorksheet(definition.name || 'Report');
+
+        // Add headers
+        worksheet.columns = allColumns.map(col => {
+          let label = col;
+          if (fieldSpecs[col]) {
+            label = fieldSpecs[col].label;
+          } else if (col.includes('_')) {
+            // Likely an aggregation
+            label = col.replace(/_/g, ' ').toUpperCase();
+          }
+          return { header: label, key: col, width: 20 };
+        });
+
+        // Add rows
+        worksheet.addRows(data);
+
+        // Styling
+        worksheet.getRow(1).font = { bold: true };
+
+        return (await workbook.xlsx.writeBuffer()) as unknown as Buffer;
+      } else {
+        // Simple CSV generation
+        const headers = allColumns.join(',');
+        const rows = data.map(row =>
+          allColumns.map(col => {
+            const val = row[col];
+            if (val === null || val === undefined) return '';
+            const str = String(val);
+            return str.includes(',') ? `"${str}"` : str;
+          }).join(',')
+        );
+        const csvContent = [headers, ...rows].join('\n');
+        return Buffer.from(csvContent);
+      }
+    } catch (error) {
+      logger.error('Error exporting report', { error, format });
+      throw new Error('Failed to export report');
     }
   }
 

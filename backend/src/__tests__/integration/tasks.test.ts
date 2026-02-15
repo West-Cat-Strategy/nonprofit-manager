@@ -14,8 +14,9 @@ describe('Task API Integration Tests', () => {
       .send({
         email: `task-test-${unique()}@example.com`,
         password: 'Test123!Strong',
-        firstName: 'Task',
-        lastName: 'Tester',
+        password_confirm: 'Test123!Strong',
+        first_name: 'Task',
+        last_name: 'Tester',
       });
 
     authToken = registerResponse.body.token;

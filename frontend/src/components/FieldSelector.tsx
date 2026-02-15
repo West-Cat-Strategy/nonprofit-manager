@@ -53,47 +53,46 @@ function FieldSelector({ entity, selectedFields, onChange }: FieldSelectorProps)
 
   return (
     <div>
-      <div className="flex gap-2 mb-4">
+      <div className="flex flex-wrap gap-4 mb-6">
         <button
           onClick={handleSelectAll}
-          className="px-4 py-2 text-sm bg-app-accent-soft text-app-accent rounded hover:bg-app-accent-soft-hover font-medium"
+          className="px-6 py-3 bg-[var(--loop-blue)] text-black border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
         >
           Select All
         </button>
         <button
           onClick={handleClearAll}
-          className="px-4 py-2 text-sm bg-app-surface-muted text-app-text-muted rounded hover:bg-app-surface-muted font-medium"
+          className="px-6 py-3 bg-[var(--app-surface-muted)] text-[var(--app-text)] border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
         >
           Clear All
         </button>
-        <div className="ml-auto text-sm text-app-text-muted">
+        <div className="ml-auto text-sm font-bold text-[var(--app-text)] uppercase self-center bg-[var(--loop-yellow)] px-3 py-1 border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)]">
           {selectedFields.length} of {currentFields.length} fields selected
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {currentFields.map((field) => {
           const isSelected = selectedFields.includes(field.field);
           return (
             <label
               key={field.field}
-              className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
-                isSelected
-                  ? 'border-app-accent bg-app-accent-soft'
-                  : 'border-app-border bg-app-surface hover:border-app-input-border'
-              }`}
+              className={`flex items-center gap-3 p-4 border-2 cursor-pointer transition-all shadow-[2px_2px_0px_0px_var(--shadow-color)] ${isSelected
+                  ? 'border-[var(--app-border)] bg-[var(--loop-yellow)] text-black'
+                  : 'border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] hover:bg-[var(--app-surface-muted)]'
+                }`}
             >
               <input
                 type="checkbox"
                 checked={isSelected}
                 onChange={() => handleToggleField(field.field)}
-                className="w-4 h-4 text-app-accent border-app-input-border rounded focus:ring-app-accent"
+                className="w-5 h-5 border-2 border-black rounded-none appearance-none checked:bg-black checked:border-black focus:ring-0 transition-all cursor-pointer relative after:content-[''] after:absolute after:hidden after:left-[5px] after:top-[1px] after:w-[6px] after:h-[10px] after:border-white after:border-r-2 after:border-b-2 after:rotate-45 checked:after:block"
               />
               <div className="flex-1">
-                <div className="font-medium text-app-text">
-                  {field.label || field.field.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                <div className="font-bold uppercase tracking-tight">
+                  {field.label || field.field.replace(/_/g, ' ')}
                 </div>
-                <div className="text-xs text-app-text-muted">{field.type}</div>
+                <div className="text-xs font-bold uppercase opacity-60">{field.type}</div>
               </div>
             </label>
           );

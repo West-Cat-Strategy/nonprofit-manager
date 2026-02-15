@@ -17,6 +17,7 @@
  */
 
 import * as Sentry from '@sentry/node';
+import { nodeContextIntegration } from '@sentry/node';
 import { logger } from './logger';
 
 let sentryInitialized = false;
@@ -45,14 +46,13 @@ export function initializeSentry(): void {
       tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0, // 10% sampling in prod
       // Capture 100% of errors regardless of transaction sampling
       integrations: [
-        new Sentry.Integrations.Http({ tracing: true }),
-        new Sentry.Integrations.OnUncaughtException(),
-        new Sentry.Integrations.OnUnhandledRejection(),
+        Sentry.httpIntegration(),
+        nodeContextIntegration(),
       ],
       // Beforehand hooks for scrubbing PII before sending
-      beforeSend: (event, hint) => {
+      beforeSend: (event: Sentry.ErrorEvent, _hint: Sentry.EventHint) => {
         // Redact sensitive fields from all events
-        return scrubbSentryEvent(event, hint);
+        return scrubbSentryEvent(event, _hint) as Sentry.ErrorEvent;
       },
       // Configure allowed URLs (to ignore external service errors)
       allowUrls: [new RegExp(`^${(process.env.API_ORIGIN || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)],
@@ -148,20 +148,20 @@ function scrubbSentryEvent(event: Sentry.Event, _hint: Sentry.EventHint): Sentry
 
   // Scrub request data
   if (event.request) {
-    event.request = scrubObject(event.request) as Sentry.Request;
+    event.request = scrubObject(event.request) as any;
   }
 
   // Scrub breadcrumbs
   if (event.breadcrumbs) {
-    event.breadcrumbs = event.breadcrumbs.map(crumb => ({
+    event.breadcrumbs = event.breadcrumbs.map((crumb: Sentry.Breadcrumb) => ({
       ...crumb,
-      data: crumb.data ? scrubObject(crumb.data) : crumb.data,
+      data: crumb.data ? (scrubObject(crumb.data) as Record<string, any>) : crumb.data,
     }));
   }
 
   // Scrub exception values
-  if (event.exception) {
-    event.exception = event.exception.map(exception => ({
+  if (event.exception?.values) {
+    event.exception.values = event.exception.values.map((exception: Sentry.Exception) => ({
       ...exception,
       value: exception.value ? exception.value.substring(0, 200) : exception.value,
     }));
@@ -169,7 +169,7 @@ function scrubbSentryEvent(event: Sentry.Event, _hint: Sentry.EventHint): Sentry
 
   // Scrub context
   if (event.contexts) {
-    event.contexts = scrubObject(event.contexts) as Record<string, unknown>;
+    event.contexts = scrubObject(event.contexts) as any;
   }
 
   // Scrub extra data
@@ -209,15 +209,15 @@ export function captureMessage(message: string, level: 'fatal' | 'error' | 'warn
 /**
  * Start a transaction for performance monitoring
  */
-export function startTransaction(name: string, op?: string): Sentry.Transaction | null {
+export function startTransaction(name: string, op?: string): any {
   if (!sentryInitialized) {
     return null;
   }
 
-  return Sentry.startTransaction({
+  return Sentry.startSpan({
     name,
     op,
-  });
+  }, (span: any) => span);
 }
 
 /**
@@ -244,20 +244,13 @@ export function setUserContext(userId: string | null, email?: string): void {
  * Express middleware for Sentry integration
  * 
  * Captures request/response and errors in Express middleware chain.
- * Should be added near the top of middleware, after body parsing.
  */
 export function sentryRequestHandler() {
-  if (!sentryInitialized) {
-    return (_req: any, _res: any, next: any) => next();
-  }
-  return Sentry.Handlers.requestHandler();
+  return (_req: any, _res: any, next: any) => next(); // Handled by @sentry/node automatic integration in v10
 }
 
-export function sentryErrorHandler() {
-  if (!sentryInitialized) {
-    return (_err: any, _req: any, _res: any, next: any) => next();
-  }
-  return Sentry.Handlers.errorHandler();
+export function sentryErrorHandler(app: any) {
+  Sentry.setupExpressErrorHandler(app);
 }
 
 export default {

@@ -30,6 +30,7 @@ export class ExportService {
     // Initialize directory asynchronously on construction (non-blocking)
     // Don't await - let it complete in the background
     this.initializeExportDir().catch((err) => {
+      // eslint-disable-next-line no-console
       console.error('Warning: Failed to initialize export directory:', err);
     });
   }
@@ -387,12 +388,14 @@ export class ExportService {
           // Skip individual file errors (file may have been deleted, etc.)
           const errno = (error as NodeJS.ErrnoException).code;
           if (errno !== 'ENOENT' && errno !== 'EACCES') {
+            // eslint-disable-next-line no-console
             console.warn(`Failed to clean up export file ${filepath}:`, error);
           }
         }
       }
     } catch (error) {
       // Directory might not exist yet or other errors - non-critical
+      // eslint-disable-next-line no-console
       console.warn('Failed to cleanup old exports:', error);
     }
   }

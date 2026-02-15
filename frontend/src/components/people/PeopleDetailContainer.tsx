@@ -5,18 +5,19 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BrutalCard, BrutalButton } from './index';
+import { BrutalCard, BrutalButton } from '../neo-brutalist';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
-interface DetailTab {
+export interface DetailTab {
   id: string;
   label: string;
-  content: React.ReactNode;
+  content?: React.ReactNode;
   badge?: number | string;
 }
 
 interface PeopleDetailContainerProps {
   title: string;
+  description?: string; // Added description prop
   subtitle?: string;
   breadcrumb?: {
     label: string;
@@ -27,6 +28,8 @@ interface PeopleDetailContainerProps {
   loading?: boolean;
   error?: string;
   tabs?: DetailTab[];
+  activeTab?: string; // Controlled active tab
+  onTabChange?: (tabId: string) => void;
   defaultTab?: string;
   metadata?: {
     label: string;
@@ -34,12 +37,12 @@ interface PeopleDetailContainerProps {
   }[];
   children?: React.ReactNode;
   backPath?: string;
+  onBack?: () => void; // Added onBack prop
 }
 
-export const PeopleDetailContainer: React.FC<
-  PeopleDetailContainerProps
-> = ({
+export const PeopleDetailContainer: React.FC<PeopleDetailContainerProps> = ({
   title,
+  description,
   subtitle,
   breadcrumb,
   onEdit,
@@ -47,22 +50,35 @@ export const PeopleDetailContainer: React.FC<
   loading,
   error,
   tabs,
+  activeTab: controlledActiveTab,
+  onTabChange,
   defaultTab,
   metadata,
   children,
   backPath,
+  onBack,
 }) => {
-  const [activeTab, setActiveTab] = React.useState(
+  const [internalActiveTab, setInternalActiveTab] = React.useState(
     defaultTab || tabs?.[0]?.id || 'info'
   );
 
+  const activeTab = controlledActiveTab !== undefined ? controlledActiveTab : internalActiveTab;
+
+  const handleTabChange = (tabId: string) => {
+    if (onTabChange) {
+      onTabChange(tabId);
+    } else {
+      setInternalActiveTab(tabId);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-app-surface-muted p-6">
+      <div className="min-h-screen bg-[var(--app-bg)] p-6 transition-colors duration-300">
         <div className="max-w-6xl mx-auto">
-          <BrutalCard className="p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-app-text mx-auto"></div>
-            <p className="mt-4 font-mono text-app-text-muted">Loading...</p>
+          <BrutalCard className="p-12 text-center border-4 border-[var(--app-border)] bg-[var(--app-surface)] shadow-[8px_8px_0px_0px_var(--shadow-color)]">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-[var(--app-border)] border-b-[var(--app-accent)] mx-auto"></div>
+            <p className="mt-6 font-black uppercase tracking-widest text-[var(--app-text)] animate-pulse text-xl">Loading...</p>
           </BrutalCard>
         </div>
       </div>
@@ -71,14 +87,17 @@ export const PeopleDetailContainer: React.FC<
 
   if (error) {
     return (
-      <div className="min-h-screen bg-app-surface-muted p-6">
+      <div className="min-h-screen bg-[var(--app-bg)] p-6 transition-colors duration-300">
         <div className="max-w-6xl mx-auto">
-          <BrutalCard className="border-red-600 p-6">
-            <p className="font-bold text-red-600 mb-4">{error}</p>
-            {backPath && (
-              <Link to={backPath} className="text-app-accent hover:text-app-accent-text">
+          <BrutalCard className="border-4 border-black bg-red-500 text-white p-8 shadow-[8px_8px_0px_0px_var(--shadow-color)]">
+            <p className="font-black uppercase text-2xl mb-6">{error}</p>
+            {(backPath || onBack) && (
+              <button
+                onClick={onBack || (() => window.history.back())}
+                className="bg-white text-black px-6 py-2 font-black uppercase border-4 border-black hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-[4px_4px_0px_0px_#000] transition-all"
+              >
                 ← Go back
-              </Link>
+              </button>
             )}
           </BrutalCard>
         </div>
@@ -87,7 +106,7 @@ export const PeopleDetailContainer: React.FC<
   }
 
   return (
-    <div className="min-h-screen bg-app-surface-muted p-6">
+    <div className="min-h-screen bg-[var(--app-bg)] p-6 transition-colors duration-300">
       <div className="max-w-6xl mx-auto">
         {/* Breadcrumb */}
         {breadcrumb && (
@@ -97,17 +116,17 @@ export const PeopleDetailContainer: React.FC<
                 {item.path ? (
                   <Link
                     to={item.path}
-                    className="text-app-accent hover:text-app-accent-text font-mono text-sm"
+                    className="text-[var(--app-accent)] hover:text-[var(--app-accent-text)] font-black uppercase text-sm tracking-wider"
                   >
                     {item.label}
                   </Link>
                 ) : (
-                  <span className="font-mono text-sm text-app-text-muted">
+                  <span className="font-black uppercase text-sm text-[var(--app-text-muted)] tracking-wider">
                     {item.label}
                   </span>
                 )}
                 {idx < breadcrumb.length - 1 && (
-                  <span className="text-app-text-subtle">/</span>
+                  <span className="text-[var(--app-text-muted)] font-black">/</span>
                 )}
               </React.Fragment>
             ))}
@@ -115,27 +134,30 @@ export const PeopleDetailContainer: React.FC<
         )}
 
         {/* Header */}
-        <div className="mb-6 flex justify-between items-start">
+        <div className="mb-8 flex flex-col md:flex-row justify-between items-start gap-4">
           <div>
-            {backPath && (
-              <Link
-                to={backPath}
-                className="inline-flex items-center gap-1 text-app-accent hover:text-app-accent-text mb-2 font-mono text-sm"
+            {(backPath || onBack) && (
+              <button
+                onClick={onBack || (() => window.history.back())}
+                className="inline-flex items-center gap-2 text-[var(--app-accent)] hover:text-[var(--app-accent-text)] mb-2 font-black uppercase text-sm transition-all"
               >
-                <ArrowLeftIcon className="w-4 h-4" />
+                <ArrowLeftIcon className="w-5 h-5 stroke-[3px]" />
                 Back
-              </Link>
+              </button>
             )}
-            <h1 className="text-4xl font-bold text-app-text mt-2 mb-1">
+            <h1 className="text-5xl font-black uppercase text-[var(--app-text)] tracking-tight leading-none">
               {title}
             </h1>
+            {description && (
+              <p className="text-[var(--app-text-muted)] mt-2 font-medium text-lg italic">{description}</p>
+            )}
             {subtitle && (
-              <p className="text-app-text-muted font-mono">{subtitle}</p>
+              <p className="text-[var(--app-text-muted)] mt-1 font-black uppercase tracking-widest">{subtitle}</p>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-4">
             {onEdit && (
-              <BrutalButton onClick={onEdit}>
+              <BrutalButton onClick={onEdit} className="px-8 py-3 bg-[var(--app-surface)] text-xl">
                 Edit
               </BrutalButton>
             )}
@@ -143,7 +165,7 @@ export const PeopleDetailContainer: React.FC<
               <BrutalButton
                 variant="secondary"
                 onClick={onDelete}
-                className="border-red-600 text-red-600 hover:bg-red-50"
+                className="px-8 py-3 bg-red-500 text-white text-xl"
               >
                 Delete
               </BrutalButton>
@@ -153,40 +175,38 @@ export const PeopleDetailContainer: React.FC<
 
         {/* Metadata */}
         {metadata && metadata.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             {metadata.map((item, idx) => (
-              <BrutalCard key={idx} className="p-4">
-                <p className="text-xs font-bold uppercase text-app-text-muted mb-1">
+              <BrutalCard key={idx} className="p-4 border-4 border-[var(--app-border)] bg-[var(--app-surface)] shadow-[6px_6px_0px_0px_var(--shadow-color)]">
+                <p className="text-xs font-black uppercase text-[var(--app-text-muted)] mb-2 tracking-widest">
                   {item.label}
                 </p>
-                <p className="font-mono text-sm text-app-text">
+                <div className="font-bold text-[var(--app-text)]">
                   {item.value}
-                </p>
+                </div>
               </BrutalCard>
             ))}
           </div>
         )}
 
         {/* Tabs */}
-        {tabs && tabs.length > 0 ? (
-          <BrutalCard>
-            {/* Tab Navigation */}
-            <div className="border-b-2 border-app-text">
+        <BrutalCard className="border-4 border-[var(--app-border)] bg-[var(--app-surface)] shadow-[10px_10px_0px_0px_var(--shadow-color)] overflow-hidden">
+          {tabs && tabs.length > 0 && (
+            <div className="border-b-4 border-[var(--app-border)] bg-[var(--app-surface-muted)]">
               <div className="flex overflow-x-auto">
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`px-6 py-4 text-sm font-bold whitespace-nowrap border-b-2 transition
-                      ${
-                        activeTab === tab.id
-                          ? 'text-app-text border-b-app-text'
-                          : 'text-app-text-muted border-b-transparent hover:text-app-text'
+                    onClick={() => handleTabChange(tab.id)}
+                    className={`px-8 py-5 text-sm font-black uppercase tracking-widest transition-all
+                      ${activeTab === tab.id
+                        ? 'text-[var(--app-text)] bg-[var(--app-surface)] border-r-4 border-[var(--app-border)] last:border-r-0'
+                        : 'text-[var(--app-text-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-hover)] border-r-4 border-[var(--app-border)] last:border-r-0'
                       }`}
                   >
                     {tab.label}
                     {tab.badge !== undefined && (
-                      <span className="ml-2 bg-app-text text-white px-2 py-1 text-xs rounded">
+                      <span className="ml-3 bg-[var(--app-accent)] text-[var(--app-accent-text)] px-3 py-1 text-xs font-black rounded-none border-2 border-black inline-block transform -rotate-3">
                         {tab.badge}
                       </span>
                     )}
@@ -194,15 +214,15 @@ export const PeopleDetailContainer: React.FC<
                 ))}
               </div>
             </div>
+          )}
 
-            {/* Tab Content */}
-            <div className="p-6">
-              {tabs.find((tab) => tab.id === activeTab)?.content}
-            </div>
-          </BrutalCard>
-        ) : (
-          children && <BrutalCard className="p-6">{children}</BrutalCard>
-        )}
+          {/* Tab Content / Children */}
+          <div className="p-8">
+            {tabs && tabs.length > 0
+              ? (tabs.find((tab) => tab.id === activeTab)?.content || children)
+              : children}
+          </div>
+        </BrutalCard>
       </div>
     </div>
   );

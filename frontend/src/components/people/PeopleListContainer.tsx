@@ -3,14 +3,14 @@
  * Reusable container for list pages with consistent layout and functionality
  */
 
-import React from 'react';
-import { BrutalCard, BrutalButton } from './index';
+import React, { useEffect, useRef } from 'react';
+import { BrutalCard, BrutalButton } from '../neo-brutalist';
 
-interface TableColumn {
+export interface TableColumn<T = any> {
   key: string;
   label: string;
   width?: string;
-  render?: (value: any, row: any) => React.ReactNode;
+  render?: (value: any, row: T) => React.ReactNode;
 }
 
 interface PeopleListContainerProps {
@@ -22,7 +22,7 @@ interface PeopleListContainerProps {
   loading?: boolean;
   error?: string;
   data: any[];
-  columns: TableColumn[];
+  columns: TableColumn<any>[];
   pagination?: {
     total: number;
     page: number;
@@ -65,20 +65,27 @@ export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
   const allSelected =
     data.length > 0 && data.every((row) => selectedRows.has(row.id));
   const someSelected = selectedRows.size > 0 && !allSelected;
+  const selectAllRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someSelected;
+    }
+  }, [someSelected]);
 
   return (
-    <div className="min-h-screen bg-app-surface-muted p-6">
+    <div className="min-h-screen bg-[var(--app-bg)] p-6 transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6 flex justify-between items-center">
+        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-app-text">{title}</h1>
+            <h1 className="text-4xl font-black uppercase text-[var(--app-text)] tracking-tight">{title}</h1>
             {description && (
-              <p className="text-app-text-muted mt-1">{description}</p>
+              <p className="text-[var(--app-text-muted)] mt-2 font-medium text-lg">{description}</p>
             )}
           </div>
           {onCreateNew && (
-            <BrutalButton onClick={onCreateNew}>
+            <BrutalButton onClick={onCreateNew} className="text-xl shadow-[6px_6px_0px_0px_var(--shadow-color)]">
               + {createButtonLabel}
             </BrutalButton>
           )}
@@ -86,15 +93,15 @@ export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
 
         {/* Filters */}
         {filters && (
-          <BrutalCard className="mb-6">
+          <div className="mb-8">
             {filters}
-          </BrutalCard>
+          </div>
         )}
 
         {/* Bulk Actions Bar */}
         {selectedRows.size > 0 && (
-          <div className="bg-app-accent-soft border-2 border-app-accent p-4 mb-6 flex items-center justify-between">
-            <p className="font-bold text-app-text">
+          <div className="bg-[var(--app-accent-soft)] border-4 border-[var(--app-accent)] p-6 mb-8 shadow-[6px_6px_0px_0px_var(--shadow-color)] flex items-center justify-between">
+            <p className="font-black uppercase text-[var(--app-accent-text)] text-lg">
               {selectedRows.size} selected
             </p>
             {bulkActions && <div>{bulkActions}</div>}
@@ -103,54 +110,54 @@ export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border-2 border-red-600 text-red-700 px-4 py-3 mb-4 font-mono">
+          <div className="bg-red-500 border-4 border-black text-white px-6 py-4 mb-8 font-black uppercase tracking-wider shadow-[6px_6px_0px_0px_var(--shadow-color)]">
             {error}
           </div>
         )}
 
         {/* Loading State */}
         {loading ? (
-          <BrutalCard className="p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-app-text mx-auto"></div>
-            <p className="mt-4 font-mono text-app-text-muted">Loading...</p>
+          <BrutalCard className="p-12 text-center border-4 border-[var(--app-border)] bg-[var(--app-surface)] shadow-[8px_8px_0px_0px_var(--shadow-color)]">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-[var(--app-border)] border-b-[var(--app-accent)] mx-auto"></div>
+            <p className="mt-6 font-black uppercase tracking-widest text-[var(--app-text)] animate-pulse text-xl">Loading...</p>
           </BrutalCard>
         ) : data.length === 0 ? (
           // Empty State
-          <BrutalCard className="p-8 text-center">
-            <h3 className="text-xl font-bold text-app-text mb-2">
+          <BrutalCard className="p-12 text-center border-4 border-[var(--app-border)] bg-[var(--app-surface)] shadow-[8px_8px_0px_0px_var(--shadow-color)]">
+            <h3 className="text-3xl font-black uppercase text-[var(--app-text)] mb-4">
               {emptyStateTitle || 'No records found'}
             </h3>
             {emptyStateDescription && (
-              <p className="text-app-text-muted mb-4">{emptyStateDescription}</p>
+              <p className="text-[var(--app-text-muted)] mb-8 font-medium text-lg italic">{emptyStateDescription}</p>
             )}
             {emptyStateAction && (
-              <BrutalButton onClick={emptyStateAction.onClick}>
+              <BrutalButton onClick={emptyStateAction.onClick} className="text-lg">
                 {emptyStateAction.label}
               </BrutalButton>
             )}
           </BrutalCard>
         ) : (
           // Table
-          <BrutalCard>
+          <BrutalCard className="border-4 border-[var(--app-border)] bg-[var(--app-surface)] shadow-[10px_10px_0px_0px_var(--shadow-color)] overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b-2 border-app-text">
+                  <tr className="border-b-4 border-[var(--app-border)] bg-[var(--app-surface-muted)]">
                     {onSelectRow && (
-                      <th className="px-6 py-3 text-left">
+                      <th className="px-6 py-4 text-left w-16">
                         <input
                           type="checkbox"
+                          ref={selectAllRef}
                           checked={allSelected}
-                          indeterminate={someSelected}
                           onChange={(e) => onSelectAll?.(e.target.checked)}
-                          className="w-4 h-4 border-2 border-app-text accent-app-text"
+                          className="w-6 h-6 border-4 border-[var(--app-border)] bg-[var(--app-bg)] accent-[var(--app-accent)] cursor-pointer"
                         />
                       </th>
                     )}
                     {columns.map((col) => (
                       <th
                         key={col.key}
-                        className="px-6 py-3 text-left text-xs font-bold text-app-text uppercase tracking-wider"
+                        className="px-6 py-4 text-left text-sm font-black text-[var(--app-text)] uppercase tracking-widest"
                         style={{ width: col.width }}
                       >
                         {col.label}
@@ -158,14 +165,12 @@ export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
                     ))}
                   </tr>
                 </thead>
-                <tbody>
-                  {data.map((row, idx) => (
+                <tbody className="divide-y-2 divide-[var(--app-border)]">
+                  {data.map((row) => (
                     <tr
                       key={row.id}
-                      className={`border-b border-app-border hover:bg-app-surface-muted ${
-                        selectedRows.has(row.id) ? 'bg-app-accent-soft' : ''
-                      }
-                      ${idx === data.length - 1 ? 'border-b-0' : ''}`}
+                      className={`hover:bg-[var(--app-surface-hover)] transition-colors ${selectedRows.has(row.id) ? 'bg-[var(--app-accent-soft)]' : ''
+                        }`}
                     >
                       {onSelectRow && (
                         <td className="px-6 py-4">
@@ -175,12 +180,12 @@ export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
                             onChange={(e) =>
                               onSelectRow(row.id, e.target.checked)
                             }
-                            className="w-4 h-4 border-2 border-app-text accent-app-text"
+                            className="w-6 h-6 border-[3px] border-[var(--app-border)] bg-[var(--app-bg)] accent-[var(--app-accent)] cursor-pointer"
                           />
                         </td>
                       )}
                       {columns.map((col) => (
-                        <td key={`${row.id}-${col.key}`} className="px-6 py-4">
+                        <td key={`${row.id}-${col.key}`} className="px-6 py-4 text-[var(--app-text)] font-medium">
                           {col.render
                             ? col.render(row[col.key], row)
                             : row[col.key]}
@@ -194,19 +199,20 @@ export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
 
             {/* Pagination */}
             {pagination && pagination.totalPages > 1 && (
-              <div className="border-t-2 border-app-text p-4 flex items-center justify-between">
-                <p className="text-sm font-mono">
-                  Page <strong>{pagination.page}</strong> of{' '}
-                  <strong>{pagination.totalPages}</strong> ({pagination.total}{' '}
+              <div className="border-t-4 border-[var(--app-border)] bg-[var(--app-surface-muted)] p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p className="text-sm font-black uppercase tracking-wider text-[var(--app-text)]">
+                  Page <span className="text-[var(--app-accent)]">{pagination.page}</span> of{' '}
+                  <span className="text-[var(--app-accent)]">{pagination.totalPages}</span> ({pagination.total}{' '}
                   total)
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-4">
                   <BrutalButton
                     variant="secondary"
                     disabled={pagination.page <= 1}
                     onClick={() =>
                       onPageChange?.(pagination.page - 1)
                     }
+                    className="px-4 py-2"
                   >
                     ← Previous
                   </BrutalButton>
@@ -216,6 +222,7 @@ export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
                     onClick={() =>
                       onPageChange?.(pagination.page + 1)
                     }
+                    className="px-4 py-2"
                   >
                     Next →
                   </BrutalButton>

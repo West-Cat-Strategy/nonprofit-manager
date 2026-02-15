@@ -89,6 +89,12 @@ VITE_API_URL=http://localhost:3000/api
 - Group related vars together
 - Document purpose in .env.example
 
+### Optional Integrations
+Some integrations can be disabled via environment variables:
+
+- **Stripe**: Set `STRIPE_ENABLED=false` to disable payment processing features. The UI will hide payment-related components.
+- **Plausible Analytics**: Analytics tracking is optional and self-hosted. See [deployment/PLAUSIBLE_SETUP.md](../deployment/PLAUSIBLE_SETUP.md).
+
 ## API Versioning
 
 Current version: **v1** (not yet implemented in routes)
