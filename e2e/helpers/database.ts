@@ -9,6 +9,7 @@ import { Page } from '@playwright/test';
  */
 export async function seedDatabase(page: Page, token: string): Promise<void> {
   const apiURL = process.env.API_URL || 'http://localhost:3001';
+  console.log(`[database.ts] Using API_URL: ${apiURL}`);
 
   // Create test accounts
   await page.request.post(`${apiURL}/api/accounts`, {

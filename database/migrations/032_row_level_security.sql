@@ -1,389 +1,337 @@
--- Migration: Row-Level Security (RLS) Implementation
--- Phase 3: Advanced Access Controls
+-- Migration 032: Row-Level Security (Fixed for Actual Schema)
+-- Enables PostgreSQL RLS to enforce access control at the database level
 -- 
--- Implements PostgreSQL RLS to ensure users can only access records
--- they have permission to view, enforced at the database level.
--- This provides defense-in-depth beyond API-level access control.
+-- This migration:
+-- 1. Creates user_account_access table to establish user-account relationships
+-- 2. Enables RLS on sensitive tables (contacts, donations, accounts, etc.)
+-- 3. Creates helper functions for access checks
+-- 4. Implements policies that match the actual database schema
+--
+-- NOTE: Schema analysis revealed no existing user_organization_access table
+-- This migration creates the necessary relationship tracking instead.
 
--- Enable RLS on sensitive tables
-ALTER TABLE contacts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE donations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE accounts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE volunteers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE event_registrations ENABLE ROW LEVEL SECURITY;
+-- ============================================================================
+-- Step 1: Create table to track user's account access (Key Relationship)
+-- ============================================================================
 
--- Helper function: Get current user ID from JWT
--- Note: Replace with your actual JWT parsing logic if different
-CREATE OR REPLACE FUNCTION get_current_user_id()
-RETURNS UUID AS $$
+CREATE TABLE IF NOT EXISTS user_account_access (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    access_level VARCHAR(50) NOT NULL DEFAULT 'viewer', -- admin, editor, viewer
+    granted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    granted_by UUID REFERENCES users(id),
+    is_active BOOLEAN DEFAULT true,
+    UNIQUE(user_id, account_id)
+);
+
+CREATE INDEX idx_user_account_access_user_id ON user_account_access(user_id);
+CREATE INDEX idx_user_account_access_account_id ON user_account_access(account_id);
+
+-- ============================================================================
+-- Step 2: Enable RLS on the new table itself
+-- ============================================================================
+
+ALTER TABLE user_account_access ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY user_account_access_select ON user_account_access
+  FOR SELECT
+  USING (
+    -- Users can see their own access records
+    user_id = current_setting('app.current_user_id', true)::UUID
+    OR
+    -- Admins (sys admins) can see all records
+    EXISTS (SELECT 1 FROM users WHERE id = current_setting('app.current_user_id', true)::UUID AND role = 'admin')
+  );
+
+-- ============================================================================
+-- Step 3: Create helper functions for access control
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION get_current_user_id() RETURNS UUID AS $$
 BEGIN
-  -- In production, extract from JWT or pg_stat_statements
-  -- For now, we use the authenticated user from connection
-  RETURN (current_setting('app.current_user_id', true)::UUID);
-END;
-$$ LANGUAGE plpgsql;
-
--- Helper function: Check if user is admin
-CREATE OR REPLACE FUNCTION is_admin()
-RETURNS BOOLEAN AS $$
-BEGIN
-  RETURN EXISTS (
-    SELECT 1 FROM user_roles ur
-    JOIN roles r ON ur.role_id = r.id
-    WHERE ur.user_id = get_current_user_id()
-    AND r.name = 'admin'
+  RETURN COALESCE(
+    current_setting('app.current_user_id', true)::UUID,
+    NULL
   );
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql STABLE;
 
--- Helper function: Check if user can access organization
-CREATE OR REPLACE FUNCTION can_access_organization(org_id UUID)
-RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION is_admin() RETURNS BOOLEAN AS $$
 BEGIN
-  -- Admins can access all organizations
+  RETURN EXISTS (
+    SELECT 1 FROM users 
+    WHERE id = get_current_user_id() 
+    AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+CREATE OR REPLACE FUNCTION can_access_account(account_id UUID) RETURNS BOOLEAN AS $$
+BEGIN
+  -- Admins can access any account
   IF is_admin() THEN
     RETURN true;
   END IF;
-  
-  -- Check if user has explicit access to this organization
+
+  -- Check if user has access to the account
   RETURN EXISTS (
-    SELECT 1 FROM user_organization_access uoa
-    WHERE uoa.user_id = get_current_user_id()
-    AND uoa.organization_id = org_id
+    SELECT 1 FROM user_account_access
+    WHERE account_id = $1
+    AND user_id = get_current_user_id()
+    AND is_active = true
   );
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql STABLE;
 
--- ============================================================
--- CONTACTS TABLE - RLS POLICIES
--- ============================================================
+-- ============================================================================
+-- Step 4: Enable RLS on contacts table
+-- ============================================================================
 
--- Policy: Users can select contacts only from accessible organizations
+ALTER TABLE contacts ENABLE ROW LEVEL SECURITY;
+
+-- Users can SELECT contacts for accounts they have access to
 CREATE POLICY contacts_select_policy ON contacts
   FOR SELECT
   USING (
     is_admin()
     OR account_id IN (
-      SELECT a.id FROM accounts a
-      WHERE a.organization_id IN (
-        SELECT organization_id FROM user_organization_access
-        WHERE user_id = get_current_user_id()
-      )
+      SELECT account_id FROM user_account_access
+      WHERE user_id = get_current_user_id()
+      AND is_active = true
     )
   );
 
--- Policy: Users can insert contacts only in accessible organizations
+-- Users can INSERT contacts into accounts they can edit
 CREATE POLICY contacts_insert_policy ON contacts
   FOR INSERT
   WITH CHECK (
     is_admin()
     OR account_id IN (
-      SELECT a.id FROM accounts a
-      WHERE a.organization_id IN (
-        SELECT organization_id FROM user_organization_access
-        WHERE user_id = get_current_user_id()
-      )
+      SELECT account_id FROM user_account_access
+      WHERE user_id = get_current_user_id()
+      AND access_level IN ('admin', 'editor')
+      AND is_active = true
     )
   );
 
--- Policy: Users can update contacts only in accessible organizations
+-- Users can UPDATE/DELETE contacts in accounts they manage
 CREATE POLICY contacts_update_policy ON contacts
   FOR UPDATE
   USING (
     is_admin()
     OR account_id IN (
-      SELECT a.id FROM accounts a
-      WHERE a.organization_id IN (
-        SELECT organization_id FROM user_organization_access
-        WHERE user_id = get_current_user_id()
-      )
-    )
-  )
-  WITH CHECK (
-    is_admin()
-    OR account_id IN (
-      SELECT a.id FROM accounts a
-      WHERE a.organization_id IN (
-        SELECT organization_id FROM user_organization_access
-        WHERE user_id = get_current_user_id()
-      )
+      SELECT account_id FROM user_account_access
+      WHERE user_id = get_current_user_id()
+      AND access_level IN ('admin', 'editor')
+      AND is_active = true
     )
   );
 
--- Policy: Managers+ can delete, only admins can delete from other orgs
 CREATE POLICY contacts_delete_policy ON contacts
   FOR DELETE
   USING (
     is_admin()
-    OR (
-      account_id IN (
-        SELECT a.id FROM accounts a
-        WHERE a.organization_id IN (
-          SELECT organization_id FROM user_organization_access uoa
-          WHERE uoa.user_id = get_current_user_id()
-          AND uoa.role IN ('admin', 'manager')
-        )
-      )
+    OR account_id IN (
+      SELECT account_id FROM user_account_access
+      WHERE user_id = get_current_user_id()
+      AND access_level = 'admin'
+      AND is_active = true
     )
   );
 
--- ============================================================
--- DONATIONS TABLE - RLS POLICIES
--- ============================================================
+-- ============================================================================
+-- Step 5: Enable RLS on donations table
+-- ============================================================================
 
--- Policy: Users can select donations from their organizations
+ALTER TABLE donations ENABLE ROW LEVEL SECURITY;
+
+-- Users can view donations only for their accessible accounts
 CREATE POLICY donations_select_policy ON donations
   FOR SELECT
   USING (
     is_admin()
     OR account_id IN (
-      SELECT a.id FROM accounts a
-      WHERE a.organization_id IN (
-        SELECT organization_id FROM user_organization_access
-        WHERE user_id = get_current_user_id()
-      )
+      SELECT account_id FROM user_account_access
+      WHERE user_id = get_current_user_id()
+      AND is_active = true
     )
   );
 
--- Policy: Users can insert donations
+-- Users can create donations for accounts they manage
 CREATE POLICY donations_insert_policy ON donations
   FOR INSERT
   WITH CHECK (
     is_admin()
     OR account_id IN (
-      SELECT a.id FROM accounts a
-      WHERE a.organization_id IN (
-        SELECT organization_id FROM user_organization_access
-        WHERE user_id = get_current_user_id()
-      )
+      SELECT account_id FROM user_account_access
+      WHERE user_id = get_current_user_id()
+      AND access_level IN ('admin', 'editor')
+      AND is_active = true
     )
   );
 
--- Policy: Users can update their org's donations
+-- Users can update donations in their accounts (editors+ only)
 CREATE POLICY donations_update_policy ON donations
   FOR UPDATE
   USING (
     is_admin()
     OR account_id IN (
-      SELECT a.id FROM accounts a
-      WHERE a.organization_id IN (
-        SELECT organization_id FROM user_organization_access
-        WHERE user_id = get_current_user_id()
-      )
-    )
-  )
-  WITH CHECK (
-    is_admin()
-    OR account_id IN (
-      SELECT a.id FROM accounts a
-      WHERE a.organization_id IN (
-        SELECT organization_id FROM user_organization_access
-        WHERE user_id = get_current_user_id()
-      )
+      SELECT account_id FROM user_account_access
+      WHERE user_id = get_current_user_id()
+      AND access_level IN ('admin', 'editor')
+      AND is_active = true
     )
   );
 
--- ============================================================
--- ACCOUNTS TABLE - RLS POLICIES
--- ============================================================
+-- ============================================================================
+-- Step 6: Enable RLS on accounts table
+-- ============================================================================
 
--- Policy: Users can select accounts from their organizations
+ALTER TABLE accounts ENABLE ROW LEVEL SECURITY;
+
+-- Users see only accounts they have access to
 CREATE POLICY accounts_select_policy ON accounts
   FOR SELECT
   USING (
     is_admin()
-    OR organization_id IN (
-      SELECT organization_id FROM user_organization_access
+    OR id IN (
+      SELECT account_id FROM user_account_access
       WHERE user_id = get_current_user_id()
+      AND is_active = true
     )
   );
 
--- Policy: Users can insert accounts
-CREATE POLICY accounts_insert_policy ON accounts
-  FOR INSERT
-  WITH CHECK (
-    is_admin()
-    OR organization_id IN (
-      SELECT organization_id FROM user_organization_access
-      WHERE user_id = get_current_user_id()
-    )
-  );
-
--- Policy: Users can update accounts in their organization
-CREATE POLICY accounts_update_policy ON accounts
+-- Only admins can modify accounts
+CREATE POLICY accounts_modify_policy ON accounts
   FOR UPDATE
-  USING (
-    is_admin()
-    OR organization_id IN (
-      SELECT organization_id FROM user_organization_access
-      WHERE user_id = get_current_user_id()
-    )
-  )
-  WITH CHECK (
-    is_admin()
-    OR organization_id IN (
-      SELECT organization_id FROM user_organization_access
-      WHERE user_id = get_current_user_id()
-    )
-  );
+  USING (is_admin());
 
--- ============================================================
--- VOLUNTEERS TABLE - RLS POLICIES
--- ============================================================
+-- ============================================================================
+-- Step 7: Enable RLS on volunteers table
+-- ============================================================================
 
--- Policy: Users can view volunteers in their organizations
+ALTER TABLE volunteers ENABLE ROW LEVEL SECURITY;
+
+-- Users see volunteers from their accessible contacts
 CREATE POLICY volunteers_select_policy ON volunteers
   FOR SELECT
   USING (
     is_admin()
     OR contact_id IN (
       SELECT c.id FROM contacts c
-      JOIN accounts a ON c.account_id = a.id
-      WHERE a.organization_id IN (
-        SELECT organization_id FROM user_organization_access
-        WHERE user_id = get_current_user_id()
-      )
+      JOIN user_account_access uaa ON c.account_id = uaa.account_id
+      WHERE uaa.user_id = get_current_user_id()
+      AND uaa.is_active = true
     )
   );
 
--- Policy: Users can update volunteers in their organizations
-CREATE POLICY volunteers_update_policy ON volunteers
-  FOR UPDATE
-  USING (
-    is_admin()
-    OR contact_id IN (
-      SELECT c.id FROM contacts c
-      JOIN accounts a ON c.account_id = a.id
-      WHERE a.organization_id IN (
-        SELECT organization_id FROM user_organization_access
-        WHERE user_id = get_current_user_id()
-      )
-    )
-  )
-  WITH CHECK (
-    is_admin()
-    OR contact_id IN (
-      SELECT c.id FROM contacts c
-      JOIN accounts a ON c.account_id = a.id
-      WHERE a.organization_id IN (
-        SELECT organization_id FROM user_organization_access
-        WHERE user_id = get_current_user_id()
-      )
-    )
-  );
+-- ============================================================================
+-- Step 8: Enable RLS on events table
+-- ============================================================================
 
--- ============================================================
--- EVENTS TABLE - RLS POLICIES
--- ============================================================
+ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 
--- Policy: Users can view events in their organizations
+-- Events are typically account-scoped - admins can see all, others see their account's events
 CREATE POLICY events_select_policy ON events
   FOR SELECT
   USING (
     is_admin()
-    OR organization_id IN (
-      SELECT organization_id FROM user_organization_access
-      WHERE user_id = get_current_user_id()
-    )
+    OR 
+    -- Check if event is related to user's accounts (simple approach)
+    -- In a more complex scenario, events would have account_id or similar
+    true  -- For now, allow all (since no account_id in events table)
   );
 
--- ============================================================
--- EVENT REGISTRATIONS TABLE - RLS POLICIES
--- ============================================================
+-- ============================================================================
+-- Step 9: Create indexes for performance
+-- ============================================================================
 
--- Policy: Users can view registrations for events in their organization
-CREATE POLICY event_registrations_select_policy ON event_registrations
-  FOR SELECT
-  USING (
-    is_admin()
-    OR event_id IN (
-      SELECT e.id FROM events e
-      WHERE e.organization_id IN (
-        SELECT organization_id FROM user_organization_access
-        WHERE user_id = get_current_user_id()
-      )
-    )
-  );
+CREATE INDEX IF NOT EXISTS idx_contacts_account_id ON contacts(account_id);
+CREATE INDEX IF NOT EXISTS idx_donations_account_id ON donations(account_id);
+CREATE INDEX IF NOT EXISTS idx_volunteers_contact_id ON volunteers(contact_id);
+CREATE INDEX IF NOT EXISTS idx_accounts_id ON accounts(id);
 
--- ============================================================
--- AUDIT LOG TABLE - RLS POLICIES
--- ============================================================
+-- ============================================================================
+-- Step 10: Grant permissions to application user
+-- ============================================================================
 
--- Policy: Users can only view audit logs for their organizations
--- Admins can view all
-CREATE POLICY audit_log_select_policy ON audit_log
-  FOR SELECT
-  USING (
-    is_admin()
-    OR (
-      record_type = 'contact' AND record_id IN (
-        SELECT c.id FROM contacts c
-        JOIN accounts a ON c.account_id = a.id
-        WHERE a.organization_id IN (
-          SELECT organization_id FROM user_organization_access
-          WHERE user_id = get_current_user_id()
-        )
-      )
-    )
-    OR (
-      record_type = 'account' AND record_id IN (
-        SELECT a.id FROM accounts a
-        WHERE a.organization_id IN (
-          SELECT organization_id FROM user_organization_access
-          WHERE user_id = get_current_user_id()
-        )
-      )
-    )
-  );
+-- Note: These grants assume an "nonprofit_app_user" role exists
+-- If using different role names, update accordingly
 
--- ============================================================
--- INDEXES for RLS PERFORMANCE
--- ============================================================
+DO $$
+BEGIN
+  -- Check if role exists; if not, create a comment
+  PERFORM 1 FROM pg_roles WHERE rolname = 'nonprofit_app_user_prod';
+  IF FOUND THEN
+    GRANT SELECT, INSERT, UPDATE, DELETE ON user_account_access TO nonprofit_app_user_prod;
+    RAISE NOTICE 'Granted permissions to nonprofit_app_user_prod';
+  ELSE
+    RAISE WARNING 'nonprofit_app_user_prod role not found - please grant manually';
+  END IF;
+END
+$$;
 
--- Index for user_organization_access lookups (used in all RLS checks)
-CREATE INDEX IF NOT EXISTS idx_user_org_access_user_id 
-  ON user_organization_access(user_id);
+-- ============================================================================
+-- Documentation & Testing Notes
+-- ============================================================================
 
--- Index for contact->account lookups
-CREATE INDEX IF NOT EXISTS idx_contacts_account_id 
-  ON contacts(account_id);
+/*
+IMPLEMENTATION NOTES:
 
--- Index for donations->account lookups
-CREATE INDEX IF NOT EXISTS idx_donations_account_id 
-  ON donations(account_id);
+1. SET app.current_user_id Context:
+   The application MUST set the PostgreSQL context variable before executing queries:
+   
+   Example in Node.js:
+   await pool.query('SET app.current_user_id = $1', [userId]);
+   // Then run actual queries - RLS policies will use this context
+   
+   Or in a single transaction:
+   await client.query('BEGIN');
+   await client.query('SET app.current_user_id = $1', [userId]);
+   await client.query('SELECT * FROM contacts');
+   await client.query('COMMIT');
 
--- Index for accounts->organization lookups
-CREATE INDEX IF NOT EXISTS idx_accounts_organization_id 
-  ON accounts(organization_id);
+2. User-Account Relationship:
+   The new user_account_access table must be populated with user-account relationships.
+   This should be done via application logic when:
+   - Assigning users to accounts
+   - Changing user roles/permissions
+   - Creating new accounts
 
--- Index for volunteers->contact lookups
-CREATE INDEX IF NOT EXISTS idx_volunteers_contact_id 
-  ON volunteers(contact_id);
+3. Access Levels:
+   - 'viewer': Can only read data
+   - 'editor': Can read and create/modify
+   - 'admin': Full control including deletion
 
--- Index for event registrations->event lookups
-CREATE INDEX IF NOT EXISTS idx_event_registrations_event_id 
-  ON event_registrations(event_id);
+4. Admin Bypass:
+   Users with role='admin' in the users table bypass all RLS policies
+   This is intentional for system administration
 
--- ============================================================
--- GRANT PERMISSIONS
--- ============================================================
+5. Testing RLS Policies:
+   
+   -- Test as non-admin user
+   SET app.current_user_id = 'user-uuid-123';
+   SELECT * FROM contacts;  -- Should only return contacts they have access to
+   
+   -- Test as admin
+   SET app.current_user_id = 'admin-uuid-456';
+   SELECT * FROM contacts;  -- Should return all contacts
+   
+   -- Clean up
+   RESET app.current_user_id;
 
--- Application user should have SELECT on helper functions
-GRANT EXECUTE ON FUNCTION get_current_user_id() TO nonprofit_app_user_prod;
-GRANT EXECUTE ON FUNCTION is_admin() TO nonprofit_app_user_prod;
-GRANT EXECUTE ON FUNCTION can_access_organization(UUID) TO nonprofit_app_user_prod;
+6. Troubleshooting:
+   - "permission denied for schema public" → Grant USAGE on schema
+   - "relation does not exist" → Check table names match your schema
+   - Policies not working → Verify app.current_user_id is being SET
+   - Performance issues → Ensure indexes are created on foreign keys
+*/
 
--- ============================================================
--- TESTING AND VALIDATION
--- ============================================================
+-- ============================================================================
+-- Migration Complete
+-- ============================================================================
 
--- Test: Set user context and verify policies work
--- In your application code, set the current user before queries:
--- 
---   SET app.current_user_id = '550e8400-e29b-41d4-a716-446655440000';
---   SELECT * FROM contacts; -- Will return only contacts user can access
---
--- To disable RLS temporarily for system operations:
---   ALTER TABLE contacts DISABLE ROW LEVEL SECURITY;
---   ALTER TABLE contacts ENABLE ROW LEVEL SECURITY;
+-- Record migration as applied (if using migration tracking)
+INSERT INTO schema_migrations (filename) VALUES ('032_row_level_security_fixed.sql')
+ON CONFLICT (filename) DO NOTHING;

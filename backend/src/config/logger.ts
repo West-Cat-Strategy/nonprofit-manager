@@ -1,6 +1,7 @@
 import winston from 'winston';
 import * as http from 'http';
 import * as https from 'https';
+import Transport from 'winston-transport';
 
 // Fields that should be masked in logs
 const SENSITIVE_FIELDS = [
@@ -88,7 +89,7 @@ const logFormat = winston.format.combine(
 );
 
 // Custom HTTP transport for log aggregation (e.g., ELK, Loki, Datadog)
-class HttpLogTransport extends winston.transports.Stream {
+class HttpLogTransport extends Transport {
   private host: string;
   private port: number;
   private path: string;
@@ -191,10 +192,13 @@ export const logger = winston.createLogger({
   transports,
 });
 
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production' || process.env.CONSOLE_LOGGING === 'true') {
   logger.add(
     new winston.transports.Console({
-      format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      ),
     })
   );
 }

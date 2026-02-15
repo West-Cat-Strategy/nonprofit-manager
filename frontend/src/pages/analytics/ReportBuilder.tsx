@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { generateReport } from '../../store/slices/reportsSlice';
 import { createSavedReport, fetchSavedReportById } from '../../store/slices/savedReportsSlice';
@@ -9,7 +9,7 @@ import SortBuilder from '../../components/SortBuilder';
 import type { ReportEntity, ReportFilter, ReportSort, ReportAggregation, AggregateFunction } from '../../types/report';
 import NeoBrutalistLayout from '../../components/neo-brutalist/NeoBrutalistLayout';
 import ReportChart from '../../components/ReportChart';
-import { useMemo } from 'react';
+
 
 const ENTITIES: { value: ReportEntity; label: string }[] = [
   { value: 'accounts', label: 'Accounts' },
@@ -225,13 +225,7 @@ function ReportBuilder() {
     alert('Report saved successfully!');
   };
 
-  const fieldLabelMap = useMemo(() => (availableFields[entity] || []).reduce<Record<string, string>>(
-    (acc, field) => {
-      acc[field.field] = field.label;
-      return acc;
-    },
-    {}
-  ), [availableFields, entity]);
+
 
   const handleEntityChange = (newEntity: ReportEntity) => {
     setEntity(newEntity);
