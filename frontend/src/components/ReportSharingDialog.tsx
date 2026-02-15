@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { SavedReport, ShareSettings } from '../../types/savedReport';
-import api from '../../services/api';
+import type { SavedReport } from '../types/savedReport';
+import api from '../services/api';
 
 interface ReportSharingDialogProps {
     report: SavedReport;
@@ -108,8 +108,8 @@ function ReportSharingDialog({ report, isOpen, onClose, onSuccess }: ReportShari
                         <button
                             onClick={() => setShareMode('users')}
                             className={`flex-1 px-4 py-3 border-2 border-black font-bold uppercase transition-all ${shareMode === 'users'
-                                    ? 'bg-black text-white'
-                                    : 'bg-white text-black hover:bg-[var(--loop-yellow)]'
+                                ? 'bg-black text-white'
+                                : 'bg-white text-black hover:bg-[var(--loop-yellow)]'
                                 }`}
                         >
                             👥 Share with Users
@@ -117,8 +117,8 @@ function ReportSharingDialog({ report, isOpen, onClose, onSuccess }: ReportShari
                         <button
                             onClick={() => setShareMode('public')}
                             className={`flex-1 px-4 py-3 border-2 border-black font-bold uppercase transition-all ${shareMode === 'public'
-                                    ? 'bg-black text-white'
-                                    : 'bg-white text-black hover:bg-[var(--loop-yellow)]'
+                                ? 'bg-black text-white'
+                                : 'bg-white text-black hover:bg-[var(--loop-yellow)]'
                                 }`}
                         >
                             🔗 Public Link

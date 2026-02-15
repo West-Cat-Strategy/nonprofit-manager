@@ -145,7 +145,7 @@ export const passwordResetLimiterMiddleware = isTestEnv ? noopLimiter : password
 // Rate limiter for registration endpoint
 export const registrationLimiter = rateLimit({
   windowMs: RATE_LIMIT.REGISTRATION_WINDOW_MS,
-  max: isTestEnv ? 10000 : RATE_LIMIT.REGISTRATION_MAX_ATTEMPTS,
+  max: isTestEnv ? 10000 : parseInt(process.env.REGISTRATION_MAX_ATTEMPTS || String(RATE_LIMIT.REGISTRATION_MAX_ATTEMPTS)),
   skipSuccessfulRequests: false,
   skip: shouldSkipRateLimit,
   message: ERROR_MESSAGES.TOO_MANY_REGISTRATIONS,
