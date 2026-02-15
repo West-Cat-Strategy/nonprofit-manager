@@ -74,6 +74,7 @@ export const updatePortalProfile = async (
       'preferred_contact_method',
       'pronouns',
       'gender',
+      'profile_picture',
     ];
 
     const fields: string[] = [];
@@ -99,7 +100,7 @@ export const updatePortalProfile = async (
        WHERE id = $${index}
        RETURNING id as contact_id, first_name, last_name, email, phone, mobile_phone,
          address_line1, address_line2, city, state_province, postal_code, country,
-         preferred_contact_method, pronouns, gender`,
+         preferred_contact_method, pronouns, gender, profile_picture`,
       values
     );
 
@@ -125,6 +126,64 @@ export const updatePortalProfile = async (
     });
 
     res.json(result.rows[0]);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const changePortalPassword = async (
+  req: PortalAuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      badRequest(res, 'Current password and new password are required');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      badRequest(res, 'New password must be at least 8 characters');
+      return;
+    }
+
+    // Verify current password
+    const userResult = await pool.query(
+      'SELECT password_hash FROM portal_users WHERE id = $1',
+      [req.portalUser!.id]
+    );
+
+    if (userResult.rows.length === 0) {
+      notFoundMessage(res, 'User not found');
+      return;
+    }
+
+    const bcrypt = await import('bcryptjs');
+    const isValid = await bcrypt.compare(currentPassword, userResult.rows[0].password_hash);
+
+    if (!isValid) {
+      badRequest(res, 'Current password is incorrect');
+      return;
+    }
+
+    // Hash and update new password
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await pool.query(
+      'UPDATE portal_users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
+      [newHash, req.portalUser!.id]
+    );
+
+    await logPortalActivity({
+      portalUserId: req.portalUser!.id,
+      action: 'password.change',
+      details: 'Password changed',
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'] || null,
+    });
+
+    res.json({ message: 'Password updated successfully' });
   } catch (error) {
     next(error);
   }

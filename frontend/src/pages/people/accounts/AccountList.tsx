@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   fetchAccounts,
@@ -63,6 +63,18 @@ const AccountList = () => {
   useEffect(() => {
     loadAccounts();
   }, [loadAccounts]);
+
+  useEffect(() => {
+    if (searchInput === filters.search) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      dispatch(setFilters({ search: searchInput }));
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [dispatch, filters.search, searchInput]);
 
   const handleFilterChange = (filterId: string, value: string | string[]) => {
     if (filterId === 'search' && typeof value === 'string') {
@@ -161,14 +173,13 @@ const AccountList = () => {
       label: 'Name',
       width: '240px',
       render: (_, row) => (
-        <div
-          className="cursor-pointer hover:opacity-75 transition"
-          onClick={() => navigate(`/accounts/${row.account_id}`)}
-        >
-          <p className="text-app-accent hover:text-app-accent-text font-medium">
+        <div>
+          <Link
+            to={`/accounts/${row.account_id}`}
+            className="text-app-accent hover:text-app-accent-text font-medium"
+          >
             {row.account_name}
-          </p>
-          <p className="text-sm text-app-text-muted">{row.email || 'No email'}</p>
+          </Link>
         </div>
       ),
     },
@@ -243,6 +254,7 @@ const AccountList = () => {
                 type: 'text',
                 placeholder: 'Account name, number, or email...',
                 value: searchInput,
+                ariaLabel: 'Search accounts',
               },
               {
                 id: 'account_type',
@@ -272,6 +284,7 @@ const AccountList = () => {
             onFilterChange={handleFilterChange}
             onApply={handleApplyFilters}
             onClear={handleClearFilters}
+            applyLabel="Search"
             isCollapsed={filterCollapsed}
             onToggleCollapse={() => setFilterCollapsed(!filterCollapsed)}
             activeFilterCount={

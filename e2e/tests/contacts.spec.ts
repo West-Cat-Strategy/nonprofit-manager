@@ -48,7 +48,7 @@ test.describe('Contacts Module', () => {
     await authenticatedPage.fill('input[name="first_name"]', 'John');
     await authenticatedPage.fill('input[name="last_name"]', 'Doe');
     await authenticatedPage.fill('input[name="email"]', 'john.doe@example.com');
-    await authenticatedPage.fill('input[name="phone"]', '555-0200');
+    await authenticatedPage.fill('input[name="phone"]', '555-020-0000');
 
     // Submit form
     await authenticatedPage.click('button[type="submit"]');
@@ -162,7 +162,7 @@ test.describe('Contacts Module', () => {
       firstName: 'Emily',
       lastName: 'Evans',
       email: 'emily@example.com',
-      phone: '555-0201',
+      phone: '555-020-0001',
     });
 
     // Navigate to contact detail page

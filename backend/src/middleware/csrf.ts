@@ -80,8 +80,8 @@ const CSRF_SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS'];
  * Middleware to conditionally apply CSRF protection
  */
 export const csrfMiddleware = (req: Request, res: Response, next: NextFunction): void => {
-  // Skip CSRF in test environment
-  if (isTest) {
+  // Skip CSRF in test environment or if explicitly disabled
+  if (isTest || process.env.CSRF_ENABLED === 'false') {
     return next();
   }
 
