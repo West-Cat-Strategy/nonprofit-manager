@@ -104,6 +104,7 @@ See [Features Documentation](docs/README.md) for detailed guides.
 
 ### Prerequisites
 - Docker Desktop (or Docker Engine + Docker Compose)
+- Node.js 20.19+ and npm 10+ (for manual local development outside Docker)
 
 ### Quick Start
 ```bash
@@ -154,12 +155,6 @@ For development guidelines, see:
 - [Architecture Decisions](docs/development/ARCHITECTURE.md)
 
 ## Documentation
-
-See [docs/README.md](docs/README.md) for comprehensive documentation including:
-- API references and integration guides
-- Deployment and setup instructions
-- Feature documentation
-- Security and testing guides
 
 See [docs/README.md](docs/README.md) for comprehensive documentation including:
 - API references and integration guides

@@ -1,5 +1,11 @@
 # Development Conventions
 
+## Toolchain Requirements
+
+- Node.js 20.19+ and npm 10+ for local development
+- Keep backend and frontend dependencies in sync with lockfiles after upgrades
+- Run `npm run lint` after dependency updates to validate ESLint compatibility
+
 ## File Naming
 
 ### Backend

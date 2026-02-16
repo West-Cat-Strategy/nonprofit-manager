@@ -18,7 +18,7 @@ This guide covers deploying the Nonprofit Manager platform to production.
 
 ### Required Software
 - Docker & Docker Compose (recommended)
-- Node.js 18+ (for manual deployment)
+- Node.js 20.19+ (for manual deployment)
 - PostgreSQL 14+
 - Git
 
