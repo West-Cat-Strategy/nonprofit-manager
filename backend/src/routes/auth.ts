@@ -13,6 +13,10 @@ import {
   getProfile,
   updateProfile,
   changePassword,
+  forgotPassword,
+  validateResetToken,
+  resetPassword,
+  getRegistrationStatus,
 } from '@controllers/domains/core';
 import { getCsrfToken } from '@middleware/domains/security';
 import {
@@ -31,12 +35,14 @@ import {
   registrationVerify as passkeyRegistrationVerify,
 } from '@controllers/domains/core';
 import { authenticate } from '@middleware/domains/auth';
-import { authLimiterMiddleware, registrationLimiterMiddleware } from '@middleware/domains/platform';
+import { authLimiterMiddleware, registrationLimiterMiddleware, passwordResetLimiterMiddleware } from '@middleware/domains/platform';
 import { checkAccountLockout } from '@middleware/domains/auth';
 import {
   registerSchema,
   loginSchema,
   changePasswordSchema,
+  passwordResetRequestSchema,
+  passwordResetConfirmSchema,
   twoFactorVerifySchema,
   twoFactorSetupSchema,
   twoFactorDisableSchema,
@@ -48,6 +54,9 @@ import {
 import { updateUserProfileSchema } from '@validations/user';
 
 const router = Router();
+
+// Public: check if self-registration is enabled (no auth needed)
+router.get('/registration-status', getRegistrationStatus);
 
 router.post(
   '/register',
@@ -103,6 +112,21 @@ router.put(
   authenticate,
   validateBody(changePasswordSchema),
   changePassword
+);
+
+// Forgot / Reset password (public, rate-limited)
+router.post(
+  '/forgot-password',
+  passwordResetLimiterMiddleware,
+  validateBody(passwordResetRequestSchema),
+  forgotPassword
+);
+router.get('/reset-password/:token', validateResetToken);
+router.post(
+  '/reset-password',
+  passwordResetLimiterMiddleware,
+  validateBody(passwordResetConfirmSchema),
+  resetPassword
 );
 
 // TOTP 2FA management

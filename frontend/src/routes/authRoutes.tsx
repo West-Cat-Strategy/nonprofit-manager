@@ -4,7 +4,7 @@
  */
 
 import { Route } from 'react-router-dom';
-import { Setup, Login, AcceptInvitation } from './authRouteComponents';
+import { Setup, Login, AcceptInvitation, ForgotPassword, ResetPassword } from './authRouteComponents';
 
 // Lazy load auth pages
 
@@ -13,5 +13,7 @@ export const authRoutes = (
     <Route path="/setup" element={<Setup />} />
     <Route path="/login" element={<Login />} />
     <Route path="/accept-invitation/:token" element={<AcceptInvitation />} />
+    <Route path="/forgot-password" element={<ForgotPassword />} />
+    <Route path="/reset-password/:token" element={<ResetPassword />} />
   </>
 );

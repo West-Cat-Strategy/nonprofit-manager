@@ -131,6 +131,7 @@ export const adminSettingsTabs = [
   { id: 'users', label: 'Users & Security' },
   { id: 'portal', label: 'Client Portal' },
   { id: 'roles', label: 'Roles & Permissions' },
+  { id: 'email', label: 'Email Settings' },
   { id: 'audit_logs', label: 'Audit Logs' },
   { id: 'other', label: 'Other Settings' },
 ] as const;

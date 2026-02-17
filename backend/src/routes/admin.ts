@@ -1,6 +1,13 @@
 import express from 'express';
 import { authenticate, authorize } from '@middleware/domains/auth';
-import { getBranding, putBranding } from '@controllers/domains/core';
+import { getBranding, putBranding, getEmailSettings, updateEmailSettings, testEmailSettings } from '@controllers/domains/core';
+import {
+  getRegistrationSettingsHandler,
+  updateRegistrationSettingsHandler,
+  listPendingRegistrationsHandler,
+  approvePendingRegistrationHandler,
+  rejectPendingRegistrationHandler,
+} from '@controllers/domains/core';
 import { getAdminStats, getAuditLogs } from '../controllers/adminStatsController';
 
 
@@ -11,6 +18,11 @@ router.put('/branding', authenticate, authorize('admin'), putBranding);
 
 router.get('/stats', authenticate, authorize('admin'), getAdminStats);
 router.get('/audit-logs', authenticate, authorize('admin'), getAuditLogs);
+
+// Email settings (admin only)
+router.get('/email-settings', authenticate, authorize('admin'), getEmailSettings);
+router.put('/email-settings', authenticate, authorize('admin'), updateEmailSettings);
+router.post('/email-settings/test', authenticate, authorize('admin'), testEmailSettings);
 
 // Roles endpoint - returns hardcoded role definitions
 router.get('/roles', authenticate, authorize('admin'), (_req, res) => {
@@ -23,6 +35,15 @@ router.get('/roles', authenticate, authorize('admin'), (_req, res) => {
     ],
   });
 });
+
+// Registration settings (admin only)
+router.get('/registration-settings', authenticate, authorize('admin'), getRegistrationSettingsHandler);
+router.put('/registration-settings', authenticate, authorize('admin'), updateRegistrationSettingsHandler);
+
+// Pending registrations (admin only)
+router.get('/pending-registrations', authenticate, authorize('admin'), listPendingRegistrationsHandler);
+router.post('/pending-registrations/:id/approve', authenticate, authorize('admin'), approvePendingRegistrationHandler);
+router.post('/pending-registrations/:id/reject', authenticate, authorize('admin'), rejectPendingRegistrationHandler);
 
 
 export default router;

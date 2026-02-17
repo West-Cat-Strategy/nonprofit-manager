@@ -20,7 +20,10 @@ import { createWorkflowRoutes } from './workflowRoutes';
 // Lazy load auth pages
 const Setup = lazy(() => import('../pages/auth/Setup'));
 const Login = lazy(() => import('../pages/auth/Login'));
+const Register = lazy(() => import('../pages/auth/Register'));
 const AcceptInvitation = lazy(() => import('../pages/auth/AcceptInvitation'));
+const ForgotPassword = lazy(() => import('../pages/auth/ForgotPassword'));
+const ResetPassword = lazy(() => import('../pages/auth/ResetPassword'));
 
 // Lazy load Neo-Brutalist pages (remain in their directory)
 const NeoBrutalistDashboard = lazy(() => import('../pages/neo-brutalist/NeoBrutalistDashboard'));
@@ -56,7 +59,10 @@ const AppRoutes = () => {
       {/* Auth Routes */}
       <Route path="/setup" element={<Setup />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
       <Route path="/accept-invitation/:token" element={<AcceptInvitation />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
 
       {/* Portal Routes */}
       {createPortalRoutes(PortalProtectedRoute)}
