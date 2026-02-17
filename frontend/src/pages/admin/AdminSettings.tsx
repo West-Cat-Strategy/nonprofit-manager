@@ -702,7 +702,7 @@ export default function AdminSettings() {
           </div>
 
           {/* Dashboard Section */}
-          {activeSection === 'dashboard' && <DashboardSection />}
+          {activeSection === 'dashboard' && <DashboardSection onShowInvite={() => setShowInviteModal(true)} />}
 
           {/* Organization Section */}
           {activeSection === 'organization' && (
