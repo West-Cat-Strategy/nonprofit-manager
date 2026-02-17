@@ -71,7 +71,8 @@ services:
       REDIS_URL: redis://redis:6379
       DB_SSL_ENABLED: 'false'
       CONSOLE_LOGGING: 'true'
-      CORS_ORIGIN: 'http://localhost:5173,http://localhost:3000,http://localhost:8001'
+      # Allow all origins for LAN/Tailnet access (change in production if public)
+      CORS_ORIGIN: '*'
       EXPOSE_AUTH_TOKENS_IN_RESPONSE: 'true'
       RATE_LIMIT_MAX_REQUESTS: 10000
       AUTH_RATE_LIMIT_MAX_REQUESTS: 10000

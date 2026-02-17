@@ -44,8 +44,9 @@ export default function PortalSignup() {
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             {error && <p className="text-sm text-red-600">{error}</p>}
             <div>
-              <label className="block text-sm font-medium text-app-text-muted">First Name</label>
+              <label htmlFor="firstName" className="block text-sm font-medium text-app-text-muted">First Name</label>
               <input
+                id="firstName"
                 type="text"
                 name="firstName"
                 value={formData.firstName}
@@ -55,8 +56,9 @@ export default function PortalSignup() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app-text-muted">Last Name</label>
+              <label htmlFor="lastName" className="block text-sm font-medium text-app-text-muted">Last Name</label>
               <input
+                id="lastName"
                 type="text"
                 name="lastName"
                 value={formData.lastName}
@@ -66,8 +68,9 @@ export default function PortalSignup() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app-text-muted">Email</label>
+              <label htmlFor="email" className="block text-sm font-medium text-app-text-muted">Email</label>
               <input
+                id="email"
                 type="email"
                 name="email"
                 value={formData.email}
@@ -77,8 +80,9 @@ export default function PortalSignup() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app-text-muted">Phone (optional)</label>
+              <label htmlFor="phone" className="block text-sm font-medium text-app-text-muted">Phone (optional)</label>
               <input
+                id="phone"
                 type="text"
                 name="phone"
                 value={formData.phone}
@@ -87,8 +91,9 @@ export default function PortalSignup() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app-text-muted">Password</label>
+              <label htmlFor="password" className="block text-sm font-medium text-app-text-muted">Password</label>
               <input
+                id="password"
                 type="password"
                 name="password"
                 value={formData.password}

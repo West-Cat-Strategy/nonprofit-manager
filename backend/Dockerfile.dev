@@ -5,21 +5,21 @@ FROM node:20-alpine3.20
 WORKDIR /app
 
 ENV NODE_ENV=development \
-    PORT=8004
+    PORT=3000 \
+    HOST=0.0.0.0
 
 # Native module build tools (required by bcrypt, sharp, etc.)
 RUN apk add --no-cache dumb-init python3 make g++
 
 # Install deps before copying source for better layer caching
 COPY package*.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --no-audit --no-fund
+RUN npm ci --no-audit --no-fund
 
 # Copy source (overridden by bind-mount in docker-compose.dev.yml)
 COPY . .
 
 # Application port + Node.js inspector (shifted to 800x)
-EXPOSE 8004 8009
+EXPOSE 3000 8009
 
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["npm", "run", "dev"]

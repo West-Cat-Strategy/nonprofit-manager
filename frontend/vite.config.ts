@@ -30,6 +30,27 @@ export default defineConfig({
       },
     },
   },
+  server: {
+    host: true, // Listen on all local IPs
+    port: 8005,
+    strictPort: true,
+    allowedHosts: [
+      'frontend-dev',
+      'nonprofit-frontend-dev',
+      'cbis-playground.westcat.ca',
+      'localhost',
+      '127.0.0.1'
+    ],
+    watch: {
+      usePolling: true,
+    },
+    proxy: {
+      '/api': {
+        target: 'http://backend-dev:3000',
+        changeOrigin: true,
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],

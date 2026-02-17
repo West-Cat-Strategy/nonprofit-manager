@@ -163,7 +163,9 @@ const corsOptions = {
     if (!origin) return callback(null, true);
 
     // Only allow configured origins
-    if (allowedOrigins.includes(origin)) {
+    if (process.env.NODE_ENV === 'development' || 
+        allowedOrigins.includes(origin) || 
+        allowedOrigins.includes('*')) {
       callback(null, true);
     } else {
       logger.warn(`CORS request from unauthorized origin: ${origin}`);

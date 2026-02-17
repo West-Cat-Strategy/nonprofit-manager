@@ -85,7 +85,8 @@ services:
     ports:
       - "8005:8005"
     environment:
-      VITE_API_URL: http://127.0.0.1:8004/api
+      # Use relative path so Vite proxy handles requests (enabling LAN/Tailnet access)
+      VITE_API_URL: /api
     depends_on:
       - backend-dev
     volumes:
@@ -93,7 +94,7 @@ services:
       - /app/node_modules
     networks:
       - nonprofit-dev-network
-    command: npm run dev -- --host --port 8005
+    command: npm run dev
 
 volumes:
   postgres_data_dev:

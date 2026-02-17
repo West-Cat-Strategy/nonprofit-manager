@@ -12,7 +12,8 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci --no-audit --no-fund
 
 # API URL is baked into the static bundle at build time
-ARG VITE_API_URL=http://localhost:8000/api
+# Use relative path so nginx proxy handles requests (enabling LAN/Tailnet access)
+ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
 
 COPY . .
