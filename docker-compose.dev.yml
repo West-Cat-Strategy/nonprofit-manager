@@ -58,7 +58,8 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       REDIS_URL: redis://redis:6379
-      CORS_ORIGIN: http://127.0.0.1:8005,http://localhost:8005
+      FRONTEND_URL: https://cbis-playground.westcat.ca
+      CORS_ORIGIN: http://127.0.0.1:8005,http://localhost:8005,https://cbis-playground.westcat.ca
       EXPOSE_AUTH_TOKENS_IN_RESPONSE: 'true'
       RATE_LIMIT_MAX_REQUESTS: 1000000
       AUTH_RATE_LIMIT_MAX_REQUESTS: 1000000
