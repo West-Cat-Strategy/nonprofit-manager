@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Pre-push hook: Run type checking before push
+set -euo pipefail
+
+root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+echo ""
+echo "========================================"
+echo "  Pre-push checks"
+echo "========================================"
+echo ""
+
+# Run type checking (catches issues that lint might miss)
+echo "==> Backend type-check"
+cd "${root_dir}/backend" && npm run type-check
+
+echo "==> Frontend type-check"
+cd "${root_dir}/frontend" && npm run type-check
+
+echo ""
+echo "========================================"
+echo "  Pre-push checks passed!"
+echo "========================================"
+echo ""

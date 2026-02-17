@@ -1,0 +1,20 @@
+import { Response, NextFunction } from 'express';
+import { PortalAuthRequest } from '../middleware/portalAuth';
+export declare const getPortalProfile: (req: PortalAuthRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const updatePortalProfile: (req: PortalAuthRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const getPortalRelationships: (req: PortalAuthRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const createPortalRelationship: (req: PortalAuthRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const updatePortalRelationship: (req: PortalAuthRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const deletePortalRelationship: (req: PortalAuthRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const getPortalEvents: (req: PortalAuthRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const registerPortalEvent: (req: PortalAuthRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const cancelPortalEventRegistration: (req: PortalAuthRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const getPortalAppointments: (req: PortalAuthRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const createPortalAppointment: (req: PortalAuthRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const cancelPortalAppointment: (req: PortalAuthRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const getPortalDocuments: (req: PortalAuthRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const getPortalForms: (req: PortalAuthRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const getPortalNotes: (req: PortalAuthRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const getPortalReminders: (req: PortalAuthRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const downloadPortalDocument: (req: PortalAuthRequest, res: Response, next: NextFunction) => Promise<void>;
+//# sourceMappingURL=portalController.d.ts.map

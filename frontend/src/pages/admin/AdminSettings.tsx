@@ -1,0 +1,1205 @@
+/**
+ * Admin Settings Page
+ * Admin-only settings for configuring organization-wide preferences, branding,
+ * user management, roles, and security settings
+ */
+
+import { useState, useEffect, useRef, useCallback } from 'react';
+import api from '../../services/api';
+import { useToast } from '../../contexts/useToast';
+import { useApiError } from '../../hooks/useApiError';
+import { useBranding } from '../../contexts/BrandingContext';
+import ErrorBanner from '../../components/ErrorBanner';
+import { defaultBranding, type BrandingConfig } from '../../types/branding';
+import NeoBrutalistLayout from '../../components/neo-brutalist/NeoBrutalistLayout';
+import type {
+  OrganizationConfig,
+  Role,
+  UserSearchResult,
+  UserSecurityInfo,
+  AuditLog,
+  UserInvitation,
+  PortalSignupRequest,
+  PortalInvitation,
+  PortalUser,
+  PortalActivity,
+  PortalContactLookup,
+  SaveStatus,
+} from './adminSettings/types';
+import { adminSettingsTabs, defaultConfig, defaultPermissions } from './adminSettings/constants';
+import { formatCanadianPhone, formatCanadianPostalCode } from './adminSettings/utils';
+import OrganizationSection from './adminSettings/sections/OrganizationSection';
+import BrandingSection from './adminSettings/sections/BrandingSection';
+import UsersSection from './adminSettings/sections/UsersSection';
+import PortalSection from './adminSettings/sections/PortalSection';
+import RolesSection from './adminSettings/sections/RolesSection';
+import OtherSettingsSection from './adminSettings/sections/OtherSettingsSection';
+import DashboardSection from './adminSettings/sections/DashboardSection';
+import AuditLogsSection from './adminSettings/sections/AuditLogsSection';
+import UserSecurityModal from './adminSettings/components/UserSecurityModal';
+import PortalResetPasswordModal from './adminSettings/components/PortalResetPasswordModal';
+
+
+// ============================================================================
+// Main Component
+// ============================================================================
+
+export default function AdminSettings() {
+  const { showSuccess, showError } = useToast();
+  const { error: formError, setFromError: setFormErrorFromError, clear: clearFormError } = useApiError();
+  const { setFromError: notifyError } = useApiError({ notify: true });
+  const { setBranding: setGlobalBranding } = useBranding();
+
+  // State
+  const [activeSection, setActiveSection] = useState<string>('dashboard');
+  const [config, setConfig] = useState<OrganizationConfig>(defaultConfig);
+
+  const [branding, setBranding] = useState<BrandingConfig>(defaultBranding);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+
+  // User search state
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userSearchResults, setUserSearchResults] = useState<UserSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserSecurityInfo | null>(null);
+  const [userAuditLogs, setUserAuditLogs] = useState<AuditLog[]>([]);
+
+  // Modal states
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [showResetEmailModal, setShowResetEmailModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [editingRole, setEditingRole] = useState<Role | null>(null);
+
+  // Invitation state
+  const [invitations, setInvitations] = useState<UserInvitation[]>([]);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('user');
+  const [inviteMessage, setInviteMessage] = useState('');
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [isCreatingInvite, setIsCreatingInvite] = useState(false);
+
+  // Portal admin state
+  const [portalRequests, setPortalRequests] = useState<PortalSignupRequest[]>([]);
+  const [portalInvitations, setPortalInvitations] = useState<PortalInvitation[]>([]);
+  const [portalInviteEmail, setPortalInviteEmail] = useState('');
+  const [portalInviteContactId, setPortalInviteContactId] = useState('');
+  const [portalInviteUrl, setPortalInviteUrl] = useState<string | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [portalUsers, setPortalUsers] = useState<PortalUser[]>([]);
+  const [portalUsersLoading, setPortalUsersLoading] = useState(false);
+  const [portalUserSearch, setPortalUserSearch] = useState('');
+  const [portalUserActivity, setPortalUserActivity] = useState<PortalActivity[]>([]);
+  const [portalActivityLoading, setPortalActivityLoading] = useState(false);
+  const [selectedPortalUser, setSelectedPortalUser] = useState<PortalUser | null>(null);
+  const [portalResetTarget, setPortalResetTarget] = useState<PortalUser | null>(null);
+  const [portalResetPassword, setPortalResetPassword] = useState('');
+  const [portalResetConfirmPassword, setPortalResetConfirmPassword] = useState('');
+  const [portalResetLoading, setPortalResetLoading] = useState(false);
+  const [showPortalResetModal, setShowPortalResetModal] = useState(false);
+  const [portalContactSearch, setPortalContactSearch] = useState('');
+  const [portalContactResults, setPortalContactResults] = useState<PortalContactLookup[]>([]);
+  const [portalContactLoading, setPortalContactLoading] = useState(false);
+  const [selectedPortalContact, setSelectedPortalContact] = useState<PortalContactLookup | null>(null);
+
+  // Form states
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  // formError handled via useApiError
+
+  // Refs
+  const iconInputRef = useRef<HTMLInputElement>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
+
+  // ============================================================================
+  // Data Fetching
+  // ============================================================================
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [configResponse, brandingResponse, rolesResponse] = await Promise.all([
+          api.get('/auth/preferences').catch(() => ({ data: { preferences: {} } })),
+          api.get('/admin/branding').catch(() => ({ data: defaultBranding })),
+          api.get('/admin/roles').catch(() => ({ data: { roles: [] } })),
+        ]);
+
+        const prefs = configResponse.data.preferences;
+        if (prefs?.organization) {
+          setConfig({ ...defaultConfig, ...prefs.organization });
+        }
+
+        if (brandingResponse.data) {
+          setBranding({ ...defaultBranding, ...brandingResponse.data });
+        }
+
+        if (rolesResponse.data?.roles) {
+          setRoles(rolesResponse.data.roles);
+        } else {
+          // Default roles
+          setRoles([
+            { id: '1', name: 'Administrator', description: 'Full access to all features', permissions: defaultPermissions.map((p) => p.key), isSystem: true, userCount: 1 },
+            { id: '2', name: 'Manager', description: 'Manage records and view reports', permissions: defaultPermissions.filter((p) => !p.category.includes('Admin')).map((p) => p.key), isSystem: true, userCount: 0 },
+            { id: '3', name: 'User', description: 'Standard access to assigned areas', permissions: defaultPermissions.filter((p) => p.key.includes('view') || p.key.includes('create')).map((p) => p.key), isSystem: true, userCount: 0 },
+            { id: '4', name: 'Read Only', description: 'View-only access', permissions: defaultPermissions.filter((p) => p.key.includes('view')).map((p) => p.key), isSystem: true, userCount: 0 },
+          ]);
+        }
+      } catch {
+        // Use defaults if fetch fails
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (activeSection !== 'portal') return;
+
+    const fetchPortalData = async () => {
+      try {
+        setPortalLoading(true);
+        setPortalUsersLoading(true);
+        const [requestsResponse, invitationsResponse, usersResponse] = await Promise.all([
+          api.get('/portal/admin/requests').catch(() => ({ data: { requests: [] } })),
+          api.get('/portal/admin/invitations').catch(() => ({ data: { invitations: [] } })),
+          api.get('/portal/admin/users').catch(() => ({ data: { users: [] } })),
+        ]);
+
+        setPortalRequests(requestsResponse.data.requests || []);
+        setPortalInvitations(invitationsResponse.data.invitations || []);
+        setPortalUsers(usersResponse.data.users || []);
+      } finally {
+        setPortalLoading(false);
+        setPortalUsersLoading(false);
+      }
+    };
+
+    fetchPortalData();
+  }, [activeSection]);
+
+  // ============================================================================
+  // User Search
+  // ============================================================================
+
+  const searchUsers = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setUserSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await api.get(`/users?search=${encodeURIComponent(query)}&limit=10`);
+      setUserSearchResults(response.data.users || []);
+    } catch {
+      setUserSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      searchUsers(userSearchQuery);
+    }, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [userSearchQuery, searchUsers]);
+
+  const fetchUserSecurityInfo = async (userId: string) => {
+    try {
+      const [userResponse, logsResponse] = await Promise.all([
+        api.get(`/users/${userId}`),
+        api.get(`/admin/users/${userId}/audit-logs`).catch(() => ({ data: { logs: [] } })),
+      ]);
+      setSelectedUser(userResponse.data);
+      setUserAuditLogs(logsResponse.data.logs || []);
+      setShowSecurityModal(true);
+    } catch {
+      alert('Failed to load user information');
+    }
+  };
+
+  // ============================================================================
+  // Save Handlers
+  // ============================================================================
+
+  const handleSaveOrganization = async () => {
+    setIsSaving(true);
+    setSaveStatus('idle');
+    try {
+      await api.patch('/auth/preferences/organization', { value: config });
+      setSaveStatus('success');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } catch {
+      setSaveStatus('error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveBranding = async () => {
+    setIsSaving(true);
+    setSaveStatus('idle');
+    try {
+      const response = await api.put('/admin/branding', branding);
+      const saved = { ...defaultBranding, ...(response.data || {}) } as BrandingConfig;
+      setBranding(saved);
+      setGlobalBranding(saved);
+      setSaveStatus('success');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } catch {
+      setSaveStatus('error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // ============================================================================
+  // Input Handlers
+  // ============================================================================
+
+  const handleChange = (field: string, value: string) => {
+    setConfig((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddressChange = (field: string, value: string) => {
+    let formattedValue = value;
+    if (field === 'postalCode' && config.address.country === 'Canada') {
+      formattedValue = formatCanadianPostalCode(value);
+    }
+    setConfig((prev) => ({
+      ...prev,
+      address: { ...prev.address, [field]: formattedValue },
+    }));
+  };
+
+  const handlePhoneChange = (value: string) => {
+    const formatted = config.phoneFormat === 'canadian' ? formatCanadianPhone(value) : value;
+    setConfig((prev) => ({ ...prev, phone: formatted }));
+  };
+
+  const handleBrandingChange = (field: string, value: string) => {
+    setBranding((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // ============================================================================
+  // Image Upload Handlers
+  // ============================================================================
+
+  const handleImageUpload = async (file: File, type: 'icon' | 'favicon') => {
+    const maxSize = type === 'favicon' ? 1 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert(`File is too large. Maximum size is ${maxSize / 1024 / 1024}MB`);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      if (type === 'icon') {
+        setBranding((prev) => ({ ...prev, appIcon: base64 }));
+      } else {
+        setBranding((prev) => ({ ...prev, favicon: base64 }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // ============================================================================
+  // Security Actions
+  // ============================================================================
+
+  const handleResetUserPassword = async () => {
+    if (!selectedUser) return;
+    clearFormError();
+
+    if (newPassword !== confirmPassword) {
+      setFormErrorFromError(new Error('Passwords do not match'), 'Passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setFormErrorFromError(
+        new Error('Password must be at least 8 characters'),
+        'Password must be at least 8 characters'
+      );
+      return;
+    }
+
+    try {
+      await api.put(`/users/${selectedUser.id}/password`, { password: newPassword });
+      setShowResetPasswordModal(false);
+      setNewPassword('');
+      setConfirmPassword('');
+      alert('Password has been reset successfully');
+    } catch {
+      setFormErrorFromError(new Error('Failed to reset password'), 'Failed to reset password');
+    }
+  };
+
+  const handleResetUserEmail = async () => {
+    if (!selectedUser) return;
+    clearFormError();
+
+    if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+      setFormErrorFromError(new Error('Please enter a valid email address'), 'Please enter a valid email address');
+      return;
+    }
+
+    try {
+      await api.put(`/users/${selectedUser.id}`, { email: newEmail });
+      setShowResetEmailModal(false);
+      setNewEmail('');
+      setSelectedUser((prev) => prev ? { ...prev, email: newEmail } : null);
+      alert('Email has been updated successfully');
+    } catch {
+      setFormErrorFromError(new Error('Failed to update email'), 'Failed to update email');
+    }
+  };
+
+  const handleToggleUserLock = async () => {
+    if (!selectedUser) return;
+
+    try {
+      await api.put(`/users/${selectedUser.id}`, { isLocked: !selectedUser.isLocked });
+      setSelectedUser((prev) => prev ? { ...prev, isLocked: !prev.isLocked } : null);
+    } catch {
+      alert('Failed to update user lock status');
+    }
+  };
+
+  // ============================================================================
+  // Role Management
+  // ============================================================================
+
+  const handleSaveRole = async () => {
+    if (!editingRole) return;
+
+    try {
+      if (editingRole.id) {
+        await api.put(`/admin/roles/${editingRole.id}`, editingRole);
+      } else {
+        await api.post('/admin/roles', editingRole);
+      }
+      setShowRoleModal(false);
+      setEditingRole(null);
+      // Refresh roles
+      const response = await api.get('/admin/roles');
+      setRoles(response.data.roles);
+    } catch {
+      alert('Failed to save role');
+    }
+  };
+
+  const handleDeleteRole = async (roleId: string) => {
+    if (!confirm('Are you sure you want to delete this role?')) return;
+
+    try {
+      await api.delete(`/admin/roles/${roleId}`);
+      setRoles((prev) => prev.filter((r) => r.id !== roleId));
+    } catch {
+      alert('Failed to delete role');
+    }
+  };
+
+  // ============================================================================
+  // Invitation Management
+  // ============================================================================
+
+  const fetchInvitations = useCallback(async () => {
+    try {
+      const response = await api.get('/invitations');
+      setInvitations(response.data.invitations || []);
+    } catch {
+      // Silently fail - invitations are optional
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeSection === 'users') {
+      fetchInvitations();
+    }
+  }, [activeSection, fetchInvitations]);
+
+  const handleCreateInvitation = async () => {
+    if (!inviteEmail) {
+      setFormErrorFromError(new Error('Email is required'), 'Email is required');
+      return;
+    }
+
+    setIsCreatingInvite(true);
+    clearFormError();
+
+    try {
+      const response = await api.post('/invitations', {
+        email: inviteEmail,
+        role: inviteRole,
+        message: inviteMessage || undefined,
+      });
+
+      setInviteUrl(response.data.inviteUrl);
+      fetchInvitations();
+    } catch (error: unknown) {
+      setFormErrorFromError(error, 'Failed to create invitation');
+    } finally {
+      setIsCreatingInvite(false);
+    }
+  };
+
+  const handleRevokeInvitation = async (invitationId: string) => {
+    if (!confirm('Are you sure you want to revoke this invitation?')) return;
+
+    try {
+      await api.delete(`/invitations/${invitationId}`);
+      fetchInvitations();
+    } catch {
+      alert('Failed to revoke invitation');
+    }
+  };
+
+  const handleResendInvitation = async (invitationId: string) => {
+    try {
+      const response = await api.post(`/invitations/${invitationId}/resend`);
+      alert(`Invitation resent! New link:\n${response.data.inviteUrl}`);
+      fetchInvitations();
+    } catch {
+      alert('Failed to resend invitation');
+    }
+  };
+
+  const resetInviteModal = () => {
+    setShowInviteModal(false);
+    setInviteEmail('');
+    setInviteRole('user');
+    setInviteMessage('');
+    setInviteUrl(null);
+    clearFormError();
+  };
+
+  // ============================================================================
+  // Client Portal Management
+  // ============================================================================
+
+  const refreshPortalData = async () => {
+    try {
+      setPortalLoading(true);
+      const [requestsResponse, invitationsResponse] = await Promise.all([
+        api.get('/portal/admin/requests').catch(() => ({ data: { requests: [] } })),
+        api.get('/portal/admin/invitations').catch(() => ({ data: { invitations: [] } })),
+      ]);
+      setPortalRequests(requestsResponse.data.requests || []);
+      setPortalInvitations(invitationsResponse.data.invitations || []);
+    } finally {
+      setPortalLoading(false);
+    }
+
+    fetchPortalUsers(portalUserSearch);
+  };
+
+  const handleApprovePortalRequest = async (requestId: string) => {
+    try {
+      await api.post(`/portal/admin/requests/${requestId}/approve`);
+      showSuccess('Portal signup request approved');
+      refreshPortalData();
+    } catch (error: unknown) {
+      notifyError(error, 'Failed to approve request');
+    }
+  };
+
+  const handleRejectPortalRequest = async (requestId: string) => {
+    if (!confirm('Reject this portal request?')) return;
+    try {
+      await api.post(`/portal/admin/requests/${requestId}/reject`);
+      showSuccess('Portal signup request rejected');
+      refreshPortalData();
+    } catch (error: unknown) {
+      notifyError(error, 'Failed to reject request');
+    }
+  };
+
+  const handleCreatePortalInvite = async () => {
+    if (!portalInviteEmail) {
+      setFormErrorFromError(new Error('Portal invite email is required'), 'Portal invite email is required');
+      return;
+    }
+
+    try {
+      clearFormError();
+      const response = await api.post('/portal/admin/invitations', {
+        email: portalInviteEmail,
+        contact_id: portalInviteContactId || undefined,
+      });
+      setPortalInviteUrl(response.data.inviteUrl);
+      setPortalInviteEmail('');
+      setPortalInviteContactId('');
+      setSelectedPortalContact(null);
+      showSuccess('Portal invitation created');
+      refreshPortalData();
+    } catch (error: unknown) {
+      notifyError(error, 'Failed to create portal invitation');
+    }
+  };
+
+  const fetchPortalUsers = useCallback(async (searchTerm?: string) => {
+    try {
+      setPortalUsersLoading(true);
+      const response = await api.get('/portal/admin/users', {
+        params: searchTerm ? { search: searchTerm } : undefined,
+      });
+      setPortalUsers(response.data.users || []);
+    } finally {
+      setPortalUsersLoading(false);
+    }
+  }, []);
+
+  const handlePortalUserStatusChange = async (user: PortalUser, status: string) => {
+    try {
+      await api.patch(`/portal/admin/users/${user.id}`, { status });
+      showSuccess(`Portal user ${status === 'active' ? 'reactivated' : 'suspended'}`);
+      fetchPortalUsers(portalUserSearch);
+      if (selectedPortalUser?.id === user.id) {
+        setSelectedPortalUser({ ...selectedPortalUser, status });
+      }
+    } catch (error: unknown) {
+      notifyError(error, 'Failed to update portal user status');
+    }
+  };
+
+  const handlePortalUserActivity = async (user: PortalUser) => {
+    try {
+      setSelectedPortalUser(user);
+      setPortalActivityLoading(true);
+      const response = await api.get(`/portal/admin/users/${user.id}/activity`);
+      setPortalUserActivity(response.data.activity || []);
+    } finally {
+      setPortalActivityLoading(false);
+    }
+  };
+
+  const handlePortalPasswordReset = async () => {
+    if (!portalResetTarget || !portalResetPassword) {
+      showError('Password is required');
+      return;
+    }
+    if (portalResetPassword.length < 8) {
+      showError('Password must be at least 8 characters');
+      return;
+    }
+    if (portalResetPassword !== portalResetConfirmPassword) {
+      showError('Passwords do not match');
+      return;
+    }
+    try {
+      setPortalResetLoading(true);
+      await api.post('/portal/admin/reset-password', {
+        portalUserId: portalResetTarget.id,
+        password: portalResetPassword,
+      });
+      setPortalResetPassword('');
+      setPortalResetConfirmPassword('');
+      setPortalResetTarget(null);
+      setShowPortalResetModal(false);
+      showSuccess('Portal user password updated');
+    } catch (error: unknown) {
+      notifyError(error, 'Failed to reset password');
+    } finally {
+      setPortalResetLoading(false);
+    }
+  };
+
+  const searchPortalContacts = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setPortalContactResults([]);
+      return;
+    }
+    setPortalContactLoading(true);
+    try {
+      const response = await api.get('/contacts', { params: { search: query, limit: 5 } });
+      setPortalContactResults(response.data.data || []);
+    } catch {
+      setPortalContactResults([]);
+    } finally {
+      setPortalContactLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeSection !== 'portal') return;
+    const debounceTimer = setTimeout(() => {
+      fetchPortalUsers(portalUserSearch);
+    }, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [activeSection, portalUserSearch, fetchPortalUsers]);
+
+  useEffect(() => {
+    if (activeSection !== 'portal') return;
+    const debounceTimer = setTimeout(() => {
+      searchPortalContacts(portalContactSearch);
+    }, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [activeSection, portalContactSearch, searchPortalContacts]);
+
+  // ============================================================================
+  // Loading State
+  // ============================================================================
+
+  if (isLoading) {
+    return (
+      <NeoBrutalistLayout pageTitle="ADMIN SETTINGS">
+        <div className="min-h-screen p-6 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--loop-blue)]"></div>
+        </div>
+      </NeoBrutalistLayout>
+    );
+  }
+
+  // ============================================================================
+  // Main Render
+  // ============================================================================
+
+  return (
+    <NeoBrutalistLayout pageTitle="ADMIN SETTINGS">
+      <div className="min-h-screen bg-[var(--app-bg)] p-6">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-black text-[var(--app-text)] uppercase">Admin Settings</h1>
+                <p className="mt-2 text-[var(--app-text-muted)]">
+                  Configure organization settings, branding, users, roles, and security.
+                </p>
+              </div>
+              <span className="px-3 py-1 text-xs font-bold bg-[var(--loop-purple)] text-black border-2 border-[var(--app-border)] uppercase">
+                Admin Only
+              </span>
+            </div>
+          </div>
+
+          {/* Navigation Tabs */}
+          <div className="mb-6 border-b-2 border-[var(--app-border)]">
+            <nav className="-mb-px flex space-x-4 overflow-x-auto">
+              {adminSettingsTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveSection(tab.id)}
+                  className={`py-3 px-4 border-b-4 font-bold text-sm uppercase whitespace-nowrap transition-colors ${activeSection === tab.id
+                    ? 'border-[var(--loop-yellow)] text-[var(--app-text)] bg-[var(--loop-yellow)]'
+                    : 'border-transparent text-[var(--app-text-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-muted)]'
+                    }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* Dashboard Section */}
+          {activeSection === 'dashboard' && <DashboardSection />}
+
+          {/* Organization Section */}
+          {activeSection === 'organization' && (
+
+            <OrganizationSection
+              config={config}
+              onChange={handleChange}
+              onAddressChange={handleAddressChange}
+              onPhoneChange={handlePhoneChange}
+              onSave={handleSaveOrganization}
+              isSaving={isSaving}
+              saveStatus={saveStatus}
+            />
+          )}
+
+          {/* Branding Section */}
+          {activeSection === 'branding' && (
+            <BrandingSection
+              branding={branding}
+              onBrandingChange={handleBrandingChange}
+              onImageUpload={handleImageUpload}
+              onRemoveIcon={() => setBranding((prev) => ({ ...prev, appIcon: null }))}
+              onRemoveFavicon={() => setBranding((prev) => ({ ...prev, favicon: null }))}
+              iconInputRef={iconInputRef}
+              faviconInputRef={faviconInputRef}
+              onSave={handleSaveBranding}
+              isSaving={isSaving}
+              saveStatus={saveStatus}
+            />
+          )}
+
+          {/* Users & Security Section */}
+          {activeSection === 'users' && (
+            <UsersSection
+              userSearchQuery={userSearchQuery}
+              onSearchChange={setUserSearchQuery}
+              isSearching={isSearching}
+              userSearchResults={userSearchResults}
+              onSelectUser={fetchUserSecurityInfo}
+              onShowInvite={() => setShowInviteModal(true)}
+              onGoToRoles={() => setActiveSection('roles')}
+              invitations={invitations}
+              onResendInvitation={handleResendInvitation}
+              onRevokeInvitation={handleRevokeInvitation}
+            />
+          )}
+
+          {/* Client Portal Section */}
+          {activeSection === 'portal' && (
+            <PortalSection
+              portalInviteUrl={portalInviteUrl}
+              portalLoading={portalLoading}
+              portalRequests={portalRequests}
+              portalInviteEmail={portalInviteEmail}
+              portalContactSearch={portalContactSearch}
+              portalContactLoading={portalContactLoading}
+              portalContactResults={portalContactResults}
+              selectedPortalContact={selectedPortalContact}
+              portalInvitations={portalInvitations}
+              portalUsers={portalUsers}
+              portalUsersLoading={portalUsersLoading}
+              portalUserSearch={portalUserSearch}
+              selectedPortalUser={selectedPortalUser}
+              portalUserActivity={portalUserActivity}
+              portalActivityLoading={portalActivityLoading}
+              formError={formError}
+              onRefreshPortal={refreshPortalData}
+              onApproveRequest={handleApprovePortalRequest}
+              onRejectRequest={handleRejectPortalRequest}
+              onPortalInviteEmailChange={setPortalInviteEmail}
+              onPortalContactSearchChange={setPortalContactSearch}
+              onSelectPortalContact={(contact) => {
+                setSelectedPortalContact(contact);
+                setPortalInviteContactId(contact.contact_id);
+                if (contact.email) {
+                  setPortalInviteEmail(contact.email);
+                }
+                setPortalContactResults([]);
+                setPortalContactSearch('');
+              }}
+              onClearPortalContact={() => {
+                setSelectedPortalContact(null);
+                setPortalInviteContactId('');
+              }}
+              onCreateInvitation={handleCreatePortalInvite}
+              onPortalUserSearchChange={setPortalUserSearch}
+              onRefreshUsers={() => fetchPortalUsers(portalUserSearch)}
+              onViewUserActivity={handlePortalUserActivity}
+              onToggleUserStatus={handlePortalUserStatusChange}
+              onOpenResetModal={(user) => {
+                setPortalResetTarget(user);
+                setPortalResetPassword('');
+                setPortalResetConfirmPassword('');
+                setShowPortalResetModal(true);
+              }}
+            />
+          )}
+
+          {/* Roles & Permissions Section */}
+          {activeSection === 'roles' && (
+            <RolesSection
+              roles={roles}
+              onCreateRole={() => {
+                setEditingRole({
+                  id: '',
+                  name: '',
+                  description: '',
+                  permissions: [],
+                  isSystem: false,
+                  userCount: 0
+                });
+                setShowRoleModal(true);
+              }}
+              onEditRole={(role) => {
+                setEditingRole(role);
+                setShowRoleModal(true);
+              }}
+              onDeleteRole={handleDeleteRole}
+            />
+          )}
+
+          {/* Audit Logs Section */}
+          {activeSection === 'audit_logs' && <AuditLogsSection />}
+
+          {/* Other Settings Section */}
+          {activeSection === 'other' && <OtherSettingsSection />}
+        </div>
+
+        <UserSecurityModal
+          open={showSecurityModal}
+          selectedUser={selectedUser}
+          userAuditLogs={userAuditLogs}
+          onClose={() => setShowSecurityModal(false)}
+          onOpenResetPassword={() => setShowResetPasswordModal(true)}
+          onOpenResetEmail={() => {
+            if (!selectedUser) return;
+            setNewEmail(selectedUser.email);
+            setShowResetEmailModal(true);
+          }}
+          onToggleUserLock={handleToggleUserLock}
+        />
+
+        <PortalResetPasswordModal
+          open={showPortalResetModal}
+          target={portalResetTarget}
+          password={portalResetPassword}
+          confirmPassword={portalResetConfirmPassword}
+          loading={portalResetLoading}
+          onPasswordChange={setPortalResetPassword}
+          onConfirmPasswordChange={setPortalResetConfirmPassword}
+          onClose={() => {
+            setShowPortalResetModal(false);
+            setPortalResetTarget(null);
+            setPortalResetPassword('');
+            setPortalResetConfirmPassword('');
+          }}
+          onSubmit={handlePortalPasswordReset}
+        />
+
+        {/* Reset Password Modal */}
+        {showResetPasswordModal && selectedUser && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen px-4">
+              <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowResetPasswordModal(false)} />
+              <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
+                <h3 className="text-lg font-semibold text-app-text-heading mb-4">
+                  Reset Password for {selectedUser.firstName} {selectedUser.lastName}
+                </h3>
+
+                <ErrorBanner message={formError} className="mb-4" />
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-app-text-label mb-1">New Password</label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new password"
+                      className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-app-text-label mb-1">Confirm Password</label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm new password"
+                      className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowResetPasswordModal(false);
+                      setNewPassword('');
+                      setConfirmPassword('');
+                      clearFormError();
+                    }}
+                    className="px-4 py-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResetUserPassword}
+                    className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
+                  >
+                    Reset Password
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Reset Email Modal */}
+        {showResetEmailModal && selectedUser && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen px-4">
+              <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowResetEmailModal(false)} />
+              <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
+                <h3 className="text-lg font-semibold text-app-text-heading mb-4">
+                  Change Email for {selectedUser.firstName} {selectedUser.lastName}
+                </h3>
+
+                <ErrorBanner message={formError} className="mb-4" />
+
+                <div>
+                  <label className="block text-sm font-medium text-app-text-label mb-1">New Email Address</label>
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="user@example.com"
+                    className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowResetEmailModal(false);
+                      setNewEmail('');
+                      clearFormError();
+                    }}
+                    className="px-4 py-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResetUserEmail}
+                    className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
+                  >
+                    Update Email
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Role Edit Modal */}
+        {showRoleModal && editingRole && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen px-4">
+              <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowRoleModal(false)} />
+              <div className="relative bg-app-surface rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+                <h3 className="text-lg font-semibold text-app-text-heading mb-4">
+                  {editingRole.id ? 'Edit Role' : 'Create Role'}
+                </h3>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-app-text-label mb-1">Role Name</label>
+                    <input
+                      type="text"
+                      value={editingRole.name}
+                      onChange={(e) => setEditingRole({ ...editingRole, name: e.target.value })}
+                      placeholder="Enter role name"
+                      className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
+                      disabled={editingRole.isSystem}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-app-text-label mb-1">Description</label>
+                    <input
+                      type="text"
+                      value={editingRole.description}
+                      onChange={(e) => setEditingRole({ ...editingRole, description: e.target.value })}
+                      placeholder="Describe this role's purpose"
+                      className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-app-text-label mb-2">Permissions</label>
+                    <div className="border border-app-border rounded-lg p-4 max-h-64 overflow-y-auto">
+                      {Object.entries(
+                        defaultPermissions.reduce((acc, perm) => {
+                          if (!acc[perm.category]) acc[perm.category] = [];
+                          acc[perm.category].push(perm);
+                          return acc;
+                        }, {} as Record<string, typeof defaultPermissions>)
+                      ).map(([category, perms]) => (
+                        <div key={category} className="mb-4 last:mb-0">
+                          <h4 className="font-medium text-app-text mb-2">{category}</h4>
+                          <div className="grid grid-cols-2 gap-2">
+                            {perms.map((perm) => (
+                              <label key={perm.key} className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={editingRole.permissions.includes(perm.key)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setEditingRole({
+                                        ...editingRole,
+                                        permissions: [...editingRole.permissions, perm.key],
+                                      });
+                                    } else {
+                                      setEditingRole({
+                                        ...editingRole,
+                                        permissions: editingRole.permissions.filter((p) => p !== perm.key),
+                                      });
+                                    }
+                                  }}
+                                  className="mr-2"
+                                />
+                                <span className="text-sm text-app-text-muted">{perm.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowRoleModal(false);
+                      setEditingRole(null);
+                    }}
+                    className="px-4 py-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveRole}
+                    className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
+                  >
+                    {editingRole.id ? 'Save Changes' : 'Create Role'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Invite User Modal */}
+        {showInviteModal && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen px-4">
+              <div className="fixed inset-0 bg-black bg-opacity-50" onClick={resetInviteModal} />
+              <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
+                <h3 className="text-lg font-semibold text-app-text-heading mb-4">
+                  Invite New User
+                </h3>
+
+                <ErrorBanner message={formError} className="mb-4" />
+
+                {inviteUrl ? (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center gap-2 text-green-800 font-medium mb-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Invitation Created
+                      </div>
+                      <p className="text-sm text-green-700">
+                        Share this link with <strong>{inviteEmail}</strong> to allow them to create their account:
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-app-surface-muted rounded-lg">
+                      <input
+                        type="text"
+                        value={inviteUrl}
+                        readOnly
+                        title="Invitation URL"
+                        aria-label="Invitation URL"
+                        className="w-full bg-transparent text-sm text-app-text-muted border-none focus:outline-none"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(inviteUrl);
+                        alert('Link copied to clipboard!');
+                      }}
+                      className="w-full px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
+                    >
+                      Copy Link
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={resetInviteModal}
+                      className="w-full px-4 py-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg"
+                    >
+                      Close
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-app-text-label mb-1">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                        placeholder="user@example.com"
+                        className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-app-text-label mb-1">
+                        Role *
+                      </label>
+                      <select
+                        value={inviteRole}
+                        onChange={(e) => setInviteRole(e.target.value)}
+                        title="Select user role"
+                        className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
+                      >
+                        <option value="user">User</option>
+                        <option value="manager">Manager</option>
+                        <option value="admin">Administrator</option>
+                        <option value="readonly">Read Only</option>
+                      </select>
+                      <p className="mt-1 text-xs text-app-text-muted">
+                        The user will be assigned this role when they create their account
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-app-text-label mb-1">
+                        Personal Message (optional)
+                      </label>
+                      <textarea
+                        value={inviteMessage}
+                        onChange={(e) => setInviteMessage(e.target.value)}
+                        placeholder="Welcome to our team! Looking forward to working with you."
+                        rows={3}
+                        className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
+                      />
+                    </div>
+
+                    <div className="flex justify-end space-x-3 mt-6">
+                      <button
+                        type="button"
+                        onClick={resetInviteModal}
+                        className="px-4 py-2 text-app-text-muted hover:bg-app-surface-muted rounded-lg"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCreateInvitation}
+                        disabled={isCreatingInvite || !inviteEmail}
+                        className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
+                      >
+                        {isCreatingInvite ? 'Creating...' : 'Create Invitation'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </NeoBrutalistLayout>
+  );
+}
