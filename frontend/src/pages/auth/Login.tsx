@@ -109,7 +109,7 @@ export default function Login() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-amber-100 font-body">
+    <div className="auth-page-light relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-amber-100 font-body">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -top-24 left-0 h-72 w-72 rounded-full bg-amber-200/50 blur-3xl"
@@ -121,17 +121,17 @@ export default function Login() {
       <div className="relative mx-auto flex min-h-screen max-w-6xl items-center px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid w-full gap-10 lg:grid-cols-[1fr_1.05fr]">
           <div className="flex flex-col justify-center">
-            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
               Secure access
             </span>
             <h1 className="font-display mt-4 text-4xl font-semibold text-slate-900 sm:text-5xl">
               Welcome back to Nonprofit Manager.
             </h1>
-            <p className="mt-4 text-base text-slate-600 sm:text-lg">
+            <p className="mt-4 text-base text-slate-700 sm:text-lg">
               Sign in to manage donors, volunteers, events, and reporting. Use passkeys or MFA for
               a faster and safer login experience.
             </p>
-            <div className="mt-6 grid gap-3 text-sm text-slate-600">
+            <div className="mt-6 grid gap-3 text-sm text-slate-700">
               {[
                 'Real-time dashboards and executive summaries.',
                 'Centralize outreach, cases, and communications.',
@@ -156,7 +156,7 @@ export default function Login() {
           <div className="rounded-3xl border border-slate-200/80 bg-white/90 p-8 shadow-xl backdrop-blur">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                   {step === 'password' ? 'Sign in' : 'Two-factor'}
                 </p>
                 <h2 className="font-display mt-2 text-2xl font-semibold text-slate-900">
@@ -179,7 +179,7 @@ export default function Login() {
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-5">
               <div>
-                <label htmlFor="email" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <label htmlFor="email" className="text-xs font-semibold uppercase tracking-wide text-slate-600">
                   Email Address
                 </label>
                 <input
@@ -191,13 +191,13 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={step === 'totp'}
-                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100 disabled:bg-slate-100"
+                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100 disabled:bg-slate-100"
                 />
               </div>
 
               {step === 'password' ? (
                 <div>
-                  <label htmlFor="password" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <label htmlFor="password" className="text-xs font-semibold uppercase tracking-wide text-slate-600">
                     Password
                   </label>
                   <input
@@ -208,12 +208,12 @@ export default function Login() {
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                    className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
                   />
                 </div>
               ) : (
                 <div>
-                  <label htmlFor="totp" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <label htmlFor="totp" className="text-xs font-semibold uppercase tracking-wide text-slate-600">
                     Authentication Code
                   </label>
                   <input
@@ -225,7 +225,7 @@ export default function Login() {
                     required
                     value={totpCode}
                     onChange={(e) => setTotpCode(e.target.value)}
-                    className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                    className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
                   />
                   <p className="mt-2 text-xs text-slate-500">
                     Enter the 6-digit code from your authenticator app.

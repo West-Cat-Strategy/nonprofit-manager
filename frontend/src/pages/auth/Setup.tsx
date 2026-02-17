@@ -156,7 +156,7 @@ const Setup: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-sky-100 font-body">
+    <div className="auth-page-light relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-sky-100 font-body">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -top-24 right-0 h-72 w-72 rounded-full bg-sky-200/40 blur-3xl"
@@ -168,23 +168,23 @@ const Setup: React.FC = () => {
       <div className="relative mx-auto flex min-h-screen max-w-6xl items-center px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid w-full gap-10 lg:grid-cols-[1.05fr_1fr]">
           <div className="flex flex-col justify-center">
-            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-app-surface/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
               First-time setup
             </span>
             <h1 className="font-display mt-4 text-4xl font-semibold text-slate-900 sm:text-5xl">
               Build your nonprofit workspace in minutes.
             </h1>
-            <p className="mt-4 text-base text-slate-600 sm:text-lg">
+            <p className="mt-4 text-base text-slate-700 sm:text-lg">
               Create the initial administrator account to unlock donor management, volunteer
               coordination, and real-time reporting in one place.
             </p>
-            <div className="mt-6 grid gap-3 text-sm text-slate-600">
+            <div className="mt-6 grid gap-3 text-sm text-slate-700">
               {[
                 'Secure admin access with MFA-ready authentication.',
                 'Invite teammates and configure modules after setup.',
                 'Personalize dashboards for fundraising and programs.',
               ].map((copy) => (
-                <div key={copy} className="flex items-start gap-3 rounded-xl bg-app-surface/70 p-3 shadow-sm">
+                <div key={copy} className="flex items-start gap-3 rounded-xl bg-white/70 p-3 shadow-sm">
                   <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
                     <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                       <path
@@ -198,7 +198,7 @@ const Setup: React.FC = () => {
                 </div>
               ))}
             </div>
-            <div className="mt-8 rounded-2xl border border-slate-200 bg-app-surface/80 p-5 shadow-sm">
+            <div className="mt-8 rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm">
               <div className="flex items-start gap-3">
                 <span className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 text-sky-600">
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -211,7 +211,7 @@ const Setup: React.FC = () => {
                   </svg>
                 </span>
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">One-time setup</p>
+                  <p className="text-sm font-semibold text-slate-900">One-time setup</p>
                   <p className="mt-1 text-sm text-slate-600">
                     This account receives full administrative permissions. You can create
                     additional users and permissions from the admin panel later.
@@ -221,13 +221,13 @@ const Setup: React.FC = () => {
             </div>
             <p className="mt-6 text-sm text-slate-500">
               Already set up?{' '}
-              <Link to="/login" className="font-semibold text-sky-700 hover:text-sky-800">
+              <Link to="/login" className="font-semibold text-sky-700 hover:text-sky-900">
                 Sign in instead
               </Link>
             </p>
           </div>
 
-          <div className="rounded-3xl border border-slate-200/80 bg-app-surface/90 p-8 shadow-xl backdrop-blur">
+          <div className="rounded-3xl border border-slate-200/80 bg-white/90 p-8 shadow-xl backdrop-blur">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white">
                 <svg
@@ -272,8 +272,8 @@ const Setup: React.FC = () => {
                     />
                   </svg>
                   <div className="flex-1">
-                    <h3 className="text-sm font-medium">Please fix the following errors:</h3>
-                    <ul className="mt-2 text-sm list-disc list-inside">
+                    <h3 className="text-sm font-medium text-red-800">Please fix the following errors:</h3>
+                    <ul className="mt-2 text-sm list-disc list-inside text-red-700">
                       {errors.map((error, index) => (
                         <li key={index}>{error}</li>
                       ))}
@@ -286,7 +286,7 @@ const Setup: React.FC = () => {
             <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="firstName" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <label htmlFor="firstName" className="text-xs font-semibold uppercase tracking-wide text-slate-600">
                     First Name
                   </label>
                   <input
@@ -297,12 +297,12 @@ const Setup: React.FC = () => {
                     autoComplete="given-name"
                     value={formData.firstName}
                     onChange={handleChange}
-                    className="mt-2 block w-full rounded-xl border border-slate-200 bg-app-surface px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                    className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
                     placeholder="Jordan"
                   />
                 </div>
                 <div>
-                  <label htmlFor="lastName" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <label htmlFor="lastName" className="text-xs font-semibold uppercase tracking-wide text-slate-600">
                     Last Name
                   </label>
                   <input
@@ -313,14 +313,14 @@ const Setup: React.FC = () => {
                     autoComplete="family-name"
                     value={formData.lastName}
                     onChange={handleChange}
-                    className="mt-2 block w-full rounded-xl border border-slate-200 bg-app-surface px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                    className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
                     placeholder="Lee"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="organizationName" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <label htmlFor="organizationName" className="text-xs font-semibold uppercase tracking-wide text-slate-600">
                   Organization Name
                 </label>
                 <input
@@ -331,13 +331,13 @@ const Setup: React.FC = () => {
                   autoComplete="organization"
                   value={formData.organizationName}
                   onChange={handleChange}
-                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-app-surface px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
                   placeholder="Community Aid Network"
                 />
               </div>
 
               <div>
-                <label htmlFor="email" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <label htmlFor="email" className="text-xs font-semibold uppercase tracking-wide text-slate-600">
                   Email Address
                 </label>
                 <input
@@ -348,7 +348,7 @@ const Setup: React.FC = () => {
                   autoComplete="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-app-surface px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
                   placeholder="admin@nonprofit.org"
                 />
                 {formData.email.length > 0 && !emailValid && (
@@ -357,7 +357,7 @@ const Setup: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="password" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <label htmlFor="password" className="text-xs font-semibold uppercase tracking-wide text-slate-600">
                   Password
                 </label>
                 <input
@@ -368,11 +368,11 @@ const Setup: React.FC = () => {
                   autoComplete="new-password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-app-surface px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
                   placeholder="Create a strong password"
                 />
-                <div className="mt-3 grid gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-600 sm:grid-cols-2">
-                  <div className={`flex items-center gap-2 ${passwordRules.length ? 'text-emerald-600' : ''}`}>
+                <div className="mt-3 grid gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-700 sm:grid-cols-2">
+                  <div className={`flex items-center gap-2 ${passwordRules.length ? 'text-emerald-700' : ''}`}>
                     <span className="h-2 w-2 rounded-full bg-current" />
                     At least 8 characters
                   </div>
@@ -392,7 +392,7 @@ const Setup: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="confirmPassword" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <label htmlFor="confirmPassword" className="text-xs font-semibold uppercase tracking-wide text-slate-600">
                   Confirm Password
                 </label>
                 <input
@@ -403,7 +403,7 @@ const Setup: React.FC = () => {
                   autoComplete="new-password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-app-surface px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
                   placeholder="Re-enter your password"
                 />
                 {formData.confirmPassword.length > 0 && !passwordsMatch && (

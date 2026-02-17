@@ -1099,4 +1099,74 @@ body [class*="focus:border-blue-600"]:focus {
   text-transform: uppercase !important;
 }
 
+/* ==============================================================================
+   AUTH PAGE LIGHT-THEME SCOPE
+   Login & Setup pages use a fixed light design regardless of dark mode.
+   These overrides neutralise every "nuclear" rule above for .auth-page-light.
+   ============================================================================== */
+.dark .auth-page-light,
+.dark .auth-page-light h1,
+.dark .auth-page-light h2,
+.dark .auth-page-light h3,
+.dark .auth-page-light h4,
+.dark .auth-page-light p,
+.dark .auth-page-light span,
+.dark .auth-page-light label,
+.dark .auth-page-light div,
+.dark .auth-page-light td,
+.dark .auth-page-light th,
+.dark .auth-page-light li,
+.dark .auth-page-light a {
+  color: #1e293b !important;   /* slate-800 — safe dark text on light bg */
+}
+
+.dark .auth-page-light h1,
+.dark .auth-page-light h2,
+.dark .auth-page-light h3 {
+  color: #0f172a !important;   /* slate-900 */
+}
+
+.dark .auth-page-light input,
+.dark .auth-page-light select,
+.dark .auth-page-light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #e2e8f0 !important;   /* slate-200 */
+}
+
+.dark .auth-page-light input::placeholder,
+.dark .auth-page-light textarea::placeholder {
+  color: #94a3b8 !important;   /* slate-400 */
+}
+
+/* Buttons that are intentionally white keep dark text */
+.dark .auth-page-light button {
+  color: inherit !important;
+}
+
+.dark .auth-page-light button span {
+  color: inherit !important;
+}
+
+/* Dark-bg CTA buttons keep white text */
+.dark .auth-page-light button.bg-slate-900,
+.dark .auth-page-light button[class*="bg-slate-900"] {
+  color: #ffffff !important;
+  background-color: #0f172a !important;
+}
+
+/* Keep error text red */
+.dark .auth-page-light .text-rose-500,
+.dark .auth-page-light .text-red-800,
+.dark .auth-page-light .text-red-700,
+.dark .auth-page-light .text-red-400 {
+  color: inherit !important;
+}
+
+/* Keep success text green */
+.dark .auth-page-light .text-emerald-600,
+.dark .auth-page-light .text-emerald-700 {
+  color: inherit !important;
+}
+
 /* ============================================================================== */
