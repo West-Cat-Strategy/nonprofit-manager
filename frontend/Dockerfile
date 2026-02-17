@@ -8,8 +8,8 @@ WORKDIR /app
 
 # Install deps before copying source for better layer caching
 COPY package*.json ./
-RUN npm ci --no-audit --no-fund && \
-    npm cache clean --force
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --no-audit --no-fund
 
 # API URL is baked into the static bundle at build time
 ARG VITE_API_URL=http://localhost:8000/api
@@ -21,15 +21,10 @@ RUN npm run build
 # ── Stage 2: Production (nginx) ───────────────────────────────────────────────
 FROM nginx:1.27-alpine3.20 AS production
 
-# dumb-init: proper PID-1 signal handling
-RUN apk update && apk upgrade && \
-    apk add --no-cache dumb-init curl && \
-    rm -rf /var/cache/apk/*
-
-# Non-root user — must be done before USER directive
-RUN addgroup -g 1001 -S nginx-user && \
+# dumb-init for proper PID-1 signal handling + non-root user
+RUN apk add --no-cache dumb-init && \
+    addgroup -g 1001 -S nginx-user && \
     adduser -S nginx-user -u 1001 && \
-    # Grant nginx-user write access to dirs nginx needs at runtime
     chown -R nginx-user:nginx-user \
         /usr/share/nginx/html \
         /var/cache/nginx \
@@ -45,7 +40,7 @@ USER nginx-user
 EXPOSE 8001
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://127.0.0.1:8001/health || exit 1
+    CMD wget -qO- http://127.0.0.1:8001/health || exit 1
 
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["nginx", "-g", "daemon off;"]
