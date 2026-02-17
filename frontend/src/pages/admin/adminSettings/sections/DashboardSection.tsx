@@ -10,7 +10,11 @@ interface AdminStats {
     recentSignups: Array<{ id: string; email: string; created_at: string }>;
 }
 
-export default function DashboardSection() {
+interface DashboardSectionProps {
+    onShowInvite: () => void;
+}
+
+export default function DashboardSection({ onShowInvite }: DashboardSectionProps) {
     const [stats, setStats] = useState<AdminStats | null>(null);
     const [loading, setLoading] = useState(true);
     const { setFromError } = useApiError({ notify: true });
@@ -41,6 +45,21 @@ export default function DashboardSection() {
 
     return (
         <div className="space-y-6">
+            {/* Quick Actions */}
+            <div className="flex items-center justify-between">
+                <h2 className="text-xl font-black uppercase">Overview</h2>
+                <button
+                    type="button"
+                    onClick={onShowInvite}
+                    className="flex items-center gap-2 px-4 py-2 bg-app-accent text-white text-sm font-bold rounded-lg hover:bg-app-accent-hover border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[3px] active:translate-y-[3px] transition-all"
+                >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                    Invite User
+                </button>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard title="Total Users" value={stats.totalUsers} color="bg-[var(--loop-blue)]" />
                 <StatCard title="Active Users (30d)" value={stats.activeUsers} color="bg-[var(--loop-green)]" />
