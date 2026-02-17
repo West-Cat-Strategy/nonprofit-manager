@@ -162,7 +162,7 @@ const SocialShare: React.FC<SocialShareProps> = ({
       </button>
 
       {isOpen && !supportsNativeShare && (
-        <div className="absolute right-0 mt-2 w-48 bg-app-surface rounded-lg shadow-lg border border-app-border py-1 z-50">
+        <div className="menu-surface-opaque absolute right-0 mt-2 w-48 rounded-lg shadow-lg border border-app-border py-1 z-50">
           {shareOptions.map((option) => (
             <a
               key={option.name}

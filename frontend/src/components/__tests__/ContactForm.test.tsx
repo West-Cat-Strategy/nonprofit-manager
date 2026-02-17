@@ -101,12 +101,11 @@ describe('ContactForm', () => {
       account_id: '123',
       roles: ['Primary Contact'],
       first_name: 'Jane',
+      preferred_name: 'Jay',
       last_name: 'Smith',
       email: 'jane.smith@example.com',
       phone: '555-0200',
       mobile_phone: '555-0201',
-      job_title: 'Director',
-      department: 'Operations',
       preferred_contact_method: 'email',
       do_not_email: false,
       do_not_phone: false,
@@ -162,21 +161,13 @@ describe('ContactForm', () => {
     });
   });
 
-  describe('Professional Information', () => {
-    it('allows entering job title', async () => {
+  describe('Personal Information', () => {
+    it('allows entering preferred name', async () => {
       await renderContactForm(<ContactForm mode="create" />);
 
-      const titleInput = screen.getByLabelText(/job title/i) as HTMLInputElement;
-      fireEvent.change(titleInput, { target: { value: 'CEO' } });
-      expect(titleInput.value).toBe('CEO');
-    });
-
-    it('allows entering department', async () => {
-      await renderContactForm(<ContactForm mode="create" />);
-
-      const deptInput = screen.getByLabelText(/department/i) as HTMLInputElement;
-      fireEvent.change(deptInput, { target: { value: 'Marketing' } });
-      expect(deptInput.value).toBe('Marketing');
+      const preferredNameInput = screen.getByLabelText(/preferred name/i) as HTMLInputElement;
+      fireEvent.change(preferredNameInput, { target: { value: 'Johnny' } });
+      expect(preferredNameInput.value).toBe('Johnny');
     });
   });
 

@@ -149,7 +149,7 @@ export default function InteractionNote() {
                 {lookup.isOpen && lookup.results.length > 0 && (
                   <div
                     ref={lookup.dropdownRef}
-                    className="absolute z-10 mt-1 w-full rounded-lg border border-app-border bg-app-surface shadow-lg max-h-64 overflow-y-auto"
+                    className="menu-surface-opaque absolute z-10 mt-1 w-full rounded-lg border border-app-border shadow-lg max-h-64 overflow-y-auto"
                   >
                     {lookup.results.map((contact) => (
                       <button

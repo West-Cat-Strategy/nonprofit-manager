@@ -205,7 +205,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
           </button>
 
           {/* Dropdown menu */}
-          <div className="absolute right-0 mt-1 w-48 bg-app-surface rounded-lg shadow-lg border border-app-border py-1 hidden group-hover:block z-50">
+          <div className="menu-surface-opaque absolute right-0 mt-1 w-48 rounded-lg shadow-lg border border-app-border py-1 hidden group-hover:block z-50">
             <button
               onClick={onSaveVersion}
               className="w-full px-4 py-2 text-left text-sm text-app-text-muted hover:bg-app-surface-muted flex items-center gap-2"

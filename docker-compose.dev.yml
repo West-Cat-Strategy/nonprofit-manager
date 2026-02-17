@@ -63,6 +63,8 @@ services:
       EXPOSE_AUTH_TOKENS_IN_RESPONSE: 'true'
       RATE_LIMIT_MAX_REQUESTS: 1000000
       AUTH_RATE_LIMIT_MAX_REQUESTS: 1000000
+      REGISTRATION_MAX_ATTEMPTS: 1000000
+      MAX_LOGIN_ATTEMPTS: 1000
     depends_on:
       postgres:
         condition: service_healthy

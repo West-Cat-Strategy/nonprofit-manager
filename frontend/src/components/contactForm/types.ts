@@ -3,6 +3,7 @@ import type { Contact as StoreContact } from '../../store/slices/contactsSlice';
 export type ContactFormValues = {
   contact_id?: string;
   first_name: string;
+  preferred_name?: string | null;
   last_name: string;
   middle_name?: string | null;
   salutation?: string | null;

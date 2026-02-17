@@ -29,6 +29,7 @@ export interface Contact {
   account_id: string | null;
   account_name?: string;
   first_name: string;
+  preferred_name?: string | null;
   last_name: string;
   middle_name: string | null;
   salutation: string | null;

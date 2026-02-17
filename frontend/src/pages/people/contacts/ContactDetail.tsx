@@ -102,7 +102,8 @@ const ContactDetail = () => {
     );
   }
 
-  const fullName = `${currentContact.salutation ? currentContact.salutation + ' ' : ''}${currentContact.first_name} ${currentContact.middle_name ? currentContact.middle_name + ' ' : ''}${currentContact.last_name}${currentContact.suffix ? ', ' + currentContact.suffix : ''}`;
+  const displayFirstName = currentContact.preferred_name || currentContact.first_name;
+  const fullName = `${currentContact.salutation ? currentContact.salutation + ' ' : ''}${displayFirstName} ${currentContact.middle_name ? currentContact.middle_name + ' ' : ''}${currentContact.last_name}`;
 
   const formatDateOrDash = (dateString: string | null) => {
     return dateString ? formatDate(dateString) : '-';

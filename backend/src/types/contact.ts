@@ -184,6 +184,7 @@ export interface Contact {
 
   // Name fields
   first_name: string;
+  preferred_name?: string | null;
   last_name: string;
   middle_name: string | null;
   salutation: string | null;
@@ -246,6 +247,7 @@ export interface ContactWithRelated extends Contact {
 export interface CreateContactDTO {
   account_id?: string;
   first_name: string;
+  preferred_name?: string;
   last_name: string;
   middle_name?: string;
   salutation?: string;
@@ -276,6 +278,7 @@ export interface CreateContactDTO {
 export interface UpdateContactDTO {
   account_id?: string;
   first_name?: string;
+  preferred_name?: string;
   last_name?: string;
   middle_name?: string;
   salutation?: string;

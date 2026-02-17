@@ -47,6 +47,7 @@ export type DocumentType = z.infer<typeof documentTypeSchema>;
 export const createContactSchema = z.object({
   account_id: uuidSchema.optional(),
   first_name: z.string().min(1).max(100).optional(),
+  preferred_name: z.string().max(100).optional(),
   last_name: z.string().min(1).max(100),
   middle_name: z.string().max(100).optional(),
   salutation: z.string().max(50).optional(),
@@ -80,6 +81,7 @@ export type CreateContactInput = z.infer<typeof createContactSchema>;
 export const updateContactSchema = z.object({
   account_id: uuidSchema.optional(),
   first_name: z.string().min(1).max(100).optional(),
+  preferred_name: z.string().max(100).optional(),
   last_name: z.string().min(1).max(100).optional(),
   middle_name: z.string().max(100).optional(),
   salutation: z.string().max(50).optional(),

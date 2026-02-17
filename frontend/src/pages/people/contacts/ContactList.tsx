@@ -258,7 +258,7 @@ const ContactList = () => {
         <div className="flex gap-2">
           <button
             onClick={() => navigate(`/contacts/${row.contact_id}/edit`)}
-            className="text-indigo-600 hover:text-indigo-900 font-mono text-sm"
+            className="px-2 py-1 border border-app-border rounded text-app-text text-xs font-mono hover:bg-app-surface-muted transition"
           >
             Edit
           </button>
@@ -272,7 +272,7 @@ const ContactList = () => {
                 dispatch(deleteContact(row.contact_id));
               }
             }}
-            className="text-red-600 hover:text-red-900 font-mono text-sm"
+            className="px-2 py-1 border border-app-border rounded text-app-text text-xs font-mono hover:bg-app-accent-soft hover:text-app-accent-text transition"
           >
             Delete
           </button>

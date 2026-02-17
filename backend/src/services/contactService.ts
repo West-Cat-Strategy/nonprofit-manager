@@ -60,11 +60,13 @@ export class ContactService {
       if (filters.search) {
         conditions.push(`(
           c.first_name ILIKE $${paramCounter} OR
+          c.preferred_name ILIKE $${paramCounter} OR
           c.last_name ILIKE $${paramCounter} OR
           c.email ILIKE $${paramCounter} OR
           c.phone ILIKE $${paramCounter} OR
           c.mobile_phone ILIKE $${paramCounter} OR
-          CONCAT(c.first_name, ' ', c.last_name) ILIKE $${paramCounter}
+          CONCAT(c.first_name, ' ', c.last_name) ILIKE $${paramCounter} OR
+          CONCAT(COALESCE(c.preferred_name, ''), ' ', c.last_name) ILIKE $${paramCounter}
         )`);
         values.push(`%${filters.search}%`);
         paramCounter++;
@@ -139,6 +141,7 @@ export class ContactService {
           c.id as contact_id,
           c.account_id,
           c.first_name,
+          c.preferred_name,
           c.last_name,
           c.middle_name,
           c.salutation,
@@ -268,6 +271,7 @@ export class ContactService {
           c.id as contact_id,
           c.account_id,
           c.first_name,
+          c.preferred_name,
           c.last_name,
           c.middle_name,
           c.salutation,
@@ -351,6 +355,7 @@ export class ContactService {
           c.id as contact_id,
           c.account_id,
           c.first_name,
+          c.preferred_name,
           c.last_name,
           c.middle_name,
           c.salutation,
@@ -409,7 +414,7 @@ export class ContactService {
     try {
       const result = await this.pool.query(
         `INSERT INTO contacts (
-          account_id, first_name, last_name, middle_name, salutation, suffix,
+          account_id, first_name, preferred_name, last_name, middle_name, salutation, suffix,
           birth_date, gender, pronouns,
           email, phone, mobile_phone,
           address_line1, address_line2, city, state_province, postal_code, country,
@@ -417,8 +422,8 @@ export class ContactService {
           job_title, department, preferred_contact_method, do_not_email, do_not_phone, notes,
           tags,
           created_by, modified_by
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $27)
-        RETURNING id as contact_id, account_id, first_name, last_name, middle_name, salutation, suffix,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $28)
+        RETURNING id as contact_id, account_id, first_name, preferred_name, last_name, middle_name, salutation, suffix,
           birth_date, gender, pronouns,
           email, phone, mobile_phone,
           address_line1, address_line2, city, state_province, postal_code, country,
@@ -429,6 +434,7 @@ export class ContactService {
         [
           data.account_id || null,
           data.first_name,
+          data.preferred_name || null,
           data.last_name,
           data.middle_name || null,
           data.salutation || null,
@@ -504,7 +510,7 @@ export class ContactService {
         UPDATE contacts
         SET ${fields.join(', ')}
         WHERE id = $${paramCounter}
-        RETURNING id as contact_id, account_id, first_name, last_name, middle_name, salutation, suffix,
+        RETURNING id as contact_id, account_id, first_name, preferred_name, last_name, middle_name, salutation, suffix,
           birth_date, gender, pronouns,
           email, phone, mobile_phone, job_title, department, preferred_contact_method,
           do_not_email, do_not_phone,
