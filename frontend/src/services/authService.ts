@@ -8,8 +8,11 @@ export interface LoginCredentials {
 export interface RegisterData {
   email: string;
   password: string;
+  password_confirm?: string;
   firstName: string;
   lastName: string;
+  first_name?: string;
+  last_name?: string;
 }
 
 export interface AuthResponse {
@@ -70,8 +73,8 @@ export const authService = {
 
   register: async (
     data: RegisterData
-  ): Promise<{ message: string; user: AuthResponse['user'] }> => {
-    const response = await api.post<{ message: string; user: AuthResponse['user'] }>(
+  ): Promise<{ message: string; user?: AuthResponse['user']; pendingApproval?: boolean }> => {
+    const response = await api.post<{ message: string; user?: AuthResponse['user']; pendingApproval?: boolean }>(
       '/auth/register',
       data
     );

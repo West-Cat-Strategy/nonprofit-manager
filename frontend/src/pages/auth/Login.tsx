@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAppDispatch } from '../../store/hooks';
 import { setCredentials } from '../../store/slices/authSlice';
 import { authService } from '../../services/authService';
 import { useApiError } from '../../hooks/useApiError';
 import ErrorBanner from '../../components/ErrorBanner';
+import api from '../../services/api';
 import axios from 'axios';
 
 export default function Login() {
@@ -17,11 +18,22 @@ export default function Login() {
   const { error, details, setFromError, clear } = useApiError({ notify: true });
   const [loading, setLoading] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const [registrationEnabled, setRegistrationEnabled] = useState(false);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
   useEffect(() => {
     document.title = 'Login | Nonprofit Manager';
+    // Check if registration is enabled
+    api.get('/auth/registration-status')
+      .then((res) => {
+        if (res.data?.registrationEnabled) {
+          setRegistrationEnabled(true);
+        }
+      })
+      .catch(() => {
+        // ignore — registration button simply won't show
+      });
   }, []);
 
   const persistOrganizationId = (organizationId?: string | null) => {
@@ -197,9 +209,17 @@ export default function Login() {
 
               {step === 'password' ? (
                 <div>
-                  <label htmlFor="password" className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-                    Password
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="password" className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                      Password
+                    </label>
+                    <Link
+                      to="/forgot-password"
+                      className="text-xs font-medium text-slate-500 hover:text-slate-900 transition"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
                   <input
                     id="password"
                     name="password"
@@ -273,6 +293,18 @@ export default function Login() {
                 >
                   Back to password sign-in
                 </button>
+              )}
+
+              {step === 'password' && registrationEnabled && (
+                <p className="text-center text-sm text-slate-500 pt-2">
+                  Don&apos;t have an account?{' '}
+                  <Link
+                    to="/register"
+                    className="font-medium text-slate-900 hover:underline"
+                  >
+                    Create one
+                  </Link>
+                </p>
               )}
             </form>
           </div>

@@ -36,6 +36,8 @@ import RolesSection from './adminSettings/sections/RolesSection';
 import OtherSettingsSection from './adminSettings/sections/OtherSettingsSection';
 import DashboardSection from './adminSettings/sections/DashboardSection';
 import AuditLogsSection from './adminSettings/sections/AuditLogsSection';
+import EmailSettingsSection from './adminSettings/sections/EmailSettingsSection';
+import RegistrationSettingsSection from './adminSettings/sections/RegistrationSettingsSection';
 import UserSecurityModal from './adminSettings/components/UserSecurityModal';
 import PortalResetPasswordModal from './adminSettings/components/PortalResetPasswordModal';
 
@@ -736,18 +738,23 @@ export default function AdminSettings() {
 
           {/* Users & Security Section */}
           {activeSection === 'users' && (
-            <UsersSection
-              userSearchQuery={userSearchQuery}
-              onSearchChange={setUserSearchQuery}
-              isSearching={isSearching}
-              userSearchResults={userSearchResults}
-              onSelectUser={fetchUserSecurityInfo}
-              onShowInvite={() => setShowInviteModal(true)}
-              onGoToRoles={() => setActiveSection('roles')}
-              invitations={invitations}
-              onResendInvitation={handleResendInvitation}
-              onRevokeInvitation={handleRevokeInvitation}
-            />
+            <>
+              <UsersSection
+                userSearchQuery={userSearchQuery}
+                onSearchChange={setUserSearchQuery}
+                isSearching={isSearching}
+                userSearchResults={userSearchResults}
+                onSelectUser={fetchUserSecurityInfo}
+                onShowInvite={() => setShowInviteModal(true)}
+                onGoToRoles={() => setActiveSection('roles')}
+                invitations={invitations}
+                onResendInvitation={handleResendInvitation}
+                onRevokeInvitation={handleRevokeInvitation}
+              />
+              <div className="mt-6">
+                <RegistrationSettingsSection />
+              </div>
+            </>
           )}
 
           {/* Client Portal Section */}
@@ -826,6 +833,9 @@ export default function AdminSettings() {
 
           {/* Audit Logs Section */}
           {activeSection === 'audit_logs' && <AuditLogsSection />}
+
+          {/* Email Settings Section */}
+          {activeSection === 'email' && <EmailSettingsSection />}
 
           {/* Other Settings Section */}
           {activeSection === 'other' && <OtherSettingsSection />}
