@@ -1,0 +1,1 @@
+{"version":3,"file":"dataScope.d.ts","sourceRoot":"","sources":["../../src/middleware/dataScope.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,QAAQ,EAAE,YAAY,EAAE,MAAM,SAAS,CAAC;AAGjD,OAAO,EAAE,WAAW,EAAE,MAAM,QAAQ,CAAC;AA6BrC,eAAO,MAAM,aAAa,GAAI,UAAU,MAAM,MAC9B,KAAK,WAAW,EAAE,MAAM,QAAQ,EAAE,MAAM,YAAY,KAAG,OAAO,CAAC,IAAI,CAyClF,CAAC;AAEF,eAAe,aAAa,CAAC"}

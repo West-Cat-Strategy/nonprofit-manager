@@ -1,0 +1,130 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:14-alpine
+    container_name: nonprofit-db
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: nonprofit_manager
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    ports:
+      - "8012:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Note: Migrations should be applied manually in production
+      # using the db-migrate.sh script, not auto-mounted
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d nonprofit_manager" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - nonprofit-network
+    # Resource limits for production
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  # Redis Cache (for future use)
+  redis:
+    image: redis:7-alpine
+    container_name: nonprofit-redis
+    restart: unless-stopped
+    ports:
+      - "8013:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - nonprofit-network
+    command: redis-server --appendonly yes
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nonprofit-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      PORT: 8000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: changeme
+      REDIS_URL: redis://redis:6379
+      DB_SSL_ENABLED: 'false'
+      CONSOLE_LOGGING: 'true'
+      CORS_ORIGIN: 'http://localhost:5173,http://localhost:3000,http://localhost:8001'
+      EXPOSE_AUTH_TOKENS_IN_RESPONSE: 'true'
+      RATE_LIMIT_MAX_REQUESTS: 10000
+      AUTH_RATE_LIMIT_MAX_REQUESTS: 10000
+      REGISTRATION_MAX_ATTEMPTS: 10000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - backend_logs:/app/logs
+    networks:
+      - nonprofit-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8000/api
+    container_name: nonprofit-frontend
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      VITE_API_URL: http://localhost:8000/api
+      VITE_DEFAULT_ORGANIZATION_ID: 82c6f7af-7d6f-4527-a5ae-60db86c5c619
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - nonprofit-network
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:8001/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  backend_logs:
+    driver: local
+
+networks:
+  nonprofit-network:
+    driver: bridge

@@ -1,0 +1,24 @@
+# Development frontend — Vite dev server with HMR
+# syntax=docker/dockerfile:1
+FROM node:20-alpine3.20
+
+WORKDIR /app
+
+ENV NODE_ENV=development
+
+# API URL for Vite dev server (can be overridden via compose environment)
+ARG VITE_API_URL=http://localhost:8004/api
+ENV VITE_API_URL=$VITE_API_URL
+
+# Install deps before copying source for better layer caching
+COPY package*.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --no-audit --no-fund
+
+# Copy source (overridden by bind-mount in docker-compose.dev.yml)
+COPY . .
+
+# Vite dev server port (shifted to 8000s)
+EXPOSE 8005
+
+CMD ["npm", "run", "dev", "--", "--host", "--port", "8005"]
