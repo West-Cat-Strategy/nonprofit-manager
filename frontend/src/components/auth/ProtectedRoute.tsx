@@ -15,12 +15,12 @@ const ProtectedRouteWrapper = ({ children, isAuthenticated }: ProtectedRouteProp
   return <Layout>{children}</Layout>;
 };
 
-// Neo-Brutalist routes don't use the old Layout (they have their own sidebar layout)
+// Neo-Brutalist routes now also use the global Layout for consistent navigation
 const NeoBrutalistRouteWrapper = ({ children, isAuthenticated }: ProtectedRouteProps & { isAuthenticated: boolean }) => {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  return <>{children}</>;
+  return <Layout>{children}</Layout>;
 };
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
