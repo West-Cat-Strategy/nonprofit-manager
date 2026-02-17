@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAppDispatch } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { setCredentials } from '../../store/slices/authSlice';
 import { authService } from '../../services/authService';
 import { useApiError } from '../../hooks/useApiError';
@@ -21,6 +21,15 @@ export default function Login() {
   const [registrationEnabled, setRegistrationEnabled] = useState(false);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+
+  // Redirect to dashboard if already authenticated
+  const { isAuthenticated, authLoading } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, authLoading, navigate]);
 
   useEffect(() => {
     document.title = 'Login | Nonprofit Manager';
