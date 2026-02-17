@@ -18,8 +18,8 @@
   --app-surface: #FFFFFF;
   --app-surface-muted: #F3F4F6;
   --app-text: #000000;
-  --app-text-muted: #6B7280;
-  --app-text-subtle: #9CA3AF;
+  --app-text-muted: #4B5563;
+  --app-text-subtle: #4B5563;
   --app-border: #000000;
   --app-accent: #2563EB;
   --app-accent-hover: #1D4ED8;
@@ -127,7 +127,7 @@ body.theme-sea-breeze {
   --app-text: #004D40;
   /* Teal 900 */
   --app-text-muted: #0F766E;
-  --app-text-subtle: #14B8A6;
+  --app-text-subtle: #0F766E;
   --app-border: #80CBC4;
   /* Teal 200 */
   --app-accent: #009688;
@@ -179,7 +179,7 @@ body.theme-sea-breeze.dark {
   --app-text: #E0F2F1;
   /* Light Teal Text */
   --app-text-muted: #B2DFDB;
-  --app-text-subtle: #80CBC4;
+  --app-text-subtle: #B2DFDB;
   --app-border: #00796B;
   --app-accent: #4DB6AC;
   --app-accent-hover: #26A69A;
@@ -295,7 +295,7 @@ body.theme-corporate {
   --app-text: #111827;
   --app-surface-muted: #F3F4F6;
   --app-text-muted: #4B5563;
-  --app-text-subtle: #6B7280;
+  --app-text-subtle: #4B5563;
   --app-border: #E5E7EB;
   --app-accent: #1F2937;
   --app-accent-hover: #111827;
@@ -422,7 +422,7 @@ body.theme-clean-modern {
   --app-surface-muted: #F1F5F9;
   --app-text: #0F172A;
   --app-text-muted: #475569;
-  --app-text-subtle: #94A3B8;
+  --app-text-subtle: #475569;
   --app-border: #E2E8F0;
   --app-accent: #2563EB;
   --app-accent-hover: #1D4ED8;
@@ -459,7 +459,7 @@ body.theme-clean-modern.dark {
   --app-surface-muted: #1F2937;
   --app-text: #E2E8F0;
   --app-text-muted: #94A3B8;
-  --app-text-subtle: #64748B;
+  --app-text-subtle: #94A3B8;
   --app-border: #334155;
   --app-accent: #3B82F6;
   --app-accent-hover: #2563EB;
@@ -505,9 +505,9 @@ body.theme-glass {
   /* App Base (LIGHT GLASS - Frosted Steel) */
   --app-bg: #B0BEC5;
   /* Blue Grey 200 - Lighter steel for better contrast */
-  --app-surface: rgba(226, 232, 240, 0.75);
-  /* Slate 200 - Frosted, higher opacity */
-  --app-surface-muted: rgba(226, 232, 240, 0.5);
+  --app-surface: #E2E8F0;
+  /* Solid slate surface for readable overlays/dropdowns */
+  --app-surface-muted: #CBD5E1;
   --app-text: #0F172A;
   /* Slate 900 */
   --app-text-muted: #1E293B;
@@ -523,17 +523,17 @@ body.theme-glass {
   --app-accent-soft: rgba(0, 176, 255, 0.15);
   --app-accent-soft-hover: rgba(0, 176, 255, 0.25);
 
-  --app-hover: rgba(226, 232, 240, 0.4);
-  --app-input-bg: rgba(15, 23, 42, 0.6);
-  --app-input-border: rgba(203, 213, 225, 0.5);
+  --app-hover: #CBD5E1;
+  --app-input-bg: #F8FAFC;
+  --app-input-border: #94A3B8;
   --app-text-heading: #0F172A;
   --app-text-label: #1E293B;
-  --app-border-muted: rgba(203, 213, 225, 0.5);
-  --app-surface-elevated: rgba(226, 232, 240, 0.85);
+  --app-border-muted: #94A3B8;
+  --app-surface-elevated: #F1F5F9;
 
   /* Brutalist Overrides (Glassy) */
   --shadow-color: rgba(0, 0, 0, 0.15);
-  --border-brutal: 1px solid rgba(203, 213, 225, 0.8);
+  --border-brutal: 1px solid #94A3B8;
   --shadow-brutal: 0 4px 6px rgba(0, 0, 0, 0.1);
   --shadow-brutal-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
   --focus-ring: #00B0FF;
@@ -558,12 +558,12 @@ body.theme-glass.dark {
   /* App Base (DARK) */
   --app-bg: #000000;
   /* Pure Black */
-  --app-surface: rgba(20, 20, 30, 0.8);
-  --app-surface-muted: rgba(59, 130, 246, 0.15);
+  --app-surface: #14141E;
+  --app-surface-muted: #1E293B;
   --app-text: #F3F4F6;
   --app-text-muted: #E2E8F0;
   --app-text-subtle: #CBD5E1;
-  --app-border: rgba(59, 130, 246, 0.5);
+  --app-border: #3B82F6;
   --app-accent: #007FFF;
   --app-accent-hover: #005FCC;
   --app-accent-text: #93C5FD;
@@ -571,17 +571,17 @@ body.theme-glass.dark {
   --app-accent-soft: rgba(0, 127, 255, 0.2);
   --app-accent-soft-hover: rgba(0, 127, 255, 0.35);
 
-  --app-hover: rgba(59, 130, 246, 0.15);
-  --app-input-bg: rgba(20, 20, 30, 0.8);
-  --app-input-border: rgba(59, 130, 246, 0.4);
+  --app-hover: #1E293B;
+  --app-input-bg: #111827;
+  --app-input-border: #2563EB;
   --app-text-heading: #F3F4F6;
   --app-text-label: #E2E8F0;
-  --app-border-muted: rgba(59, 130, 246, 0.3);
-  --app-surface-elevated: rgba(30, 30, 50, 0.9);
+  --app-border-muted: #1D4ED8;
+  --app-surface-elevated: #1F2435;
 
   /* Brutalist Overrides (Glowing) */
   --shadow-color: #3B82F6;
-  --border-brutal: 1px solid rgba(59, 130, 246, 0.5);
+  --border-brutal: 1px solid #3B82F6;
   --shadow-brutal: 0 0 15px rgba(59, 130, 246, 0.3);
   --shadow-brutal-sm: 0 0 8px rgba(59, 130, 246, 0.3);
   --focus-ring: #00FFFF;
@@ -700,10 +700,8 @@ body.theme-glass {
 body.theme-glass .bg-white,
 body.theme-glass .bg-gray-50,
 body.theme-glass .bg-gray-100 {
-  background-color: rgba(255, 255, 255, 0.12) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  border-color: rgba(255, 255, 255, 0.18) !important;
+  background-color: var(--app-surface-elevated) !important;
+  border-color: var(--app-border) !important;
   color: var(--app-text) !important;
 }
 
@@ -722,9 +720,9 @@ body.theme-glass [class*="border-brutal"] {
 body.theme-glass input,
 body.theme-glass select,
 body.theme-glass textarea {
-  background-color: rgba(15, 23, 42, 0.6) !important;
-  border-color: rgba(255, 255, 255, 0.25) !important;
-  color: #F1F5F9 !important;
+  background-color: var(--app-input-bg) !important;
+  border-color: var(--app-input-border) !important;
+  color: var(--app-text) !important;
 }
 
 body.theme-glass input::placeholder,
@@ -752,6 +750,22 @@ body:not(.theme-glass) .bg-gray-100,
 body:not(.theme-glass) .bg-gray-200,
 body:not(.theme-glass) .bg-gray-300 {
   background-color: var(--app-surface-muted) !important;
+}
+
+/* Opaque surface for dropdown/popover/menu containers in every theme/mode. */
+.menu-surface-opaque {
+  background-color: var(--app-surface-elevated) !important;
+  background-image: none !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Keep native select dropdown options opaque and readable across themes/modes. */
+select option,
+select optgroup {
+  background-color: var(--app-surface-elevated);
+  color: var(--app-text);
 }
 
 body .text-gray-900,
@@ -1022,8 +1036,7 @@ body [class*="focus:border-blue-600"]:focus {
 
 /* RULE 6: HEADER USER NAME - Force visibility */
 .dark header span,
-.dark [class*="header"] span,
-.dark button span {
+.dark [class*="header"] span {
   color: var(--app-text) !important;
 }
 

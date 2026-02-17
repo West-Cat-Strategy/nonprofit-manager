@@ -190,7 +190,7 @@ const Navigation = () => {
                     />
                     <div
                       ref={moreMenuRef}
-                      className="absolute left-0 mt-2 w-48 bg-app-surface-elevated rounded-lg shadow-lg border border-app-border py-1 z-20 animate-fadeIn"
+                      className="menu-surface-opaque absolute left-0 mt-2 w-48 rounded-lg shadow-lg border border-app-border py-1 z-20 animate-fadeIn"
                     >
                       {secondaryNavLinks.map((link) => (
                         <Link
@@ -291,7 +291,7 @@ const Navigation = () => {
                   />
                   <div
                     ref={themeMenuRef}
-                    className="absolute right-0 mt-2 w-52 bg-app-surface-elevated rounded-lg shadow-lg border border-app-border py-2 z-20 animate-fadeIn"
+                    className="menu-surface-opaque absolute right-0 mt-2 w-52 rounded-lg shadow-lg border border-app-border py-2 z-20 animate-fadeIn"
                   >
                     <div className="px-3 pb-2 mb-1 border-b border-app-border-muted">
                       <p className="text-xs font-semibold text-app-text-muted uppercase tracking-wider">Theme</p>
@@ -358,7 +358,7 @@ const Navigation = () => {
                   />
                   <div
                     ref={userMenuRef}
-                    className="absolute right-0 mt-2 w-56 bg-app-surface-elevated rounded-lg shadow-lg border border-app-border py-1 z-20 animate-fadeIn"
+                    className="menu-surface-opaque absolute right-0 mt-2 w-56 rounded-lg shadow-lg border border-app-border py-1 z-20 animate-fadeIn"
                   >
                     <div className="px-4 py-3 border-b border-app-border">
                       <p className="text-sm font-medium text-app-text truncate">

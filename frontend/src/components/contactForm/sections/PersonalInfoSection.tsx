@@ -47,6 +47,20 @@ export default function PersonalInfoSection({ formData, errors, onChange }: Pers
         </div>
 
         <div>
+          <label htmlFor="preferred_name" className="block text-sm font-medium text-app-text-muted">
+            Preferred Name
+          </label>
+          <input
+            type="text"
+            name="preferred_name"
+            id="preferred_name"
+            value={formData.preferred_name ?? ''}
+            onChange={onChange}
+            className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
+          />
+        </div>
+
+        <div>
           <label htmlFor="middle_name" className="block text-sm font-medium text-app-text-muted">
             Middle Name
           </label>
@@ -75,49 +89,6 @@ export default function PersonalInfoSection({ formData, errors, onChange }: Pers
             } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
           />
           {errors.last_name && <p className="mt-1 text-sm text-red-600">{errors.last_name}</p>}
-        </div>
-
-        <div>
-          <label htmlFor="suffix" className="block text-sm font-medium text-app-text-muted">
-            Suffix
-          </label>
-          <input
-            type="text"
-            name="suffix"
-            id="suffix"
-            placeholder="Jr., Sr., III, etc."
-            value={formData.suffix ?? ''}
-            onChange={onChange}
-            className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="job_title" className="block text-sm font-medium text-app-text-muted">
-            Job Title
-          </label>
-          <input
-            type="text"
-            name="job_title"
-            id="job_title"
-            value={formData.job_title ?? ''}
-            onChange={onChange}
-            className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="department" className="block text-sm font-medium text-app-text-muted">
-            Department
-          </label>
-          <input
-            type="text"
-            name="department"
-            id="department"
-            value={formData.department ?? ''}
-            onChange={onChange}
-            className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
-          />
         </div>
 
         <div>

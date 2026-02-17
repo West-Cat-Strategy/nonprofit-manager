@@ -4,11 +4,72 @@
  */
 
 import '../helpers/testEnv';
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { login, ensureLoginViaAPI } from '../helpers/auth';
 import { getSharedTestUser } from '../helpers/testUser';
 
 const getCreds = () => getSharedTestUser();
+const THEMES = ['neobrutalist', 'sea-breeze', 'corporate', 'clean-modern', 'glass', 'high-contrast'] as const;
+const COLOR_SCHEMES = ['light', 'dark'] as const;
+
+type Rgba = { r: number; g: number; b: number; a: number };
+
+function parseCssColor(input: string): Rgba {
+  const value = input.trim();
+  const rgba = value.match(/^rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)$/i);
+  if (rgba) {
+    return {
+      r: Number(rgba[1]),
+      g: Number(rgba[2]),
+      b: Number(rgba[3]),
+      a: Number(rgba[4]),
+    };
+  }
+
+  const rgb = value.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/i);
+  if (rgb) {
+    return {
+      r: Number(rgb[1]),
+      g: Number(rgb[2]),
+      b: Number(rgb[3]),
+      a: 1,
+    };
+  }
+
+  throw new Error(`Unsupported CSS color format: ${input}`);
+}
+
+function luminance(color: Rgba): number {
+  const channels = [color.r, color.g, color.b].map((channel) => {
+    const c = channel / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+function contrastRatio(foreground: Rgba, background: Rgba): number {
+  const l1 = luminance(foreground);
+  const l2 = luminance(background);
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+async function applyThemeAndMode(
+  page: Page,
+  theme: string,
+  mode: 'light' | 'dark'
+): Promise<void> {
+  await page.evaluate(
+    ({ nextTheme, nextMode }) => {
+      localStorage.setItem('app-theme', nextTheme);
+      localStorage.setItem('app-color-scheme', nextMode);
+    },
+    { nextTheme: theme, nextMode: mode }
+  );
+  await page.reload();
+}
 
 test.describe('Theming and Design System', () => {
     test.beforeEach(async ({ page }) => {
@@ -112,5 +173,97 @@ test.describe('Theming and Design System', () => {
         await highContrastButton.click();
 
         await expect(page.locator('body')).toHaveClass(/theme-high-contrast/);
+    });
+
+    test('should keep user dropdown opaque and readable across all themes in light/dark', async ({ page }) => {
+        test.setTimeout(120000);
+        await page.goto('/dashboard');
+        const userMenuButton = page.locator('button[aria-label="User menu"]').first();
+
+        for (const theme of THEMES) {
+            for (const scheme of COLOR_SCHEMES) {
+                await applyThemeAndMode(page, theme, scheme);
+                await page.goto('/dashboard');
+                await userMenuButton.click();
+
+                const menuPanel = page.locator('div.menu-surface-opaque:has(a[href="/settings/user"])').first();
+                await expect(menuPanel).toBeVisible();
+
+                const menuBgRaw = await menuPanel.evaluate((el) => getComputedStyle(el).backgroundColor);
+                const menuBg = parseCssColor(menuBgRaw);
+                expect(menuBg.a).toBe(1);
+
+                const itemColorRaw = await menuPanel
+                    .locator('a[href="/settings/user"]')
+                    .first()
+                    .evaluate((el) => getComputedStyle(el).color);
+                const itemColor = parseCssColor(itemColorRaw);
+                const ratio = contrastRatio(itemColor, menuBg);
+                expect(ratio, `contrast failed for theme=${theme} scheme=${scheme}`).toBeGreaterThanOrEqual(4.5);
+
+                await page.keyboard.press('Escape');
+            }
+        }
+    });
+
+    test('should keep theme picker dropdown opaque and readable in dark mode', async ({ page }) => {
+        await page.goto('/dashboard');
+        await applyThemeAndMode(page, 'glass', 'dark');
+        await page.goto('/dashboard');
+
+        const themeMenuButton = page.locator('button[aria-label="Theme settings"]').first();
+        await expect(themeMenuButton).toBeVisible();
+        await themeMenuButton.click();
+
+        const panel = page.locator('div.menu-surface-opaque:has-text("Switch to Light")').first();
+        await expect(panel).toBeVisible();
+
+        const panelBgRaw = await panel.evaluate((el) => getComputedStyle(el).backgroundColor);
+        const panelBg = parseCssColor(panelBgRaw);
+        expect(panelBg.a).toBe(1);
+
+        const menuTextRaw = await panel
+            .locator('p:has-text("Theme")')
+            .first()
+            .evaluate((el) => getComputedStyle(el).color);
+        const menuText = parseCssColor(menuTextRaw);
+        const ratio = contrastRatio(menuText, panelBg);
+        expect(ratio).toBeGreaterThanOrEqual(4.5);
+    });
+
+    test('should keep People page filter options readable across themes and modes', async ({ page }) => {
+        test.setTimeout(120000);
+        await page.goto('/contacts');
+
+        for (const theme of THEMES) {
+            for (const scheme of COLOR_SCHEMES) {
+                await applyThemeAndMode(page, theme, scheme);
+                await page.goto('/contacts');
+
+                const roleSelect = page.locator('select').first();
+                await expect(roleSelect).toBeVisible();
+
+                const selectBgRaw = await roleSelect.evaluate((el) => {
+                    const backgroundColor = getComputedStyle(el).backgroundColor;
+                    if (backgroundColor !== 'rgba(0, 0, 0, 0)' && backgroundColor !== 'transparent') {
+                        return backgroundColor;
+                    }
+
+                    const probe = document.createElement('div');
+                    probe.style.backgroundColor = 'var(--app-surface-elevated)';
+                    document.body.appendChild(probe);
+                    const fallback = getComputedStyle(probe).backgroundColor;
+                    probe.remove();
+                    return fallback;
+                });
+                const selectColorRaw = await roleSelect.evaluate((el) => getComputedStyle(el).color);
+                const selectBg = parseCssColor(selectBgRaw);
+                const selectColor = parseCssColor(selectColorRaw);
+                expect(
+                    contrastRatio(selectColor, selectBg),
+                    `select contrast failed for theme=${theme} scheme=${scheme}`
+                ).toBeGreaterThanOrEqual(4.5);
+            }
+        }
     });
 });
