@@ -43,6 +43,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
 
   const [formData, setFormData] = useState<ContactFormValues>({
     first_name: mode === 'create' ? urlFirstName : '',
+    account_id: '',
     preferred_name: '',
     last_name: mode === 'create' ? urlLastName : '',
     middle_name: '',
@@ -63,6 +64,8 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
     preferred_contact_method: 'email',
     do_not_email: false,
     do_not_phone: false,
+    do_not_text: false,
+    do_not_voicemail: false,
     notes: '',
     tags: [],
     is_active: true,
@@ -146,11 +149,31 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
   const handleToggleRole = (roleName: string) => {
     setFormData((prev) => {
       const roles = prev.roles || [];
+      const clientSubRoles = [
+        'Brain Injury Survivor',
+        'Support Person',
+        'Information',
+        'Community Education',
+      ];
+      const isSelected = roles.includes(roleName);
+
+      if (roleName === 'Client' && isSelected) {
+        return {
+          ...prev,
+          roles: roles.filter((r) => r !== 'Client' && !clientSubRoles.includes(r)),
+        };
+      }
+
+      if (isSelected) {
+        return {
+          ...prev,
+          roles: roles.filter((r) => r !== roleName),
+        };
+      }
+
       return {
         ...prev,
-        roles: roles.includes(roleName)
-          ? roles.filter((r) => r !== roleName)
-          : [...roles, roleName],
+        roles: [...roles, roleName],
       };
     });
   };
@@ -219,13 +242,13 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
     }
 
     if (formData.mobile_phone && !/^[\d\s+() -]+$/.test(formData.mobile_phone)) {
-      newErrors.mobile_phone = 'Invalid mobile phone number format';
+      newErrors.mobile_phone = 'Invalid home phone number format';
     }
 
     if (formData.mobile_phone) {
       const digitCount = formData.mobile_phone.replace(/\D/g, '').length;
       if (digitCount > 0 && digitCount < 10) {
-        newErrors.mobile_phone = 'Mobile phone number must be at least 10 digits';
+        newErrors.mobile_phone = 'Home phone number must be at least 10 digits';
       }
     }
 
@@ -256,6 +279,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
 
       const cleanedData = {
         ...formData,
+        account_id: formData.account_id || undefined,
         preferred_name: formData.preferred_name || undefined,
         middle_name: formData.middle_name || undefined,
         salutation: formData.salutation || undefined,
@@ -403,6 +427,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
     const params = new URLSearchParams();
     if (firstName) params.set('first_name', firstName);
     if (lastName) params.set('last_name', lastName);
+    if (contact?.account_id) params.set('account_id', contact.account_id);
     if (contact?.contact_id) params.set('return_to', contact.contact_id);
     window.open(`/contacts/new?${params.toString()}`, '_blank');
   };

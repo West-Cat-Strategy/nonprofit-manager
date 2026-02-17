@@ -77,6 +77,21 @@ test.describe('Contacts Module', () => {
     ).toBeVisible({ timeout: 5000 });
   });
 
+  test('should require account selection before creating a contact', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto('/contacts/new');
+
+    await authenticatedPage.fill('input[name="first_name"]', 'No');
+    await authenticatedPage.fill('input[name="last_name"]', 'Account');
+    await authenticatedPage.fill('input[name="email"]', 'no.account@example.com');
+
+    await authenticatedPage.click('button[type="submit"]');
+
+    await expect(authenticatedPage.locator('text=/account.*required/i')).toBeVisible({
+      timeout: 5000,
+    });
+    await expect(authenticatedPage).toHaveURL(/\/contacts\/new$/);
+  });
+
   test('should create contact with account association', async ({
     authenticatedPage,
     authToken,

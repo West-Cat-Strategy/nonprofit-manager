@@ -1,8 +1,21 @@
-import { Response } from 'express';
+import { Response, type CookieOptions } from 'express';
 import { logger } from '@config/logger';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const enforceHttps = process.env.ENFORCE_HTTPS_COOKIES === 'true' || isProduction;
+const cookieDomain = process.env.COOKIE_DOMAIN?.trim() || undefined;
+
+const resolveSameSite = (): CookieOptions['sameSite'] => {
+  const raw = (process.env.COOKIE_SAME_SITE || '').trim().toLowerCase();
+
+  if (raw === 'strict' || raw === 'lax' || raw === 'none') {
+    return raw;
+  }
+
+  return enforceHttps ? 'strict' : 'lax';
+};
+
+const cookieSameSite = resolveSameSite();
 
 // Cookie names
 export const AUTH_COOKIE_NAME = 'auth_token';
@@ -14,12 +27,17 @@ if (isProduction && !enforceHttps) {
   logger.warn('HTTPS cookies are not enforced in production - this is a security risk');
 }
 
+if (cookieSameSite === 'none' && !enforceHttps) {
+  logger.warn('COOKIE_SAME_SITE=none requires secure cookies in modern browsers; set ENFORCE_HTTPS_COOKIES=true');
+}
+
 // Cookie options
-const baseCookieOptions = {
+const baseCookieOptions: CookieOptions = {
   httpOnly: true,
   secure: enforceHttps,
-  sameSite: enforceHttps ? ('strict' as const) : ('lax' as const),
+  sameSite: cookieSameSite,
   path: '/',
+  ...(cookieDomain ? { domain: cookieDomain } : {}),
 };
 
 /**
