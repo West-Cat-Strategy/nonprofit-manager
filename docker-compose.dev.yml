@@ -45,7 +45,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
-      target: development
     container_name: nonprofit-backend-dev
     restart: unless-stopped
     ports:
@@ -81,7 +80,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
-      target: development
     container_name: nonprofit-frontend-dev
     restart: unless-stopped
     ports:
