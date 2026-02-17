@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+
+# Build output
+build/
+dist/
+dist-ssr/
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Testing
+coverage/
+.nyc_output/
+junit.xml
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+e2e/.cache/
+
+# Logs
+logs/
+*.log
+
+# Editor / OS
+.vscode/
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker
+.docker/
+
+# Project-specific
+backend/exports/
+security-reports/
+.deploy-history

@@ -1,0 +1,215 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
+import FieldSelector from '../FieldSelector';
+import { renderWithProviders, createTestStore } from '../../test/testUtils';
+import api from '../../services/api';
+
+// Mock API
+vi.mock('../../services/api', () => ({
+  default: {
+    get: vi.fn(),
+    post: vi.fn(),
+  },
+}));
+
+const mockApi = api as { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn> };
+
+// Create a test store
+// Wrapper component
+describe('FieldSelector', () => {
+  const mockOnChange = vi.fn();
+  const mockFields = [
+    { field: 'id', label: 'ID', type: 'string' },
+    { field: 'name', label: 'Name', type: 'string' },
+    { field: 'email', label: 'Email', type: 'string' },
+    { field: 'created_at', label: 'Created At', type: 'date' },
+  ];
+
+  beforeEach(() => {
+    mockOnChange.mockClear();
+    // Mock API to return fields
+    mockApi.get.mockResolvedValue({ data: { entity: 'contacts', fields: mockFields } });
+  });
+
+const renderFieldSelector = (component: React.ReactElement, initialState = {}) => {
+  const store = createTestStore(initialState);
+  return renderWithProviders(component, { store });
+};
+
+  it('renders loading state', () => {
+    mockApi.get.mockReturnValue(new Promise(() => {}));
+    const initialState = {
+      reports: {
+        currentReport: null,
+        availableFields: { contacts: null, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        loading: false,
+        fieldsLoading: true,
+        error: null,
+      },
+    };
+
+    renderFieldSelector(
+      <FieldSelector entity="contacts" selectedFields={[]} onChange={mockOnChange} />,
+      initialState
+    );
+
+    // Check for loading spinner element
+    const spinner = screen.getByTestId('loading-spinner');
+    expect(spinner).toBeInTheDocument();
+  });
+
+  it('renders fields as checkboxes', async () => {
+    const initialState = {
+      reports: {
+        currentReport: null,
+        availableFields: { contacts: mockFields, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        loading: false,
+        fieldsLoading: false,
+        error: null,
+      },
+    };
+
+    renderFieldSelector(
+      <FieldSelector entity="contacts" selectedFields={[]} onChange={mockOnChange} />,
+      initialState
+    );
+
+    // Wait for async updates to complete
+    await waitFor(() => {
+      expect(screen.getByLabelText(/id/i)).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+  });
+
+  it('shows selected fields count', async () => {
+    const initialState = {
+      reports: {
+        currentReport: null,
+        availableFields: { contacts: mockFields, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        loading: false,
+        fieldsLoading: false,
+        error: null,
+      },
+    };
+
+    renderFieldSelector(
+      <FieldSelector entity="contacts" selectedFields={['name', 'email']} onChange={mockOnChange} />,
+      initialState
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/2 of 4 fields selected/i)).toBeInTheDocument();
+    });
+  });
+
+  it('selects field when checkbox is clicked', async () => {
+    const initialState = {
+      reports: {
+        currentReport: null,
+        availableFields: { contacts: mockFields, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        loading: false,
+        fieldsLoading: false,
+        error: null,
+      },
+    };
+
+    renderFieldSelector(
+      <FieldSelector entity="contacts" selectedFields={[]} onChange={mockOnChange} />,
+      initialState
+    );
+
+    const nameCheckbox = await waitFor(() => screen.getByLabelText(/name/i));
+    fireEvent.click(nameCheckbox);
+
+    expect(mockOnChange).toHaveBeenCalledWith(['name']);
+  });
+
+  it('deselects field when already selected checkbox is clicked', async () => {
+    const initialState = {
+      reports: {
+        currentReport: null,
+        availableFields: { contacts: mockFields, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        loading: false,
+        fieldsLoading: false,
+        error: null,
+      },
+    };
+
+    renderFieldSelector(
+      <FieldSelector entity="contacts" selectedFields={['name', 'email']} onChange={mockOnChange} />,
+      initialState
+    );
+
+    const nameCheckbox = await waitFor(() => screen.getByLabelText(/name/i));
+    fireEvent.click(nameCheckbox);
+
+    expect(mockOnChange).toHaveBeenCalledWith(['email']);
+  });
+
+  it('selects all fields when Select All button is clicked', async () => {
+    const initialState = {
+      reports: {
+        currentReport: null,
+        availableFields: { contacts: mockFields, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        loading: false,
+        fieldsLoading: false,
+        error: null,
+      },
+    };
+
+    renderFieldSelector(
+      <FieldSelector entity="contacts" selectedFields={[]} onChange={mockOnChange} />,
+      initialState
+    );
+
+    const selectAllButton = await waitFor(() => screen.getByRole('button', { name: /select all/i }));
+    fireEvent.click(selectAllButton);
+
+    expect(mockOnChange).toHaveBeenCalledWith(['id', 'name', 'email', 'created_at']);
+  });
+
+  it('clears all fields when Clear All button is clicked', async () => {
+    const initialState = {
+      reports: {
+        currentReport: null,
+        availableFields: { contacts: mockFields, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        loading: false,
+        fieldsLoading: false,
+        error: null,
+      },
+    };
+
+    renderFieldSelector(
+      <FieldSelector entity="contacts" selectedFields={['name', 'email']} onChange={mockOnChange} />,
+      initialState
+    );
+
+    const clearAllButton = await waitFor(() => screen.getByRole('button', { name: /clear all/i }));
+    fireEvent.click(clearAllButton);
+
+    expect(mockOnChange).toHaveBeenCalledWith([]);
+  });
+
+  it('shows empty state when no fields available', async () => {
+    mockApi.get.mockResolvedValueOnce({ data: { entity: 'contacts', fields: [] } });
+    const initialState = {
+      reports: {
+        currentReport: null,
+        availableFields: { contacts: null, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        loading: false,
+        fieldsLoading: false,
+        error: null,
+      },
+    };
+
+    renderFieldSelector(
+      <FieldSelector entity="contacts" selectedFields={[]} onChange={mockOnChange} />,
+      initialState
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/no fields available/i)).toBeInTheDocument();
+    });
+  });
+});

@@ -1,0 +1,16 @@
+# Deployment Configuration
+# Copy this file to .deploy.conf and fill in your values
+# .deploy.conf is gitignored and should contain your actual credentials
+
+# Staging Server
+STAGING_HOST=staging.example.com
+STAGING_USER=deploy
+STAGING_PATH=/opt/nonprofit-manager
+
+# Production Server
+PRODUCTION_HOST=production.example.com
+PRODUCTION_USER=deploy
+PRODUCTION_PATH=/opt/nonprofit-manager
+
+# Container Registry (optional - for pushing images)
+# REGISTRY=ghcr.io/your-org

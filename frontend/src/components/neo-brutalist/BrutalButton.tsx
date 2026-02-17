@@ -1,0 +1,59 @@
+/**
+ * BrutalButton - Neo-Brutalist Button Component
+ * Hard borders, brutal shadows, bold text
+ */
+
+import type { ReactNode } from 'react';
+
+export interface BrutalButtonProps {
+    children: ReactNode;
+    onClick?: () => void;
+    variant?: 'primary' | 'secondary' | 'success' | 'danger';
+    size?: 'sm' | 'md' | 'lg';
+    className?: string;
+    type?: 'button' | 'submit' | 'reset';
+    disabled?: boolean;
+}
+
+export default function BrutalButton({
+    children,
+    onClick,
+    variant = 'primary',
+    size = 'md',
+    className = '',
+    type = 'button',
+    disabled = false,
+}: BrutalButtonProps) {
+    const variantClasses = {
+        primary: 'bg-black text-white hover:bg-app-text',
+        secondary: 'bg-app-surface text-black hover:bg-app-surface-muted',
+        success: 'bg-[var(--loop-green)] text-black hover:bg-green-400',
+        danger: 'bg-red-500 text-white hover:bg-red-600',
+    };
+
+    const sizeClasses = {
+        sm: 'px-3 py-1.5 text-sm',
+        md: 'px-4 py-2 text-base',
+        lg: 'px-6 py-3 text-lg',
+    };
+
+    return (
+        <button
+            type={type}
+            onClick={onClick}
+            disabled={disabled}
+            className={`
+        border-2 border-black dark:border-white shadow-[6px_6px_0px_var(--shadow-color)] font-bold uppercase
+        hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_var(--shadow-color)]
+        focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2
+        transition-all
+        disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0
+        ${variantClasses[variant]}
+        ${sizeClasses[size]}
+        ${className}
+      `}
+        >
+            {children}
+        </button>
+    );
+}

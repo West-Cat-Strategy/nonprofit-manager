@@ -1,0 +1,59 @@
+services:
+  # pgAdmin - Database Administration Tool
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: nonprofit-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@nonprofit.local
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nonprofit-dev-network
+    profiles:
+      - tools
+
+  # Redis Commander - Redis Web UI
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: nonprofit-redis-commander
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - nonprofit-dev-network
+    profiles:
+      - tools
+
+  # MailHog - Email Testing Tool
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: nonprofit-mailhog
+    restart: unless-stopped
+    ports:
+      - "8025:8025"  # Web UI
+      - "81025:1025" # SMTP server
+    networks:
+      - nonprofit-dev-network
+    profiles:
+      - tools
+
+volumes:
+  pgadmin_data:
+    driver: local
+
+networks:
+  nonprofit-dev-network:
+    external: true

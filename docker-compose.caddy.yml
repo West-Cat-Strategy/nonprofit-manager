@@ -1,0 +1,20 @@
+services:
+  caddy:
+    image: nonprofit-caddy-local:latest
+    container_name: nonprofit-caddy-dev
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - nonprofit-dev-network
+    depends_on:
+      - frontend-dev
+
+volumes:
+  caddy_data:
+  caddy_config:
