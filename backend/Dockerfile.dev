@@ -1,6 +1,6 @@
 # Development backend — hot reload with ts-node / nodemon
 # syntax=docker/dockerfile:1
-FROM node:20-alpine3.20 AS development
+FROM node:20-alpine3.20
 
 WORKDIR /app
 
@@ -12,7 +12,8 @@ RUN apk add --no-cache dumb-init python3 make g++
 
 # Install deps before copying source for better layer caching
 COPY package*.json ./
-RUN npm ci --no-audit --no-fund
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --no-audit --no-fund
 
 # Copy source (overridden by bind-mount in docker-compose.dev.yml)
 COPY . .
