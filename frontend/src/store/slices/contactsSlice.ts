@@ -52,6 +52,8 @@ export interface Contact {
   preferred_contact_method: string | null;
   do_not_email: boolean;
   do_not_phone: boolean;
+  do_not_text: boolean;
+  do_not_voicemail: boolean;
   notes: string | null;
   tags: string[];
   is_active: boolean;

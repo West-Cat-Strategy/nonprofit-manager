@@ -44,7 +44,8 @@ describe('ContactForm', () => {
       expect(screen.getByLabelText(/first name \*/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/last name \*/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/^email$/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/^phone$/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/^mobile$/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/^home phone$/i)).toBeInTheDocument();
     });
 
     it('shows Create Contact button', async () => {
