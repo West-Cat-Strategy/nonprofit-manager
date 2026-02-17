@@ -52,7 +52,7 @@ export default function QuickLookupWidget({ className = '' }: QuickLookupWidgetP
             onChange={handleSearchChange}
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
-            placeholder="Search by name, email, or phone..."
+            placeholder="Search by name, preferred name, email, or phone..."
             className="block w-full pl-10 pr-10 py-2.5 border border-app-input-border rounded-xl text-sm placeholder-app-text-subtle focus:outline-none focus:ring-2 focus:ring-app-accent focus:border-transparent"
           />
           {isLoading && (
@@ -94,7 +94,7 @@ export default function QuickLookupWidget({ className = '' }: QuickLookupWidgetP
         {isOpen && (
           <div
             ref={dropdownRef}
-            className="absolute z-50 mt-1 w-full bg-app-surface rounded-xl shadow-lg border border-app-border max-h-80 overflow-auto"
+            className="menu-surface-opaque absolute z-50 mt-1 w-full rounded-xl shadow-lg border border-app-border max-h-80 overflow-auto"
           >
             {results.length === 0 ? (
               <div className="p-4 text-center text-app-text-muted text-sm">
@@ -116,6 +116,11 @@ export default function QuickLookupWidget({ className = '' }: QuickLookupWidgetP
                           <p className="text-sm font-medium text-app-text truncate">
                             {highlightMatch(`${contact.first_name} ${contact.last_name}`, searchTerm)}
                           </p>
+                          {contact.preferred_name && (
+                            <p className="text-xs text-app-text-muted truncate mt-0.5">
+                              Preferred: {highlightMatch(contact.preferred_name, searchTerm)}
+                            </p>
+                          )}
                           {contact.email && (
                             <p className="text-xs text-app-text-muted truncate mt-0.5">
                               {highlightMatch(contact.email, searchTerm)}

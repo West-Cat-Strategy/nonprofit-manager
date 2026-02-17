@@ -43,10 +43,10 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
 
   const [formData, setFormData] = useState<ContactFormValues>({
     first_name: mode === 'create' ? urlFirstName : '',
+    preferred_name: '',
     last_name: mode === 'create' ? urlLastName : '',
     middle_name: '',
     salutation: '',
-    suffix: '',
     birth_date: '',
     gender: '',
     pronouns: '',
@@ -60,8 +60,6 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
     postal_code: '',
     country: '',
     no_fixed_address: false,
-    job_title: '',
-    department: '',
     preferred_contact_method: 'email',
     do_not_email: false,
     do_not_phone: false,
@@ -258,9 +256,9 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
 
       const cleanedData = {
         ...formData,
+        preferred_name: formData.preferred_name || undefined,
         middle_name: formData.middle_name || undefined,
         salutation: formData.salutation || undefined,
-        suffix: formData.suffix || undefined,
         birth_date: formData.birth_date || undefined,
         gender: formData.gender || undefined,
         pronouns: formData.pronouns || undefined,
@@ -274,8 +272,6 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
         postal_code: formData.no_fixed_address ? undefined : (formData.postal_code || undefined),
         country: formData.no_fixed_address ? undefined : (formData.country || undefined),
         no_fixed_address: formData.no_fixed_address || false,
-        job_title: formData.job_title || undefined,
-        department: formData.department || undefined,
         preferred_contact_method: formData.preferred_contact_method || undefined,
         notes: formData.notes || undefined,
         tags: cleanedTags,

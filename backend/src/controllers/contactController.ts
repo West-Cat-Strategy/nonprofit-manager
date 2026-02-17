@@ -304,7 +304,22 @@ export const getContactRoles = async (
 ): Promise<void> => {
   try {
     const roles = await contactRoleService.getAllRoles();
-    res.json({ roles });
+    const hiddenRoleNames = new Set(['Executive Director', 'Committee Member']);
+    const roleOrder = new Map<string, number>([
+      ['Client', 1],
+      ['Board Member', 2],
+      ['Staff', 3],
+      ['Member', 4],
+    ]);
+    const visibleRoles = roles
+      .filter((role) => !hiddenRoleNames.has(role.name))
+      .sort((a, b) => {
+        const aRank = roleOrder.get(a.name) ?? 100;
+        const bRank = roleOrder.get(b.name) ?? 100;
+        if (aRank !== bRank) return aRank - bRank;
+        return a.name.localeCompare(b.name);
+      });
+    res.json({ roles: visibleRoles });
   } catch (error) {
     next(error);
   }

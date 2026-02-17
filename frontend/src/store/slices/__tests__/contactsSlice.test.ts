@@ -16,6 +16,7 @@ const mockContact = {
   contact_id: 'contact-1',
   account_id: 'account-1',
   first_name: 'John',
+  preferred_name: null,
   last_name: 'Doe',
   middle_name: null,
   salutation: 'Mr.',
@@ -58,7 +59,7 @@ const initialState: ContactsState = {
   filters: {
     search: '',
     account_id: '',
-    is_active: true,
+    is_active: null,
     tags: [],
     role: '',
     sort_by: 'created_at',
@@ -87,7 +88,7 @@ describe('contactsSlice', () => {
       const state = reducer(initialState, setFilters({ search: 'test', account_id: 'acc-1' }));
       expect(state.filters.search).toBe('test');
       expect(state.filters.account_id).toBe('acc-1');
-      expect(state.filters.is_active).toBe(true);
+      expect(state.filters.is_active).toBeNull();
     });
 
     it('clears filters to initial state', () => {

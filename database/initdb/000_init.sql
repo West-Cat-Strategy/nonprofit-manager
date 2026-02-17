@@ -36,6 +36,7 @@
 \i /migrations/031_add_pii_encryption_fields.sql
 \i /migrations/032_row_level_security_fixed.sql
 \i /migrations/033_audit_logging.sql
+\i /migrations/036_contact_preferred_name_and_role_updates.sql
 
 \i /seeds/001_default_users.sql
 \i /seeds/002_starter_templates.sql
