@@ -67,7 +67,7 @@ export const orgContextMiddleware = async (
   const path = req.path || '';
   const fullPath = req.originalUrl || req.url || path;
   const normalizedPath = fullPath.split('?')[0];
-  const skipPrefixes = ['/auth', '/payments/webhook'];
+  const skipPrefixes = ['/auth', '/payments/webhook', '/admin', '/invitations'];
   if (skipPrefixes.some((prefix) => path.startsWith(prefix) || normalizedPath.startsWith(prefix))) {
     return next();
   }
