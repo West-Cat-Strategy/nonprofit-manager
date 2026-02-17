@@ -15,6 +15,9 @@ import { setAuthCookie, setRefreshCookie, clearAuthCookies } from '@utils/cookie
 import { buildAuthTokenResponse } from '@utils/authResponse';
 import { generateCsrfToken } from '@middleware/domains/security';
 
+import { getRegistrationMode } from '@services/registrationSettingsService';
+import { createPendingRegistration } from '@services/pendingRegistrationService';
+
 interface RegisterRequest {
   email: string;
   password: string;
@@ -70,6 +73,12 @@ export const register = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
+    // Check registration policy
+    const registrationMode = await getRegistrationMode();
+    if (registrationMode === 'disabled') {
+      return forbidden(res, 'Registration is currently disabled');
+    }
+
     const {
       email,
       password,
@@ -81,6 +90,34 @@ export const register = async (
 
     const resolvedFirstName = firstName ?? first_name;
     const resolvedLastName = lastName ?? last_name;
+
+    // If approval is required, create a pending registration instead
+    if (registrationMode === 'approval_required') {
+      try {
+        await createPendingRegistration({
+          email,
+          password,
+          firstName: resolvedFirstName,
+          lastName: resolvedLastName,
+        });
+      } catch (err: unknown) {
+        if (err instanceof Error && err.message.includes('already pending')) {
+          return conflict(res, err.message);
+        }
+        if (err instanceof Error && err.message.includes('already exists')) {
+          return conflict(res, err.message);
+        }
+        throw err;
+      }
+
+      return res.status(202).json({
+        message: 'Your registration request has been submitted and is awaiting admin approval. You will receive an email once your account is approved.',
+        pendingApproval: true,
+      });
+    }
+
+    // Direct registration (should not reach here with current modes,
+    // but kept for forward-compatibility if an 'open' mode is added)
     const role = 'user';
 
     // Check if user exists

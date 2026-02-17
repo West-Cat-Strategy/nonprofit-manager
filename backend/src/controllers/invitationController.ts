@@ -13,6 +13,7 @@ import { getJwtSecret } from '@config/jwt';
 import { AuthRequest } from '@middleware/auth';
 import { PASSWORD, JWT } from '@config/constants';
 import { invitationService, syncUserRole } from '@services/domains/integration';
+import { sendInvitationEmail } from '@services/emailService';
 import { badRequest, conflict, errorPayload, forbidden, notFoundMessage, validationErrorResponse } from '@utils/responseHelpers';
 
 /**
@@ -44,6 +45,21 @@ export const createInvitation = async (
     // Generate the invitation URL (frontend will need to handle this route)
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const inviteUrl = `${baseUrl}/accept-invitation/${invitation.token}`;
+
+    // Send invitation email
+    const inviterRow = await pool.query<{ first_name: string; last_name: string }>(
+      'SELECT first_name, last_name FROM users WHERE id = $1', [req.user.id]
+    );
+    const inviterName = inviterRow.rows[0]
+      ? `${inviterRow.rows[0].first_name} ${inviterRow.rows[0].last_name}`.trim()
+      : 'An administrator';
+    await sendInvitationEmail(
+      invitation.email,
+      invitation.token,
+      inviterName,
+      invitation.role,
+      invitation.message
+    );
 
     return res.status(201).json({
       invitation: {
@@ -286,6 +302,20 @@ export const resendInvitation = async (
     // Generate the new invitation URL
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const inviteUrl = `${baseUrl}/accept-invitation/${invitation.token}`;
+
+    // Resend invitation email
+    const inviterRow2 = await pool.query<{ first_name: string; last_name: string }>(
+      'SELECT first_name, last_name FROM users WHERE id = $1', [req.user.id]
+    );
+    const inviterName2 = inviterRow2.rows[0]
+      ? `${inviterRow2.rows[0].first_name} ${inviterRow2.rows[0].last_name}`.trim()
+      : 'An administrator';
+    await sendInvitationEmail(
+      invitation.email,
+      invitation.token,
+      inviterName2,
+      invitation.role
+    );
 
     return res.json({
       message: 'Invitation resent successfully',

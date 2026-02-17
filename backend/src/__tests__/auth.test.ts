@@ -4,6 +4,8 @@ import { validationResult } from 'express-validator';
 import pool from '../config/database';
 import { register, login } from '../controllers/authController';
 import { AuthRequest } from '../middleware/auth';
+import { getRegistrationMode } from '../services/registrationSettingsService';
+import { createPendingRegistration } from '../services/pendingRegistrationService';
 
 jest.mock('../services/userRoleService', () => ({
   __esModule: true,
@@ -47,6 +49,23 @@ jest.mock('../middleware/csrf', () => ({
   doubleCsrfProtection: jest.fn((_req: unknown, _res: unknown, next: () => void) => next()),
 }));
 
+// Mock registration settings — default to allowing direct registration (not 'disabled')
+// so the existing register tests continue to work as before.
+jest.mock('../services/registrationSettingsService', () => ({
+  __esModule: true,
+  getRegistrationMode: jest.fn().mockResolvedValue('approval_required'),
+}));
+
+// Mock pending registration service used when mode is approval_required
+jest.mock('../services/pendingRegistrationService', () => ({
+  __esModule: true,
+  createPendingRegistration: jest.fn().mockResolvedValue({
+    id: 'pending-1',
+    email: 'newuser@example.com',
+    status: 'pending',
+  }),
+}));
+
 describe('Auth API', () => {
   const queryMock = pool.query as jest.Mock;
   const validationResultMock = validationResult as unknown as jest.Mock;
@@ -60,26 +79,8 @@ describe('Auth API', () => {
   });
 
   describe('register', () => {
-    it('creates a user when email is new', async () => {
-      const hashedPassword = 'hashed-password';
-      (bcrypt.hash as jest.Mock).mockResolvedValueOnce(hashedPassword);
-
-      queryMock
-        .mockResolvedValueOnce({ rows: [] }) // Check existing user
-        .mockResolvedValueOnce({
-          rows: [
-            {
-              id: 'user-1',
-              email: 'newuser@example.com',
-              first_name: 'New',
-              last_name: 'User',
-              role: 'user',
-              created_at: new Date(),
-            },
-          ],
-        }) // Insert user
-        .mockResolvedValueOnce({ rows: [{ id: 'org-1' }] }); // Get default organization
-
+    it('creates a pending registration when mode is approval_required', async () => {
+      // getRegistrationMode mock already returns 'approval_required'
       const req = {
         body: {
           email: 'newuser@example.com',
@@ -93,41 +94,25 @@ describe('Auth API', () => {
 
       await register(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.status).toHaveBeenCalledWith(202);
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          user: expect.objectContaining({
-            user_id: 'user-1',
-            email: 'newuser@example.com',
-            firstName: 'New',
-            lastName: 'User',
-            role: 'user',
-          }),
+          pendingApproval: true,
+        })
+      );
+      expect(createPendingRegistration).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'newuser@example.com',
+          password: 'StrongP@ssw0rd',
+          firstName: 'New',
+          lastName: 'User',
         })
       );
       expect(next).not.toHaveBeenCalled();
-      expect(queryMock).toHaveBeenCalledTimes(3);
     });
 
-    it('ignores requested role and defaults to user', async () => {
-      const hashedPassword = 'hashed-password';
-      (bcrypt.hash as jest.Mock).mockResolvedValueOnce(hashedPassword);
-
-      queryMock
-        .mockResolvedValueOnce({ rows: [] }) // Check existing user
-        .mockResolvedValueOnce({
-          rows: [
-            {
-              id: 'user-2',
-              email: 'role-test@example.com',
-              first_name: 'Role',
-              last_name: 'Test',
-              role: 'user',
-              created_at: new Date(),
-            },
-          ],
-        }) // Insert user
-        .mockResolvedValueOnce({ rows: [{ id: 'org-1' }] }); // Get default organization
+    it('rejects registration when mode is disabled', async () => {
+      (getRegistrationMode as jest.Mock).mockResolvedValueOnce('disabled');
 
       const req = {
         body: {
@@ -135,7 +120,6 @@ describe('Auth API', () => {
           password: 'StrongP@ssw0rd',
           firstName: 'Role',
           lastName: 'Test',
-          role: 'admin',
         },
       } as AuthRequest;
       const res = createMockResponse() as unknown as Response;
@@ -143,20 +127,17 @@ describe('Auth API', () => {
 
       await register(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.status).toHaveBeenCalledWith(403);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          user: expect.objectContaining({
-            role: 'user',
-          }),
-        })
+        expect.objectContaining({ error: 'Registration is currently disabled' })
       );
-      expect(queryMock.mock.calls[1][1][4]).toBe('user');
       expect(next).not.toHaveBeenCalled();
     });
 
-    it('rejects registration when email already exists', async () => {
-      queryMock.mockResolvedValueOnce({ rows: [{ id: 'user-1' }] });
+    it('returns conflict when email already has a pending registration', async () => {
+      (createPendingRegistration as jest.Mock).mockRejectedValueOnce(
+        new Error('A registration request for this email is already pending')
+      );
 
       const req = {
         body: {
@@ -172,10 +153,6 @@ describe('Auth API', () => {
       await register(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(409);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ error: 'User already exists', code: 'conflict' })
-      );
-      expect(queryMock).toHaveBeenCalledTimes(1);
       expect(next).not.toHaveBeenCalled();
     });
   });
