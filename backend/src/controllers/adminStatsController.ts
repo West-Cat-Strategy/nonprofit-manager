@@ -1,10 +1,50 @@
 import { Response } from 'express';
 import pool from '@config/database';
+import { logger } from '@config/logger';
 import { AuthRequest } from '@middleware/auth';
 import { serverError } from '@utils/responseHelpers';
 
-export const getAdminStats = async (_req: AuthRequest, res: Response) => {
+const tableExists = async (tableName: string): Promise<boolean> => {
+    const result = await pool.query(
+        'SELECT to_regclass($1) IS NOT NULL AS exists',
+        [`public.${tableName}`]
+    );
+    return result.rows[0]?.exists === true;
+};
+
+const columnExists = async (tableName: string, columnName: string): Promise<boolean> => {
+    const result = await pool.query(
+        `SELECT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = $1
+              AND column_name = $2
+        ) AS exists`,
+        [tableName, columnName]
+    );
+    return result.rows[0]?.exists === true;
+};
+
+export const getAdminStats = async (req: AuthRequest, res: Response) => {
     try {
+        const [usersTable, contactsTable, donationsTable, usersHasLastLoginAt] = await Promise.all([
+            tableExists('users'),
+            tableExists('contacts'),
+            tableExists('donations'),
+            columnExists('users', 'last_login_at'),
+        ]);
+
+        if (!usersTable) {
+            return res.json({
+                totalUsers: 0,
+                activeUsers: 0,
+                totalContacts: 0,
+                recentDonations: 0,
+                recentSignups: [],
+            });
+        }
+
         const [
             userCount,
             activeUserCount,
@@ -13,9 +53,13 @@ export const getAdminStats = async (_req: AuthRequest, res: Response) => {
             recentSignups
         ] = await Promise.all([
             pool.query('SELECT COUNT(*) FROM users'),
-            pool.query("SELECT COUNT(*) FROM users WHERE last_login_at >= NOW() - INTERVAL '30 days'"),
-            pool.query('SELECT COUNT(*) FROM contacts'),
-            pool.query("SELECT SUM(amount) FROM donations WHERE donation_date >= NOW() - INTERVAL '30 days'"),
+            usersHasLastLoginAt
+                ? pool.query("SELECT COUNT(*) FROM users WHERE last_login_at >= NOW() - INTERVAL '30 days'")
+                : pool.query('SELECT COUNT(*) FROM users WHERE is_active = true'),
+            contactsTable ? pool.query('SELECT COUNT(*) FROM contacts') : Promise.resolve({ rows: [{ count: '0' }] }),
+            donationsTable
+                ? pool.query("SELECT SUM(amount) FROM donations WHERE donation_date >= NOW() - INTERVAL '30 days'")
+                : Promise.resolve({ rows: [{ sum: '0' }] }),
             pool.query('SELECT id, email, created_at FROM users ORDER BY created_at DESC LIMIT 5')
         ]);
 
@@ -27,6 +71,10 @@ export const getAdminStats = async (_req: AuthRequest, res: Response) => {
             recentSignups: recentSignups.rows
         });
     } catch (error) {
+        logger.error('Failed to fetch admin stats', {
+            error,
+            correlationId: req.correlationId,
+        });
         return serverError(res, 'Failed to fetch admin stats');
     }
 };

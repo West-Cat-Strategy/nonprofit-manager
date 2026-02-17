@@ -7,7 +7,11 @@ interface PersonalInfoSectionProps {
   onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
 }
 
-export default function PersonalInfoSection({ formData, errors, onChange }: PersonalInfoSectionProps) {
+export default function PersonalInfoSection({
+  formData,
+  errors,
+  onChange,
+}: PersonalInfoSectionProps) {
   return (
     <div className="bg-app-surface shadow rounded-lg p-6">
       <h2 className="text-lg font-medium text-app-text mb-4">Personal Information</h2>

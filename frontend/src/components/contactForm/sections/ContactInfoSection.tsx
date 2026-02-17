@@ -51,7 +51,7 @@ export default function ContactInfoSection({ formData, errors, onChange }: Conta
 
         <div>
           <label htmlFor="phone" className="block text-sm font-medium text-app-text-muted">
-            Phone
+            Mobile
           </label>
           <input
             type="text"
@@ -68,7 +68,7 @@ export default function ContactInfoSection({ formData, errors, onChange }: Conta
 
         <div>
           <label htmlFor="mobile_phone" className="block text-sm font-medium text-app-text-muted">
-            Mobile Phone
+            Home Phone
           </label>
           <input
             type="text"
@@ -111,6 +111,32 @@ export default function ContactInfoSection({ formData, errors, onChange }: Conta
               />
               <label htmlFor="do_not_phone" className="ml-2 block text-sm text-app-text">
                 Do Not Phone
+              </label>
+            </div>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                name="do_not_text"
+                id="do_not_text"
+                checked={formData.do_not_text || false}
+                onChange={onChange}
+                className="h-4 w-4 text-app-accent focus:ring-app-accent border-app-input-border rounded"
+              />
+              <label htmlFor="do_not_text" className="ml-2 block text-sm text-app-text">
+                Do not Text
+              </label>
+            </div>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                name="do_not_voicemail"
+                id="do_not_voicemail"
+                checked={formData.do_not_voicemail || false}
+                onChange={onChange}
+                className="h-4 w-4 text-app-accent focus:ring-app-accent border-app-input-border rounded"
+              />
+              <label htmlFor="do_not_voicemail" className="ml-2 block text-sm text-app-text">
+                Do not leave voicemail
               </label>
             </div>
           </div>

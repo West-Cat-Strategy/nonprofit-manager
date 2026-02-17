@@ -17,7 +17,7 @@ interface ContactRelationshipsProps {
 const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { relationships, relationshipsLoading, contacts } = useAppSelector(
+  const { relationships, relationshipsLoading, contacts, currentContact } = useAppSelector(
     (state) => state.contacts
   );
   const getErrorMessage = (error: unknown, fallback: string) =>
@@ -247,6 +247,9 @@ const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
                         const params = new URLSearchParams();
                         if (firstName) params.set('first_name', firstName);
                         if (lastName) params.set('last_name', lastName);
+                        if (currentContact?.account_id) {
+                          params.set('account_id', currentContact.account_id);
+                        }
                         params.set('return_to', contactId);
                         window.open(`/contacts/new?${params.toString()}`, '_blank');
                       }}

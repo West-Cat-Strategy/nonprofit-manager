@@ -4,16 +4,49 @@
 
 import { Page } from '@playwright/test';
 
+async function getAuthHeaders(page: Page, token: string): Promise<Record<string, string>> {
+  const apiURL = process.env.API_URL || 'http://localhost:3001';
+  const organizationId = await page
+    .evaluate(() => localStorage.getItem('organizationId'))
+    .catch(() => null);
+  const csrfResponse = await page.request.get(`${apiURL}/api/auth/csrf-token`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!csrfResponse.ok()) {
+    throw new Error(
+      `Failed to fetch CSRF token (${csrfResponse.status()}): ${await csrfResponse.text()}`
+    );
+  }
+
+  const csrfData = await csrfResponse.json();
+  const csrfToken = csrfData?.csrfToken;
+  if (!csrfToken) {
+    throw new Error(`CSRF token missing in response: ${JSON.stringify(csrfData)}`);
+  }
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    'X-CSRF-Token': csrfToken,
+  };
+  if (organizationId) {
+    headers['X-Organization-Id'] = organizationId;
+  }
+  return headers;
+}
+
 /**
  * Seed database with test data via API
  */
 export async function seedDatabase(page: Page, token: string): Promise<void> {
   const apiURL = process.env.API_URL || 'http://localhost:3001';
   console.log(`[database.ts] Using API_URL: ${apiURL}`);
+  const headers = await getAuthHeaders(page, token);
 
   // Create test accounts
   await page.request.post(`${apiURL}/api/accounts`, {
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers,
     data: {
       name: 'Test Organization',
       accountType: 'organization',
@@ -25,7 +58,7 @@ export async function seedDatabase(page: Page, token: string): Promise<void> {
 
   // Create test contacts
   await page.request.post(`${apiURL}/api/contacts`, {
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers,
     data: {
       firstName: 'John',
       lastName: 'Doe',
@@ -76,8 +109,9 @@ export async function clearDatabase(page: Page, token: string): Promise<void> {
             if (!itemId) {
               continue;
             }
+            const headers = await getAuthHeaders(page, token);
             await page.request.delete(`${apiURL}${endpoint}/${itemId}`, {
-              headers: { Authorization: `Bearer ${token}` },
+              headers,
             });
           }
         }
@@ -105,9 +139,10 @@ export async function createTestAccount(
   }
 ): Promise<{ id: string }> {
   const apiURL = process.env.API_URL || 'http://localhost:3001';
+  const headers = await getAuthHeaders(page, token);
 
   const response = await page.request.post(`${apiURL}/api/accounts`, {
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers,
     data: {
       account_name: data.name,
       account_type: data.accountType || 'organization',
@@ -119,8 +154,19 @@ export async function createTestAccount(
     },
   });
 
+  if (!response.ok()) {
+    throw new Error(
+      `Failed to create test account (${response.status()}): ${await response.text()}`
+    );
+  }
+
   const result = await response.json();
-  return { id: result.account_id || result.id };
+  const id = result.account_id || result.id || result.data?.account_id || result.data?.id;
+  if (!id) {
+    throw new Error(`Failed to parse account id from response: ${JSON.stringify(result)}`);
+  }
+
+  return { id };
 }
 
 /**
@@ -139,22 +185,41 @@ export async function createTestContact(
   }
 ): Promise<{ id: string }> {
   const apiURL = process.env.API_URL || 'http://localhost:3001';
+  const accountId = data.accountId || (
+    await createTestAccount(page, token, {
+      name: `Auto Contact Account ${Date.now()}`,
+      accountType: 'organization',
+      category: 'other',
+    })
+  ).id;
 
+  const headers = await getAuthHeaders(page, token);
   const response = await page.request.post(`${apiURL}/api/contacts`, {
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers,
     data: {
       first_name: data.firstName,
       last_name: data.lastName,
       email: data.email,
       phone: data.phone,
-      account_id: data.accountId,
+      account_id: accountId,
       // Keep legacy field for older backends that still parse it.
       contactType: data.contactType || 'donor',
     },
   });
 
+  if (!response.ok()) {
+    throw new Error(
+      `Failed to create test contact (${response.status()}): ${await response.text()}`
+    );
+  }
+
   const result = await response.json();
-  return { id: result.contact_id || result.id };
+  const id = result.contact_id || result.id || result.data?.contact_id || result.data?.id;
+  if (!id) {
+    throw new Error(`Failed to parse contact id from response: ${JSON.stringify(result)}`);
+  }
+
+  return { id };
 }
 
 /**
@@ -172,10 +237,11 @@ export async function createTestDonation(
   }
 ): Promise<{ id: string }> {
   const apiURL = process.env.API_URL || 'http://localhost:3001';
+  const headers = await getAuthHeaders(page, token);
 
   const donationDate = data.donationDate || new Date().toISOString();
   const response = await page.request.post(`${apiURL}/api/donations`, {
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers,
     data: {
       account_id: data.accountId,
       amount: data.amount,
@@ -209,6 +275,7 @@ export async function createTestEvent(
   }
 ): Promise<{ id: string }> {
   const apiURL = process.env.API_URL || 'http://localhost:3001';
+  const headers = await getAuthHeaders(page, token);
 
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -216,7 +283,7 @@ export async function createTestEvent(
   const endDate = data.endDate || tomorrow.toISOString();
 
   const response = await page.request.post(`${apiURL}/api/events`, {
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers,
     data: {
       event_name: data.name,
       event_type: data.eventType || 'fundraiser',
