@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authService } from '../../services/authService';
+import type { RegisterData } from '../../services/authService';
 import { useAppDispatch } from '../../store/hooks';
 import { setCredentials } from '../../store/slices/authSlice';
 import { useApiError } from '../../hooks/useApiError';
@@ -43,7 +44,7 @@ export default function Register() {
         lastName,
         first_name: firstName,
         last_name: lastName,
-      });
+      } as RegisterData);
 
       // Check if this required approval (HTTP 202)
       if ('pendingApproval' in response && (response as { pendingApproval?: boolean }).pendingApproval) {
@@ -64,7 +65,16 @@ export default function Register() {
           setPendingApproval(true);
           return;
         }
-        setFromError(err, 'Registration failed. Please try again.');
+        // Extract validation details for user-friendly display
+        const data = err.response?.data as { error?: string; details?: { body?: Record<string, string[]> }; correlationId?: string } | undefined;
+        if (data?.details?.body) {
+          const messages = Object.entries(data.details.body)
+            .flatMap(([field, errors]) => errors.map((e) => `${field.replace(/_/g, ' ')}: ${e}`))
+            .join('. ');
+          setFromError(err, messages || 'Registration failed. Please try again.');
+        } else {
+          setFromError(err, 'Registration failed. Please try again.');
+        }
       } else {
         setFromError(err, 'Registration failed. Please try again.');
       }
@@ -252,10 +262,14 @@ export default function Register() {
                   type="password"
                   required
                   autoComplete="new-password"
+                  minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
                 />
+                <p className="mt-1 text-xs text-slate-400">
+                  Min 8 characters, with at least one uppercase letter, one lowercase letter, and one number.
+                </p>
               </div>
 
               <div>
