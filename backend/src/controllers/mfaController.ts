@@ -273,7 +273,13 @@ export const completeTotpLogin = async (
       return validationErrorResponse(res, errors);
     }
 
-    const { email, mfaToken, code }: { email: string; mfaToken: string; code: string } = req.body;
+    const {
+      email,
+      mfaToken,
+      code: rawCode,
+      token: legacyToken,
+    }: { email: string; mfaToken: string; code?: string; token?: string } = req.body;
+    const code = rawCode ?? legacyToken ?? '';
     const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
 
     let decoded: { id: string; email: string; role: string; type?: string; method?: string };

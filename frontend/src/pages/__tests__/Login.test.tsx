@@ -74,6 +74,36 @@ describe('Login page', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
   });
 
+  it('normalizes email before submitting credentials', async () => {
+    const user = userEvent.setup();
+    const authResponse = {
+      token: 'token-123',
+      user: {
+        id: 'user-1',
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        role: 'user',
+      },
+    };
+
+    const loginMock = authService.login as unknown as {
+      mockResolvedValueOnce: (value: unknown) => void;
+    };
+    loginMock.mockResolvedValueOnce(authResponse);
+
+    renderLogin();
+
+    await user.type(screen.getByLabelText(/email address/i), '  Test@Example.com  ');
+    await user.type(screen.getByLabelText(/password/i), 'Password123!');
+    await user.click(screen.getByRole('button', { name: /^sign in$/i }));
+
+    expect(authService.login).toHaveBeenCalledWith({
+      email: 'test@example.com',
+      password: 'Password123!',
+    });
+  });
+
   it('shows error message on failed login', async () => {
     const user = userEvent.setup();
     const loginMock = authService.login as unknown as {

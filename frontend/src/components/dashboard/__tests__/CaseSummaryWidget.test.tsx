@@ -139,8 +139,8 @@ describe('CaseSummaryWidget', () => {
     const activeLink = screen.getByText('Active Cases').closest('a');
     const urgentLink = screen.getByText('Urgent').closest('a');
 
-    expect(activeLink).toHaveAttribute('href', '/cases?status=active');
-    expect(urgentLink).toHaveAttribute('href', '/cases?priority=urgent');
+    expect(activeLink).toHaveAttribute('href', '/cases?quick_filter=active');
+    expect(urgentLink).toHaveAttribute('href', '/cases?quick_filter=urgent');
   });
 
   it('shows priority distribution counts', () => {

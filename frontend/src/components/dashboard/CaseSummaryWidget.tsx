@@ -27,6 +27,9 @@ const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProp
   const casesDueThisWeek = useAppSelector(selectCasesDueThisWeek);
   const unassignedCases = useAppSelector(selectUnassignedCases);
   const priorityCounts = useAppSelector(selectCasesByPriority);
+  const attendedEventOutcomes = activeCases.filter((c) => c.outcome === 'attended_event').length;
+  const relatedCaseOutcomes = activeCases.filter((c) => c.outcome === 'additional_related_case').length;
+  const outcomeDenominator = Math.max(1, activeCases.length);
 
   useEffect(() => {
     // Fetch all cases on mount
@@ -45,7 +48,7 @@ const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProp
         {/* Top Metrics Grid */}
         <div className="grid grid-cols-2 gap-3">
           <Link
-            to="/cases?status=active"
+            to="/cases?quick_filter=active"
             className="p-3 bg-app-accent-soft rounded-lg hover:bg-app-accent-soft transition"
           >
             <p className="text-xs text-app-accent font-medium">Active Cases</p>
@@ -53,7 +56,7 @@ const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProp
           </Link>
 
           <Link
-            to="/cases?priority=urgent"
+            to="/cases?quick_filter=urgent"
             className="p-3 bg-red-50 rounded-lg hover:bg-red-100 transition relative"
           >
             <p className="text-xs text-red-600 font-medium">Urgent</p>
@@ -77,7 +80,7 @@ const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProp
           </div>
 
           <Link
-            to="/cases"
+            to="/cases?quick_filter=unassigned"
             className="p-3 bg-app-surface-muted rounded-lg hover:bg-app-surface-muted transition"
           >
             <p className="text-xs text-app-text-muted font-medium">Unassigned</p>
@@ -117,6 +120,37 @@ const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProp
             <div>
               <div className="text-lg font-bold text-red-600">{priorityCounts.urgent}</div>
               <div className="text-xs text-app-text-muted">Urg</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Outcome Signals */}
+        <div className="pt-2 border-t border-app-border">
+          <p className="text-xs text-app-text-muted font-medium mb-2">Outcome Signals</p>
+          <div className="space-y-2">
+            <div>
+              <div className="flex items-center justify-between text-xs font-medium">
+                <span className="text-app-text">Attended Event</span>
+                <span className="text-app-text">{attendedEventOutcomes}</span>
+              </div>
+              <div className="h-2 bg-app-surface-muted rounded overflow-hidden">
+                <div
+                  className="h-full bg-[var(--loop-blue)]"
+                  style={{ width: `${(attendedEventOutcomes / outcomeDenominator) * 100}%` }}
+                />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between text-xs font-medium">
+                <span className="text-app-text">Additional Related Case</span>
+                <span className="text-app-text">{relatedCaseOutcomes}</span>
+              </div>
+              <div className="h-2 bg-app-surface-muted rounded overflow-hidden">
+                <div
+                  className="h-full bg-orange-500"
+                  style={{ width: `${(relatedCaseOutcomes / outcomeDenominator) * 100}%` }}
+                />
+              </div>
             </div>
           </div>
         </div>

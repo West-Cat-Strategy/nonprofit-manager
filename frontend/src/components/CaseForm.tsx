@@ -14,6 +14,14 @@ import { useQuickLookup } from './dashboard';
 import type { SearchResult } from './dashboard';
 import type { CaseWithDetails, CreateCaseDTO, UpdateCaseDTO } from '../types/case';
 
+interface AssigneeOption {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  isActive?: boolean;
+}
+
 interface CaseFormProps {
   caseId?: string;
   initialData?: Partial<CreateCaseDTO>;
@@ -56,6 +64,8 @@ const CaseForm = ({
 
   const [tagInput, setTagInput] = useState('');
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [assignees, setAssignees] = useState<AssigneeOption[]>([]);
+  const [canLoadAssignees, setCanLoadAssignees] = useState(true);
 
   const lookup = useQuickLookup({ debounceMs: 250 });
 
@@ -82,6 +92,21 @@ const CaseForm = ({
       loadSelectedContact(formData.contact_id);
     }
   }, [formData.contact_id, selectedContact, lookup]);
+
+  useEffect(() => {
+    const loadAssignees = async () => {
+      try {
+        const response = await api.get('/users?is_active=true');
+        const users = (response.data?.users || []) as AssigneeOption[];
+        setAssignees(users);
+      } catch {
+        setCanLoadAssignees(false);
+        setAssignees([]);
+      }
+    };
+
+    loadAssignees();
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -144,6 +169,9 @@ const CaseForm = ({
           due_date: formData.due_date || undefined,
           is_urgent: formData.is_urgent,
           tags: formData.tags,
+          outcome: formData.outcome,
+          outcome_notes: formData.outcome_notes || undefined,
+          closure_reason: formData.closure_reason || undefined,
         };
         await dispatch(updateCase({ id: caseId, data: updateData })).unwrap();
         showSuccess('Case updated successfully');
@@ -165,6 +193,10 @@ const CaseForm = ({
       showError(isEditMode ? 'Failed to update case. Please try again.' : 'Failed to create case. Please try again.');
     }
   };
+
+  const hasSelectedAssignee = Boolean(
+    formData.assigned_to && assignees.some((user) => user.id === formData.assigned_to)
+  );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -343,6 +375,32 @@ const CaseForm = ({
         />
       </div>
 
+      {/* Assignment */}
+      <div>
+        <label className="block text-sm font-medium text-app-text-label mb-2">Assigned To</label>
+        <select
+          name="assigned_to"
+          value={formData.assigned_to || ''}
+          onChange={handleChange}
+          className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
+        >
+          <option value="">Unassigned</option>
+          {formData.assigned_to && !hasSelectedAssignee && (
+            <option value={formData.assigned_to}>Current assignee</option>
+          )}
+          {assignees.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.firstName} {user.lastName}
+            </option>
+          ))}
+        </select>
+        {!canLoadAssignees && (
+          <p className="mt-1 text-sm text-app-text-muted">
+            Assignee options are unavailable for your role; existing assignment will be preserved.
+          </p>
+        )}
+      </div>
+
       {/* Urgent Checkbox */}
       <div>
         <label className="flex items-center gap-2">
@@ -436,6 +494,8 @@ const CaseForm = ({
                 <option value="unsuccessful">Unsuccessful</option>
                 <option value="referred">Referred</option>
                 <option value="withdrawn">Withdrawn</option>
+                <option value="attended_event">Attended Event</option>
+                <option value="additional_related_case">Additional/Related Case Opened</option>
                 <option value="other">Other</option>
               </select>
             </div>

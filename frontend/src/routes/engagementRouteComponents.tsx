@@ -13,3 +13,4 @@ export const CaseList = lazy(() => import('../pages/engagement/cases/CaseList'))
 export const CaseDetail = lazy(() => import('../pages/engagement/cases/CaseDetail'));
 export const CaseCreate = lazy(() => import('../pages/engagement/cases/CaseCreate'));
 export const CaseEdit = lazy(() => import('../pages/engagement/cases/CaseEdit'));
+export const ExternalServiceProviders = lazy(() => import('../pages/engagement/cases/ExternalServiceProviders'));

@@ -34,7 +34,7 @@ export class EventService {
     pagination: PaginationParams = {},
     scope?: DataScopeFilter
   ): Promise<PaginatedEvents> {
-    const { search, event_type, status, start_date, end_date } = filters;
+    const { search, event_type, status, is_public, start_date, end_date } = filters;
 
     const { page = 1, limit = 20, sort_by, sort_order } = pagination;
 
@@ -60,6 +60,12 @@ export class EventService {
     if (status) {
       conditions.push(`status = $${paramCount}`);
       params.push(status);
+      paramCount++;
+    }
+
+    if (typeof is_public === 'boolean') {
+      conditions.push(`is_public = $${paramCount}`);
+      params.push(is_public);
       paramCount++;
     }
 
@@ -107,6 +113,11 @@ export class EventService {
         description,
         event_type,
         status,
+        is_public,
+        is_recurring,
+        recurrence_pattern,
+        recurrence_interval,
+        recurrence_end_date,
         start_date,
         end_date,
         location_name,
@@ -154,6 +165,11 @@ export class EventService {
         description,
         event_type,
         status,
+        is_public,
+        is_recurring,
+        recurrence_pattern,
+        recurrence_interval,
+        recurrence_end_date,
         start_date,
         end_date,
         location_name,
@@ -261,6 +277,11 @@ export class EventService {
       description,
       event_type,
       status = 'planned',
+      is_public = false,
+      is_recurring = false,
+      recurrence_pattern,
+      recurrence_interval,
+      recurrence_end_date,
       start_date,
       end_date,
       location_name,
@@ -272,20 +293,31 @@ export class EventService {
       country,
       capacity,
     } = eventData;
+    const normalizedRecurrencePattern = is_recurring ? recurrence_pattern || null : null;
+    const normalizedRecurrenceInterval = is_recurring ? recurrence_interval || 1 : null;
+    const normalizedRecurrenceEndDate = is_recurring ? recurrence_end_date || null : null;
 
     const query = `
       INSERT INTO events (
-        name, description, event_type, status, start_date, end_date,
+        name, description, event_type, status, is_public, is_recurring, recurrence_pattern,
+        recurrence_interval, recurrence_end_date, start_date, end_date,
         location_name, address_line1, address_line2, city, state_province,
         postal_code, country, capacity, created_by, modified_by
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $15)
+      VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $20
+      )
       RETURNING 
         id as event_id,
         name as event_name,
         description,
         event_type,
         status,
+        is_public,
+        is_recurring,
+        recurrence_pattern,
+        recurrence_interval,
+        recurrence_end_date,
         start_date,
         end_date,
         location_name,
@@ -309,6 +341,11 @@ export class EventService {
       description || null,
       event_type,
       status,
+      is_public,
+      is_recurring,
+      normalizedRecurrencePattern,
+      normalizedRecurrenceInterval,
+      normalizedRecurrenceEndDate,
       start_date,
       end_date,
       location_name || null,
@@ -329,11 +366,13 @@ export class EventService {
    * Update event
    */
   async updateEvent(eventId: string, eventData: UpdateEventDTO, userId: string): Promise<Event> {
+    const normalizedData: UpdateEventDTO = { ...eventData };
+
     const fields: string[] = [];
     const values: QueryValue[] = [];
     let paramCount = 1;
 
-    Object.entries(eventData).forEach(([key, value]) => {
+    Object.entries(normalizedData).forEach(([key, value]) => {
       if (value !== undefined) {
         // Convert camelCase to snake_case for database
         const dbKey = key === 'event_name' ? 'name' : key;
@@ -342,6 +381,18 @@ export class EventService {
         paramCount++;
       }
     });
+
+    if (normalizedData.is_recurring === false) {
+      fields.push(`recurrence_pattern = $${paramCount}`);
+      values.push(null);
+      paramCount++;
+      fields.push(`recurrence_interval = $${paramCount}`);
+      values.push(null);
+      paramCount++;
+      fields.push(`recurrence_end_date = $${paramCount}`);
+      values.push(null);
+      paramCount++;
+    }
 
     if (fields.length === 0) {
       throw new Error('No fields to update');
@@ -365,6 +416,11 @@ export class EventService {
         description,
         event_type,
         status,
+        is_public,
+        is_recurring,
+        recurrence_pattern,
+        recurrence_interval,
+        recurrence_end_date,
         start_date,
         end_date,
         location_name,

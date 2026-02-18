@@ -6,13 +6,24 @@ const DEFAULT_TEST_PASSWORD = 'Test123!@#';
 
 type TestUser = { email: string; password: string };
 
+const isPasswordPolicyCompliant = (password: string): boolean => {
+  // Keep this aligned with backend password validation requirements.
+  return (
+    password.length >= 8 &&
+    /[A-Z]/.test(password) &&
+    /[a-z]/.test(password) &&
+    /\d/.test(password) &&
+    /[^A-Za-z0-9]/.test(password)
+  );
+};
+
 const readCachedUser = (cacheFile: string): TestUser | null => {
   try {
     const cached = JSON.parse(fs.readFileSync(cacheFile, 'utf8')) as {
       email?: string;
       password?: string;
     };
-    if (cached?.email && cached?.password) {
+    if (cached?.email && cached?.password && isPasswordPolicyCompliant(cached.password)) {
       return { email: cached.email, password: cached.password };
     }
   } catch {

@@ -12,6 +12,7 @@ import type {
   CreateRegistrationDTO,
   UpdateRegistrationDTO,
   EventFilters,
+  PaginationParams,
   RegistrationFilters,
 } from '@app-types/event';
 import { EventType, EventStatus, RegistrationStatus } from '@app-types/event';
@@ -36,6 +37,20 @@ const parseRegistrationStatus = (value: unknown): RegistrationStatus | undefined
   return Object.values(RegistrationStatus).includes(value as RegistrationStatus) ? (value as RegistrationStatus) : undefined;
 };
 
+const parseBooleanQuery = (value: unknown): boolean | undefined => {
+  if (typeof value === 'boolean') return value;
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  return undefined;
+};
+
+const parsePositiveInt = (value: unknown): number | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed) || parsed < 1) return undefined;
+  return parsed;
+};
+
 /**
  * GET /api/events
  * Get all events with optional filtering
@@ -49,13 +64,23 @@ export const getEvents = async (
     const filters: EventFilters = {
       event_type: parseEventType(req.query.event_type),
       status: parseEventStatus(req.query.status),
+      is_public: parseBooleanQuery(req.query.is_public),
       start_date: req.query.start_date ? new Date(req.query.start_date as string) : undefined,
       end_date: req.query.end_date ? new Date(req.query.end_date as string) : undefined,
       search: req.query.search as string,
     };
 
+    const pagination: PaginationParams = {
+      page: parsePositiveInt(req.query.page),
+      limit: parsePositiveInt(req.query.limit),
+      sort_by: typeof req.query.sort_by === 'string' ? req.query.sort_by : undefined,
+      sort_order: req.query.sort_order === 'asc' || req.query.sort_order === 'desc'
+        ? req.query.sort_order
+        : undefined,
+    };
+
     const scope = req.dataScope?.filter as DataScopeFilter | undefined;
-    const events = await eventService.getEvents(filters, {}, scope);
+    const events = await eventService.getEvents(filters, pagination, scope);
     res.json(events);
   } catch (error) {
     next(error);
@@ -181,7 +206,7 @@ export const getEventRegistrations = async (
     const { id } = req.params;
 
     const filters: RegistrationFilters = {
-      registration_status: parseRegistrationStatus(req.query.status),
+      registration_status: parseRegistrationStatus(req.query.registration_status ?? req.query.status),
       checked_in: req.query.checked_in === 'true' ? true : req.query.checked_in === 'false' ? false : undefined,
     };
 
@@ -325,15 +350,26 @@ export const getRegistrations = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const eventId = req.query.event_id as string | undefined;
     const contactId = req.query.contact_id as string;
+    const filters: RegistrationFilters = {
+      registration_status: parseRegistrationStatus(req.query.registration_status ?? req.query.status),
+      checked_in: req.query.checked_in === 'true' ? true : req.query.checked_in === 'false' ? false : undefined,
+    };
 
-    if (!contactId) {
-      badRequest(res, 'contact_id query parameter is required');
+    if (eventId) {
+      const registrations = await eventService.getEventRegistrations(eventId, filters);
+      res.json(registrations);
       return;
     }
 
-    const registrations = await eventService.getContactRegistrations(contactId);
-    res.json(registrations);
+    if (contactId) {
+      const registrations = await eventService.getContactRegistrations(contactId);
+      res.json(registrations);
+      return;
+    }
+
+    badRequest(res, 'Either event_id or contact_id query parameter is required');
   } catch (error) {
     next(error);
   }

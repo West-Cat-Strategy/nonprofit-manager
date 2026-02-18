@@ -54,6 +54,7 @@ export const getAvailableFields = async (
     const entity = req.params.entity as ReportEntity;
 
     const validEntities = [
+      'cases',
       'accounts',
       'contacts',
       'donations',

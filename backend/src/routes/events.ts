@@ -25,6 +25,22 @@ import { loadDataScope } from '@middleware/domains/data';
 import { validateRequest } from '@middleware/domains/security';
 
 const router = Router();
+const eventTypeValues = [
+  'fundraiser',
+  'community',
+  'training',
+  'meeting',
+  'workshop',
+  'webinar',
+  'conference',
+  'outreach',
+  'volunteer',
+  'social',
+  'other',
+];
+const eventStatusValues = ['planned', 'active', 'completed', 'cancelled', 'postponed'];
+const registrationStatusValues = ['registered', 'waitlisted', 'cancelled', 'confirmed', 'no_show'];
+const recurrencePatternValues = ['daily', 'weekly', 'monthly', 'yearly'];
 
 // All routes require authentication
 router.use(authenticate);
@@ -37,12 +53,17 @@ router.use(loadDataScope('events'));
 router.get(
   '/',
   [
-    query('event_type').optional().isString(),
-    query('status').optional().isString(),
+    query('event_type').optional().isIn(eventTypeValues),
+    query('status').optional().isIn(eventStatusValues),
+    query('is_public').optional().isBoolean(),
     query('start_date').optional().isISO8601(),
     query('end_date').optional().isISO8601(),
     query('organizer_id').optional().isUUID(),
     query('search').optional().isString(),
+    query('page').optional().isInt({ min: 1 }),
+    query('limit').optional().isInt({ min: 1, max: 100 }),
+    query('sort_by').optional().isIn(['start_date', 'end_date', 'created_at', 'updated_at', 'name', 'status', 'event_type']),
+    query('sort_order').optional().isIn(['asc', 'desc']),
   ],
   validateRequest,
   getEvents
@@ -70,9 +91,7 @@ router.post(
     body('event_name').isString().trim().notEmpty().withMessage('Event name is required'),
     body('description').optional().isString(),
     body('event_type')
-      .isString()
-      .trim()
-      .notEmpty(),
+      .isIn(eventTypeValues),
     body('start_date').isISO8601().withMessage('Valid start date is required'),
     body('end_date').isISO8601().withMessage('Valid end date is required'),
     body('location_name').optional().isString(),
@@ -83,7 +102,12 @@ router.post(
     body('postal_code').optional().isString(),
     body('country').optional().isString(),
     body('capacity').optional().isInt({ min: 1 }),
-    body('status').optional().isString(),
+    body('status').optional().isIn(eventStatusValues),
+    body('is_public').optional().isBoolean(),
+    body('is_recurring').optional().isBoolean(),
+    body('recurrence_pattern').optional().isIn(recurrencePatternValues),
+    body('recurrence_interval').optional().isInt({ min: 1 }),
+    body('recurrence_end_date').optional().isISO8601(),
   ],
   validateRequest,
   createEvent
@@ -99,8 +123,8 @@ router.put(
     param('id').isUUID(),
     body('event_name').optional().isString().trim().notEmpty(),
     body('description').optional().isString(),
-    body('event_type').optional().isString(),
-    body('status').optional().isString(),
+    body('event_type').optional().isIn(eventTypeValues),
+    body('status').optional().isIn(eventStatusValues),
     body('start_date').optional().isISO8601(),
     body('end_date').optional().isISO8601(),
     body('location_name').optional().isString(),
@@ -111,6 +135,11 @@ router.put(
     body('postal_code').optional().isString(),
     body('country').optional().isString(),
     body('capacity').optional().isInt({ min: 1 }),
+    body('is_public').optional().isBoolean(),
+    body('is_recurring').optional().isBoolean(),
+    body('recurrence_pattern').optional().isIn(recurrencePatternValues),
+    body('recurrence_interval').optional().isInt({ min: 1 }),
+    body('recurrence_end_date').optional().isISO8601(),
   ],
   validateRequest,
   updateEvent
@@ -130,7 +159,9 @@ router.get(
   '/:id/registrations',
   [
     param('id').isUUID(),
-    query('status').optional().isString(),
+    query('status').optional().isIn(registrationStatusValues),
+    query('registration_status').optional().isIn(registrationStatusValues),
+    query('checked_in').optional().isBoolean(),
   ],
   validateRequest,
   getEventRegistrations
@@ -144,10 +175,8 @@ router.post(
   '/:id/register',
   [
     param('id').isUUID(),
-    body('contact_id').optional().isUUID(),
-    body('attendee_name').isString().trim().notEmpty().withMessage('Attendee name is required'),
-    body('attendee_email').isEmail().withMessage('Valid email is required'),
-    body('attendee_phone').optional().isString(),
+    body('contact_id').isUUID().withMessage('Valid contact_id is required'),
+    body('registration_status').optional().isIn(registrationStatusValues),
     body('notes').optional().isString(),
   ],
   validateRequest,
@@ -162,11 +191,8 @@ router.put(
   '/registrations/:id',
   [
     param('id').isUUID(),
-    body('status').optional().isIn(['registered', 'confirmed', 'attended', 'no_show', 'cancelled']),
+    body('registration_status').optional().isIn(registrationStatusValues),
     body('notes').optional().isString(),
-    body('attendee_name').optional().isString(),
-    body('attendee_email').optional().isEmail(),
-    body('attendee_phone').optional().isString(),
   ],
   validateRequest,
   updateRegistration
@@ -176,6 +202,13 @@ router.put(
  * POST /api/events/registrations/:id/checkin
  * Check in an attendee
  */
+router.post(
+  '/registrations/:id/check-in',
+  [param('id').isUUID()],
+  validateRequest,
+  checkInAttendee
+);
+
 router.post(
   '/registrations/:id/checkin',
   [param('id').isUUID()],
@@ -214,7 +247,9 @@ router.get(
   [
     query('event_id').optional().isUUID(),
     query('contact_id').optional().isUUID(),
-    query('status').optional().isString(),
+    query('status').optional().isIn(registrationStatusValues),
+    query('registration_status').optional().isIn(registrationStatusValues),
+    query('checked_in').optional().isBoolean(),
     query('start_date').optional().isISO8601(),
     query('end_date').optional().isISO8601(),
   ],

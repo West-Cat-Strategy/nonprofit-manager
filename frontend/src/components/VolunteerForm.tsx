@@ -11,9 +11,8 @@ interface Volunteer {
   availability_status: 'available' | 'unavailable' | 'limited';
   availability_notes?: string | null;
   background_check_status:
-    | 'not_required'
+    | 'not_started'
     | 'pending'
-    | 'in_progress'
     | 'approved'
     | 'rejected'
     | 'expired';
@@ -44,7 +43,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
     skills: [],
     availability_status: 'available',
     availability_notes: '',
-    background_check_status: 'not_required',
+    background_check_status: 'not_started',
     background_check_date: '',
     background_check_expiry: '',
     preferred_roles: [],
@@ -62,7 +61,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
 
   useEffect(() => {
     // Load contacts for the dropdown
-    dispatch(fetchContacts({ page: 1, limit: 1000 }));
+    dispatch(fetchContacts({ page: 1, limit: 100 }));
   }, [dispatch]);
 
   useEffect(() => {
@@ -418,9 +417,8 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
               onChange={handleChange}
               className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             >
-              <option value="not_required">Not Required</option>
+              <option value="not_started">Not Started</option>
               <option value="pending">Pending</option>
-              <option value="in_progress">In Progress</option>
               <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
               <option value="expired">Expired</option>
