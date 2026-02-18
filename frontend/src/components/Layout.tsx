@@ -4,6 +4,7 @@
  */
 
 import Navigation from './Navigation';
+import SkipLink from './SkipLink';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -12,6 +13,7 @@ interface LayoutProps {
 const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="min-h-screen bg-app-bg text-app-text">
+      <SkipLink />
       <Navigation />
       <main id="main-content">{children}</main>
     </div>

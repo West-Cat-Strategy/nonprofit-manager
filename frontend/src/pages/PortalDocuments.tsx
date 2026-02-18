@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import portalApi from '../services/portalApi';
+import PortalPageState from '../components/portal/PortalPageState';
 
 interface DocumentRow {
   id: string;
@@ -15,29 +16,38 @@ interface DocumentRow {
 export default function PortalDocuments() {
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    try {
+      setError(null);
+      const response = await portalApi.get('/portal/documents');
+      setDocuments(response.data);
+    } catch (err) {
+      console.error('Failed to load documents', err);
+      setError('Unable to load documents right now.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const response = await portalApi.get('/portal/documents');
-        setDocuments(response.data);
-      } catch (error) {
-        console.error('Failed to load documents', error);
-      } finally {
-        setLoading(false);
-      }
-    };
     load();
   }, []);
 
   return (
     <div>
       <h2 className="text-xl font-semibold text-app-text">Documents</h2>
-      {loading ? (
-        <p className="text-sm text-app-text-muted mt-2">Loading documents...</p>
-      ) : documents.length === 0 ? (
-        <p className="text-sm text-app-text-muted mt-2">No documents available.</p>
-      ) : (
+      <PortalPageState
+        loading={loading}
+        error={error}
+        empty={!loading && !error && documents.length === 0}
+        loadingLabel="Loading documents..."
+        emptyTitle="No documents available."
+        emptyDescription="Shared files from your organization will appear here."
+        onRetry={load}
+      />
+      {!loading && !error && documents.length > 0 && (
         <ul className="mt-4 space-y-3">
           {documents.map((doc) => (
             <li key={doc.id} className="p-3 border rounded-lg flex justify-between items-center">

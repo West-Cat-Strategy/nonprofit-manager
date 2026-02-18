@@ -13,6 +13,7 @@ import { useToast } from '../contexts/useToast';
 import { useQuickLookup } from './dashboard';
 import type { SearchResult } from './dashboard';
 import type { CaseWithDetails, CreateCaseDTO, UpdateCaseDTO } from '../types/case';
+import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
 
 interface AssigneeOption {
   id: string;
@@ -66,6 +67,7 @@ const CaseForm = ({
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [assignees, setAssignees] = useState<AssigneeOption[]>([]);
   const [canLoadAssignees, setCanLoadAssignees] = useState(true);
+  const [isDirty, setIsDirty] = useState(false);
 
   const lookup = useQuickLookup({ debounceMs: 250 });
 
@@ -73,6 +75,10 @@ const CaseForm = ({
     dispatch(fetchCaseTypes());
     dispatch(fetchCaseStatuses());
   }, [dispatch]);
+
+  useUnsavedChangesGuard({
+    hasUnsavedChanges: isDirty,
+  });
 
   useEffect(() => {
     const loadSelectedContact = async (contactId: string) => {
@@ -113,6 +119,7 @@ const CaseForm = ({
   ) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
+    setIsDirty(true);
     setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
@@ -122,11 +129,13 @@ const CaseForm = ({
   const handleContactQueryChange = (value: string) => {
     lookup.handleSearchChange(value);
     setSelectedContact(null);
+    setIsDirty(true);
     setFormData((prev) => ({ ...prev, contact_id: '' }));
   };
 
   const handleSelectContact = (contact: SearchResult) => {
     setSelectedContact(contact as Contact);
+    setIsDirty(true);
     lookup.selectResult(
       `${contact.first_name} ${contact.last_name}${contact.email ? ` • ${contact.email}` : ''}`
     );
@@ -135,6 +144,7 @@ const CaseForm = ({
 
   const handleAddTag = () => {
     if (tagInput.trim() && !formData.tags?.includes(tagInput.trim())) {
+      setIsDirty(true);
       setFormData((prev) => ({
         ...prev,
         tags: [...(prev.tags || []), tagInput.trim()],
@@ -144,6 +154,7 @@ const CaseForm = ({
   };
 
   const handleRemoveTag = (tag: string) => {
+    setIsDirty(true);
     setFormData((prev) => ({
       ...prev,
       tags: prev.tags?.filter((t) => t !== tag) || [],
@@ -174,9 +185,11 @@ const CaseForm = ({
           closure_reason: formData.closure_reason || undefined,
         };
         await dispatch(updateCase({ id: caseId, data: updateData })).unwrap();
+        setIsDirty(false);
         showSuccess('Case updated successfully');
       } else {
         const createdCase = await dispatch(createCase(formData)).unwrap();
+        setIsDirty(false);
         if (onCreated) {
           onCreated(createdCase);
         }

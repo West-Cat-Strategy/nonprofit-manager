@@ -125,13 +125,13 @@ export const defaultPermissions: PermissionDefinition[] = [
 ];
 
 export const adminSettingsTabs = [
-  { id: 'dashboard', label: 'Dashboard' },
-  { id: 'organization', label: 'Organization' },
-  { id: 'branding', label: 'Branding' },
-  { id: 'users', label: 'Users & Security' },
-  { id: 'portal', label: 'Client Portal' },
-  { id: 'roles', label: 'Roles & Permissions' },
-  { id: 'email', label: 'Email Settings' },
-  { id: 'audit_logs', label: 'Audit Logs' },
-  { id: 'other', label: 'Other Settings' },
+  { id: 'dashboard', label: 'Dashboard', level: 'basic' },
+  { id: 'organization', label: 'Organization', level: 'basic' },
+  { id: 'branding', label: 'Branding', level: 'basic' },
+  { id: 'users', label: 'Users & Security', level: 'basic' },
+  { id: 'portal', label: 'Client Portal', level: 'basic' },
+  { id: 'email', label: 'Email Settings', level: 'basic' },
+  { id: 'roles', label: 'Roles & Permissions', level: 'advanced' },
+  { id: 'audit_logs', label: 'Audit Logs', level: 'advanced' },
+  { id: 'other', label: 'Other Settings', level: 'advanced' },
 ] as const;

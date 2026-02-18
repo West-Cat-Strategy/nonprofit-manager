@@ -4,7 +4,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchEvents } from '../../../store/slices/eventsSlice';
 import type { Event, EventStatus, EventType } from '../../../types/event';
@@ -13,14 +13,16 @@ import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLa
 
 const EventList: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useAppDispatch();
   const { events, pagination, loading, error } = useAppSelector((state) => state.events);
 
-  const [search, setSearch] = useState('');
-  const [eventType, setEventType] = useState<EventType | ''>('');
-  const [status, setStatus] = useState<EventStatus | ''>('');
-  const [visibility, setVisibility] = useState<'all' | 'public' | 'private'>('all');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [eventType, setEventType] = useState<EventType | ''>((searchParams.get('type') as EventType | '') || '');
+  const [status, setStatus] = useState<EventStatus | ''>((searchParams.get('status') as EventStatus | '') || '');
+  const [visibility, setVisibility] = useState<'all' | 'public' | 'private'>((searchParams.get('visibility') as 'all' | 'public' | 'private') || 'all');
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page') || '1'));
+  const hasActiveFilters = Boolean(search || eventType || status || visibility !== 'all');
 
   const loadEvents = useCallback(() => {
     dispatch(
@@ -45,6 +47,24 @@ const EventList: React.FC = () => {
   useEffect(() => {
     loadEvents();
   }, [loadEvents]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (eventType) params.set('type', eventType);
+    if (status) params.set('status', status);
+    if (visibility !== 'all') params.set('visibility', visibility);
+    if (currentPage > 1) params.set('page', String(currentPage));
+    setSearchParams(params, { replace: true });
+  }, [search, eventType, status, visibility, currentPage, setSearchParams]);
+
+  const clearFilters = () => {
+    setSearch('');
+    setEventType('');
+    setStatus('');
+    setVisibility('all');
+    setCurrentPage(1);
+  };
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {
@@ -167,6 +187,18 @@ const EventList: React.FC = () => {
           <option value="private">Private</option>
         </select>
       </div>
+      {hasActiveFilters && (
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-bold uppercase text-[var(--app-text-muted)]">Active filters:</span>
+          {search && <button onClick={() => setSearch('')} className="px-2 py-1 text-xs border-2 border-[var(--app-border)] bg-[var(--app-surface)]">Search: {search} ×</button>}
+          {eventType && <button onClick={() => setEventType('')} className="px-2 py-1 text-xs border-2 border-[var(--app-border)] bg-[var(--app-surface)]">Type: {eventType} ×</button>}
+          {status && <button onClick={() => setStatus('')} className="px-2 py-1 text-xs border-2 border-[var(--app-border)] bg-[var(--app-surface)]">Status: {status} ×</button>}
+          {visibility !== 'all' && <button onClick={() => setVisibility('all')} className="px-2 py-1 text-xs border-2 border-[var(--app-border)] bg-[var(--app-surface)]">Visibility: {visibility} ×</button>}
+          <button onClick={clearFilters} className="px-3 py-1 text-xs font-bold border-2 border-[var(--app-border)] bg-[var(--loop-yellow)]">
+            Clear all
+          </button>
+        </div>
+      )}
 
       {error && <div className="mb-4 p-4 bg-red-100 border-2 border-red-500 text-red-700 shadow-[4px_4px_0px_0px_var(--shadow-color)]">{error}</div>}
 
@@ -174,7 +206,17 @@ const EventList: React.FC = () => {
         <div className="text-center py-12 text-[var(--app-text)]">Loading events...</div>
       ) : events.length === 0 ? (
         <div className="text-center py-12 text-[var(--app-text-muted)]">
-          No events found. Create your first event to get started.
+          <p>No events match your current filters.</p>
+          <div className="mt-4 flex items-center justify-center gap-3">
+            {hasActiveFilters && (
+              <button onClick={clearFilters} className="px-4 py-2 border-2 border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] font-bold">
+                Clear Filters
+              </button>
+            )}
+            <button onClick={() => navigate('/events/new')} className="px-4 py-2 border-2 border-[var(--app-border)] bg-[var(--loop-purple)] text-black font-bold">
+              Create Event
+            </button>
+          </div>
         </div>
       ) : (
         <>

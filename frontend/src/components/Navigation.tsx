@@ -13,6 +13,7 @@ import { useBranding } from '../contexts/BrandingContext';
 import { useTheme } from '../contexts/ThemeContext';
 import Avatar from './Avatar';
 import { useQuickLookup } from './dashboard';
+import { getRouteMeta } from '../routes/routeMeta';
 
 const Navigation = () => {
   const navigate = useNavigate();
@@ -30,7 +31,9 @@ const Navigation = () => {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchDialogRef = useRef<HTMLDivElement>(null);
   const themeMenuRef = useRef<HTMLDivElement>(null);
+  const routeMeta = getRouteMeta(location.pathname);
 
   const themeLabels: Record<string, string> = {
     'neobrutalist': '🎨',
@@ -64,9 +67,12 @@ const Navigation = () => {
     return () => document.removeEventListener('keydown', handleEscape);
   }, []);
 
-  // Close mobile menu when route changes
+  // Close menus when route changes
   useEffect(() => {
     setMobileMenuOpen(false);
+    setUserMenuOpen(false);
+    setMoreMenuOpen(false);
+    setThemeMenuOpen(false);
   }, [location.pathname]);
 
   // Prevent body scroll when mobile menu is open
@@ -121,6 +127,34 @@ const Navigation = () => {
     searchInputRef.current?.focus();
   }, [searchOpen]);
 
+  // Keyboard focus trap for search modal.
+  useEffect(() => {
+    if (!searchOpen) return;
+
+    const handleTabTrap = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab' || !searchDialogRef.current) return;
+      const focusables = searchDialogRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button, textarea, input, select, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusables.length === 0) return;
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleTabTrap);
+    return () => document.removeEventListener('keydown', handleTabTrap);
+  }, [searchOpen]);
+
   return (
     <nav className="bg-app-surface shadow-md border-b border-app-border sticky top-0 z-50">
       <div className="mx-auto px-3 sm:px-4 lg:px-6 max-w-[1920px]">
@@ -147,6 +181,9 @@ const Navigation = () => {
                 {branding.appName || 'Nonprofit Manager'}
               </span>
             </Link>
+            <span className="hidden md:inline-flex items-center rounded-full border border-app-border px-2 py-1 text-xs font-semibold text-app-text-muted">
+              You are here: {routeMeta.section}
+            </span>
 
             {/* Desktop navigation - Primary links */}
             <div className="hidden lg:flex lg:space-x-1">
@@ -609,7 +646,7 @@ const Navigation = () => {
       )}
       {searchOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-40 p-4">
-          <div className="bg-app-surface rounded-lg shadow-xl w-full max-w-2xl mt-16">
+          <div ref={searchDialogRef} className="bg-app-surface rounded-lg shadow-xl w-full max-w-2xl mt-16" role="dialog" aria-modal="true" aria-label="Search people">
             <div className="p-4 border-b border-app-border flex items-center justify-between">
               <h2 className="text-lg font-semibold text-app-text-heading">Search People</h2>
               <button

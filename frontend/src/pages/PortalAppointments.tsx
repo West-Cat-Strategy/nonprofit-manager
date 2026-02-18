@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
 import portalApi from '../services/portalApi';
+import { useToast } from '../contexts/useToast';
+import PortalPageState from '../components/portal/PortalPageState';
+import ConfirmDialog from '../components/ConfirmDialog';
+import useConfirmDialog from '../hooks/useConfirmDialog';
 
 interface Appointment {
   id: string;
@@ -14,6 +18,11 @@ interface Appointment {
 export default function PortalAppointments() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [appointmentToCancel, setAppointmentToCancel] = useState<string | null>(null);
+  const { showSuccess, showError } = useToast();
+  const { dialogState, confirm, handleCancel: handleDialogCancel, handleConfirm } = useConfirmDialog();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -24,10 +33,12 @@ export default function PortalAppointments() {
 
   const loadAppointments = async () => {
     try {
+      setError(null);
       const response = await portalApi.get('/portal/appointments');
       setAppointments(response.data);
-    } catch (error) {
-      console.error('Failed to load appointments', error);
+    } catch (err) {
+      console.error('Failed to load appointments', err);
+      setError('Unable to load appointments right now.');
     } finally {
       setLoading(false);
     }
@@ -43,20 +54,53 @@ export default function PortalAppointments() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await portalApi.post('/portal/appointments', {
-      title: formData.title,
-      description: formData.description || undefined,
-      start_time: formData.start_time,
-      end_time: formData.end_time || undefined,
-      location: formData.location || undefined,
-    });
-    setFormData({ title: '', description: '', start_time: '', end_time: '', location: '' });
-    loadAppointments();
+    setSaving(true);
+    try {
+      await portalApi.post('/portal/appointments', {
+        title: formData.title,
+        description: formData.description || undefined,
+        start_time: formData.start_time,
+        end_time: formData.end_time || undefined,
+        location: formData.location || undefined,
+      });
+      setFormData({ title: '', description: '', start_time: '', end_time: '', location: '' });
+      showSuccess('Appointment requested.');
+      await loadAppointments();
+    } catch (err) {
+      console.error('Failed to request appointment', err);
+      showError('Could not request appointment.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleCancel = async (id: string) => {
-    await portalApi.delete(`/portal/appointments/${id}`);
-    loadAppointments();
+  const handleCancelAppointment = async (id: string) => {
+    const confirmed = await confirm({
+      title: 'Cancel appointment',
+      message: 'Are you sure you want to cancel this appointment?',
+      confirmLabel: 'Cancel appointment',
+      variant: 'warning',
+    });
+    if (!confirmed) return;
+
+    const previous = appointments;
+    setAppointmentToCancel(id);
+    setAppointments((current) =>
+      current.map((appointment) =>
+        appointment.id === id ? { ...appointment, status: 'cancelled' } : appointment
+      )
+    );
+    try {
+      await portalApi.delete(`/portal/appointments/${id}`);
+      showSuccess('Appointment canceled.');
+      await loadAppointments();
+    } catch (err) {
+      console.error('Failed to cancel appointment', err);
+      setAppointments(previous);
+      showError('Could not cancel appointment.');
+    } finally {
+      setAppointmentToCancel(null);
+    }
   };
 
   return (
@@ -105,19 +149,24 @@ export default function PortalAppointments() {
             onChange={handleChange}
             className="w-full px-3 py-2 border rounded-md"
           />
-          <button type="submit" className="px-4 py-2 bg-app-accent text-white rounded-md">
-            Request Appointment
+          <button type="submit" disabled={saving} className="px-4 py-2 bg-app-accent text-white rounded-md disabled:opacity-50">
+            {saving ? 'Submitting...' : 'Request Appointment'}
           </button>
         </form>
       </div>
 
       <div className="mt-8">
         <h3 className="text-lg font-medium text-app-text">Your Appointments</h3>
-        {loading ? (
-          <p className="text-sm text-app-text-muted mt-2">Loading appointments...</p>
-        ) : appointments.length === 0 ? (
-          <p className="text-sm text-app-text-muted mt-2">No appointments yet.</p>
-        ) : (
+        <PortalPageState
+          loading={loading}
+          error={error}
+          empty={!loading && !error && appointments.length === 0}
+          loadingLabel="Loading appointments..."
+          emptyTitle="No appointments yet."
+          emptyDescription="Use the form above to request a new appointment."
+          onRetry={loadAppointments}
+        />
+        {!loading && !error && appointments.length > 0 && (
           <ul className="mt-4 space-y-3">
             {appointments.map((appointment) => (
               <li key={appointment.id} className="p-3 border rounded-lg">
@@ -131,10 +180,11 @@ export default function PortalAppointments() {
                   </div>
                   {appointment.status !== 'cancelled' && (
                     <button
-                      onClick={() => handleCancel(appointment.id)}
+                      onClick={() => handleCancelAppointment(appointment.id)}
+                      disabled={appointmentToCancel === appointment.id}
                       className="text-sm text-red-600 hover:underline"
                     >
-                      Cancel
+                      {appointmentToCancel === appointment.id ? 'Canceling...' : 'Cancel'}
                     </button>
                   )}
                 </div>
@@ -143,6 +193,7 @@ export default function PortalAppointments() {
           </ul>
         )}
       </div>
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleDialogCancel} />
     </div>
   );
 }

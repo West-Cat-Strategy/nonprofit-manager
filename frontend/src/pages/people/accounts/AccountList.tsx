@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   fetchAccounts,
@@ -26,6 +26,7 @@ import { BrutalBadge } from '../../../components/neo-brutalist';
 const AccountList = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { accounts, loading, error, pagination, filters } = useAppSelector(
     (state) => state.accounts
   );
@@ -39,42 +40,49 @@ const AccountList = () => {
   } = useBulkSelect();
 
   const { exportToCSV } = useImportExport();
-  const [searchInput, setSearchInput] = useState(filters.search);
-  const [accountTypeFilter, setAccountTypeFilter] = useState(
-    filters.account_type
-  );
-  const [categoryFilter, setCategoryFilter] = useState(filters.category);
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') || filters.search || '');
+  const [accountTypeFilter, setAccountTypeFilter] = useState(searchParams.get('type') || filters.account_type || '');
+  const [categoryFilter, setCategoryFilter] = useState(searchParams.get('category') || filters.category || '');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || (filters.is_active ? 'active' : 'inactive'));
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page') || '1'));
+  const [currentLimit] = useState(Number(searchParams.get('limit') || String(pagination.limit || 20)));
+  const [sortBy] = useState(searchParams.get('sort_by') || 'created_at');
+  const [sortOrder] = useState<'asc' | 'desc'>((searchParams.get('sort_order') as 'asc' | 'desc') || 'desc');
   const [showImportExport, setShowImportExport] = useState(false);
   const [filterCollapsed, setFilterCollapsed] = useState(false);
+
+  const resolvedIsActive =
+    statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : undefined;
 
   const loadAccounts = useCallback(() => {
     dispatch(
       fetchAccounts({
-        page: pagination.page,
-        limit: pagination.limit,
-        search: filters.search || undefined,
-        account_type: filters.account_type || undefined,
-        category: filters.category || undefined,
-        is_active: filters.is_active,
+        page: currentPage,
+        limit: currentLimit,
+        search: searchInput || undefined,
+        account_type: accountTypeFilter || undefined,
+        category: categoryFilter || undefined,
+        is_active: resolvedIsActive,
       })
     );
-  }, [dispatch, filters, pagination.page, pagination.limit]);
+  }, [dispatch, currentPage, currentLimit, searchInput, accountTypeFilter, categoryFilter, resolvedIsActive]);
 
   useEffect(() => {
     loadAccounts();
   }, [loadAccounts]);
 
   useEffect(() => {
-    if (searchInput === filters.search) {
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      dispatch(setFilters({ search: searchInput }));
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [dispatch, filters.search, searchInput]);
+    const params = new URLSearchParams();
+    if (searchInput) params.set('search', searchInput);
+    if (accountTypeFilter) params.set('type', accountTypeFilter);
+    if (statusFilter) params.set('status', statusFilter);
+    if (categoryFilter) params.set('category', categoryFilter);
+    if (currentPage > 1) params.set('page', String(currentPage));
+    if (currentLimit !== 20) params.set('limit', String(currentLimit));
+    if (sortBy !== 'created_at') params.set('sort_by', sortBy);
+    if (sortOrder !== 'desc') params.set('sort_order', sortOrder);
+    setSearchParams(params, { replace: true });
+  }, [searchInput, accountTypeFilter, statusFilter, categoryFilter, currentPage, currentLimit, sortBy, sortOrder, setSearchParams]);
 
   const handleFilterChange = (filterId: string, value: string | string[]) => {
     if (filterId === 'search' && typeof value === 'string') {
@@ -83,15 +91,20 @@ const AccountList = () => {
       setAccountTypeFilter(value);
     } else if (filterId === 'category' && typeof value === 'string') {
       setCategoryFilter(value);
+    } else if (filterId === 'status' && typeof value === 'string') {
+      setStatusFilter(value);
     }
   };
 
   const handleApplyFilters = () => {
+    setCurrentPage(1);
     dispatch(
       setFilters({
         search: searchInput,
         account_type: accountTypeFilter,
         category: categoryFilter,
+        is_active:
+          statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : true,
       })
     );
   };
@@ -100,6 +113,8 @@ const AccountList = () => {
     setSearchInput('');
     setAccountTypeFilter('');
     setCategoryFilter('');
+    setStatusFilter('active');
+    setCurrentPage(1);
     dispatch(clearFilters());
   };
 
@@ -257,6 +272,16 @@ const AccountList = () => {
                 ariaLabel: 'Search accounts',
               },
               {
+                id: 'status',
+                label: 'Status',
+                type: 'select',
+                value: statusFilter,
+                options: [
+                  { value: 'active', label: 'Active' },
+                  { value: 'inactive', label: 'Inactive' },
+                ],
+              },
+              {
                 id: 'account_type',
                 label: 'Type',
                 type: 'select',
@@ -288,7 +313,7 @@ const AccountList = () => {
             isCollapsed={filterCollapsed}
             onToggleCollapse={() => setFilterCollapsed(!filterCollapsed)}
             activeFilterCount={
-              [searchInput, accountTypeFilter, categoryFilter].filter(
+              [searchInput, accountTypeFilter, categoryFilter, statusFilter !== 'active' ? statusFilter : ''].filter(
                 (f) => f
               ).length
             }
@@ -302,18 +327,7 @@ const AccountList = () => {
           ...pagination,
           totalPages: pagination.total_pages,
         }}
-        onPageChange={(page) =>
-          dispatch(
-            fetchAccounts({
-              page,
-              limit: pagination.limit,
-              search: filters.search || undefined,
-              account_type: filters.account_type || undefined,
-              category: filters.category || undefined,
-              is_active: filters.is_active,
-            })
-          )
-        }
+        onPageChange={(page) => setCurrentPage(page)}
         selectedRows={selectedIds}
         onSelectRow={(id) => toggleRow(id)}
         onSelectAll={handleSelectAll}

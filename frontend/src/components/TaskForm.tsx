@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Task, CreateTaskDTO, UpdateTaskDTO, TaskStatus, TaskPriority } from '../types/task';
+import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
 
 interface TaskFormProps {
   task?: Task | null;
@@ -17,6 +18,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, isEdit = false }) =
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
 
   const [formData, setFormData] = useState<CreateTaskDTO | UpdateTaskDTO>({
     subject: '',
@@ -38,13 +40,19 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, isEdit = false }) =
         related_to_type: task.related_to_type || undefined,
         related_to_id: task.related_to_id || undefined,
       });
+      setIsDirty(false);
     }
   }, [task]);
+
+  useUnsavedChangesGuard({
+    hasUnsavedChanges: isDirty && !loading,
+  });
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+    setIsDirty(true);
     setFormData((prev) => ({
       ...prev,
       [name]: value === '' ? undefined : value,
@@ -62,6 +70,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, isEdit = false }) =
       }
 
       await onSubmit(formData);
+      setIsDirty(false);
       navigate('/tasks');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to save task');

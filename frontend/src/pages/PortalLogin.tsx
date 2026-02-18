@@ -27,6 +27,11 @@ export default function PortalLogin() {
         <p className="text-sm text-app-text-muted mt-2">Access your portal to manage your information.</p>
 
         {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+        {error && (
+          <p className="mt-2 text-xs text-app-text-muted">
+            If your invitation has expired, contact your organization to request a new portal invite.
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>

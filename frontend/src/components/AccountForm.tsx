@@ -4,6 +4,7 @@ import { useAppDispatch } from '../store/hooks';
 import { createAccount, updateAccount } from '../store/slices/accountsSlice';
 import type { Account } from '../store/slices/accountsSlice';
 import { useForm, formValidators, type ValidationRules } from '../hooks/useForm';
+import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
 import { validateEmail, validatePhoneNumber, validateUrl } from '../utils/validation';
 
 type AccountFormValues = {
@@ -71,6 +72,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
     values,
     errors,
     isSubmitting,
+    isDirty,
     handleChange,
     validate,
     setError,
@@ -100,6 +102,10 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
       });
     }
   }, [account, mode, resetTo]);
+
+  useUnsavedChangesGuard({
+    hasUnsavedChanges: isDirty && !isSubmitting,
+  });
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

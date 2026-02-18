@@ -54,6 +54,7 @@ export default function AdminSettings() {
 
   // State
   const [activeSection, setActiveSection] = useState<string>('dashboard');
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [config, setConfig] = useState<OrganizationConfig>(defaultConfig);
 
   const [branding, setBranding] = useState<BrandingConfig>(defaultBranding);
@@ -83,6 +84,13 @@ export default function AdminSettings() {
   const [inviteRole, setInviteRole] = useState('user');
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [inviteEmailDelivery, setInviteEmailDelivery] = useState<{
+    requested: boolean;
+    sent: boolean;
+    reason?: string;
+  } | null>(null);
+  const [inviteEmailConfigured, setInviteEmailConfigured] = useState<boolean>(false);
+  const [inviteCapabilitiesLoading, setInviteCapabilitiesLoading] = useState(false);
   const [isCreatingInvite, setIsCreatingInvite] = useState(false);
 
   // Portal admin state
@@ -184,6 +192,13 @@ export default function AdminSettings() {
 
     fetchPortalData();
   }, [activeSection]);
+
+  useEffect(() => {
+    const activeTab = adminSettingsTabs.find((tab) => tab.id === activeSection);
+    if (activeTab?.level === 'advanced' && !showAdvancedSettings) {
+      setActiveSection('dashboard');
+    }
+  }, [activeSection, showAdvancedSettings]);
 
   // ============================================================================
   // User Search
@@ -429,7 +444,25 @@ export default function AdminSettings() {
     }
   }, [activeSection, fetchInvitations]);
 
-  const handleCreateInvitation = async () => {
+  const fetchInviteCapabilities = useCallback(async () => {
+    try {
+      setInviteCapabilitiesLoading(true);
+      const response = await api.get('/admin/email-settings');
+      setInviteEmailConfigured(Boolean(response.data?.data?.isConfigured));
+    } catch {
+      setInviteEmailConfigured(false);
+    } finally {
+      setInviteCapabilitiesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (showInviteModal) {
+      fetchInviteCapabilities();
+    }
+  }, [showInviteModal, fetchInviteCapabilities]);
+
+  const handleCreateInvitation = async (sendEmail: boolean) => {
     if (!inviteEmail) {
       setFormErrorFromError(new Error('Email is required'), 'Email is required');
       return;
@@ -443,9 +476,11 @@ export default function AdminSettings() {
         email: inviteEmail,
         role: inviteRole,
         message: inviteMessage || undefined,
+        sendEmail,
       });
 
       setInviteUrl(response.data.inviteUrl);
+      setInviteEmailDelivery(response.data.emailDelivery || null);
       fetchInvitations();
     } catch (error: unknown) {
       setFormErrorFromError(error, 'Failed to create invitation');
@@ -481,6 +516,7 @@ export default function AdminSettings() {
     setInviteRole('user');
     setInviteMessage('');
     setInviteUrl(null);
+    setInviteEmailDelivery(null);
     clearFormError();
   };
 
@@ -665,6 +701,10 @@ export default function AdminSettings() {
   // Main Render
   // ============================================================================
 
+  const visibleTabs = showAdvancedSettings
+    ? adminSettingsTabs
+    : adminSettingsTabs.filter((tab) => tab.level === 'basic');
+
   return (
     <NeoBrutalistLayout pageTitle="ADMIN SETTINGS">
       <div className="min-h-screen bg-[var(--app-bg)] p-6">
@@ -685,9 +725,21 @@ export default function AdminSettings() {
           </div>
 
           {/* Navigation Tabs */}
-          <div className="mb-6 border-b-2 border-[var(--app-border)]">
+          <div className="mb-6 border-b-2 border-[var(--app-border)] bg-[var(--app-bg)] sticky top-0 z-10">
+            <div className="flex items-center justify-between pb-3">
+              <p className="text-sm text-[var(--app-text-muted)]">
+                Showing {showAdvancedSettings ? 'all sections' : 'basic sections'}.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowAdvancedSettings((prev) => !prev)}
+                className="px-3 py-2 text-xs font-bold uppercase border-2 border-[var(--app-border)] bg-[var(--app-surface)] hover:bg-[var(--app-surface-muted)]"
+              >
+                {showAdvancedSettings ? 'Hide Advanced' : 'Show Advanced'}
+              </button>
+            </div>
             <nav className="-mb-px flex space-x-4 overflow-x-auto">
-              {adminSettingsTabs.map((tab) => (
+              {visibleTabs.map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
@@ -1096,16 +1148,35 @@ export default function AdminSettings() {
 
                 {inviteUrl ? (
                   <div className="space-y-4">
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <div className="flex items-center gap-2 text-green-800 font-medium mb-2">
+                    <div className={`p-4 border rounded-lg ${
+                      inviteEmailDelivery?.requested && !inviteEmailDelivery?.sent
+                        ? 'bg-amber-50 border-amber-200'
+                        : 'bg-green-50 border-green-200'
+                    }`}>
+                      <div className={`flex items-center gap-2 font-medium mb-2 ${
+                        inviteEmailDelivery?.requested && !inviteEmailDelivery?.sent
+                          ? 'text-amber-800'
+                          : 'text-green-800'
+                      }`}>
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                        Invitation Created
+                        {inviteEmailDelivery?.requested && !inviteEmailDelivery?.sent
+                          ? 'Invitation Created (Email Not Sent)'
+                          : 'Invitation Created'}
                       </div>
-                      <p className="text-sm text-green-700">
-                        Share this link with <strong>{inviteEmail}</strong> to allow them to create their account:
+                      <p className={`text-sm ${
+                        inviteEmailDelivery?.requested && !inviteEmailDelivery?.sent
+                          ? 'text-amber-700'
+                          : 'text-green-700'
+                      }`}>
+                        {inviteEmailDelivery?.requested && inviteEmailDelivery?.sent
+                          ? <>Invitation email sent to <strong>{inviteEmail}</strong>. You can also share this link manually:</>
+                          : <>Share this link with <strong>{inviteEmail}</strong> to allow them to create their account:</>}
                       </p>
+                      {inviteEmailDelivery?.reason && (
+                        <p className="mt-2 text-xs text-amber-800">{inviteEmailDelivery.reason}</p>
+                      )}
                     </div>
 
                     <div className="p-3 bg-app-surface-muted rounded-lg">
@@ -1123,7 +1194,7 @@ export default function AdminSettings() {
                       type="button"
                       onClick={() => {
                         navigator.clipboard.writeText(inviteUrl);
-                        alert('Link copied to clipboard!');
+                        showSuccess('Invitation link copied');
                       }}
                       className="w-full px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
                     >
@@ -1185,6 +1256,11 @@ export default function AdminSettings() {
                         className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
                       />
                     </div>
+                    {!inviteEmailConfigured && !inviteCapabilitiesLoading && (
+                      <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                        Email delivery is not configured. You can still create and share invite links.
+                      </div>
+                    )}
 
                     <div className="flex justify-end space-x-3 mt-6">
                       <button
@@ -1196,11 +1272,19 @@ export default function AdminSettings() {
                       </button>
                       <button
                         type="button"
-                        onClick={handleCreateInvitation}
+                        onClick={() => handleCreateInvitation(false)}
                         disabled={isCreatingInvite || !inviteEmail}
+                        className="px-4 py-2 bg-app-surface-muted text-app-text rounded-lg hover:bg-app-surface-muted disabled:opacity-50"
+                      >
+                        {isCreatingInvite ? 'Creating...' : 'Create Link'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCreateInvitation(true)}
+                        disabled={isCreatingInvite || !inviteEmail || inviteCapabilitiesLoading || !inviteEmailConfigured}
                         className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
                       >
-                        {isCreatingInvite ? 'Creating...' : 'Create Invitation'}
+                        {isCreatingInvite ? 'Creating...' : 'Create + Send Email'}
                       </button>
                     </div>
                   </div>

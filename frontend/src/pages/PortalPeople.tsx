@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import portalApi from '../services/portalApi';
 import { RELATIONSHIP_TYPES } from '../types/contact';
+import { useToast } from '../contexts/useToast';
+import PortalPageState from '../components/portal/PortalPageState';
+import useConfirmDialog from '../hooks/useConfirmDialog';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface PortalRelationship {
   id: string;
@@ -16,6 +20,11 @@ interface PortalRelationship {
 export default function PortalPeople() {
   const [relationships, setRelationships] = useState<PortalRelationship[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const { showSuccess, showError } = useToast();
+  const { dialogState, confirm, handleCancel, handleConfirm } = useConfirmDialog();
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -28,10 +37,12 @@ export default function PortalPeople() {
 
   const loadRelationships = async () => {
     try {
+      setError(null);
       const response = await portalApi.get('/portal/relationships');
       setRelationships(response.data);
-    } catch (error) {
-      console.error('Failed to load relationships', error);
+    } catch (err) {
+      console.error('Failed to load relationships', err);
+      setError('Unable to load associated people right now.');
     } finally {
       setLoading(false);
     }
@@ -47,8 +58,9 @@ export default function PortalPeople() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaving(true);
     try {
-      await portalApi.post('/portal/relationships', {
+      const response = await portalApi.post('/portal/relationships', {
         relationship_type: formData.relationship_type,
         relationship_label: formData.relationship_label || undefined,
         notes: formData.notes || undefined,
@@ -59,6 +71,7 @@ export default function PortalPeople() {
           phone: formData.phone || undefined,
         },
       });
+      setRelationships((prev) => [response.data, ...prev]);
       setFormData({
         first_name: '',
         last_name: '',
@@ -68,19 +81,36 @@ export default function PortalPeople() {
         relationship_label: '',
         notes: '',
       });
-      loadRelationships();
-    } catch (error) {
-      console.error('Failed to add person', error);
+      showSuccess('Person added.');
+    } catch (err) {
+      console.error('Failed to add person', err);
+      showError('Could not add person.');
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleRemove = async (id: string) => {
-    if (!confirm('Remove this person?')) return;
+    const confirmed = await confirm({
+      title: 'Remove person',
+      message: 'Are you sure you want to remove this person from your portal list?',
+      confirmLabel: 'Remove',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
+    const previous = relationships;
+    setRemovingId(id);
+    setRelationships((prev) => prev.filter((relationship) => relationship.id !== id));
     try {
       await portalApi.delete(`/portal/relationships/${id}`);
-      loadRelationships();
-    } catch (error) {
-      console.error('Failed to remove relationship', error);
+      showSuccess('Person removed.');
+    } catch (err) {
+      console.error('Failed to remove relationship', err);
+      setRelationships(previous);
+      showError('Could not remove person.');
+    } finally {
+      setRemovingId(null);
     }
   };
 
@@ -153,19 +183,24 @@ export default function PortalPeople() {
             onChange={handleChange}
             className="px-3 py-2 border border-app-input-border rounded-md w-full"
           />
-          <button type="submit" className="px-4 py-2 bg-app-accent text-white rounded-md">
-            Add Person
+          <button type="submit" disabled={saving} className="px-4 py-2 bg-app-accent text-white rounded-md disabled:opacity-50">
+            {saving ? 'Adding...' : 'Add Person'}
           </button>
         </form>
       </div>
 
       <div className="mt-8">
         <h3 className="text-lg font-medium text-app-text">Current People</h3>
-        {loading ? (
-          <p className="text-sm text-app-text-muted mt-2">Loading...</p>
-        ) : relationships.length === 0 ? (
-          <p className="text-sm text-app-text-muted mt-2">No associated people yet.</p>
-        ) : (
+        <PortalPageState
+          loading={loading}
+          error={error}
+          empty={!loading && !error && relationships.length === 0}
+          loadingLabel="Loading associated people..."
+          emptyTitle="No associated people yet."
+          emptyDescription="Add family members or important contacts above."
+          onRetry={loadRelationships}
+        />
+        {!loading && !error && relationships.length > 0 && (
           <ul className="mt-4 space-y-3">
             {relationships.map((rel) => (
               <li key={rel.id} className="p-3 border rounded-lg flex justify-between items-center">
@@ -179,15 +214,17 @@ export default function PortalPeople() {
                 </div>
                 <button
                   onClick={() => handleRemove(rel.id)}
+                  disabled={removingId === rel.id}
                   className="text-sm text-red-600 hover:underline"
                 >
-                  Remove
+                  {removingId === rel.id ? 'Removing...' : 'Remove'}
                 </button>
               </li>
             ))}
           </ul>
         )}
       </div>
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 }

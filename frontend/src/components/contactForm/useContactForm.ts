@@ -15,6 +15,7 @@ import { useToast } from '../../contexts/useToast';
 import api from '../../services/api';
 import { validatePostalCode } from '../../utils/validation';
 import type { ContactFormValues, ContactRecord } from './types';
+import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 
 interface UseContactFormProps {
   contact?: ContactRecord;
@@ -74,6 +75,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   // Relationship form state
   const [isAddingRelationship, setIsAddingRelationship] = useState(false);
@@ -104,8 +106,13 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
         ...contact,
         roles: contact.roles || [],
       });
+      setIsDirty(false);
     }
   }, [contact, mode]);
+
+  useUnsavedChangesGuard({
+    hasUnsavedChanges: isDirty && !isSubmitting,
+  });
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -131,6 +138,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value, type } = e.target;
+    setIsDirty(true);
 
     setFormData((prev) => ({
       ...prev,
@@ -147,6 +155,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
   };
 
   const handleToggleRole = (roleName: string) => {
+    setIsDirty(true);
     setFormData((prev) => {
       const roles = prev.roles || [];
       const clientSubRoles = [
@@ -179,6 +188,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
   };
 
   const handleNoFixedAddressChange = (checked: boolean) => {
+    setIsDirty(true);
     setFormData((prev) => ({
       ...prev,
       no_fixed_address: checked,
@@ -196,6 +206,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
   const handleAddTag = (tag: string) => {
     const normalized = tag.trim();
     if (!normalized) return;
+    setIsDirty(true);
     setFormData((prev) => {
       const existing = prev.tags || [];
       if (existing.some((value) => value.toLowerCase() === normalized.toLowerCase())) {
@@ -209,6 +220,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
   };
 
   const handleRemoveTag = (tag: string) => {
+    setIsDirty(true);
     setFormData((prev) => ({
       ...prev,
       tags: (prev.tags || []).filter((value) => value !== tag),
@@ -304,6 +316,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
 
       if (mode === 'create') {
         const result = await dispatch(createContact(cleanedData)).unwrap();
+        setIsDirty(false);
         if (result.staffInvitation?.inviteUrl) {
           showSuccess(
             `Staff invitation created for ${result.staffInvitation.role}. Share this link: ${result.staffInvitation.inviteUrl}`
@@ -326,6 +339,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
             data: cleanedData,
           })
         ).unwrap();
+        setIsDirty(false);
         if (result.staffInvitation?.inviteUrl) {
           showSuccess(
             `Staff invitation created for ${result.staffInvitation.role}. Share this link: ${result.staffInvitation.inviteUrl}`

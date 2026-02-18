@@ -55,6 +55,7 @@ export default function Analytics() {
   });
 
   const [comparisonPeriod, setComparisonPeriod] = useState<'month' | 'quarter' | 'year'>('month');
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
 
   useEffect(() => {
     dispatch(fetchAnalyticsSummary(filters));
@@ -63,6 +64,16 @@ export default function Analytics() {
     dispatch(fetchEventAttendanceTrends(12));
     dispatch(fetchComparativeAnalytics(comparisonPeriod));
   }, [dispatch, filters, comparisonPeriod]);
+
+  useEffect(() => {
+    if (!summary && !comparativeAnalytics) {
+      return;
+    }
+    if (summaryLoading || trendsLoading || comparativeLoading) {
+      return;
+    }
+    setLastUpdatedAt(new Date());
+  }, [summary, comparativeAnalytics, summaryLoading, trendsLoading, comparativeLoading]);
 
   const handleApplyFilters = () => {
     dispatch(setFilters(dateRange));
@@ -114,6 +125,18 @@ export default function Analytics() {
               </div>
             )}
           </div>
+          <p className="mt-2 text-sm text-app-text-muted">
+            Last updated:{' '}
+            {lastUpdatedAt
+              ? new Intl.DateTimeFormat('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                }).format(lastUpdatedAt)
+              : 'Not yet loaded'}
+          </p>
         </div>
       </div>
 
@@ -164,9 +187,27 @@ export default function Analytics() {
 
         {/* Loading State */}
         {summaryLoading && (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-            <p className="mt-4 text-app-text-muted">Loading analytics...</p>
+          <div className="py-12" aria-live="polite">
+            <p className="text-center text-app-text-muted mb-6">Loading analytics...</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={`kpi-skeleton-${index}`} className="bg-app-surface rounded-lg shadow p-6">
+                  <div className="h-4 w-32 bg-app-surface-muted rounded animate-pulse mb-3" />
+                  <div className="h-8 w-24 bg-app-surface-muted rounded animate-pulse mb-2" />
+                  <div className="h-3 w-20 bg-app-surface-muted rounded animate-pulse" />
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-app-surface rounded-lg shadow p-6">
+                <div className="h-5 w-40 bg-app-surface-muted rounded animate-pulse mb-4" />
+                <div className="h-64 bg-app-surface-muted rounded animate-pulse" />
+              </div>
+              <div className="bg-app-surface rounded-lg shadow p-6">
+                <div className="h-5 w-40 bg-app-surface-muted rounded animate-pulse mb-4" />
+                <div className="h-64 bg-app-surface-muted rounded animate-pulse" />
+              </div>
+            </div>
           </div>
         )}
 
@@ -358,7 +399,8 @@ export default function Analytics() {
                 </div>
               ) : (
                 <div className="text-center py-8 text-app-text-muted">
-                  No comparison data available
+                  <p>No comparison data available for this period.</p>
+                  <p className="text-sm mt-2">Try another period or broaden the date filter to include more activity.</p>
                 </div>
               )}
             </div>
@@ -474,6 +516,11 @@ export default function Analytics() {
                       Events module
                     </button>
                   </p>
+                  {summary.total_events_ytd === 0 && (
+                    <p className="text-sm text-app-text-muted">
+                      No events in this range. Try creating an event or clearing date filters.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -506,6 +553,11 @@ export default function Analytics() {
                       Donations module
                     </button>
                   </p>
+                  {summary.donation_count_ytd === 0 && (
+                    <p className="text-sm text-app-text-muted">
+                      No donations in this range. Try recording a donation or widening the date range.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -515,7 +567,23 @@ export default function Analytics() {
         {/* Empty State */}
         {!summaryLoading && !error && !summary && (
           <div className="text-center py-12">
-            <p className="text-app-text-muted">No analytics data available</p>
+            <p className="text-app-text-muted">No analytics data available for this date range.</p>
+            <div className="mt-4 flex flex-wrap justify-center gap-3">
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover text-sm"
+              >
+                Clear Filters
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/donations/new')}
+                className="px-4 py-2 bg-app-surface-muted text-app-text-muted rounded-md hover:bg-app-hover text-sm"
+              >
+                Add Donation
+              </button>
+            </div>
           </div>
         )}
       </main>

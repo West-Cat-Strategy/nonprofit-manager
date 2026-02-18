@@ -4,7 +4,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchDonations } from '../../../store/slices/donationsSlice';
 import type { PaymentMethod, PaymentStatus } from '../../../types/donation';
@@ -12,15 +12,17 @@ import { formatDate, formatCurrency } from '../../../utils/format';
 
 const DonationList: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useAppDispatch();
   const { donations, pagination, totalAmount, averageAmount, loading, error } = useAppSelector(
     (state) => state.donations
   );
 
-  const [search, setSearch] = useState('');
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | ''>('');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | ''>((searchParams.get('status') as PaymentStatus | '') || '');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>((searchParams.get('type') as PaymentMethod | '') || '');
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page') || '1'));
+  const hasActiveFilters = Boolean(search || paymentStatus || paymentMethod);
 
   const loadDonations = useCallback(() => {
     dispatch(
@@ -43,6 +45,22 @@ const DonationList: React.FC = () => {
   useEffect(() => {
     loadDonations();
   }, [loadDonations]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (paymentStatus) params.set('status', paymentStatus);
+    if (paymentMethod) params.set('type', paymentMethod);
+    if (currentPage > 1) params.set('page', String(currentPage));
+    setSearchParams(params, { replace: true });
+  }, [search, paymentStatus, paymentMethod, currentPage, setSearchParams]);
+
+  const clearFilters = () => {
+    setSearch('');
+    setPaymentStatus('');
+    setPaymentMethod('');
+    setCurrentPage(1);
+  };
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {
@@ -140,6 +158,16 @@ const DonationList: React.FC = () => {
           <option value="other">Other</option>
         </select>
       </div>
+      {hasActiveFilters && (
+        <div className="mb-6 flex flex-wrap gap-2">
+          {search && <button onClick={() => setSearch('')} className="px-2 py-1 text-xs border rounded-md">Search: {search} ×</button>}
+          {paymentStatus && <button onClick={() => setPaymentStatus('')} className="px-2 py-1 text-xs border rounded-md">Status: {paymentStatus} ×</button>}
+          {paymentMethod && <button onClick={() => setPaymentMethod('')} className="px-2 py-1 text-xs border rounded-md">Type: {paymentMethod} ×</button>}
+          <button onClick={clearFilters} className="px-2 py-1 text-xs font-semibold border rounded-md bg-app-surface-muted">
+            Clear all
+          </button>
+        </div>
+      )}
 
       {error && <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-md">{error}</div>}
 
@@ -147,7 +175,17 @@ const DonationList: React.FC = () => {
         <div className="text-center py-12">Loading donations...</div>
       ) : donations.length === 0 ? (
         <div className="text-center py-12 text-app-text-muted">
-          No donations found. Record your first donation to get started.
+          <p>No donations match your current filters.</p>
+          <div className="mt-4 flex justify-center gap-3">
+            {hasActiveFilters && (
+              <button onClick={clearFilters} className="px-4 py-2 border rounded-md hover:bg-app-surface-muted">
+                Clear Filters
+              </button>
+            )}
+            <button onClick={() => navigate('/donations/new')} className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover">
+              Record Donation
+            </button>
+          </div>
         </div>
       ) : (
         <>

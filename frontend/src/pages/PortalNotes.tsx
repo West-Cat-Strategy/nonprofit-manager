@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import portalApi from '../services/portalApi';
+import PortalPageState from '../components/portal/PortalPageState';
 
 interface NoteRow {
   id: string;
@@ -12,29 +13,38 @@ interface NoteRow {
 export default function PortalNotes() {
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    try {
+      setError(null);
+      const response = await portalApi.get('/portal/notes');
+      setNotes(response.data);
+    } catch (err) {
+      console.error('Failed to load notes', err);
+      setError('Unable to load notes right now.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const response = await portalApi.get('/portal/notes');
-        setNotes(response.data);
-      } catch (error) {
-        console.error('Failed to load notes', error);
-      } finally {
-        setLoading(false);
-      }
-    };
     load();
   }, []);
 
   return (
     <div>
       <h2 className="text-xl font-semibold text-app-text">Notes</h2>
-      {loading ? (
-        <p className="text-sm text-app-text-muted mt-2">Loading notes...</p>
-      ) : notes.length === 0 ? (
-        <p className="text-sm text-app-text-muted mt-2">No notes available.</p>
-      ) : (
+      <PortalPageState
+        loading={loading}
+        error={error}
+        empty={!loading && !error && notes.length === 0}
+        loadingLabel="Loading notes..."
+        emptyTitle="No notes available."
+        emptyDescription="Notes shared by staff will show here."
+        onRetry={load}
+      />
+      {!loading && !error && notes.length > 0 && (
         <ul className="mt-4 space-y-3">
           {notes.map((note) => (
             <li key={note.id} className="p-3 border rounded-lg">

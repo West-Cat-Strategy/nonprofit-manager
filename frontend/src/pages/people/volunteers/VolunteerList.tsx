@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   fetchVolunteers,
@@ -26,6 +26,7 @@ import { BrutalBadge } from '../../../components/neo-brutalist';
 const VolunteerList = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { volunteers, loading, error, pagination, filters } = useAppSelector(
     (state) => state.volunteers
   );
@@ -39,31 +40,43 @@ const VolunteerList = () => {
   } = useBulkSelect();
 
   const { exportToCSV } = useImportExport();
-  const [searchInput, setSearchInput] = useState(filters.search);
-  const [availabilityFilter, setAvailabilityFilter] = useState(
-    filters.availability_status
-  );
-  const [backgroundCheckFilter, setBackgroundCheckFilter] = useState(
-    filters.background_check_status
-  );
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') || filters.search || '');
+  const [availabilityFilter, setAvailabilityFilter] = useState(searchParams.get('status') || filters.availability_status || '');
+  const [backgroundCheckFilter, setBackgroundCheckFilter] = useState(searchParams.get('type') || filters.background_check_status || '');
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page') || '1'));
+  const [currentLimit] = useState(Number(searchParams.get('limit') || String(pagination.limit || 20)));
+  const [sortBy] = useState(searchParams.get('sort_by') || 'created_at');
+  const [sortOrder] = useState<'asc' | 'desc'>((searchParams.get('sort_order') as 'asc' | 'desc') || 'desc');
   const [showImportExport, setShowImportExport] = useState(false);
   const [filterCollapsed, setFilterCollapsed] = useState(false);
 
   const loadVolunteers = useCallback(() => {
     dispatch(
       fetchVolunteers({
-        page: pagination.page,
-        limit: pagination.limit,
-        search: filters.search || undefined,
-        availability_status: filters.availability_status || undefined,
-        background_check_status: filters.background_check_status || undefined,
+        page: currentPage,
+        limit: currentLimit,
+        search: searchInput || undefined,
+        availability_status: availabilityFilter || undefined,
+        background_check_status: backgroundCheckFilter || undefined,
       })
     );
-  }, [dispatch, filters, pagination.page, pagination.limit]);
+  }, [dispatch, currentPage, currentLimit, searchInput, availabilityFilter, backgroundCheckFilter]);
 
   useEffect(() => {
     loadVolunteers();
   }, [loadVolunteers]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (searchInput) params.set('search', searchInput);
+    if (availabilityFilter) params.set('status', availabilityFilter);
+    if (backgroundCheckFilter) params.set('type', backgroundCheckFilter);
+    if (currentPage > 1) params.set('page', String(currentPage));
+    if (currentLimit !== 20) params.set('limit', String(currentLimit));
+    if (sortBy !== 'created_at') params.set('sort_by', sortBy);
+    if (sortOrder !== 'desc') params.set('sort_order', sortOrder);
+    setSearchParams(params, { replace: true });
+  }, [searchInput, availabilityFilter, backgroundCheckFilter, currentPage, currentLimit, sortBy, sortOrder, setSearchParams]);
 
   const handleFilterChange = (filterId: string, value: string | string[]) => {
     if (filterId === 'search' && typeof value === 'string') {
@@ -76,6 +89,7 @@ const VolunteerList = () => {
   };
 
   const handleApplyFilters = () => {
+    setCurrentPage(1);
     dispatch(
       setFilters({
         search: searchInput,
@@ -89,6 +103,7 @@ const VolunteerList = () => {
     setSearchInput('');
     setAvailabilityFilter('');
     setBackgroundCheckFilter('');
+    setCurrentPage(1);
     dispatch(clearFilters());
   };
 
@@ -349,17 +364,7 @@ const VolunteerList = () => {
           ...pagination,
           totalPages: pagination.total_pages,
         }}
-        onPageChange={(page) =>
-          dispatch(
-            fetchVolunteers({
-              page,
-              limit: pagination.limit,
-              search: filters.search || undefined,
-              availability_status: filters.availability_status || undefined,
-              background_check_status: filters.background_check_status || undefined,
-            })
-          )
-        }
+        onPageChange={(page) => setCurrentPage(page)}
         selectedRows={selectedIds}
         onSelectRow={(id) => toggleRow(id)}
         onSelectAll={handleSelectAll}
