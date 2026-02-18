@@ -3,13 +3,28 @@ import type { SaveStatus } from '../types';
 interface SaveBarProps {
   isSaving: boolean;
   saveStatus: SaveStatus;
+  isDirty?: boolean;
+  lastSavedAt?: Date | null;
   onSave: () => void;
 }
 
-export default function SaveBar({ isSaving, saveStatus, onSave }: SaveBarProps) {
+export default function SaveBar({
+  isSaving,
+  saveStatus,
+  isDirty = false,
+  lastSavedAt = null,
+  onSave,
+}: SaveBarProps) {
+  const persistentStatus = isDirty
+    ? 'Unsaved changes'
+    : lastSavedAt
+      ? `Saved ${lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+      : 'No pending changes';
+
   return (
     <div className="flex items-center justify-between p-6 pt-4 border-t border-app-border">
       <div>
+        <p className="text-sm text-app-text-muted">{persistentStatus}</p>
         {saveStatus === 'success' && (
           <span className="text-green-600 text-sm flex items-center">
             <svg className="h-5 w-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
