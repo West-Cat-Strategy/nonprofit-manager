@@ -19,6 +19,7 @@ const EventList: React.FC = () => {
   const [search, setSearch] = useState('');
   const [eventType, setEventType] = useState<EventType | ''>('');
   const [status, setStatus] = useState<EventStatus | ''>('');
+  const [visibility, setVisibility] = useState<'all' | 'public' | 'private'>('all');
   const [currentPage, setCurrentPage] = useState(1);
 
   const loadEvents = useCallback(() => {
@@ -28,6 +29,8 @@ const EventList: React.FC = () => {
           search: search || undefined,
           event_type: eventType || undefined,
           status: status || undefined,
+          is_public:
+            visibility === 'public' ? true : visibility === 'private' ? false : undefined,
         },
         pagination: {
           page: currentPage,
@@ -37,7 +40,7 @@ const EventList: React.FC = () => {
         },
       })
     );
-  }, [dispatch, search, eventType, status, currentPage]);
+  }, [dispatch, search, eventType, status, visibility, currentPage]);
 
   useEffect(() => {
     loadEvents();
@@ -60,6 +63,10 @@ const EventList: React.FC = () => {
       community: 'bg-app-accent-soft text-app-accent-text',
       training: 'bg-indigo-100 text-indigo-800',
       meeting: 'bg-app-surface-muted text-app-text',
+      workshop: 'bg-orange-100 text-orange-800',
+      webinar: 'bg-cyan-100 text-cyan-800',
+      conference: 'bg-blue-100 text-blue-800',
+      outreach: 'bg-emerald-100 text-emerald-800',
       volunteer: 'bg-green-100 text-green-800',
       social: 'bg-pink-100 text-pink-800',
       other: 'bg-app-surface-muted text-app-text',
@@ -97,7 +104,7 @@ const EventList: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
         <input
           type="text"
           placeholder="Search events..."
@@ -122,6 +129,10 @@ const EventList: React.FC = () => {
           <option value="community">Community</option>
           <option value="training">Training</option>
           <option value="meeting">Meeting</option>
+          <option value="workshop">Workshop</option>
+          <option value="webinar">Webinar</option>
+          <option value="conference">Conference</option>
+          <option value="outreach">Outreach</option>
           <option value="volunteer">Volunteer</option>
           <option value="social">Social</option>
           <option value="other">Other</option>
@@ -141,6 +152,19 @@ const EventList: React.FC = () => {
           <option value="completed">Completed</option>
           <option value="cancelled">Cancelled</option>
           <option value="postponed">Postponed</option>
+        </select>
+
+        <select
+          value={visibility}
+          onChange={(e) => {
+            setVisibility(e.target.value as 'all' | 'public' | 'private');
+            setCurrentPage(1);
+          }}
+          className="px-4 py-2 border-2 border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] shadow-[2px_2px_0px_0px_var(--shadow-color)] focus:outline-none focus:ring-2 focus:ring-[var(--app-border)]"
+        >
+          <option value="all">All Visibility</option>
+          <option value="public">Public</option>
+          <option value="private">Private</option>
         </select>
       </div>
 
@@ -186,7 +210,12 @@ const EventList: React.FC = () => {
                 {events.map((event) => (
                   <tr key={event.event_id} className="hover:bg-[var(--app-surface-muted)]">
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-[var(--app-text)]">{event.event_name}</div>
+                      <div className="text-sm font-medium text-[var(--app-text)] flex items-center gap-2">
+                        <span>{event.event_name}</span>
+                        <span className="px-2 py-1 text-xs font-semibold border-2 border-black bg-white text-black">
+                          {event.is_public ? 'Public' : 'Private'}
+                        </span>
+                      </div>
                       {event.description && (
                         <div className="text-sm text-[var(--app-text-muted)] truncate max-w-xs">
                           {event.description}
@@ -199,6 +228,11 @@ const EventList: React.FC = () => {
                       >
                         {event.event_type}
                       </span>
+                      {event.is_recurring && (
+                        <span className="ml-2 px-2 py-1 text-xs font-semibold border-2 border-black bg-yellow-100 text-yellow-900">
+                          Recurring
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--app-text)]">
                       <div>{formatDateTime(event.start_date)}</div>

@@ -140,23 +140,32 @@ describe('EventForm', () => {
 
   describe('Edit Mode', () => {
     const mockEvent: Event = {
-      id: '123',
+      event_id: '123',
       event_name: 'Existing Event',
       description: 'Event description',
       event_type: 'fundraiser',
       status: 'planned',
+      is_public: true,
+      is_recurring: true,
+      recurrence_pattern: 'weekly',
+      recurrence_interval: 2,
+      recurrence_end_date: '2026-12-31T10:00:00Z',
       start_date: '2026-06-01T10:00:00Z',
       end_date: '2026-06-01T14:00:00Z',
       location_name: 'Community Center',
       address_line1: '123 Main St',
+      address_line2: null,
       city: 'Portland',
       state_province: 'OR',
       postal_code: '97201',
       country: 'USA',
       capacity: 100,
       registered_count: 25,
+      attended_count: 10,
       created_at: '2026-01-01T00:00:00Z',
       updated_at: '2026-01-01T00:00:00Z',
+      created_by: 'user-1',
+      modified_by: 'user-1',
     };
 
     it('shows Update Event button in edit mode', () => {
@@ -209,6 +218,68 @@ describe('EventForm', () => {
       const eventTypeSelect = screen.getByLabelText(/event type/i) as HTMLSelectElement;
       fireEvent.change(eventTypeSelect, { target: { value: 'volunteer' } });
       expect(eventTypeSelect.value).toBe('volunteer');
+    });
+
+    it('allows selecting webinar event type', () => {
+      renderWithProviders(<EventForm onSubmit={mockOnSubmit} />);
+
+      const eventTypeSelect = screen.getByLabelText(/event type/i) as HTMLSelectElement;
+      fireEvent.change(eventTypeSelect, { target: { value: 'webinar' } });
+      expect(eventTypeSelect.value).toBe('webinar');
+    });
+  });
+
+  describe('Recurrence Fields', () => {
+    it('shows recurrence controls when recurring is enabled', () => {
+      renderWithProviders(<EventForm onSubmit={mockOnSubmit} />);
+
+      fireEvent.click(screen.getByLabelText(/this is a recurring event/i));
+      expect(screen.getByLabelText(/pattern/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/every/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/ends on/i)).toBeInTheDocument();
+    });
+
+    it('hides recurrence controls when recurring is disabled', () => {
+      renderWithProviders(<EventForm onSubmit={mockOnSubmit} />);
+
+      const recurringCheckbox = screen.getByLabelText(/this is a recurring event/i);
+      fireEvent.click(recurringCheckbox);
+      fireEvent.click(recurringCheckbox);
+      expect(screen.queryByLabelText(/pattern/i)).not.toBeInTheDocument();
+    });
+
+    it('submits recurrence data when recurring is enabled', async () => {
+      mockOnSubmit.mockResolvedValue(undefined);
+      renderWithProviders(<EventForm onSubmit={mockOnSubmit} />);
+
+      fireEvent.change(screen.getByLabelText(/event name/i), {
+        target: { value: 'Recurring Event' },
+      });
+      fireEvent.change(screen.getByLabelText(/start date/i), {
+        target: { value: '2026-06-15T10:00' },
+      });
+      fireEvent.change(screen.getByLabelText(/end date/i), {
+        target: { value: '2026-06-15T14:00' },
+      });
+      fireEvent.click(screen.getByLabelText(/this is a recurring event/i));
+      fireEvent.change(screen.getByLabelText(/pattern/i), {
+        target: { value: 'monthly' },
+      });
+      fireEvent.change(screen.getByLabelText(/every/i), {
+        target: { value: '3' },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /create event/i }));
+
+      await waitFor(() => {
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            is_recurring: true,
+            recurrence_pattern: 'monthly',
+            recurrence_interval: 3,
+          })
+        );
+      });
     });
   });
 

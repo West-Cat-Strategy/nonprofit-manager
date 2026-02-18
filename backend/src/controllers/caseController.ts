@@ -331,7 +331,8 @@ export const updateCaseService = async (req: AuthRequest, res: Response): Promis
   try {
     const { serviceId } = req.params;
     const data = req.body as UpdateCaseServiceDTO;
-    const service = await caseService.updateCaseService(serviceId, data);
+    const userId = req.user?.id;
+    const service = await caseService.updateCaseService(serviceId, data, userId);
     res.json(service);
   } catch (error) {
     logger.error('Error updating case service:', error);

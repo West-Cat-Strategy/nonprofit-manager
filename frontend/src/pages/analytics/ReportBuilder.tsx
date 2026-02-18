@@ -12,6 +12,7 @@ import ReportChart from '../../components/ReportChart';
 
 
 const ENTITIES: { value: ReportEntity; label: string }[] = [
+  { value: 'cases', label: 'Cases' },
   { value: 'accounts', label: 'Accounts' },
   { value: 'contacts', label: 'Contacts' },
   { value: 'donations', label: 'Donations' },

@@ -4,7 +4,7 @@
 
 import { Page } from '@playwright/test';
 
-async function getAuthHeaders(page: Page, token: string): Promise<Record<string, string>> {
+export async function getAuthHeaders(page: Page, token: string): Promise<Record<string, string>> {
   const apiURL = process.env.API_URL || 'http://localhost:3001';
   const organizationId = await page
     .evaluate(() => localStorage.getItem('organizationId'))
@@ -300,4 +300,65 @@ export async function createTestEvent(
 
   const result = await response.json();
   return { id: result.event_id || result.id };
+}
+
+/**
+ * Create test volunteer via API
+ */
+export async function createTestVolunteer(
+  page: Page,
+  token: string,
+  data: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+    contactId?: string;
+    availabilityStatus?: 'available' | 'limited' | 'unavailable';
+    backgroundCheckStatus?:
+      | 'not_started'
+      | 'pending'
+      | 'approved'
+      | 'rejected'
+      | 'expired';
+  } = {}
+): Promise<{ id: string; contactId: string }> {
+  const apiURL = process.env.API_URL || 'http://localhost:3001';
+  const headers = await getAuthHeaders(page, token);
+
+  const contactId =
+    data.contactId ||
+    (
+      await createTestContact(page, token, {
+        firstName: data.firstName || 'Test',
+        lastName: data.lastName || 'Volunteer',
+        email: data.email,
+        phone: data.phone,
+        contactType: 'volunteer',
+      })
+    ).id;
+
+  const response = await page.request.post(`${apiURL}/api/volunteers`, {
+    headers,
+    data: {
+      contact_id: contactId,
+      availability_status: data.availabilityStatus || 'available',
+      background_check_status: data.backgroundCheckStatus || 'not_started',
+      skills: [],
+    },
+  });
+
+  if (!response.ok()) {
+    throw new Error(
+      `Failed to create test volunteer (${response.status()}): ${await response.text()}`
+    );
+  }
+
+  const result = await response.json();
+  const id = result.volunteer_id || result.id || result.data?.volunteer_id || result.data?.id;
+  if (!id) {
+    throw new Error(`Failed to parse volunteer id from response: ${JSON.stringify(result)}`);
+  }
+
+  return { id, contactId };
 }

@@ -8,9 +8,20 @@ export enum EventType {
   COMMUNITY = 'community',
   TRAINING = 'training',
   MEETING = 'meeting',
+  WORKSHOP = 'workshop',
+  WEBINAR = 'webinar',
+  CONFERENCE = 'conference',
+  OUTREACH = 'outreach',
   VOLUNTEER = 'volunteer',
   SOCIAL = 'social',
   OTHER = 'other',
+}
+
+export enum RecurrencePattern {
+  DAILY = 'daily',
+  WEEKLY = 'weekly',
+  MONTHLY = 'monthly',
+  YEARLY = 'yearly',
 }
 
 export enum EventStatus {
@@ -35,6 +46,11 @@ export interface Event {
   description: string | null;
   event_type: EventType;
   status: EventStatus;
+  is_public: boolean;
+  is_recurring: boolean;
+  recurrence_pattern: RecurrencePattern | null;
+  recurrence_interval: number | null;
+  recurrence_end_date: Date | null;
   start_date: Date;
   end_date: Date;
 
@@ -64,6 +80,11 @@ export interface CreateEventDTO {
   description?: string;
   event_type: EventType;
   status?: EventStatus;
+  is_public?: boolean;
+  is_recurring?: boolean;
+  recurrence_pattern?: RecurrencePattern;
+  recurrence_interval?: number;
+  recurrence_end_date?: Date;
   start_date: Date;
   end_date: Date;
   location_name?: string;
@@ -81,6 +102,11 @@ export interface UpdateEventDTO {
   description?: string;
   event_type?: EventType;
   status?: EventStatus;
+  is_public?: boolean;
+  is_recurring?: boolean;
+  recurrence_pattern?: RecurrencePattern;
+  recurrence_interval?: number;
+  recurrence_end_date?: Date;
   start_date?: Date;
   end_date?: Date;
   location_name?: string;
@@ -97,6 +123,7 @@ export interface EventFilters {
   search?: string;
   event_type?: EventType;
   status?: EventStatus;
+  is_public?: boolean;
   start_date?: Date;
   end_date?: Date;
 }

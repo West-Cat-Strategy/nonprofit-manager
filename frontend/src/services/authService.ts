@@ -50,7 +50,10 @@ export const authService = {
     mfaToken: string;
     code: string;
   }): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/auth/login/2fa', params);
+    const response = await api.post<AuthResponse>('/auth/login/2fa', {
+      ...params,
+      token: params.code,
+    });
     return response.data;
   },
 

@@ -3,7 +3,14 @@
 
 export type CasePriority = 'low' | 'medium' | 'high' | 'urgent';
 export type CaseSource = 'phone' | 'email' | 'walk-in' | 'referral' | 'web' | 'other';
-export type CaseOutcome = 'successful' | 'unsuccessful' | 'referred' | 'withdrawn' | 'other';
+export type CaseOutcome =
+  | 'successful'
+  | 'unsuccessful'
+  | 'referred'
+  | 'withdrawn'
+  | 'attended_event'
+  | 'additional_related_case'
+  | 'other';
 export type CaseStatusType = 'intake' | 'active' | 'review' | 'closed' | 'cancelled';
 export type NoteType = 'note' | 'email' | 'call' | 'meeting' | 'update' | 'status_change';
 export type DocumentType = 'intake' | 'assessment' | 'consent' | 'report' | 'correspondence' | 'other';
@@ -11,6 +18,21 @@ export type AccessLevel = 'public' | 'standard' | 'restricted' | 'confidential';
 export type RelationshipType = 'duplicate' | 'related' | 'parent' | 'child' | 'blocked_by' | 'blocks';
 export type ServiceType = 'counseling' | 'legal' | 'financial' | 'housing' | 'healthcare' | 'education' | 'employment' | 'other';
 export type ServiceStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+export type ServiceOutcome = 'attended_event' | 'additional_related_case' | 'completed' | 'follow_up_needed' | 'other';
+
+export interface ExternalServiceProvider {
+  id: string;
+  provider_name: string;
+  provider_type?: string | null;
+  is_active: boolean;
+  notes?: string | null;
+  created_at: Date | string;
+  updated_at: Date | string;
+  created_by?: string | null;
+  modified_by?: string | null;
+  attached_services_count?: number;
+  attached_cases_count?: number;
+}
 
 /**
  * Case Type Definition
@@ -207,12 +229,15 @@ export interface CaseService {
   service_name: string;
   service_type?: ServiceType | null;
   service_provider?: string | null;
+  external_service_provider_id?: string | null;
+  external_service_provider_name?: string | null;
+  external_service_provider_type?: string | null;
   service_date: Date | string;
   start_time?: string | null;
   end_time?: string | null;
   duration_minutes?: number | null;
   status: ServiceStatus;
-  outcome?: string | null;
+  outcome?: ServiceOutcome | string | null;
   cost?: number | null;
   currency: string;
   notes?: string | null;
@@ -296,7 +321,7 @@ export interface CaseFilter {
   intake_end_date?: Date | string;
   due_date_start?: Date | string;
   due_date_end?: Date | string;
-  quick_filter?: 'overdue' | 'due_soon' | 'unassigned' | 'urgent';
+  quick_filter?: 'active' | 'overdue' | 'due_soon' | 'unassigned' | 'urgent';
   due_within_days?: number;
   page?: number;
   limit?: number;
@@ -407,12 +432,13 @@ export interface CreateCaseServiceDTO {
   service_name: string;
   service_type?: ServiceType;
   service_provider?: string;
+  external_service_provider_id?: string;
   service_date: Date | string;
   start_time?: string;
   end_time?: string;
   duration_minutes?: number;
   status?: ServiceStatus;
-  outcome?: string;
+  outcome?: ServiceOutcome | string;
   cost?: number;
   currency?: string;
   notes?: string;
@@ -425,12 +451,13 @@ export interface UpdateCaseServiceDTO {
   service_name?: string;
   service_type?: ServiceType;
   service_provider?: string;
+  external_service_provider_id?: string | null;
   service_date?: Date | string;
   start_time?: string;
   end_time?: string;
   duration_minutes?: number;
   status?: ServiceStatus;
-  outcome?: string;
+  outcome?: ServiceOutcome | string;
   cost?: number;
   currency?: string;
   notes?: string;

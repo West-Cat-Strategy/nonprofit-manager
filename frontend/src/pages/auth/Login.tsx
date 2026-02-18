@@ -55,12 +55,14 @@ export default function Login() {
     e.preventDefault();
     clear();
     setLoading(true);
+    const normalizedEmail = email.trim().toLowerCase();
 
     try {
       if (step === 'password') {
-        const response = await authService.login({ email, password });
+        const response = await authService.login({ email: normalizedEmail, password });
         if ('mfaRequired' in response && response.mfaRequired) {
           setMfaToken(response.mfaToken);
+          setEmail(normalizedEmail);
           setStep('totp');
           setTotpCode('');
           return;
@@ -78,7 +80,7 @@ export default function Login() {
       }
 
       const response = await authService.completeTotpLogin({
-        email,
+        email: normalizedEmail,
         mfaToken,
         code: totpCode.trim(),
       });

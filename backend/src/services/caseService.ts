@@ -27,6 +27,81 @@ import type {
 export class CaseService {
   constructor(private pool: Pool) { }
 
+  private normalizeProviderName(name: string): string {
+    return name.trim().replace(/\s+/g, ' ');
+  }
+
+  private async resolveExternalServiceProviderId(
+    providerName?: string | null,
+    providerType?: string | null,
+    userId?: string
+  ): Promise<{ providerId: string | null; providerName: string | null }> {
+    if (!providerName || !providerName.trim()) {
+      return { providerId: null, providerName: null };
+    }
+
+    const normalizedName = this.normalizeProviderName(providerName);
+    const existing = await this.pool.query(
+      `
+      SELECT id, provider_name
+      FROM external_service_providers
+      WHERE LOWER(BTRIM(provider_name)) = LOWER(BTRIM($1))
+      LIMIT 1
+    `,
+      [normalizedName]
+    );
+
+    if (existing.rows[0]) {
+      const row = existing.rows[0];
+      if (providerType && providerType.trim()) {
+        await this.pool.query(
+          `
+          UPDATE external_service_providers
+          SET provider_type = COALESCE(provider_type, $1),
+              modified_by = $2
+          WHERE id = $3
+        `,
+          [providerType.trim(), userId || null, row.id]
+        );
+      }
+      return { providerId: row.id, providerName: row.provider_name };
+    }
+
+    const inserted = await this.pool.query(
+      `
+      INSERT INTO external_service_providers (provider_name, provider_type, created_by, modified_by)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id, provider_name
+    `,
+      [normalizedName, providerType?.trim() || null, userId || null, userId || null]
+    );
+
+    return {
+      providerId: inserted.rows[0].id,
+      providerName: inserted.rows[0].provider_name,
+    };
+  }
+
+  private async getExternalProviderById(
+    providerId?: string | null
+  ): Promise<{ id: string; provider_name: string } | null> {
+    if (!providerId) {
+      return null;
+    }
+
+    const result = await this.pool.query(
+      `
+      SELECT id, provider_name
+      FROM external_service_providers
+      WHERE id = $1
+      LIMIT 1
+    `,
+      [providerId]
+    );
+
+    return result.rows[0] || null;
+  }
+
   /**
    * Generate unique case number using a sequence query to avoid collisions
    */
@@ -147,6 +222,11 @@ export class CaseService {
     }
 
     if (filter.quick_filter) {
+      if (filter.quick_filter === 'active') {
+        needsStatusJoin = true;
+        filters.push(`cs.status_type NOT IN ('closed', 'cancelled')`);
+      }
+
       if (filter.quick_filter === 'urgent') {
         filters.push(`(c.is_urgent = true OR c.priority = 'urgent')`);
       }
@@ -745,7 +825,15 @@ export class CaseService {
    */
   async getCaseServices(caseId: string): Promise<CaseServiceType[]> {
     const result = await this.pool.query(
-      `SELECT * FROM case_services WHERE case_id = $1 ORDER BY service_date DESC, start_time DESC`,
+      `
+      SELECT cs.*,
+             esp.provider_name as external_service_provider_name,
+             esp.provider_type as external_service_provider_type
+      FROM case_services cs
+      LEFT JOIN external_service_providers esp ON cs.external_service_provider_id = esp.id
+      WHERE cs.case_id = $1
+      ORDER BY cs.service_date DESC, cs.start_time DESC
+    `,
       [caseId]
     );
     return result.rows;
@@ -759,17 +847,34 @@ export class CaseService {
     data: CreateCaseServiceDTO,
     userId?: string
   ): Promise<CaseServiceType> {
+    let providerResolution = await this.resolveExternalServiceProviderId(
+      data.service_provider,
+      data.service_type || null,
+      userId
+    );
+
+    if (data.external_service_provider_id) {
+      const selectedProvider = await this.getExternalProviderById(data.external_service_provider_id);
+      if (selectedProvider) {
+        providerResolution = {
+          providerId: selectedProvider.id,
+          providerName: selectedProvider.provider_name,
+        };
+      }
+    }
+
     const result = await this.pool.query(
       `INSERT INTO case_services (
-        case_id, service_name, service_type, service_provider, 
+        case_id, service_name, service_type, service_provider, external_service_provider_id,
         service_date, start_time, end_time, duration_minutes, 
         status, outcome, cost, currency, notes, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
       [
         caseId,
         data.service_name,
         data.service_type || null,
-        data.service_provider || null,
+        providerResolution.providerName || null,
+        data.external_service_provider_id || providerResolution.providerId || null,
         data.service_date,
         data.start_time || null,
         data.end_time || null,
@@ -779,11 +884,22 @@ export class CaseService {
         data.cost || null,
         data.currency || 'USD',
         data.notes || null,
-        userId,
+        userId
       ]
     );
     logger.info('Case service created', { caseId, serviceId: result.rows[0].id });
-    return result.rows[0];
+    const joined = await this.pool.query(
+      `
+      SELECT cs.*,
+             esp.provider_name as external_service_provider_name,
+             esp.provider_type as external_service_provider_type
+      FROM case_services cs
+      LEFT JOIN external_service_providers esp ON cs.external_service_provider_id = esp.id
+      WHERE cs.id = $1
+    `,
+      [result.rows[0].id]
+    );
+    return joined.rows[0];
   }
 
   /**
@@ -791,13 +907,29 @@ export class CaseService {
    */
   async updateCaseService(
     serviceId: string,
-    data: UpdateCaseServiceDTO
+    data: UpdateCaseServiceDTO,
+    userId?: string
   ): Promise<CaseServiceType> {
     const fields: string[] = [];
     const values: unknown[] = [];
     let idx = 1;
 
-    Object.entries(data).forEach(([key, value]) => {
+    const payload: Record<string, unknown> = { ...data };
+
+    if (data.service_provider !== undefined) {
+      const providerResolution = await this.resolveExternalServiceProviderId(
+        data.service_provider,
+        data.service_type || null,
+        userId
+      );
+      payload.service_provider = providerResolution.providerName;
+      payload.external_service_provider_id = providerResolution.providerId;
+    } else if (data.external_service_provider_id !== undefined) {
+      const selectedProvider = await this.getExternalProviderById(data.external_service_provider_id);
+      payload.service_provider = selectedProvider?.provider_name || null;
+    }
+
+    Object.entries(payload).forEach(([key, value]) => {
       if (value !== undefined) {
         fields.push(`${key} = $${idx++}`);
         values.push(value);
@@ -807,9 +939,21 @@ export class CaseService {
     if (fields.length === 0) throw new Error('No fields to update');
 
     values.push(serviceId);
-    const result = await this.pool.query(
+    await this.pool.query(
       `UPDATE case_services SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
       values
+    );
+
+    const result = await this.pool.query(
+      `
+      SELECT cs.*,
+             esp.provider_name as external_service_provider_name,
+             esp.provider_type as external_service_provider_type
+      FROM case_services cs
+      LEFT JOIN external_service_providers esp ON cs.external_service_provider_id = esp.id
+      WHERE cs.id = $1
+    `,
+      [serviceId]
     );
 
     if (!result.rows[0]) throw new Error('Service not found');

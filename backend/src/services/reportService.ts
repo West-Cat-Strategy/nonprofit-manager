@@ -21,6 +21,24 @@ export class ReportService {
     { label: string; type: 'string' | 'number' | 'date' | 'boolean' | 'currency'; column: string }
   > {
     switch (entity) {
+      case 'cases':
+        return {
+          id: { label: 'Case ID', type: 'string', column: 'c.id' },
+          case_number: { label: 'Case Number', type: 'string', column: 'c.case_number' },
+          title: { label: 'Title', type: 'string', column: 'c.title' },
+          description: { label: 'Description', type: 'string', column: 'c.description' },
+          priority: { label: 'Priority', type: 'string', column: 'c.priority' },
+          outcome: { label: 'Outcome', type: 'string', column: 'c.outcome' },
+          status_name: { label: 'Status', type: 'string', column: 'cs.name' },
+          status_type: { label: 'Status Type', type: 'string', column: 'cs.status_type' },
+          case_type_name: { label: 'Case Type', type: 'string', column: 'ct.name' },
+          is_urgent: { label: 'Urgent', type: 'boolean', column: 'c.is_urgent' },
+          due_date: { label: 'Due Date', type: 'date', column: 'c.due_date' },
+          opened_date: { label: 'Opened Date', type: 'date', column: 'c.opened_date' },
+          closed_date: { label: 'Closed Date', type: 'date', column: 'c.closed_date' },
+          created_at: { label: 'Created Date', type: 'date', column: 'c.created_at' },
+          service_outcome: { label: 'Service/Event Outcome', type: 'string', column: 'svc.outcome' },
+        };
       case 'accounts':
         return {
           id: { label: 'Account ID', type: 'string', column: 'a.id' },
@@ -276,6 +294,7 @@ export class ReportService {
    */
   private getTableName(entity: ReportEntity): string {
     const tableMap: Record<ReportEntity, string> = {
+      cases: 'cases c LEFT JOIN case_statuses cs ON c.status_id = cs.id LEFT JOIN case_types ct ON c.case_type_id = ct.id LEFT JOIN LATERAL (SELECT s.outcome FROM case_services s WHERE s.case_id = c.id ORDER BY s.service_date DESC NULLS LAST, s.created_at DESC LIMIT 1) svc ON true',
       accounts: 'accounts a',
       contacts: 'contacts c LEFT JOIN accounts a ON c.account_id = a.id',
       donations: 'donations d',

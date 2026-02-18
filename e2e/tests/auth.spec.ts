@@ -5,10 +5,20 @@
 
 import '../helpers/testEnv';
 import { test, expect } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { login, logout, clearAuth, ensureLoginViaAPI } from '../helpers/auth';
 import { getSharedTestUser } from '../helpers/testUser';
 
 const getCreds = () => getSharedTestUser();
+
+const gotoLogin = async (page: Page) => {
+  try {
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+  } catch {
+    // Redirect chains can occasionally abort the initial navigation request.
+  }
+  await expect(page).toHaveURL(/\/login/);
+};
 
 test.describe('Authentication Flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -21,7 +31,7 @@ test.describe('Authentication Flow', () => {
   });
 
   test('should display login page', async ({ page }) => {
-    await page.goto('/login');
+    await gotoLogin(page);
 
     // Check page title
     await expect(page).toHaveTitle(/Login/);
@@ -33,7 +43,7 @@ test.describe('Authentication Flow', () => {
   });
 
   test('should show validation errors for empty fields', async ({ page }) => {
-    await page.goto('/login');
+    await gotoLogin(page);
 
     // Click submit without filling form
     await page.click('button[type="submit"]');
@@ -44,7 +54,7 @@ test.describe('Authentication Flow', () => {
   });
 
   test('should show error for invalid credentials', async ({ page }) => {
-    await page.goto('/login');
+    await gotoLogin(page);
 
     await page.fill('input[name="email"]', 'wrong@example.com');
     await page.fill('input[name="password"]', 'WrongPassword123!');
@@ -82,11 +92,12 @@ test.describe('Authentication Flow', () => {
     await logout(page);
 
     // Should redirect to login page
-    await expect(page).toHaveURL('/login');
+    await expect(page).toHaveURL(/\/login(?:\?|$)/);
 
     // Check that user data is cleared
-    const user = await page.evaluate(() => localStorage.getItem('user'));
-    expect(user).toBeFalsy();
+    await expect
+      .poll(async () => page.evaluate(() => localStorage.getItem('user')))
+      .toBeFalsy();
   });
 
   test('should redirect to login when accessing protected route without auth', async ({
@@ -95,7 +106,11 @@ test.describe('Authentication Flow', () => {
     await clearAuth(page);
 
     // Try to access protected route
-    await page.goto('/dashboard');
+    try {
+      await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+    } catch {
+      // Redirect chains can occasionally abort the initial navigation request.
+    }
 
     // Should redirect to login
     await expect(page).toHaveURL(/\/login/);
@@ -118,7 +133,7 @@ test.describe('Authentication Flow', () => {
   });
 
   test('should show password when toggle is clicked', async ({ page }) => {
-    await page.goto('/login');
+    await gotoLogin(page);
 
     const passwordInput = page.locator('input[name="password"]');
 
@@ -140,7 +155,7 @@ test.describe('Authentication Flow', () => {
   });
 
   test('should remember email if "Remember me" is checked', async ({ page }) => {
-    await page.goto('/login');
+    await gotoLogin(page);
 
     const email = 'remember@example.com';
     await page.fill('input[name="email"]', email);
@@ -166,7 +181,7 @@ test.describe('Authentication Flow', () => {
 
 test.describe('Session Management', () => {
   test('should handle expired token gracefully', async ({ page }) => {
-    await page.goto('/login');
+    await gotoLogin(page);
     const { email, password } = getCreds();
     await login(page, email, password);
 
@@ -191,7 +206,8 @@ test.describe('Session Management', () => {
     await logout(page);
 
     // Check that localStorage is cleared
-    const user = await page.evaluate(() => localStorage.getItem('user'));
-    expect(user).toBeFalsy();
+    await expect
+      .poll(async () => page.evaluate(() => localStorage.getItem('user')))
+      .toBeFalsy();
   });
 });

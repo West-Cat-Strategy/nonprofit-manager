@@ -69,6 +69,7 @@ jest.mock('../services/pendingRegistrationService', () => ({
 describe('Auth API', () => {
   const queryMock = pool.query as jest.Mock;
   const validationResultMock = validationResult as unknown as jest.Mock;
+  const originalBypassFlag = process.env.BYPASS_REGISTRATION_POLICY_IN_TEST;
 
   beforeEach(() => {
     queryMock.mockReset();
@@ -79,6 +80,14 @@ describe('Auth API', () => {
   });
 
   describe('register', () => {
+    beforeEach(() => {
+      process.env.BYPASS_REGISTRATION_POLICY_IN_TEST = 'false';
+    });
+
+    afterEach(() => {
+      process.env.BYPASS_REGISTRATION_POLICY_IN_TEST = originalBypassFlag;
+    });
+
     it('creates a pending registration when mode is approval_required', async () => {
       // getRegistrationMode mock already returns 'approval_required'
       const req = {

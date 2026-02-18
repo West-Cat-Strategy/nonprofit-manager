@@ -205,13 +205,13 @@ describe('Event API Integration Tests', () => {
         .send({
           event_name: 'Updated Event Name',
           location_name: 'New Location',
-          status: 'confirmed',
+          status: 'active',
         })
         .expect(200);
 
       expect(response.body.event_name).toBe('Updated Event Name');
       expect(response.body.location_name).toBe('New Location');
-      expect(response.body.status).toBe('confirmed');
+      expect(response.body.status).toBe('active');
     });
 
     it('should update event capacity', async () => {

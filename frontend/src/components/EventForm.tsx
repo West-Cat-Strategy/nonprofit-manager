@@ -23,6 +23,11 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
     description: '',
     event_type: 'other' as const,
     status: 'planned' as const,
+    is_public: false,
+    is_recurring: false,
+    recurrence_pattern: 'weekly',
+    recurrence_interval: 1,
+    recurrence_end_date: '',
     start_date: '',
     end_date: '',
     location_name: '',
@@ -42,6 +47,13 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
         description: event.description || '',
         event_type: event.event_type,
         status: event.status,
+        is_public: event.is_public,
+        is_recurring: event.is_recurring,
+        recurrence_pattern: event.recurrence_pattern || 'weekly',
+        recurrence_interval: event.recurrence_interval || 1,
+        recurrence_end_date: event.recurrence_end_date
+          ? event.recurrence_end_date.substring(0, 16)
+          : '',
         start_date: event.start_date.substring(0, 16),
         end_date: event.end_date.substring(0, 16),
         location_name: event.location_name || '',
@@ -60,9 +72,33 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+    if (e.target instanceof HTMLInputElement && e.target.type === 'checkbox') {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: e.target.checked,
+        ...(name === 'is_recurring' && !e.target.checked
+          ? {
+              recurrence_pattern: undefined,
+              recurrence_interval: undefined,
+              recurrence_end_date: undefined,
+            }
+          : {}),
+      }));
+      return;
+    }
+
+    if (name === 'capacity' || name === 'recurrence_interval') {
+      const parsed = value === '' ? undefined : Number.parseInt(value, 10);
+      setFormData((prev) => ({
+        ...prev,
+        [name]: Number.isNaN(parsed) ? undefined : parsed,
+      }));
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [name]: value === '' ? (name === 'capacity' ? undefined : '') : value,
+      [name]: value,
     }));
   };
 
@@ -82,7 +118,25 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
         throw new Error('End date must be after start date');
       }
 
-      await onSubmit(formData);
+      const normalizedData: CreateEventDTO | UpdateEventDTO = {
+        ...formData,
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+      };
+
+      if (!normalizedData.is_recurring) {
+        normalizedData.recurrence_pattern = undefined;
+        normalizedData.recurrence_interval = undefined;
+        normalizedData.recurrence_end_date = undefined;
+      } else if (normalizedData.recurrence_end_date) {
+        normalizedData.recurrence_end_date = new Date(
+          normalizedData.recurrence_end_date
+        ).toISOString();
+      } else {
+        normalizedData.recurrence_end_date = undefined;
+      }
+
+      await onSubmit(normalizedData);
       navigate('/events');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : null;
@@ -145,6 +199,10 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
               <option value="community">Community</option>
               <option value="training">Training</option>
               <option value="meeting">Meeting</option>
+              <option value="workshop">Workshop</option>
+              <option value="webinar">Webinar</option>
+              <option value="conference">Conference</option>
+              <option value="outreach">Outreach</option>
               <option value="volunteer">Volunteer</option>
               <option value="social">Social</option>
               <option value="other">Other</option>
@@ -207,6 +265,89 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
             />
           </div>
         </div>
+      </div>
+
+      {/* Visibility */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Visibility</h3>
+        <label className="inline-flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="is_public"
+            name="is_public"
+            checked={Boolean(formData.is_public)}
+            onChange={handleChange}
+            className="h-4 w-4"
+          />
+          <span className="text-sm">
+            Public event (visible for public sharing and registration workflows)
+          </span>
+        </label>
+      </div>
+
+      {/* Recurrence */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Recurrence</h3>
+        <label className="inline-flex items-center gap-3 mb-4">
+          <input
+            type="checkbox"
+            id="is_recurring"
+            name="is_recurring"
+            checked={Boolean(formData.is_recurring)}
+            onChange={handleChange}
+            className="h-4 w-4"
+          />
+          <span className="text-sm">This is a recurring event</span>
+        </label>
+
+        {formData.is_recurring && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label htmlFor="recurrence_pattern" className="block text-sm font-medium mb-1">
+                Pattern
+              </label>
+              <select
+                id="recurrence_pattern"
+                name="recurrence_pattern"
+                value={formData.recurrence_pattern || 'weekly'}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border rounded-md"
+              >
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="recurrence_interval" className="block text-sm font-medium mb-1">
+                Every
+              </label>
+              <input
+                type="number"
+                id="recurrence_interval"
+                name="recurrence_interval"
+                value={formData.recurrence_interval || 1}
+                onChange={handleChange}
+                min="1"
+                className="w-full px-4 py-2 border rounded-md"
+              />
+            </div>
+            <div>
+              <label htmlFor="recurrence_end_date" className="block text-sm font-medium mb-1">
+                Ends On (Optional)
+              </label>
+              <input
+                type="datetime-local"
+                id="recurrence_end_date"
+                name="recurrence_end_date"
+                value={formData.recurrence_end_date || ''}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border rounded-md"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Location */}

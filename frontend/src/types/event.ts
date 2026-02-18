@@ -8,9 +8,14 @@ export type EventType =
   | 'community'
   | 'training'
   | 'meeting'
+  | 'workshop'
+  | 'webinar'
+  | 'conference'
+  | 'outreach'
   | 'volunteer'
   | 'social'
   | 'other';
+export type RecurrencePattern = 'daily' | 'weekly' | 'monthly' | 'yearly';
 export type EventStatus = 'planned' | 'active' | 'completed' | 'cancelled' | 'postponed';
 export type RegistrationStatus =
   | 'registered'
@@ -25,6 +30,11 @@ export interface Event {
   description: string | null;
   event_type: EventType;
   status: EventStatus;
+  is_public: boolean;
+  is_recurring: boolean;
+  recurrence_pattern: RecurrencePattern | null;
+  recurrence_interval: number | null;
+  recurrence_end_date: string | null;
   start_date: string;
   end_date: string;
   location_name: string | null;
@@ -48,6 +58,11 @@ export interface CreateEventDTO {
   description?: string;
   event_type: EventType;
   status?: EventStatus;
+  is_public?: boolean;
+  is_recurring?: boolean;
+  recurrence_pattern?: RecurrencePattern;
+  recurrence_interval?: number;
+  recurrence_end_date?: string;
   start_date: string;
   end_date: string;
   location_name?: string;
@@ -65,6 +80,11 @@ export interface UpdateEventDTO {
   description?: string;
   event_type?: EventType;
   status?: EventStatus;
+  is_public?: boolean;
+  is_recurring?: boolean;
+  recurrence_pattern?: RecurrencePattern;
+  recurrence_interval?: number;
+  recurrence_end_date?: string;
   start_date?: string;
   end_date?: string;
   location_name?: string;
@@ -81,6 +101,7 @@ export interface EventFilters {
   search?: string;
   event_type?: EventType;
   status?: EventStatus;
+  is_public?: boolean;
   start_date?: string;
   end_date?: string;
 }
