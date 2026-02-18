@@ -1,14 +1,14 @@
 import type { ReactElement } from 'react';
-import { screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
-import { renderWithProviders } from '../../test/testUtils';
 import AccountList from '../people/accounts/AccountList';
 import ContactList from '../people/contacts/ContactList';
 import VolunteerList from '../people/volunteers/VolunteerList';
 import EventList from '../engagement/events/EventList';
 import TaskList from '../engagement/tasks/TaskList';
 import DonationList from '../finance/donations/DonationList';
+import CaseList from '../engagement/cases/CaseList';
 import api from '../../services/api';
+import { assertRouteUxContract, createConsoleErrorSpy } from '../../test/uxRouteContract';
 
 vi.mock('../../services/api');
 
@@ -20,7 +20,7 @@ type SmokeCase = {
   name: string;
   route: string;
   page: ReactElement;
-  heading: string;
+  heading: string | RegExp;
   primaryActionPattern: RegExp;
 };
 
@@ -54,6 +54,13 @@ const smokeCases: SmokeCase[] = [
     primaryActionPattern: /create event/i,
   },
   {
+    name: 'cases',
+    route: '/cases',
+    page: <CaseList />,
+    heading: 'Cases',
+    primaryActionPattern: /new case/i,
+  },
+  {
     name: 'tasks',
     route: '/tasks',
     page: <TaskList />,
@@ -74,7 +81,7 @@ describe('Route UX smoke', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    consoleErrorSpy = createConsoleErrorSpy();
 
     mockApi.get.mockImplementation((url: string) => {
       if (url.startsWith('/accounts')) {
@@ -121,6 +128,54 @@ describe('Route UX smoke', () => {
           },
         });
       }
+      if (url.startsWith('/cases/types')) {
+        return Promise.resolve({
+          data: {
+            types: [{ id: 'type-1', name: 'Housing', category: 'support', is_active: true, display_order: 1 }],
+          },
+        });
+      }
+      if (url.startsWith('/cases/statuses')) {
+        return Promise.resolve({
+          data: {
+            statuses: [
+              {
+                id: 'status-1',
+                name: 'Open',
+                status_type: 'active',
+                is_closed_status: false,
+                color: '#000000',
+                display_order: 1,
+                is_active: true,
+              },
+            ],
+          },
+        });
+      }
+      if (url.startsWith('/cases/summary')) {
+        return Promise.resolve({
+          data: {
+            total_cases: 0,
+            open_cases: 0,
+            closed_cases: 0,
+            by_priority: { low: 0, medium: 0, high: 0, urgent: 0 },
+            by_status_type: { intake: 0, active: 0, review: 0, closed: 0, cancelled: 0 },
+            by_case_type: {},
+            cases_due_this_week: 0,
+            overdue_cases: 0,
+            unassigned_cases: 0,
+          },
+        });
+      }
+      if (url.startsWith('/cases')) {
+        return Promise.resolve({
+          data: {
+            cases: [],
+            total: 0,
+            pagination: { page: 1, limit: 20 },
+          },
+        });
+      }
       if (url.startsWith('/donations')) {
         return Promise.resolve({
           data: {
@@ -141,17 +196,8 @@ describe('Route UX smoke', () => {
 
   it.each(smokeCases)(
     'renders H1 and primary action without console errors for $name route',
-    async ({ route, page, heading, primaryActionPattern }) => {
-      renderWithProviders(page, { route });
-
-      await waitFor(() => {
-        expect(screen.getByRole('heading', { name: heading, level: 1 })).toBeInTheDocument();
-      });
-      expect(
-        screen.getAllByRole('button', {
-          name: primaryActionPattern,
-        }).length
-      ).toBeGreaterThan(0);
+    async (smokeCase) => {
+      await assertRouteUxContract(smokeCase);
       expect(consoleErrorSpy).not.toHaveBeenCalled();
     }
   );

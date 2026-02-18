@@ -20,8 +20,10 @@ import {
   ImportExportModal,
   type TableColumn,
 } from '../../../components/people';
+import ConfirmDialog from '../../../components/ConfirmDialog';
 import { useBulkSelect, useImportExport } from '../../../hooks';
 import { BrutalBadge } from '../../../components/neo-brutalist';
+import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 
 const VolunteerList = () => {
   const dispatch = useAppDispatch();
@@ -40,6 +42,7 @@ const VolunteerList = () => {
   } = useBulkSelect();
 
   const { exportToCSV } = useImportExport();
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || filters.search || '');
   const [availabilityFilter, setAvailabilityFilter] = useState(searchParams.get('status') || filters.availability_status || '');
   const [backgroundCheckFilter, setBackgroundCheckFilter] = useState(searchParams.get('type') || filters.background_check_status || '');
@@ -49,6 +52,7 @@ const VolunteerList = () => {
   const [sortOrder] = useState<'asc' | 'desc'>((searchParams.get('sort_order') as 'asc' | 'desc') || 'desc');
   const [showImportExport, setShowImportExport] = useState(false);
   const [filterCollapsed, setFilterCollapsed] = useState(false);
+  const hasActiveFilters = Boolean(searchInput || availabilityFilter || backgroundCheckFilter);
 
   const loadVolunteers = useCallback(() => {
     dispatch(
@@ -116,11 +120,11 @@ const VolunteerList = () => {
   };
 
   const handleBulkDelete = async () => {
-    if (
-      !window.confirm(
-        `Are you sure you want to delete ${selectedCount} volunteer(s)?`
-      )
-    ) {
+    const confirmed = await confirm({
+      ...confirmPresets.delete(`${selectedCount} Volunteer${selectedCount > 1 ? 's' : ''}`),
+      message: `Are you sure you want to delete ${selectedCount} volunteer(s)? This action cannot be undone.`,
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -286,10 +290,11 @@ const VolunteerList = () => {
             Edit
           </button>
           <button
-            onClick={() => {
-              if (
-                window.confirm(`Remove ${row.first_name} ${row.last_name}?`)
-              ) {
+            onClick={async () => {
+              const confirmed = await confirm(
+                confirmPresets.delete(`${row.first_name} ${row.last_name}`)
+              );
+              if (confirmed) {
                 dispatch(deleteVolunteer(row.volunteer_id));
               }
             }}
@@ -395,11 +400,23 @@ const VolunteerList = () => {
           )
         }
         emptyStateTitle="No volunteers found"
-        emptyStateDescription="Get started by adding your first volunteer"
+        emptyStateDescription={
+          hasActiveFilters
+            ? 'No volunteers match your current filters. Clear filters to see all volunteers.'
+            : 'No volunteers have been added yet.'
+        }
         emptyStateAction={{
-          label: 'Create First Volunteer',
+          label: hasActiveFilters ? 'Create New Volunteer' : 'Create First Volunteer',
           onClick: () => navigate('/volunteers/new'),
         }}
+        emptyStateSecondaryAction={
+          hasActiveFilters
+            ? {
+                label: 'Clear Filters',
+                onClick: handleClearFilters,
+              }
+            : undefined
+        }
       />
 
       {/* Import/Export Modal */}
@@ -409,6 +426,7 @@ const VolunteerList = () => {
         entityType="volunteers"
         sampleData={volunteers}
       />
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </>
   );
 };

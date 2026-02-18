@@ -8,6 +8,8 @@ import {
 } from '../store/slices/contactsSlice';
 import type { CreateContactEmailDTO, EmailLabel } from '../types/contact';
 import { EMAIL_LABELS } from '../types/contact';
+import ConfirmDialog from './ConfirmDialog';
+import useConfirmDialog, { confirmPresets } from '../hooks/useConfirmDialog';
 
 interface ContactEmailAddressesProps {
   contactId: string;
@@ -16,6 +18,7 @@ interface ContactEmailAddressesProps {
 const ContactEmailAddresses = ({ contactId }: ContactEmailAddressesProps) => {
   const dispatch = useAppDispatch();
   const { emails, emailsLoading } = useAppSelector((state) => state.contacts);
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const getErrorMessage = (error: unknown, fallback: string) =>
     error instanceof Error ? error.message : fallback;
 
@@ -68,7 +71,8 @@ const ContactEmailAddresses = ({ contactId }: ContactEmailAddressesProps) => {
   };
 
   const handleDelete = async (emailId: string) => {
-    if (!confirm('Are you sure you want to delete this email address?')) return;
+    const confirmed = await confirm(confirmPresets.delete('Email Address'));
+    if (!confirmed) return;
 
     try {
       await dispatch(deleteContactEmail(emailId)).unwrap();
@@ -234,6 +238,7 @@ const ContactEmailAddresses = ({ contactId }: ContactEmailAddressesProps) => {
           + Add Email Address
         </button>
       )}
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 };

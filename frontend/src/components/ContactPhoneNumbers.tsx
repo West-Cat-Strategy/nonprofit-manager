@@ -8,6 +8,8 @@ import {
 } from '../store/slices/contactsSlice';
 import type { CreateContactPhoneDTO, PhoneLabel } from '../types/contact';
 import { PHONE_LABELS } from '../types/contact';
+import ConfirmDialog from './ConfirmDialog';
+import useConfirmDialog, { confirmPresets } from '../hooks/useConfirmDialog';
 
 interface ContactPhoneNumbersProps {
   contactId: string;
@@ -16,6 +18,7 @@ interface ContactPhoneNumbersProps {
 const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
   const dispatch = useAppDispatch();
   const { phones, phonesLoading } = useAppSelector((state) => state.contacts);
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const getErrorMessage = (error: unknown, fallback: string) =>
     error instanceof Error ? error.message : fallback;
 
@@ -68,7 +71,8 @@ const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
   };
 
   const handleDelete = async (phoneId: string) => {
-    if (!confirm('Are you sure you want to delete this phone number?')) return;
+    const confirmed = await confirm(confirmPresets.delete('Phone Number'));
+    if (!confirmed) return;
 
     try {
       await dispatch(deleteContactPhone(phoneId)).unwrap();
@@ -232,6 +236,7 @@ const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
           + Add Phone Number
         </button>
       )}
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 };

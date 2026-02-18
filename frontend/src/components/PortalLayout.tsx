@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { portalLogout } from '../store/slices/portalAuthSlice';
+import { portalLogoutAsync } from '../store/slices/portalAuthSlice';
 
 interface PortalLayoutProps {
   children: React.ReactNode;
@@ -21,6 +21,7 @@ const navItems = [
 
 export default function PortalLayout({ children }: PortalLayoutProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const portalUser = useAppSelector((state) => state.portalAuth.user);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -39,7 +40,10 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
             {portalUser?.email && <p className="text-sm text-app-text-muted">{portalUser.email}</p>}
           </div>
           <button
-            onClick={() => dispatch(portalLogout())}
+            onClick={async () => {
+              await dispatch(portalLogoutAsync());
+              navigate('/portal/login', { replace: true });
+            }}
             className="px-4 py-2 text-sm bg-app-surface-muted rounded-lg hover:bg-app-surface-muted"
           >
             Sign out

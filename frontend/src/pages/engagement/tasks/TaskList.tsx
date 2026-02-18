@@ -11,6 +11,8 @@ import { TaskStatus, TaskPriority } from '../../../types/task';
 import type { TaskFilters } from '../../../types/task';
 import { formatDate } from '../../../utils/format';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
+import ConfirmDialog from '../../../components/ConfirmDialog';
+import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 
 type TaskListFilters = {
   search: string;
@@ -20,18 +22,49 @@ type TaskListFilters = {
   page: number;
 };
 
+const TASK_FILTERS_STORAGE_KEY = 'tasks_list_filters_v1';
+
 const TaskList: React.FC = () => {
   const navigate = useNavigate();
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useAppDispatch();
   const { tasks, pagination, summary, loading, error } = useAppSelector((state) => state.tasks);
 
-  const [filters, setFilters] = useState<TaskListFilters>({
-    search: searchParams.get('search') || '',
-    status: (searchParams.get('status') as TaskStatus | '') || '',
-    priority: (searchParams.get('priority') as TaskPriority | '') || '',
-    overdue: searchParams.get('overdue') === 'true',
-    page: Number(searchParams.get('page') || '1'),
+  const [filters, setFilters] = useState<TaskListFilters>(() => {
+    const urlFilters: TaskListFilters = {
+      search: searchParams.get('search') || '',
+      status: (searchParams.get('status') as TaskStatus | '') || '',
+      priority: (searchParams.get('priority') as TaskPriority | '') || '',
+      overdue: searchParams.get('overdue') === 'true',
+      page: Number(searchParams.get('page') || '1'),
+    };
+
+    const hasUrlFilters = Boolean(
+      urlFilters.search || urlFilters.status || urlFilters.priority || urlFilters.overdue || urlFilters.page > 1
+    );
+
+    if (hasUrlFilters) {
+      return urlFilters;
+    }
+
+    try {
+      const saved = localStorage.getItem(TASK_FILTERS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as TaskListFilters;
+        return {
+          search: parsed.search || '',
+          status: parsed.status || '',
+          priority: parsed.priority || '',
+          overdue: Boolean(parsed.overdue),
+          page: 1,
+        };
+      }
+    } catch {
+      localStorage.removeItem(TASK_FILTERS_STORAGE_KEY);
+    }
+
+    return urlFilters;
   });
   const hasActiveFilters = Boolean(filters.search || filters.status || filters.priority || filters.overdue);
 
@@ -53,13 +86,18 @@ const TaskList: React.FC = () => {
     if (filters.overdue) params.set('overdue', 'true');
     if (filters.page > 1) params.set('page', String(filters.page));
     setSearchParams(params, { replace: true });
+    localStorage.setItem(TASK_FILTERS_STORAGE_KEY, JSON.stringify(filters));
   }, [filters, setSearchParams]);
 
   const handleFilterChange = <K extends keyof TaskListFilters>(
     key: K,
     value: TaskListFilters[K]
   ) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value,
+      page: key === 'page' ? (value as number) : 1,
+    }));
   };
 
   const clearFilters = () => {
@@ -70,13 +108,40 @@ const TaskList: React.FC = () => {
       overdue: false,
       page: 1,
     });
+    localStorage.removeItem(TASK_FILTERS_STORAGE_KEY);
+  };
+
+  const applyPreset = (preset: 'overdue' | 'in_progress' | 'high_priority') => {
+    if (preset === 'overdue') {
+      setFilters({ search: '', status: '', priority: '', overdue: true, page: 1 });
+      return;
+    }
+
+    if (preset === 'in_progress') {
+      setFilters({
+        search: '',
+        status: TaskStatus.IN_PROGRESS,
+        priority: '',
+        overdue: false,
+        page: 1,
+      });
+      return;
+    }
+
+    setFilters({
+      search: '',
+      status: '',
+      priority: TaskPriority.HIGH,
+      overdue: false,
+      page: 1,
+    });
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this task?')) {
-      await dispatch(deleteTask(id));
-      dispatch(fetchTasks(buildRequestFilters(filters)));
-    }
+    const confirmed = await confirm(confirmPresets.delete('Task'));
+    if (!confirmed) return;
+    await dispatch(deleteTask(id));
+    dispatch(fetchTasks(buildRequestFilters(filters)));
   };
 
   const handleComplete = async (id: string) => {
@@ -173,6 +238,30 @@ const TaskList: React.FC = () => {
 
       {/* Filters */}
       <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-4 mb-6">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-bold uppercase text-[var(--app-text-muted)]">Quick filters:</span>
+          <button
+            type="button"
+            onClick={() => applyPreset('overdue')}
+            className="px-2 py-1 text-xs font-bold border-2 border-[var(--app-border)] bg-red-100 text-red-700"
+          >
+            Overdue
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset('in_progress')}
+            className="px-2 py-1 text-xs font-bold border-2 border-[var(--app-border)] bg-blue-100 text-blue-800"
+          >
+            In Progress
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset('high_priority')}
+            className="px-2 py-1 text-xs font-bold border-2 border-[var(--app-border)] bg-orange-100 text-orange-800"
+          >
+            High Priority
+          </button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <input
             type="text"
@@ -350,6 +439,7 @@ const TaskList: React.FC = () => {
           </nav>
         </div>
       )}
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
     </NeoBrutalistLayout>
   );

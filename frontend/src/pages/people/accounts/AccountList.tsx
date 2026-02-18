@@ -20,8 +20,10 @@ import {
   ImportExportModal,
   type TableColumn,
 } from '../../../components/people';
+import ConfirmDialog from '../../../components/ConfirmDialog';
 import { useBulkSelect, useImportExport } from '../../../hooks';
 import { BrutalBadge } from '../../../components/neo-brutalist';
+import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 
 const AccountList = () => {
   const dispatch = useAppDispatch();
@@ -40,6 +42,7 @@ const AccountList = () => {
   } = useBulkSelect();
 
   const { exportToCSV } = useImportExport();
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || filters.search || '');
   const [accountTypeFilter, setAccountTypeFilter] = useState(searchParams.get('type') || filters.account_type || '');
   const [categoryFilter, setCategoryFilter] = useState(searchParams.get('category') || filters.category || '');
@@ -53,6 +56,7 @@ const AccountList = () => {
 
   const resolvedIsActive =
     statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : undefined;
+  const hasActiveFilters = Boolean(searchInput || accountTypeFilter || categoryFilter || statusFilter !== 'active');
 
   const loadAccounts = useCallback(() => {
     dispatch(
@@ -127,11 +131,11 @@ const AccountList = () => {
   };
 
   const handleBulkDelete = async () => {
-    if (
-      !window.confirm(
-        `Are you sure you want to delete ${selectedCount} account(s)?`
-      )
-    ) {
+    const confirmed = await confirm({
+      ...confirmPresets.delete(`${selectedCount} Account${selectedCount > 1 ? 's' : ''}`),
+      message: `Are you sure you want to delete ${selectedCount} account(s)? This action cannot be undone.`,
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -239,8 +243,9 @@ const AccountList = () => {
             Edit
           </button>
           <button
-            onClick={() => {
-              if (window.confirm(`Remove ${row.account_name}?`)) {
+            onClick={async () => {
+              const confirmed = await confirm(confirmPresets.delete(row.account_name));
+              if (confirmed) {
                 dispatch(deleteAccount(row.account_id));
               }
             }}
@@ -358,11 +363,23 @@ const AccountList = () => {
           )
         }
         emptyStateTitle="No accounts found"
-        emptyStateDescription="Get started by creating your first account"
+        emptyStateDescription={
+          hasActiveFilters
+            ? 'No accounts match your current filters. Clear filters to see all accounts.'
+            : 'No accounts have been added yet.'
+        }
         emptyStateAction={{
-          label: 'Create First Account',
+          label: hasActiveFilters ? 'Create New Account' : 'Create First Account',
           onClick: () => navigate('/accounts/new'),
         }}
+        emptyStateSecondaryAction={
+          hasActiveFilters
+            ? {
+                label: 'Clear Filters',
+                onClick: handleClearFilters,
+              }
+            : undefined
+        }
       />
 
       {/* Import/Export Modal */}
@@ -372,6 +389,7 @@ const AccountList = () => {
         entityType="accounts"
         sampleData={accounts}
       />
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </>
   );
 };

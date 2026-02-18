@@ -32,11 +32,14 @@ import {
   ActivityFeedWidget,
   PlausibleStatsWidget,
 } from '../../components/dashboard';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import useConfirmDialog from '../../hooks/useConfirmDialog';
 
 const CustomDashboard = () => {
   const dispatch = useAppDispatch();
   const { currentDashboard, loading, saving, editMode, error } = useAppSelector((state) => state.dashboard);
   const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const [showAddWidget, setShowAddWidget] = useState(false);
   const [creatingDefault, setCreatingDefault] = useState(false);
   const hasInitializedRef = useRef(false);
@@ -108,16 +111,22 @@ const CustomDashboard = () => {
   };
 
   const handleResetToDefault = async () => {
-    if (confirm('Reset dashboard to default layout? This cannot be undone.')) {
-      dispatch(resetToDefault());
-      if (currentDashboard?.id) {
-        await dispatch(
-          saveDashboardLayout({
-            id: currentDashboard.id,
-            layout: currentDashboard.layout,
-          })
-        );
-      }
+    const confirmed = await confirm({
+      title: 'Reset Dashboard',
+      message: 'Reset dashboard to default layout? This cannot be undone.',
+      confirmLabel: 'Reset Dashboard',
+      variant: 'warning',
+    });
+    if (!confirmed) return;
+
+    dispatch(resetToDefault());
+    if (currentDashboard?.id) {
+      await dispatch(
+        saveDashboardLayout({
+          id: currentDashboard.id,
+          layout: currentDashboard.layout,
+        })
+      );
     }
   };
 
@@ -139,9 +148,16 @@ const CustomDashboard = () => {
   };
 
   const handleRemoveWidget = (widgetId: string) => {
-    if (confirm('Remove this widget from your dashboard?')) {
+    void (async () => {
+      const confirmed = await confirm({
+        title: 'Remove Widget',
+        message: 'Remove this widget from your dashboard?',
+        confirmLabel: 'Remove Widget',
+        variant: 'danger',
+      });
+      if (!confirmed) return;
       dispatch(removeWidget(widgetId));
-    }
+    })();
   };
 
   const renderWidget = (widget: DashboardWidget) => {
@@ -349,6 +365,7 @@ const CustomDashboard = () => {
           </div>
         </div>
       )}
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 };

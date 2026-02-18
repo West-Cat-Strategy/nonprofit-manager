@@ -44,6 +44,15 @@ export const portalFetchMe = createAsyncThunk('portalAuth/me', async () => {
   return response.data;
 });
 
+export const portalLogoutAsync = createAsyncThunk('portalAuth/logout', async (_, { dispatch }) => {
+  try {
+    await portalApi.post('/portal/auth/logout');
+  } catch {
+    // Always clear client-side state even if network/logout endpoint fails.
+  }
+  dispatch(portalLogout());
+});
+
 const portalAuthSlice = createSlice({
   name: 'portalAuth',
   initialState,
@@ -89,12 +98,27 @@ const portalAuthSlice = createSlice({
         state.error = action.error.message || 'Failed to signup';
         state.signupStatus = 'error';
       })
+      .addCase(portalFetchMe.pending, (state) => {
+        state.loading = true;
+      })
       .addCase(portalFetchMe.fulfilled, (state, action) => {
+        state.loading = false;
         state.user = {
           id: action.payload.id,
           email: action.payload.email,
           contactId: action.payload.contact_id,
         };
+        state.error = null;
+      })
+      .addCase(portalFetchMe.rejected, (state) => {
+        state.loading = false;
+        state.user = null;
+      })
+      .addCase(portalLogoutAsync.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(portalLogoutAsync.fulfilled, (state) => {
+        state.loading = false;
       });
   },
 });

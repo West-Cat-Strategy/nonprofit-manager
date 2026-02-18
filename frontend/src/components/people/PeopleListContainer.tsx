@@ -40,6 +40,10 @@ interface PeopleListContainerProps {
     label: string;
     onClick: () => void;
   };
+  emptyStateSecondaryAction?: {
+    label: string;
+    onClick: () => void;
+  };
 }
 
 export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
@@ -61,6 +65,7 @@ export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
   emptyStateTitle,
   emptyStateDescription,
   emptyStateAction,
+  emptyStateSecondaryAction,
 }) => {
   const allSelected =
     data.length > 0 && data.every((row) => selectedRows.has(row.id));
@@ -131,9 +136,20 @@ export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
               <p className="text-[var(--app-text-muted)] mb-8 font-medium text-lg italic">{emptyStateDescription}</p>
             )}
             {emptyStateAction && (
-              <BrutalButton onClick={emptyStateAction.onClick} className="text-lg">
-                {emptyStateAction.label}
-              </BrutalButton>
+              <div className="flex items-center justify-center gap-3 flex-wrap">
+                <BrutalButton onClick={emptyStateAction.onClick} className="text-lg">
+                  {emptyStateAction.label}
+                </BrutalButton>
+                {emptyStateSecondaryAction && (
+                  <BrutalButton
+                    variant="secondary"
+                    onClick={emptyStateSecondaryAction.onClick}
+                    className="text-lg"
+                  >
+                    {emptyStateSecondaryAction.label}
+                  </BrutalButton>
+                )}
+              </div>
             )}
           </BrutalCard>
         ) : (

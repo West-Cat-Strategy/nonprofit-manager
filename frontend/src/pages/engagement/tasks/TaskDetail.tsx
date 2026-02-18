@@ -11,10 +11,13 @@ import { TaskStatus, TaskPriority } from '../../../types/task';
 import FollowUpList from '../../../components/FollowUpList';
 import { formatDateTime } from '../../../utils/format';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
+import ConfirmDialog from '../../../components/ConfirmDialog';
+import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 
 const TaskDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const dispatch = useAppDispatch();
   const { selectedTask, loading, error } = useAppSelector((state) => state.tasks);
 
@@ -25,12 +28,10 @@ const TaskDetail: React.FC = () => {
   }, [id, dispatch]);
 
   const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this task?')) {
-      if (id) {
-        await dispatch(deleteTask(id));
-        navigate('/tasks');
-      }
-    }
+    const confirmed = await confirm(confirmPresets.delete('Task'));
+    if (!confirmed || !id) return;
+    await dispatch(deleteTask(id));
+    navigate('/tasks');
   };
 
   const handleComplete = async () => {
@@ -214,6 +215,7 @@ const TaskDetail: React.FC = () => {
           <FollowUpList entityType="task" entityId={id} />
         </div>
       )}
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
       </div>
     </NeoBrutalistLayout>
   );

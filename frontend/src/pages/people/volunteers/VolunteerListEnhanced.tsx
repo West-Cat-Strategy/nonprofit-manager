@@ -23,6 +23,8 @@ import {
 } from '../../../components/people';
 import { useBulkSelect, useImportExport } from '../../../hooks';
 import { BrutalBadge } from '../../../components/neo-brutalist';
+import ConfirmDialog from '../../../components/ConfirmDialog';
+import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 
 
 
@@ -32,6 +34,7 @@ const VolunteerListEnhanced = () => {
   const { volunteers, loading, error, pagination, filters } = useAppSelector(
     (state) => state.volunteers
   );
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
 
   const {
     selectedIds,
@@ -109,13 +112,13 @@ const VolunteerListEnhanced = () => {
   };
 
   const handleBulkDelete = async () => {
-    if (
-      !window.confirm(
-        `Are you sure you want to delete ${selectedCount} volunteer(s)?`
-      )
-    ) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: 'Delete Volunteers',
+      message: `Are you sure you want to delete ${selectedCount} volunteer(s)?`,
+      confirmLabel: 'Delete Volunteers',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     const ids = getSelected();
     for (const id of ids) {
@@ -123,6 +126,13 @@ const VolunteerListEnhanced = () => {
     }
 
     deselectAll();
+    loadVolunteers();
+  };
+
+  const handleDeleteVolunteer = async (row: Volunteer) => {
+    const confirmed = await confirm(confirmPresets.delete(`${row.first_name} ${row.last_name}`));
+    if (!confirmed) return;
+    await dispatch(deleteVolunteer(row.volunteer_id));
     loadVolunteers();
   };
 
@@ -281,14 +291,7 @@ const VolunteerListEnhanced = () => {
           </button>
           <button
             onClick={() => {
-              if (
-                window.confirm(
-                  `Remove ${row.first_name} ${row.last_name}?`
-                )
-              ) {
-                dispatch(deleteVolunteer(row.volunteer_id));
-                loadVolunteers();
-              }
+              void handleDeleteVolunteer(row);
             }}
             className="px-2 py-1 border border-app-border rounded text-app-text text-xs font-mono hover:bg-app-accent-soft hover:text-app-accent-text transition"
           >
@@ -417,6 +420,7 @@ const VolunteerListEnhanced = () => {
           });
         }}
       />
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </>
   );
 };

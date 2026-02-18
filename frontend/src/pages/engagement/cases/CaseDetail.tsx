@@ -26,6 +26,8 @@ import FollowUpList from '../../../components/FollowUpList';
 import CaseRelationships from '../../../components/cases/CaseRelationships';
 import CaseServices from '../../../components/cases/CaseServices';
 import type { CasePriority, CaseStatusType, CaseMilestone } from '../../../types/case';
+import ConfirmDialog from '../../../components/ConfirmDialog';
+import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 
 type TabType = 'overview' | 'notes' | 'documents' | 'milestones' | 'followups' | 'relationships' | 'services';
 
@@ -35,6 +37,7 @@ const CaseDetail = () => {
   const dispatch = useAppDispatch();
   const { showSuccess, showError } = useToast();
   const { currentCase, caseStatuses, caseMilestones, loading, error } = useAppSelector((state) => state.cases);
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
 
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [isChangingStatus, setIsChangingStatus] = useState(false);
@@ -140,7 +143,9 @@ const CaseDetail = () => {
   };
 
   const handleDeleteMilestone = async (milestoneId: string) => {
-    if (!id || !confirm('Delete this milestone?')) return;
+    if (!id) return;
+    const confirmed = await confirm(confirmPresets.delete('Milestone'));
+    if (!confirmed) return;
     try {
       await dispatch(deleteCaseMilestone(milestoneId)).unwrap();
       showSuccess('Milestone deleted');
@@ -171,9 +176,8 @@ const CaseDetail = () => {
 
   const handleDelete = async () => {
     if (!id) return;
-    if (!confirm('Are you sure you want to delete this case? This action cannot be undone.')) {
-      return;
-    }
+    const confirmed = await confirm(confirmPresets.delete('Case'));
+    if (!confirmed) return;
 
     try {
       await dispatch(deleteCase(id)).unwrap();
@@ -801,6 +805,7 @@ const CaseDetail = () => {
             </div>
           )}
         </div>
+        <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
       </div>
     </NeoBrutalistLayout>
   );

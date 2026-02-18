@@ -15,10 +15,13 @@ import {
 } from '../../store/slices/alertsSlice';
 import type { AlertConfig } from '../../types/alert';
 import { AlertConfigModal } from '../../components/alerts';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import useConfirmDialog, { confirmPresets } from '../../hooks/useConfirmDialog';
 
 const AlertsConfig = () => {
   const dispatch = useAppDispatch();
   const { configs, stats, loading } = useAppSelector((state) => state.alerts);
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const [showModal, setShowModal] = useState(false);
   const [editingConfig, setEditingConfig] = useState<AlertConfig | null>(null);
 
@@ -40,9 +43,9 @@ const AlertsConfig = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Delete this alert configuration? This cannot be undone.')) {
-      await dispatch(deleteAlertConfig(id));
-    }
+    const confirmed = await confirm(confirmPresets.delete('Alert Configuration'));
+    if (!confirmed) return;
+    await dispatch(deleteAlertConfig(id));
   };
 
   const handleToggle = async (id: string) => {
@@ -305,6 +308,7 @@ const AlertsConfig = () => {
           }}
         />
       )}
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 };

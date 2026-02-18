@@ -3,6 +3,7 @@ import { body, param } from 'express-validator';
 import {
   portalSignup,
   portalLogin,
+  portalLogout,
   getPortalMe,
   validatePortalInvitation,
   acceptPortalInvitation,
@@ -36,6 +37,8 @@ router.post(
   [body('email').isEmail().normalizeEmail(), body('password').isString(), validateRequest],
   portalLogin
 );
+
+router.post('/logout', portalLogout);
 
 router.get('/me', authenticatePortal, getPortalMe);
 

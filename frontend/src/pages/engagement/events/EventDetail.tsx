@@ -19,12 +19,15 @@ import SocialShare from '../../../components/SocialShare';
 import { useDocumentMeta } from '../../../hooks/useDocumentMeta';
 import { formatDateTime } from '../../../utils/format';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
+import ConfirmDialog from '../../../components/ConfirmDialog';
+import useConfirmDialog from '../../../hooks/useConfirmDialog';
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { selectedEvent: event, registrations, loading } = useAppSelector((state) => state.events);
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
 
   const [activeTab, setActiveTab] = useState<'info' | 'registrations'>('info');
   const [registrationFilter, setRegistrationFilter] = useState('');
@@ -57,20 +60,32 @@ const EventDetail: React.FC = () => {
   };
 
   const handleCheckIn = async (registrationId: string) => {
-    if (confirm('Check in this attendee?')) {
-      await dispatch(checkInAttendee(registrationId));
-      if (id) {
-        dispatch(fetchEventRegistrations({ eventId: id }));
-      }
+    const confirmed = await confirm({
+      title: 'Check In Attendee',
+      message: 'Check in this attendee?',
+      confirmLabel: 'Check In',
+      variant: 'warning',
+    });
+    if (!confirmed) return;
+
+    await dispatch(checkInAttendee(registrationId));
+    if (id) {
+      dispatch(fetchEventRegistrations({ eventId: id }));
     }
   };
 
   const handleCancelRegistration = async (registrationId: string) => {
-    if (confirm('Cancel this registration? This will reduce the event capacity.')) {
-      await dispatch(cancelRegistration(registrationId));
-      if (id) {
-        dispatch(fetchEventRegistrations({ eventId: id }));
-      }
+    const confirmed = await confirm({
+      title: 'Cancel Registration',
+      message: 'Cancel this registration? This will reduce the event capacity.',
+      confirmLabel: 'Cancel Registration',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
+    await dispatch(cancelRegistration(registrationId));
+    if (id) {
+      dispatch(fetchEventRegistrations({ eventId: id }));
     }
   };
 
@@ -384,6 +399,7 @@ const EventDetail: React.FC = () => {
           )}
         </div>
       )}
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
       </div>
     </NeoBrutalistLayout>
   );

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { NeoBrutalistLayout, BrutalCard, BrutalButton, BrutalBadge } from '../../../components/neo-brutalist';
 import api from '../../../services/api';
 import type { ExternalServiceProvider, ExternalServiceProvidersResponse } from '../../../types/case';
+import ConfirmDialog from '../../../components/ConfirmDialog';
+import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 
 const PROVIDER_TYPES = [
   'social_worker',
@@ -17,6 +19,7 @@ const PROVIDER_TYPES = [
 ];
 
 const ExternalServiceProviders = () => {
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const [providers, setProviders] = useState<ExternalServiceProvider[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -98,7 +101,14 @@ const ExternalServiceProviders = () => {
   };
 
   const handleArchive = async (id: string) => {
-    if (!window.confirm('Archive this provider? Existing case records stay linked.')) return;
+    const confirmed = await confirm({
+      ...confirmPresets.delete('Provider'),
+      title: 'Archive Provider',
+      message: 'Archive this provider? Existing case records stay linked.',
+      confirmLabel: 'Archive Provider',
+      variant: 'warning',
+    });
+    if (!confirmed) return;
 
     try {
       await api.delete(`/external-service-providers/${id}`);
@@ -256,6 +266,7 @@ const ExternalServiceProviders = () => {
             </div>
           )}
         </BrutalCard>
+        <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
       </div>
     </NeoBrutalistLayout>
   );
