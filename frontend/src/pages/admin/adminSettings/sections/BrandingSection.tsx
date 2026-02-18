@@ -14,6 +14,8 @@ interface BrandingSectionProps {
   onSave: () => void;
   isSaving: boolean;
   saveStatus: SaveStatus;
+  isDirty: boolean;
+  lastSavedAt: Date | null;
 }
 
 export default function BrandingSection({
@@ -27,6 +29,8 @@ export default function BrandingSection({
   onSave,
   isSaving,
   saveStatus,
+  isDirty,
+  lastSavedAt,
 }: BrandingSectionProps) {
   return (
     <div className="space-y-6">
@@ -199,7 +203,13 @@ export default function BrandingSection({
           </div>
         </div>
 
-        <SaveBar isSaving={isSaving} saveStatus={saveStatus} onSave={onSave} />
+        <SaveBar
+          isSaving={isSaving}
+          saveStatus={saveStatus}
+          isDirty={isDirty}
+          lastSavedAt={lastSavedAt}
+          onSave={onSave}
+        />
       </div>
     </div>
   );

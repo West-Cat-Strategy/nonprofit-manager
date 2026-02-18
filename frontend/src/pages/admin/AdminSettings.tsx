@@ -8,6 +8,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../../services/api';
 import { useToast } from '../../contexts/useToast';
 import { useApiError } from '../../hooks/useApiError';
+import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 import { useBranding } from '../../contexts/BrandingContext';
 import ErrorBanner from '../../components/ErrorBanner';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -43,6 +44,11 @@ import RegistrationSettingsSection from './adminSettings/sections/RegistrationSe
 import UserSecurityModal from './adminSettings/components/UserSecurityModal';
 import PortalResetPasswordModal from './adminSettings/components/PortalResetPasswordModal';
 
+const ADMIN_SETTINGS_MODE_KEY = 'admin_settings_mode_v1';
+const ADMIN_SETTINGS_SECTION_KEY = 'admin_settings_section_v1';
+
+const serializeOrganizationConfig = (value: OrganizationConfig): string => JSON.stringify(value);
+const serializeBrandingConfig = (value: BrandingConfig): string => JSON.stringify(value);
 
 // ============================================================================
 // Main Component
@@ -54,10 +60,17 @@ export default function AdminSettings() {
   const { error: formError, setFromError: setFormErrorFromError, clear: clearFormError } = useApiError();
   const { setFromError: notifyError } = useApiError({ notify: true });
   const { setBranding: setGlobalBranding } = useBranding();
+  const persistedMode =
+    (typeof window !== 'undefined'
+      ? (window.localStorage.getItem(ADMIN_SETTINGS_MODE_KEY) as 'basic' | 'advanced' | null)
+      : null) || 'basic';
+  const persistedSection =
+    (typeof window !== 'undefined' ? window.localStorage.getItem(ADMIN_SETTINGS_SECTION_KEY) : null) ||
+    'dashboard';
 
   // State
-  const [activeSection, setActiveSection] = useState<string>('dashboard');
-  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>(persistedSection);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(persistedMode === 'advanced');
   const [config, setConfig] = useState<OrganizationConfig>(defaultConfig);
 
   const [branding, setBranding] = useState<BrandingConfig>(defaultBranding);
@@ -65,6 +78,10 @@ export default function AdminSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [savedOrganizationSnapshot, setSavedOrganizationSnapshot] = useState('');
+  const [savedBrandingSnapshot, setSavedBrandingSnapshot] = useState('');
+  const [organizationLastSavedAt, setOrganizationLastSavedAt] = useState<Date | null>(null);
+  const [brandingLastSavedAt, setBrandingLastSavedAt] = useState<Date | null>(null);
 
   // User search state
   const [userSearchQuery, setUserSearchQuery] = useState('');
@@ -133,6 +150,17 @@ export default function AdminSettings() {
   // Data Fetching
   // ============================================================================
 
+  const isOrganizationDirty =
+    savedOrganizationSnapshot !== '' && serializeOrganizationConfig(config) !== savedOrganizationSnapshot;
+  const isBrandingDirty =
+    savedBrandingSnapshot !== '' && serializeBrandingConfig(branding) !== savedBrandingSnapshot;
+  const hasUnsavedChanges =
+    !isSaving &&
+    ((activeSection === 'organization' && isOrganizationDirty) ||
+      (activeSection === 'branding' && isBrandingDirty));
+
+  useUnsavedChangesGuard({ hasUnsavedChanges });
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -143,13 +171,17 @@ export default function AdminSettings() {
         ]);
 
         const prefs = configResponse.data.preferences;
-        if (prefs?.organization) {
-          setConfig({ ...defaultConfig, ...prefs.organization });
-        }
+        const resolvedConfig = prefs?.organization
+          ? ({ ...defaultConfig, ...prefs.organization } as OrganizationConfig)
+          : defaultConfig;
+        const resolvedBranding = brandingResponse.data
+          ? ({ ...defaultBranding, ...brandingResponse.data } as BrandingConfig)
+          : defaultBranding;
 
-        if (brandingResponse.data) {
-          setBranding({ ...defaultBranding, ...brandingResponse.data });
-        }
+        setConfig(resolvedConfig);
+        setSavedOrganizationSnapshot(serializeOrganizationConfig(resolvedConfig));
+        setBranding(resolvedBranding);
+        setSavedBrandingSnapshot(serializeBrandingConfig(resolvedBranding));
 
         if (rolesResponse.data?.roles) {
           setRoles(rolesResponse.data.roles);
@@ -203,6 +235,17 @@ export default function AdminSettings() {
     }
   }, [activeSection, showAdvancedSettings]);
 
+  useEffect(() => {
+    window.localStorage.setItem(
+      ADMIN_SETTINGS_MODE_KEY,
+      showAdvancedSettings ? 'advanced' : 'basic'
+    );
+  }, [showAdvancedSettings]);
+
+  useEffect(() => {
+    window.localStorage.setItem(ADMIN_SETTINGS_SECTION_KEY, activeSection);
+  }, [activeSection]);
+
   // ============================================================================
   // User Search
   // ============================================================================
@@ -254,6 +297,8 @@ export default function AdminSettings() {
     setSaveStatus('idle');
     try {
       await api.patch('/auth/preferences/organization', { value: config });
+      setSavedOrganizationSnapshot(serializeOrganizationConfig(config));
+      setOrganizationLastSavedAt(new Date());
       setSaveStatus('success');
       setTimeout(() => setSaveStatus('idle'), 3000);
     } catch {
@@ -271,6 +316,8 @@ export default function AdminSettings() {
       const saved = { ...defaultBranding, ...(response.data || {}) } as BrandingConfig;
       setBranding(saved);
       setGlobalBranding(saved);
+      setSavedBrandingSnapshot(serializeBrandingConfig(saved));
+      setBrandingLastSavedAt(new Date());
       setSaveStatus('success');
       setTimeout(() => setSaveStatus('idle'), 3000);
     } catch {
@@ -720,6 +767,8 @@ export default function AdminSettings() {
   const visibleTabs = showAdvancedSettings
     ? adminSettingsTabs
     : adminSettingsTabs.filter((tab) => tab.level === 'basic');
+  const activeTabLabel =
+    adminSettingsTabs.find((tab) => tab.id === activeSection)?.label || 'Dashboard';
 
   return (
     <NeoBrutalistLayout pageTitle="ADMIN SETTINGS">
@@ -744,7 +793,8 @@ export default function AdminSettings() {
           <div className="mb-6 border-b-2 border-[var(--app-border)] bg-[var(--app-bg)] sticky top-0 z-10">
             <div className="flex items-center justify-between pb-3">
               <p className="text-sm text-[var(--app-text-muted)]">
-                Showing {showAdvancedSettings ? 'all sections' : 'basic sections'}.
+                Showing {showAdvancedSettings ? 'all sections' : 'basic sections'}. You are here:{' '}
+                <span className="font-bold text-[var(--app-text)]">{activeTabLabel}</span>
               </p>
               <button
                 type="button"
@@ -785,6 +835,8 @@ export default function AdminSettings() {
               onSave={handleSaveOrganization}
               isSaving={isSaving}
               saveStatus={saveStatus}
+              isDirty={isOrganizationDirty}
+              lastSavedAt={organizationLastSavedAt}
             />
           )}
 
@@ -801,6 +853,8 @@ export default function AdminSettings() {
               onSave={handleSaveBranding}
               isSaving={isSaving}
               saveStatus={saveStatus}
+              isDirty={isBrandingDirty}
+              lastSavedAt={brandingLastSavedAt}
             />
           )}
 

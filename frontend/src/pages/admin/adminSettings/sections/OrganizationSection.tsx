@@ -11,6 +11,8 @@ interface OrganizationSectionProps {
   onSave: () => void;
   isSaving: boolean;
   saveStatus: SaveStatus;
+  isDirty: boolean;
+  lastSavedAt: Date | null;
 }
 
 export default function OrganizationSection({
@@ -21,6 +23,8 @@ export default function OrganizationSection({
   onSave,
   isSaving,
   saveStatus,
+  isDirty,
+  lastSavedAt,
 }: OrganizationSectionProps) {
   return (
     <div className="space-y-6">
@@ -292,7 +296,13 @@ export default function OrganizationSection({
           </div>
         </div>
 
-        <SaveBar isSaving={isSaving} saveStatus={saveStatus} onSave={onSave} />
+        <SaveBar
+          isSaving={isSaving}
+          saveStatus={saveStatus}
+          isDirty={isDirty}
+          lastSavedAt={lastSavedAt}
+          onSave={onSave}
+        />
       </div>
     </div>
   );

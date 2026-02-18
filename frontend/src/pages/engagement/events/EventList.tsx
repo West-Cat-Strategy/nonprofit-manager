@@ -11,16 +11,54 @@ import type { Event, EventStatus, EventType } from '../../../types/event';
 import { formatDateTime } from '../../../utils/format';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 
+const EVENT_FILTERS_STORAGE_KEY = 'events_list_filters_v1';
+
 const EventList: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useAppDispatch();
   const { events, pagination, loading, error } = useAppSelector((state) => state.events);
 
-  const [search, setSearch] = useState(searchParams.get('search') || '');
-  const [eventType, setEventType] = useState<EventType | ''>((searchParams.get('type') as EventType | '') || '');
-  const [status, setStatus] = useState<EventStatus | ''>((searchParams.get('status') as EventStatus | '') || '');
-  const [visibility, setVisibility] = useState<'all' | 'public' | 'private'>((searchParams.get('visibility') as 'all' | 'public' | 'private') || 'all');
+  const [search, setSearch] = useState(() => {
+    const fromUrl = searchParams.get('search') || '';
+    if (fromUrl) return fromUrl;
+    try {
+      const saved = localStorage.getItem(EVENT_FILTERS_STORAGE_KEY);
+      return saved ? (JSON.parse(saved).search || '') : '';
+    } catch {
+      return '';
+    }
+  });
+  const [eventType, setEventType] = useState<EventType | ''>(() => {
+    const fromUrl = (searchParams.get('type') as EventType | '') || '';
+    if (fromUrl) return fromUrl;
+    try {
+      const saved = localStorage.getItem(EVENT_FILTERS_STORAGE_KEY);
+      return saved ? (JSON.parse(saved).eventType || '') : '';
+    } catch {
+      return '';
+    }
+  });
+  const [status, setStatus] = useState<EventStatus | ''>(() => {
+    const fromUrl = (searchParams.get('status') as EventStatus | '') || '';
+    if (fromUrl) return fromUrl;
+    try {
+      const saved = localStorage.getItem(EVENT_FILTERS_STORAGE_KEY);
+      return saved ? (JSON.parse(saved).status || '') : '';
+    } catch {
+      return '';
+    }
+  });
+  const [visibility, setVisibility] = useState<'all' | 'public' | 'private'>(() => {
+    const fromUrl = (searchParams.get('visibility') as 'all' | 'public' | 'private') || 'all';
+    if (fromUrl !== 'all') return fromUrl;
+    try {
+      const saved = localStorage.getItem(EVENT_FILTERS_STORAGE_KEY);
+      return saved ? (JSON.parse(saved).visibility || 'all') : 'all';
+    } catch {
+      return 'all';
+    }
+  });
   const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page') || '1'));
   const hasActiveFilters = Boolean(search || eventType || status || visibility !== 'all');
 
@@ -56,6 +94,10 @@ const EventList: React.FC = () => {
     if (visibility !== 'all') params.set('visibility', visibility);
     if (currentPage > 1) params.set('page', String(currentPage));
     setSearchParams(params, { replace: true });
+    localStorage.setItem(
+      EVENT_FILTERS_STORAGE_KEY,
+      JSON.stringify({ search, eventType, status, visibility })
+    );
   }, [search, eventType, status, visibility, currentPage, setSearchParams]);
 
   const clearFilters = () => {
@@ -63,6 +105,33 @@ const EventList: React.FC = () => {
     setEventType('');
     setStatus('');
     setVisibility('all');
+    setCurrentPage(1);
+    localStorage.removeItem(EVENT_FILTERS_STORAGE_KEY);
+  };
+
+  const applyPreset = (preset: 'upcoming' | 'active' | 'public') => {
+    if (preset === 'upcoming') {
+      setSearch('');
+      setEventType('');
+      setStatus('planned');
+      setVisibility('all');
+      setCurrentPage(1);
+      return;
+    }
+
+    if (preset === 'active') {
+      setSearch('');
+      setEventType('');
+      setStatus('active');
+      setVisibility('all');
+      setCurrentPage(1);
+      return;
+    }
+
+    setSearch('');
+    setEventType('');
+    setStatus('');
+    setVisibility('public');
     setCurrentPage(1);
   };
 
@@ -124,6 +193,30 @@ const EventList: React.FC = () => {
       </div>
 
       {/* Filters */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span className="text-xs font-bold uppercase text-[var(--app-text-muted)]">Quick filters:</span>
+        <button
+          type="button"
+          onClick={() => applyPreset('upcoming')}
+          className="px-2 py-1 text-xs font-bold border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] text-black"
+        >
+          Upcoming
+        </button>
+        <button
+          type="button"
+          onClick={() => applyPreset('active')}
+          className="px-2 py-1 text-xs font-bold border-2 border-[var(--app-border)] bg-green-100 text-green-800"
+        >
+          Active
+        </button>
+        <button
+          type="button"
+          onClick={() => applyPreset('public')}
+          className="px-2 py-1 text-xs font-bold border-2 border-[var(--app-border)] bg-blue-100 text-blue-800"
+        >
+          Public
+        </button>
+      </div>
       <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
         <input
           type="text"
@@ -190,10 +283,10 @@ const EventList: React.FC = () => {
       {hasActiveFilters && (
         <div className="mb-6 flex flex-wrap items-center gap-2">
           <span className="text-xs font-bold uppercase text-[var(--app-text-muted)]">Active filters:</span>
-          {search && <button onClick={() => setSearch('')} className="px-2 py-1 text-xs border-2 border-[var(--app-border)] bg-[var(--app-surface)]">Search: {search} ×</button>}
-          {eventType && <button onClick={() => setEventType('')} className="px-2 py-1 text-xs border-2 border-[var(--app-border)] bg-[var(--app-surface)]">Type: {eventType} ×</button>}
-          {status && <button onClick={() => setStatus('')} className="px-2 py-1 text-xs border-2 border-[var(--app-border)] bg-[var(--app-surface)]">Status: {status} ×</button>}
-          {visibility !== 'all' && <button onClick={() => setVisibility('all')} className="px-2 py-1 text-xs border-2 border-[var(--app-border)] bg-[var(--app-surface)]">Visibility: {visibility} ×</button>}
+          {search && <button onClick={() => { setSearch(''); setCurrentPage(1); }} className="px-2 py-1 text-xs border-2 border-[var(--app-border)] bg-[var(--app-surface)]">Search: {search} ×</button>}
+          {eventType && <button onClick={() => { setEventType(''); setCurrentPage(1); }} className="px-2 py-1 text-xs border-2 border-[var(--app-border)] bg-[var(--app-surface)]">Type: {eventType} ×</button>}
+          {status && <button onClick={() => { setStatus(''); setCurrentPage(1); }} className="px-2 py-1 text-xs border-2 border-[var(--app-border)] bg-[var(--app-surface)]">Status: {status} ×</button>}
+          {visibility !== 'all' && <button onClick={() => { setVisibility('all'); setCurrentPage(1); }} className="px-2 py-1 text-xs border-2 border-[var(--app-border)] bg-[var(--app-surface)]">Visibility: {visibility} ×</button>}
           <button onClick={clearFilters} className="px-3 py-1 text-xs font-bold border-2 border-[var(--app-border)] bg-[var(--loop-yellow)]">
             Clear all
           </button>

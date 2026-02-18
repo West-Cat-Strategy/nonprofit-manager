@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../../../services/api';
 import { useToast } from '../../../../contexts/useToast';
+import { useUnsavedChangesGuard } from '../../../../hooks/useUnsavedChangesGuard';
 
 interface EmailSettings {
   id: string;
@@ -47,6 +48,8 @@ export default function EmailSettingsSection() {
   const [hasHydratedData, setHasHydratedData] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [savedSnapshot, setSavedSnapshot] = useState<string>('');
 
   // Form state
   const [smtpHost, setSmtpHost] = useState('');
@@ -61,6 +64,43 @@ export default function EmailSettingsSection() {
   const [imapSecure, setImapSecure] = useState(true);
   const [imapUser, setImapUser] = useState('');
   const [imapPass, setImapPass] = useState('');
+
+  const buildSnapshot = useCallback(
+    () =>
+      JSON.stringify({
+        smtpHost,
+        smtpPort,
+        smtpSecure,
+        smtpUser,
+        smtpFromAddress,
+        smtpFromName,
+        imapHost,
+        imapPort,
+        imapSecure,
+        imapUser,
+        smtpPassPresent: Boolean(smtpPass),
+        imapPassPresent: Boolean(imapPass),
+      }),
+    [
+      smtpHost,
+      smtpPort,
+      smtpSecure,
+      smtpUser,
+      smtpFromAddress,
+      smtpFromName,
+      imapHost,
+      imapPort,
+      imapSecure,
+      imapUser,
+      smtpPass,
+      imapPass,
+    ]
+  );
+  const isDirty = hasHydratedData && buildSnapshot() !== savedSnapshot;
+
+  useUnsavedChangesGuard({
+    hasUnsavedChanges: isDirty && !saving && !testing,
+  });
 
   // ---- Fetch ----
   const applySettings = useCallback((s: EmailSettings, creds: Credentials) => {
@@ -77,6 +117,22 @@ export default function EmailSettingsSection() {
     setImapSecure(s.imapSecure);
     setImapUser(s.imapUser || '');
     setHasHydratedData(true);
+    setSavedSnapshot(
+      JSON.stringify({
+        smtpHost: s.smtpHost || '',
+        smtpPort: s.smtpPort,
+        smtpSecure: s.smtpSecure,
+        smtpUser: s.smtpUser || '',
+        smtpFromAddress: s.smtpFromAddress || '',
+        smtpFromName: s.smtpFromName || '',
+        imapHost: s.imapHost || '',
+        imapPort: s.imapPort,
+        imapSecure: s.imapSecure,
+        imapUser: s.imapUser || '',
+        smtpPassPresent: false,
+        imapPassPresent: false,
+      })
+    );
   }, []);
 
   const fetchSettings = useCallback(async (background = false) => {
@@ -158,6 +214,7 @@ export default function EmailSettingsSection() {
       showSuccess('Email settings saved');
       setSmtpPass('');
       setImapPass('');
+      setLastSavedAt(new Date());
       await fetchSettings();
     } catch {
       showError('Failed to save email settings');
@@ -197,6 +254,17 @@ export default function EmailSettingsSection() {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between rounded-lg border border-app-border bg-app-surface px-4 py-3 text-sm">
+        <span className="text-app-text-muted">
+          {isDirty
+            ? 'Unsaved changes'
+            : lastSavedAt
+              ? `Saved ${lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+              : 'No pending changes'}
+        </span>
+        {(saving || testing) && <span className="text-app-text-subtle">Working...</span>}
+      </div>
+
       {/* Status Banner */}
       <div
         className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-sm ${
