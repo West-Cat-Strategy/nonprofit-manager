@@ -16,6 +16,7 @@ import NeoBrutalistLayout from '../../components/neo-brutalist/NeoBrutalistLayou
 import ThemeSelector from '../../components/ThemeSelector';
 import ErrorBanner from '../../components/ErrorBanner';
 import { useApiError } from '../../hooks/useApiError';
+import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 
 interface AlternativeEmail {
   email: string;
@@ -74,6 +75,12 @@ const pronounOptions = [
 
 const MAX_IMAGE_DIMENSION = 400; // Maximum width/height for resized image
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB upload limit
+
+const serializeUserProfile = (profile: UserProfile, customPronouns: string): string =>
+  JSON.stringify({
+    ...profile,
+    pronouns: profile.pronouns === 'custom' ? customPronouns : profile.pronouns,
+  });
 
 /**
  * Resize an image to fit within max dimensions while maintaining aspect ratio
@@ -158,6 +165,8 @@ export default function UserSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [savedProfileSnapshot, setSavedProfileSnapshot] = useState('');
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const {
     error: errorMessage,
     setFromError: setErrorMessageFromError,
@@ -167,6 +176,7 @@ export default function UserSettings() {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [settingsMode, setSettingsMode] = useState<'basic' | 'advanced'>('basic');
+  const [activeSection, setActiveSection] = useState<string>('profile-section');
 
   // Visual-only state for field visibility (not persisted per instructions)
   const [fieldVisibility, setFieldVisibility] = useState<Record<string, boolean>>({
@@ -213,6 +223,12 @@ export default function UserSettings() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordStatus, setPasswordStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const profileSnapshot = serializeUserProfile(profile, customPronouns);
+  const isProfileDirty = savedProfileSnapshot !== '' && profileSnapshot !== savedProfileSnapshot;
+
+  useUnsavedChangesGuard({
+    hasUnsavedChanges: isProfileDirty && !isSaving && !isProcessingImage,
+  });
 
   const refreshSecurity = useCallback(async () => {
     clearSecurityError();
@@ -228,10 +244,14 @@ export default function UserSettings() {
 
   useEffect(() => {
     const fetchProfile = async () => {
+      let resolvedProfile: UserProfile | null = null;
+      let resolvedCustomPronouns = '';
+      let resolvedPreviewImage: string | null = null;
+
       try {
         // Use LoopApiService to fetch profile
         const data = await LoopApiService.getUserProfile();
-        setProfile({
+        resolvedProfile = {
           firstName: data.firstName || user?.firstName || '',
           lastName: data.lastName || user?.lastName || '',
           email: data.email || user?.email || '',
@@ -254,25 +274,29 @@ export default function UserSettings() {
             weeklyDigest: false,
             marketingEmails: false,
           },
-        });
+        };
         if (data.pronouns && !pronounOptions.find(p => p.value === data.pronouns)) {
-          setCustomPronouns(data.pronouns);
-          setProfile(prev => ({ ...prev, pronouns: 'custom' }));
+          resolvedCustomPronouns = data.pronouns;
+          resolvedProfile = { ...resolvedProfile, pronouns: 'custom' };
         }
         if (data.profilePicture) {
-          setPreviewImage(data.profilePicture);
+          resolvedPreviewImage = data.profilePicture;
         }
       } catch {
         // Use defaults from auth state if fetch fails
-        if (user) {
-          setProfile(prev => ({
-            ...prev,
-            firstName: user.firstName || '',
-            lastName: user.lastName || '',
-            email: user.email || '',
-          }));
-        }
+        resolvedProfile = {
+          ...profile,
+          firstName: user?.firstName || '',
+          lastName: user?.lastName || '',
+          email: user?.email || '',
+        };
       } finally {
+        if (resolvedProfile) {
+          setProfile(resolvedProfile);
+          setCustomPronouns(resolvedCustomPronouns);
+          setPreviewImage(resolvedPreviewImage);
+          setSavedProfileSnapshot(serializeUserProfile(resolvedProfile, resolvedCustomPronouns));
+        }
         setIsLoading(false);
       }
     };
@@ -416,6 +440,8 @@ export default function UserSettings() {
         profilePicture: profile.profilePicture,
       }));
 
+      setSavedProfileSnapshot(serializeUserProfile(profile, customPronouns));
+      setLastSavedAt(new Date());
       setSaveStatus('success');
       setTimeout(() => setSaveStatus('idle'), 3000);
     } catch (err: unknown) {
@@ -474,8 +500,40 @@ export default function UserSettings() {
   const scrollToSection = (sectionId: string) => {
     const target = document.getElementById(sectionId);
     if (!target) return;
+    setActiveSection(sectionId);
     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+
+  useEffect(() => {
+    const sectionIds =
+      settingsMode === 'advanced'
+        ? ['profile-section', 'bio-section', 'contact-section', 'notifications-section', 'security-section']
+        : ['profile-section', 'bio-section', 'contact-section', 'notifications-section'];
+
+    if (!sectionIds.includes(activeSection)) {
+      setActiveSection('profile-section');
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntry = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+        if (visibleEntry?.target?.id) {
+          setActiveSection(visibleEntry.target.id);
+        }
+      },
+      { root: null, rootMargin: '-30% 0px -55% 0px', threshold: [0.1, 0.25, 0.5] }
+    );
+
+    sectionIds.forEach((id) => {
+      const section = document.getElementById(id);
+      if (section) observer.observe(section);
+    });
+
+    return () => observer.disconnect();
+  }, [settingsMode, activeSection]);
 
   const handleStartTotpSetup = async () => {
     clearSecurityError();
@@ -605,14 +663,47 @@ export default function UserSettings() {
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => scrollToSection('profile-section')} className="px-2 py-1 text-xs font-bold uppercase border-2 border-black bg-app-surface">Profile</button>
-                <button type="button" onClick={() => scrollToSection('bio-section')} className="px-2 py-1 text-xs font-bold uppercase border-2 border-black bg-app-surface">Bio</button>
-                <button type="button" onClick={() => scrollToSection('contact-section')} className="px-2 py-1 text-xs font-bold uppercase border-2 border-black bg-app-surface">Contact</button>
-                <button type="button" onClick={() => scrollToSection('notifications-section')} className="px-2 py-1 text-xs font-bold uppercase border-2 border-black bg-app-surface">Notifications</button>
+                <button
+                  type="button"
+                  onClick={() => scrollToSection('profile-section')}
+                  className={`px-2 py-1 text-xs font-bold uppercase border-2 border-black ${activeSection === 'profile-section' ? 'bg-[var(--loop-yellow)]' : 'bg-app-surface'}`}
+                >
+                  Profile
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollToSection('bio-section')}
+                  className={`px-2 py-1 text-xs font-bold uppercase border-2 border-black ${activeSection === 'bio-section' ? 'bg-[var(--loop-yellow)]' : 'bg-app-surface'}`}
+                >
+                  Bio
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollToSection('contact-section')}
+                  className={`px-2 py-1 text-xs font-bold uppercase border-2 border-black ${activeSection === 'contact-section' ? 'bg-[var(--loop-yellow)]' : 'bg-app-surface'}`}
+                >
+                  Contact
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollToSection('notifications-section')}
+                  className={`px-2 py-1 text-xs font-bold uppercase border-2 border-black ${activeSection === 'notifications-section' ? 'bg-[var(--loop-yellow)]' : 'bg-app-surface'}`}
+                >
+                  Notifications
+                </button>
                 {settingsMode === 'advanced' && (
-                  <button type="button" onClick={() => scrollToSection('security-section')} className="px-2 py-1 text-xs font-bold uppercase border-2 border-black bg-app-surface">Security</button>
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection('security-section')}
+                    className={`px-2 py-1 text-xs font-bold uppercase border-2 border-black ${activeSection === 'security-section' ? 'bg-[var(--loop-cyan)]' : 'bg-app-surface'}`}
+                  >
+                    Security
+                  </button>
                 )}
               </div>
+              <p className="text-xs font-bold uppercase text-app-text-muted">
+                Currently viewing: {activeSection.replace('-section', '').replace('-', ' ')}
+              </p>
             </div>
 
             <button
@@ -638,6 +729,13 @@ export default function UserSettings() {
           </div>
 
           {/* Status Messages */}
+          <div className="bg-app-surface border-2 border-black p-3 font-bold shadow-[4px_4px_0px_0px_var(--shadow-color)] text-sm uppercase tracking-wide">
+            {isProfileDirty
+              ? 'Unsaved changes'
+              : lastSavedAt
+                ? `Saved ${lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+                : 'No pending changes'}
+          </div>
           {saveStatus === 'success' && (
             <div className="bg-[#90EE90] border-4 border-black p-4 font-bold shadow-[6px_6px_0px_0px_var(--shadow-color)] flex items-center gap-3 text-lg animate-slide-in">
               <span>✅</span> Profile saved successfully!

@@ -10,6 +10,8 @@ import { fetchDonations } from '../../../store/slices/donationsSlice';
 import type { PaymentMethod, PaymentStatus } from '../../../types/donation';
 import { formatDate, formatCurrency } from '../../../utils/format';
 
+const DONATION_FILTERS_STORAGE_KEY = 'donations_list_filters_v1';
+
 const DonationList: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -18,9 +20,36 @@ const DonationList: React.FC = () => {
     (state) => state.donations
   );
 
-  const [search, setSearch] = useState(searchParams.get('search') || '');
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | ''>((searchParams.get('status') as PaymentStatus | '') || '');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>((searchParams.get('type') as PaymentMethod | '') || '');
+  const [search, setSearch] = useState(() => {
+    const fromUrl = searchParams.get('search') || '';
+    if (fromUrl) return fromUrl;
+    try {
+      const saved = localStorage.getItem(DONATION_FILTERS_STORAGE_KEY);
+      return saved ? (JSON.parse(saved).search || '') : '';
+    } catch {
+      return '';
+    }
+  });
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | ''>(() => {
+    const fromUrl = (searchParams.get('status') as PaymentStatus | '') || '';
+    if (fromUrl) return fromUrl;
+    try {
+      const saved = localStorage.getItem(DONATION_FILTERS_STORAGE_KEY);
+      return saved ? (JSON.parse(saved).paymentStatus || '') : '';
+    } catch {
+      return '';
+    }
+  });
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>(() => {
+    const fromUrl = (searchParams.get('type') as PaymentMethod | '') || '';
+    if (fromUrl) return fromUrl;
+    try {
+      const saved = localStorage.getItem(DONATION_FILTERS_STORAGE_KEY);
+      return saved ? (JSON.parse(saved).paymentMethod || '') : '';
+    } catch {
+      return '';
+    }
+  });
   const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page') || '1'));
   const hasActiveFilters = Boolean(search || paymentStatus || paymentMethod);
 
@@ -53,12 +82,40 @@ const DonationList: React.FC = () => {
     if (paymentMethod) params.set('type', paymentMethod);
     if (currentPage > 1) params.set('page', String(currentPage));
     setSearchParams(params, { replace: true });
+    localStorage.setItem(
+      DONATION_FILTERS_STORAGE_KEY,
+      JSON.stringify({ search, paymentStatus, paymentMethod })
+    );
   }, [search, paymentStatus, paymentMethod, currentPage, setSearchParams]);
 
   const clearFilters = () => {
     setSearch('');
     setPaymentStatus('');
     setPaymentMethod('');
+    setCurrentPage(1);
+    localStorage.removeItem(DONATION_FILTERS_STORAGE_KEY);
+  };
+
+  const applyPreset = (preset: 'completed' | 'pending' | 'card') => {
+    if (preset === 'completed') {
+      setSearch('');
+      setPaymentStatus('completed');
+      setPaymentMethod('');
+      setCurrentPage(1);
+      return;
+    }
+
+    if (preset === 'pending') {
+      setSearch('');
+      setPaymentStatus('pending');
+      setPaymentMethod('');
+      setCurrentPage(1);
+      return;
+    }
+
+    setSearch('');
+    setPaymentStatus('');
+    setPaymentMethod('credit_card');
     setCurrentPage(1);
   };
 
@@ -107,6 +164,30 @@ const DonationList: React.FC = () => {
       </div>
 
       {/* Filters */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span className="text-xs font-semibold uppercase text-app-text-muted">Quick filters:</span>
+        <button
+          type="button"
+          onClick={() => applyPreset('completed')}
+          className="px-2 py-1 text-xs font-semibold border rounded-md bg-green-100 text-green-800"
+        >
+          Completed
+        </button>
+        <button
+          type="button"
+          onClick={() => applyPreset('pending')}
+          className="px-2 py-1 text-xs font-semibold border rounded-md bg-yellow-100 text-yellow-800"
+        >
+          Pending
+        </button>
+        <button
+          type="button"
+          onClick={() => applyPreset('card')}
+          className="px-2 py-1 text-xs font-semibold border rounded-md bg-blue-100 text-blue-800"
+        >
+          Credit Card
+        </button>
+      </div>
       <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         <input
           type="text"
@@ -160,9 +241,9 @@ const DonationList: React.FC = () => {
       </div>
       {hasActiveFilters && (
         <div className="mb-6 flex flex-wrap gap-2">
-          {search && <button onClick={() => setSearch('')} className="px-2 py-1 text-xs border rounded-md">Search: {search} ×</button>}
-          {paymentStatus && <button onClick={() => setPaymentStatus('')} className="px-2 py-1 text-xs border rounded-md">Status: {paymentStatus} ×</button>}
-          {paymentMethod && <button onClick={() => setPaymentMethod('')} className="px-2 py-1 text-xs border rounded-md">Type: {paymentMethod} ×</button>}
+          {search && <button onClick={() => { setSearch(''); setCurrentPage(1); }} className="px-2 py-1 text-xs border rounded-md">Search: {search} ×</button>}
+          {paymentStatus && <button onClick={() => { setPaymentStatus(''); setCurrentPage(1); }} className="px-2 py-1 text-xs border rounded-md">Status: {paymentStatus} ×</button>}
+          {paymentMethod && <button onClick={() => { setPaymentMethod(''); setCurrentPage(1); }} className="px-2 py-1 text-xs border rounded-md">Type: {paymentMethod} ×</button>}
           <button onClick={clearFilters} className="px-2 py-1 text-xs font-semibold border rounded-md bg-app-surface-muted">
             Clear all
           </button>
