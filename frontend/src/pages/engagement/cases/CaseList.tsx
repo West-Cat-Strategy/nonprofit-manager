@@ -77,14 +77,15 @@ const CaseList = () => {
       const parsed = Number(value);
       return Number.isNaN(parsed) ? undefined : parsed;
     };
-    const legacyStatus = searchParams.get('status');
+    const statusParam = searchParams.get('status');
+    const statusIdParam = searchParams.get('status_id');
     const legacyQuickFilterMap: Partial<Record<string, QuickFilter>> = {
       active: 'active',
       urgent: 'urgent',
       unassigned: 'unassigned',
       overdue: 'overdue',
     };
-    const initialQuickFilter = (searchParams.get('quick_filter') || legacyQuickFilterMap[legacyStatus || '']) as QuickFilter | null;
+    const initialQuickFilter = (searchParams.get('quick_filter') || legacyQuickFilterMap[statusParam || '']) as QuickFilter | null;
     const quickFilterValue =
       initialQuickFilter && ['active', 'overdue', 'due_soon', 'unassigned', 'urgent'].includes(initialQuickFilter)
         ? initialQuickFilter
@@ -95,8 +96,9 @@ const CaseList = () => {
       contact_id: searchParams.get('contact_id') || undefined,
       account_id: searchParams.get('account_id') || undefined,
       priority: (searchParams.get('priority') as CaseFilter['priority']) || undefined,
-      status_id: searchParams.get('status_id') || undefined,
-      case_type_id: searchParams.get('case_type_id') || undefined,
+      status_id:
+        statusIdParam || (statusParam && !legacyQuickFilterMap[statusParam] ? statusParam : undefined),
+      case_type_id: searchParams.get('type') || searchParams.get('case_type_id') || undefined,
       assigned_to: searchParams.get('assigned_to') || undefined,
       is_urgent: parseBoolean(searchParams.get('is_urgent')),
       sort_by: searchParams.get('sort_by') || undefined,
@@ -164,6 +166,14 @@ const CaseList = () => {
     const params = new URLSearchParams();
     Object.entries(merged).forEach(([key, value]) => {
       if (value !== undefined && value !== '') {
+        if (key === 'status_id') {
+          params.set('status', String(value));
+          return;
+        }
+        if (key === 'case_type_id') {
+          params.set('type', String(value));
+          return;
+        }
         params.set(key, String(value));
       }
     });

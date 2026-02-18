@@ -9,6 +9,8 @@ import {
 } from '../store/slices/contactsSlice';
 import type { CreateContactRelationshipDTO, RelationshipType } from '../types/contact';
 import { RELATIONSHIP_TYPES } from '../types/contact';
+import ConfirmDialog from './ConfirmDialog';
+import useConfirmDialog, { confirmPresets } from '../hooks/useConfirmDialog';
 
 interface ContactRelationshipsProps {
   contactId: string;
@@ -17,6 +19,7 @@ interface ContactRelationshipsProps {
 const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const { relationships, relationshipsLoading, contacts, currentContact } = useAppSelector(
     (state) => state.contacts
   );
@@ -75,7 +78,8 @@ const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
   };
 
   const handleDelete = async (relationshipId: string) => {
-    if (!confirm('Are you sure you want to remove this relationship?')) return;
+    const confirmed = await confirm(confirmPresets.delete('Relationship'));
+    if (!confirmed) return;
 
     try {
       await dispatch(deleteContactRelationship(relationshipId)).unwrap();
@@ -338,6 +342,7 @@ const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
           + Add Associated Contact
         </button>
       )}
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 };

@@ -12,12 +12,15 @@ import {
   clearSelectedDonation,
 } from '../../../store/slices/donationsSlice';
 import { formatDateTime, formatCurrency } from '../../../utils/format';
+import ConfirmDialog from '../../../components/ConfirmDialog';
+import useConfirmDialog from '../../../hooks/useConfirmDialog';
 
 const DonationDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { selectedDonation: donation, loading } = useAppSelector((state) => state.donations);
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
 
   useEffect(() => {
     if (id) {
@@ -30,9 +33,15 @@ const DonationDetail: React.FC = () => {
   }, [id, dispatch]);
 
   const handleSendReceipt = async () => {
-    if (id && confirm('Mark receipt as sent?')) {
-      await dispatch(markReceiptSent(id));
-    }
+    if (!id) return;
+    const confirmed = await confirm({
+      title: 'Send Receipt',
+      message: 'Mark receipt as sent?',
+      confirmLabel: 'Mark as Sent',
+      variant: 'warning',
+    });
+    if (!confirmed) return;
+    await dispatch(markReceiptSent(id));
   };
 
   if (loading || !donation) {
@@ -203,6 +212,7 @@ const DonationDetail: React.FC = () => {
           </div>
         </div>
       </div>
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 };

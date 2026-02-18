@@ -17,6 +17,8 @@ import { useToast } from '../contexts/useToast';
 import FollowUpForm from './FollowUpForm';
 import type { FollowUp, FollowUpEntityType } from '../types/followup';
 import { formatDate, formatTimeString } from '../utils/format';
+import ConfirmDialog from './ConfirmDialog';
+import useConfirmDialog, { confirmPresets } from '../hooks/useConfirmDialog';
 
 interface FollowUpListProps {
   entityType: FollowUpEntityType;
@@ -55,6 +57,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
   const dispatch = useAppDispatch();
   const { showSuccess, showError } = useToast();
   const { entityFollowUps, entityLoading } = useAppSelector((state) => state.followUps);
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
 
   const [showForm, setShowForm] = useState(false);
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUp | null>(null);
@@ -92,8 +95,14 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
     }
   };
 
-  const handleCancel = async (followUpId: string) => {
-    if (!window.confirm('Are you sure you want to cancel this follow-up?')) return;
+  const handleCancelFollowUp = async (followUpId: string) => {
+    const confirmed = await confirm({
+      title: 'Cancel Follow-up',
+      message: 'Are you sure you want to cancel this follow-up?',
+      confirmLabel: 'Cancel Follow-up',
+      variant: 'warning',
+    });
+    if (!confirmed) return;
     try {
       await dispatch(cancelFollowUp(followUpId)).unwrap();
       showSuccess('Follow-up cancelled');
@@ -103,7 +112,8 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
   };
 
   const handleDelete = async (followUpId: string) => {
-    if (!window.confirm('Are you sure you want to delete this follow-up? This cannot be undone.')) return;
+    const confirmed = await confirm(confirmPresets.delete('Follow-up'));
+    if (!confirmed) return;
     try {
       await dispatch(deleteFollowUp(followUpId)).unwrap();
       showSuccess('Follow-up deleted');
@@ -330,7 +340,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                               Edit
                             </button>
                             <button
-                              onClick={() => handleCancel(followUp.id)}
+                              onClick={() => handleCancelFollowUp(followUp.id)}
                               className="px-2 py-1 text-xs font-medium text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/50 rounded transition-colors"
                             >
                               Cancel
@@ -352,6 +362,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
           })}
         </div>
       )}
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 }

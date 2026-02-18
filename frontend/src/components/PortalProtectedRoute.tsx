@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { portalFetchMe } from '../store/slices/portalAuthSlice';
@@ -10,15 +10,40 @@ interface PortalProtectedRouteProps {
 
 export default function PortalProtectedRoute({ children }: PortalProtectedRouteProps) {
   const dispatch = useAppDispatch();
-  const { token, user } = useAppSelector((state) => state.portalAuth);
+  const { user, loading } = useAppSelector((state) => state.portalAuth);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    if (token && !user) {
-      dispatch(portalFetchMe());
-    }
-  }, [token, user, dispatch]);
+    let isMounted = true;
+    const verifyPortalSession = async () => {
+      if (!user) {
+        try {
+          await dispatch(portalFetchMe()).unwrap();
+        } catch {
+          // unauthenticated portal sessions are redirected below
+        }
+      }
+      if (isMounted) {
+        setAuthChecked(true);
+      }
+    };
 
-  if (!token) {
+    void verifyPortalSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, dispatch]);
+
+  if (!authChecked || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-app-surface-muted">
+        <div className="text-sm text-app-text-muted">Loading portal...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
     return <Navigate to="/portal/login" replace />;
   }
 

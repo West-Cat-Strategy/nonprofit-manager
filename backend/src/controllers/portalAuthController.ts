@@ -8,7 +8,7 @@ import { PASSWORD, JWT } from '@config/constants';
 import { PortalAuthRequest } from '@middleware/portalAuth';
 import { logPortalActivity } from '@services/domains/integration';
 import { badRequest, conflict, errorPayload, forbidden, notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
-import { setPortalAuthCookie } from '@utils/cookieHelper';
+import { clearPortalAuthCookie, setPortalAuthCookie } from '@utils/cookieHelper';
 
 interface PortalSignupRequest {
   email: string;
@@ -198,6 +198,15 @@ export const getPortalMe = async (
   } catch (error) {
     next(error);
   }
+};
+
+export const portalLogout = async (
+  _req: Request,
+  res: Response,
+  _next: NextFunction
+): Promise<Response | void> => {
+  clearPortalAuthCookie(res);
+  return res.json({ message: 'Portal logout successful' });
 };
 
 export const validatePortalInvitation = async (

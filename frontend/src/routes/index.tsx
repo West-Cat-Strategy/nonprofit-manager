@@ -1,11 +1,13 @@
-import { lazy } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useAppSelector } from '../store/hooks';
+import { lazy, useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { useSetupCheck } from '../hooks/useSetupCheck';
 import AdminRoute from '../components/AdminRoute';
 import PortalProtectedRoute from '../components/PortalProtectedRoute';
 import { ProtectedRoute, NeoBrutalistRoute } from '../components/auth';
 import PageLoader from '../components/PageLoader';
+import { logout } from '../store/slices/authSlice';
+import { portalLogout } from '../store/slices/portalAuthSlice';
 
 // Import route creators
 import { createPeopleRoutes } from './peopleRoutes';
@@ -35,9 +37,33 @@ const ThemeAudit = lazy(() => import('../pages/neo-brutalist/ThemeAudit'));
 
 // AppRoutes component with setup check logic
 const AppRoutes = () => {
+  const dispatch = useAppDispatch();
   const { isAuthenticated, authLoading } = useAppSelector((state) => state.auth);
   const { setupRequired, loading } = useSetupCheck();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      if (window.location.pathname.startsWith('/portal')) {
+        return;
+      }
+      dispatch(logout());
+      navigate('/login', { replace: true });
+    };
+
+    const handlePortalUnauthorized = () => {
+      dispatch(portalLogout());
+      navigate('/portal/login', { replace: true });
+    };
+
+    window.addEventListener('app:unauthorized', handleUnauthorized);
+    window.addEventListener('portal:unauthorized', handlePortalUnauthorized);
+    return () => {
+      window.removeEventListener('app:unauthorized', handleUnauthorized);
+      window.removeEventListener('portal:unauthorized', handlePortalUnauthorized);
+    };
+  }, [dispatch, navigate]);
 
   // Show loader while verifying auth cookie or checking setup status
   if (authLoading || loading) {

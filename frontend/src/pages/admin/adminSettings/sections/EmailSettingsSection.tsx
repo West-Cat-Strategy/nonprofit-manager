@@ -29,6 +29,9 @@ interface Credentials {
   imap: boolean;
 }
 
+const EMAIL_SETTINGS_CACHE_KEY = 'admin_email_settings_cache_v1';
+const EMAIL_SETTINGS_CACHE_TTL_MS = 2 * 60 * 1000;
+
 const inputClass =
   'mt-1 block w-full rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500';
 const labelClass = 'block text-sm font-medium text-app-text';
@@ -41,6 +44,7 @@ export default function EmailSettingsSection() {
   const [settings, setSettings] = useState<EmailSettings | null>(null);
   const [credentials, setCredentials] = useState<Credentials>({ smtp: false, imap: false });
   const [loading, setLoading] = useState(true);
+  const [hasHydratedData, setHasHydratedData] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
 
@@ -59,36 +63,75 @@ export default function EmailSettingsSection() {
   const [imapPass, setImapPass] = useState('');
 
   // ---- Fetch ----
-  const fetchSettings = useCallback(async () => {
+  const applySettings = useCallback((s: EmailSettings, creds: Credentials) => {
+    setSettings(s);
+    setCredentials(creds);
+    setSmtpHost(s.smtpHost || '');
+    setSmtpPort(s.smtpPort);
+    setSmtpSecure(s.smtpSecure);
+    setSmtpUser(s.smtpUser || '');
+    setSmtpFromAddress(s.smtpFromAddress || '');
+    setSmtpFromName(s.smtpFromName || '');
+    setImapHost(s.imapHost || '');
+    setImapPort(s.imapPort);
+    setImapSecure(s.imapSecure);
+    setImapUser(s.imapUser || '');
+    setHasHydratedData(true);
+  }, []);
+
+  const fetchSettings = useCallback(async (background = false) => {
     try {
-      setLoading(true);
+      if (!background) {
+        setLoading(true);
+      }
       const { data } = await api.get<{ data: EmailSettings; credentials: Credentials }>(
         '/admin/email-settings'
       );
       const s = data.data;
-      setSettings(s);
-      setCredentials(data.credentials);
       if (s) {
-        setSmtpHost(s.smtpHost || '');
-        setSmtpPort(s.smtpPort);
-        setSmtpSecure(s.smtpSecure);
-        setSmtpUser(s.smtpUser || '');
-        setSmtpFromAddress(s.smtpFromAddress || '');
-        setSmtpFromName(s.smtpFromName || '');
-        setImapHost(s.imapHost || '');
-        setImapPort(s.imapPort);
-        setImapSecure(s.imapSecure);
-        setImapUser(s.imapUser || '');
+        applySettings(s, data.credentials);
+        sessionStorage.setItem(
+          EMAIL_SETTINGS_CACHE_KEY,
+          JSON.stringify({
+            settings: s,
+            credentials: data.credentials,
+            cachedAt: Date.now(),
+          })
+        );
       }
     } catch {
-      showError('Failed to load email settings');
+      if (!hasHydratedData) {
+        showError('Failed to load email settings');
+      }
     } finally {
-      setLoading(false);
+      if (!background) {
+        setLoading(false);
+      }
     }
-  }, [showError]);
+  }, [applySettings, hasHydratedData, showError]);
 
   useEffect(() => {
-    fetchSettings();
+    const cached = sessionStorage.getItem(EMAIL_SETTINGS_CACHE_KEY);
+
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached) as {
+          settings: EmailSettings;
+          credentials: Credentials;
+          cachedAt: number;
+        };
+        if (Date.now() - parsed.cachedAt < EMAIL_SETTINGS_CACHE_TTL_MS && parsed.settings) {
+          applySettings(parsed.settings, parsed.credentials);
+          setLoading(false);
+          void fetchSettings(true);
+          return;
+        }
+      } catch {
+        sessionStorage.removeItem(EMAIL_SETTINGS_CACHE_KEY);
+      }
+    }
+
+    void fetchSettings();
   }, [fetchSettings]);
 
   // ---- Save ----

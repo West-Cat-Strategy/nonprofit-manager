@@ -10,6 +10,8 @@ import { useToast } from '../../contexts/useToast';
 import { useApiError } from '../../hooks/useApiError';
 import { useBranding } from '../../contexts/BrandingContext';
 import ErrorBanner from '../../components/ErrorBanner';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import useConfirmDialog, { confirmPresets } from '../../hooks/useConfirmDialog';
 import { defaultBranding, type BrandingConfig } from '../../types/branding';
 import NeoBrutalistLayout from '../../components/neo-brutalist/NeoBrutalistLayout';
 import type {
@@ -48,6 +50,7 @@ import PortalResetPasswordModal from './adminSettings/components/PortalResetPass
 
 export default function AdminSettings() {
   const { showSuccess, showError } = useToast();
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const { error: formError, setFromError: setFormErrorFromError, clear: clearFormError } = useApiError();
   const { setFromError: notifyError } = useApiError({ notify: true });
   const { setBranding: setGlobalBranding } = useBranding();
@@ -415,7 +418,8 @@ export default function AdminSettings() {
   };
 
   const handleDeleteRole = async (roleId: string) => {
-    if (!confirm('Are you sure you want to delete this role?')) return;
+    const confirmed = await confirm(confirmPresets.delete('Role'));
+    if (!confirmed) return;
 
     try {
       await api.delete(`/admin/roles/${roleId}`);
@@ -490,7 +494,13 @@ export default function AdminSettings() {
   };
 
   const handleRevokeInvitation = async (invitationId: string) => {
-    if (!confirm('Are you sure you want to revoke this invitation?')) return;
+    const confirmed = await confirm({
+      title: 'Revoke Invitation',
+      message: 'Are you sure you want to revoke this invitation?',
+      confirmLabel: 'Revoke',
+      variant: 'warning',
+    });
+    if (!confirmed) return;
 
     try {
       await api.delete(`/invitations/${invitationId}`);
@@ -551,7 +561,13 @@ export default function AdminSettings() {
   };
 
   const handleRejectPortalRequest = async (requestId: string) => {
-    if (!confirm('Reject this portal request?')) return;
+    const confirmed = await confirm({
+      title: 'Reject Portal Request',
+      message: 'Reject this portal request?',
+      confirmLabel: 'Reject',
+      variant: 'warning',
+    });
+    if (!confirmed) return;
     try {
       await api.post(`/portal/admin/requests/${requestId}/reject`);
       showSuccess('Portal signup request rejected');
@@ -1293,6 +1309,7 @@ export default function AdminSettings() {
             </div>
           </div>
         )}
+        <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
       </div>
     </NeoBrutalistLayout>
   );
