@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchTasks, deleteTask, completeTask } from '../../../store/slices/tasksSlice';
 import { TaskStatus, TaskPriority } from '../../../types/task';
@@ -22,16 +22,18 @@ type TaskListFilters = {
 
 const TaskList: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useAppDispatch();
   const { tasks, pagination, summary, loading, error } = useAppSelector((state) => state.tasks);
 
   const [filters, setFilters] = useState<TaskListFilters>({
-    search: '',
-    status: '',
-    priority: '',
-    overdue: false,
-    page: 1,
+    search: searchParams.get('search') || '',
+    status: (searchParams.get('status') as TaskStatus | '') || '',
+    priority: (searchParams.get('priority') as TaskPriority | '') || '',
+    overdue: searchParams.get('overdue') === 'true',
+    page: Number(searchParams.get('page') || '1'),
   });
+  const hasActiveFilters = Boolean(filters.search || filters.status || filters.priority || filters.overdue);
 
   const buildRequestFilters = (current: TaskListFilters): TaskFilters => ({
     ...current,
@@ -43,11 +45,31 @@ const TaskList: React.FC = () => {
     dispatch(fetchTasks(buildRequestFilters(filters)));
   }, [dispatch, filters]);
 
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (filters.search) params.set('search', filters.search);
+    if (filters.status) params.set('status', filters.status);
+    if (filters.priority) params.set('priority', filters.priority);
+    if (filters.overdue) params.set('overdue', 'true');
+    if (filters.page > 1) params.set('page', String(filters.page));
+    setSearchParams(params, { replace: true });
+  }, [filters, setSearchParams]);
+
   const handleFilterChange = <K extends keyof TaskListFilters>(
     key: K,
     value: TaskListFilters[K]
   ) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      search: '',
+      status: '',
+      priority: '',
+      overdue: false,
+      page: 1,
+    });
   };
 
   const handleDelete = async (id: string) => {
@@ -197,6 +219,15 @@ const TaskList: React.FC = () => {
             <span>Overdue Only</span>
           </label>
         </div>
+        {hasActiveFilters && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {filters.search && <button onClick={() => handleFilterChange('search', '')} className="px-2 py-1 text-xs border-2 border-[var(--app-border)]">Search: {filters.search} ×</button>}
+            {filters.status && <button onClick={() => handleFilterChange('status', '')} className="px-2 py-1 text-xs border-2 border-[var(--app-border)]">Status: {filters.status} ×</button>}
+            {filters.priority && <button onClick={() => handleFilterChange('priority', '')} className="px-2 py-1 text-xs border-2 border-[var(--app-border)]">Priority: {filters.priority} ×</button>}
+            {filters.overdue && <button onClick={() => handleFilterChange('overdue', false)} className="px-2 py-1 text-xs border-2 border-[var(--app-border)]">Overdue ×</button>}
+            <button onClick={clearFilters} className="px-2 py-1 text-xs font-bold border-2 border-[var(--app-border)] bg-[var(--loop-yellow)]">Clear all</button>
+          </div>
+        )}
       </div>
 
       {/* Task Table */}
@@ -204,7 +235,15 @@ const TaskList: React.FC = () => {
         {loading ? (
           <div className="p-8 text-center text-[var(--app-text-muted)]">Loading tasks...</div>
         ) : tasks.length === 0 ? (
-          <div className="p-8 text-center text-[var(--app-text-muted)]">No tasks found</div>
+          <div className="p-8 text-center text-[var(--app-text-muted)]">
+            <p>No tasks match your current filters.</p>
+            <div className="mt-4 flex justify-center gap-3">
+              {hasActiveFilters && (
+                <button onClick={clearFilters} className="px-3 py-2 border-2 border-[var(--app-border)] text-[var(--app-text)] font-bold">Clear Filters</button>
+              )}
+              <button onClick={() => navigate('/tasks/new')} className="px-3 py-2 border-2 border-[var(--app-border)] bg-[var(--loop-green)] text-black font-bold">New Task</button>
+            </div>
+          </div>
         ) : (
           <table className="min-w-full divide-y divide-[var(--app-border)]">
             <thead className="bg-[var(--app-surface-muted)]">

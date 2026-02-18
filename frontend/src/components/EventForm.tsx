@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Event, CreateEventDTO, UpdateEventDTO } from '../types/event';
+import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
 
 interface EventFormProps {
   event?: Event | null;
@@ -17,6 +18,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
 
   const [formData, setFormData] = useState<CreateEventDTO | UpdateEventDTO>({
     event_name: '',
@@ -65,13 +67,19 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
         country: event.country || 'USA',
         capacity: event.capacity || undefined,
       });
+      setIsDirty(false);
     }
   }, [event]);
+
+  useUnsavedChangesGuard({
+    hasUnsavedChanges: isDirty && !loading,
+  });
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+    setIsDirty(true);
     if (e.target instanceof HTMLInputElement && e.target.type === 'checkbox') {
       setFormData((prev) => ({
         ...prev,
@@ -137,6 +145,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
       }
 
       await onSubmit(normalizedData);
+      setIsDirty(false);
       navigate('/events');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : null;

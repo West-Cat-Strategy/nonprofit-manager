@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import portalApi from '../services/portalApi';
+import PortalPageState from '../components/portal/PortalPageState';
 
 interface ReminderItem {
   type: string;
@@ -11,29 +12,38 @@ interface ReminderItem {
 export default function PortalReminders() {
   const [reminders, setReminders] = useState<ReminderItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    try {
+      setError(null);
+      const response = await portalApi.get('/portal/reminders');
+      setReminders(response.data);
+    } catch (err) {
+      console.error('Failed to load reminders', err);
+      setError('Unable to load reminders right now.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const response = await portalApi.get('/portal/reminders');
-        setReminders(response.data);
-      } catch (error) {
-        console.error('Failed to load reminders', error);
-      } finally {
-        setLoading(false);
-      }
-    };
     load();
   }, []);
 
   return (
     <div>
       <h2 className="text-xl font-semibold text-app-text">Reminders</h2>
-      {loading ? (
-        <p className="text-sm text-app-text-muted mt-2">Loading reminders...</p>
-      ) : reminders.length === 0 ? (
-        <p className="text-sm text-app-text-muted mt-2">No reminders available.</p>
-      ) : (
+      <PortalPageState
+        loading={loading}
+        error={error}
+        empty={!loading && !error && reminders.length === 0}
+        loadingLabel="Loading reminders..."
+        emptyTitle="No reminders available."
+        emptyDescription="Upcoming reminders will show here once available."
+        onRetry={load}
+      />
+      {!loading && !error && reminders.length > 0 && (
         <ul className="mt-4 space-y-3">
           {reminders.map((reminder) => (
             <li key={`${reminder.type}-${reminder.id}`} className="p-3 border rounded-lg">

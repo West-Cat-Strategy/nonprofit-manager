@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import portalApi from '../services/portalApi';
+import PortalPageState from '../components/portal/PortalPageState';
 
 interface ReminderItem {
   type: 'appointment' | 'event';
@@ -11,18 +12,22 @@ interface ReminderItem {
 export default function PortalDashboard() {
   const [reminders, setReminders] = useState<ReminderItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    try {
+      setError(null);
+      const response = await portalApi.get('/portal/reminders');
+      setReminders(response.data);
+    } catch (err) {
+      console.error('Failed to load reminders', err);
+      setError('Unable to load reminders right now.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const response = await portalApi.get('/portal/reminders');
-        setReminders(response.data);
-      } catch (error) {
-        console.error('Failed to load reminders', error);
-      } finally {
-        setLoading(false);
-      }
-    };
     load();
   }, []);
 
@@ -37,13 +42,21 @@ export default function PortalDashboard() {
         <h3 className="text-xl font-bold uppercase text-[var(--app-text)] border-b-4 border-[var(--app-border)] pb-2 mb-4 inline-block">
           Upcoming Reminders
         </h3>
-        {loading ? (
-          <p className="text-[var(--app-text-muted)] mt-2 animate-pulse font-mono">Loading reminders...</p>
-        ) : reminders.length === 0 ? (
+        <PortalPageState
+          loading={loading}
+          error={error}
+          empty={!loading && !error && reminders.length === 0}
+          loadingLabel="Loading reminders..."
+          emptyTitle="No upcoming reminders."
+          emptyDescription="When events or appointments are due soon, they will appear here."
+          onRetry={load}
+        />
+        {!loading && !error && reminders.length === 0 && (
           <div className="flex flex-col items-center justify-center p-8 border-4 border-dashed border-[var(--app-border)] rounded-lg opacity-50">
             <p className="text-[var(--app-text-muted)] font-bold">No upcoming reminders.</p>
           </div>
-        ) : (
+        )}
+        {!loading && !error && reminders.length > 0 && (
           <ul className="mt-4 space-y-4">
             {reminders.map((reminder) => (
               <li

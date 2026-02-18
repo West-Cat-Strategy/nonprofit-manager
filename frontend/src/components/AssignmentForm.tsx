@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../store/hooks';
 import { createAssignment, updateAssignment } from '../store/slices/volunteersSlice';
 import type { VolunteerAssignment } from '../store/slices/volunteersSlice';
+import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
 
 interface Assignment {
   assignment_id?: string;
@@ -47,6 +48,7 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
     if (assignment && mode === 'edit') {
@@ -59,8 +61,13 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
           ? new Date(assignment.end_time).toISOString().slice(0, 16)
           : '',
       });
+      setIsDirty(false);
     }
   }, [assignment, mode]);
+
+  useUnsavedChangesGuard({
+    hasUnsavedChanges: isDirty && !isSubmitting,
+  });
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -71,6 +78,7 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
       ...prev,
       [name]: type === 'number' ? (value === '' ? undefined : Number(value)) : value,
     }));
+    setIsDirty(true);
 
     // Clear error for this field
     if (errors[name]) {
@@ -148,6 +156,7 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
       }
 
       // Navigate back to volunteer detail page
+      setIsDirty(false);
       navigate(`/volunteers/${volunteerId}`);
     } catch (error) {
       console.error('Failed to save assignment:', error);

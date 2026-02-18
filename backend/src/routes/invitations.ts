@@ -89,6 +89,7 @@ router.post(
       .withMessage('Valid role is required'),
     body('message').optional().isString().trim(),
     body('expiresInDays').optional().isInt({ min: 1, max: 30 }).withMessage('Expiry must be 1-30 days'),
+    body('sendEmail').optional().isBoolean().toBoolean(),
     validateRequest,
   ],
   createInvitation

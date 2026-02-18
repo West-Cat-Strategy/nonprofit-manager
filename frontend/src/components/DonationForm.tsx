@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Donation, CreateDonationDTO, UpdateDonationDTO } from '../types/donation';
+import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
 
 interface DonationFormProps {
   donation?: Donation | null;
@@ -17,6 +18,7 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
 
   const [formData, setFormData] = useState<CreateDonationDTO | UpdateDonationDTO>({
     amount: 0,
@@ -48,13 +50,19 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
         recurring_frequency: donation.recurring_frequency || undefined,
         notes: donation.notes || undefined,
       });
+      setIsDirty(false);
     }
   }, [donation]);
+
+  useUnsavedChangesGuard({
+    hasUnsavedChanges: isDirty && !loading,
+  });
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
+    setIsDirty(true);
 
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
@@ -87,6 +95,7 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
       }
 
       await onSubmit(formData);
+      setIsDirty(false);
       navigate('/donations');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to save donation');

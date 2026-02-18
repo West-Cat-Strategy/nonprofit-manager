@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   fetchContacts,
@@ -27,6 +27,7 @@ import { BrutalBadge } from '../../../components/neo-brutalist';
 const ContactList = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { contacts, loading, error, pagination, filters } = useAppSelector(
     (state) => state.contacts
   );
@@ -40,41 +41,53 @@ const ContactList = () => {
   } = useBulkSelect();
 
   const { exportToCSV } = useImportExport();
-  const [searchInput, setSearchInput] = useState(filters.search);
-  const [roleFilter, setRoleFilter] = useState(filters.role);
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') || filters.search || '');
+  const [roleFilter, setRoleFilter] = useState(searchParams.get('type') || filters.role || '');
   const [activeFilter, setActiveFilter] = useState(
-    filters.is_active === true ? 'active' : filters.is_active === false ? 'inactive' : ''
+    searchParams.get('status') ||
+      (filters.is_active === true ? 'active' : filters.is_active === false ? 'inactive' : '')
+  );
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page') || '1'));
+  const [currentLimit] = useState(Number(searchParams.get('limit') || String(pagination.limit || 20)));
+  const [sortBy] = useState(searchParams.get('sort_by') || filters.sort_by || 'created_at');
+  const [sortOrder] = useState<'asc' | 'desc'>(
+    (searchParams.get('sort_order') as 'asc' | 'desc') || filters.sort_order || 'desc'
   );
   const [showImportExport, setShowImportExport] = useState(false);
   const [filterCollapsed, setFilterCollapsed] = useState(false);
 
+  const resolvedIsActive =
+    activeFilter === 'active' ? true : activeFilter === 'inactive' ? false : undefined;
+
   const loadContacts = useCallback(() => {
     dispatch(
       fetchContacts({
-        page: pagination.page,
-        limit: pagination.limit,
-        search: filters.search || undefined,
-        is_active: filters.is_active ?? undefined,
-        role: filters.role || undefined,
+        page: currentPage,
+        limit: currentLimit,
+        search: searchInput || undefined,
+        is_active: resolvedIsActive,
+        role: (roleFilter as 'staff' | 'volunteer' | 'board') || undefined,
+        sort_by: sortBy,
+        sort_order: sortOrder,
       })
     );
-  }, [dispatch, filters, pagination.page, pagination.limit]);
+  }, [dispatch, currentPage, currentLimit, searchInput, resolvedIsActive, roleFilter, sortBy, sortOrder]);
 
   useEffect(() => {
     loadContacts();
   }, [loadContacts]);
 
   useEffect(() => {
-    if (searchInput === filters.search) {
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      dispatch(setFilters({ search: searchInput }));
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [dispatch, filters.search, searchInput]);
+    const params = new URLSearchParams();
+    if (searchInput) params.set('search', searchInput);
+    if (roleFilter) params.set('type', roleFilter);
+    if (activeFilter) params.set('status', activeFilter);
+    if (currentPage > 1) params.set('page', String(currentPage));
+    if (currentLimit !== 20) params.set('limit', String(currentLimit));
+    if (sortBy !== 'created_at') params.set('sort_by', sortBy);
+    if (sortOrder !== 'desc') params.set('sort_order', sortOrder);
+    setSearchParams(params, { replace: true });
+  }, [searchInput, roleFilter, activeFilter, currentPage, currentLimit, sortBy, sortOrder, setSearchParams]);
 
   useEffect(() => {
     dispatch(fetchContactTags());
@@ -91,18 +104,14 @@ const ContactList = () => {
   };
 
   const handleApplyFilters = () => {
-    let isActive: boolean | null = null;
-    if (activeFilter === 'active') {
-      isActive = true;
-    } else if (activeFilter === 'inactive') {
-      isActive = false;
-    }
-
+    setCurrentPage(1);
     dispatch(
       setFilters({
         search: searchInput,
-        role: roleFilter,
-        is_active: isActive,
+        role: roleFilter as '' | 'staff' | 'volunteer' | 'board',
+        is_active: activeFilter === 'active' ? true : activeFilter === 'inactive' ? false : null,
+        sort_by: sortBy,
+        sort_order: sortOrder,
       })
     );
   };
@@ -111,6 +120,7 @@ const ContactList = () => {
     setSearchInput('');
     setRoleFilter('');
     setActiveFilter('');
+    setCurrentPage(1);
     dispatch(clearFilters());
   };
 
@@ -340,17 +350,7 @@ const ContactList = () => {
           ...pagination,
           totalPages: pagination.total_pages,
         }}
-        onPageChange={(page) =>
-          dispatch(
-            fetchContacts({
-              page,
-              limit: pagination.limit,
-              search: filters.search || undefined,
-              is_active: filters.is_active ?? undefined,
-              role: filters.role || undefined,
-            })
-          )
-        }
+        onPageChange={(page) => setCurrentPage(page)}
         selectedRows={selectedIds}
         onSelectRow={(id) => toggleRow(id)}
         onSelectAll={handleSelectAll}
