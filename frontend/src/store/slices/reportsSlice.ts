@@ -23,6 +23,7 @@ export interface ReportsState {
 const initialState: ReportsState = {
   currentReport: null,
   availableFields: {
+    cases: null,
     accounts: null,
     contacts: null,
     donations: null,

@@ -68,6 +68,17 @@ describe('EventService', () => {
       expect(countCall[1]).toContain('completed');
     });
 
+    it('should apply is_public filter', async () => {
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ count: '1' }] })
+        .mockResolvedValueOnce({ rows: [{ event_id: '1', is_public: true }] });
+
+      await eventService.getEvents({ is_public: true });
+
+      const countCall = mockQuery.mock.calls[0];
+      expect(countCall[1]).toContain(true);
+    });
+
     it('should apply date range filters', async () => {
       const startDate = new Date('2024-01-01');
       const endDate = new Date('2024-12-31');
@@ -168,6 +179,30 @@ describe('EventService', () => {
       expect(result.event_name).toBe('Full Event');
       expect(result.capacity).toBe(200);
     });
+
+    it('should normalize recurring fields when event is not recurring', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [{ event_id: 'new-uuid', is_recurring: false }] });
+
+      await eventService.createEvent(
+        {
+          event_name: 'One-time Event',
+          event_type: EventType.WORKSHOP,
+          is_recurring: false,
+          recurrence_pattern: 'weekly' as any,
+          recurrence_interval: 2,
+          recurrence_end_date: new Date('2026-12-31T00:00:00Z'),
+          start_date: new Date('2026-06-15T18:00:00Z'),
+          end_date: new Date('2026-06-15T20:00:00Z'),
+        },
+        'user-123'
+      );
+
+      const args = mockQuery.mock.calls[0][1];
+      expect(args[5]).toBe(false);
+      expect(args[6]).toBeNull();
+      expect(args[7]).toBeNull();
+      expect(args[8]).toBeNull();
+    });
   });
 
   describe('updateEvent', () => {
@@ -199,6 +234,24 @@ describe('EventService', () => {
 
     it('should throw error when no fields to update', async () => {
       await expect(eventService.updateEvent('123', {}, 'user-123')).rejects.toThrow('No fields to update');
+    });
+
+    it('should clear recurrence fields when is_recurring is set to false', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [{ event_id: '123', is_recurring: false }] });
+
+      await eventService.updateEvent(
+        '123',
+        { is_recurring: false },
+        'user-123'
+      );
+
+      const sql = mockQuery.mock.calls[0][0] as string;
+      const values = mockQuery.mock.calls[0][1];
+
+      expect(sql).toContain('recurrence_pattern =');
+      expect(sql).toContain('recurrence_interval =');
+      expect(sql).toContain('recurrence_end_date =');
+      expect(values).toContain(null);
     });
   });
 

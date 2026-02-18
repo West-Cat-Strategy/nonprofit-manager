@@ -12,6 +12,7 @@ export * from '../../contactRelationshipsController';
 export * from '../../dashboardController';
 export { default as donationController } from '../../donationController';
 export * from '../../eventController';
+export * from '../../externalServiceProviderController';
 export * from '../../invitationController';
 export * from '../../mailchimpController';
 export * from '../../meetingController';

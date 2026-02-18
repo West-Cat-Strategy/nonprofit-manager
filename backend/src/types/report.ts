@@ -4,6 +4,7 @@
  */
 
 export type ReportEntity =
+  | 'cases'
   | 'accounts'
   | 'contacts'
   | 'donations'
@@ -63,6 +64,22 @@ export interface ReportResult {
 
 // Available fields for each entity type
 export const AVAILABLE_FIELDS: Record<ReportEntity, ReportField[]> = {
+  cases: [
+    { field: 'id', label: 'Case ID', type: 'string' },
+    { field: 'case_number', label: 'Case Number', type: 'string' },
+    { field: 'title', label: 'Title', type: 'string' },
+    { field: 'priority', label: 'Priority', type: 'string' },
+    { field: 'outcome', label: 'Outcome', type: 'string' },
+    { field: 'status_name', label: 'Status', type: 'string' },
+    { field: 'status_type', label: 'Status Type', type: 'string' },
+    { field: 'case_type_name', label: 'Case Type', type: 'string' },
+    { field: 'is_urgent', label: 'Urgent', type: 'boolean' },
+    { field: 'due_date', label: 'Due Date', type: 'date' },
+    { field: 'opened_date', label: 'Opened Date', type: 'date' },
+    { field: 'closed_date', label: 'Closed Date', type: 'date' },
+    { field: 'created_at', label: 'Created Date', type: 'date' },
+    { field: 'service_outcome', label: 'Service/Event Outcome', type: 'string' },
+  ],
   accounts: [
     { field: 'id', label: 'Account ID', type: 'string' },
     { field: 'account_name', label: 'Account Name', type: 'string' },

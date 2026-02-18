@@ -17,7 +17,7 @@ import {
 import type { CaseFilter, CasePriority, CaseStatusType, CaseWithDetails } from '../../../types/case';
 import { useToast } from '../../../contexts/useToast';
 
-type QuickFilter = 'all' | 'overdue' | 'due_soon' | 'unassigned' | 'urgent';
+type QuickFilter = 'all' | 'active' | 'overdue' | 'due_soon' | 'unassigned' | 'urgent';
 type SavedView = {
   id: string;
   name: string;
@@ -77,17 +77,27 @@ const CaseList = () => {
       const parsed = Number(value);
       return Number.isNaN(parsed) ? undefined : parsed;
     };
-    const initialQuickFilter = searchParams.get('quick_filter') as QuickFilter | null;
+    const legacyStatus = searchParams.get('status');
+    const legacyQuickFilterMap: Partial<Record<string, QuickFilter>> = {
+      active: 'active',
+      urgent: 'urgent',
+      unassigned: 'unassigned',
+      overdue: 'overdue',
+    };
+    const initialQuickFilter = (searchParams.get('quick_filter') || legacyQuickFilterMap[legacyStatus || '']) as QuickFilter | null;
     const quickFilterValue =
-      initialQuickFilter && ['overdue', 'due_soon', 'unassigned', 'urgent'].includes(initialQuickFilter)
+      initialQuickFilter && ['active', 'overdue', 'due_soon', 'unassigned', 'urgent'].includes(initialQuickFilter)
         ? initialQuickFilter
         : 'all';
     const dueWithin = parseNumber(searchParams.get('due_within_days'));
     const initialFilters: CaseFilter = {
       search: searchParams.get('search') || undefined,
+      contact_id: searchParams.get('contact_id') || undefined,
+      account_id: searchParams.get('account_id') || undefined,
       priority: (searchParams.get('priority') as CaseFilter['priority']) || undefined,
       status_id: searchParams.get('status_id') || undefined,
       case_type_id: searchParams.get('case_type_id') || undefined,
+      assigned_to: searchParams.get('assigned_to') || undefined,
       is_urgent: parseBoolean(searchParams.get('is_urgent')),
       sort_by: searchParams.get('sort_by') || undefined,
       sort_order: (searchParams.get('sort_order') as CaseFilter['sort_order']) || undefined,
@@ -136,9 +146,12 @@ const CaseList = () => {
   const syncUrl = (overrides: Partial<CaseFilter> = {}) => {
     const baseFilters: CaseFilter = {
       search: searchTerm.trim() || undefined,
+      contact_id: filters.contact_id || undefined,
+      account_id: filters.account_id || undefined,
       priority: selectedPriority || undefined,
       status_id: selectedStatus || undefined,
       case_type_id: selectedType || undefined,
+      assigned_to: filters.assigned_to || undefined,
       is_urgent: showUrgentOnly || undefined,
       sort_by: selectedSort || undefined,
       sort_order: selectedOrder || undefined,
@@ -161,9 +174,12 @@ const CaseList = () => {
     const normalizedSearch = searchTerm.trim();
     const nextFilters: Partial<CaseFilter> = {
       search: normalizedSearch ? normalizedSearch : undefined,
+      contact_id: filters.contact_id || undefined,
+      account_id: filters.account_id || undefined,
       priority: selectedPriority || undefined,
       status_id: selectedStatus || undefined,
       case_type_id: selectedType || undefined,
+      assigned_to: filters.assigned_to || undefined,
       is_urgent: showUrgentOnly || undefined,
       sort_by: selectedSort,
       sort_order: selectedOrder,
@@ -171,6 +187,7 @@ const CaseList = () => {
       due_within_days: quickFilter === 'due_soon' ? dueSoonDays : undefined,
       page: 1,
     };
+    dispatch(clearCaseSelection());
     dispatch(setFilters(nextFilters));
     syncUrl(nextFilters);
   };
@@ -185,11 +202,13 @@ const CaseList = () => {
     setSelectedOrder('desc');
     setQuickFilter('all');
     setDueSoonDays(7);
+    dispatch(clearCaseSelection());
     dispatch(clearFilters());
     setSearchParams(new URLSearchParams(), { replace: true });
   };
 
   const handlePageChange = (newPage: number) => {
+    dispatch(clearCaseSelection());
     dispatch(setFilters({ page: newPage }));
     syncUrl({ page: newPage });
   };
@@ -206,6 +225,7 @@ const CaseList = () => {
     setShowUrgentOnly(view.filters.is_urgent || false);
     setSelectedSort(view.filters.sort_by || 'created_at');
     setSelectedOrder(view.filters.sort_order || 'desc');
+    dispatch(clearCaseSelection());
     dispatch(setFilters({ ...filters, ...view.filters, page: 1 }));
     syncUrl({ ...view.filters, page: 1, quick_filter: view.quickFilter === 'all' ? undefined : view.quickFilter });
   };
@@ -219,9 +239,12 @@ const CaseList = () => {
       quickFilter,
       filters: {
         search: searchTerm.trim() || undefined,
+        contact_id: filters.contact_id || undefined,
+        account_id: filters.account_id || undefined,
         priority: selectedPriority || undefined,
         status_id: selectedStatus || undefined,
         case_type_id: selectedType || undefined,
+        assigned_to: filters.assigned_to || undefined,
         is_urgent: showUrgentOnly || undefined,
         sort_by: selectedSort,
         sort_order: selectedOrder,
@@ -266,10 +289,14 @@ const CaseList = () => {
   const currentPage = filters.page || 1;
   const activeFiltersCount = [
     filters.search,
+    filters.contact_id,
+    filters.account_id,
     filters.priority,
     filters.status_id,
     filters.case_type_id,
+    filters.assigned_to,
     filters.is_urgent,
+    filters.quick_filter,
   ].filter(Boolean).length;
   const hasActiveFilters = activeFiltersCount > 0;
   const assignedLabel = (caseItem: (typeof cases)[number]) => {
@@ -508,6 +535,7 @@ const CaseList = () => {
           <span className="text-xs font-black uppercase text-black/70">Quick filters</span>
           {([
             ['all', 'All'],
+            ['active', 'Active'],
             ['overdue', 'Overdue'],
             ['due_soon', 'Due soon'],
             ['unassigned', 'Unassigned'],
@@ -523,6 +551,7 @@ const CaseList = () => {
                   due_within_days: nextQuickFilter === 'due_soon' ? dueSoonDays : undefined,
                   page: 1,
                 };
+                dispatch(clearCaseSelection());
                 dispatch(setFilters(nextFilters));
                 syncUrl(nextFilters);
               }}
@@ -552,6 +581,7 @@ const CaseList = () => {
                     due_within_days: nextValue,
                     page: 1,
                   };
+                  dispatch(clearCaseSelection());
                   dispatch(setFilters(nextFilters));
                   syncUrl(nextFilters);
                 }}
@@ -954,9 +984,27 @@ const CaseList = () => {
       {/* Pagination */}
       {!loading && cases.length > 0 && totalPages > 1 && (
         <div className="mt-6 flex justify-between items-center">
-          <div className="text-sm font-bold text-black">
+          <div className="flex items-center gap-4 text-sm font-bold text-black">
             Showing {(currentPage - 1) * (filters.limit || 20) + 1} to{' '}
             {Math.min(currentPage * (filters.limit || 20), total)} of {total} cases
+            <label className="inline-flex items-center gap-2 text-xs font-black uppercase text-black/70">
+              Rows
+              <select
+                value={filters.limit || 20}
+                onChange={(event) => {
+                  const nextLimit = Number(event.target.value);
+                  dispatch(clearCaseSelection());
+                  dispatch(setFilters({ limit: nextLimit, page: 1 }));
+                  syncUrl({ limit: nextLimit, page: 1 });
+                }}
+                className="border-2 border-black bg-white px-2 py-1 text-xs font-black uppercase focus:outline-none focus:ring-2 focus:ring-black"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </label>
           </div>
           <div className="flex gap-2">
             <button

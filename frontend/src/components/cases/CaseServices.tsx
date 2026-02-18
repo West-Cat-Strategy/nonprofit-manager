@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
     fetchCaseServices,
@@ -7,25 +8,38 @@ import {
     deleteCaseService,
 } from '../../store/slices/casesSlice';
 import { BrutalButton, BrutalCard, BrutalBadge } from '../neo-brutalist';
-import type { ServiceStatus, CreateCaseServiceDTO, CaseService } from '../../types/case';
+import api from '../../services/api';
+import type {
+    ServiceStatus,
+    ServiceOutcome,
+    CreateCaseServiceDTO,
+    CaseService,
+    ExternalServiceProvidersResponse,
+    ExternalServiceProvider,
+} from '../../types/case';
 
 interface CaseServicesProps {
     caseId: string;
 }
 
 const CaseServices = ({ caseId }: CaseServicesProps) => {
+    const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const { caseServices } = useAppSelector((state) => state.cases);
     const [isAdding, setIsAdding] = useState(false);
     const [editingService, setEditingService] = useState<CaseService | null>(null);
+    const [providerSuggestions, setProviderSuggestions] = useState<ExternalServiceProvider[]>([]);
+    const [providerLookupLoading, setProviderLookupLoading] = useState(false);
 
     // Form state
     const [formData, setFormData] = useState<Partial<CreateCaseServiceDTO>>({
         service_name: '',
         service_type: 'other',
         service_provider: '',
+        external_service_provider_id: undefined,
         service_date: new Date().toISOString().split('T')[0],
         status: 'scheduled',
+        outcome: undefined,
         notes: '',
     });
 
@@ -35,9 +49,49 @@ const CaseServices = ({ caseId }: CaseServicesProps) => {
         }
     }, [dispatch, caseId]);
 
+    useEffect(() => {
+        const providerName = formData.service_provider?.trim();
+        if (!isAdding || !providerName || providerName.length < 2) {
+            setProviderSuggestions([]);
+            return;
+        }
+
+        const timeout = window.setTimeout(async () => {
+            try {
+                setProviderLookupLoading(true);
+                const response = await api.get<ExternalServiceProvidersResponse>('/external-service-providers', {
+                    params: { search: providerName, limit: 8 },
+                });
+                setProviderSuggestions(response.data.providers || []);
+            } catch (error) {
+                console.error('Failed to search providers:', error);
+                setProviderSuggestions([]);
+            } finally {
+                setProviderLookupLoading(false);
+            }
+        }, 250);
+
+        return () => window.clearTimeout(timeout);
+    }, [formData.service_provider, isAdding]);
+
+    const getOutcomeLabel = (outcome: string) => {
+        const labels: Record<string, string> = {
+            attended_event: 'Attended Event',
+            additional_related_case: 'Additional/Related Case Opened',
+            completed: 'Completed',
+            follow_up_needed: 'Follow-up Needed',
+            other: 'Other',
+        };
+        return labels[outcome] || outcome;
+    };
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+        setFormData((prev) => ({
+            ...prev,
+            [name]: value,
+            ...(name === 'service_provider' ? { external_service_provider_id: undefined } : {}),
+        }));
     };
 
     const handleSave = async () => {
@@ -45,9 +99,17 @@ const CaseServices = ({ caseId }: CaseServicesProps) => {
 
         try {
             if (editingService) {
-                await dispatch(updateCaseService({ serviceId: editingService.id, data: formData })).unwrap();
+                const updatePayload = {
+                    ...formData,
+                    outcome: formData.outcome || undefined,
+                };
+                await dispatch(updateCaseService({ serviceId: editingService.id, data: updatePayload })).unwrap();
             } else {
-                await dispatch(createCaseService({ caseId, data: formData as CreateCaseServiceDTO })).unwrap();
+                const createPayload = {
+                    ...formData,
+                    outcome: formData.outcome || undefined,
+                };
+                await dispatch(createCaseService({ caseId, data: createPayload as CreateCaseServiceDTO })).unwrap();
             }
             setIsAdding(false);
             setEditingService(null);
@@ -63,8 +125,10 @@ const CaseServices = ({ caseId }: CaseServicesProps) => {
             service_name: service.service_name,
             service_type: service.service_type || 'other',
             service_provider: service.service_provider || '',
+            external_service_provider_id: service.external_service_provider_id || undefined,
             service_date: new Date(service.service_date).toISOString().split('T')[0],
             status: service.status,
+            outcome: (service.outcome as ServiceOutcome) || undefined,
             notes: service.notes || '',
         });
         setIsAdding(true);
@@ -85,10 +149,13 @@ const CaseServices = ({ caseId }: CaseServicesProps) => {
             service_name: '',
             service_type: 'other',
             service_provider: '',
+            external_service_provider_id: undefined,
             service_date: new Date().toISOString().split('T')[0],
             status: 'scheduled',
+            outcome: undefined,
             notes: '',
         });
+        setProviderSuggestions([]);
     };
 
     const getStatusColor = (status: ServiceStatus): 'green' | 'red' | 'yellow' => {
@@ -104,11 +171,16 @@ const CaseServices = ({ caseId }: CaseServicesProps) => {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h3 className="text-xl font-black uppercase text-black">Case Services</h3>
-                {!isAdding && (
-                    <BrutalButton onClick={() => { resetForm(); setIsAdding(true); }} variant="primary" size="sm">
-                        Log Service
+                <div className="flex gap-2">
+                    <BrutalButton onClick={() => navigate('/external-service-providers')} variant="secondary" size="sm">
+                        Manage Providers
                     </BrutalButton>
-                )}
+                    {!isAdding && (
+                        <BrutalButton onClick={() => { resetForm(); setIsAdding(true); }} variant="primary" size="sm">
+                            Log Service
+                        </BrutalButton>
+                    )}
+                </div>
             </div>
 
             {isAdding && (
@@ -168,6 +240,37 @@ const CaseServices = ({ caseId }: CaseServicesProps) => {
                                     placeholder="Organization or Individual"
                                     className="w-full p-2 border-2 border-black font-bold focus:outline-none"
                                 />
+                                <div className="mt-2 space-y-1">
+                                    {providerLookupLoading && (
+                                        <p className="text-[11px] font-bold uppercase text-black/50">
+                                            Searching existing providers...
+                                        </p>
+                                    )}
+                                    {!providerLookupLoading && providerSuggestions.length > 0 && (
+                                        <div className="border-2 border-black p-2 bg-app-surface max-h-28 overflow-y-auto">
+                                            <p className="text-[11px] font-black uppercase text-black/70 mb-2">
+                                                Existing providers
+                                            </p>
+                                            {providerSuggestions.map((provider) => (
+                                                <button
+                                                    key={provider.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setFormData((prev) => ({
+                                                            ...prev,
+                                                            service_provider: provider.provider_name,
+                                                            external_service_provider_id: provider.id,
+                                                        }));
+                                                    }}
+                                                    className="w-full text-left text-xs font-bold py-1 px-2 border border-black mb-1 last:mb-0 hover:bg-[var(--loop-cyan)]"
+                                                >
+                                                    {provider.provider_name}
+                                                    {provider.provider_type ? ` (${provider.provider_type})` : ''}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-xs font-bold uppercase mb-1">Status</label>
@@ -181,6 +284,22 @@ const CaseServices = ({ caseId }: CaseServicesProps) => {
                                     <option value="completed">Completed</option>
                                     <option value="cancelled">Cancelled</option>
                                     <option value="no_show">No Show</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold uppercase mb-1">Outcome</label>
+                                <select
+                                    name="outcome"
+                                    value={formData.outcome || ''}
+                                    onChange={handleChange}
+                                    className="w-full p-2 border-2 border-black font-bold focus:outline-none bg-white"
+                                >
+                                    <option value="">Select outcome...</option>
+                                    <option value="attended_event">Attended Event</option>
+                                    <option value="additional_related_case">Additional/Related Case Opened</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="follow_up_needed">Follow-up Needed</option>
+                                    <option value="other">Other</option>
                                 </select>
                             </div>
                         </div>
@@ -255,6 +374,11 @@ const CaseServices = ({ caseId }: CaseServicesProps) => {
                                     {service.notes && (
                                         <p className="mt-2 text-sm font-medium text-black/80 line-clamp-2">
                                             {service.notes}
+                                        </p>
+                                    )}
+                                    {service.outcome && (
+                                        <p className="mt-1 text-xs font-black uppercase text-black/60">
+                                            Outcome: {getOutcomeLabel(service.outcome)}
                                         </p>
                                     )}
                                 </div>

@@ -3,7 +3,7 @@
  */
 
 import { test, expect } from '../fixtures/auth.fixture';
-import { createTestEvent, clearDatabase } from '../helpers/database';
+import { createTestEvent, createTestContact, clearDatabase, getAuthHeaders } from '../helpers/database';
 
 test.describe('Events Module', () => {
   test.beforeEach(async ({ authenticatedPage, authToken }) => {
@@ -34,7 +34,7 @@ test.describe('Events Module', () => {
     await authenticatedPage.fill('input[name="capacity"]', '200');
 
     await authenticatedPage.click('button[type="submit"]');
-    await authenticatedPage.waitForURL('/events');
+    await authenticatedPage.waitForURL(/\/events(?:\?|$)/);
 
     await expect(authenticatedPage.getByText('Annual Fundraiser Gala').first()).toBeVisible();
   });
@@ -73,17 +73,22 @@ test.describe('Events Module', () => {
     const apiURL = process.env.API_URL || 'http://localhost:3001';
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
+    const headers = await getAuthHeaders(authenticatedPage, authToken);
 
     const { id: eventId } = await createTestEvent(authenticatedPage, authToken, {
       name: 'Check-in Test Event',
       startDate: tomorrow.toISOString(),
     });
+    const { id: contactId } = await createTestContact(authenticatedPage, authToken, {
+      firstName: 'Jane',
+      lastName: 'Smith',
+      email: 'jane@example.com',
+    });
 
     const registrationResponse = await authenticatedPage.request.post(`${apiURL}/api/events/${eventId}/register`, {
-      headers: { Authorization: `Bearer ${authToken}` },
+      headers,
       data: {
-        attendee_name: 'Jane Smith',
-        attendee_email: 'jane@example.com',
+        contact_id: contactId,
       },
     });
     expect(registrationResponse.ok()).toBeTruthy();
@@ -95,7 +100,7 @@ test.describe('Events Module', () => {
     const checkInResponse = await authenticatedPage.request.post(
       `${apiURL}/api/events/registrations/${registrationId}/checkin`,
       {
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers,
       }
     );
     expect(checkInResponse.ok()).toBeTruthy();
@@ -135,6 +140,7 @@ test.describe('Events Module', () => {
     const apiURL = process.env.API_URL || 'http://localhost:3001';
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
+    const headers = await getAuthHeaders(authenticatedPage, authToken);
 
     const { id: eventId } = await createTestEvent(authenticatedPage, authToken, {
       name: 'Capacity Test Event',
@@ -143,11 +149,15 @@ test.describe('Events Module', () => {
     });
 
     for (let i = 1; i <= 3; i++) {
+      const { id: contactId } = await createTestContact(authenticatedPage, authToken, {
+        firstName: `Contact${i}`,
+        lastName: 'Load',
+        email: `contact${i}@test.com`,
+      });
       const response = await authenticatedPage.request.post(`${apiURL}/api/events/${eventId}/register`, {
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers,
         data: {
-          attendee_name: `Contact ${i}`,
-          attendee_email: `contact${i}@test.com`,
+          contact_id: contactId,
         },
       });
       expect(response.ok()).toBeTruthy();

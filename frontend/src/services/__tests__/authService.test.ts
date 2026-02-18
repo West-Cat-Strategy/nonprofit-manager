@@ -69,6 +69,7 @@ describe('authService.completeTotpLogin', () => {
       email: 'admin@example.com',
       mfaToken: 'mfa-tok',
       code: '123456',
+      token: '123456',
     });
     expect(result).toEqual(payload);
   });

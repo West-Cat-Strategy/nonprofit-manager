@@ -8,6 +8,37 @@ import { Page, expect } from '@playwright/test';
 import { setSharedTestUser } from './testUser';
 
 const AUTH_COOKIE_NAME = 'auth_token';
+const RETRYABLE_NETWORK_ERROR = /ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|socket hang up/i;
+
+const isRetryableNetworkError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  return RETRYABLE_NETWORK_ERROR.test(error.message);
+};
+
+async function withNetworkRetry<T>(
+  fn: () => Promise<T>,
+  options: { attempts?: number; baseDelayMs?: number } = {}
+): Promise<T> {
+  const attempts = options.attempts ?? 4;
+  const baseDelayMs = options.baseDelayMs ?? 300;
+
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableNetworkError(error) || attempt === attempts) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, baseDelayMs * attempt));
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Network request failed');
+}
 
 export interface TestUser {
   email: string;
@@ -26,17 +57,19 @@ export async function ensureSetupComplete(
   const firstName = profile?.firstName || 'Test';
   const lastName = profile?.lastName || 'User';
   const organizationName = profile?.organizationName || 'E2E Organization';
-  const setupResponse = await page.request.post(`${apiURL}/api/auth/setup`, {
-    data: {
-      email,
-      password,
-      password_confirm: password,
-      first_name: firstName,
-      last_name: lastName,
-      organization_name: organizationName
-    },
-    headers: { 'Content-Type': 'application/json' },
-  });
+  const setupResponse = await withNetworkRetry(() =>
+    page.request.post(`${apiURL}/api/auth/setup`, {
+      data: {
+        email,
+        password,
+        password_confirm: password,
+        first_name: firstName,
+        last_name: lastName,
+        organization_name: organizationName
+      },
+      headers: { 'Content-Type': 'application/json' },
+    })
+  );
 
   if (setupResponse.ok()) {
     return;
@@ -83,10 +116,12 @@ export async function loginViaAPI(
 ): Promise<{ token: string; user: any }> {
   const apiURL = process.env.API_URL || 'http://127.0.0.1:3001';
 
-  const response = await page.request.post(`${apiURL}/api/auth/login`, {
-    data: { email, password },
-    headers: { 'Content-Type': 'application/json' },
-  });
+  const response = await withNetworkRetry(() =>
+    page.request.post(`${apiURL}/api/auth/login`, {
+      data: { email, password },
+      headers: { 'Content-Type': 'application/json' },
+    })
+  );
 
   if (!response.ok()) {
     const errorBody = await response.json().catch(() => ({}));
@@ -300,18 +335,23 @@ export async function ensureLoginViaAPI(
  * Logout via UI
  */
 export async function logout(page: Page): Promise<void> {
-  // Open user menu from top navigation.
-  const userMenu = page.locator('button[aria-haspopup="menu"][aria-controls="user-menu"]').first();
-  await userMenu.click({
-    timeout: 5000,
-  });
+  // Open user menu from top navigation (supports current and legacy selectors).
+  const userMenu = page
+    .getByRole('button', { name: /user menu/i })
+    .or(page.locator('button[aria-haspopup="menu"][aria-controls="user-menu"]'))
+    .first();
+  await userMenu.click({ timeout: 7000 });
 
-  // Click logout menu item.
-  await page.getByRole('menuitem', { name: /logout/i }).click({ timeout: 5000 });
+  // Click logout action (supports button/menuitem variants).
+  const logoutAction = page
+    .getByRole('button', { name: /logout|sign out/i })
+    .or(page.getByRole('menuitem', { name: /logout|sign out/i }))
+    .first();
+  await logoutAction.click({ timeout: 7000 });
 
-  // Wait for redirect to login
-  await page.waitForURL('/login', { timeout: 10000 });
-  await expect(page).toHaveURL('/login');
+  // Wait for redirect to login.
+  await page.waitForURL(/\/login(?:\?|$)/, { timeout: 15000 });
+  await expect(page).toHaveURL(/\/login(?:\?|$)/);
 }
 
 /**

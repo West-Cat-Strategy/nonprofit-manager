@@ -7,6 +7,7 @@ export { default as contactRoutes } from '@routes/contacts';
 export { default as dashboardRoutes } from '@routes/dashboard';
 export { default as donationRoutes } from '@routes/donations';
 export { default as eventRoutes } from '@routes/events';
+export { default as externalServiceProviderRoutes } from '@routes/externalServiceProviders';
 export { default as invitationRoutes } from '@routes/invitations';
 export { default as mailchimpRoutes } from '@routes/mailchimp';
 export { default as meetingRoutes } from '@routes/meetings';

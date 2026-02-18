@@ -715,7 +715,7 @@ const CaseDetail = () => {
                           {/* Completion checkbox */}
                           <button
                             onClick={() => handleToggleMilestoneComplete(milestone)}
-                            className={`mt-1 w-6 h-6 border-2 border-black flex items-center justify-center flex-shrink-0 transition-colors ${milestone.is_completed ? 'bg-(--loop-green)' : 'bg-app-surface hover:bg-app-surface-muted'
+                            className={`mt-1 w-6 h-6 border-2 border-black flex items-center justify-center flex-shrink-0 transition-colors ${milestone.is_completed ? 'bg-[var(--loop-green)]' : 'bg-app-surface hover:bg-app-surface-muted'
                               }`}
                             title={milestone.is_completed ? 'Mark incomplete' : 'Mark complete'}
                           >

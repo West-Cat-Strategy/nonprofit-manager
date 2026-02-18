@@ -158,6 +158,7 @@ describe('Auth API Integration Tests', () => {
       // JWT format: header.payload.signature
       expect(token.split('.')).toHaveLength(3);
     });
+
   });
 
   describe('GET /api/auth/me', () => {

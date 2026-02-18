@@ -30,10 +30,13 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
 
   useEffect(() => {
     if (donation) {
+      const parsedAmount =
+        typeof donation.amount === 'number' ? donation.amount : parseFloat(String(donation.amount));
+
       setFormData({
         account_id: donation.account_id || undefined,
         contact_id: donation.contact_id || undefined,
-        amount: donation.amount,
+        amount: Number.isFinite(parsedAmount) ? parsedAmount : 0,
         currency: donation.currency,
         donation_date: donation.donation_date.substring(0, 16),
         payment_method: donation.payment_method || undefined,

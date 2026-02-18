@@ -95,19 +95,11 @@ test.describe('Accounts Module', () => {
     ];
 
     for (const [index, name] of accountNames.entries()) {
-      const response = await authenticatedPage.request.post(
-        `${process.env.API_URL || 'http://localhost:3001'}/api/accounts`,
-        {
-          headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-          data: {
-            account_name: name,
-            account_type: 'organization',
-            category: 'donor',
-            email: `acct.${suffix}.${index}@example.com`,
-          },
-        }
-      );
-      await expect(response.status()).toBe(201);
+      await createTestAccount(authenticatedPage, authToken, {
+        name,
+        accountType: 'organization',
+        email: `acct.${suffix}.${index}@example.com`,
+      });
     }
 
     await authenticatedPage.goto('/accounts');

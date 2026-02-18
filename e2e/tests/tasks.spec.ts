@@ -3,7 +3,7 @@
  */
 
 import { test, expect, type Page } from '../fixtures/auth.fixture';
-import { clearDatabase } from '../helpers/database';
+import { clearDatabase, getAuthHeaders } from '../helpers/database';
 
 async function createTestTask(
   page: Page,
@@ -16,9 +16,10 @@ async function createTestTask(
   }
 ): Promise<{ id: string }> {
   const apiURL = process.env.API_URL || 'http://localhost:3001';
+  const headers = await getAuthHeaders(page, token);
 
   const response = await page.request.post(`${apiURL}/api/tasks`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
     data: {
       subject: data.subject,
       status: data.status || 'not_started',
@@ -80,13 +81,14 @@ test.describe('Tasks Module', () => {
 
   test('should mark task as complete', async ({ authenticatedPage, authToken }) => {
     const apiURL = process.env.API_URL || 'http://localhost:3001';
+    const headers = await getAuthHeaders(authenticatedPage, authToken);
     const { id } = await createTestTask(authenticatedPage, authToken, {
       subject: 'Complete Test Task',
       status: 'in_progress',
     });
 
     const response = await authenticatedPage.request.post(`${apiURL}/api/tasks/${id}/complete`, {
-      headers: { Authorization: `Bearer ${authToken}` },
+      headers,
     });
     expect(response.ok()).toBeTruthy();
   });

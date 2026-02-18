@@ -104,6 +104,14 @@ const EventDetail: React.FC = () => {
             <span className="px-3 py-1 text-sm font-semibold rounded-full bg-app-surface-muted text-app-text">
               {event.status}
             </span>
+            <span className="px-3 py-1 text-sm font-semibold rounded-full bg-white text-black border border-black">
+              {event.is_public ? 'Public' : 'Private'}
+            </span>
+            {event.is_recurring && (
+              <span className="px-3 py-1 text-sm font-semibold rounded-full bg-yellow-100 text-yellow-900 border border-yellow-600">
+                Recurring
+              </span>
+            )}
           </div>
         </div>
         <div className="flex gap-2">
@@ -179,6 +187,21 @@ const EventDetail: React.FC = () => {
             </div>
           </div>
 
+          {event.is_recurring && (
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Recurrence</h3>
+              <p className="text-app-text-muted capitalize">
+                Every {event.recurrence_interval || 1} {event.recurrence_pattern || 'week'}
+                {(event.recurrence_interval || 1) > 1 ? 's' : ''}
+              </p>
+              {event.recurrence_end_date && (
+                <p className="text-app-text-muted">
+                  Ends: {formatEventDateTime(event.recurrence_end_date)}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Location */}
           <div>
             <h3 className="text-lg font-semibold mb-2">Location</h3>
@@ -242,6 +265,12 @@ const EventDetail: React.FC = () => {
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold mb-2">Metadata</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-app-text-muted">
+              <div>
+                <span className="font-medium">Visibility:</span> {event.is_public ? 'Public' : 'Private'}
+              </div>
+              <div>
+                <span className="font-medium">Recurring:</span> {event.is_recurring ? 'Yes' : 'No'}
+              </div>
               <div>
                 <span className="font-medium">Created:</span>{' '}
                 {new Date(event.created_at).toLocaleDateString()}

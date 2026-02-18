@@ -7,6 +7,7 @@ import {
   loginSchema,
   registerSchema,
   passwordResetRequestSchema,
+  twoFactorVerifySchema,
 } from '../../../validations/auth';
 import {
   createVolunteerSchema,
@@ -153,6 +154,34 @@ describe('Authentication Schemas', () => {
       };
 
       const result = passwordResetRequestSchema.safeParse(data);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('twoFactorVerifySchema', () => {
+    it('accepts code field for TOTP verification', () => {
+      const result = twoFactorVerifySchema.safeParse({
+        mfaToken: 'mfa-token',
+        code: '123456',
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts legacy token field for TOTP verification', () => {
+      const result = twoFactorVerifySchema.safeParse({
+        mfaToken: 'mfa-token',
+        token: '123456',
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects missing code/token for TOTP verification', () => {
+      const result = twoFactorVerifySchema.safeParse({
+        mfaToken: 'mfa-token',
+      });
+
       expect(result.success).toBe(false);
     });
   });

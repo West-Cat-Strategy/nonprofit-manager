@@ -1,339 +1,219 @@
 /**
  * Contacts Module E2E Tests
- * Tests for contact CRUD operations and relationship management
+ * Comprehensive tests for list, create, detail, edit, filter, and delete flows.
  */
 
 import { test, expect } from '../fixtures/auth.fixture';
-import {
-  createTestAccount,
-  createTestContact,
-  clearDatabase,
-} from '../helpers/database';
+import { createTestContact, clearDatabase } from '../helpers/database';
+
+const uniqueSuffix = () => `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
 test.describe('Contacts Module', () => {
   test.beforeEach(async ({ authenticatedPage, authToken }) => {
-    // Clear database before each test
     await clearDatabase(authenticatedPage, authToken);
   });
 
   test('should display contacts list page', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/contacts');
 
-    // Check page title
-    await expect(authenticatedPage.locator('h1')).toContainText(/people/i);
+    await expect(authenticatedPage.getByRole('heading', { name: /people/i })).toBeVisible();
+    await expect(authenticatedPage.getByRole('button', { name: /new person/i })).toBeVisible();
+    await expect(authenticatedPage.getByLabel('Search contacts')).toBeVisible();
+  });
 
-    // Check for create button
+  test('should validate create form required and format errors', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto('/contacts/new');
+
+    await authenticatedPage.getByRole('button', { name: /create contact/i }).click();
+
+    await expect(authenticatedPage.getByText(/first name is required/i)).toBeVisible();
+    await expect(authenticatedPage.getByText(/last name is required/i)).toBeVisible();
+
+    await authenticatedPage.getByLabel(/first name \*/i).fill('Invalid');
+    await authenticatedPage.getByLabel(/last name \*/i).fill('Entry');
+    await authenticatedPage.getByLabel(/^email$/i).fill('invalid.entry@example.com');
+    await authenticatedPage.locator('input[name="phone"]').fill('12345');
+
+    await authenticatedPage.getByRole('button', { name: /create contact/i }).click();
+
+    await expect(authenticatedPage.getByText(/phone number must be at least 10 digits/i)).toBeVisible();
+  });
+
+  test('should support create -> detail -> edit lifecycle', async ({ authenticatedPage }) => {
+    const suffix = uniqueSuffix();
+    const firstName = `Flow${suffix}`;
+    const lastName = 'Person';
+    const email = `flow.${suffix}@example.com`;
+
+    await authenticatedPage.goto('/contacts/new');
+
+    await authenticatedPage.getByLabel(/first name \*/i).fill(firstName);
+    await authenticatedPage.getByLabel(/last name \*/i).fill(lastName);
+    await authenticatedPage.getByLabel(/^email$/i).fill(email);
+    await authenticatedPage.locator('input[name="phone"]').fill('5550201234');
+
+    await authenticatedPage.getByRole('button', { name: /create contact/i }).click();
+
+    await authenticatedPage.waitForURL(/\/contacts\/[a-f0-9-]+$/);
     await expect(
-      authenticatedPage.locator('button:has-text("New Person"), a:has-text("New Person")')
+      authenticatedPage.getByRole('heading', { name: new RegExp(`${firstName} ${lastName}`, 'i') })
     ).toBeVisible();
 
-    // Check for search input
+    await authenticatedPage.getByRole('button', { name: /edit contact/i }).click();
+    await authenticatedPage.waitForURL(/\/contacts\/[a-f0-9-]+\/edit$/);
+
+    const updatedFirstName = `Updated${suffix}`;
+    await authenticatedPage.getByLabel(/first name \*/i).fill(updatedFirstName);
+    await expect(authenticatedPage.getByLabel(/first name \*/i)).toHaveValue(updatedFirstName);
+    await authenticatedPage.locator('form').getByRole('button', { name: /^cancel$/i }).click();
     await expect(
-      authenticatedPage.locator(
-        'input[aria-label="Search contacts"], input[placeholder*="Quick lookup"]'
-      )
+      authenticatedPage.getByRole('heading', {
+        name: new RegExp(`${firstName} ${lastName}`, 'i'),
+      })
     ).toBeVisible();
   });
 
-  test('should create a new contact via UI', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/contacts');
-
-    // Click "New Person" button
-    await authenticatedPage.click('text=/New Person|Create Contact/i');
-
-    // Wait for form
-    await authenticatedPage.waitForURL(/\/contacts\/(new|create)/);
-
-    // Fill form
-    await authenticatedPage.fill('input[name="first_name"]', 'John');
-    await authenticatedPage.fill('input[name="last_name"]', 'Doe');
-    await authenticatedPage.fill('input[name="email"]', 'john.doe@example.com');
-    await authenticatedPage.fill('input[name="phone"]', '555-020-0000');
-
-    // Submit form
-    await authenticatedPage.click('button[type="submit"]');
-
-    // Should redirect to contact detail page
-    await authenticatedPage.waitForURL(/\/contacts\/[a-f0-9-]+$/);
-
-    // Check that contact details are displayed
-    await expect(authenticatedPage.locator('text=John Doe')).toBeVisible();
-  });
-
-  test('should show validation errors for required fields', async ({
-    authenticatedPage,
-  }) => {
-    await authenticatedPage.goto('/contacts/new');
-
-    // Submit without filling required fields
-    await authenticatedPage.click('button[type="submit"]');
-
-    // Check for validation errors
-    await expect(
-      authenticatedPage.locator('text=/first name.*required/i')
-    ).toBeVisible({ timeout: 5000 });
-    await expect(
-      authenticatedPage.locator('text=/last name.*required/i')
-    ).toBeVisible({ timeout: 5000 });
-  });
-
-  test('should require account selection before creating a contact', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/contacts/new');
-
-    await authenticatedPage.fill('input[name="first_name"]', 'No');
-    await authenticatedPage.fill('input[name="last_name"]', 'Account');
-    await authenticatedPage.fill('input[name="email"]', 'no.account@example.com');
-
-    await authenticatedPage.click('button[type="submit"]');
-
-    await expect(authenticatedPage.locator('text=/account.*required/i')).toBeVisible({
-      timeout: 5000,
-    });
-    await expect(authenticatedPage).toHaveURL(/\/contacts\/new$/);
-  });
-
-  test('should create contact with account association', async ({
-    authenticatedPage,
-    authToken,
-  }) => {
-    // Create test account
-    const { id: accountId } = await createTestAccount(
-      authenticatedPage,
-      authToken,
-      {
-        name: 'Test Organization',
-      }
-    );
-
-    await authenticatedPage.goto('/contacts/new');
-
-    // Fill contact form
-    await authenticatedPage.fill('input[name="first_name"]', 'Jane');
-    await authenticatedPage.fill('input[name="last_name"]', 'Smith');
-    await authenticatedPage.fill('input[name="email"]', 'jane@example.com');
-
-    // Select account if dropdown exists
-    const accountSelect = authenticatedPage.locator('select[name="account_id"]');
-    if (await accountSelect.isVisible()) {
-      await accountSelect.selectOption(accountId);
-    }
-
-    // Submit form
-    await authenticatedPage.click('button[type="submit"]');
-
-    // Should redirect to contact detail page
-    await authenticatedPage.waitForURL(/\/contacts\/[a-f0-9-]+$/);
-
-    // Check contact name is displayed on detail page.
-    await expect(authenticatedPage.locator('text=Jane Smith')).toBeVisible();
-  });
-
-  test('should search contacts by name', async ({
-    authenticatedPage,
-    authToken,
-  }) => {
-    // Create test contacts
-    await createTestContact(authenticatedPage, authToken, {
-      firstName: 'Alice',
-      lastName: 'Anderson',
-      email: 'alice@example.com',
-    });
-    await createTestContact(authenticatedPage, authToken, {
-      firstName: 'Bob',
-      lastName: 'Brown',
-      email: 'bob@example.com',
-    });
-    await createTestContact(authenticatedPage, authToken, {
-      firstName: 'Charlie',
-      lastName: 'Clark',
-      email: 'charlie@example.com',
-    });
-
-    await authenticatedPage.goto('/contacts');
-
-    // Wait for contacts to load
-    await authenticatedPage.waitForTimeout(1000);
-
-    // Search for "Alice"
-    const searchInput = authenticatedPage.locator(
-      'input[aria-label="Search contacts"], input[placeholder*="Quick lookup"]'
-    );
-    await searchInput.fill('Alice');
-
-    // Wait for search results
-    await authenticatedPage.waitForTimeout(1000);
-
-    // Should show Alice Anderson
-    await expect(authenticatedPage.locator(':text("Alice Anderson"):visible').first()).toBeVisible();
-
-  });
-
-  test('should view contact details', async ({
-    authenticatedPage,
-    authToken,
-  }) => {
-    // Create test contact
+  test('should support detail tab navigation for a contact', async ({ authenticatedPage, authToken }) => {
+    const suffix = uniqueSuffix();
     const { id } = await createTestContact(authenticatedPage, authToken, {
-      firstName: 'Emily',
-      lastName: 'Evans',
-      email: 'emily@example.com',
-      phone: '555-020-0001',
+      firstName: `Tabs${suffix}`,
+      lastName: 'Contact',
+      email: `tabs.${suffix}@example.com`,
+      phone: '5550201111',
     });
 
-    // Navigate to contact detail page
     await authenticatedPage.goto(`/contacts/${id}`);
 
-    // Check contact details are displayed
-    await expect(
-      authenticatedPage.locator('text=Emily Evans')
-    ).toBeVisible();
+    await authenticatedPage.getByRole('tab', { name: /notes/i }).click();
+    await expect(authenticatedPage.getByText(/no notes yet/i)).toBeVisible();
 
-    // Check for edit button
+    await authenticatedPage.getByRole('tab', { name: /tasks/i }).click();
+    await expect(authenticatedPage.getByRole('heading', { name: /^tasks$/i })).toBeVisible();
+
+    await authenticatedPage.getByRole('tab', { name: /activity/i }).click();
+    await expect(authenticatedPage.getByText(/no activity yet for this person|loading activity/i)).toBeVisible();
+
+    await authenticatedPage.getByRole('tab', { name: /documents/i }).click();
+    await expect(authenticatedPage.getByText(/no documents uploaded yet/i)).toBeVisible();
+
+    await authenticatedPage.getByRole('tab', { name: /payments/i }).click();
     await expect(
-      authenticatedPage.locator('button:has-text("Edit"), a:has-text("Edit")')
+      authenticatedPage.getByRole('heading', { name: /payment history/i }).first()
     ).toBeVisible();
   });
 
-  test('should edit contact details', async ({
+  test('should support cancel navigation in create and edit forms', async ({
     authenticatedPage,
     authToken,
   }) => {
-    // Create test contact
+    const suffix = uniqueSuffix();
+
+    await authenticatedPage.goto('/contacts/new');
+    await authenticatedPage.getByRole('button', { name: /^cancel$/i }).click();
+    await expect(authenticatedPage).toHaveURL(/\/contacts$/);
+
     const { id } = await createTestContact(authenticatedPage, authToken, {
-      firstName: 'Frank',
-      lastName: 'Ford',
-      email: 'frank@example.com',
+      firstName: `Cancel${suffix}`,
+      lastName: 'Flow',
+      email: `cancel.${suffix}@example.com`,
+      phone: '5550204444',
     });
 
-    // Navigate to contact detail page
-    await authenticatedPage.goto(`/contacts/${id}`);
-
-    // Click edit button
-    await authenticatedPage.click('text=/Edit/i');
-
-    // Wait for edit form
-    await authenticatedPage.waitForURL(/\/contacts\/[a-f0-9-]+\/edit/);
-
-    // Change first name and ensure the edit form accepts updates.
-    const firstNameInput = authenticatedPage.locator('input[name="first_name"]');
-    await firstNameInput.fill('Franklin');
-    await expect(firstNameInput).toHaveValue('Franklin');
+    await authenticatedPage.goto(`/contacts/${id}/edit`);
+    await authenticatedPage.locator('form').getByRole('button', { name: /^cancel$/i }).click();
+    await expect(authenticatedPage).toHaveURL(new RegExp(`/contacts/${id}$`));
   });
 
-  test('should delete contact', async ({ authenticatedPage, authToken }) => {
-    // Create test contact
-    const { id } = await createTestContact(authenticatedPage, authToken, {
-      firstName: 'Grace',
-      lastName: 'Green',
-      email: 'grace@example.com',
+  test('should search contacts and filter by inactive status', async ({
+    authenticatedPage,
+    authToken,
+  }) => {
+    const suffix = uniqueSuffix();
+
+    const activeContact = await createTestContact(authenticatedPage, authToken, {
+      firstName: `Active${suffix}`,
+      lastName: 'Contact',
+      email: `active.${suffix}@example.com`,
+      phone: '5550202001',
+    });
+
+    const inactiveContact = await createTestContact(authenticatedPage, authToken, {
+      firstName: `Inactive${suffix}`,
+      lastName: 'Contact',
+      email: `inactive.${suffix}@example.com`,
+      phone: '5550202002',
     });
 
     const apiURL = process.env.API_URL || 'http://localhost:3001';
-    await authenticatedPage.request.delete(`${apiURL}/api/contacts/${id}`, {
+    await authenticatedPage.request.delete(`${apiURL}/api/contacts/${inactiveContact.id}`, {
       headers: { Authorization: `Bearer ${authToken}` },
     });
 
-    // Should redirect to contacts list
     await authenticatedPage.goto('/contacts');
 
-    // Navigate to deleted contact (should show 404 or redirect)
-    await authenticatedPage.goto(`/contacts/${id}`);
+    await authenticatedPage.getByLabel('Search contacts').fill(`Active${suffix}`);
+    await authenticatedPage.locator('form').getByRole('button', { name: /^search$/i }).click();
+    await authenticatedPage.waitForTimeout(500);
 
-    // Contact remains viewable but should be marked inactive after deletion.
-    await expect(authenticatedPage.locator('text=/inactive/i').first()).toBeVisible();
+    await expect(authenticatedPage.locator(`text=Active${suffix} Contact`).first()).toBeVisible({
+      timeout: 10000,
+    });
+
+    await authenticatedPage.getByLabel('Status').selectOption('inactive');
+    await authenticatedPage.locator('form').getByRole('button', { name: /^search$/i }).click();
+    await authenticatedPage.waitForTimeout(500);
+    await expect(authenticatedPage.getByRole('heading', { name: /no contacts found/i })).toBeVisible();
+
+    await authenticatedPage.goto(`/contacts/${inactiveContact.id}`);
+    await expect(authenticatedPage.getByText(/inactive/i).first()).toBeVisible();
+
+    await authenticatedPage.goto(`/contacts/${activeContact.id}`);
+    await expect(authenticatedPage.getByText(/active/i).first()).toBeVisible();
   });
 
-  test('should filter contacts by type', async ({
-    authenticatedPage,
-    authToken,
-  }) => {
-    // Create contacts of different types
+  test('should delete contact from list actions', async ({ authenticatedPage, authToken }) => {
+    const suffix = uniqueSuffix();
+    const fullName = `Delete${suffix} Contact`;
+
     await createTestContact(authenticatedPage, authToken, {
-      firstName: 'Donor',
+      firstName: `Delete${suffix}`,
       lastName: 'Contact',
-      contactType: 'donor',
-    });
-    await createTestContact(authenticatedPage, authToken, {
-      firstName: 'Volunteer',
-      lastName: 'Contact',
-      contactType: 'volunteer',
+      email: `delete.${suffix}@example.com`,
+      phone: '5550203001',
     });
 
     await authenticatedPage.goto('/contacts');
-    await authenticatedPage.waitForTimeout(1000);
+    const row = authenticatedPage.locator('tr', { hasText: fullName }).first();
+    await expect(row).toBeVisible();
 
-    // Filter by donor type
-    const typeFilter = authenticatedPage.locator('select[name="contactType"]');
-    if (await typeFilter.isVisible()) {
-      await typeFilter.selectOption('donor');
-      await authenticatedPage.waitForTimeout(1000);
-
-      // Should show donor contact
-      await expect(
-        authenticatedPage.locator('text=Donor Contact')
-      ).toBeVisible();
-
-      // Should not show volunteer contact
-      await expect(
-        authenticatedPage.locator('text=Volunteer Contact')
-      ).not.toBeVisible();
-    }
-  });
-
-  test('should display contact activities/interactions', async ({
-    authenticatedPage,
-    authToken,
-  }) => {
-    // Create test contact
-    const { id } = await createTestContact(authenticatedPage, authToken, {
-      firstName: 'Henry',
-      lastName: 'Hall',
-      email: 'henry@example.com',
+    authenticatedPage.once('dialog', async (dialog) => {
+      await dialog.accept();
     });
 
-    // Navigate to contact detail page
-    await authenticatedPage.goto(`/contacts/${id}`);
+    await row.getByRole('button', { name: /delete/i }).click();
 
-    // Check for activities/interactions section
-    const activitiesSection = authenticatedPage.locator(
-      'text=/activities|interactions|history/i'
-    );
-    if (await activitiesSection.isVisible()) {
-      // Activities section exists
-      expect(await activitiesSection.isVisible()).toBeTruthy();
-    }
+    await expect(row).not.toBeVisible({ timeout: 10000 });
   });
 
-  test('should paginate contacts list', async ({
-    authenticatedPage,
-    authToken,
-  }) => {
-    // Create 25 test contacts (assuming page size is 20)
+  test('should paginate contacts list', async ({ authenticatedPage, authToken }) => {
+    const suffix = uniqueSuffix();
+
     for (let i = 1; i <= 25; i++) {
       await createTestContact(authenticatedPage, authToken, {
-        firstName: `Contact`,
+        firstName: `Page${suffix}`,
         lastName: `${i.toString().padStart(2, '0')}`,
-        email: `contact${i}@test.com`,
+        email: `page.${suffix}.${i}@example.com`,
+        phone: `555020${(1000 + i).toString().slice(-4)}`,
       });
     }
 
     await authenticatedPage.goto('/contacts');
 
-    // Wait for contacts to load
-    await authenticatedPage.waitForTimeout(2000);
+    const nextButton = authenticatedPage.getByRole('button', { name: /next/i });
+    await expect(nextButton).toBeVisible();
+    await nextButton.click();
 
-    // Should see pagination controls
-    await expect(authenticatedPage.locator('button:has-text("Next")')).toBeVisible();
-
-    // Click next page
-    await authenticatedPage.click('button:has-text("Next")');
-
-    // Wait for page to load
-    await authenticatedPage.waitForTimeout(1000);
-
-    // Should show contacts from page 2
-    await expect(
-      authenticatedPage.locator('text=/Page 2|2 of/i')
-    ).toBeVisible();
+    await expect(authenticatedPage.getByRole('button', { name: /previous/i })).toBeEnabled();
+    await expect(authenticatedPage.locator('text=/Page 2 of|Page 2/i')).toBeVisible();
   });
 });

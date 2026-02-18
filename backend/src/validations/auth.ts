@@ -78,8 +78,15 @@ export type TwoFactorSetupInput = z.infer<typeof twoFactorSetupSchema>;
 // 2FA Verify
 export const twoFactorVerifySchema = z.object({
   mfaToken: z.string().min(1, 'MFA token is required'),
-  token: z.string().min(6, 'Token must be 6 digits').max(6),
-});
+  code: z.string().trim().min(6, 'Token must be 6 digits').max(6).optional(),
+  token: z.string().trim().min(6, 'Token must be 6 digits').max(6).optional(),
+}).refine(
+  (data) => Boolean(data.code || data.token),
+  {
+    message: 'Authentication code is required',
+    path: ['code'],
+  }
+);
 
 export type TwoFactorVerifyInput = z.infer<typeof twoFactorVerifySchema>;
 

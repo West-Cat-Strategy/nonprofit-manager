@@ -126,7 +126,7 @@ export const fetchContactRegistrations = createAsyncThunk(
   'events/fetchContactRegistrations',
   async (contactId: string) => {
     const response = await api.get<EventRegistration[]>(
-      `/events/contacts/${contactId}/registrations`
+      `/events/registrations?contact_id=${encodeURIComponent(contactId)}`
     );
     return response.data;
   }
@@ -135,7 +135,14 @@ export const fetchContactRegistrations = createAsyncThunk(
 export const registerContact = createAsyncThunk(
   'events/registerContact',
   async (registrationData: CreateRegistrationDTO) => {
-    const response = await api.post<EventRegistration>('/events/registrations', registrationData);
+    const response = await api.post<EventRegistration>(
+      `/events/${registrationData.event_id}/register`,
+      {
+        contact_id: registrationData.contact_id,
+        registration_status: registrationData.registration_status,
+        notes: registrationData.notes,
+      }
+    );
     return response.data;
   }
 );

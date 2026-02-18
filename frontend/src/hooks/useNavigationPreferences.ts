@@ -29,6 +29,7 @@ const PREFERENCE_KEY = 'navigation';
 const defaultNavigationItems: NavigationItem[] = [
   { id: 'dashboard', name: 'Dashboard', path: '/dashboard', icon: '📊', enabled: true, isCore: true },
   { id: 'cases', name: 'Cases', path: '/cases', icon: '📋', enabled: true, isCore: false },
+  { id: 'external-service-providers', name: 'Providers', path: '/external-service-providers', icon: '🩺', enabled: true, isCore: false },
   { id: 'people', name: 'People', path: '/contacts', icon: '👤', enabled: true, isCore: false },
   { id: 'accounts', name: 'Accounts', path: '/accounts', icon: '🏢', enabled: true, isCore: false },
   { id: 'volunteers', name: 'Volunteers', path: '/volunteers', icon: '🤝', enabled: true, isCore: false },

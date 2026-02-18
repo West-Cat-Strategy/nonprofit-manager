@@ -6,13 +6,35 @@
 import { z } from 'zod';
 import { uuidSchema } from './shared';
 
+const eventTypeSchema = z.enum([
+  'fundraiser',
+  'community',
+  'training',
+  'meeting',
+  'workshop',
+  'webinar',
+  'conference',
+  'outreach',
+  'volunteer',
+  'social',
+  'other',
+]);
+
+const recurrencePatternSchema = z.enum(['daily', 'weekly', 'monthly', 'yearly']);
+
 // Event status enums
-export const eventStatusSchema = z.enum(['planned', 'active', 'completed', 'cancelled']);
+export const eventStatusSchema = z.enum(['planned', 'active', 'completed', 'cancelled', 'postponed']);
 
 export type EventStatus = z.infer<typeof eventStatusSchema>;
 
 // Registration status enums
-export const registrationStatusSchema = z.enum(['registered', 'attended', 'no_show', 'cancelled']);
+export const registrationStatusSchema = z.enum([
+  'registered',
+  'waitlisted',
+  'cancelled',
+  'confirmed',
+  'no_show',
+]);
 
 export type RegistrationStatus = z.infer<typeof registrationStatusSchema>;
 
@@ -20,7 +42,7 @@ export type RegistrationStatus = z.infer<typeof registrationStatusSchema>;
 export const createEventSchema = z.object({
   event_name: z.string().min(1).max(255),
   description: z.string().max(2000).optional(),
-  event_type: z.string().min(1).trim(),
+  event_type: eventTypeSchema,
   start_date: z.coerce.date(),
   end_date: z.coerce.date(),
   location_name: z.string().max(255).optional(),
@@ -32,11 +54,22 @@ export const createEventSchema = z.object({
   country: z.string().max(100).optional(),
   capacity: z.number().int().positive().optional(),
   status: eventStatusSchema.default('planned'),
+  is_public: z.boolean().default(false),
+  is_recurring: z.boolean().default(false),
+  recurrence_pattern: recurrencePatternSchema.optional(),
+  recurrence_interval: z.number().int().positive().optional(),
+  recurrence_end_date: z.coerce.date().optional(),
 }).refine(
   (data) => data.start_date < data.end_date,
   {
     message: 'End date must be after start date',
     path: ['end_date'],
+  }
+).refine(
+  (data) => !data.is_recurring || (Boolean(data.recurrence_pattern) && Boolean(data.recurrence_interval)),
+  {
+    message: 'Recurring events require recurrence_pattern and recurrence_interval',
+    path: ['recurrence_pattern'],
   }
 );
 
@@ -46,7 +79,7 @@ export type CreateEventInput = z.infer<typeof createEventSchema>;
 export const updateEventSchema = z.object({
   event_name: z.string().min(1).max(255).optional(),
   description: z.string().max(2000).optional(),
-  event_type: z.string().min(1).trim().optional(),
+  event_type: eventTypeSchema.optional(),
   start_date: z.coerce.date().optional(),
   end_date: z.coerce.date().optional(),
   location_name: z.string().max(255).optional(),
@@ -58,6 +91,11 @@ export const updateEventSchema = z.object({
   country: z.string().max(100).optional(),
   capacity: z.number().int().positive().optional(),
   status: eventStatusSchema.optional(),
+  is_public: z.boolean().optional(),
+  is_recurring: z.boolean().optional(),
+  recurrence_pattern: recurrencePatternSchema.optional(),
+  recurrence_interval: z.number().int().positive().optional(),
+  recurrence_end_date: z.coerce.date().optional(),
 }).refine(
   (data) => {
     // Only validate if both dates are provided
@@ -76,8 +114,9 @@ export type UpdateEventInput = z.infer<typeof updateEventSchema>;
 
 // Event filter
 export const eventFilterSchema = z.object({
-  event_type: z.string().optional(),
+  event_type: eventTypeSchema.optional(),
   status: eventStatusSchema.optional(),
+  is_public: z.boolean().optional(),
   start_date: z.coerce.date().optional(),
   end_date: z.coerce.date().optional(),
   organizer_id: uuidSchema.optional(),

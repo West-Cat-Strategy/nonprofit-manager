@@ -1,8 +1,132 @@
 import { test, expect } from '../fixtures/auth.fixture';
+import type { Page } from '@playwright/test';
 import { createTestContact, clearDatabase } from '../helpers/database';
+
+const apiURL = process.env.API_URL || 'http://localhost:3001';
+
+const uniqueSuffix = () => `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+async function getWriteHeaders(page: Page, token: string): Promise<Record<string, string>> {
+    const organizationId = await page
+        .evaluate(() => localStorage.getItem('organizationId'))
+        .catch(() => null);
+    const csrfResponse = await page.request.get(`${apiURL}/api/auth/csrf-token`, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+            ...(organizationId ? { 'X-Organization-Id': organizationId } : {}),
+        },
+    });
+    if (!csrfResponse.ok()) {
+        throw new Error(`Failed to fetch CSRF token (${csrfResponse.status()})`);
+    }
+    const csrfData = await csrfResponse.json();
+    if (!csrfData?.csrfToken) {
+        throw new Error('CSRF token missing in response');
+    }
+
+    const headers: Record<string, string> = {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfData.csrfToken,
+    };
+    if (organizationId) {
+        headers['X-Organization-Id'] = organizationId;
+    }
+    return headers;
+}
+
+async function getReadHeaders(page: Page, token: string): Promise<Record<string, string>> {
+    const organizationId = await page
+        .evaluate(() => localStorage.getItem('organizationId'))
+        .catch(() => null);
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+    if (organizationId) {
+        headers['X-Organization-Id'] = organizationId;
+    }
+    return headers;
+}
+
+async function clearCases(page: Page, token: string): Promise<void> {
+    const headers = await getReadHeaders(page, token);
+    const listResponse = await page.request.get(`${apiURL}/api/cases?limit=200`, {
+        headers,
+    });
+    if (!listResponse.ok()) return;
+
+    const listData = await listResponse.json();
+    const cases = listData?.cases || [];
+    for (const item of cases) {
+        if (!item?.id) continue;
+        const headers = await getWriteHeaders(page, token);
+        await page.request.delete(`${apiURL}/api/cases/${item.id}`, { headers });
+    }
+}
+
+async function getFirstCaseTypeId(page: Page, token: string): Promise<string> {
+    const headers = await getReadHeaders(page, token);
+    const response = await page.request.get(`${apiURL}/api/cases/types`, {
+        headers,
+    });
+    if (!response.ok()) {
+        throw new Error(`Failed to fetch case types (${response.status()})`);
+    }
+    const data = await response.json();
+    const firstTypeId = data?.types?.[0]?.id;
+    if (!firstTypeId) {
+        throw new Error('No case types available for tests');
+    }
+    return firstTypeId;
+}
+
+async function createTestCase(
+    page: Page,
+    token: string,
+    data: {
+        title: string;
+        contactId?: string;
+        priority?: 'low' | 'medium' | 'high' | 'urgent';
+        isUrgent?: boolean;
+        description?: string;
+    }
+): Promise<{ id: string }> {
+    const contactId = data.contactId || (
+        await createTestContact(page, token, {
+            firstName: 'Case',
+            lastName: `Contact-${uniqueSuffix()}`,
+            email: `case.contact.${uniqueSuffix()}@example.com`,
+        })
+    ).id;
+
+    const caseTypeId = await getFirstCaseTypeId(page, token);
+    const headers = await getWriteHeaders(page, token);
+
+    const response = await page.request.post(`${apiURL}/api/cases`, {
+        headers,
+        data: {
+            contact_id: contactId,
+            case_type_id: caseTypeId,
+            title: data.title,
+            description: data.description || 'Test case description',
+            priority: data.priority || 'medium',
+            is_urgent: data.isUrgent || false,
+        },
+    });
+
+    if (!response.ok()) {
+        throw new Error(`Failed to create test case (${response.status()}): ${await response.text()}`);
+    }
+
+    const result = await response.json();
+    if (!result?.id) {
+        throw new Error(`Missing case id in response: ${JSON.stringify(result)}`);
+    }
+
+    return { id: result.id };
+}
 
 test.describe('Cases Module', () => {
     test.beforeEach(async ({ authenticatedPage, authToken }) => {
+        await clearCases(authenticatedPage, authToken);
         await clearDatabase(authenticatedPage, authToken);
     });
 
@@ -14,43 +138,127 @@ test.describe('Cases Module', () => {
     });
 
     test('should create a new case via UI', async ({ authenticatedPage, authToken }) => {
-        // Create a contact to associate with the case
-        const { id: contactId } = await createTestContact(authenticatedPage, authToken, {
-            firstName: 'Case',
-            lastName: 'Subject',
-            email: 'case.subject@test.com'
+        const suffix = uniqueSuffix();
+        const firstName = `Case${suffix}`;
+        const lastName = 'Subject';
+        const title = `Test Case ${suffix}`;
+
+        await createTestContact(authenticatedPage, authToken, {
+            firstName,
+            lastName,
+            email: `case.subject.${suffix}@test.com`
         });
 
         await authenticatedPage.goto('/cases/new');
 
-        // Fill form
-        await authenticatedPage.getByLabel(/title|subject/i).fill('Test Case 123');
-        await authenticatedPage.getByLabel(/description/i).fill('This is a test case description.');
+        await authenticatedPage.locator('input[name="contact_lookup"]').fill(firstName);
+        await authenticatedPage
+            .locator('button', { hasText: new RegExp(`${firstName}\\s+${lastName}`, 'i') })
+            .first()
+            .click();
 
-        // Select status if available
-        const statusSelect = authenticatedPage.locator('select[name="status"]');
-        if (await statusSelect.isVisible()) {
-            await statusSelect.selectOption('open');
-        }
+        const typeSelect = authenticatedPage.locator('select[name="case_type_id"]');
+        await expect(typeSelect).toBeVisible();
+        await typeSelect.selectOption({ index: 1 });
 
-        // Select priority if available
-        const prioritySelect = authenticatedPage.locator('select[name="priority"]');
-        if (await prioritySelect.isVisible()) {
-            await prioritySelect.selectOption('high');
-        }
+        await authenticatedPage.locator('input[name="title"]').fill(title);
+        await authenticatedPage.locator('textarea[name="description"]').fill('This is a test case description.');
+        await authenticatedPage.locator('form').getByRole('button', { name: /create case/i }).click();
 
-        // Select client/contact
-        // This might be a searchable dropdown or a select
-        // Assuming standard select for now based on other tests, or we might need to search
-        // Using a generic approach for now
-        const clientSelect = authenticatedPage.locator('select[name="contact_id"], select[name="clientId"]');
-        if (await clientSelect.isVisible()) {
-            await clientSelect.selectOption(contactId);
-        }
+        await authenticatedPage.waitForURL(/\/cases$/);
+        await expect(
+            authenticatedPage.locator('tr', { hasText: title }).first()
+        ).toBeVisible({ timeout: 10000 });
+    });
 
-        await authenticatedPage.getByRole('button', { name: /save|create/i }).click();
+    test('should prefill create form from query params', async ({ authenticatedPage, authToken }) => {
+        const suffix = uniqueSuffix();
+        const firstName = `Prefill${suffix}`;
+        const lastName = 'Contact';
+        const title = `Prefilled Case ${suffix}`;
 
-        // Should display success or redirect
-        await expect(authenticatedPage.getByRole('heading', { name: /Test Case 123/i })).toBeVisible({ timeout: 10000 });
+        const { id: contactId } = await createTestContact(authenticatedPage, authToken, {
+            firstName,
+            lastName,
+            email: `prefill.${suffix}@example.com`,
+        });
+
+        await authenticatedPage.goto(
+            `/cases/new?contact_id=${contactId}&title=${encodeURIComponent(title)}&is_urgent=true`
+        );
+
+        await expect(authenticatedPage.getByText(/prefilled context applied/i)).toBeVisible();
+        await expect(authenticatedPage.locator('input[name="title"]')).toHaveValue(title);
+        await expect(authenticatedPage.locator('input[name="is_urgent"]')).toBeChecked();
+        await expect(authenticatedPage.locator('input[name="contact_lookup"]')).toHaveValue(
+            new RegExp(firstName, 'i')
+        );
+    });
+
+    test('should support quick filter deep links', async ({ authenticatedPage, authToken }) => {
+        const suffix = uniqueSuffix();
+        const urgentTitle = `Urgent Case ${suffix}`;
+        const normalTitle = `Normal Case ${suffix}`;
+
+        await createTestCase(authenticatedPage, authToken, {
+            title: urgentTitle,
+            priority: 'urgent',
+            isUrgent: true,
+        });
+        await createTestCase(authenticatedPage, authToken, {
+            title: normalTitle,
+            priority: 'low',
+        });
+
+        await authenticatedPage.goto('/cases?quick_filter=urgent');
+
+        await expect(
+            authenticatedPage.locator('tr', { hasText: urgentTitle }).first()
+        ).toBeVisible();
+        await expect(
+            authenticatedPage.locator('tr', { hasText: normalTitle }).first()
+        ).not.toBeVisible();
+
+        await authenticatedPage.locator('input[placeholder*="Search by case number"]').fill(urgentTitle);
+        await authenticatedPage.keyboard.press('Enter');
+
+        await expect(authenticatedPage).toHaveURL(/quick_filter=urgent/);
+        await expect(authenticatedPage).toHaveURL(/search=/);
+    });
+
+    test('should support case detail to edit flow', async ({ authenticatedPage, authToken }) => {
+        const suffix = uniqueSuffix();
+        const originalTitle = `Case Detail ${suffix}`;
+        const updatedTitle = `Case Detail Updated ${suffix}`;
+        const { id } = await createTestCase(authenticatedPage, authToken, {
+            title: originalTitle,
+        });
+
+        await authenticatedPage.goto(`/cases/${id}`);
+        await expect(authenticatedPage.getByText(originalTitle)).toBeVisible();
+
+        await authenticatedPage.getByRole('button', { name: /^edit$/i }).click();
+        await authenticatedPage.waitForURL(new RegExp(`/cases/${id}/edit$`));
+
+        await authenticatedPage.locator('input[name="title"]').fill(updatedTitle);
+        await authenticatedPage.locator('form').getByRole('button', { name: /update case/i }).click();
+
+        await authenticatedPage.waitForURL(new RegExp(`/cases/${id}$`));
+        await expect(authenticatedPage.getByText(updatedTitle)).toBeVisible();
+    });
+
+    test('should show bulk action bar when selecting cases', async ({ authenticatedPage, authToken }) => {
+        const suffix = uniqueSuffix();
+        await createTestCase(authenticatedPage, authToken, { title: `Bulk Case A ${suffix}` });
+        await createTestCase(authenticatedPage, authToken, { title: `Bulk Case B ${suffix}` });
+
+        await authenticatedPage.goto('/cases');
+
+        const firstRowCheckbox = authenticatedPage.locator('tbody input[type="checkbox"]').first();
+        await firstRowCheckbox.check();
+
+        await expect(authenticatedPage.getByText(/1 case selected/i)).toBeVisible();
+        await authenticatedPage.getByRole('button', { name: /^clear$/i }).click();
+        await expect(authenticatedPage.getByText(/1 case selected/i)).not.toBeVisible();
     });
 });

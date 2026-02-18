@@ -4,6 +4,7 @@
  */
 
 export type ReportEntity =
+  | 'cases'
   | 'accounts'
   | 'contacts'
   | 'donations'
