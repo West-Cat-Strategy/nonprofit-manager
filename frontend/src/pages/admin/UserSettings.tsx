@@ -166,6 +166,7 @@ export default function UserSettings() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [settingsMode, setSettingsMode] = useState<'basic' | 'advanced'>('basic');
 
   // Visual-only state for field visibility (not persisted per instructions)
   const [fieldVisibility, setFieldVisibility] = useState<Record<string, boolean>>({
@@ -470,6 +471,12 @@ export default function UserSettings() {
     }
   };
 
+  const scrollToSection = (sectionId: string) => {
+    const target = document.getElementById(sectionId);
+    if (!target) return;
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const handleStartTotpSetup = async () => {
     clearSecurityError();
     setSecurityActionLoading(true);
@@ -576,7 +583,37 @@ export default function UserSettings() {
 
           {/* Top Actions Pane */}
           <div className="flex justify-between items-start sticky top-4 z-20">
-            {/* Theme Selector Moved to Bottom */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2 bg-app-surface border-2 border-black p-2 shadow-[4px_4px_0px_0px_var(--shadow-color)]">
+                <button
+                  type="button"
+                  onClick={() => setSettingsMode('basic')}
+                  className={`px-3 py-2 text-xs font-black uppercase border-2 border-black ${
+                    settingsMode === 'basic' ? 'bg-[var(--loop-yellow)]' : 'bg-app-surface-muted'
+                  }`}
+                >
+                  Basic
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsMode('advanced')}
+                  className={`px-3 py-2 text-xs font-black uppercase border-2 border-black ${
+                    settingsMode === 'advanced' ? 'bg-[var(--loop-cyan)]' : 'bg-app-surface-muted'
+                  }`}
+                >
+                  Advanced
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => scrollToSection('profile-section')} className="px-2 py-1 text-xs font-bold uppercase border-2 border-black bg-app-surface">Profile</button>
+                <button type="button" onClick={() => scrollToSection('bio-section')} className="px-2 py-1 text-xs font-bold uppercase border-2 border-black bg-app-surface">Bio</button>
+                <button type="button" onClick={() => scrollToSection('contact-section')} className="px-2 py-1 text-xs font-bold uppercase border-2 border-black bg-app-surface">Contact</button>
+                <button type="button" onClick={() => scrollToSection('notifications-section')} className="px-2 py-1 text-xs font-bold uppercase border-2 border-black bg-app-surface">Notifications</button>
+                {settingsMode === 'advanced' && (
+                  <button type="button" onClick={() => scrollToSection('security-section')} className="px-2 py-1 text-xs font-bold uppercase border-2 border-black bg-app-surface">Security</button>
+                )}
+              </div>
+            </div>
 
             <button
               type="button"
@@ -618,7 +655,7 @@ export default function UserSettings() {
           </div>
 
           {/* Profile Picture Card - CYAN Theme */}
-          <div className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
+          <div id="profile-section" className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
             <div className="bg-[var(--loop-cyan)] border-b-4 border-black p-4">
               <h2 className="text-2xl font-black uppercase">Profile</h2>
             </div>
@@ -689,7 +726,7 @@ export default function UserSettings() {
           </div>
 
           {/* Personal Information Card - PINK Theme */}
-          <div className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
+          <div id="bio-section" className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
             <div className="bg-[var(--loop-pink)] border-b-4 border-black p-4">
               <h2 className="text-2xl font-black uppercase">Bio</h2>
             </div>
@@ -759,7 +796,7 @@ export default function UserSettings() {
           </div>
 
           {/* Contact Information Card - GREEN Theme */}
-          <div className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
+          <div id="contact-section" className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
             <div className="bg-[var(--loop-green)] border-b-4 border-black p-4">
               <h2 className="text-2xl font-black uppercase">Contact Info</h2>
             </div>
@@ -835,7 +872,7 @@ export default function UserSettings() {
           </div>
 
           {/* Notifications - PURPLE Theme */}
-          <div className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
+          <div id="notifications-section" className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
             <div className="bg-[var(--loop-purple)] border-b-4 border-black p-4">
               <h2 className="text-2xl font-black uppercase">Notification Settings</h2>
             </div>
@@ -860,9 +897,7 @@ export default function UserSettings() {
             </div>
           </div>
 
-
-          {/* Security */}
-          <div className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
+          <div id="security-section" className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
             <div className="bg-[var(--loop-cyan)] border-b-4 border-black p-4">
               <h2 className="text-2xl font-black uppercase">Security</h2>
             </div>

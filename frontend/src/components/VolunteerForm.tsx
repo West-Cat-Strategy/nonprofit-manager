@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { createVolunteer, updateVolunteer } from '../store/slices/volunteersSlice';
 import { fetchContacts } from '../store/slices/contactsSlice';
+import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
 
 interface Volunteer {
   volunteer_id?: string;
@@ -58,6 +59,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
   const [roleInput, setRoleInput] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
     // Load contacts for the dropdown
@@ -75,8 +77,13 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
           ? new Date(volunteer.background_check_expiry).toISOString().split('T')[0]
           : '',
       });
+      setIsDirty(false);
     }
   }, [volunteer, mode]);
+
+  useUnsavedChangesGuard({
+    hasUnsavedChanges: isDirty && !isSubmitting,
+  });
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -94,6 +101,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
               : Number(value)
             : value,
     }));
+    setIsDirty(true);
 
     // Clear error for this field
     if (errors[name]) {
@@ -114,6 +122,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
           ...prev,
           skills: [...prev.skills, skill],
         }));
+        setIsDirty(true);
       }
       setSkillInput('');
     }
@@ -124,6 +133,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
       ...prev,
       skills: prev.skills.filter((skill) => skill !== skillToRemove),
     }));
+    setIsDirty(true);
   };
 
   const handleAddRole = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -135,6 +145,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
           ...prev,
           preferred_roles: [...(prev.preferred_roles || []), role],
         }));
+        setIsDirty(true);
       }
       setRoleInput('');
     }
@@ -145,6 +156,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
       ...prev,
       preferred_roles: prev.preferred_roles?.filter((role) => role !== roleToRemove) || [],
     }));
+    setIsDirty(true);
   };
 
   const validateForm = (): boolean => {
@@ -194,6 +206,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
 
       if (mode === 'create') {
         await dispatch(createVolunteer(cleanedData)).unwrap();
+        setIsDirty(false);
         navigate('/volunteers');
       } else if (mode === 'edit' && volunteer?.volunteer_id) {
         // For edit mode, we don't send contact_id
@@ -204,6 +217,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
             data: cleanedData,
           })
         ).unwrap();
+        setIsDirty(false);
         navigate(`/volunteers/${volunteer.volunteer_id}`);
       }
     } catch (error) {

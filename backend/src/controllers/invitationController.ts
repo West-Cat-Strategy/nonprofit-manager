@@ -13,6 +13,7 @@ import { getJwtSecret } from '@config/jwt';
 import { AuthRequest } from '@middleware/auth';
 import { PASSWORD, JWT } from '@config/constants';
 import { invitationService, syncUserRole } from '@services/domains/integration';
+import { getEmailSettings } from '@services/emailSettingsService';
 import { sendInvitationEmail } from '@services/emailService';
 import { badRequest, conflict, errorPayload, forbidden, notFoundMessage, validationErrorResponse } from '@utils/responseHelpers';
 
@@ -35,7 +36,13 @@ export const createInvitation = async (
       return validationErrorResponse(res, errors);
     }
 
-    const { email, role, message, expiresInDays } = req.body;
+    const { email, role, message, expiresInDays, sendEmail = false } = req.body as {
+      email: string;
+      role: string;
+      message?: string;
+      expiresInDays?: number;
+      sendEmail?: boolean;
+    };
 
     const invitation = await invitationService.createInvitation(
       { email, role, message, expiresInDays },
@@ -46,20 +53,39 @@ export const createInvitation = async (
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const inviteUrl = `${baseUrl}/accept-invitation/${invitation.token}`;
 
-    // Send invitation email
-    const inviterRow = await pool.query<{ first_name: string; last_name: string }>(
-      'SELECT first_name, last_name FROM users WHERE id = $1', [req.user.id]
-    );
-    const inviterName = inviterRow.rows[0]
-      ? `${inviterRow.rows[0].first_name} ${inviterRow.rows[0].last_name}`.trim()
-      : 'An administrator';
-    await sendInvitationEmail(
-      invitation.email,
-      invitation.token,
-      inviterName,
-      invitation.role,
-      invitation.message
-    );
+    const emailDelivery: {
+      requested: boolean;
+      sent: boolean;
+      reason?: string;
+    } = {
+      requested: Boolean(sendEmail),
+      sent: false,
+    };
+
+    if (sendEmail) {
+      const emailSettings = await getEmailSettings();
+      if (!emailSettings?.isConfigured) {
+        emailDelivery.reason = 'Email is not configured. Configure SMTP in Admin > Email settings.';
+      } else {
+        const inviterRow = await pool.query<{ first_name: string; last_name: string }>(
+          'SELECT first_name, last_name FROM users WHERE id = $1', [req.user.id]
+        );
+        const inviterName = inviterRow.rows[0]
+          ? `${inviterRow.rows[0].first_name} ${inviterRow.rows[0].last_name}`.trim()
+          : 'An administrator';
+        const sent = await sendInvitationEmail(
+          invitation.email,
+          invitation.token,
+          inviterName,
+          invitation.role,
+          invitation.message
+        );
+        emailDelivery.sent = sent;
+        if (!sent) {
+          emailDelivery.reason = 'Email delivery failed. Share the invitation link manually.';
+        }
+      }
+    }
 
     return res.status(201).json({
       invitation: {
@@ -71,6 +97,7 @@ export const createInvitation = async (
         createdAt: invitation.createdAt,
       },
       inviteUrl,
+      emailDelivery,
     });
   } catch (error: any) {
     if (error.message.includes('already exists')) {

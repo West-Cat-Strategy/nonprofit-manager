@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import portalApi from '../services/portalApi';
+import PortalPageState from '../components/portal/PortalPageState';
 
 interface FormDoc {
   id: string;
@@ -13,29 +14,38 @@ interface FormDoc {
 export default function PortalForms() {
   const [forms, setForms] = useState<FormDoc[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    try {
+      setError(null);
+      const response = await portalApi.get('/portal/forms');
+      setForms(response.data);
+    } catch (err) {
+      console.error('Failed to load forms', err);
+      setError('Unable to load forms right now.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const response = await portalApi.get('/portal/forms');
-        setForms(response.data);
-      } catch (error) {
-        console.error('Failed to load forms', error);
-      } finally {
-        setLoading(false);
-      }
-    };
     load();
   }, []);
 
   return (
     <div>
       <h2 className="text-xl font-semibold text-app-text">Forms</h2>
-      {loading ? (
-        <p className="text-sm text-app-text-muted mt-2">Loading forms...</p>
-      ) : forms.length === 0 ? (
-        <p className="text-sm text-app-text-muted mt-2">No forms available.</p>
-      ) : (
+      <PortalPageState
+        loading={loading}
+        error={error}
+        empty={!loading && !error && forms.length === 0}
+        loadingLabel="Loading forms..."
+        emptyTitle="No forms available."
+        emptyDescription="Assigned forms will appear here when they are published."
+        onRetry={load}
+      />
+      {!loading && !error && forms.length > 0 && (
         <ul className="mt-4 space-y-3">
           {forms.map((form) => (
             <li key={form.id} className="p-3 border rounded-lg flex justify-between items-center">
