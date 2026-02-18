@@ -9,6 +9,8 @@ import {
 } from '../../store/slices/casesSlice';
 import { BrutalButton, BrutalCard, BrutalBadge } from '../neo-brutalist';
 import api from '../../services/api';
+import ConfirmDialog from '../ConfirmDialog';
+import useConfirmDialog, { confirmPresets } from '../../hooks/useConfirmDialog';
 import type {
     ServiceStatus,
     ServiceOutcome,
@@ -26,6 +28,7 @@ const CaseServices = ({ caseId }: CaseServicesProps) => {
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const { caseServices } = useAppSelector((state) => state.cases);
+    const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
     const [isAdding, setIsAdding] = useState(false);
     const [editingService, setEditingService] = useState<CaseService | null>(null);
     const [providerSuggestions, setProviderSuggestions] = useState<ExternalServiceProvider[]>([]);
@@ -135,12 +138,12 @@ const CaseServices = ({ caseId }: CaseServicesProps) => {
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this service record?')) {
-            try {
-                await dispatch(deleteCaseService(id)).unwrap();
-            } catch (error) {
-                console.error('Failed to delete service:', error);
-            }
+        const confirmed = await confirm(confirmPresets.delete('Service Record'));
+        if (!confirmed) return;
+        try {
+            await dispatch(deleteCaseService(id)).unwrap();
+        } catch (error) {
+            console.error('Failed to delete service:', error);
         }
     };
 
@@ -403,6 +406,7 @@ const CaseServices = ({ caseId }: CaseServicesProps) => {
                     ))
                 )}
             </div>
+            <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
         </div>
     );
 };

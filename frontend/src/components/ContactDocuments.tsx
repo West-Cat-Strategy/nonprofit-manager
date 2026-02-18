@@ -12,6 +12,8 @@ import type { CreateContactDocumentDTO, DocumentType, ContactDocument } from '..
 import { DOCUMENT_TYPES } from '../types/contact';
 import api from '../services/api';
 import { formatDate, formatBytes } from '../utils/format';
+import ConfirmDialog from './ConfirmDialog';
+import useConfirmDialog, { confirmPresets } from '../hooks/useConfirmDialog';
 
 interface ContactDocumentsProps {
   contactId: string;
@@ -21,6 +23,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
   const dispatch = useAppDispatch();
   const { documents, documentsLoading } = useAppSelector((state) => state.contacts);
   const contactCases = useAppSelector((state) => selectCasesByContact(state, contactId));
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const getErrorMessage = (error: unknown, fallback: string) =>
     error instanceof Error ? error.message : fallback;
 
@@ -97,7 +100,8 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
   };
 
   const handleDelete = async (documentId: string) => {
-    if (!confirm('Are you sure you want to delete this document?')) return;
+    const confirmed = await confirm(confirmPresets.delete('Document'));
+    if (!confirmed) return;
 
     try {
       await dispatch(deleteContactDocument(documentId)).unwrap();
@@ -515,6 +519,8 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
           </div>
         </div>
       )}
+
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 };

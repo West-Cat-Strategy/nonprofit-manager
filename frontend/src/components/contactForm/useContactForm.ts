@@ -16,6 +16,7 @@ import api from '../../services/api';
 import { validatePostalCode } from '../../utils/validation';
 import type { ContactFormValues, ContactRecord } from './types';
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
+import useConfirmDialog, { confirmPresets } from '../../hooks/useConfirmDialog';
 
 interface UseContactFormProps {
   contact?: ContactRecord;
@@ -29,6 +30,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
   const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
   const { showSuccess, showError } = useToast();
+  const { dialogState, confirm, handleConfirm, handleCancel: handleConfirmCancel } = useConfirmDialog();
   const getErrorMessage = (error: unknown, fallback: string) =>
     error instanceof Error ? error.message : fallback;
   const { relationships, relationshipsLoading, contacts, availableTags } = useAppSelector(
@@ -422,7 +424,8 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
   };
 
   const handleDeleteRelationship = async (relationshipId: string) => {
-    if (!confirm('Remove this relationship?')) return;
+    const confirmed = await confirm(confirmPresets.delete('Relationship'));
+    if (!confirmed) return;
     try {
       await dispatch(deleteContactRelationship(relationshipId)).unwrap();
     } catch (error) {
@@ -486,5 +489,8 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
     resetRelationshipForm,
     handleNavigateToContact,
     handleCreateNewContact,
+    confirmDialogState: dialogState,
+    handleConfirmDialogConfirm: handleConfirm,
+    handleConfirmDialogCancel: handleConfirmCancel,
   };
 }

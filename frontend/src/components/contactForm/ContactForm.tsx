@@ -9,6 +9,7 @@ import NotesSection from './sections/NotesSection';
 import RelationshipsSection from './sections/RelationshipsSection';
 import FormActions from './sections/FormActions';
 import type { ContactRecord } from './types';
+import ConfirmDialog from '../ConfirmDialog';
 
 interface ContactFormProps {
   contact?: ContactRecord;
@@ -49,6 +50,9 @@ export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode, onCreat
     resetRelationshipForm,
     handleNavigateToContact,
     handleCreateNewContact,
+    confirmDialogState,
+    handleConfirmDialogConfirm,
+    handleConfirmDialogCancel,
   } = useContactForm({ contact, mode, onCreated, onCancel });
 
   return (
@@ -125,6 +129,11 @@ export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode, onCreat
         isSubmitting={isSubmitting}
         mode={mode}
         onCancel={handleCancel}
+      />
+      <ConfirmDialog
+        {...confirmDialogState}
+        onConfirm={handleConfirmDialogConfirm}
+        onCancel={handleConfirmDialogCancel}
       />
     </form>
   );

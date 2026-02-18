@@ -21,8 +21,10 @@ import {
   ImportExportModal,
   type TableColumn,
 } from '../../../components/people';
+import ConfirmDialog from '../../../components/ConfirmDialog';
 import { useBulkSelect, useImportExport } from '../../../hooks';
 import { BrutalBadge } from '../../../components/neo-brutalist';
+import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 
 const ContactList = () => {
   const dispatch = useAppDispatch();
@@ -41,6 +43,7 @@ const ContactList = () => {
   } = useBulkSelect();
 
   const { exportToCSV } = useImportExport();
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || filters.search || '');
   const [roleFilter, setRoleFilter] = useState(searchParams.get('type') || filters.role || '');
   const [activeFilter, setActiveFilter] = useState(
@@ -58,6 +61,7 @@ const ContactList = () => {
 
   const resolvedIsActive =
     activeFilter === 'active' ? true : activeFilter === 'inactive' ? false : undefined;
+  const hasActiveFilters = Boolean(searchInput || roleFilter || activeFilter);
 
   const loadContacts = useCallback(() => {
     dispatch(
@@ -133,11 +137,11 @@ const ContactList = () => {
   };
 
   const handleBulkDelete = async () => {
-    if (
-      !window.confirm(
-        `Are you sure you want to delete ${selectedCount} contact(s)?`
-      )
-    ) {
+    const confirmed = await confirm({
+      ...confirmPresets.delete(`${selectedCount} Contact${selectedCount > 1 ? 's' : ''}`),
+      message: `Are you sure you want to delete ${selectedCount} contact(s)? This action cannot be undone.`,
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -273,12 +277,11 @@ const ContactList = () => {
             Edit
           </button>
           <button
-            onClick={() => {
-              if (
-                window.confirm(
-                  `Remove ${row.first_name} ${row.last_name}?`
-                )
-              ) {
+            onClick={async () => {
+              const confirmed = await confirm(
+                confirmPresets.delete(`${row.first_name} ${row.last_name}`)
+              );
+              if (confirmed) {
                 dispatch(deleteContact(row.contact_id));
               }
             }}
@@ -381,11 +384,23 @@ const ContactList = () => {
           )
         }
         emptyStateTitle="No contacts found"
-        emptyStateDescription="Get started by creating your first contact"
+        emptyStateDescription={
+          hasActiveFilters
+            ? 'No contacts match your current filters. Clear filters to see all contacts.'
+            : 'No contacts have been added yet.'
+        }
         emptyStateAction={{
-          label: 'Create First Contact',
+          label: hasActiveFilters ? 'Create New Contact' : 'Create First Contact',
           onClick: () => navigate('/contacts/new'),
         }}
+        emptyStateSecondaryAction={
+          hasActiveFilters
+            ? {
+                label: 'Clear Filters',
+                onClick: handleClearFilters,
+              }
+            : undefined
+        }
       />
 
       {/* Import/Export Modal */}
@@ -395,6 +410,7 @@ const ContactList = () => {
         entityType="contacts"
         sampleData={contacts}
       />
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </>
   );
 };

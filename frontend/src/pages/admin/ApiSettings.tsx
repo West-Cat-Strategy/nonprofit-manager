@@ -30,6 +30,8 @@ import type {
   ApiKeyScope,
   WebhookDelivery,
 } from '../../types/webhook';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import useConfirmDialog, { confirmPresets } from '../../hooks/useConfirmDialog';
 
 /**
  * Status Badge Component
@@ -433,6 +435,7 @@ function NewApiKeyModal({
  */
 export default function ApiSettings() {
   const dispatch = useAppDispatch();
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const {
     endpoints,
     availableEvents,
@@ -507,13 +510,21 @@ export default function ApiSettings() {
   };
 
   const handleDeleteWebhook = async (id: string) => {
-    if (confirm('Are you sure you want to delete this webhook endpoint?')) {
+    const confirmed = await confirm(confirmPresets.delete('Webhook Endpoint'));
+    if (confirmed) {
       await dispatch(deleteWebhookEndpoint(id));
     }
   };
 
   const handleRegenerateSecret = async (id: string) => {
-    if (confirm('Are you sure you want to regenerate the webhook secret? This will invalidate the current secret.')) {
+    const confirmed = await confirm({
+      title: 'Regenerate Webhook Secret',
+      message:
+        'Are you sure you want to regenerate the webhook secret? This will invalidate the current secret.',
+      confirmLabel: 'Regenerate',
+      variant: 'warning',
+    });
+    if (confirmed) {
       await dispatch(regenerateWebhookSecret(id));
     }
   };
@@ -542,13 +553,20 @@ export default function ApiSettings() {
   };
 
   const handleRevokeApiKey = async (id: string) => {
-    if (confirm('Are you sure you want to revoke this API key? This action cannot be undone.')) {
+    const confirmed = await confirm({
+      title: 'Revoke API Key',
+      message: 'Are you sure you want to revoke this API key? This action cannot be undone.',
+      confirmLabel: 'Revoke',
+      variant: 'danger',
+    });
+    if (confirmed) {
       await dispatch(revokeApiKey(id));
     }
   };
 
   const handleDeleteApiKey = async (id: string) => {
-    if (confirm('Are you sure you want to delete this API key?')) {
+    const confirmed = await confirm(confirmPresets.delete('API Key'));
+    if (confirmed) {
       await dispatch(deleteApiKey(id));
     }
   };
@@ -889,6 +907,7 @@ export default function ApiSettings() {
           </div>
         </div>
       )}
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 }

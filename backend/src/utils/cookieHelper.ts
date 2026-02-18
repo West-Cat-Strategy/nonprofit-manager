@@ -71,6 +71,16 @@ export const setPortalAuthCookie = (res: Response, token: string, maxAge?: numbe
 };
 
 /**
+ * Clear only the portal auth token cookie.
+ */
+export const clearPortalAuthCookie = (res: Response): void => {
+  res.cookie(PORTAL_AUTH_COOKIE_NAME, '', {
+    ...baseCookieOptions,
+    maxAge: 0,
+  });
+};
+
+/**
  * Clear all auth cookies on logout
  */
 export const clearAuthCookies = (res: Response): void => {

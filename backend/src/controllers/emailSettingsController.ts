@@ -25,8 +25,10 @@ export const getEmailSettings = async (
       return forbidden(res, 'Admin access required');
     }
 
-    const settings = await emailSettingsService.getEmailSettings();
-    const credentials = await emailSettingsService.hasStoredCredentials();
+    const [settings, credentials] = await Promise.all([
+      emailSettingsService.getEmailSettings(),
+      emailSettingsService.hasStoredCredentials(),
+    ]);
 
     return res.json({
       data: settings,

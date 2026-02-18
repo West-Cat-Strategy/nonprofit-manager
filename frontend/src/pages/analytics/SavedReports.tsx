@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchSavedReports, deleteSavedReport } from '../../store/slices/savedReportsSlice';
 import type { SavedReport } from '../../types/savedReport';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import useConfirmDialog, { confirmPresets } from '../../hooks/useConfirmDialog';
 
 function SavedReports() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { reports, loading, error } = useAppSelector((state) => state.savedReports);
+  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const [filterEntity, setFilterEntity] = useState<string>('');
 
   useEffect(() => {
@@ -20,9 +23,9 @@ function SavedReports() {
   };
 
   const handleDeleteReport = async (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
-      await dispatch(deleteSavedReport(id));
-    }
+    const confirmed = await confirm(confirmPresets.delete(`Saved Report "${name}"`));
+    if (!confirmed) return;
+    await dispatch(deleteSavedReport(id));
   };
 
   const filteredReports = filterEntity
@@ -152,6 +155,7 @@ function SavedReports() {
             ))}
           </div>
         )}
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 }

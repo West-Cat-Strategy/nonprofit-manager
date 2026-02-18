@@ -8,6 +8,8 @@ import {
 import { BrutalButton, BrutalCard, BrutalBadge } from '../neo-brutalist';
 import type { RelationshipType, CreateCaseRelationshipDTO } from '../../types/case';
 import api from '../../services/api';
+import ConfirmDialog from '../ConfirmDialog';
+import useConfirmDialog, { confirmPresets } from '../../hooks/useConfirmDialog';
 
 interface CaseRelationshipsProps {
     caseId: string;
@@ -16,6 +18,7 @@ interface CaseRelationshipsProps {
 const CaseRelationships = ({ caseId }: CaseRelationshipsProps) => {
     const dispatch = useAppDispatch();
     const { caseRelationships } = useAppSelector((state) => state.cases);
+    const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
     const [isAdding, setIsAdding] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -67,12 +70,12 @@ const CaseRelationships = ({ caseId }: CaseRelationshipsProps) => {
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to remove this relationship?')) {
-            try {
-                await dispatch(deleteCaseRelationship(id)).unwrap();
-            } catch (error) {
-                console.error('Failed to delete relationship:', error);
-            }
+        const confirmed = await confirm(confirmPresets.delete('Relationship'));
+        if (!confirmed) return;
+        try {
+            await dispatch(deleteCaseRelationship(id)).unwrap();
+        } catch (error) {
+            console.error('Failed to delete relationship:', error);
         }
     };
 
@@ -234,6 +237,7 @@ const CaseRelationships = ({ caseId }: CaseRelationshipsProps) => {
                     ))
                 )}
             </div>
+            <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
         </div>
     );
 };

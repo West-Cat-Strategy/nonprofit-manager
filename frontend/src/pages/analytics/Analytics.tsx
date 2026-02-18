@@ -360,9 +360,14 @@ export default function Analytics() {
               </div>
 
               {comparativeLoading ? (
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-app-accent mx-auto" />
-                  <p className="text-app-text-muted mt-4">Loading comparisons...</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" aria-busy="true">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <div key={`comparison-skeleton-${index}`} className="border border-app-border rounded-lg p-4">
+                      <div className="h-4 w-28 bg-app-surface-muted rounded animate-pulse mb-3" />
+                      <div className="h-7 w-24 bg-app-surface-muted rounded animate-pulse mb-2" />
+                      <div className="h-3 w-20 bg-app-surface-muted rounded animate-pulse" />
+                    </div>
+                  ))}
                 </div>
               ) : comparativeAnalytics ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
