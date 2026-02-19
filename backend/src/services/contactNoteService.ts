@@ -52,7 +52,7 @@ export async function getContactNotes(
     return { notes: result.rows, total };
   } catch (error) {
     logger.error('Error getting contact notes:', error);
-    throw new Error('Failed to retrieve contact notes');
+    throw Object.assign(new Error('Failed to retrieve contact notes'), { cause: error });
   }
 }
 
@@ -80,7 +80,7 @@ export async function getContactNoteById(noteId: string): Promise<ContactNote | 
     return result.rows[0] || null;
   } catch (error) {
     logger.error('Error getting contact note by ID:', error);
-    throw new Error('Failed to retrieve contact note');
+    throw Object.assign(new Error('Failed to retrieve contact note'), { cause: error });
   }
 }
 
@@ -120,7 +120,7 @@ export async function createContactNote(
     return result.rows[0];
   } catch (error) {
     logger.error('Error creating contact note:', error);
-    throw new Error('Failed to create contact note');
+    throw Object.assign(new Error('Failed to create contact note'), { cause: error });
   }
 }
 
@@ -196,7 +196,7 @@ export async function updateContactNote(
     return result.rows[0];
   } catch (error) {
     logger.error('Error updating contact note:', error);
-    throw new Error('Failed to update contact note');
+    throw Object.assign(new Error('Failed to update contact note'), { cause: error });
   }
 }
 
@@ -218,7 +218,7 @@ export async function deleteContactNote(noteId: string): Promise<boolean> {
     return true;
   } catch (error) {
     logger.error('Error deleting contact note:', error);
-    throw new Error('Failed to delete contact note');
+    throw Object.assign(new Error('Failed to delete contact note'), { cause: error });
   }
 }
 
@@ -247,6 +247,6 @@ export async function getNotesByCaseId(caseId: string): Promise<ContactNote[]> {
     return result.rows;
   } catch (error) {
     logger.error('Error getting notes by case ID:', error);
-    throw new Error('Failed to retrieve notes');
+    throw Object.assign(new Error('Failed to retrieve notes'), { cause: error });
   }
 }

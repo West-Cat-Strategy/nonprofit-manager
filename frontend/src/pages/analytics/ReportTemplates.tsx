@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ReportTemplate, TemplateCategory } from '../../types/reportTemplate';
 import NeoBrutalistLayout from '../../components/neo-brutalist/NeoBrutalistLayout';
@@ -19,11 +19,7 @@ function ReportTemplates() {
     const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState<TemplateCategory | ''>('');
 
-    useEffect(() => {
-        fetchTemplates();
-    }, [selectedCategory]);
-
-    const fetchTemplates = async () => {
+    const fetchTemplates = useCallback(async () => {
         try {
             setLoading(true);
             const params = selectedCategory ? { category: selectedCategory } : {};
@@ -34,7 +30,11 @@ function ReportTemplates() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedCategory]);
+
+    useEffect(() => {
+        void fetchTemplates();
+    }, [fetchTemplates]);
 
     const handleUseTemplate = async (template: ReportTemplate) => {
         // Navigate to report builder with template ID

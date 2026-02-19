@@ -364,7 +364,7 @@ const CaseServices = ({ caseId }: CaseServicesProps) => {
                                         </span>
                                         {service.service_type && (
                                             <BrutalBadge color="purple">
-                                                {service.service_type as any}
+                                                {service.service_type}
                                             </BrutalBadge>
                                         )}
                                     </div>

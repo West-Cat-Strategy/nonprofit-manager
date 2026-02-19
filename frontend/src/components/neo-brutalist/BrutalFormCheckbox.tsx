@@ -14,7 +14,7 @@ interface BrutalFormCheckboxProps
 export const BrutalFormCheckbox = React.forwardRef<
   HTMLInputElement,
   BrutalFormCheckboxProps
->(({ label, error, hint, className = '', ...props }, ref) => {
+>(({ label, error, hint, ...props }, ref) => {
   return (
     <div className="space-y-1">
       <label className="flex items-start gap-2 cursor-pointer">

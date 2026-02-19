@@ -11,7 +11,6 @@ describe('Auth Debugging', () => {
 
     it('should register and return a valid token', async () => {
         const email = `debug-${unique()}@example.com`;
-        console.log('Registering user:', email);
 
         const registerResponse = await request(app)
             .post('/api/auth/register')
@@ -23,8 +22,8 @@ describe('Auth Debugging', () => {
                 last_name: 'User',
             });
 
-        console.log('Register Status:', registerResponse.status);
-        console.log('Register Body:', JSON.stringify(registerResponse.body, null, 2));
+        expect(registerResponse.status).toBe(201);
+        expect(registerResponse.body).toHaveProperty('token');
 
         const token = registerResponse.body.token;
         if (!token) {
@@ -35,9 +34,6 @@ describe('Auth Debugging', () => {
             .get('/api/tasks')
             .set('Authorization', `Bearer ${token}`);
 
-        console.log('Protected Route Status:', protectedResponse.status);
-        if (protectedResponse.status !== 200) {
-            console.log('Protected Route Body:', JSON.stringify(protectedResponse.body, null, 2));
-        }
+        expect(protectedResponse.status).toBe(200);
     });
 });

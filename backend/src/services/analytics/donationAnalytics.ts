@@ -95,7 +95,7 @@ export class DonationAnalyticsService {
       };
     } catch (error) {
       logger.error('Error getting donation metrics', { error, entityType, entityId });
-      throw new Error('Failed to retrieve donation metrics');
+      throw Object.assign(new Error('Failed to retrieve donation metrics'), { cause: error });
     }
   }
 
@@ -156,7 +156,7 @@ export class DonationAnalyticsService {
       return trends;
     } catch (error) {
       logger.error('Error getting donation trends', { error });
-      throw new Error('Failed to retrieve donation trends');
+      throw Object.assign(new Error('Failed to retrieve donation trends'), { cause: error });
     }
   }
 }

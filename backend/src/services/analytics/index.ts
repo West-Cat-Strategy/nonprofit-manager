@@ -181,7 +181,7 @@ export class AnalyticsService {
         throw error;
       }
       logger.error('Error getting account analytics', { error, accountId });
-      throw new Error('Failed to retrieve account analytics');
+      throw Object.assign(new Error('Failed to retrieve account analytics'), { cause: error });
     }
   }
 
@@ -255,7 +255,7 @@ export class AnalyticsService {
         throw error;
       }
       logger.error('Error getting contact analytics', { error, contactId });
-      throw new Error('Failed to retrieve contact analytics');
+      throw Object.assign(new Error('Failed to retrieve contact analytics'), { cause: error });
     }
   }
 
@@ -393,7 +393,7 @@ export class AnalyticsService {
       return summary;
     } catch (error) {
       logger.error('Error getting analytics summary', { error });
-      throw new Error('Failed to retrieve analytics summary');
+      throw Object.assign(new Error('Failed to retrieve analytics summary'), { cause: error });
     }
   }
 }

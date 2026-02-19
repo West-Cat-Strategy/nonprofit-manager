@@ -62,7 +62,7 @@ export async function listColorPalettes(activeOnly = true): Promise<ThemeColorPa
     return result.rows.map(mapPaletteRow);
   } catch (error) {
     logger.error('Failed to list color palettes', { error });
-    throw new Error('Failed to list color palettes');
+    throw Object.assign(new Error('Failed to list color palettes'), { cause: error });
   }
 }
 
@@ -75,7 +75,7 @@ export async function listFontPairings(activeOnly = true): Promise<ThemeFontPair
     return result.rows.map(mapFontRow);
   } catch (error) {
     logger.error('Failed to list font pairings', { error });
-    throw new Error('Failed to list font pairings');
+    throw Object.assign(new Error('Failed to list font pairings'), { cause: error });
   }
 }
 
@@ -86,7 +86,7 @@ export async function getColorPaletteById(id: string): Promise<ThemeColorPalette
     return mapPaletteRow(result.rows[0]);
   } catch (error) {
     logger.error('Failed to get color palette', { error, id });
-    throw new Error('Failed to get color palette');
+    throw Object.assign(new Error('Failed to get color palette'), { cause: error });
   }
 }
 
@@ -97,7 +97,7 @@ export async function getFontPairingById(id: string): Promise<ThemeFontPairing |
     return mapFontRow(result.rows[0]);
   } catch (error) {
     logger.error('Failed to get font pairing', { error, id });
-    throw new Error('Failed to get font pairing');
+    throw Object.assign(new Error('Failed to get font pairing'), { cause: error });
   }
 }
 

@@ -11,13 +11,13 @@ interface ImportExportOptions {
 }
 
 interface UseImportExportReturn {
-  exportToCSV: <T extends Record<string, any>>(
+  exportToCSV: <T extends Record<string, unknown>>(
     data: T[],
     columns: (keyof T)[],
     options?: ImportExportOptions
   ) => void;
-  importFromCSV: (file: File) => Promise<Record<string, any>[]>;
-  parseCSVContent: (content: string) => Record<string, any>[];
+  importFromCSV: (file: File) => Promise<Record<string, string>[]>;
+  parseCSVContent: (content: string) => Record<string, string>[];
   isLoading: boolean;
   error: string | null;
 }
@@ -27,7 +27,7 @@ export const useImportExport = (): UseImportExportReturn => {
   const [error, setError] = useState<string | null>(null);
 
   const exportToCSV = useCallback(
-    <T extends Record<string, any>>(
+    <T extends Record<string, unknown>>(
       data: T[],
       columns: (keyof T)[],
       options: ImportExportOptions = {}
@@ -88,7 +88,7 @@ export const useImportExport = (): UseImportExportReturn => {
     []
   );
 
-  const parseCSVContent = useCallback((content: string): Record<string, any>[] => {
+  const parseCSVContent = useCallback((content: string): Record<string, string>[] => {
     const lines = content.split('\n').filter((line) => line.trim());
     if (lines.length === 0) return [];
 
@@ -96,10 +96,10 @@ export const useImportExport = (): UseImportExportReturn => {
     const headers = parseCSVLine(lines[0]);
 
     // Parse data rows
-    const rows: Record<string, any>[] = [];
+    const rows: Record<string, string>[] = [];
     for (let i = 1; i < lines.length; i++) {
       const values = parseCSVLine(lines[i]);
-      const row: Record<string, any> = {};
+      const row: Record<string, string> = {};
       headers.forEach((header, idx) => {
         row[header] = values[idx] || '';
       });
@@ -110,7 +110,7 @@ export const useImportExport = (): UseImportExportReturn => {
   }, []);
 
   const importFromCSV = useCallback(
-    async (file: File): Promise<Record<string, any>[]> => {
+    async (file: File): Promise<Record<string, string>[]> => {
       setIsLoading(true);
       setError(null);
 

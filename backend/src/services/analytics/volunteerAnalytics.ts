@@ -96,7 +96,7 @@ export class VolunteerAnalyticsService {
       };
     } catch (error) {
       logger.error('Error getting volunteer metrics', { error, contactId });
-      throw new Error('Failed to retrieve volunteer metrics');
+      throw Object.assign(new Error('Failed to retrieve volunteer metrics'), { cause: error });
     }
   }
 
@@ -156,7 +156,7 @@ export class VolunteerAnalyticsService {
       return trends;
     } catch (error) {
       logger.error('Error getting volunteer hours trends', { error });
-      throw new Error('Failed to retrieve volunteer hours trends');
+      throw Object.assign(new Error('Failed to retrieve volunteer hours trends'), { cause: error });
     }
   }
 }

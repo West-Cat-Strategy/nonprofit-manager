@@ -9,8 +9,8 @@ interface AuditLog {
     changed_at: string;
     changed_by_email: string;
     changed_fields?: string[];
-    old_values?: Record<string, any>;
-    new_values?: Record<string, any>;
+    old_values?: Record<string, unknown>;
+    new_values?: Record<string, unknown>;
 }
 
 export default function AuditLogsSection() {

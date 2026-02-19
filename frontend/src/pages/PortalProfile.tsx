@@ -114,8 +114,16 @@ export default function PortalProfile() {
       setNewPassword('');
       setConfirmPassword('');
       setTimeout(() => setPasswordMessage(null), 3000);
-    } catch (error: any) {
-      setPasswordMessage(error.response?.data?.message || 'Failed to change password');
+    } catch (error: unknown) {
+      const message =
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        typeof (error as { response?: unknown }).response === 'object' &&
+        (error as { response?: { data?: { message?: string } } }).response?.data?.message
+          ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+          : 'Failed to change password';
+      setPasswordMessage(message);
     } finally {
       setChangingPassword(false);
     }

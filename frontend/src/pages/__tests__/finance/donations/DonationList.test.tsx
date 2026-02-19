@@ -18,12 +18,12 @@ const state = {
 
 vi.mock('../../../../store/hooks', () => ({
   useAppDispatch: () => dispatchMock,
-  useAppSelector: (selector: (s: any) => any) => selector(state),
+  useAppSelector: (selector: (s: typeof state) => unknown) => selector(state),
 }));
 
 vi.mock('../../../../store/slices/donationsSlice', () => ({
   default: (state = { donations: [], pagination: { total: 0, page: 1, limit: 20, total_pages: 1 }, totalAmount: 0, averageAmount: 0, loading: false, error: null }) => state,
-  fetchDonations: (payload: any) => ({ type: 'donations/fetch', payload }),
+  fetchDonations: (payload: unknown) => ({ type: 'donations/fetch', payload }),
 }));
 
 describe('DonationList page', () => {

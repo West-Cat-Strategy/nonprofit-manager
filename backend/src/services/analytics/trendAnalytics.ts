@@ -200,7 +200,7 @@ export class TrendAnalyticsService {
       return result;
     } catch (error) {
       logger.error('Error analyzing trends', { error, metricType });
-      throw new Error('Failed to analyze trends');
+      throw Object.assign(new Error('Failed to analyze trends'), { cause: error });
     }
   }
 
@@ -320,7 +320,7 @@ export class TrendAnalyticsService {
       return result;
     } catch (error) {
       logger.error('Error detecting anomalies', { error, metricType });
-      throw new Error('Failed to detect anomalies');
+      throw Object.assign(new Error('Failed to detect anomalies'), { cause: error });
     }
   }
 
@@ -533,7 +533,7 @@ export class TrendAnalyticsService {
       return result;
     } catch (error) {
       logger.error('Error getting comparative analytics', { error });
-      throw new Error('Failed to retrieve comparative analytics');
+      throw Object.assign(new Error('Failed to retrieve comparative analytics'), { cause: error });
     }
   }
 }
