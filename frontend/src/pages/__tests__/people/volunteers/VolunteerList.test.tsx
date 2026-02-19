@@ -16,14 +16,14 @@ const state = {
 
 vi.mock('../../../../store/hooks', () => ({
   useAppDispatch: () => dispatchMock,
-  useAppSelector: (selector: (s: any) => any) => selector(state),
+  useAppSelector: (selector: (s: typeof state) => unknown) => selector(state),
 }));
 
 vi.mock('../../../../store/slices/volunteersSlice', () => ({
   default: (state = { volunteers: [], loading: false, error: null, pagination: { total: 0, page: 1, limit: 20, total_pages: 1 }, filters: {} }) => state,
-  fetchVolunteers: (payload: any) => ({ type: 'volunteers/fetch', payload }),
+  fetchVolunteers: (payload: unknown) => ({ type: 'volunteers/fetch', payload }),
   deleteVolunteer: (id: string) => ({ type: 'volunteers/delete', payload: id }),
-  setFilters: (payload: any) => ({ type: 'volunteers/setFilters', payload }),
+  setFilters: (payload: unknown) => ({ type: 'volunteers/setFilters', payload }),
   clearFilters: () => ({ type: 'volunteers/clearFilters' }),
 }));
 

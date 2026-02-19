@@ -213,7 +213,7 @@ export class ContactService {
       };
     } catch (error) {
       logger.error('Error getting contacts:', error);
-      throw new Error('Failed to retrieve contacts');
+      throw Object.assign(new Error('Failed to retrieve contacts'), { cause: error });
     }
   }
 
@@ -259,7 +259,7 @@ export class ContactService {
       return result.rows.map((row) => row.tag).filter((tag) => Boolean(tag));
     } catch (error) {
       logger.error('Error getting contact tags:', error);
-      throw new Error('Failed to retrieve contact tags');
+      throw Object.assign(new Error('Failed to retrieve contact tags'), { cause: error });
     }
   }
 
@@ -323,7 +323,7 @@ export class ContactService {
       return result.rows[0] || null;
     } catch (error) {
       logger.error('Error getting contact by ID:', error);
-      throw new Error('Failed to retrieve contact');
+      throw Object.assign(new Error('Failed to retrieve contact'), { cause: error });
     }
   }
 
@@ -409,7 +409,7 @@ export class ContactService {
       return result.rows[0] || null;
     } catch (error) {
       logger.error('Error getting contact by ID with scope:', error);
-      throw new Error('Failed to retrieve contact');
+      throw Object.assign(new Error('Failed to retrieve contact'), { cause: error });
     }
   }
 
@@ -475,7 +475,7 @@ export class ContactService {
       return result.rows[0];
     } catch (error) {
       logger.error('Error creating contact:', error);
-      throw new Error('Failed to create contact');
+      throw Object.assign(new Error('Failed to create contact'), { cause: error });
     }
   }
 
@@ -537,7 +537,7 @@ export class ContactService {
       return result.rows[0];
     } catch (error) {
       logger.error('Error updating contact:', error);
-      throw new Error('Failed to update contact');
+      throw Object.assign(new Error('Failed to update contact'), { cause: error });
     }
   }
 
@@ -606,7 +606,7 @@ export class ContactService {
       return result.rowCount || 0;
     } catch (error) {
       logger.error('Error bulk updating contacts:', error);
-      throw new Error('Failed to bulk update contacts');
+      throw Object.assign(new Error('Failed to bulk update contacts'), { cause: error });
     }
   }
 
@@ -631,7 +631,7 @@ export class ContactService {
       return true;
     } catch (error) {
       logger.error('Error deleting contact:', error);
-      throw new Error('Failed to delete contact');
+      throw Object.assign(new Error('Failed to delete contact'), { cause: error });
     }
   }
 }

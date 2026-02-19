@@ -15,14 +15,20 @@ interface CaseRelationshipsProps {
     caseId: string;
 }
 
+interface CaseSearchResult {
+    id: string;
+    case_number?: string;
+    title: string;
+}
+
 const CaseRelationships = ({ caseId }: CaseRelationshipsProps) => {
     const dispatch = useAppDispatch();
     const { caseRelationships } = useAppSelector((state) => state.cases);
     const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
     const [isAdding, setIsAdding] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [searchResults, setSearchResults] = useState<any[]>([]);
-    const [selectedCase, setSelectedCase] = useState<any>(null);
+    const [searchResults, setSearchResults] = useState<CaseSearchResult[]>([]);
+    const [selectedCase, setSelectedCase] = useState<CaseSearchResult | null>(null);
     const [relationshipType, setRelationshipType] = useState<RelationshipType>('related');
     const [description, setDescription] = useState('');
 
@@ -42,7 +48,7 @@ const CaseRelationships = ({ caseId }: CaseRelationshipsProps) => {
         try {
             const response = await api.get(`/cases?search=${term}&limit=5`);
             // Filter out current case
-            setSearchResults(response.data.cases.filter((c: any) => c.id !== caseId));
+            setSearchResults((response.data.cases as CaseSearchResult[]).filter((c) => c.id !== caseId));
         } catch (error) {
             console.error('Failed to search cases:', error);
         }

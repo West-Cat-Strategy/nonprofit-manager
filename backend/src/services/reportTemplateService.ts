@@ -65,7 +65,7 @@ export class ReportTemplateService {
             }));
         } catch (error) {
             logger.error('Error fetching templates', { error });
-            throw new Error('Failed to fetch templates');
+            throw Object.assign(new Error('Failed to fetch templates'), { cause: error });
         }
     }
 
@@ -90,7 +90,7 @@ export class ReportTemplateService {
             };
         } catch (error) {
             logger.error('Error fetching template', { id, error });
-            throw new Error('Failed to fetch template');
+            throw Object.assign(new Error('Failed to fetch template'), { cause: error });
         }
     }
 
@@ -123,7 +123,7 @@ export class ReportTemplateService {
             };
         } catch (error) {
             logger.error('Error creating template', { error });
-            throw new Error('Failed to create template');
+            throw Object.assign(new Error('Failed to create template'), { cause: error });
         }
     }
 
@@ -156,7 +156,7 @@ export class ReportTemplateService {
             return definition;
         } catch (error) {
             logger.error('Error instantiating template', { error });
-            throw new Error('Failed to instantiate template');
+            throw Object.assign(new Error('Failed to instantiate template'), { cause: error });
         }
     }
 
@@ -175,7 +175,7 @@ export class ReportTemplateService {
             }
         } catch (error) {
             logger.error('Error deleting template', { id, error });
-            throw new Error('Failed to delete template');
+            throw Object.assign(new Error('Failed to delete template'), { cause: error });
         }
     }
 

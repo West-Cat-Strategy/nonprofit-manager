@@ -171,7 +171,7 @@ export class AccountService {
       };
     } catch (error) {
       logger.error('Error getting accounts:', error);
-      throw new Error('Failed to retrieve accounts');
+      throw Object.assign(new Error('Failed to retrieve accounts'), { cause: error });
     }
   }
 
@@ -208,7 +208,7 @@ export class AccountService {
       return result.rows[0] || null;
     } catch (error) {
       logger.error('Error getting account by ID:', error);
-      throw new Error('Failed to retrieve account');
+      throw Object.assign(new Error('Failed to retrieve account'), { cause: error });
     }
   }
 
@@ -267,7 +267,7 @@ export class AccountService {
       return result.rows[0] || null;
     } catch (error) {
       logger.error('Error getting account by ID with scope:', error);
-      throw new Error('Failed to retrieve account');
+      throw Object.assign(new Error('Failed to retrieve account'), { cause: error });
     }
   }
 
@@ -325,7 +325,7 @@ export class AccountService {
         // ignore rollback errors; original error is what matters
       }
       logger.error('Error creating account:', error);
-      throw new Error('Failed to create account');
+      throw Object.assign(new Error('Failed to create account'), { cause: error });
     } finally {
       client.release();
     }
@@ -406,7 +406,7 @@ export class AccountService {
       return result.rows[0];
     } catch (error) {
       logger.error('Error updating account:', error);
-      throw new Error('Failed to update account');
+      throw Object.assign(new Error('Failed to update account'), { cause: error });
     }
   }
 
@@ -431,7 +431,7 @@ export class AccountService {
       return true;
     } catch (error) {
       logger.error('Error deleting account:', error);
-      throw new Error('Failed to delete account');
+      throw Object.assign(new Error('Failed to delete account'), { cause: error });
     }
   }
 
@@ -463,7 +463,7 @@ export class AccountService {
       return { contacts: result.rows, total };
     } catch (error) {
       logger.error('Error getting account contacts:', error);
-      throw new Error('Failed to retrieve account contacts');
+      throw Object.assign(new Error('Failed to retrieve account contacts'), { cause: error });
     }
   }
 }

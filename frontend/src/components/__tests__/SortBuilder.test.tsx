@@ -79,7 +79,7 @@ describe('SortBuilder', () => {
       { field: 'name', direction: 'asc' },
     ];
 
-    const { container } = renderWithProviders(
+    renderWithProviders(
       <SortBuilder
         entity="contacts"
         selectedFields={['name', 'email']}
@@ -101,7 +101,7 @@ describe('SortBuilder', () => {
       { field: 'email', direction: 'desc' },
     ];
 
-    const { container } = renderWithProviders(
+    renderWithProviders(
       <SortBuilder
         entity="contacts"
         selectedFields={['name', 'email']}

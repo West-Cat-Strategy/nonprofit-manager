@@ -165,7 +165,7 @@ const VolunteerList = () => {
         background_check_status: v.background_check_status,
         total_hours_logged: v.total_hours_logged,
       })),
-      columns as any,
+      columns,
       {
         filename: 'volunteers-export',
         includeHeaders: true,
@@ -201,12 +201,12 @@ const VolunteerList = () => {
     };
   };
 
-  const columns: TableColumn[] = [
+  const columns: TableColumn<Volunteer>[] = [
     {
       key: 'name',
       label: 'Name',
       width: '280px',
-      render: (_: any, row: Volunteer) => (
+      render: (_, row: Volunteer) => (
         <div
           className="cursor-pointer hover:opacity-75 transition"
           onClick={() => navigate(`/volunteers/${row.volunteer_id}`)}

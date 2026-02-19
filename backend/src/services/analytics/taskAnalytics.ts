@@ -63,7 +63,7 @@ export class TaskAnalyticsService {
       };
     } catch (error) {
       logger.error('Error getting task metrics', { error, entityType, entityId });
-      throw new Error('Failed to retrieve task metrics');
+      throw Object.assign(new Error('Failed to retrieve task metrics'), { cause: error });
     }
   }
 }

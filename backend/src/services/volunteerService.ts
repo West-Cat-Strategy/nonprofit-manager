@@ -150,7 +150,7 @@ export class VolunteerService {
       };
     } catch (error) {
       logger.error('Error getting volunteers:', error);
-      throw new Error('Failed to retrieve volunteers');
+      throw Object.assign(new Error('Failed to retrieve volunteers'), { cause: error });
     }
   }
 
@@ -201,7 +201,7 @@ export class VolunteerService {
       return result.rows[0] || null;
     } catch (error) {
       logger.error('Error getting volunteer by ID:', error);
-      throw new Error('Failed to retrieve volunteer');
+      throw Object.assign(new Error('Failed to retrieve volunteer'), { cause: error });
     }
   }
 
@@ -245,7 +245,7 @@ export class VolunteerService {
       return result.rows[0];
     } catch (error) {
       logger.error('Error creating volunteer:', error);
-      throw new Error('Failed to create volunteer');
+      throw Object.assign(new Error('Failed to create volunteer'), { cause: error });
     }
   }
 
@@ -301,7 +301,7 @@ export class VolunteerService {
       return result.rows[0];
     } catch (error) {
       logger.error('Error updating volunteer:', error);
-      throw new Error('Failed to update volunteer');
+      throw Object.assign(new Error('Failed to update volunteer'), { cause: error });
     }
   }
 
@@ -326,7 +326,7 @@ export class VolunteerService {
       return true;
     } catch (error) {
       logger.error('Error deleting volunteer:', error);
-      throw new Error('Failed to delete volunteer');
+      throw Object.assign(new Error('Failed to delete volunteer'), { cause: error });
     }
   }
 
@@ -355,7 +355,7 @@ export class VolunteerService {
       return result.rows;
     } catch (error) {
       logger.error('Error finding volunteers by skills:', error);
-      throw new Error('Failed to find volunteers by skills');
+      throw Object.assign(new Error('Failed to find volunteers by skills'), { cause: error });
     }
   }
 
@@ -413,7 +413,7 @@ export class VolunteerService {
       return result.rows;
     } catch (error) {
       logger.error('Error getting volunteer assignments:', error);
-      throw new Error('Failed to retrieve volunteer assignments');
+      throw Object.assign(new Error('Failed to retrieve volunteer assignments'), { cause: error });
     }
   }
 
@@ -445,7 +445,7 @@ export class VolunteerService {
       return result.rows[0];
     } catch (error) {
       logger.error('Error creating assignment:', error);
-      throw new Error('Failed to create assignment');
+      throw Object.assign(new Error('Failed to create assignment'), { cause: error });
     }
   }
 
@@ -509,7 +509,7 @@ export class VolunteerService {
       return result.rows[0];
     } catch (error) {
       logger.error('Error updating assignment:', error);
-      throw new Error('Failed to update assignment');
+      throw Object.assign(new Error('Failed to update assignment'), { cause: error });
     }
   }
 }

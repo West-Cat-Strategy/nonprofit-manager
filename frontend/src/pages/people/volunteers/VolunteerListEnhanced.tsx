@@ -164,7 +164,7 @@ const VolunteerListEnhanced = () => {
         background_check_status: v.background_check_status,
         total_hours_logged: v.total_hours_logged,
       })),
-      columns as any,
+      columns,
       {
         filename: 'volunteers-export',
         includeHeaders: true,
@@ -415,9 +415,20 @@ const VolunteerListEnhanced = () => {
         sampleData={volunteers}
         onExport={() => {
           const columns = ['first_name', 'last_name', 'email', 'phone', 'skills', 'availability_status'] as const;
-          exportToCSV(volunteers as any, columns as any, {
+          exportToCSV(
+            volunteers.map((v) => ({
+              first_name: v.first_name,
+              last_name: v.last_name,
+              email: v.email,
+              phone: v.phone ?? '',
+              skills: v.skills?.join('; ') ?? '',
+              availability_status: v.availability_status,
+            })),
+            columns,
+            {
             filename: 'volunteers',
-          });
+            }
+          );
         }}
       />
       <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />

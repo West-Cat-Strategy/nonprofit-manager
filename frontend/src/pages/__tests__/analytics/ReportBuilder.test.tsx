@@ -1,5 +1,6 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 import { vi } from 'vitest';
 import ReportBuilder from '../../analytics/ReportBuilder';
 import { renderWithProviders } from '../../../test/testUtils';
@@ -12,23 +13,23 @@ const mockState = {
 
 vi.mock('../../../store/hooks', () => ({
   useAppDispatch: () => dispatchMock,
-  useAppSelector: (selector: (state: any) => any) => selector(mockState),
+  useAppSelector: (selector: (state: typeof mockState) => unknown) => selector(mockState),
 }));
 
 vi.mock('../../../store/slices/reportsSlice', async () => {
-  const actual = await vi.importActual<any>('../../../store/slices/reportsSlice');
+  const actual = await vi.importActual<typeof import('../../../store/slices/reportsSlice')>('../../../store/slices/reportsSlice');
   return {
     ...actual,
     default: (state = { currentReport: null, loading: false, availableFields: [] }) => state,
-    generateReport: (payload: any) => ({ type: 'reports/generate', payload }),
+    generateReport: (payload: unknown) => ({ type: 'reports/generate', payload }),
   };
 });
 vi.mock('../../../store/slices/savedReportsSlice', async () => {
-  const actual = await vi.importActual<any>('../../../store/slices/savedReportsSlice');
+  const actual = await vi.importActual<typeof import('../../../store/slices/savedReportsSlice')>('../../../store/slices/savedReportsSlice');
   return {
     ...actual,
     default: (state = { currentSavedReport: null }) => state,
-    createSavedReport: (payload: any) => ({ type: 'saved/create', payload }),
+    createSavedReport: (payload: unknown) => ({ type: 'saved/create', payload }),
     fetchSavedReportById: (id: string) => ({ type: 'saved/fetchById', payload: id }),
   };
 });
@@ -36,7 +37,7 @@ vi.mock('../../../components/FieldSelector', () => ({ default: () => <div>Field 
 vi.mock('../../../components/FilterBuilder', () => ({ default: () => <div>Filter Builder</div> }));
 vi.mock('../../../components/SortBuilder', () => ({ default: () => <div>Sort Builder</div> }));
 vi.mock('../../../components/ReportChart', () => ({ default: () => <div>Report Chart</div> }));
-vi.mock('../../../components/neo-brutalist/NeoBrutalistLayout', () => ({ default: ({ children }: any) => <div>{children}</div> }));
+vi.mock('../../../components/neo-brutalist/NeoBrutalistLayout', () => ({ default: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
 
 describe('ReportBuilder page', () => {
   beforeEach(() => {

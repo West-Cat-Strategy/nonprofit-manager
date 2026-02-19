@@ -28,7 +28,7 @@ export async function getContactEmails(contactId: string): Promise<ContactEmailA
     return result.rows;
   } catch (error) {
     logger.error('Error getting contact emails:', error);
-    throw new Error('Failed to retrieve contact email addresses');
+    throw Object.assign(new Error('Failed to retrieve contact email addresses'), { cause: error });
   }
 }
 
@@ -45,7 +45,7 @@ export async function getContactEmailById(emailId: string): Promise<ContactEmail
     return result.rows[0] || null;
   } catch (error) {
     logger.error('Error getting contact email by ID:', error);
-    throw new Error('Failed to retrieve contact email address');
+    throw Object.assign(new Error('Failed to retrieve contact email address'), { cause: error });
   }
 }
 
@@ -78,10 +78,10 @@ export async function createContactEmail(
     return result.rows[0];
   } catch (error: any) {
     if (error.code === '23505') {
-      throw new Error('This email address already exists for this contact');
+      throw Object.assign(new Error('This email address already exists for this contact'), { cause: error });
     }
     logger.error('Error creating contact email:', error);
-    throw new Error('Failed to create contact email address');
+    throw Object.assign(new Error('Failed to create contact email address'), { cause: error });
   }
 }
 
@@ -135,10 +135,10 @@ export async function updateContactEmail(
     return result.rows[0];
   } catch (error: any) {
     if (error.code === '23505') {
-      throw new Error('This email address already exists for this contact');
+      throw Object.assign(new Error('This email address already exists for this contact'), { cause: error });
     }
     logger.error('Error updating contact email:', error);
-    throw new Error('Failed to update contact email address');
+    throw Object.assign(new Error('Failed to update contact email address'), { cause: error });
   }
 }
 
@@ -160,7 +160,7 @@ export async function deleteContactEmail(emailId: string): Promise<boolean> {
     return true;
   } catch (error) {
     logger.error('Error deleting contact email:', error);
-    throw new Error('Failed to delete contact email address');
+    throw Object.assign(new Error('Failed to delete contact email address'), { cause: error });
   }
 }
 
@@ -181,6 +181,6 @@ export async function getPrimaryEmail(contactId: string): Promise<ContactEmailAd
     return result.rows[0] || null;
   } catch (error) {
     logger.error('Error getting primary email:', error);
-    throw new Error('Failed to retrieve primary email');
+    throw Object.assign(new Error('Failed to retrieve primary email'), { cause: error });
   }
 }

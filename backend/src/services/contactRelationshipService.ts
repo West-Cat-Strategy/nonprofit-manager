@@ -35,7 +35,7 @@ export async function getContactRelationships(contactId: string): Promise<Contac
     return result.rows;
   } catch (error) {
     logger.error('Error getting contact relationships:', error);
-    throw new Error('Failed to retrieve contact relationships');
+    throw Object.assign(new Error('Failed to retrieve contact relationships'), { cause: error });
   }
 }
 
@@ -62,7 +62,7 @@ export async function getContactRelationshipById(relationshipId: string): Promis
     return result.rows[0] || null;
   } catch (error) {
     logger.error('Error getting contact relationship by ID:', error);
-    throw new Error('Failed to retrieve contact relationship');
+    throw Object.assign(new Error('Failed to retrieve contact relationship'), { cause: error });
   }
 }
 
@@ -131,13 +131,13 @@ export async function createContactRelationship(
     await client.query('ROLLBACK');
 
     if (error.code === '23505') {
-      throw new Error('This relationship already exists');
+      throw Object.assign(new Error('This relationship already exists'), { cause: error });
     }
     if (error.code === '23503') {
-      throw new Error('Related contact not found');
+      throw Object.assign(new Error('Related contact not found'), { cause: error });
     }
     logger.error('Error creating contact relationship:', error);
-    throw new Error('Failed to create contact relationship');
+    throw Object.assign(new Error('Failed to create contact relationship'), { cause: error });
   } finally {
     client.release();
   }
@@ -237,7 +237,7 @@ export async function updateContactRelationship(
     return result.rows[0];
   } catch (error) {
     logger.error('Error updating contact relationship:', error);
-    throw new Error('Failed to update contact relationship');
+    throw Object.assign(new Error('Failed to update contact relationship'), { cause: error });
   }
 }
 
@@ -259,7 +259,7 @@ export async function deleteContactRelationship(relationshipId: string): Promise
     return true;
   } catch (error) {
     logger.error('Error deleting contact relationship:', error);
-    throw new Error('Failed to delete contact relationship');
+    throw Object.assign(new Error('Failed to delete contact relationship'), { cause: error });
   }
 }
 
@@ -281,7 +281,7 @@ export async function hardDeleteContactRelationship(relationshipId: string): Pro
     return true;
   } catch (error) {
     logger.error('Error hard deleting contact relationship:', error);
-    throw new Error('Failed to delete contact relationship');
+    throw Object.assign(new Error('Failed to delete contact relationship'), { cause: error });
   }
 }
 
@@ -309,6 +309,6 @@ export async function getInverseRelationships(contactId: string): Promise<Contac
     return result.rows;
   } catch (error) {
     logger.error('Error getting inverse relationships:', error);
-    throw new Error('Failed to retrieve inverse relationships');
+    throw Object.assign(new Error('Failed to retrieve inverse relationships'), { cause: error });
   }
 }

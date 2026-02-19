@@ -25,7 +25,7 @@ interface AssigneeOption {
 
 interface CaseFormProps {
   caseId?: string;
-  initialData?: Partial<CreateCaseDTO>;
+  initialData?: Partial<CreateCaseDTO & UpdateCaseDTO>;
   onSuccess?: () => void;
   onCreated?: (createdCase: CaseWithDetails) => void;
   disableContactSelection?: boolean;
@@ -58,9 +58,9 @@ const CaseForm = ({
     due_date: initialData?.due_date || '',
     is_urgent: initialData?.is_urgent || false,
     tags: initialData?.tags || [],
-    outcome: (initialData as any)?.outcome || undefined,
-    outcome_notes: (initialData as any)?.outcome_notes || '',
-    closure_reason: (initialData as any)?.closure_reason || '',
+    outcome: initialData?.outcome || undefined,
+    outcome_notes: initialData?.outcome_notes || '',
+    closure_reason: initialData?.closure_reason || '',
   });
 
   const [tagInput, setTagInput] = useState('');

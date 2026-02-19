@@ -160,7 +160,7 @@ export class AlertService {
     const result = await this.pool.query(
       `UPDATE alert_configs
        SET ${fields.join(', ')}
-       WHERE id = $${paramCount++} AND user_id = $${paramCount++}
+       WHERE id = $${paramCount} AND user_id = $${paramCount + 1}
        RETURNING id, user_id, name, description, metric_type, condition, threshold,
                  percentage_change, sensitivity, frequency, channels, severity, enabled,
                  recipients, filters, created_by, created_at, updated_at, last_triggered`,
@@ -263,7 +263,7 @@ export class AlertService {
     metricType: string,
     _filters: Record<string, any>
   ): Promise<number> {
-    let query = '';
+    let query: string;
     const values: any[] = [];
 
     switch (metricType) {
@@ -337,7 +337,7 @@ export class AlertService {
     query += ` ORDER BY triggered_at DESC`;
 
     if (filters?.limit) {
-      query += ` LIMIT $${paramCount++}`;
+      query += ` LIMIT $${paramCount}`;
       values.push(filters.limit);
     }
 

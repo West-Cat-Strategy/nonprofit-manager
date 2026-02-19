@@ -166,7 +166,6 @@ export class DonationService {
     if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
       conditions.push(`d.created_by = ANY($${paramCount}::uuid[])`);
       params.push(scope.createdByUserIds);
-      paramCount++;
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -309,7 +308,6 @@ export class DonationService {
     if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
       conditions.push(`d.created_by = ANY($${paramCount}::uuid[])`);
       params.push(scope.createdByUserIds);
-      paramCount++;
     }
 
     const finalQuery =
@@ -561,7 +559,6 @@ export class DonationService {
     if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
       conditions.push(`created_by = ANY($${paramCount}::uuid[])`);
       params.push(scope.createdByUserIds);
-      paramCount++;
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';

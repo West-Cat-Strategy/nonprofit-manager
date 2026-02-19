@@ -7,11 +7,11 @@ import { renderWithProviders } from '../../../test/testUtils';
 const getMock = vi.fn();
 
 vi.mock('../../../services/portalApi', () => ({
-  default: { get: (...args: any[]) => getMock(...args) },
+  default: { get: (...args: unknown[]) => getMock(...args) },
 }));
 
 vi.mock('../../../components/portal/PortalPageState', () => ({
-  default: ({ loading, error, onRetry }: any) => (
+  default: ({ loading, error, onRetry }: { loading?: boolean; error?: string; onRetry: () => void }) => (
     <div>
       <span>{loading ? 'Loading reminders...' : error || 'ready'}</span>
       <button onClick={onRetry}>Retry</button>

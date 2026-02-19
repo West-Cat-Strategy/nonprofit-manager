@@ -43,7 +43,7 @@ export async function getDocumentsByContact(contactId: string): Promise<ContactD
     return result.rows;
   } catch (error) {
     logger.error('Error getting contact documents:', error);
-    throw new Error('Failed to retrieve contact documents');
+    throw Object.assign(new Error('Failed to retrieve contact documents'), { cause: error });
   }
 }
 
@@ -72,7 +72,7 @@ export async function getDocumentsByCase(caseId: string): Promise<ContactDocumen
     return result.rows;
   } catch (error) {
     logger.error('Error getting documents by case ID:', error);
-    throw new Error('Failed to retrieve documents');
+    throw Object.assign(new Error('Failed to retrieve documents'), { cause: error });
   }
 }
 
@@ -100,7 +100,7 @@ export async function getDocumentById(documentId: string): Promise<ContactDocume
     return result.rows[0] || null;
   } catch (error) {
     logger.error('Error getting document by ID:', error);
-    throw new Error('Failed to retrieve document');
+    throw Object.assign(new Error('Failed to retrieve document'), { cause: error });
   }
 }
 
@@ -154,7 +154,7 @@ export async function getDocumentByIdWithScope(
     return result.rows[0] || null;
   } catch (error) {
     logger.error('Error getting document by ID with scope:', error);
-    throw new Error('Failed to retrieve document');
+    throw Object.assign(new Error('Failed to retrieve document'), { cause: error });
   }
 }
 
@@ -199,7 +199,7 @@ export async function createDocument(
     return result.rows[0];
   } catch (error) {
     logger.error('Error creating document:', error);
-    throw new Error('Failed to upload document');
+    throw Object.assign(new Error('Failed to upload document'), { cause: error });
   }
 }
 
@@ -250,7 +250,7 @@ export async function updateDocument(
     return result.rows[0];
   } catch (error) {
     logger.error('Error updating document:', error);
-    throw new Error('Failed to update document');
+    throw Object.assign(new Error('Failed to update document'), { cause: error });
   }
 }
 
@@ -288,7 +288,7 @@ export async function deleteDocument(documentId: string): Promise<boolean> {
     return true;
   } catch (error) {
     logger.error('Error deleting document:', error);
-    throw new Error('Failed to delete document');
+    throw Object.assign(new Error('Failed to delete document'), { cause: error });
   }
 }
 
@@ -324,7 +324,7 @@ export async function hardDeleteDocument(documentId: string): Promise<boolean> {
     return true;
   } catch (error) {
     logger.error('Error hard deleting document:', error);
-    throw new Error('Failed to delete document');
+    throw Object.assign(new Error('Failed to delete document'), { cause: error });
   }
 }
 
@@ -351,6 +351,6 @@ export async function getDocumentCount(contactId: string): Promise<number> {
     return parseInt(result.rows[0].count, 10);
   } catch (error) {
     logger.error('Error getting document count:', error);
-    throw new Error('Failed to get document count');
+    throw Object.assign(new Error('Failed to get document count'), { cause: error });
   }
 }

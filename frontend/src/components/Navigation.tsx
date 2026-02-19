@@ -32,6 +32,7 @@ const Navigation = () => {
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchDialogRef = useRef<HTMLDivElement>(null);
+  const searchButtonRef = useRef<HTMLButtonElement>(null);
   const themeMenuRef = useRef<HTMLDivElement>(null);
   const routeMeta = getRouteMeta(location.pathname);
 
@@ -123,8 +124,11 @@ const Navigation = () => {
   }));
 
   useEffect(() => {
-    if (!searchOpen) return;
-    searchInputRef.current?.focus();
+    if (searchOpen) {
+      searchInputRef.current?.focus();
+      return;
+    }
+    searchButtonRef.current?.focus();
   }, [searchOpen]);
 
   // Keyboard focus trap for search modal.
@@ -256,6 +260,7 @@ const Navigation = () => {
             {/* Search button - hidden on mobile and tablet */}
             <button
               type="button"
+              ref={searchButtonRef}
               className="hidden xl:flex items-center px-3 py-1.5 text-sm text-app-text-subtle bg-app-surface-muted rounded-md hover:bg-app-hover transition-colors"
               onClick={() => {
                 handleSearch();
@@ -511,10 +516,23 @@ const Navigation = () => {
             {/* Mobile menu header */}
             <div className="flex items-center justify-between px-4 py-4 border-b border-app-border">
               <div className="flex items-center space-x-2">
-                <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-lg">
-                  <span className="text-white text-lg font-bold">N</span>
+                <div
+                  className="flex items-center justify-center w-8 h-8 rounded-lg shadow-sm overflow-hidden"
+                  style={{
+                    background: `linear-gradient(to bottom right, ${branding.primaryColour}, ${branding.secondaryColour})`,
+                  }}
+                >
+                  {branding.appIcon ? (
+                    <img src={branding.appIcon} alt={branding.appName} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-white text-lg font-bold">
+                      {(branding.appName || 'N')[0]?.toUpperCase()}
+                    </span>
+                  )}
                 </div>
-                <span className="text-lg font-bold text-app-text-heading">Menu</span>
+                <span className="text-lg font-bold text-app-text-heading truncate max-w-[150px]">
+                  {branding.appName || 'Menu'}
+                </span>
               </div>
               <button
                 type="button"
@@ -653,6 +671,7 @@ const Navigation = () => {
                 onClick={() => setSearchOpen(false)}
                 className="p-1 text-app-text-subtle hover:text-app-text-muted rounded"
                 type="button"
+                aria-label="Close search dialog"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

@@ -115,7 +115,7 @@ export const getAuditLogs = async (req: AuthRequest, res: Response) => {
             logs: logs.rows,
             total: parseInt(count.rows[0].count)
         });
-    } catch (error) {
+    } catch {
         // If column 'changes' doesn't exist (schema Mismatch from 002 vs 033), handle specific query error? 
         // The migration 033 uses 'old_values', 'new_values', 'changed_fields'.
         // Let's adjust the query to match 033 schema better.
@@ -145,7 +145,7 @@ export const getAuditLogs = async (req: AuthRequest, res: Response) => {
                 total: parseInt(countRetry.rows[0].count)
             });
 
-        } catch (retryError) {
+        } catch {
             return serverError(res, 'Failed to fetch audit logs');
         }
     }

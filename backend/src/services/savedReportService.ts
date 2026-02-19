@@ -36,7 +36,7 @@ export class SavedReportService {
       return result.rows;
     } catch (error) {
       logger.error('Error fetching saved reports', { error, userId, entity });
-      throw new Error('Failed to fetch saved reports');
+      throw Object.assign(new Error('Failed to fetch saved reports'), { cause: error });
     }
   }
 
@@ -58,7 +58,7 @@ export class SavedReportService {
       return result.rows[0];
     } catch (error) {
       logger.error('Error fetching saved report by ID', { error, id, userId });
-      throw new Error('Failed to fetch saved report');
+      throw Object.assign(new Error('Failed to fetch saved report'), { cause: error });
     }
   }
 
@@ -88,7 +88,7 @@ export class SavedReportService {
       return result.rows[0];
     } catch (error) {
       logger.error('Error creating saved report', { error, userId, data });
-      throw new Error('Failed to create saved report');
+      throw Object.assign(new Error('Failed to create saved report'), { cause: error });
     }
   }
 
@@ -158,7 +158,7 @@ export class SavedReportService {
       return result.rows[0];
     } catch (error) {
       logger.error('Error updating saved report', { error, id, userId, data });
-      throw new Error('Failed to update saved report');
+      throw Object.assign(new Error('Failed to update saved report'), { cause: error });
     }
   }
 
@@ -176,7 +176,7 @@ export class SavedReportService {
       return result.rows.length > 0;
     } catch (error) {
       logger.error('Error deleting saved report', { error, id, userId });
-      throw new Error('Failed to delete saved report');
+      throw Object.assign(new Error('Failed to delete saved report'), { cause: error });
     }
   }
 
@@ -215,7 +215,7 @@ export class SavedReportService {
       return result.rows[0];
     } catch (error) {
       logger.error('Error sharing report', { error, reportId });
-      throw new Error('Failed to share report');
+      throw Object.assign(new Error('Failed to share report'), { cause: error });
     }
   }
 
@@ -261,7 +261,7 @@ export class SavedReportService {
       return result.rows[0];
     } catch (error) {
       logger.error('Error removing share', { error, reportId });
-      throw new Error('Failed to remove share');
+      throw Object.assign(new Error('Failed to remove share'), { cause: error });
     }
   }
 
@@ -300,7 +300,7 @@ export class SavedReportService {
       return result.rows[0].public_token;
     } catch (error) {
       logger.error('Error generating public link', { error, reportId });
-      throw new Error('Failed to generate public link');
+      throw Object.assign(new Error('Failed to generate public link'), { cause: error });
     }
   }
 
@@ -315,7 +315,7 @@ export class SavedReportService {
       );
     } catch (error) {
       logger.error('Error revoking public link', { error, reportId });
-      throw new Error('Failed to revoke public link');
+      throw Object.assign(new Error('Failed to revoke public link'), { cause: error });
     }
   }
 
@@ -346,7 +346,7 @@ export class SavedReportService {
       return report;
     } catch (error) {
       logger.error('Error fetching report by token', { error, token });
-      throw new Error('Failed to fetch report');
+      throw Object.assign(new Error('Failed to fetch report'), { cause: error });
     }
   }
 

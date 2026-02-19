@@ -101,7 +101,7 @@ const ContactList = () => {
     if (filterId === 'search' && typeof value === 'string') {
       setSearchInput(value);
     } else if (filterId === 'role' && typeof value === 'string') {
-      setRoleFilter(value as any);
+      setRoleFilter(value);
     } else if (filterId === 'is_active' && typeof value === 'string') {
       setActiveFilter(value);
     }
@@ -182,7 +182,7 @@ const ContactList = () => {
         account_name: c.account_name,
         role: c.roles?.join(', ') || '',
       })),
-      columns as any,
+      columns,
       {
         filename: 'contacts-export',
         includeHeaders: true,
@@ -234,7 +234,7 @@ const ContactList = () => {
         <div className="flex flex-wrap gap-1">
           {row.tags && row.tags.length > 0 ? (
             <>
-              {row.tags.slice(0, 2).map((tag: any, idx: number) => (
+              {row.tags.slice(0, 2).map((tag: string, idx: number) => (
                 <BrutalBadge key={idx} color="blue" className="text-xs">
                   {tag}
                 </BrutalBadge>

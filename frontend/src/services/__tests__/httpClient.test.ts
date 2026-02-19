@@ -57,7 +57,10 @@ describe('createApiClient', () => {
 
     // Simulate a GET request going through the interceptor
     const config = { method: 'get', headers: {} };
-    const result = capturedRequestInterceptor!(config) as Promise<object>;
+    if (!capturedRequestInterceptor) {
+      throw new Error('Request interceptor was not captured');
+    }
+    const result = capturedRequestInterceptor(config) as Promise<object>;
 
     // The interceptor is async, so we need to handle that
     return Promise.resolve(result).then((finalConfig) => {
@@ -86,7 +89,10 @@ describe('createApiClient', () => {
     createApiClient({ onUnauthorized: vi.fn() });
 
     const config = { method: 'get', headers: {} };
-    const result = await capturedRequestInterceptor!(config);
+    if (!capturedRequestInterceptor) {
+      throw new Error('Request interceptor was not captured');
+    }
+    const result = await capturedRequestInterceptor(config);
     const cfg = result as { headers?: Record<string, string> };
     expect(cfg.headers?.['X-Organization-Id']).toBe('org-123');
   });
@@ -111,7 +117,10 @@ describe('createApiClient', () => {
     createApiClient({ onUnauthorized: vi.fn(), includeOrganizationHeader: false });
 
     const config = { method: 'get', headers: {} };
-    const result = await capturedRequestInterceptor!(config);
+    if (!capturedRequestInterceptor) {
+      throw new Error('Request interceptor was not captured');
+    }
+    const result = await capturedRequestInterceptor(config);
     const cfg = result as { headers?: Record<string, string> };
     expect(cfg.headers?.['X-Organization-Id']).toBeUndefined();
   });

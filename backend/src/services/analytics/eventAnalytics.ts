@@ -112,7 +112,7 @@ export class EventAnalyticsService {
       };
     } catch (error) {
       logger.error('Error getting event metrics', { error, entityType, entityId });
-      throw new Error('Failed to retrieve event metrics');
+      throw Object.assign(new Error('Failed to retrieve event metrics'), { cause: error });
     }
   }
 
@@ -205,7 +205,7 @@ export class EventAnalyticsService {
       return trends;
     } catch (error) {
       logger.error('Error getting event attendance trends', { error });
-      throw new Error('Failed to retrieve event attendance trends');
+      throw Object.assign(new Error('Failed to retrieve event attendance trends'), { cause: error });
     }
   }
 }

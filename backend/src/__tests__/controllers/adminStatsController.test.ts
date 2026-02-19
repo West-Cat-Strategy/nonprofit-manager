@@ -35,7 +35,7 @@ describe('adminStatsController.getAdminStats', () => {
   });
 
   it('returns zeroed stats when users table does not exist', async () => {
-    mockedPool.query.mockImplementation((sql: string, params?: unknown[]) => {
+    mockedPool.query.mockImplementation((sql: string, _params?: unknown[]) => {
       if (sql.includes('to_regclass') && params?.[0] === 'public.users') {
         return Promise.resolve({ rows: [{ exists: false }] });
       }
@@ -63,7 +63,7 @@ describe('adminStatsController.getAdminStats', () => {
   });
 
   it('falls back to is_active when users.last_login_at does not exist', async () => {
-    mockedPool.query.mockImplementation((sql: string, params?: unknown[]) => {
+    mockedPool.query.mockImplementation((sql: string, _params?: unknown[]) => {
       if (sql.includes('to_regclass')) {
         return Promise.resolve({ rows: [{ exists: true }] });
       }
@@ -103,4 +103,3 @@ describe('adminStatsController.getAdminStats', () => {
     });
   });
 });
-

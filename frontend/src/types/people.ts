@@ -21,7 +21,7 @@ export interface FilterPreset {
   id: string;
   name: string;
   entityType: 'volunteers' | 'accounts' | 'contacts';
-  filters: Record<string, any>;
+  filters: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
   createdBy?: string;
@@ -66,7 +66,7 @@ export interface ImportExportOptions {
 export interface ImportValidationError {
   row: number;
   column: string;
-  value: any;
+  value: unknown;
   error: string;
 }
 
@@ -104,10 +104,10 @@ export interface ActivityEvent {
   };
   timestamp: Date;
   details?: Record<string, {
-    oldValue?: any;
-    newValue?: any;
+    oldValue?: unknown;
+    newValue?: unknown;
   }>;
-  metadata?: any;
+  metadata?: unknown;
 }
 
 // ============================================================================
@@ -168,17 +168,17 @@ export interface AccountStats {
 // List Page Types
 // ============================================================================
 
-export interface TableColumn<T = any> {
+export interface TableColumn<T = unknown> {
   key: keyof T;
   label: string;
   width?: string;
   sortable?: boolean;
-  render?: (value: any, row: T) => React.ReactNode;
+  render?: (value: unknown, row: T) => React.ReactNode;
   align?: 'left' | 'center' | 'right';
 }
 
 export interface ListPageState {
-  data: any[];
+  data: unknown[];
   loading: boolean;
   error: string | null;
   pagination: {
@@ -187,7 +187,7 @@ export interface ListPageState {
     total: number;
     totalPages: number;
   };
-  filters: Record<string, any>;
+  filters: Record<string, unknown>;
   selectedIds: Set<string>;
 }
 
@@ -224,7 +224,7 @@ export interface FormValidationResult {
   errors: FormFieldError[];
 }
 
-export type FieldValidator = (value: any) => string | null;
+export type FieldValidator = (value: unknown) => string | null;
 
 // ============================================================================
 // Search Types
@@ -235,10 +235,10 @@ export interface SearchSuggestion {
   text: string;
   type: 'entity' | 'filter' | 'action';
   icon?: React.ReactNode;
-  metadata?: any;
+  metadata?: unknown;
 }
 
-export interface SearchResult<T = any> {
+export interface SearchResult<T = unknown> {
   items: T[];
   total: number;
   executionTime: number;
@@ -262,7 +262,7 @@ export interface PaginationState {
 // ============================================================================
 
 export interface CrudPayloads {
-  success: any;
+  success: unknown;
   failure: string;
 }
 
@@ -279,7 +279,7 @@ export type AsyncThunkState<T> = {
 export type OnRowSelect = (id: string, selected: boolean) => void;
 export type OnSelectAll = (selected: boolean) => void;
 export type OnPageChange = (page: number) => void;
-export type OnFilterChange = (filterId: string, value: any) => void;
+export type OnFilterChange = (filterId: string, value: unknown) => void;
 export type OnSort = (column: string, order: 'asc' | 'desc') => void;
 export type OnBulkAction = (selectedIds: string[], action: string) => Promise<void>;
 
@@ -287,7 +287,7 @@ export type OnBulkAction = (selectedIds: string[], action: string) => Promise<vo
 // Component Props Types
 // ============================================================================
 
-export interface ListContainerProps<T = any> {
+export interface ListContainerProps<T = unknown> {
   title: string;
   description?: string;
   data: T[];

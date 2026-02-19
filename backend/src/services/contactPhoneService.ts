@@ -28,7 +28,7 @@ export async function getContactPhones(contactId: string): Promise<ContactPhoneN
     return result.rows;
   } catch (error) {
     logger.error('Error getting contact phones:', error);
-    throw new Error('Failed to retrieve contact phone numbers');
+    throw Object.assign(new Error('Failed to retrieve contact phone numbers'), { cause: error });
   }
 }
 
@@ -45,7 +45,7 @@ export async function getContactPhoneById(phoneId: string): Promise<ContactPhone
     return result.rows[0] || null;
   } catch (error) {
     logger.error('Error getting contact phone by ID:', error);
-    throw new Error('Failed to retrieve contact phone number');
+    throw Object.assign(new Error('Failed to retrieve contact phone number'), { cause: error });
   }
 }
 
@@ -78,10 +78,10 @@ export async function createContactPhone(
     return result.rows[0];
   } catch (error: any) {
     if (error.code === '23505') {
-      throw new Error('This phone number already exists for this contact');
+      throw Object.assign(new Error('This phone number already exists for this contact'), { cause: error });
     }
     logger.error('Error creating contact phone:', error);
-    throw new Error('Failed to create contact phone number');
+    throw Object.assign(new Error('Failed to create contact phone number'), { cause: error });
   }
 }
 
@@ -135,10 +135,10 @@ export async function updateContactPhone(
     return result.rows[0];
   } catch (error: any) {
     if (error.code === '23505') {
-      throw new Error('This phone number already exists for this contact');
+      throw Object.assign(new Error('This phone number already exists for this contact'), { cause: error });
     }
     logger.error('Error updating contact phone:', error);
-    throw new Error('Failed to update contact phone number');
+    throw Object.assign(new Error('Failed to update contact phone number'), { cause: error });
   }
 }
 
@@ -160,7 +160,7 @@ export async function deleteContactPhone(phoneId: string): Promise<boolean> {
     return true;
   } catch (error) {
     logger.error('Error deleting contact phone:', error);
-    throw new Error('Failed to delete contact phone number');
+    throw Object.assign(new Error('Failed to delete contact phone number'), { cause: error });
   }
 }
 
@@ -181,6 +181,6 @@ export async function getPrimaryPhone(contactId: string): Promise<ContactPhoneNu
     return result.rows[0] || null;
   } catch (error) {
     logger.error('Error getting primary phone:', error);
-    throw new Error('Failed to retrieve primary phone');
+    throw Object.assign(new Error('Failed to retrieve primary phone'), { cause: error });
   }
 }

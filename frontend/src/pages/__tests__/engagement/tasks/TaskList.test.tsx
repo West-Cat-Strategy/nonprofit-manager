@@ -1,5 +1,6 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 import { vi } from 'vitest';
 import TaskList from '../../../engagement/tasks/TaskList';
 import { renderWithProviders } from '../../../../test/testUtils';
@@ -17,17 +18,17 @@ const state = {
 
 vi.mock('../../../../store/hooks', () => ({
   useAppDispatch: () => dispatchMock,
-  useAppSelector: (selector: (s: any) => any) => selector(state),
+  useAppSelector: (selector: (s: typeof state) => unknown) => selector(state),
 }));
 
 vi.mock('../../../../store/slices/tasksSlice', () => ({
   default: (state = { tasks: [], pagination: { total: 0, page: 1, limit: 20, total_pages: 1 }, summary: null, loading: false, error: null }) => state,
-  fetchTasks: (payload: any) => ({ type: 'tasks/fetch', payload }),
+  fetchTasks: (payload: unknown) => ({ type: 'tasks/fetch', payload }),
   deleteTask: (id: string) => ({ type: 'tasks/delete', payload: id }),
   completeTask: (id: string) => ({ type: 'tasks/complete', payload: id }),
 }));
 
-vi.mock('../../../../components/neo-brutalist/NeoBrutalistLayout', () => ({ default: ({ children }: any) => <div>{children}</div> }));
+vi.mock('../../../../components/neo-brutalist/NeoBrutalistLayout', () => ({ default: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
 vi.mock('../../../../hooks/useConfirmDialog', () => ({
   default: () => ({ dialogState: { isOpen: false }, confirm: vi.fn().mockResolvedValue(false), handleConfirm: vi.fn(), handleCancel: vi.fn() }),
   confirmPresets: { delete: () => ({ title: 'Delete' }) },

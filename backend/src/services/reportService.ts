@@ -417,7 +417,7 @@ export class ReportService {
         }
       }
       logger.error('Error generating report', { error, definition });
-      throw new Error('Failed to generate report');
+      throw Object.assign(new Error('Failed to generate report'), { cause: error });
     }
   }
 
@@ -474,7 +474,7 @@ export class ReportService {
       }
     } catch (error) {
       logger.error('Error exporting report', { error, format });
-      throw new Error('Failed to export report');
+      throw Object.assign(new Error('Failed to export report'), { cause: error });
     }
   }
 

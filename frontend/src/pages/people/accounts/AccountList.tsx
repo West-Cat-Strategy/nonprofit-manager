@@ -168,7 +168,7 @@ const AccountList = () => {
         category: a.category,
         email: a.email,
       })),
-      columns as any,
+      columns,
       {
         filename: 'accounts-export',
         includeHeaders: true,
