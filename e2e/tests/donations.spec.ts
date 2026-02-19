@@ -112,11 +112,11 @@ test.describe('Donations Module', () => {
     const sendReceiptButton = authenticatedPage.getByRole('button', { name: 'Send Receipt' });
     await expect(sendReceiptButton).toBeVisible();
 
-    authenticatedPage.once('dialog', (dialog) => dialog.accept());
     await sendReceiptButton.click();
-    await authenticatedPage.waitForTimeout(500);
+    await authenticatedPage.getByRole('button', { name: 'Mark as Sent' }).click();
 
-    await expect(authenticatedPage.getByText('✓ Sent')).toBeVisible();
+    await expect(authenticatedPage.getByRole('button', { name: 'Send Receipt' })).not.toBeVisible();
+    await expect(authenticatedPage.locator('dd', { hasText: /sent/i }).first()).toBeVisible();
   });
 
   test('should filter donations by payment status', async ({ authenticatedPage, authToken }) => {

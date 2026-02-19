@@ -188,3 +188,24 @@ Tests run automatically in GitHub Actions on every pull request. E2E tests use P
 - 2 retries on failure
 - Video recording on first failure
 - Screenshots on all failures
+
+## Automated Suite Taxonomy (Updated February 18, 2026)
+
+### Backend (Jest)
+- Unit/services/controllers: `cd backend && npm test -- --testPathIgnorePatterns=src/__tests__/integration/`
+- Integration/API routes: `cd backend && npm run test:integration`
+- Integration coverage: `cd backend && npm run test:integration:coverage`
+
+### Frontend (Vitest)
+- Unit/component/page tests: `cd frontend && npm test -- --run`
+- Coverage: `cd frontend && npm test -- --run --coverage`
+
+### E2E (Playwright)
+- Full matrix: `cd e2e && npm run test:ci`
+- Smoke subset: `cd e2e && npm run test:smoke`
+- Interactive debugging: `cd e2e && npm run test:ui`
+
+### Root/CI entry points
+- Full local test run (backend + frontend + Playwright): `make test`
+- Coverage-oriented run: `make test-coverage`
+- Scripted CI path: `./scripts/ci.sh`

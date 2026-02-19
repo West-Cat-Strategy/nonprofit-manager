@@ -141,5 +141,6 @@ tests.txt
 # ==============================
 backend/exports/
 backend/migrations/
+data-intake/
 security-reports/
 .deploy-history

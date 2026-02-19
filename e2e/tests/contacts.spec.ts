@@ -129,16 +129,18 @@ test.describe('Contacts Module', () => {
     authToken,
   }) => {
     const suffix = uniqueSuffix();
+    const activeFirstName = `Enabled${suffix}`;
+    const inactiveFirstName = `Dormant${suffix}`;
 
     const activeContact = await createTestContact(authenticatedPage, authToken, {
-      firstName: `Active${suffix}`,
+      firstName: activeFirstName,
       lastName: 'Contact',
       email: `active.${suffix}@example.com`,
       phone: '5550202001',
     });
 
     const inactiveContact = await createTestContact(authenticatedPage, authToken, {
-      firstName: `Inactive${suffix}`,
+      firstName: inactiveFirstName,
       lastName: 'Contact',
       email: `inactive.${suffix}@example.com`,
       phone: '5550202002',
@@ -151,18 +153,22 @@ test.describe('Contacts Module', () => {
 
     await authenticatedPage.goto('/contacts');
 
-    await authenticatedPage.getByLabel('Search contacts').fill(`Active${suffix}`);
+    await authenticatedPage.getByLabel('Search contacts').fill(activeFirstName);
     await authenticatedPage.locator('form').getByRole('button', { name: /^search$/i }).click();
     await authenticatedPage.waitForTimeout(500);
 
-    await expect(authenticatedPage.locator(`text=Active${suffix} Contact`).first()).toBeVisible({
+    await expect(authenticatedPage.locator(`text=${activeFirstName} Contact`).first()).toBeVisible({
       timeout: 10000,
     });
 
+    await authenticatedPage.getByLabel('Search contacts').fill('');
     await authenticatedPage.getByLabel('Status').selectOption('inactive');
     await authenticatedPage.locator('form').getByRole('button', { name: /^search$/i }).click();
     await authenticatedPage.waitForTimeout(500);
-    await expect(authenticatedPage.getByRole('heading', { name: /no contacts found/i })).toBeVisible();
+    await expect(authenticatedPage.locator(`text=${inactiveFirstName} Contact`).first()).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(authenticatedPage.locator(`text=${activeFirstName} Contact`).first()).not.toBeVisible();
 
     await authenticatedPage.goto(`/contacts/${inactiveContact.id}`);
     await expect(authenticatedPage.getByText(/inactive/i).first()).toBeVisible();
@@ -186,11 +192,8 @@ test.describe('Contacts Module', () => {
     const row = authenticatedPage.locator('tr', { hasText: fullName }).first();
     await expect(row).toBeVisible();
 
-    authenticatedPage.once('dialog', async (dialog) => {
-      await dialog.accept();
-    });
-
     await row.getByRole('button', { name: /delete/i }).click();
+    await authenticatedPage.locator('button.bg-red-600').click();
 
     await expect(row).not.toBeVisible({ timeout: 10000 });
   });
