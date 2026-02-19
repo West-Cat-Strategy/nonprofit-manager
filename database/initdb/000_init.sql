@@ -3,6 +3,13 @@
 
 \set ON_ERROR_STOP on
 
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    id SERIAL PRIMARY KEY,
+    filename VARCHAR(255) NOT NULL UNIQUE,
+    applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    checksum VARCHAR(64)
+);
+
 \i /migrations/001_initial_schema.sql
 \i /migrations/002_audit_logs.sql
 \i /migrations/003_schema_updates.sql
@@ -34,9 +41,18 @@
 \i /migrations/029_enforce_mfa_for_roles.sql
 \i /migrations/030_api_key_authentication.sql
 \i /migrations/031_add_pii_encryption_fields.sql
-\i /migrations/032_row_level_security_fixed.sql
+\i /migrations/032_row_level_security.sql
 \i /migrations/033_audit_logging.sql
+\i /migrations/034_email_settings_and_password_resets.sql
+\i /migrations/035_registration_settings.sql
 \i /migrations/036_contact_preferred_name_and_role_updates.sql
+\i /migrations/037_contact_roles_client_subtypes_and_contact.sql
+\i /migrations/038_contact_roles_rename_caregiver_to_support_person.sql
+\i /migrations/039_contact_sms_voicemail_preferences.sql
+\i /migrations/040_events_public_visibility.sql
+\i /migrations/041_events_recurrence.sql
+\i /migrations/042_external_service_providers.sql
+\i /migrations/043_alerts.sql
 
 \i /seeds/001_default_users.sql
 \i /seeds/002_starter_templates.sql
