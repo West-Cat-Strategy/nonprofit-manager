@@ -149,18 +149,33 @@ See [Development Guide](docs/development/CONVENTIONS.md) for coding standards an
 
 ## Contributing
 
-For development guidelines, see:
-- [Agent Instructions](docs/development/AGENT_INSTRUCTIONS.md)
-- [Code Conventions](docs/development/CONVENTIONS.md)
-- [Architecture Decisions](docs/development/ARCHITECTURE.md)
+Want to contribute? Start here:
+1. **[Getting Started Guide](docs/development/GETTING_STARTED.md)** — Set up your development environment (~2 hours)
+2. **[Contributing Guide](CONTRIBUTING.md)** — Git workflow, commit messages, pull requests
+3. **[Code Conventions](docs/development/CONVENTIONS.md)** — Code style and standards
+4. **[Architecture Decisions](docs/development/ARCHITECTURE.md)** — System design
+
+For detailed contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Documentation
 
-See [docs/README.md](docs/README.md) for comprehensive documentation including:
+**Start here**: [docs/INDEX.md](docs/INDEX.md) — Complete documentation index and navigation
+
+**Quick links**:
+- **Setup**: [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) (new developers)
+- **API Docs**: [docs/api/README.md](docs/api/README.md) (endpoints and integrations)
+- **Features**: [docs/features/FEATURE_MATRIX.md](docs/features/FEATURE_MATRIX.md) (what's available)
+- **Testing**: [docs/testing/TESTING.md](docs/testing/TESTING.md) (how to test)
+- **Deployment**: [docs/deployment/DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md) (production setup)
+- **Security**: [docs/security/SECURITY_MONITORING_GUIDE.md](docs/security/SECURITY_MONITORING_GUIDE.md) (monitoring and incidents)
+
+See [docs/INDEX.md](docs/INDEX.md) for comprehensive documentation including:
+- Development guides (architecture, conventions, troubleshooting)
 - API references and integration guides
-- Deployment and setup instructions
 - Feature documentation
-- Security and testing guides
+- Deployment and DevOps guides
+- Testing strategies
+- Security and monitoring
 
 ## License
 
