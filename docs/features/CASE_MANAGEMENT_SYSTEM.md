@@ -82,7 +82,15 @@ Each type supports:
 - Confidentiality levels (public, standard, restricted, confidential)
 - Access control by role
 
-### 8. **Service Tracking**
+### 8. **Outcome Tracking**
+- Admin-managed outcome definitions (active/inactive, reportable, reorderable)
+- Tag case note interactions with one or more outcomes
+- Attribution tracking (`DIRECT`, `LIKELY`, `POSSIBLE`)
+- Optional intensity scoring (1-5) and evidence notes
+- Historical tags are preserved even if a definition is later disabled
+- Reporting supports totals, unique impacted clients, and week/month time series
+
+### 9. **Service Tracking**
 - Record services provided
 - Service categories (counseling, legal, financial, etc.)
 - Date/time tracking
@@ -91,14 +99,14 @@ Each type supports:
 - Outcome documentation
 - Completion status
 
-### 9. **Milestones & Goals**
+### 10. **Milestones & Goals**
 - Define case milestones
 - Track completion progress
 - Due date management
 - Sort order configuration
 - Progress visualization
 
-### 10. **Reporting & Analytics**
+### 11. **Reporting & Analytics**
 - Case summary dashboard
 - Statistics by:
   - Priority (low, medium, high, urgent)
@@ -148,6 +156,7 @@ Activity timeline with:
 - Internal/external flags
 - Status change tracking
 - Attachments
+- Optional outcome impact tags per note interaction
 
 #### `case_assignments`
 Assignment history with:
@@ -180,6 +189,21 @@ Goal tracking with:
 - Milestone names
 - Due and completion dates
 - Progress status
+
+#### `outcome_definitions`
+Configurable outcomes with:
+- Stable key, display name, description, and category
+- Active/inactive state (soft lifecycle; no hard delete)
+- Reportable toggle
+- Sort order for UI and reports
+
+#### `interaction_outcome_impacts`
+Interaction-level outcome tags with:
+- Foreign key to `case_notes` (interaction anchor)
+- Foreign key to `outcome_definitions`
+- Attribution enum (`DIRECT`, `LIKELY`, `POSSIBLE`)
+- Optional intensity and evidence note
+- Unique constraint per `(interaction_id, outcome_definition_id)`
 
 ---
 
@@ -223,6 +247,45 @@ Goal tracking with:
 - Add note to case
 - Supports attachments
 - Internal/external flag
+
+### Outcomes (Definitions + Interaction Tagging)
+
+**GET** `/api/admin/outcomes?includeInactive=true|false`
+- List outcome definitions for admin management
+
+**POST** `/api/admin/outcomes`
+- Create a new outcome definition
+
+**PATCH** `/api/admin/outcomes/:id`
+- Update outcome definition metadata
+
+**POST** `/api/admin/outcomes/:id/enable`
+- Set `is_active=true`
+
+**POST** `/api/admin/outcomes/:id/disable`
+- Set `is_active=false`
+
+**POST** `/api/admin/outcomes/reorder`
+- Reorder by `orderedIds` transactionally
+
+**GET** `/api/cases/outcomes/definitions`
+- List active outcome definitions for case interaction tagging
+
+**GET** `/api/cases/:caseId/interactions/:interactionId/outcomes`
+- Load saved outcomes for a specific case note interaction
+
+**PUT** `/api/cases/:caseId/interactions/:interactionId/outcomes`
+- Save outcomes for a specific interaction
+- Supports `mode=replace|merge`
+
+### Outcomes Reporting
+
+**GET** `/api/reports/outcomes?from=YYYY-MM-DD&to=YYYY-MM-DD&staffId=&interactionType=&bucket=week|month&includeNonReportable=true|false`
+- Returns:
+  - `totalsByOutcome` (count impacts, unique clients impacted)
+  - `timeseries` bucketed by week or month
+- `includeNonReportable=true` is admin-only
+- `programId` is currently unsupported and returns a validation error
 
 ### Metadata
 

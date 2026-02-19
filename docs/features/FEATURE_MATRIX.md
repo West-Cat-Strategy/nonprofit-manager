@@ -1,6 +1,6 @@
 # Feature Matrix
 
-**Last Updated**: 2026-02-18
+**Last Updated**: 2026-02-19
 
 Master status of all features in nonprofit-manager.
 
@@ -96,6 +96,7 @@ For **detailed feature specifications**, see linked documentation files.
 | Scheduled Reports | 📋 | Backend | [REPORTING_GUIDE.md](REPORTING_GUIDE.md) | - | Automatic report generation |
 | Analytics Dashboard | ✅ | Frontend | [API_REFERENCE_DASHBOARD_ALERTS.md](../api/API_REFERENCE_DASHBOARD_ALERTS.md) | - | Real-time metrics and graphs |
 | Trend Analysis | 🟡 | Backend | [API_REFERENCE_EXPORT.md](../api/API_REFERENCE_EXPORT.md) | - | Historical trends in progress |
+| Outcomes Report | 🟡 | Backend/Frontend | [CASE_MANAGEMENT_SYSTEM.md](CASE_MANAGEMENT_SYSTEM.md) | `backend/src/services/outcomeReportService.ts` | Outcome totals, unique clients, and time-series reporting |
 
 ### Dashboard & Customization
 
@@ -132,6 +133,7 @@ For **detailed feature specifications**, see linked documentation files.
 | Case Status Workflow | 🟡 | Backend | Same | - | Workflow engine (in progress) |
 | Task Assignment | 🟡 | Backend | [TASK_MANAGEMENT.md](TASK_MANAGEMENT.md) | - | Assign work to staff |
 | Notes & Timeline | 🟡 | Backend | [CASE_MANAGEMENT_SYSTEM.md](CASE_MANAGEMENT_SYSTEM.md) | - | Activity tracking |
+| Outcomes Tracking | 🟡 | Backend/Frontend | [CASE_MANAGEMENT_SYSTEM.md](CASE_MANAGEMENT_SYSTEM.md) | `backend/src/services/outcomeImpactService.ts` | Tag case note interactions with configurable outcomes |
 
 ### Task Management
 

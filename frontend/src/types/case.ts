@@ -1,6 +1,8 @@
 // Case Management Types
 // Frontend types matching backend case management system
 
+import type { InteractionOutcomeImpact, OutcomeDefinition } from './outcomes';
+
 export type CasePriority = 'low' | 'medium' | 'high' | 'urgent';
 export type CaseSource = 'phone' | 'email' | 'walk-in' | 'referral' | 'web' | 'other';
 export type CaseOutcome =
@@ -124,6 +126,7 @@ export interface CaseNote {
   created_by?: string | null;
   first_name?: string;
   last_name?: string;
+  outcome_impacts?: InteractionOutcomeImpact[];
 }
 
 export type RelationshipType = 'duplicate' | 'related' | 'parent' | 'child' | 'blocked_by' | 'blocks';
@@ -413,10 +416,15 @@ export interface CasesState {
   caseMilestones: CaseMilestone[];
   caseRelationships: CaseRelationship[];
   caseServices: CaseService[];
+  caseOutcomeDefinitions?: OutcomeDefinition[];
+  interactionOutcomeImpacts?: Record<string, InteractionOutcomeImpact[]>;
   summary: CaseSummary | null;
   total: number;
   loading: boolean;
   error: string | null;
+  outcomesLoading?: boolean;
+  outcomesSaving?: boolean;
+  outcomesError?: string | null;
   filters: CaseFilter;
   selectedCaseIds: string[];
 }

@@ -196,6 +196,30 @@ API endpoints are documented in:
 curl -X GET http://localhost:3000/api/health
 ```
 
+### Outcomes Tracking Endpoints
+
+New outcomes tracking APIs are available for case interactions:
+
+- Admin definitions:
+  - `GET /api/admin/outcomes`
+  - `POST /api/admin/outcomes`
+  - `PATCH /api/admin/outcomes/:id`
+  - `POST /api/admin/outcomes/:id/enable`
+  - `POST /api/admin/outcomes/:id/disable`
+  - `POST /api/admin/outcomes/reorder`
+- Case interaction tagging:
+  - `GET /api/cases/outcomes/definitions`
+  - `GET /api/cases/:caseId/interactions/:interactionId/outcomes`
+  - `PUT /api/cases/:caseId/interactions/:interactionId/outcomes`
+- Reporting:
+  - `GET /api/reports/outcomes`
+
+Permissions:
+
+- `outcomes.manage` (admin)
+- `outcomes.viewReports` (admin/manager)
+- `outcomes.tagInteraction` (admin/manager/staff)
+
 ---
 
 ## Common Tasks

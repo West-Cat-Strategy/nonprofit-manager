@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { generateReport } from '../../store/slices/reportsSlice';
 import { createSavedReport, fetchSavedReportById } from '../../store/slices/savedReportsSlice';
@@ -26,6 +26,7 @@ const ENTITIES: { value: ReportEntity; label: string }[] = [
 
 function ReportBuilder() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { currentReport, loading, availableFields } = useAppSelector((state) => state.reports);
   const reportRows = currentReport?.data ?? [];
@@ -242,10 +243,21 @@ function ReportBuilder() {
     <NeoBrutalistLayout pageTitle="REPORTS">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-black text-[var(--app-text)]">Report Builder</h1>
-          <p className="mt-2 text-[var(--app-text-muted)]">
-            Create custom reports by selecting entity, fields, filters, and sorting options
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="text-3xl font-black text-[var(--app-text)]">Report Builder</h1>
+              <p className="mt-2 text-[var(--app-text-muted)]">
+                Create custom reports by selecting entity, fields, filters, and sorting options
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/reports/outcomes')}
+              className="px-4 py-2 bg-[var(--loop-cyan)] text-black border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold uppercase text-sm"
+            >
+              Outcomes Report
+            </button>
+          </div>
         </div>
 
         {/* Entity Selector */}

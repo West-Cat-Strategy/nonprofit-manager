@@ -30,8 +30,31 @@ import type {
   CaseRelationshipsResponse,
   CaseServicesResponse,
 } from '../../types/case';
+import type {
+  InteractionOutcomeImpact,
+  OutcomeDefinition,
+  UpdateInteractionOutcomesInput,
+} from '../../types/outcomes';
 
 const getErrorMessage = (error: unknown, fallbackMessage: string) => formatApiErrorMessageWith(fallbackMessage)(error);
+
+interface ApiEnvelope<T> {
+  success: boolean;
+  data: T;
+}
+
+const extractEnvelopeData = <T>(responseData: ApiEnvelope<T> | T): T => {
+  if (
+    responseData &&
+    typeof responseData === 'object' &&
+    'success' in responseData &&
+    'data' in responseData
+  ) {
+    return (responseData as ApiEnvelope<T>).data;
+  }
+
+  return responseData as T;
+};
 
 const initialState: CasesState = {
   cases: [],
@@ -42,10 +65,15 @@ const initialState: CasesState = {
   caseMilestones: [],
   caseRelationships: [],
   caseServices: [],
+  caseOutcomeDefinitions: [],
+  interactionOutcomeImpacts: {},
   summary: null,
   total: 0,
   loading: false,
   error: null,
+  outcomesLoading: false,
+  outcomesSaving: false,
+  outcomesError: null,
   filters: {
     page: 1,
     limit: 20,
@@ -155,6 +183,69 @@ export const createCaseNote = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to create note'));
+    }
+  }
+);
+
+export const fetchCaseOutcomeDefinitions = createAsyncThunk(
+  'cases/fetchCaseOutcomeDefinitions',
+  async (includeInactive: boolean = false, { rejectWithValue }) => {
+    try {
+      const response = await api.get<ApiEnvelope<OutcomeDefinition[]> | OutcomeDefinition[]>(
+        `/cases/outcomes/definitions?includeInactive=${String(includeInactive)}`
+      );
+      return extractEnvelopeData<OutcomeDefinition[]>(response.data);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch outcome definitions'));
+    }
+  }
+);
+
+export const fetchInteractionOutcomes = createAsyncThunk(
+  'cases/fetchInteractionOutcomes',
+  async (
+    { caseId, interactionId }: { caseId: string; interactionId: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await api.get<ApiEnvelope<InteractionOutcomeImpact[]> | InteractionOutcomeImpact[]>(
+        `/cases/${caseId}/interactions/${interactionId}/outcomes`
+      );
+      return {
+        interactionId,
+        impacts: extractEnvelopeData<InteractionOutcomeImpact[]>(response.data),
+      };
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch interaction outcomes'));
+    }
+  }
+);
+
+export const saveInteractionOutcomes = createAsyncThunk(
+  'cases/saveInteractionOutcomes',
+  async (
+    {
+      caseId,
+      interactionId,
+      data,
+    }: {
+      caseId: string;
+      interactionId: string;
+      data: UpdateInteractionOutcomesInput;
+    },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await api.put<ApiEnvelope<InteractionOutcomeImpact[]> | InteractionOutcomeImpact[]>(
+        `/cases/${caseId}/interactions/${interactionId}/outcomes`,
+        data
+      );
+      return {
+        interactionId,
+        impacts: extractEnvelopeData<InteractionOutcomeImpact[]>(response.data),
+      };
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to save interaction outcomes'));
     }
   }
 );
@@ -361,6 +452,25 @@ export const deleteCaseService = createAsyncThunk(
 
 // Slice
 
+const applyImpactsToCaseNote = (
+  state: CasesState,
+  interactionId: string,
+  impacts: InteractionOutcomeImpact[]
+) => {
+  if (!state.interactionOutcomeImpacts) {
+    state.interactionOutcomeImpacts = {};
+  }
+  state.interactionOutcomeImpacts[interactionId] = impacts;
+
+  const noteIndex = state.caseNotes.findIndex((note) => note.id === interactionId);
+  if (noteIndex !== -1) {
+    state.caseNotes[noteIndex] = {
+      ...state.caseNotes[noteIndex],
+      outcome_impacts: impacts,
+    };
+  }
+};
+
 const casesSlice = createSlice({
   name: 'cases',
   initialState,
@@ -377,9 +487,11 @@ const casesSlice = createSlice({
       state.caseMilestones = [];
       state.caseRelationships = [];
       state.caseServices = [];
+      state.interactionOutcomeImpacts = {};
     },
     clearError: (state) => {
       state.error = null;
+      state.outcomesError = null;
     },
     toggleCaseSelection: (state, action) => {
       const caseId = action.payload as string;
@@ -503,6 +615,13 @@ const casesSlice = createSlice({
       .addCase(fetchCaseNotes.fulfilled, (state, action) => {
         state.loading = false;
         state.caseNotes = action.payload;
+        state.interactionOutcomeImpacts = action.payload.reduce<Record<string, InteractionOutcomeImpact[]>>(
+          (acc, note) => {
+            acc[note.id] = note.outcome_impacts || [];
+            return acc;
+          },
+          {}
+        );
       })
       .addCase(fetchCaseNotes.rejected, (state, action) => {
         state.loading = false;
@@ -523,6 +642,45 @@ const casesSlice = createSlice({
       .addCase(createCaseNote.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+      })
+      // Fetch case outcome definitions
+      .addCase(fetchCaseOutcomeDefinitions.pending, (state) => {
+        state.outcomesLoading = true;
+        state.outcomesError = null;
+      })
+      .addCase(fetchCaseOutcomeDefinitions.fulfilled, (state, action) => {
+        state.outcomesLoading = false;
+        state.caseOutcomeDefinitions = action.payload;
+      })
+      .addCase(fetchCaseOutcomeDefinitions.rejected, (state, action) => {
+        state.outcomesLoading = false;
+        state.outcomesError = action.payload as string;
+      })
+      // Fetch interaction outcomes
+      .addCase(fetchInteractionOutcomes.pending, (state) => {
+        state.outcomesLoading = true;
+        state.outcomesError = null;
+      })
+      .addCase(fetchInteractionOutcomes.fulfilled, (state, action) => {
+        state.outcomesLoading = false;
+        applyImpactsToCaseNote(state, action.payload.interactionId, action.payload.impacts);
+      })
+      .addCase(fetchInteractionOutcomes.rejected, (state, action) => {
+        state.outcomesLoading = false;
+        state.outcomesError = action.payload as string;
+      })
+      // Save interaction outcomes
+      .addCase(saveInteractionOutcomes.pending, (state) => {
+        state.outcomesSaving = true;
+        state.outcomesError = null;
+      })
+      .addCase(saveInteractionOutcomes.fulfilled, (state, action) => {
+        state.outcomesSaving = false;
+        applyImpactsToCaseNote(state, action.payload.interactionId, action.payload.impacts);
+      })
+      .addCase(saveInteractionOutcomes.rejected, (state, action) => {
+        state.outcomesSaving = false;
+        state.outcomesError = action.payload as string;
       })
       // Fetch Case Types
       .addCase(fetchCaseTypes.fulfilled, (state, action) => {

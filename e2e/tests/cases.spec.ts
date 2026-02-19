@@ -124,6 +124,37 @@ async function createTestCase(
     return { id: result.id };
 }
 
+async function createCaseNote(
+    page: Page,
+    token: string,
+    caseId: string,
+    content: string
+): Promise<{ id: string }> {
+    const headers = await getWriteHeaders(page, token);
+    const response = await page.request.post(`${apiURL}/api/cases/notes`, {
+        headers,
+        data: {
+            case_id: caseId,
+            note_type: 'note',
+            content,
+            is_internal: false,
+            is_important: false,
+        },
+    });
+
+    if (!response.ok()) {
+        throw new Error(`Failed to create case note (${response.status()}): ${await response.text()}`);
+    }
+
+    const data = await response.json();
+    const id = data?.id || data?.data?.id;
+    if (!id) {
+        throw new Error(`Missing case note id in response: ${JSON.stringify(data)}`);
+    }
+
+    return { id };
+}
+
 test.describe('Cases Module', () => {
     test.beforeEach(async ({ authenticatedPage, authToken }) => {
         await clearCases(authenticatedPage, authToken);
@@ -260,5 +291,62 @@ test.describe('Cases Module', () => {
         await expect(authenticatedPage.getByText(/1 case selected/i)).toBeVisible();
         await authenticatedPage.getByRole('button', { name: /^clear$/i }).click();
         await expect(authenticatedPage.getByText(/1 case selected/i)).not.toBeVisible();
+    });
+
+    test('staff can tag an interaction outcome and see it persisted', async ({ authenticatedPage, authToken }) => {
+        const suffix = uniqueSuffix();
+        const { id: caseId } = await createTestCase(authenticatedPage, authToken, {
+            title: `Outcome Case ${suffix}`,
+        });
+        const { id: noteId } = await createCaseNote(
+            authenticatedPage,
+            authToken,
+            caseId,
+            `Outcome note ${suffix}`
+        );
+
+        const readHeaders = await getReadHeaders(authenticatedPage, authToken);
+        const definitionsResponse = await authenticatedPage.request.get(
+            `${apiURL}/api/cases/outcomes/definitions`,
+            { headers: readHeaders }
+        );
+        expect(definitionsResponse.ok()).toBeTruthy();
+
+        const definitionsBody = await definitionsResponse.json();
+        const definitions = definitionsBody?.data || definitionsBody;
+        const firstDefinition = definitions?.[0];
+        expect(firstDefinition?.id).toBeTruthy();
+
+        const writeHeaders = await getWriteHeaders(authenticatedPage, authToken);
+        const saveResponse = await authenticatedPage.request.put(
+            `${apiURL}/api/cases/${caseId}/interactions/${noteId}/outcomes`,
+            {
+                headers: writeHeaders,
+                data: {
+                    mode: 'replace',
+                    impacts: [
+                        {
+                            outcomeDefinitionId: firstDefinition.id,
+                            attribution: 'DIRECT',
+                            intensity: 3,
+                            evidenceNote: 'Documented in e2e',
+                        },
+                    ],
+                },
+            }
+        );
+        expect(saveResponse.ok()).toBeTruthy();
+
+        const savedBody = await saveResponse.json();
+        const savedImpacts = savedBody?.data || savedBody;
+        expect(savedImpacts.length).toBe(1);
+
+        await authenticatedPage.goto(`/cases/${caseId}`);
+        await authenticatedPage.getByRole('tab', { name: /notes/i }).click();
+        await expect(authenticatedPage.getByText(firstDefinition.name).first()).toBeVisible({ timeout: 10000 });
+
+        await authenticatedPage.reload();
+        await authenticatedPage.getByRole('tab', { name: /notes/i }).click();
+        await expect(authenticatedPage.getByText(firstDefinition.name).first()).toBeVisible({ timeout: 10000 });
     });
 });

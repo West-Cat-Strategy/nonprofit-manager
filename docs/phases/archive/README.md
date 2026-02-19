@@ -65,6 +65,7 @@ This is the single source of truth for:
 - `WEEK1_COMPONENT_TESTING_COMPLETE.md` — Component test completion
 - `WEEK1_INTEGRATION_TESTING_COMPLETE.md` — Integration test completion
 - `EVENT_MODULE_COMPLETION.md` — Event module work
+ - `SESSION_LOG_FEB_2026.md` — Archived session logs & recently completed dump (from planning-and-progress.md)
 
 **Status**: ✅ Complete (completed early 2026)
 

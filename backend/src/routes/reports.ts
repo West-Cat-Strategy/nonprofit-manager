@@ -1,8 +1,11 @@
 import { Router } from 'express';
 import { param, body } from 'express-validator';
 import * as reportController from '@controllers/reportController';
+import * as outcomeReportController from '@controllers/outcomeReportController';
 import { authenticate } from '@middleware/auth';
 import { validateRequest } from '@middleware/validateRequest';
+import { validateQuery } from '@middleware/zodValidation';
+import { outcomesReportQuerySchema } from '@validations/outcomeImpact';
 
 const router = Router();
 
@@ -39,6 +42,16 @@ router.post(
     validateRequest,
   ],
   reportController.generateReport
+);
+
+/**
+ * GET /api/reports/outcomes
+ * Get outcomes report with totals and time series
+ */
+router.get(
+  '/outcomes',
+  validateQuery(outcomesReportQuerySchema),
+  outcomeReportController.getOutcomesReport
 );
 
 /**

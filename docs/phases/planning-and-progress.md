@@ -1,7 +1,7 @@
 # 📊 Nonprofit Manager - Planning & Progress
 
 **Current Phase:** 🚀 Phase 2 - Validation & Authorization (In Progress)  
-**Last Updated:** February 14, 2026 (Phase 2.6 Complete)  
+**Last Updated:** February 18, 2026 (Phase 2.9 Complete)  
 **Lead Developer:** Bryan Crockett (@bcroc), West Cat Strategy Ltd.
 
 ---
@@ -50,9 +50,53 @@ All active work must be **signed out** in the Workboard below before code change
 | P2-T5 | Migrate auth routes to Zod validation (12/12 endpoints) | Phase 2 | Done | Codex | Feb 1, 2026 | Feb 1, 2026 | — |
 | P2-T6 | Create advanced rate limiting middleware | Phase 2 | Done | Codex | Feb 1, 2026 | Feb 1, 2026 | — |
 | P2-T7 | Update auth controller to use auth guards | Phase 2 | Done | Codex | Feb 14, 2026 | Feb 14, 2026 | — |
-| P2-T8 | Migrate volunteer routes to Zod validation | Phase 2 | Ready | — | — | Feb 3, 2026 | — |
-| P2-T9 | Standardize error responses across all endpoints | Phase 2 | Ready | — | — | Feb 2, 2026 | — |
-| P2-T10 | Add Phase 2 integration tests (rate limiting, validation) | Phase 2 | Ready | — | — | Feb 4, 2026 | — |
+| P2-T8 | Migrate volunteer routes to Zod validation | Phase 2 | Done | Codex | Feb 3, 2026 | Feb 19, 2026 | docs/phases/archive/PHASE_2_7_COMPLETION.md |
+| P2-T9 | Migrate contact routes to Zod validation (24 endpoints) | Phase 2 | Done | Codex | Feb 2, 2026 | Feb 19, 2026 | docs/phases/archive/PHASE_2_8_COMPLETION.md |
+| P2-T10 | Migrate donation routes to Zod validation (7 endpoints) | Phase 2 | Done | Codex | Feb 4, 2026 | Feb 19, 2026 | docs/phases/archive/PHASE_2_9_COMPLETION.md |
+| P2-T11 | Migrate event routes to Zod validation | Phase 2 | Ready | — | — | TBD | — |
+| P2-T12 | Migrate task routes to Zod validation | Phase 2 | Ready | — | — | TBD | — |
+| P2-T13 | Migrate account routes to Zod validation | Phase 2 | Ready | — | — | TBD | — |
+| P2-T14 | Migrate remaining routes to Zod (cases, meetings, invitations, etc.) | Phase 2 | Ready | — | — | TBD | — |
+| P2-T15 | Add validation to cases.ts (no validation present) | Phase 2 | Ready | — | — | TBD | — |
+| P2-T16 | Standardize error responses across all endpoints | Phase 2 | Ready | — | — | TBD | — |
+| P2-T17 | Phase 2 integration tests (rate limiting, validation, permissions) | Phase 2 | Ready | — | — | TBD | — |
+| P2-T18 | Outcomes tracking for case interactions (definitions, tagging, reports) | Phase 2 | Review | Codex | Feb 19, 2026 | Feb 19, 2026 | codex/outcomes-tracking |
+
+### **Zod Migration Tracker**
+
+This tracker shows the current validation migration status for backend routes (Zod vs express-validator vs none). Updated: February 18, 2026.
+
+| Route File | Validation Library | Endpoints (approx) | Status |
+|------------|-------------------:|-------------------:|--------|
+| backend/src/routes/auth.ts | Zod | 12 | Zod (migrated)
+| backend/src/routes/volunteers.ts | Zod | 10 | Zod (migrated)
+| backend/src/routes/contacts.ts | Zod | 24 | Zod (migrated)
+| backend/src/routes/donations.ts | Zod | 7 | Zod (migrated)
+| backend/src/routes/accounts.ts | express-validator | 10 | express-validator
+| backend/src/routes/alerts.ts | express-validator | 6 | express-validator
+| backend/src/routes/analytics.ts | express-validator | 6 | express-validator
+| backend/src/routes/backup.ts | express-validator | 4 | express-validator
+| backend/src/routes/dashboard.ts | express-validator | 6 | express-validator
+| backend/src/routes/events.ts | express-validator | 12 | express-validator
+| backend/src/routes/export.ts | express-validator | 4 | express-validator
+| backend/src/routes/ingest.ts | express-validator | 6 | express-validator
+| backend/src/routes/invitations.ts | express-validator | 8 | express-validator
+| backend/src/routes/mailchimp.ts | express-validator | 8 | express-validator
+| backend/src/routes/meetings.ts | express-validator | 8 | express-validator
+| backend/src/routes/payments.ts | express-validator | 8 | express-validator
+| backend/src/routes/portal.ts | express-validator | 10 | express-validator
+| backend/src/routes/portalAdmin.ts | express-validator | 8 | express-validator
+| backend/src/routes/portalAuth.ts | express-validator | 6 | express-validator
+| backend/src/routes/publishing.ts | express-validator | 12 | express-validator
+| backend/src/routes/reports.ts | express-validator | 8 | express-validator
+| backend/src/routes/savedReports.ts | express-validator | 6 | express-validator
+| backend/src/routes/tasks.ts | express-validator | 10 | express-validator
+| backend/src/routes/templates.ts | express-validator | 8 | express-validator
+| backend/src/routes/users.ts | express-validator | 8 | express-validator
+| backend/src/routes/webhooks.ts | express-validator | 12 | express-validator
+| backend/src/routes/cases.ts | None | 6 | No validation
+
+**Summary:** 4 of 27 route files migrated to Zod (15%). Remaining: 22 files using express-validator and 1 file with no validation. Prioritize P2-T11 through P2-T15 for migration.
 
 ### ✅ Recently Completed (February 1, 2026 - Late Evening + Phase 2 Completion)
 
@@ -1655,8 +1699,8 @@ Frontend Component Tests:
 - 📊 **Grafana** - Metrics visualization
 - 📈 **Prometheus** - Metrics collection
 - 📝 **Winston** - Application logging
-- 📊 **Plausible/Mixpanel** - Product analytics (planned)
-- ⚡ **Redis** - Caching layer (planned)
+- 📊 **Plausible** - Product analytics (research complete; implementation pending)
+- ⚡ **Redis** - Caching layer (active)
 
 ### Security Tools
 
@@ -1664,8 +1708,8 @@ Frontend Component Tests:
 - 🛡️ **CORS** - Cross-origin resource sharing
 - 🔒 **bcrypt** - Password hashing
 - 🎫 **JWT** - Token-based authentication
-- 🔍 **express-validator** - Input validation
-- 🚫 **express-rate-limit** - Rate limiting (planned)
+- 🔍 **Zod** - Input validation (migrating from express-validator)
+- 🚫 **Custom rate limiter** - Advanced rate limiting (implemented; 6 configurable strategies)
 
 ### Hosting & Deployment
 
@@ -2756,6 +2800,6 @@ All entities include:
 
 ---
 
-**Last Updated:** February 1, 2026  
-**Document Version:** 2.0  
-**Next Review:** February 8, 2026
+**Last Updated:** February 18, 2026  
+**Document Version:** 3.0  
+**Next Review:** March 1, 2026

@@ -1,11 +1,24 @@
 import express from 'express';
 import { authenticate } from '@middleware/domains/auth';
+import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import * as caseController from '@controllers/domains/engagement';
 import * as documentController from '@controllers/domains/engagement';
+import * as outcomeImpactController from '@controllers/outcomeImpactController';
+import {
+  caseOutcomeDefinitionsQuerySchema,
+  interactionOutcomeParamsSchema,
+  updateInteractionOutcomeImpactsSchema,
+} from '@validations/outcomeImpact';
 
 const router = express.Router();
 
 // Case management routes
+router.get(
+  '/outcomes/definitions',
+  authenticate,
+  validateQuery(caseOutcomeDefinitionsQuerySchema),
+  outcomeImpactController.getCaseOutcomeDefinitions
+);
 router.get('/summary', authenticate, caseController.getCaseSummary);
 router.get('/types', authenticate, caseController.getCaseTypes);
 router.get('/statuses', authenticate, caseController.getCaseStatuses);
@@ -36,5 +49,18 @@ router.put('/services/:serviceId', authenticate, caseController.updateCaseServic
 router.delete('/services/:serviceId', authenticate, caseController.deleteCaseService);
 
 router.post('/notes', authenticate, caseController.createCaseNote);
+router.get(
+  '/:caseId/interactions/:interactionId/outcomes',
+  authenticate,
+  validateParams(interactionOutcomeParamsSchema),
+  outcomeImpactController.getInteractionOutcomes
+);
+router.put(
+  '/:caseId/interactions/:interactionId/outcomes',
+  authenticate,
+  validateParams(interactionOutcomeParamsSchema),
+  validateBody(updateInteractionOutcomeImpactsSchema),
+  outcomeImpactController.putInteractionOutcomes
+);
 
 export default router;

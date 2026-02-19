@@ -14,4 +14,7 @@ export * as contactNoteService from '@services/contactNoteService';
 export * as contactPhoneService from '@services/contactPhoneService';
 export * as contactRelationshipService from '@services/contactRelationshipService';
 export * as meetingService from '@services/meetingService';
+export * as outcomeDefinitionService from '@services/outcomeDefinitionService';
+export * as outcomeImpactService from '@services/outcomeImpactService';
+export * as outcomeReportService from '@services/outcomeReportService';
 export { taskService } from '@services/taskService';
