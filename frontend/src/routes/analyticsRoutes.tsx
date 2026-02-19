@@ -5,7 +5,13 @@
 
 import type { ReactNode } from 'react';
 import { Route, Navigate } from 'react-router-dom';
-import { Analytics, CustomDashboard, ReportBuilder, SavedReports } from './analyticsRouteComponents';
+import {
+  Analytics,
+  CustomDashboard,
+  OutcomesReport,
+  ReportBuilder,
+  SavedReports,
+} from './analyticsRouteComponents';
 
 // Lazy load analytics pages
 
@@ -31,6 +37,10 @@ export function createAnalyticsRoutes(ProtectedRoute: React.ComponentType<RouteW
       <Route
         path="/reports/saved"
         element={<ProtectedRoute><SavedReports /></ProtectedRoute>}
+      />
+      <Route
+        path="/reports/outcomes"
+        element={<ProtectedRoute><OutcomesReport /></ProtectedRoute>}
       />
       <Route
         path="/reports"

@@ -13,6 +13,9 @@ import reducer, {
   fetchCaseTypes,
   fetchCaseStatuses,
   fetchCaseSummary,
+  fetchCaseOutcomeDefinitions,
+  fetchInteractionOutcomes,
+  saveInteractionOutcomes,
   selectCasesByAssignee,
   selectCasesByContact,
   selectUrgentCases,
@@ -64,11 +67,20 @@ const initialState: CasesState = {
   caseTypes: [],
   caseStatuses: [],
   caseNotes: [],
+  caseMilestones: [],
+  caseRelationships: [],
+  caseServices: [],
+  caseOutcomeDefinitions: [],
+  interactionOutcomeImpacts: {},
   summary: null,
   total: 0,
   loading: false,
   error: null,
+  outcomesLoading: false,
+  outcomesSaving: false,
+  outcomesError: null,
   filters: { page: 1, limit: 20, sort_by: 'created_at', sort_order: 'desc' },
+  selectedCaseIds: [],
 };
 
 const wrapState = (cases: CasesState['cases']): { cases: CasesState } => ({
@@ -209,6 +221,81 @@ describe('createCaseNote thunk', () => {
     );
     expect(state.caseNotes[0]).toEqual(newNote);
     expect(state.currentCase?.notes_count).toBe(3);
+  });
+});
+
+describe('outcomes thunks', () => {
+  it('stores case outcome definitions on fulfilled', () => {
+    const definitions = [
+      {
+        id: 'outcome-1',
+        key: 'maintained_employment',
+        name: 'Maintained employment',
+        description: null,
+        category: 'employment',
+        is_active: true,
+        is_reportable: true,
+        sort_order: 10,
+        created_at: '2026-02-19T00:00:00.000Z',
+        updated_at: '2026-02-19T00:00:00.000Z',
+      },
+    ];
+
+    const state = reducer(initialState, {
+      type: fetchCaseOutcomeDefinitions.fulfilled.type,
+      payload: definitions,
+    });
+
+    expect(state.caseOutcomeDefinitions).toEqual(definitions);
+  });
+
+  it('maps interaction outcomes into both note and lookup table', () => {
+    const base = {
+      ...initialState,
+      caseNotes: [{ id: 'note-1', content: 'text' }] as never[],
+    };
+    const impacts = [
+      {
+        id: 'impact-1',
+        interaction_id: 'note-1',
+        outcome_definition_id: 'outcome-1',
+        impact: true,
+        attribution: 'DIRECT',
+        intensity: null,
+        evidence_note: null,
+        created_by_user_id: null,
+        created_at: '2026-02-19T00:00:00.000Z',
+        updated_at: '2026-02-19T00:00:00.000Z',
+        outcome_definition: {
+          id: 'outcome-1',
+          key: 'maintained_employment',
+          name: 'Maintained employment',
+          description: null,
+          category: 'employment',
+          is_active: true,
+          is_reportable: true,
+          sort_order: 10,
+          created_at: '2026-02-19T00:00:00.000Z',
+          updated_at: '2026-02-19T00:00:00.000Z',
+        },
+      },
+    ];
+
+    const fetched = reducer(base, {
+      type: fetchInteractionOutcomes.fulfilled.type,
+      payload: { interactionId: 'note-1', impacts },
+    });
+
+    expect(fetched.interactionOutcomeImpacts?.['note-1']).toEqual(impacts);
+    expect((fetched.caseNotes[0] as { outcome_impacts?: unknown[] }).outcome_impacts).toEqual(impacts);
+
+    const saved = reducer(fetched, {
+      type: saveInteractionOutcomes.fulfilled.type,
+      payload: { interactionId: 'note-1', impacts: [] },
+    });
+
+    expect(saved.interactionOutcomeImpacts?.['note-1']).toEqual([]);
+    expect((saved.caseNotes[0] as { outcome_impacts?: unknown[] }).outcome_impacts).toEqual([]);
   });
 });
 

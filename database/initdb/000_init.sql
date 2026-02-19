@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 \i /migrations/041_events_recurrence.sql
 \i /migrations/042_external_service_providers.sql
 \i /migrations/043_alerts.sql
+\i /migrations/044_outcomes_tracking.sql
 
 \i /seeds/001_default_users.sql
 \i /seeds/002_starter_templates.sql
@@ -61,3 +62,4 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 \i /seeds/005_kingdom_hearts_mock_data.sql
 \i /seeds/006_theme_presets.sql
 \i /seeds/007_data_scopes.sql
+\i /seeds/008_outcome_definitions.sql

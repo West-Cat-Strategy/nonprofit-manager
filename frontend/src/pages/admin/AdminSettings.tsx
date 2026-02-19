@@ -41,6 +41,7 @@ import DashboardSection from './adminSettings/sections/DashboardSection';
 import AuditLogsSection from './adminSettings/sections/AuditLogsSection';
 import EmailSettingsSection from './adminSettings/sections/EmailSettingsSection';
 import RegistrationSettingsSection from './adminSettings/sections/RegistrationSettingsSection';
+import OutcomeDefinitionsSection from './adminSettings/sections/OutcomeDefinitionsSection';
 import UserSecurityModal from './adminSettings/components/UserSecurityModal';
 import PortalResetPasswordModal from './adminSettings/components/PortalResetPasswordModal';
 
@@ -958,6 +959,9 @@ export default function AdminSettings() {
 
           {/* Email Settings Section */}
           {activeSection === 'email' && <EmailSettingsSection />}
+
+          {/* Outcome Definitions Section */}
+          {activeSection === 'outcomes' && <OutcomeDefinitionsSection />}
 
           {/* Other Settings Section */}
           {activeSection === 'other' && <OtherSettingsSection />}

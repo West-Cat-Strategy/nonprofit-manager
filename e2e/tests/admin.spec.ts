@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/auth.fixture';
+import { getAuthHeaders } from '../helpers/database';
 
 test.describe('Admin & Settings Module', () => {
     test('should load user settings', async ({ authenticatedPage }) => {
@@ -37,5 +38,40 @@ test.describe('Admin & Settings Module', () => {
         await authenticatedPage.goto('/settings/email-marketing');
 
         await expect(authenticatedPage.getByRole('heading', { name: /email marketing|mailchimp/i })).toBeVisible();
+    });
+
+    test('admin can create and disable an outcome definition', async ({ authenticatedPage, authToken }) => {
+        const apiURL = process.env.API_URL || 'http://localhost:3001';
+        const headers = await getAuthHeaders(authenticatedPage, authToken);
+        const key = `e2e_outcome_${Date.now()}`;
+
+        const createResponse = await authenticatedPage.request.post(`${apiURL}/api/admin/outcomes`, {
+            headers,
+            data: {
+                key,
+                name: `E2E Outcome ${Date.now()}`,
+                description: 'Created during e2e test',
+                category: 'test',
+                isActive: true,
+                isReportable: true,
+            },
+        });
+
+        expect(createResponse.ok()).toBeTruthy();
+        const createBody = await createResponse.json();
+        const createdOutcome = createBody?.data || createBody;
+        expect(createdOutcome?.key).toBe(key);
+
+        const disableResponse = await authenticatedPage.request.post(
+            `${apiURL}/api/admin/outcomes/${createdOutcome.id}/disable`,
+            {
+                headers,
+            }
+        );
+        expect(disableResponse.ok()).toBeTruthy();
+
+        const disableBody = await disableResponse.json();
+        const disabledOutcome = disableBody?.data || disableBody;
+        expect(disabledOutcome?.is_active).toBe(false);
     });
 });

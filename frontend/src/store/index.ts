@@ -19,6 +19,8 @@ import dashboardReducer from './slices/dashboardSlice';
 import alertsReducer from './slices/alertsSlice';
 import portalAuthReducer from './slices/portalAuthSlice';
 import followUpsReducer from './slices/followUpsSlice';
+import outcomesAdminReducer from './slices/outcomesAdminSlice';
+import outcomesReportsReducer from './slices/outcomesReportsSlice';
 
 export const rootReducer = combineReducers({
   auth: authReducer,
@@ -41,6 +43,8 @@ export const rootReducer = combineReducers({
   alerts: alertsReducer,
   portalAuth: portalAuthReducer,
   followUps: followUpsReducer,
+  outcomesAdmin: outcomesAdminReducer,
+  outcomesReports: outcomesReportsReducer,
 });
 
 export const store = configureStore({
