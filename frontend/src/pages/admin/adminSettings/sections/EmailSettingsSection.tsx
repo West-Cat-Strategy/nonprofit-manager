@@ -188,7 +188,7 @@ export default function EmailSettingsSection() {
     }
 
     void fetchSettings();
-  }, [fetchSettings]);
+  }, [applySettings, fetchSettings]);
 
   // ---- Save ----
   const handleSave = async () => {

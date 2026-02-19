@@ -75,9 +75,8 @@ export function handleFetchItemsFulfilled<
   P extends { data: T[]; pagination: PaginationState }
 >(state: Draft<S>, action: PayloadAction<P>): void {
   state.loading = false;
-  const mutableState = state as any;
-  mutableState.items = action.payload.data;
-  mutableState.pagination = action.payload.pagination;
+  state.items = action.payload.data as Draft<S>['items'];
+  state.pagination = action.payload.pagination as Draft<S>['pagination'];
 }
 
 /**
@@ -88,8 +87,7 @@ export function handleFetchItemByIdFulfilled<S extends BaseCrudState<T>, T>(
   action: PayloadAction<T>
 ): void {
   state.loading = false;
-  const mutableState = state as any;
-  mutableState.selectedItem = action.payload;
+  state.selectedItem = action.payload as Draft<S>['selectedItem'];
 }
 
 /**
@@ -100,8 +98,7 @@ export function handleCreateItemFulfilled<S extends BaseCrudState<T>, T>(
   action: PayloadAction<T>
 ): void {
   state.loading = false;
-  const mutableState = state as any;
-  mutableState.items.unshift(action.payload);
+  state.items.unshift(action.payload as Draft<S>['items'][number]);
 }
 
 /**
@@ -120,11 +117,11 @@ export function handleUpdateItemFulfilled<S extends BaseCrudState<T>, T>(
     (item) => (item as T)[idField] === itemId
   );
   if (index !== -1) {
-    (state as any).items[index] = updatedItem;
+    state.items[index] = updatedItem as Draft<S>['items'][number];
   }
 
   if (state.selectedItem && (state.selectedItem as T)[idField] === itemId) {
-    (state as any).selectedItem = updatedItem;
+    state.selectedItem = updatedItem as Draft<S>['selectedItem'];
   }
 }
 
@@ -139,12 +136,12 @@ export function handleDeleteItemFulfilled<S extends BaseCrudState<T>, T>(
   state.loading = false;
   const deletedId = action.payload;
 
-  (state as any).items = state.items.filter(
+  state.items = state.items.filter(
     (item) => (item as T)[idField] !== deletedId
-  );
+  ) as Draft<S>['items'];
 
   if (state.selectedItem && (state.selectedItem as T)[idField] === deletedId) {
-    (state as any).selectedItem = null;
+    state.selectedItem = null;
   }
 }
 
@@ -155,7 +152,7 @@ export function createClearReducers<T>() {
   return {
      
     clearSelectedItem: (state: Draft<BaseCrudState<T>>) => {
-      (state as any).selectedItem = null;
+      state.selectedItem = null;
     },
      
     clearError: (state: Draft<BaseCrudState<T>>) => {

@@ -79,6 +79,7 @@ const VolunteerDetail = () => {
     { id: 'timetracker', label: 'Time Tracker' },
     { id: 'activity', label: 'Activity' },
   ] as const;
+  type VolunteerTab = (typeof tabs)[number]['id'];
 
   return (
     <PeopleDetailContainer
@@ -92,7 +93,12 @@ const VolunteerDetail = () => {
         label: tab.label,
       }))}
       activeTab={activeTab}
-      onTabChange={(tabId) => setActiveTab(tabId as any)}
+      onTabChange={(tabId) => {
+        const nextTab = tabId as VolunteerTab;
+        if (tabs.some((tab) => tab.id === nextTab)) {
+          setActiveTab(nextTab);
+        }
+      }}
     >
       {/* Info Tab */}
       {activeTab === 'info' && (

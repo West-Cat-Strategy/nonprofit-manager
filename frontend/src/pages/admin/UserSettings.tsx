@@ -242,8 +242,7 @@ export default function UserSettings() {
     }
   }, [clearSecurityError, setSecurityErrorFromError]);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
       let resolvedProfile: UserProfile | null = null;
       let resolvedCustomPronouns = '';
       let resolvedPreviewImage: string | null = null;
@@ -285,10 +284,28 @@ export default function UserSettings() {
       } catch {
         // Use defaults from auth state if fetch fails
         resolvedProfile = {
-          ...profile,
           firstName: user?.firstName || '',
           lastName: user?.lastName || '',
           email: user?.email || '',
+          emailSharedWithClients: false,
+          emailSharedWithUsers: true,
+          alternativeEmails: [],
+          displayName: '',
+          alternativeName: '',
+          pronouns: '',
+          title: '',
+          cellPhone: '',
+          contactNumber: '',
+          profilePicture: null,
+          notifications: {
+            emailNotifications: true,
+            taskReminders: true,
+            eventReminders: true,
+            donationAlerts: true,
+            caseUpdates: true,
+            weeklyDigest: false,
+            marketingEmails: false,
+          },
         };
       } finally {
         if (resolvedProfile) {
@@ -299,9 +316,11 @@ export default function UserSettings() {
         }
         setIsLoading(false);
       }
-    };
-    fetchProfile();
-  }, [user]);
+    }, [user]);
+
+  useEffect(() => {
+    void fetchProfile();
+  }, [fetchProfile]);
 
   useEffect(() => {
     refreshSecurity();

@@ -17,7 +17,7 @@ const mockState = {
 
 vi.mock('../../store/hooks', () => ({
   useAppDispatch: () => dispatchMock,
-  useAppSelector: (selector: (state: any) => any) => selector(mockState),
+  useAppSelector: (selector: (state: typeof mockState) => unknown) => selector(mockState),
 }));
 
 vi.mock('../../store/slices/analyticsSlice', () => ({

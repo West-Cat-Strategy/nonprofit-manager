@@ -8,16 +8,16 @@ import { useState, useCallback, useEffect } from 'react';
 interface FilterPreset {
   id: string;
   name: string;
-  filters: Record<string, any>;
+  filters: Record<string, unknown>;
   createdAt: Date;
 }
 
 interface UseFilteringReturn {
-  filters: Record<string, any>;
-  updateFilter: (key: string, value: any) => void;
+  filters: Record<string, unknown>;
+  updateFilter: (key: string, value: unknown) => void;
   clearFilter: (key: string) => void;
   clearAllFilters: () => void;
-  setFilters: (filters: Record<string, any>) => void;
+  setFilters: (filters: Record<string, unknown>) => void;
   savePreset: (name: string) => FilterPreset;
   loadPreset: (preset: FilterPreset) => void;
   deletePreset: (presetId: string) => void;
@@ -28,10 +28,10 @@ interface UseFilteringReturn {
 
 
 export const useFiltering = (
-  initialFilters: Record<string, any> = {},
+  initialFilters: Record<string, unknown> = {},
   storageKey?: string
 ): UseFilteringReturn => {
-  const [filters, setFilterState] = useState<Record<string, any>>(
+  const [filters, setFilterState] = useState<Record<string, unknown>>(
     initialFilters
   );
   const [presets, setPresets] = useState<FilterPreset[]>([]);
@@ -46,7 +46,7 @@ export const useFiltering = (
     }
   }, [storageKey]);
 
-  const updateFilter = useCallback((key: string, value: any) => {
+  const updateFilter = useCallback((key: string, value: unknown) => {
     setFilterState((prev) => ({
       ...prev,
       [key]: value,
@@ -65,7 +65,7 @@ export const useFiltering = (
     setFilterState(initialFilters);
   }, [initialFilters]);
 
-  const setFilters = useCallback((newFilters: Record<string, any>) => {
+  const setFilters = useCallback((newFilters: Record<string, unknown>) => {
     setFilterState(newFilters);
   }, []);
 

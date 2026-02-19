@@ -408,7 +408,7 @@ function ReportBuilder() {
                 <label className="block text-xs font-bold uppercase mb-1">Chart Type</label>
                 <select
                   value={chartType}
-                  onChange={(e) => setChartType(e.target.value as any)}
+                  onChange={(e) => setChartType(e.target.value as 'bar' | 'pie' | 'line')}
                   className="w-full border-2 border-black p-2 font-bold bg-white"
                 >
                   <option value="bar">Bar Chart</option>

@@ -16,21 +16,21 @@ const state = {
 
 vi.mock('../../../../store/hooks', () => ({
   useAppDispatch: () => dispatchMock,
-  useAppSelector: (selector: (s: any) => any) => selector(state),
+  useAppSelector: (selector: (s: typeof state) => unknown) => selector(state),
 }));
 
 vi.mock('../../../../store/slices/contactsSlice', () => ({
   default: (state = { contacts: [], loading: false, error: null, pagination: { total: 0, page: 1, limit: 20, total_pages: 1 }, filters: {} }) => state,
-  fetchContacts: (payload: any) => ({ type: 'contacts/fetch', payload }),
+  fetchContacts: (payload: unknown) => ({ type: 'contacts/fetch', payload }),
   deleteContact: (id: string) => ({ type: 'contacts/delete', payload: id }),
-  setFilters: (payload: any) => ({ type: 'contacts/setFilters', payload }),
+  setFilters: (payload: unknown) => ({ type: 'contacts/setFilters', payload }),
   clearFilters: () => ({ type: 'contacts/clearFilters' }),
   fetchContactTags: () => ({ type: 'contacts/tags' }),
 }));
 
 vi.mock('../../../../components/people', () => ({
   PeopleListContainer: () => <div>People List</div>,
-  FilterPanel: ({ onApplyFilters }: any) => <button onClick={onApplyFilters}>Apply Filters</button>,
+  FilterPanel: ({ onApplyFilters }: { onApplyFilters: () => void }) => <button onClick={onApplyFilters}>Apply Filters</button>,
   BulkActionBar: () => <div>Bulk Bar</div>,
   ImportExportModal: () => null,
 }));

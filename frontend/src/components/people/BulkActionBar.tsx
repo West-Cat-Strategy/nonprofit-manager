@@ -66,7 +66,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
         {allActions.map((action) => (
           <BrutalButton
             key={action.id}
-            variant={action.variant as any}
+            variant={action.variant === 'danger' ? 'danger' : action.variant}
             onClick={action.onClick}
             disabled={action.disabled}
             className={`text-sm px-4 py-2 font-black uppercase ${action.variant === 'danger' ? 'bg-red-500 text-white' : 'bg-white text-black'

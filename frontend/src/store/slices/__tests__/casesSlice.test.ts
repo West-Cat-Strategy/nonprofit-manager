@@ -1,15 +1,13 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import reducer, {
   setFilters,
   clearFilters,
   clearCurrentCase,
   clearError,
   fetchCases,
-  fetchCaseById,
   createCase,
   updateCase,
   deleteCase,
-  updateCaseStatus,
   fetchCaseNotes,
   createCaseNote,
   fetchCaseTypes,

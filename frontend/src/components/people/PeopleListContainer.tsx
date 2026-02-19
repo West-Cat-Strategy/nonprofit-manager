@@ -6,14 +6,14 @@
 import React, { useEffect, useRef } from 'react';
 import { BrutalCard, BrutalButton } from '../neo-brutalist';
 
-export interface TableColumn<T = any> {
-  key: string;
+export interface TableColumn<T extends { id: string }> {
+  key: keyof T | string;
   label: string;
   width?: string;
-  render?: (value: any, row: T) => React.ReactNode;
+  render?: (value: unknown, row: T) => React.ReactNode;
 }
 
-interface PeopleListContainerProps {
+interface PeopleListContainerProps<T extends { id: string }> {
   title: string;
   description?: string;
   onCreateNew?: () => void;
@@ -21,8 +21,8 @@ interface PeopleListContainerProps {
   filters?: React.ReactNode;
   loading?: boolean;
   error?: string;
-  data: any[];
-  columns: TableColumn<any>[];
+  data: T[];
+  columns: TableColumn<T>[];
   pagination?: {
     total: number;
     page: number;
@@ -46,7 +46,7 @@ interface PeopleListContainerProps {
   };
 }
 
-export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
+export const PeopleListContainer = <T extends { id: string }>({
   title,
   description,
   onCreateNew,
@@ -66,7 +66,7 @@ export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
   emptyStateDescription,
   emptyStateAction,
   emptyStateSecondaryAction,
-}) => {
+}: PeopleListContainerProps<T>) => {
   const allSelected =
     data.length > 0 && data.every((row) => selectedRows.has(row.id));
   const someSelected = selectedRows.size > 0 && !allSelected;
@@ -203,8 +203,13 @@ export const PeopleListContainer: React.FC<PeopleListContainerProps> = ({
                       {columns.map((col) => (
                         <td key={`${row.id}-${col.key}`} className="px-6 py-4 text-[var(--app-text)] font-medium">
                           {col.render
-                            ? col.render(row[col.key], row)
-                            : row[col.key]}
+                            ? col.render(
+                              typeof col.key === 'string' ? (row as Record<string, unknown>)[col.key] : row[col.key],
+                              row
+                            )
+                            : (typeof col.key === 'string'
+                              ? (row as Record<string, unknown>)[col.key]
+                              : row[col.key]) as React.ReactNode}
                         </td>
                       ))}
                     </tr>

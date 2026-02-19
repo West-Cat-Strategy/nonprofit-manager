@@ -84,7 +84,6 @@ export class EventService {
     if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
       conditions.push(`created_by = ANY($${paramCount}::uuid[])`);
       params.push(scope.createdByUserIds);
-      paramCount++;
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -191,13 +190,12 @@ export class EventService {
     `;
 
     const params: QueryValue[] = [eventId];
-    let paramCount = 2;
+    const paramCount = 2;
     const conditions: string[] = [];
 
     if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
       conditions.push(`created_by = ANY($${paramCount}::uuid[])`);
       params.push(scope.createdByUserIds);
-      paramCount++;
     }
 
     const finalQuery =
@@ -478,7 +476,6 @@ export class EventService {
     if (filters.checked_in !== undefined) {
       conditions.push(`er.checked_in = $${paramCount}`);
       params.push(filters.checked_in);
-      paramCount++;
     }
 
     const whereClause = conditions.join(' AND ');
