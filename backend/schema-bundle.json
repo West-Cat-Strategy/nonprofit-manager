@@ -1,0 +1,904 @@
+{
+  "version": "2026-02-18.1",
+  "generated_at": "2026-02-18T19:08:54.372Z",
+  "tables": [
+    {
+      "name": "accounts",
+      "aliases": [
+        "account",
+        "organization",
+        "org",
+        "company",
+        "constituent",
+        "donor"
+      ],
+      "fields": [
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "aliases": [
+            "id",
+            "accountid"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "account_number",
+          "type": "string",
+          "aliases": [
+            "acct_no",
+            "acct",
+            "account_no",
+            "accountnumber"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "account_name",
+          "type": "string",
+          "required": true,
+          "aliases": [
+            "name",
+            "organization",
+            "org_name"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "account_type",
+          "type": "enum",
+          "aliases": [
+            "type",
+            "kind"
+          ],
+          "enum_values": [],
+          "constraints": {}
+        },
+        {
+          "name": "category",
+          "type": "enum",
+          "aliases": [
+            "segment",
+            "class",
+            "group"
+          ],
+          "enum_values": [],
+          "constraints": {}
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "aliases": [
+            "email_address",
+            "e-mail"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "phone",
+          "type": "string",
+          "aliases": [
+            "telephone",
+            "tel",
+            "main_phone"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "website",
+          "type": "string",
+          "aliases": [
+            "url",
+            "web"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "aliases": [
+            "notes",
+            "memo"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "address_line1",
+          "type": "string",
+          "aliases": [
+            "address1",
+            "street",
+            "street1",
+            "line1"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "address_line2",
+          "type": "string",
+          "aliases": [
+            "address2",
+            "street2",
+            "line2",
+            "suite",
+            "apt"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "city",
+          "type": "string",
+          "aliases": [],
+          "constraints": {}
+        },
+        {
+          "name": "state_province",
+          "type": "string",
+          "aliases": [
+            "state",
+            "province",
+            "region"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "postal_code",
+          "type": "string",
+          "aliases": [
+            "zip",
+            "zipcode",
+            "postal",
+            "post_code"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "country",
+          "type": "string",
+          "aliases": [],
+          "constraints": {}
+        },
+        {
+          "name": "tax_id",
+          "type": "string",
+          "aliases": [
+            "ein",
+            "tin",
+            "ssn"
+          ],
+          "constraints": {}
+        }
+      ]
+    },
+    {
+      "name": "contacts",
+      "aliases": [
+        "contact",
+        "people",
+        "person",
+        "constituents",
+        "supporters"
+      ],
+      "fields": [
+        {
+          "name": "contact_id",
+          "type": "uuid",
+          "aliases": [
+            "id",
+            "contactid"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "aliases": [
+            "account",
+            "accountid",
+            "organization_id"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "required": true,
+          "aliases": [
+            "firstname",
+            "given_name",
+            "forename"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "last_name",
+          "type": "string",
+          "required": true,
+          "aliases": [
+            "lastname",
+            "surname",
+            "family_name"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "middle_name",
+          "type": "string",
+          "aliases": [
+            "middlename",
+            "mi"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "salutation",
+          "type": "string",
+          "aliases": [
+            "title",
+            "prefix"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "suffix",
+          "type": "string",
+          "aliases": [
+            "post_nominal"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "birth_date",
+          "type": "date",
+          "aliases": [
+            "dob",
+            "birthdate",
+            "date_of_birth"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "gender",
+          "type": "string",
+          "aliases": [],
+          "constraints": {}
+        },
+        {
+          "name": "pronouns",
+          "type": "string",
+          "aliases": [
+            "pronoun"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "aliases": [
+            "email_address",
+            "e-mail"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "phone",
+          "type": "string",
+          "aliases": [
+            "telephone",
+            "tel",
+            "home_phone",
+            "work_phone"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "mobile_phone",
+          "type": "string",
+          "aliases": [
+            "mobile",
+            "cell",
+            "cell_phone",
+            "cellphone"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "job_title",
+          "type": "string",
+          "aliases": [
+            "title"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "department",
+          "type": "string",
+          "aliases": [],
+          "constraints": {}
+        },
+        {
+          "name": "preferred_contact_method",
+          "type": "string",
+          "aliases": [
+            "preferred_method",
+            "contact_method"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "do_not_email",
+          "type": "boolean",
+          "aliases": [
+            "opt_out_email",
+            "no_email",
+            "donotemail"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "do_not_phone",
+          "type": "boolean",
+          "aliases": [
+            "opt_out_phone",
+            "no_phone",
+            "donotcall"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "address_line1",
+          "type": "string",
+          "aliases": [
+            "address1",
+            "street",
+            "street1",
+            "line1"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "address_line2",
+          "type": "string",
+          "aliases": [
+            "address2",
+            "street2",
+            "line2",
+            "suite",
+            "apt"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "city",
+          "type": "string",
+          "aliases": [],
+          "constraints": {}
+        },
+        {
+          "name": "state_province",
+          "type": "string",
+          "aliases": [
+            "state",
+            "province",
+            "region"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "postal_code",
+          "type": "string",
+          "aliases": [
+            "zip",
+            "zipcode",
+            "postal",
+            "post_code"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "country",
+          "type": "string",
+          "aliases": [],
+          "constraints": {}
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "aliases": [
+            "note",
+            "memo",
+            "comment",
+            "comments"
+          ],
+          "constraints": {}
+        }
+      ]
+    },
+    {
+      "name": "donations",
+      "aliases": [
+        "donation",
+        "donations",
+        "contribution",
+        "gift",
+        "giving",
+        "payments"
+      ],
+      "fields": [
+        {
+          "name": "donation_id",
+          "type": "uuid",
+          "aliases": [
+            "id",
+            "donationid"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "donation_number",
+          "type": "string",
+          "aliases": [
+            "receipt_number",
+            "gift_id",
+            "donation_no"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "aliases": [
+            "account",
+            "accountid",
+            "org_id"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "contact_id",
+          "type": "uuid",
+          "aliases": [
+            "contact",
+            "contactid",
+            "person_id",
+            "donor_id"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "required": true,
+          "aliases": [
+            "gift_amount",
+            "donation_amount",
+            "total",
+            "value"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "aliases": [
+            "curr"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "donation_date",
+          "type": "datetime",
+          "required": true,
+          "aliases": [
+            "date",
+            "gift_date",
+            "received_date"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "payment_method",
+          "type": "enum",
+          "aliases": [
+            "method",
+            "tender"
+          ],
+          "enum_values": [
+            "cash",
+            "check",
+            "credit_card",
+            "debit_card",
+            "bank_transfer",
+            "paypal",
+            "stock",
+            "in_kind",
+            "other"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "payment_status",
+          "type": "enum",
+          "aliases": [
+            "status"
+          ],
+          "enum_values": [
+            "pending",
+            "completed",
+            "failed",
+            "refunded",
+            "cancelled"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "transaction_id",
+          "type": "string",
+          "aliases": [
+            "txn_id",
+            "stripe_charge_id"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "campaign_name",
+          "type": "string",
+          "aliases": [
+            "campaign",
+            "appeal"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "designation",
+          "type": "string",
+          "aliases": [
+            "fund",
+            "allocation",
+            "purpose"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "is_recurring",
+          "type": "boolean",
+          "aliases": [
+            "recurring",
+            "is_monthly"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "recurring_frequency",
+          "type": "enum",
+          "aliases": [
+            "frequency",
+            "interval"
+          ],
+          "enum_values": [
+            "weekly",
+            "monthly",
+            "quarterly",
+            "annually",
+            "one_time"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "aliases": [
+            "note",
+            "memo",
+            "comment",
+            "comments"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "receipt_sent",
+          "type": "boolean",
+          "aliases": [
+            "sent_receipt"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "receipt_sent_date",
+          "type": "datetime",
+          "aliases": [
+            "receipt_date"
+          ],
+          "constraints": {}
+        }
+      ]
+    },
+    {
+      "name": "events",
+      "aliases": [
+        "event",
+        "campaign",
+        "program",
+        "meeting"
+      ],
+      "fields": [
+        {
+          "name": "event_id",
+          "type": "uuid",
+          "aliases": [
+            "id",
+            "eventid"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "event_name",
+          "type": "string",
+          "required": true,
+          "aliases": [
+            "name",
+            "title"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "aliases": [
+            "details",
+            "notes"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "event_type",
+          "type": "string",
+          "aliases": [
+            "type",
+            "category"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "aliases": [
+            "state"
+          ],
+          "enum_values": [],
+          "constraints": {}
+        },
+        {
+          "name": "start_date",
+          "type": "datetime",
+          "required": true,
+          "aliases": [
+            "start",
+            "start_time",
+            "starts_at"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "end_date",
+          "type": "datetime",
+          "required": true,
+          "aliases": [
+            "end",
+            "end_time",
+            "ends_at"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "location_name",
+          "type": "string",
+          "aliases": [
+            "location",
+            "venue"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "address_line1",
+          "type": "string",
+          "aliases": [
+            "address1",
+            "street",
+            "street1",
+            "line1"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "address_line2",
+          "type": "string",
+          "aliases": [
+            "address2",
+            "street2",
+            "line2",
+            "suite",
+            "apt"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "city",
+          "type": "string",
+          "aliases": [],
+          "constraints": {}
+        },
+        {
+          "name": "state_province",
+          "type": "string",
+          "aliases": [
+            "state",
+            "province",
+            "region"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "postal_code",
+          "type": "string",
+          "aliases": [
+            "zip",
+            "zipcode",
+            "postal",
+            "post_code"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "country",
+          "type": "string",
+          "aliases": [],
+          "constraints": {}
+        },
+        {
+          "name": "capacity",
+          "type": "number",
+          "aliases": [
+            "max",
+            "max_capacity",
+            "limit"
+          ],
+          "constraints": {}
+        }
+      ]
+    },
+    {
+      "name": "volunteers",
+      "aliases": [
+        "volunteer",
+        "volunteers",
+        "service"
+      ],
+      "fields": [
+        {
+          "name": "volunteer_id",
+          "type": "uuid",
+          "aliases": [
+            "id",
+            "volunteerid"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "contact_id",
+          "type": "uuid",
+          "aliases": [
+            "contact",
+            "contactid",
+            "person_id"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "skills",
+          "type": "string",
+          "aliases": [
+            "skill",
+            "abilities",
+            "interests"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "availability_status",
+          "type": "enum",
+          "aliases": [
+            "availability",
+            "status",
+            "state"
+          ],
+          "enum_values": [],
+          "constraints": {}
+        },
+        {
+          "name": "availability_notes",
+          "type": "string",
+          "aliases": [
+            "availability_note",
+            "availability_details",
+            "notes"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "background_check_status",
+          "type": "enum",
+          "aliases": [
+            "bg_check_status",
+            "background_status"
+          ],
+          "enum_values": [],
+          "constraints": {}
+        },
+        {
+          "name": "background_check_date",
+          "type": "date",
+          "aliases": [
+            "bg_check_date",
+            "background_date"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "background_check_expiry",
+          "type": "date",
+          "aliases": [
+            "bg_check_expiry",
+            "background_expiry"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "preferred_roles",
+          "type": "string",
+          "aliases": [
+            "roles",
+            "volunteer_roles"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "max_hours_per_week",
+          "type": "number",
+          "aliases": [
+            "max_hours",
+            "hours_per_week"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "emergency_contact_name",
+          "type": "string",
+          "aliases": [
+            "emergency_name",
+            "ice_name"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "emergency_contact_phone",
+          "type": "string",
+          "aliases": [
+            "emergency_phone",
+            "ice_phone"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "emergency_contact_relationship",
+          "type": "string",
+          "aliases": [
+            "emergency_relationship",
+            "ice_relationship"
+          ],
+          "constraints": {}
+        }
+      ]
+    }
+  ]
+}

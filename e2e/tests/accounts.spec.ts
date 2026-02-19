@@ -229,13 +229,25 @@ test.describe('Accounts Module', () => {
     const deleteRow = authenticatedPage.locator('tr', { hasText: deleteName });
     await expect(deleteRow).toBeVisible();
 
-    // Click delete button in the list
-    authenticatedPage.on('dialog', async (dialog) => {
-      await dialog.accept();
-    });
-    await deleteRow.locator('button:has-text("Delete")').click();
+    // The app uses an in-app confirm dialog (not window.confirm).
+    const deleteResponsePromise = authenticatedPage.waitForResponse(
+      (response) =>
+        response.request().method() === 'DELETE' &&
+        response.url().includes('/api/accounts/') &&
+        response.status() === 204,
+      { timeout: 15000 }
+    );
 
-    await expect(deleteRow).not.toBeVisible();
+    await deleteRow.locator('button:has-text("Delete")').click();
+    const confirmModal = authenticatedPage.locator('div.fixed.inset-0').filter({
+      hasText: /are you sure you want to delete/i,
+    });
+    await expect(confirmModal).toBeVisible({ timeout: 10000 });
+    await confirmModal.locator('button.bg-red-600').click();
+    await deleteResponsePromise;
+
+    await authenticatedPage.reload();
+    await expect(authenticatedPage.locator('tr', { hasText: deleteName })).toHaveCount(0);
   });
 
   test('should paginate accounts list', async ({
@@ -295,16 +307,14 @@ test.describe('Accounts Module', () => {
     await authenticatedPage.goto('/accounts');
     await authenticatedPage.waitForTimeout(1000);
 
-    // Filter by organization type
-    await authenticatedPage
+    // Filter by organization type using the labeled Type control.
+    const filterForm = authenticatedPage
       .locator('form')
-      .locator('select')
-      .first()
-      .selectOption('organization');
-    await authenticatedPage
-      .locator('form')
-      .getByRole('button', { name: 'Search' })
-      .click();
+      .filter({ has: authenticatedPage.getByLabel('Type') })
+      .first();
+    await authenticatedPage.getByLabel('Type').selectOption('organization');
+    await filterForm.getByRole('button', { name: 'Search' }).click();
+
     await expect(
       authenticatedPage.locator(`text=Organization Account ${filterSuffix}`)
     ).toBeVisible({ timeout: 15000 });

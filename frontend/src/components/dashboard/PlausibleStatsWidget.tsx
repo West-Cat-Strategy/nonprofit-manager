@@ -107,15 +107,7 @@ const PlausibleStatsWidget = ({ widget, editMode, onRemove }: PlausibleStatsWidg
     } catch (err) {
       console.error('Error fetching Plausible stats:', err);
       setError('Unable to load analytics data');
-      // Set mock data for development
-      if (import.meta.env.DEV) {
-        setStats({
-          visitors: { value: 1234, change: 12.5 },
-          pageviews: { value: 4567, change: 8.3 },
-          bounce_rate: { value: 42, change: -2.1 },
-          visit_duration: { value: 145, change: 5.7 },
-        });
-      }
+      setStats(null);
     } finally {
       setLoading(false);
     }
@@ -168,12 +160,6 @@ const PlausibleStatsWidget = ({ widget, editMode, onRemove }: PlausibleStatsWidg
               icon="⏱️"
             />
           </div>
-
-          {import.meta.env.DEV && error && (
-            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm text-yellow-800">Showing mock data. {error}</p>
-            </div>
-          )}
         </div>
       ) : (
         <div className="p-4">
