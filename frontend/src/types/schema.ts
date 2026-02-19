@@ -23,7 +23,7 @@ export interface AdaptedPerson {
     status?: 'active' | 'away' | 'inactive';
     title?: string;
     fullName: string;
-    cardColor?: 'pink' | 'cyan' | 'yellow' | 'gray';
+    cardColor?: CardColor;
 }
 
 /**

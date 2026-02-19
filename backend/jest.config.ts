@@ -38,10 +38,10 @@ const config: Config = {
   collectCoverageFrom: ['<rootDir>/src/**/*.ts', '!<rootDir>/src/**/__tests__/**', '!<rootDir>/src/index.ts'],
   coverageThreshold: {
     global: {
-      branches: 25,
-      functions: 28,
-      lines: 27,
-      statements: 28,
+      branches: 65,
+      functions: 75,
+      lines: 75,
+      statements: 75,
     },
   },
 };

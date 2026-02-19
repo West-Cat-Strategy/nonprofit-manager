@@ -5,8 +5,7 @@
  * Color, status, and role are ALL driven by props, not hard-coded logic.
  */
 
-import type { AdaptedPerson } from '../../utils/dataAdapter';
-import type { CardColor } from '../../utils/mockData';
+import type { AdaptedPerson, CardColor } from '../../types/schema';
 
 interface PeopleCardProps {
     person: AdaptedPerson;

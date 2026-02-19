@@ -426,3 +426,27 @@ Coverage Summary:
 **Coverage**: ~67%
 **Target**: 75%+
 **Status**: On track to meet Week 1 goals
+
+## Test Expansion Status (February 18, 2026)
+
+### Added backend integration suites
+- alerts, payments, reconciliation, reports, savedReports, templates, publishing, webhooks, portalAuth, ingest.
+
+### Added backend service suites
+- registrationSettingsService, themePresetService, emailSettingsService, passwordResetService, stripeService, reconciliationService.
+- Publishing and analytics additions: customDomainService, analytics/donationAnalytics.
+
+### Added frontend page suites
+- Dashboard, AdminSettings, ReportBuilder, ContactList, VolunteerList, TaskList, EventList, DonationList, PortalDashboard.
+
+### Added Playwright suites
+- payments, reconciliation, reports, saved-reports, templates, alerts, publishing, webhooks, portal-auth, ingest.
+
+### Flake mitigations
+- Shared backend auth/cleanup helpers for integration tests.
+- Shared e2e domain fixture helpers for create/delete lifecycle operations.
+- CI now runs Playwright after backend/frontend checks.
+
+### Coverage gates
+- Backend Jest thresholds: lines/functions/statements 75, branches 65.
+- Frontend Vitest thresholds: lines/functions/statements 80, branches 70.

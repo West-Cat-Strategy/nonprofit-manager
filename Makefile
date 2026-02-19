@@ -8,7 +8,7 @@
 	security-audit security-scan ci ci-fast ci-full ci-unit \
         deploy deploy-staging deploy-local \
         docker-build docker-up docker-down docker-logs docker-rebuild \
-        db-migrate db-verify clean hooks
+        db-migrate db-verify clean hooks test-e2e
 
 # Colors for output
 BLUE := \033[34m
@@ -135,28 +135,36 @@ typecheck:
 
 test:
 	@echo "$(BLUE)Ensuring test infrastructure is running (Postgres/Redis)...$(RESET)"
-	docker-compose up -d postgres redis
+	DB_PASSWORD=postgres docker-compose up -d postgres redis
 	@echo "$(BLUE)Running backend tests...$(RESET)"
 	cd backend && npm test -- --runInBand
 	@echo "$(BLUE)Running frontend tests...$(RESET)"
 	cd frontend && npm test -- --run
+	@echo "$(BLUE)Running Playwright E2E tests (all browsers)...$(RESET)"
+	cd e2e && npm run test:ci
 	@echo "$(GREEN)Tests complete!$(RESET)"
 
 test-coverage:
 	@echo "$(BLUE)Ensuring test infrastructure is running (Postgres/Redis)...$(RESET)"
-	docker-compose up -d postgres redis
+	DB_PASSWORD=postgres docker-compose up -d postgres redis
 	@echo "$(BLUE)Running backend tests with coverage...$(RESET)"
 	cd backend && npm test -- --coverage --runInBand
 	@echo "$(BLUE)Running frontend tests with coverage...$(RESET)"
 	cd frontend && npm test -- --run --coverage
+	@echo "$(BLUE)Running Playwright E2E smoke tests...$(RESET)"
+	cd e2e && npm run test:smoke
 	@echo "$(GREEN)Coverage reports generated!$(RESET)"
 
 test-backend:
-	docker-compose up -d postgres redis
+	DB_PASSWORD=postgres docker-compose up -d postgres redis
 	cd backend && npm test -- --runInBand
 
 test-frontend:
 	cd frontend && npm test -- --run
+
+test-e2e:
+	DB_PASSWORD=postgres docker-compose up -d postgres redis
+	cd e2e && npm run test:ci
 
 quality-baseline:
 	@./scripts/quality-baseline.sh

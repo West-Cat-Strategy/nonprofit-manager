@@ -13,6 +13,7 @@ source "$SCRIPT_DIR/lib/config.sh"
 ENVIRONMENT="development"
 RUN_BACKEND=true
 RUN_FRONTEND=true
+RUN_E2E=true
 RUN_LINT=true
 RUN_TYPECHECK=true
 RUN_TESTS=true
@@ -27,6 +28,7 @@ while [[ $# -gt 0 ]]; do
         --env=*) ENVIRONMENT="${1#*=}"; shift ;;
         --backend-only) RUN_FRONTEND=false; shift ;;
         --frontend-only) RUN_BACKEND=false; shift ;;
+        --no-e2e) RUN_E2E=false; shift ;;
         --no-lint) RUN_LINT=false; shift ;;
         --no-typecheck) RUN_TYPECHECK=false; shift ;;
         --no-tests) RUN_TESTS=false; shift ;;
@@ -42,6 +44,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --env=ENV           Environment (development, staging, production)"
             echo "  --backend-only      Run only backend checks"
             echo "  --frontend-only     Run only frontend checks"
+            echo "  --no-e2e            Skip Playwright E2E tests"
             echo "  --no-lint           Skip linting"
             echo "  --no-typecheck      Skip type checking"
             echo "  --no-tests          Skip tests"
@@ -152,6 +155,15 @@ run_ci() {
         if [ "$RUN_BUILD" = true ]; then
             run_step "Frontend Build" "cd frontend && npm run build"
         fi
+    fi
+
+    # E2E checks
+    if [ "$RUN_E2E" = true ] && [ "$RUN_TESTS" = true ] && [ "$SKIP_TESTS" = false ]; then
+        log_info "Running Playwright E2E checks..."
+        run_step "E2E Test Infra" "DB_PASSWORD=postgres docker-compose up -d postgres redis"
+        run_step "Playwright E2E" "cd e2e && npm run test:ci"
+    else
+        [ "$VERBOSE" = true ] && log_info "Playwright tests skipped"
     fi
 
     # Summary

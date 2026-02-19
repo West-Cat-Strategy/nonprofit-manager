@@ -12,11 +12,17 @@ getSharedTestUser();
  *
  * See https://playwright.dev/docs/test-configuration
  */
-const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:8005';
-const API_URL = process.env.API_URL || 'http://127.0.0.1:8004';
+const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:5173';
+const API_URL = process.env.API_URL || 'http://127.0.0.1:3001';
 process.env.BASE_URL = BASE_URL;
 process.env.API_URL = API_URL;
-const SKIP_WEBSERVER = process.env.SKIP_WEBSERVER !== '0';
+const SKIP_WEBSERVER = process.env.SKIP_WEBSERVER === '1';
+const REUSE_EXISTING_SERVER = !process.env.CI;
+const E2E_DB_HOST = process.env.E2E_DB_HOST || '127.0.0.1';
+const E2E_DB_PORT = process.env.E2E_DB_PORT || '8012';
+const E2E_DB_NAME = process.env.E2E_DB_NAME || 'nonprofit_manager';
+const E2E_DB_USER = process.env.E2E_DB_USER || 'postgres';
+const E2E_DB_PASSWORD = process.env.E2E_DB_PASSWORD || process.env.DB_PASSWORD || 'postgres';
 export default defineConfig({
   testDir: './tests',
 
@@ -97,19 +103,20 @@ export default defineConfig({
     ? undefined
     : [
       {
-        command: 'cd ../backend && npm run dev',
+        command: 'cd .. && ./scripts/db-migrate.sh && cd backend && npm run dev',
         url: 'http://127.0.0.1:3001/health/live',
         timeout: 120 * 1000,
-        reuseExistingServer: true,
+        reuseExistingServer: REUSE_EXISTING_SERVER,
         env: {
           NODE_ENV: 'test',
           PORT: '3001',
           REDIS_ENABLED: 'false',
-          DB_HOST: '127.0.0.1',
-          DB_PORT: '5433',
-          DB_NAME: 'nonprofit_manager',
-          DB_USER: 'postgres',
-          DB_PASSWORD: 'postgres',
+          CORS_ORIGIN: 'http://127.0.0.1:5173,http://localhost:5173',
+          DB_HOST: E2E_DB_HOST,
+          DB_PORT: E2E_DB_PORT,
+          DB_NAME: E2E_DB_NAME,
+          DB_USER: E2E_DB_USER,
+          DB_PASSWORD: E2E_DB_PASSWORD,
           RATE_LIMIT_WINDOW_MS: '900000',
           RATE_LIMIT_MAX_REQUESTS: '100000',
           AUTH_RATE_LIMIT_WINDOW_MS: '900000',
@@ -122,7 +129,7 @@ export default defineConfig({
         command: 'cd ../frontend && npm run dev -- --host 127.0.0.1 --port 5173',
         url: 'http://127.0.0.1:5173',
         timeout: 120 * 1000,
-        reuseExistingServer: true,
+        reuseExistingServer: REUSE_EXISTING_SERVER,
         env: {
           VITE_API_URL: 'http://127.0.0.1:3001/api',
         },
