@@ -170,6 +170,7 @@ export interface CaseNote {
     first_name: string;
     last_name: string;
   };
+  outcome_impacts?: unknown[];
 }
 
 /**

@@ -89,7 +89,7 @@ run_step() {
         echo "----------------------------------------"
     fi
 
-    if eval "$command"; then
+    if ( eval "$command" ); then
         local step_end=$(date +%s)
         local duration=$((step_end - step_start))
         if [ "$VERBOSE" = true ]; then

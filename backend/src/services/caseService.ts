@@ -465,7 +465,41 @@ export class CaseService {
   async getCaseNotes(caseId: string): Promise<CaseNote[]> {
     const result = await this.pool.query(
       `
-      SELECT cn.*, u.first_name, u.last_name
+      SELECT
+        cn.*,
+        u.first_name,
+        u.last_name,
+        COALESCE((
+          SELECT json_agg(
+            json_build_object(
+              'id', ioi.id,
+              'interaction_id', ioi.interaction_id,
+              'outcome_definition_id', ioi.outcome_definition_id,
+              'impact', ioi.impact,
+              'attribution', ioi.attribution,
+              'intensity', ioi.intensity,
+              'evidence_note', ioi.evidence_note,
+              'created_by_user_id', ioi.created_by_user_id,
+              'created_at', ioi.created_at,
+              'updated_at', ioi.updated_at,
+              'outcome_definition', json_build_object(
+                'id', od.id,
+                'key', od.key,
+                'name', od.name,
+                'description', od.description,
+                'category', od.category,
+                'is_active', od.is_active,
+                'is_reportable', od.is_reportable,
+                'sort_order', od.sort_order
+              )
+            )
+            ORDER BY od.sort_order ASC, od.name ASC
+          )
+          FROM interaction_outcome_impacts ioi
+          INNER JOIN outcome_definitions od
+            ON od.id = ioi.outcome_definition_id
+          WHERE ioi.interaction_id = cn.id
+        ), '[]'::json) AS outcome_impacts
       FROM case_notes cn
       LEFT JOIN users u ON cn.created_by = u.id
       WHERE cn.case_id = $1
@@ -481,12 +515,12 @@ export class CaseService {
    * Create case note
    */
   async createCaseNote(data: CreateCaseNoteDTO, userId?: string): Promise<CaseNote> {
-    const result = await this.pool.query(
+    const insertedResult = await this.pool.query(
       `
       INSERT INTO case_notes (
         case_id, note_type, subject, content, is_internal, is_important, attachments, created_by
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING *
+      RETURNING id
     `,
       [
         data.case_id,
@@ -498,6 +532,23 @@ export class CaseService {
         JSON.stringify(data.attachments || null),
         userId,
       ]
+    );
+
+    const noteId = insertedResult.rows[0]?.id;
+
+    const result = await this.pool.query(
+      `
+      SELECT
+        cn.*,
+        u.first_name,
+        u.last_name,
+        '[]'::json AS outcome_impacts
+      FROM case_notes cn
+      LEFT JOIN users u ON cn.created_by = u.id
+      WHERE cn.id = $1
+      LIMIT 1
+    `,
+      [noteId]
     );
 
     return result.rows[0];
