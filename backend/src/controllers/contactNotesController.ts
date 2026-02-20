@@ -80,7 +80,7 @@ export const updateContactNote = async (
 ): Promise<void> => {
   try {
     const { noteId } = req.params;
-    const note = await contactNoteService.updateContactNote(noteId, req.body);
+    const note = await contactNoteService.updateContactNote(noteId, req.body, req.user?.id);
 
     if (!note) {
       notFoundMessage(res, 'Note not found');

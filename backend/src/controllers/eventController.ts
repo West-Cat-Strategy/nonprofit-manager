@@ -14,10 +14,15 @@ import type {
   EventFilters,
   PaginationParams,
   RegistrationFilters,
+  SendEventRemindersDTO,
+  CreateEventReminderAutomationDTO,
+  UpdateEventReminderAutomationDTO,
+  SyncEventReminderAutomationsDTO,
 } from '@app-types/event';
 import { EventType, EventStatus, RegistrationStatus } from '@app-types/event';
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { badRequest, notFoundMessage } from '@utils/responseHelpers';
+import * as eventReminderAutomationService from '@services/eventReminderAutomationService';
 
 const eventService = services.event;
 
@@ -49,6 +54,13 @@ const parsePositiveInt = (value: unknown): number | undefined => {
   const parsed = Number.parseInt(value, 10);
   if (Number.isNaN(parsed) || parsed < 1) return undefined;
   return parsed;
+};
+
+const parseOptionalDateInput = (value: unknown): Date | undefined => {
+  if (value === undefined || value === null || value === '') return undefined;
+  if (value instanceof Date) return value;
+  if (typeof value === 'string') return new Date(value);
+  return undefined;
 };
 
 /**
@@ -375,6 +387,223 @@ export const getRegistrations = async (
   }
 };
 
+/**
+ * POST /api/events/:id/reminders/send
+ * Send event reminders to registered/confirmed attendees via email and/or SMS.
+ */
+export const sendEventReminders = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const data: SendEventRemindersDTO = req.body || {};
+
+    const summary = await eventService.sendEventReminders(id, data, {
+      triggerType: 'manual',
+      sentBy: req.user?.id || null,
+    });
+    res.json({ data: summary, message: 'Event reminders processed' });
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'Event not found') {
+        notFoundMessage(res, 'Event not found');
+        return;
+      }
+      if (error.message === 'At least one reminder channel must be enabled') {
+        badRequest(res, error.message);
+        return;
+      }
+    }
+    next(error);
+  }
+};
+
+/**
+ * GET /api/events/:id/reminder-automations
+ * List all reminder automations for an event.
+ */
+export const getEventReminderAutomations = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const automations = await eventReminderAutomationService.listEventReminderAutomations(id);
+    res.json({ data: automations });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/events/:id/reminder-automations
+ * Create one reminder automation for an event.
+ */
+export const createEventReminderAutomation = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const data: CreateEventReminderAutomationDTO = {
+      timingType: req.body.timingType,
+      relativeMinutesBefore: req.body.relativeMinutesBefore,
+      absoluteSendAt: parseOptionalDateInput(req.body.absoluteSendAt),
+      sendEmail: req.body.sendEmail,
+      sendSms: req.body.sendSms,
+      customMessage: req.body.customMessage,
+      timezone: req.body.timezone,
+    };
+
+    const automation = await eventReminderAutomationService.createEventReminderAutomation(
+      id,
+      data,
+      req.user!.id
+    );
+
+    res.status(201).json({ data: automation, message: 'Reminder automation created' });
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes('requires') || error.message.includes('enabled') || error.message.includes('500')) {
+        badRequest(res, error.message);
+        return;
+      }
+    }
+    next(error);
+  }
+};
+
+/**
+ * PATCH /api/events/:id/reminder-automations/:automationId
+ * Update a pending (unattempted) reminder automation.
+ */
+export const updateEventReminderAutomation = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id, automationId } = req.params;
+    const data: UpdateEventReminderAutomationDTO = {
+      timingType: req.body.timingType,
+      relativeMinutesBefore: req.body.relativeMinutesBefore,
+      absoluteSendAt: parseOptionalDateInput(req.body.absoluteSendAt),
+      sendEmail: req.body.sendEmail,
+      sendSms: req.body.sendSms,
+      customMessage: req.body.customMessage,
+      timezone: req.body.timezone,
+      isActive: req.body.isActive,
+    };
+
+    const updated = await eventReminderAutomationService.updateEventReminderAutomation(
+      id,
+      automationId,
+      data,
+      req.user!.id
+    );
+
+    res.json({ data: updated, message: 'Reminder automation updated' });
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'Reminder automation not found') {
+        notFoundMessage(res, error.message);
+        return;
+      }
+      if (error.message.includes('cannot') || error.message.includes('requires') || error.message.includes('enabled') || error.message.includes('500')) {
+        badRequest(res, error.message);
+        return;
+      }
+    }
+    next(error);
+  }
+};
+
+/**
+ * POST /api/events/:id/reminder-automations/:automationId/cancel
+ * Cancel a pending (unattempted) reminder automation.
+ */
+export const cancelEventReminderAutomation = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id, automationId } = req.params;
+    const cancelled = await eventReminderAutomationService.cancelEventReminderAutomation(
+      id,
+      automationId,
+      req.user!.id
+    );
+    res.json({ data: cancelled, message: 'Reminder automation cancelled' });
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'Reminder automation not found') {
+        notFoundMessage(res, error.message);
+        return;
+      }
+      if (error.message.includes('cannot')) {
+        badRequest(res, error.message);
+        return;
+      }
+    }
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/events/:id/reminder-automations/sync
+ * Replace all pending automations for an event with provided items.
+ */
+export const syncEventReminderAutomations = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const itemsRaw: Array<Record<string, unknown>> = Array.isArray(req.body?.items)
+      ? req.body.items
+      : [];
+    const data: SyncEventReminderAutomationsDTO = {
+      items: itemsRaw.map((item: Record<string, unknown>) => ({
+        timingType: item.timingType as CreateEventReminderAutomationDTO['timingType'],
+        relativeMinutesBefore:
+          typeof item.relativeMinutesBefore === 'number'
+            ? item.relativeMinutesBefore
+            : undefined,
+        absoluteSendAt: parseOptionalDateInput(item.absoluteSendAt),
+        sendEmail: typeof item.sendEmail === 'boolean' ? item.sendEmail : undefined,
+        sendSms: typeof item.sendSms === 'boolean' ? item.sendSms : undefined,
+        customMessage:
+          typeof item.customMessage === 'string' ? item.customMessage : undefined,
+        timezone: typeof item.timezone === 'string' ? item.timezone : undefined,
+      })),
+    };
+
+    const automations = await eventReminderAutomationService.syncPendingEventReminderAutomations(
+      id,
+      data,
+      req.user!.id
+    );
+    res.json({
+      data: automations,
+      message: 'Pending reminder automations synchronized',
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes('requires') || error.message.includes('enabled') || error.message.includes('500')) {
+        badRequest(res, error.message);
+        return;
+      }
+    }
+    next(error);
+  }
+};
+
 export default {
   getEvents,
   getEvent,
@@ -388,4 +617,10 @@ export default {
   cancelRegistration,
   getAttendanceStats,
   getRegistrations,
+  sendEventReminders,
+  getEventReminderAutomations,
+  createEventReminderAutomation,
+  updateEventReminderAutomation,
+  cancelEventReminderAutomation,
+  syncEventReminderAutomations,
 };

@@ -28,8 +28,9 @@ const EventEdit: React.FC = () => {
 
   const handleSubmit = async (eventData: UpdateEventDTO) => {
     if (id) {
-      await dispatch(updateEvent({ eventId: id, eventData })).unwrap();
+      return dispatch(updateEvent({ eventId: id, eventData })).unwrap();
     }
+    return undefined;
   };
 
   if (loading || !event) {

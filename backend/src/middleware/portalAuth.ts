@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '@config/jwt';
 import { unauthorized } from '@utils/responseHelpers';
+import { extractToken, PORTAL_AUTH_COOKIE_NAME } from '@utils/cookieHelper';
 
 interface PortalJwtPayload {
   id: string;
@@ -21,13 +22,11 @@ export const authenticatePortal = (
   next: NextFunction
 ): Response | void => {
   try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Prefer portal auth cookie, with Authorization header as fallback.
+    const token = extractToken(req.cookies, req.headers.authorization, PORTAL_AUTH_COOKIE_NAME);
+    if (!token) {
       return unauthorized(res, 'No token provided');
     }
-
-    const token = authHeader.substring(7);
     const decoded = jwt.verify(token, getJwtSecret()) as PortalJwtPayload;
 
     if (decoded.type !== 'portal') {

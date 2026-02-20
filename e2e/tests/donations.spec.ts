@@ -12,10 +12,12 @@ test.describe('Donations Module', () => {
 
   test('should display donations list page', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/donations');
+    await authenticatedPage.waitForURL(/\/donations(?:\?|$)/);
+    await authenticatedPage.waitForLoadState('networkidle');
 
-    await expect(authenticatedPage.locator('h1', { hasText: 'Donations' })).toBeVisible();
+    await expect(authenticatedPage.getByRole('heading', { level: 1, name: /^donations$/i })).toBeVisible();
     await expect(authenticatedPage.getByRole('button', { name: 'Record Donation' })).toBeVisible();
-    await expect(authenticatedPage.getByLabel('Search donations')).toBeVisible();
+    await expect(authenticatedPage.getByPlaceholder(/search donations/i)).toBeVisible();
   });
 
   test('should create a new donation via UI', async ({ authenticatedPage, authToken }) => {

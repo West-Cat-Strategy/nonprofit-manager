@@ -61,6 +61,12 @@ All active work must be **signed out** in the Workboard below before code change
 | P2-T16 | Standardize error responses across all endpoints | Phase 2 | Ready | — | — | TBD | — |
 | P2-T17 | Phase 2 integration tests (rate limiting, validation, permissions) | Phase 2 | Ready | — | — | TBD | — |
 | P2-T18 | Outcomes tracking for case interactions (definitions, tagging, reports) | Phase 2 | Review | Codex | Feb 19, 2026 | Feb 19, 2026 | codex/outcomes-tracking |
+| P3-T1 | Add event email/SMS reminders + Twilio admin credentials | Phase 3 | In Progress | Codex | Feb 20, 2026 | TBD | codex/event-reminder-messaging |
+| P3-T2A | Client Portal: foundation hardening (cookie auth, CSRF path, portal API token removal) | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
+| P3-T2B | Client Portal: pointperson context + secure per-case messaging threads | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
+| P3-T2C | Client Portal: hybrid appointments (published slots + manual requests) | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
+| P3-T2D | Client Portal: explicit visibility rules for notes/documents/forms + event filtering | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
+| P3-T2E | Client Portal: Admin Settings inbox/slot tools + Case Detail portal tab + client UI pages | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
 
 ### **Zod Migration Tracker**
 
@@ -84,9 +90,9 @@ This tracker shows the current validation migration status for backend routes (Z
 | backend/src/routes/mailchimp.ts | express-validator | 8 | express-validator
 | backend/src/routes/meetings.ts | express-validator | 8 | express-validator
 | backend/src/routes/payments.ts | express-validator | 8 | express-validator
-| backend/src/routes/portal.ts | express-validator | 10 | express-validator
-| backend/src/routes/portalAdmin.ts | express-validator | 8 | express-validator
-| backend/src/routes/portalAuth.ts | express-validator | 6 | express-validator
+| backend/src/routes/portal.ts | Zod | 18 | Zod (migrated)
+| backend/src/routes/portalAdmin.ts | Zod | 16 | Zod (migrated)
+| backend/src/routes/portalAuth.ts | Zod | 6 | Zod (migrated)
 | backend/src/routes/publishing.ts | express-validator | 12 | express-validator
 | backend/src/routes/reports.ts | express-validator | 8 | express-validator
 | backend/src/routes/savedReports.ts | express-validator | 6 | express-validator

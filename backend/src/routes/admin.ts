@@ -1,7 +1,16 @@
 import express from 'express';
 import { authenticate, authorize } from '@middleware/domains/auth';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
-import { getBranding, putBranding, getEmailSettings, updateEmailSettings, testEmailSettings } from '@controllers/domains/core';
+import {
+  getBranding,
+  putBranding,
+  getEmailSettings,
+  updateEmailSettings,
+  testEmailSettings,
+  getTwilioSettings,
+  updateTwilioSettings,
+  testTwilioSettings,
+} from '@controllers/domains/core';
 import {
   getRegistrationSettingsHandler,
   updateRegistrationSettingsHandler,
@@ -32,6 +41,11 @@ router.get('/audit-logs', authenticate, authorize('admin'), getAuditLogs);
 router.get('/email-settings', authenticate, authorize('admin'), getEmailSettings);
 router.put('/email-settings', authenticate, authorize('admin'), updateEmailSettings);
 router.post('/email-settings/test', authenticate, authorize('admin'), testEmailSettings);
+
+// Twilio settings (admin only)
+router.get('/twilio-settings', authenticate, authorize('admin'), getTwilioSettings);
+router.put('/twilio-settings', authenticate, authorize('admin'), updateTwilioSettings);
+router.post('/twilio-settings/test', authenticate, authorize('admin'), testTwilioSettings);
 
 // Roles endpoint - returns hardcoded role definitions
 router.get('/roles', authenticate, authorize('admin'), (_req, res) => {

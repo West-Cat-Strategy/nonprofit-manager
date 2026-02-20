@@ -21,16 +21,284 @@ import { formatDateTime } from '../../../utils/format';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import useConfirmDialog from '../../../hooks/useConfirmDialog';
+import api from '../../../services/api';
+import { useToast } from '../../../contexts/useToast';
+import type {
+  EventReminderSummary,
+  EventReminderAutomation,
+  EventReminderAttemptStatus,
+  CreateEventReminderAutomationDTO,
+} from '../../../types/event';
+
+type ReminderRelativeUnit = 'minutes' | 'hours' | 'days';
+
+interface ReminderRetryDraft {
+  timingType: 'relative' | 'absolute';
+  relativeValue: number;
+  relativeUnit: ReminderRelativeUnit;
+  absoluteLocalDateTime: string;
+  sendEmail: boolean;
+  sendSms: boolean;
+  customMessage: string;
+  timezone: string;
+}
+
+interface UserPreferencesResponse {
+  preferences?: {
+    timezone?: string;
+    organization?: {
+      timezone?: string;
+    };
+  };
+}
+
+const MAX_CUSTOM_MESSAGE_LENGTH = 500;
+
+const getBrowserTimeZone = (): string => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+};
+
+const toRelativeDisplay = (
+  minutes: number | null
+): { value: number; unit: ReminderRelativeUnit } => {
+  if (!minutes || minutes <= 0) {
+    return { value: 60, unit: 'minutes' };
+  }
+
+  if (minutes % 1440 === 0) {
+    return { value: minutes / 1440, unit: 'days' };
+  }
+
+  if (minutes % 60 === 0) {
+    return { value: minutes / 60, unit: 'hours' };
+  }
+
+  return { value: minutes, unit: 'minutes' };
+};
+
+const toMinutes = (value: number, unit: ReminderRelativeUnit): number => {
+  if (unit === 'days') return value * 24 * 60;
+  if (unit === 'hours') return value * 60;
+  return value;
+};
+
+const parseDateTimeLocalInput = (
+  value: string
+): { year: number; month: number; day: number; hour: number; minute: number } | null => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
+  if (!match) return null;
+
+  const [, yearRaw, monthRaw, dayRaw, hourRaw, minuteRaw] = match;
+  return {
+    year: Number.parseInt(yearRaw, 10),
+    month: Number.parseInt(monthRaw, 10),
+    day: Number.parseInt(dayRaw, 10),
+    hour: Number.parseInt(hourRaw, 10),
+    minute: Number.parseInt(minuteRaw, 10),
+  };
+};
+
+const getTimeZoneOffsetMinutes = (timeZone: string, date: Date): number => {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  });
+
+  const parts = formatter
+    .formatToParts(date)
+    .reduce<Record<string, string>>((acc, part) => {
+      if (part.type !== 'literal') {
+        acc[part.type] = part.value;
+      }
+      return acc;
+    }, {});
+
+  const asUtc = Date.UTC(
+    Number.parseInt(parts.year, 10),
+    Number.parseInt(parts.month, 10) - 1,
+    Number.parseInt(parts.day, 10),
+    Number.parseInt(parts.hour, 10),
+    Number.parseInt(parts.minute, 10),
+    Number.parseInt(parts.second, 10)
+  );
+
+  return (asUtc - date.getTime()) / 60000;
+};
+
+const convertZonedDateTimeToUtcIso = (localDateTime: string, timeZone: string): string => {
+  const parsed = parseDateTimeLocalInput(localDateTime);
+  if (!parsed) {
+    throw new Error('Exact reminder datetime must be valid');
+  }
+
+  const utcGuess = Date.UTC(
+    parsed.year,
+    parsed.month - 1,
+    parsed.day,
+    parsed.hour,
+    parsed.minute,
+    0
+  );
+
+  const firstOffset = getTimeZoneOffsetMinutes(timeZone, new Date(utcGuess));
+  let utcTimestamp = utcGuess - firstOffset * 60_000;
+
+  const secondOffset = getTimeZoneOffsetMinutes(timeZone, new Date(utcTimestamp));
+  if (secondOffset !== firstOffset) {
+    utcTimestamp = utcGuess - secondOffset * 60_000;
+  }
+
+  return new Date(utcTimestamp).toISOString();
+};
+
+const formatDateTimeLocalInTimeZone = (value: string, timeZone: string): string => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  });
+
+  const parts = formatter
+    .formatToParts(date)
+    .reduce<Record<string, string>>((acc, part) => {
+      if (part.type !== 'literal') {
+        acc[part.type] = part.value;
+      }
+      return acc;
+    }, {});
+
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+};
+
+const formatRelativeTiming = (minutes: number | null): string => {
+  if (!minutes || minutes <= 0) {
+    return 'Invalid relative timing';
+  }
+
+  if (minutes % 1440 === 0) {
+    const days = minutes / 1440;
+    return `${days} day${days === 1 ? '' : 's'} before event start`;
+  }
+
+  if (minutes % 60 === 0) {
+    const hours = minutes / 60;
+    return `${hours} hour${hours === 1 ? '' : 's'} before event start`;
+  }
+
+  return `${minutes} minute${minutes === 1 ? '' : 's'} before event start`;
+};
+
+const formatExactReminderTime = (isoDate: string | null, timeZone: string): string => {
+  if (!isoDate) return 'No datetime configured';
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return 'Invalid datetime';
+
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone,
+      timeZoneName: 'short',
+    }).format(date);
+  } catch {
+    return date.toLocaleString();
+  }
+};
+
+const getAutomationStatus = (
+  automation: EventReminderAutomation
+): 'pending' | EventReminderAttemptStatus => {
+  if (!automation.attempted_at && automation.is_active) {
+    return 'pending';
+  }
+
+  return automation.attempt_status || 'cancelled';
+};
+
+const getStatusStyles = (status: 'pending' | EventReminderAttemptStatus): string => {
+  switch (status) {
+    case 'sent':
+      return 'bg-green-100 text-green-800';
+    case 'partial':
+      return 'bg-amber-100 text-amber-800';
+    case 'failed':
+      return 'bg-red-100 text-red-800';
+    case 'skipped':
+      return 'bg-slate-100 text-slate-700';
+    case 'cancelled':
+      return 'bg-slate-200 text-slate-700';
+    default:
+      return 'bg-blue-100 text-blue-800';
+  }
+};
+
+const getAttemptSummaryText = (automation: EventReminderAutomation): string | null => {
+  if (!automation.attempt_summary) return null;
+
+  const summary = automation.attempt_summary as {
+    email?: { sent?: number; attempted?: number };
+    sms?: { sent?: number; attempted?: number };
+    error?: string;
+  };
+
+  if (summary.email || summary.sms) {
+    const emailSent = summary.email?.sent ?? 0;
+    const emailAttempted = summary.email?.attempted ?? 0;
+    const smsSent = summary.sms?.sent ?? 0;
+    const smsAttempted = summary.sms?.attempted ?? 0;
+    return `Email sent ${emailSent}/${emailAttempted} · SMS sent ${smsSent}/${smsAttempted}`;
+  }
+
+  if (summary.error) {
+    return summary.error;
+  }
+
+  return null;
+};
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const isTestEnv = import.meta.env.MODE === 'test';
   const dispatch = useAppDispatch();
+  const { showSuccess, showError } = useToast();
   const { selectedEvent: event, registrations, loading } = useAppSelector((state) => state.events);
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
 
   const [activeTab, setActiveTab] = useState<'info' | 'registrations'>('info');
   const [registrationFilter, setRegistrationFilter] = useState('');
+  const [sendEmailReminders, setSendEmailReminders] = useState(true);
+  const [sendSmsReminders, setSendSmsReminders] = useState(true);
+  const [customReminderMessage, setCustomReminderMessage] = useState('');
+  const [sendingReminders, setSendingReminders] = useState(false);
+  const [lastReminderSummary, setLastReminderSummary] = useState<EventReminderSummary | null>(null);
+
+  const [organizationTimezone, setOrganizationTimezone] = useState(getBrowserTimeZone());
+  const [reminderAutomations, setReminderAutomations] = useState<EventReminderAutomation[]>([]);
+  const [loadingReminderAutomations, setLoadingReminderAutomations] = useState(false);
+  const [automationActionId, setAutomationActionId] = useState<string | null>(null);
+  const [retryDraft, setRetryDraft] = useState<ReminderRetryDraft | null>(null);
+  const [savingRetryDraft, setSavingRetryDraft] = useState(false);
 
   // Update document meta tags for social sharing
   useDocumentMeta({
@@ -40,10 +308,58 @@ const EventDetail: React.FC = () => {
     type: 'event',
   });
 
+  const loadReminderAutomations = async (eventId: string) => {
+    setLoadingReminderAutomations(true);
+    try {
+      const response = await api.get<{ data: EventReminderAutomation[] }>(
+        `/events/${eventId}/reminder-automations`
+      );
+      setReminderAutomations(response.data?.data || []);
+    } catch {
+      showError('Failed to load automated reminders');
+    } finally {
+      setLoadingReminderAutomations(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isTestEnv) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadTimezone = async () => {
+      try {
+        const response = await api.get<UserPreferencesResponse>('/auth/preferences');
+        const prefs = response.data?.preferences;
+        const timezoneFromOrganization = prefs?.organization?.timezone?.trim();
+        const timezoneFromRoot = prefs?.timezone?.trim();
+        const resolvedTimezone =
+          timezoneFromOrganization || timezoneFromRoot || getBrowserTimeZone();
+
+        if (isMounted) {
+          setOrganizationTimezone(resolvedTimezone);
+        }
+      } catch {
+        if (isMounted) {
+          setOrganizationTimezone(getBrowserTimeZone());
+        }
+      }
+    };
+
+    void loadTimezone();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isTestEnv]);
+
   useEffect(() => {
     if (id) {
       dispatch(fetchEventById(id));
       dispatch(fetchEventRegistrations({ eventId: id }));
+      void loadReminderAutomations(id);
     }
 
     return () => {
@@ -52,7 +368,6 @@ const EventDetail: React.FC = () => {
     };
   }, [id, dispatch]);
 
-  // Add weekday to the standard date format for event details
   const formatEventDateTime = (date: string) => {
     const d = new Date(date);
     const weekday = d.toLocaleDateString('en-US', { weekday: 'long' });
@@ -86,6 +401,173 @@ const EventDetail: React.FC = () => {
     await dispatch(cancelRegistration(registrationId));
     if (id) {
       dispatch(fetchEventRegistrations({ eventId: id }));
+    }
+  };
+
+  const handleSendReminders = async () => {
+    if (!id) return;
+
+    if (!sendEmailReminders && !sendSmsReminders) {
+      showError('Select at least one reminder channel.');
+      return;
+    }
+
+    const channelLabel = [
+      sendEmailReminders ? 'email' : '',
+      sendSmsReminders ? 'sms' : '',
+    ]
+      .filter(Boolean)
+      .join(' and ');
+
+    const confirmed = await confirm({
+      title: 'Send Event Reminders',
+      message: `Send ${channelLabel.toUpperCase()} reminders to registered attendees?`,
+      confirmLabel: 'Send Reminders',
+      variant: 'warning',
+    });
+    if (!confirmed) return;
+
+    setSendingReminders(true);
+    try {
+      const response = await api.post<{ data: EventReminderSummary }>(
+        `/events/${id}/reminders/send`,
+        {
+          sendEmail: sendEmailReminders,
+          sendSms: sendSmsReminders,
+          customMessage: customReminderMessage.trim() || undefined,
+        }
+      );
+
+      const summary = response.data.data;
+      setLastReminderSummary(summary);
+      showSuccess(
+        `Reminders processed. Email sent: ${summary.email.sent}, SMS sent: ${summary.sms.sent}.`
+      );
+      if (summary.warnings.length > 0) {
+        showError(summary.warnings[0]);
+      }
+    } catch {
+      showError('Failed to send reminders');
+    } finally {
+      setSendingReminders(false);
+    }
+  };
+
+  const handleCancelAutomation = async (automation: EventReminderAutomation) => {
+    if (!id) return;
+
+    const confirmed = await confirm({
+      title: 'Cancel Automated Reminder',
+      message: 'Cancel this pending automated reminder?',
+      confirmLabel: 'Cancel Reminder',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
+    setAutomationActionId(automation.id);
+    try {
+      await api.post(`/events/${id}/reminder-automations/${automation.id}/cancel`);
+      showSuccess('Automated reminder cancelled');
+      await loadReminderAutomations(id);
+    } catch {
+      showError('Failed to cancel automated reminder');
+    } finally {
+      setAutomationActionId(null);
+    }
+  };
+
+  const handlePrefillRetryDraft = (automation: EventReminderAutomation) => {
+    const relative = toRelativeDisplay(automation.relative_minutes_before);
+    const timezone = automation.timezone || organizationTimezone;
+
+    setRetryDraft({
+      timingType: automation.timing_type,
+      relativeValue: relative.value,
+      relativeUnit: relative.unit,
+      absoluteLocalDateTime:
+        automation.absolute_send_at && automation.timing_type === 'absolute'
+          ? formatDateTimeLocalInTimeZone(automation.absolute_send_at, timezone)
+          : event?.start_date
+            ? formatDateTimeLocalInTimeZone(event.start_date, timezone)
+            : '',
+      sendEmail: automation.send_email,
+      sendSms: automation.send_sms,
+      customMessage: automation.custom_message || '',
+      timezone,
+    });
+  };
+
+  const updateRetryDraft = (updates: Partial<ReminderRetryDraft>) => {
+    setRetryDraft((prev) => (prev ? { ...prev, ...updates } : prev));
+  };
+
+  const handleCreateRetryAutomation = async () => {
+    if (!id || !retryDraft) return;
+
+    if (!retryDraft.sendEmail && !retryDraft.sendSms) {
+      showError('Select at least one reminder channel (email or SMS).');
+      return;
+    }
+
+    const customMessage = retryDraft.customMessage.trim();
+    if (customMessage.length > MAX_CUSTOM_MESSAGE_LENGTH) {
+      showError(`Custom message must be ${MAX_CUSTOM_MESSAGE_LENGTH} characters or less.`);
+      return;
+    }
+
+    let payload: CreateEventReminderAutomationDTO;
+
+    try {
+      if (retryDraft.timingType === 'relative') {
+        if (!Number.isFinite(retryDraft.relativeValue) || retryDraft.relativeValue <= 0) {
+          showError('Relative reminder time must be a positive value.');
+          return;
+        }
+
+        payload = {
+          timingType: 'relative',
+          relativeMinutesBefore: toMinutes(
+            Math.floor(retryDraft.relativeValue),
+            retryDraft.relativeUnit
+          ),
+          sendEmail: retryDraft.sendEmail,
+          sendSms: retryDraft.sendSms,
+          customMessage: customMessage || undefined,
+          timezone: retryDraft.timezone,
+        };
+      } else {
+        if (!retryDraft.absoluteLocalDateTime) {
+          showError('Exact reminder datetime is required.');
+          return;
+        }
+
+        payload = {
+          timingType: 'absolute',
+          absoluteSendAt: convertZonedDateTimeToUtcIso(
+            retryDraft.absoluteLocalDateTime,
+            retryDraft.timezone
+          ),
+          sendEmail: retryDraft.sendEmail,
+          sendSms: retryDraft.sendSms,
+          customMessage: customMessage || undefined,
+          timezone: retryDraft.timezone,
+        };
+      }
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Invalid reminder timing');
+      return;
+    }
+
+    setSavingRetryDraft(true);
+    try {
+      await api.post(`/events/${id}/reminder-automations`, payload);
+      showSuccess('Automated reminder scheduled');
+      setRetryDraft(null);
+      await loadReminderAutomations(id);
+    } catch {
+      showError('Failed to schedule automated reminder');
+    } finally {
+      setSavingRetryDraft(false);
     }
   };
 
@@ -302,6 +784,284 @@ const EventDetail: React.FC = () => {
       {/* Registrations Tab */}
       {activeTab === 'registrations' && (
         <div className="bg-app-surface shadow-md rounded-lg p-6">
+          <div className="mb-4 rounded-lg border border-app-border bg-app-surface-muted p-4">
+            <h3 className="text-lg font-semibold text-app-text">Send Reminders</h3>
+            <p className="mt-1 text-sm text-app-text-muted">
+              Send reminder messages to contacts with <strong>registered</strong> or{' '}
+              <strong>confirmed</strong> status.
+            </p>
+
+            <div className="mt-3 flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-sm text-app-text">
+                <input
+                  type="checkbox"
+                  checked={sendEmailReminders}
+                  onChange={(e) => setSendEmailReminders(e.target.checked)}
+                />
+                Email
+              </label>
+              <label className="flex items-center gap-2 text-sm text-app-text">
+                <input
+                  type="checkbox"
+                  checked={sendSmsReminders}
+                  onChange={(e) => setSendSmsReminders(e.target.checked)}
+                />
+                SMS
+              </label>
+            </div>
+
+            <div className="mt-3">
+              <label className="text-sm font-medium text-app-text">Custom message (optional)</label>
+              <textarea
+                value={customReminderMessage}
+                onChange={(e) => setCustomReminderMessage(e.target.value)}
+                className="mt-1 w-full rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text"
+                rows={3}
+                maxLength={500}
+                placeholder="Add event-specific details for attendees..."
+              />
+            </div>
+
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={handleSendReminders}
+                disabled={sendingReminders}
+                className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover disabled:opacity-60"
+              >
+                {sendingReminders ? 'Sending...' : 'Send Reminders'}
+              </button>
+            </div>
+          </div>
+
+          {lastReminderSummary && (
+            <div className="mb-4 rounded-lg border border-app-border p-4">
+              <p className="text-sm text-app-text">
+                Reminder target date: {new Date(lastReminderSummary.eventStartDate).toLocaleString()}
+              </p>
+              <p className="text-sm text-app-text-muted mt-1">
+                Email sent {lastReminderSummary.email.sent}/{lastReminderSummary.email.attempted} · SMS
+                sent {lastReminderSummary.sms.sent}/{lastReminderSummary.sms.attempted}
+              </p>
+              {lastReminderSummary.warnings.length > 0 && (
+                <p className="mt-2 text-sm text-amber-600">{lastReminderSummary.warnings[0]}</p>
+              )}
+            </div>
+          )}
+
+          <div className="mb-6 rounded-lg border border-app-border p-4">
+            <h3 className="text-lg font-semibold text-app-text">Scheduled Automated Reminders</h3>
+            <p className="text-sm text-app-text-muted mt-1">
+              Automated reminders run once at their scheduled time and respect do-not-email and
+              do-not-text settings at send time.
+            </p>
+
+            {loadingReminderAutomations ? (
+              <p className="mt-3 text-sm text-app-text-muted">Loading automated reminders...</p>
+            ) : reminderAutomations.length === 0 ? (
+              <p className="mt-3 text-sm text-app-text-muted">No automated reminders scheduled.</p>
+            ) : (
+              <div className="mt-4 space-y-3">
+                {reminderAutomations.map((automation) => {
+                  const status = getAutomationStatus(automation);
+                  const isPending = status === 'pending';
+                  const attemptSummary = getAttemptSummaryText(automation);
+
+                  return (
+                    <div
+                      key={automation.id}
+                      className="rounded-md border border-app-border bg-app-surface-muted p-3"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-medium text-app-text">
+                            {automation.timing_type === 'relative'
+                              ? formatRelativeTiming(automation.relative_minutes_before)
+                              : formatExactReminderTime(
+                                  automation.absolute_send_at,
+                                  automation.timezone || organizationTimezone
+                                )}
+                          </p>
+                          <p className="text-xs text-app-text-muted mt-1">
+                            Channels: {automation.send_email ? 'Email' : ''}
+                            {automation.send_email && automation.send_sms ? ' + ' : ''}
+                            {automation.send_sms ? 'SMS' : ''}
+                          </p>
+                        </div>
+                        <span
+                          className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusStyles(status)}`}
+                        >
+                          {status}
+                        </span>
+                      </div>
+
+                      {attemptSummary && (
+                        <p className="mt-2 text-xs text-app-text-muted">{attemptSummary}</p>
+                      )}
+                      {automation.last_error && (
+                        <p className="mt-2 text-xs text-red-700">{automation.last_error}</p>
+                      )}
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {isPending && (
+                          <button
+                            type="button"
+                            onClick={() => void handleCancelAutomation(automation)}
+                            disabled={automationActionId === automation.id}
+                            className="px-3 py-1.5 rounded-md border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-60"
+                          >
+                            {automationActionId === automation.id ? 'Cancelling...' : 'Cancel'}
+                          </button>
+                        )}
+                        {(status === 'failed' || status === 'skipped') && (
+                          <button
+                            type="button"
+                            onClick={() => handlePrefillRetryDraft(automation)}
+                            className="px-3 py-1.5 rounded-md border border-app-border hover:bg-app-surface"
+                          >
+                            Schedule Another Attempt
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {retryDraft && (
+              <div className="mt-4 rounded-md border border-app-border p-4 bg-app-surface">
+                <h4 className="font-medium text-app-text">Schedule Another Attempt</h4>
+                <p className="text-xs text-app-text-muted mt-1">
+                  Exact date/time reminders use organization timezone: {retryDraft.timezone}
+                </p>
+
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Timing Mode</label>
+                    <select
+                      value={retryDraft.timingType}
+                      onChange={(e) => {
+                        const timingType = e.target.value as 'relative' | 'absolute';
+                        updateRetryDraft({
+                          timingType,
+                          absoluteLocalDateTime:
+                            timingType === 'absolute' && !retryDraft.absoluteLocalDateTime
+                              ? formatDateTimeLocalInTimeZone(event.start_date, retryDraft.timezone)
+                              : retryDraft.absoluteLocalDateTime,
+                        });
+                      }}
+                      className="w-full px-3 py-2 border rounded-md"
+                    >
+                      <option value="relative">Before Event Start</option>
+                      <option value="absolute">Exact Date & Time</option>
+                    </select>
+                  </div>
+
+                  {retryDraft.timingType === 'relative' ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Quantity</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={retryDraft.relativeValue}
+                          onChange={(e) =>
+                            updateRetryDraft({
+                              relativeValue:
+                                e.target.value === '' ? 0 : Number.parseInt(e.target.value, 10),
+                            })
+                          }
+                          className="w-full px-3 py-2 border rounded-md"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Unit</label>
+                        <select
+                          value={retryDraft.relativeUnit}
+                          onChange={(e) =>
+                            updateRetryDraft({
+                              relativeUnit: e.target.value as ReminderRelativeUnit,
+                            })
+                          }
+                          className="w-full px-3 py-2 border rounded-md"
+                        >
+                          <option value="minutes">Minutes</option>
+                          <option value="hours">Hours</option>
+                          <option value="days">Days</option>
+                        </select>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Send At (Exact)</label>
+                      <input
+                        type="datetime-local"
+                        value={retryDraft.absoluteLocalDateTime}
+                        onChange={(e) =>
+                          updateRetryDraft({ absoluteLocalDateTime: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border rounded-md"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-4">
+                  <label className="flex items-center gap-2 text-sm text-app-text">
+                    <input
+                      type="checkbox"
+                      checked={retryDraft.sendEmail}
+                      onChange={(e) => updateRetryDraft({ sendEmail: e.target.checked })}
+                    />
+                    Email
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-app-text">
+                    <input
+                      type="checkbox"
+                      checked={retryDraft.sendSms}
+                      onChange={(e) => updateRetryDraft({ sendSms: e.target.checked })}
+                    />
+                    SMS
+                  </label>
+                </div>
+
+                <div className="mt-3">
+                  <label className="block text-sm font-medium mb-1">Custom Message (Optional)</label>
+                  <textarea
+                    value={retryDraft.customMessage}
+                    onChange={(e) => updateRetryDraft({ customMessage: e.target.value })}
+                    rows={3}
+                    maxLength={MAX_CUSTOM_MESSAGE_LENGTH}
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                  <p className="text-xs text-app-text-muted mt-1">
+                    {retryDraft.customMessage.length}/{MAX_CUSTOM_MESSAGE_LENGTH}
+                  </p>
+                </div>
+
+                <div className="mt-4 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCreateRetryAutomation}
+                    disabled={savingRetryDraft}
+                    className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover disabled:opacity-60"
+                  >
+                    {savingRetryDraft ? 'Scheduling...' : 'Schedule Reminder'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRetryDraft(null)}
+                    disabled={savingRetryDraft}
+                    className="px-4 py-2 border rounded-md hover:bg-app-surface-muted"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">Event Registrations</h3>
             <select

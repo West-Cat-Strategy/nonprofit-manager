@@ -385,6 +385,9 @@ export const uploadContactDocument = createAsyncThunk(
     if (data.document_type) formData.append('document_type', data.document_type);
     if (data.title) formData.append('title', data.title);
     if (data.description) formData.append('description', data.description);
+    if (typeof data.is_portal_visible === 'boolean') {
+      formData.append('is_portal_visible', String(data.is_portal_visible));
+    }
 
     const response = await api.post(`/contacts/${contactId}/documents`, formData, {
       headers: {

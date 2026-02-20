@@ -25,11 +25,20 @@ import CaseDocuments from '../../../components/CaseDocuments';
 import FollowUpList from '../../../components/FollowUpList';
 import CaseRelationships from '../../../components/cases/CaseRelationships';
 import CaseServices from '../../../components/cases/CaseServices';
+import CasePortalConversations from '../../../components/cases/CasePortalConversations';
 import type { CasePriority, CaseStatusType, CaseMilestone } from '../../../types/case';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 
-type TabType = 'overview' | 'notes' | 'documents' | 'milestones' | 'followups' | 'relationships' | 'services';
+type TabType =
+  | 'overview'
+  | 'notes'
+  | 'documents'
+  | 'milestones'
+  | 'followups'
+  | 'relationships'
+  | 'services'
+  | 'portal';
 
 const CaseDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -277,6 +286,7 @@ const CaseDetail = () => {
     { key: 'milestones', label: 'Milestones', count: caseMilestones.length },
     { key: 'relationships', label: 'Relationships' },
     { key: 'services', label: 'Services', count: currentCase.services_count || 0 },
+    { key: 'portal', label: 'Portal' },
     { key: 'followups', label: 'Follow-ups' },
   ];
 
@@ -775,6 +785,15 @@ const CaseDetail = () => {
                   })}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Follow-ups Tab */}
+          {activeTab === 'portal' && id && (
+            <div id="panel-portal" role="tabpanel" aria-labelledby="tab-portal">
+              <BrutalCard color="white" className="p-6">
+                <CasePortalConversations caseId={id} />
+              </BrutalCard>
             </div>
           )}
 

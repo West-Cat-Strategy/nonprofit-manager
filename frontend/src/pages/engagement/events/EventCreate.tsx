@@ -14,7 +14,7 @@ const EventCreate: React.FC = () => {
   const dispatch = useAppDispatch();
 
   const handleSubmit = async (eventData: CreateEventDTO | UpdateEventDTO) => {
-    await dispatch(createEvent(eventData as CreateEventDTO)).unwrap();
+    return dispatch(createEvent(eventData as CreateEventDTO)).unwrap();
   };
 
   return (

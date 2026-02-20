@@ -14,6 +14,7 @@ import {
   PortalPeople,
   PortalEvents,
   PortalAppointments,
+  PortalMessages,
   PortalDocuments,
   PortalNotes,
   PortalForms,
@@ -48,6 +49,10 @@ export function createPortalRoutes(PortalProtectedRoute: React.ComponentType<Rou
       <Route
         path="/portal/events"
         element={<PortalProtectedRoute><PortalEvents /></PortalProtectedRoute>}
+      />
+      <Route
+        path="/portal/messages"
+        element={<PortalProtectedRoute><PortalMessages /></PortalProtectedRoute>}
       />
       <Route
         path="/portal/appointments"
