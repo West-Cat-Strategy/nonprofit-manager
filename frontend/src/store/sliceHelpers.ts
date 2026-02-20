@@ -141,7 +141,7 @@ export function handleDeleteItemFulfilled<S extends BaseCrudState<T>, T>(
   ) as Draft<S>['items'];
 
   if (state.selectedItem && (state.selectedItem as T)[idField] === deletedId) {
-    state.selectedItem = null;
+    state.selectedItem = null as Draft<S>['selectedItem'];
   }
 }
 
@@ -152,7 +152,7 @@ export function createClearReducers<T>() {
   return {
      
     clearSelectedItem: (state: Draft<BaseCrudState<T>>) => {
-      state.selectedItem = null;
+      state.selectedItem = null as Draft<BaseCrudState<T>>['selectedItem'];
     },
      
     clearError: (state: Draft<BaseCrudState<T>>) => {

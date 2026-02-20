@@ -6,6 +6,29 @@ const apiURL = process.env.API_URL || 'http://localhost:3001';
 
 const uniqueSuffix = () => `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
+function isMobileLayout(page: Page): boolean {
+    return (page.viewportSize()?.width ?? 1024) < 768;
+}
+
+function caseTitleLocator(page: Page, title: string) {
+    if (isMobileLayout(page)) {
+        return page
+            .locator('div.md\\:hidden')
+            .locator('div.text-lg.font-black.text-black', { hasText: title })
+            .first();
+    }
+
+    return page.locator('tbody tr', { hasText: title }).first();
+}
+
+function firstCaseSelectionCheckbox(page: Page) {
+    if (isMobileLayout(page)) {
+        return page.locator('div.md\\:hidden input[type="checkbox"]').first();
+    }
+
+    return page.locator('tbody input[type="checkbox"]').first();
+}
+
 async function getWriteHeaders(page: Page, token: string): Promise<Record<string, string>> {
     const organizationId = await page
         .evaluate(() => localStorage.getItem('organizationId'))
@@ -197,9 +220,7 @@ test.describe('Cases Module', () => {
         await authenticatedPage.locator('form').getByRole('button', { name: /create case/i }).click();
 
         await authenticatedPage.waitForURL(/\/cases$/);
-        await expect(
-            authenticatedPage.locator('tr', { hasText: title }).first()
-        ).toBeVisible({ timeout: 10000 });
+        await expect(caseTitleLocator(authenticatedPage, title)).toBeVisible({ timeout: 10000 });
     });
 
     test('should prefill create form from query params', async ({ authenticatedPage, authToken }) => {
@@ -243,12 +264,8 @@ test.describe('Cases Module', () => {
 
         await authenticatedPage.goto('/cases?quick_filter=urgent');
 
-        await expect(
-            authenticatedPage.locator('tr', { hasText: urgentTitle }).first()
-        ).toBeVisible();
-        await expect(
-            authenticatedPage.locator('tr', { hasText: normalTitle }).first()
-        ).not.toBeVisible();
+        await expect(caseTitleLocator(authenticatedPage, urgentTitle)).toBeVisible();
+        await expect(caseTitleLocator(authenticatedPage, normalTitle)).not.toBeVisible();
 
         await authenticatedPage.locator('input[placeholder*="Search by case number"]').fill(urgentTitle);
         await authenticatedPage.keyboard.press('Enter');
@@ -285,7 +302,7 @@ test.describe('Cases Module', () => {
 
         await authenticatedPage.goto('/cases');
 
-        const firstRowCheckbox = authenticatedPage.locator('tbody input[type="checkbox"]').first();
+        const firstRowCheckbox = firstCaseSelectionCheckbox(authenticatedPage);
         await firstRowCheckbox.check();
 
         await expect(authenticatedPage.getByText(/1 case selected/i)).toBeVisible();

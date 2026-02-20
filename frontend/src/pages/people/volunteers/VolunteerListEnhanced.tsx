@@ -203,12 +203,12 @@ const VolunteerListEnhanced = () => {
     return config;
   };
 
-  const columns: TableColumn[] = [
+  const columns: TableColumn<Volunteer>[] = [
     {
       key: 'name',
       label: 'Name',
       width: '250px',
-      render: (_, row) => (
+      render: (_, row: Volunteer) => (
         <div>
           <p
             className="text-app-accent hover:text-app-accent-text font-medium cursor-pointer"
@@ -249,11 +249,12 @@ const VolunteerListEnhanced = () => {
       key: 'availability_status',
       label: 'Availability',
       width: '120px',
-      render: (value: string) => {
-        const config = getStatusBadge(value);
+      render: (value) => {
+        const displayValue = String(value ?? '');
+        const config = getStatusBadge(displayValue);
         return (
           <span className={`px-3 py-1 text-xs rounded ${config.bg} ${config.text}`}>
-            {value}
+            {displayValue}
           </span>
         );
       },
@@ -262,11 +263,12 @@ const VolunteerListEnhanced = () => {
       key: 'background_check_status',
       label: 'Background Check',
       width: '150px',
-      render: (value: string) => {
-        const config = getBackgroundCheckBadge(value);
+      render: (value) => {
+        const displayValue = String(value ?? '');
+        const config = getBackgroundCheckBadge(displayValue);
         return (
           <span className={`px-3 py-1 text-xs rounded ${config.bg} ${config.text}`}>
-            {value.replace(/_/g, ' ')}
+            {displayValue.replace(/_/g, ' ')}
           </span>
         );
       },
@@ -275,7 +277,7 @@ const VolunteerListEnhanced = () => {
       key: 'total_hours_logged',
       label: 'Hours',
       width: '80px',
-      render: (value: number) => <span>{value || 0} hrs</span>,
+      render: (value) => <span>{Number(value) || 0} hrs</span>,
     },
     {
       key: 'actions',
@@ -307,6 +309,7 @@ const VolunteerListEnhanced = () => {
       <PeopleListContainer
         title="Volunteers"
         description="Manage volunteer profiles and assignments"
+        getRowId={(row) => row.volunteer_id}
         onCreateNew={() => navigate('/volunteers/new')}
         createButtonLabel="New Volunteer"
         filters={

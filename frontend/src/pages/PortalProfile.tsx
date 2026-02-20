@@ -123,7 +123,7 @@ export default function PortalProfile() {
         (error as { response?: { data?: { message?: string } } }).response?.data?.message
           ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
           : 'Failed to change password';
-      setPasswordMessage(message);
+      setPasswordMessage(message ?? 'Failed to change password');
     } finally {
       setChangingPassword(false);
     }

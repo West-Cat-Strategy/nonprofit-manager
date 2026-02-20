@@ -16,7 +16,7 @@ import {
 } from 'recharts';
 
 interface ReportChartProps {
-    data: Array<Record<string, string | number>>;
+    data: Array<Record<string, unknown>>;
     chartType: 'bar' | 'pie' | 'line';
     xAxisField: string;
     yAxisField: string;

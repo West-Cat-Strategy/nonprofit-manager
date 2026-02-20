@@ -299,6 +299,7 @@ const ContactList = () => {
       <PeopleListContainer
         title="People"
         description="Manage all organizational contacts and relationships"
+        getRowId={(row) => row.contact_id}
         onCreateNew={() => navigate('/contacts/new')}
         createButtonLabel="New Person"
         filters={
