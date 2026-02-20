@@ -35,6 +35,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
     title: '',
     description: '',
     case_id: undefined,
+    is_portal_visible: false,
   });
   const [editingDocument, setEditingDocument] = useState<ContactDocument | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -88,6 +89,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
         title: '',
         description: '',
         case_id: undefined,
+        is_portal_visible: false,
       });
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -138,14 +140,15 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
     try {
       await dispatch(
         updateContactDocument({
-          documentId: editingDocument.id,
-          data: {
-            document_type: editingDocument.document_type,
-            title: editingDocument.title || undefined,
-            description: editingDocument.description || undefined,
-          },
-        })
-      ).unwrap();
+            documentId: editingDocument.id,
+            data: {
+              document_type: editingDocument.document_type,
+              title: editingDocument.title || undefined,
+              description: editingDocument.description || undefined,
+              is_portal_visible: editingDocument.is_portal_visible,
+            },
+          })
+        ).unwrap();
       setEditingDocument(null);
     } catch (error) {
       console.error('Failed to update document:', error);
@@ -282,6 +285,21 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                   className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent text-sm"
                 />
               </div>
+
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={Boolean(newDocument.is_portal_visible)}
+                  onChange={(e) =>
+                    setNewDocument((prev) => ({
+                      ...prev,
+                      is_portal_visible: e.target.checked,
+                    }))
+                  }
+                  className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
+                />
+                <span className="text-sm text-app-text-muted">Visible in client portal</span>
+              </label>
             </>
           )}
 
@@ -309,6 +327,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                     title: '',
                     description: '',
                     case_id: undefined,
+                    is_portal_visible: false,
                   });
                   if (fileInputRef.current) {
                     fileInputRef.current.value = '';
@@ -349,6 +368,11 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                     <span className="px-2 py-0.5 bg-app-surface-muted text-app-text-muted text-xs rounded">
                       {getDocumentTypeLabel(doc.document_type)}
                     </span>
+                    {doc.is_portal_visible && (
+                      <span className="px-2 py-0.5 bg-app-accent-soft text-app-accent-text text-xs rounded">
+                        Shared in portal
+                      </span>
+                    )}
                   </div>
 
                   <p className="text-sm text-app-text-muted truncate">{doc.original_name}</p>
@@ -499,6 +523,20 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                   className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
                 />
               </div>
+
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={editingDocument.is_portal_visible}
+                  onChange={(e) =>
+                    setEditingDocument((prev) =>
+                      prev ? { ...prev, is_portal_visible: e.target.checked } : null
+                    )
+                  }
+                  className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
+                />
+                <span className="text-sm text-app-text-muted">Visible in client portal</span>
+              </label>
 
               <div className="flex justify-end gap-3">
                 <button

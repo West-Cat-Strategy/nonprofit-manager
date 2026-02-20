@@ -4,9 +4,7 @@ import type { ApiErrorResponse } from '../types/api';
 let portalUnauthorizedEventDispatched = false;
 
 const portalApi = createApiClient({
-  tokenKey: 'portal_token',
   onUnauthorized: () => {
-    localStorage.removeItem('portal_token');
     const onPublicPortalRoute =
       window.location.pathname.startsWith('/portal/login') ||
       window.location.pathname.startsWith('/portal/signup') ||

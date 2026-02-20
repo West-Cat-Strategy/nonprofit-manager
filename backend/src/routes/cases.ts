@@ -5,10 +5,19 @@ import * as caseController from '@controllers/domains/engagement';
 import * as documentController from '@controllers/domains/engagement';
 import * as outcomeImpactController from '@controllers/outcomeImpactController';
 import {
+  getCasePortalConversations,
+  replyCasePortalConversation,
+} from '@controllers/domains/portal';
+import {
   caseOutcomeDefinitionsQuerySchema,
   interactionOutcomeParamsSchema,
   updateInteractionOutcomeImpactsSchema,
 } from '@validations/outcomeImpact';
+import {
+  casePortalConversationMessageParamsSchema,
+  casePortalConversationMessageSchema,
+  casePortalConversationParamsSchema,
+} from '@validations/portal';
 
 const router = express.Router();
 
@@ -49,6 +58,19 @@ router.put('/services/:serviceId', authenticate, caseController.updateCaseServic
 router.delete('/services/:serviceId', authenticate, caseController.deleteCaseService);
 
 router.post('/notes', authenticate, caseController.createCaseNote);
+router.get(
+  '/:id/portal/conversations',
+  authenticate,
+  validateParams(casePortalConversationParamsSchema),
+  getCasePortalConversations
+);
+router.post(
+  '/:id/portal/conversations/:threadId/messages',
+  authenticate,
+  validateParams(casePortalConversationMessageParamsSchema),
+  validateBody(casePortalConversationMessageSchema),
+  replyCasePortalConversation
+);
 router.get(
   '/:caseId/interactions/:interactionId/outcomes',
   authenticate,

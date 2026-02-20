@@ -184,3 +184,91 @@ export interface CheckInResult {
   message: string;
   registration?: EventRegistration;
 }
+
+export interface SendEventRemindersDTO {
+  sendEmail?: boolean;
+  sendSms?: boolean;
+  customMessage?: string;
+}
+
+export interface ReminderChannelSummary {
+  requested: boolean;
+  enabled: boolean;
+  attempted: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+}
+
+export interface EventReminderSummary {
+  eventId: string;
+  eventName: string;
+  eventStartDate: Date;
+  totalRegistrations: number;
+  eligibleRegistrations: number;
+  email: ReminderChannelSummary;
+  sms: ReminderChannelSummary;
+  warnings: string[];
+}
+
+export type ReminderTriggerType = 'manual' | 'automated';
+export type EventReminderTimingType = 'relative' | 'absolute';
+export type EventReminderAttemptStatus =
+  | 'sent'
+  | 'partial'
+  | 'failed'
+  | 'skipped'
+  | 'cancelled';
+
+export interface EventReminderAutomation {
+  id: string;
+  event_id: string;
+  timing_type: EventReminderTimingType;
+  relative_minutes_before: number | null;
+  absolute_send_at: Date | null;
+  send_email: boolean;
+  send_sms: boolean;
+  custom_message: string | null;
+  timezone: string;
+  is_active: boolean;
+  processing_started_at: Date | null;
+  attempted_at: Date | null;
+  attempt_status: EventReminderAttemptStatus | null;
+  attempt_summary: Record<string, unknown> | null;
+  last_error: string | null;
+  created_at: Date;
+  updated_at: Date;
+  created_by: string | null;
+  modified_by: string | null;
+}
+
+export interface CreateEventReminderAutomationDTO {
+  timingType: EventReminderTimingType;
+  relativeMinutesBefore?: number;
+  absoluteSendAt?: Date;
+  sendEmail?: boolean;
+  sendSms?: boolean;
+  customMessage?: string;
+  timezone?: string;
+}
+
+export interface UpdateEventReminderAutomationDTO {
+  timingType?: EventReminderTimingType;
+  relativeMinutesBefore?: number;
+  absoluteSendAt?: Date;
+  sendEmail?: boolean;
+  sendSms?: boolean;
+  customMessage?: string;
+  timezone?: string;
+  isActive?: boolean;
+}
+
+export interface SyncEventReminderAutomationsDTO {
+  items: CreateEventReminderAutomationDTO[];
+}
+
+export interface SendEventRemindersContext {
+  triggerType?: ReminderTriggerType;
+  automationId?: string | null;
+  sentBy?: string | null;
+}

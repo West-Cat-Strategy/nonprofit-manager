@@ -19,6 +19,12 @@ import {
   cancelRegistration,
   getAttendanceStats,
   getRegistrations,
+  sendEventReminders,
+  getEventReminderAutomations,
+  createEventReminderAutomation,
+  updateEventReminderAutomation,
+  cancelEventReminderAutomation,
+  syncEventReminderAutomations,
 } from '@controllers/domains/engagement';
 import { authenticate } from '@middleware/domains/auth';
 import { loadDataScope } from '@middleware/domains/data';
@@ -41,6 +47,7 @@ const eventTypeValues = [
 const eventStatusValues = ['planned', 'active', 'completed', 'cancelled', 'postponed'];
 const registrationStatusValues = ['registered', 'waitlisted', 'cancelled', 'confirmed', 'no_show'];
 const recurrencePatternValues = ['daily', 'weekly', 'monthly', 'yearly'];
+const reminderTimingTypeValues = ['relative', 'absolute'];
 
 // All routes require authentication
 router.use(authenticate);
@@ -255,6 +262,107 @@ router.get(
   ],
   validateRequest,
   getRegistrations
+);
+
+/**
+ * POST /api/events/:id/reminders/send
+ * Send reminders to event registrants via configured channels.
+ */
+router.post(
+  '/:id/reminders/send',
+  [
+    param('id').isUUID(),
+    body('sendEmail').optional().isBoolean(),
+    body('sendSms').optional().isBoolean(),
+    body('customMessage').optional().isString().isLength({ max: 500 }),
+  ],
+  validateRequest,
+  sendEventReminders
+);
+
+/**
+ * GET /api/events/:id/reminder-automations
+ * List reminder automations for an event.
+ */
+router.get(
+  '/:id/reminder-automations',
+  [param('id').isUUID()],
+  validateRequest,
+  getEventReminderAutomations
+);
+
+/**
+ * POST /api/events/:id/reminder-automations
+ * Create a reminder automation for an event.
+ */
+router.post(
+  '/:id/reminder-automations',
+  [
+    param('id').isUUID(),
+    body('timingType').isIn(reminderTimingTypeValues),
+    body('relativeMinutesBefore').optional().isInt({ min: 1 }),
+    body('absoluteSendAt').optional().isISO8601(),
+    body('sendEmail').optional().isBoolean(),
+    body('sendSms').optional().isBoolean(),
+    body('customMessage').optional().isString().isLength({ max: 500 }),
+    body('timezone').optional().isString().isLength({ min: 1, max: 64 }),
+  ],
+  validateRequest,
+  createEventReminderAutomation
+);
+
+/**
+ * PATCH /api/events/:id/reminder-automations/:automationId
+ * Update a pending reminder automation.
+ */
+router.patch(
+  '/:id/reminder-automations/:automationId',
+  [
+    param('id').isUUID(),
+    param('automationId').isUUID(),
+    body('timingType').optional().isIn(reminderTimingTypeValues),
+    body('relativeMinutesBefore').optional().isInt({ min: 1 }),
+    body('absoluteSendAt').optional().isISO8601(),
+    body('sendEmail').optional().isBoolean(),
+    body('sendSms').optional().isBoolean(),
+    body('customMessage').optional().isString().isLength({ max: 500 }),
+    body('timezone').optional().isString().isLength({ min: 1, max: 64 }),
+    body('isActive').optional().isBoolean(),
+  ],
+  validateRequest,
+  updateEventReminderAutomation
+);
+
+/**
+ * POST /api/events/:id/reminder-automations/:automationId/cancel
+ * Cancel a pending reminder automation.
+ */
+router.post(
+  '/:id/reminder-automations/:automationId/cancel',
+  [param('id').isUUID(), param('automationId').isUUID()],
+  validateRequest,
+  cancelEventReminderAutomation
+);
+
+/**
+ * PUT /api/events/:id/reminder-automations/sync
+ * Replace all pending reminder automations for this event.
+ */
+router.put(
+  '/:id/reminder-automations/sync',
+  [
+    param('id').isUUID(),
+    body('items').isArray(),
+    body('items.*.timingType').isIn(reminderTimingTypeValues),
+    body('items.*.relativeMinutesBefore').optional().isInt({ min: 1 }),
+    body('items.*.absoluteSendAt').optional().isISO8601(),
+    body('items.*.sendEmail').optional().isBoolean(),
+    body('items.*.sendSms').optional().isBoolean(),
+    body('items.*.customMessage').optional().isString().isLength({ max: 500 }),
+    body('items.*.timezone').optional().isString().isLength({ min: 1, max: 64 }),
+  ],
+  validateRequest,
+  syncEventReminderAutomations
 );
 
 export default router;

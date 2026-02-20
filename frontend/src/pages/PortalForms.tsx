@@ -42,7 +42,7 @@ export default function PortalForms() {
         empty={!loading && !error && forms.length === 0}
         loadingLabel="Loading forms..."
         emptyTitle="No forms available."
-        emptyDescription="Assigned forms will appear here when they are published."
+        emptyDescription="Forms appear only when staff explicitly share them with you."
         onRetry={load}
       />
       {!loading && !error && forms.length > 0 && (

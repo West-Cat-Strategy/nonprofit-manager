@@ -154,6 +154,7 @@ export const contactNoteSchema = z.object({
   is_important: z.boolean().optional(),
   is_pinned: z.boolean().optional(),
   is_alert: z.boolean().optional(),
+  is_portal_visible: z.boolean().optional(),
 });
 
 export type ContactNoteInput = z.infer<typeof contactNoteSchema>;
@@ -167,6 +168,7 @@ export const updateContactNoteSchema = z.object({
   is_important: z.boolean().optional(),
   is_pinned: z.boolean().optional(),
   is_alert: z.boolean().optional(),
+  is_portal_visible: z.boolean().optional(),
 });
 
 export type UpdateContactNoteInput = z.infer<typeof updateContactNoteSchema>;
@@ -236,6 +238,7 @@ export const contactDocumentSchema = z.object({
   document_type: documentTypeSchema.optional(),
   title: z.string().max(200).optional(),
   description: z.string().max(1000).optional(),
+  is_portal_visible: z.boolean().optional(),
 });
 
 export type ContactDocumentInput = z.infer<typeof contactDocumentSchema>;
@@ -245,6 +248,7 @@ export const updateContactDocumentSchema = z.object({
   document_type: documentTypeSchema.optional(),
   title: z.string().max(200).optional(),
   description: z.string().max(1000).optional(),
+  is_portal_visible: z.boolean().optional(),
 });
 
 export type UpdateContactDocumentInput = z.infer<typeof updateContactDocumentSchema>;

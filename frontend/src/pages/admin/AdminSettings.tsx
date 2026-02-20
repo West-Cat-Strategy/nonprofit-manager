@@ -27,6 +27,9 @@ import type {
   PortalUser,
   PortalActivity,
   PortalContactLookup,
+  PortalConversationThread,
+  PortalConversationDetail,
+  PortalAppointmentSlot,
   SaveStatus,
 } from './adminSettings/types';
 import { adminSettingsTabs, defaultConfig, defaultPermissions } from './adminSettings/constants';
@@ -40,6 +43,7 @@ import OtherSettingsSection from './adminSettings/sections/OtherSettingsSection'
 import DashboardSection from './adminSettings/sections/DashboardSection';
 import AuditLogsSection from './adminSettings/sections/AuditLogsSection';
 import EmailSettingsSection from './adminSettings/sections/EmailSettingsSection';
+import TwilioSettingsSection from './adminSettings/sections/TwilioSettingsSection';
 import RegistrationSettingsSection from './adminSettings/sections/RegistrationSettingsSection';
 import OutcomeDefinitionsSection from './adminSettings/sections/OutcomeDefinitionsSection';
 import UserSecurityModal from './adminSettings/components/UserSecurityModal';
@@ -50,6 +54,12 @@ const ADMIN_SETTINGS_SECTION_KEY = 'admin_settings_section_v1';
 
 const serializeOrganizationConfig = (value: OrganizationConfig): string => JSON.stringify(value);
 const serializeBrandingConfig = (value: BrandingConfig): string => JSON.stringify(value);
+const toIsoDateTime = (value: string): string | null => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+};
 
 // ============================================================================
 // Main Component
@@ -136,6 +146,25 @@ export default function AdminSettings() {
   const [portalContactResults, setPortalContactResults] = useState<PortalContactLookup[]>([]);
   const [portalContactLoading, setPortalContactLoading] = useState(false);
   const [selectedPortalContact, setSelectedPortalContact] = useState<PortalContactLookup | null>(null);
+  const [portalConversationsLoading, setPortalConversationsLoading] = useState(false);
+  const [portalConversations, setPortalConversations] = useState<PortalConversationThread[]>([]);
+  const [selectedPortalConversation, setSelectedPortalConversation] = useState<PortalConversationDetail | null>(null);
+  const [portalConversationReply, setPortalConversationReply] = useState('');
+  const [portalConversationReplyInternal, setPortalConversationReplyInternal] = useState(false);
+  const [portalConversationReplyLoading, setPortalConversationReplyLoading] = useState(false);
+  const [portalSlotsLoading, setPortalSlotsLoading] = useState(false);
+  const [portalSlots, setPortalSlots] = useState<PortalAppointmentSlot[]>([]);
+  const [portalSlotSaving, setPortalSlotSaving] = useState(false);
+  const [portalSlotForm, setPortalSlotForm] = useState({
+    pointperson_user_id: '',
+    case_id: '',
+    title: '',
+    details: '',
+    location: '',
+    start_time: '',
+    end_time: '',
+    capacity: 1,
+  });
 
   // Form states
   const [newPassword, setNewPassword] = useState('');
@@ -211,15 +240,20 @@ export default function AdminSettings() {
       try {
         setPortalLoading(true);
         setPortalUsersLoading(true);
-        const [requestsResponse, invitationsResponse, usersResponse] = await Promise.all([
+        const [requestsResponse, invitationsResponse, usersResponse, conversationsResponse, slotsResponse] =
+          await Promise.all([
           api.get('/portal/admin/requests').catch(() => ({ data: { requests: [] } })),
           api.get('/portal/admin/invitations').catch(() => ({ data: { invitations: [] } })),
           api.get('/portal/admin/users').catch(() => ({ data: { users: [] } })),
+          api.get('/portal/admin/conversations').catch(() => ({ data: { conversations: [] } })),
+          api.get('/portal/admin/appointment-slots').catch(() => ({ data: { slots: [] } })),
         ]);
 
         setPortalRequests(requestsResponse.data.requests || []);
         setPortalInvitations(invitationsResponse.data.invitations || []);
         setPortalUsers(usersResponse.data.users || []);
+        setPortalConversations(conversationsResponse.data.conversations || []);
+        setPortalSlots(slotsResponse.data.slots || []);
       } finally {
         setPortalLoading(false);
         setPortalUsersLoading(false);
@@ -595,7 +629,11 @@ export default function AdminSettings() {
       setPortalLoading(false);
     }
 
-    fetchPortalUsers(portalUserSearch);
+    await Promise.all([
+      fetchPortalUsers(portalUserSearch),
+      fetchPortalConversations(),
+      fetchPortalSlots(),
+    ]);
   };
 
   const handleApprovePortalRequest = async (requestId: string) => {
@@ -659,6 +697,144 @@ export default function AdminSettings() {
       setPortalUsersLoading(false);
     }
   }, []);
+
+  const fetchPortalConversations = useCallback(async () => {
+    try {
+      setPortalConversationsLoading(true);
+      const response = await api.get('/portal/admin/conversations');
+      setPortalConversations(response.data.conversations || []);
+    } finally {
+      setPortalConversationsLoading(false);
+    }
+  }, []);
+
+  const openPortalConversation = async (threadId: string) => {
+    try {
+      const response = await api.get(`/portal/admin/conversations/${threadId}`);
+      setSelectedPortalConversation(response.data || null);
+    } catch (error: unknown) {
+      notifyError(error, 'Failed to load conversation');
+    }
+  };
+
+  const handleSendPortalConversationReply = async () => {
+    if (!selectedPortalConversation || !portalConversationReply.trim()) {
+      return;
+    }
+
+    try {
+      setPortalConversationReplyLoading(true);
+      await api.post(`/portal/admin/conversations/${selectedPortalConversation.thread.id}/messages`, {
+        message: portalConversationReply.trim(),
+        is_internal: portalConversationReplyInternal,
+      });
+      setPortalConversationReply('');
+      setPortalConversationReplyInternal(false);
+      showSuccess('Reply sent');
+      await Promise.all([
+        fetchPortalConversations(),
+        openPortalConversation(selectedPortalConversation.thread.id),
+      ]);
+    } catch (error: unknown) {
+      notifyError(error, 'Failed to send reply');
+    } finally {
+      setPortalConversationReplyLoading(false);
+    }
+  };
+
+  const handleUpdatePortalConversationStatus = async (
+    threadId: string,
+    status: 'open' | 'closed' | 'archived'
+  ) => {
+    try {
+      await api.patch(`/portal/admin/conversations/${threadId}`, { status });
+      showSuccess(`Conversation ${status === 'open' ? 'reopened' : 'updated'}`);
+      await Promise.all([fetchPortalConversations(), openPortalConversation(threadId)]);
+    } catch (error: unknown) {
+      notifyError(error, 'Failed to update conversation');
+    }
+  };
+
+  const fetchPortalSlots = useCallback(async () => {
+    try {
+      setPortalSlotsLoading(true);
+      const response = await api.get('/portal/admin/appointment-slots');
+      setPortalSlots(response.data.slots || []);
+    } finally {
+      setPortalSlotsLoading(false);
+    }
+  }, []);
+
+  const handleCreatePortalSlot = async () => {
+    if (!portalSlotForm.pointperson_user_id || !portalSlotForm.start_time || !portalSlotForm.end_time) {
+      showError('Pointperson, start time, and end time are required for a slot');
+      return;
+    }
+
+    const startIso = toIsoDateTime(portalSlotForm.start_time);
+    const endIso = toIsoDateTime(portalSlotForm.end_time);
+
+    if (!startIso || !endIso) {
+      showError('Invalid slot date/time values');
+      return;
+    }
+
+    try {
+      setPortalSlotSaving(true);
+      await api.post('/portal/admin/appointment-slots', {
+        pointperson_user_id: portalSlotForm.pointperson_user_id,
+        case_id: portalSlotForm.case_id || null,
+        title: portalSlotForm.title || null,
+        details: portalSlotForm.details || null,
+        location: portalSlotForm.location || null,
+        start_time: startIso,
+        end_time: endIso,
+        capacity: portalSlotForm.capacity,
+      });
+      showSuccess('Appointment slot created');
+      setPortalSlotForm((prev) => ({
+        ...prev,
+        case_id: '',
+        title: '',
+        details: '',
+        location: '',
+        start_time: '',
+        end_time: '',
+        capacity: 1,
+      }));
+      await fetchPortalSlots();
+    } catch (error: unknown) {
+      notifyError(error, 'Failed to create appointment slot');
+    } finally {
+      setPortalSlotSaving(false);
+    }
+  };
+
+  const handleUpdatePortalSlotStatus = async (
+    slotId: string,
+    status: 'open' | 'closed' | 'cancelled'
+  ) => {
+    try {
+      await api.patch(`/portal/admin/appointment-slots/${slotId}`, { status });
+      showSuccess('Appointment slot updated');
+      await fetchPortalSlots();
+    } catch (error: unknown) {
+      notifyError(error, 'Failed to update slot');
+    }
+  };
+
+  const handleDeletePortalSlot = async (slotId: string) => {
+    const confirmed = await confirm(confirmPresets.delete('Appointment Slot'));
+    if (!confirmed) return;
+
+    try {
+      await api.delete(`/portal/admin/appointment-slots/${slotId}`);
+      showSuccess('Appointment slot deleted');
+      await fetchPortalSlots();
+    } catch (error: unknown) {
+      notifyError(error, 'Failed to delete slot');
+    }
+  };
 
   const handlePortalUserStatusChange = async (user: PortalUser, status: string) => {
     try {
@@ -730,6 +906,10 @@ export default function AdminSettings() {
       setPortalContactLoading(false);
     }
   }, []);
+
+  const handlePortalSlotFormChange = (field: string, value: string | number) => {
+    setPortalSlotForm((prev) => ({ ...prev, [field]: value }));
+  };
 
   useEffect(() => {
     if (activeSection !== 'portal') return;
@@ -928,6 +1108,27 @@ export default function AdminSettings() {
                 setPortalResetConfirmPassword('');
                 setShowPortalResetModal(true);
               }}
+              portalConversationsLoading={portalConversationsLoading}
+              portalConversations={portalConversations}
+              selectedPortalConversation={selectedPortalConversation}
+              portalConversationReply={portalConversationReply}
+              portalConversationReplyInternal={portalConversationReplyInternal}
+              portalConversationReplyLoading={portalConversationReplyLoading}
+              onRefreshPortalConversations={fetchPortalConversations}
+              onOpenPortalConversation={openPortalConversation}
+              onPortalConversationReplyChange={setPortalConversationReply}
+              onPortalConversationReplyInternalChange={setPortalConversationReplyInternal}
+              onSendPortalConversationReply={handleSendPortalConversationReply}
+              onUpdatePortalConversationStatus={handleUpdatePortalConversationStatus}
+              portalSlotsLoading={portalSlotsLoading}
+              portalSlots={portalSlots}
+              portalSlotSaving={portalSlotSaving}
+              portalSlotForm={portalSlotForm}
+              onPortalSlotFormChange={handlePortalSlotFormChange}
+              onCreatePortalSlot={handleCreatePortalSlot}
+              onRefreshPortalSlots={fetchPortalSlots}
+              onUpdatePortalSlotStatus={handleUpdatePortalSlotStatus}
+              onDeletePortalSlot={handleDeletePortalSlot}
             />
           )}
 
@@ -959,6 +1160,9 @@ export default function AdminSettings() {
 
           {/* Email Settings Section */}
           {activeSection === 'email' && <EmailSettingsSection />}
+
+          {/* Messaging Settings Section */}
+          {activeSection === 'messaging' && <TwilioSettingsSection />}
 
           {/* Outcome Definitions Section */}
           {activeSection === 'outcomes' && <OutcomeDefinitionsSection />}

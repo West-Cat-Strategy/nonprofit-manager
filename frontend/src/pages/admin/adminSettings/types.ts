@@ -126,4 +126,52 @@ export interface PortalContactLookup {
   phone?: string | null;
 }
 
+export interface PortalConversationMessage {
+  id: string;
+  sender_type: 'portal' | 'staff' | 'system';
+  sender_display_name: string | null;
+  message_text: string;
+  is_internal: boolean;
+  created_at: string;
+}
+
+export interface PortalConversationThread {
+  id: string;
+  subject: string | null;
+  status: 'open' | 'closed' | 'archived';
+  case_id: string | null;
+  case_number: string | null;
+  case_title: string | null;
+  pointperson_user_id: string | null;
+  pointperson_first_name: string | null;
+  pointperson_last_name: string | null;
+  portal_email: string | null;
+  unread_count: number;
+  last_message_at: string;
+}
+
+export interface PortalConversationDetail {
+  thread: PortalConversationThread;
+  messages: PortalConversationMessage[];
+}
+
+export interface PortalAppointmentSlot {
+  id: string;
+  pointperson_user_id: string;
+  case_id: string | null;
+  title: string | null;
+  details: string | null;
+  location: string | null;
+  start_time: string;
+  end_time: string;
+  capacity: number;
+  booked_count: number;
+  available_count: number;
+  status: 'open' | 'closed' | 'cancelled';
+  case_number?: string | null;
+  case_title?: string | null;
+  pointperson_first_name?: string | null;
+  pointperson_last_name?: string | null;
+}
+
 export type SaveStatus = 'idle' | 'success' | 'error';

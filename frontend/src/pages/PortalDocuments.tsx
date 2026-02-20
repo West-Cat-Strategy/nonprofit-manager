@@ -44,7 +44,7 @@ export default function PortalDocuments() {
         empty={!loading && !error && documents.length === 0}
         loadingLabel="Loading documents..."
         emptyTitle="No documents available."
-        emptyDescription="Shared files from your organization will appear here."
+        emptyDescription="Only documents explicitly shared by staff will appear here."
         onRetry={load}
       />
       {!loading && !error && documents.length > 0 && (

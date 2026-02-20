@@ -27,6 +27,7 @@ vi.mock('../../admin/adminSettings/sections/OtherSettingsSection', () => ({ defa
 vi.mock('../../admin/adminSettings/sections/DashboardSection', () => ({ default: () => <div>Dashboard Section</div> }));
 vi.mock('../../admin/adminSettings/sections/AuditLogsSection', () => ({ default: () => <div>Audit Section</div> }));
 vi.mock('../../admin/adminSettings/sections/EmailSettingsSection', () => ({ default: () => <div>Email Section</div> }));
+vi.mock('../../admin/adminSettings/sections/TwilioSettingsSection', () => ({ default: () => <div>Messaging Section</div> }));
 vi.mock('../../admin/adminSettings/sections/RegistrationSettingsSection', () => ({ default: () => <div>Registration Section</div> }));
 vi.mock('../../admin/adminSettings/components/UserSecurityModal', () => ({ default: () => null }));
 vi.mock('../../admin/adminSettings/components/PortalResetPasswordModal', () => ({ default: () => null }));
