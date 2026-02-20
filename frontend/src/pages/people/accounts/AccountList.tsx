@@ -263,6 +263,7 @@ const AccountList = () => {
       <PeopleListContainer
         title="Accounts"
         description="Manage organizational and individual accounts"
+        getRowId={(row) => row.account_id}
         onCreateNew={() => navigate('/accounts/new')}
         createButtonLabel="New Account"
         filters={

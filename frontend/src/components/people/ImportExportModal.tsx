@@ -13,7 +13,7 @@ interface ImportExportModalProps {
   entityType: 'volunteers' | 'accounts' | 'contacts';
   onExport?: (format: 'csv') => void;
   onImport?: (data: Record<string, string>[]) => Promise<void>;
-  sampleData?: Record<string, string>[];
+  sampleData?: object[];
 }
 
 export const ImportExportModal: React.FC<ImportExportModalProps> = ({
@@ -35,8 +35,9 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
       return;
     }
 
-    const columns = (Object.keys(sampleData[0]) ?? []) as (keyof Record<string, string>)[];
-    exportToCSV(sampleData, columns, {
+    const firstRow = sampleData[0] as Record<string, unknown>;
+    const columns = (Object.keys(firstRow) ?? []) as (keyof Record<string, unknown>)[];
+    exportToCSV(sampleData as Record<string, unknown>[], columns, {
       filename: `${entityType}-export`,
       includeHeaders: true,
     });
