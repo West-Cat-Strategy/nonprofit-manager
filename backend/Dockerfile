@@ -26,7 +26,9 @@ ENV NODE_ENV=production \
 # dumb-init for proper PID-1 signal handling + non-root user
 RUN apk add --no-cache dumb-init curl && \
     addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+    adduser -S nodejs -u 1001 && \
+    mkdir -p /app/exports /app/logs && \
+    chown -R nodejs:nodejs /app
 
 # Install production deps only
 COPY --chown=nodejs:nodejs package*.json ./

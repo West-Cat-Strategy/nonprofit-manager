@@ -6,14 +6,14 @@
 import React, { useEffect, useRef } from 'react';
 import { BrutalCard, BrutalButton } from '../neo-brutalist';
 
-export interface TableColumn<T extends { id: string }> {
+export interface TableColumn<T> {
   key: keyof T | string;
   label: string;
   width?: string;
   render?: (value: unknown, row: T) => React.ReactNode;
 }
 
-interface PeopleListContainerProps<T extends { id: string }> {
+interface PeopleListContainerProps<T> {
   title: string;
   description?: string;
   onCreateNew?: () => void;
@@ -22,6 +22,7 @@ interface PeopleListContainerProps<T extends { id: string }> {
   loading?: boolean;
   error?: string;
   data: T[];
+  getRowId: (row: T) => string;
   columns: TableColumn<T>[];
   pagination?: {
     total: number;
@@ -46,7 +47,7 @@ interface PeopleListContainerProps<T extends { id: string }> {
   };
 }
 
-export const PeopleListContainer = <T extends { id: string }>({
+export const PeopleListContainer = <T,>({
   title,
   description,
   onCreateNew,
@@ -55,6 +56,7 @@ export const PeopleListContainer = <T extends { id: string }>({
   loading,
   error,
   data,
+  getRowId,
   columns,
   pagination,
   onPageChange,
@@ -67,8 +69,7 @@ export const PeopleListContainer = <T extends { id: string }>({
   emptyStateAction,
   emptyStateSecondaryAction,
 }: PeopleListContainerProps<T>) => {
-  const allSelected =
-    data.length > 0 && data.every((row) => selectedRows.has(row.id));
+  const allSelected = data.length > 0 && data.every((row) => selectedRows.has(getRowId(row)));
   const someSelected = selectedRows.size > 0 && !allSelected;
   const selectAllRef = useRef<HTMLInputElement>(null);
 
@@ -172,7 +173,7 @@ export const PeopleListContainer = <T extends { id: string }>({
                     )}
                     {columns.map((col) => (
                       <th
-                        key={col.key}
+                        key={String(col.key)}
                         className="px-6 py-4 text-left text-sm font-black text-[var(--app-text)] uppercase tracking-widest"
                         style={{ width: col.width }}
                       >
@@ -182,26 +183,29 @@ export const PeopleListContainer = <T extends { id: string }>({
                   </tr>
                 </thead>
                 <tbody className="divide-y-2 divide-[var(--app-border)]">
-                  {data.map((row) => (
+                  {data.map((row) => {
+                    // Use consumer-provided ID to support entities keyed as *_id.
+                    const rowId = getRowId(row);
+                    return (
                     <tr
-                      key={row.id}
-                      className={`hover:bg-[var(--app-surface-hover)] transition-colors ${selectedRows.has(row.id) ? 'bg-[var(--app-accent-soft)]' : ''
+                      key={rowId}
+                      className={`hover:bg-[var(--app-surface-hover)] transition-colors ${selectedRows.has(rowId) ? 'bg-[var(--app-accent-soft)]' : ''
                         }`}
                     >
                       {onSelectRow && (
                         <td className="px-6 py-4">
                           <input
                             type="checkbox"
-                            checked={selectedRows.has(row.id)}
+                            checked={selectedRows.has(rowId)}
                             onChange={(e) =>
-                              onSelectRow(row.id, e.target.checked)
+                              onSelectRow(rowId, e.target.checked)
                             }
                             className="w-6 h-6 border-[3px] border-[var(--app-border)] bg-[var(--app-bg)] accent-[var(--app-accent)] cursor-pointer"
                           />
                         </td>
                       )}
                       {columns.map((col) => (
-                        <td key={`${row.id}-${col.key}`} className="px-6 py-4 text-[var(--app-text)] font-medium">
+                        <td key={`${rowId}-${String(col.key)}`} className="px-6 py-4 text-[var(--app-text)] font-medium">
                           {col.render
                             ? col.render(
                               typeof col.key === 'string' ? (row as Record<string, unknown>)[col.key] : row[col.key],
@@ -213,7 +217,8 @@ export const PeopleListContainer = <T extends { id: string }>({
                         </td>
                       ))}
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

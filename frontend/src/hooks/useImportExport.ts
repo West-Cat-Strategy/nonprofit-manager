@@ -11,9 +11,9 @@ interface ImportExportOptions {
 }
 
 interface UseImportExportReturn {
-  exportToCSV: <T extends Record<string, unknown>>(
+  exportToCSV: <T extends object>(
     data: T[],
-    columns: (keyof T)[],
+    columns: readonly (keyof T)[],
     options?: ImportExportOptions
   ) => void;
   importFromCSV: (file: File) => Promise<Record<string, string>[]>;
@@ -27,9 +27,9 @@ export const useImportExport = (): UseImportExportReturn => {
   const [error, setError] = useState<string | null>(null);
 
   const exportToCSV = useCallback(
-    <T extends Record<string, unknown>>(
+    <T extends object>(
       data: T[],
-      columns: (keyof T)[],
+      columns: readonly (keyof T)[],
       options: ImportExportOptions = {}
     ) => {
       try {

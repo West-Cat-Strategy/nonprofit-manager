@@ -102,7 +102,17 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
 
   return (
     <div className="space-y-8 relative before:absolute before:left-[1.45rem] before:top-4 before:bottom-4 before:w-1 before:bg-black">
-      {sortedEvents.map((event) => (
+      {sortedEvents.map((event: ActivityEvent) => {
+        const hasDetails =
+          typeof event.details === 'object' &&
+          event.details !== null &&
+          Object.keys(event.details).length > 0;
+        const hasMetadata =
+          typeof event.metadata === 'object' &&
+          event.metadata !== null &&
+          Object.keys(event.metadata).length > 0;
+
+        return (
         <div
           key={event.id}
           className="relative pl-12 pb-2"
@@ -131,16 +141,12 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
             </div>
 
             {/* Event Description */}
-            {event.description && (
-              <p className="text-[var(--app-text)] font-medium mb-4 italic border-l-4 border-[var(--app-accent)] pl-4">
-                {event.description}
-              </p>
-            )}
+            {null}
 
             {/* Event Details - Field Changes */}
-            {event.details && Object.keys(event.details).length > 0 && (
+            {hasDetails && (
               <div className="bg-[var(--app-surface-muted)] border-4 border-black p-4 space-y-3">
-                {Object.entries(event.details).map(([field, change]) => (
+                {Object.entries(event.details as Record<string, { oldValue?: unknown; newValue?: unknown }>).map(([field, change]) => (
                   <div key={field} className="border-b-2 border-black last:border-b-0 pb-3 last:pb-0">
                     <div className="text-[var(--app-text-muted)] font-black uppercase text-xs mb-2 tracking-widest">
                       {field.replace(/_/g, ' ')}
@@ -165,9 +171,9 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
             )}
 
             {/* Metadata Tags */}
-            {event.metadata && Object.keys(event.metadata).length > 0 && (
+            {hasMetadata && (
               <div className="mt-4 flex flex-wrap gap-3">
-                {Object.entries(event.metadata).map(([key, value]) => (
+                {Object.entries(event.metadata as Record<string, unknown>).map(([key, value]) => (
                   <span
                     key={key}
                     className="text-xs bg-black text-white px-3 py-1 font-black uppercase tracking-widest"
@@ -179,7 +185,8 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
             )}
           </BrutalCard>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 };

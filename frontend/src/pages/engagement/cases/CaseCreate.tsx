@@ -53,7 +53,7 @@ const CaseCreate = () => {
         </BrutalCard>
 
         {hasPrefillContext && (
-          <BrutalCard color="cyan" className="p-4">
+          <BrutalCard color="yellow" className="p-4">
             <p className="text-sm font-black uppercase text-black">
               Prefilled context applied from your workflow link.
             </p>

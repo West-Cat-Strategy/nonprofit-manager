@@ -78,13 +78,14 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
+    const target = e.target;
+    const { name, value } = target;
     setIsDirty(true);
-    if (e.target instanceof HTMLInputElement && e.target.type === 'checkbox') {
+    if (target instanceof HTMLInputElement && target.type === 'checkbox') {
       setFormData((prev) => ({
         ...prev,
-        [name]: e.target.checked,
-        ...(name === 'is_recurring' && !e.target.checked
+        [name]: target.checked,
+        ...(name === 'is_recurring' && !target.checked
           ? {
               recurrence_pattern: undefined,
               recurrence_interval: undefined,

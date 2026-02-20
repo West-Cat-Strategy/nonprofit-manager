@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 import { screen, waitFor } from '@testing-library/react';
-import { vi } from 'vitest';
+import { expect, vi } from 'vitest';
 import { renderWithProviders } from './testUtils';
 
 export type RouteUxCase = {

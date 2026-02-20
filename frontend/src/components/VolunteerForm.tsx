@@ -3,31 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { createVolunteer, updateVolunteer } from '../store/slices/volunteersSlice';
 import { fetchContacts } from '../store/slices/contactsSlice';
+import type { Volunteer as StoreVolunteer } from '../store/slices/volunteersSlice';
 import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
 
-interface Volunteer {
-  volunteer_id?: string;
-  contact_id: string;
-  skills: string[];
-  availability_status: 'available' | 'unavailable' | 'limited';
-  availability_notes?: string | null;
-  background_check_status:
-    | 'not_started'
-    | 'pending'
-    | 'approved'
-    | 'rejected'
-    | 'expired';
-  background_check_date?: string | null;
-  background_check_expiry?: string | null;
-  preferred_roles?: string[] | null;
-  max_hours_per_week?: number | null;
-  emergency_contact_name?: string | null;
-  emergency_contact_phone?: string | null;
-  emergency_contact_relationship?: string | null;
-  is_active?: boolean;
-  first_name?: string;
-  last_name?: string;
-}
+type Volunteer = Partial<StoreVolunteer> & Pick<StoreVolunteer, 'contact_id' | 'skills' | 'availability_status' | 'background_check_status'>;
 
 interface VolunteerFormProps {
   volunteer?: Volunteer;
@@ -44,7 +23,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
     skills: [],
     availability_status: 'available',
     availability_notes: '',
-    background_check_status: 'not_started',
+    background_check_status: 'not_required',
     background_check_date: '',
     background_check_expiry: '',
     preferred_roles: [],
@@ -431,8 +410,9 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
               onChange={handleChange}
               className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             >
-              <option value="not_started">Not Started</option>
+              <option value="not_required">Not Required</option>
               <option value="pending">Pending</option>
+              <option value="in_progress">In Progress</option>
               <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
               <option value="expired">Expired</option>

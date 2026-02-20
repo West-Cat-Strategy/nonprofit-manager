@@ -312,6 +312,7 @@ const VolunteerList = () => {
       <PeopleListContainer
         title="Volunteers"
         description="Manage volunteer profiles and assignments"
+        getRowId={(row) => row.volunteer_id}
         onCreateNew={() => navigate('/volunteers/new')}
         createButtonLabel="New Volunteer"
         filters={
