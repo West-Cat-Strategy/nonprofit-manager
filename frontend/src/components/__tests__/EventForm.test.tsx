@@ -3,6 +3,7 @@ import { screen, fireEvent, waitFor } from '@testing-library/react';
 import EventForm from '../EventForm';
 import { renderWithProviders } from '../../test/testUtils';
 import type { Event } from '../../types/event';
+import api from '../../services/api';
 
 // Mock navigate
 const mockNavigate = vi.fn();
@@ -14,13 +15,26 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+vi.mock('../../services/api', () => ({
+  default: {
+    get: vi.fn(),
+    put: vi.fn(),
+  },
+}));
+
 // Wrapper component
 describe('EventForm', () => {
   const mockOnSubmit = vi.fn();
+  const mockApi = api as unknown as {
+    get: ReturnType<typeof vi.fn>;
+    put: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     mockNavigate.mockClear();
     mockOnSubmit.mockClear();
+    mockApi.get.mockResolvedValue({ data: { preferences: { organization: { timezone: 'UTC' } } } });
+    mockApi.put.mockResolvedValue({ data: { data: [] } });
   });
 
   describe('Create Mode', () => {
@@ -346,6 +360,85 @@ describe('EventForm', () => {
 
       const capacityInput = screen.getByLabelText(/maximum capacity/i) as HTMLInputElement;
       expect(capacityInput.value).toBe('');
+    });
+  });
+
+  describe('Automated Reminder Sync', () => {
+    it('synchronizes automated reminders after event save', async () => {
+      mockOnSubmit.mockResolvedValue({ event_id: 'event-123' });
+
+      renderWithProviders(<EventForm onSubmit={mockOnSubmit} />);
+
+      fireEvent.change(screen.getByLabelText(/event name/i), {
+        target: { value: 'Test Event' },
+      });
+      fireEvent.change(screen.getByLabelText(/start date/i), {
+        target: { value: '2026-06-15T10:00' },
+      });
+      fireEvent.change(screen.getByLabelText(/end date/i), {
+        target: { value: '2026-06-15T14:00' },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /add reminder/i }));
+      fireEvent.change(screen.getByDisplayValue('60'), {
+        target: { value: '2' },
+      });
+      fireEvent.change(screen.getByLabelText(/unit/i), {
+        target: { value: 'hours' },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /create event/i }));
+
+      await waitFor(() => {
+        expect(mockApi.put).toHaveBeenCalledWith('/events/event-123/reminder-automations/sync', {
+          items: [
+            expect.objectContaining({
+              timingType: 'relative',
+              relativeMinutesBefore: 120,
+              sendEmail: true,
+              sendSms: true,
+            }),
+          ],
+        });
+      });
+    });
+
+    it('shows retry CTA when reminder sync fails after event save', async () => {
+      mockOnSubmit.mockResolvedValue({ event_id: 'event-123' });
+      mockApi.put
+        .mockRejectedValueOnce(new Error('sync failed'))
+        .mockResolvedValueOnce({ data: { data: [] } });
+
+      renderWithProviders(<EventForm onSubmit={mockOnSubmit} />);
+
+      fireEvent.change(screen.getByLabelText(/event name/i), {
+        target: { value: 'Test Event' },
+      });
+      fireEvent.change(screen.getByLabelText(/start date/i), {
+        target: { value: '2026-06-15T10:00' },
+      });
+      fireEvent.change(screen.getByLabelText(/end date/i), {
+        target: { value: '2026-06-15T14:00' },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /add reminder/i }));
+      fireEvent.click(screen.getByRole('button', { name: /create event/i }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/automated reminders could not be synchronized/i)
+        ).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /retry reminder sync/i }));
+
+      await waitFor(() => {
+        expect(mockApi.put).toHaveBeenCalledWith(
+          '/events/event-123/reminder-automations/sync',
+          expect.any(Object)
+        );
+        expect(mockNavigate).toHaveBeenCalledWith('/events');
+      });
     });
   });
 

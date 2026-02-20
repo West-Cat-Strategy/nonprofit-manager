@@ -176,8 +176,9 @@ export async function createDocument(
       `
       INSERT INTO contact_documents (
         contact_id, case_id, file_name, original_name, file_path,
-        file_size, mime_type, document_type, title, description, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        file_size, mime_type, document_type, title, description,
+        is_portal_visible, portal_visible_at, portal_visible_by, created_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING *
       `,
       [
@@ -191,6 +192,9 @@ export async function createDocument(
         data.document_type || 'other',
         data.title || null,
         data.description || null,
+        data.is_portal_visible || false,
+        data.is_portal_visible ? new Date() : null,
+        data.is_portal_visible ? userId : null,
         userId,
       ]
     );
@@ -208,7 +212,8 @@ export async function createDocument(
  */
 export async function updateDocument(
   documentId: string,
-  data: UpdateContactDocumentDTO
+  data: UpdateContactDocumentDTO,
+  userId?: string
 ): Promise<ContactDocument | null> {
   try {
     const fields: string[] = [];
@@ -228,6 +233,21 @@ export async function updateDocument(
     if (data.description !== undefined) {
       fields.push(`description = $${paramIndex++}`);
       values.push(data.description);
+    }
+
+    if (data.is_portal_visible !== undefined) {
+      fields.push(`is_portal_visible = $${paramIndex++}`);
+      values.push(data.is_portal_visible);
+      if (data.is_portal_visible) {
+        fields.push(`portal_visible_at = COALESCE(portal_visible_at, NOW())`);
+        if (userId) {
+          fields.push(`portal_visible_by = $${paramIndex++}`);
+          values.push(userId);
+        }
+      } else {
+        fields.push(`portal_visible_at = NULL`);
+        fields.push(`portal_visible_by = NULL`);
+      }
     }
 
     if (fields.length === 0) {

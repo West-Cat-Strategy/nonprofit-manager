@@ -71,6 +71,7 @@ const CaseDocuments = ({ caseId, contactId }: CaseDocumentsProps) => {
     document_type: 'other',
     title: '',
     description: '',
+    is_portal_visible: false,
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -151,12 +152,13 @@ const CaseDocuments = ({ caseId, contactId }: CaseDocumentsProps) => {
       if (newDocument.description.trim()) {
         formData.append('description', newDocument.description.trim());
       }
+      formData.append('is_portal_visible', String(newDocument.is_portal_visible));
 
       await api.post(`/contacts/${contactId}/documents`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      setNewDocument({ document_type: 'other', title: '', description: '' });
+      setNewDocument({ document_type: 'other', title: '', description: '', is_portal_visible: false });
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -267,6 +269,19 @@ const CaseDocuments = ({ caseId, contactId }: CaseDocumentsProps) => {
               placeholder="Optional description"
             />
           </div>
+          <div className="md:col-span-2">
+            <label className="inline-flex items-center gap-2 text-sm text-app-text-muted">
+              <input
+                type="checkbox"
+                checked={newDocument.is_portal_visible}
+                onChange={(e) =>
+                  setNewDocument((prev) => ({ ...prev, is_portal_visible: e.target.checked }))
+                }
+                className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
+              />
+              Visible in client portal
+            </label>
+          </div>
         </div>
 
         {uploadError && (
@@ -312,6 +327,11 @@ const CaseDocuments = ({ caseId, contactId }: CaseDocumentsProps) => {
                     {doc.title || doc.original_name}
                   </div>
                   <div className="text-xs text-app-text-muted">{doc.original_name}</div>
+                  {doc.is_portal_visible && (
+                    <div className="mt-1 inline-flex rounded bg-app-accent-soft px-2 py-0.5 text-xs text-app-accent-text">
+                      Shared in portal
+                    </div>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-sm text-app-text-muted capitalize">
                   {doc.document_type?.replace('_', ' ')}

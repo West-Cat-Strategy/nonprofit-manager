@@ -1,7 +1,6 @@
 import { Router } from 'express';
-import { body, param } from 'express-validator';
 import { authenticatePortal } from '@middleware/domains/auth';
-import { validateRequest } from '@middleware/domains/security';
+import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import {
   getPortalProfile,
   updatePortalProfile,
@@ -14,89 +13,103 @@ import {
   registerPortalEvent,
   cancelPortalEventRegistration,
   getPortalAppointments,
-  createPortalAppointment,
+  getPortalAppointmentSlots,
+  bookPortalAppointmentSlot,
+  createPortalAppointmentRequest,
   cancelPortalAppointment,
   getPortalDocuments,
   downloadPortalDocument,
   getPortalNotes,
   getPortalForms,
   getPortalReminders,
+  getPortalPointpersonContext,
+  getPortalThreads,
+  createPortalThread,
+  getPortalThread,
+  replyPortalThread,
+  markPortalThreadRead,
+  updatePortalThread,
 } from '@controllers/domains/portal';
+import {
+  portalAppointmentParamsSchema,
+  portalBookSlotSchema,
+  portalChangePasswordSchema,
+  portalEventParamsSchema,
+  portalManualAppointmentRequestSchema,
+  portalPointpersonQuerySchema,
+  portalProfileUpdateSchema,
+  portalRelationshipCreateSchema,
+  portalRelationshipUpdateSchema,
+  portalSlotParamsSchema,
+  portalSlotQuerySchema,
+  portalThreadCreateSchema,
+  portalThreadMessageSchema,
+  portalThreadParamsSchema,
+  portalThreadUpdateSchema,
+  portalUuidParamsSchema,
+} from '@validations/portal';
 
 const router = Router();
 
 router.use(authenticatePortal);
 
 router.get('/profile', getPortalProfile);
+router.patch('/profile', validateBody(portalProfileUpdateSchema), updatePortalProfile);
+router.post('/change-password', validateBody(portalChangePasswordSchema), changePortalPassword);
 
-router.patch('/profile', updatePortalProfile);
+router.get('/pointperson/context', validateQuery(portalPointpersonQuerySchema), getPortalPointpersonContext);
 
+router.get('/messages/threads', getPortalThreads);
+router.post('/messages/threads', validateBody(portalThreadCreateSchema), createPortalThread);
+router.get('/messages/threads/:threadId', validateParams(portalThreadParamsSchema), getPortalThread);
 router.post(
-  '/change-password',
-  [
-    body('currentPassword').isString().notEmpty(),
-    body('newPassword')
-      .isLength({ min: 8 })
-      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-      .withMessage('Password must contain uppercase, lowercase, number, and special character'),
-    validateRequest,
-  ],
-  changePortalPassword
+  '/messages/threads/:threadId/messages',
+  validateParams(portalThreadParamsSchema),
+  validateBody(portalThreadMessageSchema),
+  replyPortalThread
+);
+router.post('/messages/threads/:threadId/read', validateParams(portalThreadParamsSchema), markPortalThreadRead);
+router.patch(
+  '/messages/threads/:threadId',
+  validateParams(portalThreadParamsSchema),
+  validateBody(portalThreadUpdateSchema),
+  updatePortalThread
 );
 
 router.get('/relationships', getPortalRelationships);
-
-router.post(
-  '/relationships',
-  [
-    body('relationship_type').isString(),
-    body('relationship_label').optional().isString(),
-    body('notes').optional().isString(),
-    body('related_contact_id').optional().isUUID(),
-    validateRequest,
-  ],
-  createPortalRelationship
-);
-
+router.post('/relationships', validateBody(portalRelationshipCreateSchema), createPortalRelationship);
 router.put(
   '/relationships/:id',
-  [param('id').isUUID(), validateRequest],
+  validateParams(portalUuidParamsSchema),
+  validateBody(portalRelationshipUpdateSchema),
   updatePortalRelationship
 );
-
-router.delete('/relationships/:id', [param('id').isUUID(), validateRequest], deletePortalRelationship);
+router.delete('/relationships/:id', validateParams(portalUuidParamsSchema), deletePortalRelationship);
 
 router.get('/events', getPortalEvents);
-
-router.post('/events/:eventId/register', [param('eventId').isUUID(), validateRequest], registerPortalEvent);
-
-router.delete('/events/:eventId/register', [param('eventId').isUUID(), validateRequest], cancelPortalEventRegistration);
+router.post('/events/:eventId/register', validateParams(portalEventParamsSchema), registerPortalEvent);
+router.delete('/events/:eventId/register', validateParams(portalEventParamsSchema), cancelPortalEventRegistration);
 
 router.get('/appointments', getPortalAppointments);
-
+router.get('/appointments/slots', validateQuery(portalSlotQuerySchema), getPortalAppointmentSlots);
 router.post(
-  '/appointments',
-  [
-    body('title').isString().notEmpty(),
-    body('start_time').isISO8601(),
-    body('end_time').optional().isISO8601(),
-    body('description').optional().isString(),
-    body('location').optional().isString(),
-    validateRequest,
-  ],
-  createPortalAppointment
+  '/appointments/slots/:slotId/book',
+  validateParams(portalSlotParamsSchema),
+  validateBody(portalBookSlotSchema),
+  bookPortalAppointmentSlot
 );
-
-router.delete('/appointments/:id', [param('id').isUUID(), validateRequest], cancelPortalAppointment);
+router.post('/appointments/requests', validateBody(portalManualAppointmentRequestSchema), createPortalAppointmentRequest);
+// Backward-compatible alias during migration from legacy appointment create flow.
+router.post('/appointments', validateBody(portalManualAppointmentRequestSchema), createPortalAppointmentRequest);
+router.patch('/appointments/:id/cancel', validateParams(portalAppointmentParamsSchema), cancelPortalAppointment);
+// Backward-compatible legacy route
+router.delete('/appointments/:id', validateParams(portalAppointmentParamsSchema), cancelPortalAppointment);
 
 router.get('/documents', getPortalDocuments);
-
-router.get('/documents/:id/download', [param('id').isUUID(), validateRequest], downloadPortalDocument);
+router.get('/documents/:id/download', validateParams(portalUuidParamsSchema), downloadPortalDocument);
 
 router.get('/notes', getPortalNotes);
-
 router.get('/forms', getPortalForms);
-
 router.get('/reminders', getPortalReminders);
 
 export default router;

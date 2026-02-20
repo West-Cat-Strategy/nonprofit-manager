@@ -7,4 +7,5 @@ export * from '../../mfaController';
 export * from '../../passkeyController';
 export * from '../../passwordResetController';
 export * from '../../registrationSettingsController';
+export * from '../../twilioSettingsController';
 export * from '../../userController';

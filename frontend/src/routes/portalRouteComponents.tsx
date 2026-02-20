@@ -8,6 +8,7 @@ export const PortalProfile = lazy(() => import('../pages/PortalProfile'));
 export const PortalPeople = lazy(() => import('../pages/PortalPeople'));
 export const PortalEvents = lazy(() => import('../pages/PortalEvents'));
 export const PortalAppointments = lazy(() => import('../pages/PortalAppointments'));
+export const PortalMessages = lazy(() => import('../pages/PortalMessages'));
 export const PortalDocuments = lazy(() => import('../pages/PortalDocuments'));
 export const PortalNotes = lazy(() => import('../pages/PortalNotes'));
 export const PortalForms = lazy(() => import('../pages/PortalForms'));

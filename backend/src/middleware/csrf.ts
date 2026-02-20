@@ -66,6 +66,7 @@ const CSRF_SKIP_PATHS = [
   '/api/auth/passkeys/login/options',
   '/api/auth/passkeys/login/verify',
   '/api/portal/auth/login',
+  '/api/portal/auth/signup',
   '/api/portal/auth/register',
   '/api/payments/webhook',
   '/api/webhooks',

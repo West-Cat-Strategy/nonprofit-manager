@@ -1,6 +1,26 @@
 import { Pool } from 'pg';
 import { EventService } from '@services';
 import { EventType, EventStatus, RegistrationStatus } from '../../types/event';
+import { sendMail } from '@services/emailService';
+import { getEmailSettings } from '@services/emailSettingsService';
+import { sendSms } from '@services/twilioSmsService';
+import { getTwilioSettings } from '@services/twilioSettingsService';
+
+jest.mock('@services/emailService', () => ({
+  sendMail: jest.fn(),
+}));
+
+jest.mock('@services/emailSettingsService', () => ({
+  getEmailSettings: jest.fn(),
+}));
+
+jest.mock('@services/twilioSmsService', () => ({
+  sendSms: jest.fn(),
+}));
+
+jest.mock('@services/twilioSettingsService', () => ({
+  getTwilioSettings: jest.fn(),
+}));
 
 // Create mock pool
 const mockQuery = jest.fn();
@@ -10,6 +30,10 @@ const mockPool = {
 
 describe('EventService', () => {
   let eventService: EventService;
+  const mockSendMail = sendMail as jest.MockedFunction<typeof sendMail>;
+  const mockGetEmailSettings = getEmailSettings as jest.MockedFunction<typeof getEmailSettings>;
+  const mockSendSms = sendSms as jest.MockedFunction<typeof sendSms>;
+  const mockGetTwilioSettings = getTwilioSettings as jest.MockedFunction<typeof getTwilioSettings>;
 
   beforeEach(() => {
     eventService = new EventService(mockPool);
@@ -429,6 +453,246 @@ describe('EventService', () => {
       const result = await eventService.getContactRegistrations('contact-123');
 
       expect(result).toEqual(mockRegistrations);
+    });
+  });
+
+  describe('sendEventReminders', () => {
+    it('sends reminders over email and sms when both channels are configured', async () => {
+      mockQuery
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'event-1',
+              name: 'Community Dinner',
+              start_date: new Date('2026-03-01T18:00:00Z'),
+              end_date: new Date('2026-03-01T20:00:00Z'),
+              location_name: 'Main Hall',
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              registration_id: 'reg-1',
+              contact_name: 'Jane Doe',
+              contact_email: 'jane@example.org',
+              mobile_phone: '+1 (555) 111-2222',
+              phone: null,
+              do_not_email: false,
+              do_not_text: false,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ rowCount: 1 })
+        .mockResolvedValueOnce({ rowCount: 1 });
+
+      mockGetEmailSettings.mockResolvedValue({
+        id: 'email-1',
+        smtpHost: 'smtp.example.org',
+        smtpPort: 587,
+        smtpSecure: true,
+        smtpUser: 'user',
+        smtpFromAddress: 'noreply@example.org',
+        smtpFromName: 'NP Manager',
+        imapHost: null,
+        imapPort: 993,
+        imapSecure: true,
+        imapUser: null,
+        isConfigured: true,
+        lastTestedAt: null,
+        lastTestSuccess: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      mockGetTwilioSettings.mockResolvedValue({
+        id: 'twilio-1',
+        accountSid: 'AC123',
+        messagingServiceSid: 'MG123',
+        fromPhoneNumber: null,
+        isConfigured: true,
+        lastTestedAt: null,
+        lastTestSuccess: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      mockSendMail.mockResolvedValue(true);
+      mockSendSms.mockResolvedValue({
+        success: true,
+        to: '+1 (555) 111-2222',
+        normalizedTo: '+15551112222',
+        sid: 'SM123',
+      });
+
+      const result = await eventService.sendEventReminders(
+        'event-1',
+        { sendEmail: true, sendSms: true },
+        {
+          triggerType: 'manual',
+          sentBy: 'user-1',
+        }
+      );
+
+      expect(result.email.sent).toBe(1);
+      expect(result.sms.sent).toBe(1);
+      expect(result.warnings).toEqual([]);
+      expect(mockSendMail).toHaveBeenCalledTimes(1);
+      expect(mockSendSms).toHaveBeenCalledTimes(1);
+    });
+
+    it('skips email deliveries when smtp is not configured', async () => {
+      mockQuery
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'event-1',
+              name: 'Community Dinner',
+              start_date: new Date('2026-03-01T18:00:00Z'),
+              end_date: new Date('2026-03-01T20:00:00Z'),
+              location_name: null,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              registration_id: 'reg-1',
+              contact_name: 'Jane Doe',
+              contact_email: 'jane@example.org',
+              mobile_phone: null,
+              phone: null,
+              do_not_email: false,
+              do_not_text: false,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ rowCount: 1 });
+
+      mockGetEmailSettings.mockResolvedValue({
+        id: 'email-1',
+        smtpHost: null,
+        smtpPort: 587,
+        smtpSecure: true,
+        smtpUser: null,
+        smtpFromAddress: null,
+        smtpFromName: null,
+        imapHost: null,
+        imapPort: 993,
+        imapSecure: true,
+        imapUser: null,
+        isConfigured: false,
+        lastTestedAt: null,
+        lastTestSuccess: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const result = await eventService.sendEventReminders(
+        'event-1',
+        { sendEmail: true, sendSms: false },
+        {
+          triggerType: 'manual',
+          sentBy: 'user-1',
+        }
+      );
+
+      expect(result.email.skipped).toBe(1);
+      expect(result.warnings).toContain('Email reminders were requested, but SMTP is not configured.');
+      expect(mockSendMail).not.toHaveBeenCalled();
+    });
+
+    it('rejects when both channels are disabled', async () => {
+      await expect(
+        eventService.sendEventReminders(
+          'event-1',
+          { sendEmail: false, sendSms: false },
+          {
+            triggerType: 'manual',
+            sentBy: 'user-1',
+          }
+        )
+      ).rejects.toThrow('At least one reminder channel must be enabled');
+    });
+
+    it('respects do-not-email and do-not-text preferences at send time for automated reminders', async () => {
+      mockQuery
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'event-1',
+              name: 'Community Dinner',
+              start_date: new Date('2026-03-01T18:00:00Z'),
+              end_date: new Date('2026-03-01T20:00:00Z'),
+              location_name: null,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              registration_id: 'reg-1',
+              contact_name: 'Jane Doe',
+              contact_email: 'jane@example.org',
+              mobile_phone: '+15551112222',
+              phone: null,
+              do_not_email: true,
+              do_not_text: true,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ rowCount: 1 })
+        .mockResolvedValueOnce({ rowCount: 1 });
+
+      mockGetEmailSettings.mockResolvedValue({
+        id: 'email-1',
+        smtpHost: 'smtp.example.org',
+        smtpPort: 587,
+        smtpSecure: true,
+        smtpUser: 'user',
+        smtpFromAddress: 'noreply@example.org',
+        smtpFromName: 'NP Manager',
+        imapHost: null,
+        imapPort: 993,
+        imapSecure: true,
+        imapUser: null,
+        isConfigured: true,
+        lastTestedAt: null,
+        lastTestSuccess: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      mockGetTwilioSettings.mockResolvedValue({
+        id: 'twilio-1',
+        accountSid: 'AC123',
+        messagingServiceSid: 'MG123',
+        fromPhoneNumber: null,
+        isConfigured: true,
+        lastTestedAt: null,
+        lastTestSuccess: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const result = await eventService.sendEventReminders(
+        'event-1',
+        { sendEmail: true, sendSms: true },
+        {
+          triggerType: 'automated',
+          sentBy: null,
+          automationId: 'auto-1',
+        }
+      );
+
+      expect(mockSendMail).not.toHaveBeenCalled();
+      expect(mockSendSms).not.toHaveBeenCalled();
+      expect(result.email.skipped).toBe(1);
+      expect(result.sms.skipped).toBe(1);
+
+      const emailInsertValues = mockQuery.mock.calls[2][1];
+      const smsInsertValues = mockQuery.mock.calls[3][1];
+      expect(emailInsertValues).toContain('Contact opted out of email');
+      expect(smsInsertValues).toContain('Contact opted out of text messaging');
+      expect(emailInsertValues).toContain('automated');
+      expect(smsInsertValues).toContain('auto-1');
     });
   });
 });

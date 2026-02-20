@@ -17,6 +17,7 @@ import { orgContextMiddleware } from './middleware/orgContext';
 import healthRoutes, { setHealthCheckPool } from '@routes/health';
 import { registerApiRoutes } from '@routes/registrars';
 import { setPaymentPool } from '@controllers/domains';
+import { eventReminderSchedulerService } from '@services/eventReminderSchedulerService';
 import pool from './config/database';
 
 if (process.env.JEST_WORKER_ID && !process.env.NODE_ENV) {
@@ -84,6 +85,9 @@ initializeSentry();
 
 const app: Application = express();
 const PORT = Number(process.env.PORT) || 3000;
+const reminderSchedulerEnabled =
+  process.env.NODE_ENV !== 'test' &&
+  process.env.EVENT_REMINDER_SCHEDULER_ENABLED === 'true';
 
 // Security Middleware
 app.use(
@@ -243,12 +247,14 @@ initializeRedis().catch((err) => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, closing server gracefully...');
+  eventReminderSchedulerService.stop();
   await Promise.all([closeRedis(), pool.end()]);
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   logger.info('SIGINT received, closing server gracefully...');
+  eventReminderSchedulerService.stop();
   await Promise.all([closeRedis(), pool.end()]);
   process.exit(0);
 });
@@ -260,6 +266,11 @@ if (shouldStartServer) {
   const HOST = process.env.HOST || '0.0.0.0';
   app.listen(PORT, HOST, () => {
     logger.info(`Nonprofit Manager API running on ${HOST}:${PORT}`);
+    if (reminderSchedulerEnabled) {
+      eventReminderSchedulerService.start();
+    } else {
+      logger.info('Event reminder scheduler disabled');
+    }
   });
 }
 

@@ -41,7 +41,7 @@ export default function PortalNotes() {
         empty={!loading && !error && notes.length === 0}
         loadingLabel="Loading notes..."
         emptyTitle="No notes available."
-        emptyDescription="Notes shared by staff will show here."
+        emptyDescription="Staff must explicitly share notes to make them visible here."
         onRetry={load}
       />
       {!loading && !error && notes.length > 0 && (

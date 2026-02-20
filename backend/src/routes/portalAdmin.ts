@@ -1,7 +1,6 @@
 import { Router } from 'express';
-import { body, param } from 'express-validator';
 import { authenticate } from '@middleware/domains/auth';
-import { validateRequest } from '@middleware/domains/security';
+import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import {
   listPortalSignupRequests,
   approvePortalSignupRequest,
@@ -12,57 +11,85 @@ import {
   updatePortalUserStatus,
   getPortalUserActivity,
   resetPortalUserPassword,
+  listPortalAdminConversations,
+  getPortalAdminConversation,
+  replyPortalAdminConversation,
+  updatePortalAdminConversation,
+  listPortalAdminAppointmentSlots,
+  createPortalAdminAppointmentSlot,
+  updatePortalAdminAppointmentSlot,
+  deletePortalAdminAppointmentSlot,
+  updatePortalAdminAppointmentStatus,
 } from '@controllers/domains/portal';
+import {
+  portalAdminAppointmentStatusSchema,
+  portalAdminConversationQuerySchema,
+  portalAdminCreateInvitationSchema,
+  portalAdminRejectRequestSchema,
+  portalAdminResetPasswordSchema,
+  portalAdminSlotQuerySchema,
+  portalAdminSlotCreateSchema,
+  portalAdminSlotPatchSchema,
+  portalAdminThreadMessageSchema,
+  portalAdminUserPatchSchema,
+  portalThreadParamsSchema,
+  portalThreadUpdateSchema,
+  portalUuidParamsSchema,
+  portalSlotParamsSchema,
+  portalAppointmentParamsSchema,
+} from '@validations/portal';
 
 const router = Router();
 
 router.use(authenticate);
 
 router.get('/requests', listPortalSignupRequests);
-
-router.post(
-  '/requests/:id/approve',
-  [param('id').isUUID(), validateRequest],
-  approvePortalSignupRequest
-);
-
+router.post('/requests/:id/approve', validateParams(portalUuidParamsSchema), approvePortalSignupRequest);
 router.post(
   '/requests/:id/reject',
-  [param('id').isUUID(), body('notes').optional().isString(), validateRequest],
+  validateParams(portalUuidParamsSchema),
+  validateBody(portalAdminRejectRequestSchema),
   rejectPortalSignupRequest
 );
 
 router.get('/invitations', listPortalInvitations);
+router.post('/invitations', validateBody(portalAdminCreateInvitationSchema), createPortalInvitation);
 
 router.get('/users', listPortalUsers);
+router.patch('/users/:id', validateParams(portalUuidParamsSchema), validateBody(portalAdminUserPatchSchema), updatePortalUserStatus);
+router.get('/users/:id/activity', validateParams(portalUuidParamsSchema), getPortalUserActivity);
+router.post('/reset-password', validateBody(portalAdminResetPasswordSchema), resetPortalUserPassword);
+
+router.get('/conversations', validateQuery(portalAdminConversationQuerySchema), listPortalAdminConversations);
+router.get('/conversations/:threadId', validateParams(portalThreadParamsSchema), getPortalAdminConversation);
+router.post(
+  '/conversations/:threadId/messages',
+  validateParams(portalThreadParamsSchema),
+  validateBody(portalAdminThreadMessageSchema),
+  replyPortalAdminConversation
+);
+router.patch(
+  '/conversations/:threadId',
+  validateParams(portalThreadParamsSchema),
+  validateBody(portalThreadUpdateSchema),
+  updatePortalAdminConversation
+);
+
+router.get('/appointment-slots', validateQuery(portalAdminSlotQuerySchema), listPortalAdminAppointmentSlots);
+router.post('/appointment-slots', validateBody(portalAdminSlotCreateSchema), createPortalAdminAppointmentSlot);
+router.patch(
+  '/appointment-slots/:slotId',
+  validateParams(portalSlotParamsSchema),
+  validateBody(portalAdminSlotPatchSchema),
+  updatePortalAdminAppointmentSlot
+);
+router.delete('/appointment-slots/:slotId', validateParams(portalSlotParamsSchema), deletePortalAdminAppointmentSlot);
 
 router.patch(
-  '/users/:id',
-  [param('id').isUUID(), validateRequest],
-  updatePortalUserStatus
-);
-
-router.get(
-  '/users/:id/activity',
-  [param('id').isUUID(), validateRequest],
-  getPortalUserActivity
-);
-
-router.post(
-  '/invitations',
-  [
-    body('email').isEmail().normalizeEmail(),
-    body('contact_id').optional().isUUID(),
-    body('expiresInDays').optional().isInt({ min: 1, max: 90 }),
-    validateRequest,
-  ],
-  createPortalInvitation
-);
-
-router.post(
-  '/reset-password',
-  [body('portalUserId').isUUID(), body('password').isLength({ min: 8 }), validateRequest],
-  resetPortalUserPassword
+  '/appointments/:id/status',
+  validateParams(portalAppointmentParamsSchema),
+  validateBody(portalAdminAppointmentStatusSchema),
+  updatePortalAdminAppointmentStatus
 );
 
 export default router;

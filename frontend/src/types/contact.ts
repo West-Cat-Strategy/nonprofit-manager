@@ -133,6 +133,9 @@ export interface ContactNote {
   is_important: boolean;
   is_pinned: boolean;
   is_alert: boolean;
+  is_portal_visible: boolean;
+  portal_visible_at: string | null;
+  portal_visible_by: string | null;
   attachments: unknown | null;
   created_at: string;
   updated_at: string;
@@ -153,6 +156,7 @@ export interface CreateContactNoteDTO {
   is_important?: boolean;
   is_pinned?: boolean;
   is_alert?: boolean;
+  is_portal_visible?: boolean;
   attachments?: unknown;
 }
 
@@ -164,6 +168,7 @@ export interface UpdateContactNoteDTO {
   is_important?: boolean;
   is_pinned?: boolean;
   is_alert?: boolean;
+  is_portal_visible?: boolean;
 }
 
 // ============================================================================
@@ -276,6 +281,9 @@ export interface ContactDocument {
   document_type: DocumentType;
   title: string | null;
   description: string | null;
+  is_portal_visible: boolean;
+  portal_visible_at: string | null;
+  portal_visible_by: string | null;
 
   // Audit fields
   is_active: boolean;
@@ -295,12 +303,14 @@ export interface CreateContactDocumentDTO {
   document_type?: DocumentType;
   title?: string;
   description?: string;
+  is_portal_visible?: boolean;
 }
 
 export interface UpdateContactDocumentDTO {
   document_type?: DocumentType;
   title?: string;
   description?: string;
+  is_portal_visible?: boolean;
 }
 
 export const DOCUMENT_TYPES: { value: DocumentType; label: string; icon: string }[] = [

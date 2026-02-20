@@ -1,12 +1,27 @@
 import { Response, NextFunction } from 'express';
 import crypto from 'crypto';
-import { validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import pool from '@config/database';
 import { AuthRequest } from '@middleware/auth';
 import { PASSWORD } from '@config/constants';
 import { getPortalActivity } from '@services/domains/integration';
-import { badRequest, conflict, forbidden, notFoundMessage, validationErrorResponse } from '@utils/responseHelpers';
+import { sendMail } from '@services/emailService';
+import {
+  addStaffMessage,
+  getStaffThread,
+  listStaffThreads,
+  markStaffThreadRead,
+  updateThread,
+} from '@services/portalMessagingService';
+import {
+  createAppointmentSlot,
+  deleteAppointmentSlot,
+  getAppointmentById,
+  listAdminAppointmentSlots,
+  updateAppointmentSlot,
+  updateAppointmentStatusByStaff,
+} from '@services/portalAppointmentSlotService';
+import { badRequest, conflict, forbidden, notFoundMessage } from '@utils/responseHelpers';
 
 const ensureAdmin = (req: AuthRequest, res: Response): boolean => {
   if (req.user?.role !== 'admin') {
@@ -14,6 +29,27 @@ const ensureAdmin = (req: AuthRequest, res: Response): boolean => {
     return false;
   }
   return true;
+};
+
+const notifyPortalUser = async (args: {
+  to: string | null | undefined;
+  subject: string;
+  body: string;
+}): Promise<void> => {
+  if (!args.to) {
+    return;
+  }
+
+  try {
+    await sendMail({
+      to: args.to,
+      subject: args.subject,
+      text: args.body,
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px;white-space:pre-wrap">${args.body}</div>`,
+    });
+  } catch {
+    // Degrade gracefully to in-app updates if email is unavailable.
+  }
 };
 
 export const listPortalSignupRequests = async (
@@ -147,12 +183,6 @@ export const createPortalInvitation = async (
 ): Promise<void> => {
   try {
     if (!ensureAdmin(req, res)) return;
-
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      validationErrorResponse(res, errors);
-      return;
-    }
 
     const { email, contact_id, expiresInDays } = req.body as {
       email: string;
@@ -338,6 +368,298 @@ export const resetPortalUserPassword = async (
     ]);
 
     res.json({ message: 'Portal user password updated' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const listPortalAdminConversations = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    const status =
+      req.query.status === 'open' || req.query.status === 'closed' || req.query.status === 'archived'
+        ? req.query.status
+        : undefined;
+    const caseId = typeof req.query.case_id === 'string' ? req.query.case_id : undefined;
+    const pointpersonUserId =
+      typeof req.query.pointperson_user_id === 'string'
+        ? req.query.pointperson_user_id
+        : undefined;
+
+    const conversations = await listStaffThreads({
+      status,
+      caseId,
+      pointpersonUserId,
+    });
+
+    res.json({ conversations });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getPortalAdminConversation = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    const { threadId } = req.params;
+    const conversation = await getStaffThread(threadId);
+
+    if (!conversation) {
+      notFoundMessage(res, 'Conversation not found');
+      return;
+    }
+
+    await markStaffThreadRead(threadId);
+    res.json(conversation);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const replyPortalAdminConversation = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    const { threadId } = req.params;
+    const { message, is_internal } = req.body as {
+      message: string;
+      is_internal?: boolean;
+    };
+
+    const existing = await getStaffThread(threadId);
+    if (!existing) {
+      notFoundMessage(res, 'Conversation not found');
+      return;
+    }
+
+    if (existing.thread.status !== 'open') {
+      badRequest(res, 'Conversation is not open');
+      return;
+    }
+
+    const created = await addStaffMessage({
+      threadId,
+      senderUserId: req.user!.id,
+      messageText: message,
+      isInternal: Boolean(is_internal),
+    });
+
+    await markStaffThreadRead(threadId);
+    res.status(201).json({ message: created });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updatePortalAdminConversation = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    const { threadId } = req.params;
+    const status =
+      req.body.status === 'open' || req.body.status === 'closed' || req.body.status === 'archived'
+        ? req.body.status
+        : undefined;
+    const pointpersonUserId =
+      req.body.pointperson_user_id === null || typeof req.body.pointperson_user_id === 'string'
+        ? req.body.pointperson_user_id
+        : undefined;
+    const caseId =
+      req.body.case_id === null || typeof req.body.case_id === 'string' ? req.body.case_id : undefined;
+    const subject = req.body.subject === null || typeof req.body.subject === 'string' ? req.body.subject : undefined;
+
+    const updated = await updateThread({
+      threadId,
+      status,
+      pointpersonUserId,
+      caseId,
+      subject,
+      closedBy: status === 'closed' ? req.user!.id : null,
+    });
+
+    if (!updated) {
+      notFoundMessage(res, 'Conversation not found');
+      return;
+    }
+
+    res.json({ conversation: updated });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const listPortalAdminAppointmentSlots = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    const status =
+      req.query.status === 'open' || req.query.status === 'closed' || req.query.status === 'cancelled'
+        ? req.query.status
+        : undefined;
+    const caseId = typeof req.query.case_id === 'string' ? req.query.case_id : undefined;
+    const pointpersonUserId =
+      typeof req.query.pointperson_user_id === 'string'
+        ? req.query.pointperson_user_id
+        : undefined;
+
+    const slots = await listAdminAppointmentSlots({
+      status,
+      caseId,
+      pointpersonUserId,
+    });
+
+    res.json({ slots });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createPortalAdminAppointmentSlot = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    const slot = await createAppointmentSlot({
+      pointpersonUserId: req.body.pointperson_user_id,
+      caseId: req.body.case_id || null,
+      title: req.body.title || null,
+      details: req.body.details || null,
+      location: req.body.location || null,
+      startTime: req.body.start_time,
+      endTime: req.body.end_time,
+      capacity: req.body.capacity,
+      userId: req.user!.id,
+    });
+
+    res.status(201).json({ slot });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updatePortalAdminAppointmentSlot = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    const { slotId } = req.params;
+    const slot = await updateAppointmentSlot({
+      slotId,
+      pointpersonUserId: req.body.pointperson_user_id,
+      caseId: req.body.case_id,
+      title: req.body.title,
+      details: req.body.details,
+      location: req.body.location,
+      startTime: req.body.start_time,
+      endTime: req.body.end_time,
+      capacity: req.body.capacity,
+      status: req.body.status,
+      userId: req.user!.id,
+    });
+
+    if (!slot) {
+      notFoundMessage(res, 'Appointment slot not found');
+      return;
+    }
+
+    res.json({ slot });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deletePortalAdminAppointmentSlot = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    const { slotId } = req.params;
+    const deleted = await deleteAppointmentSlot(slotId);
+
+    if (!deleted) {
+      notFoundMessage(res, 'Appointment slot not found');
+      return;
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updatePortalAdminAppointmentStatus = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    const { id } = req.params;
+    const { status } = req.body as {
+      status: 'requested' | 'confirmed' | 'cancelled' | 'completed';
+    };
+
+    const appointment = await updateAppointmentStatusByStaff({
+      appointmentId: id,
+      status,
+    });
+
+    if (!appointment) {
+      notFoundMessage(res, 'Appointment not found');
+      return;
+    }
+
+    const refreshed = await getAppointmentById(id);
+    if (refreshed?.portal_email) {
+      const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+      await notifyPortalUser({
+        to: refreshed.portal_email,
+        subject: `Appointment ${statusLabel}`,
+        body: [
+          `Your appointment "${refreshed.title}" is now ${status}.`,
+          '',
+          `Start: ${new Date(refreshed.start_time).toLocaleString()}`,
+          refreshed.location ? `Location: ${refreshed.location}` : '',
+          refreshed.case_number ? `Case: ${refreshed.case_number}` : '',
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      });
+    }
+
+    res.json({ appointment: refreshed || appointment });
   } catch (error) {
     next(error);
   }

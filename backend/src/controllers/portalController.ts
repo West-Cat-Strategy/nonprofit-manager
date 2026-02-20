@@ -1,15 +1,86 @@
 import { Response, NextFunction } from 'express';
 import pool from '@config/database';
 import { PortalAuthRequest } from '@middleware/portalAuth';
+import { AuthRequest } from '@middleware/auth';
 import { logger } from '@config/logger';
 import { logPortalActivity } from '@services/domains/integration';
-import { badRequest, conflict, notFoundMessage } from '@utils/responseHelpers';
+import { RegistrationStatus } from '@app-types/event';
+import eventService from '@services/eventService';
+import {
+  listPortalAppointmentSlots,
+  bookPortalAppointmentSlot as bookPortalAppointmentSlotService,
+  createPortalManualAppointmentRequest,
+  listPortalAppointments,
+  cancelPortalAppointment as cancelPortalAppointmentService,
+} from '@services/portalAppointmentSlotService';
+import {
+  getPortalPointpersonContext as getPortalPointpersonContextService,
+  resolvePortalCaseSelection,
+} from '@services/portalPointpersonService';
+import {
+  addPortalMessage,
+  addStaffMessage,
+  createPortalThreadWithMessage,
+  getPortalThread as getPortalThreadService,
+  getStaffThread,
+  listCaseThreads,
+  listPortalThreads,
+  markPortalThreadRead as markPortalThreadReadService,
+  markStaffThreadRead,
+  updateThread,
+} from '@services/portalMessagingService';
+import { badRequest, conflict, forbidden, notFoundMessage } from '@utils/responseHelpers';
 
 const getPortalContactId = (req: PortalAuthRequest): string => {
   if (!req.portalUser?.contactId) {
     throw new Error('Portal user not linked to a contact');
   }
   return req.portalUser.contactId;
+};
+
+const tryHandlePortalRequestError = (
+  error: unknown,
+  res: Response,
+  fallbackMessage: string = 'Unable to process portal request'
+): boolean => {
+  const message = error instanceof Error ? error.message : '';
+  const knownMessages = new Set([
+    'No active case available for messaging',
+    'Selected case does not have an assigned pointperson',
+    'Selected case is not available for this portal user',
+    'Thread is not open',
+    'Thread not found',
+    'Case not found for portal contact',
+    'Slot not found',
+    'Slot is not open for booking',
+    'Slot is fully booked',
+    'Selected case pointperson does not match slot owner',
+    'Slot is bound to a different case',
+  ]);
+
+  if (knownMessages.has(message)) {
+    badRequest(res, message);
+    return true;
+  }
+
+  if (message === 'Appointment not found') {
+    notFoundMessage(res, message);
+    return true;
+  }
+
+  if (fallbackMessage && message === fallbackMessage) {
+    badRequest(res, message);
+    return true;
+  }
+
+  return false;
+};
+
+const normalizePortalStatus = (value: unknown): 'open' | 'closed' | 'archived' | undefined => {
+  if (value === 'open' || value === 'closed' || value === 'archived') {
+    return value;
+  }
+  return undefined;
 };
 
 export const getPortalProfile = async (
@@ -377,6 +448,196 @@ export const deletePortalRelationship = async (
   }
 };
 
+export const getPortalPointpersonContext = async (
+  req: PortalAuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const contactId = getPortalContactId(req);
+    const requestedCaseId = typeof req.query.case_id === 'string' ? req.query.case_id : undefined;
+    const context = await getPortalPointpersonContextService(contactId);
+    const selection = await resolvePortalCaseSelection(contactId, requestedCaseId);
+
+    res.json({
+      ...context,
+      selected_case_id: selection.selected_case_id,
+      selected_pointperson_user_id: selection.selected_pointperson_user_id,
+    });
+  } catch (error) {
+    if (tryHandlePortalRequestError(error, res)) {
+      return;
+    }
+    next(error);
+  }
+};
+
+export const getPortalThreads = async (
+  req: PortalAuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const threads = await listPortalThreads(req.portalUser!.id);
+    res.json({ threads });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createPortalThread = async (
+  req: PortalAuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const contactId = getPortalContactId(req);
+    const { case_id, subject, message } = req.body as {
+      case_id?: string;
+      subject?: string | null;
+      message: string;
+    };
+
+    const payload = await createPortalThreadWithMessage({
+      portalUserId: req.portalUser!.id,
+      contactId,
+      caseId: case_id || null,
+      subject: subject || null,
+      messageText: message,
+    });
+
+    await logPortalActivity({
+      portalUserId: req.portalUser!.id,
+      action: 'messages.thread.create',
+      details: `Created portal thread ${payload.thread.id}`,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'] || null,
+    });
+
+    res.status(201).json(payload);
+  } catch (error) {
+    if (tryHandlePortalRequestError(error, res)) {
+      return;
+    }
+    next(error);
+  }
+};
+
+export const getPortalThread = async (
+  req: PortalAuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { threadId } = req.params;
+    const thread = await getPortalThreadService(req.portalUser!.id, threadId);
+
+    if (!thread) {
+      notFoundMessage(res, 'Thread not found');
+      return;
+    }
+
+    res.json(thread);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const replyPortalThread = async (
+  req: PortalAuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { threadId } = req.params;
+    const { message } = req.body as { message: string };
+
+    const existing = await getPortalThreadService(req.portalUser!.id, threadId);
+    if (!existing) {
+      notFoundMessage(res, 'Thread not found');
+      return;
+    }
+
+    const createdMessage = await addPortalMessage({
+      portalUserId: req.portalUser!.id,
+      threadId,
+      messageText: message,
+    });
+
+    await logPortalActivity({
+      portalUserId: req.portalUser!.id,
+      action: 'messages.thread.reply',
+      details: `Replied to portal thread ${threadId}`,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'] || null,
+    });
+
+    res.status(201).json({ message: createdMessage });
+  } catch (error) {
+    if (tryHandlePortalRequestError(error, res)) {
+      return;
+    }
+    next(error);
+  }
+};
+
+export const markPortalThreadRead = async (
+  req: PortalAuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { threadId } = req.params;
+    const existing = await getPortalThreadService(req.portalUser!.id, threadId);
+    if (!existing) {
+      notFoundMessage(res, 'Thread not found');
+      return;
+    }
+
+    const updatedCount = await markPortalThreadReadService(req.portalUser!.id, threadId);
+    res.json({ updated: updatedCount });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updatePortalThread = async (
+  req: PortalAuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { threadId } = req.params;
+    const existing = await getPortalThreadService(req.portalUser!.id, threadId);
+    if (!existing) {
+      notFoundMessage(res, 'Thread not found');
+      return;
+    }
+
+    const status = normalizePortalStatus(req.body.status);
+    const subject = req.body.subject as string | null | undefined;
+
+    const updated = await updateThread({
+      threadId,
+      status,
+      subject,
+      closedBy: null,
+    });
+
+    if (!updated) {
+      notFoundMessage(res, 'Thread not found');
+      return;
+    }
+
+    res.json({ thread: updated });
+  } catch (error) {
+    if (tryHandlePortalRequestError(error, res)) {
+      return;
+    }
+    next(error);
+  }
+};
+
 export const getPortalEvents = async (
   req: PortalAuthRequest,
   res: Response,
@@ -385,10 +646,19 @@ export const getPortalEvents = async (
   try {
     const contactId = getPortalContactId(req);
     const events = await pool.query(
-      `SELECT e.*, er.id as registration_id, er.registration_status
+      `SELECT
+         e.*,
+         er.id as registration_id,
+         er.registration_status
        FROM events e
        LEFT JOIN event_registrations er
          ON er.event_id = e.id AND er.contact_id = $1
+       WHERE e.start_date >= NOW()
+         AND e.status NOT IN ('cancelled', 'completed')
+         AND (
+           e.is_public = true
+           OR er.id IS NOT NULL
+         )
        ORDER BY e.start_date ASC`,
       [contactId]
     );
@@ -407,17 +677,38 @@ export const registerPortalEvent = async (
   try {
     const contactId = getPortalContactId(req);
     const { eventId } = req.params;
-
-    const registration = await pool.query(
-      `INSERT INTO event_registrations (event_id, contact_id, registration_status)
-       VALUES ($1, $2, 'registered')
-       RETURNING id as registration_id, event_id, contact_id, registration_status`,
-      [eventId, contactId]
+    const event = await pool.query(
+      `SELECT id, is_public, start_date, status
+       FROM events
+       WHERE id = $1`,
+      [eventId]
     );
 
-    await pool.query('UPDATE events SET registered_count = registered_count + 1 WHERE id = $1', [
-      eventId,
-    ]);
+    if (!event.rows[0]) {
+      notFoundMessage(res, 'Event not found');
+      return;
+    }
+
+    if (!event.rows[0].is_public) {
+      forbidden(res, 'This event is not open for self-registration');
+      return;
+    }
+
+    if (new Date(event.rows[0].start_date).getTime() < Date.now()) {
+      badRequest(res, 'This event has already started');
+      return;
+    }
+
+    if (['cancelled', 'completed'].includes(event.rows[0].status)) {
+      badRequest(res, 'This event is not accepting registrations');
+      return;
+    }
+
+    const registration = await eventService.registerContact({
+      event_id: eventId,
+      contact_id: contactId,
+      registration_status: RegistrationStatus.REGISTERED,
+    });
 
     await logPortalActivity({
       portalUserId: req.portalUser!.id,
@@ -427,11 +718,25 @@ export const registerPortalEvent = async (
       userAgent: req.headers['user-agent'] || null,
     });
 
-    res.status(201).json(registration.rows[0]);
-  } catch (error: any) {
-    if (error.code === '23505') {
-      conflict(res, 'Already registered for this event');
-      return;
+    res.status(201).json(registration);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      if (error.message === 'Contact is already registered for this event') {
+        conflict(res, 'Already registered for this event');
+        return;
+      }
+      if (error.message === 'Event is at full capacity') {
+        badRequest(res, error.message);
+        return;
+      }
+      if (error.message === 'Event not found') {
+        notFoundMessage(res, error.message);
+        return;
+      }
+      if (error.message === 'Event is not open for registration') {
+        badRequest(res, error.message);
+        return;
+      }
     }
     next(error);
   }
@@ -447,9 +752,9 @@ export const cancelPortalEventRegistration = async (
     const { eventId } = req.params;
 
     const registration = await pool.query(
-      `DELETE FROM event_registrations
-       WHERE event_id = $1 AND contact_id = $2
-       RETURNING id`,
+      `SELECT id
+       FROM event_registrations
+       WHERE event_id = $1 AND contact_id = $2`,
       [eventId, contactId]
     );
 
@@ -457,10 +762,7 @@ export const cancelPortalEventRegistration = async (
       notFoundMessage(res, 'Registration not found');
       return;
     }
-
-    await pool.query('UPDATE events SET registered_count = GREATEST(0, registered_count - 1) WHERE id = $1', [
-      eventId,
-    ]);
+    await eventService.cancelRegistration(registration.rows[0].id as string);
 
     await logPortalActivity({
       portalUserId: req.portalUser!.id,
@@ -483,14 +785,8 @@ export const getPortalAppointments = async (
 ): Promise<void> => {
   try {
     const contactId = getPortalContactId(req);
-    const result = await pool.query(
-      `SELECT id, title, description, start_time, end_time, status, location, created_at
-       FROM appointments
-       WHERE contact_id = $1
-       ORDER BY start_time ASC`,
-      [contactId]
-    );
-    res.json(result.rows);
+    const appointments = await listPortalAppointments(contactId);
+    res.json(appointments);
   } catch (error) {
     next(error);
   }
@@ -503,31 +799,39 @@ export const createPortalAppointment = async (
 ): Promise<void> => {
   try {
     const contactId = getPortalContactId(req);
-    const { title, description, start_time, end_time, location } = req.body;
+    const { case_id, title, description, start_time, end_time, location } = req.body as {
+      case_id?: string;
+      title: string;
+      description?: string | null;
+      start_time: string;
+      end_time?: string | null;
+      location?: string | null;
+    };
 
-    if (!title || !start_time) {
-      badRequest(res, 'Title and start time are required');
-      return;
-    }
-
-    const result = await pool.query(
-      `INSERT INTO appointments (
-        contact_id, title, description, start_time, end_time, status, location, requested_by_portal
-      ) VALUES ($1, $2, $3, $4, $5, 'requested', $6, $7)
-      RETURNING id, title, description, start_time, end_time, status, location`,
-      [contactId, title, description || null, start_time, end_time || null, location || null, req.portalUser!.id]
-    );
+    const result = await createPortalManualAppointmentRequest({
+      contactId,
+      portalUserId: req.portalUser!.id,
+      caseId: case_id,
+      title,
+      description: description || null,
+      startTime: start_time,
+      endTime: end_time || null,
+      location: location || null,
+    });
 
     await logPortalActivity({
       portalUserId: req.portalUser!.id,
       action: 'appointment.request',
-      details: `Requested appointment ${result.rows[0].id}`,
+      details: `Requested appointment ${result.id}`,
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'] || null,
     });
 
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(result);
   } catch (error) {
+    if (tryHandlePortalRequestError(error, res)) {
+      return;
+    }
     next(error);
   }
 };
@@ -540,16 +844,12 @@ export const cancelPortalAppointment = async (
   try {
     const contactId = getPortalContactId(req);
     const { id } = req.params;
+    const appointment = await cancelPortalAppointmentService({
+      appointmentId: id,
+      contactId,
+    });
 
-    const result = await pool.query(
-      `UPDATE appointments
-       SET status = 'cancelled', updated_at = NOW()
-       WHERE id = $1 AND contact_id = $2
-       RETURNING id`,
-      [id, contactId]
-    );
-
-    if (result.rows.length === 0) {
+    if (!appointment) {
       notFoundMessage(res, 'Appointment not found');
       return;
     }
@@ -562,8 +862,110 @@ export const cancelPortalAppointment = async (
       userAgent: req.headers['user-agent'] || null,
     });
 
-    res.status(204).send();
+    res.json({ appointment });
   } catch (error) {
+    next(error);
+  }
+};
+
+export const getPortalAppointmentSlots = async (
+  req: PortalAuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const contactId = getPortalContactId(req);
+    const caseId = typeof req.query.case_id === 'string' ? req.query.case_id : undefined;
+    const payload = await listPortalAppointmentSlots(contactId, caseId);
+    res.json(payload);
+  } catch (error) {
+    if (tryHandlePortalRequestError(error, res)) {
+      return;
+    }
+    next(error);
+  }
+};
+
+export const bookPortalAppointmentSlot = async (
+  req: PortalAuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const contactId = getPortalContactId(req);
+    const { slotId } = req.params;
+    const { case_id, title, description } = req.body as {
+      case_id?: string;
+      title?: string | null;
+      description?: string | null;
+    };
+
+    const appointment = await bookPortalAppointmentSlotService({
+      slotId,
+      contactId,
+      portalUserId: req.portalUser!.id,
+      caseId: case_id || null,
+      title: title || null,
+      description: description || null,
+    });
+
+    await logPortalActivity({
+      portalUserId: req.portalUser!.id,
+      action: 'appointment.slot.book',
+      details: `Booked appointment slot ${slotId}`,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'] || null,
+    });
+
+    res.status(201).json({ appointment });
+  } catch (error) {
+    if (tryHandlePortalRequestError(error, res)) {
+      return;
+    }
+    next(error);
+  }
+};
+
+export const createPortalAppointmentRequest = async (
+  req: PortalAuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const contactId = getPortalContactId(req);
+    const { case_id, title, description, start_time, end_time, location } = req.body as {
+      case_id?: string;
+      title: string;
+      description?: string | null;
+      start_time: string;
+      end_time?: string | null;
+      location?: string | null;
+    };
+
+    const appointment = await createPortalManualAppointmentRequest({
+      contactId,
+      portalUserId: req.portalUser!.id,
+      caseId: case_id || null,
+      title,
+      description: description || null,
+      startTime: start_time,
+      endTime: end_time || null,
+      location: location || null,
+    });
+
+    await logPortalActivity({
+      portalUserId: req.portalUser!.id,
+      action: 'appointment.request',
+      details: `Requested appointment ${appointment.id}`,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'] || null,
+    });
+
+    res.status(201).json({ appointment });
+  } catch (error) {
+    if (tryHandlePortalRequestError(error, res)) {
+      return;
+    }
     next(error);
   }
 };
@@ -578,7 +980,9 @@ export const getPortalDocuments = async (
     const result = await pool.query(
       `SELECT id, original_name, document_type, title, description, file_size, mime_type, created_at
        FROM contact_documents
-       WHERE contact_id = $1 AND is_active = true
+       WHERE contact_id = $1
+         AND is_active = true
+         AND is_portal_visible = true
        ORDER BY created_at DESC`,
       [contactId]
     );
@@ -599,7 +1003,9 @@ export const getPortalForms = async (
     const result = await pool.query(
       `SELECT id, original_name, document_type, title, description, created_at
        FROM contact_documents
-       WHERE contact_id = $1 AND is_active = true
+       WHERE contact_id = $1
+         AND is_active = true
+         AND is_portal_visible = true
          AND document_type IN ('consent_form', 'assessment', 'report')
        ORDER BY created_at DESC`,
       [contactId]
@@ -622,6 +1028,8 @@ export const getPortalNotes = async (
       `SELECT id, note_type, subject, content, created_at
        FROM contact_notes
        WHERE contact_id = $1
+         AND is_internal = false
+         AND is_portal_visible = true
        ORDER BY created_at DESC`,
       [contactId]
     );
@@ -690,7 +1098,10 @@ export const downloadPortalDocument = async (
     const result = await pool.query(
       `SELECT file_path, original_name, mime_type
        FROM contact_documents
-       WHERE id = $1 AND contact_id = $2 AND is_active = true`,
+       WHERE id = $1
+         AND contact_id = $2
+         AND is_active = true
+         AND is_portal_visible = true`,
       [id, contactId]
     );
 
@@ -720,6 +1131,63 @@ export const downloadPortalDocument = async (
     });
   } catch (error) {
     logger.error('Failed to download portal document', { error });
+    next(error);
+  }
+};
+
+export const getCasePortalConversations = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const caseId = req.params.id;
+    const summaries = await listCaseThreads(caseId);
+    const conversations = await Promise.all(
+      summaries.map(async (thread) => {
+        return getStaffThread(thread.id);
+      })
+    );
+    res.json({ conversations: conversations.filter((entry) => entry !== null) });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const replyCasePortalConversation = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user?.id) {
+      forbidden(res, 'Authentication required');
+      return;
+    }
+
+    const caseId = req.params.id;
+    const threadId = req.params.threadId;
+    const { message, is_internal } = req.body as { message: string; is_internal?: boolean };
+
+    const thread = await getStaffThread(threadId);
+    if (!thread || thread.thread.case_id !== caseId) {
+      notFoundMessage(res, 'Conversation not found for this case');
+      return;
+    }
+
+    const createdMessage = await addStaffMessage({
+      threadId,
+      senderUserId: req.user.id,
+      messageText: message,
+      isInternal: Boolean(is_internal),
+    });
+    await markStaffThreadRead(threadId);
+
+    res.status(201).json({ message: createdMessage });
+  } catch (error) {
+    if (tryHandlePortalRequestError(error, res)) {
+      return;
+    }
     next(error);
   }
 };

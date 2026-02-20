@@ -40,6 +40,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
     is_important: false,
     is_pinned: false,
     is_alert: false,
+    is_portal_visible: false,
     case_id: undefined,
   });
 
@@ -104,6 +105,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
         is_important: false,
         is_pinned: false,
         is_alert: false,
+        is_portal_visible: false,
         case_id: undefined,
       });
       setIsAddingNote(submitMode === 'another');
@@ -296,6 +298,17 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
+                checked={Boolean(newNote.is_portal_visible)}
+                onChange={(e) =>
+                  setNewNote((prev) => ({ ...prev, is_portal_visible: e.target.checked }))
+                }
+                className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
+              />
+              <span className="text-sm text-app-text-muted">Visible in client portal</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
                 checked={newNote.is_important}
                 onChange={(e) =>
                   setNewNote((prev) => ({ ...prev, is_important: e.target.checked }))
@@ -402,6 +415,11 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
                     {note.is_internal && (
                       <span className="px-2 py-0.5 text-xs bg-app-surface-muted text-app-text-muted rounded">
                         Internal
+                      </span>
+                    )}
+                    {note.is_portal_visible && (
+                      <span className="px-2 py-0.5 text-xs bg-app-accent-soft text-app-accent-text rounded">
+                        Shared in portal
                       </span>
                     )}
                     {note.is_important && (

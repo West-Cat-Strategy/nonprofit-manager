@@ -97,8 +97,10 @@ export async function createContactNote(
       `
       INSERT INTO contact_notes (
         contact_id, case_id, note_type, subject, content,
-        is_internal, is_important, is_pinned, is_alert, attachments, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        is_internal, is_important, is_pinned, is_alert,
+        is_portal_visible, portal_visible_at, portal_visible_by,
+        attachments, created_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING *
       `,
       [
@@ -111,6 +113,9 @@ export async function createContactNote(
         data.is_important || false,
         data.is_pinned || false,
         data.is_alert || false,
+        data.is_portal_visible || false,
+        data.is_portal_visible ? new Date() : null,
+        data.is_portal_visible ? userId : null,
         data.attachments ? JSON.stringify(data.attachments) : null,
         userId,
       ]
@@ -129,7 +134,8 @@ export async function createContactNote(
  */
 export async function updateContactNote(
   noteId: string,
-  data: UpdateContactNoteDTO
+  data: UpdateContactNoteDTO,
+  userId?: string
 ): Promise<ContactNote | null> {
   try {
     const fields: string[] = [];
@@ -169,6 +175,21 @@ export async function updateContactNote(
     if (data.is_alert !== undefined) {
       fields.push(`is_alert = $${paramIndex++}`);
       values.push(data.is_alert);
+    }
+
+    if (data.is_portal_visible !== undefined) {
+      fields.push(`is_portal_visible = $${paramIndex++}`);
+      values.push(data.is_portal_visible);
+      if (data.is_portal_visible) {
+        fields.push(`portal_visible_at = COALESCE(portal_visible_at, NOW())`);
+        if (userId) {
+          fields.push(`portal_visible_by = $${paramIndex++}`);
+          values.push(userId);
+        }
+      } else {
+        fields.push(`portal_visible_at = NULL`);
+        fields.push(`portal_visible_by = NULL`);
+      }
     }
 
     if (data.attachments !== undefined) {

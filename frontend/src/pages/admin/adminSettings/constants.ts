@@ -134,6 +134,7 @@ export const adminSettingsTabs = [
   { id: 'users', label: 'Users & Security', level: 'basic' },
   { id: 'portal', label: 'Client Portal', level: 'basic' },
   { id: 'email', label: 'Email Settings', level: 'basic' },
+  { id: 'messaging', label: 'Messaging Settings', level: 'basic' },
   { id: 'outcomes', label: 'Outcome Definitions', level: 'advanced' },
   { id: 'roles', label: 'Roles & Permissions', level: 'advanced' },
   { id: 'audit_logs', label: 'Audit Logs', level: 'advanced' },

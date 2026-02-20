@@ -12,6 +12,22 @@ import { badRequest, notFoundMessage } from '@utils/responseHelpers';
 
 const contactService = services.contact;
 
+const parseBooleanField = (value: unknown): boolean | undefined => {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on') {
+      return true;
+    }
+    if (normalized === 'false' || normalized === '0' || normalized === 'no' || normalized === 'off') {
+      return false;
+    }
+  }
+  return undefined;
+};
+
 /**
  * GET /api/contacts/:contactId/documents
  * Get all documents for a contact
@@ -158,6 +174,7 @@ export const uploadDocument = async (
       document_type: req.body.document_type,
       title: req.body.title,
       description: req.body.description,
+      is_portal_visible: parseBooleanField(req.body.is_portal_visible),
     };
 
     const document = await documentService.createDocument(contactId, file, data, userId);
@@ -187,7 +204,14 @@ export const updateDocument = async (
       }
     }
 
-    const document = await documentService.updateDocument(documentId, req.body);
+    const document = await documentService.updateDocument(
+      documentId,
+      {
+        ...req.body,
+        is_portal_visible: parseBooleanField(req.body.is_portal_visible) ?? req.body.is_portal_visible,
+      },
+      req.user?.id
+    );
 
     if (!document) {
       notFoundMessage(res, 'Document not found');

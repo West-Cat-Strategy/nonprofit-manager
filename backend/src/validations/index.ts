@@ -12,5 +12,6 @@ export * from './contact';
 export * from './donation';
 export * from './case';
 export * from './task';
+export * from './portal';
 export * from './outcomeDefinition';
 export * from './outcomeImpact';

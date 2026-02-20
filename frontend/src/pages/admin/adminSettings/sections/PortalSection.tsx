@@ -1,6 +1,9 @@
 import ErrorBanner from '../../../../components/ErrorBanner';
 import type {
   PortalActivity,
+  PortalAppointmentSlot,
+  PortalConversationDetail,
+  PortalConversationThread,
   PortalContactLookup,
   PortalInvitation,
   PortalSignupRequest,
@@ -37,6 +40,36 @@ interface PortalSectionProps {
   onViewUserActivity: (user: PortalUser) => void;
   onToggleUserStatus: (user: PortalUser, status: string) => void;
   onOpenResetModal: (user: PortalUser) => void;
+  portalConversationsLoading: boolean;
+  portalConversations: PortalConversationThread[];
+  selectedPortalConversation: PortalConversationDetail | null;
+  portalConversationReply: string;
+  portalConversationReplyInternal: boolean;
+  portalConversationReplyLoading: boolean;
+  onRefreshPortalConversations: () => void;
+  onOpenPortalConversation: (threadId: string) => void;
+  onPortalConversationReplyChange: (value: string) => void;
+  onPortalConversationReplyInternalChange: (value: boolean) => void;
+  onSendPortalConversationReply: () => void;
+  onUpdatePortalConversationStatus: (threadId: string, status: 'open' | 'closed' | 'archived') => void;
+  portalSlotsLoading: boolean;
+  portalSlots: PortalAppointmentSlot[];
+  portalSlotSaving: boolean;
+  portalSlotForm: {
+    pointperson_user_id: string;
+    case_id: string;
+    title: string;
+    details: string;
+    location: string;
+    start_time: string;
+    end_time: string;
+    capacity: number;
+  };
+  onPortalSlotFormChange: (field: string, value: string | number) => void;
+  onCreatePortalSlot: () => void;
+  onRefreshPortalSlots: () => void;
+  onUpdatePortalSlotStatus: (slotId: string, status: 'open' | 'closed' | 'cancelled') => void;
+  onDeletePortalSlot: (slotId: string) => void;
 }
 
 export default function PortalSection({
@@ -69,6 +102,27 @@ export default function PortalSection({
   onViewUserActivity,
   onToggleUserStatus,
   onOpenResetModal,
+  portalConversationsLoading,
+  portalConversations,
+  selectedPortalConversation,
+  portalConversationReply,
+  portalConversationReplyInternal,
+  portalConversationReplyLoading,
+  onRefreshPortalConversations,
+  onOpenPortalConversation,
+  onPortalConversationReplyChange,
+  onPortalConversationReplyInternalChange,
+  onSendPortalConversationReply,
+  onUpdatePortalConversationStatus,
+  portalSlotsLoading,
+  portalSlots,
+  portalSlotSaving,
+  portalSlotForm,
+  onPortalSlotFormChange,
+  onCreatePortalSlot,
+  onRefreshPortalSlots,
+  onUpdatePortalSlotStatus,
+  onDeletePortalSlot,
 }: PortalSectionProps) {
   return (
     <div className="space-y-6">
@@ -362,6 +416,282 @@ export default function PortalSection({
                   </div>
                 );
               })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
+        <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
+          <h3 className="text-lg font-semibold text-app-text-heading">Portal Conversations</h3>
+          <p className="text-sm text-app-text-muted mt-1">
+            Reply to client threads and keep conversation history in sync with case detail.
+          </p>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={onRefreshPortalConversations}
+              className="px-4 py-2 text-sm bg-app-surface-muted rounded-lg hover:bg-app-surface-muted"
+            >
+              Refresh Conversations
+            </button>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
+            <div className="border border-app-border rounded-lg overflow-hidden">
+              {portalConversationsLoading ? (
+                <p className="p-4 text-sm text-app-text-muted">Loading conversations...</p>
+              ) : portalConversations.length === 0 ? (
+                <p className="p-4 text-sm text-app-text-muted">No portal conversations yet.</p>
+              ) : (
+                <ul className="max-h-[420px] overflow-y-auto divide-y divide-app-border">
+                  {portalConversations.map((conversation) => (
+                    <li key={conversation.id}>
+                      <button
+                        type="button"
+                        onClick={() => onOpenPortalConversation(conversation.id)}
+                        className={`w-full px-3 py-3 text-left hover:bg-app-surface-muted ${
+                          selectedPortalConversation?.thread.id === conversation.id
+                            ? 'bg-app-surface-muted'
+                            : ''
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-sm font-medium text-app-text">
+                            {conversation.subject || conversation.case_title || 'Conversation'}
+                          </div>
+                          {conversation.unread_count > 0 && (
+                            <span className="px-2 py-0.5 rounded-full bg-app-accent text-white text-xs">
+                              {conversation.unread_count}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-app-text-muted mt-1">
+                          {conversation.portal_email || 'Client'} • {conversation.status}
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="border border-app-border rounded-lg p-4">
+              {!selectedPortalConversation ? (
+                <p className="text-sm text-app-text-muted">Select a conversation to reply.</p>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-app-text">
+                        {selectedPortalConversation.thread.subject || 'Conversation'}
+                      </div>
+                      <div className="text-xs text-app-text-muted">
+                        {selectedPortalConversation.thread.portal_email || 'Client'} •{' '}
+                        {selectedPortalConversation.thread.status}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onUpdatePortalConversationStatus(
+                          selectedPortalConversation.thread.id,
+                          selectedPortalConversation.thread.status === 'open' ? 'closed' : 'open'
+                        )
+                      }
+                      className="px-3 py-1.5 text-xs bg-app-surface-muted rounded-lg hover:bg-app-surface-muted"
+                    >
+                      {selectedPortalConversation.thread.status === 'open' ? 'Close' : 'Reopen'}
+                    </button>
+                  </div>
+
+                  <div className="max-h-[260px] overflow-y-auto space-y-3 border border-app-border rounded-lg p-3">
+                    {selectedPortalConversation.messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`rounded-lg px-3 py-2 text-sm ${
+                          message.sender_type === 'staff'
+                            ? 'bg-app-accent-soft text-app-accent-text'
+                            : 'bg-app-surface-muted text-app-text'
+                        }`}
+                      >
+                        <div className="text-[11px] text-app-text-muted">
+                          {message.sender_display_name || message.sender_type} •{' '}
+                          {new Date(message.created_at).toLocaleString()}
+                          {message.is_internal && ' • Internal'}
+                        </div>
+                        <div className="mt-1 whitespace-pre-wrap">{message.message_text}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-2">
+                    <textarea
+                      value={portalConversationReply}
+                      onChange={(e) => onPortalConversationReplyChange(e.target.value)}
+                      rows={3}
+                      placeholder="Reply to client"
+                      className="w-full px-3 py-2 border border-app-input-border rounded-lg"
+                      disabled={selectedPortalConversation.thread.status !== 'open'}
+                    />
+                    <label className="inline-flex items-center gap-2 text-sm text-app-text-muted">
+                      <input
+                        type="checkbox"
+                        checked={portalConversationReplyInternal}
+                        onChange={(e) => onPortalConversationReplyInternalChange(e.target.checked)}
+                        className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
+                      />
+                      Internal note (not visible to client)
+                    </label>
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={onSendPortalConversationReply}
+                        disabled={
+                          portalConversationReplyLoading ||
+                          selectedPortalConversation.thread.status !== 'open' ||
+                          !portalConversationReply.trim()
+                        }
+                        className="px-4 py-2 text-sm bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
+                      >
+                        {portalConversationReplyLoading ? 'Sending...' : 'Send Reply'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
+        <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
+          <h3 className="text-lg font-semibold text-app-text-heading">Appointment Slots</h3>
+          <p className="text-sm text-app-text-muted mt-1">
+            Publish, close, and remove slots for client portal booking.
+          </p>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input
+              type="text"
+              placeholder="Pointperson user ID"
+              value={portalSlotForm.pointperson_user_id}
+              onChange={(e) => onPortalSlotFormChange('pointperson_user_id', e.target.value)}
+              className="px-3 py-2 border border-app-input-border rounded-lg"
+            />
+            <input
+              type="text"
+              placeholder="Case ID (optional)"
+              value={portalSlotForm.case_id}
+              onChange={(e) => onPortalSlotFormChange('case_id', e.target.value)}
+              className="px-3 py-2 border border-app-input-border rounded-lg"
+            />
+            <input
+              type="text"
+              placeholder="Title"
+              value={portalSlotForm.title}
+              onChange={(e) => onPortalSlotFormChange('title', e.target.value)}
+              className="px-3 py-2 border border-app-input-border rounded-lg"
+            />
+            <input
+              type="text"
+              placeholder="Location"
+              value={portalSlotForm.location}
+              onChange={(e) => onPortalSlotFormChange('location', e.target.value)}
+              className="px-3 py-2 border border-app-input-border rounded-lg"
+            />
+            <input
+              type="datetime-local"
+              value={portalSlotForm.start_time}
+              onChange={(e) => onPortalSlotFormChange('start_time', e.target.value)}
+              className="px-3 py-2 border border-app-input-border rounded-lg"
+            />
+            <input
+              type="datetime-local"
+              value={portalSlotForm.end_time}
+              onChange={(e) => onPortalSlotFormChange('end_time', e.target.value)}
+              className="px-3 py-2 border border-app-input-border rounded-lg"
+            />
+            <input
+              type="number"
+              min={1}
+              max={200}
+              value={portalSlotForm.capacity}
+              onChange={(e) => onPortalSlotFormChange('capacity', Number(e.target.value))}
+              className="px-3 py-2 border border-app-input-border rounded-lg"
+            />
+            <textarea
+              placeholder="Details"
+              value={portalSlotForm.details}
+              onChange={(e) => onPortalSlotFormChange('details', e.target.value)}
+              rows={2}
+              className="px-3 py-2 border border-app-input-border rounded-lg"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onCreatePortalSlot}
+              disabled={portalSlotSaving}
+              className="px-4 py-2 text-sm bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
+            >
+              {portalSlotSaving ? 'Saving...' : 'Create Slot'}
+            </button>
+            <button
+              type="button"
+              onClick={onRefreshPortalSlots}
+              className="px-4 py-2 text-sm bg-app-surface-muted rounded-lg hover:bg-app-surface-muted"
+            >
+              Refresh Slots
+            </button>
+          </div>
+
+          {portalSlotsLoading ? (
+            <p className="text-sm text-app-text-muted">Loading slots...</p>
+          ) : portalSlots.length === 0 ? (
+            <p className="text-sm text-app-text-muted">No slots configured.</p>
+          ) : (
+            <div className="space-y-2">
+              {portalSlots.map((slot) => (
+                <div key={slot.id} className="border border-app-border rounded-lg p-3">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-medium text-app-text">{slot.title || 'Appointment slot'}</div>
+                      <div className="text-xs text-app-text-muted">
+                        {new Date(slot.start_time).toLocaleString()} - {new Date(slot.end_time).toLocaleString()}
+                      </div>
+                      <div className="text-xs text-app-text-subtle">
+                        {slot.case_number ? `${slot.case_number} • ` : ''}Status: {slot.status} • {slot.booked_count}/
+                        {slot.capacity} booked
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onUpdatePortalSlotStatus(
+                            slot.id,
+                            slot.status === 'open' ? 'closed' : 'open'
+                          )
+                        }
+                        className="px-3 py-1.5 text-xs bg-app-surface-muted rounded-lg hover:bg-app-surface-muted"
+                      >
+                        {slot.status === 'open' ? 'Close' : 'Open'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDeletePortalSlot(slot.id)}
+                        className="px-3 py-1.5 text-xs bg-red-100 text-red-700 rounded-lg hover:bg-red-200"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

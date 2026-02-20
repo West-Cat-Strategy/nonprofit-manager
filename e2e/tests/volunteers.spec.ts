@@ -28,16 +28,31 @@ test.describe('Volunteers Module', () => {
         await authenticatedPage.locator('input[name="phone"]').fill('5550201234');
         await authenticatedPage.getByRole('button', { name: /create contact/i }).click();
         await authenticatedPage.waitForURL(/\/contacts\/[a-f0-9-]+$/);
+        const createdContactMatch = authenticatedPage.url().match(/\/contacts\/([a-f0-9-]+)$/i);
+        expect(createdContactMatch).not.toBeNull();
+        const createdContactId = createdContactMatch?.[1] ?? '';
 
         await authenticatedPage.goto('/volunteers/new');
 
         const contactSelect = authenticatedPage.getByLabel(/select contact/i);
         await expect
-            .poll(async () => await contactSelect.locator('option').count())
-            .toBeGreaterThan(1);
-        await contactSelect.selectOption({ index: 1 });
+            .poll(async () => await contactSelect.locator(`option[value="${createdContactId}"]`).count())
+            .toBe(1);
+        await contactSelect.selectOption(createdContactId);
+        await expect(contactSelect).toHaveValue(createdContactId);
+        await authenticatedPage.getByLabel(/background check status/i).selectOption('pending');
 
+        const createVolunteerResponsePromise = authenticatedPage.waitForResponse((response) => {
+            return response.url().includes('/api/volunteers') && response.request().method() === 'POST';
+        });
         await authenticatedPage.getByRole('button', { name: /create volunteer/i }).click();
+        const createVolunteerResponse = await createVolunteerResponsePromise;
+        if (!createVolunteerResponse.ok()) {
+            const responseBody = await createVolunteerResponse.text();
+            throw new Error(
+                `Volunteer create failed (${createVolunteerResponse.status()}): ${responseBody}`
+            );
+        }
 
         await expect(authenticatedPage).toHaveURL(/\/volunteers(?:\?|$)/);
         await expect(authenticatedPage.getByText(new RegExp(`${firstName} ${lastName}`, 'i'))).toBeVisible();
