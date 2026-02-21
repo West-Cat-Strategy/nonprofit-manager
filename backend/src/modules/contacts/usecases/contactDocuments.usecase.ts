@@ -55,7 +55,7 @@ export class ContactDocumentsUseCase {
     return this.repository.delete(documentId);
   }
 
-  resolveFilePath(document: ContactDocument): string | null {
+  resolveFilePath(document: ContactDocument): Promise<string | null> {
     return this.repository.resolveFilePath(document);
   }
 }

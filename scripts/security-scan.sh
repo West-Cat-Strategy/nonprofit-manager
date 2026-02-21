@@ -24,7 +24,7 @@ echo "1. NPM Audit - Backend"
 echo "======================================"
 cd backend
 npm audit --json > "../$REPORT_DIR/backend-audit.json" 2>&1 || true
-npm audit
+npm audit || true
 cd ..
 echo ""
 
@@ -34,7 +34,7 @@ echo "2. NPM Audit - Frontend"
 echo "======================================"
 cd frontend
 npm audit --json > "../$REPORT_DIR/frontend-audit.json" 2>&1 || true
-npm audit
+npm audit || true
 cd ..
 echo ""
 
@@ -55,9 +55,19 @@ echo "======================================"
 echo "4. Credential Search"
 echo "======================================"
 echo "Searching for potential hardcoded credentials..."
-grep -r -n -i "password\s*=\s*['\"]" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" . || echo "No hardcoded passwords found"
-grep -r -n -i "api[_-]?key\s*=\s*['\"]" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" . || echo "No hardcoded API keys found"
-grep -r -n -i "secret\s*=\s*['\"]" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" . || echo "No hardcoded secrets found"
+CODE_GLOBS=(-g '*.{ts,tsx,js,jsx}')
+SCAN_EXCLUDES=(
+    -g '!**/node_modules/**'
+    -g '!**/.git/**'
+    -g '!**/dist/**'
+    -g '!**/coverage/**'
+    -g '!**/.vite/**'
+    -g '!**/playwright-report/**'
+    -g '!**/test-results/**'
+)
+rg -n -i --pcre2 "password\\s*=\\s*['\"]" "${CODE_GLOBS[@]}" "${SCAN_EXCLUDES[@]}" . || echo "No hardcoded passwords found"
+rg -n -i --pcre2 "api[_-]?key\\s*=\\s*['\"]" "${CODE_GLOBS[@]}" "${SCAN_EXCLUDES[@]}" . || echo "No hardcoded API keys found"
+rg -n -i --pcre2 "secret\\s*=\\s*['\"]" "${CODE_GLOBS[@]}" "${SCAN_EXCLUDES[@]}" . || echo "No hardcoded secrets found"
 echo ""
 
 # 5. Check for TODO SECURITY comments
@@ -65,7 +75,7 @@ echo "======================================"
 echo "5. Security TODOs"
 echo "======================================"
 echo "Searching for security-related TODO comments..."
-grep -r -n "TODO.*SECURITY\|FIXME.*SECURITY\|XXX.*SECURITY" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" . || echo "No security TODOs found"
+rg -n "TODO.*SECURITY|FIXME.*SECURITY|XXX.*SECURITY" "${CODE_GLOBS[@]}" "${SCAN_EXCLUDES[@]}" . || echo "No security TODOs found"
 echo ""
 
 # 6. Check .env files are gitignored

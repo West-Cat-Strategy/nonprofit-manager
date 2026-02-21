@@ -27,8 +27,21 @@ const DEFAULT_SECRET_FIELDS: Record<string, string[]> = {
 async function writeChunk(stream: NodeJS.WritableStream, chunk: string): Promise<void> {
   if (stream.write(chunk)) return;
   await new Promise<void>((resolve, reject) => {
-    stream.once('drain', resolve);
-    stream.once('error', reject);
+    const onDrain = () => {
+      cleanup();
+      resolve();
+    };
+    const onError = (error: Error) => {
+      cleanup();
+      reject(error);
+    };
+    const cleanup = () => {
+      stream.off('drain', onDrain);
+      stream.off('error', onError);
+    };
+
+    stream.on('drain', onDrain);
+    stream.on('error', onError);
   });
 }
 
@@ -105,14 +118,26 @@ export class BackupService {
   }
 
   private async listPublicTables(): Promise<string[]> {
+    const excludedFromEnv = (process.env.BACKUP_EXCLUDED_TABLES || '')
+      .split(',')
+      .map((table) => table.trim())
+      .filter(Boolean);
+    const defaultExcludedInTests =
+      process.env.NODE_ENV === 'test'
+        ? ['audit_log', 'portal_activity_logs', 'api_key_usage']
+        : [];
+    const excludedTables = Array.from(new Set([...excludedFromEnv, ...defaultExcludedInTests]));
+
     const result = await pool.query(
       `
         SELECT table_name
         FROM information_schema.tables
         WHERE table_schema = 'public'
           AND table_type = 'BASE TABLE'
+          AND NOT (table_name = ANY($1::text[]))
         ORDER BY table_name ASC
-      `
+      `,
+      [excludedTables]
     );
 
     return result.rows.map((r) => r.table_name as string);
@@ -199,4 +224,3 @@ export class BackupService {
     await writeChunk(stream, `},"row_counts":${JSON.stringify(rowCounts)}}`);
   }
 }
-

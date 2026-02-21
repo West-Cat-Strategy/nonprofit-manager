@@ -41,7 +41,7 @@ export class ContactDocumentsRepository implements ContactDocumentsPort {
     return contactDocumentService.deleteDocument(documentId);
   }
 
-  resolveFilePath(document: ContactDocument): string | null {
+  resolveFilePath(document: ContactDocument): Promise<string | null> {
     return contactDocumentService.getDocumentFilePath(document);
   }
 }

@@ -351,8 +351,9 @@ export async function hardDeleteDocument(documentId: string): Promise<boolean> {
 /**
  * Get full file path for download
  */
-export function getDocumentFilePath(document: ContactDocument): string | null {
-  if (!fileExists(document.file_path)) {
+export async function getDocumentFilePath(document: ContactDocument): Promise<string | null> {
+  const exists = await fileExists(document.file_path);
+  if (!exists) {
     logger.warn(`Document file not found: ${document.file_path}`);
     return null;
   }

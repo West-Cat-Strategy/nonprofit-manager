@@ -24,9 +24,9 @@ FRONTEND_DEV_CONTAINER="nonprofit-frontend-dev"
 DB_USER="postgres"
 DB_NAME="nonprofit_manager"
 DB_HOST="localhost"
-DB_PORT="5432"
+DB_PORT="8012"
 DB_DEV_PORT="8002"
-REDIS_PORT="6379"
+REDIS_PORT="8013"
 REDIS_DEV_PORT="8003"
 
 # Service ports (development)
