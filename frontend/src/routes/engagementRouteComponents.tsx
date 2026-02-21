@@ -9,8 +9,8 @@ export const TaskList = lazy(() => import('../pages/engagement/tasks/TaskList'))
 export const TaskDetail = lazy(() => import('../pages/engagement/tasks/TaskDetail'));
 export const TaskCreate = lazy(() => import('../pages/engagement/tasks/TaskCreate'));
 export const TaskEdit = lazy(() => import('../pages/engagement/tasks/TaskEdit'));
-export const CaseList = lazy(() => import('../pages/engagement/cases/CaseList'));
-export const CaseDetail = lazy(() => import('../pages/engagement/cases/CaseDetail'));
-export const CaseCreate = lazy(() => import('../pages/engagement/cases/CaseCreate'));
-export const CaseEdit = lazy(() => import('../pages/engagement/cases/CaseEdit'));
+export const CaseList = lazy(() => import('../features/cases/pages/CaseListPage'));
+export const CaseDetail = lazy(() => import('../features/cases/pages/CaseDetailPage'));
+export const CaseCreate = lazy(() => import('../features/cases/pages/CaseCreatePage'));
+export const CaseEdit = lazy(() => import('../features/cases/pages/CaseEditPage'));
 export const ExternalServiceProviders = lazy(() => import('../pages/engagement/cases/ExternalServiceProviders'));

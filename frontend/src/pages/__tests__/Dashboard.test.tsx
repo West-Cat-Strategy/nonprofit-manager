@@ -25,7 +25,7 @@ vi.mock('../../store/slices/analyticsSlice', () => ({
   fetchAnalyticsSummary: () => ({ type: 'analytics/fetchSummary' }),
 }));
 
-vi.mock('../../store/slices/casesSlice', () => ({
+vi.mock('../../features/cases/state', () => ({
   default: (state = { items: [] }) => state,
   fetchCases: () => ({ type: 'cases/fetch' }),
   selectActiveCases: () => [],

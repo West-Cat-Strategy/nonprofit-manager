@@ -8,14 +8,10 @@ export const AccountCreate = lazy(() =>
 export const AccountEdit = lazy(() =>
   import('../pages/people/accounts/AccountEdit').then((m) => ({ default: m.AccountEdit }))
 );
-export const ContactList = lazy(() => import('../pages/people/contacts/ContactList'));
-export const ContactDetail = lazy(() => import('../pages/people/contacts/ContactDetail'));
-export const ContactCreate = lazy(() =>
-  import('../pages/people/contacts/ContactCreate').then((m) => ({ default: m.ContactCreate }))
-);
-export const ContactEdit = lazy(() =>
-  import('../pages/people/contacts/ContactEdit').then((m) => ({ default: m.ContactEdit }))
-);
+export const ContactList = lazy(() => import('../features/contacts/pages/ContactListPage'));
+export const ContactDetail = lazy(() => import('../features/contacts/pages/ContactDetailPage'));
+export const ContactCreate = lazy(() => import('../features/contacts/pages/ContactCreatePage'));
+export const ContactEdit = lazy(() => import('../features/contacts/pages/ContactEditPage'));
 export const VolunteerList = lazy(() => import('../pages/people/volunteers/VolunteerList'));
 export const VolunteerDetail = lazy(() => import('../pages/people/volunteers/VolunteerDetail'));
 export const VolunteerCreate = lazy(() =>

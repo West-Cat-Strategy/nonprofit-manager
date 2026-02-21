@@ -83,8 +83,8 @@ const initialState: CasesState = {
   selectedCaseIds: [],
 };
 
-const wrapState = (cases: CasesState['cases']): { cases: CasesState } => ({
-  cases: { ...initialState, cases },
+const wrapState = (cases: CasesState['cases']): { casesV2: CasesState } => ({
+  casesV2: { ...initialState, cases },
 });
 
 // ─── Reducers ─────────────────────────────────────────────────────────────────
@@ -132,7 +132,7 @@ describe('fetchCases thunk', () => {
       { type: fetchCases.fulfilled.type, payload: { cases, total: 1 } }
     );
     expect(state.loading).toBe(false);
-    expect(state.cases).toHaveLength(1);
+    expect(state['cases']).toHaveLength(1);
     expect(state.total).toBe(1);
   });
 
@@ -154,7 +154,7 @@ describe('createCase thunk', () => {
       { ...initialState, cases: [existing], total: 1 },
       { type: createCase.fulfilled.type, payload: created }
     );
-    expect(state.cases[0].id).toBe('case-new');
+    expect(state['cases'][0].id).toBe('case-new');
     expect(state.total).toBe(2);
   });
 });
@@ -167,7 +167,7 @@ describe('updateCase thunk', () => {
       { ...initialState, cases: [original] },
       { type: updateCase.fulfilled.type, payload: updated }
     );
-    expect(state.cases[0].title).toBe('Updated');
+    expect(state['cases'][0].title).toBe('Updated');
   });
 
   it('also syncs currentCase when IDs match', () => {
@@ -187,8 +187,8 @@ describe('deleteCase thunk', () => {
       { ...initialState, cases: [makeCase(), second], total: 2 },
       { type: deleteCase.fulfilled.type, payload: 'case-1' }
     );
-    expect(state.cases).toHaveLength(1);
-    expect(state.cases[0].id).toBe('case-2');
+    expect(state['cases']).toHaveLength(1);
+    expect(state['cases'][0].id).toBe('case-2');
     expect(state.total).toBe(1);
   });
 

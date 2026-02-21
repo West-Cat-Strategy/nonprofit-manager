@@ -6,7 +6,7 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { fetchCases, selectActiveCases, selectUrgentCases, selectOverdueCases, selectCasesDueThisWeek, selectUnassignedCases, selectCasesByPriority } from '../../store/slices/casesSlice';
+import { fetchCases, selectActiveCases, selectUrgentCases, selectOverdueCases, selectCasesDueThisWeek, selectUnassignedCases, selectCasesByPriority } from '../../features/cases/state';
 import WidgetContainer from './WidgetContainer';
 import type { DashboardWidget } from '../../types/dashboard';
 
@@ -18,7 +18,7 @@ interface CaseSummaryWidgetProps {
 
 const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProps) => {
   const dispatch = useAppDispatch();
-  const { loading, error } = useAppSelector((state) => state.cases);
+  const { loading, error } = useAppSelector((state) => state.casesV2);
 
   // Use selectors to get filtered case data
   const activeCases = useAppSelector(selectActiveCases);
