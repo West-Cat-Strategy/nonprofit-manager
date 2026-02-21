@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { createVolunteer, updateVolunteer } from '../store/slices/volunteersSlice';
-import { fetchContacts } from '../store/slices/contactsSlice';
+import { fetchContacts } from '../features/contacts/state';
 import type { Volunteer as StoreVolunteer } from '../store/slices/volunteersSlice';
 import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
 
@@ -16,7 +16,7 @@ interface VolunteerFormProps {
 export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { contacts } = useAppSelector((state) => state.contacts);
+  const { contacts } = useAppSelector((state) => state.contactsV2);
 
   const [formData, setFormData] = useState<Volunteer>({
     contact_id: '',

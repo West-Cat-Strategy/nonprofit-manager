@@ -6,8 +6,8 @@ import {
   uploadContactDocument,
   updateContactDocument,
   deleteContactDocument,
-} from '../store/slices/contactsSlice';
-import { fetchCases, selectCasesByContact } from '../store/slices/casesSlice';
+} from '../features/contacts/state';
+import { fetchCases, selectCasesByContact } from '../features/cases/state';
 import type { CreateContactDocumentDTO, DocumentType, ContactDocument } from '../types/contact';
 import { DOCUMENT_TYPES } from '../types/contact';
 import api from '../services/api';
@@ -21,7 +21,7 @@ interface ContactDocumentsProps {
 
 const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
   const dispatch = useAppDispatch();
-  const { documents, documentsLoading } = useAppSelector((state) => state.contacts);
+  const { documents, documentsLoading } = useAppSelector((state) => state.contactsV2);
   const contactCases = useAppSelector((state) => selectCasesByContact(state, contactId));
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const getErrorMessage = (error: unknown, fallback: string) =>

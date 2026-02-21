@@ -5,7 +5,7 @@ import {
   createContactPhone,
   updateContactPhone,
   deleteContactPhone,
-} from '../store/slices/contactsSlice';
+} from '../features/contacts/state';
 import type { CreateContactPhoneDTO, PhoneLabel } from '../types/contact';
 import { PHONE_LABELS } from '../types/contact';
 import ConfirmDialog from './ConfirmDialog';
@@ -17,7 +17,7 @@ interface ContactPhoneNumbersProps {
 
 const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
   const dispatch = useAppDispatch();
-  const { phones, phonesLoading } = useAppSelector((state) => state.contacts);
+  const { phones, phonesLoading } = useAppSelector((state) => state.contactsV2);
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const getErrorMessage = (error: unknown, fallback: string) =>
     error instanceof Error ? error.message : fallback;

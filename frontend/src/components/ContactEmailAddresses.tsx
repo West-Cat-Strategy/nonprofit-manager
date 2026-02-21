@@ -5,7 +5,7 @@ import {
   createContactEmail,
   updateContactEmail,
   deleteContactEmail,
-} from '../store/slices/contactsSlice';
+} from '../features/contacts/state';
 import type { CreateContactEmailDTO, EmailLabel } from '../types/contact';
 import { EMAIL_LABELS } from '../types/contact';
 import ConfirmDialog from './ConfirmDialog';
@@ -17,7 +17,7 @@ interface ContactEmailAddressesProps {
 
 const ContactEmailAddresses = ({ contactId }: ContactEmailAddressesProps) => {
   const dispatch = useAppDispatch();
-  const { emails, emailsLoading } = useAppSelector((state) => state.contacts);
+  const { emails, emailsLoading } = useAppSelector((state) => state.contactsV2);
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const getErrorMessage = (error: unknown, fallback: string) =>
     error instanceof Error ? error.message : fallback;
