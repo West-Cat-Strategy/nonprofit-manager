@@ -1,7 +1,6 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
 import accountsReducer from './slices/accountsSlice';
-import contactsReducer from './slices/contactsSlice';
 import volunteersReducer from './slices/volunteersSlice';
 import donationsReducer from './slices/donationsSlice';
 import tasksReducer from './slices/tasksSlice';
@@ -13,13 +12,14 @@ import reconciliationReducer from './slices/reconciliationSlice';
 import mailchimpReducer from './slices/mailchimpSlice';
 import webhooksReducer from './slices/webhookSlice';
 import templatesReducer from './slices/templateSlice';
-import casesReducer from './slices/casesSlice';
 import dashboardReducer from './slices/dashboardSlice';
 import alertsReducer from './slices/alertsSlice';
 import portalAuthReducer from './slices/portalAuthSlice';
 import followUpsReducer from './slices/followUpsSlice';
 import outcomesAdminReducer from './slices/outcomesAdminSlice';
 import outcomesReportsReducer from './slices/outcomesReportsSlice';
+import casesV2Reducer from '../features/cases/state/casesLegacyCore';
+import contactsV2Reducer from '../features/contacts/state/contactsLegacyCore';
 import {
   eventAutomationV2Reducer,
   eventDetailV2Reducer,
@@ -32,7 +32,7 @@ import {
 export const rootReducer = combineReducers({
   auth: authReducer,
   accounts: accountsReducer,
-  contacts: contactsReducer,
+  contactsV2: contactsV2Reducer,
   volunteers: volunteersReducer,
   donations: donationsReducer,
   tasks: tasksReducer,
@@ -44,7 +44,7 @@ export const rootReducer = combineReducers({
   mailchimp: mailchimpReducer,
   webhooks: webhooksReducer,
   templates: templatesReducer,
-  cases: casesReducer,
+  casesV2: casesV2Reducer,
   dashboard: dashboardReducer,
   alerts: alertsReducer,
   portalAuth: portalAuthReducer,

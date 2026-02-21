@@ -1,4 +1,4 @@
-import type { Contact as StoreContact } from '../../store/slices/contactsSlice';
+import type { Contact as StoreContact } from '../../features/contacts/state';
 
 export type ContactFormValues = {
   contact_id?: string;

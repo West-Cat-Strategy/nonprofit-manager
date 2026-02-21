@@ -9,7 +9,7 @@ import {
   deleteContactRelationship,
   fetchContacts,
   fetchContactTags,
-} from '../../store/slices/contactsSlice';
+} from '../../features/contacts/state';
 import type { ContactRole, CreateContactRelationshipDTO, RelationshipType } from '../../types/contact';
 import { useToast } from '../../contexts/useToast';
 import api from '../../services/api';
@@ -34,7 +34,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
   const getErrorMessage = (error: unknown, fallback: string) =>
     error instanceof Error ? error.message : fallback;
   const { relationships, relationshipsLoading, contacts, availableTags } = useAppSelector(
-    (state) => state.contacts
+    (state) => state.contactsV2
   );
   const [availableRoles, setAvailableRoles] = useState<ContactRole[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);

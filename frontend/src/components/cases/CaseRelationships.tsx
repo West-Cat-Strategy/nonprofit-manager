@@ -4,7 +4,7 @@ import {
     fetchCaseRelationships,
     createCaseRelationship,
     deleteCaseRelationship,
-} from '../../store/slices/casesSlice';
+} from '../../features/cases/state';
 import { BrutalButton, BrutalCard, BrutalBadge } from '../neo-brutalist';
 import type { RelationshipType, CreateCaseRelationshipDTO } from '../../types/case';
 import api from '../../services/api';
@@ -23,7 +23,7 @@ interface CaseSearchResult {
 
 const CaseRelationships = ({ caseId }: CaseRelationshipsProps) => {
     const dispatch = useAppDispatch();
-    const { caseRelationships } = useAppSelector((state) => state.cases);
+    const { caseRelationships } = useAppSelector((state) => state.casesV2);
     const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
     const [isAdding, setIsAdding] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');

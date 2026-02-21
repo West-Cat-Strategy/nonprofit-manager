@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ContactForm } from '../../components/contactForm';
 import CaseForm from '../../components/CaseForm';
-import type { Contact } from '../../store/slices/contactsSlice';
+import type { Contact } from '../../features/contacts/state';
 import type { CaseWithDetails } from '../../types/case';
 
 const IntakeNew = () => {

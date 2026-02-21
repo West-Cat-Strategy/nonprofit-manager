@@ -5,7 +5,7 @@ import {
   fetchCaseOutcomeDefinitions,
   fetchInteractionOutcomes,
   saveInteractionOutcomes,
-} from '../store/slices/casesSlice';
+} from '../features/cases/state';
 import { useToast } from '../contexts/useToast';
 import type { CreateCaseNoteDTO, NoteType } from '../types/case';
 import type {
@@ -199,7 +199,7 @@ const CaseNotes = ({ caseId }: CaseNotesProps) => {
     caseOutcomeDefinitions,
     outcomesLoading,
     outcomesSaving,
-  } = useAppSelector((state) => state.cases);
+  } = useAppSelector((state) => state.casesV2);
 
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [newNote, setNewNote] = useState<Partial<CreateCaseNoteDTO>>({

@@ -5,7 +5,7 @@ import { renderWithProviders } from '../../../../test/testUtils';
 
 const dispatchMock = vi.fn();
 const state = {
-  contacts: {
+  contactsV2: {
     contacts: [],
     loading: false,
     error: null,
@@ -19,7 +19,7 @@ vi.mock('../../../../store/hooks', () => ({
   useAppSelector: (selector: (s: typeof state) => unknown) => selector(state),
 }));
 
-vi.mock('../../../../store/slices/contactsSlice', () => ({
+vi.mock('../../../../features/contacts/state', () => ({
   default: (state = { contacts: [], loading: false, error: null, pagination: { total: 0, page: 1, limit: 20, total_pages: 1 }, filters: {} }) => state,
   fetchContacts: (payload: unknown) => ({ type: 'contacts/fetch', payload }),
   deleteContact: (id: string) => ({ type: 'contacts/delete', payload: id }),

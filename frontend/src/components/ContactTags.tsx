@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { fetchContactTags, updateContact } from '../store/slices/contactsSlice';
+import { fetchContactTags, updateContact } from '../features/contacts/state';
 import { useToast } from '../contexts/useToast';
 import { BrutalBadge } from './neo-brutalist';
 
@@ -11,7 +11,7 @@ interface ContactTagsProps {
 
 const ContactTags = ({ contactId, tags = [] }: ContactTagsProps) => {
   const dispatch = useAppDispatch();
-  const { availableTags } = useAppSelector((state) => state.contacts);
+  const { availableTags } = useAppSelector((state) => state.contactsV2);
   const { showSuccess, showError } = useToast();
   const [tagInput, setTagInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
