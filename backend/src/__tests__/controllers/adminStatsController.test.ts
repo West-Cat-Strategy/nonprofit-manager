@@ -36,7 +36,7 @@ describe('adminStatsController.getAdminStats', () => {
 
   it('returns zeroed stats when users table does not exist', async () => {
     mockedPool.query.mockImplementation((sql: string, _params?: unknown[]) => {
-      if (sql.includes('to_regclass') && params?.[0] === 'public.users') {
+      if (sql.includes('to_regclass') && _params?.[0] === 'public.users') {
         return Promise.resolve({ rows: [{ exists: false }] });
       }
       if (sql.includes('to_regclass')) {

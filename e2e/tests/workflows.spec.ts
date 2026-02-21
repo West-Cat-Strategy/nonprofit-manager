@@ -41,7 +41,7 @@ test.describe.skip('Complete User Workflows', () => {
       capacity: 50,
     });
 
-    const registerResponse = await authenticatedPage.request.post(`${apiURL}/api/events/${eventId}/register`, {
+    const registerResponse = await authenticatedPage.request.post(`${apiURL}/api/v2/events/${eventId}/register`, {
       headers: { Authorization: `Bearer ${authToken}` },
       data: {
         attendee_name: 'Michael Chen',
@@ -49,10 +49,11 @@ test.describe.skip('Complete User Workflows', () => {
       },
     });
     expect(registerResponse.ok()).toBeTruthy();
-    const registration = await registerResponse.json();
+    const registrationBody = await registerResponse.json();
+    const registration = registrationBody?.data ?? registrationBody;
 
     const checkInResponse = await authenticatedPage.request.post(
-      `${apiURL}/api/events/registrations/${registration.registration_id}/checkin`,
+      `${apiURL}/api/v2/events/registrations/${registration.registration_id}/checkin`,
       { headers: { Authorization: `Bearer ${authToken}` } }
     );
     expect(checkInResponse.ok()).toBeTruthy();

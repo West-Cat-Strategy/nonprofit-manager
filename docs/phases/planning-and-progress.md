@@ -67,6 +67,9 @@ All active work must be **signed out** in the Workboard below before code change
 | P3-T2C | Client Portal: hybrid appointments (published slots + manual requests) | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
 | P3-T2D | Client Portal: explicit visibility rules for notes/documents/forms + event filtering | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
 | P3-T2E | Client Portal: Admin Settings inbox/slot tools + Case Detail portal tab + client UI pages | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
+| P4-T1 | Full-stack modularity refactor (v2 API Portal + Events first) | Phase 4 | In Progress | Codex | Feb 20, 2026 | TBD | codex/modularity-refactor-v2 |
+| P4-T1A | Stabilize failing backend/e2e tests during modular refactor branch | Phase 4 | In Progress | Codex | Feb 20, 2026 | Feb 20, 2026 | codex/modularity-refactor-v2 |
+| P4-T1B | Events frontend modular cutover (remove legacy eventsSlice) | Phase 4 | In Progress | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
 
 ### **Zod Migration Tracker**
 
