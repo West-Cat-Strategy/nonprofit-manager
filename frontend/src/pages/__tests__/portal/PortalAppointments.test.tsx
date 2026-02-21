@@ -22,7 +22,7 @@ vi.mock('../../../contexts/useToast', () => ({
 describe('PortalAppointments page', () => {
   beforeEach(() => {
     getMock.mockImplementation((url: string) => {
-      if (url === '/portal/pointperson/context') {
+      if (url === '/v2/portal/pointperson/context') {
         return Promise.resolve({
           data: {
             default_case_id: 'case-1',
@@ -40,11 +40,11 @@ describe('PortalAppointments page', () => {
         });
       }
 
-      if (url === '/portal/appointments') {
+      if (url === '/v2/portal/appointments') {
         return Promise.resolve({ data: [] });
       }
 
-      if (url === '/portal/appointments/slots') {
+      if (url === '/v2/portal/appointments/slots') {
         return Promise.resolve({
           data: {
             selected_case_id: 'case-1',
@@ -84,7 +84,7 @@ describe('PortalAppointments page', () => {
     fireEvent.click(screen.getByRole('button', { name: /^book$/i }));
 
     await waitFor(() => {
-      expect(postMock).toHaveBeenCalledWith('/portal/appointments/slots/slot-1/book', {
+      expect(postMock).toHaveBeenCalledWith('/v2/portal/appointments/slots/slot-1/book', {
         case_id: 'case-1',
       });
     });

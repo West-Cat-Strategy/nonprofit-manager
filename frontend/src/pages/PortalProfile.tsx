@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import portalApi from '../services/portalApi';
+import { unwrapApiData } from '../services/apiEnvelope';
 
 interface PortalProfileData {
   contact_id: string;
@@ -39,8 +40,8 @@ export default function PortalProfile() {
   useEffect(() => {
     const load = async () => {
       try {
-        const response = await portalApi.get('/portal/profile');
-        setFormData(response.data);
+        const response = await portalApi.get('/v2/portal/profile');
+        setFormData(unwrapApiData(response.data));
       } catch (error) {
         console.error('Failed to load profile', error);
       } finally {
@@ -77,8 +78,8 @@ export default function PortalProfile() {
     if (!formData) return;
     try {
       setSaving(true);
-      const response = await portalApi.patch('/portal/profile', formData);
-      setFormData(response.data);
+      const response = await portalApi.patch('/v2/portal/profile', formData);
+      setFormData(unwrapApiData(response.data));
       setMessage('Profile updated successfully');
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
@@ -105,7 +106,7 @@ export default function PortalProfile() {
 
     try {
       setChangingPassword(true);
-      await portalApi.post('/portal/change-password', {
+      await portalApi.post('/v2/portal/change-password', {
         currentPassword,
         newPassword,
       });

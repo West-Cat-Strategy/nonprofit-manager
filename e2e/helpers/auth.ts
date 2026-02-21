@@ -135,8 +135,6 @@ export async function loginViaAPI(
   }
 
   const data = await response.json();
-  console.log(`Login response for ${email}:`, JSON.stringify(data));
-
   expect(data.token).toBeDefined();
   expect(data.user).toBeDefined();
 

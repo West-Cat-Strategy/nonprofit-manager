@@ -3,7 +3,6 @@ import authReducer from './slices/authSlice';
 import accountsReducer from './slices/accountsSlice';
 import contactsReducer from './slices/contactsSlice';
 import volunteersReducer from './slices/volunteersSlice';
-import eventsReducer from './slices/eventsSlice';
 import donationsReducer from './slices/donationsSlice';
 import tasksReducer from './slices/tasksSlice';
 import analyticsReducer from './slices/analyticsSlice';
@@ -21,13 +20,20 @@ import portalAuthReducer from './slices/portalAuthSlice';
 import followUpsReducer from './slices/followUpsSlice';
 import outcomesAdminReducer from './slices/outcomesAdminSlice';
 import outcomesReportsReducer from './slices/outcomesReportsSlice';
+import {
+  eventAutomationV2Reducer,
+  eventDetailV2Reducer,
+  eventMutationV2Reducer,
+  eventRegistrationV2Reducer,
+  eventRemindersV2Reducer,
+  eventsListV2Reducer,
+} from '../features/events/state';
 
 export const rootReducer = combineReducers({
   auth: authReducer,
   accounts: accountsReducer,
   contacts: contactsReducer,
   volunteers: volunteersReducer,
-  events: eventsReducer,
   donations: donationsReducer,
   tasks: tasksReducer,
   analytics: analyticsReducer,
@@ -45,6 +51,12 @@ export const rootReducer = combineReducers({
   followUps: followUpsReducer,
   outcomesAdmin: outcomesAdminReducer,
   outcomesReports: outcomesReportsReducer,
+  eventsListV2: eventsListV2Reducer,
+  eventDetailV2: eventDetailV2Reducer,
+  eventRegistrationV2: eventRegistrationV2Reducer,
+  eventRemindersV2: eventRemindersV2Reducer,
+  eventMutationV2: eventMutationV2Reducer,
+  eventAutomationV2: eventAutomationV2Reducer,
 });
 
 export const store = configureStore({

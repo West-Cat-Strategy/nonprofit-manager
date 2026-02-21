@@ -381,10 +381,10 @@ describe('Authorization Integration Tests', () => {
   describe('Event CRUD Authorization', () => {
     let testEventId: string;
 
-    describe('POST /api/events', () => {
+    describe('POST /api/v2/events', () => {
       it('should allow admin to create events', async () => {
         const response = await request(app)
-          .post('/api/events')
+          .post('/api/v2/events')
           .set('Authorization', `Bearer ${tokens.admin}`)
           .send({
             event_name: 'Admin Test Event',
@@ -395,11 +395,11 @@ describe('Authorization Integration Tests', () => {
           });
 
         expect(response.status).toBe(201);
-        testEventId = response.body.id;
+        testEventId = response.body.data?.event_id ?? response.body.event_id ?? response.body.id;
       });
 
       it('should require authentication', async () => {
-        const response = await request(app).post('/api/events').send({
+        const response = await request(app).post('/api/v2/events').send({
           event_name: 'Unauthorized Event',
           event_type: 'meeting',
         });
@@ -408,11 +408,11 @@ describe('Authorization Integration Tests', () => {
       });
     });
 
-    describe('GET /api/events', () => {
+    describe('GET /api/v2/events', () => {
       it('should allow authenticated users to list events', async () => {
         for (const role of ['admin', 'manager', 'staff', 'volunteer']) {
           const response = await request(app)
-            .get('/api/events')
+            .get('/api/v2/events')
             .set('Authorization', `Bearer ${tokens[role]}`);
 
           expect(response.status).toBe(200);
