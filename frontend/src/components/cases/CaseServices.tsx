@@ -6,7 +6,7 @@ import {
     createCaseService,
     updateCaseService,
     deleteCaseService,
-} from '../../store/slices/casesSlice';
+} from '../../features/cases/state';
 import { BrutalButton, BrutalCard, BrutalBadge } from '../neo-brutalist';
 import api from '../../services/api';
 import ConfirmDialog from '../ConfirmDialog';
@@ -27,7 +27,7 @@ interface CaseServicesProps {
 const CaseServices = ({ caseId }: CaseServicesProps) => {
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
-    const { caseServices } = useAppSelector((state) => state.cases);
+    const { caseServices } = useAppSelector((state) => state.casesV2);
     const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
     const [isAdding, setIsAdding] = useState(false);
     const [editingService, setEditingService] = useState<CaseService | null>(null);

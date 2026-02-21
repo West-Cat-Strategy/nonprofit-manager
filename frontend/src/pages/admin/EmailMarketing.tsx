@@ -17,14 +17,14 @@ import {
   clearSyncResult,
   setSelectedList,
 } from '../../store/slices/mailchimpSlice';
-import { fetchContacts } from '../../store/slices/contactsSlice';
+import { fetchContacts } from '../../features/contacts/state';
 import type {
   MailchimpList,
   MailchimpCampaign,
   CreateCampaignRequest,
   MailchimpSegment,
 } from '../../types/mailchimp';
-import type { Contact } from '../../store/slices/contactsSlice';
+import type { Contact } from '../../features/contacts/state';
 
 /**
  * Status Badge Component
@@ -473,7 +473,7 @@ export default function EmailMarketing() {
   const dispatch = useAppDispatch();
   const { status, lists, selectedList, campaigns, segments, syncResult, isLoading, isSyncing, error } =
     useAppSelector((state) => state.mailchimp);
-  const { contacts } = useAppSelector((state) => state.contacts);
+  const { contacts } = useAppSelector((state) => state.contactsV2);
 
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);

@@ -150,7 +150,7 @@ describe('contactsSlice', () => {
       };
       const state = reducer(initialState, action);
       expect(state.loading).toBe(false);
-      expect(state.contacts).toEqual([mockContact]);
+      expect(state['contacts']).toEqual([mockContact]);
       expect(state.pagination.total).toBe(1);
     });
 
@@ -193,8 +193,8 @@ describe('contactsSlice', () => {
         payload: mockContact,
       };
       const state = reducer(stateWithContacts, action);
-      expect(state.contacts).toHaveLength(2);
-      expect(state.contacts[0]).toEqual(mockContact);
+      expect(state['contacts']).toHaveLength(2);
+      expect(state['contacts'][0]).toEqual(mockContact);
     });
   });
 
@@ -208,7 +208,7 @@ describe('contactsSlice', () => {
         payload: updatedContact,
       };
       const state = reducer(stateWithContacts, action);
-      expect(state.contacts[0].first_name).toBe('Jane');
+      expect(state['contacts'][0].first_name).toBe('Jane');
     });
 
     it('updates currentContact if it matches', () => {
@@ -233,7 +233,7 @@ describe('contactsSlice', () => {
         payload: mockContact.contact_id,
       };
       const state = reducer(stateWithContacts, action);
-      expect(state.contacts).toHaveLength(0);
+      expect(state['contacts']).toHaveLength(0);
     });
   });
 });

@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
+import { contactsApiClient } from '../../features/contacts/api/contactsApiClient';
 
 export interface SearchResult {
   contact_id: string;
@@ -52,14 +52,17 @@ export function useQuickLookup(options: UseQuickLookupOptions = {}) {
 
     setIsLoading(true);
     try {
-      const params: Record<string, unknown> = { search: term, limit };
-      if (activeOnly) params.is_active = true;
-      const response = await api.get('/contacts', { params });
-      setResults(response.data.contacts || response.data.data || []);
+      const response = await contactsApiClient.listContacts({
+        search: term,
+        limit,
+        isActive: activeOnly ? true : undefined,
+      });
+      setResults(Array.isArray(response.data) ? (response.data as SearchResult[]) : []);
       setIsOpen(true);
       setSelectedIndex(-1);
     } catch {
       setResults([]);
+      setIsOpen(false);
     } finally {
       setIsLoading(false);
     }

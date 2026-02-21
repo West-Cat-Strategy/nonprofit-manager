@@ -6,8 +6,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchContactById, clearCurrentContact, fetchContactNotes } from '../../../store/slices/contactsSlice';
-import { fetchCases, selectCasesByContact } from '../../../store/slices/casesSlice';
+import { fetchContactById, clearCurrentContact, fetchContactNotes } from '../../../features/contacts/state';
+import { fetchCases, selectCasesByContact } from '../../../features/cases/state';
 import { BrutalBadge, BrutalButton, BrutalCard } from '../../../components/neo-brutalist';
 import PaymentHistory from '../../../components/PaymentHistory';
 import ContactPhoneNumbers from '../../../components/ContactPhoneNumbers';
@@ -26,7 +26,7 @@ const ContactDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { currentContact, loading, error, contactNotes } = useAppSelector((state) => state.contacts);
+  const { currentContact, loading, error, contactNotes } = useAppSelector((state) => state.contactsV2);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [openNoteForm, setOpenNoteForm] = useState(false);

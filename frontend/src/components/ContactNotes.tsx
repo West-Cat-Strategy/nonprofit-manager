@@ -6,8 +6,8 @@ import {
   createContactNote,
   deleteContactNote,
   updateContactNote,
-} from '../store/slices/contactsSlice';
-import { fetchCases, selectCasesByContact } from '../store/slices/casesSlice';
+} from '../features/contacts/state';
+import { fetchCases, selectCasesByContact } from '../features/cases/state';
 import { useToast } from '../contexts/useToast';
 import type { CreateContactNoteDTO, UpdateContactNoteDTO, ContactNoteType } from '../types/contact';
 import { NOTE_TYPES } from '../types/contact';
@@ -23,7 +23,7 @@ interface ContactNotesProps {
 
 const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: ContactNotesProps) => {
   const dispatch = useAppDispatch();
-  const { contactNotes, notesLoading } = useAppSelector((state) => state.contacts);
+  const { contactNotes, notesLoading } = useAppSelector((state) => state.contactsV2);
   const contactCases = useAppSelector((state) => selectCasesByContact(state, contactId));
   const { showSuccess, showError } = useToast();
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();

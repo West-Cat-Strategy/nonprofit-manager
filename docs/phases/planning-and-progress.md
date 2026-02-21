@@ -70,6 +70,9 @@ All active work must be **signed out** in the Workboard below before code change
 | P4-T1 | Full-stack modularity refactor (v2 API Portal + Events first) | Phase 4 | In Progress | Codex | Feb 20, 2026 | TBD | codex/modularity-refactor-v2 |
 | P4-T1A | Stabilize failing backend/e2e tests during modular refactor branch | Phase 4 | In Progress | Codex | Feb 20, 2026 | Feb 20, 2026 | codex/modularity-refactor-v2 |
 | P4-T1B | Events frontend modular cutover (remove legacy eventsSlice) | Phase 4 | In Progress | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
+| P4-T1C | Cases + Contacts modularization (v2 API + v1 shim) | Phase 4 | In Progress | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
+| P4-T1C-A | Cases + Contacts backend modules, `/api/v2`, legacy shim/deprecation | Phase 4 | In Progress | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
+| P4-T1C-B | Cases + Contacts frontend feature cutover + legacy slice removal | Phase 4 | In Progress | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
 
 ### **Zod Migration Tracker**
 

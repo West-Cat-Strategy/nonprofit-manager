@@ -12,8 +12,8 @@ import {
   setFilters,
   clearFilters,
   fetchContactTags,
-} from '../../../store/slices/contactsSlice';
-import type { Contact } from '../../../store/slices/contactsSlice';
+} from '../../../features/contacts/state';
+import type { Contact } from '../../../features/contacts/state';
 import {
   PeopleListContainer,
   FilterPanel,
@@ -31,7 +31,7 @@ const ContactList = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { contacts, loading, error, pagination, filters } = useAppSelector(
-    (state) => state.contacts
+    (state) => state.contactsV2
   );
 
   const {
