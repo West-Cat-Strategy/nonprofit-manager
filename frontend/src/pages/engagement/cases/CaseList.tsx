@@ -13,7 +13,7 @@ import {
   selectAllCases,
   clearCaseSelection,
   bulkUpdateCaseStatus,
-} from '../../../store/slices/casesSlice';
+} from '../../../features/cases/state';
 import type { CaseFilter, CasePriority, CaseStatusType, CaseWithDetails } from '../../../types/case';
 import { useToast } from '../../../contexts/useToast';
 
@@ -33,10 +33,10 @@ const CaseList = () => {
   const dispatch = useAppDispatch();
   const { showSuccess, showError } = useToast();
   const { cases, total, loading, error, filters, caseTypes, caseStatuses } = useAppSelector(
-    (state) => state.cases
+    (state) => state.casesV2
   );
-  const summary = useAppSelector((state) => state.cases.summary);
-  const selectedCaseIds = useAppSelector((state) => state.cases.selectedCaseIds);
+  const summary = useAppSelector((state) => state.casesV2.summary);
+  const selectedCaseIds = useAppSelector((state) => state.casesV2.selectedCaseIds);
   const hasInitializedFromUrl = useRef(false);
 
   const [searchTerm, setSearchTerm] = useState(filters.search || '');

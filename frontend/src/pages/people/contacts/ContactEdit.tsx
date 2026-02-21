@@ -6,7 +6,7 @@
 import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchContactById, clearCurrentContact } from '../../../store/slices/contactsSlice';
+import { fetchContactById, clearCurrentContact } from '../../../features/contacts/state';
 import { BrutalButton, BrutalCard } from '../../../components/neo-brutalist';
 import { ContactForm } from '../../../components/contactForm';
 
@@ -14,7 +14,7 @@ export const ContactEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { currentContact, loading, error } = useAppSelector((state) => state.contacts);
+  const { currentContact, loading, error } = useAppSelector((state) => state.contactsV2);
 
   useEffect(() => {
     if (id) {

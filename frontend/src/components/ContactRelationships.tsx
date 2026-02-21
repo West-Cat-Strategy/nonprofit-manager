@@ -6,7 +6,7 @@ import {
   createContactRelationship,
   deleteContactRelationship,
   fetchContacts,
-} from '../store/slices/contactsSlice';
+} from '../features/contacts/state';
 import type { CreateContactRelationshipDTO, RelationshipType } from '../types/contact';
 import { RELATIONSHIP_TYPES } from '../types/contact';
 import ConfirmDialog from './ConfirmDialog';
@@ -21,7 +21,7 @@ const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
   const navigate = useNavigate();
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const { relationships, relationshipsLoading, contacts, currentContact } = useAppSelector(
-    (state) => state.contacts
+    (state) => state.contactsV2
   );
   const getErrorMessage = (error: unknown, fallback: string) =>
     error instanceof Error ? error.message : fallback;

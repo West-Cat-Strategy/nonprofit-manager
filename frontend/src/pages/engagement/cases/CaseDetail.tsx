@@ -17,7 +17,7 @@ import {
   createCaseMilestone,
   updateCaseMilestone,
   deleteCaseMilestone,
-} from '../../../store/slices/casesSlice';
+} from '../../../features/cases/state';
 import { useToast } from '../../../contexts/useToast';
 import { BrutalBadge, BrutalButton, BrutalCard, NeoBrutalistLayout } from '../../../components/neo-brutalist';
 import CaseNotes from '../../../components/CaseNotes';
@@ -45,7 +45,7 @@ const CaseDetail = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { showSuccess, showError } = useToast();
-  const { currentCase, caseStatuses, caseMilestones, loading, error } = useAppSelector((state) => state.cases);
+  const { currentCase, caseStatuses, caseMilestones, loading, error } = useAppSelector((state) => state.casesV2);
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
 
   const [activeTab, setActiveTab] = useState<TabType>('overview');
