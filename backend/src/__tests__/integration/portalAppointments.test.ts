@@ -37,6 +37,8 @@ describe('Portal Appointments Integration', () => {
       getJwtSecret(),
       { expiresIn: '1h' }
     );
+  const unwrap = <T>(body: { data?: T } | T): T =>
+    (body && typeof body === 'object' && 'data' in body ? (body as { data: T }).data : body) as T;
 
   beforeAll(async () => {
     const suffix = unique();
@@ -125,7 +127,8 @@ describe('Portal Appointments Integration', () => {
       })
       .expect(201);
 
-    slotId = slotResult.body.slot.id as string;
+    const createdSlot = unwrap<{ slot: { id: string } }>(slotResult.body);
+    slotId = createdSlot.slot.id as string;
     createdSlotIds.push(slotId);
   });
 
@@ -160,21 +163,22 @@ describe('Portal Appointments Integration', () => {
     const portalToken = buildPortalToken();
 
     const bookingResponse = await request(app)
-      .post(`/api/portal/appointments/slots/${slotId}/book`)
+      .post(`/api/v2/portal/appointments/slots/${slotId}/book`)
       .set('Cookie', [`portal_auth_token=${portalToken}`])
       .send({ case_id: caseId })
       .expect(201);
 
-    expect(bookingResponse.body.appointment.request_type).toBe('slot_booking');
-    createdAppointmentIds.push(bookingResponse.body.appointment.id as string);
+    const booked = unwrap<{ appointment: { id: string; request_type: string } }>(bookingResponse.body);
+    expect(booked.appointment.request_type).toBe('slot_booking');
+    createdAppointmentIds.push(booked.appointment.id as string);
 
     const secondAttempt = await request(app)
-      .post(`/api/portal/appointments/slots/${slotId}/book`)
+      .post(`/api/v2/portal/appointments/slots/${slotId}/book`)
       .set('Cookie', [`portal_auth_token=${portalToken}`])
       .send({ case_id: caseId })
       .expect(400);
 
-    expect(secondAttempt.body.error).toMatch(/fully booked|not open/i);
+    expect(secondAttempt.body.error?.message ?? secondAttempt.body.error).toMatch(/fully booked|not open/i);
   });
 
   it('creates and cancels a manual appointment request', async () => {
@@ -182,7 +186,7 @@ describe('Portal Appointments Integration', () => {
     const startTime = new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString();
 
     const createResponse = await request(app)
-      .post('/api/portal/appointments/requests')
+      .post('/api/v2/portal/appointments/requests')
       .set('Cookie', [`portal_auth_token=${portalToken}`])
       .send({
         case_id: caseId,
@@ -192,15 +196,17 @@ describe('Portal Appointments Integration', () => {
       })
       .expect(201);
 
-    const appointmentId = createResponse.body.appointment.id as string;
+    const created = unwrap<{ appointment: { id: string; request_type: string } }>(createResponse.body);
+    const appointmentId = created.appointment.id as string;
     createdAppointmentIds.push(appointmentId);
-    expect(createResponse.body.appointment.request_type).toBe('manual_request');
+    expect(created.appointment.request_type).toBe('manual_request');
 
     const cancelResponse = await request(app)
-      .patch(`/api/portal/appointments/${appointmentId}/cancel`)
+      .patch(`/api/v2/portal/appointments/${appointmentId}/cancel`)
       .set('Cookie', [`portal_auth_token=${portalToken}`])
       .expect(200);
 
-    expect(cancelResponse.body.appointment.status).toBe('cancelled');
+    const cancelled = unwrap<{ appointment: { status: string } }>(cancelResponse.body);
+    expect(cancelled.appointment.status).toBe('cancelled');
   });
 });

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import portalApi from '../services/portalApi';
+import { unwrapApiData } from '../services/apiEnvelope';
 import { useToast } from '../contexts/useToast';
 import PortalPageState from '../components/portal/PortalPageState';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -90,8 +91,8 @@ export default function PortalAppointments() {
   );
 
   const loadContext = async () => {
-    const response = await portalApi.get<PointpersonContextPayload>('/portal/pointperson/context');
-    const payload = response.data;
+    const response = await portalApi.get<PointpersonContextPayload>('/v2/portal/pointperson/context');
+    const payload = unwrapApiData(response.data);
     setContext(payload);
 
     const nextCaseId = payload.selected_case_id || payload.default_case_id || payload.cases[0]?.case_id || '';
@@ -101,19 +102,19 @@ export default function PortalAppointments() {
   };
 
   const loadAppointments = async () => {
-    const response = await portalApi.get<Appointment[]>('/portal/appointments');
-    setAppointments(response.data || []);
+    const response = await portalApi.get<Appointment[]>('/v2/portal/appointments');
+    setAppointments(unwrapApiData(response.data) || []);
   };
 
   const loadSlots = async (caseId: string) => {
     setSlotsLoading(true);
     try {
-      const response = await portalApi.get<SlotsPayload>('/portal/appointments/slots', {
+      const response = await portalApi.get<SlotsPayload>('/v2/portal/appointments/slots', {
         params: caseId ? { case_id: caseId } : undefined,
       });
-      setSlots(response.data.slots || []);
-      if (response.data.selected_case_id && !selectedCaseId) {
-        setSelectedCaseId(response.data.selected_case_id);
+      setSlots(unwrapApiData(response.data).slots || []);
+      if (unwrapApiData(response.data).selected_case_id && !selectedCaseId) {
+        setSelectedCaseId(unwrapApiData(response.data).selected_case_id ?? '');
       }
     } finally {
       setSlotsLoading(false);
@@ -165,7 +166,7 @@ export default function PortalAppointments() {
 
     setSaving(true);
     try {
-      await portalApi.post('/portal/appointments/requests', {
+      await portalApi.post('/v2/portal/appointments/requests', {
         case_id: selectedCaseId || undefined,
         title: formData.title,
         description: formData.description || undefined,
@@ -192,7 +193,7 @@ export default function PortalAppointments() {
 
     setBookingSlotId(slot.id);
     try {
-      await portalApi.post(`/portal/appointments/slots/${slot.id}/book`, {
+      await portalApi.post(`/v2/portal/appointments/slots/${slot.id}/book`, {
         case_id: selectedCaseId,
       });
       showSuccess('Appointment booked.');
@@ -216,7 +217,7 @@ export default function PortalAppointments() {
 
     setAppointmentToCancel(id);
     try {
-      await portalApi.patch(`/portal/appointments/${id}/cancel`);
+      await portalApi.patch(`/v2/portal/appointments/${id}/cancel`);
       showSuccess('Appointment canceled.');
       await loadAppointments();
       if (selectedCaseId && mode === 'slot') {
