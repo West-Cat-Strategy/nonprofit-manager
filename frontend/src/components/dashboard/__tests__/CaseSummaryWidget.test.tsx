@@ -47,7 +47,7 @@ const baseCase = (overrides: Partial<CaseWithDetails>): CaseWithDetails => ({
 });
 
 const mockDispatch = vi.fn();
-let mockState: { cases: { cases: CaseWithDetails[]; loading: boolean; error: string | null } };
+let mockState: { casesV2: { cases: CaseWithDetails[]; loading: boolean; error: string | null } };
 type MockSelector<T> = (state: typeof mockState) => T;
 
 const renderWidget = () =>
@@ -64,7 +64,7 @@ describe('CaseSummaryWidget', () => {
     vi.setSystemTime(new Date('2025-01-15T12:00:00Z'));
 
     mockState = {
-      cases: {
+      casesV2: {
         cases: [
           baseCase({
             id: 'case-1',
@@ -163,8 +163,8 @@ describe('CaseSummaryWidget', () => {
   });
 
   it('respects loading and error states from store', () => {
-    mockState.cases.loading = true;
-    mockState.cases.error = 'Failed to load cases';
+    mockState.casesV2.loading = true;
+    mockState.casesV2.error = 'Failed to load cases';
 
     renderWidget();
 

@@ -6,7 +6,7 @@
 import { useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchCaseById, clearCurrentCase } from '../../../store/slices/casesSlice';
+import { fetchCaseById, clearCurrentCase } from '../../../features/cases/state';
 import { BrutalButton, BrutalCard, NeoBrutalistLayout } from '../../../components/neo-brutalist';
 import CaseForm from '../../../components/CaseForm';
 import type { CreateCaseDTO } from '../../../types/case';
@@ -15,7 +15,7 @@ const CaseEdit = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { currentCase, loading, error } = useAppSelector((state) => state.cases);
+  const { currentCase, loading, error } = useAppSelector((state) => state.casesV2);
 
   // Convert CaseWithDetails to CreateCaseDTO format
   const initialData = useMemo<Partial<CreateCaseDTO> | undefined>(() => {

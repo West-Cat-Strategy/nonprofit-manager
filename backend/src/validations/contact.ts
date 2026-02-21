@@ -6,6 +6,19 @@
 import { z } from 'zod';
 import { emailSchema, phoneSchema, uuidSchema } from './shared';
 
+const booleanQuerySchema = z.preprocess((value) => {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === 'true' || value === '1') {
+    return true;
+  }
+  if (value === 'false' || value === '0') {
+    return false;
+  }
+  return value;
+}, z.boolean().optional());
+
 // Contact role enum
 export const contactRoleSchema = z.enum(['staff', 'volunteer', 'board']);
 
@@ -138,7 +151,7 @@ export const contactFilterSchema = z.object({
   search: z.string().optional(),
   role: contactRoleSchema.optional(),
   account_id: uuidSchema.optional(),
-  is_active: z.boolean().optional(),
+  is_active: booleanQuerySchema,
   tags: z.string().optional(),
 });
 

@@ -6,8 +6,9 @@ import {
   updateCase,
   fetchCaseTypes,
   fetchCaseStatuses,
-} from '../store/slices/casesSlice';
-import type { Contact } from '../store/slices/contactsSlice';
+} from '../features/cases/state';
+import type { Contact } from '../features/contacts/state';
+import { contactsApiClient } from '../features/contacts/api/contactsApiClient';
 import api from '../services/api';
 import { useToast } from '../contexts/useToast';
 import { useQuickLookup } from './dashboard';
@@ -41,7 +42,7 @@ const CaseForm = ({
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { showSuccess, showError } = useToast();
-  const { caseTypes, loading, error } = useAppSelector((state) => state.cases);
+  const { caseTypes, loading, error } = useAppSelector((state) => state.casesV2);
 
   const isEditMode = Boolean(caseId);
 
@@ -83,8 +84,7 @@ const CaseForm = ({
   useEffect(() => {
     const loadSelectedContact = async (contactId: string) => {
       try {
-        const response = await api.get(`/contacts/${contactId}`);
-        const contact = response.data as Contact;
+        const contact = (await contactsApiClient.getContact(contactId)) as Contact;
         setSelectedContact(contact);
         lookup.selectResult(
           `${contact.first_name} ${contact.last_name}${contact.email ? ` • ${contact.email}` : ''}`

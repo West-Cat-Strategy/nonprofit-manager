@@ -6,7 +6,7 @@
 import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { fetchCases, selectCasesByAssignee } from '../../store/slices/casesSlice';
+import { fetchCases, selectCasesByAssignee } from '../../features/cases/state';
 import WidgetContainer from './WidgetContainer';
 import type { DashboardWidget } from '../../types/dashboard';
 
@@ -19,7 +19,7 @@ interface MyCasesWidgetProps {
 const MyCasesWidget = ({ widget, editMode, onRemove }: MyCasesWidgetProps) => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  const { loading, error } = useAppSelector((state) => state.cases);
+  const { loading, error } = useAppSelector((state) => state.casesV2);
 
   // Get cases assigned to current user
   const myCases = useAppSelector((state) =>
