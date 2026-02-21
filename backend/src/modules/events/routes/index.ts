@@ -1,36 +1,15 @@
-/**
- * Event Routes
- * API routes for event scheduling and registration
- */
-
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
-import {
-  getEvents,
-  getEventAttendanceSummary,
-  getEvent,
-  createEvent,
-  updateEvent,
-  deleteEvent,
-  getEventRegistrations,
-  registerForEvent,
-  updateRegistration,
-  checkInAttendee,
-  cancelRegistration,
-  getAttendanceStats,
-  getRegistrations,
-  sendEventReminders,
-  getEventReminderAutomations,
-  createEventReminderAutomation,
-  updateEventReminderAutomation,
-  cancelEventReminderAutomation,
-  syncEventReminderAutomations,
-} from '@controllers/domains/engagement';
+import { services } from '@container/services';
 import { authenticate } from '@middleware/domains/auth';
 import { loadDataScope } from '@middleware/domains/data';
 import { validateRequest } from '@middleware/domains/security';
+import { createEventsController } from '../controllers/events.controller';
+import { EventRepository } from '../repositories/eventRepository';
+import { EventCatalogUseCase } from '../usecases/eventCatalog.usecase';
+import { EventRegistrationUseCase } from '../usecases/registration.usecase';
+import { EventRemindersUseCase } from '../usecases/reminders.usecase';
 
-const router = Router();
 const eventTypeValues = [
   'fundraiser',
   'community',
@@ -49,15 +28,19 @@ const registrationStatusValues = ['registered', 'waitlisted', 'cancelled', 'conf
 const recurrencePatternValues = ['daily', 'weekly', 'monthly', 'yearly'];
 const reminderTimingTypeValues = ['relative', 'absolute'];
 
-// All routes require authentication
-router.use(authenticate);
-router.use(loadDataScope('events'));
+export const createEventsV2Routes = (): Router => {
+  const repository = new EventRepository(services.event);
+  const controller = createEventsController(
+    new EventCatalogUseCase(repository),
+    new EventRegistrationUseCase(repository),
+    new EventRemindersUseCase(repository)
+  );
+  const eventsV2Routes = Router();
 
-/**
- * GET /api/events
- * Get all events with optional filtering
- */
-router.get(
+  eventsV2Routes.use(authenticate);
+  eventsV2Routes.use(loadDataScope('events'));
+
+  eventsV2Routes.get(
   '/',
   [
     query('event_type').optional().isIn(eventTypeValues),
@@ -65,7 +48,6 @@ router.get(
     query('is_public').optional().isBoolean(),
     query('start_date').optional().isISO8601(),
     query('end_date').optional().isISO8601(),
-    query('organizer_id').optional().isUUID(),
     query('search').optional().isString(),
     query('page').optional().isInt({ min: 1 }),
     query('limit').optional().isInt({ min: 1, max: 100 }),
@@ -73,34 +55,20 @@ router.get(
     query('sort_order').optional().isIn(['asc', 'desc']),
   ],
   validateRequest,
-  getEvents
+  controller.getEvents
 );
 
-/**
- * GET /api/events/summary
- * Get event attendance summary for dashboards
- */
-router.get('/summary', getEventAttendanceSummary);
+  eventsV2Routes.get('/summary', controller.getSummary);
+  eventsV2Routes.get('/:id', [param('id').isUUID()], validateRequest, controller.getEvent);
 
-/**
- * GET /api/events/:id
- * Get a single event
- */
-router.get('/:id', [param('id').isUUID()], validateRequest, getEvent);
-
-/**
- * POST /api/events
- * Create a new event
- */
-router.post(
+  eventsV2Routes.post(
   '/',
   [
-    body('event_name').isString().trim().notEmpty().withMessage('Event name is required'),
+    body('event_name').isString().trim().notEmpty(),
     body('description').optional().isString(),
-    body('event_type')
-      .isIn(eventTypeValues),
-    body('start_date').isISO8601().withMessage('Valid start date is required'),
-    body('end_date').isISO8601().withMessage('Valid end date is required'),
+    body('event_type').isIn(eventTypeValues),
+    body('start_date').isISO8601(),
+    body('end_date').isISO8601(),
     body('location_name').optional().isString(),
     body('address_line1').optional().isString(),
     body('address_line2').optional().isString(),
@@ -117,14 +85,10 @@ router.post(
     body('recurrence_end_date').optional().isISO8601(),
   ],
   validateRequest,
-  createEvent
+  controller.createEvent
 );
 
-/**
- * PUT /api/events/:id
- * Update an event
- */
-router.put(
+  eventsV2Routes.put(
   '/:id',
   [
     param('id').isUUID(),
@@ -149,20 +113,12 @@ router.put(
     body('recurrence_end_date').optional().isISO8601(),
   ],
   validateRequest,
-  updateEvent
+  controller.updateEvent
 );
 
-/**
- * DELETE /api/events/:id
- * Cancel an event
- */
-router.delete('/:id', [param('id').isUUID()], validateRequest, deleteEvent);
+  eventsV2Routes.delete('/:id', [param('id').isUUID()], validateRequest, controller.deleteEvent);
 
-/**
- * GET /api/events/:id/registrations
- * Get registrations for an event
- */
-router.get(
+  eventsV2Routes.get(
   '/:id/registrations',
   [
     param('id').isUUID(),
@@ -171,85 +127,10 @@ router.get(
     query('checked_in').optional().isBoolean(),
   ],
   validateRequest,
-  getEventRegistrations
+  controller.listRegistrations
 );
 
-/**
- * POST /api/events/:id/register
- * Register for an event
- */
-router.post(
-  '/:id/register',
-  [
-    param('id').isUUID(),
-    body('contact_id').isUUID().withMessage('Valid contact_id is required'),
-    body('registration_status').optional().isIn(registrationStatusValues),
-    body('notes').optional().isString(),
-  ],
-  validateRequest,
-  registerForEvent
-);
-
-/**
- * PUT /api/events/registrations/:id
- * Update a registration
- */
-router.put(
-  '/registrations/:id',
-  [
-    param('id').isUUID(),
-    body('registration_status').optional().isIn(registrationStatusValues),
-    body('notes').optional().isString(),
-  ],
-  validateRequest,
-  updateRegistration
-);
-
-/**
- * POST /api/events/registrations/:id/checkin
- * Check in an attendee
- */
-router.post(
-  '/registrations/:id/check-in',
-  [param('id').isUUID()],
-  validateRequest,
-  checkInAttendee
-);
-
-router.post(
-  '/registrations/:id/checkin',
-  [param('id').isUUID()],
-  validateRequest,
-  checkInAttendee
-);
-
-/**
- * DELETE /api/events/registrations/:id
- * Cancel a registration
- */
-router.delete(
-  '/registrations/:id',
-  [param('id').isUUID()],
-  validateRequest,
-  cancelRegistration
-);
-
-/**
- * GET /api/events/:id/attendance
- * Get attendance statistics
- */
-router.get(
-  '/:id/attendance',
-  [param('id').isUUID()],
-  validateRequest,
-  getAttendanceStats
-);
-
-/**
- * GET /api/events/registrations
- * Get all registrations with filtering
- */
-router.get(
+  eventsV2Routes.get(
   '/registrations',
   [
     query('event_id').optional().isUUID(),
@@ -257,18 +138,39 @@ router.get(
     query('status').optional().isIn(registrationStatusValues),
     query('registration_status').optional().isIn(registrationStatusValues),
     query('checked_in').optional().isBoolean(),
-    query('start_date').optional().isISO8601(),
-    query('end_date').optional().isISO8601(),
   ],
   validateRequest,
-  getRegistrations
+  controller.listRegistrations
 );
 
-/**
- * POST /api/events/:id/reminders/send
- * Send reminders to event registrants via configured channels.
- */
-router.post(
+  eventsV2Routes.post(
+  '/:id/register',
+  [
+    param('id').isUUID(),
+    body('contact_id').isUUID(),
+    body('registration_status').optional().isIn(registrationStatusValues),
+    body('notes').optional().isString(),
+  ],
+  validateRequest,
+  controller.register
+);
+
+  eventsV2Routes.put(
+  '/registrations/:id',
+  [
+    param('id').isUUID(),
+    body('registration_status').optional().isIn(registrationStatusValues),
+    body('notes').optional().isString(),
+  ],
+  validateRequest,
+  controller.updateRegistration
+);
+
+  eventsV2Routes.post('/registrations/:id/check-in', [param('id').isUUID()], validateRequest, controller.checkIn);
+  eventsV2Routes.post('/registrations/:id/checkin', [param('id').isUUID()], validateRequest, controller.checkIn);
+  eventsV2Routes.delete('/registrations/:id', [param('id').isUUID()], validateRequest, controller.cancelRegistration);
+
+  eventsV2Routes.post(
   '/:id/reminders/send',
   [
     param('id').isUUID(),
@@ -277,25 +179,12 @@ router.post(
     body('customMessage').optional().isString().isLength({ max: 500 }),
   ],
   validateRequest,
-  sendEventReminders
+  controller.sendReminders
 );
 
-/**
- * GET /api/events/:id/reminder-automations
- * List reminder automations for an event.
- */
-router.get(
-  '/:id/reminder-automations',
-  [param('id').isUUID()],
-  validateRequest,
-  getEventReminderAutomations
-);
+  eventsV2Routes.get('/:id/reminder-automations', [param('id').isUUID()], validateRequest, controller.listAutomations);
 
-/**
- * POST /api/events/:id/reminder-automations
- * Create a reminder automation for an event.
- */
-router.post(
+  eventsV2Routes.post(
   '/:id/reminder-automations',
   [
     param('id').isUUID(),
@@ -308,14 +197,10 @@ router.post(
     body('timezone').optional().isString().isLength({ min: 1, max: 64 }),
   ],
   validateRequest,
-  createEventReminderAutomation
+  controller.createAutomation
 );
 
-/**
- * PATCH /api/events/:id/reminder-automations/:automationId
- * Update a pending reminder automation.
- */
-router.patch(
+  eventsV2Routes.patch(
   '/:id/reminder-automations/:automationId',
   [
     param('id').isUUID(),
@@ -330,25 +215,17 @@ router.patch(
     body('isActive').optional().isBoolean(),
   ],
   validateRequest,
-  updateEventReminderAutomation
+  controller.updateAutomation
 );
 
-/**
- * POST /api/events/:id/reminder-automations/:automationId/cancel
- * Cancel a pending reminder automation.
- */
-router.post(
+  eventsV2Routes.post(
   '/:id/reminder-automations/:automationId/cancel',
   [param('id').isUUID(), param('automationId').isUUID()],
   validateRequest,
-  cancelEventReminderAutomation
+  controller.cancelAutomation
 );
 
-/**
- * PUT /api/events/:id/reminder-automations/sync
- * Replace all pending reminder automations for this event.
- */
-router.put(
+  eventsV2Routes.put(
   '/:id/reminder-automations/sync',
   [
     param('id').isUUID(),
@@ -362,7 +239,10 @@ router.put(
     body('items.*.timezone').optional().isString().isLength({ min: 1, max: 64 }),
   ],
   validateRequest,
-  syncEventReminderAutomations
-);
+    controller.syncAutomations
+  );
 
-export default router;
+  return eventsV2Routes;
+};
+
+export const eventsV2Routes = createEventsV2Routes();

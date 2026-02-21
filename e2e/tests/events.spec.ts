@@ -95,7 +95,7 @@ test.describe('Events Module', () => {
       email: 'jane@example.com',
     });
 
-    const registrationResponse = await authenticatedPage.request.post(`${apiURL}/api/events/${eventId}/register`, {
+    const registrationResponse = await authenticatedPage.request.post(`${apiURL}/api/v2/events/${eventId}/register`, {
       headers,
       data: {
         contact_id: contactId,
@@ -103,12 +103,13 @@ test.describe('Events Module', () => {
     });
     expect(registrationResponse.ok()).toBeTruthy();
 
-    const registration = await registrationResponse.json();
+    const registrationBody = await registrationResponse.json();
+    const registration = registrationBody?.data ?? registrationBody;
     const registrationId = registration.registration_id || registration.id;
     expect(registrationId).toBeTruthy();
 
     const checkInResponse = await authenticatedPage.request.post(
-      `${apiURL}/api/events/registrations/${registrationId}/checkin`,
+      `${apiURL}/api/v2/events/registrations/${registrationId}/checkin`,
       {
         headers,
       }
@@ -166,7 +167,7 @@ test.describe('Events Module', () => {
         lastName: 'Load',
         email: `contact${i}@test.com`,
       });
-      const response = await authenticatedPage.request.post(`${apiURL}/api/events/${eventId}/register`, {
+      const response = await authenticatedPage.request.post(`${apiURL}/api/v2/events/${eventId}/register`, {
         headers,
         data: {
           contact_id: contactId,

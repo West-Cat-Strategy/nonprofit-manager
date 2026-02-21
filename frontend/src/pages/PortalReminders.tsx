@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import portalApi from '../services/portalApi';
+import { unwrapApiData } from '../services/apiEnvelope';
 import PortalPageState from '../components/portal/PortalPageState';
 
 interface ReminderItem {
@@ -17,8 +18,8 @@ export default function PortalReminders() {
   const load = async () => {
     try {
       setError(null);
-      const response = await portalApi.get('/portal/reminders');
-      setReminders(response.data);
+      const response = await portalApi.get('/v2/portal/reminders');
+      setReminders(unwrapApiData(response.data));
     } catch (err) {
       console.error('Failed to load reminders', err);
       setError('Unable to load reminders right now.');

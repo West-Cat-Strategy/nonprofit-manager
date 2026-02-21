@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import portalApi from '../services/portalApi';
+import { unwrapApiData } from '../services/apiEnvelope';
 import { useToast } from '../contexts/useToast';
 import PortalPageState from '../components/portal/PortalPageState';
 
@@ -76,8 +77,8 @@ export default function PortalMessages() {
   );
 
   const loadContext = async () => {
-    const response = await portalApi.get<PointpersonContextPayload>('/portal/pointperson/context');
-    const payload = response.data;
+    const response = await portalApi.get<PointpersonContextPayload>('/v2/portal/pointperson/context');
+    const payload = unwrapApiData(response.data);
     setContext(payload);
 
     const fallbackCaseId = payload.selected_case_id || payload.default_case_id || payload.cases[0]?.case_id || '';
@@ -89,18 +90,18 @@ export default function PortalMessages() {
   const loadThreads = async () => {
     setThreadsLoading(true);
     try {
-      const response = await portalApi.get<{ threads: ThreadSummary[] }>('/portal/messages/threads');
-      setThreads(response.data.threads || []);
+      const response = await portalApi.get<{ threads: ThreadSummary[] }>('/v2/portal/messages/threads');
+      setThreads(unwrapApiData(response.data).threads || []);
     } finally {
       setThreadsLoading(false);
     }
   };
 
   const loadThreadDetail = async (threadId: string) => {
-    const response = await portalApi.get<ThreadDetailResponse>(`/portal/messages/threads/${threadId}`);
-    setActiveThread(response.data);
+    const response = await portalApi.get<ThreadDetailResponse>(`/v2/portal/messages/threads/${threadId}`);
+    setActiveThread(unwrapApiData(response.data));
     setActiveThreadId(threadId);
-    await portalApi.post(`/portal/messages/threads/${threadId}/read`);
+    await portalApi.post(`/v2/portal/messages/threads/${threadId}/read`);
     await loadThreads();
   };
 
@@ -142,13 +143,13 @@ export default function PortalMessages() {
 
     setCreating(true);
     try {
-      const response = await portalApi.post<ThreadDetailResponse>('/portal/messages/threads', {
+      const response = await portalApi.post<ThreadDetailResponse>('/v2/portal/messages/threads', {
         case_id: selectedCaseId,
         subject: newSubject.trim() || null,
         message: newMessage.trim(),
       });
 
-      const created = response.data;
+      const created = unwrapApiData(response.data);
       setNewSubject('');
       setNewMessage('');
       setActiveThread(created);
@@ -172,7 +173,7 @@ export default function PortalMessages() {
 
     setReplying(true);
     try {
-      await portalApi.post(`/portal/messages/threads/${activeThreadId}/messages`, {
+      await portalApi.post(`/v2/portal/messages/threads/${activeThreadId}/messages`, {
         message: replyMessage.trim(),
       });
       setReplyMessage('');
@@ -192,7 +193,7 @@ export default function PortalMessages() {
 
     const nextStatus = activeThread.thread.status === 'open' ? 'closed' : 'open';
     try {
-      await portalApi.patch(`/portal/messages/threads/${activeThreadId}`, {
+      await portalApi.patch(`/v2/portal/messages/threads/${activeThreadId}`, {
         status: nextStatus,
       });
       showSuccess(nextStatus === 'closed' ? 'Conversation closed.' : 'Conversation reopened.');

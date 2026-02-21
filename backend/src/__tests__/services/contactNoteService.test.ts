@@ -152,7 +152,7 @@ describe('createContactNote', () => {
 
     const params = mockQuery.mock.calls[0][1] as unknown[];
     expect(params[0]).toBe('contact-abc');  // contactId (first param)
-    expect(params[10]).toBe('user-xyz');     // userId (11th param)
+    expect(params[13]).toBe('user-xyz');     // userId (14th param)
   });
 
   it('defaults note_type to "note" when not provided', async () => {
@@ -174,6 +174,9 @@ describe('createContactNote', () => {
     expect(params[6]).toBe(false);  // is_important
     expect(params[7]).toBe(false);  // is_pinned
     expect(params[8]).toBe(false);  // is_alert
+    expect(params[9]).toBe(false);  // is_portal_visible
+    expect(params[10]).toBeNull();  // portal_visible_at
+    expect(params[11]).toBeNull();  // portal_visible_by
   });
 
   it('serialises attachments to JSON when provided', async () => {
@@ -183,7 +186,7 @@ describe('createContactNote', () => {
     await createContactNote('contact-1', { content: 'With attachment', attachments }, 'user-1');
 
     const params = mockQuery.mock.calls[0][1] as unknown[];
-    expect(params[9]).toBe(JSON.stringify(attachments));  // attachments
+    expect(params[12]).toBe(JSON.stringify(attachments));  // attachments
   });
 
   it('throws a user-friendly error on failure', async () => {

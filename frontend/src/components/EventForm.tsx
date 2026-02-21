@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { eventsApiClient } from '../features/events/api/eventsApiClient';
 import type {
   Event,
   CreateEventDTO,
@@ -333,13 +334,9 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
     const loadReminderAutomations = async () => {
       setAutomationRowsLoading(true);
       try {
-        const response = await api.get<{ data: EventReminderAutomation[] }>(
-          `/events/${event.event_id}/reminder-automations`
-        );
-
         if (!isMounted) return;
-
-        const pendingRows = (response.data?.data || [])
+        const automations = await eventsApiClient.listReminderAutomations(event.event_id);
+        const pendingRows = automations
           .filter((item) => item.is_active && !item.attempted_at)
           .map((item) => mapAutomationToReminderRow(item, organizationTimezone));
 
@@ -469,7 +466,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
 
   const syncReminderAutomations = async (eventId: string): Promise<void> => {
     const payload = buildReminderSyncPayload();
-    await api.put(`/events/${eventId}/reminder-automations/sync`, payload);
+    await eventsApiClient.syncReminderAutomations(eventId, payload);
   };
 
   const handleRetryReminderSync = async () => {

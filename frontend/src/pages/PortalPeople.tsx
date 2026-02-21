@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import portalApi from '../services/portalApi';
+import { unwrapApiData } from '../services/apiEnvelope';
 import { RELATIONSHIP_TYPES } from '../types/contact';
 import { useToast } from '../contexts/useToast';
 import PortalPageState from '../components/portal/PortalPageState';
@@ -38,8 +39,8 @@ export default function PortalPeople() {
   const loadRelationships = async () => {
     try {
       setError(null);
-      const response = await portalApi.get('/portal/relationships');
-      setRelationships(response.data);
+      const response = await portalApi.get('/v2/portal/relationships');
+      setRelationships(unwrapApiData(response.data));
     } catch (err) {
       console.error('Failed to load relationships', err);
       setError('Unable to load associated people right now.');
@@ -60,7 +61,7 @@ export default function PortalPeople() {
     e.preventDefault();
     setSaving(true);
     try {
-      const response = await portalApi.post('/portal/relationships', {
+      const response = await portalApi.post('/v2/portal/relationships', {
         relationship_type: formData.relationship_type,
         relationship_label: formData.relationship_label || undefined,
         notes: formData.notes || undefined,
@@ -71,7 +72,7 @@ export default function PortalPeople() {
           phone: formData.phone || undefined,
         },
       });
-      setRelationships((prev) => [response.data, ...prev]);
+      setRelationships((prev) => [unwrapApiData(response.data), ...prev]);
       setFormData({
         first_name: '',
         last_name: '',
@@ -103,7 +104,7 @@ export default function PortalPeople() {
     setRemovingId(id);
     setRelationships((prev) => prev.filter((relationship) => relationship.id !== id));
     try {
-      await portalApi.delete(`/portal/relationships/${id}`);
+      await portalApi.delete(`/v2/portal/relationships/${id}`);
       showSuccess('Person removed.');
     } catch (err) {
       console.error('Failed to remove relationship', err);
