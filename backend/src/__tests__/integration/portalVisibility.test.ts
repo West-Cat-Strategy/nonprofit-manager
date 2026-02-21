@@ -28,6 +28,8 @@ describe('Portal Visibility Integration', () => {
       getJwtSecret(),
       { expiresIn: '1h' }
     );
+  const unwrap = <T>(body: { data?: T } | T): T =>
+    (body && typeof body === 'object' && 'data' in body ? (body as { data: T }).data : body) as T;
 
   beforeAll(async () => {
     const suffix = unique();
@@ -174,11 +176,12 @@ describe('Portal Visibility Integration', () => {
 
   it('only returns explicitly visible non-internal notes', async () => {
     const response = await request(app)
-      .get('/api/portal/notes')
+      .get('/api/v2/portal/notes')
       .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
       .expect(200);
 
-    const noteIds = response.body.map((entry: { id: string }) => entry.id);
+    const noteRows = unwrap<Array<{ id: string }>>(response.body);
+    const noteIds = noteRows.map((entry) => entry.id);
 
     expect(noteIds).toContain(visibleNoteId);
     expect(noteIds).not.toContain(hiddenNoteId);
@@ -187,26 +190,28 @@ describe('Portal Visibility Integration', () => {
 
   it('only returns explicitly shared documents and forms and blocks hidden downloads', async () => {
     const docsResponse = await request(app)
-      .get('/api/portal/documents')
+      .get('/api/v2/portal/documents')
       .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
       .expect(200);
 
-    const docIds = docsResponse.body.map((entry: { id: string }) => entry.id);
+    const docRows = unwrap<Array<{ id: string }>>(docsResponse.body);
+    const docIds = docRows.map((entry) => entry.id);
     expect(docIds).toContain(visibleDocId);
     expect(docIds).toContain(visibleFormDocId);
     expect(docIds).not.toContain(hiddenDocId);
 
     const formsResponse = await request(app)
-      .get('/api/portal/forms')
+      .get('/api/v2/portal/forms')
       .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
       .expect(200);
 
-    const formIds = formsResponse.body.map((entry: { id: string }) => entry.id);
+    const formRows = unwrap<Array<{ id: string }>>(formsResponse.body);
+    const formIds = formRows.map((entry) => entry.id);
     expect(formIds).toContain(visibleFormDocId);
     expect(formIds).not.toContain(visibleDocId);
 
     await request(app)
-      .get(`/api/portal/documents/${hiddenDocId}/download`)
+      .get(`/api/v2/portal/documents/${hiddenDocId}/download`)
       .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
       .expect(404);
   });

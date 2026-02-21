@@ -35,6 +35,8 @@ describe('Portal Messaging Integration', () => {
       getJwtSecret(),
       { expiresIn: '1h' }
     );
+  const unwrap = <T>(body: { data?: T } | T): T =>
+    (body && typeof body === 'object' && 'data' in body ? (body as { data: T }).data : body) as T;
 
   beforeAll(async () => {
     const suffix = unique();
@@ -142,7 +144,7 @@ describe('Portal Messaging Integration', () => {
     const adminToken = buildAdminToken();
 
     const createResponse = await request(app)
-      .post('/api/portal/messages/threads')
+      .post('/api/v2/portal/messages/threads')
       .set('Cookie', [`portal_auth_token=${portalToken}`])
       .send({
         case_id: assignedCaseId,
@@ -151,8 +153,9 @@ describe('Portal Messaging Integration', () => {
       })
       .expect(201);
 
-    expect(createResponse.body.thread).toBeDefined();
-    const threadId = createResponse.body.thread.id as string;
+    const created = unwrap<{ thread: { id: string } }>(createResponse.body);
+    expect(created.thread).toBeDefined();
+    const threadId = created.thread.id as string;
 
     await request(app)
       .post(`/api/portal/admin/conversations/${threadId}/messages`)
@@ -163,18 +166,19 @@ describe('Portal Messaging Integration', () => {
       .expect(201);
 
     const threadResponse = await request(app)
-      .get(`/api/portal/messages/threads/${threadId}`)
+      .get(`/api/v2/portal/messages/threads/${threadId}`)
       .set('Cookie', [`portal_auth_token=${portalToken}`])
       .expect(200);
 
-    expect(threadResponse.body.messages.some((entry: { sender_type: string }) => entry.sender_type === 'staff')).toBe(true);
+    const thread = unwrap<{ messages: Array<{ sender_type: string }> }>(threadResponse.body);
+    expect(thread.messages.some((entry) => entry.sender_type === 'staff')).toBe(true);
   });
 
   it('rejects thread creation for a case that has no assigned pointperson', async () => {
     const portalToken = buildPortalToken();
 
     const response = await request(app)
-      .post('/api/portal/messages/threads')
+      .post('/api/v2/portal/messages/threads')
       .set('Cookie', [`portal_auth_token=${portalToken}`])
       .send({
         case_id: unassignedCaseId,
@@ -183,6 +187,6 @@ describe('Portal Messaging Integration', () => {
       })
       .expect(400);
 
-    expect(response.body.error).toMatch(/assigned pointperson/i);
+    expect(response.body.error?.message ?? response.body.error).toMatch(/assigned pointperson/i);
   });
 });

@@ -7,10 +7,29 @@ import { renderWithProviders } from '../../../../test/testUtils';
 
 const dispatchMock = vi.fn();
 const state = {
-  events: {
+  eventsListV2: {
     events: [],
-    pagination: { total: 0, page: 1, limit: 20, total_pages: 1 },
+    total: 0,
+    page: 1,
+    limit: 20,
+    totalPages: 1,
     loading: false,
+    error: null,
+  },
+  eventDetailV2: {
+    event: null,
+    loading: false,
+    error: null,
+  },
+  eventRegistrationV2: {
+    registrations: [],
+    loading: false,
+    actionLoading: false,
+    error: null,
+  },
+  eventRemindersV2: {
+    sending: false,
+    lastSummary: null,
     error: null,
   },
 };
@@ -20,19 +39,29 @@ vi.mock('../../../../store/hooks', () => ({
   useAppSelector: (selector: (s: typeof state) => unknown) => selector(state),
 }));
 
-vi.mock('../../../../store/slices/eventsSlice', () => ({
-  default: (state = { events: [], pagination: { total: 0, page: 1, limit: 20, total_pages: 1 }, loading: false, error: null }) => state,
-  fetchEvents: (payload: unknown) => ({ type: 'events/fetch', payload }),
+vi.mock('../../../../features/events/state', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../../features/events/state')>();
+  return {
+    ...actual,
+    fetchEventsListV2: (payload: unknown) => ({ type: 'eventsListV2/fetch', payload }),
+  };
+});
+
+vi.mock('../../../../components/neo-brutalist/NeoBrutalistLayout', () => ({
+  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
-vi.mock('../../../../components/neo-brutalist/NeoBrutalistLayout', () => ({ default: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
-
 describe('EventList page', () => {
-  it('renders event page and preset filter controls', async () => {
+  it('renders events hub and dispatches list fetch on search update', async () => {
     const user = userEvent.setup();
+
     renderWithProviders(<EventList />);
+
     expect(screen.getByRole('heading', { name: 'Events' })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Upcoming' }));
+    expect(screen.getByRole('button', { name: 'Create Event' })).toBeInTheDocument();
+
+    await user.type(screen.getByPlaceholderText('Search events...'), 'gala');
+
     expect(dispatchMock).toHaveBeenCalled();
   });
 });

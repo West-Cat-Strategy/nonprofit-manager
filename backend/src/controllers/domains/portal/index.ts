@@ -1,3 +1,3 @@
 export * from '../../portalAdminController';
 export * from '../../portalAuthController';
-export * from '../../portalController';
+export * from './casePortalConversationsController';

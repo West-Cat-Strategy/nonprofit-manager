@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import portalApi from '../services/portalApi';
+import { unwrapApiData } from '../services/apiEnvelope';
 import PortalPageState from '../components/portal/PortalPageState';
 
 interface DocumentRow {
@@ -21,8 +22,8 @@ export default function PortalDocuments() {
   const load = async () => {
     try {
       setError(null);
-      const response = await portalApi.get('/portal/documents');
-      setDocuments(response.data);
+      const response = await portalApi.get('/v2/portal/documents');
+      setDocuments(unwrapApiData(response.data));
     } catch (err) {
       console.error('Failed to load documents', err);
       setError('Unable to load documents right now.');
@@ -56,7 +57,7 @@ export default function PortalDocuments() {
                 <div className="text-sm text-app-text-muted">{doc.document_type}</div>
               </div>
               <a
-                href={`/api/portal/documents/${doc.id}/download`}
+                href={`/api/v2/portal/documents/${doc.id}/download`}
                 className="text-sm text-app-accent hover:underline"
               >
                 Download

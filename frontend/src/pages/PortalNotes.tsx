@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import portalApi from '../services/portalApi';
+import { unwrapApiData } from '../services/apiEnvelope';
 import PortalPageState from '../components/portal/PortalPageState';
 
 interface NoteRow {
@@ -18,8 +19,8 @@ export default function PortalNotes() {
   const load = async () => {
     try {
       setError(null);
-      const response = await portalApi.get('/portal/notes');
-      setNotes(response.data);
+      const response = await portalApi.get('/v2/portal/notes');
+      setNotes(unwrapApiData(response.data));
     } catch (err) {
       console.error('Failed to load notes', err);
       setError('Unable to load notes right now.');

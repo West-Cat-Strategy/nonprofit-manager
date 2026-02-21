@@ -8,7 +8,6 @@ import {
   contactRoutes,
   dashboardRoutes,
   donationRoutes,
-  eventRoutes,
   externalServiceProviderRoutes,
   invitationRoutes,
   mailchimpRoutes,
@@ -24,7 +23,6 @@ export function registerEngagementRoutes(app: Application): void {
   app.use('/api/accounts', accountRoutes);
   app.use('/api/contacts', contactRoutes);
   app.use('/api/volunteers', volunteerRoutes);
-  app.use('/api/events', eventRoutes);
   app.use('/api/donations', donationRoutes);
   app.use('/api/tasks', taskRoutes);
   app.use('/api/external-service-providers', externalServiceProviderRoutes);

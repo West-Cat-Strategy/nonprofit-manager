@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import portalApi from '../services/portalApi';
+import { unwrapApiData } from '../services/apiEnvelope';
 import PortalPageState from '../components/portal/PortalPageState';
 
 interface FormDoc {
@@ -19,8 +20,8 @@ export default function PortalForms() {
   const load = async () => {
     try {
       setError(null);
-      const response = await portalApi.get('/portal/forms');
-      setForms(response.data);
+      const response = await portalApi.get('/v2/portal/forms');
+      setForms(unwrapApiData(response.data));
     } catch (err) {
       console.error('Failed to load forms', err);
       setError('Unable to load forms right now.');
@@ -54,7 +55,7 @@ export default function PortalForms() {
                 <div className="text-sm text-app-text-muted">{form.document_type}</div>
               </div>
               <a
-                href={`/api/portal/documents/${form.id}/download`}
+                href={`/api/v2/portal/documents/${form.id}/download`}
                 className="text-sm text-app-accent hover:underline"
               >
                 Download
