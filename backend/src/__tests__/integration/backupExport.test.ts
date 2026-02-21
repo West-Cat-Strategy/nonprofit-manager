@@ -3,6 +3,8 @@ import * as zlib from 'zlib';
 import app from '../../index';
 import pool from '../../config/database';
 
+jest.setTimeout(30000);
+
 function parseBinaryResponse(res: any, callback: any) {
   const chunks: Buffer[] = [];
   res.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -148,4 +150,3 @@ describe('Backup Export API', () => {
     expect(adminRow.password_hash.length).toBeGreaterThan(0);
   });
 });
-

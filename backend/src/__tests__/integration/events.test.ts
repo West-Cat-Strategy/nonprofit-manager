@@ -6,6 +6,8 @@ describe('Event API Integration Tests', () => {
   let authToken: string;
   let testEventId: string;
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const unwrap = <T>(body: { data?: T } | T): T =>
+    (body && typeof body === 'object' && 'data' in body ? (body as { data: T }).data : body) as T;
 
   beforeAll(async () => {
     // Register and login
@@ -30,10 +32,10 @@ describe('Event API Integration Tests', () => {
     await pool.end();
   });
 
-  describe('POST /api/events', () => {
+  describe('POST /api/v2/events', () => {
     it('should create a new event with valid data', async () => {
       const response = await request(app)
-        .post('/api/events')
+        .post('/api/v2/events')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           event_name: 'Annual Fundraiser Gala',
@@ -46,15 +48,16 @@ describe('Event API Integration Tests', () => {
         })
         .expect(201);
 
-      expect(response.body).toHaveProperty('event_id');
-      expect(response.body.event_name).toBe('Annual Fundraiser Gala');
-      expect(response.body.event_type).toBe('fundraiser');
-      testEventId = response.body.event_id;
+      const event = unwrap<{ event_id: string; event_name: string; event_type: string }>(response.body);
+      expect(event).toHaveProperty('event_id');
+      expect(event.event_name).toBe('Annual Fundraiser Gala');
+      expect(event.event_type).toBe('fundraiser');
+      testEventId = event.event_id;
     });
 
     it('should require authentication', async () => {
       await request(app)
-        .post('/api/events')
+        .post('/api/v2/events')
         .send({
           event_name: 'Test Event',
           event_type: 'volunteer',
@@ -66,7 +69,7 @@ describe('Event API Integration Tests', () => {
 
     it('should create event with required fields', async () => {
       const response = await request(app)
-        .post('/api/events')
+        .post('/api/v2/events')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           event_name: 'Basic Event',
@@ -76,12 +79,13 @@ describe('Event API Integration Tests', () => {
         })
         .expect(201);
 
-      expect(response.body).toHaveProperty('event_id');
+      const event = unwrap<{ event_id: string }>(response.body);
+      expect(event).toHaveProperty('event_id');
     });
 
     it('should create event with capacity', async () => {
       const response = await request(app)
-        .post('/api/events')
+        .post('/api/v2/events')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           event_name: 'Limited Capacity Workshop',
@@ -92,67 +96,73 @@ describe('Event API Integration Tests', () => {
         })
         .expect(201);
 
-      expect(response.body.capacity).toBe(30);
+      const event = unwrap<{ capacity: number }>(response.body);
+      expect(event.capacity).toBe(30);
     });
   });
 
-  describe('GET /api/events', () => {
+  describe('GET /api/v2/events', () => {
     it('should return paginated list of events', async () => {
       const response = await request(app)
-        .get('/api/events')
+        .get('/api/v2/events')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body).toHaveProperty('pagination');
-      expect(Array.isArray(response.body.data)).toBe(true);
+      const payload = unwrap<{ data: unknown[]; pagination: unknown }>(response.body);
+      expect(payload).toHaveProperty('data');
+      expect(payload).toHaveProperty('pagination');
+      expect(Array.isArray(payload.data)).toBe(true);
     });
 
     it('should support search query', async () => {
       const response = await request(app)
-        .get('/api/events?search=Gala')
+        .get('/api/v2/events?search=Gala')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
+      const payload = unwrap<{ data: unknown[] }>(response.body);
+      expect(payload).toHaveProperty('data');
     });
 
     it('should filter by event_type', async () => {
       const response = await request(app)
-        .get('/api/events?event_type=fundraiser')
+        .get('/api/v2/events?event_type=fundraiser')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
+      const payload = unwrap<{ data: unknown[] }>(response.body);
+      expect(payload).toHaveProperty('data');
     });
 
     it('should filter by date range', async () => {
       const response = await request(app)
-        .get('/api/events?start_date=2024-01-01&end_date=2024-12-31')
+        .get('/api/v2/events?start_date=2024-01-01&end_date=2024-12-31')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
+      const payload = unwrap<{ data: unknown[] }>(response.body);
+      expect(payload).toHaveProperty('data');
     });
 
     it('should filter by status', async () => {
       const response = await request(app)
-        .get('/api/events?status=planned')
+        .get('/api/v2/events?status=planned')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
+      const payload = unwrap<{ data: unknown[] }>(response.body);
+      expect(payload).toHaveProperty('data');
     });
 
     it('should require authentication', async () => {
-      await request(app).get('/api/events').expect(401);
+      await request(app).get('/api/v2/events').expect(401);
     });
   });
 
-  describe('GET /api/events/:id', () => {
+  describe('GET /api/v2/events/:id', () => {
     it('should return a single event by ID', async () => {
       const createResponse = await request(app)
-        .post('/api/events')
+        .post('/api/v2/events')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           event_name: 'Single Event Test',
@@ -162,33 +172,35 @@ describe('Event API Integration Tests', () => {
           location_name: 'Community Center',
         });
 
-      const eventId = createResponse.body.event_id;
+      const created = unwrap<{ event_id: string }>(createResponse.body);
+      const eventId = created.event_id;
 
       const response = await request(app)
-        .get(`/api/events/${eventId}`)
+        .get(`/api/v2/events/${eventId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body.event_id).toBe(eventId);
-      expect(response.body.event_name).toBe('Single Event Test');
+      const event = unwrap<{ event_id: string; event_name: string }>(response.body);
+      expect(event.event_id).toBe(eventId);
+      expect(event.event_name).toBe('Single Event Test');
     });
 
     it('should return 404 for non-existent event', async () => {
       await request(app)
-        .get('/api/events/00000000-0000-0000-0000-000000000000')
+        .get('/api/v2/events/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
     });
 
     it('should require authentication', async () => {
-      await request(app).get('/api/events/1').expect(401);
+      await request(app).get('/api/v2/events/1').expect(401);
     });
   });
 
-  describe('PUT /api/events/:id', () => {
+  describe('PUT /api/v2/events/:id', () => {
     it('should update an existing event', async () => {
       const createResponse = await request(app)
-        .post('/api/events')
+        .post('/api/v2/events')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           event_name: 'Original Event',
@@ -197,10 +209,11 @@ describe('Event API Integration Tests', () => {
           end_date: '2024-11-05T12:00:00Z',
         });
 
-      const eventId = createResponse.body.event_id;
+      const created = unwrap<{ event_id: string }>(createResponse.body);
+      const eventId = created.event_id;
 
       const response = await request(app)
-        .put(`/api/events/${eventId}`)
+        .put(`/api/v2/events/${eventId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           event_name: 'Updated Event Name',
@@ -209,14 +222,15 @@ describe('Event API Integration Tests', () => {
         })
         .expect(200);
 
-      expect(response.body.event_name).toBe('Updated Event Name');
-      expect(response.body.location_name).toBe('New Location');
-      expect(response.body.status).toBe('active');
+      const event = unwrap<{ event_name: string; location_name: string; status: string }>(response.body);
+      expect(event.event_name).toBe('Updated Event Name');
+      expect(event.location_name).toBe('New Location');
+      expect(event.status).toBe('active');
     });
 
     it('should update event capacity', async () => {
       const createResponse = await request(app)
-        .post('/api/events')
+        .post('/api/v2/events')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           event_name: 'Capacity Test Event',
@@ -226,31 +240,33 @@ describe('Event API Integration Tests', () => {
           capacity: 50,
         });
 
-      const eventId = createResponse.body.event_id;
+      const created = unwrap<{ event_id: string }>(createResponse.body);
+      const eventId = created.event_id;
 
       const response = await request(app)
-        .put(`/api/events/${eventId}`)
+        .put(`/api/v2/events/${eventId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           capacity: 75,
         })
         .expect(200);
 
-      expect(response.body.capacity).toBe(75);
+      const event = unwrap<{ capacity: number }>(response.body);
+      expect(event.capacity).toBe(75);
     });
 
     it('should require authentication', async () => {
       await request(app)
-        .put('/api/events/1')
+        .put('/api/v2/events/1')
         .send({ event_name: 'Test' })
         .expect(401);
     });
   });
 
-  describe('DELETE /api/events/:id', () => {
+  describe('DELETE /api/v2/events/:id', () => {
     it('should soft delete an event by setting status to cancelled', async () => {
       const createResponse = await request(app)
-        .post('/api/events')
+        .post('/api/v2/events')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           event_name: 'Event To Delete',
@@ -259,23 +275,25 @@ describe('Event API Integration Tests', () => {
           end_date: '2025-01-15T14:00:00Z',
         });
 
-      const eventId = createResponse.body.event_id;
+      const created = unwrap<{ event_id: string }>(createResponse.body);
+      const eventId = created.event_id;
 
       await request(app)
-        .delete(`/api/events/${eventId}`)
+        .delete(`/api/v2/events/${eventId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(204);
 
       const response = await request(app)
-        .get(`/api/events/${eventId}`)
+        .get(`/api/v2/events/${eventId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body.status).toBe('cancelled');
+      const event = unwrap<{ status: string }>(response.body);
+      expect(event.status).toBe('cancelled');
     });
 
     it('should require authentication', async () => {
-      await request(app).delete('/api/events/1').expect(401);
+      await request(app).delete('/api/v2/events/1').expect(401);
     });
   });
 });

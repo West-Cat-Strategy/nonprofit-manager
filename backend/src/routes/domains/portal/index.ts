@@ -1,3 +1,3 @@
-export { default as portalRoutes } from '@routes/portal';
+export { portalV2Routes as portalRoutes } from '@modules/portal';
 export { default as portalAdminRoutes } from '@routes/portalAdmin';
 export { default as portalAuthRoutes } from '@routes/portalAuth';

@@ -1,10 +1,10 @@
 import { lazy } from 'react';
 
-export const EventList = lazy(() => import('../pages/engagement/events/EventList'));
-export const EventDetail = lazy(() => import('../pages/engagement/events/EventDetail'));
-export const EventCreate = lazy(() => import('../pages/engagement/events/EventCreate'));
-export const EventEdit = lazy(() => import('../pages/engagement/events/EventEdit'));
-export const EventCalendarPage = lazy(() => import('../pages/engagement/events/EventCalendarPage'));
+export const EventList = lazy(() => import('../features/events/pages/EventsHubPage'));
+export const EventDetail = lazy(() => import('../features/events/pages/EventDetailPage'));
+export const EventCreate = lazy(() => import('../features/events/pages/EventCreatePage'));
+export const EventEdit = lazy(() => import('../features/events/pages/EventEditPage'));
+export const EventCalendarPage = lazy(() => import('../features/events/pages/EventCalendarPage'));
 export const TaskList = lazy(() => import('../pages/engagement/tasks/TaskList'));
 export const TaskDetail = lazy(() => import('../pages/engagement/tasks/TaskDetail'));
 export const TaskCreate = lazy(() => import('../pages/engagement/tasks/TaskCreate'));

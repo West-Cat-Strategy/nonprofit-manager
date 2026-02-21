@@ -390,7 +390,7 @@ describe('EventForm', () => {
       fireEvent.click(screen.getByRole('button', { name: /create event/i }));
 
       await waitFor(() => {
-        expect(mockApi.put).toHaveBeenCalledWith('/events/event-123/reminder-automations/sync', {
+        expect(mockApi.put).toHaveBeenCalledWith('/v2/events/event-123/reminder-automations/sync', {
           items: [
             expect.objectContaining({
               timingType: 'relative',
@@ -434,7 +434,7 @@ describe('EventForm', () => {
 
       await waitFor(() => {
         expect(mockApi.put).toHaveBeenCalledWith(
-          '/events/event-123/reminder-automations/sync',
+          '/v2/events/event-123/reminder-automations/sync',
           expect.any(Object)
         );
         expect(mockNavigate).toHaveBeenCalledWith('/events');

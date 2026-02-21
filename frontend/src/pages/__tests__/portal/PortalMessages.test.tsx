@@ -22,7 +22,7 @@ vi.mock('../../../contexts/useToast', () => ({
 describe('PortalMessages page', () => {
   beforeEach(() => {
     getMock.mockImplementation((url: string) => {
-      if (url === '/portal/pointperson/context') {
+      if (url === '/v2/portal/pointperson/context') {
         return Promise.resolve({
           data: {
             default_case_id: 'case-1',
@@ -43,11 +43,11 @@ describe('PortalMessages page', () => {
         });
       }
 
-      if (url === '/portal/messages/threads') {
+      if (url === '/v2/portal/messages/threads') {
         return Promise.resolve({ data: { threads: [] } });
       }
 
-      if (url.startsWith('/portal/messages/threads/')) {
+      if (url.startsWith('/v2/portal/messages/threads/')) {
         return Promise.resolve({
           data: {
             thread: {
@@ -106,7 +106,7 @@ describe('PortalMessages page', () => {
     fireEvent.click(screen.getByRole('button', { name: /send message/i }));
 
     await waitFor(() => {
-      expect(postMock).toHaveBeenCalledWith('/portal/messages/threads', {
+      expect(postMock).toHaveBeenCalledWith('/v2/portal/messages/threads', {
         case_id: 'case-1',
         subject: 'Need help',
         message: 'Can we meet this week?',

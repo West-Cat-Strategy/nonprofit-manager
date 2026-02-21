@@ -176,7 +176,7 @@ test.describe('Accounts Module', () => {
     });
     // Create test account
     const editSuffix = Date.now();
-    await createTestAccount(authenticatedPage, authToken, {
+    const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
       name: `Original Name ${editSuffix}`,
       email: `original+${editSuffix}@test.com`,
     });
@@ -207,15 +207,13 @@ test.describe('Accounts Module', () => {
     if (unauthorized.length > 0) {
       throw new Error(`Unauthorized API responses: ${unauthorized.join(', ')}`);
     }
-    await authenticatedPage.goto('/accounts');
-
-    // Check updated name is displayed
+    await authenticatedPage.waitForURL(new RegExp(`/accounts/${accountId}$`), { timeout: 10000 });
     await expect(
-      authenticatedPage.locator(`text=Updated Name ${editSuffix}`)
+      authenticatedPage.getByRole('heading', { name: `Updated Name ${editSuffix}` })
     ).toBeVisible({ timeout: 10000 });
     await expect(
-      authenticatedPage.locator(`text=Original Name ${editSuffix}`)
-    ).not.toBeVisible();
+      authenticatedPage.locator(`text=original+${editSuffix}@test.com`)
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test('should delete account', async ({ authenticatedPage, authToken }) => {

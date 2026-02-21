@@ -4,25 +4,67 @@
 
 import { Page } from '@playwright/test';
 
-export async function getAuthHeaders(page: Page, token: string): Promise<Record<string, string>> {
+const RETRYABLE_NETWORK_ERROR = /ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|socket hang up/i;
+
+const isRetryableNetworkError = (error: unknown): boolean =>
+  error instanceof Error && RETRYABLE_NETWORK_ERROR.test(error.message);
+
+async function withRequestRetry<T>(
+  fn: () => Promise<T>,
+  context: string,
+  attempts: number = 3
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableNetworkError(error) || attempt === attempts) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 200 * attempt));
+    }
+  }
+
+  throw new Error(
+    `Request failed for ${context}: ${lastError instanceof Error ? lastError.message : String(lastError)}`
+  );
+}
+
+async function getCachedAuthHeaders(
+  page: Page,
+  token: string,
+  cache: Map<string, string>
+): Promise<Record<string, string>> {
   const apiURL = process.env.API_URL || 'http://localhost:3001';
+  const cacheKey = `${apiURL}|${token}`;
   const organizationId = await page
     .evaluate(() => localStorage.getItem('organizationId'))
     .catch(() => null);
-  const csrfResponse = await page.request.get(`${apiURL}/api/auth/csrf-token`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
 
-  if (!csrfResponse.ok()) {
-    throw new Error(
-      `Failed to fetch CSRF token (${csrfResponse.status()}): ${await csrfResponse.text()}`
-    );
-  }
-
-  const csrfData = await csrfResponse.json();
-  const csrfToken = csrfData?.csrfToken;
+  let csrfToken = cache.get(cacheKey);
   if (!csrfToken) {
-    throw new Error(`CSRF token missing in response: ${JSON.stringify(csrfData)}`);
+    const csrfResponse = await withRequestRetry(
+      () =>
+        page.request.get(`${apiURL}/api/auth/csrf-token`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      'fetch csrf token'
+    );
+
+    if (!csrfResponse.ok()) {
+      throw new Error(
+        `Failed to fetch CSRF token (${csrfResponse.status()}): ${await csrfResponse.text()}`
+      );
+    }
+
+    const csrfData = await csrfResponse.json();
+    csrfToken = csrfData?.csrfToken;
+    if (!csrfToken) {
+      throw new Error(`CSRF token missing in response: ${JSON.stringify(csrfData)}`);
+    }
+    cache.set(cacheKey, csrfToken);
   }
 
   const headers: Record<string, string> = {
@@ -30,10 +72,16 @@ export async function getAuthHeaders(page: Page, token: string): Promise<Record<
     'Content-Type': 'application/json',
     'X-CSRF-Token': csrfToken,
   };
+
   if (organizationId) {
     headers['X-Organization-Id'] = organizationId;
   }
+
   return headers;
+}
+
+export async function getAuthHeaders(page: Page, token: string): Promise<Record<string, string>> {
+  return getCachedAuthHeaders(page, token, new Map<string, string>());
 }
 
 /**
@@ -74,12 +122,14 @@ export async function seedDatabase(page: Page, token: string): Promise<void> {
  */
 export async function clearDatabase(page: Page, token: string): Promise<void> {
   const apiURL = process.env.API_URL || 'http://localhost:3001';
+  const authHeaderCache = new Map<string, string>();
+  const maxCleanupPasses = 20;
 
   // Delete in reverse order of dependencies
   const endpoints = [
     '/api/tasks',
     '/api/donations',
-    '/api/events',
+    '/api/v2/events',
     '/api/volunteers',
     '/api/contacts',
     '/api/accounts',
@@ -87,33 +137,53 @@ export async function clearDatabase(page: Page, token: string): Promise<void> {
 
   for (const endpoint of endpoints) {
     try {
-      // Get all items
-      const listResponse = await page.request.get(`${apiURL}${endpoint}?limit=100`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      for (let pass = 0; pass < maxCleanupPasses; pass += 1) {
+        // Keep draining until the endpoint returns no more items.
+        const listResponse = await withRequestRetry(
+          () =>
+            page.request.get(`${apiURL}${endpoint}?limit=200`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+          `list ${endpoint}`
+        );
 
-      if (listResponse.ok()) {
-        const data = await listResponse.json();
-        const items = data.items || data.data || data;
+        if (!listResponse.ok()) {
+          break;
+        }
 
-        // Delete each item
-        if (Array.isArray(items)) {
-          for (const item of items) {
-            const itemId =
-              item.id ||
-              item.account_id ||
-              item.contact_id ||
-              item.donation_id ||
-              item.event_id ||
-              item.task_id;
-            if (!itemId) {
-              continue;
-            }
-            const headers = await getAuthHeaders(page, token);
-            await page.request.delete(`${apiURL}${endpoint}/${itemId}`, {
-              headers,
-            });
+        const body = await listResponse.json();
+        const payload = body?.data ?? body;
+        const items = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.items)
+            ? payload.items
+            : Array.isArray(payload?.data)
+              ? payload.data
+              : [];
+
+        if (!Array.isArray(items) || items.length === 0) {
+          break;
+        }
+
+        for (const item of items) {
+          const itemId =
+            item.id ||
+            item.account_id ||
+            item.contact_id ||
+            item.donation_id ||
+            item.event_id ||
+            item.task_id;
+          if (!itemId) {
+            continue;
           }
+          const headers = await getCachedAuthHeaders(page, token, authHeaderCache);
+          await withRequestRetry(
+            () =>
+              page.request.delete(`${apiURL}${endpoint}/${itemId}`, {
+                headers,
+              }),
+            `delete ${endpoint}/${itemId}`
+          );
         }
       }
     } catch (error) {
@@ -282,7 +352,7 @@ export async function createTestEvent(
   const startDate = data.startDate || tomorrow.toISOString();
   const endDate = data.endDate || tomorrow.toISOString();
 
-  const response = await page.request.post(`${apiURL}/api/events`, {
+  const response = await page.request.post(`${apiURL}/api/v2/events`, {
     headers,
     data: {
       event_name: data.name,
@@ -299,7 +369,8 @@ export async function createTestEvent(
   }
 
   const result = await response.json();
-  return { id: result.event_id || result.id };
+  const event = result?.data ?? result;
+  return { id: event.event_id || event.id };
 }
 
 /**

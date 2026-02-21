@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import portalApi from '../services/portalApi';
+import { unwrapApiData } from '../services/apiEnvelope';
 import { useToast } from '../contexts/useToast';
 import PortalPageState from '../components/portal/PortalPageState';
 
@@ -25,8 +26,8 @@ export default function PortalEvents() {
   const loadEvents = async () => {
     try {
       setError(null);
-      const response = await portalApi.get('/portal/events');
-      setEvents(response.data);
+      const response = await portalApi.get('/v2/portal/events');
+      setEvents(unwrapApiData(response.data));
     } catch (err) {
       console.error('Failed to load events', err);
       setError('Unable to load events right now.');
@@ -50,7 +51,7 @@ export default function PortalEvents() {
       )
     );
     try {
-      await portalApi.post(`/portal/events/${eventId}/register`);
+      await portalApi.post(`/v2/portal/events/${eventId}/register`);
       showSuccess('Registered for event.');
       await loadEvents();
     } catch (err) {
@@ -71,7 +72,7 @@ export default function PortalEvents() {
       )
     );
     try {
-      await portalApi.delete(`/portal/events/${eventId}/register`);
+      await portalApi.delete(`/v2/portal/events/${eventId}/register`);
       showSuccess('Registration canceled.');
       await loadEvents();
     } catch (err) {

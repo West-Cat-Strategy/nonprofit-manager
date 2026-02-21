@@ -17,6 +17,8 @@ const config: Config = {
   rootDir: '.',
   testMatch: ['<rootDir>/src/**/__tests__/**/*.test.ts'],
   moduleNameMapper: {
+    '^@container/(.*)$': '<rootDir>/src/container/$1',
+    '^@modules/(.*)$': '<rootDir>/src/modules/$1',
     '^@services$': '<rootDir>/src/services/index.ts',
     '^@services/(.*)$': '<rootDir>/src/services/$1',
     '^@config/(.*)$': '<rootDir>/src/config/$1',
