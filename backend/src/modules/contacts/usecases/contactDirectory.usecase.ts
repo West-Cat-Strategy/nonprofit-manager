@@ -174,18 +174,13 @@ export class ContactDirectoryUseCase {
       return null;
     }
 
-    let assignedRoles: string[] = [];
+    const assignedRoles = rolesInput
+      ? (await this.repository.setRolesForContact(contactId, rolesInput, userId)).map((role) => role.name)
+      : (await this.repository.getRolesForContact(contactId)).map((role) => role.name);
     let staffInvitation: { inviteUrl?: string; role?: string } | null = null;
 
-    if (rolesInput) {
-      const roleRecords = await this.repository.setRolesForContact(contactId, rolesInput, userId);
-      assignedRoles = roleRecords.map((role) => role.name);
-      if (assignedRoles.length > 0) {
-        staffInvitation = await this.ensureStaffUserAccount(contactId, assignedRoles, userId);
-      }
-    } else {
-      const roleRecords = await this.repository.getRolesForContact(contactId);
-      assignedRoles = roleRecords.map((role) => role.name);
+    if (rolesInput && assignedRoles.length > 0) {
+      staffInvitation = await this.ensureStaffUserAccount(contactId, assignedRoles, userId);
     }
 
     return {

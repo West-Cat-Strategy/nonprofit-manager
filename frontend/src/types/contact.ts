@@ -2,6 +2,54 @@
  * Contact Type Definitions for Frontend
  */
 
+export interface ContactStaffInvitation {
+  role: string;
+  inviteUrl: string;
+}
+
+export interface Contact {
+  contact_id: string;
+  account_id: string | null;
+  account_name?: string;
+  first_name: string;
+  preferred_name?: string | null;
+  last_name: string;
+  middle_name: string | null;
+  salutation: string | null;
+  suffix: string | null;
+  birth_date: string | null;
+  gender: string | null;
+  pronouns: string | null;
+  email: string | null;
+  phone: string | null;
+  mobile_phone: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  state_province: string | null;
+  postal_code: string | null;
+  country: string | null;
+  no_fixed_address: boolean;
+  job_title: string | null;
+  department: string | null;
+  preferred_contact_method: string | null;
+  do_not_email: boolean;
+  do_not_phone: boolean;
+  do_not_text: boolean;
+  do_not_voicemail: boolean;
+  notes: string | null;
+  tags: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  phone_count?: number;
+  email_count?: number;
+  relationship_count?: number;
+  note_count?: number;
+  roles?: string[];
+  staffInvitation?: ContactStaffInvitation | null;
+}
+
 // ============================================================================
 // Phone Number Types
 // ============================================================================

@@ -4,7 +4,6 @@ import { createUnauthorizedHandler } from './unauthorizedHandler';
 
 const api = createApiClient({
   onUnauthorized: createUnauthorizedHandler(),
-  tokenKey: 'token', // Use localStorage token as fallback for auth
   retryConfig: {
     maxRetries: 3,
     baseDelayMs: 1000,

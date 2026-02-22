@@ -109,6 +109,12 @@ run_step() {
 run_ci() {
     print_header "CI Pipeline" "$ENVIRONMENT environment"
 
+    # Bring up infra before tests so backend integration tests do not race DB availability.
+    if [ "$RUN_TESTS" = true ] && [ "$SKIP_TESTS" = false ] && { [ "$RUN_BACKEND" = true ] || [ "$RUN_E2E" = true ]; }; then
+        run_step "Test Infra" "DB_PASSWORD=postgres docker-compose up -d postgres redis"
+        run_step "DB Migrations" "\"$SCRIPT_DIR/db-migrate.sh\""
+    fi
+
     # Backend checks
     if [ "$RUN_BACKEND" = true ]; then
         log_info "Running backend checks..."
@@ -139,14 +145,10 @@ run_ci() {
         run_step "Frontend TypeCheck" "cd frontend && npm run type-check" "[ \$RUN_TYPECHECK = false ]"
 
         if [ "$RUN_TESTS" = true ] && [ "$SKIP_TESTS" = false ]; then
-            if command_exists "vitest"; then
-                if [ "$RUN_COVERAGE" = true ]; then
-                    run_step "Frontend Tests (Coverage)" "cd frontend && npm test -- --run --coverage"
-                else
-                    run_step "Frontend Tests" "cd frontend && npm test -- --run"
-                fi
+            if [ "$RUN_COVERAGE" = true ]; then
+                run_step "Frontend Tests (Coverage)" "cd frontend && npm test -- --run --coverage"
             else
-                log_warn "Frontend tests skipped (vitest not available)"
+                run_step "Frontend Tests" "cd frontend && npm test -- --run"
             fi
         else
             [ "$VERBOSE" = true ] && log_info "Frontend tests skipped"
@@ -160,7 +162,6 @@ run_ci() {
     # E2E checks
     if [ "$RUN_E2E" = true ] && [ "$RUN_TESTS" = true ] && [ "$SKIP_TESTS" = false ]; then
         log_info "Running Playwright E2E checks..."
-        run_step "E2E Test Infra" "DB_PASSWORD=postgres docker-compose up -d postgres redis"
         run_step "Playwright E2E" "cd e2e && npm run test:ci"
     else
         [ "$VERBOSE" = true ] && log_info "Playwright tests skipped"
