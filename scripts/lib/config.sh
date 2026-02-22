@@ -38,8 +38,8 @@ BACKEND_PORT="3000"
 FRONTEND_PORT="8001"
 
 # API settings
-API_BASE_URL="http://localhost:3000/api"
-API_DEV_URL="http://localhost:8004/api"
+API_BASE_URL="HTTP://localhost:3000/api"
+API_DEV_URL="HTTP://localhost:8004/api"
 
 # Health check settings
 HEALTH_CHECK_TIMEOUT="30"

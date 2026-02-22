@@ -5,9 +5,8 @@
 
 import '../helpers/testEnv';
 import { test as base, Page } from '@playwright/test';
-import { ensureLoginViaAPI, clearAuth } from '../helpers/auth';
+import { ensureAdminLoginViaAPI, clearAuth } from '../helpers/auth';
 import { clearDatabase } from '../helpers/database';
-import { getSharedTestUser } from '../helpers/testUser';
 
 // Extend base test with custom fixtures
 type AuthFixtures = {
@@ -26,8 +25,7 @@ type AuthFixtures = {
  */
 export const test = base.extend<AuthFixtures>({
   authenticatedPage: async ({ page }, use) => {
-    const { email: TEST_USER_EMAIL, password: TEST_USER_PASSWORD } = getSharedTestUser();
-    await ensureLoginViaAPI(page, TEST_USER_EMAIL, TEST_USER_PASSWORD, {
+    await ensureAdminLoginViaAPI(page, {
       firstName: 'Test',
       lastName: 'User',
     });
@@ -41,8 +39,7 @@ export const test = base.extend<AuthFixtures>({
   },
 
   authToken: async ({ page }, use) => {
-    const { email: TEST_USER_EMAIL, password: TEST_USER_PASSWORD } = getSharedTestUser();
-    const { token } = await ensureLoginViaAPI(page, TEST_USER_EMAIL, TEST_USER_PASSWORD, {
+    const { token } = await ensureAdminLoginViaAPI(page, {
       firstName: 'Test',
       lastName: 'User',
     });
@@ -65,8 +62,7 @@ export const test = base.extend<AuthFixtures>({
  */
 export const testWithCleanDB = test.extend({
   authenticatedPage: async ({ page }, use) => {
-    const { email: TEST_USER_EMAIL, password: TEST_USER_PASSWORD } = getSharedTestUser();
-    const { token } = await ensureLoginViaAPI(page, TEST_USER_EMAIL, TEST_USER_PASSWORD, {
+    const { token } = await ensureAdminLoginViaAPI(page, {
       firstName: 'Test',
       lastName: 'User',
     });

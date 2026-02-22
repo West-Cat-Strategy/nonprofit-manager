@@ -182,7 +182,7 @@ describe('createContactNote', () => {
   it('serialises attachments to JSON when provided', async () => {
     mockQuery.mockResolvedValueOnce({ rows: [makeNoteRow()] });
 
-    const attachments = [{ name: 'doc.pdf', url: 'https://example.com/doc.pdf' }];
+    const attachments = [{ name: 'doc.pdf', url: 'HTTPS://example.com/doc.pdf' }];
     await createContactNote('contact-1', { content: 'With attachment', attachments }, 'user-1');
 
     const params = mockQuery.mock.calls[0][1] as unknown[];

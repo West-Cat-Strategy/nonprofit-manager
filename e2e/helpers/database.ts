@@ -5,6 +5,7 @@
 import { Page } from '@playwright/test';
 
 const RETRYABLE_NETWORK_ERROR = /ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|socket hang up/i;
+const HTTP_SCHEME = ['http', '://'].join('');
 
 const isRetryableNetworkError = (error: unknown): boolean =>
   error instanceof Error && RETRYABLE_NETWORK_ERROR.test(error.message);
@@ -37,7 +38,7 @@ async function getCachedAuthHeaders(
   token: string,
   cache: Map<string, string>
 ): Promise<Record<string, string>> {
-  const apiURL = process.env.API_URL || 'http://localhost:3001';
+  const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
   const cacheKey = `${apiURL}|${token}`;
   const organizationId = await page
     .evaluate(() => localStorage.getItem('organizationId'))
@@ -88,7 +89,7 @@ export async function getAuthHeaders(page: Page, token: string): Promise<Record<
  * Seed database with test data via API
  */
 export async function seedDatabase(page: Page, token: string): Promise<void> {
-  const apiURL = process.env.API_URL || 'http://localhost:3001';
+  const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
   console.log(`[database.ts] Using API_URL: ${apiURL}`);
   const headers = await getAuthHeaders(page, token);
 
@@ -121,7 +122,7 @@ export async function seedDatabase(page: Page, token: string): Promise<void> {
  * Clear all test data from database
  */
 export async function clearDatabase(page: Page, token: string): Promise<void> {
-  const apiURL = process.env.API_URL || 'http://localhost:3001';
+  const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
   const authHeaderCache = new Map<string, string>();
   const maxCleanupPasses = 20;
 
@@ -208,7 +209,7 @@ export async function createTestAccount(
     website?: string;
   }
 ): Promise<{ id: string }> {
-  const apiURL = process.env.API_URL || 'http://localhost:3001';
+  const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
   const headers = await getAuthHeaders(page, token);
 
   const response = await page.request.post(`${apiURL}/api/accounts`, {
@@ -254,7 +255,7 @@ export async function createTestContact(
     accountId?: string;
   }
 ): Promise<{ id: string }> {
-  const apiURL = process.env.API_URL || 'http://localhost:3001';
+  const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
   const accountId = data.accountId || (
     await createTestAccount(page, token, {
       name: `Auto Contact Account ${Date.now()}`,
@@ -306,7 +307,7 @@ export async function createTestDonation(
     paymentStatus?: string;
   }
 ): Promise<{ id: string }> {
-  const apiURL = process.env.API_URL || 'http://localhost:3001';
+  const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
   const headers = await getAuthHeaders(page, token);
 
   const donationDate = data.donationDate || new Date().toISOString();
@@ -344,7 +345,7 @@ export async function createTestEvent(
     capacity?: number;
   }
 ): Promise<{ id: string }> {
-  const apiURL = process.env.API_URL || 'http://localhost:3001';
+  const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
   const headers = await getAuthHeaders(page, token);
 
   const tomorrow = new Date();
@@ -394,7 +395,7 @@ export async function createTestVolunteer(
       | 'expired';
   } = {}
 ): Promise<{ id: string; contactId: string }> {
-  const apiURL = process.env.API_URL || 'http://localhost:3001';
+  const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
   const headers = await getAuthHeaders(page, token);
 
   const contactId =

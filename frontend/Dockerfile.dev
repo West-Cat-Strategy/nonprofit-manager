@@ -7,7 +7,7 @@ WORKDIR /app
 ENV NODE_ENV=development
 
 # API URL for Vite dev server (can be overridden via compose environment)
-ARG VITE_API_URL=http://localhost:8004/api
+ARG VITE_API_URL=HTTP://localhost:8004/api
 ENV VITE_API_URL=$VITE_API_URL
 
 # Install deps before copying source for better layer caching

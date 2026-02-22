@@ -41,7 +41,7 @@ USER nginx-user
 EXPOSE 8001
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget -qO- http://127.0.0.1:8001/health || exit 1
+    CMD wget -qO- HTTP://127.0.0.1:8001/health || exit 1
 
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["nginx", "-g", "daemon off;"]

@@ -16,44 +16,44 @@ describe('ImageOptimizationService', () => {
 
   describe('getOptimizedUrl', () => {
     it('should return original URL when optimization is disabled', () => {
-      const originalUrl = 'https://example.com/image.jpg';
+      const originalUrl = 'HTTPS://example.com/image.jpg';
       // When no CDN is configured, it appends query params
       const result = service.getOptimizedUrl(originalUrl);
       expect(result).toContain(originalUrl);
     });
 
     it('should add quality parameter', () => {
-      const originalUrl = 'https://example.com/image.jpg';
+      const originalUrl = 'HTTPS://example.com/image.jpg';
       const result = service.getOptimizedUrl(originalUrl, { quality: 75 });
       expect(result).toContain('q=75');
     });
 
     it('should add width parameter', () => {
-      const originalUrl = 'https://example.com/image.jpg';
+      const originalUrl = 'HTTPS://example.com/image.jpg';
       const result = service.getOptimizedUrl(originalUrl, { width: 800 });
       expect(result).toContain('w=800');
     });
 
     it('should add height parameter', () => {
-      const originalUrl = 'https://example.com/image.jpg';
+      const originalUrl = 'HTTPS://example.com/image.jpg';
       const result = service.getOptimizedUrl(originalUrl, { height: 600 });
       expect(result).toContain('h=600');
     });
 
     it('should add format parameter for webp', () => {
-      const originalUrl = 'https://example.com/image.jpg';
+      const originalUrl = 'HTTPS://example.com/image.jpg';
       const result = service.getOptimizedUrl(originalUrl, { format: 'webp' });
       expect(result).toContain('f=webp');
     });
 
     it('should not add format parameter for original', () => {
-      const originalUrl = 'https://example.com/image.jpg';
+      const originalUrl = 'HTTPS://example.com/image.jpg';
       const result = service.getOptimizedUrl(originalUrl, { format: 'original' });
       expect(result).not.toContain('f=');
     });
 
     it('should add fit parameter', () => {
-      const originalUrl = 'https://example.com/image.jpg';
+      const originalUrl = 'HTTPS://example.com/image.jpg';
       const result = service.getOptimizedUrl(originalUrl, { fit: 'contain' });
       expect(result).toContain('fit=contain');
     });
@@ -66,7 +66,7 @@ describe('ImageOptimizationService', () => {
 
   describe('generateSrcset', () => {
     it('should generate srcset with multiple widths', () => {
-      const originalUrl = 'https://example.com/image.jpg';
+      const originalUrl = 'HTTPS://example.com/image.jpg';
       const result = service.generateSrcset(originalUrl);
 
       expect(result).toContain('320w');
@@ -83,7 +83,7 @@ describe('ImageOptimizationService', () => {
     });
 
     it('should apply options to all srcset entries', () => {
-      const originalUrl = 'https://example.com/image.jpg';
+      const originalUrl = 'HTTPS://example.com/image.jpg';
       const result = service.generateSrcset(originalUrl, { quality: 90 });
       expect(result).toContain('q=90');
     });
@@ -104,7 +104,7 @@ describe('ImageOptimizationService', () => {
 
   describe('getOptimizedImageData', () => {
     it('should return complete image data object', () => {
-      const originalUrl = 'https://example.com/image.jpg';
+      const originalUrl = 'HTTPS://example.com/image.jpg';
       const result = service.getOptimizedImageData(originalUrl);
 
       expect(result).toHaveProperty('url');
@@ -115,7 +115,7 @@ describe('ImageOptimizationService', () => {
     });
 
     it('should include width and height when provided', () => {
-      const originalUrl = 'https://example.com/image.jpg';
+      const originalUrl = 'HTTPS://example.com/image.jpg';
       const result = service.getOptimizedImageData(originalUrl, {
         width: 800,
         height: 600,
@@ -128,7 +128,7 @@ describe('ImageOptimizationService', () => {
 
   describe('generateOptimizedImageHtml', () => {
     it('should generate picture element with sources', () => {
-      const originalUrl = 'https://example.com/image.jpg';
+      const originalUrl = 'HTTPS://example.com/image.jpg';
       const result = service.generateOptimizedImageHtml(originalUrl, 'Test image');
 
       expect(result).toContain('<picture>');
@@ -139,21 +139,21 @@ describe('ImageOptimizationService', () => {
     });
 
     it('should include alt text', () => {
-      const originalUrl = 'https://example.com/image.jpg';
+      const originalUrl = 'HTTPS://example.com/image.jpg';
       const result = service.generateOptimizedImageHtml(originalUrl, 'My alt text');
 
       expect(result).toContain('alt="My alt text"');
     });
 
     it('should include lazy loading by default', () => {
-      const originalUrl = 'https://example.com/image.jpg';
+      const originalUrl = 'HTTPS://example.com/image.jpg';
       const result = service.generateOptimizedImageHtml(originalUrl, 'Test');
 
       expect(result).toContain('loading="lazy"');
     });
 
     it('should not include lazy loading when disabled', () => {
-      const originalUrl = 'https://example.com/image.jpg';
+      const originalUrl = 'HTTPS://example.com/image.jpg';
       const result = service.generateOptimizedImageHtml(originalUrl, 'Test', {
         lazy: false,
       });
@@ -162,7 +162,7 @@ describe('ImageOptimizationService', () => {
     });
 
     it('should include class when provided', () => {
-      const originalUrl = 'https://example.com/image.jpg';
+      const originalUrl = 'HTTPS://example.com/image.jpg';
       const result = service.generateOptimizedImageHtml(
         originalUrl,
         'Test',
@@ -174,7 +174,7 @@ describe('ImageOptimizationService', () => {
     });
 
     it('should include width and height attributes', () => {
-      const originalUrl = 'https://example.com/image.jpg';
+      const originalUrl = 'HTTPS://example.com/image.jpg';
       const result = service.generateOptimizedImageHtml(originalUrl, 'Test', {
         width: 800,
         height: 600,
@@ -190,7 +190,7 @@ describe('ImageOptimizationService', () => {
     });
 
     it('should escape HTML in alt text', () => {
-      const originalUrl = 'https://example.com/image.jpg';
+      const originalUrl = 'HTTPS://example.com/image.jpg';
       const result = service.generateOptimizedImageHtml(
         originalUrl,
         '<script>alert("xss")</script>'
@@ -203,13 +203,13 @@ describe('ImageOptimizationService', () => {
 
   describe('generatePlaceholder', () => {
     it('should generate SVG data URL', () => {
-      const result = service.generatePlaceholder('https://example.com/image.jpg');
+      const result = service.generatePlaceholder('HTTPS://example.com/image.jpg');
 
       expect(result).toMatch(/^data:image\/svg\+xml;base64,/);
     });
 
     it('should generate consistent placeholder for same URL', () => {
-      const url = 'https://example.com/image.jpg';
+      const url = 'HTTPS://example.com/image.jpg';
       const result1 = service.generatePlaceholder(url);
       const result2 = service.generatePlaceholder(url);
 
@@ -217,8 +217,8 @@ describe('ImageOptimizationService', () => {
     });
 
     it('should generate different placeholders for different URLs', () => {
-      const result1 = service.generatePlaceholder('https://example.com/image1.jpg');
-      const result2 = service.generatePlaceholder('https://example.com/image2.jpg');
+      const result1 = service.generatePlaceholder('HTTPS://example.com/image1.jpg');
+      const result2 = service.generatePlaceholder('HTTPS://example.com/image2.jpg');
 
       expect(result1).not.toBe(result2);
     });
@@ -226,7 +226,7 @@ describe('ImageOptimizationService', () => {
 
   describe('getPreloadLink', () => {
     it('should generate preload link tag', () => {
-      const result = service.getPreloadLink('https://example.com/image.jpg');
+      const result = service.getPreloadLink('HTTPS://example.com/image.jpg');
 
       expect(result).toContain('<link rel="preload"');
       expect(result).toContain('as="image"');

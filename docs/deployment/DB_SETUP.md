@@ -552,8 +552,8 @@ psql -U postgres -d nonprofit_manager -c "
 
 - [PostgreSQL Official Documentation](https://www.postgresql.org/docs/14/)
 - [Docker PostgreSQL Image](https://hub.docker.com/_/postgres)
-- [Database Schema Documentation](./DATABASE.md)
-- [Migration Guide](./MIGRATIONS.md)
+- [Database Schema Documentation](https://github.com/example/nonprofit-manager)
+- [Migration Guide](https://github.com/example/nonprofit-manager)
 
 ---
 

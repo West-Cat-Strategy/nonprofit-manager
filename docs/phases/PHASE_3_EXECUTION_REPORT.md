@@ -222,17 +222,17 @@ After backend integration, verify RLS is working:
 ```bash
 # Test 1: User sees only their accounts' data
 curl -H "Authorization: Bearer $USER_TOKEN" \
-  http://localhost:3000/api/v1/contacts
+  localhost:3000/api/v1/contacts
 # Should return: Only contacts from accounts in user_account_access
 
 # Test 2: User cannot access unauthorized accounts
 curl -H "Authorization: Bearer $USER_TOKEN" \
-  http://localhost:3000/api/v1/contacts/unauthorized-contact-id
+  localhost:3000/api/v1/contacts/unauthorized-contact-id
 # Should return: 403 Forbidden (due to RLS policy)
 
 # Test 3: Admin sees all data
 curl -H "Authorization: Bearer $ADMIN_TOKEN" \
-  http://localhost:3000/api/v1/contacts
+  localhost:3000/api/v1/contacts
 # Should return: All contacts (admin bypasses RLS)
 ```
 

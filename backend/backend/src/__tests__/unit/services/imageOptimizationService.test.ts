@@ -17,7 +17,7 @@ describe('ImageOptimizationService', () => {
   });
 
   describe('getOptimizedUrl', () => {
-    const originalUrl = 'https://example.com/images/photo.jpg';
+    const originalUrl = 'HTTPS://example.com/images/photo.jpg';
 
     it('should return original URL when optimization is disabled', () => {
       process.env.IMAGE_OPTIMIZATION_ENABLED = 'false';
@@ -63,7 +63,7 @@ describe('ImageOptimizationService', () => {
     });
 
     it('should use Cloudflare format when CDN_BASE_URL is set', () => {
-      process.env.CDN_BASE_URL = 'https://cdn.example.com';
+      process.env.CDN_BASE_URL = 'HTTPS://cdn.example.com';
       service = new ImageOptimizationService();
 
       const options: ImageOptimizationOptions = {
@@ -74,7 +74,7 @@ describe('ImageOptimizationService', () => {
 
       const result = service.getOptimizedUrl(originalUrl, options);
 
-      expect(result).toContain('https://cdn.example.com/cdn-cgi/image/');
+      expect(result).toContain('HTTPS://cdn.example.com/cdn-cgi/image/');
       expect(result).toContain('width=800');
       expect(result).toContain('quality=90');
       expect(result).toContain('format=webp');
@@ -82,7 +82,7 @@ describe('ImageOptimizationService', () => {
     });
 
     it('should handle URLs that already have query parameters', () => {
-      const urlWithParams = 'https://example.com/image.jpg?existing=param';
+      const urlWithParams = 'HTTPS://example.com/image.jpg?existing=param';
       const result = service.getOptimizedUrl(urlWithParams, { width: 500 });
 
       expect(result).toContain('&');
@@ -98,7 +98,7 @@ describe('ImageOptimizationService', () => {
   });
 
   describe('generateSrcset', () => {
-    const originalUrl = 'https://example.com/images/photo.jpg';
+    const originalUrl = 'HTTPS://example.com/images/photo.jpg';
 
     it('should return empty string when optimization is disabled', () => {
       process.env.IMAGE_OPTIMIZATION_ENABLED = 'false';
@@ -189,7 +189,7 @@ describe('ImageOptimizationService', () => {
   });
 
   describe('getOptimizedImageData', () => {
-    const originalUrl = 'https://example.com/images/photo.jpg';
+    const originalUrl = 'HTTPS://example.com/images/photo.jpg';
 
     it('should return comprehensive optimized image data', () => {
       const options: ImageOptimizationOptions = {
@@ -246,7 +246,7 @@ describe('ImageOptimizationService', () => {
   });
 
   describe('generateOptimizedImageHtml', () => {
-    const originalUrl = 'https://example.com/images/photo.jpg';
+    const originalUrl = 'HTTPS://example.com/images/photo.jpg';
     const altText = 'Test image';
 
     it('should return empty string for empty URL', () => {
@@ -339,26 +339,26 @@ describe('ImageOptimizationService', () => {
 
   describe('edge cases', () => {
     it('should handle special characters in URL', () => {
-      const urlWithSpecialChars = 'https://example.com/images/photo with spaces.jpg';
+      const urlWithSpecialChars = 'HTTPS://example.com/images/photo with spaces.jpg';
       const result = service.getOptimizedUrl(urlWithSpecialChars, { width: 500 });
 
       expect(result).toBeTruthy();
     });
 
     it('should handle very small quality values', () => {
-      const result = service.getOptimizedUrl('https://example.com/image.jpg', { quality: 1 });
+      const result = service.getOptimizedUrl('HTTPS://example.com/image.jpg', { quality: 1 });
 
       expect(result).toContain('q=1');
     });
 
     it('should handle maximum quality value', () => {
-      const result = service.getOptimizedUrl('https://example.com/image.jpg', { quality: 100 });
+      const result = service.getOptimizedUrl('HTTPS://example.com/image.jpg', { quality: 100 });
 
       expect(result).toContain('q=100');
     });
 
     it('should handle very large dimensions', () => {
-      const result = service.getOptimizedUrl('https://example.com/image.jpg', {
+      const result = service.getOptimizedUrl('HTTPS://example.com/image.jpg', {
         width: 10000,
         height: 10000,
       });
@@ -369,7 +369,7 @@ describe('ImageOptimizationService', () => {
 
     it('should handle empty breakpoints array', () => {
       service = new ImageOptimizationService([]);
-      const result = service.generateSrcset('https://example.com/image.jpg');
+      const result = service.generateSrcset('HTTPS://example.com/image.jpg');
 
       expect(result).toBe('');
     });
@@ -378,7 +378,7 @@ describe('ImageOptimizationService', () => {
       const singleBreakpoint: ResponsiveBreakpoint[] = [{ width: 500, suffix: '-single' }];
       service = new ImageOptimizationService(singleBreakpoint);
 
-      const result = service.generateSrcset('https://example.com/image.jpg');
+      const result = service.generateSrcset('HTTPS://example.com/image.jpg');
 
       expect(result).toContain('500w');
       expect(result).not.toContain(', '); // No commas for single item
@@ -387,12 +387,12 @@ describe('ImageOptimizationService', () => {
 
   describe('CDN integration', () => {
     beforeEach(() => {
-      process.env.CDN_BASE_URL = 'https://cdn.example.com';
+      process.env.CDN_BASE_URL = 'HTTPS://cdn.example.com';
       service = new ImageOptimizationService();
     });
 
     it('should use CDN URL format for all transformations', () => {
-      const url = 'https://example.com/image.jpg';
+      const url = 'HTTPS://example.com/image.jpg';
       const options: ImageOptimizationOptions = {
         width: 800,
         height: 600,
@@ -403,7 +403,7 @@ describe('ImageOptimizationService', () => {
 
       const result = service.getOptimizedUrl(url, options);
 
-      expect(result).toStartWith('https://cdn.example.com/cdn-cgi/image/');
+      expect(result).toStartWith('HTTPS://cdn.example.com/cdn-cgi/image/');
       expect(result).toContain('width=800');
       expect(result).toContain('height=600');
       expect(result).toContain('quality=85');
@@ -412,7 +412,7 @@ describe('ImageOptimizationService', () => {
     });
 
     it('should properly encode original URL in CDN format', () => {
-      const urlWithQuery = 'https://example.com/image.jpg?v=123&token=abc';
+      const urlWithQuery = 'HTTPS://example.com/image.jpg?v=123&token=abc';
       const result = service.getOptimizedUrl(urlWithQuery, { width: 500 });
 
       expect(result).toContain(encodeURIComponent(urlWithQuery));

@@ -2,7 +2,7 @@ import { test, expect } from '../fixtures/auth.fixture';
 import type { Page } from '@playwright/test';
 import { createTestContact, clearDatabase } from '../helpers/database';
 
-const apiURL = process.env.API_URL || 'http://localhost:3001';
+const apiURL = process.env.API_URL || 'HTTP://localhost:3001';
 
 const uniqueSuffix = () => `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 

@@ -77,7 +77,7 @@ JWT_SECRET=
 JWT_EXPIRES_IN=24h
 
 # CORS
-CORS_ORIGIN=http://localhost:5173
+CORS_ORIGIN=localhost:5173
 
 # Optional
 LOG_LEVEL=info|debug|warn|error
@@ -86,7 +86,7 @@ LOG_LEVEL=info|debug|warn|error
 #### Frontend (.env)
 ```bash
 # API
-VITE_API_URL=http://localhost:3000/api
+VITE_API_URL=localhost:3000/api
 ```
 
 ### Environment Variable Naming

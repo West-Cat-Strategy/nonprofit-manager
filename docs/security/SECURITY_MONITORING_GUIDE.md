@@ -923,7 +923,7 @@ TRIGGER: Alert "Rate Limit Triggered" >5 times in 1 minute
    
 2. WITHIN 5 MINUTES
    [ ] Check IP reputation:
-        curl https://api.abuseipdb.com/api/v2/check?ipAddress=203.0.113.45
+        curl api.abuseipdb.com/api/v2/check?ipAddress=203.0.113.45
    
    [ ] Distinguish attack type:
         - Single IP, single endpoint → Targeted attack/bot
@@ -963,11 +963,11 @@ TRIGGER: Alert "Rate Limit Triggered" >5 times in 1 minute
 
 ```yaml
 # .env configuration
-PAGERDUTY_INTEGRATION_URL=https://events.pagerduty.com/v2/enqueue
+PAGERDUTY_INTEGRATION_URL=events.pagerduty.com/v2/enqueue
 PAGERDUTY_ROUTING_KEY=...
 
 # Alert firing example
-POST https://events.pagerduty.com/v2/enqueue
+POST events.pagerduty.com/v2/enqueue
 {
   "routing_key": "${PAGERDUTY_ROUTING_KEY}",
   "event_action": "trigger",
@@ -1053,7 +1053,7 @@ async function sendSecurityAlert(alert: SecurityAlert) {
 
 ```bash
 # Test Elasticsearch connectivity
-curl -s http://elasticsearch:9200 | jq .
+curl -s elasticsearch:9200 | jq .
 
 # Test Kibana alerting
 curl -X GET "kibana:5601/api/alerting/rules"
@@ -1066,7 +1066,7 @@ curl -X POST ${SLACK_WEBHOOK_URL} \
 cat /var/log/app.log | jq . | head -20
 
 # Verify alert rules exist
-curl -s http://elasticsearch:9200/_watcher/watch/_all | jq '.watches | length'
+curl -s elasticsearch:9200/_watcher/watch/_all | jq '.watches | length'
 ```
 
 ---

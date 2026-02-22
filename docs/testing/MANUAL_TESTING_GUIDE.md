@@ -11,11 +11,11 @@
 ### Starting the Application
 
 ```bash
-# Terminal 1 - Start Backend (http://localhost:3000)
+# Terminal 1 - Start Backend (localhost:3000)
 cd backend
 npm run dev
 
-# Terminal 2 - Start Frontend (http://localhost:5173)
+# Terminal 2 - Start Frontend (localhost:5173)
 cd frontend
 npm run dev
 

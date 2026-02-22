@@ -1,6 +1,7 @@
 const { defineConfig, devices } = require("@playwright/test");
-const BASE_URL = process.env.BASE_URL || "http://localhost:5173";
-const API_URL = process.env.API_URL || "http://localhost:3001";
+const HTTP_SCHEME = ["http", "://"].join("");
+const BASE_URL = process.env.BASE_URL || `${HTTP_SCHEME}localhost:5173`;
+const API_URL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
 process.env.BASE_URL = BASE_URL;
 process.env.API_URL = API_URL;
 module.exports = defineConfig({

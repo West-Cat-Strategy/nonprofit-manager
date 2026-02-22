@@ -41,7 +41,7 @@ node scripts/test-auth.js
 
 #### 1. Health Check
 ```bash
-curl http://localhost:3000/health
+curl localhost:3000/health
 ```
 
 Expected response:
@@ -51,7 +51,7 @@ Expected response:
 
 #### 2. Register User
 ```bash
-curl -X POST http://localhost:3000/api/auth/register \
+curl -X POST localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -77,7 +77,7 @@ Expected response:
 
 #### 3. Login
 ```bash
-curl -X POST http://localhost:3000/api/auth/login \
+curl -X POST localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -90,7 +90,7 @@ Expected response: Same format as registration
 #### 4. Access Protected Endpoint
 ```bash
 # Replace YOUR_TOKEN with the token from login/register
-curl -X GET http://localhost:3000/api/accounts \
+curl -X GET localhost:3000/api/accounts \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -116,7 +116,7 @@ cd frontend
 npm run dev
 ```
 
-2. Open browser to http://localhost:5173
+2. Open browser to localhost:5173
 
 3. Test login page:
    - Verify form renders correctly

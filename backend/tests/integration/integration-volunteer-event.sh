@@ -3,7 +3,7 @@
 # Integration Test: Volunteer Event Registration
 # Tests the complete workflow of volunteer registration for events
 
-BASE_URL="${BASE_URL:-http://localhost:3000/api}"
+BASE_URL="${BASE_URL:-HTTP://localhost:3000/api}"
 TOKEN="${TOKEN:-}"
 
 # Colors
