@@ -83,7 +83,7 @@ export const createContactDocumentsController = (
         return;
       }
 
-      const filePath = useCase.resolveFilePath(document);
+      const filePath = await useCase.resolveFilePath(document);
       if (!filePath) {
         sendFailure(res, mode, 'NOT_FOUND', 'Document file not found', 404);
         return;

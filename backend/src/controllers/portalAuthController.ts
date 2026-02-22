@@ -9,6 +9,7 @@ import { PortalAuthRequest } from '@middleware/portalAuth';
 import { logPortalActivity } from '@services/domains/integration';
 import { badRequest, conflict, errorPayload, forbidden, notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
 import { clearPortalAuthCookie, setPortalAuthCookie } from '@utils/cookieHelper';
+import { shouldExposeAuthTokensInResponse } from '@utils/authResponse';
 
 interface PortalSignupRequest {
   email: string;
@@ -339,8 +340,11 @@ export const acceptPortalInvitation = async (
       contactId: portalUser.contact_id,
     });
 
+    // Prefer secure cookie-based session. Keep optional token in body only when explicitly enabled.
+    setPortalAuthCookie(res, tokenValue);
+
     return res.status(201).json({
-      token: tokenValue,
+      ...(shouldExposeAuthTokensInResponse() ? { token: tokenValue } : {}),
       user: {
         id: portalUser.id,
         email: portalUser.email,
