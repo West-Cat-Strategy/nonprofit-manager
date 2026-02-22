@@ -167,6 +167,28 @@ export async function loginViaAPI(
 }
 
 /**
+ * Ensure an admin session for tests that require elevated permissions.
+ */
+export async function ensureAdminLoginViaAPI(
+  page: Page,
+  profile?: { firstName?: string; lastName?: string; organizationName?: string }
+): Promise<{ token: string; user: any }> {
+  const adminEmail = process.env.ADMIN_USER_EMAIL?.trim() || 'admin@example.com';
+  const adminPassword = process.env.ADMIN_USER_PASSWORD?.trim() || 'Admin123!@#';
+
+  try {
+    return await loginViaAPI(page, adminEmail, adminPassword);
+  } catch {
+    await ensureSetupComplete(page, adminEmail, adminPassword, {
+      firstName: profile?.firstName || 'Admin',
+      lastName: profile?.lastName || 'User',
+      organizationName: profile?.organizationName || 'E2E Organization',
+    });
+    return await loginViaAPI(page, adminEmail, adminPassword);
+  }
+}
+
+/**
  * Ensure a test user exists, then login via API.
  */
 export async function ensureLoginViaAPI(

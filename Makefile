@@ -136,6 +136,8 @@ typecheck:
 test:
 	@echo "$(BLUE)Ensuring test infrastructure is running (Postgres/Redis)...$(RESET)"
 	DB_PASSWORD=postgres docker-compose up -d postgres redis
+	@echo "$(BLUE)Applying pending database migrations...$(RESET)"
+	@./scripts/db-migrate.sh
 	@echo "$(BLUE)Running backend tests...$(RESET)"
 	cd backend && npm test -- --runInBand
 	@echo "$(BLUE)Running frontend tests...$(RESET)"
@@ -147,6 +149,8 @@ test:
 test-coverage:
 	@echo "$(BLUE)Ensuring test infrastructure is running (Postgres/Redis)...$(RESET)"
 	DB_PASSWORD=postgres docker-compose up -d postgres redis
+	@echo "$(BLUE)Applying pending database migrations...$(RESET)"
+	@./scripts/db-migrate.sh
 	@echo "$(BLUE)Running backend tests with coverage...$(RESET)"
 	cd backend && npm test -- --coverage --runInBand
 	@echo "$(BLUE)Running frontend tests with coverage...$(RESET)"
@@ -157,6 +161,7 @@ test-coverage:
 
 test-backend:
 	DB_PASSWORD=postgres docker-compose up -d postgres redis
+	@./scripts/db-migrate.sh
 	cd backend && npm test -- --runInBand
 
 test-frontend:
@@ -164,6 +169,7 @@ test-frontend:
 
 test-e2e:
 	DB_PASSWORD=postgres docker-compose up -d postgres redis
+	@./scripts/db-migrate.sh
 	cd e2e && npm run test:ci
 
 quality-baseline:
