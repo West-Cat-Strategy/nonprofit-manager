@@ -8,7 +8,7 @@ This document describes the customizable dashboard feature implementation with d
 
 ### ✅ Completed Components
 
-1. **Type Definitions** ([frontend/src/types/dashboard.ts](../frontend/src/types/dashboard.ts))
+1. **Type Definitions** ([frontend/src/types/dashboard.ts](https://github.com/West-Cat-Strategy/nonprofit-manager))
    - WidgetType enum with 10 widget types
    - DashboardConfig interface
    - DashboardWidget interface
@@ -16,13 +16,13 @@ This document describes the customizable dashboard feature implementation with d
    - WIDGET_TEMPLATES array with default configurations
    - DEFAULT_DASHBOARD_CONFIG with default layout
 
-2. **Redux State Management** ([frontend/src/store/slices/dashboardSlice.ts](../frontend/src/store/slices/dashboardSlice.ts))
+2. **Redux State Management** ([frontend/src/store/slices/dashboardSlice.ts](https://github.com/West-Cat-Strategy/nonprofit-manager))
    - Dashboard state management
    - Async thunks for CRUD operations
    - Layout update actions
    - Widget management actions
 
-3. **Widget Components** ([frontend/src/components/dashboard/](../frontend/src/components/dashboard/))
+3. **Widget Components** ([frontend/src/components/dashboard/](https://github.com/West-Cat-Strategy/nonprofit-manager))
    - WidgetContainer: Base wrapper component
    - QuickActionsWidget: Shortcuts to common tasks
    - DonationSummaryWidget: Donation metrics overview
@@ -33,7 +33,7 @@ This document describes the customizable dashboard feature implementation with d
    - CaseSummaryWidget: Case management overview
    - ActivityFeedWidget: Recent activity feed
 
-4. **Main Dashboard Page** ([frontend/src/pages/CustomDashboard.tsx](../frontend/src/pages/CustomDashboard.tsx))
+4. **Main Dashboard Page** ([frontend/src/pages/CustomDashboard.tsx](https://github.com/West-Cat-Strategy/nonprofit-manager))
    - Drag-and-drop grid layout
    - Edit/view mode toggle
    - Add widget modal
@@ -247,4 +247,4 @@ Each widget follows a consistent pattern:
 
 - [react-grid-layout Documentation](https://github.com/react-grid-layout/react-grid-layout)
 - [Redux Toolkit Documentation](https://redux-toolkit.js.org/)
-- [Dashboard Design Best Practices](https://www.nngroup.com/articles/dashboard-design/)
+- [Dashboard Design Best Practices](https://www.interaction-design.org/literature/topics/dashboard-design)

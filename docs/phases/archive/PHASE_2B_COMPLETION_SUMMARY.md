@@ -46,17 +46,17 @@ Phase 2b (Pre-Production Hardening - Operational Security) has been successfully
 
 | File | Type | Lines | Purpose |
 |------|------|-------|---------|
-| [database/migrations/031_add_pii_encryption_fields.sql](../database/migrations/031_add_pii_encryption_fields.sql) | New | 80 | Database schema for PII encryption |
-| [backend/src/services/piiService.ts](../backend/src/services/piiService.ts) | New | 323 | PII encryption/decryption service |
-| [backend/src/middleware/piiFieldAccessControl.ts](../backend/src/middleware/piiFieldAccessControl.ts) | New | 252 | Field-level access middleware |
-| [backend/src/middleware/structuredLogging.ts](../backend/src/middleware/structuredLogging.ts) | New | 230 | Structured request/response logging |
-| [backend/src/config/logger.ts](../backend/src/config/logger.ts) | Modified | +70 | HTTP log aggregation transport |
-| [docs/LOG_AGGREGATION_SETUP.md](../docs/LOG_AGGREGATION_SETUP.md) | New | 620 | Complete log aggregation guide |
-| [docs/PHASE_2B_IMPLEMENTATION_SUMMARY.md](../docs/PHASE_2B_IMPLEMENTATION_SUMMARY.md) | New | 650 | Detailed implementation reference |
-| [docker-compose.elk.yml](../docker-compose.elk.yml) | New | 65 | ELK Stack deployment |
-| [logstash.conf](../logstash.conf) | New | 80 | Logstash pipeline config |
-| [.env.development](/.env.development) | Modified | +5 lines | Log aggregation configuration |
-| [.env.production.example](/.env.production.example) | Modified | +25 lines | Production log aggregation guidance |
+| [database/migrations/031_add_pii_encryption_fields.sql](https://github.com/West-Cat-Strategy/nonprofit-manager) | New | 80 | Database schema for PII encryption |
+| [backend/src/services/piiService.ts](https://github.com/West-Cat-Strategy/nonprofit-manager) | New | 323 | PII encryption/decryption service |
+| [backend/src/middleware/piiFieldAccessControl.ts](https://github.com/West-Cat-Strategy/nonprofit-manager) | New | 252 | Field-level access middleware |
+| [backend/src/middleware/structuredLogging.ts](https://github.com/West-Cat-Strategy/nonprofit-manager) | New | 230 | Structured request/response logging |
+| [backend/src/config/logger.ts](https://github.com/West-Cat-Strategy/nonprofit-manager) | Modified | +70 | HTTP log aggregation transport |
+| [docs/LOG_AGGREGATION_SETUP.md](https://github.com/West-Cat-Strategy/nonprofit-manager) | New | 620 | Complete log aggregation guide |
+| [docs/PHASE_2B_IMPLEMENTATION_SUMMARY.md](https://github.com/West-Cat-Strategy/nonprofit-manager) | New | 650 | Detailed implementation reference |
+| [docker-compose.elk.yml](https://github.com/West-Cat-Strategy/nonprofit-manager) | New | 65 | ELK Stack deployment |
+| [logstash.conf](https://github.com/West-Cat-Strategy/nonprofit-manager) | New | 80 | Logstash pipeline config |
+| [.env.development](https://github.com/West-Cat-Strategy/nonprofit-manager) | Modified | +5 lines | Log aggregation configuration |
+| [.env.production.example](https://github.com/West-Cat-Strategy/nonprofit-manager) | Modified | +25 lines | Production log aggregation guidance |
 
 **Total New Code:** ~2,400 lines
 
@@ -122,7 +122,7 @@ cd backend && npx tsc --noEmit
    export LOG_AGGREGATION_HOST=localhost
    export LOG_AGGREGATION_PORT=8080
    
-   # Access Kibana at http://localhost:5601
+   # Access Kibana at localhost:5601
    ```
 
 ### Data Migration (For Existing Data)
@@ -266,7 +266,7 @@ A: Generate a new key:
 ```bash
 A: Check network connectivity:
    docker logs nonprofit-manager-logstash
-   curl http://logstash:8080/logs
+   curl logstash:8080/logs
 ```
 
 **Q: High memory usage after enabling logging**
@@ -278,9 +278,9 @@ A: Reduce log level:
 
 ### Documentation References
 
-- [LOG_AGGREGATION_SETUP.md](../docs/LOG_AGGREGATION_SETUP.md) - Complete log aggregation guide
-- [PHASE_2B_IMPLEMENTATION_SUMMARY.md](../docs/PHASE_2B_IMPLEMENTATION_SUMMARY.md) - Technical details
-- [DEPLOYMENT.md](../docs/DEPLOYMENT.md) - Production deployment guide
+- [LOG_AGGREGATION_SETUP.md](https://github.com/West-Cat-Strategy/nonprofit-manager) - Complete log aggregation guide
+- [PHASE_2B_IMPLEMENTATION_SUMMARY.md](https://github.com/West-Cat-Strategy/nonprofit-manager) - Technical details
+- [DEPLOYMENT.md](https://github.com/West-Cat-Strategy/nonprofit-manager) - Production deployment guide
 
 ---
 

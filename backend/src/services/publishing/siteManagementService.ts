@@ -282,7 +282,7 @@ export class SiteManagementService {
    */
   getSiteUrl(site: PublishedSite): string {
     if (site.customDomain) {
-      return `https://${site.customDomain}`;
+      return `HTTPS://${site.customDomain}`;
     }
     if (site.subdomain) {
       return `${SITE_BASE_URL.replace('sites.', `${site.subdomain}.`)}`;

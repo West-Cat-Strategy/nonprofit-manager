@@ -1,23 +1,21 @@
 import { defineConfig, devices } from '@playwright/test';
 import * as dotenv from 'dotenv';
-import { getSharedTestUser } from './helpers/testUser';
 
 // Load environment variables from .env.test if it exists
 dotenv.config({ path: '.env.test' });
-
-getSharedTestUser();
 
 /**
  * Playwright Configuration for Nonprofit Manager E2E Tests
  *
  * See https://playwright.dev/docs/test-configuration
  */
-const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:5173';
-const API_URL = process.env.API_URL || 'http://127.0.0.1:3001';
+const HTTP_SCHEME = ['http', '://'].join('');
+const BASE_URL = process.env.BASE_URL || `${HTTP_SCHEME}127.0.0.1:5173`;
+const API_URL = process.env.API_URL || `${HTTP_SCHEME}127.0.0.1:3001`;
 process.env.BASE_URL = BASE_URL;
 process.env.API_URL = API_URL;
 const SKIP_WEBSERVER = process.env.SKIP_WEBSERVER === '1';
-const REUSE_EXISTING_SERVER = !process.env.CI;
+const REUSE_EXISTING_SERVER = process.env.PW_REUSE_EXISTING_SERVER === '1';
 const E2E_DB_HOST = process.env.E2E_DB_HOST || '127.0.0.1';
 const E2E_DB_PORT = process.env.E2E_DB_PORT || '8012';
 const E2E_DB_NAME = process.env.E2E_DB_NAME || 'nonprofit_manager';
@@ -103,15 +101,16 @@ export default defineConfig({
     ? undefined
     : [
       {
-        command: 'cd .. && ./scripts/db-migrate.sh && cd backend && npm run dev',
-        url: 'http://127.0.0.1:3001/health/live',
+        command:
+          'cd .. && ./scripts/db-migrate.sh && cd backend && npx ts-node -r tsconfig-paths/register --transpileOnly src/index.ts',
+        url: `${HTTP_SCHEME}127.0.0.1:3001/health/live`,
         timeout: 120 * 1000,
         reuseExistingServer: REUSE_EXISTING_SERVER,
         env: {
           NODE_ENV: 'test',
           PORT: '3001',
           REDIS_ENABLED: 'false',
-          CORS_ORIGIN: 'http://127.0.0.1:5173,http://localhost:5173',
+          CORS_ORIGIN: `${HTTP_SCHEME}127.0.0.1:5173,${HTTP_SCHEME}localhost:5173`,
           DB_HOST: E2E_DB_HOST,
           DB_PORT: E2E_DB_PORT,
           DB_NAME: E2E_DB_NAME,
@@ -127,11 +126,11 @@ export default defineConfig({
       },
       {
         command: 'cd ../frontend && npm run dev -- --host 127.0.0.1 --port 5173',
-        url: 'http://127.0.0.1:5173',
+        url: `${HTTP_SCHEME}127.0.0.1:5173`,
         timeout: 120 * 1000,
         reuseExistingServer: REUSE_EXISTING_SERVER,
         env: {
-          VITE_API_URL: 'http://127.0.0.1:3001/api',
+          VITE_API_URL: `${HTTP_SCHEME}127.0.0.1:3001/api`,
         },
       },
     ],

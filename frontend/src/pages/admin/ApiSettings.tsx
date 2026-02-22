@@ -688,7 +688,7 @@ export default function ApiSettings() {
                   type="url"
                   value={webhookUrl}
                   onChange={(e) => setWebhookUrl(e.target.value)}
-                  placeholder="https://your-server.com/webhook"
+                  placeholder="HTTPS://your-server.com/webhook"
                   className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
                 />
               </div>

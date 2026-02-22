@@ -12,7 +12,7 @@
 ### 1. **Volunteer Management Components** (3 Components)
 
 #### AvailabilityCalendar Component
-**File:** [frontend/src/components/AvailabilityCalendar.tsx](../frontend/src/components/AvailabilityCalendar.tsx)
+**File:** [frontend/src/components/AvailabilityCalendar.tsx](https://github.com/West-Cat-Strategy/nonprofit-manager)
 
 **Features:**
 - Interactive monthly calendar view
@@ -24,12 +24,12 @@
 - Responsive design with Tailwind CSS
 
 **Integration:**
-- Added to [VolunteerDetail.tsx](../frontend/src/pages/VolunteerDetail.tsx:310-381) as "Calendar" tab
+- Added to [VolunteerDetail.tsx](https://github.com/West-Cat-Strategy/nonprofit-manager) as "Calendar" tab
 - Connected to Redux store for real-time data
 - Assignment detail modal on date click
 
 #### TimeTracker Component
-**File:** [frontend/src/components/TimeTracker.tsx](../frontend/src/components/TimeTracker.tsx)
+**File:** [frontend/src/components/TimeTracker.tsx](https://github.com/West-Cat-Strategy/nonprofit-manager)
 
 **Features:**
 - Live timer with HH:MM:SS format
@@ -41,12 +41,12 @@
 - Multiple timer prevention
 
 **Integration:**
-- Added to [VolunteerDetail.tsx](../frontend/src/pages/VolunteerDetail.tsx:384-434) as "Time Tracker" tab
+- Added to [VolunteerDetail.tsx](https://github.com/West-Cat-Strategy/nonprofit-manager) as "Time Tracker" tab
 - Redux integration for hour updates
 - Real-time assignment refresh
 
 #### VolunteerWidget Component
-**File:** [frontend/src/components/VolunteerWidget.tsx](../frontend/src/components/VolunteerWidget.tsx)
+**File:** [frontend/src/components/VolunteerWidget.tsx](https://github.com/West-Cat-Strategy/nonprofit-manager)
 
 **Features:**
 - Summary statistics (Total, Available, Limited, Unavailable)
@@ -57,7 +57,7 @@
 - Responsive grid layout
 
 **Integration:**
-- Added to [Dashboard.tsx](../frontend/src/pages/Dashboard.tsx:255-256)
+- Added to [Dashboard.tsx](https://github.com/West-Cat-Strategy/nonprofit-manager)
 - Redux integration for live stats
 - Navigation to volunteer pages
 
@@ -68,7 +68,7 @@
 #### Test Files Created
 
 **AvailabilityCalendar Tests** (23 tests)
-**File:** [frontend/src/components/__tests__/AvailabilityCalendar.test.tsx](../frontend/src/components/__tests__/AvailabilityCalendar.test.tsx)
+**File:** [frontend/src/components/__tests__/AvailabilityCalendar.test.tsx](https://github.com/West-Cat-Strategy/nonprofit-manager)
 
 Coverage:
 - Calendar rendering and navigation
@@ -80,7 +80,7 @@ Coverage:
 - Year transitions
 
 **TimeTracker Tests** (29 tests)
-**File:** [frontend/src/components/__tests__/TimeTracker.test.tsx](../frontend/src/components/__tests__/TimeTracker.test.tsx)
+**File:** [frontend/src/components/__tests__/TimeTracker.test.tsx](https://github.com/West-Cat-Strategy/nonprofit-manager)
 
 Coverage:
 - Timer start/stop functionality
@@ -93,7 +93,7 @@ Coverage:
 - Hours calculation
 
 **VolunteerWidget Tests** (31 tests)
-**File:** [frontend/src/components/__tests__/VolunteerWidget.test.tsx](../frontend/src/components/__tests__/VolunteerWidget.test.tsx)
+**File:** [frontend/src/components/__tests__/VolunteerWidget.test.tsx](https://github.com/West-Cat-Strategy/nonprofit-manager)
 
 Coverage:
 - Stats display (Total, Available, Limited, Unavailable)
@@ -116,7 +116,7 @@ Coverage:
 ### 3. **Documentation Created**
 
 #### Manual Testing Guide
-**File:** [docs/MANUAL_TESTING_GUIDE.md](./MANUAL_TESTING_GUIDE.md)
+**File:** [docs/MANUAL_TESTING_GUIDE.md](https://github.com/West-Cat-Strategy/nonprofit-manager)
 
 A comprehensive 400+ line testing guide covering:
 - 10 test suites
@@ -220,7 +220,7 @@ frontend/src/
    ```
 
 2. **Follow Testing Guide**
-   - Use [MANUAL_TESTING_GUIDE.md](./MANUAL_TESTING_GUIDE.md)
+   - Use [MANUAL_TESTING_GUIDE.md](https://github.com/West-Cat-Strategy/nonprofit-manager)
    - Test all 10 test suites
    - Document any bugs found
 
@@ -306,20 +306,20 @@ From [planning-and-progress.md](../planning-and-progress.md):
 
 ### Documentation
 - [Planning & Progress](../planning-and-progress.md)
-- [Manual Testing Guide](./MANUAL_TESTING_GUIDE.md)
-- [Completion Roadmap](../COMPLETION-ROADMAP.md)
+- [Manual Testing Guide](https://github.com/West-Cat-Strategy/nonprofit-manager)
+- [Completion Roadmap](https://github.com/West-Cat-Strategy/nonprofit-manager)
 
 ### Code References
-- [AvailabilityCalendar Component](../frontend/src/components/AvailabilityCalendar.tsx)
-- [TimeTracker Component](../frontend/src/components/TimeTracker.tsx)
-- [VolunteerWidget Component](../frontend/src/components/VolunteerWidget.tsx)
-- [VolunteerDetail Page](../frontend/src/pages/VolunteerDetail.tsx)
-- [Dashboard Page](../frontend/src/pages/Dashboard.tsx)
+- [AvailabilityCalendar Component](https://github.com/West-Cat-Strategy/nonprofit-manager)
+- [TimeTracker Component](https://github.com/West-Cat-Strategy/nonprofit-manager)
+- [VolunteerWidget Component](https://github.com/West-Cat-Strategy/nonprofit-manager)
+- [VolunteerDetail Page](https://github.com/West-Cat-Strategy/nonprofit-manager)
+- [Dashboard Page](https://github.com/West-Cat-Strategy/nonprofit-manager)
 
 ### Test Files
-- [AvailabilityCalendar Tests](../frontend/src/components/__tests__/AvailabilityCalendar.test.tsx)
-- [TimeTracker Tests](../frontend/src/components/__tests__/TimeTracker.test.tsx)
-- [VolunteerWidget Tests](../frontend/src/components/__tests__/VolunteerWidget.test.tsx)
+- [AvailabilityCalendar Tests](https://github.com/West-Cat-Strategy/nonprofit-manager)
+- [TimeTracker Tests](https://github.com/West-Cat-Strategy/nonprofit-manager)
+- [VolunteerWidget Tests](https://github.com/West-Cat-Strategy/nonprofit-manager)
 
 ---
 

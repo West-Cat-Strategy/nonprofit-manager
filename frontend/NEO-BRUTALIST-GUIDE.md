@@ -4,11 +4,11 @@
 
 After starting the dev server (`npm run dev`), access the Neo-Brutalist views at:
 
-- **Dashboard**: http://localhost:5173/demo/dashboard
-- **Linking Module**: http://localhost:5173/demo/linking
-- **Operations Board**: http://localhost:5173/demo/operations
-- **Outreach Center**: http://localhost:5173/demo/outreach
-- **People Directory**: http://localhost:5173/demo/people
+- **Dashboard**: localhost:5173/demo/dashboard
+- **Linking Module**: localhost:5173/demo/linking
+- **Operations Board**: localhost:5173/demo/operations
+- **Outreach Center**: localhost:5173/demo/outreach
+- **People Directory**: localhost:5173/demo/people
 
 ## Adding Routes to App.tsx
 

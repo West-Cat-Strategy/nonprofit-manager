@@ -14,7 +14,7 @@ npm install
 npm run dev
 ```
 
-Frontend will start at `http://localhost:5173`.
+Frontend will start at `localhost:5173`.
 
 For detailed setup instructions, see [SETUP.md](SETUP.md) or [docs/development/GETTING_STARTED.md](../docs/development/GETTING_STARTED.md).
 
@@ -61,7 +61,7 @@ Installs all dependencies from `package.json`.
 npm run dev
 ```
 
-Server starts at `http://localhost:5173` with hot reload enabled.
+Server starts at `localhost:5173` with hot reload enabled.
 
 Changes to code automatically refresh in browser.
 
@@ -134,7 +134,7 @@ Creates optimized build in `dist/` directory.
 npm run preview
 ```
 
-Preview the production build locally at `http://localhost:4173`.
+Preview the production build locally at `localhost:4173`.
 
 ---
 
@@ -169,7 +169,7 @@ frontend/
 └── package.json
 ```
 
-For detailed architecture, see [ARCHITECTURE.md](ARCHITECTURE.md).
+For detailed architecture, see [https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager).
 
 ---
 
@@ -198,7 +198,7 @@ See [NEO-BRUTALIST-GUIDE.md](NEO-BRUTALIST-GUIDE.md) for:
 Create `.env.local` (copy from `.env.example`):
 
 ```bash
-VITE_API_URL=http://localhost:3000
+VITE_API_URL=localhost:3000
 ```
 
 **Required**:
@@ -219,12 +219,12 @@ cd ../backend
 npm run dev
 ```
 
-Backend should start at `http://localhost:3000`.
+Backend should start at `localhost:3000`.
 
 **Check connection**:
 
 ```bash
-curl http://localhost:3000/api/health
+curl localhost:3000/api/health
 ```
 
 If failing, see [backend/README.md](../backend/README.md) troubleshooting.
@@ -330,7 +330,7 @@ See [docs/testing/COMPONENT_TESTING.md](../docs/testing/COMPONENT_TESTING.md) fo
 
 For deeper understanding:
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) — Component architecture, state management
+- [https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager) — Component architecture, state management
 - [docs/development/CONVENTIONS.md](../docs/development/CONVENTIONS.md) — Code style and naming
 - [NEO-BRUTALIST-GUIDE.md](NEO-BRUTALIST-GUIDE.md) — Design system
 - [docs/testing/COMPONENT_TESTING.md](../docs/testing/COMPONENT_TESTING.md) — Testing patterns
@@ -350,7 +350,7 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for:
 ## See Also
 
 - [SETUP.md](SETUP.md) — Detailed setup and environment configuration
-- [ARCHITECTURE.md](ARCHITECTURE.md) — Component structure and patterns
+- [https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager) — Component structure and patterns
 - [NEO-BRUTALIST-GUIDE.md](NEO-BRUTALIST-GUIDE.md) — Design system
 - [docs/development/CONVENTIONS.md](../docs/development/CONVENTIONS.md) — Code style
 - [docs/testing/COMPONENT_TESTING.md](../docs/testing/COMPONENT_TESTING.md) — Testing guide

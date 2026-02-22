@@ -39,7 +39,7 @@ describe('webhookController URL validation', () => {
   it('rejects blocked URLs on create', async () => {
     const req = {
       user: { id: 'user-1' },
-      body: { url: 'http://localhost/webhook', events: ['contact.created'] },
+      body: { url: 'HTTP://localhost/webhook', events: ['contact.created'] },
     } as unknown as Request;
     const res = mockResponse();
 
@@ -56,7 +56,7 @@ describe('webhookController URL validation', () => {
     const req = {
       user: { id: 'user-1' },
       params: { id: 'endpoint-1' },
-      body: { url: 'http://localhost/webhook' },
+      body: { url: 'HTTP://localhost/webhook' },
     } as unknown as Request;
     const res = mockResponse();
 

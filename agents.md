@@ -109,7 +109,7 @@ Helper functions for checking user permissions:
 - **45+ granular permissions** across 5 roles
 - Roles: Admin, Manager, Coordinator, Volunteer, Donor
 - Permissions stored in database, checked at request-time
-- Middleware: [backend/src/middleware/authGuards.ts](backend/src/middleware/authGuards.ts)
+- Middleware: [https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager)
 
 ### Rate Limiting
 
@@ -326,7 +326,7 @@ The application tracks HTTP `User-Agent` headers to understand browser/client be
 | API Key Usage | [backend/src/services/apiKeyService.ts](backend/src/services/apiKeyService.ts#L269) | Track API key consumption by client |
 | Auth Activity | [backend/src/controllers/portalAuthController.ts](backend/src/controllers/portalAuthController.ts#L147) | Log authentication attempts and sessions |
 | Publishing Events | [backend/src/controllers/publishingController.ts](backend/src/controllers/publishingController.ts#L286) | Track publishing actions |
-| Portal Actions | [backend/src/controllers/portalController.ts](backend/src/controllers/portalController.ts#L125) | Log general portal activity |
+| Portal Actions | [backend/src/controllers/portalController.ts](https://github.com/West-Cat-Strategy/nonprofit-manager) | Log general portal activity |
 
 ### Database Schema
 

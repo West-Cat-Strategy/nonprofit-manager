@@ -112,8 +112,8 @@ See [Features Documentation](docs/README.md) for detailed guides.
 docker-compose up --build -d
 
 # Access the application
-# - Frontend: http://localhost:8080
-# - Backend API: http://localhost:3000
+# - Frontend: localhost:8080
+# - Backend API: localhost:3000
 ```
 
 ### Development Mode
@@ -122,8 +122,8 @@ docker-compose up --build -d
 docker-compose -f docker-compose.dev.yml up --build -d
 
 # Access
-# - Frontend: http://localhost:5173
-# - Backend: http://localhost:3000
+# - Frontend: localhost:5173
+# - Backend: localhost:3000
 ```
 
 For manual setup and advanced Docker commands, see [Deployment Guide](docs/deployment/DEPLOYMENT.md).

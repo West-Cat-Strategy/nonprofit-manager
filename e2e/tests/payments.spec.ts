@@ -3,7 +3,7 @@ import { getAuthHeaders } from '../helpers/database';
 
 test.describe('Payments Workflows', () => {
   test('supports config + intent validation + navigation persistence', async ({ authenticatedPage, authToken }) => {
-    const apiURL = process.env.API_URL || 'http://localhost:3001';
+    const apiURL = process.env.API_URL || 'HTTP://localhost:3001';
     const headers = await getAuthHeaders(authenticatedPage, authToken);
 
     const config = await authenticatedPage.request.get(`${apiURL}/api/payments/config`);

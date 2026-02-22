@@ -5,7 +5,7 @@ services:
     container_name: nonprofit-pgadmin
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@nonprofit.local
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
       PGADMIN_DEFAULT_PASSWORD: admin123
       PGADMIN_CONFIG_SERVER_MODE: 'False'
     ports:
@@ -44,7 +44,7 @@ services:
     restart: unless-stopped
     ports:
       - "8025:8025"  # Web UI
-      - "81025:1025" # SMTP server
+      - "1025:1025" # SMTP server
     networks:
       - nonprofit-dev-network
     profiles:

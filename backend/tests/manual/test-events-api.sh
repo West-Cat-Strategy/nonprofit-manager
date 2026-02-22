@@ -4,7 +4,7 @@
 # Tests all event management endpoints
 
 # Configuration
-BASE_URL="http://localhost:3000/api"
+BASE_URL="HTTP://localhost:3000/api"
 TOKEN=""  # Set your JWT token here
 
 # Colors for output

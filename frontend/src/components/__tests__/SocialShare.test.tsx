@@ -275,7 +275,7 @@ describe('SocialShare', () => {
 
   it('should handle absolute URLs', () => {
     const absoluteData = {
-      url: 'https://example.com/events/event-123',
+      url: 'HTTPS://example.com/events/event-123',
       title: 'Event',
     };
 

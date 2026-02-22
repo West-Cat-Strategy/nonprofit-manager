@@ -58,7 +58,7 @@ psql -U postgres -d nonprofit_manager -f database/seeds/001_default_users.sql
 **Phase**: Foundation (Phase 1) - In Progress  
 **Last Updated**: February 1, 2026
 
-See [planning-and-progress.md](planning-and-progress.md) for detailed status.
+See [https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/docs/phases/planning-and-progress.md](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/docs/phases/planning-and-progress.md) for detailed status.
 
 ## Tech Stack Summary
 - **Backend**: Node.js, Express, TypeScript, PostgreSQL, JWT
@@ -66,7 +66,7 @@ See [planning-and-progress.md](planning-and-progress.md) for detailed status.
 - **Database**: PostgreSQL with CDM-aligned schema
 
 ## Important Files
-- `planning-and-progress.md` - Roadmap and status
+- `https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/docs/phases/planning-and-progress.md` - Roadmap and status
 - `product-spec.md` - Requirements
 - `README.md` - Setup instructions
 - `docs/AGENT_INSTRUCTIONS.md` - Development guide
@@ -86,7 +86,7 @@ DB_USER=postgres
 DB_PASSWORD=your_password
 JWT_SECRET=your_secret_here
 JWT_EXPIRES_IN=24h
-CORS_ORIGIN=http://localhost:5173
+CORS_ORIGIN=localhost:5173
 ```
 
 ### Backend .env.test (example)
@@ -100,7 +100,7 @@ JWT_SECRET=test_secret
 
 ### Frontend .env
 ```bash
-VITE_API_URL=http://localhost:3000/api
+VITE_API_URL=localhost:3000/api
 ```
 
 ## API Endpoints (Current)
@@ -135,5 +135,5 @@ npm run build  # Check for compilation errors
 
 ## Getting Help
 - Check documentation in `docs/` directory
-- Review planning-and-progress.md for current status
+- Review https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/docs/phases/planning-and-progress.md for current status
 - See CONVENTIONS.md for code standards

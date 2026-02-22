@@ -27,7 +27,7 @@ These tests verify:
 3. **Authentication Token**:
    ```bash
    # Login and export token
-   export TOKEN=$(curl -s -X POST http://localhost:3000/api/auth/login \
+   export TOKEN=$(curl -s -X POST localhost:3000/api/auth/login \
      -H "Content-Type: application/json" \
      -d '{"email":"admin@example.com","password":"your_password"}' \
      | jq -r '.token')
@@ -62,7 +62,7 @@ cd backend
 npm run dev
 
 # 2. Get authentication token
-export TOKEN=$(curl -s -X POST http://localhost:3000/api/auth/login \
+export TOKEN=$(curl -s -X POST localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@example.com","password":"your_password"}' \
   | jq -r '.token')
@@ -206,7 +206,7 @@ All integration tests passed!
 ### Server Not Running
 
 ```
-ERROR: Server not responding at http://localhost:3000/api
+ERROR: Server not responding at localhost:3000/api
 ```
 
 **Solution**: Start the backend server:
@@ -223,7 +223,7 @@ WARNING: JWT token not set in this script.
 
 **Solution**: Get a fresh token:
 ```bash
-export TOKEN=$(curl -s -X POST http://localhost:3000/api/auth/login \
+export TOKEN=$(curl -s -X POST localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@example.com","password":"yourpassword"}' \
   | jq -r '.token')
@@ -248,7 +248,7 @@ psql -d nonprofit_manager -c "DELETE FROM contacts WHERE email LIKE '%@example.c
 # Integration Test: [Test Name]
 # [Description]
 
-BASE_URL="${BASE_URL:-http://localhost:3000/api}"
+BASE_URL="${BASE_URL:-localhost:3000/api}"
 TOKEN="${TOKEN:-}"
 
 # Colors
@@ -392,4 +392,4 @@ To run tests in CI/CD pipeline:
 ## Documentation
 
 For detailed information about integration testing strategy, see:
-- [INTEGRATION_TESTING_PHASE2.md](../../docs/INTEGRATION_TESTING_PHASE2.md)
+- [INTEGRATION_TESTING_PHASE2.md](https://github.com/West-Cat-Strategy/nonprofit-manager)

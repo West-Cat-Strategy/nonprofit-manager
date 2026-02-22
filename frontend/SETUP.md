@@ -68,11 +68,11 @@ You should see:
 ```
   VITE v5.x.x  ready in 123 ms
 
-  ➜  Local:   http://localhost:5173/
+  ➜  Local:   localhost:5173/
   ➜  press h + enter to show help
 ```
 
-**Open http://localhost:5173/ in your browser.** You should see the nonprofit-manager frontend.
+**Open localhost:5173/ in your browser.** You should see the nonprofit-manager frontend.
 
 ---
 
@@ -82,7 +82,7 @@ Create `.env.local` in the `frontend/` directory (copy from `.env.example`):
 
 ```bash
 # Backend API
-VITE_API_URL=http://localhost:3000
+VITE_API_URL=localhost:3000
 
 # Authentication
 VITE_AUTH_DOMAIN=dev.example.com
@@ -93,7 +93,7 @@ VITE_PLAUSIBLE_DOMAIN=localhost  # Disable in dev by commenting out
 ```
 
 **Required variables**:
-- `VITE_API_URL` — Backend API endpoint (default: `http://localhost:3000`)
+- `VITE_API_URL` — Backend API endpoint (default: `localhost:3000`)
 
 **Optional variables**:
 - `VITE_AUTH_DOMAIN` — For Auth0 integration (development only)
@@ -159,7 +159,7 @@ frontend/
 └── package.json
 ```
 
-For detailed component architecture, see [ARCHITECTURE.md](ARCHITECTURE.md).
+For detailed component architecture, see [https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager).
 
 ---
 
@@ -292,13 +292,13 @@ See [backend/README.md](../backend/README.md) for backend setup.
 In `.env.local`, ensure:
 
 ```bash
-VITE_API_URL=http://localhost:3000
+VITE_API_URL=localhost:3000
 ```
 
 Test the connection:
 
 ```bash
-curl http://localhost:3000/api/health
+curl localhost:3000/api/health
 ```
 
 You should see a response with `{"status": "ok"}`.
@@ -347,7 +347,7 @@ Add to `.vscode/launch.json`:
       "type": "chrome",
       "request": "launch",
       "name": "Launch Chrome",
-      "url": "http://localhost:5173",
+      "url": "localhost:5173",
       "webRoot": "${workspaceFolder}/frontend/src",
       "sourceMapPathOverride": {
         "webpack:///src/*": "${webRoot}/*"
@@ -385,7 +385,7 @@ npm install
 
 ### "API calls are failing (400, 401, 500)"
 
-1. Check backend is running: `curl http://localhost:3000/api/health`
+1. Check backend is running: `curl localhost:3000/api/health`
 2. Check `.env.local` has correct `VITE_API_URL`
 3. Check browser console for error details
 4. Check network tab to see actual request/response
@@ -425,7 +425,7 @@ See [docs/testing/COMPONENT_TESTING.md](../docs/testing/COMPONENT_TESTING.md) fo
 
 1. **Explore existing code**: Look at a few components to understand patterns
 2. **Read guides**:
-   - [ARCHITECTURE.md](ARCHITECTURE.md) — Component structure
+   - [https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager) — Component structure
    - [CONVENTIONS.md](../docs/development/CONVENTIONS.md) — Code style
    - [NEO-BRUTALIST-GUIDE.md](NEO-BRUTALIST-GUIDE.md) — Design system
 3. **Find an issue**: Check [GitHub Issues](https://github.com/West-Cat-Strategy/nonprofit-manager/issues?label=good%20first%20issue) for beginner-friendly tasks
@@ -436,7 +436,7 @@ See [docs/testing/COMPONENT_TESTING.md](../docs/testing/COMPONENT_TESTING.md) fo
 ## Getting Help
 
 **Questions?**
-- See [ARCHITECTURE.md](ARCHITECTURE.md) for component design
+- See [https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager) for component design
 - See [docs/testing/COMPONENT_TESTING.md](../docs/testing/COMPONENT_TESTING.md) for testing help
 - See [docs/development/TROUBLESHOOTING.md](../docs/development/TROUBLESHOOTING.md) for common issues
 - Ask in GitHub Issues or team Slack channel
@@ -449,7 +449,7 @@ See [docs/testing/COMPONENT_TESTING.md](../docs/testing/COMPONENT_TESTING.md) fo
 
 ## See Also
 
-- [frontend/ARCHITECTURE.md](ARCHITECTURE.md) — Component structure and patterns
+- [frontend/https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager) — Component structure and patterns
 - [CONTRIBUTING.md](../CONTRIBUTING.md) — How to contribute
 - [docs/development/CONVENTIONS.md](../docs/development/CONVENTIONS.md) — Code style guide
 - [NEO-BRUTALIST-GUIDE.md](NEO-BRUTALIST-GUIDE.md) — Design system

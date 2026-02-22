@@ -387,7 +387,7 @@ Time: 1.1 seconds
 - [PHASE_2_7_COMPLETION.md](PHASE_2_7_COMPLETION.md) - Volunteer Routes migration
 - [PHASE_2_6_COMPLETION.md](PHASE_2_6_COMPLETION.md) - Auth Controller Guards
 - [PHASE_2_COMPLETION_SUMMARY.md](PHASE_2_COMPLETION_SUMMARY.md) - Phase 2 infrastructure
-- [docs/CONVENTIONS.md](docs/CONVENTIONS.md) - Validation patterns
+- [https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager) - Validation patterns
 
 ---
 

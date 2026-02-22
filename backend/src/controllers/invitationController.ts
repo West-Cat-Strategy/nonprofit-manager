@@ -50,7 +50,7 @@ export const createInvitation = async (
     );
 
     // Generate the invitation URL (frontend will need to handle this route)
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const baseUrl = process.env.FRONTEND_URL || 'HTTP://localhost:5173';
     const inviteUrl = `${baseUrl}/accept-invitation/${invitation.token}`;
 
     const emailDelivery: {
@@ -327,7 +327,7 @@ export const resendInvitation = async (
     }
 
     // Generate the new invitation URL
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const baseUrl = process.env.FRONTEND_URL || 'HTTP://localhost:5173';
     const inviteUrl = `${baseUrl}/accept-invitation/${invitation.token}`;
 
     // Resend invitation email

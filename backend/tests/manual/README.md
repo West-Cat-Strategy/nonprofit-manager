@@ -6,7 +6,7 @@ This directory contains bash scripts for manually testing API endpoints.
 
 ### Prerequisites
 
-1. **Running server**: Make sure the backend server is running on `http://localhost:3000`
+1. **Running server**: Make sure the backend server is running on `localhost:3000`
 2. **Database**: Ensure the database is set up with the events migration applied
 3. **Authentication token**: Get a valid JWT token by logging in
 
@@ -14,7 +14,7 @@ This directory contains bash scripts for manually testing API endpoints.
 
 ```bash
 # Login to get JWT token
-curl -X POST http://localhost:3000/api/auth/login \
+curl -X POST localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@example.com",
@@ -135,7 +135,7 @@ You can also test individual endpoints manually:
 ### Create Event
 
 ```bash
-curl -X POST http://localhost:3000/api/events \
+curl -X POST localhost:3000/api/events \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -154,14 +154,14 @@ curl -X POST http://localhost:3000/api/events \
 ### Get All Events
 
 ```bash
-curl http://localhost:3000/api/events \
+curl localhost:3000/api/events \
   -H "Authorization: Bearer $TOKEN"
 ```
 
 ### Register for Event
 
 ```bash
-curl -X POST http://localhost:3000/api/events/{event_id}/register \
+curl -X POST localhost:3000/api/events/{event_id}/register \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -174,7 +174,7 @@ curl -X POST http://localhost:3000/api/events/{event_id}/register \
 ### Check-in Attendee
 
 ```bash
-curl -X POST http://localhost:3000/api/events/{event_id}/registrations/{reg_id}/checkin \
+curl -X POST localhost:3000/api/events/{event_id}/registrations/{reg_id}/checkin \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{}'
@@ -202,7 +202,7 @@ Enable verbose curl output for debugging:
 
 ```bash
 # Add -v flag to see full request/response
-curl -v -X GET http://localhost:3000/api/events \
+curl -v -X GET localhost:3000/api/events \
   -H "Authorization: Bearer $TOKEN"
 ```
 

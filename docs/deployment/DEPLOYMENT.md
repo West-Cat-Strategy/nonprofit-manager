@@ -7,7 +7,7 @@ This guide covers deploying the Nonprofit Manager platform to production.
 - [Prerequisites](#prerequisites)
 - [Security: TLS/HTTPS & Encryption](#security-tlshttps--encryption)
 - [Environment Setup](#environment-setup)
-- [Docker Deployment](#docker-deployment)
+- [Docker Deployment](https://github.com/West-Cat-Strategy/nonprofit-manager)
 - [Manual Deployment](#manual-deployment)
 - [Database Migration](#database-migration)
 - [Local CI Runner](#local-ci-runner-no-github-actions)
@@ -260,7 +260,7 @@ curl -I https://your-domain.com
 # X-Frame-Options: DENY
 # Referrer-Policy: no-referrer
 
-# Use online checker: https://securityheaders.com
+# Use online checker: securityheaders.com
 ```
 
 ---
@@ -325,7 +325,7 @@ VITE_ANALYTICS_ID=your_analytics_id
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/your-org/nonprofit-manager.git
+git clone github.com/your-org/nonprofit-manager.git
 cd nonprofit-manager
 ```
 
@@ -364,10 +364,10 @@ docker-compose exec postgres psql -U postgres -d nonprofit_manager -f /docker-en
 
 ```bash
 # Check backend health
-curl http://localhost:3000/health
+curl localhost:3000/health
 
 # Check frontend
-curl http://localhost:8080/
+curl localhost:8080/
 
 # View logs
 docker-compose logs -f
@@ -416,7 +416,7 @@ server {
     server_name your-domain.com;
     
     # Redirect to HTTPS
-    return 301 https://$server_name$request_uri;
+    return 301 $server_name$request_uri;
 }
 
 server {
@@ -439,7 +439,7 @@ server {
 
     # Backend API
     location /api {
-        proxy_pass http://localhost:3000;
+        proxy_pass localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -693,4 +693,4 @@ docker-compose logs postgres
 For deployment issues:
 - Email: bryan.crockett@westcat.ca
 - Organization: West Cat Strategy Ltd.
-- GitHub Issues: https://github.com/your-org/nonprofit-manager/issues
+- GitHub Issues: https://github.com/West-Cat-Strategy/nonprofit-manager/issues

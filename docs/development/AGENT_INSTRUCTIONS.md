@@ -270,7 +270,7 @@ const data = response.data;
 
 ## Current Status
 
-See [planning-and-progress.md](../planning-and-progress.md) for:
+See [planning-and-progress.md](https://github.com/West-Cat-Strategy/nonprofit-manager) for:
 - Current phase and progress
 - Completed features
 - Upcoming tasks

@@ -125,7 +125,7 @@ docker logs backend-api | grep -E "(admin|users|secrets)" | tail -50
 
 ```bash
 # Did attacker try to access other systems?
-docker exec backend-api curl -s https://internal-wiki.company.local 2>&1 | head
+docker exec backend-api curl -s internal-wiki.company.local 2>&1 | head
 
 # Check if they modified database users
 docker exec postgres psql -U postgres -d nonprofit_manager -c "SELECT * FROM pg_user;"
@@ -143,7 +143,7 @@ SELECT * FROM users WHERE created_at > NOW() - INTERVAL '24 hours';
 ```bash
 # If API under active attack, rate limit more aggressively
 # (without blocking legitimate traffic)
-docker exec backend-api curl -X POST http://localhost:3000/admin/ratelimit \
+docker exec backend-api curl -X POST localhost:3000/admin/ratelimit \
   -d '{"limit": 10, "window": "1m"}'
 
 # Revoke potentially compromised API keys

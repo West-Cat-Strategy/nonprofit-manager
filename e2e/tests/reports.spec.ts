@@ -4,7 +4,7 @@ import { ensureAdminLoginViaAPI } from '../helpers/auth';
 
 test.describe('Reports Workflows', () => {
   test('creates report definition and verifies builder screen', async ({ authenticatedPage, authToken }) => {
-    const apiURL = process.env.API_URL || 'http://localhost:3001';
+    const apiURL = process.env.API_URL || 'HTTP://localhost:3001';
     const headers = await getAuthHeaders(authenticatedPage, authToken);
 
     const response = await authenticatedPage.request.post(`${apiURL}/api/reports/generate`, {
@@ -18,13 +18,13 @@ test.describe('Reports Workflows', () => {
   });
 
   test('outcomes report page loads totals', async ({ authenticatedPage, authToken }) => {
-    const apiURL = process.env.API_URL || 'http://localhost:3001';
+    const apiURL = process.env.API_URL || 'HTTP://localhost:3001';
     let tokenForRequest = authToken;
     let hasAdminSession = false;
     try {
-      const { token } = await ensureAdminLoginViaAPI(authenticatedPage);
+      const { token, user } = await ensureAdminLoginViaAPI(authenticatedPage);
       tokenForRequest = token;
-      hasAdminSession = true;
+      hasAdminSession = typeof user?.role === 'string' && user.role.toLowerCase() === 'admin';
     } catch (error) {
       if (!(error instanceof Error) || !error.message.includes('Invalid credentials')) {
         throw error;

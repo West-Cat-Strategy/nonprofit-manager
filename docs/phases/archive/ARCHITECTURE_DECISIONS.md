@@ -2,7 +2,7 @@
 
 **Last Updated:** February 18, 2026  
 **Compiled From:** PHASE_1_COMPLETION_SUMMARY.md, PHASE_1_FINAL_SUMMARY.md, PHASE_2_COMPLETION_SUMMARY.md  
-**Relevant Code:** [backend/src architecture](../../backend/src/)
+**Relevant Code:** [backend/src architecture](https://github.com/West-Cat-Strategy/nonprofit-manager)
 
 ---
 
@@ -525,4 +525,4 @@ These architectural decisions enable:
 
 - [Security Decisions](./SECURITY_DECISIONS.md) — Authentication, encryption, SSRF protection
 - [Planning & Progress](../planning-and-progress.md) — Current development workboard
-- [ARCHITECTURE.md](../../docs/development/ARCHITECTURE.md) — Current architecture documentation
+- [ARCHITECTURE.md](https://github.com/West-Cat-Strategy/nonprofit-manager) — Current architecture documentation

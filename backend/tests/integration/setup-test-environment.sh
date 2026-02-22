@@ -10,7 +10,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-BASE_URL="${BASE_URL:-http://localhost:3000/api}"
+BASE_URL="${BASE_URL:-HTTP://localhost:3000/api}"
 ADMIN_EMAIL="${ADMIN_EMAIL:-admin@example.com}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-}"
 

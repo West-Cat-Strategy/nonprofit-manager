@@ -6,10 +6,14 @@
 import '../helpers/testEnv';
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { login, logout, clearAuth, ensureLoginViaAPI } from '../helpers/auth';
-import { getSharedTestUser } from '../helpers/testUser';
+import { login, logout, clearAuth, ensureAdminLoginViaAPI } from '../helpers/auth';
 
-const getCreds = () => getSharedTestUser();
+const defaultCreds = {
+  email: process.env.ADMIN_USER_EMAIL?.trim() || 'admin@example.com',
+  password: process.env.ADMIN_USER_PASSWORD?.trim() || 'Admin123!@#',
+};
+let currentCreds = { ...defaultCreds };
+const getCreds = () => currentCreds;
 
 const gotoLogin = async (page: Page) => {
   try {
@@ -22,11 +26,14 @@ const gotoLogin = async (page: Page) => {
 
 test.describe('Authentication Flow', () => {
   test.beforeEach(async ({ page }) => {
-    const { email, password } = getCreds();
-    await ensureLoginViaAPI(page, email, password, {
+    const session = await ensureAdminLoginViaAPI(page, {
       firstName: 'Test',
       lastName: 'User',
     });
+    currentCreds = {
+      email: typeof session.user?.email === 'string' ? session.user.email : session.email,
+      password: session.password,
+    };
     await clearAuth(page);
   });
 
@@ -192,6 +199,18 @@ test.describe('Authentication Flow', () => {
 });
 
 test.describe('Session Management', () => {
+  test.beforeEach(async ({ page }) => {
+    const session = await ensureAdminLoginViaAPI(page, {
+      firstName: 'Test',
+      lastName: 'User',
+    });
+    currentCreds = {
+      email: typeof session.user?.email === 'string' ? session.user.email : session.email,
+      password: session.password,
+    };
+    await clearAuth(page);
+  });
+
   test('should handle expired token gracefully', async ({ page }) => {
     await gotoLogin(page);
     const { email, password } = getCreds();

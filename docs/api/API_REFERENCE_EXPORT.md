@@ -282,7 +282,7 @@ Downloads an Excel file with multiple sheets:
 ### Export Donations for Q1 2024 (CSV)
 
 ```bash
-curl -X POST http://localhost:3000/api/export/donations \
+curl -X POST localhost:3000/api/export/donations \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -297,7 +297,7 @@ curl -X POST http://localhost:3000/api/export/donations \
 ### Export Volunteer Hours by Activity (Excel)
 
 ```bash
-curl -X POST http://localhost:3000/api/export/volunteer-hours \
+curl -X POST localhost:3000/api/export/volunteer-hours \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -313,7 +313,7 @@ curl -X POST http://localhost:3000/api/export/volunteer-hours \
 ### Export Comprehensive Report (Excel)
 
 ```bash
-curl -X POST http://localhost:3000/api/export/comprehensive \
+curl -X POST localhost:3000/api/export/comprehensive \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -329,7 +329,7 @@ curl -X POST http://localhost:3000/api/export/comprehensive \
 
 ```bash
 # Export large donations only
-curl -X POST http://localhost:3000/api/export/donations \
+curl -X POST localhost:3000/api/export/donations \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -432,7 +432,7 @@ Exports can be automated using cron jobs or scheduled tasks:
 TOKEN="your-jwt-token"
 MONTH=$(date -d "last month" +%Y-%m)
 
-curl -X POST http://localhost:3000/api/export/donations \
+curl -X POST localhost:3000/api/export/donations \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
@@ -465,8 +465,8 @@ For bulk exports, contact your administrator about rate limit increases.
 
 ## Additional Resources
 
-- [Main API Reference](./API_REFERENCE.md)
-- [Analytics API Reference](./API_REFERENCE_ANALYTICS.md)
+- [Main API Reference](https://github.com/West-Cat-Strategy/nonprofit-manager)
+- [Analytics API Reference](https://github.com/West-Cat-Strategy/nonprofit-manager)
 - [Dashboard & Alerts API](./API_REFERENCE_DASHBOARD_ALERTS.md)
 
 ---

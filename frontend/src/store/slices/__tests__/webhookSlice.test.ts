@@ -129,7 +129,7 @@ describe('webhookSlice', () => {
       const mockEndpoints = [
         {
           id: 'endpoint_1',
-          url: 'https://example.com/webhook',
+          url: 'HTTPS://example.com/webhook',
           events: ['contact.created'],
           isActive: true,
           secret: 'whsec_test',
@@ -160,7 +160,7 @@ describe('webhookSlice', () => {
     it('creates endpoint successfully', async () => {
       const mockEndpoint = {
         id: 'endpoint_new',
-        url: 'https://new.com/webhook',
+        url: 'HTTPS://new.com/webhook',
         events: ['donation.created'],
         isActive: true,
         secret: 'whsec_new',
@@ -171,13 +171,13 @@ describe('webhookSlice', () => {
 
       await store.dispatch(
         createWebhookEndpoint({
-          url: 'https://new.com/webhook',
+          url: 'HTTPS://new.com/webhook',
           events: ['donation.created'],
         })
       );
 
       expect(mockApi.post).toHaveBeenCalledWith('/webhooks/endpoints', {
-        url: 'https://new.com/webhook',
+        url: 'HTTPS://new.com/webhook',
         events: ['donation.created'],
       });
       expect(store.getState().webhooks.endpoints).toContainEqual(mockEndpoint);
@@ -188,7 +188,7 @@ describe('webhookSlice', () => {
     it('updates endpoint successfully', async () => {
       const existingEndpoint = {
         id: 'endpoint_1',
-        url: 'https://example.com/webhook',
+        url: 'HTTPS://example.com/webhook',
         events: ['contact.created'],
         isActive: true,
         secret: 'whsec_test',
@@ -221,7 +221,7 @@ describe('webhookSlice', () => {
     it('deletes endpoint successfully', async () => {
       const existingEndpoint = {
         id: 'endpoint_1',
-        url: 'https://example.com/webhook',
+        url: 'HTTPS://example.com/webhook',
         events: ['contact.created'],
         isActive: true,
         secret: 'whsec_test',
@@ -248,7 +248,7 @@ describe('webhookSlice', () => {
     it('regenerates secret successfully', async () => {
       const existingEndpoint = {
         id: 'endpoint_1',
-        url: 'https://example.com/webhook',
+        url: 'HTTPS://example.com/webhook',
         events: ['contact.created'],
         isActive: true,
         secret: 'whsec_old',

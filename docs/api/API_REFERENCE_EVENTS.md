@@ -113,7 +113,7 @@ GET /api/events
 **Example Request:**
 
 ```bash
-curl http://localhost:3000/api/events?event_type=fundraiser&status=published \
+curl localhost:3000/api/events?event_type=fundraiser&status=published \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -445,7 +445,7 @@ DELETE /api/events/:eventId/registrations/:registrationId
 
 ```bash
 # 1. Create event
-curl -X POST http://localhost:3000/api/events \
+curl -X POST localhost:3000/api/events \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -462,7 +462,7 @@ curl -X POST http://localhost:3000/api/events \
 # Save the event_id from response
 
 # 2. Register attendee
-curl -X POST http://localhost:3000/api/events/{event_id}/register \
+curl -X POST localhost:3000/api/events/{event_id}/register \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -476,11 +476,11 @@ curl -X POST http://localhost:3000/api/events/{event_id}/register \
 
 ```bash
 # Search for fundraiser events
-curl "http://localhost:3000/api/events?search=gala&event_type=fundraiser" \
+curl "localhost:3000/api/events?search=gala&event_type=fundraiser" \
   -H "Authorization: Bearer $TOKEN"
 
 # Get upcoming published events
-curl "http://localhost:3000/api/events?status=published&start_date=2024-06-01T00:00:00Z" \
+curl "localhost:3000/api/events?status=published&start_date=2024-06-01T00:00:00Z" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -488,17 +488,17 @@ curl "http://localhost:3000/api/events?status=published&start_date=2024-06-01T00
 
 ```bash
 # 1. Get event registrations
-curl http://localhost:3000/api/events/{event_id}/registrations \
+curl localhost:3000/api/events/{event_id}/registrations \
   -H "Authorization: Bearer $TOKEN"
 
 # 2. Check in specific attendee
-curl -X POST http://localhost:3000/api/events/{event_id}/registrations/{reg_id}/checkin \
+curl -X POST localhost:3000/api/events/{event_id}/registrations/{reg_id}/checkin \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{}'
 
 # 3. Get updated statistics
-curl http://localhost:3000/api/events/{event_id}/stats \
+curl localhost:3000/api/events/{event_id}/stats \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -506,7 +506,7 @@ curl http://localhost:3000/api/events/{event_id}/stats \
 
 ```bash
 # Check event capacity before registering
-curl http://localhost:3000/api/events/{event_id} \
+curl localhost:3000/api/events/{event_id} \
   -H "Authorization: Bearer $TOKEN"
 
 # Response includes:
@@ -515,7 +515,7 @@ curl http://localhost:3000/api/events/{event_id} \
 # - is_full: false
 
 # Attempt registration (will succeed if not full)
-curl -X POST http://localhost:3000/api/events/{event_id}/register \
+curl -X POST localhost:3000/api/events/{event_id}/register \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -626,7 +626,7 @@ curl -X POST http://localhost:3000/api/events/{event_id}/register \
 
 ```bash
 # Get current capacity status
-curl http://localhost:3000/api/events/{event_id}/stats \
+curl localhost:3000/api/events/{event_id}/stats \
   -H "Authorization: Bearer $TOKEN"
 
 # If approaching capacity, consider:
@@ -648,8 +648,8 @@ For bulk operations, contact your administrator.
 
 ## Additional Resources
 
-- [Main API Reference](./API_REFERENCE.md)
-- [Analytics API Reference](./API_REFERENCE_ANALYTICS.md)
+- [Main API Reference](https://github.com/West-Cat-Strategy/nonprofit-manager)
+- [Analytics API Reference](https://github.com/West-Cat-Strategy/nonprofit-manager)
 - [Export API Reference](./API_REFERENCE_EXPORT.md)
 
 ---

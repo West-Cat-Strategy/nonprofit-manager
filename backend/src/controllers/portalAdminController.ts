@@ -219,7 +219,7 @@ export const createPortalInvitation = async (
       [email.toLowerCase(), contact_id || null, token, expiresAt, req.user!.id]
     );
 
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const baseUrl = process.env.FRONTEND_URL || 'HTTP://localhost:5173';
     const inviteUrl = `${baseUrl}/portal/accept-invitation/${token}`;
 
     res.status(201).json({

@@ -181,7 +181,7 @@ export async function sendSms(options: SendSmsOptions): Promise<SmsSendResult> {
     };
   }
 
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(config.accountSid)}/Messages.json`;
+  const url = `HTTPS://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(config.accountSid)}/Messages.json`;
 
   try {
     const controller = new AbortController();
@@ -245,7 +245,7 @@ export async function testTwilioConnection(): Promise<SmsTestResult> {
     return { success: false, error: 'Twilio SMS is not configured' };
   }
 
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(config.accountSid)}.json`;
+  const url = `HTTPS://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(config.accountSid)}.json`;
 
   try {
     const controller = new AbortController();

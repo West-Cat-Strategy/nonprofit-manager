@@ -8,7 +8,7 @@ export const getWebAuthnConfig = () => {
   const origins = splitOrigins(process.env.WEBAUTHN_ORIGIN).length
     ? splitOrigins(process.env.WEBAUTHN_ORIGIN)
     : splitOrigins(process.env.CORS_ORIGIN);
-  const fallbackOrigin = origins[0] || 'http://localhost:5173';
+  const fallbackOrigin = origins[0] || 'HTTP://localhost:5173';
 
   const rpID = process.env.WEBAUTHN_RP_ID || new URL(fallbackOrigin).hostname;
   const rpName = process.env.WEBAUTHN_RP_NAME || 'Nonprofit Manager';

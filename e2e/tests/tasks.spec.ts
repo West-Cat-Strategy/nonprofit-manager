@@ -15,7 +15,7 @@ async function createTestTask(
     dueDate?: string;
   }
 ): Promise<{ id: string }> {
-  const apiURL = process.env.API_URL || 'http://localhost:3001';
+  const apiURL = process.env.API_URL || 'HTTP://localhost:3001';
   const headers = await getAuthHeaders(page, token);
 
   const response = await page.request.post(`${apiURL}/api/tasks`, {
@@ -80,7 +80,7 @@ test.describe('Tasks Module', () => {
   });
 
   test('should mark task as complete', async ({ authenticatedPage, authToken }) => {
-    const apiURL = process.env.API_URL || 'http://localhost:3001';
+    const apiURL = process.env.API_URL || 'HTTP://localhost:3001';
     const headers = await getAuthHeaders(authenticatedPage, authToken);
     const { id } = await createTestTask(authenticatedPage, authToken, {
       subject: 'Complete Test Task',

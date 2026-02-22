@@ -13,13 +13,13 @@ Phase 2b focuses on operational security hardening, specifically:
 ### 1. PII Encryption Migration & Service
 
 **Files Created:**
-- [`database/migrations/031_add_pii_encryption_fields.sql`](../database/migrations/031_add_pii_encryption_fields.sql)
+- [`database/migrations/031_add_pii_encryption_fields.sql`](https://github.com/West-Cat-Strategy/nonprofit-manager)
   - Adds encrypted columns to: contacts (phone, mobile_phone, birth_date), accounts (phone), volunteers (emergency_contact_phone)
   - Creates `pii_access_audit` table for compliance tracking
   - Creates `pii_field_access_rules` table for role-based field definitions
   - Seeds default access rules (full access for admins, masked for regular users, none for volunteers on sensitive fields)
 
-- [`backend/src/services/piiService.ts`](../backend/src/services/piiService.ts) (350+ lines)
+- [`backend/src/services/piiService.ts`](https://github.com/West-Cat-Strategy/nonprofit-manager) (350+ lines)
   - `encryptForStorage()` - Encrypts plaintext fields using AES-256-GCM before save
   - `decryptFromStorage()` - Decrypts encrypted fields with role-based masking on read
   - `auditPIIAccess()` - Logs all PII access for compliance
@@ -476,7 +476,7 @@ test('piiService integrates with database', async () => {
 - Verify encrypted data wasn't truncated in database
 
 ### Logs not appearing in Kibana
-- Check network: `curl -v http://localhost:8080/logs`
+- Check network: `curl -v localhost:8080/logs`
 - Verify Logstash running: `docker logs nonprofit-manager-logstash`
 - Check environment variables: `LOG_AGGREGATION_ENABLED=true`
 

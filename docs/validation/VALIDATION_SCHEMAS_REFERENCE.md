@@ -498,11 +498,11 @@ When adding a new route:
 
 ## 📚 Documentation
 
-- **Phase 1 Completion**: [PHASE_1_COMPLETION_SUMMARY.md](../PHASE_1_COMPLETION_SUMMARY.md)
-- **Phase 1 Migration Guide**: [PHASE_1_MIGRATION_GUIDE.md](../PHASE_1_MIGRATION_GUIDE.md)
-- **Phase 1 Quick Reference**: [PHASE_1_QUICK_REFERENCE.md](../PHASE_1_QUICK_REFERENCE.md)
-- **Phase 2 Completion**: [PHASE_2_COMPLETION_SUMMARY.md](../PHASE_2_COMPLETION_SUMMARY.md)
-- **Phase 2 Next Steps**: [PHASE_2_NEXT_STEPS.md](../PHASE_2_NEXT_STEPS.md)
+- **Phase 1 Completion**: [PHASE_1_COMPLETION_SUMMARY.md](https://github.com/West-Cat-Strategy/nonprofit-manager)
+- **Phase 1 Migration Guide**: [PHASE_1_MIGRATION_GUIDE.md](https://github.com/West-Cat-Strategy/nonprofit-manager)
+- **Phase 1 Quick Reference**: [PHASE_1_QUICK_REFERENCE.md](https://github.com/West-Cat-Strategy/nonprofit-manager)
+- **Phase 2 Completion**: [PHASE_2_COMPLETION_SUMMARY.md](https://github.com/West-Cat-Strategy/nonprofit-manager)
+- **Phase 2 Next Steps**: [PHASE_2_NEXT_STEPS.md](https://github.com/West-Cat-Strategy/nonprofit-manager)
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Last Updated:** February 18, 2026  
 **Compiled From:** PHASE_1_FINAL_SUMMARY.md, PHASE_2_COMPLETION_SUMMARY.md, agents.md  
-**Relevant Code:** [backend/src security](../../backend/src/middleware/), [backend/src/services](../../backend/src/services/)
+**Relevant Code:** [backend/src security](https://github.com/West-Cat-Strategy/nonprofit-manager), [backend/src/services](https://github.com/West-Cat-Strategy/nonprofit-manager)
 
 ---
 
@@ -72,7 +72,7 @@ Attackers can exploit services that make requests to arbitrary URLs to:
 
 ```typescript
 // Example: User provides webhook URL during setup
-const webhookUrl = req.body.webhookUrl; // "https://internal.local"
+const webhookUrl = req.body.webhookUrl; // "internal.local"
 
 // Validation happens automatically
 const validated = await validateWebhookUrl(webhookUrl);
@@ -397,7 +397,7 @@ logger.error(`Payment failed`, { cardLast4: payment.cardNumber.slice(-4) });
 ```typescript
 const webhook = await db.webhook.create({
   data: {
-    url: 'https://external-service.com/webhook',
+    url: 'external-service.com/webhook',
     secret: crypto.randomBytes(32).toString('hex'),  // Generated secret
     events: ['donation_received', 'event_registered']
   }
@@ -795,5 +795,5 @@ When adding new features:
 ## See Also
 
 - [Architecture Decisions](./ARCHITECTURE_DECISIONS.md) — Framework/ORM choices
-- [Security Monitoring & Incident Response](../../docs/security/SECURITY_MONITORING_GUIDE.md) — Runtime security
+- [Security Monitoring & Incident Response](https://github.com/West-Cat-Strategy/nonprofit-manager) — Runtime security
 - [Planning & Progress](../planning-and-progress.md) — Security-related tasks in development

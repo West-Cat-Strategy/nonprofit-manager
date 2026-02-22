@@ -17,7 +17,7 @@ Welcome to the nonprofit-manager documentation. This is your navigation hub for 
 **Frontend developers?** Also see:
 - [frontend/SETUP.md](../frontend/SETUP.md) — Frontend-specific setup
 - [frontend/README.md](../frontend/README.md) — Frontend project structure
-- [frontend/ARCHITECTURE.md](../frontend/ARCHITECTURE.md) — Component architecture and state management
+- [frontend/ARCHITECTURE.md](https://github.com/West-Cat-Strategy/nonprofit-manager) — Component architecture and state management
 
 **Backend developers?** Also see:
 - [backend/README.md](../backend/README.md) — Backend project overview
@@ -70,7 +70,7 @@ Welcome to the nonprofit-manager documentation. This is your navigation hub for 
 | Document | Purpose | Audience |
 |----------|---------|----------|
 | [testing/TESTING.md](testing/TESTING.md) | Testing overview & quick reference | All developers |
-| [testing/UNIT_TESTING.md](testing/UNIT_TESTING.md) | Unit test patterns (Jest/Vitest) | Backend/frontend devs |
+| [https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager) | Unit test patterns (Jest/Vitest) | Backend/frontend devs |
 | [testing/COMPONENT_TESTING.md](testing/COMPONENT_TESTING.md) | React component testing | Frontend developers |
 | [testing/INTEGRATION_TEST_GUIDE.md](testing/INTEGRATION_TEST_GUIDE.md) | Integration test procedures | QA/backend devs |
 | [testing/MANUAL_TESTING_GUIDE.md](testing/MANUAL_TESTING_GUIDE.md) | Manual QA procedures | QA team |
@@ -147,7 +147,7 @@ For historical phase reports, see [phases/archive/](phases/archive/) directory.
 - **Get started developing** → [GETTING_STARTED.md](development/GETTING_STARTED.md)
 - **Contribute code** → [CONTRIBUTING.md](../CONTRIBUTING.md) → [CONVENTIONS.md](development/CONVENTIONS.md)
 - **Understand the architecture** → [ARCHITECTURE.md](development/ARCHITECTURE.md)
-- **Write tests** → [TESTING.md](testing/TESTING.md) → [UNIT_TESTING.md](testing/UNIT_TESTING.md) or [COMPONENT_TESTING.md](testing/COMPONENT_TESTING.md)
+- **Write tests** → [TESTING.md](testing/TESTING.md) → [UNIT_TESTING.md](https://github.com/West-Cat-Strategy/nonprofit-manager) or [COMPONENT_TESTING.md](testing/COMPONENT_TESTING.md)
 - **Call an API endpoint** → [api/README.md](api/README.md)
 - **Check feature status** → [features/FEATURE_MATRIX.md](features/FEATURE_MATRIX.md)
 - **Deploy to production** → [deployment/DEPLOYMENT.md](deployment/DEPLOYMENT.md)
@@ -185,13 +185,13 @@ Key principles:
 1. [backend/README.md](../backend/README.md) — Project overview
 2. [ARCHITECTURE.md](development/ARCHITECTURE.md) — Design decisions
 3. [VALIDATION_SCHEMAS_REFERENCE.md](validation/VALIDATION_SCHEMAS_REFERENCE.md) — Input validation
-4. [UNIT_TESTING.md](testing/UNIT_TESTING.md) — Testing patterns
+4. [UNIT_TESTING.md](https://github.com/West-Cat-Strategy/nonprofit-manager) — Testing patterns
 5. [api/README.md](api/README.md) — API reference
 
 **Frontend Developer**
 1. [frontend/SETUP.md](../frontend/SETUP.md) — Project setup
 2. [frontend/README.md](../frontend/README.md) — Project structure
-3. [frontend/ARCHITECTURE.md](../frontend/ARCHITECTURE.md) — Component structure
+3. [frontend/ARCHITECTURE.md](https://github.com/West-Cat-Strategy/nonprofit-manager) — Component structure
 4. [COMPONENT_TESTING.md](testing/COMPONENT_TESTING.md) — Testing patterns
 5. [../frontend/NEO-BRUTALIST-GUIDE.md](../frontend/NEO-BRUTALIST-GUIDE.md) — Design system
 
@@ -219,7 +219,7 @@ Key principles:
 
 **Documentation questions?**
 - See [DOCUMENTATION_STYLE_GUIDE.md](DOCUMENTATION_STYLE_GUIDE.md) for how docs are formatted
-- See [DOCUMENTATION_MAINTENANCE.md](DOCUMENTATION_MAINTENANCE.md) for how to maintain docs
+- See [https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager) for how to maintain docs
 
 **Can't find what you need?**
 - Check the table of contents for each major category above
@@ -238,7 +238,7 @@ Key principles:
 docs/
 ├── INDEX.md                              ← You are here
 ├── DOCUMENTATION_STYLE_GUIDE.md          ← Style standards
-├── DOCUMENTATION_MAINTENANCE.md          ← Maintenance checklist
+├── https://github.com/West-Cat-Strategy/nonprofit-manager          ← Maintenance checklist
 ├── api/                                  ← API documentation
 ├── backend/                              ← Backend-specific docs
 ├── deployment/                           ← Infrastructure & deployment

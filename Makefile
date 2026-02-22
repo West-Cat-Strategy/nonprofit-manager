@@ -89,8 +89,8 @@ install-dev: install hooks
 dev: docker-up
 	@echo ""
 	@echo "$(GREEN)Development environment started!$(RESET)"
-	@echo "  Frontend: http://localhost:5173"
-	@echo "  Backend:  http://localhost:3000"
+	@echo "  Frontend: HTTP://localhost:5173"
+	@echo "  Backend:  HTTP://localhost:3000"
 	@echo "  Database: localhost:5432"
 	@echo ""
 

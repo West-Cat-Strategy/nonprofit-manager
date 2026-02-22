@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { getAuthHeaders } from './database';
 
-const apiURL = () => process.env.API_URL || 'http://localhost:3001';
+const apiURL = () => process.env.API_URL || 'HTTP://localhost:3001';
 
 async function postJSON(page: Page, token: string, path: string, data: unknown) {
   const headers = await getAuthHeaders(page, token);
@@ -81,7 +81,7 @@ export async function deleteTemplate(page: Page, token: string, id: string) {
 export async function createWebhookEndpoint(page: Page, token: string): Promise<string> {
   const response = await postJSON(page, token, '/api/webhooks/endpoints', {
     // Use a public IP literal to avoid DNS resolution flakes in restricted environments.
-    url: 'https://8.8.8.8/webhook',
+    url: 'HTTPS://8.8.8.8/webhook',
     events: ['account.created'],
     description: 'E2E endpoint',
   });

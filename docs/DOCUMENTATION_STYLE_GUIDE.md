@@ -495,15 +495,15 @@ Use this checklist before committing documentation changes:
 - [ ] Tested: Followed setup guides, ran examples, verified links work
 - [ ] Reviewed: Read through as new developer (unfamiliar perspective)
 - [ ] Updated: Related docs that reference this doc are also updated
-- [ ] Linked: docs/INDEX.md or relevant index file is updated
+- [ ] Linked: https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/docs/INDEX.md or relevant index file is updated
 
 ---
 
 ## Support & Questions
 
 Questions about documentation standards?
-- See [docs/INDEX.md](docs/INDEX.md) for navigation
-- See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines
-- Refer to existing well-documented files as examples: [VALIDATION_SCHEMAS_REFERENCE.md](docs/validation/VALIDATION_SCHEMAS_REFERENCE.md), [SECURITY_MONITORING_GUIDE.md](docs/security/SECURITY_MONITORING_GUIDE.md)
+- See [https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/docs/INDEX.md](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/docs/INDEX.md) for navigation
+- See [https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/CONTRIBUTING.md](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/CONTRIBUTING.md) for contribution guidelines
+- Refer to existing well-documented files as examples: [VALIDATION_SCHEMAS_REFERENCE.md](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/docs/validation/VALIDATION_SCHEMAS_REFERENCE.md), [SECURITY_MONITORING_GUIDE.md](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/docs/security/SECURITY_MONITORING_GUIDE.md)
 
 For issues or improvements to this guide, open an issue or PR with label `documentation`.

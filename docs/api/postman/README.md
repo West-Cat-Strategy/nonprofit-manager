@@ -23,7 +23,7 @@ This directory contains Postman collection and environment files for testing the
 
 1. Click environment dropdown in top-right corner
 2. Select "Nonprofit Manager - Local"
-3. Verify `base_url` is set to `http://localhost:3000/api`
+3. Verify `base_url` is set to `localhost:3000/api`
 
 ### 3. Start Backend Server
 
@@ -117,7 +117,7 @@ These are automatically set by test scripts:
 
 Update these in the environment if your setup differs:
 
-- `base_url` - API base URL (default: `http://localhost:3000/api`)
+- `base_url` - API base URL (default: `localhost:3000/api`)
 
 ## Testing Webhooks
 
@@ -258,6 +258,6 @@ To share with team:
 ## Resources
 
 - [Postman Documentation](https://learning.postman.com/docs/)
-- [Newman CLI Documentation](https://www.npmjs.com/package/newman)
-- [Stripe Testing Guide](../STRIPE_TESTING_GUIDE.md)
+- [Newman CLI Documentation](https://github.com/postmanlabs/newman)
+- [Stripe Testing Guide](https://github.com/West-Cat-Strategy/nonprofit-manager)
 - [API Documentation](../../README.md)

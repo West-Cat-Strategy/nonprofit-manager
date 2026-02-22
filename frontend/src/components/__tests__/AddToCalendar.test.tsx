@@ -8,8 +8,8 @@ import { renderWithProviders } from '../../test/testUtils';
 // Mock the calendar utility functions
 vi.mock('../../utils/calendar', () => ({
   generateGoogleCalendarUrl: vi.fn((event) => `https://google.com/calendar?event=${event.event_id}`),
-  generateOutlookCalendarUrl: vi.fn((event) => `https://outlook.com/calendar?event=${event.event_id}`),
-  generateYahooCalendarUrl: vi.fn((event) => `https://yahoo.com/calendar?event=${event.event_id}`),
+  generateOutlookCalendarUrl: vi.fn((event) => `HTTPS://outlook.com/calendar?event=${event.event_id}`),
+  generateYahooCalendarUrl: vi.fn((event) => `HTTPS://yahoo.com/calendar?event=${event.event_id}`),
   getIcsDownloadUrl: vi.fn((eventId) => `/api/events/${eventId}/ics`),
 }));
 
@@ -125,7 +125,7 @@ describe('AddToCalendar', () => {
     fireEvent.click(button);
 
     const outlookLink = screen.getByText('Outlook').closest('a');
-    expect(outlookLink).toHaveAttribute('href', `https://outlook.com/calendar?event=${mockEvent.event_id}`);
+    expect(outlookLink).toHaveAttribute('href', `HTTPS://outlook.com/calendar?event=${mockEvent.event_id}`);
     expect(outlookLink).toHaveAttribute('target', '_blank');
 
     expect(calendarUtils.generateOutlookCalendarUrl).toHaveBeenCalledWith(mockEvent);
@@ -138,7 +138,7 @@ describe('AddToCalendar', () => {
     fireEvent.click(button);
 
     const yahooLink = screen.getByText('Yahoo Calendar').closest('a');
-    expect(yahooLink).toHaveAttribute('href', `https://yahoo.com/calendar?event=${mockEvent.event_id}`);
+    expect(yahooLink).toHaveAttribute('href', `HTTPS://yahoo.com/calendar?event=${mockEvent.event_id}`);
     expect(yahooLink).toHaveAttribute('target', '_blank');
 
     expect(calendarUtils.generateYahooCalendarUrl).toHaveBeenCalledWith(mockEvent);

@@ -11,7 +11,7 @@ How to test React components in nonprofit-manager using React Testing Library an
 - [Overview](#overview)
 - [Getting Started](#getting-started)
 - [Testing Patterns](#testing-patterns)
-- [User Interaction Testing](#user-interaction-testing)
+- [User Interaction Testing](#3-testing-user-interactions)
 - [Testing with Async Data](#testing-with-async-data)
 - [Common Patterns](#common-patterns)
 - [Best Practices](#best-practices)
@@ -768,7 +768,7 @@ render(<Component />, { wrapper: TestWrapper });
 
 ## See Also
 
-- [UNIT_TESTING.md](UNIT_TESTING.md) — Unit testing utility functions
-- [../TESTING.md](../TESTING.md) — Testing overview
-- [../../development/CONVENTIONS.md](../../development/CONVENTIONS.md) — Code standards
+- [https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager) — Unit testing utility functions
+- [https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager) — Testing overview
+- [https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager) — Code standards
 - [React Testing Library Docs](https://testing-library.com/docs/react-testing-library/intro/) — Official docs

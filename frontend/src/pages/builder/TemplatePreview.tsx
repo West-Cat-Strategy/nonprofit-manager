@@ -20,7 +20,7 @@ const TemplatePreview: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const previewUrl = useMemo(() => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    const apiUrl = import.meta.env.VITE_API_URL || 'HTTP://localhost:8000/api';
     const baseUrl = apiUrl.endsWith('/api') ? apiUrl.slice(0, -4) : apiUrl;
     return `${baseUrl}/api/templates/${templateId}/preview?page=${encodeURIComponent(pageSlug)}`;
   }, [templateId, pageSlug]);

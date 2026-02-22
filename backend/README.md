@@ -14,9 +14,9 @@ npm install
 npm run dev
 ```
 
-Backend will start at `http://localhost:3000`.
+Backend will start at `localhost:3000`.
 
-For detailed setup instructions, see [SETUP.md](SETUP.md) (coming soon) or [docs/development/GETTING_STARTED.md](../docs/development/GETTING_STARTED.md).
+For detailed setup instructions, see [https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager) (coming soon) or [docs/development/GETTING_STARTED.md](../docs/development/GETTING_STARTED.md).
 
 ---
 
@@ -193,7 +193,7 @@ API endpoints are documented in:
 **Test an endpoint**:
 
 ```bash
-curl -X GET http://localhost:3000/api/health
+curl -X GET localhost:3000/api/health
 ```
 
 ### Outcomes Tracking Endpoints
@@ -278,18 +278,18 @@ backend/
 
 ## Connecting to Frontend
 
-Frontend expects backend at `http://localhost:3000`.
+Frontend expects backend at `localhost:3000`.
 
 If backend is at different address, update in frontend `.env.local`:
 
 ```bash
-VITE_API_URL=http://localhost:3000
+VITE_API_URL=localhost:3000
 ```
 
 ### Check Connection
 
 ```bash
-curl http://localhost:3000/api/health
+curl localhost:3000/api/health
 ```
 
 Should return:
@@ -418,7 +418,7 @@ npm test -- --verbose
 npm test -- services/userService.test.ts
 ```
 
-See [docs/testing/UNIT_TESTING.md](../docs/testing/UNIT_TESTING.md) for testing patterns.
+See [docs/testing/UNIT_TESTING.md](https://github.com/West-Cat-Strategy/nonprofit-manager) for testing patterns.
 
 ---
 
@@ -462,5 +462,5 @@ For production deployment:
 - [docs/development/CONVENTIONS.md](../docs/development/CONVENTIONS.md) — Code style guide
 - [docs/development/ARCHITECTURE.md](../docs/development/ARCHITECTURE.md) — System architecture
 - [docs/api/README.md](../docs/api/README.md) — API documentation
-- [docs/testing/UNIT_TESTING.md](../docs/testing/UNIT_TESTING.md) — Testing patterns
+- [docs/testing/UNIT_TESTING.md](https://github.com/West-Cat-Strategy/nonprofit-manager) — Testing patterns
 - [docs/deployment/DEPLOYMENT.md](../docs/deployment/DEPLOYMENT.md) — Deployment guide

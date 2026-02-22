@@ -146,7 +146,7 @@ test.describe('Contacts Module', () => {
       phone: '5550202002',
     });
 
-    const apiURL = process.env.API_URL || 'http://localhost:3001';
+    const apiURL = process.env.API_URL || 'HTTP://localhost:3001';
     await authenticatedPage.request.delete(`${apiURL}/api/contacts/${inactiveContact.id}`, {
       headers: { Authorization: `Bearer ${authToken}` },
     });

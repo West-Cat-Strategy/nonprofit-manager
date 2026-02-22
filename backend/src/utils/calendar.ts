@@ -135,7 +135,7 @@ export const generateGoogleCalendarUrl = (event: Event): string => {
     params.set('location', location);
   }
 
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+  return `HTTPS://calendar.google.com/calendar/render?${params.toString()}`;
 };
 
 /**
@@ -160,7 +160,7 @@ export const generateOutlookCalendarUrl = (event: Event): string => {
     params.set('location', location);
   }
 
-  return `https://outlook.live.com/calendar/0/deeplink/compose?${params.toString()}`;
+  return `HTTPS://outlook.live.com/calendar/0/deeplink/compose?${params.toString()}`;
 };
 
 export default {

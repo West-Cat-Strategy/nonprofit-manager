@@ -9,12 +9,12 @@ describe('seoMeta.buildSeoMeta', () => {
         title: 'Default Title',
         description: 'Default Description',
         favicon: '/favicon-custom.ico',
-        ogImage: 'https://cdn.example.com/default-og.png',
+        ogImage: 'HTTPS://cdn.example.com/default-og.png',
         customHeadCode: '<meta name="x-custom" content="1">',
       },
       {
         keywords: ['a', 'b'],
-        canonicalUrl: 'https://example.org/page',
+        canonicalUrl: 'HTTPS://example.org/page',
       },
       'body { color: red; }',
       '<main>Hello</main>',
@@ -24,8 +24,8 @@ describe('seoMeta.buildSeoMeta', () => {
     expect(html).toContain('<title>My Title</title>');
     expect(html).toContain('name="description" content="My Description"');
     expect(html).toContain('name="keywords" content="a, b"');
-    expect(html).toContain('rel="canonical" href="https://example.org/page"');
-    expect(html).toContain('property="og:image" content="https://cdn.example.com/default-og.png"');
+    expect(html).toContain('rel="canonical" href="HTTPS://example.org/page"');
+    expect(html).toContain('property="og:image" content="HTTPS://cdn.example.com/default-og.png"');
     expect(html).toContain('name="twitter:card" content="summary_large_image"');
     expect(html).toContain('<meta name="x-custom" content="1">');
     expect(html).toContain('<script>analytics()</script>');
@@ -40,12 +40,12 @@ describe('seoMeta.buildSeoMeta', () => {
       {
         title: 'Default Title',
         description: 'Default Description',
-        ogImage: 'https://cdn.example.com/default-og.png',
+        ogImage: 'HTTPS://cdn.example.com/default-og.png',
       },
       {
         noIndex: true,
         canonicalUrl: 'https://example.org/?x=<y>',
-        ogImage: 'https://cdn.example.com/page-og.png',
+        ogImage: 'HTTPS://cdn.example.com/page-og.png',
       },
       '',
       '<main/>',
@@ -56,6 +56,6 @@ describe('seoMeta.buildSeoMeta', () => {
     expect(html).toContain('Desc &quot;unsafe&quot;');
     expect(html).toContain('name="robots" content="noindex"');
     expect(html).toContain('href="https://example.org/?x=&lt;y&gt;"');
-    expect(html).toContain('property="og:image" content="https://cdn.example.com/page-og.png"');
+    expect(html).toContain('property="og:image" content="HTTPS://cdn.example.com/page-og.png"');
   });
 });

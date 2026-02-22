@@ -27,8 +27,8 @@ The Nonprofit Manager API provides comprehensive endpoints for managing payment 
 
 **Base URL:**
 ```
-Production: https://api.your-nonprofit.org
-Development: http://localhost:3000
+Production: api.your-nonprofit.org
+Development: localhost:3000
 ```
 
 **API Version:** v1
@@ -680,9 +680,9 @@ if (error) {
 ## Support
 
 For API support:
-- **Documentation:** https://docs.your-nonprofit.org/api
-- **Issues:** https://github.com/your-org/nonprofit-manager/issues
-- **Email:** api-support@your-nonprofit.org
+- **Documentation:** https://github.com/West-Cat-Strategy/nonprofit-manager/tree/main/docs/api
+- **Issues:** https://github.com/West-Cat-Strategy/nonprofit-manager/issues
+- **Email:** info@westcat.ca
 
 ---
 

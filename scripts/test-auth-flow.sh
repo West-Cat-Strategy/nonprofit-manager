@@ -11,7 +11,7 @@ source "$SCRIPT_DIR/lib/config.sh"
 print_header "Authentication Flow Test"
 
 # API base URL
-API_URL="${API_BASE_URL:-http://localhost:3000/api}"
+API_URL="${API_BASE_URL:-HTTP://localhost:3000/api}"
 
 # Function to print success
 success() {
@@ -25,7 +25,7 @@ error() {
 
 # Test 1: Health check
 log_info "1. Testing health endpoint..."
-HEALTH_RESPONSE=$(curl -s http://localhost:$BACKEND_PORT/health)
+HEALTH_RESPONSE=$(curl -s HTTP://localhost:$BACKEND_PORT/health)
 if echo "$HEALTH_RESPONSE" | grep -q "ok"; then
     success "Health check passed"
 else

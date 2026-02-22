@@ -61,14 +61,14 @@ PLAUSIBLE_SECRET_KEY_BASE=your-generated-64-char-string
 PLAUSIBLE_TOTP_VAULT_KEY=your-generated-32-char-string
 
 # Update base URL if not using localhost
-PLAUSIBLE_BASE_URL=http://localhost:8000
+PLAUSIBLE_BASE_URL=localhost:8000
 
 # Set a secure database password
 PLAUSIBLE_DB_PASSWORD=choose-a-secure-password
 
 # Frontend configuration
 VITE_PLAUSIBLE_DOMAIN=localhost
-VITE_PLAUSIBLE_API_HOST=http://localhost:8000
+VITE_PLAUSIBLE_API_HOST=localhost:8000
 ```
 
 ### Step 3: Start Plausible
@@ -81,7 +81,7 @@ Wait for the containers to initialize (about 30 seconds).
 
 ### Step 4: Create Your Admin Account
 
-1. Open http://localhost:8000 in your browser
+1. Open localhost:8000 in your browser
 2. Click "Register" to create your admin account
 3. Verify your email (or skip if SMTP not configured)
 
@@ -112,7 +112,7 @@ Edit `frontend/.env.local` and add:
 
 ```bash
 VITE_PLAUSIBLE_DOMAIN=localhost
-VITE_PLAUSIBLE_API_HOST=http://localhost:8000
+VITE_PLAUSIBLE_API_HOST=localhost:8000
 VITE_PLAUSIBLE_API_KEY=your-api-key-from-step-6
 ```
 
@@ -126,9 +126,9 @@ For production, update the following in `.env.plausible`:
 
 ```bash
 # Use your actual domain
-PLAUSIBLE_BASE_URL=https://analytics.yourdomain.com
+PLAUSIBLE_BASE_URL=analytics.yourdomain.com
 VITE_PLAUSIBLE_DOMAIN=yourdomain.com
-VITE_PLAUSIBLE_API_HOST=https://analytics.yourdomain.com
+VITE_PLAUSIBLE_API_HOST=analytics.yourdomain.com
 
 # Disable registration after creating your account
 PLAUSIBLE_DISABLE_REGISTRATION=true
@@ -156,7 +156,7 @@ server {
     ssl_certificate_key /path/to/key.pem;
 
     location / {
-        proxy_pass http://localhost:8000;
+        proxy_pass localhost:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -171,7 +171,7 @@ server {
 
 ### Viewing Analytics
 
-1. Open http://localhost:8000 (or your configured URL)
+1. Open localhost:8000 (or your configured URL)
 2. Log in with your admin account
 3. Select your site from the dashboard
 4. View real-time and historical analytics
@@ -352,7 +352,7 @@ The widget requires:
 2. Verify environment variables in `frontend/.env.local`:
    ```bash
    VITE_PLAUSIBLE_DOMAIN=localhost
-   VITE_PLAUSIBLE_API_HOST=http://localhost:8000
+   VITE_PLAUSIBLE_API_HOST=localhost:8000
    ```
 
 3. Check browser console for errors
@@ -383,7 +383,7 @@ The widget requires:
 
 3. Verify Plausible API is accessible:
    ```bash
-   curl http://localhost:8000/api/v1/sites
+   curl localhost:8000/api/v1/sites
    ```
 
 4. Check browser console for CORS errors
@@ -446,8 +446,8 @@ Track additional data with every pageview:
 <script
   defer
   data-domain="yourdomain.com"
-  data-api="http://localhost:8000/api/event"
-  src="http://localhost:8000/js/script.js"
+  data-api="localhost:8000/api/event"
+  src="localhost:8000/js/script.js"
   data-user-id="<%= user.id %>"
   data-organization="<%= org.name %>"
 ></script>
@@ -479,8 +479,8 @@ Set up goals in Plausible:
 ## Support
 
 For issues specific to the Nonprofit Manager Plausible integration:
-- Check the [GitHub Issues](https://github.com/yourusername/nonprofit-manager/issues)
-- Review the [Product Analytics Research](./PRODUCT_ANALYTICS_RESEARCH.md)
+- Check the [GitHub Issues](https://github.com/West-Cat-Strategy/nonprofit-manager/issues)
+- Review the [Product Analytics Research](https://github.com/West-Cat-Strategy/nonprofit-manager)
 
 For general Plausible questions:
 - [Plausible Community Forum](https://github.com/plausible/analytics/discussions)

@@ -211,7 +211,7 @@ All endpoint documentation includes `curl` command examples.
 Example:
 
 ```bash
-curl -X GET http://localhost:3000/api/events \
+curl -X GET localhost:3000/api/events \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -224,7 +224,7 @@ You can copy-paste these examples directly into your terminal.
 ### Current API Version
 
 - **Version**: 1.0
-- **Base URL**: `http://localhost:3000/api` (development)
+- **Base URL**: `localhost:3000/api` (development)
 - **Status**: Stable
 
 ### Authentication
@@ -313,7 +313,7 @@ Use Axios to call the API:
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api',
+  baseURL: 'localhost:3000/api',
   headers: {
     Authorization: `Bearer ${token}`
   }
@@ -336,7 +336,7 @@ Using requests library:
 ```python
 import requests
 
-api_url = 'http://localhost:3000/api'
+api_url = 'localhost:3000/api'
 headers = {'Authorization': f'Bearer {token}'}
 
 # GET request
@@ -383,14 +383,14 @@ curl -H "Authorization: Bearer YOUR_TOKEN" ...
 Endpoint URL might be wrong:
 
 1. Check endpoint path in documentation
-2. Verify base URL is correct (`http://localhost:3000/api`)
+2. Verify base URL is correct (`localhost:3000/api`)
 3. Check spelling and HTTP method (GET vs POST, etc.)
 
 ### "500 Internal Server Error"
 
 Server error. Check:
 
-1. Backend is running: `curl http://localhost:3000/api/health`
+1. Backend is running: `curl localhost:3000/api/health`
 2. Database is connected
 3. Check backend logs for error details
 
@@ -400,16 +400,16 @@ Cross-origin request blocked:
 
 1. Frontend and backend on same machine? Usually not an issue in dev
 2. Check `CORS_ORIGINS` environment variable in backend
-3. Ensure backend is at `http://localhost:3000`
+3. Ensure backend is at `localhost:3000`
 
 ---
 
 ## See Also
 
-- [../../development/GETTING_STARTED.md](../../development/GETTING_STARTED.md) — Backend setup
-- [../../testing/TESTING.md](../../testing/TESTING.md) — Testing API endpoints
-- [../../development/CONVENTIONS.md](../../development/CONVENTIONS.md) — Code standards
-- [../../security/SECURITY_MONITORING_GUIDE.md](../../security/SECURITY_MONITORING_GUIDE.md) — API security
+- [https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager) — Backend setup
+- [https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager) — Testing API endpoints
+- [https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager) — Code standards
+- [https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager) — API security
 
 ---
 

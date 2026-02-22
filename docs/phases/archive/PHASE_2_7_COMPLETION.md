@@ -342,7 +342,7 @@ Request → validateBody/Query/Params Middleware → Zod Schema Validation → C
 - [PHASE_2_6_COMPLETION.md](PHASE_2_6_COMPLETION.md) - Auth Controller Guards implementation
 - [PHASE_2_NEXT_STEPS.md](PHASE_2_NEXT_STEPS.md) - Overall Phase 2 scope and timeline
 - [PHASE_2_COMPLETION_SUMMARY.md](PHASE_2_COMPLETION_SUMMARY.md) - Phase 2.1-2.5 infrastructure
-- [docs/CONVENTIONS.md](docs/CONVENTIONS.md) - Coding conventions and validation patterns
+- [https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager) - Coding conventions and validation patterns
 
 ---
 

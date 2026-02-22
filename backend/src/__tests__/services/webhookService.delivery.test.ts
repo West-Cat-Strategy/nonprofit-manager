@@ -30,7 +30,7 @@ describe('webhookService delivery behavior', () => {
     const endpointRow = {
       id: 'endpoint-1',
       user_id: 'user-1',
-      url: 'http://localhost/webhook',
+      url: 'HTTP://localhost/webhook',
       secret: 'whsec_test',
       events: ['contact.created'],
       is_active: true,

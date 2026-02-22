@@ -325,7 +325,7 @@ The drag-and-drop page editor allows visual customization of templates.
    ```
 
 3. **Access Site**:
-   - Subdomain: `https://mynonprofit.npmsite.org`
+   - Subdomain: `mynonprofit.npmsite.org`
    - Custom domain: Configure DNS and SSL
 
 ### Custom Domains
@@ -713,10 +713,10 @@ POST /api/templates/:templateId/versions/:versionId/restore
 
 For additional help:
 
-- **Documentation**: [docs/](../docs/)
-- **API Reference**: [ARCHITECTURE.md](./ARCHITECTURE.md)
-- **Issue Tracker**: [GitHub Issues](https://github.com/your-org/nonprofit-manager/issues)
-- **Email**: support@yournonprofit.org
+- **Documentation**: [docs/](https://github.com/West-Cat-Strategy/nonprofit-manager)
+- **API Reference**: [ARCHITECTURE.md](https://github.com/West-Cat-Strategy/nonprofit-manager)
+- **Issue Tracker**: [GitHub Issues](https://github.com/West-Cat-Strategy/nonprofit-manager/issues)
+- **Email**: info@westcat.ca
 
 ---
 

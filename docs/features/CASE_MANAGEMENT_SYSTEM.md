@@ -577,15 +577,15 @@ npm run dev
 
 ```bash
 # Get case types
-curl http://localhost:3000/api/cases/types \
+curl localhost:3000/api/cases/types \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # Get case statuses
-curl http://localhost:3000/api/cases/statuses \
+curl localhost:3000/api/cases/statuses \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # Create a case
-curl -X POST http://localhost:3000/api/cases \
+curl -X POST localhost:3000/api/cases \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"contact_id":"uuid","case_type_id":"uuid","title":"Test Case"}'
@@ -598,7 +598,7 @@ curl -X POST http://localhost:3000/api/cases \
 - **API Documentation**: See API_INTEGRATION_GUIDE.md
 - **Database Schema**: See 009_case_management.sql
 - **Type Definitions**: See backend/src/types/case.ts
-- **Issues**: https://github.com/your-org/nonprofit-manager/issues
+- **Issues**: https://github.com/West-Cat-Strategy/nonprofit-manager/issues
 
 ---
 

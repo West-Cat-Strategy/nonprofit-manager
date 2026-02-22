@@ -30,7 +30,7 @@ A comprehensive code review identified **23 critical efficiency issues** across 
 ## Implemented Optimizations
 
 ### 1. ✅ HTTP Response Compression (Backend)
-**File:** [backend/src/index.ts](backend/src/index.ts#L95-L104)  
+**File:** [backend/src/index.ts](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/backend/src/index.ts)  
 **Impact:** 60-85% bandwidth reduction for JSON responses
 
 - Added `compression` middleware with gzip/brotli encoding
@@ -44,7 +44,7 @@ A comprehensive code review identified **23 critical efficiency issues** across 
 ---
 
 ### 2. ✅ Vite Bundle Code Splitting (Frontend)
-**File:** [frontend/vite.config.ts](frontend/vite.config.ts#L5-L30)
+**File:** [frontend/vite.config.ts](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/frontend/vite.config.ts)
 
 **Optimized chunk strategy:**
 - `vendor-react`: React, React DOM, React Router (cached across all routes)
@@ -66,8 +66,8 @@ A comprehensive code review identified **23 critical efficiency issues** across 
 
 ### 3. ✅ Redux Selector Memoization (Frontend)
 **Files:** 
-- [frontend/src/store/slices/casesSlice.ts](frontend/src/store/slices/casesSlice.ts#L357-L485)
-- [frontend/src/store/slices/followUpsSlice.ts](frontend/src/store/slices/followUpsSlice.ts#L365-L388)
+- [frontend/src/store/slices/casesSlice.ts](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/frontend/src/store/slices/casesSlice.ts)
+- [frontend/src/store/slices/followUpsSlice.ts](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/frontend/src/store/slices/followUpsSlice.ts)
 
 **Converted 9 case-related selectors to use `createSelector`:**
 - `selectCasesByAssignee` — filters by user
@@ -94,7 +94,7 @@ A comprehensive code review identified **23 critical efficiency issues** across 
 ---
 
 ### 4. ✅ Chart Component Memoization (Frontend)
-**File:** [frontend/src/pages/analytics/charts.tsx](frontend/src/pages/analytics/charts.tsx#L1-L423)
+**File:** [frontend/src/pages/analytics/charts.tsx](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/frontend/src/pages/analytics/charts.tsx)
 
 Wrapped all 6 recharts components with `React.memo()`:
 1. `EngagementPieChart` — engagement distribution
@@ -113,7 +113,7 @@ Wrapped all 6 recharts components with `React.memo()`:
 ---
 
 ### 5. ✅ Database Pool Consolidation (Backend)
-**File:** [backend/src/index.ts](backend/src/index.ts#L1-L30)
+**File:** [backend/src/index.ts](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/backend/src/index.ts)
 
 **Removed duplicate unconfigured pool:**
 - **Before:** Two separate `Pool` instances
@@ -130,7 +130,7 @@ Wrapped all 6 recharts components with `React.memo()`:
 ---
 
 ### 6. ✅ Metrics Map Cleanup (Backend)
-**File:** [backend/src/middleware/metrics.ts](backend/src/middleware/metrics.ts#L1-L75)
+**File:** [backend/src/middleware/metrics.ts](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/backend/src/middleware/metrics.ts)
 
 **Fixed unbounded `Map` growth:**
 - Added periodic cleanup interval (1 hour)
@@ -153,7 +153,7 @@ Memory: bounded to ~1-5MB even after months of operation
 ---
 
 ### 7. ✅ Account Lockout Map Cleanup (Backend)
-**File:** [backend/src/middleware/accountLockout.ts](backend/src/middleware/accountLockout.ts#L242-L280)
+**File:** [backend/src/middleware/accountLockout.ts](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/backend/src/middleware/accountLockout.ts)
 
 **Fixed unbounded `loginAttempts` Map growth:**
 - Original: Only removed locked entries after expiry
@@ -180,7 +180,7 @@ Memory: bounded to ~1-2MB
 ---
 
 ### 8. ✅ Cache Cleanup Interval Management (Backend)
-**File:** [backend/src/utils/cache.ts](backend/src/utils/cache.ts#L25-L50)
+**File:** [backend/src/utils/cache.ts](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/backend/src/utils/cache.ts)
 
 **Fixed non-clearable setInterval:**
 - **Issue:** Each `Cache` instance created a `setInterval` without tracking it
@@ -270,7 +270,7 @@ destroy(): void {
 ## Additional Optimizations Implemented (Post-Review)
 
 ### 9. ✅ Memoize Dashboard VolunteerWidget Stats (Frontend)
-**File:** [frontend/src/components/VolunteerWidget.tsx](frontend/src/components/VolunteerWidget.tsx#L50-L61)
+**File:** [frontend/src/components/VolunteerWidget.tsx](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/frontend/src/components/VolunteerWidget.tsx)
 
 Wrapped `calculatedStats` computation in `useMemo`:
 - **Before:** 4 `filter()` calls + 1 `reduce()` recalculated on every render
@@ -280,7 +280,7 @@ Wrapped `calculatedStats` computation in `useMemo`:
 ---
 
 ### 10. ✅ Add Pagination to Contact Notes (Backend)
-**File:** [backend/src/services/contactNoteService.ts](backend/src/services/contactNoteService.ts#L15-L40)
+**File:** [backend/src/services/contactNoteService.ts](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/backend/src/services/contactNoteService.ts)
 
 Added pagination support to `getContactNotes()`:
 - Parameters: `limit` (default: 50), `offset` (default: 0)
@@ -293,7 +293,7 @@ Added pagination support to `getContactNotes()`:
 ---
 
 ### 11. ✅ Add Pagination to Account Contacts (Backend)
-**File:** [backend/src/services/accountService.ts](backend/src/services/accountService.ts#L441-L465)
+**File:** [backend/src/services/accountService.ts](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/backend/src/services/accountService.ts)
 
 Added pagination support to `getAccountContacts()`:
 - Parameters: `limit` (default: 50), `offset` (default: 0)
@@ -306,7 +306,7 @@ Added pagination support to `getAccountContacts()`:
 ---
 
 ### 12. ✅ Fix N+1 Query Pattern in Mailchimp Sync (Backend)
-**File:** [backend/src/services/mailchimpService.ts](backend/src/services/mailchimpService.ts#L365-L410)
+**File:** [backend/src/services/mailchimpService.ts](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/backend/src/services/mailchimpService.ts)
 
 Converted sequential bulk sync to parallel operations:
 - **Before:** `for (const id of ids) { await syncContact(id); }` — sequential, blocks
@@ -320,8 +320,8 @@ Converted sequential bulk sync to parallel operations:
 
 ### 13. ✅ Convert Sync File I/O to Async (Backend)
 **Files:**
-- [backend/src/services/exportService.ts](backend/src/services/exportService.ts)
-- [backend/src/services/fileStorageService.ts](backend/src/services/fileStorageService.ts)
+- [https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/backend/src/services/exportService.ts](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/backend/src/services/exportService.ts)
+- [https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/backend/src/services/fileStorageService.ts](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/backend/src/services/fileStorageService.ts)
 
 **Changes:**
 1. **exportService constructor:** Lazy async initialization (non-blocking)
@@ -355,11 +355,11 @@ Converted sequential bulk sync to parallel operations:
 
 ### Frontend (P1 - High Priority)
 1. **Nested Suspense boundaries** — Show layout while route loads
-   - File: [routes/index.tsx](frontend/src/routes/index.tsx#L33-L100)
+   - File: [routes/index.tsx](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/frontend/src/routes/index.tsx)
    - Impact: Better perceived performance on route transitions
 
 2. **Memoize CaseList handlers and formatters**
-   - File: [pages/engagement/cases/CaseList.tsx](frontend/src/pages/engagement/cases/CaseList.tsx#L1)
+   - File: [pages/engagement/cases/CaseList.tsx](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/frontend/src/pages/engagement/cases/CaseList.tsx#L1)
    - Impact: Smooth list operations (879-line component)
 
 3. **Selective Redux selectors in 30+ components**
@@ -400,7 +400,7 @@ npm run build
 # Check dist/ folder size — should be ~300KB
 
 # Backend compression
-curl -H "Accept-Encoding: gzip" http://localhost:3000/api/cases | wc -c
+curl -H "Accept-Encoding: gzip" localhost:3000/api/cases | wc -c
 # Should be ~10-30% of uncompressed size
 
 # Memory usage (24-hour test)
