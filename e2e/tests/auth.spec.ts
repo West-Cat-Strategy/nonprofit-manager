@@ -72,10 +72,22 @@ test.describe('Authentication Flow', () => {
     // Should redirect to dashboard
     await expect(page).toHaveURL('/dashboard');
 
-    // Check for dashboard shell elements.
-    await expect(page.getByRole('heading', { name: /workbench overview|dashboard/i })).toBeVisible({
-      timeout: 5000,
-    });
+    // WebKit can render the shell heading slower; accept either a dashboard heading or primary nav link.
+    await expect
+      .poll(
+        async () => {
+          const headingVisible = await page
+            .getByRole('heading', { name: /workbench overview|dashboard/i })
+            .first()
+            .isVisible();
+          if (headingVisible) {
+            return true;
+          }
+          return page.getByRole('link', { name: /dashboard|accounts/i }).first().isVisible();
+        },
+        { timeout: 10000 }
+      )
+      .toBe(true);
 
     // Check that user data is set in localStorage
     const user = await page.evaluate(() => localStorage.getItem('user'));

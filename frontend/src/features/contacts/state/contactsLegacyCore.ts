@@ -7,6 +7,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import api from '../../../services/api';
 import type {
+  Contact,
   ContactPhoneNumber,
   ContactEmailAddress,
   ContactRelationship,
@@ -23,49 +24,7 @@ import type {
   CreateContactDocumentDTO,
   UpdateContactDocumentDTO,
 } from '../../../types/contact';
-
-export interface Contact {
-  contact_id: string;
-  account_id: string | null;
-  account_name?: string;
-  first_name: string;
-  preferred_name?: string | null;
-  last_name: string;
-  middle_name: string | null;
-  salutation: string | null;
-  suffix: string | null;
-  birth_date: string | null;
-  gender: string | null;
-  pronouns: string | null;
-  email: string | null;
-  phone: string | null;
-  mobile_phone: string | null;
-  address_line1: string | null;
-  address_line2: string | null;
-  city: string | null;
-  state_province: string | null;
-  postal_code: string | null;
-  country: string | null;
-  no_fixed_address: boolean;
-  job_title: string | null;
-  department: string | null;
-  preferred_contact_method: string | null;
-  do_not_email: boolean;
-  do_not_phone: boolean;
-  do_not_text: boolean;
-  do_not_voicemail: boolean;
-  notes: string | null;
-  tags: string[];
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  // Related data counts
-  phone_count?: number;
-  email_count?: number;
-  relationship_count?: number;
-  note_count?: number;
-  roles?: string[];
-}
+export type { Contact };
 
 export interface ContactsState {
   contacts: Contact[];
@@ -130,10 +89,10 @@ const extractEnvelopeData = <T>(responseData: ApiEnvelope<T> | T): T => {
 };
 
 const extractListField = <T>(
-  responseData: ApiEnvelope<T[] | Record<string, T[]>> | T[] | Record<string, T[]>,
+  responseData: ApiEnvelope<T[] | object> | T[] | object,
   key: string
 ): T[] => {
-  const data = extractEnvelopeData(responseData as ApiEnvelope<T[] | Record<string, T[]>> | T[] | Record<string, T[]>);
+  const data = extractEnvelopeData(responseData as ApiEnvelope<T[] | object> | T[] | object);
   if (Array.isArray(data)) {
     return data;
   }
@@ -646,9 +605,7 @@ const contactsSlice = createSlice({
       })
       .addCase(fetchContactRelationships.fulfilled, (state, action) => {
         state.relationshipsLoading = false;
-        state.relationships = Array.isArray(action.payload)
-          ? action.payload
-          : (action.payload?.relationships || []);
+        state.relationships = action.payload;
       })
       .addCase(fetchContactRelationships.rejected, (state) => {
         state.relationshipsLoading = false;
@@ -672,9 +629,7 @@ const contactsSlice = createSlice({
       })
       .addCase(fetchContactNotes.fulfilled, (state, action) => {
         state.notesLoading = false;
-        state.contactNotes = Array.isArray(action.payload)
-          ? action.payload
-          : (action.payload?.data || []);
+        state.contactNotes = action.payload;
       })
       .addCase(fetchContactNotes.rejected, (state) => {
         state.notesLoading = false;

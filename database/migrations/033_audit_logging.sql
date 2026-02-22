@@ -123,6 +123,9 @@ RETURNS TRIGGER AS $$
 DECLARE
   v_old_values JSONB;
   v_new_values JSONB;
+  v_record_json JSONB;
+  v_record_id_text TEXT;
+  v_record_id UUID;
   v_changed_fields TEXT[];
   v_is_sensitive BOOLEAN := false;
   v_field_name TEXT;
@@ -130,6 +133,21 @@ BEGIN
   -- Convert old and new rows to JSONB
   v_old_values := CASE WHEN TG_OP = 'DELETE' THEN row_to_json(OLD) ELSE NULL END;
   v_new_values := CASE WHEN TG_OP = 'INSERT' THEN row_to_json(NEW) WHEN TG_OP = 'UPDATE' THEN row_to_json(NEW) ELSE NULL END;
+  v_record_json := CASE WHEN TG_OP = 'DELETE' THEN row_to_json(OLD)::jsonb ELSE row_to_json(NEW)::jsonb END;
+
+  -- Resolve a stable UUID for audited rows across tables with different PK names.
+  v_record_id_text := NULLIF(COALESCE(
+    v_record_json->>'id',
+    v_record_json->>'user_id',
+    v_record_json->>'role_id'
+  ), '');
+
+  IF v_record_id_text IS NOT NULL
+     AND v_record_id_text ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' THEN
+    v_record_id := v_record_id_text::UUID;
+  ELSE
+    v_record_id := uuid_generate_v4();
+  END IF;
   
   -- For UPDATE, detect which fields changed
   IF TG_OP = 'UPDATE' THEN
@@ -174,7 +192,7 @@ BEGIN
     environment
   ) VALUES (
     TG_TABLE_NAME,
-    CASE WHEN TG_OP = 'DELETE' THEN OLD.id ELSE NEW.id END,
+    v_record_id,
     TG_OP::VARCHAR(10),
     v_old_values,
     v_new_values,

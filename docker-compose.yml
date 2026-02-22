@@ -67,17 +67,17 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: postgres
-      DB_PASSWORD: changeme
+      DB_PASSWORD: ${DB_PASSWORD:-changeme}
       REDIS_URL: redis://redis:6379
       DB_SSL_ENABLED: 'false'
       CONSOLE_LOGGING: 'true'
       FRONTEND_URL: https://cbis-playground.westcat.ca
-      # Allow all origins for LAN/Tailnet access (change in production if public)
-      CORS_ORIGIN: '*'
-      EXPOSE_AUTH_TOKENS_IN_RESPONSE: 'true'
-      RATE_LIMIT_MAX_REQUESTS: 10000
-      AUTH_RATE_LIMIT_MAX_REQUESTS: 10000
-      REGISTRATION_MAX_ATTEMPTS: 10000
+      # Set this explicitly in deployment environments; avoid wildcard origins.
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8001}
+      EXPOSE_AUTH_TOKENS_IN_RESPONSE: ${EXPOSE_AUTH_TOKENS_IN_RESPONSE:-false}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-100}
+      AUTH_RATE_LIMIT_MAX_REQUESTS: ${AUTH_RATE_LIMIT_MAX_REQUESTS:-5}
+      REGISTRATION_MAX_ATTEMPTS: ${REGISTRATION_MAX_ATTEMPTS:-5}
     depends_on:
       postgres:
         condition: service_healthy

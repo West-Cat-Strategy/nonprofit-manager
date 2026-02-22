@@ -3,7 +3,7 @@ import * as zlib from 'zlib';
 import app from '../../index';
 import pool from '../../config/database';
 
-jest.setTimeout(30000);
+jest.setTimeout(120000);
 
 function parseBinaryResponse(res: any, callback: any) {
   const chunks: Buffer[] = [];

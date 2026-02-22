@@ -8,7 +8,17 @@ if (process.env.JEST_WORKER_ID && !process.env.NODE_ENV) {
 }
 
 if (process.env.NODE_ENV === 'test') {
-  dotenv.config({ path: '.env.test' });
+  // Keep runtime env (e.g., PORT for Playwright webServer), but force DB settings from test env.
+  const testEnv = dotenv.config({ path: '.env.test' });
+  const dbOverrideKeys = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'] as const;
+  if (testEnv.parsed) {
+    dbOverrideKeys.forEach((key) => {
+      const value = testEnv.parsed?.[key];
+      if (value) {
+        process.env[key] = value;
+      }
+    });
+  }
   dotenv.config({ path: '.env' });
 } else {
   dotenv.config({ path: '.env' });

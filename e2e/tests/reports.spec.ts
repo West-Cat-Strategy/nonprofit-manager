@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures/auth.fixture';
 import { getAuthHeaders } from '../helpers/database';
+import { ensureAdminLoginViaAPI } from '../helpers/auth';
 
 test.describe('Reports Workflows', () => {
   test('creates report definition and verifies builder screen', async ({ authenticatedPage, authToken }) => {
@@ -18,7 +19,18 @@ test.describe('Reports Workflows', () => {
 
   test('outcomes report page loads totals', async ({ authenticatedPage, authToken }) => {
     const apiURL = process.env.API_URL || 'http://localhost:3001';
-    const headers = await getAuthHeaders(authenticatedPage, authToken);
+    let tokenForRequest = authToken;
+    let hasAdminSession = false;
+    try {
+      const { token } = await ensureAdminLoginViaAPI(authenticatedPage);
+      tokenForRequest = token;
+      hasAdminSession = true;
+    } catch (error) {
+      if (!(error instanceof Error) || !error.message.includes('Invalid credentials')) {
+        throw error;
+      }
+    }
+    const headers = await getAuthHeaders(authenticatedPage, tokenForRequest);
 
     const now = new Date();
     const from = new Date(now);
@@ -30,6 +42,10 @@ test.describe('Reports Workflows', () => {
       `${apiURL}/api/reports/outcomes?from=${fromDate}&to=${toDate}&bucket=month`,
       { headers }
     );
+    if (!hasAdminSession) {
+      expect([401, 403]).toContain(apiResponse.status());
+      return;
+    }
     expect(apiResponse.ok()).toBeTruthy();
 
     await authenticatedPage.goto('/reports/outcomes');

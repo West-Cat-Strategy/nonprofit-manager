@@ -60,10 +60,10 @@ const extractEnvelopeData = <T>(responseData: ApiEnvelope<T> | T): T => {
 };
 
 const extractListField = <T>(
-  responseData: ApiEnvelope<T[] | Record<string, T[]>> | T[] | Record<string, T[]>,
+  responseData: ApiEnvelope<T[] | object> | T[] | object,
   key: string
 ): T[] => {
-  const data = extractEnvelopeData(responseData as ApiEnvelope<T[] | Record<string, T[]>> | T[] | Record<string, T[]>);
+  const data = extractEnvelopeData(responseData as ApiEnvelope<T[] | object> | T[] | object);
   if (Array.isArray(data)) {
     return data;
   }

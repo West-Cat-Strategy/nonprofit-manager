@@ -120,7 +120,7 @@ export const downloadDocument = async (
       return;
     }
 
-    const filePath = documentService.getDocumentFilePath(document);
+    const filePath = await documentService.getDocumentFilePath(document);
     if (!filePath) {
       notFoundMessage(res, 'Document file not found');
       return;

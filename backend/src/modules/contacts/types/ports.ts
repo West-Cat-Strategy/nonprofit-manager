@@ -112,5 +112,5 @@ export interface ContactDocumentsPort {
   ): Promise<ContactDocument>;
   update(documentId: string, payload: UpdateContactDocumentDTO, userId?: string): Promise<ContactDocument | null>;
   delete(documentId: string): Promise<boolean>;
-  resolveFilePath(document: ContactDocument): string | null;
+  resolveFilePath(document: ContactDocument): Promise<string | null>;
 }
