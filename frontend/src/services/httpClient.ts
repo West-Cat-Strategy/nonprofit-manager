@@ -69,7 +69,7 @@ const isRetryableError = (error: AxiosError, config: RetryConfig): boolean => {
 export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
   const {
     onUnauthorized,
-    baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+    baseURL = import.meta.env.VITE_API_URL || 'HTTP://localhost:3000/api',
     includeOrganizationHeader = true,
     organizationIdKey = 'organizationId',
     defaultOrganizationId = import.meta.env.VITE_DEFAULT_ORGANIZATION_ID,

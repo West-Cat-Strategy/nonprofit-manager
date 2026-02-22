@@ -7,7 +7,7 @@ import { createTestAccount, createTestDonation, createTestEvent } from '../helpe
 
 test.describe.skip('Complete User Workflows', () => {
   test('Donor Journey: Account -> Donation -> Receipt', async ({ authenticatedPage, authToken }) => {
-    const apiURL = process.env.API_URL || 'http://localhost:3001';
+    const apiURL = process.env.API_URL || 'HTTP://localhost:3001';
 
     const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
       name: 'Sarah Johnson',
@@ -30,7 +30,7 @@ test.describe.skip('Complete User Workflows', () => {
   });
 
   test('Event Flow: Create -> Register -> Check-in', async ({ authenticatedPage, authToken }) => {
-    const apiURL = process.env.API_URL || 'http://localhost:3001';
+    const apiURL = process.env.API_URL || 'HTTP://localhost:3001';
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
 
@@ -63,7 +63,7 @@ test.describe.skip('Complete User Workflows', () => {
   });
 
   test('Task Workflow: Create -> Complete -> Verify in list', async ({ authenticatedPage, authToken }) => {
-    const apiURL = process.env.API_URL || 'http://localhost:3001';
+    const apiURL = process.env.API_URL || 'HTTP://localhost:3001';
 
     const createResponse = await authenticatedPage.request.post(`${apiURL}/api/tasks`, {
       headers: { Authorization: `Bearer ${authToken}` },

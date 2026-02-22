@@ -257,10 +257,10 @@ services:
     ports:
       - 8000:8000
     environment:
-      - BASE_URL=https://analytics.yourdomain.com
+      - BASE_URL=analytics.yourdomain.com
       - SECRET_KEY_BASE=${SECRET_KEY_BASE}
       - DATABASE_URL=postgres://postgres:postgres@plausible_db:5432/plausible_db
-      - CLICKHOUSE_DATABASE_URL=http://plausible_events_db:8123/plausible_events_db
+      - CLICKHOUSE_DATABASE_URL=plausible_events_db:8123/plausible_events_db
 
   plausible_db:
     image: postgres:14-alpine
@@ -331,7 +331,7 @@ function getAmountRange(amount: number): string {
 // backend/src/services/plausibleService.ts
 import axios from 'axios';
 
-const PLAUSIBLE_API_BASE = process.env.PLAUSIBLE_API_BASE || 'https://analytics.yourdomain.com';
+const PLAUSIBLE_API_BASE = process.env.PLAUSIBLE_API_BASE || 'analytics.yourdomain.com';
 const PLAUSIBLE_API_KEY = process.env.PLAUSIBLE_API_KEY;
 const SITE_ID = process.env.PLAUSIBLE_SITE_ID;
 

@@ -4,7 +4,7 @@
 # Tests registration, check-in, and capacity management
 
 # Configuration
-BASE_URL="http://localhost:3000/api"
+BASE_URL="HTTP://localhost:3000/api"
 TOKEN=""  # Set your JWT token here
 CONTACT_ID=""  # Set a valid contact ID from your database
 

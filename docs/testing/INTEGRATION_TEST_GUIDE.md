@@ -221,7 +221,7 @@ Pass Rate:        67%
 
 **Symptom:**
 ```
-✗ Server is not running at http://localhost:3000/api
+✗ Server is not running at localhost:3000/api
 ```
 
 **Solution:**
@@ -512,7 +512,7 @@ cd backend/tests/integration
 ./integration-full-system.sh
 
 # Check server status
-curl http://localhost:3000/api/health
+curl localhost:3000/api/health
 
 # Clean test data (if needed)
 psql -d nonprofit_manager -c "DELETE FROM contacts WHERE email LIKE '%@example.com';"

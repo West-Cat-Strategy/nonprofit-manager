@@ -42,13 +42,13 @@ test.describe('Admin & Settings Module', () => {
     });
 
     test('admin can create and disable an outcome definition', async ({ authenticatedPage, authToken }) => {
-        const apiURL = process.env.API_URL || 'http://localhost:3001';
+        const apiURL = process.env.API_URL || 'HTTP://localhost:3001';
         let tokenForRequest = authToken;
         let hasAdminSession = false;
         try {
-            const { token } = await ensureAdminLoginViaAPI(authenticatedPage);
+            const { token, user } = await ensureAdminLoginViaAPI(authenticatedPage);
             tokenForRequest = token;
-            hasAdminSession = true;
+            hasAdminSession = typeof user?.role === 'string' && user.role.toLowerCase() === 'admin';
         } catch (error) {
             if (!(error instanceof Error) || !error.message.includes('Invalid credentials')) {
                 throw error;

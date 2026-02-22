@@ -5,10 +5,12 @@
 
 import '../helpers/testEnv';
 import { test, expect, type Page } from '@playwright/test';
-import { login, ensureLoginViaAPI } from '../helpers/auth';
-import { getSharedTestUser } from '../helpers/testUser';
+import { login, ensureAdminLoginViaAPI } from '../helpers/auth';
 
-const getCreds = () => getSharedTestUser();
+const getCreds = () => ({
+    email: process.env.ADMIN_USER_EMAIL?.trim() || 'admin@example.com',
+    password: process.env.ADMIN_USER_PASSWORD?.trim() || 'Admin123!@#',
+});
 const THEMES = ['neobrutalist', 'sea-breeze', 'corporate', 'clean-modern', 'glass', 'high-contrast'] as const;
 const COLOR_SCHEMES = ['light', 'dark'] as const;
 
@@ -73,8 +75,10 @@ async function applyThemeAndMode(
 
 test.describe('Theming and Design System', () => {
     test.beforeEach(async ({ page }) => {
-        const { email, password } = getCreds();
-        await ensureLoginViaAPI(page, email, password);
+        await ensureAdminLoginViaAPI(page, {
+            firstName: 'Admin',
+            lastName: 'User',
+        });
         await page.goto('/settings/user');
 
         // Wait for the theme selector to be visible using CSS selector

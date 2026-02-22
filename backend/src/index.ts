@@ -103,9 +103,9 @@ app.use(
         // Images: self, data URIs (for small inlined images), and https:// 
         imgSrc: ["'self'", 'data:', 'https:'],
         // Fonts: self and Google Fonts if used
-        fontSrc: ["'self'", 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'],
+        fontSrc: ["'self'", 'HTTPS://fonts.googleapis.com', 'HTTPS://fonts.gstatic.com'],
         // Connect: self + configured API backend
-        connectSrc: ["'self'", `${process.env.API_ORIGIN || 'http://localhost:3000'}`],
+        connectSrc: ["'self'", `${process.env.API_ORIGIN || 'HTTP://localhost:3000'}`],
         // Frame options: prevent clickjacking
         frameSrc: ["'none'"],
         // Object/embed: restrict plugins
@@ -149,10 +149,22 @@ app.use(compression({
   },
 }));
 
+const normalizeOrigin = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+  if (trimmed === '*') return trimmed;
+
+  try {
+    return new URL(trimmed).origin.toLowerCase();
+  } catch {
+    return trimmed.toLowerCase();
+  }
+};
+
 // CORS configuration
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+const allowedOrigins = (process.env.CORS_ORIGIN || 'HTTP://localhost:5173')
   .split(',')
-  .map((origin) => origin.trim())
+  .map((origin) => normalizeOrigin(origin))
   .filter(Boolean);
 
 // In production, require at least one allowed origin to be configured
@@ -166,9 +178,11 @@ const corsOptions = {
     // Allow requests with no origin (like mobile apps, curl, or same-site requests)
     if (!origin) return callback(null, true);
 
+    const normalizedOrigin = normalizeOrigin(origin);
+
     // Only allow configured origins
     if (process.env.NODE_ENV === 'development' || 
-        allowedOrigins.includes(origin) || 
+        allowedOrigins.includes(normalizedOrigin) || 
         allowedOrigins.includes('*')) {
       callback(null, true);
     } else {

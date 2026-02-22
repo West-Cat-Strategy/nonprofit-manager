@@ -67,7 +67,7 @@ deploy_local() {
     log_info "Waiting for services to be healthy..."
     sleep 5
 
-    if curl -sf http://localhost:3000/health > /dev/null 2>&1; then
+    if curl -sf HTTP://localhost:3000/health > /dev/null 2>&1; then
         log_success "Backend is healthy"
     else
         log_warn "Backend health check failed (may still be starting)"
@@ -76,8 +76,8 @@ deploy_local() {
     echo ""
     log_success "Local deployment complete!"
     echo ""
-    echo "  Frontend: http://localhost:5173"
-    echo "  Backend:  http://localhost:3000"
+    echo "  Frontend: HTTP://localhost:5173"
+    echo "  Backend:  HTTP://localhost:3000"
     echo ""
 }
 
@@ -181,7 +181,7 @@ deploy_remote() {
 
         echo "Health check..."
         sleep 10
-        curl -sf http://localhost:3000/health || echo "Warning: Health check failed"
+        curl -sf HTTP://localhost:3000/health || echo "Warning: Health check failed"
 DEPLOY_SCRIPT
 
     if [ $? -eq 0 ]; then

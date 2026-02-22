@@ -45,7 +45,7 @@ kibana:
   ports:
     - "5601:5601"
   environment:
-    - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    - ELASTICSEARCH_HOSTS=elasticsearch:9200
   depends_on:
     - elasticsearch
 ```
@@ -88,7 +88,7 @@ LOG_AGGREGATION_PROTOCOL=http
 ```
 
 4. **Kibana Dashboard**:
-   - Visit `http://localhost:5601`
+   - Visit `localhost:5601`
    - Create index pattern: `logs-*`
    - Create dashboards to monitor:
      - Request rates by endpoint
@@ -485,7 +485,7 @@ Time Window: 10 minutes
 
 1. Check network connectivity:
 ```bash
-docker exec backend curl -v http://logstash:8080/logs
+docker exec backend curl -v logstash:8080/logs
 ```
 
 2. Check environment variables:

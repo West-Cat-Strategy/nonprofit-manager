@@ -569,11 +569,11 @@ GET /api/alerts/stats
 
 ```bash
 # 1. Get user's dashboards
-curl -X GET http://localhost:3000/api/dashboard/configs \
+curl -X GET localhost:3000/api/dashboard/configs \
   -H "Authorization: Bearer $TOKEN"
 
 # 2. Create custom dashboard
-curl -X POST http://localhost:3000/api/dashboard/configs \
+curl -X POST localhost:3000/api/dashboard/configs \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -590,7 +590,7 @@ curl -X POST http://localhost:3000/api/dashboard/configs \
   }'
 
 # 3. Update layout after drag-and-drop
-curl -X PUT http://localhost:3000/api/dashboard/configs/$DASHBOARD_ID/layout \
+curl -X PUT localhost:3000/api/dashboard/configs/$DASHBOARD_ID/layout \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -602,7 +602,7 @@ curl -X PUT http://localhost:3000/api/dashboard/configs/$DASHBOARD_ID/layout \
 
 ```bash
 # 1. Test alert configuration
-curl -X POST http://localhost:3000/api/alerts/test \
+curl -X POST localhost:3000/api/alerts/test \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -617,21 +617,21 @@ curl -X POST http://localhost:3000/api/alerts/test \
   }'
 
 # 2. Create alert if test passes
-curl -X POST http://localhost:3000/api/alerts/configs \
+curl -X POST localhost:3000/api/alerts/configs \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{ ... same body as test ... }'
 
 # 3. Get alert statistics
-curl -X GET http://localhost:3000/api/alerts/stats \
+curl -X GET localhost:3000/api/alerts/stats \
   -H "Authorization: Bearer $TOKEN"
 
 # 4. Get triggered alerts
-curl -X GET "http://localhost:3000/api/alerts/instances?status=triggered&limit=10" \
+curl -X GET "localhost:3000/api/alerts/instances?status=triggered&limit=10" \
   -H "Authorization: Bearer $TOKEN"
 
 # 5. Acknowledge an alert
-curl -X PATCH http://localhost:3000/api/alerts/instances/$INSTANCE_ID/acknowledge \
+curl -X PATCH localhost:3000/api/alerts/instances/$INSTANCE_ID/acknowledge \
   -H "Authorization: Bearer $TOKEN"
 ```
 

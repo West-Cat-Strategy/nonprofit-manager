@@ -2,7 +2,7 @@ import { test, expect } from '../fixtures/auth.fixture';
 import { createAlertConfig, deleteAlertConfig } from '../helpers/domainFixtures';
 import { getAuthHeaders } from '../helpers/database';
 
-const apiURL = process.env.API_URL || 'http://127.0.0.1:3001';
+const apiURL = process.env.API_URL || 'HTTP://127.0.0.1:3001';
 
 test.describe('Alerts Workflows', () => {
   test('create and delete alert config with UI consistency check', async ({ authenticatedPage, authToken }) => {

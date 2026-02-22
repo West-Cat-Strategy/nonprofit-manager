@@ -111,10 +111,10 @@ npm run dev
 You should see:
 ```
 VITE v5.x.x  ready in 123 ms
-➜  Local:   http://localhost:5173/
+➜  Local:   localhost:5173/
 ```
 
-Open http://localhost:5173/ in your browser. You should see the frontend!
+Open localhost:5173/ in your browser. You should see the frontend!
 
 ### Step 4: Verify Setup
 
@@ -194,12 +194,12 @@ npm run dev
 
 You should see:
 ```
-[03:45:32] Server running at http://localhost:3000
+[03:45:32] Server running at localhost:3000
 ```
 
 Test it:
 ```bash
-curl http://localhost:3000/api/health
+curl localhost:3000/api/health
 ```
 
 Should return: `{"status":"ok"}`
@@ -238,7 +238,7 @@ cd nonprofit-manager
 cd frontend
 npm install
 npm run dev
-# Verify at http://localhost:5173/
+# Verify at localhost:5173/
 ```
 
 Keep the dev server running. Open a **new terminal window** for backend setup.
@@ -270,11 +270,11 @@ npm run migrate
 npm run dev
 ```
 
-Backend should start at `http://localhost:3000/`.
+Backend should start at `localhost:3000/`.
 
 Test it:
 ```bash
-curl http://localhost:3000/api/health
+curl localhost:3000/api/health
 ```
 
 ### Part 3: Verify Both Services (5 minutes)
@@ -286,7 +286,7 @@ Test the connection:
 
 ```bash
 # In a third terminal
-curl http://localhost:3000/api/health
+curl localhost:3000/api/health
 
 # Should return: {"status":"ok"}
 ```

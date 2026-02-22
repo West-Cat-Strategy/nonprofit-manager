@@ -4,7 +4,7 @@
 # Runs all integration tests for Phase 2 modules
 
 # Configuration
-BASE_URL="http://localhost:3000/api"
+BASE_URL="HTTP://localhost:3000/api"
 TOKEN=""
 
 # Colors

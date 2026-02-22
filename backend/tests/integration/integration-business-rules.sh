@@ -3,7 +3,7 @@
 # Integration Test: Business Rules Enforcement
 # Tests capacity limits and deadline validation
 
-BASE_URL="${BASE_URL:-http://localhost:3000/api}"
+BASE_URL="${BASE_URL:-HTTP://localhost:3000/api}"
 TOKEN="${TOKEN:-}"
 
 # Colors

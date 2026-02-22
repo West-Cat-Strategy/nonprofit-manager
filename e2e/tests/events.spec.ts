@@ -80,7 +80,7 @@ test.describe('Events Module', () => {
   });
 
   test('should register and check in attendee', async ({ authenticatedPage, authToken }) => {
-    const apiURL = process.env.API_URL || 'http://localhost:3001';
+    const apiURL = process.env.API_URL || 'HTTP://localhost:3001';
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const headers = await getAuthHeaders(authenticatedPage, authToken);
@@ -150,7 +150,7 @@ test.describe('Events Module', () => {
   });
 
   test('should show capacity and registration count', async ({ authenticatedPage, authToken }) => {
-    const apiURL = process.env.API_URL || 'http://localhost:3001';
+    const apiURL = process.env.API_URL || 'HTTP://localhost:3001';
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const headers = await getAuthHeaders(authenticatedPage, authToken);

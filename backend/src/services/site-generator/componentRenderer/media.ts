@@ -82,10 +82,10 @@ export function generateVideo(component: PublishedComponent): string {
   let embedUrl = src;
   if (provider === 'youtube') {
     const match = src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
-    if (match) embedUrl = `https://www.youtube.com/embed/${match[1]}`;
+    if (match) embedUrl = `HTTPS://www.youtube.com/embed/${match[1]}`;
   } else if (provider === 'vimeo') {
     const match = src.match(/vimeo\.com\/(\d+)/);
-    if (match) embedUrl = `https://player.vimeo.com/video/${match[1]}`;
+    if (match) embedUrl = `HTTPS://player.vimeo.com/video/${match[1]}`;
   }
 
   return `

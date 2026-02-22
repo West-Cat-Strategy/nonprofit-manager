@@ -11,7 +11,7 @@ test.describe('Webhooks Workflows', () => {
       {
         headers,
         data: {
-          url: 'https://8.8.8.8/webhook',
+          url: 'HTTPS://8.8.8.8/webhook',
           events: ['account.created'],
           description: 'E2E endpoint',
         },

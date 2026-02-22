@@ -553,13 +553,13 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
           // Extract YouTube video ID
           const match = component.src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
           if (match) {
-            return `https://www.youtube.com/embed/${match[1]}`;
+            return `HTTPS://www.youtube.com/embed/${match[1]}`;
           }
         }
         if (component.provider === 'vimeo') {
           const match = component.src.match(/vimeo\.com\/(\d+)/);
           if (match) {
-            return `https://player.vimeo.com/video/${match[1]}`;
+            return `HTTPS://player.vimeo.com/video/${match[1]}`;
           }
         }
         return component.src;

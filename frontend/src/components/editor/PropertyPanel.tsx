@@ -336,7 +336,7 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({
                 onChange={(e) =>
                   onUpdateComponent(selectedComponent.id, { href: e.target.value })
                 }
-                placeholder="https://..."
+                placeholder="HTTPS://..."
                 className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
               />
             </div>
@@ -413,7 +413,7 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({
                 onChange={(e) =>
                   onUpdateComponent(selectedComponent.id, { src: e.target.value })
                 }
-                placeholder="https://..."
+                placeholder="HTTPS://..."
                 className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
               />
             </div>

@@ -2,7 +2,7 @@
 
 **Last Updated:** February 18, 2026  
 **Compiled From:** Phase 2 implementation notes, database indexing discussions  
-**Relevant Code:** [backend/src database queries](../../backend/src/), [Prisma schema](../../backend/prisma/)
+**Relevant Code:** [backend/src database queries](https://github.com/example/nonprofit-manager), [Prisma schema](https://github.com/example/nonprofit-manager)
 
 ---
 

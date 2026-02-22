@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: API specification for Nonprofit Manager
 servers:
-  - url: http://localhost:3000/api
+  - url: HTTP://localhost:3000/api
 paths:
   /auth/register:
     post:

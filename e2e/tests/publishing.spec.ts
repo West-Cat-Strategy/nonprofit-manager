@@ -3,7 +3,7 @@ import { getAuthHeaders } from '../helpers/database';
 
 test.describe('Publishing Workflows', () => {
   test('publishing API validates payload and publishing UI loads', async ({ authenticatedPage, authToken }) => {
-    const apiURL = process.env.API_URL || 'http://localhost:3001';
+    const apiURL = process.env.API_URL || 'HTTP://localhost:3001';
     const headers = await getAuthHeaders(authenticatedPage, authToken);
 
     const createSite = await authenticatedPage.request.post(`${apiURL}/api/sites`, {

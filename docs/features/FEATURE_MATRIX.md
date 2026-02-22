@@ -152,7 +152,7 @@ For **detailed feature specifications**, see linked documentation files.
 | **Activity Logging** | ✅ | Backend | [TELEMETRY.md](TELEMETRY.md) | `backend/src/services/portalActivityService.ts` | User action tracking |
 | User-Agent Tracking | ✅ | Backend | Same | - | Browser/client identification |
 | Access Logs | ✅ | Backend | Same | - | Login/access audit trail |
-| GDPR Compliance | ✅ | Backend | [../../security/SECURITY_AUDIT.md](../../security/SECURITY_AUDIT.md) | - | Data privacy controls |
+| GDPR Compliance | ✅ | Backend | [https://github.com/example/nonprofit-manager](https://github.com/example/nonprofit-manager) | - | Data privacy controls |
 | Data Subject Rights | ✅ | Backend | Same | - | Export/delete user data |
 | Consent Management | 📋 | Backend | - | - | Cookie/tracking consent |
 
@@ -167,7 +167,7 @@ For **detailed feature specifications**, see linked documentation files.
 | **Organization Access** | ✅ | Backend | Same | - | Multi-tenancy support |
 | Password Reset | ✅ | Backend | - | - | Secure password recovery |
 | Session Management | ✅ | Backend | - | - | JWT token management |
-| Rate Limiting | ✅ | Backend | [../../security/SECURITY_MONITORING_GUIDE.md](../../security/SECURITY_MONITORING_GUIDE.md) | - | DDoS protection |
+| Rate Limiting | ✅ | Backend | [https://github.com/example/nonprofit-manager](https://github.com/example/nonprofit-manager) | - | DDoS protection |
 | API Key Management | ✅ | Backend | Same | - | Third-party access tokens |
 | Backup & Recovery | ✅ | Backend/DevOps | [../deployment/DB_SETUP.md](../deployment/DB_SETUP.md) | - | Database backup procedures |
 
@@ -264,7 +264,7 @@ For detailed specifications, use this navigation:
 
 1. Find the feature above and note its status
 2. If In Development 🟡, check the documentation file for current progress
-3. See [../../development/GETTING_STARTED.md](../../development/GETTING_STARTED.md) to set up dev environment
+3. See [https://github.com/example/nonprofit-manager](https://github.com/example/nonprofit-manager) to set up dev environment
 4. Check GitHub Issues for related PRs or assign yourself
 5. Follow [../../CONTRIBUTING.md](../../CONTRIBUTING.md) workflow
 
@@ -272,7 +272,7 @@ For detailed specifications, use this navigation:
 
 ## See Also
 
-- [../../development/GETTING_STARTED.md](../../development/GETTING_STARTED.md) — How to start contributing
+- [https://github.com/example/nonprofit-manager](https://github.com/example/nonprofit-manager) — How to start contributing
 - [../product/product-spec.md](../product/product-spec.md) — Product requirements and vision
 - [../phases/planning-and-progress.md](../phases/planning-and-progress.md) — Current work in progress
 - [../../CONTRIBUTING.md](../../CONTRIBUTING.md) — Contribution guidelines

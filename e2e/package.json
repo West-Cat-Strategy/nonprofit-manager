@@ -3,14 +3,14 @@
   "version": "1.0.0",
   "description": "End-to-end tests for Nonprofit Manager",
   "scripts": {
-    "test": "SKIP_WEBSERVER=0 BASE_URL=http://127.0.0.1:5173 API_URL=http://127.0.0.1:3001 playwright test",
-    "test:headed": "SKIP_WEBSERVER=0 BASE_URL=http://127.0.0.1:5173 API_URL=http://127.0.0.1:3001 playwright test --headed",
-    "test:debug": "SKIP_WEBSERVER=0 BASE_URL=http://127.0.0.1:5173 API_URL=http://127.0.0.1:3001 playwright test --debug",
-    "test:ui": "SKIP_WEBSERVER=0 BASE_URL=http://127.0.0.1:5173 API_URL=http://127.0.0.1:3001 playwright test --ui",
+    "test": "SKIP_WEBSERVER=0 playwright test",
+    "test:headed": "SKIP_WEBSERVER=0 playwright test --headed",
+    "test:debug": "SKIP_WEBSERVER=0 playwright test --debug",
+    "test:ui": "SKIP_WEBSERVER=0 playwright test --ui",
     "test:report": "playwright show-report",
-    "test:codegen": "playwright codegen http://localhost:5173",
-    "test:smoke": "SKIP_WEBSERVER=0 BASE_URL=http://127.0.0.1:5173 API_URL=http://127.0.0.1:3001 playwright test --project=chromium tests/smoke-public.spec.ts",
-    "test:ci": "SKIP_WEBSERVER=0 BASE_URL=http://127.0.0.1:5173 API_URL=http://127.0.0.1:3001 playwright test --project=chromium --project=firefox --project=webkit"
+    "test:codegen": "playwright codegen",
+    "test:smoke": "SKIP_WEBSERVER=0 playwright test --project=chromium tests/smoke-public.spec.ts",
+    "test:ci": "SKIP_WEBSERVER=0 playwright test --project=chromium --project=firefox --project=webkit"
   },
   "keywords": [
     "e2e",

@@ -10,9 +10,9 @@ INSERT INTO accounts (id, account_name, account_type, website, phone, email, add
 VALUES
   ('aaaa1111-1111-1111-1111-111111111111', 'Community Food Bank', 'nonprofit', 'https://communityfoodbank.org', '555-0101', 'info@communityfoodbank.org', '100 Food Bank Drive', 'Springfield', 'IL', '62703', 'USA', true, NOW()),
   ('aaaa2222-2222-2222-2222-222222222222', 'Youth Education Center', 'nonprofit', 'https://yec.org', '555-0102', 'contact@yec.org', '200 Education Way', 'Springfield', 'IL', '62704', 'USA', true, NOW()),
-  ('aaaa3333-3333-3333-3333-333333333333', 'Green Earth Initiative', 'nonprofit', 'https://greenearth.org', '555-0103', 'hello@greenearth.org', '300 Green Street', 'Chicago', 'IL', '60603', 'USA', true, NOW()),
+  ('aaaa3333-3333-3333-3333-333333333333', 'Green Earth Initiative', 'nonprofit', 'HTTPS://greenearth.org', '555-0103', 'hello@greenearth.org', '300 Green Street', 'Chicago', 'IL', '60603', 'USA', true, NOW()),
   ('aaaa4444-4444-4444-4444-444444444444', 'Smith Family Foundation', 'foundation', 'https://smithfoundation.org', '555-0104', 'grants@smithfoundation.org', '400 Foundation Plaza', 'Chicago', 'IL', '60604', 'USA', true, NOW()),
-  ('aaaa5555-5555-5555-5555-555555555555', 'TechCorp Industries', 'corporate', 'https://techcorp.com', '555-0105', 'partnerships@techcorp.com', '500 Tech Boulevard', 'Chicago', 'IL', '60605', 'USA', true, NOW())
+  ('aaaa5555-5555-5555-5555-555555555555', 'TechCorp Industries', 'corporate', 'HTTPS://techcorp.com', '555-0105', 'partnerships@techcorp.com', '500 Tech Boulevard', 'Chicago', 'IL', '60605', 'USA', true, NOW())
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================================

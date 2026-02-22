@@ -15,11 +15,11 @@ INSERT INTO accounts (
   is_active, created_at
 )
 VALUES
-  ('10000000-0000-0000-0000-000000000001', 'Radiant Garden Relief', 'nonprofit', 'https://radiant-garden.example.org', '555-0201', 'hello@radiant-garden.example.org', '1 Restoration Way', 'Radiant Garden', 'RG', '00001', 'USA', true, NOW()),
-  ('10000000-0000-0000-0000-000000000002', 'Twilight Town Youth Center', 'nonprofit', 'https://twilight-town.example.org', '555-0202', 'info@twilight-town.example.org', '7 Sunset Boulevard', 'Twilight Town', 'TT', '00002', 'USA', true, NOW()),
-  ('10000000-0000-0000-0000-000000000003', 'Traverse Town Community Kitchen', 'nonprofit', 'https://traverse-town.example.org', '555-0203', 'kitchen@traverse-town.example.org', '9 District Street', 'Traverse Town', 'TR', '00003', 'USA', true, NOW()),
-  ('10000000-0000-0000-0000-000000000004', 'Destiny Islands Mutual Aid', 'nonprofit', 'https://destiny-islands.example.org', '555-0204', 'team@destiny-islands.example.org', '3 Seaside Lane', 'Destiny Islands', 'DI', '00004', 'USA', true, NOW()),
-  ('10000000-0000-0000-0000-000000000005', 'Disney Castle Foundation', 'foundation', 'https://castle-foundation.example.org', '555-0205', 'grants@castle-foundation.example.org', '1 Castle Courtyard', 'Disney Castle', 'DC', '00005', 'USA', true, NOW())
+  ('10000000-0000-0000-0000-000000000001', 'Radiant Garden Relief', 'nonprofit', 'HTTPS://radiant-garden.example.org', '555-0201', 'hello@radiant-garden.example.org', '1 Restoration Way', 'Radiant Garden', 'RG', '00001', 'USA', true, NOW()),
+  ('10000000-0000-0000-0000-000000000002', 'Twilight Town Youth Center', 'nonprofit', 'HTTPS://twilight-town.example.org', '555-0202', 'info@twilight-town.example.org', '7 Sunset Boulevard', 'Twilight Town', 'TT', '00002', 'USA', true, NOW()),
+  ('10000000-0000-0000-0000-000000000003', 'Traverse Town Community Kitchen', 'nonprofit', 'HTTPS://traverse-town.example.org', '555-0203', 'kitchen@traverse-town.example.org', '9 District Street', 'Traverse Town', 'TR', '00003', 'USA', true, NOW()),
+  ('10000000-0000-0000-0000-000000000004', 'Destiny Islands Mutual Aid', 'nonprofit', 'HTTPS://destiny-islands.example.org', '555-0204', 'team@destiny-islands.example.org', '3 Seaside Lane', 'Destiny Islands', 'DI', '00004', 'USA', true, NOW()),
+  ('10000000-0000-0000-0000-000000000005', 'Disney Castle Foundation', 'foundation', 'HTTPS://castle-foundation.example.org', '555-0205', 'grants@castle-foundation.example.org', '1 Castle Courtyard', 'Disney Castle', 'DC', '00005', 'USA', true, NOW())
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================================
