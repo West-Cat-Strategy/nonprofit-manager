@@ -112,6 +112,7 @@ run_ci() {
     # Bring up infra before tests so backend integration tests do not race DB availability.
     if [ "$RUN_TESTS" = true ] && [ "$SKIP_TESTS" = false ] && { [ "$RUN_BACKEND" = true ] || [ "$RUN_E2E" = true ]; }; then
         run_step "Test Infra" "DB_PASSWORD=postgres docker-compose up -d postgres redis"
+        run_step "DB Migrations" "\"$SCRIPT_DIR/db-migrate.sh\""
     fi
 
     # Backend checks

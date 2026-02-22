@@ -54,6 +54,11 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 \i /migrations/042_external_service_providers.sql
 \i /migrations/043_alerts.sql
 \i /migrations/044_outcomes_tracking.sql
+\i /migrations/045_event_reminders_and_twilio_settings.sql
+\i /migrations/046_event_reminder_automations.sql
+\i /migrations/047_portal_visibility_and_messaging.sql
+\i /migrations/048_portal_appointment_slots.sql
+\i /migrations/049_audit_trigger_record_id_fallback.sql
 
 \i /seeds/001_default_users.sql
 \i /seeds/002_starter_templates.sql

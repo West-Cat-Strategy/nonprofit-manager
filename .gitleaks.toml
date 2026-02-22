@@ -1,0 +1,11 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Known documentation/example placeholders that are not real secrets."
+regexes = [
+  '''^YOUR_TOKEN$''',
+  '''^sk_live_abc123def456$''',
+  '''^eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.\.\.$''',
+  '''^0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef$''',
+]

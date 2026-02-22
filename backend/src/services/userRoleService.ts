@@ -35,5 +35,6 @@ export const syncUserRole = async (
     );
   } catch (error) {
     logger.error('Failed to sync user role', { error, userId, roleName });
+    throw error;
   }
 };

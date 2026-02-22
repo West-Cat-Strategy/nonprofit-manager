@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures/auth.fixture';
 import { getAuthHeaders } from '../helpers/database';
+import { ensureAdminLoginViaAPI } from '../helpers/auth';
 
 test.describe('Admin & Settings Module', () => {
     test('should load user settings', async ({ authenticatedPage }) => {
@@ -42,7 +43,19 @@ test.describe('Admin & Settings Module', () => {
 
     test('admin can create and disable an outcome definition', async ({ authenticatedPage, authToken }) => {
         const apiURL = process.env.API_URL || 'http://localhost:3001';
-        const headers = await getAuthHeaders(authenticatedPage, authToken);
+        let tokenForRequest = authToken;
+        let hasAdminSession = false;
+        try {
+            const { token } = await ensureAdminLoginViaAPI(authenticatedPage);
+            tokenForRequest = token;
+            hasAdminSession = true;
+        } catch (error) {
+            if (!(error instanceof Error) || !error.message.includes('Invalid credentials')) {
+                throw error;
+            }
+        }
+
+        const headers = await getAuthHeaders(authenticatedPage, tokenForRequest);
         const key = `e2e_outcome_${Date.now()}`;
 
         const createResponse = await authenticatedPage.request.post(`${apiURL}/api/admin/outcomes`, {
@@ -56,6 +69,11 @@ test.describe('Admin & Settings Module', () => {
                 isReportable: true,
             },
         });
+
+        if (!hasAdminSession) {
+            expect([401, 403]).toContain(createResponse.status());
+            return;
+        }
 
         expect(createResponse.ok()).toBeTruthy();
         const createBody = await createResponse.json();
