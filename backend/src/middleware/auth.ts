@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '@config/jwt';
 import { forbidden, unauthorized } from '@utils/responseHelpers';
 import { extractToken, AUTH_COOKIE_NAME } from '@utils/cookieHelper';
+import { createRequestAuthorizationContext, hasRoleAccess } from '@services/authorization';
 
 interface JwtPayload {
   id: string;
@@ -39,6 +40,11 @@ export const authenticate = (
     const decoded = jwt.verify(token, getJwtSecret()) as JwtPayload;
 
     req.user = decoded;
+    req.authorizationContext = createRequestAuthorizationContext(
+      decoded.id,
+      decoded.role,
+      req.organizationId || req.accountId || req.tenantId
+    );
     next();
   } catch {
     return unauthorized(res, 'Invalid or expired token');
@@ -51,7 +57,7 @@ export const authorize = (...allowedRoles: string[]) => {
       return unauthorized(res, 'Unauthorized');
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    if (!hasRoleAccess(req.user.role, allowedRoles, req.authorizationContext?.roles)) {
       return forbidden(res, 'Forbidden: Insufficient permissions');
     }
 

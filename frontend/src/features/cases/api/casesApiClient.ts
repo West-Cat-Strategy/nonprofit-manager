@@ -3,6 +3,7 @@ import { unwrapApiData } from '../../../services/apiEnvelope';
 import type { ApiEnvelope } from '../../../services/apiEnvelope';
 import type {
   BulkStatusUpdateDTO,
+  CasePriority,
   CaseDocument,
   CaseOutcomeEvent,
   CaseTimelineEvent,
@@ -40,8 +41,25 @@ import type {
   UpdateInteractionOutcomesInput,
 } from '../../../types/outcomes';
 import type { CasesApiClientPort, CasesListQuery } from '../types/contracts';
+import { normalizeCasePriorityForApi } from '../utils/casePriority';
 
 export class CasesApiClient implements CasesApiClientPort {
+  private normalizePriorityPayload<T extends { priority?: CasePriority }>(payload: T): T {
+    const normalizedPriority = normalizeCasePriorityForApi(payload.priority);
+    if (
+      normalizedPriority === undefined ||
+      normalizedPriority === null ||
+      normalizedPriority === payload.priority
+    ) {
+      return payload;
+    }
+
+    return {
+      ...payload,
+      priority: normalizedPriority,
+    };
+  }
+
   private buildListParams(query: CasesListQuery = {}): URLSearchParams {
     const params = new URLSearchParams();
     if (query.search) params.set('search', query.search);
@@ -49,7 +67,12 @@ export class CasesApiClient implements CasesApiClientPort {
     if (query.accountId) params.set('account_id', query.accountId);
     if (query.caseTypeId) params.set('case_type_id', query.caseTypeId);
     if (query.statusId) params.set('status_id', query.statusId);
-    if (query.priority) params.set('priority', query.priority);
+    if (query.priority) {
+      const normalizedPriority = normalizeCasePriorityForApi(query.priority);
+      if (normalizedPriority) {
+        params.set('priority', normalizedPriority);
+      }
+    }
     if (query.assignedTo) params.set('assigned_to', query.assignedTo);
     if (query.assignedTeam) params.set('assigned_team', query.assignedTeam);
     if (typeof query.isUrgent === 'boolean') params.set('is_urgent', String(query.isUrgent));
@@ -84,12 +107,18 @@ export class CasesApiClient implements CasesApiClientPort {
   }
 
   async createCase(payload: CreateCaseDTO): Promise<CaseWithDetails> {
-    const response = await api.post<ApiEnvelope<CaseWithDetails>>('/v2/cases', payload);
+    const response = await api.post<ApiEnvelope<CaseWithDetails>>(
+      '/v2/cases',
+      this.normalizePriorityPayload(payload)
+    );
     return unwrapApiData(response.data);
   }
 
   async updateCase(caseId: string, payload: UpdateCaseDTO): Promise<CaseWithDetails> {
-    const response = await api.put<ApiEnvelope<CaseWithDetails>>(`/v2/cases/${caseId}`, payload);
+    const response = await api.put<ApiEnvelope<CaseWithDetails>>(
+      `/v2/cases/${caseId}`,
+      this.normalizePriorityPayload(payload)
+    );
     return unwrapApiData(response.data);
   }
 

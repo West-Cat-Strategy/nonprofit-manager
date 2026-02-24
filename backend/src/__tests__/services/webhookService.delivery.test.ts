@@ -52,4 +52,43 @@ describe('webhookService delivery behavior', () => {
     expect(updateDeliveryCall).toBeTruthy();
     expect((global as any).fetch).not.toHaveBeenCalled();
   });
+
+  it('processes retries on existing rows without creating a new delivery row', async () => {
+    const claimedRetryRow = {
+      id: 'delivery-retry-1',
+      webhook_endpoint_id: 'endpoint-1',
+      event_type: 'contact.created',
+      payload: {
+        id: 'evt-1',
+        type: 'contact.created',
+        createdAt: new Date().toISOString(),
+        data: { object: { id: 'contact-1' } },
+      },
+      attempts: 1,
+      next_retry_at: new Date().toISOString(),
+      user_id: 'user-1',
+      url: 'HTTP://localhost/retry',
+      secret: 'whsec_test',
+    };
+
+    mockQuery
+      .mockResolvedValueOnce({ rows: [claimedRetryRow] }) // claim retry rows
+      .mockResolvedValueOnce({ rows: [] }) // UPDATE delivery status
+      .mockResolvedValueOnce({ rows: [] }); // UPDATE endpoint status
+
+    const processed = await webhookService.processRetries(10);
+
+    expect(processed).toBe(1);
+
+    const insertCalls = mockQuery.mock.calls.filter((call) =>
+      String(call[0]).includes('INSERT INTO webhook_deliveries')
+    );
+    expect(insertCalls).toHaveLength(0);
+
+    const updateDeliveryCall = mockQuery.mock.calls.find((call) =>
+      String(call[0]).includes('UPDATE webhook_deliveries')
+    );
+    expect(updateDeliveryCall).toBeTruthy();
+    expect((global as any).fetch).not.toHaveBeenCalled();
+  });
 });

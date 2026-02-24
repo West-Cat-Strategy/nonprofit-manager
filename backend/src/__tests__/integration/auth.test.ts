@@ -204,6 +204,38 @@ describe('Auth API Integration Tests', () => {
     });
   });
 
+  describe('GET /api/auth/check-access', () => {
+    it('should require authentication', async () => {
+      await request(app).get('/api/auth/check-access').expect(401);
+    });
+
+    it('should return authorization matrix for authenticated user', async () => {
+      const response = await request(app)
+        .get('/api/auth/check-access')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        success: true,
+        data: {
+          user: {
+            id: expect.any(String),
+            primaryRole: expect.any(String),
+            roles: expect.any(Array),
+          },
+          matrix: {
+            staticPermissions: expect.any(Object),
+            analyticsCapabilities: expect.any(Object),
+            dbPermissions: expect.any(Object),
+            fieldAccess: expect.any(Object),
+          },
+          generatedAt: expect.any(String),
+          policyVersion: expect.any(String),
+        },
+      });
+    });
+  });
+
   describe('Account Lockout', () => {
     it('should lock account after multiple failed login attempts', async () => {
       const lockoutEmail = `lockout-${unique()}@example.com`;
