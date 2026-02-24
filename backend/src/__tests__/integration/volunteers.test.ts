@@ -138,9 +138,10 @@ describe('Volunteer API Integration Tests', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body).toHaveProperty('pagination');
-      expect(Array.isArray(response.body.data)).toBe(true);
+      const payload = response.body.data?.data ? response.body.data : response.body;
+      expect(payload).toHaveProperty('data');
+      expect(payload).toHaveProperty('pagination');
+      expect(Array.isArray(payload.data)).toBe(true);
     });
 
     it('should support search query', async () => {

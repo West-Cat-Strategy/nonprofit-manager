@@ -1,16 +1,13 @@
 import { Router } from 'express';
-import { param, body } from 'express-validator';
+import { z } from 'zod';
 import * as reportController from '@controllers/reportController';
 import * as outcomeReportController from '@controllers/outcomeReportController';
+import * as templateController from '@controllers/reportTemplateController';
 import { authenticate } from '@middleware/auth';
-import { validateRequest } from '@middleware/validateRequest';
-import { validateQuery } from '@middleware/zodValidation';
+import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import { outcomesReportQuerySchema } from '@validations/outcomeImpact';
 
 const router = Router();
-
-// All routes require authentication
-router.use(authenticate);
 
 const validEntities = [
   'accounts',
@@ -22,66 +19,63 @@ const validEntities = [
   'expenses',
   'grants',
   'programs',
-];
+] as const;
+
+const entitySchema = z.enum(validEntities);
+
+const reportGenerateSchema = z.object({
+  name: z.string().min(1, 'Report name is required'),
+  entity: entitySchema,
+  fields: z.array(z.unknown()).optional(),
+  aggregations: z.array(z.unknown()).optional(),
+  groupBy: z.array(z.unknown()).optional(),
+  filters: z.array(z.unknown()).optional(),
+  sort: z.array(z.unknown()).optional(),
+  limit: z.coerce.number().int().min(1).max(10000).optional(),
+});
+
+const reportFieldsParamsSchema = z.object({
+  entity: entitySchema,
+});
+
+const reportExportSchema = z.object({
+  definition: z.record(z.string(), z.unknown()),
+  format: z.enum(['csv', 'xlsx']),
+});
+
+const reportTemplateCreateSchema = z.object({
+  name: z.string().min(1, 'Template name is required'),
+  entity: entitySchema,
+  category: z.string().min(1, 'Category is required'),
+  template_definition: z.record(z.string(), z.unknown()),
+});
+
+// All routes require authentication
+router.use(authenticate);
 
 /**
  * POST /api/reports/generate
  * Generate a custom report
  */
-router.post(
-  '/generate',
-  [
-    body('name').notEmpty().withMessage('Report name is required'),
-    body('entity').isIn(validEntities).withMessage('Invalid entity type'),
-    body('fields').optional().isArray().withMessage('Fields must be an array'),
-    body('aggregations').optional().isArray(),
-    body('groupBy').optional().isArray(),
-    body('filters').optional().isArray(),
-    body('sort').optional().isArray(),
-    body('limit').optional().isInt({ min: 1, max: 10000 }),
-    validateRequest,
-  ],
-  reportController.generateReport
-);
+router.post('/generate', validateBody(reportGenerateSchema), reportController.generateReport);
 
 /**
  * GET /api/reports/outcomes
  * Get outcomes report with totals and time series
  */
-router.get(
-  '/outcomes',
-  validateQuery(outcomesReportQuerySchema),
-  outcomeReportController.getOutcomesReport
-);
+router.get('/outcomes', validateQuery(outcomesReportQuerySchema), outcomeReportController.getOutcomesReport);
 
 /**
  * GET /api/reports/fields/:entity
  * Get available fields for an entity type
  */
-router.get(
-  '/fields/:entity',
-  [param('entity').isIn(validEntities).withMessage('Invalid entity type'), validateRequest],
-  reportController.getAvailableFields
-);
+router.get('/fields/:entity', validateParams(reportFieldsParamsSchema), reportController.getAvailableFields);
 
 /**
  * POST /api/reports/export
  * Generate and export a report
  */
-router.post(
-  '/export',
-  [
-    body('definition').isObject().withMessage('Report definition is required'),
-    body('format').isIn(['csv', 'xlsx']).withMessage('Invalid export format'),
-    validateRequest,
-  ],
-  reportController.exportReport
-);
-
-/**
- * Template Routes
- */
-import * as templateController from '@controllers/reportTemplateController';
+router.post('/export', validateBody(reportExportSchema), reportController.exportReport);
 
 /**
  * GET /api/reports/templates
@@ -99,17 +93,7 @@ router.get('/templates/:id', templateController.getTemplateById);
  * POST /api/reports/templates
  * Create custom template
  */
-router.post(
-  '/templates',
-  [
-    body('name').notEmpty().withMessage('Template name is required'),
-    body('entity').isIn(validEntities).withMessage('Invalid entity type'),
-    body('category').notEmpty().withMessage('Category is required'),
-    body('template_definition').isObject().withMessage('Template definition is required'),
-    validateRequest,
-  ],
-  templateController.createTemplate
-);
+router.post('/templates', validateBody(reportTemplateCreateSchema), templateController.createTemplate);
 
 /**
  * POST /api/reports/templates/:id/instantiate

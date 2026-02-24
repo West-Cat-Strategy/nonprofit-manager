@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosRequestConfig } from 'axios';
+import type { ApiEnvelope } from './apiEnvelope';
 
 type UnauthorizedHandler = (error: AxiosError) => void;
 
@@ -64,6 +65,12 @@ const isRetryableError = (error: AxiosError, config: RetryConfig): boolean => {
     return error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK';
   }
   return config.retryableStatuses.includes(error.response.status);
+};
+
+const isApiSuccessEnvelope = (payload: unknown): payload is ApiEnvelope<unknown> => {
+  if (!payload || typeof payload !== 'object') return false;
+  const candidate = payload as { success?: unknown; data?: unknown };
+  return candidate.success === true && Object.prototype.hasOwnProperty.call(candidate, 'data');
 };
 
 export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
@@ -143,7 +150,12 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
 
   // Response interceptor for error handling and retry logic
   client.interceptors.response.use(
-    (response) => response,
+    (response) => {
+      if (isApiSuccessEnvelope(response.data)) {
+        response.data = response.data.data;
+      }
+      return response;
+    },
     async (error: AxiosError) => {
       const config = error.config as ExtendedAxiosRequestConfig | undefined;
 

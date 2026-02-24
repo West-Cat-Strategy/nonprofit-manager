@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type * as ReactRouterDom from 'react-router-dom';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Analytics from '../analytics/Analytics';
@@ -10,7 +11,7 @@ import type { AnalyticsSummary, DonationTrendPoint, VolunteerHoursTrendPoint } f
 const mockNavigate = vi.fn();
 
 vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  const actual = await vi.importActual<typeof ReactRouterDom>('react-router-dom');
   return {
     ...actual,
     useNavigate: () => mockNavigate,

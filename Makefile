@@ -4,7 +4,7 @@
 # This replaces GitHub Actions with local commands.
 # All CI/CD operations can be run locally or via git hooks.
 
-.PHONY: help install lint typecheck test test-coverage quality-baseline check-links build \
+.PHONY: help install lint lint-rate-limit-keys lint-success-envelope typecheck test test-coverage quality-baseline check-links build \
 	security-audit security-scan ci ci-fast ci-full ci-unit \
         deploy deploy-staging deploy-local \
         docker-build docker-up docker-down docker-logs docker-rebuild \
@@ -115,9 +115,23 @@ docker-rebuild:
 lint:
 	@echo "$(BLUE)Linting backend...$(RESET)"
 	cd backend && npm run lint
+	@echo "$(BLUE)Checking rate-limit key policy...$(RESET)"
+	node scripts/check-rate-limit-key-policy.ts
+	@echo "$(BLUE)Checking success envelope policy...$(RESET)"
+	node scripts/check-success-envelope-policy.ts
 	@echo "$(BLUE)Linting frontend...$(RESET)"
 	cd frontend && npm run lint
 	@echo "$(GREEN)Linting complete!$(RESET)"
+
+lint-rate-limit-keys:
+	@echo "$(BLUE)Checking rate-limit key policy...$(RESET)"
+	node scripts/check-rate-limit-key-policy.ts
+	@echo "$(GREEN)Rate-limit key policy check complete!$(RESET)"
+
+lint-success-envelope:
+	@echo "$(BLUE)Checking success envelope policy...$(RESET)"
+	node scripts/check-success-envelope-policy.ts
+	@echo "$(GREEN)Success envelope policy check complete!$(RESET)"
 
 lint-fix:
 	@echo "$(BLUE)Fixing lint issues in backend...$(RESET)"

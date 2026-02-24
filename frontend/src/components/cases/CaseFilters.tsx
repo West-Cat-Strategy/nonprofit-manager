@@ -5,6 +5,7 @@
 
 import { BrutalButton, BrutalCard, BrutalInput } from '../neo-brutalist';
 import type { CaseFilter, CasePriority, CaseStatus, CaseType } from '../../types/case';
+import { CASE_PRIORITY_OPTIONS } from '../../features/cases/utils/casePriority';
 
 type QuickFilter = 'all' | 'overdue' | 'due_soon' | 'unassigned' | 'urgent';
 
@@ -159,10 +160,11 @@ export default function CaseFilters({
             aria-label="Filter by priority"
           >
             <option value="">All Priorities</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
+            {CASE_PRIORITY_OPTIONS.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
           </select>
         </div>
       </div>

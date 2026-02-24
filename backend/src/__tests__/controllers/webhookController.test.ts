@@ -26,6 +26,7 @@ const mockResponse = () => {
   res.json = jest.fn().mockReturnValue(res);
   res.send = jest.fn().mockReturnValue(res);
   res.getHeader = jest.fn().mockReturnValue(undefined);
+  res.setHeader = jest.fn().mockReturnValue(res);
   return res;
 };
 
@@ -48,7 +49,12 @@ describe('webhookController URL validation', () => {
     await webhookController.createWebhookEndpoint(req as any, res);
 
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Host is not allowed' }));
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: false,
+        error: expect.objectContaining({ code: 'bad_request', message: 'Host is not allowed' }),
+      })
+    );
     expect(mockCreateWebhookEndpoint).not.toHaveBeenCalled();
   });
 
@@ -65,7 +71,12 @@ describe('webhookController URL validation', () => {
     await webhookController.updateWebhookEndpoint(req as any, res);
 
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Host is not allowed' }));
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: false,
+        error: expect.objectContaining({ code: 'bad_request', message: 'Host is not allowed' }),
+      })
+    );
     expect(mockUpdateWebhookEndpoint).not.toHaveBeenCalled();
   });
 });

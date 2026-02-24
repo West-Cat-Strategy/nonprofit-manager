@@ -118,6 +118,28 @@ Validates markdown links and highlights any broken references.
 ./scripts/check-links.sh
 ```
 
+#### `check-rate-limit-key-policy.ts` - Rate-limit Key Policy Guardrail
+Blocks raw/literal rate-limit key generation and enforces helper-based key composition.
+
+```bash
+node scripts/check-rate-limit-key-policy.ts
+```
+
+#### `check-success-envelope-policy.ts` - Success Envelope Policy Guardrail
+Enforces a no-regression baseline for direct 2xx `res.json()` responses in backend controllers.
+
+```bash
+node scripts/check-success-envelope-policy.ts
+```
+
+#### `select-checks.sh` - Deterministic Check Selector
+Chooses the minimal command set for changed files (`fast` or `strict` mode).
+
+```bash
+./scripts/select-checks.sh --base HEAD~1 --mode fast
+./scripts/select-checks.sh --files \"backend/src/routes/tasks.ts,frontend/src/features/events/api/eventsApiClient.ts\" --mode strict
+```
+
 ### Git Hooks
 
 #### `install-git-hooks.sh` - Git Hook Installation

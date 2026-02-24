@@ -197,7 +197,10 @@ export const syncContact = async (req: AuthRequest, res: Response): Promise<void
     if (result.success) {
       res.json(result);
     } else {
-      res.status(400).json(result);
+      badRequest(res, result.error || 'Failed to sync contact to Mailchimp', {
+        contactId: result.contactId,
+        action: result.action,
+      });
     }
   } catch (error) {
     logger.error('Error syncing contact to Mailchimp', { error });

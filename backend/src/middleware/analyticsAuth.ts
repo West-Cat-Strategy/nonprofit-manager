@@ -4,7 +4,7 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { AuthRequest } from './auth';
+import type { AuthRequest } from './auth';
 import { logger } from '@config/logger';
 import pool from '@config/database';
 import { forbidden, unauthorized } from '@utils/responseHelpers';
@@ -16,7 +16,7 @@ import { forbidden, unauthorized } from '@utils/responseHelpers';
  * - staff: Basic analytics, no financial details
  * - volunteer: No analytics access
  */
-const ANALYTICS_PERMISSIONS = {
+export const ANALYTICS_PERMISSIONS = {
   admin: {
     canViewOrgAnalytics: true,
     canViewAccountAnalytics: true,
@@ -78,20 +78,46 @@ const ANALYTICS_PERMISSIONS = {
     canViewAnomalies: false,
     canViewTrends: false,
   },
-};
+} as const;
+
+export type AnalyticsCapability = keyof typeof ANALYTICS_PERMISSIONS.admin;
+export const ANALYTICS_CAPABILITIES = Object.keys(
+  ANALYTICS_PERMISSIONS.admin
+) as AnalyticsCapability[];
 
 /**
  * Check if user has permission for analytics feature
  */
 export function hasAnalyticsPermission(
   role: string,
-  permission: keyof typeof ANALYTICS_PERMISSIONS.admin
+  permission: AnalyticsCapability
 ): boolean {
   const rolePermissions = ANALYTICS_PERMISSIONS[role as keyof typeof ANALYTICS_PERMISSIONS];
   if (!rolePermissions) {
     return false;
   }
   return rolePermissions[permission] || false;
+}
+
+const hasAnalyticsPermissionForRoles = (
+  primaryRole: string,
+  permission: AnalyticsCapability,
+  roles?: string[]
+): boolean => {
+  const candidates = roles && roles.length > 0 ? roles : [primaryRole];
+  return candidates.some((role) => hasAnalyticsPermission(role, permission));
+};
+
+export function getAnalyticsCapabilityMatrix(
+  role: string
+): Record<AnalyticsCapability, boolean> {
+  const matrix = {} as Record<AnalyticsCapability, boolean>;
+
+  for (const capability of ANALYTICS_CAPABILITIES) {
+    matrix[capability] = hasAnalyticsPermission(role, capability);
+  }
+
+  return matrix;
 }
 
 /**
@@ -106,7 +132,13 @@ export const requireOrgAnalytics = (
     return unauthorized(res, 'Unauthorized');
   }
 
-  if (!hasAnalyticsPermission(req.user.role, 'canViewOrgAnalytics')) {
+  if (
+    !hasAnalyticsPermissionForRoles(
+      req.user.role,
+      'canViewOrgAnalytics',
+      req.authorizationContext?.roles
+    )
+  ) {
     logger.warn('Unauthorized analytics access attempt', {
       userId: req.user.id,
       role: req.user.role,
@@ -130,7 +162,13 @@ export const requireAccountAnalytics = (
     return unauthorized(res, 'Unauthorized');
   }
 
-  if (!hasAnalyticsPermission(req.user.role, 'canViewAccountAnalytics')) {
+  if (
+    !hasAnalyticsPermissionForRoles(
+      req.user.role,
+      'canViewAccountAnalytics',
+      req.authorizationContext?.roles
+    )
+  ) {
     logger.warn('Unauthorized account analytics access attempt', {
       userId: req.user.id,
       role: req.user.role,
@@ -154,7 +192,13 @@ export const requireContactAnalytics = (
     return unauthorized(res, 'Unauthorized');
   }
 
-  if (!hasAnalyticsPermission(req.user.role, 'canViewContactAnalytics')) {
+  if (
+    !hasAnalyticsPermissionForRoles(
+      req.user.role,
+      'canViewContactAnalytics',
+      req.authorizationContext?.roles
+    )
+  ) {
     logger.warn('Unauthorized contact analytics access attempt', {
       userId: req.user.id,
       role: req.user.role,
@@ -178,7 +222,13 @@ export const requireExportPermission = (
     return unauthorized(res, 'Unauthorized');
   }
 
-  if (!hasAnalyticsPermission(req.user.role, 'canExportData')) {
+  if (
+    !hasAnalyticsPermissionForRoles(
+      req.user.role,
+      'canExportData',
+      req.authorizationContext?.roles
+    )
+  ) {
     logger.warn('Unauthorized data export attempt', {
       userId: req.user.id,
       role: req.user.role,
@@ -202,7 +252,13 @@ export const requireAnomalyAccess = (
     return unauthorized(res, 'Unauthorized');
   }
 
-  if (!hasAnalyticsPermission(req.user.role, 'canViewAnomalies')) {
+  if (
+    !hasAnalyticsPermissionForRoles(
+      req.user.role,
+      'canViewAnomalies',
+      req.authorizationContext?.roles
+    )
+  ) {
     logger.warn('Unauthorized anomaly detection access attempt', {
       userId: req.user.id,
       role: req.user.role,

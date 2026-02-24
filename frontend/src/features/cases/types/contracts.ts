@@ -1,5 +1,10 @@
 import type {
   BulkStatusUpdateDTO,
+  CaseDocument,
+  CaseOutcomeEvent,
+  CaseTimelineEvent,
+  CaseTopicDefinition,
+  CaseTopicEvent,
   CaseFilter,
   CaseMilestone,
   CaseNote,
@@ -13,11 +18,17 @@ import type {
   CreateCaseDTO,
   CreateCaseMilestoneDTO,
   CreateCaseNoteDTO,
+  CreateCaseOutcomeDTO,
   CreateCaseRelationshipDTO,
   CreateCaseServiceDTO,
+  CreateCaseTopicDefinitionDTO,
+  CreateCaseTopicEventDTO,
   ReassignCaseDTO,
   UpdateCaseDTO,
+  UpdateCaseDocumentDTO,
   UpdateCaseMilestoneDTO,
+  UpdateCaseNoteDTO,
+  UpdateCaseOutcomeDTO,
   UpdateCaseServiceDTO,
   UpdateCaseStatusDTO,
 } from '../../../types/case';
@@ -53,6 +64,7 @@ export interface CasesListQuery {
 export interface CasesApiClientPort {
   listCases(query?: CasesListQuery): Promise<CasesResponse>;
   getCase(caseId: string): Promise<CaseWithDetails>;
+  getCaseTimeline(caseId: string): Promise<CaseTimelineEvent[]>;
   createCase(payload: CreateCaseDTO): Promise<CaseWithDetails>;
   updateCase(caseId: string, payload: UpdateCaseDTO): Promise<CaseWithDetails>;
   deleteCase(caseId: string): Promise<void>;
@@ -64,6 +76,22 @@ export interface CasesApiClientPort {
   getCaseStatuses(): Promise<CaseStatus[]>;
   listCaseNotes(caseId: string): Promise<{ notes: CaseNote[]; total?: number }>;
   createCaseNote(payload: CreateCaseNoteDTO): Promise<CaseNote>;
+  updateCaseNote(noteId: string, payload: UpdateCaseNoteDTO): Promise<CaseNote>;
+  deleteCaseNote(noteId: string): Promise<void>;
+  listCaseOutcomes(caseId: string): Promise<CaseOutcomeEvent[]>;
+  createCaseOutcome(caseId: string, payload: CreateCaseOutcomeDTO): Promise<CaseOutcomeEvent>;
+  updateCaseOutcome(outcomeId: string, payload: UpdateCaseOutcomeDTO): Promise<CaseOutcomeEvent>;
+  deleteCaseOutcome(outcomeId: string): Promise<void>;
+  listCaseTopicDefinitions(caseId: string): Promise<CaseTopicDefinition[]>;
+  createCaseTopicDefinition(caseId: string, payload: CreateCaseTopicDefinitionDTO): Promise<CaseTopicDefinition>;
+  listCaseTopicEvents(caseId: string): Promise<CaseTopicEvent[]>;
+  createCaseTopicEvent(caseId: string, payload: CreateCaseTopicEventDTO): Promise<CaseTopicEvent>;
+  deleteCaseTopicEvent(topicEventId: string): Promise<void>;
+  listCaseDocuments(caseId: string): Promise<CaseDocument[]>;
+  uploadCaseDocument(caseId: string, formData: FormData): Promise<CaseDocument>;
+  updateCaseDocument(caseId: string, documentId: string, payload: UpdateCaseDocumentDTO): Promise<CaseDocument>;
+  deleteCaseDocument(caseId: string, documentId: string): Promise<void>;
+  getCaseDocumentDownloadUrl(caseId: string, documentId: string, disposition?: 'inline' | 'attachment'): string;
   listCaseMilestones(caseId: string): Promise<CaseMilestone[]>;
   createCaseMilestone(caseId: string, payload: CreateCaseMilestoneDTO): Promise<CaseMilestone>;
   updateCaseMilestone(milestoneId: string, payload: UpdateCaseMilestoneDTO): Promise<CaseMilestone>;

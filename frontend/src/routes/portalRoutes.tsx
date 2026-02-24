@@ -19,6 +19,8 @@ import {
   PortalNotes,
   PortalForms,
   PortalReminders,
+  PortalCases,
+  PortalCaseDetail,
 } from './portalRouteComponents';
 
 interface RouteWrapperProps {
@@ -53,6 +55,14 @@ export function createPortalRoutes(PortalProtectedRoute: React.ComponentType<Rou
       <Route
         path="/portal/messages"
         element={<PortalProtectedRoute><PortalMessages /></PortalProtectedRoute>}
+      />
+      <Route
+        path="/portal/cases"
+        element={<PortalProtectedRoute><PortalCases /></PortalProtectedRoute>}
+      />
+      <Route
+        path="/portal/cases/:id"
+        element={<PortalProtectedRoute><PortalCaseDetail /></PortalProtectedRoute>}
       />
       <Route
         path="/portal/appointments"
