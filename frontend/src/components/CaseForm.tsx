@@ -9,6 +9,7 @@ import {
 } from '../features/cases/state';
 import type { Contact } from '../features/contacts/state';
 import { contactsApiClient } from '../features/contacts/api/contactsApiClient';
+import { CASE_PRIORITY_OPTIONS } from '../features/cases/utils/casePriority';
 import api from '../services/api';
 import { useToast } from '../contexts/useToast';
 import { useQuickLookup } from './dashboard';
@@ -188,7 +189,20 @@ const CaseForm = ({
         setIsDirty(false);
         showSuccess('Case updated successfully');
       } else {
-        const createdCase = await dispatch(createCase(formData)).unwrap();
+        const createData: CreateCaseDTO = {
+          contact_id: formData.contact_id,
+          case_type_id: formData.case_type_id,
+          title: formData.title,
+          description: formData.description || undefined,
+          priority: formData.priority,
+          source: formData.source || undefined,
+          referral_source: formData.referral_source || undefined,
+          assigned_to: formData.assigned_to || undefined,
+          due_date: formData.due_date || undefined,
+          tags: formData.tags?.length ? formData.tags : undefined,
+          is_urgent: formData.is_urgent,
+        };
+        const createdCase = await dispatch(createCase(createData)).unwrap();
         setIsDirty(false);
         if (onCreated) {
           onCreated(createdCase);
@@ -334,10 +348,11 @@ const CaseForm = ({
             onChange={handleChange}
             className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
           >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
+            {CASE_PRIORITY_OPTIONS.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
           </select>
         </div>
 

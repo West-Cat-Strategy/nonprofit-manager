@@ -4,12 +4,68 @@
  */
 
 import { Router } from 'express';
-import { body, param, query } from 'express-validator';
-import { validateRequest } from '@middleware/domains/security';
+import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
+import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import * as webhookController from '@controllers/domains/engagement';
+import { uuidSchema } from '@validations/shared';
 
 const router = Router();
+
+const isHttpUrl = (value: string): boolean => {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+const webhookUrlSchema = z
+  .string()
+  .url('Invalid URL format')
+  .refine((value) => isHttpUrl(value), 'Invalid URL format');
+
+const idParamsSchema = z.object({
+  id: uuidSchema,
+});
+
+const createWebhookEndpointSchema = z.object({
+  url: webhookUrlSchema,
+  description: z.string().max(500).optional(),
+  events: z.array(z.string()).min(1, 'At least one event type is required'),
+});
+
+const updateWebhookEndpointSchema = z.object({
+  url: webhookUrlSchema.optional(),
+  description: z.string().max(500).optional(),
+  events: z.array(z.string()).min(1).optional(),
+  isActive: z.coerce.boolean().optional(),
+});
+
+const deliveriesQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+});
+
+const dateStringSchema = z
+  .string()
+  .refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid expiration date format');
+
+const createApiKeySchema = z.object({
+  name: z.string().min(1, 'API key name is required').max(100),
+  scopes: z.array(z.string()).min(1, 'At least one scope is required'),
+  expiresAt: dateStringSchema.optional(),
+});
+
+const updateApiKeySchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  scopes: z.array(z.string()).min(1).optional(),
+  status: z.enum(['active', 'revoked']).optional(),
+});
+
+const apiKeyUsageQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(500).optional(),
+});
 
 // All routes require authentication
 router.use(authenticate);
@@ -34,40 +90,13 @@ router.get('/endpoints', webhookController.getWebhookEndpoints);
  * POST /api/webhooks/endpoints
  * Create a new webhook endpoint
  */
-router.post(
-  '/endpoints',
-  [
-    body('url')
-      .notEmpty()
-      .withMessage('URL is required')
-      .isURL({ protocols: ['http', 'https'], require_protocol: true })
-      .withMessage('Invalid URL format'),
-    body('description')
-      .optional()
-      .isString()
-      .isLength({ max: 500 })
-      .withMessage('Description must be less than 500 characters'),
-    body('events')
-      .isArray({ min: 1 })
-      .withMessage('At least one event type is required'),
-    body('events.*')
-      .isString()
-      .withMessage('Event types must be strings'),
-  ],
-  validateRequest,
-  webhookController.createWebhookEndpoint
-);
+router.post('/endpoints', validateBody(createWebhookEndpointSchema), webhookController.createWebhookEndpoint);
 
 /**
  * GET /api/webhooks/endpoints/:id
  * Get a specific webhook endpoint
  */
-router.get(
-  '/endpoints/:id',
-  [param('id').isUUID().withMessage('Invalid endpoint ID')],
-  validateRequest,
-  webhookController.getWebhookEndpoint
-);
+router.get('/endpoints/:id', validateParams(idParamsSchema), webhookController.getWebhookEndpoint);
 
 /**
  * PUT /api/webhooks/endpoints/:id
@@ -75,27 +104,8 @@ router.get(
  */
 router.put(
   '/endpoints/:id',
-  [
-    param('id').isUUID().withMessage('Invalid endpoint ID'),
-    body('url')
-      .optional()
-      .isURL({ protocols: ['http', 'https'], require_protocol: true })
-      .withMessage('Invalid URL format'),
-    body('description')
-      .optional()
-      .isString()
-      .isLength({ max: 500 })
-      .withMessage('Description must be less than 500 characters'),
-    body('events')
-      .optional()
-      .isArray({ min: 1 })
-      .withMessage('At least one event type is required'),
-    body('isActive')
-      .optional()
-      .isBoolean()
-      .withMessage('isActive must be a boolean'),
-  ],
-  validateRequest,
+  validateParams(idParamsSchema),
+  validateBody(updateWebhookEndpointSchema),
   webhookController.updateWebhookEndpoint
 );
 
@@ -103,23 +113,13 @@ router.put(
  * DELETE /api/webhooks/endpoints/:id
  * Delete a webhook endpoint
  */
-router.delete(
-  '/endpoints/:id',
-  [param('id').isUUID().withMessage('Invalid endpoint ID')],
-  validateRequest,
-  webhookController.deleteWebhookEndpoint
-);
+router.delete('/endpoints/:id', validateParams(idParamsSchema), webhookController.deleteWebhookEndpoint);
 
 /**
  * POST /api/webhooks/endpoints/:id/regenerate-secret
  * Regenerate the webhook secret
  */
-router.post(
-  '/endpoints/:id/regenerate-secret',
-  [param('id').isUUID().withMessage('Invalid endpoint ID')],
-  validateRequest,
-  webhookController.regenerateWebhookSecret
-);
+router.post('/endpoints/:id/regenerate-secret', validateParams(idParamsSchema), webhookController.regenerateWebhookSecret);
 
 /**
  * GET /api/webhooks/endpoints/:id/deliveries
@@ -127,14 +127,8 @@ router.post(
  */
 router.get(
   '/endpoints/:id/deliveries',
-  [
-    param('id').isUUID().withMessage('Invalid endpoint ID'),
-    query('limit')
-      .optional()
-      .isInt({ min: 1, max: 100 })
-      .withMessage('Limit must be between 1 and 100'),
-  ],
-  validateRequest,
+  validateParams(idParamsSchema),
+  validateQuery(deliveriesQuerySchema),
   webhookController.getWebhookDeliveries
 );
 
@@ -142,12 +136,7 @@ router.get(
  * POST /api/webhooks/endpoints/:id/test
  * Send a test webhook to the endpoint
  */
-router.post(
-  '/endpoints/:id/test',
-  [param('id').isUUID().withMessage('Invalid endpoint ID')],
-  validateRequest,
-  webhookController.testWebhookEndpoint
-);
+router.post('/endpoints/:id/test', validateParams(idParamsSchema), webhookController.testWebhookEndpoint);
 
 // ==================== API Key Info ====================
 
@@ -169,88 +158,31 @@ router.get('/api-keys', webhookController.getApiKeys);
  * POST /api/webhooks/api-keys
  * Create a new API key
  */
-router.post(
-  '/api-keys',
-  [
-    body('name')
-      .notEmpty()
-      .withMessage('API key name is required')
-      .isString()
-      .isLength({ min: 1, max: 100 })
-      .withMessage('Name must be between 1 and 100 characters'),
-    body('scopes')
-      .isArray({ min: 1 })
-      .withMessage('At least one scope is required'),
-    body('scopes.*')
-      .isString()
-      .withMessage('Scopes must be strings'),
-    body('expiresAt')
-      .optional()
-      .isISO8601()
-      .withMessage('Invalid expiration date format'),
-  ],
-  validateRequest,
-  webhookController.createApiKey
-);
+router.post('/api-keys', validateBody(createApiKeySchema), webhookController.createApiKey);
 
 /**
  * GET /api/webhooks/api-keys/:id
  * Get a specific API key
  */
-router.get(
-  '/api-keys/:id',
-  [param('id').isUUID().withMessage('Invalid API key ID')],
-  validateRequest,
-  webhookController.getApiKey
-);
+router.get('/api-keys/:id', validateParams(idParamsSchema), webhookController.getApiKey);
 
 /**
  * PUT /api/webhooks/api-keys/:id
  * Update an API key
  */
-router.put(
-  '/api-keys/:id',
-  [
-    param('id').isUUID().withMessage('Invalid API key ID'),
-    body('name')
-      .optional()
-      .isString()
-      .isLength({ min: 1, max: 100 })
-      .withMessage('Name must be between 1 and 100 characters'),
-    body('scopes')
-      .optional()
-      .isArray({ min: 1 })
-      .withMessage('At least one scope is required'),
-    body('status')
-      .optional()
-      .isIn(['active', 'revoked'])
-      .withMessage('Invalid status'),
-  ],
-  validateRequest,
-  webhookController.updateApiKey
-);
+router.put('/api-keys/:id', validateParams(idParamsSchema), validateBody(updateApiKeySchema), webhookController.updateApiKey);
 
 /**
  * POST /api/webhooks/api-keys/:id/revoke
  * Revoke an API key
  */
-router.post(
-  '/api-keys/:id/revoke',
-  [param('id').isUUID().withMessage('Invalid API key ID')],
-  validateRequest,
-  webhookController.revokeApiKey
-);
+router.post('/api-keys/:id/revoke', validateParams(idParamsSchema), webhookController.revokeApiKey);
 
 /**
  * DELETE /api/webhooks/api-keys/:id
  * Delete an API key
  */
-router.delete(
-  '/api-keys/:id',
-  [param('id').isUUID().withMessage('Invalid API key ID')],
-  validateRequest,
-  webhookController.deleteApiKey
-);
+router.delete('/api-keys/:id', validateParams(idParamsSchema), webhookController.deleteApiKey);
 
 /**
  * GET /api/webhooks/api-keys/:id/usage
@@ -258,14 +190,8 @@ router.delete(
  */
 router.get(
   '/api-keys/:id/usage',
-  [
-    param('id').isUUID().withMessage('Invalid API key ID'),
-    query('limit')
-      .optional()
-      .isInt({ min: 1, max: 500 })
-      .withMessage('Limit must be between 1 and 500'),
-  ],
-  validateRequest,
+  validateParams(idParamsSchema),
+  validateQuery(apiKeyUsageQuerySchema),
   webhookController.getApiKeyUsage
 );
 

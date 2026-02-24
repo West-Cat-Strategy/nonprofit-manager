@@ -7,7 +7,12 @@
 import type { AuthRequest } from '@middleware/auth';
 import type { Response } from 'express';
 import { unauthorized, forbidden } from '@utils/responseHelpers';
-import { hasPermission, type Permission } from '@utils/permissions';
+import { type Permission } from '@utils/permissions';
+import {
+  hasAnyStaticPermissionAccess,
+  hasRoleAccess,
+  hasStaticPermissionAccess,
+} from '@services/authorization';
 
 interface GuardResult<T = unknown> {
   success: boolean;
@@ -48,7 +53,13 @@ export function requireRoleOrError(
     return userGuard;
   }
 
-  if (!allowedRoles.includes(userGuard.user.role)) {
+  if (
+    !hasRoleAccess(
+      userGuard.user.role,
+      allowedRoles,
+      req.authorizationContext?.roles
+    )
+  ) {
     return {
       success: false,
       error: `Forbidden: User role '${userGuard.user.role}' not permitted`,
@@ -73,7 +84,13 @@ export function requirePermissionOrError(
     return userGuard;
   }
 
-  if (!hasPermission(userGuard.user.role, permission)) {
+  if (
+    !hasStaticPermissionAccess(
+      userGuard.user.role,
+      permission,
+      req.authorizationContext?.roles
+    )
+  ) {
     return {
       success: false,
       error: `Forbidden: Permission '${permission}' not granted`,
@@ -98,8 +115,10 @@ export function requireAnyPermissionOrError(
     return userGuard;
   }
 
-  const hasAny = permissions.some((perm) =>
-    hasPermission(userGuard.user.role, perm)
+  const hasAny = hasAnyStaticPermissionAccess(
+    userGuard.user.role,
+    permissions,
+    req.authorizationContext?.roles
   );
 
   if (!hasAny) {

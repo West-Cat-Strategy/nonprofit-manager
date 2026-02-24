@@ -98,8 +98,14 @@ describe('Task API Integration Tests', () => {
         })
         .expect(400); // Validation middleware correctly rejects invalid enum
 
-      expect(response.body).toHaveProperty('error', 'Validation failed');
-      expect(response.body).toHaveProperty('details');
+      expect(response.body).toMatchObject({
+        success: false,
+        error: {
+          code: 'validation_error',
+          message: 'Validation failed',
+        },
+      });
+      expect(response.body.error.details).toBeDefined();
     });
   });
 

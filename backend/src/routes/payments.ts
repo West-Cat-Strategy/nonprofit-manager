@@ -4,12 +4,49 @@
  */
 
 import { Router } from 'express';
-import { body, param } from 'express-validator';
+import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
-import { validateRequest } from '@middleware/domains/security';
+import { validateBody, validateParams } from '@middleware/zodValidation';
 import * as paymentController from '@controllers/domains/operations';
+import { uuidSchema } from '@validations/shared';
 
 const router = Router();
+
+const paymentIntentIdSchema = z.string().regex(/^pi_/, 'Invalid payment intent ID');
+const customerIdSchema = z.string().regex(/^cus_/, 'Invalid customer ID');
+
+const paymentIntentIdParamsSchema = z.object({
+  id: paymentIntentIdSchema,
+});
+
+const customerIdParamsSchema = z.object({
+  id: customerIdSchema,
+});
+
+const paymentMethodsParamsSchema = z.object({
+  customerId: customerIdSchema,
+});
+
+const createPaymentIntentSchema = z.object({
+  amount: z.coerce.number().int().min(50, 'Amount must be at least 50 cents'),
+  currency: z.enum(['usd', 'eur', 'gbp', 'cad', 'aud']).optional(),
+  description: z.string().max(500, 'Description too long').optional(),
+  donationId: uuidSchema.optional(),
+  receiptEmail: z.string().email('Invalid email').optional(),
+});
+
+const createRefundSchema = z.object({
+  paymentIntentId: paymentIntentIdSchema,
+  amount: z.coerce.number().int().min(1, 'Refund amount must be positive').optional(),
+  reason: z.enum(['duplicate', 'fraudulent', 'requested_by_customer']).optional(),
+});
+
+const createCustomerSchema = z.object({
+  email: z.string().email('Valid email is required'),
+  name: z.string().max(200, 'Name too long').optional(),
+  phone: z.string().max(20, 'Phone too long').optional(),
+  contactId: uuidSchema.optional(),
+});
 
 /**
  * GET /api/payments/config
@@ -21,140 +58,37 @@ router.get('/config', paymentController.getPaymentConfig);
  * POST /api/payments/intents
  * Create a payment intent
  */
-router.post(
-  '/intents',
-  authenticate,
-  [
-    body('amount')
-      .isInt({ min: 50 })
-      .withMessage('Amount must be at least 50 cents'),
-    body('currency')
-      .optional()
-      .isIn(['usd', 'eur', 'gbp', 'cad', 'aud'])
-      .withMessage('Invalid currency'),
-    body('description')
-      .optional()
-      .isString()
-      .isLength({ max: 500 })
-      .withMessage('Description too long'),
-    body('donationId')
-      .optional()
-      .isUUID()
-      .withMessage('Invalid donation ID'),
-    body('receiptEmail')
-      .optional()
-      .isEmail()
-      .withMessage('Invalid email'),
-    validateRequest,
-  ],
-  paymentController.createPaymentIntent
-);
+router.post('/intents', authenticate, validateBody(createPaymentIntentSchema), paymentController.createPaymentIntent);
 
 /**
  * GET /api/payments/intents/:id
  * Get payment intent status
  */
-router.get(
-  '/intents/:id',
-  authenticate,
-  [
-    param('id')
-      .isString()
-      .matches(/^pi_/)
-      .withMessage('Invalid payment intent ID'),
-    validateRequest,
-  ],
-  paymentController.getPaymentIntent
-);
+router.get('/intents/:id', authenticate, validateParams(paymentIntentIdParamsSchema), paymentController.getPaymentIntent);
 
 /**
  * POST /api/payments/intents/:id/cancel
  * Cancel a payment intent
  */
-router.post(
-  '/intents/:id/cancel',
-  authenticate,
-  [
-    param('id')
-      .isString()
-      .matches(/^pi_/)
-      .withMessage('Invalid payment intent ID'),
-    validateRequest,
-  ],
-  paymentController.cancelPaymentIntent
-);
+router.post('/intents/:id/cancel', authenticate, validateParams(paymentIntentIdParamsSchema), paymentController.cancelPaymentIntent);
 
 /**
  * POST /api/payments/refunds
  * Create a refund
  */
-router.post(
-  '/refunds',
-  authenticate,
-  [
-    body('paymentIntentId')
-      .isString()
-      .matches(/^pi_/)
-      .withMessage('Invalid payment intent ID'),
-    body('amount')
-      .optional()
-      .isInt({ min: 1 })
-      .withMessage('Refund amount must be positive'),
-    body('reason')
-      .optional()
-      .isIn(['duplicate', 'fraudulent', 'requested_by_customer'])
-      .withMessage('Invalid refund reason'),
-    validateRequest,
-  ],
-  paymentController.createRefund
-);
+router.post('/refunds', authenticate, validateBody(createRefundSchema), paymentController.createRefund);
 
 /**
  * POST /api/payments/customers
  * Create a Stripe customer
  */
-router.post(
-  '/customers',
-  authenticate,
-  [
-    body('email')
-      .isEmail()
-      .withMessage('Valid email is required'),
-    body('name')
-      .optional()
-      .isString()
-      .isLength({ max: 200 })
-      .withMessage('Name too long'),
-    body('phone')
-      .optional()
-      .isString()
-      .isLength({ max: 20 })
-      .withMessage('Phone too long'),
-    body('contactId')
-      .optional()
-      .isUUID()
-      .withMessage('Invalid contact ID'),
-    validateRequest,
-  ],
-  paymentController.createCustomer
-);
+router.post('/customers', authenticate, validateBody(createCustomerSchema), paymentController.createCustomer);
 
 /**
  * GET /api/payments/customers/:id
  * Get Stripe customer
  */
-router.get(
-  '/customers/:id',
-  authenticate,
-  [
-    param('id')
-      .isString()
-      .matches(/^cus_/)
-      .withMessage('Invalid customer ID'),
-    validateRequest,
-  ],
-  paymentController.getCustomer
-);
+router.get('/customers/:id', authenticate, validateParams(customerIdParamsSchema), paymentController.getCustomer);
 
 /**
  * GET /api/payments/customers/:customerId/payment-methods
@@ -163,13 +97,7 @@ router.get(
 router.get(
   '/customers/:customerId/payment-methods',
   authenticate,
-  [
-    param('customerId')
-      .isString()
-      .matches(/^cus_/)
-      .withMessage('Invalid customer ID'),
-    validateRequest,
-  ],
+  validateParams(paymentMethodsParamsSchema),
   paymentController.listPaymentMethods
 );
 

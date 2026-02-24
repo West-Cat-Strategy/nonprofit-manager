@@ -15,7 +15,7 @@ import { PASSWORD, JWT } from '@config/constants';
 import { invitationService, syncUserRole } from '@services/domains/integration';
 import { getEmailSettings } from '@services/emailSettingsService';
 import { sendInvitationEmail } from '@services/emailService';
-import { badRequest, conflict, errorPayload, forbidden, notFoundMessage, validationErrorResponse } from '@utils/responseHelpers';
+import { badRequest, conflict, forbidden, notFoundMessage, validationErrorResponse } from '@utils/responseHelpers';
 
 /**
  * POST /api/invitations
@@ -179,10 +179,7 @@ export const validateInvitation = async (
 
     if (!result.valid) {
       const message = result.error || 'Invalid invitation';
-      return res.status(400).json({
-        valid: false,
-        ...errorPayload(res, message, undefined, 'validation_error'),
-      });
+      return badRequest(res, message, { valid: false });
     }
 
     // Return limited invitation info for the acceptance form

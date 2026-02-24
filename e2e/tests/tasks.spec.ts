@@ -4,6 +4,7 @@
 
 import { test, expect, type Page } from '../fixtures/auth.fixture';
 import { clearDatabase, getAuthHeaders } from '../helpers/database';
+import { unwrapSuccess } from '../helpers/apiEnvelope';
 
 async function createTestTask(
   page: Page,
@@ -32,8 +33,13 @@ async function createTestTask(
     throw new Error(`Failed to create test task (${response.status()}): ${await response.text()}`);
   }
 
-  const result = await response.json();
-  return { id: result.id };
+  const result = unwrapSuccess<{ id?: string; data?: { id?: string } }>(await response.json());
+  const id = result?.id ?? result?.data?.id;
+  if (!id) {
+    throw new Error(`Failed to parse task id from response: ${JSON.stringify(result)}`);
+  }
+
+  return { id };
 }
 
 test.describe('Tasks Module', () => {

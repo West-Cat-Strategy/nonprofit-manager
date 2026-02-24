@@ -1,624 +1,448 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import {
-  createCaseNote,
-  fetchCaseOutcomeDefinitions,
-  fetchInteractionOutcomes,
-  saveInteractionOutcomes,
-} from '../features/cases/state';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { casesApiClient } from '../features/cases/api/casesApiClient';
 import { useToast } from '../contexts/useToast';
-import type { CreateCaseNoteDTO, NoteType } from '../types/case';
-import type {
-  InteractionOutcomeImpact,
-  InteractionOutcomeImpactInput,
-  OutcomeAttribution,
-  OutcomeDefinition,
-} from '../types/outcomes';
-import { getNoteIcon, getNoteTypeLabel, formatNoteDate, NOTE_TYPE_OPTIONS } from '../utils/notes';
+import type { CaseNote, CreateCaseNoteDTO, NoteType, UpdateCaseNoteDTO } from '../types/case';
+import { formatNoteDate, getNoteIcon, getNoteTypeLabel } from '../utils/notes';
 
 interface CaseNotesProps {
   caseId: string;
+  onChanged?: () => void;
 }
 
-type OutcomeDraft = {
-  selected: boolean;
-  attribution: OutcomeAttribution;
-  intensity: string;
-  evidenceNote: string;
+const NOTE_TYPE_OPTIONS: Array<{ value: NoteType; label: string }> = [
+  { value: 'note', label: 'General Note' },
+  { value: 'meeting', label: 'Meeting' },
+  { value: 'call', label: 'Phone Call' },
+  { value: 'email', label: 'Email' },
+  { value: 'update', label: 'Update' },
+  { value: 'status_change', label: 'Status Change' },
+];
+
+type NoteDraft = {
+  note_type: NoteType;
+  subject: string;
+  category: string;
+  content: string;
+  visible_to_client: boolean;
+  is_important: boolean;
 };
 
-const DEFAULT_ATTRIBUTION: OutcomeAttribution = 'DIRECT';
-
-const emptyOutcomeDraft = (): OutcomeDraft => ({
-  selected: false,
-  attribution: DEFAULT_ATTRIBUTION,
-  intensity: '',
-  evidenceNote: '',
+const emptyDraft = (): NoteDraft => ({
+  note_type: 'note',
+  subject: '',
+  category: '',
+  content: '',
+  visible_to_client: false,
+  is_important: false,
 });
 
-const buildDraftMap = (
-  definitions: OutcomeDefinition[],
-  impacts: InteractionOutcomeImpact[] = []
-): Record<string, OutcomeDraft> => {
-  const byDefinitionId = new Map(impacts.map((impact) => [impact.outcome_definition_id, impact]));
+const normalizeDraftForCreate = (caseId: string, draft: NoteDraft): CreateCaseNoteDTO => ({
+  case_id: caseId,
+  note_type: draft.note_type,
+  subject: draft.subject.trim() || undefined,
+  category: draft.category.trim() || undefined,
+  content: draft.content,
+  visible_to_client: draft.visible_to_client,
+  is_internal: !draft.visible_to_client,
+  is_important: draft.is_important,
+});
 
-  return definitions.reduce<Record<string, OutcomeDraft>>((acc, definition) => {
-    const impact = byDefinitionId.get(definition.id);
+const normalizeDraftForUpdate = (draft: NoteDraft): UpdateCaseNoteDTO => ({
+  note_type: draft.note_type,
+  subject: draft.subject.trim() || undefined,
+  category: draft.category.trim() || undefined,
+  content: draft.content,
+  visible_to_client: draft.visible_to_client,
+  is_internal: !draft.visible_to_client,
+  is_important: draft.is_important,
+});
 
-    if (!impact) {
-      acc[definition.id] = emptyOutcomeDraft();
-      return acc;
-    }
+const noteToDraft = (note: CaseNote): NoteDraft => ({
+  note_type: note.note_type,
+  subject: note.subject || '',
+  category: note.category || '',
+  content: note.content,
+  visible_to_client: Boolean(note.visible_to_client),
+  is_important: Boolean(note.is_important),
+});
 
-    acc[definition.id] = {
-      selected: impact.impact !== false,
-      attribution: impact.attribution || DEFAULT_ATTRIBUTION,
-      intensity: impact.intensity ? String(impact.intensity) : '',
-      evidenceNote: impact.evidence_note || '',
-    };
-
-    return acc;
-  }, {});
-};
-
-const syncDraftMapToDefinitions = (
-  definitions: OutcomeDefinition[],
-  current: Record<string, OutcomeDraft>
-): Record<string, OutcomeDraft> => {
-  return definitions.reduce<Record<string, OutcomeDraft>>((acc, definition) => {
-    acc[definition.id] = current[definition.id] || emptyOutcomeDraft();
-    return acc;
-  }, {});
-};
-
-const buildImpactsPayload = (drafts: Record<string, OutcomeDraft>): InteractionOutcomeImpactInput[] => {
-  return Object.entries(drafts)
-    .filter(([, draft]) => draft.selected)
-    .map(([outcomeDefinitionId, draft]) => ({
-      outcomeDefinitionId,
-      impact: true,
-      attribution: draft.attribution,
-      intensity: draft.intensity ? Number(draft.intensity) : null,
-      evidenceNote: draft.evidenceNote.trim() ? draft.evidenceNote.trim() : null,
-    }));
-};
-
-const isDraftInvalid = (draft: OutcomeDraft): boolean => {
-  if (!draft.selected) {
-    return false;
-  }
-
-  if (!draft.intensity) {
-    return false;
-  }
-
-  const value = Number(draft.intensity);
-  if (!Number.isInteger(value)) {
-    return true;
-  }
-
-  return value < 1 || value > 5;
-};
-
-const OutcomeDraftEditor = ({
-  definition,
-  draft,
-  onChange,
-}: {
-  definition: OutcomeDefinition;
-  draft: OutcomeDraft;
-  onChange: (next: OutcomeDraft) => void;
-}) => {
-  return (
-    <div className="border border-app-input-border rounded-lg p-3 bg-app-surface-muted/20">
-      <label className="flex items-start gap-2">
-        <input
-          type="checkbox"
-          checked={draft.selected}
-          onChange={(event) =>
-            onChange({
-              ...draft,
-              selected: event.target.checked,
-            })
-          }
-          className="mt-1 rounded border-app-input-border text-app-accent focus:ring-app-accent"
-        />
-        <span>
-          <span className="block text-sm font-semibold text-app-text">{definition.name}</span>
-          {definition.description && (
-            <span className="block text-xs text-app-text-muted mt-1">{definition.description}</span>
-          )}
-        </span>
-      </label>
-
-      {draft.selected && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
-          <div>
-            <label className="block text-xs font-medium text-app-text-muted mb-1">Attribution</label>
-            <select
-              value={draft.attribution}
-              onChange={(event) =>
-                onChange({
-                  ...draft,
-                  attribution: event.target.value as OutcomeAttribution,
-                })
-              }
-              className="w-full px-2 py-1 border border-app-input-border rounded"
-            >
-              <option value="DIRECT">Direct</option>
-              <option value="LIKELY">Likely</option>
-              <option value="POSSIBLE">Possible</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-app-text-muted mb-1">Intensity (1-5)</label>
-            <input
-              type="number"
-              min={1}
-              max={5}
-              value={draft.intensity}
-              onChange={(event) =>
-                onChange({
-                  ...draft,
-                  intensity: event.target.value,
-                })
-              }
-              className="w-full px-2 py-1 border border-app-input-border rounded"
-            />
-            {isDraftInvalid(draft) && (
-              <p className="text-xs text-red-600 mt-1">Intensity must be a whole number from 1 to 5.</p>
-            )}
-          </div>
-          <div className="md:col-span-1">
-            <label className="block text-xs font-medium text-app-text-muted mb-1">Evidence Note</label>
-            <textarea
-              value={draft.evidenceNote}
-              onChange={(event) =>
-                onChange({
-                  ...draft,
-                  evidenceNote: event.target.value.slice(0, 2000),
-                })
-              }
-              rows={2}
-              maxLength={2000}
-              className="w-full px-2 py-1 border border-app-input-border rounded"
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const CaseNotes = ({ caseId }: CaseNotesProps) => {
-  const dispatch = useAppDispatch();
+const CaseNotes = ({ caseId, onChanged }: CaseNotesProps) => {
   const { showSuccess, showError } = useToast();
-  const {
-    caseNotes,
-    loading,
-    caseOutcomeDefinitions,
-    outcomesLoading,
-    outcomesSaving,
-  } = useAppSelector((state) => state.casesV2);
 
-  const [isAddingNote, setIsAddingNote] = useState(false);
-  const [newNote, setNewNote] = useState<Partial<CreateCaseNoteDTO>>({
-    case_id: caseId,
-    note_type: 'note',
-    subject: '',
-    content: '',
-    is_internal: false,
-    is_important: false,
-  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [notes, setNotes] = useState<CaseNote[]>([]);
+  const [isAdding, setIsAdding] = useState(false);
+  const [draft, setDraft] = useState<NoteDraft>(emptyDraft);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingDraft, setEditingDraft] = useState<NoteDraft>(emptyDraft);
 
-  const activeOutcomeDefinitions = useMemo(
-    () => (caseOutcomeDefinitions || []).filter((definition) => definition.is_active),
-    [caseOutcomeDefinitions]
-  );
-
-  const [newNoteOutcomeDrafts, setNewNoteOutcomeDrafts] = useState<Record<string, OutcomeDraft>>({});
-
-  const [editingInteractionId, setEditingInteractionId] = useState<string | null>(null);
-  const [editingOutcomeDrafts, setEditingOutcomeDrafts] = useState<Record<string, OutcomeDraft>>({});
+  const loadNotes = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await casesApiClient.listCaseNotes(caseId);
+      setNotes(response.notes || []);
+    } catch {
+      showError('Failed to load case notes');
+    } finally {
+      setLoading(false);
+    }
+  }, [caseId, showError]);
 
   useEffect(() => {
-    void dispatch(fetchCaseOutcomeDefinitions(false));
-  }, [dispatch]);
+    void loadNotes();
+  }, [loadNotes]);
 
-  useEffect(() => {
-    if (activeOutcomeDefinitions.length === 0) {
-      setNewNoteOutcomeDrafts({});
-      return;
-    }
+  const hasNotes = useMemo(() => notes.length > 0, [notes]);
 
-    setNewNoteOutcomeDrafts((current) => syncDraftMapToDefinitions(activeOutcomeDefinitions, current));
-  }, [activeOutcomeDefinitions]);
-
-  const handleSubmitNote = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!newNote.content?.trim()) {
-      showError('Please enter note content');
-      return;
-    }
-
-    const invalidDraft = Object.values(newNoteOutcomeDrafts).some((draft) => isDraftInvalid(draft));
-    if (invalidDraft) {
-      showError('Fix outcome intensity values before saving');
+  const handleCreate = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!draft.content.trim()) {
+      showError('Note content is required');
       return;
     }
 
     try {
-      const createdNote = await dispatch(
-        createCaseNote({
-          case_id: caseId,
-          note_type: newNote.note_type as NoteType,
-          subject: newNote.subject,
-          content: newNote.content,
-          is_internal: newNote.is_internal,
-          is_important: newNote.is_important,
-        })
-      ).unwrap();
-
-      const impactsPayload = buildImpactsPayload(newNoteOutcomeDrafts);
-
-      if (impactsPayload.length > 0 && createdNote?.id) {
-        try {
-          await dispatch(
-            saveInteractionOutcomes({
-              caseId,
-              interactionId: createdNote.id,
-              data: { mode: 'replace', impacts: impactsPayload },
-            })
-          ).unwrap();
-        } catch {
-          showError('Note saved, but outcomes could not be saved. Try editing outcomes on the note.');
-        }
-      }
-
-      showSuccess('Note added successfully');
-
-      setNewNote({
-        case_id: caseId,
-        note_type: 'note',
-        subject: '',
-        content: '',
-        is_internal: false,
-        is_important: false,
-      });
-      setNewNoteOutcomeDrafts(buildDraftMap(activeOutcomeDefinitions));
-      setIsAddingNote(false);
-    } catch (error) {
-      console.error('Failed to add note:', error);
-      showError('Failed to add note. Please try again.');
+      setSaving(true);
+      await casesApiClient.createCaseNote(normalizeDraftForCreate(caseId, draft));
+      setDraft(emptyDraft());
+      setIsAdding(false);
+      await loadNotes();
+      onChanged?.();
+      showSuccess('Case note added');
+    } catch {
+      showError('Failed to add case note');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleStartEditOutcomes = async (interactionId: string, currentImpacts: InteractionOutcomeImpact[]) => {
-    setEditingInteractionId(interactionId);
-    setEditingOutcomeDrafts(buildDraftMap(activeOutcomeDefinitions, currentImpacts));
+  const handleStartEdit = (note: CaseNote) => {
+    setEditingNoteId(note.id);
+    setEditingDraft(noteToDraft(note));
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingNoteId) return;
+    if (!editingDraft.content.trim()) {
+      showError('Note content is required');
+      return;
+    }
 
     try {
-      const refreshed = await dispatch(
-        fetchInteractionOutcomes({
-          caseId,
-          interactionId,
-        })
-      ).unwrap();
-      setEditingOutcomeDrafts(buildDraftMap(activeOutcomeDefinitions, refreshed.impacts));
+      setSaving(true);
+      await casesApiClient.updateCaseNote(editingNoteId, normalizeDraftForUpdate(editingDraft));
+      setEditingNoteId(null);
+      setEditingDraft(emptyDraft());
+      await loadNotes();
+      onChanged?.();
+      showSuccess('Case note updated');
     } catch {
-      // Keep current local data if refresh fails.
+      showError('Failed to update case note');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleSaveEditedOutcomes = async () => {
-    if (!editingInteractionId) {
-      return;
-    }
-
-    const invalidDraft = Object.values(editingOutcomeDrafts).some((draft) => isDraftInvalid(draft));
-    if (invalidDraft) {
-      showError('Fix outcome intensity values before saving');
-      return;
-    }
+  const handleDelete = async (noteId: string) => {
+    const confirmed = window.confirm('Delete this note?');
+    if (!confirmed) return;
 
     try {
-      await dispatch(
-        saveInteractionOutcomes({
-          caseId,
-          interactionId: editingInteractionId,
-          data: {
-            mode: 'replace',
-            impacts: buildImpactsPayload(editingOutcomeDrafts),
-          },
-        })
-      ).unwrap();
-
-      showSuccess('Outcomes saved');
-      setEditingInteractionId(null);
-      setEditingOutcomeDrafts({});
+      setSaving(true);
+      await casesApiClient.deleteCaseNote(noteId);
+      await loadNotes();
+      onChanged?.();
+      showSuccess('Case note deleted');
     } catch {
-      showError('Failed to save outcomes for this interaction');
+      showError('Failed to delete case note');
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Add Note Button */}
-      {!isAddingNote && (
+    <div className="space-y-5">
+      {!isAdding && (
         <button
-          onClick={() => setIsAddingNote(true)}
-          className="w-full px-4 py-3 bg-app-accent-soft text-app-accent rounded-lg hover:bg-app-accent-soft transition border border-app-accent-soft"
+          type="button"
+          onClick={() => setIsAdding(true)}
+          className="w-full rounded-lg border border-app-border bg-app-surface-muted px-4 py-3 text-sm font-semibold text-app-text hover:bg-app-surface-muted/70"
         >
           + Add Note
         </button>
       )}
 
-      {/* Add Note Form */}
-      {isAddingNote && (
-        <form onSubmit={handleSubmitNote} className="bg-app-surface rounded-lg border border-app-border p-4">
-          <h3 className="text-lg font-semibold mb-4">Add Note</h3>
-
-          {/* Note Type */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-app-text-muted mb-2">Note Type</label>
-            <select
-              value={newNote.note_type}
-              onChange={(e) =>
-                setNewNote((prev) => ({ ...prev, note_type: e.target.value as NoteType }))
-              }
-              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
-            >
-              {NOTE_TYPE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Subject */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-app-text-muted mb-2">Subject</label>
-            <input
-              type="text"
-              value={newNote.subject}
-              onChange={(e) => setNewNote((prev) => ({ ...prev, subject: e.target.value }))}
-              placeholder="Brief summary (optional)"
-              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
-            />
-          </div>
-
-          {/* Content */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-app-text-muted mb-2">
-              Content <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={newNote.content}
-              onChange={(e) => setNewNote((prev) => ({ ...prev, content: e.target.value }))}
-              rows={4}
-              required
-              placeholder="Enter note details..."
-              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
-            />
-          </div>
-
-          {/* Checkboxes */}
-          <div className="mb-4 space-y-2">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={newNote.is_internal}
-                onChange={(e) => setNewNote((prev) => ({ ...prev, is_internal: e.target.checked }))}
-                className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
-              />
-              <span className="text-sm text-app-text-muted">Internal note (not visible to client)</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={newNote.is_important}
-                onChange={(e) =>
-                  setNewNote((prev) => ({ ...prev, is_important: e.target.checked }))
+      {isAdding && (
+        <form onSubmit={handleCreate} className="rounded-lg border border-app-border bg-app-surface p-4">
+          <h3 className="mb-3 text-base font-semibold text-app-text">New Note</h3>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <label className="text-sm">
+              <span className="mb-1 block text-app-text-muted">Type</span>
+              <select
+                value={draft.note_type}
+                onChange={(event) =>
+                  setDraft((current) => ({ ...current, note_type: event.target.value as NoteType }))
                 }
-                className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
+                className="w-full rounded border border-app-input-border px-3 py-2 text-sm"
+              >
+                {NOTE_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm">
+              <span className="mb-1 block text-app-text-muted">Category</span>
+              <input
+                value={draft.category}
+                onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))}
+                className="w-full rounded border border-app-input-border px-3 py-2 text-sm"
+                placeholder="Optional category"
               />
-              <span className="text-sm text-app-text-muted">Mark as important</span>
             </label>
           </div>
-
-          {/* Outcome Impacts */}
-          <div className="mb-6">
-            <h4 className="text-sm font-semibold text-app-text mb-2">Outcome Impacts</h4>
-            {activeOutcomeDefinitions.length === 0 ? (
-              <p className="text-sm text-app-text-muted">
-                No active outcomes are configured yet.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {activeOutcomeDefinitions.map((definition) => (
-                  <OutcomeDraftEditor
-                    key={definition.id}
-                    definition={definition}
-                    draft={newNoteOutcomeDrafts[definition.id] || emptyOutcomeDraft()}
-                    onChange={(nextDraft) =>
-                      setNewNoteOutcomeDrafts((prev) => ({
-                        ...prev,
-                        [definition.id]: nextDraft,
-                      }))
-                    }
-                  />
-                ))}
-              </div>
-            )}
+          <label className="mt-3 block text-sm">
+            <span className="mb-1 block text-app-text-muted">Subject</span>
+            <input
+              value={draft.subject}
+              onChange={(event) => setDraft((current) => ({ ...current, subject: event.target.value }))}
+              className="w-full rounded border border-app-input-border px-3 py-2 text-sm"
+              placeholder="Optional subject"
+            />
+          </label>
+          <label className="mt-3 block text-sm">
+            <span className="mb-1 block text-app-text-muted">Content</span>
+            <textarea
+              value={draft.content}
+              onChange={(event) => setDraft((current) => ({ ...current, content: event.target.value }))}
+              className="w-full rounded border border-app-input-border px-3 py-2 text-sm"
+              rows={5}
+              required
+              placeholder="Write note details (plain text or markdown)"
+            />
+          </label>
+          <div className="mt-3 flex flex-wrap items-center gap-4">
+            <label className="inline-flex items-center gap-2 text-sm text-app-text-muted">
+              <input
+                type="checkbox"
+                checked={draft.visible_to_client}
+                onChange={(event) =>
+                  setDraft((current) => ({ ...current, visible_to_client: event.target.checked }))
+                }
+                className="rounded border-app-input-border"
+              />
+              Visible to client
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm text-app-text-muted">
+              <input
+                type="checkbox"
+                checked={draft.is_important}
+                onChange={(event) =>
+                  setDraft((current) => ({ ...current, is_important: event.target.checked }))
+                }
+                className="rounded border-app-input-border"
+              />
+              Important
+            </label>
           </div>
-
-          {/* Form Actions */}
-          <div className="flex justify-end gap-3">
+          <div className="mt-4 flex justify-end gap-2">
             <button
               type="button"
-              onClick={() => setIsAddingNote(false)}
-              className="px-4 py-2 border border-app-input-border rounded-lg hover:bg-app-surface-muted transition"
+              onClick={() => {
+                setIsAdding(false);
+                setDraft(emptyDraft());
+              }}
+              className="rounded border border-app-input-border px-3 py-2 text-sm"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={loading || outcomesSaving || outcomesLoading}
-              className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50 transition"
+              disabled={saving}
+              className="rounded bg-app-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
             >
-              {loading || outcomesSaving ? 'Saving...' : 'Add Note'}
+              {saving ? 'Saving...' : 'Save Note'}
             </button>
           </div>
         </form>
       )}
 
-      {/* Notes Timeline */}
-      <div className="space-y-4">
-        {caseNotes.length === 0 && (
-          <div className="text-center py-12 bg-app-surface-muted rounded-lg">
-            <div className="text-app-text-subtle text-4xl mb-2">📝</div>
-            <p className="text-app-text-muted">No notes yet</p>
-            <p className="text-sm text-app-text-muted mt-1">Add your first note to start tracking activity</p>
-          </div>
-        )}
+      {loading && <p className="text-sm text-app-text-muted">Loading notes...</p>}
 
-        {caseNotes.map((note) => {
-          const noteImpacts = (note.outcome_impacts || []).filter((impact) => impact.impact !== false);
-          const isEditingThisNote = editingInteractionId === note.id;
+      {!loading && !hasNotes && (
+        <div className="rounded-lg border border-app-border bg-app-surface-muted p-8 text-center">
+          <p className="text-sm text-app-text-muted">No notes yet.</p>
+        </div>
+      )}
 
+      {!loading &&
+        notes.map((note) => {
+          const isEditing = editingNoteId === note.id;
           return (
-            <div
-              key={note.id}
-              className={`bg-app-surface rounded-lg border p-4 ${
-                note.is_important ? 'border-yellow-300 bg-yellow-50' : 'border-app-border'
-              }`}
-            >
-              {/* Note Header */}
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">{getNoteIcon(note.note_type)}</span>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-app-text">
-                        {getNoteTypeLabel(note.note_type)}
+            <div key={note.id} className="rounded-lg border border-app-border bg-app-surface p-4">
+              <div className="mb-2 flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{getNoteIcon(note.note_type)}</span>
+                    <span className="text-sm font-semibold text-app-text">
+                      {getNoteTypeLabel(note.note_type)}
+                    </span>
+                    {note.visible_to_client ? (
+                      <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-800">
+                        Client visible
                       </span>
-                      {note.is_internal && (
-                        <span className="px-2 py-0.5 text-xs bg-app-surface-muted text-app-text-muted rounded">
-                          Internal
-                        </span>
-                      )}
-                      {note.is_important && (
-                        <span className="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded">
-                          Important
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-sm text-app-text-muted">
-                      {note.first_name} {note.last_name} • {formatNoteDate(note.created_at)}
-                    </div>
+                    ) : (
+                      <span className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted">
+                        Internal
+                      </span>
+                    )}
+                    {note.is_important && (
+                      <span className="rounded bg-yellow-100 px-2 py-0.5 text-xs text-yellow-800">
+                        Important
+                      </span>
+                    )}
                   </div>
+                  <p className="text-xs text-app-text-muted">
+                    {note.first_name || 'Staff'} {note.last_name || ''} · {formatNoteDate(note.created_at)}
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    void handleStartEditOutcomes(note.id, note.outcome_impacts || [])
-                  }
-                  className="px-2 py-1 text-xs border border-app-input-border rounded hover:bg-app-surface-muted"
-                >
-                  Edit outcomes
-                </button>
+                {!isEditing && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleStartEdit(note)}
+                      className="rounded border border-app-input-border px-2 py-1 text-xs"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDelete(note.id)}
+                      className="rounded border border-red-300 px-2 py-1 text-xs text-red-700"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {/* Note Subject */}
-              {note.subject && (
-                <div className="font-medium text-app-text mb-2">{note.subject}</div>
-              )}
-
-              {/* Note Content */}
-              <div className="text-app-text-muted whitespace-pre-wrap">{note.content}</div>
-
-              {/* Status Change Info */}
-              {note.note_type === 'status_change' && note.previous_status_id && note.new_status_id && (
-                <div className="mt-3 pt-3 border-t border-app-border text-sm text-app-text-muted">
-                  Status changed: {note.previous_status_id} → {note.new_status_id}
-                </div>
-              )}
-
-              {/* Saved outcomes */}
-              {noteImpacts.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-app-border">
-                  <p className="text-xs font-semibold uppercase text-app-text-muted mb-2">Outcome Impacts</p>
-                  <div className="space-y-2">
-                    {noteImpacts.map((impact) => (
-                      <div
-                        key={impact.id}
-                        className="text-sm text-app-text-muted bg-app-surface-muted rounded px-2 py-1"
+              {isEditing ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <label className="text-sm">
+                      <span className="mb-1 block text-app-text-muted">Type</span>
+                      <select
+                        value={editingDraft.note_type}
+                        onChange={(event) =>
+                          setEditingDraft((current) => ({
+                            ...current,
+                            note_type: event.target.value as NoteType,
+                          }))
+                        }
+                        className="w-full rounded border border-app-input-border px-3 py-2 text-sm"
                       >
-                        <span className="font-medium text-app-text">{impact.outcome_definition?.name}</span>
-                        <span className="ml-2">({impact.attribution})</span>
-                        {impact.intensity && <span className="ml-2">Intensity: {impact.intensity}</span>}
-                        {impact.evidence_note && (
-                          <p className="mt-1 text-xs text-app-text-muted">{impact.evidence_note}</p>
-                        )}
-                      </div>
-                    ))}
+                        {NOTE_TYPE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="text-sm">
+                      <span className="mb-1 block text-app-text-muted">Category</span>
+                      <input
+                        value={editingDraft.category}
+                        onChange={(event) =>
+                          setEditingDraft((current) => ({ ...current, category: event.target.value }))
+                        }
+                        className="w-full rounded border border-app-input-border px-3 py-2 text-sm"
+                      />
+                    </label>
                   </div>
-                </div>
-              )}
-
-              {/* Edit outcomes panel */}
-              {isEditingThisNote && (
-                <div className="mt-4 border border-app-border rounded-lg p-3 bg-app-surface-muted/20">
-                  <h5 className="text-sm font-semibold text-app-text mb-2">Edit Outcome Impacts</h5>
-                  {activeOutcomeDefinitions.length === 0 ? (
-                    <p className="text-sm text-app-text-muted">No active outcomes available.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {activeOutcomeDefinitions.map((definition) => (
-                        <OutcomeDraftEditor
-                          key={definition.id}
-                          definition={definition}
-                          draft={editingOutcomeDrafts[definition.id] || emptyOutcomeDraft()}
-                          onChange={(nextDraft) =>
-                            setEditingOutcomeDrafts((prev) => ({
-                              ...prev,
-                              [definition.id]: nextDraft,
-                            }))
-                          }
-                        />
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex justify-end gap-2 mt-3">
+                  <label className="block text-sm">
+                    <span className="mb-1 block text-app-text-muted">Subject</span>
+                    <input
+                      value={editingDraft.subject}
+                      onChange={(event) =>
+                        setEditingDraft((current) => ({ ...current, subject: event.target.value }))
+                      }
+                      className="w-full rounded border border-app-input-border px-3 py-2 text-sm"
+                    />
+                  </label>
+                  <label className="block text-sm">
+                    <span className="mb-1 block text-app-text-muted">Content</span>
+                    <textarea
+                      value={editingDraft.content}
+                      onChange={(event) =>
+                        setEditingDraft((current) => ({ ...current, content: event.target.value }))
+                      }
+                      className="w-full rounded border border-app-input-border px-3 py-2 text-sm"
+                      rows={4}
+                    />
+                  </label>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <label className="inline-flex items-center gap-2 text-sm text-app-text-muted">
+                      <input
+                        type="checkbox"
+                        checked={editingDraft.visible_to_client}
+                        onChange={(event) =>
+                          setEditingDraft((current) => ({
+                            ...current,
+                            visible_to_client: event.target.checked,
+                          }))
+                        }
+                        className="rounded border-app-input-border"
+                      />
+                      Visible to client
+                    </label>
+                    <label className="inline-flex items-center gap-2 text-sm text-app-text-muted">
+                      <input
+                        type="checkbox"
+                        checked={editingDraft.is_important}
+                        onChange={(event) =>
+                          setEditingDraft((current) => ({ ...current, is_important: event.target.checked }))
+                        }
+                        className="rounded border-app-input-border"
+                      />
+                      Important
+                    </label>
+                  </div>
+                  <div className="flex justify-end gap-2">
                     <button
                       type="button"
                       onClick={() => {
-                        setEditingInteractionId(null);
-                        setEditingOutcomeDrafts({});
+                        setEditingNoteId(null);
+                        setEditingDraft(emptyDraft());
                       }}
-                      className="px-3 py-1 border border-app-input-border rounded"
+                      className="rounded border border-app-input-border px-2 py-1 text-xs"
                     >
                       Cancel
                     </button>
                     <button
                       type="button"
-                      onClick={() => void handleSaveEditedOutcomes()}
-                      disabled={outcomesSaving}
-                      className="px-3 py-1 bg-app-accent text-white rounded disabled:opacity-50"
+                      disabled={saving}
+                      onClick={() => void handleSaveEdit()}
+                      className="rounded bg-app-accent px-2 py-1 text-xs font-semibold text-white disabled:opacity-60"
                     >
-                      {outcomesSaving ? 'Saving...' : 'Save outcomes'}
+                      {saving ? 'Saving...' : 'Save'}
                     </button>
                   </div>
                 </div>
+              ) : (
+                <>
+                  {note.subject && <p className="mb-1 text-sm font-medium text-app-text">{note.subject}</p>}
+                  {note.category && <p className="mb-2 text-xs text-app-text-muted">Category: {note.category}</p>}
+                  <p className="whitespace-pre-wrap text-sm text-app-text">{note.content}</p>
+                </>
               )}
             </div>
           );
         })}
-      </div>
     </div>
   );
 };
 
 export default CaseNotes;
+

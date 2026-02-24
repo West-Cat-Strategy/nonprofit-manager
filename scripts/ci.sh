@@ -120,6 +120,8 @@ run_ci() {
         log_info "Running backend checks..."
 
         run_step "Backend Lint" "cd backend && npm run lint" "[ \$RUN_LINT = false ]"
+        run_step "Rate Limit Key Policy" "node scripts/check-rate-limit-key-policy.ts" "[ \$RUN_LINT = false ]"
+        run_step "Success Envelope Policy" "node scripts/check-success-envelope-policy.ts" "[ \$RUN_LINT = false ]"
         run_step "Backend TypeCheck" "cd backend && npm run type-check" "[ \$RUN_TYPECHECK = false ]"
 
         if [ "$RUN_TESTS" = true ] && [ "$SKIP_TESTS" = false ]; then

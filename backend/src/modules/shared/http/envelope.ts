@@ -1,5 +1,7 @@
 import { Response } from 'express';
 
+const CORRELATION_ID_HEADER = 'x-correlation-id';
+
 export interface ApiErrorPayload {
   code: string;
   message: string;
@@ -14,13 +16,71 @@ export interface ApiSuccessEnvelope<T> {
 export interface ApiErrorEnvelope {
   success: false;
   error: ApiErrorPayload;
+  correlationId?: string;
 }
 
-export const sendSuccess = <T>(res: Response, data: T, status = 200): void => {
-  res.status(status).json({
-    success: true,
-    data,
-  } satisfies ApiSuccessEnvelope<T>);
+export const getResponseCorrelationId = (res: Response): string | undefined => {
+  const header = res.getHeader(CORRELATION_ID_HEADER);
+  if (Array.isArray(header)) {
+    return header[0];
+  }
+  if (typeof header === 'string') {
+    return header;
+  }
+  return undefined;
+};
+
+const setResponseCorrelationId = (res: Response, correlationId?: string): string | undefined => {
+  const resolved = correlationId || getResponseCorrelationId(res);
+  if (resolved) {
+    res.setHeader(CORRELATION_ID_HEADER, resolved);
+  }
+  return resolved;
+};
+
+export const successEnvelope = <T>(data: T): ApiSuccessEnvelope<T> => ({
+  success: true,
+  data,
+});
+
+export const isApiSuccessEnvelope = (payload: unknown): payload is ApiSuccessEnvelope<unknown> => {
+  if (!payload || typeof payload !== 'object') return false;
+  const candidate = payload as Record<string, unknown>;
+  return candidate.success === true && Object.prototype.hasOwnProperty.call(candidate, 'data');
+};
+
+export const isApiErrorEnvelope = (payload: unknown): payload is ApiErrorEnvelope => {
+  if (!payload || typeof payload !== 'object') return false;
+  const candidate = payload as Record<string, unknown>;
+  return candidate.success === false && typeof candidate.error === 'object' && candidate.error !== null;
+};
+
+export const errorEnvelope = (
+  code: string,
+  message: string,
+  details?: Record<string, unknown>,
+  correlationId?: string
+): ApiErrorEnvelope => ({
+  success: false,
+  error: {
+    code,
+    message,
+    ...(details ? { details } : {}),
+  },
+  ...(correlationId ? { correlationId } : {}),
+});
+
+export const sendSuccess = <T>(res: Response, data: T, status = 200): Response => {
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    const objectData = data as Record<string, unknown>;
+    return res.status(status).json({
+      ...objectData,
+      success: true,
+      data,
+    });
+  }
+
+  return res.status(status).json(successEnvelope(data));
 };
 
 export const sendError = (
@@ -28,14 +88,20 @@ export const sendError = (
   code: string,
   message: string,
   status = 400,
-  details?: Record<string, unknown>
-): void => {
-  res.status(status).json({
-    success: false,
-    error: {
-      code,
-      message,
-      details,
-    },
-  } satisfies ApiErrorEnvelope);
+  details?: Record<string, unknown>,
+  correlationId?: string
+): Response => {
+  const resolvedCorrelationId = setResponseCorrelationId(res, correlationId);
+  return res.status(status).json(errorEnvelope(code, message, details, resolvedCorrelationId));
+};
+
+export const buildApiErrorPayload = (
+  res: Response,
+  code: string,
+  message: string,
+  details?: Record<string, unknown>,
+  correlationId?: string
+): ApiErrorEnvelope => {
+  const resolvedCorrelationId = setResponseCorrelationId(res, correlationId);
+  return errorEnvelope(code, message, details, resolvedCorrelationId);
 };

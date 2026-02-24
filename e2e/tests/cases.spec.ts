@@ -1,6 +1,7 @@
 import { test, expect } from '../fixtures/auth.fixture';
 import type { Page } from '@playwright/test';
 import { createTestContact, clearDatabase } from '../helpers/database';
+import { unwrapList, unwrapSuccess } from '../helpers/apiEnvelope';
 
 const apiURL = process.env.API_URL || 'HTTP://localhost:3001';
 
@@ -42,7 +43,7 @@ async function getWriteHeaders(page: Page, token: string): Promise<Record<string
     if (!csrfResponse.ok()) {
         throw new Error(`Failed to fetch CSRF token (${csrfResponse.status()})`);
     }
-    const csrfData = await csrfResponse.json();
+    const csrfData = unwrapSuccess<{ csrfToken?: string }>(await csrfResponse.json());
     if (!csrfData?.csrfToken) {
         throw new Error('CSRF token missing in response');
     }
@@ -71,12 +72,12 @@ async function getReadHeaders(page: Page, token: string): Promise<Record<string,
 
 async function clearCases(page: Page, token: string): Promise<void> {
     const headers = await getReadHeaders(page, token);
-    const listResponse = await page.request.get(`${apiURL}/api/cases?limit=200`, {
+    const listResponse = await page.request.get(`${apiURL}/api/cases?limit=100`, {
         headers,
     });
     if (!listResponse.ok()) return;
 
-    const listData = await listResponse.json();
+    const listData = unwrapSuccess<{ cases?: Array<{ id?: string }> }>(await listResponse.json());
     const cases = listData?.cases || [];
     for (const item of cases) {
         if (!item?.id) continue;
@@ -93,7 +94,7 @@ async function getFirstCaseTypeId(page: Page, token: string): Promise<string> {
     if (!response.ok()) {
         throw new Error(`Failed to fetch case types (${response.status()})`);
     }
-    const data = await response.json();
+    const data = unwrapSuccess<{ types?: Array<{ id?: string }> }>(await response.json());
     const firstTypeId = data?.types?.[0]?.id;
     if (!firstTypeId) {
         throw new Error('No case types available for tests');
@@ -107,7 +108,7 @@ async function createTestCase(
     data: {
         title: string;
         contactId?: string;
-        priority?: 'low' | 'medium' | 'high' | 'urgent';
+        priority?: 'low' | 'medium' | 'high' | 'critical';
         isUrgent?: boolean;
         description?: string;
     }
@@ -139,12 +140,13 @@ async function createTestCase(
         throw new Error(`Failed to create test case (${response.status()}): ${await response.text()}`);
     }
 
-    const result = await response.json();
-    if (!result?.id) {
+    const result = unwrapSuccess<{ id?: string; data?: { id?: string } }>(await response.json());
+    const caseId = result?.id ?? result?.data?.id;
+    if (!caseId) {
         throw new Error(`Missing case id in response: ${JSON.stringify(result)}`);
     }
 
-    return { id: result.id };
+    return { id: caseId };
 }
 
 async function createCaseNote(
@@ -158,7 +160,7 @@ async function createCaseNote(
         headers,
         data: {
             case_id: caseId,
-            note_type: 'note',
+            note_type: 'case_note',
             content,
             is_internal: false,
             is_important: false,
@@ -169,7 +171,7 @@ async function createCaseNote(
         throw new Error(`Failed to create case note (${response.status()}): ${await response.text()}`);
     }
 
-    const data = await response.json();
+    const data = unwrapSuccess<{ id?: string; data?: { id?: string } }>(await response.json());
     const id = data?.id || data?.data?.id;
     if (!id) {
         throw new Error(`Missing case note id in response: ${JSON.stringify(data)}`);
@@ -210,6 +212,7 @@ test.describe('Cases Module', () => {
             .locator('button', { hasText: new RegExp(`${firstName}\\s+${lastName}`, 'i') })
             .first()
             .click();
+        await expect(authenticatedPage.locator('input[name="contact_id"]')).not.toHaveValue('');
 
         const typeSelect = authenticatedPage.locator('select[name="case_type_id"]');
         await expect(typeSelect).toBeVisible();
@@ -254,7 +257,7 @@ test.describe('Cases Module', () => {
 
         await createTestCase(authenticatedPage, authToken, {
             title: urgentTitle,
-            priority: 'urgent',
+            priority: 'critical',
             isUrgent: true,
         });
         await createTestCase(authenticatedPage, authToken, {
@@ -329,8 +332,7 @@ test.describe('Cases Module', () => {
         );
         expect(definitionsResponse.ok()).toBeTruthy();
 
-        const definitionsBody = await definitionsResponse.json();
-        const definitions = definitionsBody?.data || definitionsBody;
+        const definitions = unwrapList<{ id: string; name: string }>(await definitionsResponse.json());
         const firstDefinition = definitions?.[0];
         expect(firstDefinition?.id).toBeTruthy();
 
@@ -354,8 +356,7 @@ test.describe('Cases Module', () => {
         );
         expect(saveResponse.ok()).toBeTruthy();
 
-        const savedBody = await saveResponse.json();
-        const savedImpacts = savedBody?.data || savedBody;
+        const savedImpacts = unwrapList<Record<string, unknown>>(await saveResponse.json());
         expect(savedImpacts.length).toBe(1);
 
         await authenticatedPage.goto(`/cases/${caseId}`);

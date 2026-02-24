@@ -5,6 +5,7 @@ import {
   register,
   logout,
   getCurrentUser,
+  checkAccess,
   checkSetupStatus,
   setupFirstUser,
   getPreferences,
@@ -84,6 +85,7 @@ router.post(
 );
 
 router.get('/me', authenticate, getCurrentUser);
+router.get('/check-access', authenticate, checkAccess);
 router.post('/logout', authenticate, logout);
 
 // CSRF token endpoint

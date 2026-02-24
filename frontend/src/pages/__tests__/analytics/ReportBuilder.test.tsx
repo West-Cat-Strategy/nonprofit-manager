@@ -1,6 +1,8 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
+import type * as ReportsSliceModule from '../../../store/slices/reportsSlice';
+import type * as SavedReportsSliceModule from '../../../store/slices/savedReportsSlice';
 import { vi } from 'vitest';
 import ReportBuilder from '../../analytics/ReportBuilder';
 import { renderWithProviders } from '../../../test/testUtils';
@@ -17,7 +19,9 @@ vi.mock('../../../store/hooks', () => ({
 }));
 
 vi.mock('../../../store/slices/reportsSlice', async () => {
-  const actual = await vi.importActual<typeof import('../../../store/slices/reportsSlice')>('../../../store/slices/reportsSlice');
+  const actual = await vi.importActual<typeof ReportsSliceModule>(
+    '../../../store/slices/reportsSlice'
+  );
   return {
     ...actual,
     default: (state = { currentReport: null, loading: false, availableFields: [] }) => state,
@@ -25,7 +29,9 @@ vi.mock('../../../store/slices/reportsSlice', async () => {
   };
 });
 vi.mock('../../../store/slices/savedReportsSlice', async () => {
-  const actual = await vi.importActual<typeof import('../../../store/slices/savedReportsSlice')>('../../../store/slices/savedReportsSlice');
+  const actual = await vi.importActual<typeof SavedReportsSliceModule>(
+    '../../../store/slices/savedReportsSlice'
+  );
   return {
     ...actual,
     default: (state = { currentSavedReport: null }) => state,

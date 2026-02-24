@@ -6,6 +6,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import api from '../../services/api';
+import { unwrapApiData } from '../../services/apiEnvelope';
+import type { ApiEnvelope } from '../../services/apiEnvelope';
 
 export interface Account {
   account_id: string;
@@ -49,6 +51,10 @@ export interface AccountsState {
 }
 
 type AccountInput = Partial<Account>;
+type AccountsListPayload = {
+  data: Account[];
+  pagination: AccountsState['pagination'];
+};
 
 const initialState: AccountsState = {
   accounts: [],
@@ -80,32 +86,32 @@ export const fetchAccounts = createAsyncThunk(
     category?: string;
     is_active?: boolean;
   }) => {
-    const response = await api.get('/accounts', { params });
-    return response.data;
+    const response = await api.get<ApiEnvelope<AccountsListPayload>>('/accounts', { params });
+    return unwrapApiData(response.data);
   }
 );
 
 export const fetchAccountById = createAsyncThunk(
   'accounts/fetchAccountById',
   async (accountId: string) => {
-    const response = await api.get(`/accounts/${accountId}`);
-    return response.data;
+    const response = await api.get<ApiEnvelope<Account>>(`/accounts/${accountId}`);
+    return unwrapApiData(response.data);
   }
 );
 
 export const createAccount = createAsyncThunk(
   'accounts/createAccount',
   async (accountData: AccountInput) => {
-    const response = await api.post('/accounts', accountData);
-    return response.data;
+    const response = await api.post<ApiEnvelope<Account>>('/accounts', accountData);
+    return unwrapApiData(response.data);
   }
 );
 
 export const updateAccount = createAsyncThunk(
   'accounts/updateAccount',
   async ({ accountId, data }: { accountId: string; data: AccountInput }) => {
-    const response = await api.put(`/accounts/${accountId}`, data);
-    return response.data;
+    const response = await api.put<ApiEnvelope<Account>>(`/accounts/${accountId}`, data);
+    return unwrapApiData(response.data);
   }
 );
 
