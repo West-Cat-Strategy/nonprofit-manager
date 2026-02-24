@@ -14,6 +14,7 @@ import { badRequest, conflict, forbidden, notFoundMessage, unauthorized } from '
 import { setAuthCookie, setRefreshCookie, clearAuthCookies } from '@utils/cookieHelper';
 import { buildAuthTokenResponse } from '@utils/authResponse';
 import { generateCsrfToken } from '@middleware/domains/security';
+import { sendSuccess } from '@modules/shared/http/envelope';
 
 import { getRegistrationMode } from '@services/registrationSettingsService';
 import { createPendingRegistration } from '@services/pendingRegistrationService';
@@ -113,10 +114,10 @@ export const register = async (
         throw err;
       }
 
-      return res.status(202).json({
+      return sendSuccess(res, {
         message: 'Your registration request has been submitted and is awaiting admin approval. You will receive an email once your account is approved.',
         pendingApproval: true,
-      });
+      }, 202);
     }
 
     // Direct registration (should not reach here with current modes,
@@ -163,7 +164,7 @@ export const register = async (
     setAuthCookie(res, token);
 
     const organizationId = await getDefaultOrganizationId();
-    return res.status(201).json({
+    return sendSuccess(res, {
       ...buildAuthTokenResponse(token),
       organizationId,
       user: {
@@ -175,7 +176,7 @@ export const register = async (
         role: user.role,
         profilePicture: null,
       },
-    });
+    }, 201);
   } catch (error) {
     next(error);
   }
@@ -231,17 +232,15 @@ export const login = async (
     if (mfaRequired) {
       if (user.mfa_required_by_role && !user.mfa_totp_enabled) {
         logger.warn(`MFA enforced by role for user: ${user.email} but not yet enrolled`, { ip: clientIp });
-        return res.status(403).json({
-          error: {
-            message: 'Multi-factor authentication is required for your role. Please enroll in MFA to continue.',
-            code: 'MFA_REQUIRED_NOT_ENROLLED',
-          },
-        });
+        return forbidden(
+          res,
+          'Multi-factor authentication is required for your role. Please enroll in MFA to continue.'
+        );
       }
 
       logger.info(`MFA required for user: ${user.email}`, { ip: clientIp });
       const organizationId = await getDefaultOrganizationId();
-      return res.json({
+      return sendSuccess(res, {
         ...issueTotpMfaChallenge(user),
         organizationId,
         user: {
@@ -291,7 +290,7 @@ export const login = async (
     const csrfToken = generateCsrfToken(req, res);
 
     const organizationId = await getDefaultOrganizationId();
-    return res.json({
+    return sendSuccess(res, {
       ...buildAuthTokenResponse(token, refreshToken),
       csrfToken, // Include new CSRF token in response
 
@@ -317,7 +316,7 @@ export const logout = async (
 ): Promise<Response> => {
   // Clear all auth cookies
   clearAuthCookies(res);
-  return res.json({ message: 'Logged out successfully' });
+  return sendSuccess(res, { message: 'Logged out successfully' });
 };
 
 export const getCurrentUser = async (
@@ -345,7 +344,7 @@ export const getCurrentUser = async (
 
     const user = result.rows[0];
 
-    return res.json({
+    return sendSuccess(res, {
       id: user.id,
       email: user.email,
       firstName: user.first_name,
@@ -377,7 +376,7 @@ export const checkSetupStatus = async (
     const totalResult = await pool.query('SELECT COUNT(*) as count FROM users');
     const userCount = parseInt(totalResult.rows[0].count);
 
-    return res.json({
+    return sendSuccess(res, {
       setupRequired: adminCount === 0,
       userCount: userCount,
     });
@@ -466,7 +465,7 @@ export const setupFirstUser = async (
     // Set auth cookie
     setAuthCookie(res, token);
 
-    return res.status(201).json({
+    return sendSuccess(res, {
       message: 'Setup completed successfully',
       ...buildAuthTokenResponse(token),
       organizationId,
@@ -478,7 +477,7 @@ export const setupFirstUser = async (
         role: user.role,
         profilePicture: null,
       },
-    });
+    }, 201);
   } catch (error) {
     logger.error('Error during first-time setup', error);
     next(error);
@@ -512,7 +511,7 @@ export const getPreferences = async (
       return notFoundMessage(res, 'User not found');
     }
 
-    return res.json({
+    return sendSuccess(res, {
       preferences: result.rows[0].preferences || {},
     });
   } catch (error) {
@@ -559,7 +558,7 @@ export const updatePreferences = async (
 
     logger.info(`User preferences updated: ${userId}`);
 
-    return res.json({
+    return sendSuccess(res, {
       preferences: result.rows[0].preferences,
     });
   } catch (error) {
@@ -607,7 +606,7 @@ export const updatePreferenceKey = async (
 
     logger.info(`User preference '${key}' updated: ${userId}`);
 
-    return res.json({
+    return sendSuccess(res, {
       preferences: result.rows[0].preferences,
     });
   } catch (error) {
@@ -694,7 +693,7 @@ export const getProfile = async (
       marketingEmails: false,
     };
 
-    return res.json({
+    return sendSuccess(res, {
       id: user.id,
       email: user.email,
       firstName: user.first_name,
@@ -823,7 +822,7 @@ export const updateProfile = async (
 
     logger.info(`User profile updated: ${user.email}`);
 
-    return res.json({
+    return sendSuccess(res, {
       id: user.id,
       email: user.email,
       firstName: user.first_name,
@@ -895,7 +894,7 @@ export const changePassword = async (
 
     logger.info(`Password changed for user: ${user.email}`);
 
-    return res.json({ message: 'Password changed successfully' });
+    return sendSuccess(res, { message: 'Password changed successfully' });
   } catch (error) {
     next(error);
   }

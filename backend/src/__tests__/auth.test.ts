@@ -138,7 +138,13 @@ describe('Auth API', () => {
 
       expect(res.status).toHaveBeenCalledWith(403);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ error: 'Registration is currently disabled' })
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'forbidden',
+            message: 'Registration is currently disabled',
+          }),
+        })
       );
       expect(next).not.toHaveBeenCalled();
     });
@@ -244,7 +250,13 @@ describe('Auth API', () => {
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ error: 'Invalid credentials', code: 'unauthorized' })
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'unauthorized',
+            message: 'Invalid credentials',
+          }),
+        })
       );
       expect(next).not.toHaveBeenCalled();
     });
@@ -258,5 +270,6 @@ const createMockResponse = () => {
   res.cookie = jest.fn().mockReturnValue(res);
   res.clearCookie = jest.fn().mockReturnValue(res);
   res.getHeader = jest.fn().mockReturnValue(undefined);
+  res.setHeader = jest.fn().mockReturnValue(res);
   return res;
 };

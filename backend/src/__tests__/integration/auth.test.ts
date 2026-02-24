@@ -129,7 +129,13 @@ describe('Auth API Integration Tests', () => {
         })
         .expect(401);
 
-      expect(response.body.error).toMatch(/invalid.*credentials/i);
+      expect(response.body).toMatchObject({
+        success: false,
+        error: {
+          code: 'unauthorized',
+        },
+      });
+      expect(response.body.error.message).toMatch(/invalid.*credentials/i);
     });
 
     it('should reject non-existent user', async () => {
@@ -141,7 +147,13 @@ describe('Auth API Integration Tests', () => {
         })
         .expect(401);
 
-      expect(response.body.error).toMatch(/invalid.*credentials/i);
+      expect(response.body).toMatchObject({
+        success: false,
+        error: {
+          code: 'unauthorized',
+        },
+      });
+      expect(response.body.error.message).toMatch(/invalid.*credentials/i);
     });
 
     it('should return valid JWT token', async () => {

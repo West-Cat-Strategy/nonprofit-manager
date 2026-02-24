@@ -6,6 +6,8 @@ import { validateBody, validateParams, validateQuery } from '@middleware/zodVali
 import {
   portalAppointmentParamsSchema,
   portalBookSlotSchema,
+  portalCaseDocumentDownloadParamsSchema,
+  portalCaseParamsSchema,
   portalChangePasswordSchema,
   portalEventParamsSchema,
   portalManualAppointmentRequestSchema,
@@ -24,6 +26,7 @@ import {
 import { createPortalAppointmentsAdapter } from '../adapters/portalAppointmentsAdapter';
 import { createPortalMessagingAdapter } from '../adapters/portalMessagingAdapter';
 import { createPortalAppointmentsController } from '../controllers/appointments.controller';
+import { createPortalCasesController } from '../controllers/cases.controller';
 import { createPortalEventsController } from '../controllers/events.controller';
 import { createPortalMessagingController } from '../controllers/messaging.controller';
 import { createPortalProfileController } from '../controllers/profile.controller';
@@ -31,6 +34,7 @@ import { createPortalRelationshipsController } from '../controllers/relationship
 import { createPortalResourcesController } from '../controllers/resources.controller';
 import { PortalRepository } from '../repositories/portalRepository';
 import { PortalAppointmentsUseCase } from '../usecases/appointmentsUseCase';
+import { PortalCasesUseCase } from '../usecases/casesUseCase';
 import { PortalEventsUseCase } from '../usecases/eventsUseCase';
 import { PortalMessagingUseCase } from '../usecases/messagingUseCase';
 import { PortalProfileUseCase } from '../usecases/profileUseCase';
@@ -47,6 +51,7 @@ interface PortalRouteDependencies {
 export const createPortalV2Routes = (deps: PortalRouteDependencies = {}): Router => {
   const repository = new PortalRepository(deps.pool ?? pool);
   const profileController = createPortalProfileController(new PortalProfileUseCase(repository));
+  const casesController = createPortalCasesController(new PortalCasesUseCase(repository));
   const messagingController = createPortalMessagingController(
     new PortalMessagingUseCase(deps.messagingPort ?? createPortalMessagingAdapter())
   );
@@ -70,6 +75,16 @@ export const createPortalV2Routes = (deps: PortalRouteDependencies = {}): Router
     '/pointperson/context',
     validateQuery(portalPointpersonQuerySchema),
     relationshipsController.getPointpersonContext
+  );
+
+  portalV2Routes.get('/cases', casesController.listCases);
+  portalV2Routes.get('/cases/:id', validateParams(portalCaseParamsSchema), casesController.getCaseById);
+  portalV2Routes.get('/cases/:id/timeline', validateParams(portalCaseParamsSchema), casesController.getCaseTimeline);
+  portalV2Routes.get('/cases/:id/documents', validateParams(portalCaseParamsSchema), casesController.getCaseDocuments);
+  portalV2Routes.get(
+    '/cases/:id/documents/:documentId/download',
+    validateParams(portalCaseDocumentDownloadParamsSchema),
+    casesController.downloadCaseDocument
   );
 
   portalV2Routes.get('/relationships', relationshipsController.getRelationships);

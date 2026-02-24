@@ -50,6 +50,8 @@ describe('Saved Report Controller', () => {
             json: mockJson,
             status: mockStatus,
             send: mockSend,
+            getHeader: jest.fn().mockReturnValue(undefined),
+            setHeader: jest.fn(),
         };
     });
 
@@ -97,6 +99,15 @@ describe('Saved Report Controller', () => {
             );
 
             expect(mockStatus).toHaveBeenCalledWith(404);
+            expect(mockJson).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    success: false,
+                    error: expect.objectContaining({
+                        code: 'not_found',
+                        message: 'Saved report not found or access denied',
+                    }),
+                })
+            );
         });
     });
 
@@ -128,6 +139,15 @@ describe('Saved Report Controller', () => {
             );
 
             expect(mockStatus).toHaveBeenCalledWith(400);
+            expect(mockJson).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    success: false,
+                    error: expect.objectContaining({
+                        code: 'bad_request',
+                        message: 'Name, entity, and report_definition are required',
+                    }),
+                })
+            );
         });
     });
 
@@ -177,6 +197,15 @@ describe('Saved Report Controller', () => {
             );
 
             expect(mockStatus).toHaveBeenCalledWith(404);
+            expect(mockJson).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    success: false,
+                    error: expect.objectContaining({
+                        code: 'not_found',
+                        message: 'Saved report not found or access denied',
+                    }),
+                })
+            );
         });
     });
 });

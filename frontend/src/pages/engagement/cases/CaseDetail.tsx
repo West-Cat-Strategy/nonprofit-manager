@@ -8,7 +8,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   fetchCaseById,
-  fetchCaseNotes,
+  updateCase,
   updateCaseStatus,
   deleteCase,
   clearCurrentCase,
@@ -26,13 +26,17 @@ import FollowUpList from '../../../components/FollowUpList';
 import CaseRelationships from '../../../components/cases/CaseRelationships';
 import CaseServices from '../../../components/cases/CaseServices';
 import CasePortalConversations from '../../../components/cases/CasePortalConversations';
+import CaseTimeline from '../../../components/cases/CaseTimeline';
+import CaseOutcomesTopics from '../../../components/cases/CaseOutcomesTopics';
 import type { CasePriority, CaseStatusType, CaseMilestone } from '../../../types/case';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 
 type TabType =
   | 'overview'
+  | 'timeline'
   | 'notes'
+  | 'outcomes_topics'
   | 'documents'
   | 'milestones'
   | 'followups'
@@ -60,11 +64,11 @@ const CaseDetail = () => {
   const [milestoneDescription, setMilestoneDescription] = useState('');
   const [milestoneDueDate, setMilestoneDueDate] = useState('');
   const [milestoneCompleted, setMilestoneCompleted] = useState(false);
+  const [timelineRefreshKey, setTimelineRefreshKey] = useState(0);
 
   useEffect(() => {
     if (id) {
       dispatch(fetchCaseById(id));
-      dispatch(fetchCaseNotes(id));
       dispatch(fetchCaseStatuses());
       dispatch(fetchCaseMilestones(id));
     }
@@ -92,7 +96,8 @@ const CaseDetail = () => {
       setIsChangingStatus(false);
       setNewStatusId('');
       setStatusChangeNotes('');
-      dispatch(fetchCaseNotes(id));
+      dispatch(fetchCaseById(id));
+      setTimelineRefreshKey((value) => value + 1);
     } catch (err) {
       console.error('Failed to update status:', err);
       showError('Failed to update status');
@@ -181,6 +186,36 @@ const CaseDetail = () => {
 
   const getMilestoneStatusColor = (isCompleted: boolean): 'green' | 'gray' => {
     return isCompleted ? 'green' : 'gray';
+  };
+
+  const refreshCaseArtifacts = () => {
+    if (!id) return;
+    dispatch(fetchCaseById(id));
+    setTimelineRefreshKey((value) => value + 1);
+  };
+
+  const handleToggleClientViewable = async () => {
+    if (!id || !currentCase) return;
+
+    try {
+      await dispatch(
+        updateCase({
+          id,
+          data: {
+            client_viewable: !currentCase.client_viewable,
+          },
+        })
+      ).unwrap();
+      dispatch(fetchCaseById(id));
+      showSuccess(
+        !currentCase.client_viewable
+          ? 'Case is now visible in client portal'
+          : 'Case is now hidden from client portal'
+      );
+    } catch (err) {
+      console.error('Failed to update client visibility:', err);
+      showError('Failed to update client visibility');
+    }
   };
 
   const handleDelete = async () => {
@@ -281,7 +316,9 @@ const CaseDetail = () => {
 
   const tabs: Array<{ key: TabType; label: string; count?: number }> = [
     { key: 'overview', label: 'Overview' },
+    { key: 'timeline', label: 'Timeline' },
     { key: 'notes', label: 'Notes', count: currentCase.notes_count || 0 },
+    { key: 'outcomes_topics', label: 'Outcomes + Topics' },
     { key: 'documents', label: 'Documents', count: currentCase.documents_count || 0 },
     { key: 'milestones', label: 'Milestones', count: caseMilestones.length },
     { key: 'relationships', label: 'Relationships' },
@@ -316,13 +353,32 @@ const CaseDetail = () => {
               </div>
               <h2 className="text-xl font-bold text-black">{currentCase.title}</h2>
             </div>
-            <div className="flex gap-2">
-              <BrutalButton onClick={() => navigate(`/cases/${id}/edit`)} variant="secondary">
-                Edit
-              </BrutalButton>
-              <BrutalButton onClick={handleDelete} variant="danger">
-                Delete
-              </BrutalButton>
+            <div className="flex flex-col gap-3">
+              <label className="inline-flex items-center gap-2 text-xs font-black uppercase text-black/80">
+                <input
+                  type="checkbox"
+                  checked={Boolean(currentCase.client_viewable)}
+                  onChange={() => void handleToggleClientViewable()}
+                  className="h-4 w-4 border-2 border-black accent-black"
+                />
+                Client Viewable
+              </label>
+              <div className="flex gap-2">
+                <BrutalButton onClick={() => setActiveTab('notes')} variant="primary" size="sm">
+                  Add Note
+                </BrutalButton>
+                <BrutalButton onClick={() => setActiveTab('documents')} variant="secondary" size="sm">
+                  Upload Document
+                </BrutalButton>
+              </div>
+              <div className="flex gap-2">
+                <BrutalButton onClick={() => navigate(`/cases/${id}/edit`)} variant="secondary">
+                  Edit
+                </BrutalButton>
+                <BrutalButton onClick={handleDelete} variant="danger">
+                  Delete
+                </BrutalButton>
+              </div>
             </div>
           </div>
         </BrutalCard>
@@ -608,11 +664,29 @@ const CaseDetail = () => {
             </div>
           )}
 
+          {/* Timeline Tab */}
+          {activeTab === 'timeline' && id && (
+            <div id="panel-timeline" role="tabpanel" aria-labelledby="tab-timeline">
+              <BrutalCard color="white" className="p-6">
+                <CaseTimeline caseId={id} refreshKey={timelineRefreshKey} />
+              </BrutalCard>
+            </div>
+          )}
+
           {/* Notes Tab */}
           {activeTab === 'notes' && id && (
             <div id="panel-notes" role="tabpanel" aria-labelledby="tab-notes">
               <BrutalCard color="white" className="p-6">
-                <CaseNotes caseId={id} />
+                <CaseNotes caseId={id} onChanged={refreshCaseArtifacts} />
+              </BrutalCard>
+            </div>
+          )}
+
+          {/* Outcomes + Topics Tab */}
+          {activeTab === 'outcomes_topics' && id && (
+            <div id="panel-outcomes-topics" role="tabpanel" aria-labelledby="tab-outcomes-topics">
+              <BrutalCard color="white" className="p-6">
+                <CaseOutcomesTopics caseId={id} onChanged={refreshCaseArtifacts} />
               </BrutalCard>
             </div>
           )}
@@ -620,7 +694,7 @@ const CaseDetail = () => {
           {/* Documents Tab */}
           {activeTab === 'documents' && id && (
             <div id="panel-documents" role="tabpanel" aria-labelledby="tab-documents">
-              <CaseDocuments caseId={id} contactId={currentCase.contact_id} />
+              <CaseDocuments caseId={id} contactId={currentCase.contact_id} onChanged={refreshCaseArtifacts} />
             </div>
           )}
 

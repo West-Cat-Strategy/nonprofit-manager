@@ -4,6 +4,7 @@
 
 import { test, expect } from '../fixtures/auth.fixture';
 import { createTestAccount, createTestDonation, createTestEvent } from '../helpers/database';
+import { unwrapSuccess } from '../helpers/apiEnvelope';
 
 test.describe.skip('Complete User Workflows', () => {
   test('Donor Journey: Account -> Donation -> Receipt', async ({ authenticatedPage, authToken }) => {
@@ -49,8 +50,7 @@ test.describe.skip('Complete User Workflows', () => {
       },
     });
     expect(registerResponse.ok()).toBeTruthy();
-    const registrationBody = await registerResponse.json();
-    const registration = registrationBody?.data ?? registrationBody;
+    const registration = unwrapSuccess<{ registration_id: string }>(await registerResponse.json());
 
     const checkInResponse = await authenticatedPage.request.post(
       `${apiURL}/api/v2/events/registrations/${registration.registration_id}/checkin`,
@@ -74,7 +74,7 @@ test.describe.skip('Complete User Workflows', () => {
       },
     });
     expect(createResponse.ok()).toBeTruthy();
-    const createdTask = await createResponse.json();
+    const createdTask = unwrapSuccess<{ id: string }>(await createResponse.json());
 
     const completeResponse = await authenticatedPage.request.post(
       `${apiURL}/api/tasks/${createdTask.id}/complete`,

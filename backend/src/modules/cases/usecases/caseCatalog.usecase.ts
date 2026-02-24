@@ -12,6 +12,10 @@ export class CaseCatalogUseCase {
     return this.repository.getCaseById(caseId);
   }
 
+  timeline(caseId: string): Promise<unknown[]> {
+    return this.repository.getCaseTimeline(caseId);
+  }
+
   summary(): Promise<unknown> {
     return this.repository.getCaseSummary();
   }

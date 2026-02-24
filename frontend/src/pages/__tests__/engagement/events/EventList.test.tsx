@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
+import type * as EventsStateModule from '../../../../features/events/state';
 import { vi } from 'vitest';
 import EventList from '../../../engagement/events/EventList';
 import { renderWithProviders } from '../../../../test/testUtils';
@@ -40,7 +41,7 @@ vi.mock('../../../../store/hooks', () => ({
 }));
 
 vi.mock('../../../../features/events/state', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../../features/events/state')>();
+  const actual = await importOriginal<typeof EventsStateModule>();
   return {
     ...actual,
     fetchEventsListV2: (payload: unknown) => ({ type: 'eventsListV2/fetch', payload }),

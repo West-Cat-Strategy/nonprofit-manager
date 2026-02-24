@@ -14,6 +14,12 @@ describe('Analytics API Integration Tests', () => {
   let authToken: string;
   let testUserId: string;
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const unwrap = <T>(body: unknown): T => {
+    if (body && typeof body === 'object' && 'data' in (body as Record<string, unknown>)) {
+      return (body as { data: T }).data;
+    }
+    return body as T;
+  };
 
   beforeAll(async () => {
     // Register and login a test user
@@ -143,12 +149,13 @@ describe('Analytics API Integration Tests', () => {
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
-        expect(Array.isArray(response.body)).toBe(true);
+        const trends = unwrap<unknown[]>(response.body);
+        expect(Array.isArray(trends)).toBe(true);
         // Should return array of monthly data (empty or with data)
-        if (response.body.length > 0) {
-          expect(response.body[0]).toHaveProperty('month');
-          expect(response.body[0]).toHaveProperty('amount');
-          expect(response.body[0]).toHaveProperty('count');
+        if (trends.length > 0) {
+          expect(trends[0]).toHaveProperty('month');
+          expect(trends[0]).toHaveProperty('amount');
+          expect(trends[0]).toHaveProperty('count');
         }
       });
 
@@ -158,9 +165,10 @@ describe('Analytics API Integration Tests', () => {
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
-        expect(Array.isArray(response.body)).toBe(true);
+        const trends = unwrap<unknown[]>(response.body);
+        expect(Array.isArray(trends)).toBe(true);
         // Should return at most 6 months of data
-        expect(response.body.length).toBeLessThanOrEqual(6);
+        expect(trends.length).toBeLessThanOrEqual(6);
       });
 
       it('should return max 24 months of data', async () => {
@@ -169,9 +177,10 @@ describe('Analytics API Integration Tests', () => {
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
-        expect(Array.isArray(response.body)).toBe(true);
+        const trends = unwrap<unknown[]>(response.body);
+        expect(Array.isArray(trends)).toBe(true);
         // Should return at most 24 months of data
-        expect(response.body.length).toBeLessThanOrEqual(24);
+        expect(trends.length).toBeLessThanOrEqual(24);
       });
     });
 
@@ -191,11 +200,12 @@ describe('Analytics API Integration Tests', () => {
         expect([200, 500]).toContain(response.status);
 
         if (response.status === 200) {
-          expect(Array.isArray(response.body)).toBe(true);
-          if (response.body.length > 0) {
-            expect(response.body[0]).toHaveProperty('month');
-            expect(response.body[0]).toHaveProperty('hours');
-            expect(response.body[0]).toHaveProperty('assignments');
+          const trends = unwrap<unknown[]>(response.body);
+          expect(Array.isArray(trends)).toBe(true);
+          if (trends.length > 0) {
+            expect(trends[0]).toHaveProperty('month');
+            expect(trends[0]).toHaveProperty('hours');
+            expect(trends[0]).toHaveProperty('assignments');
           }
         }
       });

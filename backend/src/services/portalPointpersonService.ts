@@ -44,6 +44,7 @@ export const getActiveCaseContextsForContact = async (
      JOIN case_statuses cs ON cs.id = c.status_id
      LEFT JOIN users u ON u.id = c.assigned_to
      WHERE c.contact_id = $1
+       AND c.client_viewable = true
        AND cs.status_type NOT IN ('closed', 'cancelled')
      ORDER BY c.updated_at DESC, c.created_at DESC`,
     [contactId]
@@ -139,7 +140,8 @@ export const ensureCaseIsPortalAccessible = async (
      JOIN case_statuses cs ON cs.id = c.status_id
      LEFT JOIN users u ON u.id = c.assigned_to
      WHERE c.id = $1
-       AND c.contact_id = $2`,
+       AND c.contact_id = $2
+       AND c.client_viewable = true`,
     [caseId, contactId]
   );
 

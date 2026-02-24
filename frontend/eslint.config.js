@@ -32,6 +32,7 @@ export default defineConfig([
       // Enable type safety rules with warnings to allow gradual migration
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
       '@typescript-eslint/prefer-optional-chain': 'warn',
       '@typescript-eslint/no-non-null-assertion': 'warn',
       // React hooks rules

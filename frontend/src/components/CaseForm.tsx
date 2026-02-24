@@ -188,7 +188,20 @@ const CaseForm = ({
         setIsDirty(false);
         showSuccess('Case updated successfully');
       } else {
-        const createdCase = await dispatch(createCase(formData)).unwrap();
+        const createData: CreateCaseDTO = {
+          contact_id: formData.contact_id,
+          case_type_id: formData.case_type_id,
+          title: formData.title,
+          description: formData.description || undefined,
+          priority: formData.priority,
+          source: formData.source || undefined,
+          referral_source: formData.referral_source || undefined,
+          assigned_to: formData.assigned_to || undefined,
+          due_date: formData.due_date || undefined,
+          tags: formData.tags?.length ? formData.tags : undefined,
+          is_urgent: formData.is_urgent,
+        };
+        const createdCase = await dispatch(createCase(createData)).unwrap();
         setIsDirty(false);
         if (onCreated) {
           onCreated(createdCase);

@@ -4,12 +4,93 @@
  */
 
 import { Router } from 'express';
-import { body, param, query } from 'express-validator';
+import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
-import { validateRequest } from '@middleware/domains/security';
+import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import * as mailchimpController from '@controllers/domains/engagement';
+import { uuidSchema } from '@validations/shared';
 
 const router = Router();
+
+const listIdSchema = z.string().trim().min(1, 'List ID is required');
+const emailSchema = z.string().email('Valid email is required');
+
+const listIdParamsSchema = z.object({
+  id: listIdSchema,
+});
+
+const listIdOnlyParamsSchema = z.object({
+  listId: listIdSchema,
+});
+
+const listMemberParamsSchema = z.object({
+  listId: listIdSchema,
+  email: emailSchema,
+});
+
+const campaignIdParamsSchema = z.object({
+  campaignId: z.string().trim().min(1, 'Campaign ID is required'),
+});
+
+const segmentConditionSchema = z.object({
+  field: z.string().min(1, 'Condition field is required'),
+  op: z.enum(['is', 'not', 'contains', 'notcontain', 'greater', 'less', 'blank', 'blank_not']),
+  value: z.union([z.string(), z.number(), z.boolean()]),
+});
+
+const createSegmentSchema = z.object({
+  name: z.string().min(1, 'Segment name is required'),
+  matchType: z.enum(['any', 'all']).optional(),
+  conditions: z.array(segmentConditionSchema).min(1, 'At least one condition is required'),
+});
+
+const addMemberSchema = z.object({
+  listId: listIdSchema,
+  email: emailSchema,
+  status: z.enum(['subscribed', 'unsubscribed', 'cleaned', 'pending', 'transactional']).optional(),
+  mergeFields: z.record(z.string(), z.unknown()).optional(),
+  tags: z.array(z.unknown()).optional(),
+});
+
+const updateMemberTagsSchema = z.object({
+  listId: listIdSchema,
+  email: emailSchema,
+  tagsToAdd: z.array(z.unknown()).optional(),
+  tagsToRemove: z.array(z.unknown()).optional(),
+});
+
+const syncContactSchema = z.object({
+  contactId: uuidSchema,
+  listId: listIdSchema,
+  tags: z.array(z.unknown()).optional(),
+});
+
+const bulkSyncContactsSchema = z.object({
+  contactIds: z.array(uuidSchema).min(1).max(500),
+  listId: listIdSchema,
+  tags: z.array(z.unknown()).optional(),
+});
+
+const campaignsQuerySchema = z.object({
+  listId: z.string().optional(),
+});
+
+const dateStringSchema = z
+  .string()
+  .refine((value) => !Number.isNaN(Date.parse(value)), 'Send time must be a valid ISO 8601 date');
+
+const createCampaignSchema = z.object({
+  listId: listIdSchema,
+  title: z.string().min(1, 'Campaign title is required'),
+  subject: z.string().min(1, 'Subject line is required'),
+  fromName: z.string().min(1, 'From name is required'),
+  replyTo: emailSchema,
+  previewText: z.string().optional(),
+  htmlContent: z.string().optional(),
+  plainTextContent: z.string().optional(),
+  segmentId: z.coerce.number().optional(),
+  sendTime: dateStringSchema.optional(),
+});
 
 /**
  * GET /api/mailchimp/status
@@ -27,34 +108,19 @@ router.get('/lists', authenticate, mailchimpController.getLists);
  * GET /api/mailchimp/lists/:id
  * Get a specific list
  */
-router.get(
-  '/lists/:id',
-  authenticate,
-  [param('id').isString().notEmpty().withMessage('List ID is required'), validateRequest],
-  mailchimpController.getList
-);
+router.get('/lists/:id', authenticate, validateParams(listIdParamsSchema), mailchimpController.getList);
 
 /**
  * GET /api/mailchimp/lists/:listId/tags
  * Get tags for a list
  */
-router.get(
-  '/lists/:listId/tags',
-  authenticate,
-  [param('listId').isString().notEmpty().withMessage('List ID is required'), validateRequest],
-  mailchimpController.getListTags
-);
+router.get('/lists/:listId/tags', authenticate, validateParams(listIdOnlyParamsSchema), mailchimpController.getListTags);
 
 /**
  * GET /api/mailchimp/lists/:listId/segments
  * Get segments for a list
  */
-router.get(
-  '/lists/:listId/segments',
-  authenticate,
-  [param('listId').isString().notEmpty().withMessage('List ID is required'), validateRequest],
-  mailchimpController.getSegments
-);
+router.get('/lists/:listId/segments', authenticate, validateParams(listIdOnlyParamsSchema), mailchimpController.getSegments);
 
 /**
  * POST /api/mailchimp/lists/:listId/segments
@@ -63,18 +129,8 @@ router.get(
 router.post(
   '/lists/:listId/segments',
   authenticate,
-  [
-    param('listId').isString().notEmpty().withMessage('List ID is required'),
-    body('name').isString().notEmpty().withMessage('Segment name is required'),
-    body('matchType').optional().isIn(['any', 'all']).withMessage('Match type must be "any" or "all"'),
-    body('conditions').isArray({ min: 1 }).withMessage('At least one condition is required'),
-    body('conditions.*.field').isString().notEmpty().withMessage('Condition field is required'),
-    body('conditions.*.op')
-      .isIn(['is', 'not', 'contains', 'notcontain', 'greater', 'less', 'blank', 'blank_not'])
-      .withMessage('Invalid condition operator'),
-    body('conditions.*.value').notEmpty().withMessage('Condition value is required'),
-    validateRequest,
-  ],
+  validateParams(listIdOnlyParamsSchema),
+  validateBody(createSegmentSchema),
   mailchimpController.createSegment
 );
 
@@ -85,11 +141,7 @@ router.post(
 router.get(
   '/lists/:listId/members/:email',
   authenticate,
-  [
-    param('listId').isString().notEmpty().withMessage('List ID is required'),
-    param('email').isEmail().withMessage('Valid email is required'),
-    validateRequest,
-  ],
+  validateParams(listMemberParamsSchema),
   mailchimpController.getMember
 );
 
@@ -100,11 +152,7 @@ router.get(
 router.delete(
   '/lists/:listId/members/:email',
   authenticate,
-  [
-    param('listId').isString().notEmpty().withMessage('List ID is required'),
-    param('email').isEmail().withMessage('Valid email is required'),
-    validateRequest,
-  ],
+  validateParams(listMemberParamsSchema),
   mailchimpController.deleteMember
 );
 
@@ -112,108 +160,37 @@ router.delete(
  * POST /api/mailchimp/members
  * Add or update a member in a list
  */
-router.post(
-  '/members',
-  authenticate,
-  [
-    body('listId').isString().notEmpty().withMessage('List ID is required'),
-    body('email').isEmail().withMessage('Valid email is required'),
-    body('status')
-      .optional()
-      .isIn(['subscribed', 'unsubscribed', 'cleaned', 'pending', 'transactional'])
-      .withMessage('Invalid member status'),
-    body('mergeFields').optional().isObject().withMessage('Merge fields must be an object'),
-    body('tags').optional().isArray().withMessage('Tags must be an array'),
-    validateRequest,
-  ],
-  mailchimpController.addMember
-);
+router.post('/members', authenticate, validateBody(addMemberSchema), mailchimpController.addMember);
 
 /**
  * POST /api/mailchimp/members/tags
  * Update member tags
  */
-router.post(
-  '/members/tags',
-  authenticate,
-  [
-    body('listId').isString().notEmpty().withMessage('List ID is required'),
-    body('email').isEmail().withMessage('Valid email is required'),
-    body('tagsToAdd').optional().isArray().withMessage('Tags to add must be an array'),
-    body('tagsToRemove').optional().isArray().withMessage('Tags to remove must be an array'),
-    validateRequest,
-  ],
-  mailchimpController.updateMemberTags
-);
+router.post('/members/tags', authenticate, validateBody(updateMemberTagsSchema), mailchimpController.updateMemberTags);
 
 /**
  * POST /api/mailchimp/sync/contact
  * Sync a single contact to Mailchimp
  */
-router.post(
-  '/sync/contact',
-  authenticate,
-  [
-    body('contactId').isUUID().withMessage('Valid contact ID is required'),
-    body('listId').isString().notEmpty().withMessage('List ID is required'),
-    body('tags').optional().isArray().withMessage('Tags must be an array'),
-    validateRequest,
-  ],
-  mailchimpController.syncContact
-);
+router.post('/sync/contact', authenticate, validateBody(syncContactSchema), mailchimpController.syncContact);
 
 /**
  * POST /api/mailchimp/sync/bulk
  * Bulk sync contacts to Mailchimp
  */
-router.post(
-  '/sync/bulk',
-  authenticate,
-  [
-    body('contactIds')
-      .isArray({ min: 1, max: 500 })
-      .withMessage('Contact IDs array is required (max 500)'),
-    body('contactIds.*').isUUID().withMessage('All contact IDs must be valid UUIDs'),
-    body('listId').isString().notEmpty().withMessage('List ID is required'),
-    body('tags').optional().isArray().withMessage('Tags must be an array'),
-    validateRequest,
-  ],
-  mailchimpController.bulkSyncContacts
-);
+router.post('/sync/bulk', authenticate, validateBody(bulkSyncContactsSchema), mailchimpController.bulkSyncContacts);
 
 /**
  * GET /api/mailchimp/campaigns
  * Get campaigns
  */
-router.get(
-  '/campaigns',
-  authenticate,
-  [query('listId').optional().isString().withMessage('List ID must be a string'), validateRequest],
-  mailchimpController.getCampaigns
-);
+router.get('/campaigns', authenticate, validateQuery(campaignsQuerySchema), mailchimpController.getCampaigns);
 
 /**
  * POST /api/mailchimp/campaigns
  * Create a new email campaign
  */
-router.post(
-  '/campaigns',
-  authenticate,
-  [
-    body('listId').isString().notEmpty().withMessage('List ID is required'),
-    body('title').isString().notEmpty().withMessage('Campaign title is required'),
-    body('subject').isString().notEmpty().withMessage('Subject line is required'),
-    body('fromName').isString().notEmpty().withMessage('From name is required'),
-    body('replyTo').isEmail().withMessage('Valid reply-to email is required'),
-    body('previewText').optional().isString().withMessage('Preview text must be a string'),
-    body('htmlContent').optional().isString().withMessage('HTML content must be a string'),
-    body('plainTextContent').optional().isString().withMessage('Plain text content must be a string'),
-    body('segmentId').optional().isNumeric().withMessage('Segment ID must be a number'),
-    body('sendTime').optional().isISO8601().withMessage('Send time must be a valid ISO 8601 date'),
-    validateRequest,
-  ],
-  mailchimpController.createCampaign
-);
+router.post('/campaigns', authenticate, validateBody(createCampaignSchema), mailchimpController.createCampaign);
 
 /**
  * POST /api/mailchimp/campaigns/:campaignId/send
@@ -222,7 +199,7 @@ router.post(
 router.post(
   '/campaigns/:campaignId/send',
   authenticate,
-  [param('campaignId').isString().notEmpty().withMessage('Campaign ID is required'), validateRequest],
+  validateParams(campaignIdParamsSchema),
   mailchimpController.sendCampaign
 );
 

@@ -78,6 +78,15 @@ export const createCaseCatalogController = (
     }
   };
 
+  const getCaseTimeline = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const timeline = await useCase.timeline(req.params.id);
+      sendData(res, mode, mode === 'v2' ? timeline : { timeline });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   const getCaseSummary = async (_req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const summary = await useCase.summary();
@@ -108,6 +117,7 @@ export const createCaseCatalogController = (
   return {
     getCases,
     getCaseById,
+    getCaseTimeline,
     getCaseSummary,
     getCaseTypes,
     getCaseStatuses,
