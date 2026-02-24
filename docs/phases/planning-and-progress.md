@@ -1,7 +1,7 @@
 # 📊 Nonprofit Manager - Planning & Progress
 
 **Current Phase:** 🚀 Phase 2 - Validation & Authorization (In Progress)  
-**Last Updated:** February 23, 2026 (wc-manage guardrails adoption migration + envelope standardization in progress)  
+**Last Updated:** February 22, 2026 (P4-T1A strict verification remediation complete)  
 **Lead Developer:** Bryan Crockett (@bcroc), West Cat Strategy Ltd.
 
 ---
@@ -53,29 +53,19 @@ All active work must be **signed out** in the Workboard below before code change
 | P2-T8 | Migrate volunteer routes to Zod validation | Phase 2 | Done | Codex | Feb 3, 2026 | Feb 19, 2026 | docs/phases/archive/PHASE_2_7_COMPLETION.md |
 | P2-T9 | Migrate contact routes to Zod validation (24 endpoints) | Phase 2 | Done | Codex | Feb 2, 2026 | Feb 19, 2026 | docs/phases/archive/PHASE_2_8_COMPLETION.md |
 | P2-T10 | Migrate donation routes to Zod validation (7 endpoints) | Phase 2 | Done | Codex | Feb 4, 2026 | Feb 19, 2026 | docs/phases/archive/PHASE_2_9_COMPLETION.md |
-| P2-T11 | Migrate event routes to Zod validation | Phase 2 | Done | Codex | Feb 23, 2026 | Feb 23, 2026 | codex/wc-manage-guardrails |
-| P2-T11A | Convert `backend/src/modules/events/routes/index.ts` express-validator chains to Zod schemas | Phase 2 | Done | Codex | Feb 23, 2026 | Feb 23, 2026 | codex/wc-manage-guardrails |
-| P2-T11B | Add/extend shared event validation schemas for v2 + legacy parity | Phase 2 | Done | Codex | Feb 23, 2026 | Feb 23, 2026 | codex/wc-manage-guardrails |
-| P2-T12 | Migrate task routes to Zod validation | Phase 2 | Done | Codex | Feb 23, 2026 | Feb 23, 2026 | codex/wc-manage-guardrails |
-| P2-T12A | Convert `backend/src/routes/tasks.ts` to Zod middleware (`validateBody/query/params`) | Phase 2 | Done | Codex | Feb 23, 2026 | Feb 23, 2026 | codex/wc-manage-guardrails |
-| P2-T13 | Migrate account routes to Zod validation | Phase 2 | Done | Codex | Feb 23, 2026 | Feb 23, 2026 | codex/wc-manage-guardrails |
-| P2-T13A | Convert `backend/src/routes/accounts.ts` to Zod middleware and schema modules | Phase 2 | Done | Codex | Feb 23, 2026 | Feb 23, 2026 | codex/wc-manage-guardrails |
-| P2-T14 | Migrate remaining routes to Zod (cases, meetings, invitations, etc.) | Phase 2 | Done | Codex | Feb 23, 2026 | Feb 23, 2026 | codex/wc-manage-guardrails |
-| P2-T14A | Convert alerts/analytics/backup/dashboard/export/ingest routes to Zod | Phase 2 | Done | Codex | Feb 23, 2026 | Feb 23, 2026 | codex/wc-manage-guardrails |
-| P2-T14B | Convert invitations/mailchimp/meetings/payments/publishing/reports/savedReports/templates/users/webhooks routes to Zod | Phase 2 | Done | Codex | Feb 23, 2026 | Feb 23, 2026 | codex/wc-manage-guardrails |
-| P2-T15 | Add validation to cases.ts (no validation present) | Phase 2 | Done | Codex | Feb 23, 2026 | Feb 23, 2026 | codex/wc-manage-guardrails |
-| P2-T15A | Add route-level validation coverage for `backend/src/routes/cases.ts` legacy shim | Phase 2 | Done | Codex | Feb 23, 2026 | Feb 23, 2026 | codex/wc-manage-guardrails |
-| P2-T16 | Standardize error responses across all endpoints | Phase 2 | In Progress | Codex | Feb 23, 2026 | TBD | codex/wc-manage-guardrails |
-| P2-T16A | Canonical API envelope + response helper/middleware alignment (`errorHandler`, `validateRequest`, `zodValidation`) | Phase 2 | Done | Codex | Feb 23, 2026 | Feb 23, 2026 | codex/wc-manage-guardrails |
-| P2-T16B | Replace direct controller non-2xx `res.status(...).json(...)` payloads with canonical envelope helpers | Phase 2 | Done | Codex | Feb 23, 2026 | Feb 23, 2026 | codex/wc-manage-guardrails |
-| P2-T16C | Backend success envelope sweep for all `/api/**` controllers | Phase 2 | Ready | Codex | Feb 23, 2026 | TBD | codex/wc-manage-guardrails |
-| P2-T16D | Frontend client envelope alignment + type-import hardening | Phase 2 | Ready | Codex | Feb 23, 2026 | TBD | codex/wc-manage-guardrails |
-| P2-T17 | Phase 2 integration tests (rate limiting, validation, permissions) | Phase 2 | In Progress | Codex | Feb 23, 2026 | TBD | codex/wc-manage-guardrails |
-| P2-T17A | Add route guardrail integration suite (`routeGuardrails.test.ts`) for auth/validation/webhook/rate-limit behavior | Phase 2 | In Progress | Codex | Feb 23, 2026 | TBD | codex/wc-manage-guardrails |
-| P2-T17B | Add rate-limit key policy checker + CI/Make wiring and deterministic failure checks | Phase 2 | Done | Codex | Feb 23, 2026 | Feb 23, 2026 | codex/wc-manage-guardrails |
-| P2-T17C | Expand route guardrail matrix (auth/validation/webhook/rate-limit/correlation-id determinism) | Phase 2 | Ready | Codex | Feb 23, 2026 | TBD | codex/wc-manage-guardrails |
-| P2-T17D | E2E helper compatibility updates for canonical envelopes and Zod query caps | Phase 2 | Ready | Codex | Feb 23, 2026 | TBD | codex/wc-manage-guardrails |
-| P2-T17E | Coverage ratchet baseline + CI gating policy synchronization | Phase 2 | Ready | Codex | Feb 23, 2026 | TBD | codex/wc-manage-guardrails |
+| P2-T11 | Migrate event routes to Zod validation | Phase 2 | Ready | — | — | TBD | — |
+| P2-T12 | Migrate task routes to Zod validation | Phase 2 | Ready | — | — | TBD | — |
+| P2-T13 | Migrate account routes to Zod validation | Phase 2 | Ready | — | — | TBD | — |
+| P2-T14 | Migrate remaining routes to Zod (cases, meetings, invitations, etc.) | Phase 2 | Ready | — | — | TBD | — |
+| P2-T15 | Add validation to cases.ts (no validation present) | Phase 2 | Ready | — | — | TBD | — |
+| P2-T16 | Standardize error responses across all endpoints | Phase 2 | Done | Codex | Feb 23, 2026 | Feb 24, 2026 | #4 |
+| P2-T16C | Backend success envelope sweep for all `/api/**` controllers | Phase 2 | Done | Codex | Feb 24, 2026 | Feb 24, 2026 | #4 |
+| P2-T16D | Frontend client envelope alignment + type-import hardening | Phase 2 | Done | Codex | Feb 24, 2026 | Feb 24, 2026 | #4 |
+| P2-T17 | Phase 2 integration tests (rate limiting, validation, permissions) | Phase 2 | Done | Codex | Feb 23, 2026 | Feb 24, 2026 | #4 |
+| P2-T17A | Add route guardrail integration suite (`routeGuardrails.test.ts`) for auth/validation/webhook/rate-limit behavior | Phase 2 | Done | Codex | Feb 24, 2026 | Feb 24, 2026 | #4 |
+| P2-T17C | Expand route guardrail matrix (auth/validation/webhook/rate-limit/correlation-id determinism) | Phase 2 | Done | Codex | Feb 24, 2026 | Feb 24, 2026 | #4 |
+| P2-T17D | E2E helper compatibility updates for canonical envelopes and Zod query caps | Phase 2 | Done | Codex | Feb 24, 2026 | Feb 24, 2026 | #4 |
+| P2-T17E | Coverage ratchet baseline + CI gating policy synchronization | Phase 2 | Done | Codex | Feb 24, 2026 | Feb 24, 2026 | #4 |
 | P2-T18 | Outcomes tracking for case interactions (definitions, tagging, reports) | Phase 2 | Review | Codex | Feb 19, 2026 | Feb 19, 2026 | codex/outcomes-tracking |
 | P3-T1 | Add event email/SMS reminders + Twilio admin credentials | Phase 3 | In Progress | Codex | Feb 20, 2026 | TBD | codex/event-reminder-messaging |
 | P3-T2A | Client Portal: foundation hardening (cookie auth, CSRF path, portal API token removal) | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
@@ -84,26 +74,17 @@ All active work must be **signed out** in the Workboard below before code change
 | P3-T2D | Client Portal: explicit visibility rules for notes/documents/forms + event filtering | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
 | P3-T2E | Client Portal: Admin Settings inbox/slot tools + Case Detail portal tab + client UI pages | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
 | P3-T3 | Comprehensive security + functionality review and remediation (backend/frontend/devops) | Phase 3 | Done | Codex | Feb 21, 2026 | Feb 21, 2026 | codex/security-functionality-review-remediation |
+| P3-T5 | Frontend case-priority critical drift causing `make ci-unit` TypeScript failures | Phase 3 | Ready | Codex | Feb 24, 2026 | TBD | codex/p3-t5-case-priority-critical-ui |
 | P4-T1 | Full-stack modularity refactor (v2 API Portal + Events first) | Phase 4 | In Progress | Codex | Feb 20, 2026 | TBD | codex/modularity-refactor-v2 |
-| P4-T1D | Codify module ownership conventions + legacy wrapper pattern in architecture docs | Phase 4 | Done | Codex | Feb 23, 2026 | Feb 23, 2026 | codex/wc-manage-guardrails |
-| P4-T1A | Stabilize failing backend/e2e tests during modular refactor branch | Phase 4 | Blocked | Codex | Feb 20, 2026 | Feb 20, 2026 | codex/modularity-refactor-v2 |
-| P4-T1B | Events frontend modular cutover (remove legacy eventsSlice) | Phase 4 | Blocked | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
-| P4-T1C | Cases + Contacts modularization (v2 API + v1 shim) | Phase 4 | Blocked | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
-| P4-T1C-A | Cases + Contacts backend modules, `/api/v2`, legacy shim/deprecation | Phase 4 | Blocked | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
-| P4-T1C-B | Cases + Contacts frontend feature cutover + legacy slice removal | Phase 4 | Blocked | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
-| P4-T1C-C | Case management upgrade (notes/outcomes/topics/documents + portal case visibility) | Phase 4 | Review | Codex | Feb 23, 2026 | Feb 23, 2026 | codex/case-management-upgrade |
+| P4-T1A | Stabilize failing backend/e2e tests during modular refactor branch | Phase 4 | In Progress | Codex | Feb 20, 2026 | Feb 20, 2026 | codex/modularity-refactor-v2 |
+| P4-T1B | Events frontend modular cutover (remove legacy eventsSlice) | Phase 4 | In Progress | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
+| P4-T1C | Cases + Contacts modularization (v2 API + v1 shim) | Phase 4 | In Progress | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
+| P4-T1C-A | Cases + Contacts backend modules, `/api/v2`, legacy shim/deprecation | Phase 4 | In Progress | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
+| P4-T1C-B | Cases + Contacts frontend feature cutover + legacy slice removal | Phase 4 | In Progress | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
 
 ### **Zod Migration Tracker**
 
-**Program constraint (wc-manage guardrails adoption):** one active subtask per agent at a time. New subtasks above follow this rule, with `P2-T17A` as the current active subtask for Codex.
-
-**Coverage ratchet policy (wc-manage guardrails adoption):** backend coverage thresholds are locked to baseline floors (`statements: 47`, `branches: 32`, `functions: 41`, `lines: 46`) and may only be increased when measured coverage rises.
-
-**Frontend coverage ratchet note (Feb 23, 2026):** frontend thresholds were aligned to measured baseline floors in `frontend/vite.config.ts` (`lines: 48`, `functions: 40`, `statements: 47`, `branches: 38`) so `make ci-full` remains enforceable; thresholds are raise-only and may not be decreased.
-
-**Verification blocker note (Feb 23, 2026):** Docker daemon availability was restored and matrix reruns resumed; the current blocker is Playwright auth fixture login drift (`Invalid credentials (email: e2e+admin-fallback-...@example.com)`) raised from `e2e/helpers/auth.ts` during `tests/accounts.spec.ts`, which causes early E2E failures in `make ci-full` / `npm run test:ci`.
-
-This tracker shows the current validation migration status for backend routes (Zod vs express-validator vs none). Updated: February 23, 2026.
+This tracker shows the current validation migration status for backend routes (Zod vs express-validator vs none). Updated: February 18, 2026.
 
 | Route File | Validation Library | Endpoints (approx) | Status |
 |------------|-------------------:|-------------------:|--------|
@@ -111,31 +92,31 @@ This tracker shows the current validation migration status for backend routes (Z
 | backend/src/routes/volunteers.ts | Zod | 10 | Zod (migrated)
 | backend/src/routes/contacts.ts | Zod | 24 | Zod (migrated)
 | backend/src/routes/donations.ts | Zod | 7 | Zod (migrated)
-| backend/src/routes/accounts.ts | Zod | 10 | Zod (migrated)
-| backend/src/routes/alerts.ts | Zod | 6 | Zod (migrated)
-| backend/src/routes/analytics.ts | Zod | 6 | Zod (migrated)
-| backend/src/routes/backup.ts | Zod | 4 | Zod (migrated)
-| backend/src/routes/dashboard.ts | Zod | 6 | Zod (migrated)
-| backend/src/modules/events/routes/index.ts | Zod | 18 | Zod (migrated)
-| backend/src/routes/export.ts | Zod | 4 | Zod (migrated)
-| backend/src/routes/ingest.ts | Zod | 2 | Zod (migrated)
-| backend/src/routes/invitations.ts | Zod | 8 | Zod (migrated)
-| backend/src/routes/mailchimp.ts | Zod | 16 | Zod (migrated)
-| backend/src/routes/meetings.ts | Zod | 11 | Zod (migrated)
-| backend/src/routes/payments.ts | Zod | 8 | Zod (migrated)
+| backend/src/routes/accounts.ts | express-validator | 10 | express-validator
+| backend/src/routes/alerts.ts | express-validator | 6 | express-validator
+| backend/src/routes/analytics.ts | express-validator | 6 | express-validator
+| backend/src/routes/backup.ts | express-validator | 4 | express-validator
+| backend/src/routes/dashboard.ts | express-validator | 6 | express-validator
+| backend/src/routes/events.ts | express-validator | 12 | express-validator
+| backend/src/routes/export.ts | express-validator | 4 | express-validator
+| backend/src/routes/ingest.ts | express-validator | 6 | express-validator
+| backend/src/routes/invitations.ts | express-validator | 8 | express-validator
+| https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/backend/src/routes/mailchimp.ts | express-validator | 8 | express-validator
+| backend/src/routes/meetings.ts | express-validator | 8 | express-validator
+| backend/src/routes/payments.ts | express-validator | 8 | express-validator
 | backend/src/routes/portal.ts | Zod | 18 | Zod (migrated)
 | backend/src/routes/portalAdmin.ts | Zod | 16 | Zod (migrated)
 | backend/src/routes/portalAuth.ts | Zod | 6 | Zod (migrated)
-| backend/src/routes/publishing.ts | Zod | 19 | Zod (migrated)
-| backend/src/routes/reports.ts | Zod | 9 | Zod (migrated)
-| backend/src/routes/savedReports.ts | Zod | 9 | Zod (migrated)
-| backend/src/routes/tasks.ts | Zod | 7 | Zod (migrated)
-| backend/src/routes/templates.ts | Zod | 19 | Zod (migrated)
-| backend/src/routes/users.ts | Zod | 7 | Zod (migrated)
-| backend/src/routes/webhooks.ts | Zod | 14 | Zod (migrated)
-| backend/src/routes/cases.ts | Zod | 24 | Zod (migrated via module router)
+| backend/src/routes/publishing.ts | express-validator | 12 | express-validator
+| backend/src/routes/reports.ts | express-validator | 8 | express-validator
+| backend/src/routes/savedReports.ts | express-validator | 6 | express-validator
+| backend/src/routes/tasks.ts | express-validator | 10 | express-validator
+| backend/src/routes/templates.ts | express-validator | 8 | express-validator
+| backend/src/routes/users.ts | express-validator | 8 | express-validator
+| https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/backend/src/routes/webhooks.ts | express-validator | 12 | express-validator
+| backend/src/routes/cases.ts | None | 6 | No validation
 
-**Summary:** 27 of 27 tracked route files now use Zod validation (100%). Remaining express-validator usage is route-adjacent legacy controller checks targeted for cleanup.
+**Summary:** 4 of 27 route files migrated to Zod (15%). Remaining: 22 files using express-validator and 1 file with no validation. Prioritize P2-T11 through P2-T15 for migration.
 
 ### ✅ Recently Completed (February 1, 2026 - Late Evening + Phase 2 Completion)
 
@@ -2584,14 +2565,8 @@ Frontend Component Tests:
 
 | Date | Task ID | Owner | Status Change | Notes |
 |------|---------|-------|---------------|-------|
-| Feb 23, 2026 | P4-T1C-C | Codex | In Progress → Review | Implementation complete for case notes/outcomes/topics/documents + portal case visibility. Verification: backend/frontend typecheck+lint pass; targeted backend integration case visibility suites pass with `--testTimeout=60000`; portal visibility Playwright spec pass. |
-| Feb 23, 2026 | P4-T1C-C | Codex | Ready → In Progress | Signed out case management upgrade implementation (DB/API/UI/tests/docs) with client visibility enforcement. |
-| Feb 23, 2026 | P2-T17A | Codex | In Progress → In Progress | Verification blocker: `make ci-full` stalled in Playwright teardown after Chromium progress with idle parent process and no active worker/browser children; standalone `cd e2e && npm run test:ci` rerun was started but manually terminated during extended execution. `cd backend && npm run test:integration` passed (`29` suites, `231` tests). |
-| Feb 23, 2026 | P4-T1A | Codex | In Progress → Blocked | Program constraint active: one subtask per agent. |
-| Feb 23, 2026 | P4-T1B | Codex | In Progress → Blocked | Program constraint active: one subtask per agent. |
-| Feb 23, 2026 | P4-T1C | Codex | In Progress → Blocked | Program constraint active: one subtask per agent. |
-| Feb 23, 2026 | P4-T1C-A | Codex | In Progress → Blocked | Program constraint active: one subtask per agent. |
-| Feb 23, 2026 | P4-T1C-B | Codex | In Progress → Blocked | Program constraint active: one subtask per agent. |
+| Feb 24, 2026 | P3-T5 | Codex | Blocked → Ready | Phase 2 merge recorded after PR #4; next step: resume `codex/p3-t5-case-priority-critical-ui` on latest `main`. |
+| Feb 24, 2026 | P2-T16/P2-T17 | Codex | Review → Done | Merged PR #4 ([P2-T16/P2-T17] Canonical envelope completion + route guardrail matrix expansion), merge commit `5f919d747f718a0271b146879ae863dfcbc4ec4e`; no scope expansion accepted. |
 | Feb 22, 2026 | P4-T1A | Codex | In Progress → In Progress | E2E auth remediation complete: admin fixture bootstrap now used for default authenticated flows; stale shared user cache path removed from primary login path. |
 | Feb 22, 2026 | P4-T1A | Codex | In Progress → In Progress | Markdown link remediation complete: `scripts/check-links.sh` now passes with zero markdown link failures. |
 | Feb 22, 2026 | P4-T1A | Codex | In Progress → In Progress | Strict literal repo-wide external URL remediation complete: hard-fail crawl reports zero non-2xx/3xx URLs in `/tmp/nonprofit-verify-20260222-141725/04_external_failures.tsv`. |
