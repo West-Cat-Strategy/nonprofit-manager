@@ -74,7 +74,7 @@ All active work must be **signed out** in the Workboard below before code change
 | P3-T2D | Client Portal: explicit visibility rules for notes/documents/forms + event filtering | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
 | P3-T2E | Client Portal: Admin Settings inbox/slot tools + Case Detail portal tab + client UI pages | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
 | P3-T3 | Comprehensive security + functionality review and remediation (backend/frontend/devops) | Phase 3 | Done | Codex | Feb 21, 2026 | Feb 21, 2026 | codex/security-functionality-review-remediation |
-| P3-T5 | Frontend case-priority critical drift causing `make ci-unit` TypeScript failures | Phase 3 | Review | Codex | Feb 24, 2026 | Feb 24, 2026 | codex/p3-t5-priority-critical-selector-fix |
+| P3-T5 | Frontend case-priority critical drift causing `make ci-unit` TypeScript failures | Phase 3 | Done | Codex | Feb 24, 2026 | Feb 24, 2026 | #5 |
 | P4-T1 | Full-stack modularity refactor (v2 API Portal + Events first) | Phase 4 | In Progress | Codex | Feb 20, 2026 | TBD | codex/modularity-refactor-v2 |
 | P4-T1A | Stabilize failing backend/e2e tests during modular refactor branch | Phase 4 | In Progress | Codex | Feb 20, 2026 | Feb 20, 2026 | codex/modularity-refactor-v2 |
 | P4-T1B | Events frontend modular cutover (remove legacy eventsSlice) | Phase 4 | In Progress | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
@@ -2565,6 +2565,7 @@ Frontend Component Tests:
 
 | Date | Task ID | Owner | Status Change | Notes |
 |------|---------|-------|---------------|-------|
+| Feb 24, 2026 | P3-T5 | Codex | Review → Done | Merged PR #5 ([P3-T5] Treat critical priority as urgent-equivalent in case selectors), merge commit `5cdda5084ce304c32a6a49e7202a99475de87346`; no Phase 2 scope reopened. |
 | Feb 24, 2026 | P3-T5 | Codex | In Progress → Review | Selector fix and verification complete on `codex/p3-t5-priority-critical-selector-fix`; PR prepared with strict non-scope (no Phase 2 reopen, no backend/API changes). |
 | Feb 24, 2026 | P3-T5 | Codex | Ready → In Progress | Resumed on clean branch `codex/p3-t5-priority-critical-selector-fix` from `origin/main`; scope limited to priority regression and `make ci-unit` restoration. |
 | Feb 24, 2026 | P3-T5 | Codex | Blocked → Ready | Phase 2 merge recorded after PR #4; next step: resume `codex/p3-t5-case-priority-critical-ui` on latest `main`. |
