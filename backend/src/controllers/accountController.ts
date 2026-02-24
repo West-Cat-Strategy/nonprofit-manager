@@ -10,6 +10,7 @@ import { AuthRequest } from '@middleware/auth';
 import { extractPagination, getString, getBoolean } from '@utils/queryHelpers';
 import { notFound } from '@utils/responseHelpers';
 import type { DataScopeFilter } from '@app-types/dataScope';
+import { sendSuccess } from '@modules/shared/http/envelope';
 
 const accountService = services.account;
 
@@ -34,7 +35,7 @@ export const getAccounts = async (
 
     const scope = req.dataScope?.filter as DataScopeFilter | undefined;
     const result = await accountService.getAccounts(filters, pagination, scope);
-    res.json(result);
+    sendSuccess(res, result);
   } catch (error) {
     next(error);
   }
@@ -60,7 +61,7 @@ export const getAccountById = async (
       return;
     }
 
-    res.json(result);
+    sendSuccess(res, result);
   } catch (error) {
     next(error);
   }
@@ -83,7 +84,7 @@ export const getAccountContacts = async (
     }
 
     const contacts = await accountService.getAccountContacts(req.params.id);
-    res.json(contacts);
+    sendSuccess(res, contacts);
   } catch (error) {
     next(error);
   }
@@ -101,7 +102,7 @@ export const createAccount = async (
   try {
     const userId = req.user!.id;
     const account = await accountService.createAccount(req.body, userId);
-    res.status(201).json(account);
+    sendSuccess(res, account, 201);
   } catch (error) {
     next(error);
   }
@@ -134,7 +135,7 @@ export const updateAccount = async (
       return;
     }
 
-    res.json(account);
+    sendSuccess(res, account);
   } catch (error) {
     next(error);
   }

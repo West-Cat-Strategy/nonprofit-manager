@@ -81,6 +81,11 @@ export const portalRelationshipUpdateSchema = z
   .strict();
 
 export const portalUuidParamsSchema = z.object({ id: uuidSchema });
+export const portalCaseParamsSchema = z.object({ id: uuidSchema });
+export const portalCaseDocumentDownloadParamsSchema = z.object({
+  id: uuidSchema,
+  documentId: uuidSchema,
+});
 export const portalEventParamsSchema = z.object({ eventId: uuidSchema });
 export const portalAppointmentParamsSchema = z.object({ id: uuidSchema });
 export const portalThreadParamsSchema = z.object({ threadId: uuidSchema });

@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { body, param, query } from 'express-validator';
+import { z } from 'zod';
 import {
   getAlertConfigs,
   getAlertConfig,
@@ -19,9 +19,78 @@ import {
   getAlertStats,
 } from '@controllers/domains/engagement';
 import { authenticate } from '@middleware/domains/auth';
-import { validateRequest } from '@middleware/domains/security';
+import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
+import { uuidSchema } from '@validations/shared';
 
 const router = Router();
+
+const alertMetricTypeSchema = z.enum([
+  'donations',
+  'donation_amount',
+  'volunteer_hours',
+  'event_attendance',
+  'case_volume',
+  'engagement_score',
+]);
+
+const alertConditionSchema = z.enum([
+  'exceeds',
+  'drops_below',
+  'changes_by',
+  'anomaly_detected',
+  'trend_reversal',
+]);
+
+const alertFrequencySchema = z.enum(['real_time', 'daily', 'weekly', 'monthly']);
+const alertSeveritySchema = z.enum(['low', 'medium', 'high', 'critical']);
+
+const alertIdParamsSchema = z.object({
+  id: uuidSchema,
+});
+
+const createAlertConfigSchema = z.object({
+  name: z.string().trim().min(1, 'Alert name is required'),
+  metric_type: alertMetricTypeSchema,
+  condition: alertConditionSchema,
+  threshold: z.coerce.number().optional(),
+  percentage_change: z.coerce.number().optional(),
+  sensitivity: z.coerce.number().min(1).max(4).optional(),
+  frequency: alertFrequencySchema,
+  channels: z.array(z.unknown()),
+  severity: alertSeveritySchema,
+  enabled: z.coerce.boolean().optional(),
+  recipients: z.array(z.unknown()).optional(),
+  filters: z.record(z.string(), z.unknown()).optional(),
+});
+
+const updateAlertConfigSchema = z.object({
+  name: z.string().trim().min(1).optional(),
+  metric_type: z.string().optional(),
+  condition: z.string().optional(),
+  threshold: z.coerce.number().optional(),
+  percentage_change: z.coerce.number().optional(),
+  sensitivity: z.coerce.number().min(1).max(4).optional(),
+  frequency: z.string().optional(),
+  channels: z.array(z.unknown()).optional(),
+  severity: z.string().optional(),
+  enabled: z.coerce.boolean().optional(),
+  recipients: z.array(z.unknown()).optional(),
+  filters: z.record(z.string(), z.unknown()).optional(),
+});
+
+const testAlertConfigSchema = z.object({
+  metric_type: z.string().min(1),
+  condition: z.string().min(1),
+  threshold: z.coerce.number().optional(),
+  percentage_change: z.coerce.number().optional(),
+  sensitivity: z.coerce.number().min(1).max(4).optional(),
+});
+
+const alertInstancesQuerySchema = z.object({
+  status: z.string().optional(),
+  severity: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+});
 
 // All routes require authentication
 router.use(authenticate);
@@ -36,124 +105,55 @@ router.get('/configs', getAlertConfigs);
  * GET /api/alerts/configs/:id
  * Get a specific alert configuration
  */
-router.get('/configs/:id', [param('id').isUUID(), validateRequest], getAlertConfig);
+router.get('/configs/:id', validateParams(alertIdParamsSchema), getAlertConfig);
 
 /**
  * POST /api/alerts/configs
  * Create a new alert configuration
  */
-router.post(
-  '/configs',
-  [
-    body('name').isString().trim().notEmpty().withMessage('Alert name is required'),
-    body('metric_type')
-      .isString()
-      .isIn(['donations', 'donation_amount', 'volunteer_hours', 'event_attendance', 'case_volume', 'engagement_score'])
-      .withMessage('Invalid metric type'),
-    body('condition')
-      .isString()
-      .isIn(['exceeds', 'drops_below', 'changes_by', 'anomaly_detected', 'trend_reversal'])
-      .withMessage('Invalid condition'),
-    body('threshold').optional().isNumeric(),
-    body('percentage_change').optional().isNumeric(),
-    body('sensitivity').optional().isFloat({ min: 1.0, max: 4.0 }),
-    body('frequency')
-      .isString()
-      .isIn(['real_time', 'daily', 'weekly', 'monthly'])
-      .withMessage('Invalid frequency'),
-    body('channels').isArray().withMessage('Channels must be an array'),
-    body('severity')
-      .isString()
-      .isIn(['low', 'medium', 'high', 'critical'])
-      .withMessage('Invalid severity'),
-    body('enabled').isBoolean().optional(),
-    body('recipients').optional().isArray(),
-    body('filters').optional().isObject(),
-    validateRequest,
-  ],
-  createAlertConfig
-);
+router.post('/configs', validateBody(createAlertConfigSchema), createAlertConfig);
 
 /**
  * PUT /api/alerts/configs/:id
  * Update alert configuration
  */
-router.put(
-  '/configs/:id',
-  [
-    param('id').isUUID(),
-    body('name').optional().isString().trim().notEmpty(),
-    body('metric_type').optional().isString(),
-    body('condition').optional().isString(),
-    body('threshold').optional().isNumeric(),
-    body('percentage_change').optional().isNumeric(),
-    body('sensitivity').optional().isFloat({ min: 1.0, max: 4.0 }),
-    body('frequency').optional().isString(),
-    body('channels').optional().isArray(),
-    body('severity').optional().isString(),
-    body('enabled').optional().isBoolean(),
-    body('recipients').optional().isArray(),
-    body('filters').optional().isObject(),
-    validateRequest,
-  ],
-  updateAlertConfig
-);
+router.put('/configs/:id', validateParams(alertIdParamsSchema), validateBody(updateAlertConfigSchema), updateAlertConfig);
 
 /**
  * DELETE /api/alerts/configs/:id
  * Delete alert configuration
  */
-router.delete('/configs/:id', [param('id').isUUID(), validateRequest], deleteAlertConfig);
+router.delete('/configs/:id', validateParams(alertIdParamsSchema), deleteAlertConfig);
 
 /**
  * PATCH /api/alerts/configs/:id/toggle
  * Toggle alert enabled status
  */
-router.patch('/configs/:id/toggle', [param('id').isUUID(), validateRequest], toggleAlertConfig);
+router.patch('/configs/:id/toggle', validateParams(alertIdParamsSchema), toggleAlertConfig);
 
 /**
  * POST /api/alerts/test
  * Test alert configuration without saving
  */
-router.post(
-  '/test',
-  [
-    body('metric_type').isString().notEmpty(),
-    body('condition').isString().notEmpty(),
-    body('threshold').optional().isNumeric(),
-    body('percentage_change').optional().isNumeric(),
-    body('sensitivity').optional().isFloat({ min: 1.0, max: 4.0 }),
-    validateRequest,
-  ],
-  testAlertConfig
-);
+router.post('/test', validateBody(testAlertConfigSchema), testAlertConfig);
 
 /**
  * GET /api/alerts/instances
  * Get alert instances (triggered alerts)
  */
-router.get(
-  '/instances',
-  [
-    query('status').optional().isString(),
-    query('severity').optional().isString(),
-    query('limit').optional().isInt({ min: 1, max: 100 }),
-    validateRequest,
-  ],
-  getAlertInstances
-);
+router.get('/instances', validateQuery(alertInstancesQuerySchema), getAlertInstances);
 
 /**
  * PATCH /api/alerts/instances/:id/acknowledge
  * Acknowledge an alert instance
  */
-router.patch('/instances/:id/acknowledge', [param('id').isUUID(), validateRequest], acknowledgeAlert);
+router.patch('/instances/:id/acknowledge', validateParams(alertIdParamsSchema), acknowledgeAlert);
 
 /**
  * PATCH /api/alerts/instances/:id/resolve
  * Resolve an alert instance
  */
-router.patch('/instances/:id/resolve', [param('id').isUUID(), validateRequest], resolveAlert);
+router.patch('/instances/:id/resolve', validateParams(alertIdParamsSchema), resolveAlert);
 
 /**
  * GET /api/alerts/stats

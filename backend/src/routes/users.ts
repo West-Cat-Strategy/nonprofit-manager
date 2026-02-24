@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { body, param } from 'express-validator';
+import { z } from 'zod';
 import {
   listUsers,
   getUser,
@@ -15,9 +15,42 @@ import {
   getRoles,
 } from '@controllers/domains/core';
 import { authenticate } from '@middleware/domains/auth';
-import { validateRequest } from '@middleware/domains/security';
+import { validateBody, validateParams } from '@middleware/zodValidation';
+import { emailSchema, uuidSchema } from '@validations/shared';
 
 const router = Router();
+
+const passwordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .regex(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+    'Password must contain uppercase, lowercase, number, and special character'
+  );
+
+const userIdParamsSchema = z.object({
+  id: uuidSchema,
+});
+
+const createUserSchema = z.object({
+  email: emailSchema,
+  password: passwordSchema,
+  firstName: z.string().trim().min(1, 'First name is required'),
+  lastName: z.string().trim().min(1, 'Last name is required'),
+  role: z.enum(['admin', 'manager', 'user', 'readonly']).optional(),
+});
+
+const updateUserSchema = z.object({
+  email: emailSchema.optional(),
+  firstName: z.string().trim().min(1, 'First name cannot be empty').optional(),
+  lastName: z.string().trim().min(1, 'Last name cannot be empty').optional(),
+  role: z.enum(['admin', 'manager', 'user', 'readonly']).optional(),
+  isActive: z.coerce.boolean().optional(),
+});
+
+const resetUserPasswordSchema = z.object({
+  password: passwordSchema,
+});
 
 // All routes require authentication
 router.use(authenticate);
@@ -29,57 +62,18 @@ router.get('/roles', getRoles);
 router.get('/', listUsers);
 
 // Get a single user
-router.get('/:id', [param('id').isUUID().withMessage('Invalid user ID'), validateRequest], getUser);
+router.get('/:id', validateParams(userIdParamsSchema), getUser);
 
 // Create a new user
-router.post(
-  '/',
-  [
-    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
-    body('password')
-      .isLength({ min: 8 })
-      .withMessage('Password must be at least 8 characters')
-      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-      .withMessage('Password must contain uppercase, lowercase, number, and special character'),
-    body('firstName').trim().notEmpty().withMessage('First name is required'),
-    body('lastName').trim().notEmpty().withMessage('Last name is required'),
-    body('role').optional().isIn(['admin', 'manager', 'user', 'readonly']).withMessage('Invalid role'),
-    validateRequest,
-  ],
-  createUser
-);
+router.post('/', validateBody(createUserSchema), createUser);
 
 // Update a user
-router.put(
-  '/:id',
-  [
-    param('id').isUUID().withMessage('Invalid user ID'),
-    body('email').optional().isEmail().normalizeEmail().withMessage('Valid email is required'),
-    body('firstName').optional().trim().notEmpty().withMessage('First name cannot be empty'),
-    body('lastName').optional().trim().notEmpty().withMessage('Last name cannot be empty'),
-    body('role').optional().isIn(['admin', 'manager', 'user', 'readonly']).withMessage('Invalid role'),
-    body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
-    validateRequest,
-  ],
-  updateUser
-);
+router.put('/:id', validateParams(userIdParamsSchema), validateBody(updateUserSchema), updateUser);
 
 // Reset user password
-router.put(
-  '/:id/password',
-  [
-    param('id').isUUID().withMessage('Invalid user ID'),
-    body('password')
-      .isLength({ min: 8 })
-      .withMessage('Password must be at least 8 characters')
-      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-      .withMessage('Password must contain uppercase, lowercase, number, and special character'),
-    validateRequest,
-  ],
-  resetUserPassword
-);
+router.put('/:id/password', validateParams(userIdParamsSchema), validateBody(resetUserPasswordSchema), resetUserPassword);
 
 // Delete (deactivate) a user
-router.delete('/:id', [param('id').isUUID().withMessage('Invalid user ID'), validateRequest], deleteUser);
+router.delete('/:id', validateParams(userIdParamsSchema), deleteUser);
 
 export default router;

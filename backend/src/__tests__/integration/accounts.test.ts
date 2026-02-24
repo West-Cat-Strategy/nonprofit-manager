@@ -112,12 +112,13 @@ describe('Account API Integration Tests', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body).toHaveProperty('pagination');
-      expect(Array.isArray(response.body.data)).toBe(true);
-      expect(response.body.pagination).toHaveProperty('total');
-      expect(response.body.pagination).toHaveProperty('page');
-      expect(response.body.pagination).toHaveProperty('limit');
+      const payload = response.body.data?.data ? response.body.data : response.body;
+      expect(payload).toHaveProperty('data');
+      expect(payload).toHaveProperty('pagination');
+      expect(Array.isArray(payload.data)).toBe(true);
+      expect(payload.pagination).toHaveProperty('total');
+      expect(payload.pagination).toHaveProperty('page');
+      expect(payload.pagination).toHaveProperty('limit');
     });
 
     it('should support search query', async () => {

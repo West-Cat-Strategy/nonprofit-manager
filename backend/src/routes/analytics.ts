@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { param, query } from 'express-validator';
+import { z } from 'zod';
 import {
   getAccountAnalytics,
   getContactAnalytics,
@@ -30,9 +30,48 @@ import {
   auditAnalyticsMiddleware,
 } from '@middleware/domains/security';
 import { loadDataScope } from '@middleware/domains/data';
-import { validateRequest } from '@middleware/domains/security';
+import { validateParams, validateQuery } from '@middleware/zodValidation';
+import { uuidSchema } from '@validations/shared';
 
 const router = Router();
+
+const accountTypeSchema = z.enum(['organization', 'individual']);
+const categorySchema = z.enum(['donor', 'volunteer', 'partner', 'vendor', 'beneficiary', 'other']);
+const metricTypeSchema = z.enum(['donations', 'volunteer_hours', 'event_attendance']);
+
+const dateStringSchema = z.string().refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid ISO8601 date');
+
+const analyticsSummaryQuerySchema = z.object({
+  start_date: dateStringSchema.optional(),
+  end_date: dateStringSchema.optional(),
+  account_type: accountTypeSchema.optional(),
+  category: categorySchema.optional(),
+});
+
+const analyticsEntityIdParamsSchema = z.object({
+  id: uuidSchema,
+});
+
+const trendMonthsQuerySchema = z.object({
+  months: z.coerce.number().int().min(1).max(24).optional(),
+});
+
+const comparativeQuerySchema = z.object({
+  period: z.enum(['month', 'quarter', 'year']).optional(),
+});
+
+const trendMetricParamsSchema = z.object({
+  metricType: metricTypeSchema,
+});
+
+const trendMetricQuerySchema = z.object({
+  months: z.coerce.number().int().min(1).max(36).optional(),
+});
+
+const anomalyMetricQuerySchema = z.object({
+  months: z.coerce.number().int().min(3).max(36).optional(),
+  sensitivity: z.coerce.number().min(1).max(4).optional(),
+});
 
 // All routes require authentication
 router.use(authenticate);
@@ -44,15 +83,7 @@ router.use(loadDataScope('analytics'));
  */
 router.get(
   '/summary',
-  [
-    query('start_date').optional().isISO8601(),
-    query('end_date').optional().isISO8601(),
-    query('account_type').optional().isIn(['organization', 'individual']),
-    query('category')
-      .optional()
-      .isIn(['donor', 'volunteer', 'partner', 'vendor', 'beneficiary', 'other']),
-  ],
-  validateRequest,
+  validateQuery(analyticsSummaryQuerySchema),
   requireOrgAnalytics,
   auditAnalyticsMiddleware('view_org_analytics'),
   getAnalyticsSummary
@@ -64,8 +95,7 @@ router.get(
  */
 router.get(
   '/accounts/:id',
-  [param('id').isUUID()],
-  validateRequest,
+  validateParams(analyticsEntityIdParamsSchema),
   requireAccountAnalytics,
   auditAnalyticsMiddleware('view_account_analytics'),
   getAccountAnalytics
@@ -77,8 +107,7 @@ router.get(
  */
 router.get(
   '/accounts/:id/donations',
-  [param('id').isUUID()],
-  validateRequest,
+  validateParams(analyticsEntityIdParamsSchema),
   requireAccountAnalytics,
   auditAnalyticsMiddleware('view_account_donations'),
   getAccountDonationMetrics
@@ -90,8 +119,7 @@ router.get(
  */
 router.get(
   '/accounts/:id/events',
-  [param('id').isUUID()],
-  validateRequest,
+  validateParams(analyticsEntityIdParamsSchema),
   requireAccountAnalytics,
   auditAnalyticsMiddleware('view_account_events'),
   getAccountEventMetrics
@@ -103,8 +131,7 @@ router.get(
  */
 router.get(
   '/contacts/:id',
-  [param('id').isUUID()],
-  validateRequest,
+  validateParams(analyticsEntityIdParamsSchema),
   requireContactAnalytics,
   auditAnalyticsMiddleware('view_contact_analytics'),
   getContactAnalytics
@@ -116,8 +143,7 @@ router.get(
  */
 router.get(
   '/contacts/:id/donations',
-  [param('id').isUUID()],
-  validateRequest,
+  validateParams(analyticsEntityIdParamsSchema),
   requireContactAnalytics,
   auditAnalyticsMiddleware('view_contact_donations'),
   getContactDonationMetrics
@@ -129,8 +155,7 @@ router.get(
  */
 router.get(
   '/contacts/:id/events',
-  [param('id').isUUID()],
-  validateRequest,
+  validateParams(analyticsEntityIdParamsSchema),
   requireContactAnalytics,
   auditAnalyticsMiddleware('view_contact_events'),
   getContactEventMetrics
@@ -142,8 +167,7 @@ router.get(
  */
 router.get(
   '/contacts/:id/volunteer',
-  [param('id').isUUID()],
-  validateRequest,
+  validateParams(analyticsEntityIdParamsSchema),
   requireContactAnalytics,
   auditAnalyticsMiddleware('view_volunteer_metrics'),
   getContactVolunteerMetrics
@@ -155,8 +179,7 @@ router.get(
  */
 router.get(
   '/trends/donations',
-  [query('months').optional().isInt({ min: 1, max: 24 })],
-  validateRequest,
+  validateQuery(trendMonthsQuerySchema),
   requireOrgAnalytics,
   auditAnalyticsMiddleware('view_donation_trends'),
   getDonationTrends
@@ -168,8 +191,7 @@ router.get(
  */
 router.get(
   '/trends/volunteer-hours',
-  [query('months').optional().isInt({ min: 1, max: 24 })],
-  validateRequest,
+  validateQuery(trendMonthsQuerySchema),
   requireOrgAnalytics,
   auditAnalyticsMiddleware('view_volunteer_trends'),
   getVolunteerHoursTrends
@@ -181,8 +203,7 @@ router.get(
  */
 router.get(
   '/trends/event-attendance',
-  [query('months').optional().isInt({ min: 1, max: 24 })],
-  validateRequest,
+  validateQuery(trendMonthsQuerySchema),
   requireOrgAnalytics,
   auditAnalyticsMiddleware('view_event_trends'),
   getEventAttendanceTrends
@@ -194,8 +215,7 @@ router.get(
  */
 router.get(
   '/comparative',
-  [query('period').optional().isIn(['month', 'quarter', 'year'])],
-  validateRequest,
+  validateQuery(comparativeQuerySchema),
   requireOrgAnalytics,
   auditAnalyticsMiddleware('view_comparative_analytics'),
   getComparativeAnalytics
@@ -208,11 +228,8 @@ router.get(
  */
 router.get(
   '/trends/:metricType',
-  [
-    param('metricType').isIn(['donations', 'volunteer_hours', 'event_attendance']),
-    query('months').optional().isInt({ min: 1, max: 36 }),
-  ],
-  validateRequest,
+  validateParams(trendMetricParamsSchema),
+  validateQuery(trendMetricQuerySchema),
   requireOrgAnalytics,
   auditAnalyticsMiddleware('view_trend_analysis'),
   getTrendAnalysis
@@ -225,12 +242,8 @@ router.get(
  */
 router.get(
   '/anomalies/:metricType',
-  [
-    param('metricType').isIn(['donations', 'volunteer_hours', 'event_attendance']),
-    query('months').optional().isInt({ min: 3, max: 36 }),
-    query('sensitivity').optional().isFloat({ min: 1.0, max: 4.0 }),
-  ],
-  validateRequest,
+  validateParams(trendMetricParamsSchema),
+  validateQuery(anomalyMetricQuerySchema),
   requireAnomalyAccess,
   auditAnalyticsMiddleware('view_anomaly_detection'),
   detectAnomalies

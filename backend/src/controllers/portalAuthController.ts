@@ -7,7 +7,7 @@ import { getJwtSecret } from '@config/jwt';
 import { PASSWORD, JWT } from '@config/constants';
 import { PortalAuthRequest } from '@middleware/portalAuth';
 import { logPortalActivity } from '@services/domains/integration';
-import { badRequest, conflict, errorPayload, forbidden, notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
+import { badRequest, conflict, forbidden, notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
 import { clearPortalAuthCookie, setPortalAuthCookie } from '@utils/cookieHelper';
 import { shouldExposeAuthTokensInResponse } from '@utils/authResponse';
 
@@ -225,26 +225,17 @@ export const validatePortalInvitation = async (
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({
-        valid: false,
-        ...errorPayload(res, 'Invitation not found', undefined, 'not_found'),
-      });
+      return notFoundMessage(res, 'Invitation not found');
     }
 
     const invitation = result.rows[0];
 
     if (invitation.accepted_at) {
-      return res.status(400).json({
-        valid: false,
-        ...errorPayload(res, 'Invitation already accepted', undefined, 'validation_error'),
-      });
+      return badRequest(res, 'Invitation already accepted');
     }
 
     if (new Date(invitation.expires_at) < new Date()) {
-      return res.status(400).json({
-        valid: false,
-        ...errorPayload(res, 'Invitation expired', undefined, 'validation_error'),
-      });
+      return badRequest(res, 'Invitation expired');
     }
 
     return res.json({

@@ -1,4 +1,6 @@
 import api from '../../../services/api';
+import { unwrapApiData } from '../../../services/apiEnvelope';
+import type { ApiEnvelope } from '../../../services/apiEnvelope';
 import type {
   CreateEventDTO,
   CreateEventReminderAutomationDTO,
@@ -18,18 +20,6 @@ import type {
   EventRegistrationPort,
   EventReminderPort,
 } from '../types/contracts';
-
-interface ApiEnvelope<T> {
-  success: boolean;
-  data: T;
-}
-
-const extractData = <T>(response: ApiEnvelope<T> | T): T => {
-  if (response && typeof response === 'object' && 'success' in response && 'data' in response) {
-    return (response as ApiEnvelope<T>).data;
-  }
-  return response as T;
-};
 
 export class EventsApiClient
   implements EventCatalogPort, EventMutationPort, EventRegistrationPort, EventReminderPort
@@ -52,22 +42,22 @@ export class EventsApiClient
   async listEvents(query: EventListQuery = {}): Promise<PaginatedEvents> {
     const params = this.buildListParams(query);
     const response = await api.get<ApiEnvelope<PaginatedEvents>>(`/v2/events?${params.toString()}`);
-    return extractData(response.data);
+    return unwrapApiData(response.data);
   }
 
   async getEventById(eventId: string): Promise<Event> {
     const response = await api.get<ApiEnvelope<Event>>(`/v2/events/${eventId}`);
-    return extractData(response.data);
+    return unwrapApiData(response.data);
   }
 
   async createEvent(payload: CreateEventDTO): Promise<Event> {
     const response = await api.post<ApiEnvelope<Event>>('/v2/events', payload);
-    return extractData(response.data);
+    return unwrapApiData(response.data);
   }
 
   async updateEvent(eventId: string, payload: UpdateEventDTO): Promise<Event> {
     const response = await api.put<ApiEnvelope<Event>>(`/v2/events/${eventId}`, payload);
-    return extractData(response.data);
+    return unwrapApiData(response.data);
   }
 
   async deleteEvent(eventId: string): Promise<void> {
@@ -85,7 +75,7 @@ export class EventsApiClient
     const response = await api.get<ApiEnvelope<EventRegistration[]>>(
       `/v2/events/${eventId}/registrations?${params.toString()}`
     );
-    return extractData(response.data);
+    return unwrapApiData(response.data);
   }
 
   async registerContact(eventId: string, contactId: string): Promise<void> {
@@ -96,7 +86,7 @@ export class EventsApiClient
     const response = await api.post<ApiEnvelope<EventRegistration>>(
       `/v2/events/registrations/${registrationId}/checkin`
     );
-    return extractData(response.data);
+    return unwrapApiData(response.data);
   }
 
   async cancelRegistration(registrationId: string): Promise<void> {
@@ -115,14 +105,14 @@ export class EventsApiClient
       `/v2/events/${eventId}/reminders/send`,
       payload
     );
-    return extractData(response.data);
+    return unwrapApiData(response.data);
   }
 
   async listReminderAutomations(eventId: string): Promise<EventReminderAutomation[]> {
     const response = await api.get<ApiEnvelope<EventReminderAutomation[]>>(
       `/v2/events/${eventId}/reminder-automations`
     );
-    return extractData(response.data);
+    return unwrapApiData(response.data);
   }
 
   async createReminderAutomation(
@@ -133,7 +123,7 @@ export class EventsApiClient
       `/v2/events/${eventId}/reminder-automations`,
       payload
     );
-    return extractData(response.data);
+    return unwrapApiData(response.data);
   }
 
   async cancelReminderAutomation(eventId: string, automationId: string): Promise<void> {

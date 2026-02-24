@@ -10,6 +10,7 @@ import { initializeRedis, closeRedis } from './config/redis';
 import { initializeSentry, sentryErrorHandler } from './config/sentry';
 import { errorHandler } from './middleware/errorHandler';
 import { apiLimiterMiddleware } from './middleware/rateLimiter';
+import { successEnvelopeMiddleware } from './middleware/successEnvelope';
 import { csrfMiddleware } from './middleware/csrf';
 import { correlationIdMiddleware, CORRELATION_ID_HEADER } from './middleware/correlationId';
 import { metricsMiddleware, metricsRouter } from './middleware/metrics';
@@ -237,6 +238,7 @@ app.use(
 
 // Rate limiting for all API routes
 app.use('/api', apiLimiterMiddleware);
+app.use('/api', successEnvelopeMiddleware);
 
 // Health check routes
 app.use('/health', healthRoutes);

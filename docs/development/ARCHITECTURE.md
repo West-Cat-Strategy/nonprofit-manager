@@ -298,6 +298,58 @@ Design for self-hosting (VPS, dedicated server, home lab) with cloud migration p
 
 ---
 
+## ADR-011: Module Ownership Boundaries for API Domains
+
+**Date**: February 23, 2026
+
+**Status**: Accepted
+
+**Context**:
+The backend now contains mixed legacy controllers/routes and v2 domain modules under `backend/src/modules`. Behavior changes were increasingly difficult to reason about when logic crossed boundaries.
+
+**Decision**:
+Adopt module ownership rules inspired by `wc-manage`:
+- Domain behavior belongs in `backend/src/modules/<domain>/`.
+- Route layers stay thin: auth + validation + mapping.
+- Controllers orchestrate use cases, not direct SQL.
+- Repositories/services own data access and business logic.
+
+**Rationale**:
+- Clear ownership reduces duplicate logic and hidden regressions.
+- Easier migration from legacy `/api/*` handlers to modular `/api/v2/*` surfaces.
+- Safer review boundaries for auth/validation changes.
+
+**Consequences**:
+- Legacy route/controller edits now require module-level mapping review.
+- New backend features should default to module-owned structure.
+
+---
+
+## ADR-012: Legacy Compatibility Wrapper Pattern
+
+**Date**: February 23, 2026
+
+**Status**: Accepted
+
+**Context**:
+`/api/v2` modules are active, but legacy `/api/*` paths still exist and are relied on by existing clients.
+
+**Decision**:
+Use explicit compatibility wrappers for legacy routes:
+- Legacy route files delegate to module route factories (for example `createCasesRoutes('legacy')`).
+- Deprecation headers are emitted where a v2 equivalent exists.
+- Legacy wrappers should not re-implement business logic.
+
+**Rationale**:
+- Preserves compatibility while accelerating migration to v2 modules.
+- Keeps legacy behavior observable and intentionally transitional.
+
+**Consequences**:
+- Wrapper files remain thin and should only contain delegation + migration headers.
+- Breaking response-shape changes must be coordinated and documented in release notes.
+
+---
+
 ## Template for Future ADRs
 
 ```markdown

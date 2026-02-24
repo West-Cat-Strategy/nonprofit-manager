@@ -10,6 +10,23 @@ const HTTP_SCHEME = ['http', '://'].join('');
 const isRetryableNetworkError = (error: unknown): boolean =>
   error instanceof Error && RETRYABLE_NETWORK_ERROR.test(error.message);
 
+type ApiSuccessEnvelope<T> = {
+  success: true;
+  data: T;
+};
+
+const unwrapApiData = <T>(payload: ApiSuccessEnvelope<T> | T): T => {
+  if (
+    payload &&
+    typeof payload === 'object' &&
+    (payload as { success?: unknown }).success === true &&
+    'data' in (payload as object)
+  ) {
+    return (payload as ApiSuccessEnvelope<T>).data;
+  }
+  return payload as T;
+};
+
 async function withRequestRetry<T>(
   fn: () => Promise<T>,
   context: string,
@@ -60,7 +77,7 @@ async function getCachedAuthHeaders(
       );
     }
 
-    const csrfData = await csrfResponse.json();
+    const csrfData = unwrapApiData<{ csrfToken?: string }>(await csrfResponse.json());
     csrfToken = csrfData?.csrfToken;
     if (!csrfToken) {
       throw new Error(`CSRF token missing in response: ${JSON.stringify(csrfData)}`);
@@ -142,7 +159,7 @@ export async function clearDatabase(page: Page, token: string): Promise<void> {
         // Keep draining until the endpoint returns no more items.
         const listResponse = await withRequestRetry(
           () =>
-            page.request.get(`${apiURL}${endpoint}?limit=200`, {
+            page.request.get(`${apiURL}${endpoint}?limit=100`, {
               headers: { Authorization: `Bearer ${token}` },
             }),
           `list ${endpoint}`
@@ -231,13 +248,17 @@ export async function createTestAccount(
     );
   }
 
-  const result = await response.json();
-  const id = result.account_id || result.id || result.data?.account_id || result.data?.id;
+  const result = unwrapApiData<Record<string, unknown>>(await response.json());
+  const id =
+    result.account_id ||
+    result.id ||
+    (result.data as Record<string, unknown> | undefined)?.account_id ||
+    (result.data as Record<string, unknown> | undefined)?.id;
   if (!id) {
     throw new Error(`Failed to parse account id from response: ${JSON.stringify(result)}`);
   }
 
-  return { id };
+  return { id: String(id) };
 }
 
 /**
@@ -284,13 +305,17 @@ export async function createTestContact(
     );
   }
 
-  const result = await response.json();
-  const id = result.contact_id || result.id || result.data?.contact_id || result.data?.id;
+  const result = unwrapApiData<Record<string, unknown>>(await response.json());
+  const id =
+    result.contact_id ||
+    result.id ||
+    (result.data as Record<string, unknown> | undefined)?.contact_id ||
+    (result.data as Record<string, unknown> | undefined)?.id;
   if (!id) {
     throw new Error(`Failed to parse contact id from response: ${JSON.stringify(result)}`);
   }
 
-  return { id };
+  return { id: String(id) };
 }
 
 /**
@@ -326,8 +351,9 @@ export async function createTestDonation(
     throw new Error(`Failed to create test donation (${response.status()}): ${await response.text()}`);
   }
 
-  const result = await response.json();
-  return { id: result.donation_id || result.id };
+  const result = unwrapApiData<Record<string, unknown>>(await response.json());
+  const id = result.donation_id || result.id || (result.data as Record<string, unknown> | undefined)?.donation_id || (result.data as Record<string, unknown> | undefined)?.id;
+  return { id: String(id) };
 }
 
 /**
@@ -369,9 +395,12 @@ export async function createTestEvent(
     throw new Error(`Failed to create test event (${response.status()}): ${await response.text()}`);
   }
 
-  const result = await response.json();
-  const event = result?.data ?? result;
-  return { id: event.event_id || event.id };
+  const event = unwrapApiData<Record<string, unknown>>(await response.json());
+  const id = event.event_id || event.id;
+  if (!id) {
+    throw new Error(`Failed to parse event id from response: ${JSON.stringify(event)}`);
+  }
+  return { id: String(id) };
 }
 
 /**
@@ -426,11 +455,11 @@ export async function createTestVolunteer(
     );
   }
 
-  const result = await response.json();
-  const id = result.volunteer_id || result.id || result.data?.volunteer_id || result.data?.id;
+  const result = unwrapApiData<Record<string, unknown>>(await response.json());
+  const id = result.volunteer_id || result.id || (result.data as Record<string, unknown> | undefined)?.volunteer_id || (result.data as Record<string, unknown> | undefined)?.id;
   if (!id) {
     throw new Error(`Failed to parse volunteer id from response: ${JSON.stringify(result)}`);
   }
 
-  return { id, contactId };
+  return { id: String(id), contactId };
 }

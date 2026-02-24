@@ -4,13 +4,19 @@
  */
 
 import { Router } from 'express';
-import { body } from 'express-validator';
+import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
-import { validateRequest } from '@middleware/domains/security';
+import { validateBody } from '@middleware/zodValidation';
 import { documentUpload, handleMulterError } from '@middleware/domains/platform';
 import { previewText, previewUpload } from '@controllers/domains/core';
 
 const router = Router();
+
+const ingestPreviewTextSchema = z.object({
+  format: z.enum(['csv', 'sql']).optional(),
+  text: z.string().min(1),
+  name: z.string().optional(),
+});
 
 router.use(authenticate);
 
@@ -29,15 +35,6 @@ router.post('/preview', documentUpload.single('file'), handleMulterError, previe
  * POST /api/ingest/preview-text
  * Preview plain text snippets (CSV/SQL) without uploading a file.
  */
-router.post(
-  '/preview-text',
-  [
-    body('format').optional().isIn(['csv', 'sql']),
-    body('text').isString().isLength({ min: 1 }),
-    body('name').optional().isString(),
-  ],
-  validateRequest,
-  previewText
-);
+router.post('/preview-text', validateBody(ingestPreviewTextSchema), previewText);
 
 export default router;
