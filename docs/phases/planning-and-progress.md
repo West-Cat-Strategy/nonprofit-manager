@@ -58,8 +58,14 @@ All active work must be **signed out** in the Workboard below before code change
 | P2-T13 | Migrate account routes to Zod validation | Phase 2 | Ready | — | — | TBD | — |
 | P2-T14 | Migrate remaining routes to Zod (cases, meetings, invitations, etc.) | Phase 2 | Ready | — | — | TBD | — |
 | P2-T15 | Add validation to cases.ts (no validation present) | Phase 2 | Ready | — | — | TBD | — |
-| P2-T16 | Standardize error responses across all endpoints | Phase 2 | Ready | — | — | TBD | — |
-| P2-T17 | Phase 2 integration tests (rate limiting, validation, permissions) | Phase 2 | Ready | — | — | TBD | — |
+| P2-T16 | Standardize error responses across all endpoints | Phase 2 | Done | Codex | Feb 23, 2026 | Feb 24, 2026 | #4 |
+| P2-T16C | Backend success envelope sweep for all `/api/**` controllers | Phase 2 | Done | Codex | Feb 24, 2026 | Feb 24, 2026 | #4 |
+| P2-T16D | Frontend client envelope alignment + type-import hardening | Phase 2 | Done | Codex | Feb 24, 2026 | Feb 24, 2026 | #4 |
+| P2-T17 | Phase 2 integration tests (rate limiting, validation, permissions) | Phase 2 | Done | Codex | Feb 23, 2026 | Feb 24, 2026 | #4 |
+| P2-T17A | Add route guardrail integration suite (`routeGuardrails.test.ts`) for auth/validation/webhook/rate-limit behavior | Phase 2 | Done | Codex | Feb 24, 2026 | Feb 24, 2026 | #4 |
+| P2-T17C | Expand route guardrail matrix (auth/validation/webhook/rate-limit/correlation-id determinism) | Phase 2 | Done | Codex | Feb 24, 2026 | Feb 24, 2026 | #4 |
+| P2-T17D | E2E helper compatibility updates for canonical envelopes and Zod query caps | Phase 2 | Done | Codex | Feb 24, 2026 | Feb 24, 2026 | #4 |
+| P2-T17E | Coverage ratchet baseline + CI gating policy synchronization | Phase 2 | Done | Codex | Feb 24, 2026 | Feb 24, 2026 | #4 |
 | P2-T18 | Outcomes tracking for case interactions (definitions, tagging, reports) | Phase 2 | Review | Codex | Feb 19, 2026 | Feb 19, 2026 | codex/outcomes-tracking |
 | P3-T1 | Add event email/SMS reminders + Twilio admin credentials | Phase 3 | In Progress | Codex | Feb 20, 2026 | TBD | codex/event-reminder-messaging |
 | P3-T2A | Client Portal: foundation hardening (cookie auth, CSRF path, portal API token removal) | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
@@ -68,6 +74,7 @@ All active work must be **signed out** in the Workboard below before code change
 | P3-T2D | Client Portal: explicit visibility rules for notes/documents/forms + event filtering | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
 | P3-T2E | Client Portal: Admin Settings inbox/slot tools + Case Detail portal tab + client UI pages | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
 | P3-T3 | Comprehensive security + functionality review and remediation (backend/frontend/devops) | Phase 3 | Done | Codex | Feb 21, 2026 | Feb 21, 2026 | codex/security-functionality-review-remediation |
+| P3-T5 | Frontend case-priority critical drift causing `make ci-unit` TypeScript failures | Phase 3 | Ready | Codex | Feb 24, 2026 | TBD | codex/p3-t5-case-priority-critical-ui |
 | P4-T1 | Full-stack modularity refactor (v2 API Portal + Events first) | Phase 4 | In Progress | Codex | Feb 20, 2026 | TBD | codex/modularity-refactor-v2 |
 | P4-T1A | Stabilize failing backend/e2e tests during modular refactor branch | Phase 4 | In Progress | Codex | Feb 20, 2026 | Feb 20, 2026 | codex/modularity-refactor-v2 |
 | P4-T1B | Events frontend modular cutover (remove legacy eventsSlice) | Phase 4 | In Progress | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
@@ -2558,6 +2565,8 @@ Frontend Component Tests:
 
 | Date | Task ID | Owner | Status Change | Notes |
 |------|---------|-------|---------------|-------|
+| Feb 24, 2026 | P3-T5 | Codex | Blocked → Ready | Phase 2 merge recorded after PR #4; next step: resume `codex/p3-t5-case-priority-critical-ui` on latest `main`. |
+| Feb 24, 2026 | P2-T16/P2-T17 | Codex | Review → Done | Merged PR #4 ([P2-T16/P2-T17] Canonical envelope completion + route guardrail matrix expansion), merge commit `5f919d747f718a0271b146879ae863dfcbc4ec4e`; no scope expansion accepted. |
 | Feb 22, 2026 | P4-T1A | Codex | In Progress → In Progress | E2E auth remediation complete: admin fixture bootstrap now used for default authenticated flows; stale shared user cache path removed from primary login path. |
 | Feb 22, 2026 | P4-T1A | Codex | In Progress → In Progress | Markdown link remediation complete: `scripts/check-links.sh` now passes with zero markdown link failures. |
 | Feb 22, 2026 | P4-T1A | Codex | In Progress → In Progress | Strict literal repo-wide external URL remediation complete: hard-fail crawl reports zero non-2xx/3xx URLs in `/tmp/nonprofit-verify-20260222-141725/04_external_failures.tsv`. |
