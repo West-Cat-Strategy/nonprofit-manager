@@ -3,8 +3,62 @@ set -euo pipefail
 
 # Load common utilities and configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Preserve caller-provided DB env vars before config defaults are sourced.
+has_db_name=false
+has_db_host=false
+has_db_port=false
+has_db_user=false
+has_db_password=false
+
+if [[ "${DB_NAME+x}" == "x" ]]; then
+  has_db_name=true
+  inbound_db_name="$DB_NAME"
+fi
+
+if [[ "${DB_HOST+x}" == "x" ]]; then
+  has_db_host=true
+  inbound_db_host="$DB_HOST"
+fi
+
+if [[ "${DB_PORT+x}" == "x" ]]; then
+  has_db_port=true
+  inbound_db_port="$DB_PORT"
+fi
+
+if [[ "${DB_USER+x}" == "x" ]]; then
+  has_db_user=true
+  inbound_db_user="$DB_USER"
+fi
+
+if [[ "${DB_PASSWORD+x}" == "x" ]]; then
+  has_db_password=true
+  inbound_db_password="$DB_PASSWORD"
+fi
+
 source "$SCRIPT_DIR/lib/common.sh"
 source "$SCRIPT_DIR/lib/config.sh"
+
+# Reapply caller-provided DB env vars so explicit overrides win over defaults.
+if [[ "$has_db_name" == "true" ]]; then
+  DB_NAME="$inbound_db_name"
+fi
+
+if [[ "$has_db_host" == "true" ]]; then
+  DB_HOST="$inbound_db_host"
+fi
+
+if [[ "$has_db_port" == "true" ]]; then
+  DB_PORT="$inbound_db_port"
+fi
+
+if [[ "$has_db_user" == "true" ]]; then
+  DB_USER="$inbound_db_user"
+fi
+
+if [[ "$has_db_password" == "true" ]]; then
+  DB_PASSWORD="$inbound_db_password"
+fi
 
 if ! command -v psql >/dev/null 2>&1; then
   log_error "psql is required for migration verification"

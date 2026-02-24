@@ -9,6 +9,7 @@ import {
 } from '../features/cases/state';
 import type { Contact } from '../features/contacts/state';
 import { contactsApiClient } from '../features/contacts/api/contactsApiClient';
+import { CASE_PRIORITY_OPTIONS } from '../features/cases/utils/casePriority';
 import api from '../services/api';
 import { useToast } from '../contexts/useToast';
 import { useQuickLookup } from './dashboard';
@@ -347,10 +348,11 @@ const CaseForm = ({
             onChange={handleChange}
             className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
           >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
+            {CASE_PRIORITY_OPTIONS.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
           </select>
         </div>
 

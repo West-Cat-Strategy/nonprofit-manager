@@ -6,7 +6,12 @@
 import { Response, NextFunction } from 'express';
 import type { AuthRequest } from '@middleware/auth';
 import { forbidden } from '@utils/responseHelpers';
-import { hasPermission, type Permission } from '@utils/permissions';
+import { type Permission } from '@utils/permissions';
+import {
+  hasAnyStaticPermissionAccess,
+  hasRoleAccess,
+  hasStaticPermissionAccess,
+} from '@services/authorization';
 
 /**
  * Require a specific permission
@@ -19,7 +24,13 @@ export function requirePermission(permission: Permission | string) {
       return;
     }
 
-    if (!hasPermission(req.user.role, permission)) {
+    if (
+      !hasStaticPermissionAccess(
+        req.user.role,
+        permission,
+        req.authorizationContext?.roles
+      )
+    ) {
       forbidden(res, `Permission denied: requires '${permission}'`);
       return;
     }
@@ -39,7 +50,11 @@ export function requireAnyPermission(...permissions: (Permission | string)[]) {
       return;
     }
 
-    const hasAny = permissions.some((perm) => hasPermission(req.user!.role, perm));
+    const hasAny = hasAnyStaticPermissionAccess(
+      req.user.role,
+      permissions,
+      req.authorizationContext?.roles
+    );
 
     if (!hasAny) {
       forbidden(res, 'Permission denied: none of the required permissions granted');
@@ -61,7 +76,7 @@ export function requireRole(...roles: string[]) {
       return;
     }
 
-    if (!roles.includes(req.user.role)) {
+    if (!hasRoleAccess(req.user.role, roles, req.authorizationContext?.roles)) {
       forbidden(res, `Permission denied: requires role [${roles.join(', ')}]`);
       return;
     }

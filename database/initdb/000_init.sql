@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 \i /migrations/047_portal_visibility_and_messaging.sql
 \i /migrations/048_portal_appointment_slots.sql
 \i /migrations/049_audit_trigger_record_id_fallback.sql
+\i /migrations/050_case_client_visibility_notes_outcomes_topics_documents.sql
+\i /migrations/051_webhook_delivery_queue_hardening.sql
 
 \i /seeds/001_default_users.sql
 \i /seeds/002_starter_templates.sql

@@ -9,6 +9,10 @@ import { trackLoginAttempt } from '@middleware/accountLockout';
 import { JWT, PASSWORD } from '@config/constants';
 import { syncUserRole } from '@services/domains/integration';
 import { requireUserOrError } from '@services/authGuardService';
+import {
+  buildAuthorizationSnapshot,
+  createRequestAuthorizationContext,
+} from '@services/authorization';
 import { issueTotpMfaChallenge } from './mfaController';
 import { badRequest, conflict, forbidden, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import { setAuthCookie, setRefreshCookie, clearAuthCookies } from '@utils/cookieHelper';
@@ -353,6 +357,40 @@ export const getCurrentUser = async (
       profilePicture: user.profile_picture || null,
       createdAt: user.created_at,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const checkAccess = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const guardResult = requireUserOrError(req);
+    if (!guardResult.success) {
+      return unauthorized(res, guardResult.error || 'Authentication required');
+    }
+
+    const userId = guardResult.user!.id;
+    const primaryRole = guardResult.user!.role;
+    const organizationId = req.organizationId || req.accountId || req.tenantId;
+
+    const snapshot = await buildAuthorizationSnapshot({
+      userId,
+      primaryRole,
+      organizationId,
+    });
+
+    req.authorizationContext = createRequestAuthorizationContext(
+      userId,
+      primaryRole,
+      organizationId,
+      snapshot.user.roles
+    );
+
+    return sendSuccess(res, snapshot);
   } catch (error) {
     next(error);
   }

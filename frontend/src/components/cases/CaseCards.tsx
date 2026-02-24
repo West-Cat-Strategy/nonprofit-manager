@@ -5,21 +5,12 @@
 
 import { useNavigate } from 'react-router-dom';
 import { BrutalBadge, BrutalCard } from '../neo-brutalist';
-import type { CaseWithDetails, CasePriority, CaseStatusType } from '../../types/case';
+import type { CaseWithDetails, CaseStatusType } from '../../types/case';
+import { getCasePriorityBadgeColor } from '../../features/cases/utils/casePriority';
 
 interface CaseCardsProps {
   cases: CaseWithDetails[];
 }
-
-const getPriorityBadgeColor = (priority: CasePriority): 'gray' | 'blue' | 'yellow' | 'red' => {
-  const colors: Record<CasePriority, 'gray' | 'blue' | 'yellow' | 'red'> = {
-    low: 'gray',
-    medium: 'blue',
-    high: 'yellow',
-    urgent: 'red',
-  };
-  return colors[priority];
-};
 
 const getStatusTypeBadgeColor = (
   statusType: CaseStatusType
@@ -93,7 +84,7 @@ export default function CaseCards({ cases }: CaseCardsProps) {
               >
                 {caseItem.status_name}
               </BrutalBadge>
-              <BrutalBadge color={getPriorityBadgeColor(caseItem.priority)} size="sm">
+              <BrutalBadge color={getCasePriorityBadgeColor(caseItem.priority)} size="sm">
                 {caseItem.priority}
               </BrutalBadge>
             </div>
