@@ -95,12 +95,13 @@ describe('Portal Messaging Integration', () => {
          case_type_id,
          status_id,
          title,
+         client_viewable,
          assigned_to,
          created_by,
          modified_by,
          created_at,
          updated_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $6, $6, NOW(), NOW())
+       ) VALUES ($1, $2, $3, $4, $5, true, $6, $6, $6, NOW(), NOW())
        RETURNING id`,
       [`PORTAL-MSG-${suffix}`, contactId, caseTypeId, activeStatusId, 'Assigned Messaging Case', adminUserId]
     );
@@ -114,12 +115,13 @@ describe('Portal Messaging Integration', () => {
          case_type_id,
          status_id,
          title,
+         client_viewable,
          assigned_to,
          created_by,
          modified_by,
          created_at,
          updated_at
-       ) VALUES ($1, $2, $3, $4, $5, NULL, $6, $6, NOW(), NOW())
+       ) VALUES ($1, $2, $3, $4, $5, true, NULL, $6, $6, NOW(), NOW())
        RETURNING id`,
       [`PORTAL-NOASSIGN-${suffix}`, contactId, caseTypeId, activeStatusId, 'Unassigned Messaging Case', adminUserId]
     );

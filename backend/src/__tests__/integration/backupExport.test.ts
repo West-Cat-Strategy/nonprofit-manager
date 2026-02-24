@@ -16,6 +16,7 @@ describe('Backup Export API', () => {
   let userToken = '';
   let adminEmail = '';
   let userEmail = '';
+  let previousExcludedTables: string | undefined;
 
   const password = 'Test123!Strong';
 
@@ -48,6 +49,21 @@ describe('Backup Export API', () => {
       `INSERT INTO backup_test_items (name) VALUES ($1)`,
       [`item-${Date.now()}`]
     );
+
+    // Keep this integration test bounded even if the shared test DB contains large tables.
+    previousExcludedTables = process.env.BACKUP_EXCLUDED_TABLES;
+    const allTables = await pool.query<{ table_name: string }>(`
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_type = 'BASE TABLE'
+      ORDER BY table_name ASC
+    `);
+    const allowedTables = new Set(['users', 'backup_test_items']);
+    const excludedTables = allTables.rows
+      .map((row) => row.table_name)
+      .filter((tableName) => !allowedTables.has(tableName));
+    process.env.BACKUP_EXCLUDED_TABLES = excludedTables.join(',');
 
     // Create admin user (register -> promote -> login to get admin role in JWT)
     adminEmail = `backup-admin-${Date.now()}@example.com`;
@@ -95,6 +111,12 @@ describe('Backup Export API', () => {
       await pool.query('DROP TABLE IF EXISTS backup_test_items');
     } catch {
       // ignore
+    }
+
+    if (previousExcludedTables === undefined) {
+      delete process.env.BACKUP_EXCLUDED_TABLES;
+    } else {
+      process.env.BACKUP_EXCLUDED_TABLES = previousExcludedTables;
     }
   });
 

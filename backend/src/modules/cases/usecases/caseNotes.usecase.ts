@@ -1,5 +1,5 @@
 import type { CaseNotesPort } from '../types/ports';
-import type { CreateCaseNoteDTO } from '@app-types/case';
+import type { CreateCaseNoteDTO, UpdateCaseNoteDTO } from '@app-types/case';
 
 export class CaseNotesUseCase {
   constructor(private readonly repository: CaseNotesPort) {}
@@ -10,5 +10,13 @@ export class CaseNotesUseCase {
 
   create(data: CreateCaseNoteDTO, userId?: string): Promise<unknown> {
     return this.repository.createCaseNote(data, userId);
+  }
+
+  update(noteId: string, data: UpdateCaseNoteDTO, userId?: string): Promise<unknown> {
+    return this.repository.updateCaseNote(noteId, data, userId);
+  }
+
+  delete(noteId: string): Promise<boolean> {
+    return this.repository.deleteCaseNote(noteId);
   }
 }

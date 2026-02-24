@@ -1,6 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import api from '../../services/api';
+import { unwrapApiData } from '../../services/apiEnvelope';
+import type { ApiEnvelope } from '../../services/apiEnvelope';
 
 interface User {
   id: string;
@@ -40,8 +42,8 @@ const initialState: AuthState = {
 
 // Async thunk: verify auth via httpOnly cookie
 export const initializeAuth = createAsyncThunk('auth/initializeAuth', async () => {
-  const response = await api.get('/auth/me');
-  return response.data as User;
+  const response = await api.get<ApiEnvelope<User>>('/auth/me');
+  return unwrapApiData(response.data) as User;
 });
 
 // Async thunk: server-side logout (clears httpOnly cookie), then clears client state

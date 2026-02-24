@@ -8,6 +8,11 @@ import pool from '@config/database';
 import { logger } from '@config/logger';
 import type {
   Case,
+  CaseDocument,
+  CaseOutcomeEvent,
+  CaseTimelineEvent,
+  CaseTopicDefinition,
+  CaseTopicEvent,
   CaseWithDetails,
   CaseFilter,
   CreateCaseDTO,
@@ -15,6 +20,12 @@ import type {
   CaseSummary,
   CaseNote,
   CreateCaseNoteDTO,
+  UpdateCaseNoteDTO,
+  CreateCaseOutcomeDTO,
+  UpdateCaseOutcomeDTO,
+  CreateCaseTopicDefinitionDTO,
+  CreateCaseTopicEventDTO,
+  UpdateCaseDocumentDTO,
   UpdateCaseStatusDTO,
   CaseMilestone,
   CreateCaseRelationshipDTO,
@@ -29,6 +40,145 @@ export class CaseService {
 
   private normalizeProviderName(name: string): string {
     return name.trim().replace(/\s+/g, ' ');
+  }
+
+  private normalizeCasePriority(priority?: string | null): string | null | undefined {
+    if (priority === undefined) return undefined;
+    if (priority === null) return null;
+    if (priority === 'critical') return 'urgent';
+    return priority;
+  }
+
+  private normalizeCaseNoteType(noteType?: string): string | undefined {
+    if (!noteType) return noteType;
+    if (noteType === 'case_note') return 'note';
+    return noteType;
+  }
+
+  private toBoolean(value: unknown): boolean | undefined {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') {
+      if (value === 1) return true;
+      if (value === 0) return false;
+    }
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+      if (['false', '0', 'no', 'off'].includes(normalized)) return false;
+    }
+    return undefined;
+  }
+
+  private resolveVisibleToClient(input: {
+    visible_to_client?: unknown;
+    is_portal_visible?: unknown;
+    is_internal?: unknown;
+  }): boolean {
+    const explicitVisible = this.toBoolean(input.visible_to_client);
+    if (explicitVisible !== undefined) return explicitVisible;
+
+    const portalVisible = this.toBoolean(input.is_portal_visible);
+    if (portalVisible !== undefined) return portalVisible;
+
+    const isInternal = this.toBoolean(input.is_internal);
+    if (isInternal !== undefined) return !isInternal;
+
+    return false;
+  }
+
+  private async getCaseOwnership(caseId: string): Promise<{ case_id: string; contact_id: string; account_id: string | null } | null> {
+    const result = await this.pool.query(
+      `
+      SELECT id AS case_id, contact_id, account_id
+      FROM cases
+      WHERE id = $1
+      LIMIT 1
+    `,
+      [caseId]
+    );
+
+    return result.rows[0] || null;
+  }
+
+  private async requireCaseOwnership(caseId: string): Promise<{ case_id: string; contact_id: string; account_id: string | null }> {
+    const ownership = await this.getCaseOwnership(caseId);
+    if (!ownership) {
+      throw new Error('Case not found');
+    }
+
+    return ownership;
+  }
+
+  private async requireCaseIdForNote(noteId: string): Promise<string> {
+    const result = await this.pool.query(
+      `
+      SELECT case_id
+      FROM case_notes
+      WHERE id = $1
+      LIMIT 1
+    `,
+      [noteId]
+    );
+
+    const caseId = result.rows[0]?.case_id as string | undefined;
+    if (!caseId) {
+      throw new Error('Case note not found');
+    }
+    return caseId;
+  }
+
+  private async requireCaseIdForOutcome(outcomeId: string): Promise<string> {
+    const result = await this.pool.query(
+      `
+      SELECT case_id
+      FROM case_outcomes
+      WHERE id = $1
+      LIMIT 1
+    `,
+      [outcomeId]
+    );
+
+    const caseId = result.rows[0]?.case_id as string | undefined;
+    if (!caseId) {
+      throw new Error('Case outcome not found');
+    }
+    return caseId;
+  }
+
+  private async requireCaseIdForTopicEvent(topicEventId: string): Promise<string> {
+    const result = await this.pool.query(
+      `
+      SELECT case_id
+      FROM case_topic_events
+      WHERE id = $1
+      LIMIT 1
+    `,
+      [topicEventId]
+    );
+
+    const caseId = result.rows[0]?.case_id as string | undefined;
+    if (!caseId) {
+      throw new Error('Case topic event not found');
+    }
+    return caseId;
+  }
+
+  private async requireCaseIdForDocument(documentId: string): Promise<string> {
+    const result = await this.pool.query(
+      `
+      SELECT case_id
+      FROM case_documents
+      WHERE id = $1
+      LIMIT 1
+    `,
+      [documentId]
+    );
+
+    const caseId = result.rows[0]?.case_id as string | undefined;
+    if (!caseId) {
+      throw new Error('Case document not found');
+    }
+    return caseId;
   }
 
   private async resolveExternalServiceProviderId(
@@ -143,8 +293,8 @@ export class CaseService {
         case_number, contact_id, account_id, case_type_id, status_id,
         title, description, priority, source, referral_source,
         assigned_to, assigned_team, due_date, intake_data, custom_data,
-        tags, is_urgent, created_by, modified_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+        tags, is_urgent, client_viewable, created_by, modified_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
       RETURNING *
     `,
       [
@@ -155,7 +305,7 @@ export class CaseService {
         statusId,
         data.title,
         data.description || null,
-        data.priority || 'medium',
+        this.normalizeCasePriority(data.priority) || 'medium',
         data.source || null,
         data.referral_source || null,
         data.assigned_to || null,
@@ -165,6 +315,7 @@ export class CaseService {
         JSON.stringify(data.custom_data || null),
         data.tags || null,
         data.is_urgent || false,
+        data.client_viewable || false,
         userId,
         userId,
       ]
@@ -359,7 +510,7 @@ export class CaseService {
 
     if (data.priority !== undefined) {
       fields.push(`priority = $${paramIndex++}`);
-      values.push(data.priority);
+      values.push(this.normalizeCasePriority(data.priority));
     }
 
     if (data.assigned_to !== undefined) {
@@ -380,6 +531,11 @@ export class CaseService {
     if (data.is_urgent !== undefined) {
       fields.push(`is_urgent = $${paramIndex++}`);
       values.push(data.is_urgent);
+    }
+
+    if (data.client_viewable !== undefined) {
+      fields.push(`client_viewable = $${paramIndex++}`);
+      values.push(data.client_viewable);
     }
 
     if (data.custom_data !== undefined) {
@@ -515,22 +671,33 @@ export class CaseService {
    * Create case note
    */
   async createCaseNote(data: CreateCaseNoteDTO, userId?: string): Promise<CaseNote> {
+    await this.requireCaseOwnership(data.case_id);
+    const visibleToClient = this.resolveVisibleToClient({
+      visible_to_client: data.visible_to_client,
+      is_portal_visible: data.is_portal_visible,
+      is_internal: data.is_internal,
+    });
+    const isInternal = data.is_internal !== undefined ? data.is_internal : !visibleToClient;
+
     const insertedResult = await this.pool.query(
       `
       INSERT INTO case_notes (
-        case_id, note_type, subject, content, is_internal, is_important, attachments, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        case_id, note_type, subject, category, content, is_internal, visible_to_client, is_important, attachments, created_by, updated_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING id
     `,
       [
         data.case_id,
-        data.note_type,
+        this.normalizeCaseNoteType(data.note_type) || 'note',
         data.subject || null,
+        data.category || null,
         data.content,
-        data.is_internal || false,
+        isInternal,
+        visibleToClient,
         data.is_important || false,
         JSON.stringify(data.attachments || null),
         userId,
+        userId || null,
       ]
     );
 
@@ -552,6 +719,734 @@ export class CaseService {
     );
 
     return result.rows[0];
+  }
+
+  /**
+   * Update case note
+   */
+  async updateCaseNote(noteId: string, data: UpdateCaseNoteDTO, userId?: string): Promise<CaseNote> {
+    const caseId = await this.requireCaseIdForNote(noteId);
+    await this.requireCaseOwnership(caseId);
+
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    let index = 1;
+
+    if (data.note_type !== undefined) {
+      fields.push(`note_type = $${index++}`);
+      values.push(this.normalizeCaseNoteType(data.note_type) || 'note');
+    }
+
+    if (data.subject !== undefined) {
+      fields.push(`subject = $${index++}`);
+      values.push(data.subject || null);
+    }
+
+    if (data.category !== undefined) {
+      fields.push(`category = $${index++}`);
+      values.push(data.category || null);
+    }
+
+    if (data.content !== undefined) {
+      fields.push(`content = $${index++}`);
+      values.push(data.content);
+    }
+
+    const hasExplicitVisible = data.visible_to_client !== undefined || data.is_portal_visible !== undefined;
+    const hasExplicitInternal = data.is_internal !== undefined;
+
+    if (hasExplicitVisible) {
+      const visible = this.resolveVisibleToClient({
+        visible_to_client: data.visible_to_client,
+        is_portal_visible: data.is_portal_visible,
+      });
+      fields.push(`visible_to_client = $${index++}`);
+      values.push(visible);
+      if (!hasExplicitInternal) {
+        fields.push(`is_internal = $${index++}`);
+        values.push(!visible);
+      }
+    }
+
+    if (hasExplicitInternal) {
+      fields.push(`is_internal = $${index++}`);
+      values.push(data.is_internal);
+      if (!hasExplicitVisible) {
+        fields.push(`visible_to_client = $${index++}`);
+        values.push(!data.is_internal);
+      }
+    }
+
+    if (data.is_important !== undefined) {
+      fields.push(`is_important = $${index++}`);
+      values.push(data.is_important);
+    }
+
+    if (data.attachments !== undefined) {
+      fields.push(`attachments = $${index++}`);
+      values.push(JSON.stringify(data.attachments || null));
+    }
+
+    if (fields.length === 0) {
+      throw new Error('No fields to update');
+    }
+
+    fields.push(`updated_at = NOW()`);
+    fields.push(`updated_by = $${index++}`);
+    values.push(userId || null);
+    values.push(noteId, caseId);
+
+    const updated = await this.pool.query(
+      `UPDATE case_notes
+       SET ${fields.join(', ')}
+       WHERE id = $${index}
+         AND case_id = $${index + 1}
+       RETURNING id`,
+      values
+    );
+
+    if (!updated.rows[0]) {
+      throw new Error('Case note not found');
+    }
+
+    const result = await this.pool.query(
+      `
+      SELECT
+        cn.*,
+        u.first_name,
+        u.last_name,
+        COALESCE((
+          SELECT json_agg(
+            json_build_object(
+              'id', ioi.id,
+              'interaction_id', ioi.interaction_id,
+              'outcome_definition_id', ioi.outcome_definition_id,
+              'impact', ioi.impact,
+              'attribution', ioi.attribution,
+              'intensity', ioi.intensity,
+              'evidence_note', ioi.evidence_note,
+              'created_by_user_id', ioi.created_by_user_id,
+              'created_at', ioi.created_at,
+              'updated_at', ioi.updated_at,
+              'outcome_definition', json_build_object(
+                'id', od.id,
+                'key', od.key,
+                'name', od.name,
+                'description', od.description,
+                'category', od.category,
+                'is_active', od.is_active,
+                'is_reportable', od.is_reportable,
+                'sort_order', od.sort_order
+              )
+            )
+            ORDER BY od.sort_order ASC, od.name ASC
+          )
+          FROM interaction_outcome_impacts ioi
+          INNER JOIN outcome_definitions od
+            ON od.id = ioi.outcome_definition_id
+          WHERE ioi.interaction_id = cn.id
+        ), '[]'::json) AS outcome_impacts
+      FROM case_notes cn
+      LEFT JOIN users u ON cn.created_by = u.id
+      WHERE cn.id = $1
+      LIMIT 1
+    `,
+      [noteId]
+    );
+
+    return result.rows[0];
+  }
+
+  /**
+   * Delete case note
+   */
+  async deleteCaseNote(noteId: string): Promise<boolean> {
+    const caseId = await this.requireCaseIdForNote(noteId);
+    await this.requireCaseOwnership(caseId);
+
+    const result = await this.pool.query(
+      `
+      DELETE FROM case_notes
+      WHERE id = $1
+        AND case_id = $2
+      RETURNING id
+    `,
+      [noteId, caseId]
+    );
+    return Boolean(result.rows[0]);
+  }
+
+  /**
+   * List structured case outcomes
+   */
+  async getCaseOutcomes(caseId: string): Promise<CaseOutcomeEvent[]> {
+    await this.requireCaseOwnership(caseId);
+    const result = await this.pool.query(
+      `
+      SELECT
+        co.*,
+        u.first_name,
+        u.last_name
+      FROM case_outcomes co
+      LEFT JOIN users u ON u.id = co.created_by
+      WHERE co.case_id = $1
+      ORDER BY co.outcome_date DESC, co.created_at DESC
+    `,
+      [caseId]
+    );
+
+    return result.rows;
+  }
+
+  /**
+   * Create structured case outcome
+   */
+  async createCaseOutcome(caseId: string, data: CreateCaseOutcomeDTO, userId?: string): Promise<CaseOutcomeEvent> {
+    const ownership = await this.requireCaseOwnership(caseId);
+    const visibleToClient = this.resolveVisibleToClient({
+      visible_to_client: data.visible_to_client,
+      is_portal_visible: data.is_portal_visible,
+    });
+    const result = await this.pool.query(
+      `
+      INSERT INTO case_outcomes (
+        case_id,
+        account_id,
+        outcome_type,
+        outcome_date,
+        notes,
+        visible_to_client,
+        created_by,
+        updated_by
+      )
+      VALUES ($1, $2, $3, COALESCE($4::date, CURRENT_DATE), $5, $6, $7, $7)
+      RETURNING *
+    `,
+      [
+        caseId,
+        ownership.account_id,
+        data.outcome_type || null,
+        data.outcome_date || null,
+        data.notes || null,
+        visibleToClient,
+        userId || null,
+      ]
+    );
+
+    return result.rows[0];
+  }
+
+  /**
+   * Update structured case outcome
+   */
+  async updateCaseOutcome(outcomeId: string, data: UpdateCaseOutcomeDTO, userId?: string): Promise<CaseOutcomeEvent> {
+    const caseId = await this.requireCaseIdForOutcome(outcomeId);
+    await this.requireCaseOwnership(caseId);
+
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    let index = 1;
+
+    if (data.outcome_type !== undefined) {
+      fields.push(`outcome_type = $${index++}`);
+      values.push(data.outcome_type || null);
+    }
+
+    if (data.outcome_date !== undefined) {
+      fields.push(`outcome_date = $${index++}`);
+      values.push(data.outcome_date);
+    }
+
+    if (data.notes !== undefined) {
+      fields.push(`notes = $${index++}`);
+      values.push(data.notes || null);
+    }
+
+    if (data.visible_to_client !== undefined || data.is_portal_visible !== undefined) {
+      fields.push(`visible_to_client = $${index++}`);
+      values.push(
+        this.resolveVisibleToClient({
+          visible_to_client: data.visible_to_client,
+          is_portal_visible: data.is_portal_visible,
+        })
+      );
+    }
+
+    if (fields.length === 0) {
+      throw new Error('No fields to update');
+    }
+
+    fields.push(`updated_at = NOW()`);
+    fields.push(`updated_by = $${index++}`);
+    values.push(userId || null);
+    values.push(outcomeId, caseId);
+
+    const result = await this.pool.query(
+      `
+      UPDATE case_outcomes
+      SET ${fields.join(', ')}
+      WHERE id = $${index}
+        AND case_id = $${index + 1}
+      RETURNING *
+    `,
+      values
+    );
+
+    if (!result.rows[0]) {
+      throw new Error('Case outcome not found');
+    }
+
+    return result.rows[0];
+  }
+
+  /**
+   * Delete structured case outcome
+   */
+  async deleteCaseOutcome(outcomeId: string): Promise<boolean> {
+    const caseId = await this.requireCaseIdForOutcome(outcomeId);
+    await this.requireCaseOwnership(caseId);
+
+    const result = await this.pool.query(
+      `
+      DELETE FROM case_outcomes
+      WHERE id = $1
+        AND case_id = $2
+      RETURNING id
+    `,
+      [outcomeId, caseId]
+    );
+    return Boolean(result.rows[0]);
+  }
+
+  /**
+   * Topic definitions for a case (account-scoped)
+   */
+  async getCaseTopicDefinitions(caseId: string): Promise<CaseTopicDefinition[]> {
+    const ownership = await this.requireCaseOwnership(caseId);
+    const result = await this.pool.query(
+      `
+      SELECT *
+      FROM case_topic_definitions
+      WHERE is_active = true
+        AND (
+          ($1::uuid IS NULL AND account_id IS NULL)
+          OR account_id = $1
+        )
+      ORDER BY name ASC
+    `,
+      [ownership.account_id]
+    );
+    return result.rows;
+  }
+
+  /**
+   * Create topic definition for case account scope
+   */
+  async createCaseTopicDefinition(caseId: string, data: CreateCaseTopicDefinitionDTO, userId?: string): Promise<CaseTopicDefinition> {
+    const ownership = await this.requireCaseOwnership(caseId);
+    const normalized = data.name.trim().toLowerCase().replace(/\s+/g, ' ');
+    const result = await this.pool.query(
+      `
+      INSERT INTO case_topic_definitions (
+        account_id, name, normalized_name, created_by, updated_by
+      )
+      VALUES ($1, $2, $3, $4, $4)
+      ON CONFLICT (account_id, normalized_name)
+      DO UPDATE SET
+        name = EXCLUDED.name,
+        is_active = true,
+        updated_at = NOW(),
+        updated_by = EXCLUDED.updated_by
+      RETURNING *
+    `,
+      [ownership.account_id, data.name.trim(), normalized, userId || null]
+    );
+
+    return result.rows[0];
+  }
+
+  /**
+   * List case topic events
+   */
+  async getCaseTopicEvents(caseId: string): Promise<CaseTopicEvent[]> {
+    await this.requireCaseOwnership(caseId);
+    const result = await this.pool.query(
+      `
+      SELECT
+        cte.*,
+        ctd.name AS topic_name,
+        u.first_name,
+        u.last_name
+      FROM case_topic_events cte
+      JOIN case_topic_definitions ctd ON ctd.id = cte.topic_definition_id
+      LEFT JOIN users u ON u.id = cte.created_by
+      WHERE cte.case_id = $1
+      ORDER BY cte.discussed_at DESC, cte.created_at DESC
+    `,
+      [caseId]
+    );
+    return result.rows;
+  }
+
+  /**
+   * Add topic event to case
+   */
+  async addCaseTopicEvent(caseId: string, data: CreateCaseTopicEventDTO, userId?: string): Promise<CaseTopicEvent> {
+    const ownership = await this.requireCaseOwnership(caseId);
+    let topicDefinitionId = data.topic_definition_id || null;
+
+    if (!topicDefinitionId && data.topic_name) {
+      const createdDefinition = await this.createCaseTopicDefinition(caseId, { name: data.topic_name }, userId);
+      topicDefinitionId = createdDefinition.id;
+    }
+
+    if (!topicDefinitionId) {
+      throw new Error('topic_definition_id or topic_name is required');
+    }
+
+    const result = await this.pool.query(
+      `
+      INSERT INTO case_topic_events (
+        case_id,
+        account_id,
+        topic_definition_id,
+        discussed_at,
+        notes,
+        created_by,
+        updated_by
+      )
+      VALUES ($1, $2, $3, COALESCE($4::timestamptz, NOW()), $5, $6, $6)
+      RETURNING *
+    `,
+      [
+        caseId,
+        ownership.account_id,
+        topicDefinitionId,
+        data.discussed_at || null,
+        data.notes || null,
+        userId || null,
+      ]
+    );
+
+    return result.rows[0];
+  }
+
+  /**
+   * Remove topic event from case
+   */
+  async deleteCaseTopicEvent(topicEventId: string): Promise<boolean> {
+    const caseId = await this.requireCaseIdForTopicEvent(topicEventId);
+    await this.requireCaseOwnership(caseId);
+
+    const result = await this.pool.query(
+      `
+      DELETE FROM case_topic_events
+      WHERE id = $1
+        AND case_id = $2
+      RETURNING id
+    `,
+      [topicEventId, caseId]
+    );
+    return Boolean(result.rows[0]);
+  }
+
+  /**
+   * List case documents
+   */
+  async getCaseDocuments(caseId: string): Promise<CaseDocument[]> {
+    await this.requireCaseOwnership(caseId);
+    const result = await this.pool.query(
+      `
+      SELECT
+        cd.*,
+        COALESCE(cd.original_filename, cd.document_name) AS original_filename,
+        COALESCE(cd.file_size, 0)::bigint AS file_size,
+        u.first_name,
+        u.last_name
+      FROM case_documents cd
+      LEFT JOIN users u ON u.id = cd.uploaded_by
+      WHERE cd.case_id = $1
+        AND COALESCE(cd.is_active, true) = true
+      ORDER BY COALESCE(cd.created_at, cd.uploaded_at) DESC, cd.uploaded_at DESC
+    `,
+      [caseId]
+    );
+    return result.rows;
+  }
+
+  /**
+   * Get case document by id with ownership checks
+   */
+  async getCaseDocumentById(caseId: string, documentId: string): Promise<CaseDocument | null> {
+    await this.requireCaseOwnership(caseId);
+    const result = await this.pool.query(
+      `
+      SELECT
+        cd.*,
+        COALESCE(cd.original_filename, cd.document_name) AS original_filename,
+        COALESCE(cd.file_size, 0)::bigint AS file_size
+      FROM case_documents cd
+      WHERE cd.id = $1
+        AND cd.case_id = $2
+        AND COALESCE(cd.is_active, true) = true
+      LIMIT 1
+    `,
+      [documentId, caseId]
+    );
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Create case document metadata row
+   */
+  async createCaseDocument(input: {
+    caseId: string;
+    fileName: string;
+    originalFilename: string;
+    filePath: string;
+    fileSize: number;
+    mimeType: string;
+    documentType?: string;
+    documentName?: string;
+    description?: string;
+    visibleToClient?: boolean;
+    userId?: string;
+  }): Promise<CaseDocument> {
+    const ownership = await this.requireCaseOwnership(input.caseId);
+
+    const result = await this.pool.query(
+      `
+      INSERT INTO case_documents (
+        case_id,
+        account_id,
+        document_name,
+        document_type,
+        description,
+        file_path,
+        file_size,
+        mime_type,
+        file_name,
+        original_filename,
+        visible_to_client,
+        is_active,
+        uploaded_at,
+        uploaded_by,
+        created_at,
+        updated_at,
+        updated_by
+      )
+      VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true, NOW(), $12, NOW(), NOW(), $12
+      )
+      RETURNING *
+    `,
+      [
+        input.caseId,
+        ownership.account_id,
+        input.documentName?.trim() || input.originalFilename,
+        input.documentType || 'other',
+        input.description?.trim() || null,
+        input.filePath,
+        input.fileSize,
+        input.mimeType,
+        input.fileName,
+        input.originalFilename,
+        input.visibleToClient || false,
+        input.userId || null,
+      ]
+    );
+
+    return result.rows[0];
+  }
+
+  /**
+   * Update case document metadata
+   */
+  async updateCaseDocument(documentId: string, data: UpdateCaseDocumentDTO, userId?: string): Promise<CaseDocument> {
+    const caseId = await this.requireCaseIdForDocument(documentId);
+    await this.requireCaseOwnership(caseId);
+
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    let index = 1;
+
+    if (data.document_name !== undefined) {
+      fields.push(`document_name = $${index++}`);
+      values.push(data.document_name || null);
+    }
+
+    if (data.document_type !== undefined) {
+      fields.push(`document_type = $${index++}`);
+      values.push(data.document_type || null);
+    }
+
+    if (data.description !== undefined) {
+      fields.push(`description = $${index++}`);
+      values.push(data.description || null);
+    }
+
+    if (data.visible_to_client !== undefined || data.is_portal_visible !== undefined) {
+      fields.push(`visible_to_client = $${index++}`);
+      values.push(
+        this.resolveVisibleToClient({
+          visible_to_client: data.visible_to_client,
+          is_portal_visible: data.is_portal_visible,
+        })
+      );
+    }
+
+    if (data.is_active !== undefined) {
+      fields.push(`is_active = $${index++}`);
+      values.push(data.is_active);
+    }
+
+    if (fields.length === 0) {
+      throw new Error('No fields to update');
+    }
+
+    fields.push(`updated_at = NOW()`);
+    fields.push(`updated_by = $${index++}`);
+    values.push(userId || null);
+    values.push(documentId, caseId);
+
+    const result = await this.pool.query(
+      `
+      UPDATE case_documents
+      SET ${fields.join(', ')}
+      WHERE id = $${index}
+        AND case_id = $${index + 1}
+      RETURNING *
+    `,
+      values
+    );
+
+    if (!result.rows[0]) {
+      throw new Error('Case document not found');
+    }
+
+    return result.rows[0];
+  }
+
+  /**
+   * Soft delete case document
+   */
+  async deleteCaseDocument(documentId: string, userId?: string): Promise<boolean> {
+    const caseId = await this.requireCaseIdForDocument(documentId);
+    await this.requireCaseOwnership(caseId);
+
+    const result = await this.pool.query(
+      `
+      UPDATE case_documents
+      SET is_active = false, updated_at = NOW(), updated_by = $2
+      WHERE id = $1
+        AND case_id = $3
+      RETURNING id
+    `,
+      [documentId, userId || null, caseId]
+    );
+    return Boolean(result.rows[0]);
+  }
+
+  /**
+   * Aggregate case timeline
+   */
+  async getCaseTimeline(caseId: string): Promise<CaseTimelineEvent[]> {
+    await this.requireCaseOwnership(caseId);
+    const result = await this.pool.query(
+      `
+      SELECT * FROM (
+        SELECT
+          cn.id,
+          'note'::text AS type,
+          cn.case_id,
+          cn.created_at,
+          cn.visible_to_client,
+          COALESCE(cn.subject, cn.note_type, 'Note') AS title,
+          cn.content,
+          jsonb_build_object(
+            'note_type', cn.note_type,
+            'category', cn.category,
+            'is_important', cn.is_important,
+            'is_internal', cn.is_internal
+          ) AS metadata,
+          cn.created_by,
+          u.first_name,
+          u.last_name
+        FROM case_notes cn
+        LEFT JOIN users u ON u.id = cn.created_by
+        WHERE cn.case_id = $1
+
+        UNION ALL
+
+        SELECT
+          co.id,
+          'outcome'::text AS type,
+          co.case_id,
+          co.created_at,
+          co.visible_to_client,
+          COALESCE(co.outcome_type, 'Outcome') AS title,
+          co.notes AS content,
+          jsonb_build_object(
+            'outcome_date', co.outcome_date
+          ) AS metadata,
+          co.created_by,
+          u.first_name,
+          u.last_name
+        FROM case_outcomes co
+        LEFT JOIN users u ON u.id = co.created_by
+        WHERE co.case_id = $1
+
+        UNION ALL
+
+        SELECT
+          cte.id,
+          'topic'::text AS type,
+          cte.case_id,
+          cte.created_at,
+          false AS visible_to_client,
+          ctd.name AS title,
+          cte.notes AS content,
+          jsonb_build_object(
+            'discussed_at', cte.discussed_at
+          ) AS metadata,
+          cte.created_by,
+          u.first_name,
+          u.last_name
+        FROM case_topic_events cte
+        JOIN case_topic_definitions ctd ON ctd.id = cte.topic_definition_id
+        LEFT JOIN users u ON u.id = cte.created_by
+        WHERE cte.case_id = $1
+
+        UNION ALL
+
+        SELECT
+          cd.id,
+          'document'::text AS type,
+          cd.case_id,
+          COALESCE(cd.created_at, cd.uploaded_at) AS created_at,
+          cd.visible_to_client,
+          COALESCE(cd.document_name, cd.original_filename, cd.file_name, 'Document') AS title,
+          cd.description AS content,
+          jsonb_build_object(
+            'document_type', cd.document_type,
+            'mime_type', cd.mime_type,
+            'file_size', cd.file_size,
+            'original_filename', COALESCE(cd.original_filename, cd.document_name)
+          ) AS metadata,
+          cd.uploaded_by AS created_by,
+          u.first_name,
+          u.last_name
+        FROM case_documents cd
+        LEFT JOIN users u ON u.id = cd.uploaded_by
+        WHERE cd.case_id = $1
+          AND COALESCE(cd.is_active, true) = true
+      ) timeline
+      ORDER BY created_at DESC, id DESC
+    `,
+      [caseId]
+    );
+
+    return result.rows;
   }
 
   /**
@@ -1030,6 +1925,23 @@ export const updateCase = caseServiceInstance.updateCase.bind(caseServiceInstanc
 export const updateCaseStatus = caseServiceInstance.updateCaseStatus.bind(caseServiceInstance);
 export const getCaseNotes = caseServiceInstance.getCaseNotes.bind(caseServiceInstance);
 export const createCaseNote = caseServiceInstance.createCaseNote.bind(caseServiceInstance);
+export const updateCaseNote = caseServiceInstance.updateCaseNote.bind(caseServiceInstance);
+export const deleteCaseNote = caseServiceInstance.deleteCaseNote.bind(caseServiceInstance);
+export const getCaseOutcomes = caseServiceInstance.getCaseOutcomes.bind(caseServiceInstance);
+export const createCaseOutcome = caseServiceInstance.createCaseOutcome.bind(caseServiceInstance);
+export const updateCaseOutcome = caseServiceInstance.updateCaseOutcome.bind(caseServiceInstance);
+export const deleteCaseOutcome = caseServiceInstance.deleteCaseOutcome.bind(caseServiceInstance);
+export const getCaseTopicDefinitions = caseServiceInstance.getCaseTopicDefinitions.bind(caseServiceInstance);
+export const createCaseTopicDefinition = caseServiceInstance.createCaseTopicDefinition.bind(caseServiceInstance);
+export const getCaseTopicEvents = caseServiceInstance.getCaseTopicEvents.bind(caseServiceInstance);
+export const addCaseTopicEvent = caseServiceInstance.addCaseTopicEvent.bind(caseServiceInstance);
+export const deleteCaseTopicEvent = caseServiceInstance.deleteCaseTopicEvent.bind(caseServiceInstance);
+export const getCaseDocuments = caseServiceInstance.getCaseDocuments.bind(caseServiceInstance);
+export const getCaseDocumentById = caseServiceInstance.getCaseDocumentById.bind(caseServiceInstance);
+export const createCaseDocument = caseServiceInstance.createCaseDocument.bind(caseServiceInstance);
+export const updateCaseDocument = caseServiceInstance.updateCaseDocument.bind(caseServiceInstance);
+export const deleteCaseDocument = caseServiceInstance.deleteCaseDocument.bind(caseServiceInstance);
+export const getCaseTimeline = caseServiceInstance.getCaseTimeline.bind(caseServiceInstance);
 export const getCaseSummary = caseServiceInstance.getCaseSummary.bind(caseServiceInstance);
 export const getCaseTypes = caseServiceInstance.getCaseTypes.bind(caseServiceInstance);
 export const getCaseStatuses = caseServiceInstance.getCaseStatuses.bind(caseServiceInstance);

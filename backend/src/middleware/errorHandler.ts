@@ -1,8 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '@config/logger';
+import { sendError } from '@modules/shared/http/envelope';
 
 interface ErrorWithStatus extends Error {
   statusCode?: number;
+  code?: string;
+  details?: Record<string, unknown>;
 }
 
 export const errorHandler = (
@@ -16,17 +19,28 @@ export const errorHandler = (
     stack: err.stack,
     url: req.url,
     method: req.method,
+    correlationId: req.correlationId,
   });
 
   const statusCode = err.statusCode || 500;
   const isClientError = statusCode >= 400 && statusCode < 500;
+
+  const defaultCode = isClientError ? 'request_error' : 'server_error';
   const message = isClientError && err.message ? err.message : 'Internal Server Error';
 
-  res.status(statusCode).json({
-    error: {
-      message,
-      code: isClientError ? 'request_error' : 'server_error',
-      ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-    },
-  });
+  const details = process.env.NODE_ENV === 'development'
+    ? {
+      ...(err.details ? { details: err.details } : {}),
+      ...(err.stack ? { stack: err.stack } : {}),
+    }
+    : err.details;
+
+  sendError(
+    res,
+    err.code || defaultCode,
+    message,
+    statusCode,
+    details,
+    req.correlationId
+  );
 };
