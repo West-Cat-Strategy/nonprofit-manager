@@ -417,7 +417,7 @@ While not autonomous agents, these systems perform autonomous-like actions in re
 
 ### Webhook Delivery System
 
-**Service:** [backend/src/services/webhookService.ts](backend/src/services/webhookService.ts)
+**Services:** [backend/src/services/webhookService.ts](backend/src/services/webhookService.ts), [backend/src/services/webhookRetrySchedulerService.ts](backend/src/services/webhookRetrySchedulerService.ts)
 
 **Purpose:** Event-driven delivery of notifications to external systems
 
@@ -428,6 +428,7 @@ While not autonomous agents, these systems perform autonomous-like actions in re
 | **Async Delivery** | Non-blocking, background queue processing |
 | **Retry Strategy** | 5 retry attempts with exponential backoff |
 | **Retry Delays** | 1m → 5m → 15m → 1h → 2h (total: ~7 hours) |
+| **Retry Worker** | Interval runner with row-claiming (`FOR UPDATE SKIP LOCKED`) to avoid duplicate processing |
 | **Timeout** | 30 seconds per delivery attempt |
 | **Signature** | HMAC-SHA256 signing for authenticity |
 | **SSRF Protection** | DNS validation, private IP blocking |
@@ -462,6 +463,11 @@ const signature = createHmac('sha256', webhookSecret)
 5. Sends signed POST request with 30s timeout
 6. On failure, schedule retry with exponential backoff
 7. After 5 failed attempts, mark delivery as "failed"
+
+**Scheduler flags:**
+- `WEBHOOK_RETRY_SCHEDULER_ENABLED`
+- `WEBHOOK_RETRY_SCHEDULER_INTERVAL_MS`
+- `WEBHOOK_RETRY_SCHEDULER_BATCH_SIZE`
 
 ### External Service Provider Integration
 

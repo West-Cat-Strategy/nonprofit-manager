@@ -59,6 +59,11 @@ describe('eventReminderSchedulerService', () => {
     event_status: 'planned',
   };
 
+  const flushMicrotasks = async (): Promise<void> => {
+    await Promise.resolve();
+    await Promise.resolve();
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     eventReminderSchedulerService.stop();
@@ -175,5 +180,25 @@ describe('eventReminderSchedulerService', () => {
 
     expect(mockSendEventReminders).not.toHaveBeenCalled();
     expect(mockMarkAutomationAttemptResult).not.toHaveBeenCalled();
+  });
+
+  it('supports start/stop polling lifecycle via shared runner', async () => {
+    jest.useFakeTimers();
+    mockClaimDueAutomations.mockResolvedValue([]);
+
+    eventReminderSchedulerService.start();
+    await flushMicrotasks();
+    expect(mockClaimDueAutomations).toHaveBeenCalledTimes(1);
+
+    jest.advanceTimersByTime(60_000);
+    await flushMicrotasks();
+    expect(mockClaimDueAutomations).toHaveBeenCalledTimes(2);
+
+    eventReminderSchedulerService.stop();
+    jest.advanceTimersByTime(120_000);
+    await flushMicrotasks();
+    expect(mockClaimDueAutomations).toHaveBeenCalledTimes(2);
+
+    jest.useRealTimers();
   });
 });

@@ -28,9 +28,10 @@ import CaseServices from '../../../components/cases/CaseServices';
 import CasePortalConversations from '../../../components/cases/CasePortalConversations';
 import CaseTimeline from '../../../components/cases/CaseTimeline';
 import CaseOutcomesTopics from '../../../components/cases/CaseOutcomesTopics';
-import type { CasePriority, CaseStatusType, CaseMilestone } from '../../../types/case';
+import type { CaseStatusType, CaseMilestone } from '../../../types/case';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
+import { getCasePriorityBadgeColor } from '../../../features/cases/utils/casePriority';
 
 type TabType =
   | 'overview'
@@ -233,16 +234,6 @@ const CaseDetail = () => {
     }
   };
 
-  const getPriorityBadgeColor = (priority: CasePriority): 'gray' | 'blue' | 'yellow' | 'red' => {
-    const colors: Record<CasePriority, 'gray' | 'blue' | 'yellow' | 'red'> = {
-      low: 'gray',
-      medium: 'blue',
-      high: 'yellow',
-      urgent: 'red',
-    };
-    return colors[priority];
-  };
-
   const getStatusTypeBadgeColor = (
     statusType?: CaseStatusType
   ): 'purple' | 'green' | 'yellow' | 'gray' | 'red' => {
@@ -395,7 +386,7 @@ const CaseDetail = () => {
               </div>
               <div>
                 <div className="text-xs font-black uppercase text-black/70 mb-1">Priority</div>
-                <BrutalBadge color={getPriorityBadgeColor(currentCase.priority)}>
+                <BrutalBadge color={getCasePriorityBadgeColor(currentCase.priority)}>
                   {currentCase.priority}
                 </BrutalBadge>
               </div>

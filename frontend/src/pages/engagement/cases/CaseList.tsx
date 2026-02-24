@@ -16,6 +16,10 @@ import {
 } from '../../../features/cases/state';
 import type { CaseFilter, CasePriority, CaseStatusType, CaseWithDetails } from '../../../types/case';
 import { useToast } from '../../../contexts/useToast';
+import {
+  CASE_PRIORITY_OPTIONS,
+  getCasePriorityBadgeColor,
+} from '../../../features/cases/utils/casePriority';
 
 type QuickFilter = 'all' | 'active' | 'overdue' | 'due_soon' | 'unassigned' | 'urgent';
 type SavedView = {
@@ -274,16 +278,6 @@ const CaseList = () => {
     setSelectedViewId('');
   };
 
-  const getPriorityBadgeColor = (priority: CasePriority) => {
-    const colors: Record<CasePriority, 'gray' | 'blue' | 'yellow' | 'red'> = {
-      low: 'gray',
-      medium: 'blue',
-      high: 'yellow',
-      urgent: 'red',
-    };
-    return colors[priority];
-  };
-
   const getStatusTypeBadgeColor = (statusType: CaseStatusType) => {
     const colors: Record<CaseStatusType, 'purple' | 'green' | 'yellow' | 'gray' | 'red'> = {
       intake: 'purple',
@@ -482,10 +476,11 @@ const CaseList = () => {
               className="w-full border-2 border-black dark:border-white bg-white dark:bg-[#000000] text-black dark:text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
             >
               <option value="">All Priorities</option>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
+              {CASE_PRIORITY_OPTIONS.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -785,7 +780,7 @@ const CaseList = () => {
                     <BrutalBadge color={caseItem.status_type ? getStatusTypeBadgeColor(caseItem.status_type) : 'gray'} size="sm">
                       {caseItem.status_name}
                     </BrutalBadge>
-                    <BrutalBadge color={getPriorityBadgeColor(caseItem.priority)} size="sm">
+                    <BrutalBadge color={getCasePriorityBadgeColor(caseItem.priority)} size="sm">
                       {caseItem.priority}
                     </BrutalBadge>
                   </div>
@@ -925,9 +920,9 @@ const CaseList = () => {
                         </BrutalBadge>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
-                        <BrutalBadge color={getPriorityBadgeColor(caseItem.priority)} size="sm">
-                          {caseItem.priority}
-                        </BrutalBadge>
+                          <BrutalBadge color={getCasePriorityBadgeColor(caseItem.priority)} size="sm">
+                            {caseItem.priority}
+                          </BrutalBadge>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-bold text-black">
                         {assignedLabel(caseItem)}

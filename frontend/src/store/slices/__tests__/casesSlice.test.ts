@@ -362,6 +362,13 @@ describe('selectUrgentCases', () => {
     const result = selectUrgentCases(wrapState(cases));
     expect(result).toHaveLength(1);
   });
+
+  it('includes priority="critical" cases as urgent-equivalent', () => {
+    const cases = [makeCase({ id: 'prio-critical', priority: 'critical', is_urgent: false })];
+    const result = selectUrgentCases(wrapState(cases));
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('prio-critical');
+  });
 });
 
 describe('selectOverdueCases', () => {
@@ -447,12 +454,13 @@ describe('selectCasesByPriority', () => {
       makeCase({ priority: 'high', status_type: 'intake' }),
       makeCase({ priority: 'medium', status_type: 'open' }),
       makeCase({ priority: 'low', status_type: 'intake' }),
+      makeCase({ priority: 'critical', status_type: 'open' }),
       makeCase({ priority: 'high', status_type: 'closed' }), // should be excluded
     ];
     const result = selectCasesByPriority(wrapState(cases));
     expect(result.high).toBe(2);
     expect(result.medium).toBe(1);
     expect(result.low).toBe(1);
-    expect(result.urgent).toBe(0);
+    expect(result.urgent).toBe(1);
   });
 });
