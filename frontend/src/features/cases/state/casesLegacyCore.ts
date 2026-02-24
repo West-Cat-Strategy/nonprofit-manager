@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { createSelector } from 'reselect';
 import api from '../../../services/api';
 import { formatApiErrorMessageWith } from '../../../utils/apiError';
+import { isUrgentEquivalentPriority } from '../utils/casePriority';
 import type {
   CasesState,
   CaseWithDetails,
@@ -826,6 +827,28 @@ const parseDate = (value?: string | null) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
 };
+const incrementPriorityCount = (
+  counts: { low: number; medium: number; high: number; urgent: number },
+  priority: CaseWithDetails['priority']
+) => {
+  switch (priority) {
+    case 'low':
+      counts.low += 1;
+      break;
+    case 'medium':
+      counts.medium += 1;
+      break;
+    case 'high':
+      counts.high += 1;
+      break;
+    case 'urgent':
+    case 'critical':
+      counts.urgent += 1;
+      break;
+    default:
+      break;
+  }
+};
 
 // Base selector
 const selectCasesState = (state: { casesV2: CasesState }) => state.casesV2;
@@ -852,7 +875,7 @@ export const selectCasesByContact = createSelector(
  */
 export const selectUrgentCases = createSelector(
   [selectCasesList],
-  (cases) => cases.filter((case_) => case_.is_urgent || case_.priority === 'urgent')
+  (cases) => cases.filter((case_) => case_.is_urgent || isUrgentEquivalentPriority(case_.priority))
 );
 
 /**
@@ -938,7 +961,7 @@ export const selectCasesByPriority = createSelector(
 
     cases.forEach((case_) => {
       if (isActiveStatus(case_.status_type)) {
-        counts[case_.priority]++;
+        incrementPriorityCount(counts, case_.priority);
       }
     });
 
