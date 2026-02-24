@@ -11,6 +11,7 @@ const createMockResponse = () => {
   res.status = jest.fn().mockReturnValue(res);
   res.json = jest.fn().mockReturnValue(res);
   res.getHeader = jest.fn().mockReturnValue(undefined);
+  res.setHeader = jest.fn().mockReturnValue(res);
   return res;
 };
 
@@ -28,7 +29,15 @@ describe('auth middleware', () => {
       authenticate(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'No token provided' }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'unauthorized',
+            message: 'No token provided',
+          }),
+        })
+      );
       expect(next).not.toHaveBeenCalled();
     });
 
@@ -46,7 +55,15 @@ describe('auth middleware', () => {
       authenticate(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Invalid or expired token' }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'unauthorized',
+            message: 'Invalid or expired token',
+          }),
+        })
+      );
       expect(next).not.toHaveBeenCalled();
     });
 
@@ -83,7 +100,15 @@ describe('auth middleware', () => {
       authorize('admin')(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Unauthorized' }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'unauthorized',
+            message: 'Unauthorized',
+          }),
+        })
+      );
       expect(next).not.toHaveBeenCalled();
     });
 
@@ -97,7 +122,15 @@ describe('auth middleware', () => {
       authorize('admin')(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(403);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Forbidden: Insufficient permissions' }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'forbidden',
+            message: 'Forbidden: Insufficient permissions',
+          }),
+        })
+      );
       expect(next).not.toHaveBeenCalled();
     });
 

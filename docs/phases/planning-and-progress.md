@@ -2568,6 +2568,7 @@ Frontend Component Tests:
 | Feb 24, 2026 | P3-T5 | Codex | Review → Done | Merged PR #5 ([P3-T5] Treat critical priority as urgent-equivalent in case selectors), merge commit `5cdda5084ce304c32a6a49e7202a99475de87346`; no Phase 2 scope reopened. |
 | Feb 24, 2026 | P3-T5 | Codex | In Progress → Review | Selector fix and verification complete on `codex/p3-t5-priority-critical-selector-fix`; PR prepared with strict non-scope (no Phase 2 reopen, no backend/API changes). |
 | Feb 24, 2026 | P3-T5 | Codex | Ready → In Progress | Resumed on clean branch `codex/p3-t5-priority-critical-selector-fix` from `origin/main`; scope limited to priority regression and `make ci-unit` restoration. |
+| Feb 24, 2026 | P3-T5 | Codex | Ready → In Progress | Resumed execution after syncing `codex/p3-t5-case-priority-critical-ui` with `origin/main`; scope constrained to frontend case-priority critical drift and `make ci-unit` TypeScript failures only. |
 | Feb 24, 2026 | P3-T5 | Codex | Blocked → Ready | Phase 2 merge recorded after PR #4; next step: resume `codex/p3-t5-case-priority-critical-ui` on latest `main`. |
 | Feb 24, 2026 | P2-T16/P2-T17 | Codex | Review → Done | Merged PR #4 ([P2-T16/P2-T17] Canonical envelope completion + route guardrail matrix expansion), merge commit `5f919d747f718a0271b146879ae863dfcbc4ec4e`; no scope expansion accepted. |
 | Feb 22, 2026 | P4-T1A | Codex | In Progress → In Progress | E2E auth remediation complete: admin fixture bootstrap now used for default authenticated flows; stale shared user cache path removed from primary login path. |

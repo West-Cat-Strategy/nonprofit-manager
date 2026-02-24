@@ -13,3 +13,5 @@ export const PortalDocuments = lazy(() => import('../pages/PortalDocuments'));
 export const PortalNotes = lazy(() => import('../pages/PortalNotes'));
 export const PortalForms = lazy(() => import('../pages/PortalForms'));
 export const PortalReminders = lazy(() => import('../pages/PortalReminders'));
+export const PortalCases = lazy(() => import('../pages/PortalCases'));
+export const PortalCaseDetail = lazy(() => import('../pages/PortalCaseDetail'));

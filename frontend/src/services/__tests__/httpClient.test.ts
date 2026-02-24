@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
+import type * as AxiosModule from 'axios';
 import { createApiClient } from '../httpClient';
 
 // Stub axios.create to intercept config
 vi.mock('axios', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('axios')>();
+  const actual = await importOriginal<typeof AxiosModule>();
   return {
     ...actual,
     default: {

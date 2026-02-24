@@ -250,14 +250,201 @@ export class PortalRepository {
     return (result.rows[0]?.id as string | undefined) ?? null;
   }
 
+  async getPortalCases(contactId: string): Promise<unknown[]> {
+    const result = await this.pool.query(
+      `
+      SELECT
+        c.id,
+        c.case_number,
+        c.title,
+        c.description,
+        c.priority,
+        c.client_viewable,
+        c.updated_at,
+        cs.name AS status_name,
+        cs.status_type,
+        ct.name AS case_type_name
+      FROM cases c
+      LEFT JOIN case_statuses cs ON cs.id = c.status_id
+      LEFT JOIN case_types ct ON ct.id = c.case_type_id
+      WHERE c.contact_id = $1
+        AND c.client_viewable = true
+      ORDER BY c.updated_at DESC, c.created_at DESC
+    `,
+      [contactId]
+    );
+
+    return result.rows;
+  }
+
+  async getPortalCaseById(contactId: string, caseId: string): Promise<Record<string, unknown> | null> {
+    const result = await this.pool.query(
+      `
+      SELECT
+        c.id,
+        c.case_number,
+        c.title,
+        c.description,
+        c.priority,
+        c.client_viewable,
+        c.intake_date,
+        c.opened_date,
+        c.closed_date,
+        c.due_date,
+        c.updated_at,
+        cs.name AS status_name,
+        cs.status_type,
+        ct.name AS case_type_name
+      FROM cases c
+      LEFT JOIN case_statuses cs ON cs.id = c.status_id
+      LEFT JOIN case_types ct ON ct.id = c.case_type_id
+      WHERE c.id = $1
+        AND c.contact_id = $2
+        AND c.client_viewable = true
+      LIMIT 1
+    `,
+      [caseId, contactId]
+    );
+
+    return (result.rows[0] as Record<string, unknown> | undefined) ?? null;
+  }
+
+  async getPortalCaseTimeline(contactId: string, caseId: string): Promise<unknown[]> {
+    const result = await this.pool.query(
+      `
+      SELECT * FROM (
+        SELECT
+          cn.id,
+          'note'::text AS type,
+          cn.created_at,
+          COALESCE(cn.subject, cn.note_type, 'Note') AS title,
+          cn.content,
+          jsonb_build_object(
+            'note_type', cn.note_type,
+            'category', cn.category
+          ) AS metadata
+        FROM case_notes cn
+        JOIN cases c ON c.id = cn.case_id
+        WHERE cn.case_id = $1
+          AND c.contact_id = $2
+          AND c.client_viewable = true
+          AND cn.visible_to_client = true
+
+        UNION ALL
+
+        SELECT
+          co.id,
+          'outcome'::text AS type,
+          co.created_at,
+          COALESCE(co.outcome_type, 'Outcome') AS title,
+          co.notes AS content,
+          jsonb_build_object(
+            'outcome_date', co.outcome_date
+          ) AS metadata
+        FROM case_outcomes co
+        JOIN cases c ON c.id = co.case_id
+        WHERE co.case_id = $1
+          AND c.contact_id = $2
+          AND c.client_viewable = true
+          AND co.visible_to_client = true
+
+        UNION ALL
+
+        SELECT
+          cd.id,
+          'document'::text AS type,
+          COALESCE(cd.created_at, cd.uploaded_at) AS created_at,
+          COALESCE(cd.document_name, cd.original_filename, 'Document') AS title,
+          cd.description AS content,
+          jsonb_build_object(
+            'document_type', cd.document_type,
+            'mime_type', cd.mime_type,
+            'file_size', cd.file_size,
+            'document_id', cd.id
+          ) AS metadata
+        FROM case_documents cd
+        JOIN cases c ON c.id = cd.case_id
+        WHERE cd.case_id = $1
+          AND c.contact_id = $2
+          AND c.client_viewable = true
+          AND cd.visible_to_client = true
+          AND COALESCE(cd.is_active, true) = true
+      ) timeline
+      ORDER BY created_at DESC, id DESC
+    `,
+      [caseId, contactId]
+    );
+
+    return result.rows;
+  }
+
+  async getPortalCaseDocuments(contactId: string, caseId: string): Promise<unknown[]> {
+    const result = await this.pool.query(
+      `
+      SELECT
+        cd.id,
+        cd.document_name,
+        COALESCE(cd.original_filename, cd.document_name) AS original_filename,
+        cd.document_type,
+        cd.description,
+        cd.file_size,
+        cd.mime_type,
+        COALESCE(cd.created_at, cd.uploaded_at) AS created_at
+      FROM case_documents cd
+      JOIN cases c ON c.id = cd.case_id
+      WHERE cd.case_id = $1
+        AND c.contact_id = $2
+        AND c.client_viewable = true
+        AND cd.visible_to_client = true
+        AND COALESCE(cd.is_active, true) = true
+      ORDER BY COALESCE(cd.created_at, cd.uploaded_at) DESC
+    `,
+      [caseId, contactId]
+    );
+
+    return result.rows;
+  }
+
+  async getPortalCaseDownloadableDocument(
+    contactId: string,
+    caseId: string,
+    documentId: string
+  ): Promise<{ file_path: string; original_filename: string; mime_type: string } | null> {
+    const result = await this.pool.query(
+      `
+      SELECT
+        cd.file_path,
+        COALESCE(cd.original_filename, cd.document_name) AS original_filename,
+        cd.mime_type
+      FROM case_documents cd
+      JOIN cases c ON c.id = cd.case_id
+      WHERE cd.id = $1
+        AND cd.case_id = $2
+        AND c.contact_id = $3
+        AND c.client_viewable = true
+        AND cd.visible_to_client = true
+        AND COALESCE(cd.is_active, true) = true
+      LIMIT 1
+    `,
+      [documentId, caseId, contactId]
+    );
+
+    return result.rows[0] ?? null;
+  }
+
   async getPortalDocuments(contactId: string): Promise<unknown[]> {
     const result = await this.pool.query(
-      `SELECT id, original_name, document_type, title, description, file_size, mime_type, created_at
-       FROM contact_documents
-       WHERE contact_id = $1
-         AND is_active = true
-         AND is_portal_visible = true
-       ORDER BY created_at DESC`,
+      `SELECT cd.id, cd.original_name, cd.document_type, cd.title, cd.description, cd.file_size, cd.mime_type, cd.created_at
+       FROM contact_documents cd
+       LEFT JOIN cases c ON c.id = cd.case_id
+       WHERE cd.contact_id = $1
+         AND cd.is_active = true
+         AND cd.is_portal_visible = true
+         AND (
+           cd.case_id IS NULL
+           OR (c.contact_id = cd.contact_id AND c.client_viewable = true)
+         )
+       ORDER BY cd.created_at DESC`,
       [contactId]
     );
 
@@ -266,13 +453,18 @@ export class PortalRepository {
 
   async getPortalForms(contactId: string): Promise<unknown[]> {
     const result = await this.pool.query(
-      `SELECT id, original_name, document_type, title, description, created_at
-       FROM contact_documents
-       WHERE contact_id = $1
-         AND is_active = true
-         AND is_portal_visible = true
-         AND document_type IN ('consent_form', 'assessment', 'report')
-       ORDER BY created_at DESC`,
+      `SELECT cd.id, cd.original_name, cd.document_type, cd.title, cd.description, cd.created_at
+       FROM contact_documents cd
+       LEFT JOIN cases c ON c.id = cd.case_id
+       WHERE cd.contact_id = $1
+         AND cd.is_active = true
+         AND cd.is_portal_visible = true
+         AND cd.document_type IN ('consent_form', 'assessment', 'report')
+         AND (
+           cd.case_id IS NULL
+           OR (c.contact_id = cd.contact_id AND c.client_viewable = true)
+         )
+       ORDER BY cd.created_at DESC`,
       [contactId]
     );
 
@@ -281,12 +473,17 @@ export class PortalRepository {
 
   async getPortalNotes(contactId: string): Promise<unknown[]> {
     const result = await this.pool.query(
-      `SELECT id, note_type, subject, content, created_at
-       FROM contact_notes
-       WHERE contact_id = $1
-         AND is_internal = false
-         AND is_portal_visible = true
-       ORDER BY created_at DESC`,
+      `SELECT cn.id, cn.note_type, cn.subject, cn.content, cn.created_at
+       FROM contact_notes cn
+       LEFT JOIN cases c ON c.id = cn.case_id
+       WHERE cn.contact_id = $1
+         AND cn.is_internal = false
+         AND cn.is_portal_visible = true
+         AND (
+           cn.case_id IS NULL
+           OR (c.contact_id = cn.contact_id AND c.client_viewable = true)
+         )
+       ORDER BY cn.created_at DESC`,
       [contactId]
     );
 
@@ -295,10 +492,16 @@ export class PortalRepository {
 
   async getPortalReminderAppointments(contactId: string): Promise<unknown[]> {
     const result = await this.pool.query(
-      `SELECT id, title, start_time
-       FROM appointments
-       WHERE contact_id = $1 AND status IN ('requested', 'confirmed')
-       ORDER BY start_time ASC`,
+      `SELECT a.id, a.title, a.start_time
+       FROM appointments a
+       LEFT JOIN cases c ON c.id = a.case_id
+       WHERE a.contact_id = $1
+         AND a.status IN ('requested', 'confirmed')
+         AND (
+           a.case_id IS NULL
+           OR (c.contact_id = a.contact_id AND c.client_viewable = true)
+         )
+       ORDER BY a.start_time ASC`,
       [contactId]
     );
 
@@ -323,12 +526,17 @@ export class PortalRepository {
     documentId: string
   ): Promise<{ file_path: string; original_name: string; mime_type: string } | null> {
     const result = await this.pool.query(
-      `SELECT file_path, original_name, mime_type
-       FROM contact_documents
-       WHERE id = $1
-         AND contact_id = $2
-         AND is_active = true
-         AND is_portal_visible = true`,
+      `SELECT cd.file_path, cd.original_name, cd.mime_type
+       FROM contact_documents cd
+       LEFT JOIN cases c ON c.id = cd.case_id
+       WHERE cd.id = $1
+         AND cd.contact_id = $2
+         AND cd.is_active = true
+         AND cd.is_portal_visible = true
+         AND (
+           cd.case_id IS NULL
+           OR (c.contact_id = cd.contact_id AND c.client_viewable = true)
+         )`,
       [documentId, contactId]
     );
 

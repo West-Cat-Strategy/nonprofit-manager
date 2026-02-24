@@ -5,7 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema, ZodError } from 'zod';
-import { errorPayload } from '@utils/responseHelpers';
+import { sendError } from '@modules/shared/http/envelope';
 
 interface ValidationSource {
   body?: ZodSchema;
@@ -69,14 +69,7 @@ export function validateRequest(sources: ValidationSource) {
 
     // Return early with error if validation failed
     if (hasError) {
-      res.status(400).json(
-        errorPayload(
-          res,
-          'Validation failed',
-          errors,
-          'validation_error'
-        )
-      );
+      sendError(res, 'validation_error', 'Validation failed', 400, { validation: errors }, req.correlationId);
       return;
     }
 

@@ -55,6 +55,43 @@ export interface AuthSession {
   isAdmin: boolean;
 }
 
+type ApiSuccessEnvelope<T> = {
+  success: true;
+  data: T;
+};
+
+const unwrapApiData = <T>(payload: ApiSuccessEnvelope<T> | T): T => {
+  if (
+    payload &&
+    typeof payload === 'object' &&
+    (payload as { success?: unknown }).success === true &&
+    'data' in (payload as object)
+  ) {
+    return (payload as ApiSuccessEnvelope<T>).data;
+  }
+  return payload as T;
+};
+
+const extractApiErrorMessage = (payload: unknown, fallback: string): string => {
+  if (!payload || typeof payload !== 'object') return fallback;
+
+  const candidate = payload as {
+    error?: string | { message?: string };
+    message?: string;
+  };
+
+  if (typeof candidate.error === 'string') {
+    return candidate.error;
+  }
+  if (candidate.error && typeof candidate.error === 'object' && typeof candidate.error.message === 'string') {
+    return candidate.error.message;
+  }
+  if (typeof candidate.message === 'string') {
+    return candidate.message;
+  }
+  return fallback;
+};
+
 export async function ensureSetupComplete(
   page: Page,
   email: string,
@@ -136,16 +173,18 @@ export async function loginViaAPI(
 
   if (!response.ok()) {
     const errorBody = await response.json().catch(() => ({}));
-    const message =
-      typeof errorBody?.error === 'string'
-        ? errorBody.error
-        : `Login failed with status ${response.status()}`;
+    const message = extractApiErrorMessage(
+      errorBody,
+      `Login failed with status ${response.status()}`
+    );
     const error = new Error(`${message} (email: ${email})`);
     (error as Error & { status?: number }).status = response.status();
     throw error;
   }
 
-  const data = await response.json();
+  const data = unwrapApiData<{ token: string; user: any; organizationId?: string }>(
+    await response.json()
+  );
   expect(data.token).toBeDefined();
   expect(data.user).toBeDefined();
 
@@ -258,17 +297,60 @@ export async function ensureLoginViaAPI(
 
   fs.mkdirSync(cacheDir, { recursive: true });
 
-  let hasLock = false;
-  try {
-    fs.writeFileSync(lockFile, `${process.pid}`, { encoding: 'utf8', flag: 'wx' });
-    hasLock = true;
-  } catch {
-    // Another worker is creating the user.
-  }
+  const tryAcquireLock = (): boolean => {
+    try {
+      fs.writeFileSync(lockFile, `${process.pid}`, { encoding: 'utf8', flag: 'wx' });
+      return true;
+    } catch {
+      // Recover from stale lock files left by interrupted runs.
+      try {
+        const lockOwner = Number(fs.readFileSync(lockFile, 'utf8').trim());
+        if (!Number.isFinite(lockOwner)) {
+          throw new Error('invalid lock owner');
+        }
+        process.kill(lockOwner, 0);
+        return false;
+      } catch {
+        try {
+          fs.unlinkSync(lockFile);
+        } catch {
+          // ignore
+        }
+
+        try {
+          fs.writeFileSync(lockFile, `${process.pid}`, { encoding: 'utf8', flag: 'wx' });
+          return true;
+        } catch {
+          return false;
+        }
+      }
+    }
+  };
+
+  let hasLock = tryAcquireLock();
 
   if (!hasLock) {
     await waitForReady();
-    return await attemptLogin();
+    try {
+      return await attemptLogin();
+    } catch (locklessLoginError) {
+      const locklessMessage =
+        locklessLoginError instanceof Error ? locklessLoginError.message : String(locklessLoginError);
+      if (!locklessMessage.toLowerCase().includes('invalid credentials')) {
+        throw locklessLoginError;
+      }
+
+      // Fallback user/email can change per run. If cache/lock drifted, clear and retry as lock owner.
+      try {
+        fs.unlinkSync(readyFile);
+      } catch {
+        // ignore
+      }
+      hasLock = tryAcquireLock();
+      if (!hasLock) {
+        throw locklessLoginError;
+      }
+    }
   }
 
   try {
@@ -472,7 +554,8 @@ export async function createTestUser(
   }
 
   const data = await response.json();
-  return { id: data.user.id, email: data.user.email };
+  const payload = unwrapApiData<{ user: { id: string; email: string } }>(data);
+  return { id: payload.user.id, email: payload.user.email };
 }
 
 /**

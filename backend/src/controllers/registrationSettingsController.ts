@@ -7,6 +7,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '@middleware/auth';
 import { logger } from '@config/logger';
+import { conflict, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import {
   getRegistrationSettings,
   getRegistrationMode,
@@ -117,16 +118,16 @@ export const approvePendingRegistrationHandler = async (
     const { id } = req.params as { id: string };
     const reviewedBy = req.user?.id;
     if (!reviewedBy) {
-      return res.status(401).json({ error: { message: 'Authentication required' } });
+      return unauthorized(res, 'Authentication required');
     }
     const result = await approvePendingRegistration(id, reviewedBy);
     return res.json({ message: 'Registration approved', user: result.user });
   } catch (error: unknown) {
     if (error instanceof Error && error.message.includes('not found')) {
-      return res.status(404).json({ error: { message: error.message } });
+      return notFoundMessage(res, error.message);
     }
     if (error instanceof Error && (error.message.includes('already been') || error.message.includes('already exists'))) {
-      return res.status(409).json({ error: { message: error.message } });
+      return conflict(res, error.message);
     }
     next(error);
   }
@@ -144,17 +145,17 @@ export const rejectPendingRegistrationHandler = async (
     const { id } = req.params as { id: string };
     const reviewedBy = req.user?.id;
     if (!reviewedBy) {
-      return res.status(401).json({ error: { message: 'Authentication required' } });
+      return unauthorized(res, 'Authentication required');
     }
     const { reason } = req.body;
     const result = await rejectPendingRegistration(id, reviewedBy, reason);
     return res.json({ message: 'Registration rejected', data: result });
   } catch (error: unknown) {
     if (error instanceof Error && error.message.includes('not found')) {
-      return res.status(404).json({ error: { message: error.message } });
+      return notFoundMessage(res, error.message);
     }
     if (error instanceof Error && error.message.includes('already been')) {
-      return res.status(409).json({ error: { message: error.message } });
+      return conflict(res, error.message);
     }
     next(error);
   }

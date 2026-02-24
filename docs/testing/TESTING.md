@@ -1,5 +1,35 @@
 # Testing Guide
 
+## wc-manage Pattern Adoption Program Matrix (Mandatory)
+
+For all change sets in the API guardrails adoption program, run the full matrix below without substitution:
+
+```bash
+make ci-full
+cd /Users/bryan/projects/nonprofit-manager/backend && npm run test:integration
+cd /Users/bryan/projects/nonprofit-manager/e2e && npm run test:ci
+```
+
+### Coverage Ratchet Policy (Program Gate)
+
+- Backend coverage thresholds are ratcheted from current measured baseline and may only move upward.
+- Current enforced backend global thresholds:
+  - statements: `47`
+  - branches: `32`
+  - functions: `41`
+  - lines: `46`
+- If a program change set increases measured backend global coverage, that same change set must raise the corresponding threshold(s) in `backend/jest.config.ts`.
+- Frontend coverage thresholds are ratcheted from current measured baseline and may only move upward.
+- Current enforced frontend global thresholds:
+  - lines: `48`
+  - functions: `40`
+  - statements: `47`
+  - branches: `38`
+- If a program change set increases measured frontend global coverage, that same change set must raise the corresponding threshold(s) in `frontend/vite.config.ts`.
+- New CI policy checks required for this program:
+  - `node scripts/check-rate-limit-key-policy.ts`
+  - `node scripts/check-success-envelope-policy.ts`
+
 ## Manual Authentication Flow Test
 
 ### Prerequisites

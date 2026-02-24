@@ -17,7 +17,7 @@ import type {
 } from '@app-types/case';
 import { logger } from '@config/logger';
 import { PAGINATION } from '@config/constants';
-import { notFound, serverError } from '@utils/responseHelpers';
+import { badRequest, notFound, serverError } from '@utils/responseHelpers';
 
 export const createCase = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -202,7 +202,7 @@ export const createCaseMilestone = async (req: AuthRequest, res: Response): Prom
     const userId = req.user?.id;
 
     if (!data.milestone_name?.trim()) {
-      res.status(400).json({ error: { message: 'Milestone name is required', code: 'VALIDATION_ERROR' } });
+      badRequest(res, 'Milestone name is required', { code: 'validation_error' });
       return;
     }
 
@@ -256,7 +256,7 @@ export const bulkUpdateCaseStatus = async (req: AuthRequest, res: Response): Pro
     const userId = req.user?.id;
 
     if (!data.case_ids?.length || !data.new_status_id) {
-      res.status(400).json({ error: { message: 'case_ids and new_status_id are required', code: 'VALIDATION_ERROR' } });
+      badRequest(res, 'case_ids and new_status_id are required', { code: 'validation_error' });
       return;
     }
 

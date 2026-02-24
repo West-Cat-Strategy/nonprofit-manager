@@ -4,92 +4,73 @@
  */
 
 import express from 'express';
-import { body, query, param } from 'express-validator';
+import { z } from 'zod';
 import { taskController } from '@controllers/domains/engagement';
 import { authenticate } from '@middleware/domains/auth';
-import { validateRequest } from '@middleware/domains/security';
+import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
+import { uuidSchema } from '@validations/shared';
 
 const router = express.Router();
+
+const taskStatusSchema = z.enum(['not_started', 'in_progress', 'waiting', 'completed', 'deferred', 'cancelled']);
+const taskPrioritySchema = z.enum(['low', 'normal', 'high', 'urgent']);
+const relatedToTypeSchema = z.enum(['account', 'contact', 'event', 'donation', 'volunteer']);
+
+const dateStringSchema = z
+  .string()
+  .refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid date format');
+
+const taskIdParamsSchema = z.object({
+  id: uuidSchema,
+});
+
+const createTaskSchema = z.object({
+  subject: z.string().trim().min(1, 'Subject is required'),
+  description: z.string().trim().optional(),
+  status: taskStatusSchema.optional(),
+  priority: taskPrioritySchema.optional(),
+  due_date: dateStringSchema.optional(),
+  assigned_to: uuidSchema.optional(),
+  related_to_type: relatedToTypeSchema.optional(),
+  related_to_id: uuidSchema.optional(),
+});
+
+const updateTaskSchema = z.object({
+  subject: z.string().trim().min(1, 'Subject cannot be empty').optional(),
+  description: z.string().trim().optional(),
+  status: taskStatusSchema.optional(),
+  priority: taskPrioritySchema.optional(),
+  due_date: z.union([dateStringSchema, z.null()]).optional(),
+  completed_date: z.union([dateStringSchema, z.null()]).optional(),
+  assigned_to: z.union([uuidSchema, z.null()]).optional(),
+  related_to_type: z.union([relatedToTypeSchema, z.null()]).optional(),
+  related_to_id: z.union([uuidSchema, z.null()]).optional(),
+});
+
+const taskQuerySchema = z.object({
+  search: z.string().trim().optional(),
+  status: taskStatusSchema.optional(),
+  priority: taskPrioritySchema.optional(),
+  assigned_to: uuidSchema.optional(),
+  related_to_type: relatedToTypeSchema.optional(),
+  related_to_id: uuidSchema.optional(),
+  due_before: dateStringSchema.optional(),
+  due_after: dateStringSchema.optional(),
+  overdue: z.coerce.boolean().optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+});
 
 // Apply authentication to all routes
 router.use(authenticate);
 
-// Validation rules
-const createTaskValidation = [
-  body('subject').trim().notEmpty().withMessage('Subject is required'),
-  body('description').optional().trim(),
-  body('status')
-    .optional()
-    .isIn(['not_started', 'in_progress', 'waiting', 'completed', 'deferred', 'cancelled'])
-    .withMessage('Invalid status'),
-  body('priority')
-    .optional()
-    .isIn(['low', 'normal', 'high', 'urgent'])
-    .withMessage('Invalid priority'),
-  body('due_date').optional().isISO8601().withMessage('Invalid date format'),
-  body('assigned_to').optional().isUUID().withMessage('Invalid user ID'),
-  body('related_to_type')
-    .optional()
-    .isIn(['account', 'contact', 'event', 'donation', 'volunteer'])
-    .withMessage('Invalid related_to_type'),
-  body('related_to_id').optional().isUUID().withMessage('Invalid related_to_id'),
-];
-
-const updateTaskValidation = [
-  body('subject').optional().trim().notEmpty().withMessage('Subject cannot be empty'),
-  body('description').optional().trim(),
-  body('status')
-    .optional()
-    .isIn(['not_started', 'in_progress', 'waiting', 'completed', 'deferred', 'cancelled'])
-    .withMessage('Invalid status'),
-  body('priority')
-    .optional()
-    .isIn(['low', 'normal', 'high', 'urgent'])
-    .withMessage('Invalid priority'),
-  body('due_date').optional({ nullable: true }).isISO8601().withMessage('Invalid date format'),
-  body('completed_date').optional({ nullable: true }).isISO8601().withMessage('Invalid date format'),
-  body('assigned_to').optional({ nullable: true }).isUUID().withMessage('Invalid user ID'),
-  body('related_to_type')
-    .optional({ nullable: true })
-    .isIn(['account', 'contact', 'event', 'donation', 'volunteer'])
-    .withMessage('Invalid related_to_type'),
-  body('related_to_id').optional({ nullable: true }).isUUID().withMessage('Invalid related_to_id'),
-];
-
-const taskQueryValidation = [
-  query('search').optional().trim(),
-  query('status')
-    .optional()
-    .isIn(['not_started', 'in_progress', 'waiting', 'completed', 'deferred', 'cancelled'])
-    .withMessage('Invalid status'),
-  query('priority')
-    .optional()
-    .isIn(['low', 'normal', 'high', 'urgent'])
-    .withMessage('Invalid priority'),
-  query('assigned_to').optional().isUUID().withMessage('Invalid user ID'),
-  query('related_to_type')
-    .optional()
-    .isIn(['account', 'contact', 'event', 'donation', 'volunteer'])
-    .withMessage('Invalid related_to_type'),
-  query('related_to_id').optional().isUUID().withMessage('Invalid related_to_id'),
-  query('due_before').optional().isISO8601().withMessage('Invalid date format'),
-  query('due_after').optional().isISO8601().withMessage('Invalid date format'),
-  query('overdue').optional().isBoolean().withMessage('Invalid boolean value'),
-  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
-];
-
-const uuidParamValidation = [
-  param('id').isUUID().withMessage('Invalid task ID'),
-];
-
 // Routes
-router.get('/', taskQueryValidation, validateRequest, taskController.getTasks);
-router.get('/summary', taskQueryValidation, validateRequest, taskController.getTaskSummary);
-router.get('/:id', uuidParamValidation, validateRequest, taskController.getTaskById);
-router.post('/', createTaskValidation, validateRequest, taskController.createTask);
-router.put('/:id', [...uuidParamValidation, ...updateTaskValidation, validateRequest], taskController.updateTask);
-router.delete('/:id', uuidParamValidation, validateRequest, taskController.deleteTask);
-router.post('/:id/complete', uuidParamValidation, validateRequest, taskController.completeTask);
+router.get('/', validateQuery(taskQuerySchema), taskController.getTasks);
+router.get('/summary', validateQuery(taskQuerySchema), taskController.getTaskSummary);
+router.get('/:id', validateParams(taskIdParamsSchema), taskController.getTaskById);
+router.post('/', validateBody(createTaskSchema), taskController.createTask);
+router.put('/:id', validateParams(taskIdParamsSchema), validateBody(updateTaskSchema), taskController.updateTask);
+router.delete('/:id', validateParams(taskIdParamsSchema), taskController.deleteTask);
+router.post('/:id/complete', validateParams(taskIdParamsSchema), taskController.completeTask);
 
 export default router;

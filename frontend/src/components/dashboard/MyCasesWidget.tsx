@@ -9,6 +9,11 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchCases, selectCasesByAssignee } from '../../features/cases/state';
 import WidgetContainer from './WidgetContainer';
 import type { DashboardWidget } from '../../types/dashboard';
+import type { CasePriority } from '../../types/case';
+import {
+  getCasePriorityLabel,
+  isUrgentEquivalentPriority,
+} from '../../features/cases/utils/casePriority';
 
 interface MyCasesWidgetProps {
   widget: DashboardWidget;
@@ -43,7 +48,11 @@ const MyCasesWidget = ({ widget, editMode, onRemove }: MyCasesWidgetProps) => {
     dispatch(fetchCases({}));
   }, [dispatch]);
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityColor = (priority: CasePriority) => {
+    if (isUrgentEquivalentPriority(priority)) {
+      return 'bg-red-100 text-red-800 border-red-200';
+    }
+
     switch (priority) {
       case 'low':
         return 'bg-green-100 text-green-800 border-green-200';
@@ -51,8 +60,6 @@ const MyCasesWidget = ({ widget, editMode, onRemove }: MyCasesWidgetProps) => {
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'high':
         return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'urgent':
-        return 'bg-red-100 text-red-800 border-red-200';
       default:
         return 'bg-app-surface-muted text-app-text border-app-border';
     }
@@ -130,7 +137,7 @@ const MyCasesWidget = ({ widget, editMode, onRemove }: MyCasesWidgetProps) => {
                             case_.priority
                           )}`}
                         >
-                          {case_.priority.charAt(0).toUpperCase() + case_.priority.slice(1)}
+                          {getCasePriorityLabel(case_.priority)}
                         </span>
                         {case_.is_urgent && (
                           <span className="text-xs" title="Urgent">

@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Last Updated**: 2026-02-18
+**Last Updated**: 2026-02-23
 
 Welcome to the nonprofit-manager documentation. This is your navigation hub for all project guides, specifications, and references.
 
@@ -35,6 +35,7 @@ Welcome to the nonprofit-manager documentation. This is your navigation hub for 
 | [CONVENTIONS.md](development/CONVENTIONS.md) | Code style & naming standards | All developers |
 | [ARCHITECTURE.md](development/ARCHITECTURE.md) | Architecture Decision Records (ADRs) | Architects, senior devs |
 | [AGENT_INSTRUCTIONS.md](development/AGENT_INSTRUCTIONS.md) | AI developer guidelines | Copilot/AI assistants |
+| [WC_MANAGE_PATTERN_ADOPTION_AUDIT.md](development/WC_MANAGE_PATTERN_ADOPTION_AUDIT.md) | Cross-repo guardrail adoption audit + migration roadmap | Maintainers, backend/frontend leads |
 | [TROUBLESHOOTING.md](development/TROUBLESHOOTING.md) | Common issues & solutions | Developers |
 | [RELEASE_CHECKLIST.md](development/RELEASE_CHECKLIST.md) | Release procedures | Release managers |
 
@@ -63,6 +64,7 @@ Welcome to the nonprofit-manager documentation. This is your navigation hub for 
 | [features/DASHBOARD_CUSTOMIZATION.md](features/DASHBOARD_CUSTOMIZATION.md) | Dashboard widget system | Frontend/devs |
 | [features/VOLUNTEER_COMPONENTS_STATUS.md](features/VOLUNTEER_COMPONENTS_STATUS.md) | Volunteer features | Devs |
 | [features/TELEMETRY.md](features/TELEMETRY.md) | Analytics & tracking | Analytics/devs |
+| [features/CASE_CLIENT_VISIBILITY_AND_FILES.md](features/CASE_CLIENT_VISIBILITY_AND_FILES.md) | Case portal visibility, notes/outcomes/docs sharing rules, and secure file handling | Backend/frontend devs, QA |
 | [product/product-spec.md](product/product-spec.md) | Product requirements | Product/stakeholders |
 
 ### **Testing & Quality**

@@ -3,7 +3,7 @@
 
 import type { InteractionOutcomeImpact, OutcomeDefinition } from './outcomes';
 
-export type CasePriority = 'low' | 'medium' | 'high' | 'urgent';
+export type CasePriority = 'low' | 'medium' | 'high' | 'urgent' | 'critical';
 export type CaseSource = 'phone' | 'email' | 'walk-in' | 'referral' | 'web' | 'other';
 export type CaseOutcome =
   | 'successful'
@@ -14,7 +14,17 @@ export type CaseOutcome =
   | 'additional_related_case'
   | 'other';
 export type CaseStatusType = 'intake' | 'active' | 'review' | 'closed' | 'cancelled';
-export type NoteType = 'note' | 'email' | 'call' | 'meeting' | 'update' | 'status_change';
+export type NoteType =
+  | 'note'
+  | 'email'
+  | 'call'
+  | 'meeting'
+  | 'update'
+  | 'status_change'
+  | 'case_note'
+  | 'assignment'
+  | 'system'
+  | 'portal_message';
 
 /**
  * Case Type Definition
@@ -77,6 +87,7 @@ export interface Case {
   intake_data?: Record<string, unknown> | null;
   custom_data?: Record<string, unknown> | null;
   is_urgent: boolean;
+  client_viewable: boolean;
   requires_followup: boolean;
   followup_date?: string | null;
   tags?: string[] | null;
@@ -116,17 +127,102 @@ export interface CaseNote {
   case_id: string;
   note_type: NoteType;
   subject?: string | null;
+  category?: string | null;
   content: string;
   is_internal: boolean;
+  visible_to_client: boolean;
   is_important: boolean;
   previous_status_id?: string | null;
   new_status_id?: string | null;
   attachments?: unknown[] | null;
   created_at: string;
+  updated_at?: string | null;
   created_by?: string | null;
+  updated_by?: string | null;
   first_name?: string;
   last_name?: string;
   outcome_impacts?: InteractionOutcomeImpact[];
+}
+
+export interface CaseOutcomeEvent {
+  id: string;
+  case_id: string;
+  account_id?: string | null;
+  outcome_type?: string | null;
+  outcome_date: string;
+  notes?: string | null;
+  visible_to_client: boolean;
+  created_at: string;
+  updated_at: string;
+  created_by?: string | null;
+  updated_by?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+}
+
+export interface CaseTopicDefinition {
+  id: string;
+  account_id?: string | null;
+  name: string;
+  normalized_name: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CaseTopicEvent {
+  id: string;
+  case_id: string;
+  account_id?: string | null;
+  topic_definition_id: string;
+  topic_name?: string;
+  discussed_at: string;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by?: string | null;
+  updated_by?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+}
+
+export interface CaseDocument {
+  id: string;
+  case_id: string;
+  account_id?: string | null;
+  document_name: string;
+  file_name?: string | null;
+  original_filename?: string | null;
+  document_type?: string | null;
+  description?: string | null;
+  file_path?: string | null;
+  file_size?: number | null;
+  mime_type?: string | null;
+  visible_to_client: boolean;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+  uploaded_at?: string;
+  uploaded_by?: string | null;
+  updated_by?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+}
+
+export type CaseTimelineEventType = 'note' | 'outcome' | 'topic' | 'document';
+
+export interface CaseTimelineEvent {
+  id: string;
+  type: CaseTimelineEventType;
+  case_id: string;
+  created_at: string;
+  visible_to_client: boolean;
+  title: string;
+  content?: string | null;
+  metadata?: Record<string, unknown>;
+  created_by?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
 }
 
 export type RelationshipType = 'duplicate' | 'related' | 'parent' | 'child' | 'blocked_by' | 'blocks';
@@ -205,6 +301,7 @@ export interface CreateCaseDTO {
   custom_data?: Record<string, unknown>;
   tags?: string[];
   is_urgent?: boolean;
+  client_viewable?: boolean;
 }
 
 /**
@@ -223,6 +320,7 @@ export interface UpdateCaseDTO {
   custom_data?: Record<string, unknown>;
   tags?: string[];
   is_urgent?: boolean;
+  client_viewable?: boolean;
   requires_followup?: boolean;
   followup_date?: string;
 }
@@ -288,10 +386,61 @@ export interface CreateCaseNoteDTO {
   case_id: string;
   note_type: NoteType;
   subject?: string;
+  category?: string;
   content: string;
   is_internal?: boolean;
+  visible_to_client?: boolean;
+  is_portal_visible?: boolean;
   is_important?: boolean;
   attachments?: unknown[];
+}
+
+export interface UpdateCaseNoteDTO {
+  note_type?: NoteType;
+  subject?: string;
+  category?: string | null;
+  content?: string;
+  is_internal?: boolean;
+  visible_to_client?: boolean;
+  is_portal_visible?: boolean;
+  is_important?: boolean;
+  attachments?: unknown[] | null;
+}
+
+export interface CreateCaseOutcomeDTO {
+  outcome_type?: string;
+  outcome_date?: string;
+  notes?: string;
+  visible_to_client?: boolean;
+  is_portal_visible?: boolean;
+}
+
+export interface UpdateCaseOutcomeDTO {
+  outcome_type?: string | null;
+  outcome_date?: string;
+  notes?: string | null;
+  visible_to_client?: boolean;
+  is_portal_visible?: boolean;
+}
+
+export interface CreateCaseTopicDefinitionDTO {
+  name: string;
+}
+
+export interface CreateCaseTopicEventDTO {
+  topic_definition_id?: string;
+  topic_name?: string;
+  discussed_at?: string;
+  notes?: string;
+}
+
+export interface UpdateCaseDocumentDTO {
+  document_name?: string;
+  document_type?: string | null;
+  description?: string | null;
+  visible_to_client?: boolean;
+  is_portal_visible?: boolean;
+  is_active?: boolean;
 }
 
 /**
@@ -418,6 +567,11 @@ export interface CasesState {
   caseServices: CaseService[];
   caseOutcomeDefinitions?: OutcomeDefinition[];
   interactionOutcomeImpacts?: Record<string, InteractionOutcomeImpact[]>;
+  caseOutcomes?: CaseOutcomeEvent[];
+  caseTopicDefinitions?: CaseTopicDefinition[];
+  caseTopicEvents?: CaseTopicEvent[];
+  caseDocuments?: CaseDocument[];
+  caseTimeline?: CaseTimelineEvent[];
   summary: CaseSummary | null;
   total: number;
   loading: boolean;

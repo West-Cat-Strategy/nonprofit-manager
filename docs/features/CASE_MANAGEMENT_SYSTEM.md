@@ -1,8 +1,9 @@
 # Case Management System
 
 **Nonprofit Manager - Comprehensive CRM Case Management**
-**Version:** 1.0
+**Version:** 2.0
 **Created:** February 2, 2026
+**Last Updated:** February 23, 2026
 
 ---
 
@@ -304,6 +305,62 @@ Interaction-level outcome tags with:
 
 ---
 
+## 2026 Client Visibility + Case File Updates (v2)
+
+### New Data Controls
+- `cases.client_viewable` gates portal case access
+- `case_notes.visible_to_client` controls portal note visibility
+- `case_outcomes.visible_to_client` controls portal outcome visibility
+- `case_documents.visible_to_client` controls portal document visibility
+
+### New/Updated v2 Endpoints
+
+Staff case endpoints:
+- `GET /api/v2/cases/:id/timeline`
+- `PUT /api/v2/cases/:id/client-viewable`
+- `PUT /api/v2/cases/notes/:noteId`
+- `DELETE /api/v2/cases/notes/:noteId`
+- `GET/POST /api/v2/cases/:id/outcomes`
+- `PUT/DELETE /api/v2/cases/outcomes/:outcomeId`
+- `GET/POST /api/v2/cases/:id/topics/definitions`
+- `GET/POST /api/v2/cases/:id/topics`
+- `DELETE /api/v2/cases/topics/:topicEventId`
+- `GET/POST /api/v2/cases/:id/documents`
+- `PUT/DELETE /api/v2/cases/:id/documents/:documentId`
+- `GET /api/v2/cases/:id/documents/:documentId/download`
+
+Portal case endpoints:
+- `GET /api/v2/portal/cases`
+- `GET /api/v2/portal/cases/:id`
+- `GET /api/v2/portal/cases/:id/timeline`
+- `GET /api/v2/portal/cases/:id/documents`
+- `GET /api/v2/portal/cases/:id/documents/:documentId/download`
+
+### Timeline Behavior
+Staff timeline aggregates:
+- notes
+- outcomes
+- topics
+- documents
+
+Portal timeline is filtered to client-visible records only:
+- notes (`visible_to_client=true`)
+- outcomes (`visible_to_client=true`)
+- documents (`visible_to_client=true`)
+
+### File Handling
+Case document uploads reuse platform upload/security middleware:
+- MIME whitelist
+- 10MB max size
+- randomized storage keys
+- storage outside public web root
+- authenticated streaming downloads
+
+For full details and QA matrix, see:
+- `docs/features/CASE_CLIENT_VISIBILITY_AND_FILES.md`
+
+---
+
 ## Usage Examples
 
 ### 1. Create a New Case
@@ -602,6 +659,6 @@ curl -X POST localhost:3000/api/cases \
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** February 2, 2026
-**System Status:** ✅ Backend Complete, Frontend In Progress
+**Document Version:** 2.0
+**Last Updated:** February 23, 2026
+**System Status:** ✅ Backend + Frontend + Portal Visibility Implemented

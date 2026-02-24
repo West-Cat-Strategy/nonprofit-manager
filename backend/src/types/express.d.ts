@@ -1,4 +1,5 @@
 import 'express-serve-static-core';
+import type { AuthorizationRequestContext } from '@app-types/authorization';
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -8,5 +9,6 @@ declare module 'express-serve-static-core' {
       email: string;
       role: string;
     };
+    authorizationContext?: AuthorizationRequestContext;
   }
 }

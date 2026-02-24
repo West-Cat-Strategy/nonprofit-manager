@@ -89,12 +89,11 @@ export const resetPassword = async (
     const success = await passwordResetService.resetPassword(token, password);
 
     if (!success) {
-      return res.status(400).json({
-        error: {
-          message: 'Invalid or expired reset token. Please request a new password reset.',
-          code: 'INVALID_TOKEN',
-        },
-      });
+      return badRequest(
+        res,
+        'Invalid or expired reset token. Please request a new password reset.',
+        { code: 'invalid_token' }
+      );
     }
 
     return res.json({

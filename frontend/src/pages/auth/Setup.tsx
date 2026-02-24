@@ -7,6 +7,8 @@ import React, { useState } from 'react';
 import { isAxiosError } from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { unwrapApiData } from '../../services/apiEnvelope';
+import type { ApiEnvelope } from '../../services/apiEnvelope';
 import ErrorBanner from '../../components/ErrorBanner';
 import { useApiError } from '../../hooks/useApiError';
 import { useAppDispatch } from '../../store/hooks';
@@ -114,7 +116,7 @@ const Setup: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await api.post('/auth/setup', {
+      const response = await api.post<ApiEnvelope<{ organizationId?: string }>>('/auth/setup', {
         email: formData.email.trim(),
         password: formData.password,
         password_confirm: formData.confirmPassword,
@@ -122,14 +124,23 @@ const Setup: React.FC = () => {
         last_name: formData.lastName.trim(),
         organization_name: formData.organizationName.trim(),
       });
+      const setupPayload = unwrapApiData(response.data);
 
-      if (response.data.organizationId) {
-        localStorage.setItem('organizationId', response.data.organizationId);
+      if (setupPayload.organizationId) {
+        localStorage.setItem('organizationId', setupPayload.organizationId);
       }
 
       // Hydrate Redux auth state so route protection works.
-      const me = await api.get('/auth/me');
-      dispatch(setCredentials({ user: me.data }));
+      const me = await api.get<ApiEnvelope<Record<string, unknown>>>('/auth/me');
+      const mePayload = unwrapApiData(me.data) as {
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        role: string;
+        profilePicture?: string | null;
+      };
+      dispatch(setCredentials({ user: mePayload }));
 
       // Redirect to dashboard
       navigate('/dashboard');

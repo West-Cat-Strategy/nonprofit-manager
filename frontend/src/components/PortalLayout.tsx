@@ -13,6 +13,7 @@ const navItems = [
   { label: 'People', path: '/portal/people' },
   { label: 'Events', path: '/portal/events' },
   { label: 'Messages', path: '/portal/messages' },
+  { label: 'Cases', path: '/portal/cases' },
   { label: 'Appointments', path: '/portal/appointments' },
   { label: 'Documents', path: '/portal/documents' },
   { label: 'Notes', path: '/portal/notes' },

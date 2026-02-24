@@ -4,25 +4,22 @@
  */
 
 import { Router } from 'express';
-import { body } from 'express-validator';
+import { z } from 'zod';
 import { exportBackup } from '@controllers/domains/core';
 import { authenticate, authorize } from '@middleware/domains/auth';
-import { validateRequest } from '@middleware/domains/security';
+import { validateBody } from '@middleware/zodValidation';
 
 const router = Router();
+
+const backupExportSchema = z.object({
+  filename: z.string().optional(),
+  include_secrets: z.coerce.boolean().optional(),
+  compress: z.coerce.boolean().optional(),
+});
 
 router.use(authenticate);
 router.use(authorize('admin'));
 
-router.post(
-  '/export',
-  [
-    body('filename').optional().isString(),
-    body('include_secrets').optional().isBoolean(),
-    body('compress').optional().isBoolean(),
-  ],
-  validateRequest,
-  exportBackup
-);
+router.post('/export', validateBody(backupExportSchema), exportBackup);
 
 export default router;

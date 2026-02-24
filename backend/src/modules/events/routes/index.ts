@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import { body, param, query } from 'express-validator';
+import { z } from 'zod';
 import { services } from '@container/services';
 import { authenticate } from '@middleware/domains/auth';
 import { loadDataScope } from '@middleware/domains/data';
-import { validateRequest } from '@middleware/domains/security';
+import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
+import { uuidSchema } from '@validations/shared';
 import { createEventsController } from '../controllers/events.controller';
 import { EventRepository } from '../repositories/eventRepository';
 import { EventCatalogUseCase } from '../usecases/eventCatalog.usecase';
@@ -22,11 +23,149 @@ const eventTypeValues = [
   'volunteer',
   'social',
   'other',
-];
-const eventStatusValues = ['planned', 'active', 'completed', 'cancelled', 'postponed'];
-const registrationStatusValues = ['registered', 'waitlisted', 'cancelled', 'confirmed', 'no_show'];
-const recurrencePatternValues = ['daily', 'weekly', 'monthly', 'yearly'];
-const reminderTimingTypeValues = ['relative', 'absolute'];
+] as const;
+const eventStatusValues = ['planned', 'active', 'completed', 'cancelled', 'postponed'] as const;
+const registrationStatusValues = ['registered', 'waitlisted', 'cancelled', 'confirmed', 'no_show'] as const;
+const recurrencePatternValues = ['daily', 'weekly', 'monthly', 'yearly'] as const;
+const reminderTimingTypeValues = ['relative', 'absolute'] as const;
+
+const dateStringSchema = z
+  .string()
+  .refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid ISO8601 date');
+
+const eventIdParamsSchema = z.object({
+  id: uuidSchema,
+});
+
+const eventAutomationParamsSchema = z.object({
+  id: uuidSchema,
+  automationId: uuidSchema,
+});
+
+const listEventsQuerySchema = z.object({
+  event_type: z.enum(eventTypeValues).optional(),
+  status: z.enum(eventStatusValues).optional(),
+  is_public: z.coerce.boolean().optional(),
+  start_date: dateStringSchema.optional(),
+  end_date: dateStringSchema.optional(),
+  search: z.string().optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  sort_by: z
+    .enum(['start_date', 'end_date', 'created_at', 'updated_at', 'name', 'status', 'event_type'])
+    .optional(),
+  sort_order: z.enum(['asc', 'desc']).optional(),
+});
+
+const createEventSchema = z.object({
+  event_name: z.string().trim().min(1),
+  description: z.string().optional(),
+  event_type: z.enum(eventTypeValues),
+  start_date: dateStringSchema,
+  end_date: dateStringSchema,
+  location_name: z.string().optional(),
+  address_line1: z.string().optional(),
+  address_line2: z.string().optional(),
+  city: z.string().optional(),
+  state_province: z.string().optional(),
+  postal_code: z.string().optional(),
+  country: z.string().optional(),
+  capacity: z.coerce.number().int().min(1).optional(),
+  status: z.enum(eventStatusValues).optional(),
+  is_public: z.coerce.boolean().optional(),
+  is_recurring: z.coerce.boolean().optional(),
+  recurrence_pattern: z.enum(recurrencePatternValues).optional(),
+  recurrence_interval: z.coerce.number().int().min(1).optional(),
+  recurrence_end_date: dateStringSchema.optional(),
+});
+
+const updateEventSchema = z.object({
+  event_name: z.string().trim().min(1).optional(),
+  description: z.string().optional(),
+  event_type: z.enum(eventTypeValues).optional(),
+  status: z.enum(eventStatusValues).optional(),
+  start_date: dateStringSchema.optional(),
+  end_date: dateStringSchema.optional(),
+  location_name: z.string().optional(),
+  address_line1: z.string().optional(),
+  address_line2: z.string().optional(),
+  city: z.string().optional(),
+  state_province: z.string().optional(),
+  postal_code: z.string().optional(),
+  country: z.string().optional(),
+  capacity: z.coerce.number().int().min(1).optional(),
+  is_public: z.coerce.boolean().optional(),
+  is_recurring: z.coerce.boolean().optional(),
+  recurrence_pattern: z.enum(recurrencePatternValues).optional(),
+  recurrence_interval: z.coerce.number().int().min(1).optional(),
+  recurrence_end_date: dateStringSchema.optional(),
+});
+
+const listEventRegistrationsQuerySchema = z.object({
+  status: z.enum(registrationStatusValues).optional(),
+  registration_status: z.enum(registrationStatusValues).optional(),
+  checked_in: z.coerce.boolean().optional(),
+});
+
+const listRegistrationsQuerySchema = z.object({
+  event_id: uuidSchema.optional(),
+  contact_id: uuidSchema.optional(),
+  status: z.enum(registrationStatusValues).optional(),
+  registration_status: z.enum(registrationStatusValues).optional(),
+  checked_in: z.coerce.boolean().optional(),
+});
+
+const createRegistrationSchema = z.object({
+  contact_id: uuidSchema,
+  registration_status: z.enum(registrationStatusValues).optional(),
+  notes: z.string().optional(),
+});
+
+const updateRegistrationSchema = z.object({
+  registration_status: z.enum(registrationStatusValues).optional(),
+  notes: z.string().optional(),
+});
+
+const sendRemindersSchema = z.object({
+  sendEmail: z.coerce.boolean().optional(),
+  sendSms: z.coerce.boolean().optional(),
+  customMessage: z.string().max(500).optional(),
+});
+
+const createAutomationSchema = z.object({
+  timingType: z.enum(reminderTimingTypeValues),
+  relativeMinutesBefore: z.coerce.number().int().min(1).optional(),
+  absoluteSendAt: dateStringSchema.optional(),
+  sendEmail: z.coerce.boolean().optional(),
+  sendSms: z.coerce.boolean().optional(),
+  customMessage: z.string().max(500).optional(),
+  timezone: z.string().min(1).max(64).optional(),
+});
+
+const updateAutomationSchema = z.object({
+  timingType: z.enum(reminderTimingTypeValues).optional(),
+  relativeMinutesBefore: z.coerce.number().int().min(1).optional(),
+  absoluteSendAt: dateStringSchema.optional(),
+  sendEmail: z.coerce.boolean().optional(),
+  sendSms: z.coerce.boolean().optional(),
+  customMessage: z.string().max(500).optional(),
+  timezone: z.string().min(1).max(64).optional(),
+  isActive: z.coerce.boolean().optional(),
+});
+
+const syncAutomationsSchema = z.object({
+  items: z.array(
+    z.object({
+      timingType: z.enum(reminderTimingTypeValues),
+      relativeMinutesBefore: z.coerce.number().int().min(1).optional(),
+      absoluteSendAt: dateStringSchema.optional(),
+      sendEmail: z.coerce.boolean().optional(),
+      sendSms: z.coerce.boolean().optional(),
+      customMessage: z.string().max(500).optional(),
+      timezone: z.string().min(1).max(64).optional(),
+    })
+  ),
+});
 
 export const createEventsV2Routes = (): Router => {
   const repository = new EventRepository(services.event);
@@ -40,205 +179,62 @@ export const createEventsV2Routes = (): Router => {
   eventsV2Routes.use(authenticate);
   eventsV2Routes.use(loadDataScope('events'));
 
-  eventsV2Routes.get(
-  '/',
-  [
-    query('event_type').optional().isIn(eventTypeValues),
-    query('status').optional().isIn(eventStatusValues),
-    query('is_public').optional().isBoolean(),
-    query('start_date').optional().isISO8601(),
-    query('end_date').optional().isISO8601(),
-    query('search').optional().isString(),
-    query('page').optional().isInt({ min: 1 }),
-    query('limit').optional().isInt({ min: 1, max: 100 }),
-    query('sort_by').optional().isIn(['start_date', 'end_date', 'created_at', 'updated_at', 'name', 'status', 'event_type']),
-    query('sort_order').optional().isIn(['asc', 'desc']),
-  ],
-  validateRequest,
-  controller.getEvents
-);
+  eventsV2Routes.get('/', validateQuery(listEventsQuerySchema), controller.getEvents);
 
   eventsV2Routes.get('/summary', controller.getSummary);
-  eventsV2Routes.get('/:id', [param('id').isUUID()], validateRequest, controller.getEvent);
+  eventsV2Routes.get('/:id', validateParams(eventIdParamsSchema), controller.getEvent);
 
-  eventsV2Routes.post(
-  '/',
-  [
-    body('event_name').isString().trim().notEmpty(),
-    body('description').optional().isString(),
-    body('event_type').isIn(eventTypeValues),
-    body('start_date').isISO8601(),
-    body('end_date').isISO8601(),
-    body('location_name').optional().isString(),
-    body('address_line1').optional().isString(),
-    body('address_line2').optional().isString(),
-    body('city').optional().isString(),
-    body('state_province').optional().isString(),
-    body('postal_code').optional().isString(),
-    body('country').optional().isString(),
-    body('capacity').optional().isInt({ min: 1 }),
-    body('status').optional().isIn(eventStatusValues),
-    body('is_public').optional().isBoolean(),
-    body('is_recurring').optional().isBoolean(),
-    body('recurrence_pattern').optional().isIn(recurrencePatternValues),
-    body('recurrence_interval').optional().isInt({ min: 1 }),
-    body('recurrence_end_date').optional().isISO8601(),
-  ],
-  validateRequest,
-  controller.createEvent
-);
+  eventsV2Routes.post('/', validateBody(createEventSchema), controller.createEvent);
 
-  eventsV2Routes.put(
-  '/:id',
-  [
-    param('id').isUUID(),
-    body('event_name').optional().isString().trim().notEmpty(),
-    body('description').optional().isString(),
-    body('event_type').optional().isIn(eventTypeValues),
-    body('status').optional().isIn(eventStatusValues),
-    body('start_date').optional().isISO8601(),
-    body('end_date').optional().isISO8601(),
-    body('location_name').optional().isString(),
-    body('address_line1').optional().isString(),
-    body('address_line2').optional().isString(),
-    body('city').optional().isString(),
-    body('state_province').optional().isString(),
-    body('postal_code').optional().isString(),
-    body('country').optional().isString(),
-    body('capacity').optional().isInt({ min: 1 }),
-    body('is_public').optional().isBoolean(),
-    body('is_recurring').optional().isBoolean(),
-    body('recurrence_pattern').optional().isIn(recurrencePatternValues),
-    body('recurrence_interval').optional().isInt({ min: 1 }),
-    body('recurrence_end_date').optional().isISO8601(),
-  ],
-  validateRequest,
-  controller.updateEvent
-);
+  eventsV2Routes.put('/:id', validateParams(eventIdParamsSchema), validateBody(updateEventSchema), controller.updateEvent);
 
-  eventsV2Routes.delete('/:id', [param('id').isUUID()], validateRequest, controller.deleteEvent);
+  eventsV2Routes.delete('/:id', validateParams(eventIdParamsSchema), controller.deleteEvent);
 
   eventsV2Routes.get(
-  '/:id/registrations',
-  [
-    param('id').isUUID(),
-    query('status').optional().isIn(registrationStatusValues),
-    query('registration_status').optional().isIn(registrationStatusValues),
-    query('checked_in').optional().isBoolean(),
-  ],
-  validateRequest,
-  controller.listRegistrations
-);
+    '/:id/registrations',
+    validateParams(eventIdParamsSchema),
+    validateQuery(listEventRegistrationsQuerySchema),
+    controller.listRegistrations
+  );
 
-  eventsV2Routes.get(
-  '/registrations',
-  [
-    query('event_id').optional().isUUID(),
-    query('contact_id').optional().isUUID(),
-    query('status').optional().isIn(registrationStatusValues),
-    query('registration_status').optional().isIn(registrationStatusValues),
-    query('checked_in').optional().isBoolean(),
-  ],
-  validateRequest,
-  controller.listRegistrations
-);
+  eventsV2Routes.get('/registrations', validateQuery(listRegistrationsQuerySchema), controller.listRegistrations);
+
+  eventsV2Routes.post('/:id/register', validateParams(eventIdParamsSchema), validateBody(createRegistrationSchema), controller.register);
+
+  eventsV2Routes.put('/registrations/:id', validateParams(eventIdParamsSchema), validateBody(updateRegistrationSchema), controller.updateRegistration);
+
+  eventsV2Routes.post('/registrations/:id/check-in', validateParams(eventIdParamsSchema), controller.checkIn);
+  eventsV2Routes.post('/registrations/:id/checkin', validateParams(eventIdParamsSchema), controller.checkIn);
+  eventsV2Routes.delete('/registrations/:id', validateParams(eventIdParamsSchema), controller.cancelRegistration);
+
+  eventsV2Routes.post('/:id/reminders/send', validateParams(eventIdParamsSchema), validateBody(sendRemindersSchema), controller.sendReminders);
+
+  eventsV2Routes.get('/:id/reminder-automations', validateParams(eventIdParamsSchema), controller.listAutomations);
 
   eventsV2Routes.post(
-  '/:id/register',
-  [
-    param('id').isUUID(),
-    body('contact_id').isUUID(),
-    body('registration_status').optional().isIn(registrationStatusValues),
-    body('notes').optional().isString(),
-  ],
-  validateRequest,
-  controller.register
-);
-
-  eventsV2Routes.put(
-  '/registrations/:id',
-  [
-    param('id').isUUID(),
-    body('registration_status').optional().isIn(registrationStatusValues),
-    body('notes').optional().isString(),
-  ],
-  validateRequest,
-  controller.updateRegistration
-);
-
-  eventsV2Routes.post('/registrations/:id/check-in', [param('id').isUUID()], validateRequest, controller.checkIn);
-  eventsV2Routes.post('/registrations/:id/checkin', [param('id').isUUID()], validateRequest, controller.checkIn);
-  eventsV2Routes.delete('/registrations/:id', [param('id').isUUID()], validateRequest, controller.cancelRegistration);
-
-  eventsV2Routes.post(
-  '/:id/reminders/send',
-  [
-    param('id').isUUID(),
-    body('sendEmail').optional().isBoolean(),
-    body('sendSms').optional().isBoolean(),
-    body('customMessage').optional().isString().isLength({ max: 500 }),
-  ],
-  validateRequest,
-  controller.sendReminders
-);
-
-  eventsV2Routes.get('/:id/reminder-automations', [param('id').isUUID()], validateRequest, controller.listAutomations);
-
-  eventsV2Routes.post(
-  '/:id/reminder-automations',
-  [
-    param('id').isUUID(),
-    body('timingType').isIn(reminderTimingTypeValues),
-    body('relativeMinutesBefore').optional().isInt({ min: 1 }),
-    body('absoluteSendAt').optional().isISO8601(),
-    body('sendEmail').optional().isBoolean(),
-    body('sendSms').optional().isBoolean(),
-    body('customMessage').optional().isString().isLength({ max: 500 }),
-    body('timezone').optional().isString().isLength({ min: 1, max: 64 }),
-  ],
-  validateRequest,
-  controller.createAutomation
-);
+    '/:id/reminder-automations',
+    validateParams(eventIdParamsSchema),
+    validateBody(createAutomationSchema),
+    controller.createAutomation
+  );
 
   eventsV2Routes.patch(
-  '/:id/reminder-automations/:automationId',
-  [
-    param('id').isUUID(),
-    param('automationId').isUUID(),
-    body('timingType').optional().isIn(reminderTimingTypeValues),
-    body('relativeMinutesBefore').optional().isInt({ min: 1 }),
-    body('absoluteSendAt').optional().isISO8601(),
-    body('sendEmail').optional().isBoolean(),
-    body('sendSms').optional().isBoolean(),
-    body('customMessage').optional().isString().isLength({ max: 500 }),
-    body('timezone').optional().isString().isLength({ min: 1, max: 64 }),
-    body('isActive').optional().isBoolean(),
-  ],
-  validateRequest,
-  controller.updateAutomation
-);
+    '/:id/reminder-automations/:automationId',
+    validateParams(eventAutomationParamsSchema),
+    validateBody(updateAutomationSchema),
+    controller.updateAutomation
+  );
 
   eventsV2Routes.post(
-  '/:id/reminder-automations/:automationId/cancel',
-  [param('id').isUUID(), param('automationId').isUUID()],
-  validateRequest,
-  controller.cancelAutomation
-);
+    '/:id/reminder-automations/:automationId/cancel',
+    validateParams(eventAutomationParamsSchema),
+    controller.cancelAutomation
+  );
 
   eventsV2Routes.put(
-  '/:id/reminder-automations/sync',
-  [
-    param('id').isUUID(),
-    body('items').isArray(),
-    body('items.*.timingType').isIn(reminderTimingTypeValues),
-    body('items.*.relativeMinutesBefore').optional().isInt({ min: 1 }),
-    body('items.*.absoluteSendAt').optional().isISO8601(),
-    body('items.*.sendEmail').optional().isBoolean(),
-    body('items.*.sendSms').optional().isBoolean(),
-    body('items.*.customMessage').optional().isString().isLength({ max: 500 }),
-    body('items.*.timezone').optional().isString().isLength({ min: 1, max: 64 }),
-  ],
-  validateRequest,
+    '/:id/reminder-automations/sync',
+    validateParams(eventIdParamsSchema),
+    validateBody(syncAutomationsSchema),
     controller.syncAutomations
   );
 

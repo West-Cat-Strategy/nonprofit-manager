@@ -129,7 +129,13 @@ describe('Auth API Integration Tests', () => {
         })
         .expect(401);
 
-      expect(response.body.error).toMatch(/invalid.*credentials/i);
+      expect(response.body).toMatchObject({
+        success: false,
+        error: {
+          code: 'unauthorized',
+        },
+      });
+      expect(response.body.error.message).toMatch(/invalid.*credentials/i);
     });
 
     it('should reject non-existent user', async () => {
@@ -141,7 +147,13 @@ describe('Auth API Integration Tests', () => {
         })
         .expect(401);
 
-      expect(response.body.error).toMatch(/invalid.*credentials/i);
+      expect(response.body).toMatchObject({
+        success: false,
+        error: {
+          code: 'unauthorized',
+        },
+      });
+      expect(response.body.error.message).toMatch(/invalid.*credentials/i);
     });
 
     it('should return valid JWT token', async () => {
@@ -189,6 +201,38 @@ describe('Auth API Integration Tests', () => {
         .get('/api/auth/me')
         .set('Authorization', 'InvalidFormat')
         .expect(401);
+    });
+  });
+
+  describe('GET /api/auth/check-access', () => {
+    it('should require authentication', async () => {
+      await request(app).get('/api/auth/check-access').expect(401);
+    });
+
+    it('should return authorization matrix for authenticated user', async () => {
+      const response = await request(app)
+        .get('/api/auth/check-access')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        success: true,
+        data: {
+          user: {
+            id: expect.any(String),
+            primaryRole: expect.any(String),
+            roles: expect.any(Array),
+          },
+          matrix: {
+            staticPermissions: expect.any(Object),
+            analyticsCapabilities: expect.any(Object),
+            dbPermissions: expect.any(Object),
+            fieldAccess: expect.any(Object),
+          },
+          generatedAt: expect.any(String),
+          policyVersion: expect.any(String),
+        },
+      });
     });
   });
 
