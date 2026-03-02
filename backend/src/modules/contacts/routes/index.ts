@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
 import { loadDataScope } from '@middleware/domains/data';
+import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import { documentUpload, handleMulterError } from '@middleware/domains/platform';
 import {
@@ -67,6 +68,7 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
   );
 
   router.use(authenticate);
+  router.use(requireActiveOrganizationContext);
   router.use(loadDataScope('contacts'));
 
   router.get('/', validateQuery(contactFilterSchema), directoryController.getContacts);

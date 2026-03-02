@@ -18,6 +18,20 @@ process.env.DATABASE_URL = process.env.DATABASE_URL
   || `postgres://${process.env.DB_USER || 'postgres'}:${process.env.DB_PASSWORD || 'postgres'}@${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || '5432'}/${process.env.DB_NAME || 'nonprofit_manager'}`;
 
 beforeAll(async () => {
+  const setupFlag = '__NONPROFIT_MANAGER_DB_COMPAT_SETUP_DONE__';
+  const globalWithSetupFlag = globalThis as Record<string, unknown>;
+
+  if (globalWithSetupFlag[setupFlag] === true) {
+    return;
+  }
+
+  // Avoid concurrent DDL across parallel Jest workers; one pass is sufficient.
+  if (process.env.JEST_WORKER_ID && process.env.JEST_WORKER_ID !== '1') {
+    return;
+  }
+
+  globalWithSetupFlag[setupFlag] = true;
+
   try {
     // Keep integration tests resilient when local test DB lags behind recent migrations.
     await pool.query(`

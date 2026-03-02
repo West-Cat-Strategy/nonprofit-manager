@@ -58,12 +58,24 @@ interface ChallengeRow {
   expires_at: Date;
 }
 
-const issueAuthTokens = (user: { id: string; email: string; role: string }) => {
+const issueAuthTokens = (
+  user: { id: string; email: string; role: string },
+  organizationId?: string | null
+) => {
   const jwtSecret = getJwtSecret();
   return {
-    token: jwt.sign({ id: user.id, email: user.email, role: user.role }, jwtSecret, {
-      expiresIn: JWT.ACCESS_TOKEN_EXPIRY,
-    }),
+    token: jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        ...(organizationId ? { organizationId } : {}),
+      },
+      jwtSecret,
+      {
+        expiresIn: JWT.ACCESS_TOKEN_EXPIRY,
+      }
+    ),
     refreshToken: jwt.sign({ id: user.id, type: 'refresh' }, jwtSecret, {
       expiresIn: JWT.REFRESH_TOKEN_EXPIRY,
     }),
@@ -75,6 +87,7 @@ const getDefaultOrganizationId = async (): Promise<string | null> => {
     `SELECT id
      FROM accounts
      WHERE account_type = 'organization'
+       AND COALESCE(is_active, true) = true
      ORDER BY created_at ASC
      LIMIT 1`
   );
@@ -412,10 +425,10 @@ export const loginVerify = async (
 
     await trackLoginAttempt(email, true, user.id, clientIp);
 
-    const { token, refreshToken } = issueAuthTokens(user);
+    const organizationId = await getDefaultOrganizationId();
+    const { token, refreshToken } = issueAuthTokens(user, organizationId);
     setAuthCookie(res, token);
     setRefreshCookie(res, refreshToken);
-    const organizationId = await getDefaultOrganizationId();
     return res.json({
       ...buildAuthTokenResponse(token, refreshToken),
       organizationId,

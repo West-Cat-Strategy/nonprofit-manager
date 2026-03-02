@@ -7,19 +7,94 @@ import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { logger } from '@config/logger';
 import { stripeService } from '@services/domains/operations';
+import { appendAuditLog } from '@services/auditService';
 import type { AuthRequest } from '@middleware/auth';
 import type {
   CreatePaymentIntentRequest,
   RefundRequest,
   CreateCustomerRequest,
+  WebhookEvent,
 } from '@app-types/payment';
 import { badRequest, serverError } from '@utils/responseHelpers';
+import { sendProviderAck, sendSuccess } from '@modules/shared/http/envelope';
 
 // Database pool
 let pool: Pool;
+const PROVIDER_STRIPE = 'stripe';
 
 export const setPaymentPool = (dbPool: Pool): void => {
   pool = dbPool;
+};
+
+const isMissingTableError = (error: unknown): boolean => {
+  return typeof error === 'object' && error !== null && (error as { code?: string }).code === '42P01';
+};
+
+const getRequestUserAgent = (req: Request): string | null => {
+  const userAgent = req.headers['user-agent'];
+  if (Array.isArray(userAgent)) {
+    return userAgent[0] || null;
+  }
+  return userAgent || null;
+};
+
+const getRequestIp = (req: Request): string | null => {
+  return req.ip || req.connection.remoteAddress || null;
+};
+
+const registerPaymentWebhookReceipt = async (
+  eventId: string,
+  eventType: string
+): Promise<{ duplicate: boolean }> => {
+  if (!pool) {
+    return { duplicate: false };
+  }
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO payment_webhook_receipts (provider, event_id, event_type, processing_status)
+       VALUES ($1, $2, $3, 'received')
+       ON CONFLICT (provider, event_id) DO NOTHING
+       RETURNING id`,
+      [PROVIDER_STRIPE, eventId, eventType]
+    );
+    return { duplicate: (result.rowCount ?? 0) === 0 };
+  } catch (error) {
+    if (isMissingTableError(error)) {
+      logger.warn('payment_webhook_receipts table missing; skipping idempotency check');
+      return { duplicate: false };
+    }
+    throw error;
+  }
+};
+
+const markPaymentWebhookReceiptStatus = async (
+  eventId: string,
+  status: 'processed' | 'failed',
+  errorMessage?: string
+): Promise<void> => {
+  if (!pool) return;
+
+  try {
+    await pool.query(
+      `UPDATE payment_webhook_receipts
+       SET processing_status = $3,
+           processed_at = CASE WHEN $3 = 'processed' THEN NOW() ELSE processed_at END,
+           error_message = CASE WHEN $3 = 'failed' THEN LEFT($4, 1000) ELSE NULL END
+       WHERE provider = $1
+         AND event_id = $2`,
+      [PROVIDER_STRIPE, eventId, status, errorMessage || null]
+    );
+  } catch (error) {
+    if (isMissingTableError(error)) {
+      return;
+    }
+    logger.warn('Failed to update payment webhook receipt status', {
+      eventId,
+      status,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 };
 
 /**
@@ -27,7 +102,7 @@ export const setPaymentPool = (dbPool: Pool): void => {
  */
 export const getPaymentConfig = async (_req: Request, res: Response): Promise<void> => {
   try {
-    res.json({
+    sendSuccess(res, {
       stripe: {
         configured: stripeService.isStripeConfigured(),
         publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || null,
@@ -68,22 +143,25 @@ export const createPaymentIntent = async (req: AuthRequest, res: Response): Prom
       statementDescriptor: 'NONPROFIT DONATION',
     });
 
-    // Optionally log to audit table
+    // Append audit trail for mutating payment operations.
     if (pool && donationId) {
-      await pool.query(
-        `INSERT INTO audit_logs (action, resource_type, resource_id, user_id, details)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [
-          'payment_intent_created',
-          'donation',
-          donationId,
-          req.user?.id || null,
-          JSON.stringify({ paymentIntentId: paymentIntent.id, amount }),
-        ]
-      ).catch((err) => logger.error('Failed to log payment intent creation', { err }));
+      await appendAuditLog(pool, {
+        action: 'payment_intent_created',
+        resourceType: 'donation',
+        resourceId: donationId,
+        userId: req.user?.id || null,
+        details: {
+          paymentIntentId: paymentIntent.id,
+          amount,
+          currency: currency || 'usd',
+        },
+        ipAddress: getRequestIp(req),
+        userAgent: getRequestUserAgent(req),
+        requestId: req.correlationId,
+      });
     }
 
-    res.status(201).json(paymentIntent);
+    sendSuccess(res, paymentIntent, 201);
   } catch (error) {
     logger.error('Error creating payment intent', { error });
     serverError(res, 'Failed to create payment intent');
@@ -103,7 +181,7 @@ export const getPaymentIntent = async (req: Request<{ id: string }>, res: Respon
     }
 
     const paymentIntent = await stripeService.getPaymentIntent(id);
-    res.json(paymentIntent);
+    sendSuccess(res, paymentIntent);
   } catch (error) {
     logger.error('Error getting payment intent', { error });
     serverError(res, 'Failed to get payment intent');
@@ -123,7 +201,7 @@ export const cancelPaymentIntent = async (req: Request<{ id: string }>, res: Res
     }
 
     const paymentIntent = await stripeService.cancelPaymentIntent(id);
-    res.json(paymentIntent);
+    sendSuccess(res, paymentIntent);
   } catch (error) {
     logger.error('Error canceling payment intent', { error });
     serverError(res, 'Failed to cancel payment intent');
@@ -148,22 +226,25 @@ export const createRefund = async (req: AuthRequest, res: Response): Promise<voi
       reason,
     });
 
-    // Log refund to audit
+    // Append audit trail for mutating payment operations.
     if (pool) {
-      await pool.query(
-        `INSERT INTO audit_logs (action, resource_type, resource_id, user_id, details)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [
-          'refund_created',
-          'payment',
-          paymentIntentId,
-          req.user?.id || null,
-          JSON.stringify({ refundId: refund.id, amount: refund.amount, reason }),
-        ]
-      ).catch((err) => logger.error('Failed to log refund creation', { err }));
+      await appendAuditLog(pool, {
+        action: 'refund_created',
+        resourceType: 'payment',
+        resourceId: paymentIntentId,
+        userId: req.user?.id || null,
+        details: {
+          refundId: refund.id,
+          amount: refund.amount,
+          reason,
+        },
+        ipAddress: getRequestIp(req),
+        userAgent: getRequestUserAgent(req),
+        requestId: req.correlationId,
+      });
     }
 
-    res.status(201).json(refund);
+    sendSuccess(res, refund, 201);
   } catch (error) {
     logger.error('Error creating refund', { error });
     serverError(res, 'Failed to create refund');
@@ -198,7 +279,7 @@ export const createCustomer = async (req: Request, res: Response): Promise<void>
       ).catch((err) => logger.error('Failed to update contact with Stripe customer ID', { err }));
     }
 
-    res.status(201).json(customer);
+    sendSuccess(res, customer, 201);
   } catch (error) {
     logger.error('Error creating customer', { error });
     serverError(res, 'Failed to create customer');
@@ -218,7 +299,7 @@ export const getCustomer = async (req: Request<{ id: string }>, res: Response): 
     }
 
     const customer = await stripeService.getCustomer(id);
-    res.json(customer);
+    sendSuccess(res, customer);
   } catch (error) {
     logger.error('Error getting customer', { error });
     serverError(res, 'Failed to get customer');
@@ -241,7 +322,7 @@ export const listPaymentMethods = async (
     }
 
     const paymentMethods = await stripeService.listPaymentMethods(customerId);
-    res.json(paymentMethods);
+    sendSuccess(res, paymentMethods);
   } catch (error) {
     logger.error('Error listing payment methods', { error });
     serverError(res, 'Failed to list payment methods');
@@ -264,29 +345,46 @@ export const handleWebhook = async (req: Request, res: Response): Promise<void> 
     return;
   }
 
+  let event: WebhookEvent;
   try {
-    const event = stripeService.constructWebhookEvent(req.body, signature);
+    event = stripeService.constructWebhookEvent(req.body, signature);
+  } catch (error) {
+    logger.warn('Webhook signature verification failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    badRequest(res, 'Webhook error');
+    return;
+  }
 
-    // Validate webhook timestamp (reject if >5 minutes old)
-    // This prevents replay attacks if a webhook is intercepted
-    const webhookMaxAge = 5 * 60 * 1000; // 5 minutes in milliseconds
-    const webhookAge = Date.now() - event.created.getTime();
-    
-    if (webhookAge > webhookMaxAge) {
-      logger.warn('Webhook rejected: too old', {
-        eventId: event.id,
-        eventType: event.type,
-        webhookAge,
-        maxAge: webhookMaxAge,
-      });
-      // Return 200 to prevent Stripe from retrying
-      res.json({ received: true, rejected: true });
-      return;
-    }
+  // Validate webhook timestamp (reject if >5 minutes old).
+  const webhookMaxAge = 5 * 60 * 1000;
+  const webhookAge = Date.now() - event.created.getTime();
+  if (webhookAge > webhookMaxAge) {
+    logger.warn('Webhook rejected: too old', {
+      eventId: event.id,
+      eventType: event.type,
+      webhookAge,
+      maxAge: webhookMaxAge,
+    });
+    // Return 200 to prevent retry storms for stale payloads.
+    sendProviderAck(res, { received: true, rejected: true });
+    return;
+  }
 
+  const receipt = await registerPaymentWebhookReceipt(event.id, event.type);
+  if (receipt.duplicate) {
+    logger.info('Duplicate Stripe webhook ignored', {
+      eventId: event.id,
+      eventType: event.type,
+    });
+    sendProviderAck(res, { received: true, duplicate: true });
+    return;
+  }
+
+  try {
     logger.info('Webhook received', { eventType: event.type, eventId: event.id, age: webhookAge });
 
-    // Handle different event types
+    // Handle different event types.
     switch (event.type) {
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object as { id: string; amount: number; metadata?: { donationId?: string } };
@@ -339,9 +437,17 @@ export const handleWebhook = async (req: Request, res: Response): Promise<void> 
         logger.debug('Unhandled webhook event type', { eventType: event.type });
     }
 
-    res.json({ received: true });
+    await markPaymentWebhookReceiptStatus(event.id, 'processed');
+    sendProviderAck(res, { received: true });
   } catch (error) {
-    logger.error('Webhook error', { error });
-    badRequest(res, 'Webhook error');
+    const message = error instanceof Error ? error.message : 'Unknown webhook processing error';
+    await markPaymentWebhookReceiptStatus(event.id, 'failed', message);
+    logger.error('Webhook processing failed', {
+      eventId: event.id,
+      eventType: event.type,
+      error: message,
+    });
+    // Preserve provider stability by acknowledging verified events.
+    sendProviderAck(res, { received: true, processingError: true });
   }
 };

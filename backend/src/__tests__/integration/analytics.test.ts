@@ -37,13 +37,9 @@ describe('Analytics API Integration Tests', () => {
   });
 
   afterAll(async () => {
-    try {
-      // Clean up test user - must delete in order to respect foreign keys
-      if (testUserId) {
-        await pool.query('DELETE FROM users WHERE id = $1', [testUserId]);
-      }
-    } finally {
-      await pool.end();
+    // Clean up test user - must delete in order to respect foreign keys
+    if (testUserId) {
+      await pool.query('DELETE FROM users WHERE id = $1', [testUserId]);
     }
   });
 

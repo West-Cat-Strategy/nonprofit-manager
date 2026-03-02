@@ -14,7 +14,8 @@ import type {
   UpdateApiKeyRequest,
 } from '@app-types/webhook';
 import { PAGINATION } from '@config/constants';
-import { badRequest, notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
+import { badRequest, noContent, notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
+import { sendSuccess } from '@modules/shared/http/envelope';
 
 // ==================== Webhook Endpoints ====================
 
@@ -30,7 +31,7 @@ export const getWebhookEndpoints = async (req: AuthRequest, res: Response): Prom
     }
 
     const endpoints = await webhookService.getWebhookEndpoints(userId);
-    res.json(endpoints);
+    sendSuccess(res, endpoints);
   } catch (error) {
     logger.error('Error getting webhook endpoints', { error });
     serverError(res, 'Failed to get webhook endpoints');
@@ -86,7 +87,7 @@ export const createWebhookEndpoint = async (req: AuthRequest, res: Response): Pr
       events,
     });
 
-    res.status(201).json(endpoint);
+    sendSuccess(res, endpoint, 201);
   } catch (error) {
     logger.error('Error creating webhook endpoint', { error });
     serverError(res, 'Failed to create webhook endpoint');
@@ -113,7 +114,7 @@ export const getWebhookEndpoint = async (req: AuthRequest, res: Response): Promi
       return;
     }
 
-    res.json(endpoint);
+    sendSuccess(res, endpoint);
   } catch (error) {
     logger.error('Error getting webhook endpoint', { error });
     serverError(res, 'Failed to get webhook endpoint');
@@ -162,7 +163,7 @@ export const updateWebhookEndpoint = async (req: AuthRequest, res: Response): Pr
       return;
     }
 
-    res.json(endpoint);
+    sendSuccess(res, endpoint);
   } catch (error) {
     logger.error('Error updating webhook endpoint', { error });
     serverError(res, 'Failed to update webhook endpoint');
@@ -189,7 +190,7 @@ export const deleteWebhookEndpoint = async (req: AuthRequest, res: Response): Pr
       return;
     }
 
-    res.status(204).send();
+    noContent(res);
   } catch (error) {
     logger.error('Error deleting webhook endpoint', { error });
     serverError(res, 'Failed to delete webhook endpoint');
@@ -216,7 +217,7 @@ export const regenerateWebhookSecret = async (req: AuthRequest, res: Response): 
       return;
     }
 
-    res.json({ secret });
+    sendSuccess(res, { secret });
   } catch (error) {
     logger.error('Error regenerating webhook secret', { error });
     serverError(res, 'Failed to regenerate webhook secret');
@@ -238,7 +239,7 @@ export const getWebhookDeliveries = async (req: AuthRequest, res: Response): Pro
     const limit = parseInt(req.query.limit as string) || PAGINATION.WEBHOOK_DEFAULT_LIMIT;
 
     const deliveries = await webhookService.getWebhookDeliveries(id, userId, limit);
-    res.json(deliveries);
+    sendSuccess(res, deliveries);
   } catch (error) {
     logger.error('Error getting webhook deliveries', { error });
     serverError(res, 'Failed to get webhook deliveries');
@@ -259,7 +260,7 @@ export const testWebhookEndpoint = async (req: AuthRequest, res: Response): Prom
     const { id } = req.params;
 
     const result = await webhookService.testWebhookEndpoint(id, userId);
-    res.json(result);
+    sendSuccess(res, result);
   } catch (error) {
     logger.error('Error testing webhook endpoint', { error });
     serverError(res, 'Failed to test webhook endpoint');
@@ -272,7 +273,7 @@ export const testWebhookEndpoint = async (req: AuthRequest, res: Response): Prom
 export const getAvailableWebhookEvents = async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
     const events = webhookService.getAvailableWebhookEvents();
-    res.json(events);
+    sendSuccess(res, events);
   } catch (error) {
     logger.error('Error getting available webhook events', { error });
     serverError(res, 'Failed to get available webhook events');
@@ -293,7 +294,7 @@ export const getApiKeys = async (req: AuthRequest, res: Response): Promise<void>
     }
 
     const keys = await apiKeyService.getApiKeys(userId);
-    res.json(keys);
+    sendSuccess(res, keys);
   } catch (error) {
     logger.error('Error getting API keys', { error });
     serverError(res, 'Failed to get API keys');
@@ -329,7 +330,7 @@ export const createApiKey = async (req: AuthRequest, res: Response): Promise<voi
       expiresAt: expiresAt ? new Date(expiresAt) : undefined,
     });
 
-    res.status(201).json(key);
+    sendSuccess(res, key, 201);
   } catch (error) {
     logger.error('Error creating API key', { error });
     serverError(res, 'Failed to create API key');
@@ -360,7 +361,7 @@ export const getApiKey = async (req: AuthRequest, res: Response): Promise<void> 
     // Omit keyHash from response
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { keyHash: _hash, ...safeKey } = key;
-    res.json(safeKey);
+    sendSuccess(res, safeKey);
   } catch (error) {
     logger.error('Error getting API key', { error });
     serverError(res, 'Failed to get API key');
@@ -392,7 +393,7 @@ export const updateApiKey = async (req: AuthRequest, res: Response): Promise<voi
     // Omit keyHash from response
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { keyHash: _hash, ...safeKey } = key;
-    res.json(safeKey);
+    sendSuccess(res, safeKey);
   } catch (error) {
     logger.error('Error updating API key', { error });
     serverError(res, 'Failed to update API key');
@@ -419,7 +420,7 @@ export const revokeApiKey = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
-    res.json({ success: true, message: 'API key revoked' });
+    sendSuccess(res, { message: 'API key revoked' });
   } catch (error) {
     logger.error('Error revoking API key', { error });
     serverError(res, 'Failed to revoke API key');
@@ -446,7 +447,7 @@ export const deleteApiKey = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
-    res.status(204).send();
+    noContent(res);
   } catch (error) {
     logger.error('Error deleting API key', { error });
     serverError(res, 'Failed to delete API key');
@@ -468,7 +469,7 @@ export const getApiKeyUsage = async (req: AuthRequest, res: Response): Promise<v
     const limit = parseInt(req.query.limit as string) || PAGINATION.WEBHOOK_DELIVERY_DEFAULT_LIMIT;
 
     const usage = await apiKeyService.getApiKeyUsage(id, userId, limit);
-    res.json(usage);
+    sendSuccess(res, usage);
   } catch (error) {
     logger.error('Error getting API key usage', { error });
     serverError(res, 'Failed to get API key usage');
@@ -481,7 +482,7 @@ export const getApiKeyUsage = async (req: AuthRequest, res: Response): Promise<v
 export const getAvailableScopes = async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
     const scopes = apiKeyService.getAvailableScopes();
-    res.json(scopes);
+    sendSuccess(res, scopes);
   } catch (error) {
     logger.error('Error getting available scopes', { error });
     serverError(res, 'Failed to get available scopes');

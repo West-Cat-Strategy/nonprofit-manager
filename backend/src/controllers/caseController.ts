@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import type { AuthRequest } from '@middleware/auth';
 import { caseService } from '@services/domains/engagement';
+import { appendAuditLog } from '@services/auditService';
 import type {
   CreateCaseDTO,
   UpdateCaseDTO,
@@ -16,15 +17,43 @@ import type {
   UpdateCaseServiceDTO
 } from '@app-types/case';
 import { logger } from '@config/logger';
+import pool from '@config/database';
 import { PAGINATION } from '@config/constants';
 import { badRequest, notFound, serverError } from '@utils/responseHelpers';
+import { sendSuccess } from '@modules/shared/http/envelope';
+
+const getRequestUserAgent = (req: AuthRequest): string | null => {
+  const userAgent = req.headers['user-agent'];
+  if (Array.isArray(userAgent)) {
+    return userAgent[0] || null;
+  }
+  return userAgent || null;
+};
+
+const getRequestIp = (req: AuthRequest): string | null => {
+  return req.ip || req.connection.remoteAddress || null;
+};
 
 export const createCase = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const data = req.body as CreateCaseDTO;
     const userId = req.user?.id;
     const newCase = await caseService.createCase(data, userId);
-    res.status(201).json(newCase);
+
+    await appendAuditLog(pool, {
+      action: 'case_created',
+      resourceType: 'case',
+      resourceId: (newCase as { id?: string }).id || null,
+      userId: userId || null,
+      details: {
+        title: (newCase as { title?: string }).title || data.title || null,
+      },
+      ipAddress: getRequestIp(req),
+      userAgent: getRequestUserAgent(req),
+      requestId: req.correlationId,
+    });
+
+    sendSuccess(res, newCase, 201);
   } catch (error) {
     logger.error('Error creating case:', error);
     serverError(res, 'Failed to create case');
@@ -72,7 +101,14 @@ export const getCases = async (req: AuthRequest, res: Response): Promise<void> =
       sort_order: getParam('sort_order') as CaseFilter['sort_order'],
     };
     const { cases, total } = await caseService.getCases(filter);
-    res.json({ cases, total, pagination: { page: parseInt(String(filter.page || 1)), limit: parseInt(String(filter.limit || PAGINATION.DEFAULT_LIMIT)) } });
+    sendSuccess(res, {
+      cases,
+      total,
+      pagination: {
+        page: parseInt(String(filter.page || 1), 10),
+        limit: parseInt(String(filter.limit || PAGINATION.DEFAULT_LIMIT), 10),
+      },
+    });
   } catch (error) {
     logger.error('Error fetching cases:', error);
     serverError(res, 'Failed to fetch cases');
@@ -87,7 +123,7 @@ export const getCaseById = async (req: AuthRequest, res: Response): Promise<void
       notFound(res, 'Case');
       return;
     }
-    res.json(caseData);
+    sendSuccess(res, caseData);
   } catch (error) {
     logger.error('Error fetching case:', error);
     serverError(res, 'Failed to fetch case');
@@ -100,7 +136,21 @@ export const updateCase = async (req: AuthRequest, res: Response): Promise<void>
     const data = req.body as UpdateCaseDTO;
     const userId = req.user?.id;
     const updated = await caseService.updateCase(id, data, userId);
-    res.json(updated);
+
+    await appendAuditLog(pool, {
+      action: 'case_updated',
+      resourceType: 'case',
+      resourceId: id,
+      userId: userId || null,
+      details: {
+        fields: Object.keys(data || {}),
+      },
+      ipAddress: getRequestIp(req),
+      userAgent: getRequestUserAgent(req),
+      requestId: req.correlationId,
+    });
+
+    sendSuccess(res, updated);
   } catch (error) {
     logger.error('Error updating case:', error);
     serverError(res, 'Failed to update case');
@@ -113,7 +163,21 @@ export const updateCaseStatus = async (req: AuthRequest, res: Response): Promise
     const data = req.body as UpdateCaseStatusDTO;
     const userId = req.user?.id;
     const updated = await caseService.updateCaseStatus(id, data, userId);
-    res.json(updated);
+
+    await appendAuditLog(pool, {
+      action: 'case_status_updated',
+      resourceType: 'case',
+      resourceId: id,
+      userId: userId || null,
+      details: {
+        newStatusId: data.new_status_id,
+      },
+      ipAddress: getRequestIp(req),
+      userAgent: getRequestUserAgent(req),
+      requestId: req.correlationId,
+    });
+
+    sendSuccess(res, updated);
   } catch (error) {
     logger.error('Error updating case status:', error);
     serverError(res, 'Failed to update status');
@@ -124,7 +188,7 @@ export const getCaseNotes = async (req: AuthRequest, res: Response): Promise<voi
   try {
     const { id } = req.params;
     const notes = await caseService.getCaseNotes(id);
-    res.json({ notes });
+    sendSuccess(res, { notes });
   } catch (error) {
     logger.error('Error fetching case notes:', error);
     serverError(res, 'Failed to fetch notes');
@@ -136,7 +200,7 @@ export const createCaseNote = async (req: AuthRequest, res: Response): Promise<v
     const data = req.body as CreateCaseNoteDTO;
     const userId = req.user?.id;
     const note = await caseService.createCaseNote(data, userId);
-    res.status(201).json(note);
+    sendSuccess(res, note, 201);
   } catch (error) {
     logger.error('Error creating case note:', error);
     serverError(res, 'Failed to create note');
@@ -146,7 +210,7 @@ export const createCaseNote = async (req: AuthRequest, res: Response): Promise<v
 export const getCaseSummary = async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
     const summary = await caseService.getCaseSummary();
-    res.json(summary);
+    sendSuccess(res, summary);
   } catch (error) {
     logger.error('Error fetching case summary:', error);
     serverError(res, 'Failed to fetch summary');
@@ -156,7 +220,7 @@ export const getCaseSummary = async (_req: AuthRequest, res: Response): Promise<
 export const getCaseTypes = async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
     const types = await caseService.getCaseTypes();
-    res.json({ types });
+    sendSuccess(res, { types });
   } catch (error) {
     logger.error('Error fetching case types:', error);
     serverError(res, 'Failed to fetch types');
@@ -166,7 +230,7 @@ export const getCaseTypes = async (_req: AuthRequest, res: Response): Promise<vo
 export const getCaseStatuses = async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
     const statuses = await caseService.getCaseStatuses();
-    res.json({ statuses });
+    sendSuccess(res, { statuses });
   } catch (error) {
     logger.error('Error fetching case statuses:', error);
     serverError(res, 'Failed to fetch statuses');
@@ -177,7 +241,21 @@ export const deleteCase = async (req: AuthRequest, res: Response): Promise<void>
   try {
     const { id } = req.params;
     await caseService.deleteCase(id);
-    res.json({ success: true, message: 'Case deleted' });
+
+    await appendAuditLog(pool, {
+      action: 'case_deleted',
+      resourceType: 'case',
+      resourceId: id,
+      userId: req.user?.id || null,
+      details: {
+        deleted: true,
+      },
+      ipAddress: getRequestIp(req),
+      userAgent: getRequestUserAgent(req),
+      requestId: req.correlationId,
+    });
+
+    sendSuccess(res, { message: 'Case deleted' });
   } catch (error) {
     logger.error('Error deleting case:', error);
     serverError(res, 'Failed to delete case');
@@ -188,7 +266,7 @@ export const getCaseMilestones = async (req: AuthRequest, res: Response): Promis
   try {
     const { id } = req.params;
     const milestones = await caseService.getCaseMilestones(id);
-    res.json({ milestones });
+    sendSuccess(res, { milestones });
   } catch (error) {
     logger.error('Error fetching milestones:', error);
     serverError(res, 'Failed to fetch milestones');
@@ -207,7 +285,7 @@ export const createCaseMilestone = async (req: AuthRequest, res: Response): Prom
     }
 
     const milestone = await caseService.createCaseMilestone(id, data, userId);
-    res.status(201).json(milestone);
+    sendSuccess(res, milestone, 201);
   } catch (error) {
     logger.error('Error creating milestone:', error);
     serverError(res, 'Failed to create milestone');
@@ -219,7 +297,7 @@ export const updateCaseMilestone = async (req: AuthRequest, res: Response): Prom
     const { milestoneId } = req.params;
     const data = req.body as UpdateCaseMilestoneDTO;
     const milestone = await caseService.updateCaseMilestone(milestoneId, data);
-    res.json(milestone);
+    sendSuccess(res, milestone);
   } catch (error) {
     logger.error('Error updating milestone:', error);
     serverError(res, 'Failed to update milestone');
@@ -230,7 +308,7 @@ export const deleteCaseMilestone = async (req: AuthRequest, res: Response): Prom
   try {
     const { milestoneId } = req.params;
     await caseService.deleteCaseMilestone(milestoneId);
-    res.json({ success: true, message: 'Milestone deleted' });
+    sendSuccess(res, { message: 'Milestone deleted' });
   } catch (error) {
     logger.error('Error deleting milestone:', error);
     serverError(res, 'Failed to delete milestone');
@@ -243,7 +321,21 @@ export const reassignCase = async (req: AuthRequest, res: Response): Promise<voi
     const data = req.body as ReassignCaseDTO;
     const userId = req.user?.id;
     const updated = await caseService.reassignCase(id, data.assigned_to, data.reason, userId);
-    res.json(updated);
+
+    await appendAuditLog(pool, {
+      action: 'case_reassigned',
+      resourceType: 'case',
+      resourceId: id,
+      userId: userId || null,
+      details: {
+        assignedTo: data.assigned_to || null,
+      },
+      ipAddress: getRequestIp(req),
+      userAgent: getRequestUserAgent(req),
+      requestId: req.correlationId,
+    });
+
+    sendSuccess(res, updated);
   } catch (error) {
     logger.error('Error reassigning case:', error);
     serverError(res, 'Failed to reassign case');
@@ -261,7 +353,7 @@ export const bulkUpdateCaseStatus = async (req: AuthRequest, res: Response): Pro
     }
 
     const result = await caseService.bulkUpdateStatus(data.case_ids, data.new_status_id, data.notes, userId);
-    res.json({ success: true, ...result });
+    sendSuccess(res, result);
   } catch (error) {
     logger.error('Error bulk updating cases:', error);
     serverError(res, 'Failed to bulk update cases');
@@ -272,7 +364,7 @@ export const getCaseRelationships = async (req: AuthRequest, res: Response): Pro
   try {
     const { id } = req.params;
     const relationships = await caseService.getCaseRelationships(id);
-    res.json({ relationships });
+    sendSuccess(res, { relationships });
   } catch (error) {
     logger.error('Error fetching case relationships:', error);
     serverError(res, 'Failed to fetch relationships');
@@ -285,7 +377,7 @@ export const createCaseRelationship = async (req: AuthRequest, res: Response): P
     const data = req.body as CreateCaseRelationshipDTO;
     const userId = req.user?.id;
     const relationship = await caseService.createCaseRelationship(id, data, userId);
-    res.status(201).json(relationship);
+    sendSuccess(res, relationship, 201);
   } catch (error) {
     logger.error('Error creating case relationship:', error);
     serverError(res, 'Failed to create relationship');
@@ -296,7 +388,7 @@ export const deleteCaseRelationship = async (req: AuthRequest, res: Response): P
   try {
     const { relationshipId } = req.params;
     await caseService.deleteCaseRelationship(relationshipId);
-    res.json({ success: true, message: 'Relationship deleted' });
+    sendSuccess(res, { message: 'Relationship deleted' });
   } catch (error) {
     logger.error('Error deleting case relationship:', error);
     serverError(res, 'Failed to delete relationship');
@@ -307,7 +399,7 @@ export const getCaseServices = async (req: AuthRequest, res: Response): Promise<
   try {
     const { id } = req.params;
     const services = await caseService.getCaseServices(id);
-    res.json({ services });
+    sendSuccess(res, { services });
   } catch (error) {
     logger.error('Error fetching case services:', error);
     serverError(res, 'Failed to fetch services');
@@ -320,7 +412,7 @@ export const createCaseService = async (req: AuthRequest, res: Response): Promis
     const data = req.body as CreateCaseServiceDTO;
     const userId = req.user?.id;
     const service = await caseService.createCaseService(id, data, userId);
-    res.status(201).json(service);
+    sendSuccess(res, service, 201);
   } catch (error) {
     logger.error('Error creating case service:', error);
     serverError(res, 'Failed to create service');
@@ -333,7 +425,7 @@ export const updateCaseService = async (req: AuthRequest, res: Response): Promis
     const data = req.body as UpdateCaseServiceDTO;
     const userId = req.user?.id;
     const service = await caseService.updateCaseService(serviceId, data, userId);
-    res.json(service);
+    sendSuccess(res, service);
   } catch (error) {
     logger.error('Error updating case service:', error);
     serverError(res, 'Failed to update service');
@@ -344,7 +436,7 @@ export const deleteCaseService = async (req: AuthRequest, res: Response): Promis
   try {
     const { serviceId } = req.params;
     await caseService.deleteCaseService(serviceId);
-    res.json({ success: true, message: 'Service deleted' });
+    sendSuccess(res, { message: 'Service deleted' });
   } catch (error) {
     logger.error('Error deleting case service:', error);
     serverError(res, 'Failed to delete service');

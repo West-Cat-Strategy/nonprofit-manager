@@ -14,8 +14,9 @@ import type {
   PublishedSiteSearchParams,
   AnalyticsEventType,
 } from '@app-types/publishing';
-import { badRequest, conflict, forbidden, notFoundMessage, validationErrorResponse } from '@utils/responseHelpers';
+import { badRequest, conflict, forbidden, noContent, notFoundMessage, validationErrorResponse } from '@utils/responseHelpers';
 import { extractPagination } from '@utils/queryHelpers';
+import { sendSuccess } from '@modules/shared/http/envelope';
 
 const hasValidationErrors = (req: Request, res: Response): boolean => {
   const errors = validationResult(req);
@@ -87,7 +88,7 @@ export const createSite = async (
     const data: CreatePublishedSiteDTO = req.body;
 
     const site = await publishingService.createSite(userId, data);
-    res.status(201).json(site);
+    sendSuccess(res, site, 201);
   } catch (error) {
     if (handleKnownPublishingError(error, res, { conflict: true, notFound: true })) return;
     next(error);
@@ -112,7 +113,7 @@ export const getSite = async (
       return;
     }
 
-    res.json(site);
+    sendSuccess(res, site);
   } catch (error) {
     next(error);
   }
@@ -139,7 +140,7 @@ export const updateSite = async (
       return;
     }
 
-    res.json(site);
+    sendSuccess(res, site);
   } catch (error) {
     if (handleKnownPublishingError(error, res, { conflict: true })) return;
     next(error);
@@ -164,7 +165,7 @@ export const deleteSite = async (
       return;
     }
 
-    res.status(204).send();
+    noContent(res);
   } catch (error) {
     next(error);
   }
@@ -191,7 +192,7 @@ export const searchSites = async (
     };
 
     const result = await publishingService.searchSites(userId, params);
-    res.json(result);
+    sendSuccess(res, result);
   } catch (error) {
     next(error);
   }
@@ -213,7 +214,7 @@ export const publishSite = async (
     const siteId = req.body.siteId as string | undefined;
 
     const result = await publishingService.publish(userId, templateId, siteId);
-    res.json(result);
+    sendSuccess(res, result);
   } catch (error) {
     if (handleKnownPublishingError(error, res, { notFound: true })) return;
     next(error);
@@ -238,7 +239,7 @@ export const unpublishSite = async (
       return;
     }
 
-    res.json(site);
+    sendSuccess(res, site);
   } catch (error) {
     next(error);
   }
@@ -262,7 +263,7 @@ export const getDeploymentInfo = async (
       return;
     }
 
-    res.json(info);
+    sendSuccess(res, info);
   } catch (error) {
     next(error);
   }
@@ -301,11 +302,11 @@ export const recordAnalytics = async (
     });
 
     // Return minimal response for analytics
-    res.status(204).send();
+    noContent(res);
   } catch (error) {
     // Don't fail silently for analytics but log
     logger.error('Analytics recording error', { error });
-    res.status(204).send(); // Still return success to not block client
+    noContent(res); // Still return success to not block client
   }
 };
 
@@ -327,7 +328,7 @@ export const getAnalyticsSummary = async (
       userId,
       periodDays
     );
-    res.json(summary);
+    sendSuccess(res, summary);
   } catch (error) {
     if (handleKnownPublishingError(error, res, { notFound: true })) return;
     next(error);
@@ -351,7 +352,7 @@ export const servePublishedSite = async (
     }
 
     // Return published content
-    res.json({
+    sendSuccess(res, {
       content: site.publishedContent,
       analyticsEnabled: site.analyticsEnabled,
     });
@@ -383,7 +384,7 @@ export const addCustomDomain = async (
       domain,
       verificationMethod
     );
-    res.status(201).json(config);
+    sendSuccess(res, config, 201);
   } catch (error) {
     if (handleKnownPublishingError(error, res, { notFound: true, conflict: true })) return;
     next(error);
@@ -403,7 +404,7 @@ export const verifyCustomDomain = async (
     const { siteId } = req.params;
 
     const result = await publishingService.verifyCustomDomain(siteId, userId);
-    res.json(result);
+    sendSuccess(res, result);
   } catch (error) {
     if (handleKnownPublishingError(error, res, { notFound: true, badRequest: true })) return;
     next(error);
@@ -428,7 +429,7 @@ export const removeCustomDomain = async (
       return;
     }
 
-    res.status(204).send();
+    noContent(res);
   } catch (error) {
     next(error);
   }
@@ -452,7 +453,7 @@ export const getCustomDomainConfig = async (
       return;
     }
 
-    res.json(config);
+    sendSuccess(res, config);
   } catch (error) {
     next(error);
   }
@@ -478,7 +479,7 @@ export const getSslInfo = async (
       return;
     }
 
-    res.json(info);
+    sendSuccess(res, info);
   } catch (error) {
     next(error);
   }
@@ -502,7 +503,7 @@ export const provisionSsl = async (
       return;
     }
 
-    res.json(result);
+    sendSuccess(res, result);
   } catch (error) {
     next(error);
   }
@@ -524,7 +525,7 @@ export const getVersionHistory = async (
     const limit = parseIntQuery(req.query.limit, 10);
 
     const history = await publishingService.getVersionHistory(siteId, userId, limit);
-    res.json(history);
+    sendSuccess(res, history);
   } catch (error) {
     if (handleKnownPublishingError(error, res, { notFound: true })) return;
     next(error);
@@ -549,7 +550,7 @@ export const getVersion = async (
       return;
     }
 
-    res.json(versionData);
+    sendSuccess(res, versionData);
   } catch (error) {
     next(error);
   }
@@ -571,7 +572,7 @@ export const rollbackVersion = async (
     const { version } = req.body;
 
     const result = await publishingService.rollback(siteId, userId, version);
-    res.json(result);
+    sendSuccess(res, result);
   } catch (error) {
     if (handleKnownPublishingError(error, res, { notFound: true, badRequest: true })) return;
     next(error);
@@ -592,7 +593,7 @@ export const pruneVersions = async (
     const keepCount = parseIntQuery(req.query.keep, 10);
 
     const deletedCount = await publishingService.pruneVersions(siteId, userId, keepCount);
-    res.json({ deleted: deletedCount });
+    sendSuccess(res, { deleted: deletedCount });
   } catch (error) {
     if (handleKnownPublishingError(error, res, { notFound: true })) return;
     next(error);
@@ -610,7 +611,7 @@ export const getCacheStats = async (
   _next: NextFunction
 ): Promise<void> => {
   const stats = siteCacheService.getStats();
-  res.json(stats);
+  sendSuccess(res, stats);
 };
 
 /**
@@ -633,7 +634,7 @@ export const invalidateSiteCache = async (
     }
 
     const invalidated = siteCacheService.invalidateSite(siteId);
-    res.json({ invalidated, siteId });
+    sendSuccess(res, { invalidated, siteId });
   } catch (error) {
     next(error);
   }
@@ -654,7 +655,7 @@ export const clearAllCache = async (
   }
 
   await siteCacheService.clear();
-  res.json({ message: 'Cache cleared successfully' });
+  sendSuccess(res, { message: 'Cache cleared successfully' });
 };
 
 /**
@@ -696,7 +697,7 @@ export const servePublishedSiteWithCache = async (
 
     // If cache hit, return cached content
     if (cachedEntry) {
-      res.json(cachedEntry.data);
+      sendSuccess(res, cachedEntry.data);
       return;
     }
 
@@ -711,7 +712,7 @@ export const servePublishedSiteWithCache = async (
       tags: [`site:${site.id}`],
     });
 
-    res.json(content);
+    sendSuccess(res, content);
   } catch (error) {
     next(error);
   }
@@ -725,7 +726,7 @@ export const getPerformanceCacheControl = (
   res: Response,
   _next: NextFunction
 ): void => {
-  res.json({
+  sendSuccess(res, {
     profiles: {
       static: getCacheControlHeader('STATIC'),
       page: getCacheControlHeader('PAGE'),

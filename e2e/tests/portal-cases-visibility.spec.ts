@@ -201,7 +201,7 @@ test.describe('Portal Cases Visibility', () => {
     const authHeaders = await getAuthHeaders(page, effectiveAdminToken);
 
     const caseTypesResponse = await page.request.get(`${apiURL}/api/v2/cases/types`, {
-      headers: { Authorization: `Bearer ${effectiveAdminToken}` },
+      headers: authHeaders,
     });
     expect(caseTypesResponse.ok()).toBeTruthy();
     const caseTypes = unwrap<Array<{ id: string }>>(await caseTypesResponse.json());

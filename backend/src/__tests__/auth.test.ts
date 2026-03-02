@@ -106,7 +106,10 @@ describe('Auth API', () => {
       expect(res.status).toHaveBeenCalledWith(202);
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          pendingApproval: true,
+          success: true,
+          data: expect.objectContaining({
+            pendingApproval: true,
+          }),
         })
       );
       expect(createPendingRegistration).toHaveBeenCalledWith(
@@ -206,13 +209,16 @@ describe('Auth API', () => {
 
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          organizationId: 'org-1',
-          user: expect.objectContaining({
-            id: 'user-1',
-            email: 'login@example.com',
-            firstName: 'Login',
-            lastName: 'User',
-            role: 'user',
+          success: true,
+          data: expect.objectContaining({
+            organizationId: 'org-1',
+            user: expect.objectContaining({
+              id: 'user-1',
+              email: 'login@example.com',
+              firstName: 'Login',
+              lastName: 'User',
+              role: 'user',
+            }),
           }),
         })
       );

@@ -16,8 +16,9 @@ import type {
   TemplateCategory,
   TemplateStatus,
 } from '@app-types/websiteBuilder';
-import { badRequest, notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
+import { badRequest, noContent, notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
 import { extractPagination } from '@utils/queryHelpers';
+import { sendSuccess } from '@modules/shared/http/envelope';
 
 // ==================== Templates ====================
 
@@ -46,7 +47,7 @@ export const searchTemplates = async (req: AuthRequest, res: Response): Promise<
     };
 
     const result = await templateService.searchTemplates(userId, params);
-    res.json(result);
+    sendSuccess(res, result);
   } catch (error) {
     logger.error('Error searching templates', { error });
     serverError(res, 'Failed to search templates');
@@ -72,7 +73,7 @@ export const getTemplate = async (req: AuthRequest, res: Response): Promise<void
       return;
     }
 
-    res.json(template);
+    sendSuccess(res, template);
   } catch (error) {
     logger.error('Error getting template', { error });
     serverError(res, 'Failed to get template');
@@ -97,7 +98,7 @@ export const getTemplateCss = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    res.json({ cssVariables });
+    sendSuccess(res, { cssVariables });
   } catch (error) {
     logger.error('Error getting template CSS variables', { error });
     serverError(res, 'Failed to get template CSS variables');
@@ -110,7 +111,7 @@ export const getTemplateCss = async (req: AuthRequest, res: Response): Promise<v
 export const listColorPalettes = async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
     const palettes = await themePresetService.listColorPalettes(true);
-    res.json(palettes);
+    sendSuccess(res, palettes);
   } catch (error) {
     logger.error('Error listing color palettes', { error });
     serverError(res, 'Failed to list color palettes');
@@ -123,7 +124,7 @@ export const listColorPalettes = async (_req: AuthRequest, res: Response): Promi
 export const listFontPairings = async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
     const pairings = await themePresetService.listFontPairings(true);
-    res.json(pairings);
+    sendSuccess(res, pairings);
   } catch (error) {
     logger.error('Error listing font pairings', { error });
     serverError(res, 'Failed to list font pairings');
@@ -165,7 +166,7 @@ export const applyTemplatePalette = async (req: AuthRequest, res: Response): Pro
       return;
     }
 
-    res.json(updated);
+    sendSuccess(res, updated);
   } catch (error) {
     logger.error('Error applying template palette', { error });
     serverError(res, 'Failed to apply palette');
@@ -206,7 +207,7 @@ export const applyTemplateFontPairing = async (req: AuthRequest, res: Response):
       return;
     }
 
-    res.json(updated);
+    sendSuccess(res, updated);
   } catch (error) {
     logger.error('Error applying template font pairing', { error });
     serverError(res, 'Failed to apply font pairing');
@@ -252,7 +253,7 @@ export const createTemplate = async (req: AuthRequest, res: Response): Promise<v
       cloneFromId,
     });
 
-    res.status(201).json(template);
+    sendSuccess(res, template, 201);
   } catch (error) {
     logger.error('Error creating template', { error });
     serverError(res, 'Failed to create template');
@@ -296,7 +297,7 @@ export const updateTemplate = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    res.json(template);
+    sendSuccess(res, template);
   } catch (error) {
     logger.error('Error updating template', { error });
     serverError(res, 'Failed to update template');
@@ -322,7 +323,7 @@ export const deleteTemplate = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    res.status(204).send();
+    noContent(res);
   } catch (error) {
     logger.error('Error deleting template', { error });
     serverError(res, 'Failed to delete template');
@@ -350,7 +351,7 @@ export const duplicateTemplate = async (req: AuthRequest, res: Response): Promis
       return;
     }
 
-    res.status(201).json(template);
+    sendSuccess(res, template, 201);
   } catch (error) {
     logger.error('Error duplicating template', { error });
     serverError(res, 'Failed to duplicate template');
@@ -363,7 +364,7 @@ export const duplicateTemplate = async (req: AuthRequest, res: Response): Promis
 export const getSystemTemplates = async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
     const templates = await templateService.getSystemTemplates();
-    res.json(templates);
+    sendSuccess(res, templates);
   } catch (error) {
     logger.error('Error getting system templates', { error });
     serverError(res, 'Failed to get system templates');
@@ -393,7 +394,7 @@ export const getTemplatePages = async (req: AuthRequest, res: Response): Promise
     }
 
     const pages = await templateService.getTemplatePages(templateId);
-    res.json(pages);
+    sendSuccess(res, pages);
   } catch (error) {
     logger.error('Error getting template pages', { error });
     serverError(res, 'Failed to get template pages');
@@ -419,7 +420,7 @@ export const getTemplatePage = async (req: AuthRequest, res: Response): Promise<
       return;
     }
 
-    res.json(page);
+    sendSuccess(res, page);
   } catch (error) {
     logger.error('Error getting template page', { error });
     serverError(res, 'Failed to get template page');
@@ -470,7 +471,7 @@ export const createTemplatePage = async (req: AuthRequest, res: Response): Promi
       return;
     }
 
-    res.status(201).json(page);
+    sendSuccess(res, page, 201);
   } catch (error) {
     logger.error('Error creating template page', { error });
 
@@ -511,7 +512,7 @@ export const updateTemplatePage = async (req: AuthRequest, res: Response): Promi
       return;
     }
 
-    res.json(page);
+    sendSuccess(res, page);
   } catch (error) {
     logger.error('Error updating template page', { error });
 
@@ -544,7 +545,7 @@ export const deleteTemplatePage = async (req: AuthRequest, res: Response): Promi
       return;
     }
 
-    res.status(204).send();
+    noContent(res);
   } catch (error) {
     logger.error('Error deleting template page', { error });
     serverError(res, 'Failed to delete template page');
@@ -577,7 +578,7 @@ export const reorderTemplatePages = async (req: AuthRequest, res: Response): Pro
       return;
     }
 
-    res.status(200).json({ success: true });
+    sendSuccess(res, { reordered: true });
   } catch (error) {
     logger.error('Error reordering template pages', { error });
     serverError(res, 'Failed to reorder template pages');
@@ -599,8 +600,7 @@ export const getTemplateVersions = async (req: AuthRequest, res: Response): Prom
 
     const { templateId } = req.params;
     const versions = await templateService.getTemplateVersions(templateId, userId);
-
-    res.json(versions);
+    sendSuccess(res, versions);
   } catch (error) {
     logger.error('Error getting template versions', { error });
     serverError(res, 'Failed to get template versions');
@@ -628,7 +628,7 @@ export const createTemplateVersion = async (req: AuthRequest, res: Response): Pr
       return;
     }
 
-    res.status(201).json(version);
+    sendSuccess(res, version, 201);
   } catch (error) {
     logger.error('Error creating template version', { error });
     serverError(res, 'Failed to create template version');
@@ -654,7 +654,7 @@ export const restoreTemplateVersion = async (req: AuthRequest, res: Response): P
       return;
     }
 
-    res.json(template);
+    sendSuccess(res, template);
   } catch (error) {
     logger.error('Error restoring template version', { error });
     serverError(res, 'Failed to restore template version');

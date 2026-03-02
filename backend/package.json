@@ -18,7 +18,7 @@
     "format:check": "prettier --check \"src/**/*.ts\"",
     "type-check": "tsc --noEmit",
     "schema:export": "ts-node --transpileOnly scripts/export-schema-bundle.ts",
-    "test:integration": "jest --forceExit src/__tests__/integration",
+    "test:integration": "bash scripts/run-integration-tests.sh",
     "test:integration:coverage": "jest --forceExit --coverage src/__tests__/integration"
   },
   "keywords": [

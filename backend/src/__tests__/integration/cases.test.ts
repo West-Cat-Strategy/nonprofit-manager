@@ -26,7 +26,6 @@ describe('Case API Integration Tests', () => {
     if (testEmail) {
       await pool.query('DELETE FROM users WHERE email = $1', [testEmail.toLowerCase()]);
     }
-    await pool.end();
   });
 
   it('requires auth for v1 list endpoint', async () => {
