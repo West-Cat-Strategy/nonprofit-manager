@@ -18,6 +18,8 @@ import portalAuthReducer from './slices/portalAuthSlice';
 import followUpsReducer from './slices/followUpsSlice';
 import outcomesAdminReducer from './slices/outcomesAdminSlice';
 import outcomesReportsReducer from './slices/outcomesReportsSlice';
+import scheduledReportsReducer from './slices/scheduledReportsSlice';
+import opportunitiesReducer from './slices/opportunitiesSlice';
 import casesV2Reducer from '../features/cases/state/casesLegacyCore';
 import contactsV2Reducer from '../features/contacts/state/contactsLegacyCore';
 import {
@@ -49,6 +51,8 @@ export const rootReducer = combineReducers({
   alerts: alertsReducer,
   portalAuth: portalAuthReducer,
   followUps: followUpsReducer,
+  scheduledReports: scheduledReportsReducer,
+  opportunities: opportunitiesReducer,
   outcomesAdmin: outcomesAdminReducer,
   outcomesReports: outcomesReportsReducer,
   eventsListV2: eventsListV2Reducer,

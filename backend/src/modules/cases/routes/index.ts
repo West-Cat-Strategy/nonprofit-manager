@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
+import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { documentUpload, handleMulterError } from '@middleware/domains/platform';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import {
@@ -18,6 +19,7 @@ import {
   casePortalConversationParamsSchema,
 } from '@validations/portal';
 import { uuidSchema } from '@validations/shared';
+import { followUpController } from '@controllers/followUpController';
 import { createCaseCatalogController } from '../controllers/catalog.controller';
 import { createCaseLifecycleController } from '../controllers/lifecycle.controller';
 import { createCaseNotesController } from '../controllers/notes.controller';
@@ -319,6 +321,7 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
   );
 
   router.use(authenticate);
+  router.use(requireActiveOrganizationContext);
 
   router.get(
     '/outcomes/definitions',
@@ -334,6 +337,7 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
   router.post('/', validateBody(createCaseSchema), lifecycleController.createCase);
   router.get('/', validateQuery(caseCatalogQuerySchema), catalogController.getCases);
   router.get('/:id', validateParams(caseIdParamsSchema), catalogController.getCaseById);
+  router.get('/:id/follow-ups', validateParams(caseIdParamsSchema), followUpController.getCaseFollowUps);
   router.get('/:id/timeline', validateParams(caseIdParamsSchema), catalogController.getCaseTimeline);
   router.put('/:id', validateParams(caseIdParamsSchema), validateBody(updateCaseSchema), lifecycleController.updateCase);
   router.put(

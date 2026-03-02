@@ -9,7 +9,8 @@ import { taskService } from '@services/domains/engagement';
 import { TaskFilters, TaskStatus, TaskPriority, RelatedToType } from '@app-types/task';
 import { logger } from '@config/logger';
 import { getString, getBoolean, getInteger } from '@utils/queryHelpers';
-import { notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
+import { noContent, notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
+import { sendSuccess } from '@modules/shared/http/envelope';
 
 // Type-safe enum parsers
 const parseTaskStatus = (value: string | undefined): TaskStatus | undefined => {
@@ -49,7 +50,7 @@ export const taskController = {
       };
 
       const result = await taskService.getTasks(filters);
-      res.json(result);
+      sendSuccess(res, result);
     } catch (error) {
       logger.error('Error in getTasks', { error });
       serverError(res, 'Failed to retrieve tasks');
@@ -69,7 +70,7 @@ export const taskController = {
       };
 
       const summary = await taskService.getTaskSummary(filters);
-      res.json(summary);
+      sendSuccess(res, summary);
     } catch (error) {
       logger.error('Error in getTaskSummary', { error });
       serverError(res, 'Failed to retrieve task summary');
@@ -90,7 +91,7 @@ export const taskController = {
         return;
       }
 
-      res.json(task);
+      sendSuccess(res, task);
     } catch (error) {
       logger.error('Error in getTaskById', { error });
       serverError(res, 'Failed to retrieve task');
@@ -110,7 +111,7 @@ export const taskController = {
       }
 
       const task = await taskService.createTask(req.body, userId);
-      res.status(201).json(task);
+      sendSuccess(res, task, 201);
     } catch (error) {
       logger.error('Error in createTask', { error });
       serverError(res, 'Failed to create task');
@@ -138,7 +139,7 @@ export const taskController = {
         return;
       }
 
-      res.json(task);
+      sendSuccess(res, task);
     } catch (error) {
       logger.error('Error in updateTask', { error });
       serverError(res, 'Failed to update task');
@@ -159,7 +160,7 @@ export const taskController = {
         return;
       }
 
-      res.status(204).send();
+      noContent(res);
     } catch (error) {
       logger.error('Error in deleteTask', { error });
       serverError(res, 'Failed to delete task');
@@ -187,7 +188,7 @@ export const taskController = {
         return;
       }
 
-      res.json(task);
+      sendSuccess(res, task);
     } catch (error) {
       logger.error('Error in completeTask', { error });
       serverError(res, 'Failed to complete task');

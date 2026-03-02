@@ -16,8 +16,9 @@ jest.mock('@config/logger', () => ({
 const mockProcessRetries = processRetries as jest.MockedFunction<typeof processRetries>;
 
 const flushMicrotasks = async (): Promise<void> => {
-  await Promise.resolve();
-  await Promise.resolve();
+  for (let i = 0; i < 6; i += 1) {
+    await Promise.resolve();
+  }
 };
 
 describe('webhookRetrySchedulerService', () => {
@@ -26,6 +27,9 @@ describe('webhookRetrySchedulerService', () => {
     webhookRetrySchedulerService.stop();
     delete process.env.WEBHOOK_RETRY_SCHEDULER_INTERVAL_MS;
     delete process.env.WEBHOOK_RETRY_SCHEDULER_BATCH_SIZE;
+    delete process.env.WEBHOOK_RETRY_SCHEDULER_RETRY_ATTEMPTS;
+    delete process.env.WEBHOOK_RETRY_SCHEDULER_RETRY_DELAY_MS;
+    delete process.env.WEBHOOK_RETRY_SCHEDULER_TIMEOUT_MS;
   });
 
   afterEach(() => {
@@ -61,5 +65,26 @@ describe('webhookRetrySchedulerService', () => {
     await flushMicrotasks();
 
     expect(mockProcessRetries).toHaveBeenCalledTimes(2);
+  });
+
+  it('passes retry and timeout guardrail settings to interval runner', async () => {
+    jest.useFakeTimers();
+    process.env.WEBHOOK_RETRY_SCHEDULER_INTERVAL_MS = '3000';
+    process.env.WEBHOOK_RETRY_SCHEDULER_BATCH_SIZE = '11';
+    process.env.WEBHOOK_RETRY_SCHEDULER_RETRY_ATTEMPTS = '3';
+    process.env.WEBHOOK_RETRY_SCHEDULER_RETRY_DELAY_MS = '250';
+    process.env.WEBHOOK_RETRY_SCHEDULER_TIMEOUT_MS = '12000';
+
+    webhookRetrySchedulerService.start();
+    await flushMicrotasks();
+
+    const runner = (webhookRetrySchedulerService as any).runner;
+    expect(runner).toBeTruthy();
+    expect(runner.intervalMs).toBe(3000);
+    expect(runner.retryAttempts).toBe(3);
+    expect(runner.retryDelayMs).toBe(250);
+    expect(runner.timeoutMs).toBe(12000);
+
+    expect(mockProcessRetries).toHaveBeenCalledWith(11);
   });
 });

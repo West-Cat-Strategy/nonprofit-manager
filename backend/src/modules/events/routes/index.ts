@@ -183,6 +183,7 @@ export const createEventsV2Routes = (): Router => {
 
   eventsV2Routes.get('/summary', controller.getSummary);
   eventsV2Routes.get('/:id', validateParams(eventIdParamsSchema), controller.getEvent);
+  eventsV2Routes.get('/:id/calendar.ics', validateParams(eventIdParamsSchema), controller.downloadCalendarIcs);
 
   eventsV2Routes.post('/', validateBody(createEventSchema), controller.createEvent);
 

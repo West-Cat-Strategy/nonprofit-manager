@@ -17,30 +17,26 @@ describe('Auth API Integration Tests', () => {
       }
     };
 
-    try {
-      // First, get all test user IDs
-      const testUsers = await pool.query(
-        "SELECT id FROM users WHERE email LIKE '%auth-test%' OR email LIKE '%hash-test%' OR email LIKE '%rate-limit%' OR email LIKE '%lockout%'"
-      );
-      const userIds = testUsers.rows.map((r: { id: string }) => r.id);
+    // First, get all test user IDs
+    const testUsers = await pool.query(
+      "SELECT id FROM users WHERE email LIKE '%auth-test%' OR email LIKE '%hash-test%' OR email LIKE '%rate-limit%' OR email LIKE '%lockout%'"
+    );
+    const userIds = testUsers.rows.map((r: { id: string }) => r.id);
 
-      if (userIds.length > 0) {
-        // Clean up resources created by test users (respecting foreign key constraints)
-        await safeDelete('DELETE FROM donations WHERE created_by = ANY($1)', [userIds]);
-        await safeDelete('DELETE FROM tasks WHERE created_by = ANY($1)', [userIds]);
-        await safeDelete('DELETE FROM volunteer_assignments WHERE created_by = ANY($1)', [userIds]);
-        await safeDelete('DELETE FROM volunteers WHERE created_by = ANY($1)', [userIds]);
-        await safeDelete('DELETE FROM event_registrations WHERE contact_id IN (SELECT id FROM contacts WHERE created_by = ANY($1))', [userIds]);
-        await safeDelete('DELETE FROM contacts WHERE created_by = ANY($1)', [userIds]);
-        await safeDelete('DELETE FROM events WHERE created_by = ANY($1)', [userIds]);
-        await safeDelete('DELETE FROM accounts WHERE created_by = ANY($1)', [userIds]);
-        await safeDelete('DELETE FROM user_roles WHERE user_id = ANY($1)', [userIds]);
+    if (userIds.length > 0) {
+      // Clean up resources created by test users (respecting foreign key constraints)
+      await safeDelete('DELETE FROM donations WHERE created_by = ANY($1)', [userIds]);
+      await safeDelete('DELETE FROM tasks WHERE created_by = ANY($1)', [userIds]);
+      await safeDelete('DELETE FROM volunteer_assignments WHERE created_by = ANY($1)', [userIds]);
+      await safeDelete('DELETE FROM volunteers WHERE created_by = ANY($1)', [userIds]);
+      await safeDelete('DELETE FROM event_registrations WHERE contact_id IN (SELECT id FROM contacts WHERE created_by = ANY($1))', [userIds]);
+      await safeDelete('DELETE FROM contacts WHERE created_by = ANY($1)', [userIds]);
+      await safeDelete('DELETE FROM events WHERE created_by = ANY($1)', [userIds]);
+      await safeDelete('DELETE FROM accounts WHERE created_by = ANY($1)', [userIds]);
+      await safeDelete('DELETE FROM user_roles WHERE user_id = ANY($1)', [userIds]);
 
-        // Finally delete users
-        await pool.query('DELETE FROM users WHERE id = ANY($1)', [userIds]);
-      }
-    } finally {
-      await pool.end();
+      // Finally delete users
+      await pool.query('DELETE FROM users WHERE id = ANY($1)', [userIds]);
     }
   });
 

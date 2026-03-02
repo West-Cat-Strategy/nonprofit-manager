@@ -1,0 +1,38 @@
+{
+  "task": "P4-T2",
+  "generated_at": "2026-03-02",
+  "policy": {
+    "direct_copy": false,
+    "architecture_only_required_for": [
+      "GPL",
+      "AGPL",
+      "NoAssertion"
+    ]
+  },
+  "sources": [
+    {
+      "repo": "openproject",
+      "license": "GPL-3.0",
+      "reuse_mode": "architecture-only",
+      "status": "compliant"
+    },
+    {
+      "repo": "superset",
+      "license": "Apache-2.0",
+      "reuse_mode": "adapt",
+      "status": "compliant"
+    },
+    {
+      "repo": "twenty",
+      "license": "mixed/noassertion",
+      "reuse_mode": "architecture-only",
+      "status": "compliant"
+    },
+    {
+      "repo": "open-mercato",
+      "license": "MIT",
+      "reuse_mode": "adapt",
+      "status": "compliant"
+    }
+  ]
+}

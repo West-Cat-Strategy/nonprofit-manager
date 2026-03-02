@@ -27,6 +27,49 @@ import { EventCatalogUseCase } from '../usecases/eventCatalog.usecase';
 import { EventRegistrationUseCase } from '../usecases/registration.usecase';
 import { EventRemindersUseCase } from '../usecases/reminders.usecase';
 
+interface EventCalendarPayload {
+  event_id: string;
+  event_name: string;
+  description?: string | null;
+  start_date: Date | string;
+  end_date: Date | string;
+  location_name?: string | null;
+  address_line1?: string | null;
+  address_line2?: string | null;
+  city?: string | null;
+  state_province?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+}
+
+const escapeIcsText = (value: string): string =>
+  value
+    .replace(/\\/g, '\\\\')
+    .replace(/\r?\n/g, '\\n')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,');
+
+const toIcsUtc = (value: Date): string => {
+  const iso = value.toISOString();
+  return iso.replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+};
+
+const buildEventLocation = (event: EventCalendarPayload): string | null => {
+  const parts = [
+    event.location_name,
+    event.address_line1,
+    event.address_line2,
+    event.city,
+    event.state_province,
+    event.postal_code,
+    event.country,
+  ]
+    .map((part) => (typeof part === 'string' ? part.trim() : ''))
+    .filter((part) => part.length > 0);
+
+  return parts.length > 0 ? parts.join(', ') : null;
+};
+
 export const createEventsController = (
   catalogUseCase: EventCatalogUseCase,
   registrationUseCase: EventRegistrationUseCase,
@@ -76,6 +119,67 @@ export const createEventsController = (
     try {
       const summary = await catalogUseCase.attendanceSummary(req.dataScope?.filter as DataScopeFilter | undefined);
       sendSuccess(res, summary);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const downloadCalendarIcs = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const eventRaw = await catalogUseCase.getById(req.params.id, req.dataScope?.filter as DataScopeFilter | undefined);
+      if (!eventRaw) {
+        sendError(res, 'EVENT_NOT_FOUND', 'Event not found', 404);
+        return;
+      }
+
+      const event = eventRaw as EventCalendarPayload;
+      const startDate = new Date(event.start_date);
+      const endDate = new Date(event.end_date);
+
+      if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+        sendError(res, 'EVENT_DATE_INVALID', 'Event has invalid calendar dates', 422);
+        return;
+      }
+
+      const dtStamp = toIcsUtc(new Date());
+      const dtStart = toIcsUtc(startDate);
+      const dtEnd = toIcsUtc(endDate);
+      const summary = escapeIcsText(event.event_name);
+      const description = event.description ? escapeIcsText(event.description) : null;
+      const location = buildEventLocation(event);
+      const escapedLocation = location ? escapeIcsText(location) : null;
+      const uid = `${event.event_id}@nonprofit-manager`;
+
+      const lines: string[] = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//West Cat Strategy//Nonprofit Manager//EN',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        'BEGIN:VEVENT',
+        `UID:${uid}`,
+        `DTSTAMP:${dtStamp}`,
+        `DTSTART:${dtStart}`,
+        `DTEND:${dtEnd}`,
+        `SUMMARY:${summary}`,
+      ];
+
+      if (description) {
+        lines.push(`DESCRIPTION:${description}`);
+      }
+
+      if (escapedLocation) {
+        lines.push(`LOCATION:${escapedLocation}`);
+      }
+
+      lines.push('END:VEVENT', 'END:VCALENDAR');
+
+      const fileName = `event-${event.event_id}.ics`;
+      const calendarIcs = `${lines.join('\r\n')}\r\n`;
+
+      res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.status(200).send(calendarIcs);
     } catch (error) {
       next(error);
     }
@@ -304,6 +408,7 @@ export const createEventsController = (
     getEvents,
     getEvent,
     getSummary,
+    downloadCalendarIcs,
     createEvent,
     updateEvent,
     deleteEvent,

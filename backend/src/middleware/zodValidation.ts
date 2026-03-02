@@ -7,6 +7,15 @@ import { Request, Response, NextFunction } from 'express';
 import { ZodSchema, ZodError } from 'zod';
 import { sendError } from '@modules/shared/http/envelope';
 
+type ValidationIssueSource = 'body' | 'query' | 'params';
+
+export interface ValidationIssue {
+  source: ValidationIssueSource;
+  path: string;
+  message: string;
+  code: string;
+}
+
 interface ValidationSource {
   body?: ZodSchema;
   query?: ZodSchema;
@@ -20,7 +29,7 @@ export interface ValidationResult {
   success: boolean;
   data?: unknown;
   error?: string;
-  errors?: Record<string, string[]>;
+  errors?: ValidationIssue[];
 }
 
 /**
@@ -29,14 +38,17 @@ export interface ValidationResult {
  */
 export function validateRequest(sources: ValidationSource) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const errors: Record<string, Record<string, string[]>> = {};
+    const errors: ValidationIssue[] = [];
+    const validationMap: Partial<Record<ValidationIssueSource, Record<string, string[]>>> = {};
     let hasError = false;
 
     // Validate body
     if (sources.body) {
       const result = sources.body.safeParse(req.body);
       if (!result.success) {
-        errors.body = formatZodErrors(result.error);
+        const issues = formatZodIssues(result.error, 'body');
+        errors.push(...issues);
+        validationMap.body = buildValidationMap(issues);
         hasError = true;
       } else {
         req.body = result.data;
@@ -47,7 +59,9 @@ export function validateRequest(sources: ValidationSource) {
     if (sources.query) {
       const result = sources.query.safeParse(req.query);
       if (!result.success) {
-        errors.query = formatZodErrors(result.error);
+        const issues = formatZodIssues(result.error, 'query');
+        errors.push(...issues);
+        validationMap.query = buildValidationMap(issues);
         hasError = true;
       } else {
         // Replace req.query with validated data (as any to match Express typing)
@@ -59,7 +73,9 @@ export function validateRequest(sources: ValidationSource) {
     if (sources.params) {
       const result = sources.params.safeParse(req.params);
       if (!result.success) {
-        errors.params = formatZodErrors(result.error);
+        const issues = formatZodIssues(result.error, 'params');
+        errors.push(...issues);
+        validationMap.params = buildValidationMap(issues);
         hasError = true;
       } else {
         // Store validated params
@@ -69,7 +85,17 @@ export function validateRequest(sources: ValidationSource) {
 
     // Return early with error if validation failed
     if (hasError) {
-      sendError(res, 'validation_error', 'Validation failed', 400, { validation: errors }, req.correlationId);
+      sendError(
+        res,
+        'validation_error',
+        'Validation failed',
+        400,
+        {
+          issues: errors,
+          validation: validationMap,
+        },
+        req.correlationId
+      );
       return;
     }
 
@@ -116,11 +142,23 @@ export function validateInputs(
 /**
  * Format Zod errors into a flat structure
  */
-function formatZodErrors(error: ZodError): Record<string, string[]> {
+function formatZodIssues(
+  error: ZodError,
+  source: ValidationIssueSource
+): ValidationIssue[] {
+  return error.issues.map((issue) => ({
+    source,
+    path: issue.path.join('.'),
+    message: issue.message,
+    code: issue.code,
+  }));
+}
+
+function buildValidationMap(issues: ValidationIssue[]): Record<string, string[]> {
   const formatted: Record<string, string[]> = {};
 
-  error.issues.forEach((issue) => {
-    const path = issue.path.join('.');
+  issues.forEach((issue) => {
+    const path = issue.path || '_';
     if (!formatted[path]) {
       formatted[path] = [];
     }
@@ -140,7 +178,7 @@ export function validateData<T>(schema: ZodSchema, data: unknown): ValidationRes
     return {
       success: false,
       error: 'Validation failed',
-      errors: formatZodErrors(result.error),
+      errors: formatZodIssues(result.error, 'body'),
     };
   }
 
