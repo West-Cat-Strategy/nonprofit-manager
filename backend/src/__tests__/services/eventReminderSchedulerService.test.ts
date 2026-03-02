@@ -60,8 +60,9 @@ describe('eventReminderSchedulerService', () => {
   };
 
   const flushMicrotasks = async (): Promise<void> => {
-    await Promise.resolve();
-    await Promise.resolve();
+    for (let i = 0; i < 6; i += 1) {
+      await Promise.resolve();
+    }
   };
 
   beforeEach(() => {

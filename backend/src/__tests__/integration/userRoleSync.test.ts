@@ -27,18 +27,14 @@ describe('User Role Sync Integration', () => {
   };
 
   afterAll(async () => {
-    try {
-      const users = await pool.query(
-        "SELECT id FROM users WHERE email LIKE 'role-sync-%@example.com'"
-      );
-      const userIds = users.rows.map((row: { id: string }) => row.id);
+    const users = await pool.query(
+      "SELECT id FROM users WHERE email LIKE 'role-sync-%@example.com'"
+    );
+    const userIds = users.rows.map((row: { id: string }) => row.id);
 
-      if (userIds.length > 0) {
-        await safeDelete('DELETE FROM user_roles WHERE user_id = ANY($1)', [userIds]);
-        await safeDelete('DELETE FROM users WHERE id = ANY($1)', [userIds]);
-      }
-    } finally {
-      await pool.end();
+    if (userIds.length > 0) {
+      await safeDelete('DELETE FROM user_roles WHERE user_id = ANY($1)', [userIds]);
+      await safeDelete('DELETE FROM users WHERE id = ANY($1)', [userIds]);
     }
   });
 

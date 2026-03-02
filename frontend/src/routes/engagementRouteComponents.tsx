@@ -14,3 +14,5 @@ export const CaseDetail = lazy(() => import('../features/cases/pages/CaseDetailP
 export const CaseCreate = lazy(() => import('../features/cases/pages/CaseCreatePage'));
 export const CaseEdit = lazy(() => import('../features/cases/pages/CaseEditPage'));
 export const ExternalServiceProviders = lazy(() => import('../pages/engagement/cases/ExternalServiceProviders'));
+export const FollowUpsPage = lazy(() => import('../pages/engagement/followUps/FollowUpsPage'));
+export const OpportunitiesPage = lazy(() => import('../pages/engagement/opportunities/OpportunitiesPage'));

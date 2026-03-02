@@ -19,6 +19,8 @@ import healthRoutes, { setHealthCheckPool } from '@routes/health';
 import { registerApiRoutes } from '@routes/registrars';
 import { setPaymentPool } from '@controllers/domains';
 import { eventReminderSchedulerService } from '@services/eventReminderSchedulerService';
+import { followUpReminderSchedulerService } from '@services/followUpReminderSchedulerService';
+import { scheduledReportSchedulerService } from '@services/scheduledReportSchedulerService';
 import { webhookRetrySchedulerService } from '@services/webhookRetrySchedulerService';
 import pool from './config/database';
 
@@ -90,6 +92,12 @@ const PORT = Number(process.env.PORT) || 3000;
 const reminderSchedulerEnabled =
   process.env.NODE_ENV !== 'test' &&
   process.env.EVENT_REMINDER_SCHEDULER_ENABLED === 'true';
+const followUpReminderSchedulerEnabled =
+  process.env.NODE_ENV !== 'test' &&
+  process.env.FOLLOW_UP_REMINDER_SCHEDULER_ENABLED === 'true';
+const scheduledReportSchedulerEnabled =
+  process.env.NODE_ENV !== 'test' &&
+  process.env.SCHEDULED_REPORT_SCHEDULER_ENABLED === 'true';
 const webhookRetrySchedulerEnabled =
   process.env.NODE_ENV !== 'test' &&
   process.env.WEBHOOK_RETRY_SCHEDULER_ENABLED === 'true';
@@ -268,6 +276,8 @@ initializeRedis().catch((err) => {
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, closing server gracefully...');
   eventReminderSchedulerService.stop();
+  followUpReminderSchedulerService.stop();
+  scheduledReportSchedulerService.stop();
   webhookRetrySchedulerService.stop();
   await Promise.all([closeRedis(), pool.end()]);
   process.exit(0);
@@ -276,6 +286,8 @@ process.on('SIGTERM', async () => {
 process.on('SIGINT', async () => {
   logger.info('SIGINT received, closing server gracefully...');
   eventReminderSchedulerService.stop();
+  followUpReminderSchedulerService.stop();
+  scheduledReportSchedulerService.stop();
   webhookRetrySchedulerService.stop();
   await Promise.all([closeRedis(), pool.end()]);
   process.exit(0);
@@ -292,6 +304,18 @@ if (shouldStartServer) {
       eventReminderSchedulerService.start();
     } else {
       logger.info('Event reminder scheduler disabled');
+    }
+
+    if (followUpReminderSchedulerEnabled) {
+      followUpReminderSchedulerService.start();
+    } else {
+      logger.info('Follow-up reminder scheduler disabled');
+    }
+
+    if (scheduledReportSchedulerEnabled) {
+      scheduledReportSchedulerService.start();
+    } else {
+      logger.info('Scheduled report scheduler disabled');
     }
 
     if (webhookRetrySchedulerEnabled) {

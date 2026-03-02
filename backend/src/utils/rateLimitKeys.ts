@@ -18,29 +18,69 @@ const getUserId = (req: Request): string | undefined => {
   return user?.id;
 };
 
+const getOrganizationId = (req: Request): string | undefined => {
+  const withOrg = req as Request & {
+    organizationId?: string;
+    accountId?: string;
+    tenantId?: string;
+  };
+
+  const scopedId =
+    withOrg.organizationId ||
+    withOrg.accountId ||
+    withOrg.tenantId ||
+    (typeof req.headers['x-organization-id'] === 'string'
+      ? req.headers['x-organization-id']
+      : undefined) ||
+    (typeof req.headers['x-account-id'] === 'string' ? req.headers['x-account-id'] : undefined) ||
+    (typeof req.headers['x-tenant-id'] === 'string' ? req.headers['x-tenant-id'] : undefined);
+
+  return scopedId || undefined;
+};
+
 const getBodyValue = (req: Request, key: string): string | undefined => {
   const body = req.body as Record<string, unknown> | undefined;
   const value = body?.[key];
   return typeof value === 'string' ? value : undefined;
 };
 
+const buildScopedRateLimitKey = (
+  scope: string,
+  identifier: string,
+  organizationId?: string
+): string => {
+  if (organizationId) {
+    return buildKey('rate-limit', 'org', organizationId, scope, identifier);
+  }
+  return buildKey('rate-limit', 'global', scope, identifier);
+};
+
 export const rateLimitKeys = {
   api(req: Request): string {
-    return buildKey('rate-limit', 'api', getUserId(req) || getIp(req));
+    return buildScopedRateLimitKey(
+      'api',
+      getUserId(req) || getIp(req),
+      getOrganizationId(req)
+    );
   },
 
   auth(req: Request): string {
     const email = getBodyValue(req, 'email');
-    return buildKey('rate-limit', 'auth', email || '_', getIp(req));
+    const identifier = `${email || '_'}:${getIp(req)}`;
+    return buildScopedRateLimitKey('auth', identifier, getOrganizationId(req));
   },
 
   passwordReset(req: Request): string {
     const email = getBodyValue(req, 'email');
-    return buildKey('rate-limit', 'password-reset', email || getIp(req));
+    return buildScopedRateLimitKey(
+      'password-reset',
+      email || getIp(req),
+      getOrganizationId(req)
+    );
   },
 
   registration(req: Request): string {
-    return buildKey('rate-limit', 'registration', getIp(req));
+    return buildScopedRateLimitKey('registration', getIp(req), getOrganizationId(req));
   },
 };
 

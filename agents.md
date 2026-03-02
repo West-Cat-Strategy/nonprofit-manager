@@ -32,7 +32,7 @@ Developer agents are AI assistants contributing code to the nonprofit-manager pr
 **Backend:**
 - TypeScript with strict null checking
 - Node.js with Express.js
-- PostgreSQL with Prisma ORM
+- PostgreSQL with `pg` service-layer queries
 - Jest for unit tests
 - Zod for runtime validation
 
@@ -109,7 +109,7 @@ Helper functions for checking user permissions:
 - **45+ granular permissions** across 5 roles
 - Roles: Admin, Manager, Coordinator, Volunteer, Donor
 - Permissions stored in database, checked at request-time
-- Middleware: [https://github.com/West-Cat-Strategy/nonprofit-manager](https://github.com/West-Cat-Strategy/nonprofit-manager)
+- Middleware: [backend/src/middleware/permissions.ts](backend/src/middleware/permissions.ts)
 
 ### Rate Limiting
 
@@ -227,7 +227,7 @@ Before implementing a task, update [docs/phases/planning-and-progress.md](docs/p
 
 #### 2. One Task Per Agent At A Time
 
-- Only one "In Progress" task per agent
+- One "In Progress" task per agent by default; coordinated parent+subtask concurrency is allowed when explicitly linked
 - Switch tasks only when previous task is "Done" or "Blocked"
 - If blocked, document blocker and escalate
 
@@ -286,15 +286,17 @@ Before marking task "Done":
 - PR/Commit Reference
 - Notes/Blockers
 
-**Current Phase:** Phase 2 - Validation & Authorization (In Progress as of Feb 14, 2026)  
+**Current Phase:** Phase 4 - Modularity Refactor (In Progress, with active Phase 3 stream as of March 1, 2026)  
 **Workboard Location:** [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md) (single source of truth)
 
 **Archived Phase documentation:** Old PHASE_1/2 and WEEK completion files have been archived to [docs/phases/archive/](docs/phases/archive/) to reduce confusion. See [docs/phases/archive/README.md](docs/phases/archive/README.md) for details.
 
 **Next Ready Tasks:**
-- P2-T8: Migrate volunteer routes to Zod validation
-- P2-T9: Standardize error responses across endpoints
-- P2-T10: Add Phase 2 integration tests
+- P2-T11: Migrate event routes to Zod validation
+- P2-T12: Migrate task routes to Zod validation
+- P2-T13: Migrate account routes to Zod validation
+- P2-T14: Migrate remaining routes to Zod (cases, meetings, invitations, etc.)
+- P2-T15: Add validation to cases.ts
 
 ### Merge Strategy
 
@@ -326,7 +328,7 @@ The application tracks HTTP `User-Agent` headers to understand browser/client be
 | API Key Usage | [backend/src/services/apiKeyService.ts](backend/src/services/apiKeyService.ts#L269) | Track API key consumption by client |
 | Auth Activity | [backend/src/controllers/portalAuthController.ts](backend/src/controllers/portalAuthController.ts#L147) | Log authentication attempts and sessions |
 | Publishing Events | [backend/src/controllers/publishingController.ts](backend/src/controllers/publishingController.ts#L286) | Track publishing actions |
-| Portal Actions | [backend/src/controllers/portalController.ts](https://github.com/West-Cat-Strategy/nonprofit-manager) | Log general portal activity |
+| Portal Actions | [backend/src/modules/portal/controllers/resources.controller.ts](backend/src/modules/portal/controllers/resources.controller.ts#L96) | Log portal document/resource actions |
 
 ### Database Schema
 

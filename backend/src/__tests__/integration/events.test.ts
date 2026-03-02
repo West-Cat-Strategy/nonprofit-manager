@@ -29,7 +29,6 @@ describe('Event API Integration Tests', () => {
     if (testEventId) {
       await pool.query('DELETE FROM events WHERE id = $1', [testEventId]);
     }
-    await pool.end();
   });
 
   describe('POST /api/v2/events', () => {
@@ -194,6 +193,68 @@ describe('Event API Integration Tests', () => {
 
     it('should require authentication', async () => {
       await request(app).get('/api/v2/events/1').expect(401);
+    });
+  });
+
+  describe('GET /api/v2/events/:id/calendar.ics', () => {
+    it('should return authenticated ICS download for an event', async () => {
+      const createResponse = await request(app)
+        .post('/api/v2/events')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          event_name: 'Calendar Contract Event',
+          event_type: 'community',
+          start_date: '2026-05-20T18:00:00Z',
+          end_date: '2026-05-20T20:00:00Z',
+          location_name: 'Community Hall',
+          city: 'Vancouver',
+          country: 'Canada',
+        })
+        .expect(201);
+
+      const created = unwrap<{ event_id: string }>(createResponse.body);
+      const eventId = created.event_id;
+
+      const response = await request(app)
+        .get(`/api/v2/events/${eventId}/calendar.ics`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.headers['content-type']).toContain('text/calendar');
+      expect(response.headers['content-disposition']).toContain('attachment;');
+      expect(response.headers['content-disposition']).toContain(`event-${eventId}.ics`);
+      expect(response.text).toContain('BEGIN:VCALENDAR');
+      expect(response.text).toContain('BEGIN:VEVENT');
+      expect(response.text).toContain(`UID:${eventId}@nonprofit-manager`);
+    });
+
+    it('should return canonical 404 when event for ICS is not found', async () => {
+      const response = await request(app)
+        .get('/api/v2/events/00000000-0000-0000-0000-000000000000/calendar.ics')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(404);
+
+      expect(response.body).toMatchObject({
+        success: false,
+        error: {
+          code: 'EVENT_NOT_FOUND',
+          message: expect.any(String),
+        },
+      });
+    });
+
+    it('should require authentication for ICS download', async () => {
+      const response = await request(app)
+        .get('/api/v2/events/00000000-0000-0000-0000-000000000000/calendar.ics')
+        .expect(401);
+
+      expect(response.body).toMatchObject({
+        success: false,
+        error: {
+          code: expect.any(String),
+          message: expect.any(String),
+        },
+      });
     });
   });
 

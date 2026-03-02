@@ -29,9 +29,9 @@ This repository is optimized for **parallel agent work**. To prevent overlap:
 - **Runtime**: Node.js with TypeScript
 - **Framework**: Express.js
 - **Database**: PostgreSQL
-- **ORM/Query**: Direct SQL with pg library (consider Prisma or TypeORM for future)
+- **ORM/Query**: `pg` service-layer queries (no ORM in active backend runtime)
 - **Authentication**: JWT tokens with bcrypt password hashing
-- **Validation**: express-validator
+- **Validation**: Zod via `@middleware/zodValidation`
 - **Logging**: Winston
 
 ### Frontend
@@ -96,7 +96,7 @@ frontend/src/
 
 #### API Design
 - RESTful endpoints
-- Versioning: `/api/v1/resource`
+- Versioning: `/api/resource` for legacy routes and `/api/v2/resource` for modular cutovers
 - Plural nouns for collections: `/api/volunteers`
 - Nested resources where appropriate: `/api/events/:id/registrations`
 - Use proper HTTP methods: GET, POST, PUT, PATCH, DELETE
@@ -132,7 +132,7 @@ frontend/src/
 #### Frontend Tests
 - Component tests with React Testing Library
 - Integration tests for user flows
-- E2E tests with Playwright or Cypress (future)
+- E2E tests with Playwright (active in `e2e/`)
 - Test user interactions, not implementation details
 
 ### Git Workflow
@@ -270,7 +270,7 @@ const data = response.data;
 
 ## Current Status
 
-See [planning-and-progress.md](https://github.com/West-Cat-Strategy/nonprofit-manager) for:
+See [docs/phases/planning-and-progress.md](../phases/planning-and-progress.md) for:
 - Current phase and progress
 - Completed features
 - Upcoming tasks

@@ -36,6 +36,9 @@ const defaultNavigationItems: NavigationItem[] = [
   { id: 'events', name: 'Events', path: '/events', icon: '📅', enabled: true, isCore: false },
   { id: 'donations', name: 'Donations', path: '/donations', icon: '💰', enabled: true, isCore: false },
   { id: 'tasks', name: 'Tasks', path: '/tasks', icon: '✓', enabled: true, isCore: false },
+  { id: 'follow-ups', name: 'Follow-ups', path: '/follow-ups', icon: '🔔', enabled: true, isCore: false },
+  { id: 'opportunities', name: 'Opportunities', path: '/opportunities', icon: '📈', enabled: true, isCore: false },
+  { id: 'scheduled-reports', name: 'Scheduled Reports', path: '/reports/scheduled', icon: '🗓️', enabled: true, isCore: false },
 ];
 
 function mergeWithDefaults(savedItems: NavigationItem[] | undefined): NavigationItem[] {

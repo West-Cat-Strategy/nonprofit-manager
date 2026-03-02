@@ -6,6 +6,7 @@
 import { Request, Response } from 'express';
 import { logger } from '@config/logger';
 import { reconciliationService } from '@services/domains/operations';
+import { appendAuditLog } from '@services/auditService';
 import type { AuthRequest } from '@middleware/auth';
 import type {
   CreateReconciliationRequest,
@@ -15,6 +16,19 @@ import type {
 } from '@app-types/reconciliation';
 import pool from '@config/database';
 import { badRequest, notFoundMessage, serverError, serviceUnavailable } from '@utils/responseHelpers';
+import { sendSuccess } from '@modules/shared/http/envelope';
+
+const getRequestUserAgent = (req: AuthRequest): string | null => {
+  const userAgent = req.headers['user-agent'];
+  if (Array.isArray(userAgent)) {
+    return userAgent[0] || null;
+  }
+  return userAgent || null;
+};
+
+const getRequestIp = (req: AuthRequest): string | null => {
+  return req.ip || req.connection.remoteAddress || null;
+};
 
 /**
  * Create a new payment reconciliation
@@ -53,7 +67,22 @@ export const createReconciliation = async (req: AuthRequest, res: Response): Pro
 
     const reconciliation = await reconciliationService.createReconciliation(request, userId);
 
-    res.status(201).json(reconciliation);
+    await appendAuditLog(pool, {
+      action: 'reconciliation_created',
+      resourceType: 'reconciliation',
+      resourceId: (reconciliation as { id?: string }).id || null,
+      userId: userId || null,
+      details: {
+        reconciliationType: request.reconciliation_type,
+        startDate: request.start_date,
+        endDate: request.end_date,
+      },
+      ipAddress: getRequestIp(req),
+      userAgent: getRequestUserAgent(req),
+      requestId: req.correlationId,
+    });
+
+    sendSuccess(res, reconciliation, 201);
   } catch (error) {
     logger.error('Error creating reconciliation:', error);
     serverError(res, 'Failed to create reconciliation');
@@ -155,7 +184,7 @@ export const getReconciliations = async (req: Request, res: Response): Promise<v
 
     const result = await pool.query(query, params);
 
-    res.json({
+    sendSuccess(res, {
       reconciliations: result.rows,
       pagination: {
         total,
@@ -183,7 +212,7 @@ export const getReconciliationById = async (
     const reconciliation = await reconciliationService.getReconciliationById(id);
     const summary = await reconciliationService.getReconciliationSummary(id);
 
-    res.json({
+    sendSuccess(res, {
       reconciliation,
       summary,
     });
@@ -217,7 +246,7 @@ export const getReconciliationItems = async (
     const offset = (pageNum - 1) * limitNum;
     const paginatedItems = items.slice(offset, offset + limitNum);
 
-    res.json({
+    sendSuccess(res, {
       items: paginatedItems,
       pagination: {
         total: items.length,
@@ -244,7 +273,7 @@ export const getReconciliationDiscrepancies = async (
 
     const discrepancies = await reconciliationService.getDiscrepancies(id);
 
-    res.json({ discrepancies });
+    sendSuccess(res, { discrepancies });
   } catch (error) {
     logger.error('Error fetching discrepancies:', error);
     serverError(res, 'Failed to fetch discrepancies');
@@ -316,7 +345,7 @@ export const getAllDiscrepancies = async (req: Request, res: Response): Promise<
 
     const result = await pool.query(query, params);
 
-    res.json({
+    sendSuccess(res, {
       discrepancies: result.rows,
       pagination: {
         total,
@@ -352,7 +381,20 @@ export const manualMatch = async (req: AuthRequest, res: Response): Promise<void
       stripePaymentIntentId: stripe_payment_intent_id,
     });
 
-    res.json({ success: true, message: 'Transaction matched successfully' });
+    await appendAuditLog(pool, {
+      action: 'reconciliation_manual_match',
+      resourceType: 'donation',
+      resourceId: donation_id,
+      userId: userId || null,
+      details: {
+        stripePaymentIntentId: stripe_payment_intent_id,
+      },
+      ipAddress: getRequestIp(req),
+      userAgent: getRequestUserAgent(req),
+      requestId: req.correlationId,
+    });
+
+    sendSuccess(res, { message: 'Transaction matched successfully' });
   } catch (error) {
     logger.error('Error matching transaction:', error);
     serverError(res, 'Failed to match transaction');
@@ -386,7 +428,20 @@ export const resolveDiscrepancy = async (req: AuthRequest, res: Response): Promi
       status,
     });
 
-    res.json({ success: true, message: 'Discrepancy resolved successfully' });
+    await appendAuditLog(pool, {
+      action: 'reconciliation_discrepancy_resolved',
+      resourceType: 'payment_discrepancy',
+      resourceId: id,
+      userId: userId || null,
+      details: {
+        status,
+      },
+      ipAddress: getRequestIp(req),
+      userAgent: getRequestUserAgent(req),
+      requestId: req.correlationId,
+    });
+
+    sendSuccess(res, { message: 'Discrepancy resolved successfully' });
   } catch (error) {
     logger.error('Error resolving discrepancy:', error);
     serverError(res, 'Failed to resolve discrepancy');
@@ -434,7 +489,7 @@ export const getReconciliationDashboard = async (_req: Request, res: Response): 
       AND reconciliation_status = 'unreconciled'
     `);
 
-    res.json({
+    sendSuccess(res, {
       latest_reconciliation: latestResult.rows[0] || null,
       stats: {
         ...statsResult.rows[0],
@@ -475,7 +530,21 @@ export const assignDiscrepancy = async (req: AuthRequest, res: Response): Promis
       assignedTo: assigned_to,
     });
 
-    res.json({ success: true, message: 'Discrepancy assigned successfully' });
+    await appendAuditLog(pool, {
+      action: 'reconciliation_discrepancy_assigned',
+      resourceType: 'payment_discrepancy',
+      resourceId: id,
+      userId: req.user?.id || null,
+      details: {
+        assignedTo: assigned_to,
+        dueDate: due_date || null,
+      },
+      ipAddress: getRequestIp(req),
+      userAgent: getRequestUserAgent(req),
+      requestId: req.correlationId,
+    });
+
+    sendSuccess(res, { message: 'Discrepancy assigned successfully' });
   } catch (error) {
     logger.error('Error assigning discrepancy:', error);
     serverError(res, 'Failed to assign discrepancy');

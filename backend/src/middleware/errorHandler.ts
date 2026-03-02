@@ -14,6 +14,10 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction
 ): void => {
+  if (res.headersSent) {
+    return;
+  }
+
   logger.error({
     message: err.message,
     stack: err.stack,
@@ -28,12 +32,14 @@ export const errorHandler = (
   const defaultCode = isClientError ? 'request_error' : 'server_error';
   const message = isClientError && err.message ? err.message : 'Internal Server Error';
 
-  const details = process.env.NODE_ENV === 'development'
-    ? {
-      ...(err.details ? { details: err.details } : {}),
+  let details = err.details;
+
+  if (process.env.NODE_ENV === 'development') {
+    details = {
+      ...(err.details || {}),
       ...(err.stack ? { stack: err.stack } : {}),
-    }
-    : err.details;
+    };
+  }
 
   sendError(
     res,

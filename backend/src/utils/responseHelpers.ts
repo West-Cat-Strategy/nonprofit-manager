@@ -19,6 +19,52 @@ const normalizeDetails = (details: unknown): Record<string, unknown> | undefined
   return { issues: Array.isArray(details) ? details : [details] };
 };
 
+type ValidationIssueSource = 'body' | 'query' | 'params';
+
+interface ExpressValidationErrorItem {
+  msg?: string;
+  path?: string;
+  param?: string;
+  location?: string;
+  type?: string;
+}
+
+const normalizeValidationSource = (location: string | undefined): ValidationIssueSource => {
+  if (location === 'query') return 'query';
+  if (location === 'params') return 'params';
+  return 'body';
+};
+
+const buildValidationDetails = (details: unknown): Record<string, unknown> | undefined => {
+  const rawItems = Array.isArray(details) ? details : [];
+  const issues = rawItems.map((item) => {
+    const validationItem = (item || {}) as ExpressValidationErrorItem;
+    const source = normalizeValidationSource(validationItem.location);
+    const path = validationItem.path || validationItem.param || '_';
+    const message = validationItem.msg || 'Validation failed';
+    const code = validationItem.type || 'invalid';
+
+    return {
+      source,
+      path,
+      message,
+      code,
+    };
+  });
+
+  const validation: Partial<Record<ValidationIssueSource, Record<string, string[]>>> = {};
+  issues.forEach((issue) => {
+    const scoped = (validation[issue.source] ||= {});
+    const messages = (scoped[issue.path] ||= []);
+    messages.push(issue.message);
+  });
+
+  return {
+    issues,
+    validation,
+  };
+};
+
 export const errorPayload = (
   res: Response,
   message: string,
@@ -92,7 +138,8 @@ export const validationErrorResponse = (
   res: Response,
   errors: { array: () => unknown }
 ): void => {
-  sendError(res, 'validation_error', 'Validation failed', 400, normalizeDetails(errors.array()));
+  const details = buildValidationDetails(errors.array());
+  sendError(res, 'validation_error', 'Validation failed', 400, details);
 };
 
 /**

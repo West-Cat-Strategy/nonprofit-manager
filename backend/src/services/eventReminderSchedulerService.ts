@@ -16,6 +16,9 @@ import { IntervalBatchRunner } from '@services/queue/intervalBatchRunner';
 
 const DEFAULT_INTERVAL_MS = 60_000;
 const DEFAULT_BATCH_SIZE = 25;
+const DEFAULT_RETRY_ATTEMPTS = 1;
+const DEFAULT_RETRY_DELAY_MS = 1_000;
+const DEFAULT_TIMEOUT_MS = 60_000;
 
 const toNumberOrDefault = (rawValue: string | undefined, fallback: number): number => {
   if (!rawValue) return fallback;
@@ -57,10 +60,26 @@ class EventReminderSchedulerService {
       DEFAULT_BATCH_SIZE
     );
 
+    const retryAttempts = toNumberOrDefault(
+      process.env.EVENT_REMINDER_SCHEDULER_RETRY_ATTEMPTS,
+      DEFAULT_RETRY_ATTEMPTS
+    );
+    const retryDelayMs = toNumberOrDefault(
+      process.env.EVENT_REMINDER_SCHEDULER_RETRY_DELAY_MS,
+      DEFAULT_RETRY_DELAY_MS
+    );
+    const timeoutMs = toNumberOrDefault(
+      process.env.EVENT_REMINDER_SCHEDULER_TIMEOUT_MS,
+      DEFAULT_TIMEOUT_MS
+    );
+
     this.runner = new IntervalBatchRunner({
       name: 'Event reminder scheduler',
       intervalMs: pollIntervalMs,
       runBatch: async () => this.runBatch(),
+      retryAttempts,
+      retryDelayMs,
+      timeoutMs,
     });
 
     this.runner.start();

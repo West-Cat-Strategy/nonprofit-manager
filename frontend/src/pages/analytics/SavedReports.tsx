@@ -2,9 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchSavedReports, deleteSavedReport } from '../../store/slices/savedReportsSlice';
+import { createScheduledReport } from '../../store/slices/scheduledReportsSlice';
 import type { SavedReport } from '../../types/savedReport';
+import type { ScheduledReportFormat, ScheduledReportFrequency } from '../../types/scheduledReport';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import useConfirmDialog, { confirmPresets } from '../../hooks/useConfirmDialog';
+
+const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
 function SavedReports() {
   const navigate = useNavigate();
@@ -12,6 +16,15 @@ function SavedReports() {
   const { reports, loading, error } = useAppSelector((state) => state.savedReports);
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const [filterEntity, setFilterEntity] = useState<string>('');
+  const [scheduleTarget, setScheduleTarget] = useState<SavedReport | null>(null);
+  const [scheduleRecipients, setScheduleRecipients] = useState('');
+  const [scheduleFrequency, setScheduleFrequency] = useState<ScheduledReportFrequency>('weekly');
+  const [scheduleFormat, setScheduleFormat] = useState<ScheduledReportFormat>('csv');
+  const [scheduleTimezone, setScheduleTimezone] = useState(localTimezone);
+  const [scheduleHour, setScheduleHour] = useState('9');
+  const [scheduleMinute, setScheduleMinute] = useState('0');
+  const [scheduleDayOfWeek, setScheduleDayOfWeek] = useState('1');
+  const [scheduleDayOfMonth, setScheduleDayOfMonth] = useState('1');
 
   useEffect(() => {
     dispatch(fetchSavedReports());
@@ -31,6 +44,49 @@ function SavedReports() {
   const filteredReports = filterEntity
     ? reports.filter((r) => r.entity === filterEntity)
     : reports;
+
+  const resetScheduleDialog = () => {
+    setScheduleTarget(null);
+    setScheduleRecipients('');
+    setScheduleFrequency('weekly');
+    setScheduleFormat('csv');
+    setScheduleTimezone(localTimezone);
+    setScheduleHour('9');
+    setScheduleMinute('0');
+    setScheduleDayOfWeek('1');
+    setScheduleDayOfMonth('1');
+  };
+
+  const handleSchedule = async () => {
+    if (!scheduleTarget) return;
+
+    const recipients = scheduleRecipients
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    if (recipients.length === 0) {
+      return;
+    }
+
+    await dispatch(
+      createScheduledReport({
+        saved_report_id: scheduleTarget.id,
+        name: scheduleTarget.name,
+        recipients,
+        format: scheduleFormat,
+        frequency: scheduleFrequency,
+        timezone: scheduleTimezone,
+        hour: Number(scheduleHour),
+        minute: Number(scheduleMinute),
+        day_of_week: scheduleFrequency === 'weekly' ? Number(scheduleDayOfWeek) : undefined,
+        day_of_month: scheduleFrequency === 'monthly' ? Number(scheduleDayOfMonth) : undefined,
+      })
+    );
+
+    resetScheduleDialog();
+    navigate('/reports/scheduled');
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -145,6 +201,13 @@ function SavedReports() {
                   </button>
                   <button
                     type="button"
+                    onClick={() => setScheduleTarget(report)}
+                    className="px-3 py-2 bg-[var(--loop-cyan)] text-black text-sm rounded border border-black font-bold"
+                  >
+                    Schedule
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => handleDeleteReport(report.id, report.name)}
                     className="px-3 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700"
                   >
@@ -155,6 +218,127 @@ function SavedReports() {
             ))}
           </div>
         )}
+      {scheduleTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-2xl border-2 border-[var(--app-border)] bg-[var(--app-surface)] p-6 shadow-[6px_6px_0px_0px_var(--shadow-color)]">
+            <h2 className="text-xl font-black text-[var(--app-text)]">Schedule Report</h2>
+            <p className="mt-1 text-sm text-[var(--app-text-muted)]">{scheduleTarget.name}</p>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <label className="flex flex-col text-sm font-bold">
+                Recipients (comma-separated)
+                <input
+                  value={scheduleRecipients}
+                  onChange={(event) => setScheduleRecipients(event.target.value)}
+                  placeholder="ops@example.org, manager@example.org"
+                  className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
+                />
+              </label>
+              <label className="flex flex-col text-sm font-bold">
+                Frequency
+                <select
+                  value={scheduleFrequency}
+                  onChange={(event) => setScheduleFrequency(event.target.value as ScheduledReportFrequency)}
+                  className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </label>
+              <label className="flex flex-col text-sm font-bold">
+                Format
+                <select
+                  value={scheduleFormat}
+                  onChange={(event) => setScheduleFormat(event.target.value as ScheduledReportFormat)}
+                  className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
+                >
+                  <option value="csv">CSV</option>
+                  <option value="xlsx">XLSX</option>
+                </select>
+              </label>
+              <label className="flex flex-col text-sm font-bold">
+                Timezone
+                <input
+                  value={scheduleTimezone}
+                  onChange={(event) => setScheduleTimezone(event.target.value)}
+                  className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
+                />
+              </label>
+              <label className="flex flex-col text-sm font-bold">
+                Hour
+                <input
+                  type="number"
+                  min={0}
+                  max={23}
+                  value={scheduleHour}
+                  onChange={(event) => setScheduleHour(event.target.value)}
+                  className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
+                />
+              </label>
+              <label className="flex flex-col text-sm font-bold">
+                Minute
+                <input
+                  type="number"
+                  min={0}
+                  max={59}
+                  value={scheduleMinute}
+                  onChange={(event) => setScheduleMinute(event.target.value)}
+                  className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
+                />
+              </label>
+              {scheduleFrequency === 'weekly' && (
+                <label className="flex flex-col text-sm font-bold">
+                  Day of Week
+                  <select
+                    value={scheduleDayOfWeek}
+                    onChange={(event) => setScheduleDayOfWeek(event.target.value)}
+                    className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
+                  >
+                    <option value="0">Sunday</option>
+                    <option value="1">Monday</option>
+                    <option value="2">Tuesday</option>
+                    <option value="3">Wednesday</option>
+                    <option value="4">Thursday</option>
+                    <option value="5">Friday</option>
+                    <option value="6">Saturday</option>
+                  </select>
+                </label>
+              )}
+              {scheduleFrequency === 'monthly' && (
+                <label className="flex flex-col text-sm font-bold">
+                  Day of Month
+                  <input
+                    type="number"
+                    min={1}
+                    max={28}
+                    value={scheduleDayOfMonth}
+                    onChange={(event) => setScheduleDayOfMonth(event.target.value)}
+                    className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
+                  />
+                </label>
+              )}
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={resetScheduleDialog}
+                className="px-4 py-2 border-2 border-[var(--app-border)] font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleSchedule()}
+                className="px-4 py-2 border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] font-bold"
+              >
+                Save Schedule
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );

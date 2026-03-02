@@ -3,6 +3,9 @@ import { IntervalBatchRunner } from '@services/queue/intervalBatchRunner';
 
 const DEFAULT_INTERVAL_MS = 60_000;
 const DEFAULT_BATCH_SIZE = 100;
+const DEFAULT_RETRY_ATTEMPTS = 1;
+const DEFAULT_RETRY_DELAY_MS = 1_000;
+const DEFAULT_TIMEOUT_MS = 30_000;
 
 const toNumberOrDefault = (rawValue: string | undefined, fallback: number): number => {
   if (!rawValue) return fallback;
@@ -27,10 +30,26 @@ class WebhookRetrySchedulerService {
       DEFAULT_BATCH_SIZE
     );
 
+    const retryAttempts = toNumberOrDefault(
+      process.env.WEBHOOK_RETRY_SCHEDULER_RETRY_ATTEMPTS,
+      DEFAULT_RETRY_ATTEMPTS
+    );
+    const retryDelayMs = toNumberOrDefault(
+      process.env.WEBHOOK_RETRY_SCHEDULER_RETRY_DELAY_MS,
+      DEFAULT_RETRY_DELAY_MS
+    );
+    const timeoutMs = toNumberOrDefault(
+      process.env.WEBHOOK_RETRY_SCHEDULER_TIMEOUT_MS,
+      DEFAULT_TIMEOUT_MS
+    );
+
     this.runner = new IntervalBatchRunner({
       name: 'Webhook retry scheduler',
       intervalMs,
       runBatch: async () => processRetries(this.batchSize),
+      retryAttempts,
+      retryDelayMs,
+      timeoutMs,
     });
 
     this.runner.start();

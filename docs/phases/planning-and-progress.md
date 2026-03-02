@@ -1,7 +1,7 @@
 # 📊 Nonprofit Manager - Planning & Progress
 
-**Current Phase:** 🚀 Phase 2 - Validation & Authorization (In Progress)  
-**Last Updated:** February 22, 2026 (P4-T1A strict verification remediation complete)  
+**Current Phase:** 🚀 Phase 4 - Modularity Refactor (In Progress, with active Phase 3 overlap)  
+**Last Updated:** March 2, 2026 (P4-T2 strict closure verification completed; merge pending)  
 **Lead Developer:** Bryan Crockett (@bcroc), West Cat Strategy Ltd.
 
 ---
@@ -22,7 +22,7 @@ All active work must be **signed out** in the Workboard below before code change
 ### ✅ Rules of Engagement
 
 1. **Sign out work** by moving a task into “In Progress” with your handle and date.
-2. **One task per agent at a time** (avoid parallel work unless explicitly approved).
+2. **One task per agent by default**; coordinated parent+subtask concurrency is allowed when the subtask notes/PR reference explicitly link to the parent task.
 3. **Update this file first** when starting and ending work.
 4. **Use task IDs** in commits and PR titles (example: `P1-T1.5-TESTS`).
 5. **If blocked**, mark the task as “Blocked” and write why + next action.
@@ -81,42 +81,25 @@ All active work must be **signed out** in the Workboard below before code change
 | P4-T1C | Cases + Contacts modularization (v2 API + v1 shim) | Phase 4 | In Progress | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
 | P4-T1C-A | Cases + Contacts backend modules, `/api/v2`, legacy shim/deprecation | Phase 4 | In Progress | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
 | P4-T1C-B | Cases + Contacts frontend feature cutover + legacy slice removal | Phase 4 | In Progress | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
+| P4-T1D | Agent/docs guardrail drift remediation (links, validation coverage, ICS contract) | Phase 4 | Review | Codex | Mar 1, 2026 | Mar 1, 2026 | codex/all-open-work-items |
+| P4-T1E | Opportunity-map closure (contract + tenant + webhook reliability) | Phase 4 | Review | Codex | Mar 1, 2026 | Mar 1, 2026 | codex/p4-t1e-opportunity-closure |
+| P4-T2A | Reference adoption wave: follow-up lifecycle backend + frontend route integration | Phase 4 | Review | Codex | Mar 2, 2026 | Mar 2, 2026 | codex/p4-t2-reference-adoption |
+| P4-T2B | Reference adoption wave: scheduled reports backend scheduler + frontend scheduling UI | Phase 4 | Review | Codex | Mar 2, 2026 | Mar 2, 2026 | codex/p4-t2-reference-adoption |
+| P4-T2C | Reference adoption wave: opportunities pipeline module backend + frontend board/list | Phase 4 | Review | Codex | Mar 2, 2026 | Mar 2, 2026 | codex/p4-t2-reference-adoption |
+| P4-T2D | Reference adoption wave: docs/artifacts hardening + final matrix verification | Phase 4 | Review | Codex | Mar 2, 2026 | Mar 2, 2026 | codex/p4-t2-reference-adoption |
 
 ### **Zod Migration Tracker**
 
-This tracker shows the current validation migration status for backend routes (Zod vs express-validator vs none). Updated: February 18, 2026.
+This tracker is now a bounded active-gaps snapshot (updated: March 1, 2026).
 
-| Route File | Validation Library | Endpoints (approx) | Status |
-|------------|-------------------:|-------------------:|--------|
-| backend/src/routes/auth.ts | Zod | 12 | Zod (migrated)
-| backend/src/routes/volunteers.ts | Zod | 10 | Zod (migrated)
-| backend/src/routes/contacts.ts | Zod | 24 | Zod (migrated)
-| backend/src/routes/donations.ts | Zod | 7 | Zod (migrated)
-| backend/src/routes/accounts.ts | express-validator | 10 | express-validator
-| backend/src/routes/alerts.ts | express-validator | 6 | express-validator
-| backend/src/routes/analytics.ts | express-validator | 6 | express-validator
-| backend/src/routes/backup.ts | express-validator | 4 | express-validator
-| backend/src/routes/dashboard.ts | express-validator | 6 | express-validator
-| backend/src/routes/events.ts | express-validator | 12 | express-validator
-| backend/src/routes/export.ts | express-validator | 4 | express-validator
-| backend/src/routes/ingest.ts | express-validator | 6 | express-validator
-| backend/src/routes/invitations.ts | express-validator | 8 | express-validator
-| https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/backend/src/routes/mailchimp.ts | express-validator | 8 | express-validator
-| backend/src/routes/meetings.ts | express-validator | 8 | express-validator
-| backend/src/routes/payments.ts | express-validator | 8 | express-validator
-| backend/src/routes/portal.ts | Zod | 18 | Zod (migrated)
-| backend/src/routes/portalAdmin.ts | Zod | 16 | Zod (migrated)
-| backend/src/routes/portalAuth.ts | Zod | 6 | Zod (migrated)
-| backend/src/routes/publishing.ts | express-validator | 12 | express-validator
-| backend/src/routes/reports.ts | express-validator | 8 | express-validator
-| backend/src/routes/savedReports.ts | express-validator | 6 | express-validator
-| backend/src/routes/tasks.ts | express-validator | 10 | express-validator
-| backend/src/routes/templates.ts | express-validator | 8 | express-validator
-| backend/src/routes/users.ts | express-validator | 8 | express-validator
-| https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/backend/src/routes/webhooks.ts | express-validator | 12 | express-validator
-| backend/src/routes/cases.ts | None | 6 | No validation
+| Scope | Current Snapshot | Owner Task |
+|-------|------------------|------------|
+| `/api/external-service-providers/*` route validation | Route-level Zod schemas added for list/create/update/id inputs | P4-T1D |
+| `/api/activities/*` route validation | Query/param Zod guardrails added for `limit`, `entityType`, `entityId` | P4-T1D |
+| `/api/reconciliation/*` route validation | Route-level Zod schemas added across list/detail/mutation endpoints | P4-T1D |
+| Events calendar ICS contract | Frontend URL and backend API aligned on `/api/v2/events/:id/calendar.ics` | P4-T1D |
 
-**Summary:** 4 of 27 route files migrated to Zod (15%). Remaining: 22 files using express-validator and 1 file with no validation. Prioritize P2-T11 through P2-T15 for migration.
+**Summary:** No open validation/ICS contract drift remains in this snapshot; regression protection now relies on route guardrail and events integration tests.
 
 ### ✅ Recently Completed (February 1, 2026 - Late Evening + Phase 2 Completion)
 
@@ -2565,6 +2548,10 @@ Frontend Component Tests:
 
 | Date | Task ID | Owner | Status Change | Notes |
 |------|---------|-------|---------------|-------|
+| Mar 1, 2026 | P4-T1D | Codex | In Progress → Review | Full closure verification complete on `codex/all-open-work-items`. Ordered checks passed: `make lint`, `make typecheck`, `cd backend && npm run test:integration -- routeGuardrails.test.ts`, `cd backend && npm run test:integration -- events.test.ts`, `cd frontend && npm test -- --run src/components/__tests__/AddToCalendar.test.tsx`. Strict selector checks passed end-to-end: `make lint`, `make typecheck`, `cd backend && npm run test:unit`, `cd backend && npm run test:integration`, `cd frontend && npm test -- --run`, `cd e2e && npm run test:smoke`, `make ci-full`, `cd e2e && npm run test:ci`. Remaining e2e guardrail drift fixed in `e2e/tests/portal-cases-visibility.spec.ts` (auth header parity for `/api/v2/cases/types`) and `e2e/helpers/database.ts` (cleanup loop performance/duplication guard). |
+| Mar 1, 2026 | P4-T1E | Codex | In Progress → Review | Opportunity-map closure completed. Artifacts updated: `scripts/check-success-envelope-policy.ts`, `backend/src/middleware/requireActiveOrganizationContext.ts`, `backend/src/config/requestContext.ts`, `backend/src/__tests__/integration/routeGuardrails.test.ts`, `backend/src/__tests__/services/webhookService.delivery.test.ts`, `backend/src/__tests__/controllers/paymentController.test.ts`. Verification: `bash scripts/reference/verify-reference-repos.sh`, `node scripts/check-rate-limit-key-policy.ts`, `node scripts/check-success-envelope-policy.ts`, `cd backend && npm run type-check`, `cd backend && npm run lint`, and targeted test matrix in task plan all passing. References: `reference-repos/manifest.lock.json`, `docs/development/reference-patterns/SOURCE_SYNC_REPORT.md`, `docs/development/reference-patterns/BACKEND_PATTERN_MATRIX.md`, `docs/development/reference-patterns/PATTERN_ADOPTION_BACKLOG.md`. |
+| Mar 1, 2026 | P4-T1D | Codex | In Progress → Review | Reference sync + extraction complete. Artifacts: `/Users/bryan/projects/reference-repos/manifest.consolidated.json`, `reference-repos/manifest.lock.json`, `docs/development/reference-patterns/SOURCE_SYNC_REPORT.md`, `docs/development/reference-patterns/BACKEND_PATTERN_MATRIX.md`, `docs/development/reference-patterns/PATTERN_ADOPTION_BACKLOG.md`. |
+| Mar 1, 2026 | P4-T1D | Codex | Ready → In Progress | Signed out remediation subtask on `codex/all-open-work-items` for agent/docs drift fixes, route validation guardrails, and ICS contract alignment. Parent linkage: `P4-T1`. |
 | Feb 24, 2026 | P3-T5 | Codex | Review → Done | Merged PR #5 ([P3-T5] Treat critical priority as urgent-equivalent in case selectors), merge commit `5cdda5084ce304c32a6a49e7202a99475de87346`; no Phase 2 scope reopened. |
 | Feb 24, 2026 | P3-T5 | Codex | In Progress → Review | Selector fix and verification complete on `codex/p3-t5-priority-critical-selector-fix`; PR prepared with strict non-scope (no Phase 2 reopen, no backend/API changes). |
 | Feb 24, 2026 | P3-T5 | Codex | Ready → In Progress | Resumed on clean branch `codex/p3-t5-priority-critical-selector-fix` from `origin/main`; scope limited to priority regression and `make ci-unit` restoration. |
@@ -2830,6 +2817,6 @@ All entities include:
 
 ---
 
-**Last Updated:** February 18, 2026  
-**Document Version:** 3.0  
-**Next Review:** March 1, 2026
+**Last Updated:** March 1, 2026  
+**Document Version:** 3.1  
+**Next Review:** March 15, 2026

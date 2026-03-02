@@ -58,6 +58,7 @@ const getDefaultOrganizationId = async (): Promise<string | null> => {
       `SELECT id
        FROM accounts
        WHERE account_type = 'organization'
+         AND COALESCE(is_active, true) = true
        ORDER BY created_at ASC
        LIMIT 1`
     );
@@ -150,6 +151,8 @@ export const register = async (
 
     await syncUserRole(user.id, user.role);
 
+    const organizationId = await getDefaultOrganizationId();
+
     // Generate JWT token for immediate login after registration
     const jwtSecret = getJwtSecret();
     const token = jwt.sign(
@@ -157,6 +160,7 @@ export const register = async (
         id: user.id,
         email: user.email,
         role: user.role,
+        ...(organizationId ? { organizationId } : {}),
       },
       jwtSecret,
       { expiresIn: JWT.ACCESS_TOKEN_EXPIRY }
@@ -167,7 +171,6 @@ export const register = async (
     // Set auth cookie
     setAuthCookie(res, token);
 
-    const organizationId = await getDefaultOrganizationId();
     return sendSuccess(res, {
       ...buildAuthTokenResponse(token),
       organizationId,
@@ -261,6 +264,8 @@ export const login = async (
     // Track successful login (no MFA required)
     await trackLoginAttempt(normalizedEmail, true, user.id, clientIp);
 
+    const organizationId = await getDefaultOrganizationId();
+
     // Generate access token
     const jwtSecret = getJwtSecret();
 
@@ -269,6 +274,7 @@ export const login = async (
         id: user.id,
         email: user.email,
         role: user.role,
+        ...(organizationId ? { organizationId } : {}),
       },
       jwtSecret,
       { expiresIn: JWT.ACCESS_TOKEN_EXPIRY }
@@ -293,7 +299,6 @@ export const login = async (
     // Regenerate CSRF token after successful login
     const csrfToken = generateCsrfToken(req, res);
 
-    const organizationId = await getDefaultOrganizationId();
     return sendSuccess(res, {
       ...buildAuthTokenResponse(token, refreshToken),
       csrfToken, // Include new CSRF token in response
@@ -493,6 +498,7 @@ export const setupFirstUser = async (
         id: user.id,
         email: user.email,
         role: user.role,
+        ...(organizationId ? { organizationId } : {}),
       },
       jwtSecret,
       { expiresIn: JWT.ACCESS_TOKEN_EXPIRY }

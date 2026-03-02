@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-03-01",
+  "repos": [
+    {
+      "id": "wc-manage",
+      "sourceType": "local",
+      "urlOrPath": "/Users/bryan/projects/wc-manage",
+      "branch": "main",
+      "commit": "ad4375fcbf7c7eadae86214505b211a92c2ea0a5",
+      "destination": "/Users/bryan/projects/reference-repos/nm--wc-manage",
+      "sparsePaths": [
+        "AGENTS.md",
+        "README.md",
+        "docs/architecture.md",
+        "src/lib/server/api-error.ts",
+        "src/lib/server/cache-keys.ts",
+        "src/lib/server/guards.ts",
+        "src/lib/server/rate-limit.ts",
+        "src/lib/server/correlation-id.ts",
+        "src/app/api/routes-guardrails.test.ts",
+        "scripts/check-cache-key-policy.ts"
+      ],
+      "licenseClass": "internal-private",
+      "notes": "Primary sibling pattern donor; read-only reference."
+    },
+    {
+      "id": "contactcentre",
+      "sourceType": "local",
+      "urlOrPath": "/Users/bryan/projects/contact-centre",
+      "branch": "main",
+      "commit": "9daadea145e231d28c44b96d2001278f03a1515f",
+      "destination": "/Users/bryan/projects/reference-repos/nm--contactcentre",
+      "sparsePaths": [
+        "agents.md",
+        "README.md",
+        "docs/architecture.md",
+        "apps/api/src/main.ts",
+        "apps/api/src/common/types/api-envelope.ts",
+        "apps/api/src/common/interceptors/api-envelope.interceptor.ts",
+        "apps/api/src/common/filters/api-exception.filter.ts",
+        "apps/api/src/common/validation/zod-validation.pipe.ts",
+        "apps/api/src/common/middleware/correlation-id.middleware.ts",
+        "apps/api/src/modules/auth/guards/tenant.guard.ts",
+        "apps/api/src/modules/webhooks/webhook-security.service.ts",
+        "apps/api/src/modules/webhooks/webhooks.controller.ts"
+      ],
+      "licenseClass": "internal-private",
+      "notes": "Secondary sibling pattern donor; read-only reference."
+    },
+    {
+      "id": "host-manage",
+      "sourceType": "local",
+      "urlOrPath": "/Users/bryan/projects/host-manage",
+      "branch": "master",
+      "commit": "16d0ce6545443e9c96344b80b3aab4cac7a8a7bd",
+      "destination": "/Users/bryan/projects/reference-repos/nm--host-manage",
+      "sparsePaths": [
+        "README.md",
+        "docs/architecture.md",
+        "apps/panel-api/src/app.ts",
+        "apps/panel-api/src/events.ts",
+        "apps/panel-api/src/audit.ts",
+        "apps/panel-api/src/config.ts",
+        "apps/panel-worker/src/index.ts",
+        "apps/panel-worker/src/events.ts",
+        "apps/panel-worker/src/config.ts"
+      ],
+      "licenseClass": "internal-private",
+      "notes": "Local control-plane reference for event/webhook/audit patterns."
+    },
+    {
+      "id": "twenty",
+      "sourceType": "github",
+      "urlOrPath": "https://github.com/twentyhq/twenty",
+      "branch": "main",
+      "commit": "1db2a409612d8e4de0148f7b6bdf8d62535002fd",
+      "destination": "/Users/bryan/projects/reference-repos/nm--twenty",
+      "sparsePaths": [
+        "README.md",
+        "LICENSE",
+        "packages/twenty-server/package.json",
+        "packages/twenty-server/src",
+        "packages/twenty-shared/src"
+      ],
+      "licenseClass": "noassertion",
+      "notes": "External TypeScript CRM source; architecture-only analysis, no direct code copy."
+    },
+    {
+      "id": "open-mercato",
+      "sourceType": "github",
+      "urlOrPath": "https://github.com/open-mercato/open-mercato",
+      "branch": "main",
+      "commit": "9fd63cd9b67722a706ae31d4875f333bcc1129c5",
+      "destination": "/Users/bryan/projects/reference-repos/nm--open-mercato",
+      "sparsePaths": [
+        "AGENTS.md",
+        "README.md",
+        "LICENSE",
+        "apps/mercato/src",
+        "packages/core/src",
+        "packages/events/src",
+        "packages/queue/src",
+        "packages/shared/src"
+      ],
+      "licenseClass": "MIT",
+      "notes": "External TypeScript CRM/ERP framework; architecture-only analysis, no direct code copy."
+    },
+    {
+      "id": "ever-gauzy",
+      "sourceType": "github",
+      "urlOrPath": "https://github.com/ever-co/ever-gauzy",
+      "branch": "develop",
+      "commit": "8945d27627d58028b9528f6915abd87d46b5ec85",
+      "destination": "/Users/bryan/projects/reference-repos/nm--ever-gauzy",
+      "sparsePaths": [
+        "AGENTS.md",
+        "README.md",
+        "LICENSE",
+        "apps/api/src",
+        "apps/server-api/src",
+        "packages/core/src",
+        "packages/scheduler/src"
+      ],
+      "licenseClass": "AGPL-3.0",
+      "notes": "External AGPL source; strict read-only architectural reference, no direct code reuse."
+    }
+  ]
+}

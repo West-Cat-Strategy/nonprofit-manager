@@ -4,11 +4,14 @@ import { getJwtSecret } from '@config/jwt';
 import { forbidden, unauthorized } from '@utils/responseHelpers';
 import { extractToken, AUTH_COOKIE_NAME } from '@utils/cookieHelper';
 import { createRequestAuthorizationContext, hasRoleAccess } from '@services/authorization';
+import { setRequestContext } from '@config/requestContext';
 
 interface JwtPayload {
   id: string;
   email: string;
   role: string;
+  organizationId?: string;
+  organization_id?: string;
 }
 
 export interface AuthRequest
@@ -39,11 +42,30 @@ export const authenticate = (
 
     const decoded = jwt.verify(token, getJwtSecret()) as JwtPayload;
 
+    const organizationId =
+      req.organizationId ||
+      req.accountId ||
+      req.tenantId ||
+      decoded.organizationId ||
+      decoded.organization_id;
+
     req.user = decoded;
+    if (organizationId) {
+      req.organizationId = organizationId;
+      req.accountId = organizationId;
+      req.tenantId = organizationId;
+    }
+
+    setRequestContext({
+      userId: decoded.id,
+      organizationId,
+      accountId: organizationId,
+      tenantId: organizationId,
+    });
     req.authorizationContext = createRequestAuthorizationContext(
       decoded.id,
       decoded.role,
-      req.organizationId || req.accountId || req.tenantId
+      organizationId
     );
     next();
   } catch {

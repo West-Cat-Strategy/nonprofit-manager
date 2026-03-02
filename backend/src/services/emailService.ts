@@ -46,10 +46,15 @@ export interface SmtpConfig {
 }
 
 export interface SendMailOptions {
-  to: string;
+  to: string | string[];
   subject: string;
   text: string;
   html: string;
+  attachments?: Array<{
+    filename: string;
+    content: Buffer | string;
+    contentType?: string;
+  }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -135,8 +140,10 @@ export async function sendMail(options: SendMailOptions): Promise<boolean> {
       subject: options.subject,
       text: options.text,
       html: options.html,
+      attachments: options.attachments,
     });
-    logger.info(`Email sent to ${options.to} — subject: ${options.subject}`);
+    const recipients = Array.isArray(options.to) ? options.to.join(', ') : options.to;
+    logger.info(`Email sent to ${recipients} — subject: ${options.subject}`);
     return true;
   } catch (error) {
     logger.error('Failed to send email', { error, to: options.to });
