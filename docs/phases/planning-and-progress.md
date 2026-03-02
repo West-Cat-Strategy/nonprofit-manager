@@ -1,7 +1,7 @@
 # 📊 Nonprofit Manager - Planning & Progress
 
 **Current Phase:** 🚀 Phase 4 - Modularity Refactor (In Progress, with active Phase 3 overlap)  
-**Last Updated:** March 2, 2026 (P4-T2 merged to main; tasks closed)  
+**Last Updated:** March 2, 2026 (P4-T3 governance reconciliation completed; stale active/review tasks blocked)  
 **Lead Developer:** Bryan Crockett (@bcroc), West Cat Strategy Ltd.
 
 ---
@@ -66,27 +66,29 @@ All active work must be **signed out** in the Workboard below before code change
 | P2-T17C | Expand route guardrail matrix (auth/validation/webhook/rate-limit/correlation-id determinism) | Phase 2 | Done | Codex | Feb 24, 2026 | Feb 24, 2026 | #4 |
 | P2-T17D | E2E helper compatibility updates for canonical envelopes and Zod query caps | Phase 2 | Done | Codex | Feb 24, 2026 | Feb 24, 2026 | #4 |
 | P2-T17E | Coverage ratchet baseline + CI gating policy synchronization | Phase 2 | Done | Codex | Feb 24, 2026 | Feb 24, 2026 | #4 |
-| P2-T18 | Outcomes tracking for case interactions (definitions, tagging, reports) | Phase 2 | Review | Codex | Feb 19, 2026 | Feb 19, 2026 | codex/outcomes-tracking |
-| P3-T1 | Add event email/SMS reminders + Twilio admin credentials | Phase 3 | In Progress | Codex | Feb 20, 2026 | TBD | codex/event-reminder-messaging |
-| P3-T2A | Client Portal: foundation hardening (cookie auth, CSRF path, portal API token removal) | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
-| P3-T2B | Client Portal: pointperson context + secure per-case messaging threads | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
-| P3-T2C | Client Portal: hybrid appointments (published slots + manual requests) | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
-| P3-T2D | Client Portal: explicit visibility rules for notes/documents/forms + event filtering | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
-| P3-T2E | Client Portal: Admin Settings inbox/slot tools + Case Detail portal tab + client UI pages | Phase 3 | Review | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
+| P2-T18 | Outcomes tracking for case interactions (definitions, tagging, reports) | Phase 2 | Blocked | Codex | Feb 19, 2026 | Feb 19, 2026 | codex/outcomes-tracking |
+| P3-T1 | Add event email/SMS reminders + Twilio admin credentials | Phase 3 | Blocked | Codex | Feb 20, 2026 | TBD | codex/event-reminder-messaging |
+| P3-T2A | Client Portal: foundation hardening (cookie auth, CSRF path, portal API token removal) | Phase 3 | Blocked | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
+| P3-T2B | Client Portal: pointperson context + secure per-case messaging threads | Phase 3 | Blocked | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
+| P3-T2C | Client Portal: hybrid appointments (published slots + manual requests) | Phase 3 | Blocked | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
+| P3-T2D | Client Portal: explicit visibility rules for notes/documents/forms + event filtering | Phase 3 | Blocked | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
+| P3-T2E | Client Portal: Admin Settings inbox/slot tools + Case Detail portal tab + client UI pages | Phase 3 | Blocked | Codex | Feb 20, 2026 | Feb 21, 2026 | codex/client-portal-expansion |
 | P3-T3 | Comprehensive security + functionality review and remediation (backend/frontend/devops) | Phase 3 | Done | Codex | Feb 21, 2026 | Feb 21, 2026 | codex/security-functionality-review-remediation |
 | P3-T5 | Frontend case-priority critical drift causing `make ci-unit` TypeScript failures | Phase 3 | Done | Codex | Feb 24, 2026 | Feb 24, 2026 | #5 |
-| P4-T1 | Full-stack modularity refactor (v2 API Portal + Events first) | Phase 4 | In Progress | Codex | Feb 20, 2026 | TBD | codex/modularity-refactor-v2 |
-| P4-T1A | Stabilize failing backend/e2e tests during modular refactor branch | Phase 4 | In Progress | Codex | Feb 20, 2026 | Feb 20, 2026 | codex/modularity-refactor-v2 |
-| P4-T1B | Events frontend modular cutover (remove legacy eventsSlice) | Phase 4 | In Progress | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
-| P4-T1C | Cases + Contacts modularization (v2 API + v1 shim) | Phase 4 | In Progress | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
-| P4-T1C-A | Cases + Contacts backend modules, `/api/v2`, legacy shim/deprecation | Phase 4 | In Progress | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
-| P4-T1C-B | Cases + Contacts frontend feature cutover + legacy slice removal | Phase 4 | In Progress | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
-| P4-T1D | Agent/docs guardrail drift remediation (links, validation coverage, ICS contract) | Phase 4 | Review | Codex | Mar 1, 2026 | Mar 1, 2026 | codex/all-open-work-items |
-| P4-T1E | Opportunity-map closure (contract + tenant + webhook reliability) | Phase 4 | Review | Codex | Mar 1, 2026 | Mar 1, 2026 | codex/p4-t1e-opportunity-closure |
+| P4-T1 | Full-stack modularity refactor (v2 API Portal + Events first) | Phase 4 | Blocked | Codex | Feb 20, 2026 | TBD | codex/modularity-refactor-v2 |
+| P4-T1A | Stabilize failing backend/e2e tests during modular refactor branch | Phase 4 | Blocked | Codex | Feb 20, 2026 | Feb 20, 2026 | codex/modularity-refactor-v2 |
+| P4-T1B | Events frontend modular cutover (remove legacy eventsSlice) | Phase 4 | Blocked | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
+| P4-T1C | Cases + Contacts modularization (v2 API + v1 shim) | Phase 4 | Blocked | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
+| P4-T1C-A | Cases + Contacts backend modules, `/api/v2`, legacy shim/deprecation | Phase 4 | Blocked | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
+| P4-T1C-B | Cases + Contacts frontend feature cutover + legacy slice removal | Phase 4 | Blocked | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
+| P4-T1D | Agent/docs guardrail drift remediation (links, validation coverage, ICS contract) | Phase 4 | Blocked | Codex | Mar 1, 2026 | Mar 1, 2026 | codex/all-open-work-items |
+| P4-T1E | Opportunity-map closure (contract + tenant + webhook reliability) | Phase 4 | Blocked | Codex | Mar 1, 2026 | Mar 1, 2026 | codex/p4-t1e-opportunity-closure |
 | P4-T2A | Reference adoption wave: follow-up lifecycle backend + frontend route integration | Phase 4 | Done | Codex | Mar 2, 2026 | Mar 2, 2026 | main@cffab72 |
 | P4-T2B | Reference adoption wave: scheduled reports backend scheduler + frontend scheduling UI | Phase 4 | Done | Codex | Mar 2, 2026 | Mar 2, 2026 | main@cffab72 |
 | P4-T2C | Reference adoption wave: opportunities pipeline module backend + frontend board/list | Phase 4 | Done | Codex | Mar 2, 2026 | Mar 2, 2026 | main@cffab72 |
 | P4-T2D | Reference adoption wave: docs/artifacts hardening + final matrix verification | Phase 4 | Done | Codex | Mar 2, 2026 | Mar 2, 2026 | main@cffab72 |
+| P4-T3A | Workboard governance reconciliation (post-P4-T2) | Phase 4 | Review | Codex | Mar 2, 2026 | Mar 2, 2026 | main |
+| P4-T3B | Repository hygiene follow-up for generated upload artifacts (`backend/uploads/**`) | Phase 4 | Ready | — | — | TBD | — |
 
 ### **Zod Migration Tracker**
 
@@ -2548,6 +2550,13 @@ Frontend Component Tests:
 
 | Date | Task ID | Owner | Status Change | Notes |
 |------|---------|-------|---------------|-------|
+| Mar 2, 2026 | P4-T3A | Codex | In Progress → Review | Governance reconciliation completed on `main`. Converted stale active/review tasks to `Blocked`, preserved branch refs for traceability, and added follow-up task `P4-T3B`. |
+| Mar 2, 2026 | P4-T1/P4-T1A/P4-T1B/P4-T1C/P4-T1C-A/P4-T1C-B | Codex | In Progress → Blocked | What: stale modularity stream rows remained active without current branch evidence. Why: no valid local/remote `codex/modularity-refactor-v2` branch and no explicit merge artifact tied to each row. Next step: locate authoritative merge artifact per task or create a recovery branch and re-run scoped verification before returning to `Review`. |
+| Mar 2, 2026 | P3-T2A/P3-T2B/P3-T2C/P3-T2D/P3-T2E | Codex | Review → Blocked | What: review-state client portal expansion rows had stale branch references. Why: no valid local/remote `codex/client-portal-expansion` branch and ambiguous merge traceability at task-row granularity. Next step: locate authoritative merge artifact per subtask or create a recovery branch and re-run scoped verification before returning to `Review`. |
+| Mar 2, 2026 | P2-T18 | Codex | Review → Blocked | What: outcomes tracking task remained in review with stale branch reference. Why: no valid local/remote `codex/outcomes-tracking` branch and no explicit merge artifact tied to the row. Next step: locate authoritative merge artifact and close to `Done`, or create a recovery branch and re-run scoped verification before returning to `Review`. |
+| Mar 2, 2026 | P3-T1 | Codex | In Progress → Blocked | What: event reminder/Twilio stream remained active with stale branch reference. Why: no valid local/remote `codex/event-reminder-messaging` branch and no explicit merge artifact tied to the row. Next step: locate authoritative merge artifact and close to `Done`, or create a recovery branch and re-run scoped verification before returning to `Review`. |
+| Mar 2, 2026 | P4-T1D | Codex | Review → Blocked | What: remediation task remained in review with ambiguous branch-level closure evidence. Why: branch reference `codex/all-open-work-items` is not an explicit merge artifact for the task row under conservative policy. Next step: locate authoritative merge artifact and close to `Done`, or create a recovery branch and re-run scoped verification before returning to `Review`. |
+| Mar 2, 2026 | P4-T1E | Codex | Review → Blocked | What: opportunity-map closure remained in review with stale branch reference. Why: no valid local/remote `codex/p4-t1e-opportunity-closure` branch and no explicit merge artifact tied to the row. Next step: locate authoritative merge artifact and close to `Done`, or create a recovery branch and re-run scoped verification before returning to `Review`. |
 | Mar 1, 2026 | P4-T1D | Codex | In Progress → Review | Full closure verification complete on `codex/all-open-work-items`. Ordered checks passed: `make lint`, `make typecheck`, `cd backend && npm run test:integration -- routeGuardrails.test.ts`, `cd backend && npm run test:integration -- events.test.ts`, `cd frontend && npm test -- --run src/components/__tests__/AddToCalendar.test.tsx`. Strict selector checks passed end-to-end: `make lint`, `make typecheck`, `cd backend && npm run test:unit`, `cd backend && npm run test:integration`, `cd frontend && npm test -- --run`, `cd e2e && npm run test:smoke`, `make ci-full`, `cd e2e && npm run test:ci`. Remaining e2e guardrail drift fixed in `e2e/tests/portal-cases-visibility.spec.ts` (auth header parity for `/api/v2/cases/types`) and `e2e/helpers/database.ts` (cleanup loop performance/duplication guard). |
 | Mar 1, 2026 | P4-T1E | Codex | In Progress → Review | Opportunity-map closure completed. Artifacts updated: `scripts/check-success-envelope-policy.ts`, `backend/src/middleware/requireActiveOrganizationContext.ts`, `backend/src/config/requestContext.ts`, `backend/src/__tests__/integration/routeGuardrails.test.ts`, `backend/src/__tests__/services/webhookService.delivery.test.ts`, `backend/src/__tests__/controllers/paymentController.test.ts`. Verification: `bash scripts/reference/verify-reference-repos.sh`, `node scripts/check-rate-limit-key-policy.ts`, `node scripts/check-success-envelope-policy.ts`, `cd backend && npm run type-check`, `cd backend && npm run lint`, and targeted test matrix in task plan all passing. References: `reference-repos/manifest.lock.json`, `docs/development/reference-patterns/SOURCE_SYNC_REPORT.md`, `docs/development/reference-patterns/BACKEND_PATTERN_MATRIX.md`, `docs/development/reference-patterns/PATTERN_ADOPTION_BACKLOG.md`. |
 | Mar 1, 2026 | P4-T1D | Codex | In Progress → Review | Reference sync + extraction complete. Artifacts: `/Users/bryan/projects/reference-repos/manifest.consolidated.json`, `reference-repos/manifest.lock.json`, `docs/development/reference-patterns/SOURCE_SYNC_REPORT.md`, `docs/development/reference-patterns/BACKEND_PATTERN_MATRIX.md`, `docs/development/reference-patterns/PATTERN_ADOPTION_BACKLOG.md`. |
@@ -2817,6 +2826,6 @@ All entities include:
 
 ---
 
-**Last Updated:** March 1, 2026  
-**Document Version:** 3.1  
+**Last Updated:** March 2, 2026  
+**Document Version:** 3.2  
 **Next Review:** March 15, 2026
