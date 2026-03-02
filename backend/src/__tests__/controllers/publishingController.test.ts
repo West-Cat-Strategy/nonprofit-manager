@@ -112,7 +112,13 @@ describe('publishingController', () => {
     await getAnalyticsSummary(req as any, res, next);
 
     expect(mockPublishingService.getAnalyticsSummary).toHaveBeenCalledWith('site-1', 'user-1', 30);
-    expect(res.json).toHaveBeenCalledWith({ totalPageviews: 0 });
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: true,
+        data: { totalPageviews: 0 },
+        totalPageviews: 0,
+      })
+    );
   });
 
   it('resolves site by subdomain first, then domain fallback', async () => {
@@ -136,9 +142,16 @@ describe('publishingController', () => {
 
     expect(mockPublishingService.getSiteBySubdomain).toHaveBeenCalledWith('alpha');
     expect(mockPublishingService.getSiteByDomain).toHaveBeenCalledWith('example.org');
-    expect(res.json).toHaveBeenCalledWith({
-      content: { ok: true },
-      analyticsEnabled: true,
-    });
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: true,
+        data: {
+          content: { ok: true },
+          analyticsEnabled: true,
+        },
+        content: { ok: true },
+        analyticsEnabled: true,
+      })
+    );
   });
 });

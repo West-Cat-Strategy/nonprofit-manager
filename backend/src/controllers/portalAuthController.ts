@@ -10,6 +10,7 @@ import { logPortalActivity } from '@services/domains/integration';
 import { badRequest, conflict, forbidden, notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
 import { clearPortalAuthCookie, setPortalAuthCookie } from '@utils/cookieHelper';
 import { shouldExposeAuthTokensInResponse } from '@utils/authResponse';
+import { sendSuccess } from '@modules/shared/http/envelope';
 
 interface PortalSignupRequest {
   email: string;
@@ -91,11 +92,15 @@ export const portalSignup = async (
       [contactId, email, hashedPassword, 'pending']
     );
 
-    return res.status(201).json({
-      status: 'pending',
-      requestId: requestResult.rows[0].id,
-      message: 'Signup request submitted. A staff member must approve your access.',
-    });
+    return sendSuccess(
+      res,
+      {
+        status: 'pending',
+        requestId: requestResult.rows[0].id,
+        message: 'Signup request submitted. A staff member must approve your access.',
+      },
+      201
+    );
   } catch (error) {
     next(error);
   }
@@ -153,7 +158,7 @@ export const portalLogin = async (
     // Set HTTP-only cookie instead of returning token in JSON
     setPortalAuthCookie(res, token);
 
-    return res.json({
+    return sendSuccess(res, {
       user: {
         id: user.id,
         email: user.email,
@@ -195,7 +200,7 @@ export const getPortalMe = async (
       return notFoundMessage(res, 'Portal user not found');
     }
 
-    return res.json(result.rows[0]);
+    return sendSuccess(res, result.rows[0]);
   } catch (error) {
     next(error);
   }
@@ -207,7 +212,7 @@ export const portalLogout = async (
   _next: NextFunction
 ): Promise<Response | void> => {
   clearPortalAuthCookie(res);
-  return res.json({ message: 'Portal logout successful' });
+  return sendSuccess(res, { message: 'Portal logout successful' });
 };
 
 export const validatePortalInvitation = async (
@@ -238,7 +243,7 @@ export const validatePortalInvitation = async (
       return badRequest(res, 'Invitation expired');
     }
 
-    return res.json({
+    return sendSuccess(res, {
       valid: true,
       invitation: {
         email: invitation.email,
@@ -334,14 +339,18 @@ export const acceptPortalInvitation = async (
     // Prefer secure cookie-based session. Keep optional token in body only when explicitly enabled.
     setPortalAuthCookie(res, tokenValue);
 
-    return res.status(201).json({
-      ...(shouldExposeAuthTokensInResponse() ? { token: tokenValue } : {}),
-      user: {
-        id: portalUser.id,
-        email: portalUser.email,
-        contactId: portalUser.contact_id,
+    return sendSuccess(
+      res,
+      {
+        ...(shouldExposeAuthTokensInResponse() ? { token: tokenValue } : {}),
+        user: {
+          id: portalUser.id,
+          email: portalUser.email,
+          contactId: portalUser.contact_id,
+        },
       },
-    });
+      201
+    );
   } catch (error) {
     next(error);
   }

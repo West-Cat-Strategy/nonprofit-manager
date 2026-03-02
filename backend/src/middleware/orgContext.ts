@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import pool from '@config/database';
 import { logger } from '@config/logger';
+import { setRequestContext } from '@config/requestContext';
 import { AuthRequest } from './auth';
 import { badRequest, forbidden, notFoundMessage, serverError } from '@utils/responseHelpers';
 
@@ -88,16 +89,29 @@ export const orgContextMiddleware = async (
   req.organizationId = id;
   req.accountId = id;
   req.tenantId = id;
+  setRequestContext({
+    organizationId: id,
+    accountId: id,
+    tenantId: id,
+  });
 
   if (!shouldValidateContext()) {
     return next();
   }
 
   try {
-    const result = await pool.query('SELECT id FROM accounts WHERE id = $1', [id]);
+    const result = await pool.query<{ id: string; is_active: boolean }>(
+      'SELECT id, is_active FROM accounts WHERE id = $1',
+      [id]
+    );
     if (result.rows.length === 0) {
       logger.warn('Organization context not found', { orgId: id, source });
       return notFoundMessage(res, 'Organization context not found');
+    }
+
+    if (!result.rows[0].is_active) {
+      logger.warn('Organization context inactive', { orgId: id, source });
+      return forbidden(res, 'Organization is inactive');
     }
 
     // Validate user access to the organization if enabled

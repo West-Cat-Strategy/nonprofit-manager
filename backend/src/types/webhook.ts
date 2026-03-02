@@ -37,7 +37,14 @@ export type WebhookEventType =
 /**
  * Webhook delivery status
  */
-export type WebhookDeliveryStatus = 'pending' | 'success' | 'failed' | 'retrying';
+export type WebhookDeliveryStatus =
+  | 'queued'
+  | 'running'
+  | 'retrying'
+  | 'success'
+  | 'failed'
+  | 'dead_letter'
+  | 'pending';
 
 /**
  * API key status
@@ -111,6 +118,7 @@ export interface WebhookDelivery {
   status: WebhookDeliveryStatus;
   attempts: number;
   nextRetryAt?: Date;
+  processingStartedAt?: Date;
   createdAt: Date;
   deliveredAt?: Date;
 }

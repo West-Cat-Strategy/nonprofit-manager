@@ -7,6 +7,9 @@ import EventList from '../engagement/events/EventList';
 import TaskList from '../engagement/tasks/TaskList';
 import DonationList from '../finance/donations/DonationList';
 import CaseList from '../engagement/cases/CaseList';
+import FollowUpsPage from '../engagement/followUps/FollowUpsPage';
+import OpportunitiesPage from '../engagement/opportunities/OpportunitiesPage';
+import ScheduledReportsPage from '../analytics/ScheduledReports';
 import api from '../../services/api';
 import { assertRouteUxContract, createConsoleErrorSpy } from '../../test/uxRouteContract';
 
@@ -73,6 +76,27 @@ const smokeCases: SmokeCase[] = [
     page: <DonationList />,
     heading: 'Donations',
     primaryActionPattern: /record donation/i,
+  },
+  {
+    name: 'follow-ups',
+    route: '/follow-ups',
+    page: <FollowUpsPage />,
+    heading: /follow-ups/i,
+    primaryActionPattern: /create follow-up/i,
+  },
+  {
+    name: 'opportunities',
+    route: '/opportunities',
+    page: <OpportunitiesPage />,
+    heading: /opportunities/i,
+    primaryActionPattern: /new opportunity/i,
+  },
+  {
+    name: 'scheduled-reports',
+    route: '/reports/scheduled',
+    page: <ScheduledReportsPage />,
+    heading: /scheduled reports/i,
+    primaryActionPattern: /new schedule/i,
   },
 ];
 
@@ -183,6 +207,62 @@ describe('Route UX smoke', () => {
             summary: { total_amount: 0, average_amount: 0 },
             pagination: { total: 0, page: 1, limit: 20, total_pages: 0 },
           },
+        });
+      }
+      if (url.startsWith('/follow-ups/summary')) {
+        return Promise.resolve({
+          data: {
+            total: 0,
+            scheduled: 0,
+            completed: 0,
+            cancelled: 0,
+            overdue: 0,
+            due_today: 0,
+            due_this_week: 0,
+          },
+        });
+      }
+      if (url.startsWith('/follow-ups')) {
+        return Promise.resolve({
+          data: {
+            data: [],
+            pagination: { page: 1, limit: 20, total: 0, pages: 0 },
+          },
+        });
+      }
+      if (url.startsWith('/opportunities/summary')) {
+        return Promise.resolve({
+          data: {
+            total: 0,
+            open: 0,
+            won: 0,
+            lost: 0,
+            weighted_amount: 0,
+            stage_totals: [],
+          },
+        });
+      }
+      if (url.startsWith('/opportunities/stages')) {
+        return Promise.resolve({
+          data: [],
+        });
+      }
+      if (url.startsWith('/opportunities')) {
+        return Promise.resolve({
+          data: {
+            data: [],
+            pagination: { page: 1, limit: 20, total: 0, pages: 0 },
+          },
+        });
+      }
+      if (url.startsWith('/scheduled-reports')) {
+        return Promise.resolve({
+          data: [],
+        });
+      }
+      if (url.startsWith('/saved-reports')) {
+        return Promise.resolve({
+          data: [],
         });
       }
 

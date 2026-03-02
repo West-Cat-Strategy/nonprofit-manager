@@ -19,6 +19,16 @@ export interface ApiErrorEnvelope {
   correlationId?: string;
 }
 
+export type ProviderAckPayload = {
+  received: true;
+  duplicate?: true;
+  rejected?: true;
+  processingError?: true;
+};
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
 export const getResponseCorrelationId = (res: Response): string | undefined => {
   const header = res.getHeader(CORRELATION_ID_HEADER);
   if (Array.isArray(header)) {
@@ -38,10 +48,22 @@ const setResponseCorrelationId = (res: Response, correlationId?: string): string
   return resolved;
 };
 
-export const successEnvelope = <T>(data: T): ApiSuccessEnvelope<T> => ({
-  success: true,
-  data,
-});
+export const successEnvelope = <T>(data: T): ApiSuccessEnvelope<T> & Record<string, unknown> => {
+  const envelope: ApiSuccessEnvelope<T> & Record<string, unknown> = {
+    success: true,
+    data,
+  };
+
+  // Preserve legacy top-level object fields while keeping canonical `data`.
+  if (isPlainObject(data)) {
+    for (const [key, value] of Object.entries(data)) {
+      if (key === 'success' || key === 'data') continue;
+      envelope[key] = value;
+    }
+  }
+
+  return envelope;
+};
 
 export const isApiSuccessEnvelope = (payload: unknown): payload is ApiSuccessEnvelope<unknown> => {
   if (!payload || typeof payload !== 'object') return false;
@@ -71,16 +93,19 @@ export const errorEnvelope = (
 });
 
 export const sendSuccess = <T>(res: Response, data: T, status = 200): Response => {
-  if (data && typeof data === 'object' && !Array.isArray(data)) {
-    const objectData = data as Record<string, unknown>;
-    return res.status(status).json({
-      ...objectData,
-      success: true,
-      data,
-    });
-  }
-
   return res.status(status).json(successEnvelope(data));
+};
+
+export const sendProviderAck = (
+  res: Response,
+  payload: ProviderAckPayload,
+  status = 200
+): Response => {
+  if (!res.locals) {
+    (res as Response & { locals: Record<string, unknown> }).locals = {};
+  }
+  res.locals.skipSuccessEnvelope = true;
+  return res.status(status).json(payload);
 };
 
 export const sendError = (

@@ -1,0 +1,41 @@
+{
+  "task": "P4-T2",
+  "generated_at": "2026-03-02",
+  "sources": [
+    {
+      "repo": "openproject",
+      "domain": "follow-up lifecycle",
+      "paths_reviewed": [
+        "app/services/reminders/*",
+        "app/models/reminder_notification*"
+      ],
+      "reuse_mode": "architecture-only"
+    },
+    {
+      "repo": "superset",
+      "domain": "scheduled report execution",
+      "paths_reviewed": [
+        "superset/tasks/schedules.py",
+        "superset/models/reports/*"
+      ],
+      "reuse_mode": "adapt"
+    },
+    {
+      "repo": "twenty",
+      "domain": "opportunity stage semantics",
+      "paths_reviewed": [
+        "packages/twenty-server/src/modules/opportunity/*"
+      ],
+      "reuse_mode": "architecture-only"
+    },
+    {
+      "repo": "open-mercato",
+      "domain": "pipeline stage reorder + movement history",
+      "paths_reviewed": [
+        "packages/shared/src/modules/entities/*",
+        "packages/core/src/modules/*opportunity*"
+      ],
+      "reuse_mode": "adapt"
+    }
+  ]
+}

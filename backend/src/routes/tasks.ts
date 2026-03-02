@@ -7,8 +7,10 @@ import express from 'express';
 import { z } from 'zod';
 import { taskController } from '@controllers/domains/engagement';
 import { authenticate } from '@middleware/domains/auth';
+import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import { uuidSchema } from '@validations/shared';
+import { followUpController } from '@controllers/followUpController';
 
 const router = express.Router();
 
@@ -67,6 +69,7 @@ router.use(authenticate);
 // Routes
 router.get('/', validateQuery(taskQuerySchema), taskController.getTasks);
 router.get('/summary', validateQuery(taskQuerySchema), taskController.getTaskSummary);
+router.get('/:id/follow-ups', requireActiveOrganizationContext, validateParams(taskIdParamsSchema), followUpController.getTaskFollowUps);
 router.get('/:id', validateParams(taskIdParamsSchema), taskController.getTaskById);
 router.post('/', validateBody(createTaskSchema), taskController.createTask);
 router.put('/:id', validateParams(taskIdParamsSchema), validateBody(updateTaskSchema), taskController.updateTask);

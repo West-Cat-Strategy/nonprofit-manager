@@ -1,8 +1,23 @@
 import { Response } from 'express';
 import type { AuthRequest } from '@middleware/auth';
 import * as externalServiceProviderService from '@services/externalServiceProviderService';
+import { appendAuditLog } from '@services/auditService';
 import { logger } from '@config/logger';
+import pool from '@config/database';
 import { badRequest, serverError } from '@utils/responseHelpers';
+import { sendSuccess } from '@modules/shared/http/envelope';
+
+const getRequestUserAgent = (req: AuthRequest): string | null => {
+  const userAgent = req.headers['user-agent'];
+  if (Array.isArray(userAgent)) {
+    return userAgent[0] || null;
+  }
+  return userAgent || null;
+};
+
+const getRequestIp = (req: AuthRequest): string | null => {
+  return req.ip || req.connection.remoteAddress || null;
+};
 
 export const getExternalServiceProviders = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -19,7 +34,7 @@ export const getExternalServiceProviders = async (req: AuthRequest, res: Respons
       limit: Number(getParam('limit') || 100),
     });
 
-    res.json({ providers });
+    sendSuccess(res, { providers });
   } catch (error) {
     logger.error('Error fetching external service providers', { error });
     serverError(res, 'Failed to fetch external service providers');
@@ -44,7 +59,22 @@ export const createExternalServiceProvider = async (req: AuthRequest, res: Respo
       req.user?.id
     );
 
-    res.status(201).json(provider);
+    await appendAuditLog(pool, {
+      action: 'external_service_provider_created',
+      resourceType: 'external_service_provider',
+      resourceId: provider.id,
+      userId: req.user?.id || null,
+      details: {
+        providerName: provider.provider_name,
+        providerType: provider.provider_type || null,
+        isActive: provider.is_active,
+      },
+      ipAddress: getRequestIp(req),
+      userAgent: getRequestUserAgent(req),
+      requestId: req.correlationId,
+    });
+
+    sendSuccess(res, provider, 201);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create external service provider';
     if (message.includes('already exists')) {
@@ -75,7 +105,22 @@ export const updateExternalServiceProvider = async (req: AuthRequest, res: Respo
       return;
     }
 
-    res.json(provider);
+    await appendAuditLog(pool, {
+      action: 'external_service_provider_updated',
+      resourceType: 'external_service_provider',
+      resourceId: provider.id,
+      userId: req.user?.id || null,
+      details: {
+        providerName: provider.provider_name,
+        providerType: provider.provider_type || null,
+        isActive: provider.is_active,
+      },
+      ipAddress: getRequestIp(req),
+      userAgent: getRequestUserAgent(req),
+      requestId: req.correlationId,
+    });
+
+    sendSuccess(res, provider);
   } catch (error) {
     logger.error('Error updating external service provider', { error });
     serverError(res, 'Failed to update external service provider');
@@ -91,7 +136,20 @@ export const deleteExternalServiceProvider = async (req: AuthRequest, res: Respo
       return;
     }
 
-    res.json({ success: true, message: 'External service provider archived' });
+    await appendAuditLog(pool, {
+      action: 'external_service_provider_archived',
+      resourceType: 'external_service_provider',
+      resourceId: id,
+      userId: req.user?.id || null,
+      details: {
+        archived: true,
+      },
+      ipAddress: getRequestIp(req),
+      userAgent: getRequestUserAgent(req),
+      requestId: req.correlationId,
+    });
+
+    sendSuccess(res, { message: 'External service provider archived' });
   } catch (error) {
     logger.error('Error deleting external service provider', { error });
     serverError(res, 'Failed to delete external service provider');

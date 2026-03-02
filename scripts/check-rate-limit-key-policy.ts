@@ -3,7 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const root = path.resolve(__dirname, '..', 'backend', 'src', 'middleware');
+const root = path.resolve(__dirname, '..', 'backend', 'src');
 
 const violations = [];
 
@@ -11,7 +11,13 @@ const isCodeFile = (name) => /\.ts$/.test(name) && !/\.test\.ts$/.test(name);
 
 const walk = (dir) => {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name === 'node_modules' || entry.name === 'dist') continue;
+    if (
+      entry.name === 'node_modules' ||
+      entry.name === 'dist' ||
+      entry.name === '__tests__'
+    ) {
+      continue;
+    }
     const fullPath = path.join(dir, entry.name);
 
     if (entry.isDirectory()) {

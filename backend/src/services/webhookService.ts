@@ -190,7 +190,7 @@ export async function getWebhookEndpoints(userId: string): Promise<WebhookEndpoi
        we.*,
        COUNT(wd.id) as total_deliveries,
        COUNT(CASE WHEN wd.status = 'success' THEN 1 END) as successful_deliveries,
-       COUNT(CASE WHEN wd.status = 'failed' THEN 1 END) as failed_deliveries
+       COUNT(CASE WHEN wd.status IN ('failed', 'dead_letter') THEN 1 END) as failed_deliveries
      FROM webhook_endpoints we
      LEFT JOIN webhook_deliveries wd ON we.id = wd.webhook_endpoint_id
      WHERE we.user_id = $1
@@ -347,7 +347,7 @@ export async function getWebhookDeliveries(
 
 const updateEndpointDeliveryStatus = async (
   endpointId: string,
-  status: 'success' | 'failed'
+  status: 'success' | 'failed' | 'dead_letter'
 ): Promise<void> => {
   await pool.query(
     `UPDATE webhook_endpoints
@@ -388,12 +388,9 @@ export async function triggerWebhooks(
       },
     };
 
-    // Deliver to each endpoint
-    const deliveryPromises = endpoints.map((endpoint) =>
-      deliverWebhook(endpoint, payload)
-    );
-
-    await Promise.allSettled(deliveryPromises);
+    // Outbox enqueue only: scheduler workers execute delivery attempts.
+    const enqueuePromises = endpoints.map((endpoint) => createDeliveryRecord(endpoint.id, payload));
+    await Promise.allSettled(enqueuePromises);
   } catch (error) {
     logger.error('Error triggering webhooks', { eventType, error });
   }
@@ -404,30 +401,22 @@ const createDeliveryRecord = async (
   payload: WebhookPayload
 ): Promise<string> => {
   const deliveryResult = await pool.query<{ id: string }>(
-    `INSERT INTO webhook_deliveries (webhook_endpoint_id, event_type, payload, status, attempts)
-     VALUES ($1, $2, $3, 'pending', 0)
+    `INSERT INTO webhook_deliveries (
+       webhook_endpoint_id,
+       event_type,
+       payload,
+       status,
+       attempts,
+       next_retry_at,
+       processing_started_at
+     )
+     VALUES ($1, $2, $3, 'queued', 0, NOW(), NULL)
      RETURNING id`,
     [endpointId, payload.type, payload]
   );
 
   return deliveryResult.rows[0].id;
 };
-
-/**
- * Deliver a webhook to an endpoint
- */
-async function deliverWebhook(
-  endpoint: WebhookEndpoint,
-  payload: WebhookPayload
-): Promise<void> {
-  const deliveryId = await createDeliveryRecord(endpoint.id, payload);
-  await attemptDelivery({
-    deliveryId,
-    endpoint,
-    payload,
-    existingAttempts: 0,
-  });
-}
 
 interface AttemptDeliveryInput {
   deliveryId: string;
@@ -448,11 +437,12 @@ async function attemptDelivery({
   try {
     const validation = await validateWebhookUrl(endpoint.url);
     if (!validation.ok) {
-      await updateDeliveryStatus(deliveryId, 'failed', {
+      await updateDeliveryStatus(deliveryId, 'dead_letter', {
         responseBody: validation.reason || 'Webhook URL blocked',
-        attempts: MAX_RETRY_ATTEMPTS,
+        attempts: Math.max(existingAttempts + 1, MAX_RETRY_ATTEMPTS),
+        nextRetryAt: null,
       });
-      await updateEndpointDeliveryStatus(endpoint.id, 'failed');
+      await updateEndpointDeliveryStatus(endpoint.id, 'dead_letter');
       return;
     }
 
@@ -481,6 +471,7 @@ async function attemptDelivery({
         responseStatus: response.status,
         responseBody: truncateResponseBody(responseBody),
         deliveredAt: new Date(),
+        attempts: existingAttempts + 1,
         nextRetryAt: null,
       });
 
@@ -520,15 +511,15 @@ async function handleDeliveryFailure(
   const attempts = existingAttempts + 1;
 
   if (attempts >= MAX_RETRY_ATTEMPTS) {
-    // Max retries exceeded
-    await updateDeliveryStatus(deliveryId, 'failed', {
+    // Max retries exceeded: mark as terminal dead-letter state.
+    await updateDeliveryStatus(deliveryId, 'dead_letter', {
       responseStatus: statusCode,
       responseBody: truncateResponseBody(responseBody),
       attempts,
       nextRetryAt: null,
     });
 
-    await updateEndpointDeliveryStatus(endpointId, 'failed');
+    await updateEndpointDeliveryStatus(endpointId, 'dead_letter');
   } else {
     // Schedule retry
     const retryDelay = RETRY_DELAYS[attempts - 1] || RETRY_DELAYS[RETRY_DELAYS.length - 1];
@@ -579,26 +570,31 @@ async function updateDeliveryStatus(
   );
 }
 
-const claimRetryDeliveries = async (limit: number): Promise<ClaimedRetryDeliveryRow[]> => {
+const claimDueDeliveries = async (limit: number): Promise<ClaimedRetryDeliveryRow[]> => {
   const result = await pool.query<ClaimedRetryDeliveryRow>(
     `WITH due AS (
        SELECT wd.id
        FROM webhook_deliveries wd
        INNER JOIN webhook_endpoints we ON we.id = wd.webhook_endpoint_id
-       WHERE wd.status = 'retrying'
-         AND wd.next_retry_at <= NOW()
-         AND we.is_active = true
-         AND (
-           wd.processing_started_at IS NULL
-           OR wd.processing_started_at < NOW() - ($2::int * INTERVAL '1 minute')
+       WHERE (
+         (
+           wd.status IN ('queued', 'retrying')
+           AND (wd.status = 'queued' OR wd.next_retry_at <= NOW())
          )
-       ORDER BY wd.next_retry_at ASC, wd.created_at ASC
+         OR (
+           wd.status = 'running'
+           AND wd.processing_started_at < NOW() - ($2::int * INTERVAL '1 minute')
+         )
+       )
+         AND we.is_active = true
+       ORDER BY COALESCE(wd.next_retry_at, wd.created_at) ASC, wd.created_at ASC
        LIMIT $1
        FOR UPDATE OF wd SKIP LOCKED
      ),
      claimed AS (
        UPDATE webhook_deliveries wd
-       SET processing_started_at = NOW()
+       SET status = 'running',
+           processing_started_at = NOW()
        FROM due
        WHERE wd.id = due.id
        RETURNING wd.*
@@ -615,7 +611,7 @@ const claimRetryDeliveries = async (limit: number): Promise<ClaimedRetryDelivery
        we.secret
      FROM claimed
      INNER JOIN webhook_endpoints we ON we.id = claimed.webhook_endpoint_id
-     ORDER BY claimed.next_retry_at ASC NULLS FIRST, claimed.id ASC`,
+     ORDER BY COALESCE(claimed.next_retry_at, claimed.created_at) ASC, claimed.id ASC`,
     [limit, RETRY_PROCESSING_STALE_TIMEOUT_MINUTES]
   );
 
@@ -626,7 +622,7 @@ const claimRetryDeliveries = async (limit: number): Promise<ClaimedRetryDelivery
  * Process pending retries (should be called by a scheduler)
  */
 export async function processRetries(limit = 100): Promise<number> {
-  const rows = await claimRetryDeliveries(limit);
+  const rows = await claimDueDeliveries(limit);
 
   let processed = 0;
 
@@ -651,10 +647,12 @@ export async function processRetries(limit = 100): Promise<number> {
       });
       processed += 1;
     } catch (error) {
-      logger.error('Error processing webhook retry', { deliveryId: row.id, error });
+      logger.error('Error processing webhook delivery', { deliveryId: row.id, error });
       await pool.query(
         `UPDATE webhook_deliveries
-         SET processing_started_at = NULL
+         SET status = 'retrying',
+             processing_started_at = NULL,
+             next_retry_at = NOW() + INTERVAL '1 minute'
          WHERE id = $1`,
         [row.id]
       );
@@ -802,6 +800,9 @@ function mapRowToDelivery(row: Record<string, unknown>): WebhookDelivery {
     status: row.status as WebhookDeliveryStatus,
     attempts: Number(row.attempts) || 0,
     nextRetryAt: row.next_retry_at ? new Date(row.next_retry_at as string) : undefined,
+    processingStartedAt: row.processing_started_at
+      ? new Date(row.processing_started_at as string)
+      : undefined,
     createdAt: new Date(row.created_at as string),
     deliveredAt: row.delivered_at ? new Date(row.delivered_at as string) : undefined,
   };

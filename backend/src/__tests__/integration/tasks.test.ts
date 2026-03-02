@@ -27,7 +27,6 @@ describe('Task API Integration Tests', () => {
     if (testTaskId) {
       await pool.query('DELETE FROM tasks WHERE id = $1', [testTaskId]);
     }
-    await pool.end();
   });
 
   describe('POST /api/tasks', () => {

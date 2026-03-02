@@ -24,8 +24,11 @@ function MainLayout({ children }: MainLayoutProps) {
     { label: 'Events', path: '/events' },
     { label: 'Donations', path: '/donations' },
     { label: 'Tasks', path: '/tasks' },
+    { label: 'Follow-ups', path: '/follow-ups' },
+    { label: 'Opportunities', path: '/opportunities' },
     { label: 'Analytics', path: '/analytics' },
     { label: 'Reports', path: '/reports' },
+    { label: 'Scheduled Reports', path: '/reports/scheduled' },
   ];
 
   return (

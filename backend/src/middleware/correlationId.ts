@@ -5,9 +5,22 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { randomUUID } from 'crypto';
-import { logger } from '@config/logger';
+import { runWithRequestContext } from '@config/requestContext';
 
 export const CORRELATION_ID_HEADER = 'x-correlation-id';
+const VALID_CORRELATION_ID = /^[A-Za-z0-9._:-]{8,128}$/;
+
+const readHeaderValue = (value: string | string[] | undefined): string | undefined => {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+  return value;
+};
+
+export const isValidCorrelationId = (value: string | undefined): boolean => {
+  if (!value) return false;
+  return VALID_CORRELATION_ID.test(value);
+};
 
 /**
  * Middleware that adds a correlation ID to each request
@@ -21,23 +34,20 @@ export const correlationIdMiddleware = (
   res: Response,
   next: NextFunction
 ): void => {
-  // Use existing correlation ID from header or generate new one
-  const correlationId =
-    (req.headers[CORRELATION_ID_HEADER] as string) || randomUUID();
+  const inboundCorrelationId = readHeaderValue(req.headers[CORRELATION_ID_HEADER]);
+  const correlationId = isValidCorrelationId(inboundCorrelationId)
+    ? inboundCorrelationId!
+    : randomUUID();
 
   // Attach to request for use in handlers and logging
   req.correlationId = correlationId;
+  req.headers[CORRELATION_ID_HEADER] = correlationId;
+  res.locals.correlationId = correlationId;
 
   // Add to response headers for client-side tracing
   res.setHeader(CORRELATION_ID_HEADER, correlationId);
 
-  // Add correlation ID to logger context for this request
-  logger.defaultMeta = {
-    ...logger.defaultMeta,
-    correlationId,
-  };
-
-  next();
+  runWithRequestContext({ correlationId }, () => next());
 };
 
 /**

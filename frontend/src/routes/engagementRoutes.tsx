@@ -5,7 +5,7 @@
 
 import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
-import { EventList, EventDetail, EventCreate, EventEdit, EventCalendarPage, TaskList, TaskDetail, TaskCreate, TaskEdit, CaseList, CaseDetail, CaseCreate, CaseEdit, ExternalServiceProviders } from './engagementRouteComponents';
+import { EventList, EventDetail, EventCreate, EventEdit, EventCalendarPage, TaskList, TaskDetail, TaskCreate, TaskEdit, CaseList, CaseDetail, CaseCreate, CaseEdit, ExternalServiceProviders, FollowUpsPage, OpportunitiesPage } from './engagementRouteComponents';
 
 // Lazy load event pages
 
@@ -82,6 +82,14 @@ export function createEngagementRoutes(
       <Route
         path="/external-service-providers"
         element={<NeoBrutalistRoute><ExternalServiceProviders /></NeoBrutalistRoute>}
+      />
+      <Route
+        path="/follow-ups"
+        element={<NeoBrutalistRoute><FollowUpsPage /></NeoBrutalistRoute>}
+      />
+      <Route
+        path="/opportunities"
+        element={<NeoBrutalistRoute><OpportunitiesPage /></NeoBrutalistRoute>}
       />
     </>
   );

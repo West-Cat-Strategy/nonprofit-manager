@@ -14,6 +14,7 @@ describe('Case Management Visibility Integration', () => {
   let adminUserId: string;
   let adminEmail: string;
   let adminToken: string;
+  let organizationId: string;
 
   let caseTypeId: string;
   let activeStatusId: string;
@@ -41,9 +42,13 @@ describe('Case Management Visibility Integration', () => {
   const createdStatusIds: string[] = [];
   const createdCaseTypeIds: string[] = [];
   const createdUserIds: string[] = [];
+  const createdAccountIds: string[] = [];
   const createdDocumentPaths: string[] = [];
 
-  const authHeader = () => ({ Authorization: `Bearer ${adminToken}` });
+  const authHeader = () => ({
+    Authorization: `Bearer ${adminToken}`,
+    'X-Organization-Id': organizationId,
+  });
 
   beforeAll(async () => {
     const suffix = unique();
@@ -60,6 +65,21 @@ describe('Case Management Visibility Integration', () => {
     adminToken = jwt.sign({ id: adminUserId, email: adminEmail, role: 'admin' }, getJwtSecret(), {
       expiresIn: '1h',
     });
+
+    const orgResult = await pool.query(
+      `INSERT INTO accounts (account_name, account_type, is_active, created_by, modified_by, created_at, updated_at)
+       VALUES ($1, 'organization', true, $2, $2, NOW(), NOW())
+       RETURNING id`,
+      [`Case Visibility Org ${suffix}`, adminUserId]
+    );
+    organizationId = orgResult.rows[0].id as string;
+    createdAccountIds.push(organizationId);
+
+    adminToken = jwt.sign(
+      { id: adminUserId, email: adminEmail, role: 'admin', organizationId },
+      getJwtSecret(),
+      { expiresIn: '1h' }
+    );
 
     const caseTypeResult = await pool.query(
       `INSERT INTO case_types (name, description, created_at, updated_at)
@@ -81,10 +101,10 @@ describe('Case Management Visibility Integration', () => {
 
     portalAEmail = `case-portal-a-${suffix}@example.com`;
     const contactAResult = await pool.query(
-      `INSERT INTO contacts (first_name, last_name, email, created_by, modified_by)
-       VALUES ('Portal', 'Alpha', $1, NULL, NULL)
+      `INSERT INTO contacts (first_name, last_name, email, account_id, created_by, modified_by)
+       VALUES ('Portal', 'Alpha', $1, $2, NULL, NULL)
        RETURNING id`,
-      [portalAEmail]
+      [portalAEmail, organizationId]
     );
     contactAId = contactAResult.rows[0].id as string;
     createdContactIds.push(contactAId);
@@ -105,10 +125,10 @@ describe('Case Management Visibility Integration', () => {
 
     portalBEmail = `case-portal-b-${suffix}@example.com`;
     const contactBResult = await pool.query(
-      `INSERT INTO contacts (first_name, last_name, email, created_by, modified_by)
-       VALUES ('Portal', 'Beta', $1, NULL, NULL)
+      `INSERT INTO contacts (first_name, last_name, email, account_id, created_by, modified_by)
+       VALUES ('Portal', 'Beta', $1, $2, NULL, NULL)
        RETURNING id`,
-      [portalBEmail]
+      [portalBEmail, organizationId]
     );
     contactBId = contactBResult.rows[0].id as string;
     createdContactIds.push(contactBId);
@@ -130,7 +150,8 @@ describe('Case Management Visibility Integration', () => {
     const caseAResult = await pool.query(
       `INSERT INTO cases (
          case_number,
-         contact_id,
+          contact_id,
+         account_id,
          case_type_id,
          status_id,
          title,
@@ -140,9 +161,9 @@ describe('Case Management Visibility Integration', () => {
          modified_by,
          created_at,
          updated_at
-       ) VALUES ($1, $2, $3, $4, $5, false, $6, $6, $6, NOW(), NOW())
+       ) VALUES ($1, $2, $3, $4, $5, $6, false, $7, $7, $7, NOW(), NOW())
        RETURNING id`,
-      [`CASE-A-${suffix}`, contactAId, caseTypeId, activeStatusId, 'Case Alpha', adminUserId]
+      [`CASE-A-${suffix}`, contactAId, organizationId, caseTypeId, activeStatusId, 'Case Alpha', adminUserId]
     );
     caseAId = caseAResult.rows[0].id as string;
     createdCaseIds.push(caseAId);
@@ -150,7 +171,8 @@ describe('Case Management Visibility Integration', () => {
     const caseBResult = await pool.query(
       `INSERT INTO cases (
          case_number,
-         contact_id,
+          contact_id,
+         account_id,
          case_type_id,
          status_id,
          title,
@@ -160,9 +182,9 @@ describe('Case Management Visibility Integration', () => {
          modified_by,
          created_at,
          updated_at
-       ) VALUES ($1, $2, $3, $4, $5, true, $6, $6, $6, NOW(), NOW())
+       ) VALUES ($1, $2, $3, $4, $5, $6, true, $7, $7, $7, NOW(), NOW())
        RETURNING id`,
-      [`CASE-B-${suffix}`, contactBId, caseTypeId, activeStatusId, 'Case Beta', adminUserId]
+      [`CASE-B-${suffix}`, contactBId, organizationId, caseTypeId, activeStatusId, 'Case Beta', adminUserId]
     );
     caseBId = caseBResult.rows[0].id as string;
     createdCaseIds.push(caseBId);
@@ -204,6 +226,9 @@ describe('Case Management Visibility Integration', () => {
     }
     if (createdContactIds.length > 0) {
       await pool.query('DELETE FROM contacts WHERE id = ANY($1)', [createdContactIds]);
+    }
+    if (createdAccountIds.length > 0) {
+      await pool.query('DELETE FROM accounts WHERE id = ANY($1)', [createdAccountIds]);
     }
     if (createdStatusIds.length > 0) {
       await pool.query('DELETE FROM case_statuses WHERE id = ANY($1)', [createdStatusIds]);
@@ -435,4 +460,3 @@ describe('Case Management Visibility Integration', () => {
       .expect(400);
   });
 });
-

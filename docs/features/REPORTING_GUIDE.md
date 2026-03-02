@@ -1,40 +1,88 @@
 # Report Generator Guide
 
-The Nonprofit Manager includes a powerful Reporting Engine that allows users to generate, save, and export detailed reports across various entities.
+## Overview
 
-## Features
+The reporting system supports ad-hoc analytics and recurring delivery.
 
-- **Entity Support**: Generate reports for Volunteers, Donations, Events, Cases, and Tasks.
-- **Advanced Aggregations**: Support for `SUM`, `AVG`, `MIN`, `MAX`, and `COUNT` on numeric fields.
-- **Grouping**: Group results by specific fields (e.g., group donations by donor or month).
-- **Filtering**: Flexible filtering logic including date ranges, status, and custom attributes.
-- **Export Formats**:
-    - **CSV**: Standard comma-separated values.
-    - **Excel**: Formatted spreadsheets with multiple tabs if needed.
-    - **PDF**: Professional, print-ready documents with branding.
-- **Visualizations**: Integrated Recharts for bar, line, and pie charts within the Report Builder.
+Primary capabilities:
+- Build custom reports across supported entities.
+- Save report definitions for reuse.
+- Export in `csv`, `xlsx`, and on-demand `pdf`.
+- Schedule recurring report delivery by email.
 
-## Usage
+## Report Builder
 
-### Building a Report
-1. Navigate to **Reports** > **New Report**.
-2. Select the **Primary Entity** (e.g., Donations).
-3. Choose the **Columns** you want to include.
-4. (Optional) Set **Aggregations** and **Grouping**.
-5. Define **Filter Criteria**.
-6. Click **Run Report** to preview the results.
+1. Navigate to `Reports -> Report Builder`.
+2. Select entity, fields, filters, grouping, and aggregations.
+3. Run the report preview.
+4. Save definition for reuse.
 
-### Saving and Exporting
-- Use the **Save** button to store the report configuration for future use.
-- Use the **Export** dropdown to download the report in your preferred format.
+Supported export formats:
+- `csv`
+- `xlsx`
+- `pdf` (manual/on-demand export)
 
-## Technical Details
+## Scheduled Reports
 
-### Backend Architecture
-- **Service**: `backend/src/services/reportService.ts` handles the SQL generation and execution.
-- **Export Engine**: `backend/src/services/exportService.ts` manages the conversion to different file formats.
-- **Security**: Reports are scoped to the user's organization and respect Role-Based Access Control (RBAC).
+Route:
+- `/reports/scheduled`
 
-### Frontend Components
-- **ReportBuilder**: `frontend/src/pages/builder/ReportBuilder.tsx` provides the drag-and-drop interface.
-- **DataGrid**: Optimized for rendering large datasets with sorting and pagination.
+Saved report cards include a `Schedule` action that opens scheduling controls.
+
+### Scheduling model
+
+- Frequencies: `daily`, `weekly`, `monthly`
+- Timezone-aware execution
+- Email-first delivery
+- Attachment formats: `csv`, `xlsx`
+- Recipients: one or more email addresses
+
+### Scheduler endpoints
+
+- `GET /api/scheduled-reports`
+- `GET /api/scheduled-reports/:id`
+- `POST /api/scheduled-reports`
+- `PUT /api/scheduled-reports/:id`
+- `POST /api/scheduled-reports/:id/toggle`
+- `POST /api/scheduled-reports/:id/run-now`
+- `DELETE /api/scheduled-reports/:id`
+- `GET /api/scheduled-reports/:id/runs`
+
+### Runtime controls
+
+Flags:
+- `SCHEDULED_REPORT_SCHEDULER_ENABLED`
+- `SCHEDULED_REPORT_SCHEDULER_INTERVAL_MS`
+- `SCHEDULED_REPORT_SCHEDULER_BATCH_SIZE`
+- `SCHEDULED_REPORT_SCHEDULER_RETRY_ATTEMPTS`
+- `SCHEDULED_REPORT_SCHEDULER_RETRY_DELAY_MS`
+- `SCHEDULED_REPORT_SCHEDULER_TIMEOUT_MS`
+
+Execution behavior:
+- Due schedule claiming uses row locking to avoid duplicate processing.
+- Each run records status, row count, output metadata, and errors.
+- `run-now` creates a run record immediately and preserves normal history.
+
+### Current limits
+
+- Frequency options are controlled (no raw cron in v1).
+- Scheduled attachment formats are `csv` and `xlsx`.
+- PDF scheduling is deferred.
+
+## Technical Architecture
+
+Backend:
+- `backend/src/services/reportService.ts`
+- `backend/src/services/exportService.ts`
+- `backend/src/services/scheduledReportService.ts`
+- `backend/src/services/scheduledReportSchedulerService.ts`
+
+Frontend:
+- `frontend/src/pages/analytics/ReportBuilder.tsx`
+- `frontend/src/pages/analytics/SavedReports.tsx`
+- `frontend/src/pages/analytics/ScheduledReports.tsx`
+- `frontend/src/store/slices/scheduledReportsSlice.ts`
+
+Data model:
+- `scheduled_reports`
+- `scheduled_report_runs`

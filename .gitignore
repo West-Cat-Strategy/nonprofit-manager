@@ -138,3 +138,11 @@ backend/migrations/
 data-intake/
 security-reports/
 .deploy-history
+
+# ==============================
+# Reference repo workspace (local-only)
+# ==============================
+reference-repos/local/**
+reference-repos/external/**
+!reference-repos/manifest.lock.json
+!reference-repos/README.md
