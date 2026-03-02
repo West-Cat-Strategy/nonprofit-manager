@@ -13,6 +13,8 @@ export { default as mailchimpRoutes } from '@routes/mailchimp';
 export { default as meetingRoutes } from '@routes/meetings';
 export { default as reportRoutes } from '@routes/reports';
 export { default as savedReportRoutes } from '@routes/savedReports';
+export { default as scheduledReportRoutes } from '@routes/scheduledReports';
 export { default as taskRoutes } from '@routes/tasks';
+export { default as followUpRoutes } from '@routes/followUps';
 export { default as volunteerRoutes } from '@routes/volunteers';
 export { default as webhookRoutes } from '@routes/webhooks';

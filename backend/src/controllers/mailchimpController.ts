@@ -17,6 +17,7 @@ import type {
   CreateCampaignRequest,
 } from '@app-types/mailchimp';
 import { badRequest, notFoundMessage, serverError, serviceUnavailable } from '@utils/responseHelpers';
+import { sendProviderAck, sendSuccess } from '@modules/shared/http/envelope';
 
 /**
  * Get Mailchimp configuration status
@@ -471,7 +472,7 @@ export const sendCampaign = async (req: AuthRequest, res: Response): Promise<voi
     }
 
     await mailchimpService.sendCampaign(campaignId);
-    res.json({ success: true, message: 'Campaign sent successfully' });
+    sendSuccess(res, { message: 'Campaign sent successfully' });
   } catch (error) {
     logger.error('Error sending campaign', { error });
     serverError(res, 'Failed to send campaign');
@@ -547,11 +548,11 @@ export const handleWebhook = async (req: Request, res: Response): Promise<void> 
     }
 
     // Always return 200 to acknowledge receipt
-    res.json({ received: true });
+    sendProviderAck(res, { received: true });
   } catch (error) {
     logger.error('Mailchimp webhook error', { error });
     // Still return 200 to prevent Mailchimp from retrying
-    res.json({ received: true, error: 'Processing error' });
+    sendProviderAck(res, { received: true, processingError: true });
   }
 };
 

@@ -10,7 +10,7 @@ vi.mock('../../utils/calendar', () => ({
   generateGoogleCalendarUrl: vi.fn((event) => `https://google.com/calendar?event=${event.event_id}`),
   generateOutlookCalendarUrl: vi.fn((event) => `HTTPS://outlook.com/calendar?event=${event.event_id}`),
   generateYahooCalendarUrl: vi.fn((event) => `HTTPS://yahoo.com/calendar?event=${event.event_id}`),
-  getIcsDownloadUrl: vi.fn((eventId) => `/api/events/${eventId}/ics`),
+  getIcsDownloadUrl: vi.fn((eventId) => `/api/v2/events/${eventId}/calendar.ics`),
 }));
 
 describe('AddToCalendar', () => {
@@ -151,7 +151,7 @@ describe('AddToCalendar', () => {
     fireEvent.click(button);
 
     const icsLink = screen.getByText('Download .ics').closest('a');
-    expect(icsLink).toHaveAttribute('href', `/api/events/${mockEvent.event_id}/ics`);
+    expect(icsLink).toHaveAttribute('href', `/api/v2/events/${mockEvent.event_id}/calendar.ics`);
     expect(icsLink).toHaveAttribute('target', '_self');
     expect(icsLink).not.toHaveAttribute('rel');
 

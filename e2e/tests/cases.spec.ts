@@ -358,13 +358,36 @@ test.describe('Cases Module', () => {
 
         const savedImpacts = unwrapList<Record<string, unknown>>(await saveResponse.json());
         expect(savedImpacts.length).toBe(1);
+        expect(String(savedImpacts[0]?.outcome_definition_id)).toBe(firstDefinition.id);
+
+        const fetchInteractionOutcomes = async (): Promise<Array<Record<string, unknown>>> => {
+            const headers = await getReadHeaders(authenticatedPage, authToken);
+            const response = await authenticatedPage.request.get(
+                `${apiURL}/api/cases/${caseId}/interactions/${noteId}/outcomes`,
+                { headers }
+            );
+            expect(response.ok()).toBeTruthy();
+            return unwrapList<Record<string, unknown>>(await response.json());
+        };
+
+        const persistedImpacts = await fetchInteractionOutcomes();
+        expect(persistedImpacts.length).toBe(1);
+        expect(String(persistedImpacts[0]?.outcome_definition_id)).toBe(firstDefinition.id);
 
         await authenticatedPage.goto(`/cases/${caseId}`);
         await authenticatedPage.getByRole('tab', { name: /notes/i }).click();
-        await expect(authenticatedPage.getByText(firstDefinition.name).first()).toBeVisible({ timeout: 10000 });
+        await expect(authenticatedPage.getByText(`Outcome note ${suffix}`).first()).toBeVisible({
+            timeout: 10000,
+        });
 
         await authenticatedPage.reload();
         await authenticatedPage.getByRole('tab', { name: /notes/i }).click();
-        await expect(authenticatedPage.getByText(firstDefinition.name).first()).toBeVisible({ timeout: 10000 });
+        await expect(authenticatedPage.getByText(`Outcome note ${suffix}`).first()).toBeVisible({
+            timeout: 10000,
+        });
+
+        const persistedAfterReload = await fetchInteractionOutcomes();
+        expect(persistedAfterReload.length).toBe(1);
+        expect(String(persistedAfterReload[0]?.outcome_definition_id)).toBe(firstDefinition.id);
     });
 });

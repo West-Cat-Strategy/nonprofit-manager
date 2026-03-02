@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 \i /migrations/049_audit_trigger_record_id_fallback.sql
 \i /migrations/050_case_client_visibility_notes_outcomes_topics_documents.sql
 \i /migrations/051_webhook_delivery_queue_hardening.sql
+\i /migrations/052_webhook_delivery_and_payment_webhook_idempotency.sql
 
 \i /seeds/001_default_users.sql
 \i /seeds/002_starter_templates.sql

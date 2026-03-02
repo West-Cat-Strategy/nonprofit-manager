@@ -1,13 +1,8 @@
 import request from 'supertest';
 import app from '../../index';
-import pool from '../../config/database';
 
 describe('Auth Debugging', () => {
     const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-    afterAll(async () => {
-        await pool.end();
-    });
 
     it('should register and return a valid token', async () => {
         const email = `debug-${unique()}@example.com`;

@@ -141,7 +141,7 @@ export async function seedDatabase(page: Page, token: string): Promise<void> {
 export async function clearDatabase(page: Page, token: string): Promise<void> {
   const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
   const authHeaderCache = new Map<string, string>();
-  const maxCleanupPasses = 20;
+  const maxCleanupPasses = 5;
 
   // Delete in reverse order of dependencies
   const endpoints = [
@@ -155,6 +155,7 @@ export async function clearDatabase(page: Page, token: string): Promise<void> {
 
   for (const endpoint of endpoints) {
     try {
+      const deletedIds = new Set<string>();
       for (let pass = 0; pass < maxCleanupPasses; pass += 1) {
         // Keep draining until the endpoint returns no more items.
         const listResponse = await withRequestRetry(
@@ -183,6 +184,15 @@ export async function clearDatabase(page: Page, token: string): Promise<void> {
           break;
         }
 
+        const itemIds = items
+          .map((item) => item.id || item.account_id || item.contact_id || item.donation_id || item.event_id || item.task_id)
+          .filter((value): value is string => typeof value === 'string' && value.length > 0);
+
+        const nextIds = itemIds.filter((id) => !deletedIds.has(id));
+        if (nextIds.length === 0) {
+          break;
+        }
+
         for (const item of items) {
           const itemId =
             item.id ||
@@ -191,7 +201,7 @@ export async function clearDatabase(page: Page, token: string): Promise<void> {
             item.donation_id ||
             item.event_id ||
             item.task_id;
-          if (!itemId) {
+          if (!itemId || deletedIds.has(itemId)) {
             continue;
           }
           const headers = await getCachedAuthHeaders(page, token, authHeaderCache);
@@ -202,6 +212,7 @@ export async function clearDatabase(page: Page, token: string): Promise<void> {
               }),
             `delete ${endpoint}/${itemId}`
           );
+          deletedIds.add(itemId);
         }
       }
     } catch (error) {

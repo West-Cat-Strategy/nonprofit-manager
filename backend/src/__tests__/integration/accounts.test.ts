@@ -27,7 +27,6 @@ describe('Account API Integration Tests', () => {
     if (testAccountId) {
       await pool.query('DELETE FROM accounts WHERE id = $1', [testAccountId]);
     }
-    await pool.end();
   });
 
   describe('POST /api/accounts', () => {
@@ -136,11 +135,12 @@ describe('Account API Integration Tests', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body.pagination.page).toBe(1);
+      const payload = response.body.data?.data ? response.body.data : response.body;
+      expect(payload.pagination.page).toBe(1);
       // Verify pagination structure exists
-      expect(response.body.pagination).toHaveProperty('limit');
-      expect(response.body.pagination).toHaveProperty('total');
-      expect(response.body.pagination).toHaveProperty('total_pages');
+      expect(payload.pagination).toHaveProperty('limit');
+      expect(payload.pagination).toHaveProperty('total');
+      expect(payload.pagination).toHaveProperty('total_pages');
     });
 
     it('should filter by account type', async () => {

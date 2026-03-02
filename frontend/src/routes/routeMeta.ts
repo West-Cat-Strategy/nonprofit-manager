@@ -19,7 +19,7 @@ const routeMetaMatchers: RouteMetaMatcher[] = [
   { pattern: /^\/accounts(\/|$)/, meta: { title: 'Accounts', section: 'People', requiresAuth: true, primaryAction: { label: 'New Account', path: '/accounts/new' } } },
   { pattern: /^\/contacts(\/|$)/, meta: { title: 'Contacts', section: 'People', requiresAuth: true, primaryAction: { label: 'New Contact', path: '/contacts/new' } } },
   { pattern: /^\/volunteers(\/|$)/, meta: { title: 'Volunteers', section: 'People', requiresAuth: true, primaryAction: { label: 'New Volunteer', path: '/volunteers/new' } } },
-  { pattern: /^\/(events|tasks|cases|external-service-providers)(\/|$)/, meta: { title: 'Engagement', section: 'Engagement', requiresAuth: true } },
+  { pattern: /^\/(events|tasks|cases|follow-ups|opportunities|external-service-providers)(\/|$)/, meta: { title: 'Engagement', section: 'Engagement', requiresAuth: true } },
   { pattern: /^\/(donations|reconciliation)(\/|$)/, meta: { title: 'Finance', section: 'Finance', requiresAuth: true } },
   { pattern: /^\/(analytics|reports|dashboard\/custom)(\/|$)/, meta: { title: 'Analytics', section: 'Analytics', requiresAuth: true } },
   { pattern: /^\/settings(\/|$)/, meta: { title: 'Settings', section: 'Settings', requiresAuth: true } },
@@ -39,4 +39,3 @@ export function getRouteMeta(pathname: string): RouteMeta {
     requiresAuth: true,
   };
 }
-

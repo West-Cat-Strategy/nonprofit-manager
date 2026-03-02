@@ -126,7 +126,7 @@ export const generateYahooCalendarUrl = (event: EventData): string => {
  * Get .ics download URL from API
  */
 export const getIcsDownloadUrl = (eventId: string): string => {
-  return `/api/events/${eventId}/calendar.ics`;
+  return `/api/v2/events/${eventId}/calendar.ics`;
 };
 
 export default {

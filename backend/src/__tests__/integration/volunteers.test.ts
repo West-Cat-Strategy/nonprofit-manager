@@ -61,7 +61,6 @@ describe('Volunteer API Integration Tests', () => {
       // Finally delete account
       await pool.query('DELETE FROM accounts WHERE id = $1', [testAccountId]);
     }
-    await pool.end();
   });
 
   describe('POST /api/volunteers', () => {
