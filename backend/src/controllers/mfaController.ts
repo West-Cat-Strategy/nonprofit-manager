@@ -13,6 +13,7 @@ import { badRequest, conflict, notFoundMessage, unauthorized, validationErrorRes
 import { setAuthCookie, setRefreshCookie } from '@utils/cookieHelper';
 import { buildAuthTokenResponse } from '@utils/authResponse';
 import { authenticator } from '@otplib/preset-default';
+import { sendSuccess } from '@modules/shared/http/envelope';
 
 const TOTP_PERIOD_SECONDS = 30;
 const TOTP_WINDOW = 1;
@@ -99,7 +100,7 @@ export const getSecurityOverview = async (
       [req.user!.id]
     );
 
-    return res.json({
+    return sendSuccess(res, {
       totpEnabled: !!totpResult.rows[0].mfa_totp_enabled,
       passkeys: passkeyResult.rows.map((r) => ({
         id: r.id,
@@ -142,7 +143,7 @@ export const enrollTotp = async (
       [encrypt(secret), req.user!.id]
     );
 
-    return res.json({
+    return sendSuccess(res, {
       issuer: TOTP_ISSUER,
       otpauthUrl,
       secret,
@@ -198,7 +199,7 @@ export const enableTotp = async (
     );
 
     logger.info('TOTP 2FA enabled', { userId: req.user!.id });
-    return res.json({ totpEnabled: true });
+    return sendSuccess(res, { totpEnabled: true });
   } catch (error) {
     next(error);
   }
@@ -256,7 +257,7 @@ export const disableTotp = async (
     );
 
     logger.info('TOTP 2FA disabled', { userId: req.user!.id });
-    return res.json({ totpEnabled: false });
+    return sendSuccess(res, { totpEnabled: false });
   } catch (error) {
     next(error);
   }
@@ -327,7 +328,7 @@ export const completeTotpLogin = async (
     setAuthCookie(res, token);
     setRefreshCookie(res, refreshToken);
     const organizationId = await getDefaultOrganizationId();
-    return res.json({
+    return sendSuccess(res, {
       ...buildAuthTokenResponse(token, refreshToken),
       organizationId,
       user: {

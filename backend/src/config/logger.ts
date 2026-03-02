@@ -2,6 +2,7 @@ import winston from 'winston';
 import * as http from 'http';
 import * as https from 'https';
 import Transport from 'winston-transport';
+import { getRequestContext } from '@config/requestContext';
 
 // Fields that should be masked in logs
 const SENSITIVE_FIELDS = [
@@ -80,9 +81,35 @@ const sensitiveDataMasker = winston.format((info) => {
   return maskedInfo;
 });
 
+const requestContextInjector = winston.format((info) => {
+  const context = getRequestContext();
+  if (!context) {
+    return info;
+  }
+
+  if (context.correlationId && !info.correlationId) {
+    info.correlationId = context.correlationId;
+  }
+  if (context.userId && !info.userId) {
+    info.userId = context.userId;
+  }
+  if (context.organizationId && !info.organizationId) {
+    info.organizationId = context.organizationId;
+  }
+  if (context.accountId && !info.accountId) {
+    info.accountId = context.accountId;
+  }
+  if (context.tenantId && !info.tenantId) {
+    info.tenantId = context.tenantId;
+  }
+
+  return info;
+});
+
 const logFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.errors({ stack: true }),
+  requestContextInjector(),
   sensitiveDataMasker(),
   winston.format.splat(),
   winston.format.json()

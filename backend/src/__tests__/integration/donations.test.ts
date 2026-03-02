@@ -39,7 +39,6 @@ describe('Donation API Integration Tests', () => {
       await pool.query('DELETE FROM donations WHERE account_id = $1', [testAccountId]);
       await pool.query('DELETE FROM accounts WHERE id = $1', [testAccountId]);
     }
-    await pool.end();
   });
 
   describe('POST /api/donations', () => {

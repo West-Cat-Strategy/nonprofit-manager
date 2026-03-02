@@ -12,6 +12,7 @@ import { AuthRequest } from '@middleware/auth';
 import { PASSWORD } from '@config/constants';
 import { syncUserRole } from '@services/domains/integration';
 import { badRequest, conflict, forbidden, notFoundMessage, validationErrorResponse } from '@utils/responseHelpers';
+import { sendSuccess } from '@modules/shared/http/envelope';
 
 interface UserRow {
   id: string;
@@ -90,7 +91,7 @@ export const listUsers = async (
       updatedAt: user.updated_at,
     }));
 
-    return res.json({ users, total: users.length });
+    return sendSuccess(res, { users, total: users.length });
   } catch (error) {
     next(error);
   }
@@ -124,7 +125,7 @@ export const getUser = async (
 
     const user = result.rows[0];
 
-    return res.json({
+    return sendSuccess(res, {
       id: user.id,
       email: user.email,
       firstName: user.first_name,
@@ -184,17 +185,21 @@ export const createUser = async (
 
     logger.info(`User created by admin: ${user.email}`, { adminId: req.user.id });
 
-    return res.status(201).json({
-      id: user.id,
-      email: user.email,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      role: user.role,
-      profilePicture: user.profile_picture || null,
-      isActive: user.is_active,
-      createdAt: user.created_at,
-      updatedAt: user.updated_at,
-    });
+    return sendSuccess(
+      res,
+      {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role,
+        profilePicture: user.profile_picture || null,
+        isActive: user.is_active,
+        createdAt: user.created_at,
+        updatedAt: user.updated_at,
+      },
+      201
+    );
   } catch (error) {
     next(error);
   }
@@ -274,7 +279,7 @@ export const updateUser = async (
 
     logger.info(`User updated by admin: ${user.email}`, { adminId: req.user.id, userId: id });
 
-    return res.json({
+    return sendSuccess(res, {
       id: user.id,
       email: user.email,
       firstName: user.first_name,
@@ -330,7 +335,7 @@ export const resetUserPassword = async (
 
     logger.info(`Password reset by admin for user: ${existingUser.rows[0].email}`, { adminId: req.user.id, userId: id });
 
-    return res.json({ message: 'Password reset successfully' });
+    return sendSuccess(res, { message: 'Password reset successfully' });
   } catch (error) {
     next(error);
   }
@@ -381,7 +386,7 @@ export const deleteUser = async (
 
     logger.info(`User deactivated by admin: ${existingUser.rows[0].email}`, { adminId: req.user.id, userId: id });
 
-    return res.json({ message: 'User deactivated successfully' });
+    return sendSuccess(res, { message: 'User deactivated successfully' });
   } catch (error) {
     next(error);
   }
@@ -407,5 +412,5 @@ export const getRoles = async (
     { value: 'readonly', label: 'Read Only', description: 'Can only view records, no editing' },
   ];
 
-  return res.json({ roles });
+  return sendSuccess(res, { roles });
 };

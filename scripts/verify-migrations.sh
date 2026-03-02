@@ -89,6 +89,25 @@ fi
 
 log_info "Verifying migrations against ${PGDATABASE}"
 
+# Ensure deterministic verification by replaying into a clean schema.
+psql -v ON_ERROR_STOP=1 <<'SQL' >/dev/null
+DROP SCHEMA IF EXISTS public CASCADE;
+CREATE SCHEMA public;
+GRANT ALL ON SCHEMA public TO CURRENT_USER;
+GRANT ALL ON SCHEMA public TO PUBLIC;
+SQL
+
+# Some migrations reference schema_migrations for bookkeeping.
+# Ensure it exists for verification runs on fresh *_test databases.
+psql -v ON_ERROR_STOP=1 <<'SQL' >/dev/null
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  id SERIAL PRIMARY KEY,
+  filename VARCHAR(255) NOT NULL UNIQUE,
+  applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  checksum VARCHAR(64)
+);
+SQL
+
 for file in "${migrations[@]}"; do
   log_info "Applying ${file##*/}"
   psql -v ON_ERROR_STOP=1 -f "$file" >/dev/null

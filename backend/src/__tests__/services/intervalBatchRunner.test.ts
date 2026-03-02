@@ -9,8 +9,9 @@ jest.mock('@config/logger', () => ({
 }));
 
 const flushMicrotasks = async (): Promise<void> => {
-  await Promise.resolve();
-  await Promise.resolve();
+  for (let i = 0; i < 6; i += 1) {
+    await Promise.resolve();
+  }
 };
 
 describe('IntervalBatchRunner', () => {
@@ -99,5 +100,49 @@ describe('IntervalBatchRunner', () => {
     jest.advanceTimersByTime(3000);
     await flushMicrotasks();
     expect(runBatch).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries failed batches with bounded attempts', async () => {
+    const runBatch = jest
+      .fn<Promise<number>, []>()
+      .mockRejectedValueOnce(new Error('retry-me'))
+      .mockResolvedValueOnce(3);
+
+    const runner = new IntervalBatchRunner({
+      name: 'Retry Test Runner',
+      intervalMs: 1000,
+      runBatch,
+      retryAttempts: 1,
+      retryDelayMs: 0,
+    });
+
+    const processed = await runner.tick();
+
+    expect(processed).toBe(3);
+    expect(runBatch).toHaveBeenCalledTimes(2);
+  });
+
+  it('enforces timeout guardrail for long-running batches', async () => {
+    jest.useFakeTimers();
+
+    const runBatch = jest.fn(
+      () =>
+        new Promise<number>(() => {
+          // intentionally unresolved
+        })
+    );
+
+    const runner = new IntervalBatchRunner({
+      name: 'Timeout Test Runner',
+      intervalMs: 1000,
+      runBatch,
+      timeoutMs: 50,
+    });
+
+    const tickPromise = runner.tick();
+    jest.advanceTimersByTime(60);
+    await flushMicrotasks();
+
+    await expect(tickPromise).resolves.toBe(0);
   });
 });
