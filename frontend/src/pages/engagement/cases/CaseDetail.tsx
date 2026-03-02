@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   fetchCaseById,
@@ -32,6 +32,7 @@ import type { CaseStatusType, CaseMilestone } from '../../../types/case';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 import { getCasePriorityBadgeColor } from '../../../features/cases/utils/casePriority';
+import CaseTeamChatPanel from '../../../features/teamChat/components/CaseTeamChatPanel';
 
 type TabType =
   | 'overview'
@@ -43,17 +44,24 @@ type TabType =
   | 'followups'
   | 'relationships'
   | 'services'
+  | 'team_chat'
   | 'portal';
+
+const teamChatEnabled = import.meta.env.VITE_TEAM_CHAT_ENABLED !== 'false';
 
 const CaseDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { showSuccess, showError } = useToast();
   const { currentCase, caseStatuses, caseMilestones, loading, error } = useAppSelector((state) => state.casesV2);
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
 
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const requestedTab = searchParams.get('tab');
+  const initialTab: TabType =
+    requestedTab === 'team_chat' && teamChatEnabled ? 'team_chat' : 'overview';
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [isChangingStatus, setIsChangingStatus] = useState(false);
   const [newStatusId, setNewStatusId] = useState('');
   const [statusChangeNotes, setStatusChangeNotes] = useState('');
@@ -78,6 +86,12 @@ const CaseDetail = () => {
       dispatch(clearCurrentCase());
     };
   }, [dispatch, id]);
+
+  useEffect(() => {
+    if (requestedTab === 'team_chat' && teamChatEnabled) {
+      setActiveTab('team_chat');
+    }
+  }, [requestedTab]);
 
   const handleStatusChange = async () => {
     if (!id || !newStatusId) return;
@@ -314,6 +328,7 @@ const CaseDetail = () => {
     { key: 'milestones', label: 'Milestones', count: caseMilestones.length },
     { key: 'relationships', label: 'Relationships' },
     { key: 'services', label: 'Services', count: currentCase.services_count || 0 },
+    ...(teamChatEnabled ? [{ key: 'team_chat' as TabType, label: 'Team Chat' }] : []),
     { key: 'portal', label: 'Portal' },
     { key: 'followups', label: 'Follow-ups' },
   ];
@@ -853,7 +868,14 @@ const CaseDetail = () => {
             </div>
           )}
 
-          {/* Follow-ups Tab */}
+          {/* Team Chat Tab */}
+          {teamChatEnabled && activeTab === 'team_chat' && id && (
+            <div id="panel-team-chat" role="tabpanel" aria-labelledby="tab-team-chat">
+              <CaseTeamChatPanel caseId={id} />
+            </div>
+          )}
+
+          {/* Portal Tab */}
           {activeTab === 'portal' && id && (
             <div id="panel-portal" role="tabpanel" aria-labelledby="tab-portal">
               <BrutalCard color="white" className="p-6">

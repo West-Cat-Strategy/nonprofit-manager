@@ -72,6 +72,11 @@ export enum Permission {
   OPPORTUNITY_DELETE = 'opportunity:delete',
   OPPORTUNITY_STAGE_MANAGE = 'opportunity:stage:manage',
 
+  // Team Chat
+  TEAM_CHAT_VIEW = 'team_chat:view',
+  TEAM_CHAT_POST = 'team_chat:post',
+  TEAM_CHAT_MANAGE = 'team_chat:manage',
+
   // Admin/Organization
   ADMIN_USERS = 'admin:users',
   ADMIN_ORGANIZATION = 'admin:organization',
@@ -142,6 +147,9 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.OPPORTUNITY_EDIT,
     Permission.OPPORTUNITY_DELETE,
     Permission.OPPORTUNITY_STAGE_MANAGE,
+    Permission.TEAM_CHAT_VIEW,
+    Permission.TEAM_CHAT_POST,
+    Permission.TEAM_CHAT_MANAGE,
     Permission.ADMIN_USERS,
     Permission.ADMIN_ORGANIZATION,
     Permission.ADMIN_SETTINGS,
@@ -199,6 +207,9 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.OPPORTUNITY_EDIT,
     Permission.OPPORTUNITY_DELETE,
     Permission.OPPORTUNITY_STAGE_MANAGE,
+    Permission.TEAM_CHAT_VIEW,
+    Permission.TEAM_CHAT_POST,
+    Permission.TEAM_CHAT_MANAGE,
     Permission.ANALYTICS_VIEW,
     Permission.DASHBOARD_VIEW,
     Permission.TEMPLATE_VIEW,
@@ -231,6 +242,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.OPPORTUNITY_VIEW,
     Permission.OPPORTUNITY_CREATE,
     Permission.OPPORTUNITY_EDIT,
+    Permission.TEAM_CHAT_VIEW,
+    Permission.TEAM_CHAT_POST,
     Permission.OUTCOMES_TAG_INTERACTION,
     Permission.DASHBOARD_VIEW,
     Permission.TEMPLATE_VIEW,

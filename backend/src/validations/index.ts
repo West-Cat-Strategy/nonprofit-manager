@@ -15,3 +15,4 @@ export * from './task';
 export * from './portal';
 export * from './outcomeDefinition';
 export * from './outcomeImpact';
+export * from './teamChat';
