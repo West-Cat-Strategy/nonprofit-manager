@@ -22,8 +22,8 @@ export class CaseRepository implements CaseCatalogPort, CaseLifecyclePort {
     return services.case.getCaseTimeline(caseId);
   }
 
-  async getCaseSummary(): Promise<unknown> {
-    return services.case.getCaseSummary();
+  async getCaseSummary(organizationId?: string): Promise<unknown> {
+    return services.case.getCaseSummary(organizationId);
   }
 
   async getCaseTypes(): Promise<unknown[]> {

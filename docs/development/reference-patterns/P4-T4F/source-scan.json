@@ -1,0 +1,33 @@
+{
+  "task": "P4-T4F",
+  "generated_at": "2026-03-02",
+  "sources": [
+    {
+      "repo": "open-mercato",
+      "domain": "CRM widget data and pipeline summary",
+      "paths_reviewed": [
+        "reference-repos/nm--open-mercato/**/pipeline*",
+        "reference-repos/nm--open-mercato/**/widget*"
+      ],
+      "reuse_mode": "adapt"
+    },
+    {
+      "repo": "twenty",
+      "domain": "pipeline stage semantics and lifecycle flags",
+      "paths_reviewed": [
+        "reference-repos/wm--twenty/**/opportunit*",
+        "reference-repos/nm--twenty/**/opportunit*"
+      ],
+      "reuse_mode": "architecture-only"
+    },
+    {
+      "repo": "openproject",
+      "domain": "organization-scoped reporting execution",
+      "paths_reviewed": [
+        "reference-repos/wm--openproject/**/report*",
+        "reference-repos/wm--openproject/**/query*"
+      ],
+      "reuse_mode": "architecture-only"
+    }
+  ]
+}

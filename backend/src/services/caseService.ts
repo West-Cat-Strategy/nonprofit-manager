@@ -1452,7 +1452,15 @@ export class CaseService {
   /**
    * Get case summary statistics
    */
-  async getCaseSummary(): Promise<CaseSummary> {
+  async getCaseSummary(organizationId?: string): Promise<CaseSummary> {
+    const scopeParams: string[] = [];
+    const scopeValues: unknown[] = [];
+    if (organizationId) {
+      scopeValues.push(organizationId);
+      scopeParams.push(`COALESCE(c.account_id, con.account_id) = $${scopeValues.length}`);
+    }
+    const scopeClause = scopeParams.length > 0 ? `WHERE ${scopeParams.join(' AND ')}` : '';
+
     const result = await this.pool.query(`
       SELECT
         COUNT(*) as total_cases,
@@ -1473,17 +1481,21 @@ export class CaseService {
         AVG(EXTRACT(EPOCH FROM (COALESCE(c.closed_date, NOW()) - c.intake_date)) / 86400)
           FILTER (WHERE cs.status_type IN ('closed', 'cancelled')) as avg_duration
       FROM cases c
+      LEFT JOIN contacts con ON con.id = c.contact_id
       LEFT JOIN case_statuses cs ON c.status_id = cs.id
-    `);
+      ${scopeClause}
+    `, scopeValues);
 
     // Get counts by case type
     const typeResult = await this.pool.query(`
       SELECT ct.name, COUNT(*) as count
       FROM cases c
+      LEFT JOIN contacts con ON con.id = c.contact_id
       JOIN case_types ct ON c.case_type_id = ct.id
+      ${scopeClause}
       GROUP BY ct.name
       ORDER BY count DESC
-    `);
+    `, scopeValues);
 
     const byCaseType: Record<string, number> = {};
     for (const row of typeResult.rows) {

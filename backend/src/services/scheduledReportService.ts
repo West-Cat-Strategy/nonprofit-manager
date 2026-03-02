@@ -645,7 +645,9 @@ export class ScheduledReportService {
           ? (JSON.parse(savedReport.report_definition) as ReportDefinition)
           : (savedReport.report_definition as ReportDefinition);
 
-      const generated = await this.reportService.generateReport(definition);
+      const generated = await this.reportService.generateReport(definition, {
+        organizationId: report.organization_id,
+      });
       const fileBuffer = await this.reportService.exportReport(generated, report.format);
       const fileName = `${savedReport.entity}_report_${new Date().toISOString().slice(0, 10)}.${report.format}`;
 

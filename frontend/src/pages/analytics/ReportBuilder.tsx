@@ -12,13 +12,14 @@ import ReportChart from '../../components/ReportChart';
 
 
 const ENTITIES: { value: ReportEntity; label: string }[] = [
-  { value: 'cases', label: 'Cases' },
   { value: 'accounts', label: 'Accounts' },
   { value: 'contacts', label: 'Contacts' },
   { value: 'donations', label: 'Donations' },
   { value: 'events', label: 'Events' },
   { value: 'volunteers', label: 'Volunteers' },
   { value: 'tasks', label: 'Tasks' },
+  { value: 'cases', label: 'Cases' },
+  { value: 'opportunities', label: 'Opportunities' },
   { value: 'expenses', label: 'Expenses' },
   { value: 'grants', label: 'Grants' },
   { value: 'programs', label: 'Programs' },
@@ -250,13 +251,22 @@ function ReportBuilder() {
                 Create custom reports by selecting entity, fields, filters, and sorting options
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => navigate('/reports/outcomes')}
-              className="px-4 py-2 bg-[var(--loop-cyan)] text-black border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold uppercase text-sm"
-            >
-              Outcomes Report
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => navigate('/reports/templates')}
+                className="px-4 py-2 bg-[var(--loop-yellow)] text-black border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold uppercase text-sm"
+              >
+                KPI Templates
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/reports/outcomes')}
+                className="px-4 py-2 bg-[var(--loop-cyan)] text-black border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold uppercase text-sm"
+              >
+                Outcomes Report
+              </button>
+            </div>
           </div>
         </div>
 

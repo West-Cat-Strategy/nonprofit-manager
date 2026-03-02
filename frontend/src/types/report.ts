@@ -3,17 +3,21 @@
  * Frontend type definitions for custom report generation
  */
 
-export type ReportEntity =
-  | 'cases'
-  | 'accounts'
-  | 'contacts'
-  | 'donations'
-  | 'events'
-  | 'volunteers'
-  | 'tasks'
-  | 'expenses'
-  | 'grants'
-  | 'programs';
+export const REPORT_ENTITIES = [
+  'accounts',
+  'contacts',
+  'donations',
+  'events',
+  'volunteers',
+  'tasks',
+  'cases',
+  'opportunities',
+  'expenses',
+  'grants',
+  'programs',
+] as const;
+
+export type ReportEntity = (typeof REPORT_ENTITIES)[number];
 
 export type ReportFormat = 'json' | 'csv' | 'pdf' | 'xlsx';
 

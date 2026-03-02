@@ -24,7 +24,7 @@ export interface CaseCatalogPort {
   getCases(filter: CaseFilter): Promise<{ cases: unknown[]; total: number }>;
   getCaseById(caseId: string): Promise<unknown | null>;
   getCaseTimeline(caseId: string): Promise<unknown[]>;
-  getCaseSummary(): Promise<unknown>;
+  getCaseSummary(organizationId?: string): Promise<unknown>;
   getCaseTypes(): Promise<unknown[]>;
   getCaseStatuses(): Promise<unknown[]>;
 }

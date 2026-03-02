@@ -16,6 +16,19 @@ vi.mock('../../services/api', () => ({
 // Wrapper component
 describe('FilterBuilder', () => {
   const mockOnChange = vi.fn();
+  const baseAvailableFields = {
+    accounts: null,
+    contacts: null,
+    donations: null,
+    events: null,
+    volunteers: null,
+    tasks: null,
+    cases: null,
+    opportunities: null,
+    expenses: null,
+    grants: null,
+    programs: null,
+  };
   const mockFields = [
     { field: 'id', label: 'ID', type: 'string' },
     { field: 'name', label: 'Name', type: 'string' },
@@ -37,7 +50,7 @@ const renderFilterBuilder = (component: React.ReactElement, initialState = {}) =
     const initialState = {
       reports: {
         currentReport: null,
-        availableFields: { contacts: [], accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        availableFields: { ...baseAvailableFields, contacts: [] },
         loading: false,
         fieldsLoading: false,
         error: null,
@@ -56,7 +69,7 @@ const renderFilterBuilder = (component: React.ReactElement, initialState = {}) =
     const initialState = {
       reports: {
         currentReport: null,
-        availableFields: { contacts: mockFields, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        availableFields: { ...baseAvailableFields, contacts: mockFields },
         loading: false,
         fieldsLoading: false,
         error: null,
@@ -75,7 +88,7 @@ const renderFilterBuilder = (component: React.ReactElement, initialState = {}) =
     const initialState = {
       reports: {
         currentReport: null,
-        availableFields: { contacts: mockFields, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        availableFields: { ...baseAvailableFields, contacts: mockFields },
         loading: false,
         fieldsLoading: false,
         error: null,
@@ -99,7 +112,7 @@ const renderFilterBuilder = (component: React.ReactElement, initialState = {}) =
     const initialState = {
       reports: {
         currentReport: null,
-        availableFields: { contacts: mockFields, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        availableFields: { ...baseAvailableFields, contacts: mockFields },
         loading: false,
         fieldsLoading: false,
         error: null,
@@ -125,7 +138,7 @@ const renderFilterBuilder = (component: React.ReactElement, initialState = {}) =
     const initialState = {
       reports: {
         currentReport: null,
-        availableFields: { contacts: mockFields, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        availableFields: { ...baseAvailableFields, contacts: mockFields },
         loading: false,
         fieldsLoading: false,
         error: null,
@@ -154,7 +167,7 @@ const renderFilterBuilder = (component: React.ReactElement, initialState = {}) =
     const initialState = {
       reports: {
         currentReport: null,
-        availableFields: { contacts: mockFields, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        availableFields: { ...baseAvailableFields, contacts: mockFields },
         loading: false,
         fieldsLoading: false,
         error: null,
@@ -178,7 +191,7 @@ const renderFilterBuilder = (component: React.ReactElement, initialState = {}) =
     const initialState = {
       reports: {
         currentReport: null,
-        availableFields: { contacts: mockFields, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        availableFields: { ...baseAvailableFields, contacts: mockFields },
         loading: false,
         fieldsLoading: false,
         error: null,

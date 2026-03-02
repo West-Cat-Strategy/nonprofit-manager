@@ -10,6 +10,7 @@ import CaseList from '../engagement/cases/CaseList';
 import FollowUpsPage from '../engagement/followUps/FollowUpsPage';
 import OpportunitiesPage from '../engagement/opportunities/OpportunitiesPage';
 import ScheduledReportsPage from '../analytics/ScheduledReports';
+import ReportTemplatesPage from '../analytics/ReportTemplates';
 import api from '../../services/api';
 import { assertRouteUxContract, createConsoleErrorSpy } from '../../test/uxRouteContract';
 
@@ -97,6 +98,13 @@ const smokeCases: SmokeCase[] = [
     page: <ScheduledReportsPage />,
     heading: /scheduled reports/i,
     primaryActionPattern: /new schedule/i,
+  },
+  {
+    name: 'report-templates',
+    route: '/reports/templates',
+    page: <ReportTemplatesPage />,
+    heading: /report templates/i,
+    primaryActionPattern: /create custom report/i,
   },
 ];
 
@@ -261,6 +269,11 @@ describe('Route UX smoke', () => {
         });
       }
       if (url.startsWith('/saved-reports')) {
+        return Promise.resolve({
+          data: [],
+        });
+      }
+      if (url.startsWith('/reports/templates')) {
         return Promise.resolve({
           data: [],
         });

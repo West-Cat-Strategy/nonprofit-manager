@@ -13,6 +13,10 @@ import type {
   ReportSort,
 } from '@app-types/report';
 
+export interface ReportGenerationScope {
+  organizationId?: string;
+}
+
 export class ReportService {
   constructor(private pool: Pool) { }
 
@@ -32,11 +36,57 @@ export class ReportService {
           status_name: { label: 'Status', type: 'string', column: 'cs.name' },
           status_type: { label: 'Status Type', type: 'string', column: 'cs.status_type' },
           case_type_name: { label: 'Case Type', type: 'string', column: 'ct.name' },
+          assigned_to_name: {
+            label: 'Assigned To',
+            type: 'string',
+            column: "TRIM(CONCAT(COALESCE(assignee.first_name, ''), ' ', COALESCE(assignee.last_name, '')))",
+          },
+          account_name: { label: 'Account', type: 'string', column: 'acc.account_name' },
+          contact_name: {
+            label: 'Contact',
+            type: 'string',
+            column: "TRIM(CONCAT(COALESCE(con.first_name, ''), ' ', COALESCE(con.last_name, '')))",
+          },
           is_urgent: { label: 'Urgent', type: 'boolean', column: 'c.is_urgent' },
+          open_flag: {
+            label: 'Open',
+            type: 'boolean',
+            column: "CASE WHEN cs.status_type IN ('intake', 'active', 'review') THEN true ELSE false END",
+          },
+          overdue_flag: {
+            label: 'Overdue',
+            type: 'boolean',
+            column:
+              "CASE WHEN c.due_date < CURRENT_DATE AND cs.status_type NOT IN ('closed', 'cancelled') THEN true ELSE false END",
+          },
+          unassigned_flag: {
+            label: 'Unassigned',
+            type: 'boolean',
+            column:
+              "CASE WHEN c.assigned_to IS NULL AND cs.status_type NOT IN ('closed', 'cancelled') THEN true ELSE false END",
+          },
           due_date: { label: 'Due Date', type: 'date', column: 'c.due_date' },
           opened_date: { label: 'Opened Date', type: 'date', column: 'c.opened_date' },
           closed_date: { label: 'Closed Date', type: 'date', column: 'c.closed_date' },
           created_at: { label: 'Created Date', type: 'date', column: 'c.created_at' },
+          age_days: {
+            label: 'Age (Days)',
+            type: 'number',
+            column:
+              'GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (COALESCE(c.closed_date::timestamp, NOW()) - COALESCE(c.opened_date::timestamp, c.intake_date::timestamp, c.created_at))) / 86400))',
+          },
+          age_bucket: {
+            label: 'Age Bucket',
+            type: 'string',
+            column: `
+              CASE
+                WHEN EXTRACT(EPOCH FROM (COALESCE(c.closed_date::timestamp, NOW()) - COALESCE(c.opened_date::timestamp, c.intake_date::timestamp, c.created_at))) / 86400 < 7 THEN '0-6'
+                WHEN EXTRACT(EPOCH FROM (COALESCE(c.closed_date::timestamp, NOW()) - COALESCE(c.opened_date::timestamp, c.intake_date::timestamp, c.created_at))) / 86400 < 15 THEN '7-14'
+                WHEN EXTRACT(EPOCH FROM (COALESCE(c.closed_date::timestamp, NOW()) - COALESCE(c.opened_date::timestamp, c.intake_date::timestamp, c.created_at))) / 86400 < 31 THEN '15-30'
+                ELSE '31+'
+              END
+            `.trim().replace(/\s+/g, ' '),
+          },
           service_outcome: { label: 'Service/Event Outcome', type: 'string', column: 'svc.outcome' },
         };
       case 'accounts':
@@ -119,6 +169,55 @@ export class ReportService {
           related_to_type: { label: 'Related To', type: 'string', column: 't.related_to_type' },
           created_at: { label: 'Created Date', type: 'date', column: 't.created_at' },
         };
+      case 'opportunities':
+        return {
+          id: { label: 'Opportunity ID', type: 'string', column: 'o.id' },
+          name: { label: 'Opportunity Name', type: 'string', column: 'o.name' },
+          description: { label: 'Description', type: 'string', column: 'o.description' },
+          status: { label: 'Status', type: 'string', column: 'o.status' },
+          amount: { label: 'Amount', type: 'currency', column: 'o.amount' },
+          currency: { label: 'Currency', type: 'string', column: 'o.currency' },
+          stage_name: { label: 'Stage', type: 'string', column: 'st.name' },
+          stage_order: { label: 'Stage Order', type: 'number', column: 'st.stage_order' },
+          probability: { label: 'Probability', type: 'number', column: 'COALESCE(st.probability, 0)' },
+          weighted_amount: {
+            label: 'Weighted Amount',
+            type: 'currency',
+            column: '(COALESCE(o.amount, 0) * COALESCE(st.probability, 0)) / 100.0',
+          },
+          won_flag: { label: 'Won', type: 'boolean', column: "CASE WHEN o.status = 'won' THEN true ELSE false END" },
+          lost_flag: { label: 'Lost', type: 'boolean', column: "CASE WHEN o.status = 'lost' THEN true ELSE false END" },
+          closed_flag: {
+            label: 'Closed',
+            type: 'boolean',
+            column: "CASE WHEN o.status IN ('won', 'lost') OR COALESCE(st.is_closed, false) THEN true ELSE false END",
+          },
+          open_flag: {
+            label: 'Open',
+            type: 'boolean',
+            column: "CASE WHEN o.status = 'open' THEN true ELSE false END",
+          },
+          days_open: {
+            label: 'Days Open',
+            type: 'number',
+            column:
+              'GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (COALESCE(o.actual_close_date::timestamp, NOW()) - o.created_at)) / 86400))',
+          },
+          assigned_to_name: {
+            label: 'Assigned To',
+            type: 'string',
+            column: "TRIM(CONCAT(COALESCE(assignee.first_name, ''), ' ', COALESCE(assignee.last_name, '')))",
+          },
+          account_name: { label: 'Account', type: 'string', column: 'acc.account_name' },
+          contact_name: {
+            label: 'Contact',
+            type: 'string',
+            column: "TRIM(CONCAT(COALESCE(con.first_name, ''), ' ', COALESCE(con.last_name, '')))",
+          },
+          expected_close_date: { label: 'Expected Close Date', type: 'date', column: 'o.expected_close_date' },
+          actual_close_date: { label: 'Actual Close Date', type: 'date', column: 'o.actual_close_date' },
+          created_at: { label: 'Created Date', type: 'date', column: 'o.created_at' },
+        };
       case 'expenses':
         return {
           id: { label: 'Expense ID', type: 'string', column: 'ex.id' },
@@ -162,15 +261,16 @@ export class ReportService {
    */
   private buildWhereClause(
     filters: ReportFilter[],
-    fieldSpecs: Record<string, { column: string }>
-  ): { clause: string; values: unknown[] } {
+    fieldSpecs: Record<string, { column: string }>,
+    paramOffset = 0
+  ): { conditions: string[]; values: unknown[] } {
     if (!filters || filters.length === 0) {
-      return { clause: '', values: [] };
+      return { conditions: [], values: [] };
     }
 
     const conditions: string[] = [];
     const values: unknown[] = [];
-    let paramIndex = 1;
+    let paramIndex = paramOffset + 1;
 
     for (const filter of filters) {
       const fieldSpec = fieldSpecs[filter.field];
@@ -262,10 +362,34 @@ export class ReportService {
       }
     }
 
-    return {
-      clause: conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '',
-      values,
-    };
+    return { conditions, values };
+  }
+
+  private getScopeClause(
+    entity: ReportEntity,
+    scope: ReportGenerationScope | undefined
+  ): { condition: string | null; values: unknown[] } {
+    if (entity === 'opportunities') {
+      if (!scope?.organizationId) {
+        throw new Error('Organization scope is required for opportunities reports');
+      }
+      return {
+        condition: 'o.organization_id = $1',
+        values: [scope.organizationId],
+      };
+    }
+
+    if (entity === 'cases') {
+      if (!scope?.organizationId) {
+        throw new Error('Organization scope is required for cases reports');
+      }
+      return {
+        condition: 'COALESCE(c.account_id, con.account_id) = $1',
+        values: [scope.organizationId],
+      };
+    }
+
+    return { condition: null, values: [] };
   }
 
   /**
@@ -294,13 +418,16 @@ export class ReportService {
    */
   private getTableName(entity: ReportEntity): string {
     const tableMap: Record<ReportEntity, string> = {
-      cases: 'cases c LEFT JOIN case_statuses cs ON c.status_id = cs.id LEFT JOIN case_types ct ON c.case_type_id = ct.id LEFT JOIN LATERAL (SELECT s.outcome FROM case_services s WHERE s.case_id = c.id ORDER BY s.service_date DESC NULLS LAST, s.created_at DESC LIMIT 1) svc ON true',
+      cases:
+        'cases c LEFT JOIN contacts con ON c.contact_id = con.id LEFT JOIN accounts acc ON acc.id = COALESCE(c.account_id, con.account_id) LEFT JOIN users assignee ON assignee.id = c.assigned_to LEFT JOIN case_statuses cs ON c.status_id = cs.id LEFT JOIN case_types ct ON c.case_type_id = ct.id LEFT JOIN LATERAL (SELECT s.outcome FROM case_services s WHERE s.case_id = c.id ORDER BY s.service_date DESC NULLS LAST, s.created_at DESC LIMIT 1) svc ON true',
       accounts: 'accounts a',
       contacts: 'contacts c LEFT JOIN accounts a ON c.account_id = a.id',
       donations: 'donations d',
       events: 'events e',
       volunteers: 'volunteers v INNER JOIN contacts c ON v.contact_id = c.id',
       tasks: 'tasks t',
+      opportunities:
+        "opportunities o INNER JOIN opportunity_stages st ON st.id = o.stage_id LEFT JOIN accounts acc ON acc.id = o.account_id LEFT JOIN contacts con ON con.id = o.contact_id LEFT JOIN users assignee ON assignee.id = o.assigned_to",
       expenses: 'expenses ex',
       grants: 'grants g',
       programs: 'programs p',
@@ -312,7 +439,10 @@ export class ReportService {
   /**
    * Generate a custom report based on definition
    */
-  async generateReport(definition: ReportDefinition): Promise<ReportResult> {
+  async generateReport(
+    definition: ReportDefinition,
+    scope?: ReportGenerationScope
+  ): Promise<ReportResult> {
     try {
       const tableName = this.getTableName(definition.entity);
       const fieldSpecs = this.getFieldSpecs(definition.entity);
@@ -356,12 +486,19 @@ export class ReportService {
       }
 
       const selectFields = selectParts.join(', ');
+      const scoped = this.getScopeClause(definition.entity, scope);
 
       // Build WHERE clause
-      const { clause: whereClause, values } = this.buildWhereClause(
+      const { conditions: filterConditions, values: filterValues } = this.buildWhereClause(
         definition.filters || [],
-        fieldSpecs
+        fieldSpecs,
+        scoped.values.length
       );
+      const whereConditions = [...(scoped.condition ? [scoped.condition] : []), ...filterConditions];
+      const whereClause = whereConditions.length > 0
+        ? `WHERE ${whereConditions.join(' AND ')}`
+        : '';
+      const values = [...scoped.values, ...filterValues];
 
       // Build GROUP BY clause
       const groupByClause = definition.groupBy && definition.groupBy.length > 0
@@ -412,7 +549,11 @@ export class ReportService {
       };
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message.includes('Invalid') || error.message.includes('At least one field')) {
+        if (
+          error.message.includes('Invalid') ||
+          error.message.includes('At least one field') ||
+          error.message.includes('Organization scope')
+        ) {
           throw error;
         }
       }

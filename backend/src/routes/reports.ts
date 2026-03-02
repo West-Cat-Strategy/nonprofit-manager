@@ -4,24 +4,14 @@ import * as reportController from '@controllers/reportController';
 import * as outcomeReportController from '@controllers/outcomeReportController';
 import * as templateController from '@controllers/reportTemplateController';
 import { authenticate } from '@middleware/auth';
+import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import { outcomesReportQuerySchema } from '@validations/outcomeImpact';
+import { REPORT_ENTITIES } from '@app-types/report';
 
 const router = Router();
 
-const validEntities = [
-  'accounts',
-  'contacts',
-  'donations',
-  'events',
-  'volunteers',
-  'tasks',
-  'expenses',
-  'grants',
-  'programs',
-] as const;
-
-const entitySchema = z.enum(validEntities);
+const entitySchema = z.enum(REPORT_ENTITIES);
 
 const reportGenerateSchema = z.object({
   name: z.string().min(1, 'Report name is required'),
@@ -52,6 +42,7 @@ const reportTemplateCreateSchema = z.object({
 
 // All routes require authentication
 router.use(authenticate);
+router.use(requireActiveOrganizationContext);
 
 /**
  * POST /api/reports/generate
