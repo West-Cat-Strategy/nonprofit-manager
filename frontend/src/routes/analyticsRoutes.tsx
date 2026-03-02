@@ -10,6 +10,7 @@ import {
   CustomDashboard,
   OutcomesReport,
   ReportBuilder,
+  ReportTemplates,
   ScheduledReports,
   SavedReports,
 } from './analyticsRouteComponents';
@@ -34,6 +35,10 @@ export function createAnalyticsRoutes(ProtectedRoute: React.ComponentType<RouteW
       <Route
         path="/reports/builder"
         element={<ProtectedRoute><ReportBuilder /></ProtectedRoute>}
+      />
+      <Route
+        path="/reports/templates"
+        element={<ProtectedRoute><ReportTemplates /></ProtectedRoute>}
       />
       <Route
         path="/reports/saved"

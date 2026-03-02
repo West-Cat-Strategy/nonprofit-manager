@@ -18,6 +18,19 @@ const mockApi = api as { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof 
 // Wrapper component
 describe('FieldSelector', () => {
   const mockOnChange = vi.fn();
+  const baseAvailableFields = {
+    accounts: null,
+    contacts: null,
+    donations: null,
+    events: null,
+    volunteers: null,
+    tasks: null,
+    cases: null,
+    opportunities: null,
+    expenses: null,
+    grants: null,
+    programs: null,
+  };
   const mockFields = [
     { field: 'id', label: 'ID', type: 'string' },
     { field: 'name', label: 'Name', type: 'string' },
@@ -41,7 +54,7 @@ const renderFieldSelector = (component: React.ReactElement, initialState = {}) =
     const initialState = {
       reports: {
         currentReport: null,
-        availableFields: { contacts: null, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        availableFields: { ...baseAvailableFields, contacts: null },
         loading: false,
         fieldsLoading: true,
         error: null,
@@ -62,7 +75,7 @@ const renderFieldSelector = (component: React.ReactElement, initialState = {}) =
     const initialState = {
       reports: {
         currentReport: null,
-        availableFields: { contacts: mockFields, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        availableFields: { ...baseAvailableFields, contacts: mockFields },
         loading: false,
         fieldsLoading: false,
         error: null,
@@ -86,7 +99,7 @@ const renderFieldSelector = (component: React.ReactElement, initialState = {}) =
     const initialState = {
       reports: {
         currentReport: null,
-        availableFields: { contacts: mockFields, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        availableFields: { ...baseAvailableFields, contacts: mockFields },
         loading: false,
         fieldsLoading: false,
         error: null,
@@ -107,7 +120,7 @@ const renderFieldSelector = (component: React.ReactElement, initialState = {}) =
     const initialState = {
       reports: {
         currentReport: null,
-        availableFields: { contacts: mockFields, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        availableFields: { ...baseAvailableFields, contacts: mockFields },
         loading: false,
         fieldsLoading: false,
         error: null,
@@ -129,7 +142,7 @@ const renderFieldSelector = (component: React.ReactElement, initialState = {}) =
     const initialState = {
       reports: {
         currentReport: null,
-        availableFields: { contacts: mockFields, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        availableFields: { ...baseAvailableFields, contacts: mockFields },
         loading: false,
         fieldsLoading: false,
         error: null,
@@ -151,7 +164,7 @@ const renderFieldSelector = (component: React.ReactElement, initialState = {}) =
     const initialState = {
       reports: {
         currentReport: null,
-        availableFields: { contacts: mockFields, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        availableFields: { ...baseAvailableFields, contacts: mockFields },
         loading: false,
         fieldsLoading: false,
         error: null,
@@ -173,7 +186,7 @@ const renderFieldSelector = (component: React.ReactElement, initialState = {}) =
     const initialState = {
       reports: {
         currentReport: null,
-        availableFields: { contacts: mockFields, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        availableFields: { ...baseAvailableFields, contacts: mockFields },
         loading: false,
         fieldsLoading: false,
         error: null,
@@ -196,7 +209,7 @@ const renderFieldSelector = (component: React.ReactElement, initialState = {}) =
     const initialState = {
       reports: {
         currentReport: null,
-        availableFields: { contacts: null, accounts: null, donations: null, events: null, volunteers: null, tasks: null },
+        availableFields: { ...baseAvailableFields, contacts: null },
         loading: false,
         fieldsLoading: false,
         error: null,

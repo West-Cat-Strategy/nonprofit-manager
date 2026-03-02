@@ -78,6 +78,16 @@ describe('ReportService', () => {
       expect(result.fields).toBeInstanceOf(Array);
       expect(result.fields.length).toBeGreaterThan(0);
     });
+
+    it('should return available fields for opportunities entity', async () => {
+      const result = await reportService.getAvailableFields('opportunities');
+
+      expect(result.entity).toBe('opportunities');
+      expect(result.fields).toBeInstanceOf(Array);
+      expect(result.fields.map((field) => field.field)).toEqual(
+        expect.arrayContaining(['stage_name', 'probability', 'weighted_amount', 'won_flag', 'open_flag'])
+      );
+    });
   });
 
   describe('generateReport', () => {
@@ -336,6 +346,63 @@ describe('ReportService', () => {
       expect(result.data).toBeInstanceOf(Array);
       // Multi-field sorting is applied
       expect(result.definition.sort).toHaveLength(2);
+    });
+
+    it('should enforce organization scope for opportunities reports', async () => {
+      const definition: ReportDefinition = {
+        name: 'Opportunity Scope Report',
+        entity: 'opportunities' as ReportEntity,
+        fields: ['name', 'stage_name', 'weighted_amount'],
+      };
+
+      await expect(reportService.generateReport(definition)).rejects.toThrow(
+        'Organization scope is required for opportunities reports'
+      );
+    });
+
+    it('should apply organization scope for opportunities reports', async () => {
+      const definition: ReportDefinition = {
+        name: 'Opportunity Scope Report',
+        entity: 'opportunities' as ReportEntity,
+        fields: ['name', 'stage_name', 'weighted_amount'],
+      };
+
+      await reportService.generateReport(definition, { organizationId: 'org-123' });
+
+      expect(query).toHaveBeenCalled();
+      const [sql, values] = query.mock.calls[0] as [string, unknown[]];
+      expect(sql).toContain('o.organization_id = $1');
+      expect(sql).toContain('AS weighted_amount');
+      expect(values).toEqual(['org-123']);
+    });
+
+    it('should enforce organization scope for case reports', async () => {
+      const definition: ReportDefinition = {
+        name: 'Case Scope Report',
+        entity: 'cases' as ReportEntity,
+        fields: ['title', 'age_days'],
+      };
+
+      await expect(reportService.generateReport(definition)).rejects.toThrow(
+        'Organization scope is required for cases reports'
+      );
+    });
+
+    it('should apply organization scope for case reports', async () => {
+      const definition: ReportDefinition = {
+        name: 'Case Scope Report',
+        entity: 'cases' as ReportEntity,
+        fields: ['title', 'age_days', 'age_bucket'],
+      };
+
+      await reportService.generateReport(definition, { organizationId: 'org-456' });
+
+      expect(query).toHaveBeenCalled();
+      const [sql, values] = query.mock.calls[0] as [string, unknown[]];
+      expect(sql).toContain('COALESCE(c.account_id, con.account_id) = $1');
+      expect(sql).toContain('AS age_days');
+      expect(sql).toContain('AS age_bucket');
+      expect(values).toEqual(['org-456']);
     });
   });
 });

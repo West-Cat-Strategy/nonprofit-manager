@@ -9,7 +9,23 @@ import { renderWithProviders } from '../../../test/testUtils';
 
 const dispatchMock = vi.fn(() => Promise.resolve());
 const mockState = {
-  reports: { currentReport: null, loading: false, availableFields: [] },
+  reports: {
+    currentReport: null,
+    loading: false,
+    availableFields: {
+      accounts: [],
+      contacts: [],
+      donations: [],
+      events: [],
+      volunteers: [],
+      tasks: [],
+      cases: [],
+      opportunities: [],
+      expenses: [],
+      grants: [],
+      programs: [],
+    },
+  },
   savedReports: { currentSavedReport: null },
 };
 
@@ -54,6 +70,12 @@ describe('ReportBuilder page', () => {
   it('renders report builder title', () => {
     renderWithProviders(<ReportBuilder />);
     expect(screen.getByRole('heading', { name: /report builder/i })).toBeInTheDocument();
+  });
+
+  it('shows opportunities entity and templates shortcut', () => {
+    renderWithProviders(<ReportBuilder />);
+    expect(screen.getByRole('button', { name: /opportunities/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /kpi templates/i })).toBeInTheDocument();
   });
 
   it('requires fields before generating report', async () => {

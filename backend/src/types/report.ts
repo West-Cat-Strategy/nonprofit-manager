@@ -3,17 +3,21 @@
  * Type definitions for custom report generation
  */
 
-export type ReportEntity =
-  | 'cases'
-  | 'accounts'
-  | 'contacts'
-  | 'donations'
-  | 'events'
-  | 'volunteers'
-  | 'tasks'
-  | 'expenses'
-  | 'grants'
-  | 'programs';
+export const REPORT_ENTITIES = [
+  'accounts',
+  'contacts',
+  'donations',
+  'events',
+  'volunteers',
+  'tasks',
+  'cases',
+  'opportunities',
+  'expenses',
+  'grants',
+  'programs',
+] as const;
+
+export type ReportEntity = (typeof REPORT_ENTITIES)[number];
 
 export type ReportFormat = 'json' | 'csv' | 'pdf' | 'xlsx';
 
@@ -64,22 +68,6 @@ export interface ReportResult {
 
 // Available fields for each entity type
 export const AVAILABLE_FIELDS: Record<ReportEntity, ReportField[]> = {
-  cases: [
-    { field: 'id', label: 'Case ID', type: 'string' },
-    { field: 'case_number', label: 'Case Number', type: 'string' },
-    { field: 'title', label: 'Title', type: 'string' },
-    { field: 'priority', label: 'Priority', type: 'string' },
-    { field: 'outcome', label: 'Outcome', type: 'string' },
-    { field: 'status_name', label: 'Status', type: 'string' },
-    { field: 'status_type', label: 'Status Type', type: 'string' },
-    { field: 'case_type_name', label: 'Case Type', type: 'string' },
-    { field: 'is_urgent', label: 'Urgent', type: 'boolean' },
-    { field: 'due_date', label: 'Due Date', type: 'date' },
-    { field: 'opened_date', label: 'Opened Date', type: 'date' },
-    { field: 'closed_date', label: 'Closed Date', type: 'date' },
-    { field: 'created_at', label: 'Created Date', type: 'date' },
-    { field: 'service_outcome', label: 'Service/Event Outcome', type: 'string' },
-  ],
   accounts: [
     { field: 'id', label: 'Account ID', type: 'string' },
     { field: 'account_name', label: 'Account Name', type: 'string' },
@@ -151,6 +139,52 @@ export const AVAILABLE_FIELDS: Record<ReportEntity, ReportField[]> = {
     { field: 'related_to_type', label: 'Related To', type: 'string' },
     { field: 'created_at', label: 'Created Date', type: 'date' },
   ],
+  cases: [
+    { field: 'id', label: 'Case ID', type: 'string' },
+    { field: 'case_number', label: 'Case Number', type: 'string' },
+    { field: 'title', label: 'Title', type: 'string' },
+    { field: 'priority', label: 'Priority', type: 'string' },
+    { field: 'outcome', label: 'Outcome', type: 'string' },
+    { field: 'status_name', label: 'Status', type: 'string' },
+    { field: 'status_type', label: 'Status Type', type: 'string' },
+    { field: 'case_type_name', label: 'Case Type', type: 'string' },
+    { field: 'assigned_to_name', label: 'Assigned To', type: 'string' },
+    { field: 'account_name', label: 'Account', type: 'string' },
+    { field: 'contact_name', label: 'Contact', type: 'string' },
+    { field: 'is_urgent', label: 'Urgent', type: 'boolean' },
+    { field: 'open_flag', label: 'Open', type: 'boolean' },
+    { field: 'overdue_flag', label: 'Overdue', type: 'boolean' },
+    { field: 'unassigned_flag', label: 'Unassigned', type: 'boolean' },
+    { field: 'due_date', label: 'Due Date', type: 'date' },
+    { field: 'opened_date', label: 'Opened Date', type: 'date' },
+    { field: 'closed_date', label: 'Closed Date', type: 'date' },
+    { field: 'created_at', label: 'Created Date', type: 'date' },
+    { field: 'age_days', label: 'Age (Days)', type: 'number' },
+    { field: 'age_bucket', label: 'Age Bucket', type: 'string' },
+    { field: 'service_outcome', label: 'Service/Event Outcome', type: 'string' },
+  ],
+  opportunities: [
+    { field: 'id', label: 'Opportunity ID', type: 'string' },
+    { field: 'name', label: 'Opportunity Name', type: 'string' },
+    { field: 'status', label: 'Status', type: 'string' },
+    { field: 'amount', label: 'Amount', type: 'currency' },
+    { field: 'currency', label: 'Currency', type: 'string' },
+    { field: 'stage_name', label: 'Stage', type: 'string' },
+    { field: 'stage_order', label: 'Stage Order', type: 'number' },
+    { field: 'probability', label: 'Probability', type: 'number' },
+    { field: 'weighted_amount', label: 'Weighted Amount', type: 'currency' },
+    { field: 'won_flag', label: 'Won', type: 'boolean' },
+    { field: 'lost_flag', label: 'Lost', type: 'boolean' },
+    { field: 'closed_flag', label: 'Closed', type: 'boolean' },
+    { field: 'open_flag', label: 'Open', type: 'boolean' },
+    { field: 'days_open', label: 'Days Open', type: 'number' },
+    { field: 'assigned_to_name', label: 'Assigned To', type: 'string' },
+    { field: 'account_name', label: 'Account', type: 'string' },
+    { field: 'contact_name', label: 'Contact', type: 'string' },
+    { field: 'expected_close_date', label: 'Expected Close Date', type: 'date' },
+    { field: 'actual_close_date', label: 'Actual Close Date', type: 'date' },
+    { field: 'created_at', label: 'Created Date', type: 'date' },
+  ],
   expenses: [
     { field: 'id', label: 'Expense ID', type: 'string' },
     { field: 'amount', label: 'Amount', type: 'currency' },
@@ -184,6 +218,7 @@ export const AVAILABLE_FIELDS: Record<ReportEntity, ReportField[]> = {
 };
 
 export default {
+  REPORT_ENTITIES,
   ReportEntity: {} as ReportEntity,
   ReportFormat: {} as ReportFormat,
   ReportField: {} as ReportField,

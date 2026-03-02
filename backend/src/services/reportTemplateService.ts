@@ -341,6 +341,67 @@ export class ReportTemplateService {
                     sort: [{ field: 'start_date', direction: 'desc' }],
                 },
             },
+            {
+                name: 'Case Workload Core KPI',
+                description: 'Case workload split by assignee, status, and aging bucket',
+                category: 'operations',
+                tags: ['cases', 'kpi', 'workload'],
+                entity: 'cases',
+                template_definition: {
+                    name: 'Case Workload Core KPI',
+                    entity: 'cases',
+                    fields: ['assigned_to_name', 'status_name', 'age_bucket', 'open_flag', 'overdue_flag', 'unassigned_flag'],
+                    groupBy: ['assigned_to_name', 'status_name', 'age_bucket', 'open_flag', 'overdue_flag', 'unassigned_flag'],
+                    aggregations: [
+                        { field: 'id', function: 'count', alias: 'case_count' },
+                    ],
+                    sort: [{ field: 'assigned_to_name', direction: 'asc' }],
+                },
+            },
+            {
+                name: 'Opportunity Pipeline Core KPI',
+                description: 'Pipeline volume and weighted value by stage',
+                category: 'fundraising',
+                tags: ['opportunities', 'pipeline', 'kpi'],
+                entity: 'opportunities',
+                template_definition: {
+                    name: 'Opportunity Pipeline Core KPI',
+                    entity: 'opportunities',
+                    fields: ['stage_name', 'stage_order'],
+                    groupBy: ['stage_name', 'stage_order'],
+                    aggregations: [
+                        { field: 'id', function: 'count', alias: 'opportunity_count' },
+                        { field: 'amount', function: 'sum', alias: 'pipeline_amount' },
+                        { field: 'weighted_amount', function: 'sum', alias: 'pipeline_weighted_amount' },
+                    ],
+                    sort: [{ field: 'stage_order', direction: 'asc' }],
+                },
+            },
+            {
+                name: 'Opportunity Closed Win-Rate KPI',
+                description: 'Closed pipeline split for win-rate tracking',
+                category: 'fundraising',
+                tags: ['opportunities', 'win-rate', 'kpi'],
+                entity: 'opportunities',
+                template_definition: {
+                    name: 'Opportunity Closed Win-Rate KPI',
+                    entity: 'opportunities',
+                    fields: ['status', 'won_flag', 'lost_flag', 'closed_flag'],
+                    groupBy: ['status', 'won_flag', 'lost_flag', 'closed_flag'],
+                    aggregations: [
+                        { field: 'id', function: 'count', alias: 'closed_count' },
+                        { field: 'amount', function: 'sum', alias: 'closed_amount' },
+                    ],
+                    filters: [
+                        {
+                            field: 'closed_flag',
+                            operator: 'eq',
+                            value: true,
+                        },
+                    ],
+                    sort: [{ field: 'status', direction: 'asc' }],
+                },
+            },
         ];
     }
 }

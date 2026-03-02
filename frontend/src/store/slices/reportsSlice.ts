@@ -23,13 +23,14 @@ export interface ReportsState {
 const initialState: ReportsState = {
   currentReport: null,
   availableFields: {
-    cases: null,
     accounts: null,
     contacts: null,
     donations: null,
     events: null,
     volunteers: null,
     tasks: null,
+    cases: null,
+    opportunities: null,
     expenses: null,
     grants: null,
     programs: null,
