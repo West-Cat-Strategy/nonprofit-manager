@@ -1,7 +1,7 @@
 # 📊 Nonprofit Manager - Planning & Progress
 
 **Current Phase:** 🚀 Phase 4 - Modularity Refactor (In Progress, with active Phase 3 overlap)  
-**Last Updated:** March 2, 2026 (P4-T3 governance reconciliation completed; stale active/review tasks blocked)  
+**Last Updated:** March 2, 2026 (P4-T4 moved to Review; P4-T4F remains in progress)  
 **Lead Developer:** Bryan Crockett (@bcroc), Example Organization
 
 ---
@@ -89,6 +89,13 @@ All active work must be **signed out** in the Workboard below before code change
 | P4-T2D | Reference adoption wave: docs/artifacts hardening + final matrix verification | Phase 4 | Done | Codex | Mar 2, 2026 | Mar 2, 2026 | main@cffab72 |
 | P4-T3A | Workboard governance reconciliation (post-P4-T2) | Phase 4 | Review | Codex | Mar 2, 2026 | Mar 2, 2026 | main |
 | P4-T3B | Repository hygiene follow-up for generated upload artifacts (`backend/uploads/**`) | Phase 4 | Ready | — | — | TBD | — |
+| P4-T4 | Team chat module (case-scoped, polling v1) | Phase 4 | Review | Codex | Mar 2, 2026 | Mar 2, 2026 | codex/p4-t4-team-chat |
+| P4-T4F | CRM + cases reporting expansion (parallel subtask of P4-T4; reporting-only enhancement stream; team-chat delivery unaffected.) | Phase 4 | In Progress | Codex | Mar 2, 2026 | TBD | codex/p4-t4f-crm-cases-reporting (parent: P4-T4) |
+| P4-T4A | Team chat architecture package + reference adoption docs/matrix | Phase 4 | Review | Codex | Mar 2, 2026 | Mar 2, 2026 | codex/p4-t4-team-chat |
+| P4-T4B | Team chat schema migration + permissions grants | Phase 4 | Review | Codex | Mar 2, 2026 | Mar 2, 2026 | codex/p4-t4-team-chat |
+| P4-T4C | Team chat backend v2 module + integration tests | Phase 4 | Review | Codex | Mar 2, 2026 | Mar 2, 2026 | codex/p4-t4-team-chat |
+| P4-T4D | Team chat frontend inbox/case panel + polling + tests | Phase 4 | Review | Codex | Mar 2, 2026 | Mar 2, 2026 | codex/p4-t4-team-chat |
+| P4-T4E | Team chat rollout docs + verification matrix | Phase 4 | Review | Codex | Mar 2, 2026 | Mar 2, 2026 | codex/p4-t4-team-chat |
 
 ### **Zod Migration Tracker**
 
@@ -2550,6 +2557,8 @@ Frontend Component Tests:
 
 | Date | Task ID | Owner | Status Change | Notes |
 |------|---------|-------|---------------|-------|
+| Mar 2, 2026 | P4-T4 | Codex | In Progress → Review | Completed case-scoped polling v1 team-chat slice (`P4-T4A..E`): dedicated schema migration (`056_team_chat_case_threads.sql`), backend `/api/v2/team-chat` module/routes/validation/permissions, frontend inbox + case tab + polling hooks, and architecture/adoption docs. Verification passed for `make lint`, `make typecheck`, backend unit/integration tests, and frontend tests; `make db-verify` requires local PostgreSQL credentials (`DB_NAME=nonprofit_manager_test`, `postgres` auth) and was not executable in current environment. |
+| Mar 2, 2026 | P4-T4 | Codex | Ready → In Progress | Signed out team-chat execution stream on `codex/p4-t4-team-chat`; scope includes architecture package, dedicated case chat schema/module, frontend inbox+case panel, and polling-based delivery (WebSocket/SSE deferred). |
 | Mar 2, 2026 | P4-T3A | Codex | In Progress → Review | Governance reconciliation completed on `main`. Converted stale active/review tasks to `Blocked`, preserved branch refs for traceability, and added follow-up task `P4-T3B`. |
 | Mar 2, 2026 | P4-T1/P4-T1A/P4-T1B/P4-T1C/P4-T1C-A/P4-T1C-B | Codex | In Progress → Blocked | What: stale modularity stream rows remained active without current branch evidence. Why: no valid local/remote `codex/modularity-refactor-v2` branch and no explicit merge artifact tied to each row. Next step: locate authoritative merge artifact per task or create a recovery branch and re-run scoped verification before returning to `Review`. |
 | Mar 2, 2026 | P3-T2A/P3-T2B/P3-T2C/P3-T2D/P3-T2E | Codex | Review → Blocked | What: review-state client portal expansion rows had stale branch references. Why: no valid local/remote `codex/client-portal-expansion` branch and ambiguous merge traceability at task-row granularity. Next step: locate authoritative merge artifact per subtask or create a recovery branch and re-run scoped verification before returning to `Review`. |
@@ -2744,7 +2753,7 @@ Frontend Component Tests:
 - 📝 Complex grant management workflows
 - 🤖 Full marketing automation suite
 - 📞 Call center / telephony integration
-- 💬 Live chat support
+- 💬 Push-based live chat transport (WebSocket/SSE) in MVP; polling-based team chat is in scope
 - 🌍 Multi-language support (English only for MVP)
 
 ### 🎯 Quality Goals

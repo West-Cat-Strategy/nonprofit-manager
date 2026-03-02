@@ -5,7 +5,7 @@
 
 import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
-import { EventList, EventDetail, EventCreate, EventEdit, EventCalendarPage, TaskList, TaskDetail, TaskCreate, TaskEdit, CaseList, CaseDetail, CaseCreate, CaseEdit, ExternalServiceProviders, FollowUpsPage, OpportunitiesPage } from './engagementRouteComponents';
+import { EventList, EventDetail, EventCreate, EventEdit, EventCalendarPage, TaskList, TaskDetail, TaskCreate, TaskEdit, CaseList, CaseDetail, CaseCreate, CaseEdit, ExternalServiceProviders, FollowUpsPage, OpportunitiesPage, TeamChatInboxPage } from './engagementRouteComponents';
 
 // Lazy load event pages
 
@@ -20,6 +20,8 @@ interface RouteWrapperProps {
 export function createEngagementRoutes(
   NeoBrutalistRoute: React.ComponentType<RouteWrapperProps>
 ) {
+  const teamChatEnabled = import.meta.env.VITE_TEAM_CHAT_ENABLED !== 'false';
+
   return (
     <>
       {/* Event Routes */}
@@ -91,6 +93,12 @@ export function createEngagementRoutes(
         path="/opportunities"
         element={<NeoBrutalistRoute><OpportunitiesPage /></NeoBrutalistRoute>}
       />
+      {teamChatEnabled && (
+        <Route
+          path="/team-chat"
+          element={<NeoBrutalistRoute><TeamChatInboxPage /></NeoBrutalistRoute>}
+        />
+      )}
     </>
   );
 }
