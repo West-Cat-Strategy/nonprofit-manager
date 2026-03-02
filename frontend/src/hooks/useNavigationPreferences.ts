@@ -24,6 +24,7 @@ export interface NavigationPreferences {
 
 const STORAGE_KEY = 'navigation_preferences';
 const PREFERENCE_KEY = 'navigation';
+const teamChatEnabled = import.meta.env.VITE_TEAM_CHAT_ENABLED !== 'false';
 
 // Default navigation items with their default state
 const defaultNavigationItems: NavigationItem[] = [
@@ -38,6 +39,9 @@ const defaultNavigationItems: NavigationItem[] = [
   { id: 'tasks', name: 'Tasks', path: '/tasks', icon: '✓', enabled: true, isCore: false },
   { id: 'follow-ups', name: 'Follow-ups', path: '/follow-ups', icon: '🔔', enabled: true, isCore: false },
   { id: 'opportunities', name: 'Opportunities', path: '/opportunities', icon: '📈', enabled: true, isCore: false },
+  ...(teamChatEnabled
+    ? [{ id: 'team-chat', name: 'Team Chat', path: '/team-chat', icon: '💬', enabled: true, isCore: false }]
+    : []),
   { id: 'scheduled-reports', name: 'Scheduled Reports', path: '/reports/scheduled', icon: '🗓️', enabled: true, isCore: false },
 ];
 

@@ -16,3 +16,4 @@ export const CaseEdit = lazy(() => import('../features/cases/pages/CaseEditPage'
 export const ExternalServiceProviders = lazy(() => import('../pages/engagement/cases/ExternalServiceProviders'));
 export const FollowUpsPage = lazy(() => import('../pages/engagement/followUps/FollowUpsPage'));
 export const OpportunitiesPage = lazy(() => import('../pages/engagement/opportunities/OpportunitiesPage'));
+export const TeamChatInboxPage = lazy(() => import('../features/teamChat/pages/TeamChatInboxPage'));
