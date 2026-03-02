@@ -87,9 +87,10 @@ export const createCaseCatalogController = (
     }
   };
 
-  const getCaseSummary = async (_req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const getCaseSummary = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const summary = await useCase.summary();
+      const organizationId = req.organizationId || req.accountId || req.tenantId;
+      const summary = await useCase.summary(organizationId);
       sendData(res, mode, summary);
     } catch (error) {
       next(error);

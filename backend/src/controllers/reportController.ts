@@ -6,10 +6,35 @@
 import { Response, NextFunction } from 'express';
 import { services } from '../container/services';
 import { AuthRequest } from '@middleware/auth';
-import type { ReportDefinition, ReportEntity } from '@app-types/report';
-import { badRequest } from '@utils/responseHelpers';
+import { REPORT_ENTITIES, type ReportDefinition, type ReportEntity } from '@app-types/report';
+import { badRequest, unauthorized } from '@utils/responseHelpers';
+import {
+  requirePermissionOrError,
+  sendForbidden,
+  sendUnauthorized,
+} from '@services/authGuardService';
+import { Permission } from '@utils/permissions';
 
 const reportService = services.report;
+const getOrgId = (req: AuthRequest): string | null =>
+  req.organizationId || req.accountId || req.tenantId || null;
+
+const ensurePermission = (
+  req: AuthRequest,
+  res: Response,
+  permission: Permission
+): boolean => {
+  const guard = requirePermissionOrError(req, permission);
+  if (!guard.success) {
+    if (guard.error?.toLowerCase().startsWith('unauthorized')) {
+      sendUnauthorized(res, guard.error);
+    } else {
+      sendForbidden(res, guard.error || 'Forbidden');
+    }
+    return false;
+  }
+  return true;
+};
 
 /**
  * POST /api/reports/generate
@@ -21,6 +46,8 @@ export const generateReport = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    if (!ensurePermission(req, res, Permission.REPORT_CREATE)) return;
+
     const definition: ReportDefinition = req.body;
 
     // Validate definition
@@ -34,7 +61,13 @@ export const generateReport = async (
       return;
     }
 
-    const result = await reportService.generateReport(definition);
+    const organizationId = getOrgId(req);
+    if (!organizationId) {
+      unauthorized(res, 'Organization context required');
+      return;
+    }
+
+    const result = await reportService.generateReport(definition, { organizationId });
     res.json(result);
   } catch (error) {
     next(error);
@@ -51,21 +84,11 @@ export const getAvailableFields = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    if (!ensurePermission(req, res, Permission.REPORT_VIEW)) return;
+
     const entity = req.params.entity as ReportEntity;
 
-    const validEntities = [
-      'cases',
-      'accounts',
-      'contacts',
-      'donations',
-      'events',
-      'volunteers',
-      'tasks',
-      'expenses',
-      'grants',
-      'programs',
-    ];
-    if (!validEntities.includes(entity)) {
+    if (!REPORT_ENTITIES.includes(entity)) {
       badRequest(res, 'Invalid entity type');
       return;
     }
@@ -87,6 +110,8 @@ export const exportReport = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    if (!ensurePermission(req, res, Permission.REPORT_EXPORT)) return;
+
     const { definition, format } = req.body;
 
     if (!definition || !format) {
@@ -99,7 +124,13 @@ export const exportReport = async (
       return;
     }
 
-    const result = await reportService.generateReport(definition);
+    const organizationId = getOrgId(req);
+    if (!organizationId) {
+      unauthorized(res, 'Organization context required');
+      return;
+    }
+
+    const result = await reportService.generateReport(definition, { organizationId });
     const buffer = await reportService.exportReport(result, format as 'csv' | 'xlsx');
 
     const fileName = `${definition.entity}_report_${new Date().toISOString().split('T')[0]}.${format}`;

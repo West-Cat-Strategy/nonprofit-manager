@@ -27,6 +27,13 @@ test.describe('Analytics Module', () => {
         await expect(authenticatedPage.locator('table, .list-group, [class*="empty"], [class*="no-data"], p').first()).toBeVisible({ timeout: 10000 });
     });
 
+    test('should navigate to report templates', async ({ authenticatedPage }) => {
+        await authenticatedPage.goto('/reports/templates');
+
+        await expect(authenticatedPage.getByRole('heading', { name: /report templates/i })).toBeVisible();
+        await expect(authenticatedPage.getByText(/filter by category/i)).toBeVisible();
+    });
+
     test('should navigate to custom dashboard', async ({ authenticatedPage }) => {
         await authenticatedPage.goto('/dashboard/custom');
 

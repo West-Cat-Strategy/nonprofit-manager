@@ -16,8 +16,8 @@ export class CaseCatalogUseCase {
     return this.repository.getCaseTimeline(caseId);
   }
 
-  summary(): Promise<unknown> {
-    return this.repository.getCaseSummary();
+  summary(organizationId?: string): Promise<unknown> {
+    return this.repository.getCaseSummary(organizationId);
   }
 
   types(): Promise<unknown[]> {

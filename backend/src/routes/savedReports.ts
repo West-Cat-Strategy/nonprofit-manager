@@ -16,10 +16,11 @@ import * as sharingController from '@controllers/reportSharingController';
 import { authenticate } from '@middleware/domains/auth';
 import { validateBody, validateParams } from '@middleware/zodValidation';
 import { uuidSchema } from '@validations/shared';
+import { REPORT_ENTITIES } from '@app-types/report';
 
 const router = Router();
 
-const reportEntitySchema = z.enum(['accounts', 'contacts', 'donations', 'events', 'volunteers', 'tasks']);
+const reportEntitySchema = z.enum(REPORT_ENTITIES);
 const reportIdParamsSchema = z.object({
   id: uuidSchema,
 });

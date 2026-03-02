@@ -297,6 +297,46 @@ describe('CaseService', () => {
       expect(result.average_case_duration_days).toBe(6); // rounded 5.5
       expect(mockQuery).toHaveBeenCalledTimes(2);
     });
+
+    it('applies organization scope when organizationId is provided', async () => {
+      const mockStats = {
+        rows: [{
+          total_cases: '1',
+          open_cases: '1',
+          closed_cases: '0',
+          priority_low: '0',
+          priority_medium: '1',
+          priority_high: '0',
+          priority_urgent: '0',
+          status_intake: '1',
+          status_active: '0',
+          status_review: '0',
+          status_closed: '0',
+          status_cancelled: '0',
+          due_this_week: '0',
+          overdue: '0',
+          unassigned: '1',
+          avg_duration: null,
+        }]
+      };
+      const mockTypeStats = { rows: [{ name: 'Housing', count: '1' }] };
+
+      mockQuery
+        .mockResolvedValueOnce(mockStats)
+        .mockResolvedValueOnce(mockTypeStats);
+
+      await service.getCaseSummary('org-42');
+
+      const summarySql = mockQuery.mock.calls[0][0] as string;
+      const summaryParams = mockQuery.mock.calls[0][1] as unknown[];
+      const typeSql = mockQuery.mock.calls[1][0] as string;
+      const typeParams = mockQuery.mock.calls[1][1] as unknown[];
+
+      expect(summarySql).toContain('COALESCE(c.account_id, con.account_id) = $1');
+      expect(typeSql).toContain('COALESCE(c.account_id, con.account_id) = $1');
+      expect(summaryParams).toEqual(['org-42']);
+      expect(typeParams).toEqual(['org-42']);
+    });
   });
 
   // ─── reassignCase ──────────────────────────────────────────────────────────
@@ -320,4 +360,3 @@ describe('CaseService', () => {
     });
   });
 });
-
