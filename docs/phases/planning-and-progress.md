@@ -1,7 +1,7 @@
 # 📊 Nonprofit Manager - Planning & Progress
 
 **Current Phase:** 🚀 Phase 4 - Modularity Refactor (In Progress, with active Phase 3 overlap)  
-**Last Updated:** March 2, 2026 (P4-T2 strict closure verification completed; merge pending)  
+**Last Updated:** March 2, 2026 (P4-T2 merged to main; tasks closed)  
 **Lead Developer:** Bryan Crockett (@bcroc), West Cat Strategy Ltd.
 
 ---
@@ -83,10 +83,10 @@ All active work must be **signed out** in the Workboard below before code change
 | P4-T1C-B | Cases + Contacts frontend feature cutover + legacy slice removal | Phase 4 | In Progress | Codex | Feb 21, 2026 | TBD | codex/modularity-refactor-v2 |
 | P4-T1D | Agent/docs guardrail drift remediation (links, validation coverage, ICS contract) | Phase 4 | Review | Codex | Mar 1, 2026 | Mar 1, 2026 | codex/all-open-work-items |
 | P4-T1E | Opportunity-map closure (contract + tenant + webhook reliability) | Phase 4 | Review | Codex | Mar 1, 2026 | Mar 1, 2026 | codex/p4-t1e-opportunity-closure |
-| P4-T2A | Reference adoption wave: follow-up lifecycle backend + frontend route integration | Phase 4 | Review | Codex | Mar 2, 2026 | Mar 2, 2026 | codex/p4-t2-reference-adoption |
-| P4-T2B | Reference adoption wave: scheduled reports backend scheduler + frontend scheduling UI | Phase 4 | Review | Codex | Mar 2, 2026 | Mar 2, 2026 | codex/p4-t2-reference-adoption |
-| P4-T2C | Reference adoption wave: opportunities pipeline module backend + frontend board/list | Phase 4 | Review | Codex | Mar 2, 2026 | Mar 2, 2026 | codex/p4-t2-reference-adoption |
-| P4-T2D | Reference adoption wave: docs/artifacts hardening + final matrix verification | Phase 4 | Review | Codex | Mar 2, 2026 | Mar 2, 2026 | codex/p4-t2-reference-adoption |
+| P4-T2A | Reference adoption wave: follow-up lifecycle backend + frontend route integration | Phase 4 | Done | Codex | Mar 2, 2026 | Mar 2, 2026 | main@cffab72 |
+| P4-T2B | Reference adoption wave: scheduled reports backend scheduler + frontend scheduling UI | Phase 4 | Done | Codex | Mar 2, 2026 | Mar 2, 2026 | main@cffab72 |
+| P4-T2C | Reference adoption wave: opportunities pipeline module backend + frontend board/list | Phase 4 | Done | Codex | Mar 2, 2026 | Mar 2, 2026 | main@cffab72 |
+| P4-T2D | Reference adoption wave: docs/artifacts hardening + final matrix verification | Phase 4 | Done | Codex | Mar 2, 2026 | Mar 2, 2026 | main@cffab72 |
 
 ### **Zod Migration Tracker**
 
