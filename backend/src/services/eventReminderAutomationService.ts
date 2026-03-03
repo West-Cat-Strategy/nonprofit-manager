@@ -5,6 +5,7 @@
 
 import pool from '@config/database';
 import { logger } from '@config/logger';
+import type { PoolClient } from 'pg';
 import type {
   CreateEventReminderAutomationDTO,
   EventReminderAutomation,
@@ -175,6 +176,55 @@ export async function listEventReminderAutomations(
   return result.rows.map(mapRow);
 }
 
+const createAutomationQuery = `
+  INSERT INTO event_reminder_automations (
+    event_id,
+    timing_type,
+    relative_minutes_before,
+    absolute_send_at,
+    send_email,
+    send_sms,
+    custom_message,
+    timezone,
+    is_active,
+    created_by,
+    modified_by
+  )
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, $9, $9)
+  RETURNING *
+`;
+
+const buildCreateAutomationParams = (
+  eventId: string,
+  normalized: NormalizedReminderInput,
+  userId: string
+): QueryValue[] => [
+  eventId,
+  normalized.timingType,
+  normalized.relativeMinutesBefore,
+  normalized.absoluteSendAt,
+  normalized.sendEmail,
+  normalized.sendSms,
+  normalized.customMessage,
+  normalized.timezone,
+  userId,
+];
+
+const createEventReminderAutomationTx = async (
+  client: PoolClient,
+  eventId: string,
+  dto: CreateEventReminderAutomationDTO,
+  userId: string
+): Promise<EventReminderAutomation> => {
+  const normalized = normalizeReminderInput(dto);
+  const result = await client.query<EventReminderAutomationRow>(
+    createAutomationQuery,
+    buildCreateAutomationParams(eventId, normalized, userId)
+  );
+
+  return mapRow(result.rows[0]);
+};
+
 export async function createEventReminderAutomation(
   eventId: string,
   dto: CreateEventReminderAutomationDTO,
@@ -183,32 +233,8 @@ export async function createEventReminderAutomation(
   const normalized = normalizeReminderInput(dto);
 
   const result = await pool.query<EventReminderAutomationRow>(
-    `INSERT INTO event_reminder_automations (
-       event_id,
-       timing_type,
-       relative_minutes_before,
-       absolute_send_at,
-       send_email,
-       send_sms,
-       custom_message,
-       timezone,
-       is_active,
-       created_by,
-       modified_by
-     )
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, $9, $9)
-     RETURNING *`,
-    [
-      eventId,
-      normalized.timingType,
-      normalized.relativeMinutesBefore,
-      normalized.absoluteSendAt,
-      normalized.sendEmail,
-      normalized.sendSms,
-      normalized.customMessage,
-      normalized.timezone,
-      userId,
-    ]
+    createAutomationQuery,
+    buildCreateAutomationParams(eventId, normalized, userId)
   );
 
   return mapRow(result.rows[0]);
@@ -300,7 +326,13 @@ export async function cancelEventReminderAutomation(
   const result = await pool.query<EventReminderAutomationRow>(
     `UPDATE event_reminder_automations
      SET is_active = false,
+         attempted_at = COALESCE(attempted_at, NOW()),
          attempt_status = 'cancelled',
+         processing_started_at = NULL,
+         attempt_summary = jsonb_build_object(
+           'reason', 'cancelled_by_user',
+           'cancelled_at', NOW()
+         ),
          modified_by = $1,
          updated_at = NOW()
      WHERE id = $2
@@ -323,28 +355,115 @@ export async function syncPendingEventReminderAutomations(
   userId: string
 ): Promise<EventReminderAutomation[]> {
   const items = dto.items || [];
+  const client = await pool.connect();
 
-  // Cancel all still-pending automations for this event.
-  await pool.query(
-    `UPDATE event_reminder_automations
+  try {
+    await client.query('BEGIN');
+
+    // Cancel all still-pending automations for this event.
+    await client.query(
+      `UPDATE event_reminder_automations
+       SET is_active = false,
+           attempt_status = 'cancelled',
+           attempted_at = COALESCE(attempted_at, NOW()),
+           processing_started_at = NULL,
+           attempt_summary = jsonb_build_object(
+             'reason', 'sync_replaced',
+             'event_id', event_id
+           ),
+           modified_by = $1,
+           updated_at = NOW()
+       WHERE event_id = $2
+         AND attempted_at IS NULL
+         AND is_active = true`,
+      [userId, eventId]
+    );
+
+    const created: EventReminderAutomation[] = [];
+    for (const item of items) {
+      const automation = await createEventReminderAutomationTx(client, eventId, item, userId);
+      created.push(automation);
+    }
+
+    await client.query('COMMIT');
+    return created;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function cancelPendingAutomationsForNonSendableEvents(
+  limit = 200
+): Promise<number> {
+  const result = await pool.query<{ id: string }>(
+    `WITH candidates AS (
+       SELECT era.id
+       FROM event_reminder_automations era
+       JOIN events e ON e.id = era.event_id
+       WHERE era.is_active = true
+         AND era.attempted_at IS NULL
+         AND (
+           e.status IN ('cancelled', 'completed')
+           OR e.start_date <= NOW()
+         )
+       ORDER BY e.start_date ASC
+       LIMIT $1
+     )
+     UPDATE event_reminder_automations era
      SET is_active = false,
+         attempted_at = NOW(),
          attempt_status = 'cancelled',
-         modified_by = $1,
+         processing_started_at = NULL,
+         attempt_summary = jsonb_build_object(
+           'reason', 'event_not_sendable',
+           'cancelled_at', NOW()
+         ),
+         last_error = NULL,
          updated_at = NOW()
-     WHERE event_id = $2
-       AND attempted_at IS NULL
-       AND is_active = true`,
-    [userId, eventId]
+     FROM candidates
+     WHERE era.id = candidates.id
+     RETURNING era.id`,
+    [limit]
   );
 
-  const created: EventReminderAutomation[] = [];
-
-  for (const item of items) {
-    const automation = await createEventReminderAutomation(eventId, item, userId);
-    created.push(automation);
+  if (result.rows.length > 0) {
+    logger.info('Cancelled non-sendable event reminder automations', {
+      count: result.rows.length,
+    });
   }
 
-  return created;
+  return result.rows.length;
+}
+
+export async function cancelPendingAutomationsForEvent(
+  eventId: string,
+  reason: string,
+  userId: string | null
+): Promise<number> {
+  const result = await pool.query<{ id: string }>(
+    `UPDATE event_reminder_automations
+     SET is_active = false,
+         attempted_at = COALESCE(attempted_at, NOW()),
+         attempt_status = 'cancelled',
+         processing_started_at = NULL,
+         attempt_summary = jsonb_build_object(
+           'reason', $2::text,
+           'cancelled_at', NOW()
+         ),
+         last_error = NULL,
+         modified_by = COALESCE($3::uuid, modified_by),
+         updated_at = NOW()
+     WHERE event_id = $1
+       AND is_active = true
+       AND attempted_at IS NULL
+     RETURNING id`,
+    [eventId, reason, userId]
+  );
+
+  return result.rows.length;
 }
 
 export async function claimDueAutomations(

@@ -18,13 +18,13 @@ const actions = [
     title: 'New Intake',
     icon: '🧾',
     link: '/intake/new',
-    color: 'bg-amber-100 text-amber-800',
+    color: 'bg-app-accent-soft text-app-accent-text',
   },
   {
     title: 'New Donation',
     icon: '💰',
     link: '/donations/new',
-    color: 'bg-green-100 text-green-700',
+    color: 'bg-app-accent-soft text-app-accent-text',
   },
   {
     title: 'Add Person',
@@ -36,13 +36,13 @@ const actions = [
     title: 'Create Case',
     icon: '📋',
     link: '/cases/new',
-    color: 'bg-red-100 text-red-700',
+    color: 'bg-app-accent-soft text-app-accent-text',
   },
   {
     title: 'New Task',
     icon: '✓',
     link: '/tasks/new',
-    color: 'bg-purple-100 text-purple-700',
+    color: 'bg-app-accent-soft text-app-accent-text',
   },
   {
     title: 'Note an Interaction',
@@ -54,13 +54,13 @@ const actions = [
     title: 'New Event',
     icon: '📅',
     link: '/events/new',
-    color: 'bg-orange-100 text-orange-700',
+    color: 'bg-app-accent-soft text-app-accent-text',
   },
   {
     title: 'Add Volunteer',
     icon: '🤝',
     link: '/volunteers/new',
-    color: 'bg-indigo-100 text-indigo-700',
+    color: 'bg-app-accent-soft text-app-accent-text',
   },
 ];
 

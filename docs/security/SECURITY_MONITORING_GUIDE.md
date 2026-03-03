@@ -265,7 +265,7 @@ notification:
   "service": "request",
   "event_type": "http_request",
   "method": "GET",
-  "endpoint": "/api/v1/contacts",
+  "endpoint": "/api/v2/contacts",
   "status_code": 200,
   "response_time_ms": 45,
   "user_id": "uuid",
@@ -940,7 +940,7 @@ TRIGGER: Alert "Rate Limit Triggered" >5 times in 1 minute
    IF bot/scraper:
      → Block IP at WAF level (not application)
      → Resume normal operations
-     → Review robots.txt and /api/v1/docs
+     → Review robots.txt and /api/v2/docs
    
    IF DDoS:
      → Enable DDoS protection (AWS Shield, Cloudflare)

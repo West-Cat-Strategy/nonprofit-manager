@@ -63,7 +63,7 @@ export default function ContactActivityTimeline({ contactId }: ContactActivityTi
 
   if (error) {
     return (
-      <div className="py-6 text-center text-sm font-bold text-red-600">
+      <div className="py-6 text-center text-sm font-bold text-app-accent">
         {error}
       </div>
     );

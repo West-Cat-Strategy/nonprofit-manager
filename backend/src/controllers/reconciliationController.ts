@@ -95,14 +95,14 @@ interface ReconciliationQueryParams {
   start_date?: string;
   end_date?: string;
   initiated_by?: string;
-  page?: string;
-  limit?: string;
+  page?: string | number;
+  limit?: string | number;
 }
 
 interface ReconciliationItemsQueryParams {
   match_status?: string;
-  page?: string;
-  limit?: string;
+  page?: string | number;
+  limit?: string | number;
 }
 
 interface DiscrepancyQueryParams {
@@ -112,8 +112,8 @@ interface DiscrepancyQueryParams {
   assigned_to?: string;
   reconciliation_id?: string;
   donation_id?: string;
-  page?: string;
-  limit?: string;
+  page?: string | number;
+  limit?: string | number;
 }
 
 type QueryValue = string | number;
@@ -125,11 +125,25 @@ const parseMatchStatus = (value: string | undefined): MatchStatus | undefined =>
   return validMatchStatuses.includes(value as MatchStatus) ? (value as MatchStatus) : undefined;
 };
 
+const parseQueryInteger = (value: string | number | undefined, fallback: number): number => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Math.trunc(value);
+  }
+  if (typeof value === 'string') {
+    const parsed = parseInt(value, 10);
+    if (!Number.isNaN(parsed)) {
+      return parsed;
+    }
+  }
+  return fallback;
+};
+
 /**
  * Get all reconciliations with filtering
  */
 export const getReconciliations = async (req: Request, res: Response): Promise<void> => {
   try {
+    const validatedQuery = ((req as any).validatedQuery ?? req.query) as ReconciliationQueryParams;
     const {
       status,
       reconciliation_type,
@@ -138,10 +152,10 @@ export const getReconciliations = async (req: Request, res: Response): Promise<v
       initiated_by,
       page = '1',
       limit = '20',
-    } = req.query as ReconciliationQueryParams;
+    } = validatedQuery;
 
-    const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20)); // Enforce max limit
+    const pageNum = Math.max(1, parseQueryInteger(page, 1));
+    const limitNum = Math.min(100, Math.max(1, parseQueryInteger(limit, 20))); // Enforce max limit
     const offset = (pageNum - 1) * limitNum;
 
     // Build query with parameterized values
@@ -235,10 +249,11 @@ export const getReconciliationItems = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const { match_status, page = '1', limit = '50' } = req.query as ReconciliationItemsQueryParams;
+    const query = ((req as any).validatedQuery ?? req.query) as ReconciliationItemsQueryParams;
+    const { match_status, page = '1', limit = '50' } = query;
 
-    const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
+    const pageNum = Math.max(1, parseQueryInteger(page, 1));
+    const limitNum = Math.min(100, Math.max(1, parseQueryInteger(limit, 50)));
 
     const items = await reconciliationService.getReconciliationItems(id, parseMatchStatus(match_status));
 
@@ -285,6 +300,7 @@ export const getReconciliationDiscrepancies = async (
  */
 export const getAllDiscrepancies = async (req: Request, res: Response): Promise<void> => {
   try {
+    const validatedQuery = ((req as any).validatedQuery ?? req.query) as DiscrepancyQueryParams;
     const {
       status,
       severity,
@@ -294,10 +310,10 @@ export const getAllDiscrepancies = async (req: Request, res: Response): Promise<
       donation_id,
       page = '1',
       limit = '20',
-    } = req.query as DiscrepancyQueryParams;
+    } = validatedQuery;
 
-    const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const pageNum = Math.max(1, parseQueryInteger(page, 1));
+    const limitNum = Math.min(100, Math.max(1, parseQueryInteger(limit, 20)));
     const offset = (pageNum - 1) * limitNum;
 
     // Build query

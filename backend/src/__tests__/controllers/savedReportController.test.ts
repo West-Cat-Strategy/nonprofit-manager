@@ -43,7 +43,10 @@ describe('Saved Report Controller', () => {
             body: {},
             params: {},
             query: {},
-            user: { id: 'user1' } as any,
+            user: { id: 'user1', role: 'manager' } as any,
+            authorizationContext: {
+                roles: ['manager', 'staff'],
+            } as any,
         };
 
         mockResponse = {
@@ -67,7 +70,31 @@ describe('Saved Report Controller', () => {
                 mockNext
             );
 
-            expect(mockSavedReportService.getSavedReports).toHaveBeenCalledWith('user1', 'contacts');
+            expect(mockSavedReportService.getSavedReports).toHaveBeenCalledWith(
+                'user1',
+                'contacts',
+                ['manager', 'staff']
+            );
+            expect(mockJson).toHaveBeenCalledWith(mockReports);
+        });
+
+        it('prefers validated query entity when available', async () => {
+            const mockReports = [{ id: '1', name: 'Report 1' }];
+            mockRequest.query = { entity: 'donations' };
+            (mockRequest as any).validatedQuery = { entity: 'contacts' };
+            mockSavedReportService.getSavedReports.mockResolvedValue(mockReports as any);
+
+            await savedReportController.getSavedReports(
+                mockRequest as AuthRequest,
+                mockResponse as Response,
+                mockNext
+            );
+
+            expect(mockSavedReportService.getSavedReports).toHaveBeenCalledWith(
+                'user1',
+                'contacts',
+                ['manager', 'staff']
+            );
             expect(mockJson).toHaveBeenCalledWith(mockReports);
         });
     });
@@ -84,7 +111,11 @@ describe('Saved Report Controller', () => {
                 mockNext
             );
 
-            expect(mockSavedReportService.getSavedReportById).toHaveBeenCalledWith('1', 'user1');
+            expect(mockSavedReportService.getSavedReportById).toHaveBeenCalledWith(
+                '1',
+                'user1',
+                ['manager', 'staff']
+            );
             expect(mockJson).toHaveBeenCalledWith(mockReport);
         });
 

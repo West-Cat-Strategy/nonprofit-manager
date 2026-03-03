@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
+import ConfirmDialog from '../../../components/ConfirmDialog';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
+import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   createOpportunity,
@@ -60,6 +62,7 @@ const opportunitiesForStage = (opportunities: Opportunity[], stageId: string): O
 export default function OpportunitiesPage() {
   const dispatch = useAppDispatch();
   const { opportunities, stages, summary, loading, error } = useAppSelector((state) => state.opportunities);
+  const { dialogState, confirm, handleCancel, handleConfirm } = useConfirmDialog();
 
   const [form, setForm] = useState<CreateOpportunityDTO>(defaultOpportunityForm);
   const [showCreate, setShowCreate] = useState(false);
@@ -136,7 +139,8 @@ export default function OpportunitiesPage() {
   };
 
   const removeOpportunity = async (opportunityId: string) => {
-    if (!window.confirm('Delete this opportunity?')) return;
+    const confirmed = await confirm(confirmPresets.delete('Opportunity'));
+    if (!confirmed) return;
     await dispatch(deleteOpportunity(opportunityId));
     await refresh();
   };
@@ -373,7 +377,7 @@ export default function OpportunitiesPage() {
         )}
 
         {error && (
-          <div className="mb-4 border-2 border-red-600 bg-red-100 p-3 text-sm font-bold text-red-700">
+          <div className="mb-4 border-2 border-app-accent bg-app-accent-soft p-3 text-sm font-bold text-app-accent-text">
             {error}
           </div>
         )}
@@ -420,7 +424,7 @@ export default function OpportunitiesPage() {
                             ))}
                           </select>
                           <button type="button" onClick={() => setEditingOpportunity(opportunity)} className="border-2 border-[var(--app-border)] px-2 py-1 text-xs font-bold">Edit</button>
-                          <button type="button" onClick={() => void removeOpportunity(opportunity.id)} className="border-2 border-red-600 bg-red-100 px-2 py-1 text-xs font-bold text-red-700">Delete</button>
+                          <button type="button" onClick={() => void removeOpportunity(opportunity.id)} className="border-2 border-app-accent bg-app-accent-soft px-2 py-1 text-xs font-bold text-app-accent-text">Delete</button>
                         </div>
                       </div>
                     ))
@@ -431,6 +435,7 @@ export default function OpportunitiesPage() {
           })}
         </div>
       </div>
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </NeoBrutalistLayout>
   );
 }

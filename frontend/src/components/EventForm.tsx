@@ -562,16 +562,16 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 bg-app-surface shadow-md rounded-lg p-6">
-      {error && <div className="p-4 bg-red-100 text-red-700 rounded-md">{error}</div>}
+      {error && <div className="p-4 bg-app-accent-soft text-app-accent-text rounded-md">{error}</div>}
       {reminderSyncError && (
-        <div className="p-4 bg-amber-100 text-amber-800 rounded-md">
+        <div className="p-4 bg-app-accent-soft text-app-accent-text rounded-md">
           <p>{reminderSyncError}</p>
           {savedEventIdForRetry && (
             <button
               type="button"
               onClick={handleRetryReminderSync}
               disabled={retryingReminderSync}
-              className="mt-3 px-4 py-2 bg-amber-700 text-white rounded-md hover:bg-amber-800 disabled:opacity-60"
+              className="mt-3 px-4 py-2 bg-app-accent-hover text-white rounded-md hover:bg-app-accent-hover disabled:opacity-60"
             >
               {retryingReminderSync ? 'Retrying...' : 'Retry Reminder Sync'}
             </button>
@@ -585,7 +585,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
             <label htmlFor="event_name" className="block text-sm font-medium mb-1">
-              Event Name <span className="text-red-500">*</span>
+              Event Name <span className="text-app-accent">*</span>
             </label>
             <input
               type="text"
@@ -614,7 +614,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
 
           <div>
             <label htmlFor="event_type" className="block text-sm font-medium mb-1">
-              Event Type <span className="text-red-500">*</span>
+              Event Type <span className="text-app-accent">*</span>
             </label>
             <select
               id="event_type"
@@ -640,7 +640,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
 
           <div>
             <label htmlFor="status" className="block text-sm font-medium mb-1">
-              Status <span className="text-red-500">*</span>
+              Status <span className="text-app-accent">*</span>
             </label>
             <select
               id="status"
@@ -666,7 +666,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="start_date" className="block text-sm font-medium mb-1">
-              Start Date & Time <span className="text-red-500">*</span>
+              Start Date & Time <span className="text-app-accent">*</span>
             </label>
             <input
               type="datetime-local"
@@ -681,7 +681,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
 
           <div>
             <label htmlFor="end_date" className="block text-sm font-medium mb-1">
-              End Date & Time <span className="text-red-500">*</span>
+              End Date & Time <span className="text-app-accent">*</span>
             </label>
             <input
               type="datetime-local"
@@ -813,7 +813,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
                   <button
                     type="button"
                     onClick={() => removeReminderRow(row.id)}
-                    className="text-sm text-red-600 hover:text-red-800"
+                    className="text-sm text-app-accent hover:text-app-accent-text"
                   >
                     Remove
                   </button>

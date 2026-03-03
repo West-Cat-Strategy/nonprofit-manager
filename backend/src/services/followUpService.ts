@@ -29,9 +29,43 @@ const toIsoTime = (value: string | null | undefined): string | null => {
   return value.slice(0, 5);
 };
 
-const combineDateTime = (date: string, time?: string | null): Date => {
-  const normalizedTime = time ? `${time}:00` : '23:59:59';
-  return new Date(`${date}T${normalizedTime}Z`);
+const normalizeDateInput = (value: string | Date): string => {
+  if (value instanceof Date) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  const trimmed = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  const parsed = new Date(trimmed);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toISOString().slice(0, 10);
+  }
+
+  return trimmed;
+};
+
+const normalizeTimeInput = (value?: string | null): string => {
+  if (!value) return '23:59:59';
+
+  const trimmed = value.trim();
+  if (!trimmed) return '23:59:59';
+
+  const match = trimmed.match(/^(\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (match) {
+    const [, hours, minutes, seconds] = match;
+    return `${hours}:${minutes}:${seconds || '00'}`;
+  }
+
+  return trimmed;
+};
+
+const combineDateTime = (date: string | Date, time?: string | null): Date => {
+  const normalizedDate = normalizeDateInput(date);
+  const normalizedTime = normalizeTimeInput(time);
+  return new Date(`${normalizedDate}T${normalizedTime}Z`);
 };
 
 const computeNextScheduledDate = (date: string, frequency: FollowUp['frequency']): string | null => {

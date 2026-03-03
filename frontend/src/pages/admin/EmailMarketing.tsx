@@ -31,12 +31,12 @@ import type { Contact } from '../../features/contacts/state';
  */
 function StatusBadge({ status }: { status: string }) {
   const statusColors: Record<string, string> = {
-    sent: 'bg-green-100 text-green-800',
+    sent: 'bg-app-accent-soft text-app-accent-text',
     sending: 'bg-app-accent-soft text-app-accent-text',
-    schedule: 'bg-yellow-100 text-yellow-800',
+    schedule: 'bg-app-accent-soft text-app-accent-text',
     paused: 'bg-app-surface-muted text-app-text',
     save: 'bg-app-surface-muted text-app-text',
-    canceled: 'bg-red-100 text-red-800',
+    canceled: 'bg-app-accent-soft text-app-accent-text',
     archived: 'bg-app-surface-muted text-app-text-muted',
   };
 
@@ -76,7 +76,7 @@ function CampaignCard({ campaign }: { campaign: MailchimpCampaign }) {
             <p className="text-xs text-app-text-muted">Open Rate</p>
           </div>
           <div>
-            <p className="text-2xl font-bold text-green-600">
+            <p className="text-2xl font-bold text-app-accent">
               {(campaign.reportSummary.clickRate * 100).toFixed(1)}%
             </p>
             <p className="text-xs text-app-text-muted">Click Rate</p>
@@ -127,7 +127,7 @@ function ListCard({ list, isSelected, onSelect }: {
         <span>{list.memberCount.toLocaleString()} subscribers</span>
         {list.doubleOptIn && (
           <span className="flex items-center gap-1">
-            <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-4 h-4 text-app-accent" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
             Double Opt-in
@@ -165,23 +165,23 @@ function SyncResultModal({
             <p className="text-2xl font-bold text-app-text-heading">{result.total}</p>
             <p className="text-sm text-app-text-muted">Total Processed</p>
           </div>
-          <div className="bg-green-50 rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold text-green-600">{result.added}</p>
+          <div className="bg-app-accent-soft rounded-lg p-4 text-center">
+            <p className="text-2xl font-bold text-app-accent">{result.added}</p>
             <p className="text-sm text-app-text-muted">Added</p>
           </div>
           <div className="bg-app-accent-soft rounded-lg p-4 text-center">
             <p className="text-2xl font-bold text-app-accent">{result.updated}</p>
             <p className="text-sm text-app-text-muted">Updated</p>
           </div>
-          <div className="bg-yellow-50 rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold text-yellow-600">{result.skipped}</p>
+          <div className="bg-app-accent-soft rounded-lg p-4 text-center">
+            <p className="text-2xl font-bold text-app-accent">{result.skipped}</p>
             <p className="text-sm text-app-text-muted">Skipped</p>
           </div>
         </div>
 
         {result.errors > 0 && (
-          <div className="mt-4 bg-red-50 rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold text-red-600">{result.errors}</p>
+          <div className="mt-4 bg-app-accent-soft rounded-lg p-4 text-center">
+            <p className="text-2xl font-bold text-app-accent">{result.errors}</p>
             <p className="text-sm text-app-text-muted">Errors</p>
           </div>
         )}
@@ -278,7 +278,7 @@ function CampaignCreateModal({
           {/* Audience Selection */}
           <div>
             <label className="block text-sm font-medium text-app-text-label mb-1">
-              Audience <span className="text-red-500">*</span>
+              Audience <span className="text-app-accent">*</span>
             </label>
             <select
               value={formData.listId}
@@ -291,7 +291,7 @@ function CampaignCreateModal({
                 </option>
               ))}
             </select>
-            {errors.listId && <p className="mt-1 text-sm text-red-600">{errors.listId}</p>}
+            {errors.listId && <p className="mt-1 text-sm text-app-accent">{errors.listId}</p>}
           </div>
 
           {/* Segment Selection (Optional) */}
@@ -320,7 +320,7 @@ function CampaignCreateModal({
           {/* Campaign Title */}
           <div>
             <label className="block text-sm font-medium text-app-text-label mb-1">
-              Campaign Title <span className="text-red-500">*</span>
+              Campaign Title <span className="text-app-accent">*</span>
             </label>
             <input
               type="text"
@@ -329,13 +329,13 @@ function CampaignCreateModal({
               className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
               placeholder="Internal campaign name"
             />
-            {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
+            {errors.title && <p className="mt-1 text-sm text-app-accent">{errors.title}</p>}
           </div>
 
           {/* Subject Line */}
           <div>
             <label className="block text-sm font-medium text-app-text-label mb-1">
-              Subject Line <span className="text-red-500">*</span>
+              Subject Line <span className="text-app-accent">*</span>
             </label>
             <input
               type="text"
@@ -344,7 +344,7 @@ function CampaignCreateModal({
               className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
               placeholder="What subscribers will see in their inbox"
             />
-            {errors.subject && <p className="mt-1 text-sm text-red-600">{errors.subject}</p>}
+            {errors.subject && <p className="mt-1 text-sm text-app-accent">{errors.subject}</p>}
           </div>
 
           {/* Preview Text */}
@@ -365,7 +365,7 @@ function CampaignCreateModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-app-text-label mb-1">
-                From Name <span className="text-red-500">*</span>
+                From Name <span className="text-app-accent">*</span>
               </label>
               <input
                 type="text"
@@ -374,12 +374,12 @@ function CampaignCreateModal({
                 className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
                 placeholder="Your Organization"
               />
-              {errors.fromName && <p className="mt-1 text-sm text-red-600">{errors.fromName}</p>}
+              {errors.fromName && <p className="mt-1 text-sm text-app-accent">{errors.fromName}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-app-text-label mb-1">
-                Reply-To Email <span className="text-red-500">*</span>
+                Reply-To Email <span className="text-app-accent">*</span>
               </label>
               <input
                 type="email"
@@ -388,7 +388,7 @@ function CampaignCreateModal({
                 className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
                 placeholder="contact@organization.org"
               />
-              {errors.replyTo && <p className="mt-1 text-sm text-red-600">{errors.replyTo}</p>}
+              {errors.replyTo && <p className="mt-1 text-sm text-app-accent">{errors.replyTo}</p>}
             </div>
           </div>
 
@@ -433,7 +433,7 @@ function CampaignCreateModal({
               min={new Date().toISOString().slice(0, 16)}
               className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
             />
-            {errors.sendTime && <p className="mt-1 text-sm text-red-600">{errors.sendTime}</p>}
+            {errors.sendTime && <p className="mt-1 text-sm text-app-accent">{errors.sendTime}</p>}
             <p className="mt-1 text-xs text-app-text-muted">Leave empty to save as draft</p>
           </div>
         </form>
@@ -587,21 +587,21 @@ export default function EmailMarketing() {
   if (status && !status.configured) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+        <div className="bg-app-accent-soft border border-app-border rounded-lg p-6">
           <div className="flex items-start gap-4">
-            <svg className="w-8 h-8 text-yellow-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-8 h-8 text-app-accent flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <div>
-              <h2 className="text-lg font-medium text-yellow-800">Mailchimp Not Configured</h2>
-              <p className="mt-2 text-sm text-yellow-700">
+              <h2 className="text-lg font-medium text-app-accent-text">Mailchimp Not Configured</h2>
+              <p className="mt-2 text-sm text-app-accent-text">
                 To use email marketing features, please configure your Mailchimp integration by setting the following environment variables:
               </p>
-              <ul className="mt-3 text-sm text-yellow-700 list-disc list-inside space-y-1">
-                <li><code className="bg-yellow-100 px-1 rounded">MAILCHIMP_API_KEY</code> - Your Mailchimp API key</li>
-                <li><code className="bg-yellow-100 px-1 rounded">MAILCHIMP_SERVER_PREFIX</code> - Your datacenter (e.g., us1, us2)</li>
+              <ul className="mt-3 text-sm text-app-accent-text list-disc list-inside space-y-1">
+                <li><code className="bg-app-accent-soft px-1 rounded">MAILCHIMP_API_KEY</code> - Your Mailchimp API key</li>
+                <li><code className="bg-app-accent-soft px-1 rounded">MAILCHIMP_SERVER_PREFIX</code> - Your datacenter (e.g., us1, us2)</li>
               </ul>
-              <p className="mt-3 text-sm text-yellow-700">
+              <p className="mt-3 text-sm text-app-accent-text">
                 You can find your API key at{' '}
                 <a href="https://admin.mailchimp.com/account/api/" target="_blank" rel="noopener noreferrer" className="underline">
                   admin.mailchimp.com/account/api
@@ -626,21 +626,21 @@ export default function EmailMarketing() {
 
       {/* Error display */}
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="mb-6 bg-app-accent-soft border border-app-border rounded-lg p-4">
+          <p className="text-sm text-app-accent-text">{error}</p>
         </div>
       )}
 
       {/* Account Status */}
       {status?.configured && (
-        <div className="mb-8 bg-green-50 border border-green-200 rounded-lg p-4">
+        <div className="mb-8 bg-app-accent-soft border border-app-border rounded-lg p-4">
           <div className="flex items-center gap-3">
-            <svg className="w-6 h-6 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-6 h-6 text-app-accent" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
             <div>
-              <p className="font-medium text-green-800">Connected to Mailchimp</p>
-              <p className="text-sm text-green-700">
+              <p className="font-medium text-app-accent-text">Connected to Mailchimp</p>
+              <p className="text-sm text-app-accent-text">
                 Account: {status.accountName} | {status.listCount} audience{status.listCount !== 1 ? 's' : ''}
               </p>
             </div>
@@ -753,7 +753,7 @@ export default function EmailMarketing() {
                         <p className="text-sm text-app-text-muted truncate">{contact.email}</p>
                       </div>
                       {contact.do_not_email && (
-                        <span className="text-xs text-red-500">Do not email</span>
+                        <span className="text-xs text-app-accent">Do not email</span>
                       )}
                     </label>
                   ))}

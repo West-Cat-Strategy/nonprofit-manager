@@ -21,6 +21,9 @@ vi.mock('../../../contexts/useToast', () => ({
 
 describe('PortalAppointments page', () => {
   beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem('portal:selectedCaseId', 'case-2');
+
     getMock.mockImplementation((url: string) => {
       if (url === '/v2/portal/pointperson/context') {
         return Promise.resolve({
@@ -34,6 +37,13 @@ describe('PortalAppointments page', () => {
                 case_title: 'Career Support',
                 is_messageable: true,
                 is_default: true,
+              },
+              {
+                case_id: 'case-2',
+                case_number: 'CASE-200',
+                case_title: 'Housing Support',
+                is_messageable: true,
+                is_default: false,
               },
             ],
           },
@@ -74,6 +84,10 @@ describe('PortalAppointments page', () => {
     patchMock.mockResolvedValue({ data: {} });
   });
 
+  afterEach(() => {
+    localStorage.clear();
+  });
+
   it('books a published slot', async () => {
     renderWithProviders(<PortalAppointments />);
 
@@ -85,7 +99,7 @@ describe('PortalAppointments page', () => {
 
     await waitFor(() => {
       expect(postMock).toHaveBeenCalledWith('/v2/portal/appointments/slots/slot-1/book', {
-        case_id: 'case-1',
+        case_id: 'case-2',
       });
     });
   });

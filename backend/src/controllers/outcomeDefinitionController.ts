@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 import type { AuthRequest } from '@middleware/auth';
 import {
-  requirePermissionOrError,
+  requirePermissionSafe,
   sendForbidden,
   sendUnauthorized,
 } from '@services/authGuardService';
@@ -15,12 +15,12 @@ import type {
 } from '@app-types/outcomes';
 
 const guardManagePermission = (req: AuthRequest, res: Response): boolean => {
-  const guardResult = requirePermissionOrError(req, Permission.OUTCOMES_MANAGE);
-  if (!guardResult.success) {
-    if (guardResult.error?.toLowerCase().startsWith('unauthorized')) {
-      sendUnauthorized(res, guardResult.error);
+  const guardResult = requirePermissionSafe(req, Permission.OUTCOMES_MANAGE);
+  if (!guardResult.ok) {
+    if (guardResult.error.code === 'unauthorized') {
+      sendUnauthorized(res, guardResult.error.message);
     } else {
-      sendForbidden(res, guardResult.error || 'Forbidden');
+      sendForbidden(res, guardResult.error.message || 'Forbidden');
     }
     return false;
   }

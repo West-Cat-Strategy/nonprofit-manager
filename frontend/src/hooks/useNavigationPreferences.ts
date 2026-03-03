@@ -16,6 +16,9 @@ export interface NavigationItem {
   icon: string;
   enabled: boolean;
   isCore: boolean; // Core items cannot be disabled (e.g., Dashboard)
+  group?: 'primary' | 'secondary' | 'utility';
+  shortLabel?: string;
+  ariaLabel?: string;
 }
 
 export interface NavigationPreferences {
@@ -28,21 +31,21 @@ const teamChatEnabled = import.meta.env.VITE_TEAM_CHAT_ENABLED !== 'false';
 
 // Default navigation items with their default state
 const defaultNavigationItems: NavigationItem[] = [
-  { id: 'dashboard', name: 'Dashboard', path: '/dashboard', icon: '📊', enabled: true, isCore: true },
-  { id: 'cases', name: 'Cases', path: '/cases', icon: '📋', enabled: true, isCore: false },
-  { id: 'external-service-providers', name: 'Providers', path: '/external-service-providers', icon: '🩺', enabled: true, isCore: false },
-  { id: 'people', name: 'People', path: '/contacts', icon: '👤', enabled: true, isCore: false },
-  { id: 'accounts', name: 'Accounts', path: '/accounts', icon: '🏢', enabled: true, isCore: false },
-  { id: 'volunteers', name: 'Volunteers', path: '/volunteers', icon: '🤝', enabled: true, isCore: false },
-  { id: 'events', name: 'Events', path: '/events', icon: '📅', enabled: true, isCore: false },
-  { id: 'donations', name: 'Donations', path: '/donations', icon: '💰', enabled: true, isCore: false },
-  { id: 'tasks', name: 'Tasks', path: '/tasks', icon: '✓', enabled: true, isCore: false },
-  { id: 'follow-ups', name: 'Follow-ups', path: '/follow-ups', icon: '🔔', enabled: true, isCore: false },
-  { id: 'opportunities', name: 'Opportunities', path: '/opportunities', icon: '📈', enabled: true, isCore: false },
+  { id: 'dashboard', name: 'Dashboard', path: '/dashboard', icon: '📊', enabled: true, isCore: true, group: 'primary', shortLabel: 'Home', ariaLabel: 'Go to dashboard' },
+  { id: 'cases', name: 'Cases', path: '/cases', icon: '📋', enabled: true, isCore: false, group: 'primary' },
+  { id: 'external-service-providers', name: 'Providers', path: '/external-service-providers', icon: '🩺', enabled: true, isCore: false, group: 'secondary', shortLabel: 'Providers' },
+  { id: 'people', name: 'People', path: '/contacts', icon: '👤', enabled: true, isCore: false, group: 'primary', ariaLabel: 'Go to contacts' },
+  { id: 'accounts', name: 'Accounts', path: '/accounts', icon: '🏢', enabled: true, isCore: false, group: 'secondary' },
+  { id: 'volunteers', name: 'Volunteers', path: '/volunteers', icon: '🤝', enabled: true, isCore: false, group: 'secondary' },
+  { id: 'events', name: 'Events', path: '/events', icon: '📅', enabled: true, isCore: false, group: 'primary' },
+  { id: 'donations', name: 'Donations', path: '/donations', icon: '💰', enabled: true, isCore: false, group: 'secondary' },
+  { id: 'tasks', name: 'Tasks', path: '/tasks', icon: '✓', enabled: true, isCore: false, group: 'primary' },
+  { id: 'follow-ups', name: 'Follow-ups', path: '/follow-ups', icon: '🔔', enabled: true, isCore: false, group: 'secondary' },
+  { id: 'opportunities', name: 'Opportunities', path: '/opportunities', icon: '📈', enabled: true, isCore: false, group: 'secondary' },
   ...(teamChatEnabled
-    ? [{ id: 'team-chat', name: 'Team Chat', path: '/team-chat', icon: '💬', enabled: true, isCore: false }]
+    ? [{ id: 'team-chat', name: 'Team Chat', path: '/team-chat', icon: '💬', enabled: true, isCore: false, group: 'secondary' as const }]
     : []),
-  { id: 'scheduled-reports', name: 'Scheduled Reports', path: '/reports/scheduled', icon: '🗓️', enabled: true, isCore: false },
+  { id: 'scheduled-reports', name: 'Scheduled Reports', path: '/reports/scheduled', icon: '🗓️', enabled: true, isCore: false, group: 'utility', shortLabel: 'Schedules' },
 ];
 
 function mergeWithDefaults(savedItems: NavigationItem[] | undefined): NavigationItem[] {

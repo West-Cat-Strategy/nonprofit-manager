@@ -185,6 +185,7 @@ const renderFilterBuilder = (component: React.ReactElement, initialState = {}) =
 
     expect(screen.getByText(/tip:/i)).toBeInTheDocument();
     expect(screen.getByText(/comma-separated values/i)).toBeInTheDocument();
+    expect(screen.getByText(/two values for "between"/i)).toBeInTheDocument();
   });
 
   it('renders appropriate input for boolean field type', () => {
@@ -214,5 +215,29 @@ const renderFilterBuilder = (component: React.ReactElement, initialState = {}) =
       select.querySelector('option[value=""]')
     );
     expect(hasSelectOption).toBe(true);
+  });
+
+  it('renders range inputs for between operator', () => {
+    const initialState = {
+      reports: {
+        currentReport: null,
+        availableFields: { ...baseAvailableFields, contacts: mockFields },
+        loading: false,
+        fieldsLoading: false,
+        error: null,
+      },
+    };
+
+    const filters: ReportFilter[] = [
+      { field: 'age', operator: 'between', value: ['10', '20'] },
+    ];
+
+    renderFilterBuilder(
+      <FilterBuilder entity="contacts" filters={filters} onChange={mockOnChange} />,
+      initialState
+    );
+
+    expect(screen.getByPlaceholderText(/from/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/to/i)).toBeInTheDocument();
   });
 });

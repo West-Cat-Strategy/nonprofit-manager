@@ -8,7 +8,7 @@ import { AuthRequest } from '@middleware/auth';
 import { trackLoginAttempt } from '@middleware/accountLockout';
 import { JWT, PASSWORD } from '@config/constants';
 import { syncUserRole } from '@services/domains/integration';
-import { requireUserOrError } from '@services/authGuardService';
+import { requireUserSafe } from '@services/authGuardService';
 import {
   buildAuthorizationSnapshot,
   createRequestAuthorizationContext,
@@ -51,6 +51,22 @@ interface UserRow {
   mfa_totp_enabled?: boolean;
   mfa_required_by_role?: boolean;
 }
+
+const requireAuthenticatedUser = (
+  req: AuthRequest,
+  res: Response
+): { id: string; role: string } | null => {
+  const guardResult = requireUserSafe(req);
+  if (!guardResult.ok) {
+    unauthorized(res, guardResult.error.message || 'Authentication required');
+    return null;
+  }
+
+  return {
+    id: guardResult.data.user.id,
+    role: guardResult.data.user.role,
+  };
+};
 
 const getDefaultOrganizationId = async (): Promise<string | null> => {
   try {
@@ -334,13 +350,9 @@ export const getCurrentUser = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    // Require authenticated user
-    const guardResult = requireUserOrError(req);
-    if (!guardResult.success) {
-      return unauthorized(res, guardResult.error || 'Authentication required');
-    }
-
-    const userId = guardResult.user!.id;
+    const authUser = requireAuthenticatedUser(req, res);
+    if (!authUser) return;
+    const userId = authUser.id;
 
     const result = await pool.query<UserRow>(
       'SELECT id, email, first_name, last_name, role, profile_picture, created_at FROM users WHERE id = $1',
@@ -373,13 +385,10 @@ export const checkAccess = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const guardResult = requireUserOrError(req);
-    if (!guardResult.success) {
-      return unauthorized(res, guardResult.error || 'Authentication required');
-    }
-
-    const userId = guardResult.user!.id;
-    const primaryRole = guardResult.user!.role;
+    const authUser = requireAuthenticatedUser(req, res);
+    if (!authUser) return;
+    const userId = authUser.id;
+    const primaryRole = authUser.role;
     const organizationId = req.organizationId || req.accountId || req.tenantId;
 
     const snapshot = await buildAuthorizationSnapshot({
@@ -538,13 +547,9 @@ export const getPreferences = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    // Require authenticated user
-    const guardResult = requireUserOrError(req);
-    if (!guardResult.success) {
-      return unauthorized(res, guardResult.error || 'Authentication required');
-    }
-
-    const userId = guardResult.user!.id;
+    const authUser = requireAuthenticatedUser(req, res);
+    if (!authUser) return;
+    const userId = authUser.id;
 
     const result = await pool.query(
       'SELECT preferences FROM users WHERE id = $1',
@@ -573,13 +578,9 @@ export const updatePreferences = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    // Require authenticated user
-    const guardResult = requireUserOrError(req);
-    if (!guardResult.success) {
-      return unauthorized(res, guardResult.error || 'Authentication required');
-    }
-
-    const userId = guardResult.user!.id;
+    const authUser = requireAuthenticatedUser(req, res);
+    if (!authUser) return;
+    const userId = authUser.id;
     const { preferences } = req.body;
 
     if (!preferences || typeof preferences !== 'object') {
@@ -620,13 +621,9 @@ export const updatePreferenceKey = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    // Require authenticated user
-    const guardResult = requireUserOrError(req);
-    if (!guardResult.success) {
-      return unauthorized(res, guardResult.error || 'Authentication required');
-    }
-
-    const userId = guardResult.user!.id;
+    const authUser = requireAuthenticatedUser(req, res);
+    if (!authUser) return;
+    const userId = authUser.id;
     const { key } = req.params;
     const { value } = req.body;
 
@@ -703,13 +700,9 @@ export const getProfile = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    // Require authenticated user
-    const guardResult = requireUserOrError(req);
-    if (!guardResult.success) {
-      return unauthorized(res, guardResult.error || 'Authentication required');
-    }
-
-    const userId = guardResult.user!.id;
+    const authUser = requireAuthenticatedUser(req, res);
+    if (!authUser) return;
+    const userId = authUser.id;
 
     const result = await pool.query<ProfileRow>(
       `SELECT id, email, first_name, last_name, role,
@@ -770,13 +763,9 @@ export const updateProfile = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    // Require authenticated user
-    const guardResult = requireUserOrError(req);
-    if (!guardResult.success) {
-      return unauthorized(res, guardResult.error || 'Authentication required');
-    }
-
-    const userId = guardResult.user!.id;
+    const authUser = requireAuthenticatedUser(req, res);
+    if (!authUser) return;
+    const userId = authUser.id;
 
     const {
       firstName,
@@ -899,13 +888,9 @@ export const changePassword = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    // Require authenticated user
-    const guardResult = requireUserOrError(req);
-    if (!guardResult.success) {
-      return unauthorized(res, guardResult.error || 'Authentication required');
-    }
-
-    const userId = guardResult.user!.id;
+    const authUser = requireAuthenticatedUser(req, res);
+    if (!authUser) return;
+    const userId = authUser.id;
 
     const { currentPassword, newPassword } = req.body;
 

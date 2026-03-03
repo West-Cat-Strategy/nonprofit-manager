@@ -45,7 +45,7 @@ Developer agents are AI assistants contributing code to the nonprofit-manager pr
 
 **DevOps:**
 - Docker & Docker Compose for local development
-- GitHub Actions for CI/CD
+- Local CI/CD via `Makefile` + `scripts/ci.sh` / `scripts/local-ci.sh`
 - PostgreSQL + Redis for services
 
 ### Code Standards
@@ -74,7 +74,7 @@ backend/src/
 
 - **Framework:** Zod for runtime type validation
 - **Location:** Middleware layer before controller execution
-- **Status:** 38 Zod schemas defined and in use across auth endpoints. All validation middleware active. Coverage expanding to additional service routes in Phase 2.
+- **Status:** Route-level Zod middleware is active across legacy and v2 route surfaces, with policy checks enforcing param/body/query coverage for critical routes.
 - **Coverage:** All inputs must be validated with explicit Zod schemas
 - **Error Format:** Standardized validation error responses
 
@@ -100,9 +100,10 @@ export const updateSettingsHandler = async (
 **Auth Guards Service:** [backend/src/services/authGuardService.ts](backend/src/services/authGuardService.ts)
 
 Helper functions for checking user permissions:
-- `requireUserOrError()` — User must be authenticated
-- `requireRoleOrError(req, roles...)` — User must have specific role
-- `requirePermissionOrError(req, permission)` — User must have permission
+- `requireUserSafe()` / `requireUserStrict()` — User must be authenticated
+- `requireRoleSafe(req, roles...)` / `requireRoleStrict(req, roles...)` — User must have specific role
+- `requirePermissionSafe(req, permission)` / `requirePermissionStrict(req, permission)` — User must have permission
+- Legacy wrappers (`require*OrError`) remain only for backward compatibility and should not be used in new/updated controllers
 - `canAccessOrganization(user, orgId)` — Organization access check
 
 **Permission System:**
@@ -113,20 +114,18 @@ Helper functions for checking user permissions:
 
 ### Rate Limiting
 
-**Strategy:** Advanced rate limiting with 6 configurable strategies:
-1. Global rate limit
-2. Per-endpoint limit
-3. Per-user limit
-4. Per-IP limit
-5. Sliding window
-6. Token bucket
+**Strategy:** Hybrid Redis + in-memory endpoint limiters:
+1. Global API limiter
+2. Authentication limiter
+3. Password-reset limiter
+4. Registration limiter
 
 **Implementation:** [backend/src/middleware/rateLimiter.ts](backend/src/middleware/rateLimiter.ts)
 
 ### Testing Requirements
 
 **Unit Tests:**
-- Minimum 80% code coverage for services
+- Coverage thresholds are enforced by repo configuration (see [backend/jest.config.ts](backend/jest.config.ts) and [frontend/vite.config.ts](frontend/vite.config.ts))
 - Jest configuration: [backend/jest.config.ts](backend/jest.config.ts)
 - Run tests: `npm test` in backend/
 
@@ -137,8 +136,8 @@ Helper functions for checking user permissions:
 - Run tests: `npm test` in e2e/ root
 
 **CI/CD:**
-- GitHub Actions: Runs on every PR
-- Services: PostgreSQL + Redis + Backend
+- Local CI pipeline via `make ci`, `make ci-fast`, `make ci-full`, and `scripts/local-ci.sh`
+- Services: PostgreSQL + Redis + Backend (+ frontend/e2e checks when selected)
 - Requirements:
   - All unit tests pass
   - All E2E tests pass

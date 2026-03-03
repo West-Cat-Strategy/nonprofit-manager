@@ -77,17 +77,17 @@ export default function EventCalendarView({
   const getEventTypeColor = (type: EventType): string => {
     switch (type) {
       case 'fundraiser':
-        return 'bg-green-100 text-green-800 hover:bg-green-200';
+        return 'bg-app-accent-soft text-app-accent-text hover:bg-app-accent-soft';
       case 'volunteer':
         return 'bg-app-accent-soft text-app-accent-text hover:bg-app-accent-soft-hover';
       case 'community':
-        return 'bg-purple-100 text-purple-800 hover:bg-purple-200';
+        return 'bg-app-accent-soft text-app-accent-text hover:bg-app-accent-soft';
       case 'training':
-        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+        return 'bg-app-accent-soft text-app-accent-text hover:bg-app-accent-soft';
       case 'meeting':
         return 'bg-app-surface-muted text-app-text hover:bg-app-surface-muted';
       case 'social':
-        return 'bg-pink-100 text-pink-800 hover:bg-pink-200';
+        return 'bg-app-accent-soft text-app-accent-text hover:bg-app-accent-soft';
       default:
         return 'bg-app-surface-muted text-app-text hover:bg-app-surface-muted';
     }

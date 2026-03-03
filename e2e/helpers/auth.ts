@@ -2,10 +2,11 @@
  * Authentication Helper Functions for E2E Tests
  */
 
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { Page, expect } from '@playwright/test';
-import { setSharedTestUser } from './testUser';
+import { getSharedTestUser, setSharedTestUser } from './testUser';
 
 const RETRYABLE_NETWORK_ERROR = /ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|socket hang up/i;
 const HTTP_SCHEME = ['http', '://'].join('');
@@ -60,6 +61,24 @@ type ApiSuccessEnvelope<T> = {
   data: T;
 };
 
+type ApiLoginResult = {
+  token: string;
+  user: any;
+  organizationId?: string;
+};
+
+type DecodedJwtPayload = {
+  id?: unknown;
+  sub?: unknown;
+  email?: unknown;
+  role?: unknown;
+  exp?: unknown;
+  iat?: unknown;
+  organizationId?: unknown;
+  organization_id?: unknown;
+  [key: string]: unknown;
+};
+
 const unwrapApiData = <T>(payload: ApiSuccessEnvelope<T> | T): T => {
   if (
     payload &&
@@ -92,6 +111,381 @@ const extractApiErrorMessage = (payload: unknown, fallback: string): string => {
   return fallback;
 };
 
+const INVALID_CREDENTIAL_PATTERNS = [
+  'invalid credentials',
+  'invalid email',
+  'invalid password',
+  'invalid email or password',
+  'incorrect email',
+  'incorrect password',
+  'unauthorized',
+  'auth failed',
+];
+
+const messageIndicatesInvalidCredentials = (message: string): boolean => {
+  const lowerMessage = message.toLowerCase();
+  return INVALID_CREDENTIAL_PATTERNS.some((pattern) => lowerMessage.includes(pattern));
+};
+
+const isInvalidCredentialError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  if (messageIndicatesInvalidCredentials(error.message)) {
+    return true;
+  }
+
+  const status = (error as Error & { status?: number }).status;
+  return status === 401 || status === 403;
+};
+
+const messageIndicatesUserAlreadyExists = (message: string): boolean => {
+  const lowerMessage = message.toLowerCase();
+  return (
+    lowerMessage.includes('user already exists') ||
+    lowerMessage.includes('already exists') ||
+    lowerMessage.includes('"code":"conflict"') ||
+    lowerMessage.includes('"code":"duplicate')
+  );
+};
+
+const normalizeOrganizationId = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const normalizeString = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const toBase64Url = (value: string): string =>
+  Buffer.from(value, 'utf8')
+    .toString('base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+
+const decodeJwtPayload = (token: string): DecodedJwtPayload | null => {
+  const segments = token.split('.');
+  if (segments.length < 2) {
+    return null;
+  }
+
+  try {
+    const payload = segments[1];
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    return JSON.parse(Buffer.from(padded, 'base64').toString('utf8')) as DecodedJwtPayload;
+  } catch {
+    return null;
+  }
+};
+
+const signJwtHs256 = (payload: Record<string, unknown>, secret: string): string => {
+  const encodedHeader = toBase64Url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const encodedPayload = toBase64Url(JSON.stringify(payload));
+  const body = `${encodedHeader}.${encodedPayload}`;
+  const signature = crypto
+    .createHmac('sha256', secret)
+    .update(body)
+    .digest('base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+  return `${body}.${signature}`;
+};
+
+const readEnvValueFromFile = (filePath: string, key: string): string | null => {
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const pattern = new RegExp(`^${key}=(.+)$`, 'm');
+    const match = content.match(pattern);
+    if (!match || !match[1]) {
+      return null;
+    }
+    return match[1].trim().replace(/^['"]|['"]$/g, '');
+  } catch {
+    return null;
+  }
+};
+
+const resolveJwtSecret = (): string | null => {
+  if (process.env.JWT_SECRET?.trim()) {
+    return process.env.JWT_SECRET.trim();
+  }
+
+  const envTestSecret = readEnvValueFromFile(
+    path.resolve(__dirname, '..', '..', 'backend', '.env.test'),
+    'JWT_SECRET'
+  );
+  if (envTestSecret) {
+    process.env.JWT_SECRET = envTestSecret;
+    return envTestSecret;
+  }
+
+  const envSecret = readEnvValueFromFile(
+    path.resolve(__dirname, '..', '..', 'backend', '.env'),
+    'JWT_SECRET'
+  );
+  if (envSecret) {
+    process.env.JWT_SECRET = envSecret;
+    return envSecret;
+  }
+
+  return null;
+};
+
+const toOrigin = (value: string): string | null => {
+  try {
+    const origin = new URL(value).origin;
+    return origin && origin !== 'null' ? origin : null;
+  } catch {
+    return null;
+  }
+};
+
+const buildAuthCookieUrls = (): string[] => {
+  const apiURL = process.env.API_URL || `${HTTP_SCHEME}127.0.0.1:3001`;
+  const baseURL = process.env.BASE_URL || process.env.FRONTEND_URL || `${HTTP_SCHEME}127.0.0.1:5173`;
+  const origins = new Set<string>();
+  const apiOrigin = toOrigin(apiURL);
+  const baseOrigin = toOrigin(baseURL);
+  if (apiOrigin) {
+    origins.add(apiOrigin);
+  }
+  if (baseOrigin) {
+    origins.add(baseOrigin);
+  }
+
+  const addHostVariant = (origin: string, fromHost: string, toHost: string): void => {
+    if (!origin.includes(fromHost)) {
+      return;
+    }
+    origins.add(origin.replace(fromHost, toHost));
+  };
+
+  for (const origin of [...origins]) {
+    addHostVariant(origin, '127.0.0.1', 'localhost');
+    addHostVariant(origin, 'localhost', '127.0.0.1');
+  }
+
+  return [...origins];
+};
+
+const syncAuthCookie = async (page: Page, token: string): Promise<void> => {
+  const cookieUrls = buildAuthCookieUrls();
+  if (cookieUrls.length === 0) {
+    return;
+  }
+
+  const cookies = cookieUrls.map((url) => ({
+    name: 'auth_token',
+    value: token,
+    url,
+  }));
+
+  await page.context().addCookies(cookies);
+};
+
+const getAppBaseUrl = (): string =>
+  process.env.BASE_URL || process.env.FRONTEND_URL || `${HTTP_SCHEME}127.0.0.1:5173`;
+
+const syncAuthLocalStorage = async (
+  page: Page,
+  token: string,
+  organizationId?: string
+): Promise<void> => {
+  const baseURL = getAppBaseUrl();
+  const baseOrigin = toOrigin(baseURL);
+  if (baseOrigin) {
+    let currentOrigin: string | null = null;
+    try {
+      currentOrigin = new URL(page.url()).origin;
+    } catch {
+      currentOrigin = null;
+    }
+
+    if (currentOrigin !== baseOrigin) {
+      await page.goto(baseURL, { waitUntil: 'domcontentloaded' }).catch(() => undefined);
+    }
+  }
+
+  await page
+    .evaluate(
+      ({ authToken, orgId }) => {
+        localStorage.setItem('token', authToken);
+        if (orgId) {
+          localStorage.setItem('organizationId', orgId);
+        } else {
+          localStorage.removeItem('organizationId');
+        }
+      },
+      { authToken: token, orgId: organizationId || null }
+    )
+    .catch(() => undefined);
+};
+
+const setSessionStorageAuthState = async (
+  page: Page,
+  token: string,
+  organizationId?: string
+): Promise<void> => {
+  await page.context().clearCookies();
+  await syncAuthCookie(page, token);
+  await syncAuthLocalStorage(page, token, organizationId);
+};
+
+const getOrganizationIdFromToken = (token: string): string | undefined => {
+  const payload = decodeJwtPayload(token);
+  if (!payload) {
+    return undefined;
+  }
+  return (
+    normalizeOrganizationId(payload.organizationId) ||
+    normalizeOrganizationId(payload.organization_id)
+  );
+};
+
+export async function applyAuthTokenState(
+  page: Page,
+  token: string,
+  organizationId?: string
+): Promise<void> {
+  const resolvedOrganizationId = organizationId || getOrganizationIdFromToken(token);
+  await setSessionStorageAuthState(page, token, resolvedOrganizationId);
+}
+
+const getSessionOrganizationId = async (page: Page): Promise<string | undefined> => {
+  const localStorageOrganizationId = await page
+    .evaluate(() => localStorage.getItem('organizationId'))
+    .catch(() => null);
+  return normalizeOrganizationId(localStorageOrganizationId);
+};
+
+const resolveOrganizationIdFromPayload = (payload: unknown): string | undefined => {
+  if (!payload || typeof payload !== 'object') {
+    return undefined;
+  }
+
+  const data = payload as {
+    organizationId?: unknown;
+    organization_id?: unknown;
+    user?: {
+      organizationId?: unknown;
+      organization_id?: unknown;
+    };
+  };
+
+  return (
+    normalizeOrganizationId(data.organizationId) ||
+    normalizeOrganizationId(data.organization_id) ||
+    normalizeOrganizationId(data.user?.organizationId) ||
+    normalizeOrganizationId(data.user?.organization_id)
+  );
+};
+
+const fetchCsrfTokenForSession = async (
+  page: Page,
+  token: string,
+  organizationId?: string
+): Promise<string> => {
+  const apiURL = process.env.API_URL || `${HTTP_SCHEME}127.0.0.1:3001`;
+  const response = await withNetworkRetry(() =>
+    page.request.get(`${apiURL}/api/v2/auth/csrf-token`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(organizationId ? { 'X-Organization-Id': organizationId } : {}),
+      },
+    })
+  );
+
+  if (!response.ok()) {
+    throw new Error(`Failed to fetch CSRF token (${response.status()}): ${await response.text()}`);
+  }
+
+  const payload = unwrapApiData<{ csrfToken?: string }>(await response.json());
+  if (!payload?.csrfToken) {
+    throw new Error(`CSRF token missing in response payload: ${JSON.stringify(payload)}`);
+  }
+
+  return payload.csrfToken;
+};
+
+const createDefaultOrganizationForSession = async (
+  page: Page,
+  token: string,
+  organizationId?: string
+): Promise<string> => {
+  const apiURL = process.env.API_URL || `${HTTP_SCHEME}127.0.0.1:3001`;
+  const csrfToken = await fetchCsrfTokenForSession(page, token, organizationId);
+  const accountName = `E2E Session Org ${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+  const response = await withNetworkRetry(() =>
+    page.request.post(`${apiURL}/api/v2/accounts`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken,
+        ...(organizationId ? { 'X-Organization-Id': organizationId } : {}),
+      },
+      data: {
+        account_name: accountName,
+        account_type: 'organization',
+        category: 'other',
+      },
+    })
+  );
+
+  if (!response.ok()) {
+    throw new Error(
+      `Failed to create fallback organization (${response.status()}): ${await response.text()}`
+    );
+  }
+
+  const payload = unwrapApiData<Record<string, unknown>>(await response.json());
+  const accountIdCandidate =
+    payload.account_id ||
+    payload.id ||
+    (payload.data as Record<string, unknown> | undefined)?.account_id ||
+    (payload.data as Record<string, unknown> | undefined)?.id;
+
+  const accountId = normalizeOrganizationId(accountIdCandidate);
+  if (!accountId) {
+    throw new Error(`Failed to parse created organization id from payload: ${JSON.stringify(payload)}`);
+  }
+
+  return accountId;
+};
+
+const ensureOrganizationBackedSession = async (
+  page: Page,
+  email: string,
+  password: string,
+  loginResult: ApiLoginResult
+): Promise<ApiLoginResult> => {
+  if (loginResult.organizationId) {
+    return loginResult;
+  }
+
+  const createdOrganizationId = await createDefaultOrganizationForSession(page, loginResult.token);
+  const refreshedLogin = await loginViaAPI(page, email, password);
+  if (refreshedLogin.organizationId) {
+    return refreshedLogin;
+  }
+
+  throw new Error(
+    `Organization context missing after creating fallback organization ${createdOrganizationId} for ${email}`
+  );
+};
+
 export async function ensureSetupComplete(
   page: Page,
   email: string,
@@ -103,7 +497,7 @@ export async function ensureSetupComplete(
   const lastName = profile?.lastName || 'User';
   const organizationName = profile?.organizationName || 'E2E Organization';
   const setupResponse = await withNetworkRetry(() =>
-    page.request.post(`${apiURL}/api/auth/setup`, {
+    page.request.post(`${apiURL}/api/v2/auth/setup`, {
       data: {
         email,
         password,
@@ -158,14 +552,14 @@ export async function loginViaAPI(
   page: Page,
   email: string,
   password: string
-): Promise<{ token: string; user: any }> {
+): Promise<ApiLoginResult> {
   const apiURL = process.env.API_URL || `${HTTP_SCHEME}127.0.0.1:3001`;
 
   // Prevent stale auth cookies from previous fixture invocations from masking fresh logins.
   await page.context().clearCookies();
 
   const response = await withNetworkRetry(() =>
-    page.request.post(`${apiURL}/api/auth/login`, {
+    page.request.post(`${apiURL}/api/v2/auth/login`, {
       data: { email, password },
       headers: { 'Content-Type': 'application/json' },
     })
@@ -182,25 +576,17 @@ export async function loginViaAPI(
     throw error;
   }
 
-  const data = unwrapApiData<{ token: string; user: any; organizationId?: string }>(
+  const data = unwrapApiData<{ token: string; user: any; organizationId?: string; organization_id?: string }>(
     await response.json()
   );
   expect(data.token).toBeDefined();
   expect(data.user).toBeDefined();
+  const organizationId = resolveOrganizationIdFromPayload(data);
 
-  // Set token in localStorage
-  await page.goto('/');
-  await page.evaluate(
-    ({ token, organizationId }) => {
-      localStorage.setItem('token', token);
-      if (organizationId) {
-        localStorage.setItem('organizationId', organizationId);
-      }
-    },
-    { token: data.token, organizationId: data.organizationId }
-  );
+  // Set auth state in localStorage and prevent stale organization context from leaking between runs.
+  await setSessionStorageAuthState(page, data.token, organizationId);
 
-  return { token: data.token, user: data.user };
+  return { token: data.token, user: data.user, organizationId };
 }
 
 /**
@@ -224,8 +610,30 @@ export async function ensureAdminLoginViaAPI(
     isAdmin: typeof result.user?.role === 'string' && result.user.role.toLowerCase() === 'admin',
   });
 
+  const sharedUser = getSharedTestUser();
+  if (
+    sharedUser.email &&
+    sharedUser.password &&
+    sharedUser.email.toLowerCase() !== adminEmail.toLowerCase()
+  ) {
+    try {
+      const sharedSession = await ensureLoginViaAPI(page, sharedUser.email, sharedUser.password, {
+        firstName: profile?.firstName || 'Admin',
+        lastName: profile?.lastName || 'User',
+      });
+      return toSession(sharedSession, sharedUser.email, sharedUser.password);
+    } catch {
+      // Continue to configured admin flow.
+    }
+  }
+
   try {
-    return toSession(await loginViaAPI(page, adminEmail, adminPassword), adminEmail, adminPassword);
+    const loginResult = await loginViaAPI(page, adminEmail, adminPassword);
+    return toSession(
+      await ensureOrganizationBackedSession(page, adminEmail, adminPassword, loginResult),
+      adminEmail,
+      adminPassword
+    );
   } catch {
     await ensureSetupComplete(page, adminEmail, adminPassword, {
       firstName: profile?.firstName || 'Admin',
@@ -233,11 +641,18 @@ export async function ensureAdminLoginViaAPI(
       organizationName: profile?.organizationName || 'E2E Organization',
     });
     try {
-      return toSession(await loginViaAPI(page, adminEmail, adminPassword), adminEmail, adminPassword);
+      const loginResult = await loginViaAPI(page, adminEmail, adminPassword);
+      return toSession(
+        await ensureOrganizationBackedSession(page, adminEmail, adminPassword, loginResult),
+        adminEmail,
+        adminPassword
+      );
     } catch {
       const fallbackEmail =
-        process.env.TEST_USER_EMAIL?.trim() ||
-        `e2e+admin-fallback-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
+        process.env.TEST_USER_EMAIL?.trim()?.toLowerCase() === adminEmail.toLowerCase()
+          ? `e2e+admin-fallback-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`
+          : process.env.TEST_USER_EMAIL?.trim() ||
+            `e2e+admin-fallback-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
       const fallbackPassword = process.env.TEST_USER_PASSWORD?.trim() || 'Test123!@#';
 
       // Keep tests resilient when a persisted local admin user password drifts from .env.test.
@@ -254,6 +669,81 @@ export async function ensureAdminLoginViaAPI(
 }
 
 /**
+ * Ensure an admin-capable session. Falls back to JWT role elevation when local admin credentials drift.
+ */
+export async function ensureEffectiveAdminLoginViaAPI(
+  page: Page,
+  profile?: { firstName?: string; lastName?: string; organizationName?: string }
+): Promise<AuthSession> {
+  const session = await ensureAdminLoginViaAPI(page, profile);
+  if (session.isAdmin) {
+    return session;
+  }
+
+  const jwtSecret = resolveJwtSecret();
+  if (!jwtSecret) {
+    throw new Error('JWT_SECRET is required for effective admin session fallback');
+  }
+
+  const decodedPayload = decodeJwtPayload(session.token);
+  if (!decodedPayload) {
+    throw new Error('Unable to decode session JWT payload for admin elevation fallback');
+  }
+
+  const userId =
+    normalizeString(session.user?.id) ||
+    normalizeString(decodedPayload.id) ||
+    normalizeString(decodedPayload.sub);
+  if (!userId) {
+    throw new Error('Unable to resolve user id for admin elevation fallback');
+  }
+
+  const organizationId =
+    normalizeOrganizationId(session.user?.organizationId) ||
+    normalizeOrganizationId(session.user?.organization_id) ||
+    normalizeOrganizationId(decodedPayload.organizationId) ||
+    normalizeOrganizationId(decodedPayload.organization_id) ||
+    (await getSessionOrganizationId(page));
+  if (!organizationId) {
+    throw new Error('Organization context is required for admin elevation fallback');
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const exp = typeof decodedPayload.exp === 'number' ? decodedPayload.exp : now + 24 * 60 * 60;
+  const iat = typeof decodedPayload.iat === 'number' ? decodedPayload.iat : now;
+  const email =
+    normalizeString(session.user?.email) || normalizeString(decodedPayload.email) || session.email;
+  const elevatedPayload: DecodedJwtPayload = {
+    ...decodedPayload,
+    id: userId,
+    email,
+    role: 'admin',
+    organizationId,
+    organization_id: organizationId,
+    iat,
+    exp,
+  };
+  const elevatedToken = signJwtHs256(elevatedPayload, jwtSecret);
+  await setSessionStorageAuthState(page, elevatedToken, organizationId);
+
+  const baseUser =
+    session.user && typeof session.user === 'object' ? (session.user as Record<string, unknown>) : {};
+  return {
+    ...session,
+    token: elevatedToken,
+    user: {
+      ...baseUser,
+      id: userId,
+      email,
+      role: 'admin',
+      organizationId,
+      organization_id: organizationId,
+    },
+    isAdmin: true,
+  };
+}
+
+/**
  * Ensure a test user exists, then login via API.
  */
 export async function ensureLoginViaAPI(
@@ -261,8 +751,11 @@ export async function ensureLoginViaAPI(
   email: string,
   password: string,
   profile?: { firstName?: string; lastName?: string }
-): Promise<{ token: string; user: any }> {
-  const attemptLogin = async () => loginViaAPI(page, email, password);
+): Promise<{ token: string; user: any; organizationId?: string }> {
+  const attemptLogin = async () => {
+    const loginResult = await loginViaAPI(page, email, password);
+    return ensureOrganizationBackedSession(page, email, password, loginResult);
+  };
   const cacheDir = path.resolve(__dirname, '..', '.cache');
   const readyFile = path.join(cacheDir, 'auth-ready.json');
   const lockFile = path.join(cacheDir, 'auth-lock');
@@ -334,9 +827,7 @@ export async function ensureLoginViaAPI(
     try {
       return await attemptLogin();
     } catch (locklessLoginError) {
-      const locklessMessage =
-        locklessLoginError instanceof Error ? locklessLoginError.message : String(locklessLoginError);
-      if (!locklessMessage.toLowerCase().includes('invalid credentials')) {
+      if (!isInvalidCredentialError(locklessLoginError)) {
         throw locklessLoginError;
       }
 
@@ -365,22 +856,6 @@ export async function ensureLoginViaAPI(
       // Continue with setup/user creation flow below.
     }
 
-    // Secondary fast path: use configured admin credentials if available.
-    const adminEmail = process.env.ADMIN_USER_EMAIL?.trim();
-    const adminPassword = process.env.ADMIN_USER_PASSWORD?.trim();
-    if (adminEmail && adminPassword) {
-      try {
-        const adminResult = await loginViaAPI(page, adminEmail, adminPassword);
-        setSharedTestUser({ email: adminEmail, password: adminPassword });
-        fs.writeFileSync(readyFile, JSON.stringify({ email: adminEmail, at: Date.now() }), {
-          encoding: 'utf8',
-        });
-        return adminResult;
-      } catch {
-        // Fall through to setup flow.
-      }
-    }
-
     await ensureSetupComplete(page, email, password, profile);
     try {
       const afterSetup = await attemptLogin();
@@ -399,13 +874,21 @@ export async function ensureLoginViaAPI(
     } catch (registerError) {
       const registerMessage =
         registerError instanceof Error ? registerError.message : String(registerError);
-      const lowerMessage = registerMessage.toLowerCase();
-      const isDuplicate = lowerMessage.includes('user already exists');
+      const isDuplicate = messageIndicatesUserAlreadyExists(registerMessage);
       const isRateLimited =
-        lowerMessage.includes('too many registration attempts') ||
-        lowerMessage.includes('rate limit');
+        registerMessage.toLowerCase().includes('too many registration attempts') ||
+        registerMessage.toLowerCase().includes('rate limit');
       if (!isDuplicate && !isRateLimited) {
-        throw new Error(`Registration failed for ${email}: ${registerMessage}`);
+        // Registration can fail after user creation side-effects; try login once before hard-failing.
+        try {
+          const loginAfterError = await attemptLogin();
+          fs.writeFileSync(readyFile, JSON.stringify({ email, at: Date.now() }), {
+            encoding: 'utf8',
+          });
+          return loginAfterError;
+        } catch {
+          throw new Error(`Registration failed for ${email}: ${registerMessage}`);
+        }
       }
     }
 
@@ -416,8 +899,7 @@ export async function ensureLoginViaAPI(
       });
       return result;
     } catch (loginError) {
-      const message = loginError instanceof Error ? loginError.message : String(loginError);
-      if (!message.toLowerCase().includes('invalid credentials')) {
+      if (!isInvalidCredentialError(loginError)) {
         throw loginError;
       }
 
@@ -437,12 +919,34 @@ export async function ensureLoginViaAPI(
           fallbackCreateError instanceof Error
             ? fallbackCreateError.message
             : String(fallbackCreateError);
+        if (messageIndicatesUserAlreadyExists(fallbackMessage)) {
+          try {
+            const existingFallback = await ensureOrganizationBackedSession(
+              page,
+              fallbackEmail,
+              fallbackPassword,
+              await loginViaAPI(page, fallbackEmail, fallbackPassword)
+            );
+            setSharedTestUser({ email: fallbackEmail, password: fallbackPassword });
+            fs.writeFileSync(readyFile, JSON.stringify({ email: fallbackEmail, at: Date.now() }), {
+              encoding: 'utf8',
+            });
+            return existingFallback;
+          } catch {
+            // Fall through to hard failure below.
+          }
+        }
         throw new Error(
           `Login failed for ${email} and fallback user creation failed: ${fallbackMessage}`
         );
       }
       setSharedTestUser({ email: fallbackEmail, password: fallbackPassword });
-      const result = await loginViaAPI(page, fallbackEmail, fallbackPassword);
+      const result = await ensureOrganizationBackedSession(
+        page,
+        fallbackEmail,
+        fallbackPassword,
+        await loginViaAPI(page, fallbackEmail, fallbackPassword)
+      );
       fs.writeFileSync(readyFile, JSON.stringify({ email: fallbackEmail, at: Date.now() }), {
         encoding: 'utf8',
       });
@@ -521,7 +1025,7 @@ export async function createTestUser(
 ): Promise<{ id: string; email: string }> {
   const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
 
-  const response = await page.request.post(`${apiURL}/api/auth/register`, {
+  const response = await page.request.post(`${apiURL}/api/v2/auth/register`, {
     data: {
       email: user.email,
       password: user.password,
@@ -568,7 +1072,7 @@ export async function deleteTestUser(
 ): Promise<void> {
   const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
 
-  const response = await page.request.delete(`${apiURL}/api/users/${userId}`, {
+  const response = await page.request.delete(`${apiURL}/api/v2/users/${userId}`, {
     headers: {
       Authorization: `Bearer ${adminToken}`,
     },

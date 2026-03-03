@@ -304,7 +304,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
           )}
 
           {uploadError && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div className="p-3 bg-app-accent-soft border border-app-border rounded-lg text-app-accent-text text-sm">
               {uploadError}
             </div>
           )}
@@ -442,7 +442,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                   </button>
                   <button
                     onClick={() => handleDelete(doc.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                    className="p-2 text-app-accent hover:bg-app-accent-soft rounded-lg transition"
                     title="Delete"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

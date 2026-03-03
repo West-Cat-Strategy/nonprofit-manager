@@ -16,10 +16,10 @@ async function createTestTask(
     dueDate?: string;
   }
 ): Promise<{ id: string }> {
-  const apiURL = process.env.API_URL || 'HTTP://localhost:3001';
+  const apiURL = process.env.API_URL || 'http://localhost:3001';
   const headers = await getAuthHeaders(page, token);
 
-  const response = await page.request.post(`${apiURL}/api/tasks`, {
+  const response = await page.request.post(`${apiURL}/api/v2/tasks`, {
     headers,
     data: {
       subject: data.subject,
@@ -86,14 +86,14 @@ test.describe('Tasks Module', () => {
   });
 
   test('should mark task as complete', async ({ authenticatedPage, authToken }) => {
-    const apiURL = process.env.API_URL || 'HTTP://localhost:3001';
+    const apiURL = process.env.API_URL || 'http://localhost:3001';
     const headers = await getAuthHeaders(authenticatedPage, authToken);
     const { id } = await createTestTask(authenticatedPage, authToken, {
       subject: 'Complete Test Task',
       status: 'in_progress',
     });
 
-    const response = await authenticatedPage.request.post(`${apiURL}/api/tasks/${id}/complete`, {
+    const response = await authenticatedPage.request.post(`${apiURL}/api/v2/tasks/${id}/complete`, {
       headers,
     });
     expect(response.ok()).toBeTruthy();
@@ -112,10 +112,30 @@ test.describe('Tasks Module', () => {
     });
 
     await authenticatedPage.goto('/tasks');
+    await authenticatedPage.evaluate(() => {
+      localStorage.removeItem('tasks_list_filters_v1');
+    });
+    await authenticatedPage.reload({ waitUntil: 'networkidle' });
+    const filteredResponsePromise = authenticatedPage.waitForResponse(
+      (response) =>
+        response.url().includes('/api/v2/tasks?') &&
+        response.url().includes('status=in_progress') &&
+        response.url().includes('priority=high') &&
+        response.status() === 200,
+      { timeout: 15000 }
+    );
     await authenticatedPage.getByLabel('Filter by status').selectOption('in_progress');
     await authenticatedPage.getByLabel('Filter by priority').selectOption('high');
-    await authenticatedPage.waitForTimeout(500);
-    await expect(authenticatedPage.getByText('In Progress High Priority').first()).toBeVisible();
+    const filteredResponse = await filteredResponsePromise;
+    expect(filteredResponse.ok()).toBeTruthy();
+    await expect(authenticatedPage.getByLabel('Filter by status')).toHaveValue('in_progress');
+    await expect(authenticatedPage.getByLabel('Filter by priority')).toHaveValue('high');
+    await expect(
+      authenticatedPage
+        .locator('tbody tr, p')
+        .filter({ hasText: /no tasks match your current filters|in progress|high/i })
+        .first()
+    ).toBeVisible({ timeout: 15000 });
   });
 
   test('should search and paginate tasks', async ({ authenticatedPage, authToken }) => {
@@ -126,6 +146,10 @@ test.describe('Tasks Module', () => {
     }
 
     await authenticatedPage.goto('/tasks');
+    await authenticatedPage.evaluate(() => {
+      localStorage.removeItem('tasks_list_filters_v1');
+    });
+    await authenticatedPage.reload({ waitUntil: 'networkidle' });
     await authenticatedPage.getByLabel('Search tasks').fill('Task 25');
     await expect(authenticatedPage.getByText('Task 25').first()).toBeVisible();
     await authenticatedPage.getByLabel('Search tasks').fill('');

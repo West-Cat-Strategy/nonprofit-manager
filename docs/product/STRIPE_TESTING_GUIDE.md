@@ -33,7 +33,7 @@ All Stripe test keys begin with:
 
 ### 1. Payment Configuration
 
-**Endpoint:** `GET /api/payments/config`
+**Endpoint:** `GET /api/v2/payments/config`
 
 **Expected Response:**
 ```json
@@ -54,7 +54,7 @@ All Stripe test keys begin with:
 
 ### 2. Create Payment Intent
 
-**Endpoint:** `POST /api/payments/intents`
+**Endpoint:** `POST /api/v2/payments/intents`
 
 **Test Data:**
 ```json
@@ -108,7 +108,7 @@ All Stripe test keys begin with:
 
 ### 3. Retrieve Payment Intent
 
-**Endpoint:** `GET /api/payments/intents/:id`
+**Endpoint:** `GET /api/v2/payments/intents/:id`
 
 **Test Scenarios:**
 
@@ -128,7 +128,7 @@ All Stripe test keys begin with:
 
 ### 4. Cancel Payment Intent
 
-**Endpoint:** `POST /api/payments/intents/:id/cancel`
+**Endpoint:** `POST /api/v2/payments/intents/:id/cancel`
 
 **Test Scenarios:**
 
@@ -145,7 +145,7 @@ All Stripe test keys begin with:
 
 ### 5. Create Refund
 
-**Endpoint:** `POST /api/payments/refunds`
+**Endpoint:** `POST /api/v2/payments/refunds`
 
 **Test Data:**
 ```json
@@ -180,7 +180,7 @@ All Stripe test keys begin with:
 
 #### Create Customer
 
-**Endpoint:** `POST /api/payments/customers`
+**Endpoint:** `POST /api/v2/payments/customers`
 
 **Test Data:**
 ```json
@@ -211,7 +211,7 @@ All Stripe test keys begin with:
 
 #### Get Customer
 
-**Endpoint:** `GET /api/payments/customers/:id`
+**Endpoint:** `GET /api/v2/payments/customers/:id`
 
 **Test Scenarios:**
 - Valid customer ID
@@ -220,7 +220,7 @@ All Stripe test keys begin with:
 
 #### List Payment Methods
 
-**Endpoint:** `GET /api/payments/customers/:customerId/payment-methods`
+**Endpoint:** `GET /api/v2/payments/customers/:customerId/payment-methods`
 
 **Test Scenarios:**
 - Customer with no payment methods
@@ -245,7 +245,7 @@ stripe login
 
 3. Forward webhooks to local server:
 ```bash
-stripe listen --forward-to localhost:3000/api/payments/webhook
+stripe listen --forward-to localhost:3000/api/v2/payments/webhook
 ```
 
 4. Copy webhook signing secret and update `.env`:

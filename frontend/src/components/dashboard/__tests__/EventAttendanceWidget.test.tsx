@@ -628,7 +628,7 @@ describe('EventAttendanceWidget', () => {
       );
 
       await waitFor(() => {
-        expect(mockedApi.get).toHaveBeenCalledWith('/events/summary');
+        expect(mockedApi.get).toHaveBeenCalledWith('/v2/events/summary');
       });
     });
 

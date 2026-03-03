@@ -66,8 +66,8 @@ const RecentDonationsWidget = ({ widget, editMode, onRemove }: RecentDonationsWi
                 <span
                   className={`text-xs px-2 py-1 rounded ${
                     donation.status === 'completed'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-yellow-100 text-yellow-700'
+                      ? 'bg-app-accent-soft text-app-accent-text'
+                      : 'bg-app-accent-soft text-app-accent-text'
                   }`}
                 >
                   {donation.status}

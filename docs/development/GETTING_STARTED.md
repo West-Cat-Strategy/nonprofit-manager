@@ -199,7 +199,7 @@ You should see:
 
 Test it:
 ```bash
-curl localhost:3000/api/health
+curl localhost:3000/health/live
 ```
 
 Should return: `{"status":"ok"}`
@@ -274,7 +274,7 @@ Backend should start at `localhost:3000/`.
 
 Test it:
 ```bash
-curl localhost:3000/api/health
+curl localhost:3000/health/live
 ```
 
 ### Part 3: Verify Both Services (5 minutes)
@@ -286,7 +286,7 @@ Test the connection:
 
 ```bash
 # In a third terminal
-curl localhost:3000/api/health
+curl localhost:3000/health/live
 
 # Should return: {"status":"ok"}
 ```

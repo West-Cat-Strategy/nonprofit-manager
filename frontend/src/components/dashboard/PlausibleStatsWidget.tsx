@@ -41,7 +41,7 @@ interface StatCardProps {
 }
 
 const StatCard = ({ title, value, change, icon }: StatCardProps) => {
-  const changeColor = change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-app-text-muted';
+  const changeColor = change > 0 ? 'text-app-accent' : change < 0 ? 'text-app-accent' : 'text-app-text-muted';
   const changePrefix = change > 0 ? '+' : '';
 
   return (

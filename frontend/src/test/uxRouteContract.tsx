@@ -9,6 +9,7 @@ export type RouteUxCase = {
   page: ReactElement;
   heading: string | RegExp;
   primaryActionPattern: RegExp;
+  primaryActionRole?: 'button' | 'link';
   headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
 };
 
@@ -20,6 +21,7 @@ export async function assertRouteUxContract({
   page,
   heading,
   primaryActionPattern,
+  primaryActionRole = 'button',
   headingLevel = 1,
 }: RouteUxCase): Promise<void> {
   renderWithProviders(page, { route });
@@ -29,7 +31,7 @@ export async function assertRouteUxContract({
   });
 
   expect(
-    screen.getAllByRole('button', {
+    screen.getAllByRole(primaryActionRole, {
       name: primaryActionPattern,
     }).length
   ).toBeGreaterThan(0);

@@ -5,6 +5,7 @@ jest.mock('@config/database', () => ({
   __esModule: true,
   default: {
     query: jest.fn(),
+    connect: jest.fn(),
   },
 }));
 
@@ -17,6 +18,7 @@ jest.mock('@config/logger', () => ({
 }));
 
 type QueryMock = jest.MockedFunction<typeof pool.query>;
+type ConnectMock = jest.MockedFunction<typeof pool.connect>;
 
 interface ReminderRowOverride {
   [key: string]: unknown;
@@ -47,9 +49,22 @@ const buildReminderRow = (overrides: ReminderRowOverride = {}) => ({
 
 describe('eventReminderAutomationService', () => {
   const mockQuery = pool.query as QueryMock;
+  const mockConnect = pool.connect as ConnectMock;
+  const clientQuery = jest.fn((sql: string, params?: unknown[]) => {
+    const normalized = sql.trim().toUpperCase();
+    if (normalized === 'BEGIN' || normalized === 'COMMIT' || normalized === 'ROLLBACK') {
+      return Promise.resolve({ rows: [], rowCount: 0 });
+    }
+    return mockQuery(sql, params as never);
+  });
+  const clientRelease = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockConnect.mockResolvedValue({
+      query: clientQuery,
+      release: clientRelease,
+    } as never);
   });
 
   describe('createEventReminderAutomation', () => {

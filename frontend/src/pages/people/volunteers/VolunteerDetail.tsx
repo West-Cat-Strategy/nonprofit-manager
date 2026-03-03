@@ -45,7 +45,7 @@ const VolunteerDetail = () => {
     return (
       <div className="min-h-screen bg-app-surface-muted p-6">
         <div className="max-w-6xl mx-auto">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="bg-app-accent-soft border border-app-border text-app-accent-text px-4 py-3 rounded-lg">
             {error || 'Volunteer not found'}
           </div>
           <button
@@ -312,11 +312,11 @@ const VolunteerDetail = () => {
                       </button>
                       <span
                         className={`px-2 py-1 text-xs rounded-full capitalize ${assignment.status === 'completed'
-                            ? 'bg-green-100 text-green-800'
+                            ? 'bg-app-accent-soft text-app-accent-text'
                             : assignment.status === 'in_progress'
                               ? 'bg-app-accent-soft text-app-accent-text'
                               : assignment.status === 'cancelled'
-                                ? 'bg-red-100 text-red-800'
+                                ? 'bg-app-accent-soft text-app-accent-text'
                                 : 'bg-app-surface-muted text-app-text'
                           }`}
                       >
@@ -390,11 +390,11 @@ const VolunteerDetail = () => {
                       </div>
                       <span
                         className={`px-2 py-1 text-xs rounded-full capitalize ${assignment.status === 'completed'
-                            ? 'bg-green-100 text-green-800'
+                            ? 'bg-app-accent-soft text-app-accent-text'
                             : assignment.status === 'in_progress'
                               ? 'bg-app-accent-soft text-app-accent-text'
                               : assignment.status === 'cancelled'
-                                ? 'bg-red-100 text-red-800'
+                                ? 'bg-app-accent-soft text-app-accent-text'
                                 : 'bg-app-surface-muted text-app-text'
                           }`}
                       >

@@ -256,7 +256,7 @@ const ContactList = () => {
       render: (_, row) => (
         <span
           className={`px-3 py-1 text-xs font-medium rounded ${row.is_active
-            ? 'bg-green-100 text-green-800'
+            ? 'bg-app-accent-soft text-app-accent-text'
             : 'bg-app-surface-muted text-app-text'
             }`}
         >

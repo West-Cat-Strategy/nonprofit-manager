@@ -116,7 +116,7 @@ export const PeopleListContainer = <T,>({
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-500 border-4 border-black text-white px-6 py-4 mb-8 font-black uppercase tracking-wider shadow-[6px_6px_0px_0px_var(--shadow-color)]">
+          <div className="bg-app-accent border-4 border-black text-white px-6 py-4 mb-8 font-black uppercase tracking-wider shadow-[6px_6px_0px_0px_var(--shadow-color)]">
             {error}
           </div>
         )}

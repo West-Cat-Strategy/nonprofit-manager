@@ -1,2 +1,2 @@
-export * from '../../features/cases/state/casesLegacyCore';
-export { default } from '../../features/cases/state/casesLegacyCore';
+export * from '../../features/cases/state/casesCore';
+export { default } from '../../features/cases/state/casesCore';

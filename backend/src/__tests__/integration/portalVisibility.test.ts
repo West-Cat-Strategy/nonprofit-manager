@@ -16,6 +16,7 @@ describe('Portal Visibility Integration', () => {
   let visibleDocId: string;
   let hiddenDocId: string;
   let visibleFormDocId: string;
+  let missingFileDocId: string;
 
   const createdDocIds: string[] = [];
   const createdNoteIds: string[] = [];
@@ -157,6 +158,25 @@ describe('Portal Visibility Integration', () => {
     );
     visibleFormDocId = visibleFormDoc.rows[0].id as string;
     createdDocIds.push(visibleFormDocId);
+
+    const missingFileDoc = await pool.query(
+      `INSERT INTO contact_documents (
+         contact_id,
+         file_name,
+         original_name,
+         file_path,
+         file_size,
+         mime_type,
+         document_type,
+         title,
+         is_portal_visible,
+         created_by
+       ) VALUES ($1, 'missing.pdf', 'missing.pdf', $2, 99, 'application/pdf', 'other', 'Missing file document', true, NULL)
+       RETURNING id`,
+      [contactId, `documents/non-existent-${suffix}.pdf`]
+    );
+    missingFileDocId = missingFileDoc.rows[0].id as string;
+    createdDocIds.push(missingFileDocId);
   });
 
   afterAll(async () => {
@@ -214,5 +234,13 @@ describe('Portal Visibility Integration', () => {
       .get(`/api/v2/portal/documents/${hiddenDocId}/download`)
       .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
       .expect(404);
+
+    const missingFileResponse = await request(app)
+      .get(`/api/v2/portal/documents/${missingFileDocId}/download`)
+      .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
+      .expect(404);
+
+    const errorCode = missingFileResponse.body?.error?.code || missingFileResponse.body?.code;
+    expect(errorCode).toMatch(/DOCUMENT_FILE_NOT_FOUND|NOT_FOUND/i);
   });
 });

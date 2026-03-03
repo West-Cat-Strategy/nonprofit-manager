@@ -26,7 +26,7 @@ const TWILIO_SETTINGS_CACHE_KEY = 'admin_twilio_settings_cache_v1';
 const TWILIO_SETTINGS_CACHE_TTL_MS = 2 * 60 * 1000;
 
 const inputClass =
-  'mt-1 block w-full rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500';
+  'mt-1 block w-full rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text shadow-sm focus:border-app-border focus:outline-none focus:ring-1 focus:ring-app-accent';
 const labelClass = 'block text-sm font-medium text-app-text';
 
 export default function TwilioSettingsSection() {
@@ -200,8 +200,8 @@ export default function TwilioSettingsSection() {
       <div
         className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-sm ${
           settings?.isConfigured
-            ? 'border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300'
-            : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300'
+            ? 'border-app-border bg-app-accent-soft text-app-accent-text dark:border-app-accent dark:bg-app-accent-hover/20 dark:text-app-text-muted'
+            : 'border-app-border bg-app-accent-soft text-app-accent-text dark:border-app-accent dark:bg-app-accent-hover/20 dark:text-app-text-muted'
         }`}
       >
         <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -246,7 +246,7 @@ export default function TwilioSettingsSection() {
             <label className={labelClass}>
               Auth Token
               {credentials.authToken && (
-                <span className="ml-2 text-xs text-green-600 dark:text-green-400">(stored)</span>
+                <span className="ml-2 text-xs text-app-accent dark:text-app-text-muted">(stored)</span>
               )}
             </label>
             <input
@@ -290,7 +290,7 @@ export default function TwilioSettingsSection() {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+          className="inline-flex items-center rounded-md bg-app-accent px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
         >
           {saving ? 'Saving...' : 'Save Settings'}
         </button>
@@ -298,7 +298,7 @@ export default function TwilioSettingsSection() {
           type="button"
           onClick={handleTestConnection}
           disabled={testing || !settings?.isConfigured}
-          className="inline-flex items-center rounded-md border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text shadow-sm hover:bg-app-surface-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+          className="inline-flex items-center rounded-md border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text shadow-sm hover:bg-app-surface-muted focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
         >
           {testing ? 'Testing...' : 'Test Twilio Connection'}
         </button>

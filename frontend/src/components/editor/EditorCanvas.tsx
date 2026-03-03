@@ -79,7 +79,7 @@ const SortableComponent: React.FC<SortableComponentProps> = ({
               e.stopPropagation();
               onDelete();
             }}
-            className="p-1 bg-red-500 text-white rounded text-xs hover:bg-red-600"
+            className="p-1 bg-app-accent text-white rounded text-xs hover:bg-app-accent"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -138,12 +138,12 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
         onSelectSection();
       }}
       className={`relative group min-h-[100px] ${
-        isSelected ? 'ring-2 ring-purple-500' : ''
-      } ${isOver ? 'ring-2 ring-green-500 bg-green-50' : ''}`}
+        isSelected ? 'ring-2 ring-app-accent' : ''
+      } ${isOver ? 'ring-2 ring-app-accent bg-app-accent-soft' : ''}`}
     >
       {/* Section overlay with label and actions */}
       <div className="absolute top-0 left-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-        <div className="flex items-center justify-between bg-purple-600 text-white text-xs px-2 py-1">
+        <div className="flex items-center justify-between bg-app-accent text-white text-xs px-2 py-1">
           <span>{section.name}</span>
           <div className="flex gap-1">
             {canDelete && (
@@ -152,7 +152,7 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
                   e.stopPropagation();
                   onDeleteSection();
                 }}
-                className="p-0.5 hover:bg-purple-700 rounded"
+                className="p-0.5 hover:bg-app-accent-hover rounded"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -553,13 +553,13 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
           // Extract YouTube video ID
           const match = component.src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
           if (match) {
-            return `HTTPS://www.youtube.com/embed/${match[1]}`;
+            return `https://www.youtube.com/embed/${match[1]}`;
           }
         }
         if (component.provider === 'vimeo') {
           const match = component.src.match(/vimeo\.com\/(\d+)/);
           if (match) {
-            return `HTTPS://player.vimeo.com/video/${match[1]}`;
+            return `https://player.vimeo.com/video/${match[1]}`;
           }
         }
         return component.src;

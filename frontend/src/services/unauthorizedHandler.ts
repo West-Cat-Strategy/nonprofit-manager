@@ -16,8 +16,11 @@ const validateSessionStillInvalid = async (fetchFn: typeof fetch): Promise<boole
     return sessionValidationInFlight;
   }
 
-  const baseURL = import.meta.env.VITE_API_URL || 'HTTP://localhost:3000/api';
-  const authMeUrl = `${baseURL.replace(/\/$/, '')}/auth/me`;
+  const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+  const normalizedBase = baseURL.replace(/\/$/, '');
+  const authMeUrl = normalizedBase.endsWith('/api/v2')
+    ? `${normalizedBase}/auth/me`
+    : `${normalizedBase}/v2/auth/me`;
 
   sessionValidationInFlight = fetchFn(authMeUrl, {
     method: 'GET',

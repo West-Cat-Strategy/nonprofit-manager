@@ -305,14 +305,17 @@ export const getListTags = async (req: Request<{ listId: string }>, res: Respons
  */
 export const getCampaigns = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { listId } = req.query;
+    const query = ((req as any).validatedQuery ?? req.query) as {
+      listId?: string;
+    };
+    const { listId } = query;
 
     if (!mailchimpService.isMailchimpConfigured()) {
       serviceUnavailable(res, 'Mailchimp is not configured');
       return;
     }
 
-    const campaigns = await mailchimpService.getCampaigns(listId as string | undefined);
+    const campaigns = await mailchimpService.getCampaigns(listId);
     res.json(campaigns);
   } catch (error) {
     logger.error('Error getting campaigns', { error });

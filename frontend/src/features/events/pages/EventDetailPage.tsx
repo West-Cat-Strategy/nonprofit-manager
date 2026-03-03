@@ -12,6 +12,7 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import type { CreateEventReminderAutomationDTO, EventReminderAutomation } from '../../../types/event';
 import EventInfoPanel from '../components/EventInfoPanel';
 import EventRegistrationsPanel from '../components/EventRegistrationsPanel';
+import { eventsApiClient } from '../api/eventsApiClient';
 import {
   cancelEventAutomationV2,
   cancelEventRegistrationV2,
@@ -142,6 +143,18 @@ export default function EventDetailPage() {
     }
   };
 
+  const handleScanCheckIn = async (token: string) => {
+    if (!id) return;
+
+    try {
+      await eventsApiClient.scanCheckIn(id, token);
+      showSuccess('QR check-in successful');
+      refreshDetailData();
+    } catch {
+      showError('Failed to check in with scanned token');
+    }
+  };
+
   const handleSendReminders = async (payload: {
     sendEmail: boolean;
     sendSms: boolean;
@@ -231,7 +244,7 @@ export default function EventDetailPage() {
                 {event.is_public ? 'Public' : 'Private'}
               </span>
               {event.is_recurring && (
-                <span className="rounded-full border border-yellow-600 bg-yellow-100 px-3 py-1 text-sm font-semibold text-yellow-900">
+                <span className="rounded-full border border-app-accent bg-app-accent-soft px-3 py-1 text-sm font-semibold text-app-accent-text">
                   Recurring
                 </span>
               )}
@@ -306,6 +319,7 @@ export default function EventDetailPage() {
             automationsLoading={automationState.loading}
             automationsBusy={automationState.cancelling || automationState.creating}
             onCheckIn={handleCheckIn}
+            onScanCheckIn={handleScanCheckIn}
             onCancelRegistration={handleCancelRegistration}
             onSendReminders={handleSendReminders}
             onCancelAutomation={handleCancelAutomation}

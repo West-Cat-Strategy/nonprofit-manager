@@ -3,8 +3,9 @@ import type { AuthRequest } from '@middleware/auth';
 import { followUpService } from '@services/followUpService';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import { notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
+import { logger } from '@config/logger';
 import {
-  requirePermissionOrError,
+  requirePermissionSafe,
   sendForbidden,
   sendUnauthorized,
 } from '@services/authGuardService';
@@ -14,12 +15,12 @@ import type { FollowUpEntityType, FollowUpFilters } from '@app-types/followUp';
 const getOrgId = (req: AuthRequest): string | null => req.organizationId || req.accountId || req.tenantId || null;
 
 const ensurePermission = (req: AuthRequest, res: Response, permission: Permission): boolean => {
-  const guard = requirePermissionOrError(req, permission);
-  if (!guard.success) {
-    if (guard.error?.toLowerCase().startsWith('unauthorized')) {
-      sendUnauthorized(res, guard.error);
+  const guard = requirePermissionSafe(req, permission);
+  if (!guard.ok) {
+    if (guard.error.code === 'unauthorized') {
+      sendUnauthorized(res, guard.error.message);
     } else {
-      sendForbidden(res, guard.error || 'Forbidden');
+      sendForbidden(res, guard.error.message || 'Forbidden');
     }
     return false;
   }
@@ -164,7 +165,26 @@ export const followUpController = {
       }
 
       sendSuccess(res, updated);
-    } catch {
+    } catch (error) {
+      const errorRecord = error as Error & {
+        code?: string;
+        detail?: string;
+        where?: string;
+        schema?: string;
+        table?: string;
+      };
+      logger.error('Failed to update follow-up', {
+        errorMessage: errorRecord?.message,
+        errorStack: errorRecord?.stack,
+        errorCode: errorRecord?.code,
+        errorDetail: errorRecord?.detail,
+        errorWhere: errorRecord?.where,
+        errorSchema: errorRecord?.schema,
+        errorTable: errorRecord?.table,
+        followUpId: req.params?.id,
+        organizationId: getOrgId(req),
+        userId: req.user?.id,
+      });
       serverError(res, 'Failed to update follow-up');
     }
   },

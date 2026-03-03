@@ -114,7 +114,7 @@ describe('Portal Appointments Integration', () => {
     const slotEnd = new Date(slotStart.getTime() + 45 * 60 * 1000);
 
     const slotResult = await request(app)
-      .post('/api/portal/admin/appointment-slots')
+      .post('/api/v2/portal/admin/appointment-slots')
       .set('Authorization', `Bearer ${buildAdminToken()}`)
       .send({
         pointperson_user_id: adminUserId,
@@ -182,6 +182,56 @@ describe('Portal Appointments Integration', () => {
     expect(secondAttempt.body.error?.message ?? secondAttempt.body.error).toMatch(/fully booked|not open/i);
   });
 
+  it('allows duplicate bookings for the same contact when slot capacity allows it', async () => {
+    const portalToken = buildPortalToken();
+    const adminToken = buildAdminToken();
+    const now = Date.now();
+    const slotStart = new Date(now + 16 * 60 * 60 * 1000);
+    const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000);
+
+    const slotResponse = await request(app)
+      .post('/api/v2/portal/admin/appointment-slots')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        pointperson_user_id: adminUserId,
+        case_id: caseId,
+        title: 'Duplicate booking slot',
+        start_time: slotStart.toISOString(),
+        end_time: slotEnd.toISOString(),
+        capacity: 2,
+      })
+      .expect(201);
+
+    const duplicateSlotId = unwrap<{ slot: { id: string } }>(slotResponse.body).slot.id as string;
+    createdSlotIds.push(duplicateSlotId);
+
+    const first = await request(app)
+      .post(`/api/v2/portal/appointments/slots/${duplicateSlotId}/book`)
+      .set('Cookie', [`portal_auth_token=${portalToken}`])
+      .send({ case_id: caseId })
+      .expect(201);
+
+    const second = await request(app)
+      .post(`/api/v2/portal/appointments/slots/${duplicateSlotId}/book`)
+      .set('Cookie', [`portal_auth_token=${portalToken}`])
+      .send({ case_id: caseId })
+      .expect(201);
+
+    const firstAppointment = unwrap<{ appointment: { id: string } }>(first.body);
+    const secondAppointment = unwrap<{ appointment: { id: string } }>(second.body);
+    createdAppointmentIds.push(firstAppointment.appointment.id as string);
+    createdAppointmentIds.push(secondAppointment.appointment.id as string);
+
+    const slotStateResult = await pool.query<{ booked_count: number; status: string }>(
+      `SELECT booked_count, status
+       FROM appointment_availability_slots
+       WHERE id = $1`,
+      [duplicateSlotId]
+    );
+    expect(Number(slotStateResult.rows[0]?.booked_count || 0)).toBe(2);
+    expect(slotStateResult.rows[0]?.status).toBe('closed');
+  });
+
   it('creates and cancels a manual appointment request', async () => {
     const portalToken = buildPortalToken();
     const startTime = new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString();
@@ -209,5 +259,164 @@ describe('Portal Appointments Integration', () => {
 
     const cancelled = unwrap<{ appointment: { status: string } }>(cancelResponse.body);
     expect(cancelled.appointment.status).toBe('cancelled');
+  });
+
+  it('supports appointment and slot filtering with pagination parameters', async () => {
+    const portalToken = buildPortalToken();
+    const adminToken = buildAdminToken();
+    const now = Date.now();
+
+    const requestedStart = new Date(now + 8 * 60 * 60 * 1000).toISOString();
+    const requestedResponse = await request(app)
+      .post('/api/v2/portal/appointments/requests')
+      .set('Cookie', [`portal_auth_token=${portalToken}`])
+      .send({
+        case_id: caseId,
+        title: 'Filter target appointment',
+        description: 'Filtering coverage',
+        start_time: requestedStart,
+      })
+      .expect(201);
+
+    const requestedAppointment = unwrap<{ appointment: { id: string } }>(requestedResponse.body);
+    createdAppointmentIds.push(requestedAppointment.appointment.id as string);
+
+    const filteredAppointmentsResponse = await request(app)
+      .get('/api/v2/portal/appointments')
+      .set('Cookie', [`portal_auth_token=${portalToken}`])
+      .query({
+        status: 'requested',
+        case_id: caseId,
+        search: 'Filter target',
+        limit: 1,
+        offset: 0,
+      })
+      .expect(200);
+
+    const filteredAppointments = unwrap<Array<{ id: string; status: string }>>(
+      filteredAppointmentsResponse.body
+    );
+    expect(filteredAppointments.length).toBe(1);
+    expect(filteredAppointments[0]?.status).toBe('requested');
+    expect(filteredAppointments[0]?.id).toBe(requestedAppointment.appointment.id);
+
+    const openSlotStart = new Date(now + 10 * 60 * 60 * 1000);
+    const openSlotEnd = new Date(openSlotStart.getTime() + 30 * 60 * 1000);
+    const openSlotResponse = await request(app)
+      .post('/api/v2/portal/admin/appointment-slots')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        pointperson_user_id: adminUserId,
+        case_id: caseId,
+        title: 'Filter Open Slot',
+        start_time: openSlotStart.toISOString(),
+        end_time: openSlotEnd.toISOString(),
+        capacity: 2,
+      })
+      .expect(201);
+
+    const openSlotId = unwrap<{ slot: { id: string } }>(openSlotResponse.body).slot.id as string;
+    createdSlotIds.push(openSlotId);
+
+    const closedSlotStart = new Date(now + 12 * 60 * 60 * 1000);
+    const closedSlotEnd = new Date(closedSlotStart.getTime() + 30 * 60 * 1000);
+    const closedSlotResponse = await request(app)
+      .post('/api/v2/portal/admin/appointment-slots')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        pointperson_user_id: adminUserId,
+        case_id: caseId,
+        title: 'Filter Closed Slot',
+        start_time: closedSlotStart.toISOString(),
+        end_time: closedSlotEnd.toISOString(),
+        capacity: 2,
+      })
+      .expect(201);
+
+    const closedSlotId = unwrap<{ slot: { id: string } }>(closedSlotResponse.body).slot.id as string;
+    createdSlotIds.push(closedSlotId);
+
+    await request(app)
+      .patch(`/api/v2/portal/admin/appointment-slots/${closedSlotId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ status: 'closed' })
+      .expect(200);
+
+    const filteredSlotsResponse = await request(app)
+      .get('/api/v2/portal/admin/appointment-slots')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .query({
+        status: 'open',
+        case_id: caseId,
+        from: new Date(now + 9 * 60 * 60 * 1000).toISOString(),
+        to: new Date(now + 11 * 60 * 60 * 1000).toISOString(),
+        limit: 10,
+        offset: 0,
+      })
+      .expect(200);
+
+    const filteredSlots = filteredSlotsResponse.body.slots as Array<{ id: string; status: string }>;
+    expect(filteredSlots.some((slot) => slot.id === openSlotId)).toBe(true);
+    expect(filteredSlots.some((slot) => slot.id === closedSlotId)).toBe(false);
+  });
+
+  it('supports admin appointment inbox, reminder history/manual send, and check-in', async () => {
+    const adminToken = buildAdminToken();
+
+    const inboxStart = new Date(Date.now() + 20 * 60 * 60 * 1000).toISOString();
+    const createResponse = await request(app)
+      .post('/api/v2/portal/appointments/requests')
+      .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
+      .send({
+        case_id: caseId,
+        title: 'Inbox reminder appointment',
+        description: 'Admin inbox flow test',
+        start_time: inboxStart,
+      })
+      .expect(201);
+
+    const created = unwrap<{ appointment: { id: string } }>(createResponse.body);
+    const appointmentId = created.appointment.id as string;
+    createdAppointmentIds.push(appointmentId);
+
+    await request(app)
+      .patch(`/api/v2/portal/admin/appointments/${appointmentId}/status`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ status: 'confirmed' })
+      .expect(200);
+
+    const inboxResponse = await request(app)
+      .get('/api/v2/portal/admin/appointments')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .query({ status: 'confirmed', page: 1, limit: 20 })
+      .expect(200);
+
+    const inboxRows = (inboxResponse.body.data?.data ?? []) as Array<{ id: string }>;
+    expect(inboxRows.some((row) => row.id === appointmentId)).toBe(true);
+
+    const remindersResponse = await request(app)
+      .get(`/api/v2/portal/admin/appointments/${appointmentId}/reminders`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
+    const reminderJobs = remindersResponse.body.jobs as Array<{ cadence_key: string; channel: string }>;
+    expect(reminderJobs.length).toBeGreaterThanOrEqual(1);
+    expect(reminderJobs.some((job) => job.cadence_key === '2h')).toBe(true);
+
+    const sendResponse = await request(app)
+      .post(`/api/v2/portal/admin/appointments/${appointmentId}/reminders/send`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ sendEmail: true, sendSms: false, customMessage: 'Testing reminder send' })
+      .expect(200);
+
+    expect(sendResponse.body.summary).toBeDefined();
+
+    const checkInResponse = await request(app)
+      .post(`/api/v2/portal/admin/appointments/${appointmentId}/check-in`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
+    expect(checkInResponse.body.appointment?.status).toBe('completed');
+    expect(checkInResponse.body.appointment?.checked_in_at).toBeTruthy();
   });
 });

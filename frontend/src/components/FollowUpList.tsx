@@ -27,9 +27,9 @@ interface FollowUpListProps {
 
 const STATUS_COLORS: Record<string, string> = {
   scheduled: 'bg-app-accent-soft text-app-accent-text',
-  completed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  completed: 'bg-app-accent-soft text-app-accent-text dark:bg-app-accent-hover dark:text-app-text-muted',
   cancelled: 'bg-app-surface-muted text-app-text-muted',
-  overdue: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  overdue: 'bg-app-accent-soft text-app-accent-text dark:bg-app-accent-hover dark:text-app-text-muted',
 };
 
 const METHOD_ICONS: Record<string, string> = {
@@ -237,7 +237,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                 key={followUp.id}
                 className={`p-4 rounded-lg border-2 ${
                   overdueStatus
-                    ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
+                    ? 'border-app-border dark:border-app-accent bg-app-accent-soft dark:bg-app-accent-hover/20'
                     : 'border-app-border bg-app-surface'
                 }`}
               >
@@ -257,7 +257,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                         {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
                       </span>
                       {followUp.frequency !== 'once' && (
-                        <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 rounded-full">
+                        <span className="px-2 py-0.5 text-xs font-medium bg-app-accent-soft text-app-accent-text dark:bg-app-accent-hover dark:text-app-text-muted rounded-full">
                           {followUp.frequency}
                         </span>
                       )}
@@ -296,7 +296,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
 
                     {/* Completed notes display */}
                     {followUp.status === 'completed' && followUp.completed_notes && (
-                      <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/30 rounded text-sm text-green-800 dark:text-green-200">
+                      <div className="mt-2 p-2 bg-app-accent-soft dark:bg-app-accent-hover/30 rounded text-sm text-app-accent-text dark:text-app-text-muted">
                         <span className="font-medium">Completion notes:</span> {followUp.completed_notes}
                       </div>
                     )}
@@ -308,7 +308,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                       <>
                         <button
                           onClick={() => handleComplete(followUp)}
-                          className="px-2 py-1 text-xs font-medium text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/50 rounded transition-colors"
+                          className="px-2 py-1 text-xs font-medium text-app-accent-text dark:text-app-text-muted hover:bg-app-accent-soft dark:hover:bg-app-accent-hover/50 rounded transition-colors"
                         >
                           {completingId === followUp.id ? 'Save' : '✓ Complete'}
                         </button>
@@ -341,7 +341,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                             </button>
                             <button
                               onClick={() => handleCancelFollowUp(followUp.id)}
-                              className="px-2 py-1 text-xs font-medium text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/50 rounded transition-colors"
+                              className="px-2 py-1 text-xs font-medium text-app-accent-text dark:text-app-text-muted hover:bg-app-accent-soft dark:hover:bg-app-accent-hover/50 rounded transition-colors"
                             >
                               Cancel
                             </button>
@@ -351,7 +351,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                     )}
                     <button
                       onClick={() => handleDelete(followUp.id)}
-                      className="px-2 py-1 text-xs font-medium text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50 rounded transition-colors"
+                      className="px-2 py-1 text-xs font-medium text-app-accent-text dark:text-app-text-muted hover:bg-app-accent-soft dark:hover:bg-app-accent-hover/50 rounded transition-colors"
                     >
                       Delete
                     </button>

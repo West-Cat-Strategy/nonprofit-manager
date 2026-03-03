@@ -1,11 +1,13 @@
 import { eventReminderSchedulerService } from '@services/eventReminderSchedulerService';
 import {
+  cancelPendingAutomationsForNonSendableEvents,
   claimDueAutomations,
   markAutomationAttemptResult,
 } from '@services/eventReminderAutomationService';
 import { services } from '../../container/services';
 
 jest.mock('@services/eventReminderAutomationService', () => ({
+  cancelPendingAutomationsForNonSendableEvents: jest.fn(),
   claimDueAutomations: jest.fn(),
   markAutomationAttemptResult: jest.fn(),
 }));
@@ -27,6 +29,10 @@ jest.mock('@config/logger', () => ({
 }));
 
 describe('eventReminderSchedulerService', () => {
+  const mockCancelPendingAutomationsForNonSendableEvents =
+    cancelPendingAutomationsForNonSendableEvents as jest.MockedFunction<
+      typeof cancelPendingAutomationsForNonSendableEvents
+    >;
   const mockClaimDueAutomations = claimDueAutomations as jest.MockedFunction<typeof claimDueAutomations>;
   const mockMarkAutomationAttemptResult =
     markAutomationAttemptResult as jest.MockedFunction<typeof markAutomationAttemptResult>;
@@ -67,6 +73,7 @@ describe('eventReminderSchedulerService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCancelPendingAutomationsForNonSendableEvents.mockResolvedValue(0);
     eventReminderSchedulerService.stop();
   });
 
@@ -104,6 +111,7 @@ describe('eventReminderSchedulerService', () => {
     await eventReminderSchedulerService.tick();
 
     expect(mockClaimDueAutomations).toHaveBeenCalledWith(25);
+    expect(mockCancelPendingAutomationsForNonSendableEvents).toHaveBeenCalledWith(50);
     expect(mockSendEventReminders).toHaveBeenCalledWith(
       'event-1',
       {

@@ -5,13 +5,51 @@
 
 import '../helpers/testEnv';
 import { test as base, Page } from '@playwright/test';
-import { ensureAdminLoginViaAPI, clearAuth } from '../helpers/auth';
+import { ensureLoginViaAPI, clearAuth, applyAuthTokenState } from '../helpers/auth';
 import { clearDatabase } from '../helpers/database';
+import { getSharedTestUser } from '../helpers/testUser';
 
 // Extend base test with custom fixtures
 type AuthFixtures = {
   authenticatedPage: Page;
   authToken: string;
+};
+
+type CachedAuthState = {
+  token: string;
+  organizationId?: string;
+};
+
+let cachedAuthState: CachedAuthState | null = null;
+
+const normalizeOrganizationId = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const ensureSharedAuthState = async (page: Page): Promise<CachedAuthState> => {
+  if (cachedAuthState?.token) {
+    await applyAuthTokenState(page, cachedAuthState.token, cachedAuthState.organizationId);
+    return cachedAuthState;
+  }
+
+  const sharedUser = getSharedTestUser();
+  const login = await ensureLoginViaAPI(page, sharedUser.email, sharedUser.password, {
+    firstName: 'Test',
+    lastName: 'User',
+  });
+  const loginRecord = login as { organizationId?: unknown; user?: Record<string, unknown> };
+  cachedAuthState = {
+    token: login.token,
+    organizationId:
+      normalizeOrganizationId(loginRecord.organizationId) ||
+      normalizeOrganizationId(loginRecord.user?.organizationId) ||
+      normalizeOrganizationId(loginRecord.user?.organization_id),
+  };
+  return cachedAuthState;
 };
 
 /**
@@ -25,11 +63,7 @@ type AuthFixtures = {
  */
 export const test = base.extend<AuthFixtures>({
   authenticatedPage: async ({ page }, use) => {
-    await ensureAdminLoginViaAPI(page, {
-      firstName: 'Test',
-      lastName: 'User',
-    });
-    await page.goto('/dashboard');
+    await ensureSharedAuthState(page);
 
     // Provide authenticated page to test
     await use(page);
@@ -39,10 +73,7 @@ export const test = base.extend<AuthFixtures>({
   },
 
   authToken: async ({ page }, use) => {
-    const { token } = await ensureAdminLoginViaAPI(page, {
-      firstName: 'Test',
-      lastName: 'User',
-    });
+    const { token } = await ensureSharedAuthState(page);
 
     // Provide token to test
     await use(token);
@@ -62,11 +93,7 @@ export const test = base.extend<AuthFixtures>({
  */
 export const testWithCleanDB = test.extend({
   authenticatedPage: async ({ page }, use) => {
-    const { token } = await ensureAdminLoginViaAPI(page, {
-      firstName: 'Test',
-      lastName: 'User',
-    });
-    await page.goto('/dashboard');
+    const { token } = await ensureSharedAuthState(page);
     await clearDatabase(page, token);
 
     // Provide authenticated page to test

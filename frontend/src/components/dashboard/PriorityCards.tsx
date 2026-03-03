@@ -58,8 +58,8 @@ function PriorityCards({ urgentCasesCount, casesDueThisWeekCount, highEngagement
           description="Urgent cases need attention"
           linkText="Review cases"
           linkTo="/cases"
-          accentColor="bg-rose-200/50"
-          textColor="text-rose-500"
+          accentColor="bg-app-accent-soft/50"
+          textColor="text-app-accent"
         />
         <PriorityCard
           label="This Week"
@@ -67,8 +67,8 @@ function PriorityCards({ urgentCasesCount, casesDueThisWeekCount, highEngagement
           description="Cases due for follow-up"
           linkText="Plan follow-ups"
           linkTo="/cases"
-          accentColor="bg-amber-200/50"
-          textColor="text-amber-500"
+          accentColor="bg-app-accent-soft/50"
+          textColor="text-app-accent"
         />
         <PriorityCard
           label="Engagement"
@@ -76,8 +76,8 @@ function PriorityCards({ urgentCasesCount, casesDueThisWeekCount, highEngagement
           description="Highly engaged constituents"
           linkText="View reports"
           linkTo="/analytics"
-          accentColor="bg-emerald-200/50"
-          textColor="text-emerald-600"
+          accentColor="bg-app-accent-soft/50"
+          textColor="text-app-accent"
         />
       </div>
     </section>

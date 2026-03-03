@@ -1,7 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
 
-const mockValidationResult = jest.fn();
-const mockValidationErrorResponse = jest.fn();
 const mockConflict = jest.fn();
 const mockNotFoundMessage = jest.fn();
 const mockBadRequest = jest.fn();
@@ -13,12 +11,7 @@ const mockPublishingService = {
   getSiteByDomain: jest.fn(),
 };
 
-jest.mock('express-validator', () => ({
-  validationResult: (...args: unknown[]) => mockValidationResult(...args),
-}));
-
 jest.mock('@utils/responseHelpers', () => ({
-  validationErrorResponse: (...args: unknown[]) => mockValidationErrorResponse(...args),
   conflict: (...args: unknown[]) => mockConflict(...args),
   notFoundMessage: (...args: unknown[]) => mockNotFoundMessage(...args),
   badRequest: (...args: unknown[]) => mockBadRequest(...args),
@@ -56,14 +49,9 @@ const createResponse = (): Response => {
   return res;
 };
 
-const noValidationErrors = () => {
-  mockValidationResult.mockReturnValue({ isEmpty: () => true });
-};
-
 describe('publishingController', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    noValidationErrors();
   });
 
   it('maps createSite uniqueness errors to conflict response', async () => {
@@ -82,20 +70,17 @@ describe('publishingController', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('returns validation error response when validation fails', async () => {
-    mockValidationResult.mockReturnValue({
-      isEmpty: () => false,
-      array: () => [{ msg: 'bad data' }],
-    });
+  it('forwards unexpected createSite errors to next', async () => {
     const req = { user: { id: 'user-1' }, body: {} } as unknown as Request;
     const res = createResponse();
     const next = jest.fn() as NextFunction;
 
+    const error = new Error('unexpected failure');
+    mockPublishingService.createSite.mockRejectedValueOnce(error);
+
     await createSite(req as any, res, next);
 
-    expect(mockValidationErrorResponse).toHaveBeenCalled();
-    expect(mockPublishingService.createSite).not.toHaveBeenCalled();
-    expect(next).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(error);
   });
 
   it('uses fallback period when analytics period query is invalid', async () => {

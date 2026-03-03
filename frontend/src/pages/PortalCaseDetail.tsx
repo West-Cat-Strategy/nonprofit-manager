@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import PortalPageShell from '../components/portal/PortalPageShell';
 import PortalPageState from '../components/portal/PortalPageState';
+import PortalListCard from '../components/portal/PortalListCard';
 import { portalV2ApiClient } from '../features/portal/api/portalApiClient';
 import type {
   PortalCaseDetail,
   PortalCaseDocument,
   PortalCaseTimelineEvent,
 } from '../features/portal/types/contracts';
+import { usePersistentPortalCaseContext } from '../hooks/usePersistentPortalCaseContext';
 
 const canPreviewInline = (mimeType?: string | null): boolean =>
   Boolean(mimeType && (mimeType === 'application/pdf' || mimeType.startsWith('image/')));
@@ -18,6 +21,17 @@ export default function PortalCaseDetailPage() {
   const [documents, setDocuments] = useState<PortalCaseDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { setSelectedCaseId } = usePersistentPortalCaseContext();
+
+  const sortedTimeline = useMemo(
+    () => [...timeline].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    [timeline]
+  );
+
+  const sortedDocuments = useMemo(
+    () => [...documents].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    [documents]
+  );
 
   const loadCase = async () => {
     if (!id) {
@@ -49,12 +63,22 @@ export default function PortalCaseDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  return (
-    <div>
-      <Link to="/portal/cases" className="text-sm text-app-accent hover:underline">
-        ← Back to My Cases
-      </Link>
+  useEffect(() => {
+    if (id) {
+      setSelectedCaseId(id);
+    }
+  }, [id, setSelectedCaseId]);
 
+  return (
+    <PortalPageShell
+      title={caseDetail?.title || 'Case Details'}
+      description={caseDetail?.case_number}
+      actions={
+        <Link to="/portal/cases" className="text-sm text-app-accent hover:underline">
+          Back to My Cases
+        </Link>
+      }
+    >
       <PortalPageState
         loading={loading}
         error={error}
@@ -66,106 +90,101 @@ export default function PortalCaseDetailPage() {
       />
 
       {!loading && !error && caseDetail && (
-        <div className="mt-4 space-y-5">
-          <div className="rounded-lg border border-app-border bg-app-surface p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-app-text-muted">
-              {caseDetail.case_number}
-            </p>
-            <h2 className="text-lg font-semibold text-app-text">{caseDetail.title}</h2>
+        <div className="space-y-4">
+          <PortalListCard
+            title={caseDetail.title}
+            subtitle={caseDetail.case_number}
+            badges={
+              <>
+                {caseDetail.status_name && (
+                  <span className="rounded bg-app-surface-muted px-2 py-0.5 text-app-text-muted">
+                    {caseDetail.status_name}
+                  </span>
+                )}
+                {caseDetail.case_type_name && (
+                  <span className="rounded bg-app-surface-muted px-2 py-0.5 text-app-text-muted">
+                    {caseDetail.case_type_name}
+                  </span>
+                )}
+                {caseDetail.priority && (
+                  <span className="rounded bg-app-surface-muted px-2 py-0.5 text-app-text-muted capitalize">
+                    {caseDetail.priority}
+                  </span>
+                )}
+              </>
+            }
+          >
             {caseDetail.description && (
-              <p className="mt-2 whitespace-pre-wrap text-sm text-app-text">{caseDetail.description}</p>
+              <p className="whitespace-pre-wrap text-sm text-app-text">{caseDetail.description}</p>
             )}
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-              {caseDetail.status_name && (
-                <span className="rounded bg-app-surface-muted px-2 py-0.5 text-app-text-muted">
-                  {caseDetail.status_name}
-                </span>
-              )}
-              {caseDetail.case_type_name && (
-                <span className="rounded bg-app-surface-muted px-2 py-0.5 text-app-text-muted">
-                  {caseDetail.case_type_name}
-                </span>
-              )}
-              {caseDetail.priority && (
-                <span className="rounded bg-app-surface-muted px-2 py-0.5 text-app-text-muted capitalize">
-                  {caseDetail.priority}
-                </span>
-              )}
-            </div>
-          </div>
+          </PortalListCard>
 
-          <div className="rounded-lg border border-app-border bg-app-surface p-4">
+          <section className="rounded-lg border border-app-border bg-app-surface p-4">
             <h3 className="text-base font-semibold text-app-text">Timeline</h3>
-            {timeline.length === 0 ? (
+            {sortedTimeline.length === 0 ? (
               <p className="mt-2 text-sm text-app-text-muted">No visible timeline activity yet.</p>
             ) : (
               <div className="mt-3 space-y-2">
-                {timeline.map((event) => (
-                  <div key={`${event.type}-${event.id}`} className="rounded border border-app-border p-3">
-                    <div className="flex flex-wrap items-center gap-2 text-xs">
-                      <span className="rounded bg-app-surface-muted px-2 py-0.5 uppercase text-app-text-muted">
-                        {event.type}
-                      </span>
-                      <span className="text-app-text-muted">
-                        {new Date(event.created_at).toLocaleString()}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm font-semibold text-app-text">{event.title}</p>
+                {sortedTimeline.map((event) => (
+                  <PortalListCard
+                    key={`${event.type}-${event.id}`}
+                    title={event.title}
+                    subtitle={event.type.toUpperCase()}
+                    meta={new Date(event.created_at).toLocaleString()}
+                  >
                     {event.content && (
                       <p className="mt-1 whitespace-pre-wrap text-sm text-app-text">{event.content}</p>
                     )}
-                  </div>
+                  </PortalListCard>
                 ))}
               </div>
             )}
-          </div>
+          </section>
 
-          <div className="rounded-lg border border-app-border bg-app-surface p-4">
+          <section className="rounded-lg border border-app-border bg-app-surface p-4">
             <h3 className="text-base font-semibold text-app-text">Documents</h3>
-            {documents.length === 0 ? (
+            {sortedDocuments.length === 0 ? (
               <p className="mt-2 text-sm text-app-text-muted">No client-visible documents yet.</p>
             ) : (
               <div className="mt-3 space-y-2">
-                {documents.map((doc) => (
-                  <div key={doc.id} className="flex items-start justify-between rounded border border-app-border p-3">
-                    <div>
-                      <p className="text-sm font-semibold text-app-text">
-                        {doc.document_name || doc.original_filename}
-                      </p>
-                      <p className="text-xs text-app-text-muted">
-                        {doc.document_type || 'document'} ·{' '}
-                        {new Date(doc.created_at).toLocaleDateString()}
-                      </p>
-                      {doc.description && <p className="mt-1 text-sm text-app-text">{doc.description}</p>}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {canPreviewInline(doc.mime_type) && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!id) return;
-                            const url = portalV2ApiClient.getCaseDocumentDownloadUrl(id, doc.id, 'inline');
-                            window.open(url, '_blank', 'noopener,noreferrer');
-                          }}
+                {sortedDocuments.map((doc) => (
+                  <PortalListCard
+                    key={doc.id}
+                    title={doc.document_name || doc.original_filename}
+                    subtitle={doc.document_type || 'document'}
+                    meta={new Date(doc.created_at).toLocaleDateString()}
+                    actions={
+                      <>
+                        {canPreviewInline(doc.mime_type) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!id) return;
+                              const url = portalV2ApiClient.getCaseDocumentDownloadUrl(id, doc.id, 'inline');
+                              window.open(url, '_blank', 'noopener,noreferrer');
+                            }}
+                            className="rounded border border-app-input-border px-2 py-1 text-xs"
+                          >
+                            Preview
+                          </button>
+                        )}
+                        <a
+                          href={id ? portalV2ApiClient.getCaseDocumentDownloadUrl(id, doc.id, 'attachment') : '#'}
                           className="rounded border border-app-input-border px-2 py-1 text-xs"
                         >
-                          Preview
-                        </button>
-                      )}
-                      <a
-                        href={id ? portalV2ApiClient.getCaseDocumentDownloadUrl(id, doc.id, 'attachment') : '#'}
-                        className="rounded border border-app-input-border px-2 py-1 text-xs"
-                      >
-                        Download
-                      </a>
-                    </div>
-                  </div>
+                          Download
+                        </a>
+                      </>
+                    }
+                  >
+                    {doc.description && <p className="text-sm text-app-text">{doc.description}</p>}
+                  </PortalListCard>
                 ))}
               </div>
             )}
-          </div>
+          </section>
         </div>
       )}
-    </div>
+    </PortalPageShell>
   );
 }

@@ -144,7 +144,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
   return (
     <form onSubmit={handleFormSubmit} className="space-y-6">
       {errors.submit && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="bg-app-accent-soft border border-app-border text-app-accent-text px-4 py-3 rounded">
           {errors.submit}
         </div>
       )}
@@ -164,11 +164,11 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               value={values.account_name}
               onChange={handleChange}
               className={`mt-1 block w-full border ${
-                errors.account_name ? 'border-red-300' : 'border-app-input-border'
+                errors.account_name ? 'border-app-border' : 'border-app-input-border'
               } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
             />
             {errors.account_name && (
-              <p className="mt-1 text-sm text-red-600">{errors.account_name}</p>
+              <p className="mt-1 text-sm text-app-accent">{errors.account_name}</p>
             )}
           </div>
 
@@ -225,10 +225,10 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               value={values.email}
               onChange={handleChange}
               className={`mt-1 block w-full border ${
-                errors.email ? 'border-red-300' : 'border-app-input-border'
+                errors.email ? 'border-app-border' : 'border-app-input-border'
               } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
             />
-            {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+            {errors.email && <p className="mt-1 text-sm text-app-accent">{errors.email}</p>}
           </div>
 
           <div>
@@ -242,10 +242,10 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               value={values.phone}
               onChange={handleChange}
               className={`mt-1 block w-full border ${
-                errors.phone ? 'border-red-300' : 'border-app-input-border'
+                errors.phone ? 'border-app-border' : 'border-app-input-border'
               } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
             />
-            {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
+            {errors.phone && <p className="mt-1 text-sm text-app-accent">{errors.phone}</p>}
           </div>
 
           <div className="sm:col-span-2">
@@ -260,10 +260,10 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
               onChange={handleChange}
               placeholder="https://example.com"
               className={`mt-1 block w-full border ${
-                errors.website ? 'border-red-300' : 'border-app-input-border'
+                errors.website ? 'border-app-border' : 'border-app-input-border'
               } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
             />
-            {errors.website && <p className="mt-1 text-sm text-red-600">{errors.website}</p>}
+            {errors.website && <p className="mt-1 text-sm text-app-accent">{errors.website}</p>}
           </div>
         </div>
       </div>

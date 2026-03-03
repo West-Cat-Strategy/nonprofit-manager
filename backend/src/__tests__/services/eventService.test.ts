@@ -5,6 +5,7 @@ import { sendMail } from '@services/emailService';
 import { getEmailSettings } from '@services/emailSettingsService';
 import { sendSms } from '@services/twilioSmsService';
 import { getTwilioSettings } from '@services/twilioSettingsService';
+import { cancelPendingAutomationsForEvent } from '@services/eventReminderAutomationService';
 
 jest.mock('@services/emailService', () => ({
   sendMail: jest.fn(),
@@ -22,10 +23,24 @@ jest.mock('@services/twilioSettingsService', () => ({
   getTwilioSettings: jest.fn(),
 }));
 
+jest.mock('@services/eventReminderAutomationService', () => ({
+  cancelPendingAutomationsForEvent: jest.fn(),
+}));
+
 // Create mock pool
 const mockQuery = jest.fn();
+const mockConnect = jest.fn();
+const mockClientRelease = jest.fn();
+const mockClientQuery = jest.fn((sql: string, params?: unknown[]) => {
+  const normalized = sql.trim().toUpperCase();
+  if (normalized === 'BEGIN' || normalized === 'COMMIT' || normalized === 'ROLLBACK') {
+    return Promise.resolve({ rows: [], rowCount: 0 });
+  }
+  return mockQuery(sql, params);
+});
 const mockPool = {
   query: mockQuery,
+  connect: mockConnect,
 } as unknown as Pool;
 
 describe('EventService', () => {
@@ -34,10 +49,17 @@ describe('EventService', () => {
   const mockGetEmailSettings = getEmailSettings as jest.MockedFunction<typeof getEmailSettings>;
   const mockSendSms = sendSms as jest.MockedFunction<typeof sendSms>;
   const mockGetTwilioSettings = getTwilioSettings as jest.MockedFunction<typeof getTwilioSettings>;
+  const mockCancelPendingAutomationsForEvent =
+    cancelPendingAutomationsForEvent as jest.MockedFunction<typeof cancelPendingAutomationsForEvent>;
 
   beforeEach(() => {
     eventService = new EventService(mockPool);
     jest.clearAllMocks();
+    mockConnect.mockResolvedValue({
+      query: mockClientQuery,
+      release: mockClientRelease,
+    });
+    mockCancelPendingAutomationsForEvent.mockResolvedValue(0);
   });
 
   describe('getEvents', () => {
@@ -248,12 +270,12 @@ describe('EventService', () => {
       expect(result).toEqual(mockUpdatedEvent);
     });
 
-    it('should return updated event even when not found', async () => {
+    it('should throw when event is not found', async () => {
       mockQuery.mockResolvedValueOnce({ rows: [] });
 
-      const result = await eventService.updateEvent('nonexistent', { event_name: 'Test' }, 'user-123');
-
-      expect(result).toBeUndefined();
+      await expect(
+        eventService.updateEvent('nonexistent', { event_name: 'Test' }, 'user-123')
+      ).rejects.toThrow('Event not found');
     });
 
     it('should throw error when no fields to update', async () => {
@@ -399,6 +421,8 @@ describe('EventService', () => {
 
       // Mock get registration query
       mockQuery.mockResolvedValueOnce({ rows: [mockRegistrationCheck] });
+      // Mock event lock query
+      mockQuery.mockResolvedValueOnce({ rows: [{ id: 'event-123' }] });
       // Mock update registration
       mockQuery.mockResolvedValueOnce({ rows: [mockUpdatedRegistration] });
       // Mock update event attendance count
@@ -424,6 +448,8 @@ describe('EventService', () => {
     it('should cancel registration successfully', async () => {
       // Mock get registration query to get event_id
       mockQuery.mockResolvedValueOnce({ rows: [{ event_id: 'event-123' }] });
+      // Mock event lock query
+      mockQuery.mockResolvedValueOnce({ rows: [{ id: 'event-123' }] });
       // Mock DELETE query
       mockQuery.mockResolvedValueOnce({ rowCount: 1 });
       // Mock update registered_count
@@ -431,7 +457,7 @@ describe('EventService', () => {
 
       await eventService.cancelRegistration('123');
 
-      expect(mockQuery).toHaveBeenCalledTimes(3);
+      expect(mockQuery).toHaveBeenCalledTimes(4);
     });
 
     it('should throw when registration not found', async () => {

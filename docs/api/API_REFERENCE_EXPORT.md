@@ -64,7 +64,7 @@ Authorization: Bearer <your_jwt_token>
 Export overall analytics metrics.
 
 ```
-POST /api/export/analytics-summary
+POST /api/v2/export/analytics-summary
 ```
 
 **Request Body:**
@@ -107,7 +107,7 @@ Downloads a file with metrics including:
 Export detailed donation records.
 
 ```
-POST /api/export/donations
+POST /api/v2/export/donations
 ```
 
 **Request Body:**
@@ -155,7 +155,7 @@ Downloads a file with columns:
 Export volunteer hours logs.
 
 ```
-POST /api/export/volunteer-hours
+POST /api/v2/export/volunteer-hours
 ```
 
 **Request Body:**
@@ -198,7 +198,7 @@ Downloads a file with columns:
 Export event attendance data.
 
 ```
-POST /api/export/events
+POST /api/v2/export/events
 ```
 
 **Request Body:**
@@ -242,7 +242,7 @@ Downloads a file with columns:
 Export a comprehensive report with multiple data types.
 
 ```
-POST /api/export/comprehensive
+POST /api/v2/export/comprehensive
 ```
 
 **Request Body:**
@@ -282,7 +282,7 @@ Downloads an Excel file with multiple sheets:
 ### Export Donations for Q1 2024 (CSV)
 
 ```bash
-curl -X POST localhost:3000/api/export/donations \
+curl -X POST localhost:3000/api/v2/export/donations \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -297,7 +297,7 @@ curl -X POST localhost:3000/api/export/donations \
 ### Export Volunteer Hours by Activity (Excel)
 
 ```bash
-curl -X POST localhost:3000/api/export/volunteer-hours \
+curl -X POST localhost:3000/api/v2/export/volunteer-hours \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -313,7 +313,7 @@ curl -X POST localhost:3000/api/export/volunteer-hours \
 ### Export Comprehensive Report (Excel)
 
 ```bash
-curl -X POST localhost:3000/api/export/comprehensive \
+curl -X POST localhost:3000/api/v2/export/comprehensive \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -329,7 +329,7 @@ curl -X POST localhost:3000/api/export/comprehensive \
 
 ```bash
 # Export large donations only
-curl -X POST localhost:3000/api/export/donations \
+curl -X POST localhost:3000/api/v2/export/donations \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -432,7 +432,7 @@ Exports can be automated using cron jobs or scheduled tasks:
 TOKEN="your-jwt-token"
 MONTH=$(date -d "last month" +%Y-%m)
 
-curl -X POST localhost:3000/api/export/donations \
+curl -X POST localhost:3000/api/v2/export/donations \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{

@@ -104,9 +104,9 @@ VITE_API_URL=localhost:3000/api
 ```
 
 ## API Endpoints (Current)
-- `POST /api/auth/register` - Register user
-- `POST /api/auth/login` - Login user
-- `GET /api/auth/me` - Get current user (authenticated)
+- `POST /api/v2/auth/register` - Register user
+- `POST /api/v2/auth/login` - Login user
+- `GET /api/v2/auth/me` - Get current user (authenticated)
 
 ## Next Steps
 1. ✅ Install backend dependencies

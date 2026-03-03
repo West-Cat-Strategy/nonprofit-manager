@@ -345,7 +345,7 @@ Tests are configured to run in CI with:
 ## Resources
 
 - [Playwright Documentation](https://playwright.dev/)
-- [Playwright API Reference](https://playwright.dev/docs/api/class-playwright)
+- [Playwright API Reference](https://playwright.dev/docs/api/v2/class-playwright)
 - [Playwright Best Practices](https://playwright.dev/docs/best-practices)
 - [Test Retry](https://playwright.dev/docs/test-retries)
 - [Debugging](https://playwright.dev/docs/debug)

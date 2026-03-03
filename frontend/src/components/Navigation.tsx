@@ -14,6 +14,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import Avatar from './Avatar';
 import { useQuickLookup } from './dashboard';
 import { getRouteMeta } from '../routes/routeMeta';
+import type { ThemeId } from '../theme/themeRegistry';
 
 const Navigation = () => {
   const navigate = useNavigate();
@@ -36,13 +37,13 @@ const Navigation = () => {
   const themeMenuRef = useRef<HTMLDivElement>(null);
   const routeMeta = getRouteMeta(location.pathname);
 
-  const themeLabels: Record<string, string> = {
-    'neobrutalist': '🎨',
-    'sea-breeze': '🌊',
-    'corporate': '💼',
-    'clean-modern': '✨',
-    'glass': '🔮',
-    'high-contrast': '👁️',
+  const themeLabels: Record<ThemeId, string> = {
+    neobrutalist: 'NB',
+    'sea-breeze': 'SB',
+    corporate: 'CP',
+    'clean-modern': 'CM',
+    glass: 'GL',
+    'high-contrast': 'HC',
   };
 
   const handleQuickThemeCycle = useCallback(() => {
@@ -107,20 +108,26 @@ const Navigation = () => {
   // Map preference items to nav link format
   const primaryNavLinks = primaryItems.map((item) => ({
     name: item.name,
+    shortLabel: item.shortLabel ?? item.name,
     path: item.path,
     icon: item.icon,
+    ariaLabel: item.ariaLabel ?? item.name,
   }));
 
   const secondaryNavLinks = secondaryItems.map((item) => ({
     name: item.name,
+    shortLabel: item.shortLabel ?? item.name,
     path: item.path,
     icon: item.icon,
+    ariaLabel: item.ariaLabel ?? item.name,
   }));
 
   const allNavLinks = enabledItems.map((item) => ({
     name: item.name,
+    shortLabel: item.shortLabel ?? item.name,
     path: item.path,
     icon: item.icon,
+    ariaLabel: item.ariaLabel ?? item.name,
   }));
 
   useEffect(() => {
@@ -167,12 +174,7 @@ const Navigation = () => {
           <div className="flex items-center min-w-0">
             {/* Logo */}
             <Link to="/dashboard" className="flex items-center space-x-2 mr-3 sm:mr-6 lg:mr-8 flex-shrink-0">
-              <div
-                className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg shadow-sm overflow-hidden"
-                style={{
-                  background: `linear-gradient(to bottom right, ${branding.primaryColour}, ${branding.secondaryColour})`,
-                }}
-              >
+              <div className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg shadow-sm overflow-hidden bg-app-accent">
                 {branding.appIcon ? (
                   <img src={branding.appIcon} alt={branding.appName} className="w-full h-full object-cover" />
                 ) : (
@@ -195,6 +197,7 @@ const Navigation = () => {
                 <Link
                   key={link.path}
                   to={link.path}
+                  aria-label={link.ariaLabel}
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                     isActive(link.path)
                       ? 'bg-app-accent-soft text-app-accent-text'
@@ -202,7 +205,7 @@ const Navigation = () => {
                   }`}
                 >
                   <span className="mr-1.5">{link.icon}</span>
-                  {link.name}
+                  {link.shortLabel}
                 </Link>
               ))}
 
@@ -237,6 +240,7 @@ const Navigation = () => {
                         <Link
                           key={link.path}
                           to={link.path}
+                          aria-label={link.ariaLabel}
                           onClick={() => setMoreMenuOpen(false)}
                           className={`block px-4 py-2 text-sm ${
                             isActive(link.path)
@@ -245,7 +249,7 @@ const Navigation = () => {
                           }`}
                         >
                           <span className="mr-2">{link.icon}</span>
-                          {link.name}
+                          {link.shortLabel}
                         </Link>
                       ))}
                     </div>
@@ -320,7 +324,7 @@ const Navigation = () => {
                 aria-expanded={themeMenuOpen}
                 title="Click to pick theme, double-click to cycle"
               >
-                <span className="text-base">{themeLabels[theme] || '🎨'}</span>
+                <span className="text-xs font-semibold tracking-wide">{themeLabels[theme]}</span>
                 {isDarkMode && <span className="ml-0.5 text-xs">🌙</span>}
               </button>
 
@@ -348,7 +352,7 @@ const Navigation = () => {
                             : 'text-app-text hover:bg-app-hover'
                         }`}
                       >
-                        <span>{themeLabels[t] || '🎨'}</span>
+                        <span className="text-[11px] font-semibold tracking-wide">{themeLabels[t]}</span>
                         <span className="capitalize">{t.replace(/-/g, ' ')}</span>
                         {theme === t && <span className="ml-auto text-app-accent">✓</span>}
                       </button>
@@ -411,7 +415,7 @@ const Navigation = () => {
                     </div>
                     <Link
                       to="/dashboard"
-                      className="block px-4 py-2 text-sm text-app-text-muted hover:bg-app-hover transition-colors"
+                      className="block px-4 py-2 text-sm text-app-text hover:bg-app-hover transition-colors"
                       onClick={() => setUserMenuOpen(false)}
                     >
                       <svg className="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -421,7 +425,7 @@ const Navigation = () => {
                     </Link>
                     <Link
                       to="/settings/user"
-                      className="block px-4 py-2 text-sm text-app-text-muted hover:bg-app-hover transition-colors"
+                      className="block px-4 py-2 text-sm text-app-text hover:bg-app-hover transition-colors"
                       onClick={() => setUserMenuOpen(false)}
                     >
                       <svg className="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -432,7 +436,7 @@ const Navigation = () => {
                     {user?.role === 'admin' && (
                       <Link
                         to="/settings/admin"
-                        className="block px-4 py-2 text-sm text-app-text-muted hover:bg-app-hover transition-colors"
+                        className="block px-4 py-2 text-sm text-app-text hover:bg-app-hover transition-colors"
                         onClick={() => setUserMenuOpen(false)}
                       >
                         <svg className="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -440,7 +444,7 @@ const Navigation = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                         Admin Settings
-                        <span className="ml-2 px-1.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded">
+                        <span className="ml-2 px-1.5 py-0.5 text-xs font-medium bg-app-accent-soft text-app-accent-text rounded">
                           Admin
                         </span>
                       </Link>
@@ -451,7 +455,7 @@ const Navigation = () => {
                         setUserMenuOpen(false);
                         handleLogout();
                       }}
-                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      className="block w-full text-left px-4 py-2 text-sm text-app-accent hover:bg-app-accent-soft transition-colors"
                     >
                       <svg className="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -516,12 +520,7 @@ const Navigation = () => {
             {/* Mobile menu header */}
             <div className="flex items-center justify-between px-4 py-4 border-b border-app-border">
               <div className="flex items-center space-x-2">
-                <div
-                  className="flex items-center justify-center w-8 h-8 rounded-lg shadow-sm overflow-hidden"
-                  style={{
-                    background: `linear-gradient(to bottom right, ${branding.primaryColour}, ${branding.secondaryColour})`,
-                  }}
-                >
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg shadow-sm overflow-hidden bg-app-accent">
                   {branding.appIcon ? (
                     <img src={branding.appIcon} alt={branding.appName} className="w-full h-full object-cover" />
                   ) : (
@@ -555,6 +554,7 @@ const Navigation = () => {
                 <Link
                   key={link.path}
                   to={link.path}
+                  aria-label={link.ariaLabel}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
                     isActive(link.path)
@@ -564,6 +564,7 @@ const Navigation = () => {
                 >
                   <span className="text-xl mr-3">{link.icon}</span>
                   <span>{link.name}</span>
+                  <span className="sr-only">{link.ariaLabel}</span>
                   {isActive(link.path) && (
                     <svg className="ml-auto w-5 h-5 text-app-accent-text" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -609,7 +610,7 @@ const Navigation = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                   Admin Settings
-                  <span className="ml-2 px-1.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded">
+                  <span className="ml-2 px-1.5 py-0.5 text-xs font-medium bg-app-accent-soft text-app-accent-text rounded">
                     Admin
                   </span>
                 </Link>
@@ -651,7 +652,7 @@ const Navigation = () => {
                   setMobileMenuOpen(false);
                   handleLogout();
                 }}
-                className="flex items-center w-full px-3 py-3 mt-2 rounded-lg text-base font-medium text-red-600 hover:bg-red-50 transition-colors"
+                className="flex items-center w-full px-3 py-3 mt-2 rounded-lg text-base font-medium text-app-accent hover:bg-app-accent-soft transition-colors"
               >
                 <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

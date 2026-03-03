@@ -70,11 +70,11 @@ const ReconciliationDashboard: React.FC = () => {
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical':
-        return 'bg-red-100 text-red-800';
+        return 'bg-app-accent-soft text-app-accent-text';
       case 'high':
-        return 'bg-orange-100 text-orange-800';
+        return 'bg-app-accent-soft text-app-accent-text';
       case 'medium':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-app-accent-soft text-app-accent-text';
       case 'low':
         return 'bg-app-accent-soft text-app-accent-text';
       default:
@@ -85,11 +85,11 @@ const ReconciliationDashboard: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-100 text-green-800';
+        return 'bg-app-accent-soft text-app-accent-text';
       case 'in_progress':
         return 'bg-app-accent-soft text-app-accent-text';
       case 'failed':
-        return 'bg-red-100 text-red-800';
+        return 'bg-app-accent-soft text-app-accent-text';
       default:
         return 'bg-app-surface-muted text-app-text';
     }
@@ -114,7 +114,7 @@ const ReconciliationDashboard: React.FC = () => {
 
       {/* Error Message */}
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="mb-6 bg-app-accent-soft border border-app-border text-app-accent-text px-4 py-3 rounded">
           {error}
         </div>
       )}
@@ -127,14 +127,14 @@ const ReconciliationDashboard: React.FC = () => {
             <div className="mt-2 text-3xl font-bold text-app-text">
               {dashboardStats.total_reconciliations}
             </div>
-            <div className="mt-1 text-sm text-green-600">
+            <div className="mt-1 text-sm text-app-accent">
               {dashboardStats.completed_reconciliations} completed
             </div>
           </div>
 
           <div className="bg-app-surface p-6 rounded-lg shadow">
             <div className="text-sm font-medium text-app-text-muted">Matched Transactions</div>
-            <div className="mt-2 text-3xl font-bold text-green-600">
+            <div className="mt-2 text-3xl font-bold text-app-accent">
               {dashboardStats.total_matched}
             </div>
             <div className="mt-1 text-sm text-app-text-muted">Successfully matched</div>
@@ -142,10 +142,10 @@ const ReconciliationDashboard: React.FC = () => {
 
           <div className="bg-app-surface p-6 rounded-lg shadow">
             <div className="text-sm font-medium text-app-text-muted">Open Discrepancies</div>
-            <div className="mt-2 text-3xl font-bold text-orange-600">
+            <div className="mt-2 text-3xl font-bold text-app-accent">
               {dashboardStats.total_open_discrepancies}
             </div>
-            <div className="mt-1 text-sm text-red-600">
+            <div className="mt-1 text-sm text-app-accent">
               {dashboardStats.critical_discrepancies} critical
             </div>
           </div>
@@ -183,7 +183,7 @@ const ReconciliationDashboard: React.FC = () => {
             </div>
             <div>
               <div className="text-sm text-app-text-muted">Matched</div>
-              <div className="font-semibold text-green-600">
+              <div className="font-semibold text-app-accent">
                 {latestReconciliation.matched_count}/{latestReconciliation.donations_count || 0}
               </div>
             </div>
@@ -201,13 +201,13 @@ const ReconciliationDashboard: React.FC = () => {
             </div>
             <div>
               <div className="text-sm text-app-text-muted">Fees</div>
-              <div className="font-semibold text-red-600">
+              <div className="font-semibold text-app-accent">
                 {formatCurrencyOrZero(latestReconciliation.stripe_total_fees)}
               </div>
             </div>
             <div>
               <div className="text-sm text-app-text-muted">Discrepancies</div>
-              <div className="font-semibold text-orange-600">
+              <div className="font-semibold text-app-accent">
                 {latestReconciliation.discrepancy_count}
               </div>
             </div>
@@ -275,7 +275,7 @@ const ReconciliationDashboard: React.FC = () => {
                       {recon.matched_count}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className="text-orange-600 font-semibold">
+                      <span className="text-app-accent font-semibold">
                         {recon.discrepancy_count}
                       </span>
                     </td>
@@ -338,7 +338,7 @@ const ReconciliationDashboard: React.FC = () => {
                     <td className="px-6 py-4 text-sm text-app-text max-w-md truncate">
                       {disc.description}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-red-600">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-app-accent">
                       {disc.difference_amount ? formatCurrencyOrZero(disc.difference_amount) : 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-app-text">
