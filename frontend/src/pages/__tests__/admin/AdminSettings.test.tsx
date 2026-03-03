@@ -18,19 +18,19 @@ vi.mock('../../../contexts/useToast', () => ({ useToast: () => ({ showSuccess: v
 vi.mock('../../../contexts/BrandingContext', () => ({ useBranding: () => ({ setBranding: vi.fn() }) }));
 vi.mock('../../../hooks/useUnsavedChangesGuard', () => ({ useUnsavedChangesGuard: vi.fn() }));
 
-vi.mock('../../admin/adminSettings/sections/OrganizationSection', () => ({ default: () => <div>Organization Section</div> }));
-vi.mock('../../admin/adminSettings/sections/BrandingSection', () => ({ default: () => <div>Branding Section</div> }));
-vi.mock('../../admin/adminSettings/sections/UsersSection', () => ({ default: () => <div>Users Section</div> }));
-vi.mock('../../admin/adminSettings/sections/PortalSection', () => ({ default: () => <div>Portal Section</div> }));
-vi.mock('../../admin/adminSettings/sections/RolesSection', () => ({ default: () => <div>Roles Section</div> }));
-vi.mock('../../admin/adminSettings/sections/OtherSettingsSection', () => ({ default: () => <div>Other Section</div> }));
-vi.mock('../../admin/adminSettings/sections/DashboardSection', () => ({ default: () => <div>Dashboard Section</div> }));
-vi.mock('../../admin/adminSettings/sections/AuditLogsSection', () => ({ default: () => <div>Audit Section</div> }));
-vi.mock('../../admin/adminSettings/sections/EmailSettingsSection', () => ({ default: () => <div>Email Section</div> }));
-vi.mock('../../admin/adminSettings/sections/TwilioSettingsSection', () => ({ default: () => <div>Messaging Section</div> }));
-vi.mock('../../admin/adminSettings/sections/RegistrationSettingsSection', () => ({ default: () => <div>Registration Section</div> }));
-vi.mock('../../admin/adminSettings/components/UserSecurityModal', () => ({ default: () => null }));
-vi.mock('../../admin/adminSettings/components/PortalResetPasswordModal', () => ({ default: () => null }));
+vi.mock('../../../features/adminOps/pages/adminSettings/sections/OrganizationSection', () => ({ default: () => <div>Organization Section</div> }));
+vi.mock('../../../features/adminOps/pages/adminSettings/sections/BrandingSection', () => ({ default: () => <div>Branding Section</div> }));
+vi.mock('../../../features/adminOps/pages/adminSettings/sections/UsersSection', () => ({ default: () => <div>Users Section</div> }));
+vi.mock('../../../features/adminOps/pages/adminSettings/sections/PortalSection', () => ({ default: () => <div>Portal Section</div> }));
+vi.mock('../../../features/adminOps/pages/adminSettings/sections/RolesSection', () => ({ default: () => <div>Roles Section</div> }));
+vi.mock('../../../features/adminOps/pages/adminSettings/sections/OtherSettingsSection', () => ({ default: () => <div>Other Section</div> }));
+vi.mock('../../../features/adminOps/pages/adminSettings/sections/DashboardSection', () => ({ default: () => <div>Dashboard Section</div> }));
+vi.mock('../../../features/adminOps/pages/adminSettings/sections/AuditLogsSection', () => ({ default: () => <div>Audit Section</div> }));
+vi.mock('../../../features/adminOps/pages/adminSettings/sections/EmailSettingsSection', () => ({ default: () => <div>Email Section</div> }));
+vi.mock('../../../features/adminOps/pages/adminSettings/sections/TwilioSettingsSection', () => ({ default: () => <div>Messaging Section</div> }));
+vi.mock('../../../features/adminOps/pages/adminSettings/sections/RegistrationSettingsSection', () => ({ default: () => <div>Registration Section</div> }));
+vi.mock('../../../features/adminOps/pages/adminSettings/components/UserSecurityModal', () => ({ default: () => null }));
+vi.mock('../../../features/adminOps/pages/adminSettings/components/PortalResetPasswordModal', () => ({ default: () => null }));
 
 describe('AdminSettings page', () => {
   it('renders admin settings shell', async () => {

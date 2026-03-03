@@ -1,14 +1,10 @@
 import { useCallback, useState } from 'react';
 import api from '../../../../../services/api';
+import type { ConfirmOptions } from '../../../../../hooks/useConfirmDialog';
 import type { Role } from '../types';
 import { defaultPermissions } from '../constants';
 
-type ConfirmFn = (options: {
-  title: string;
-  message: string;
-  confirmLabel?: string;
-  variant?: 'danger' | 'warning' | 'info' | 'success';
-}) => Promise<boolean>;
+type ConfirmFn = (options: ConfirmOptions) => Promise<boolean>;
 
 export const useRolesSettings = (confirm: ConfirmFn) => {
   const [roles, setRoles] = useState<Role[]>([]);

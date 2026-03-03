@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../../../../../services/api';
+import type { ConfirmOptions } from '../../../../../hooks/useConfirmDialog';
 import type {
   PortalActivity,
   PortalAdminAppointmentInboxItem,
@@ -10,12 +11,7 @@ import type {
   PortalUser,
 } from '../types';
 
-type ConfirmFn = (options: {
-  title: string;
-  message: string;
-  confirmLabel?: string;
-  variant?: 'danger' | 'warning' | 'info' | 'success';
-}) => Promise<boolean>;
+type ConfirmFn = (options: ConfirmOptions) => Promise<boolean>;
 
 type UsePortalSettingsParams = {
   activeSection: string;

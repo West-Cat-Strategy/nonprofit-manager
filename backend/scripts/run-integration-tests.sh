@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ "$#" -eq 0 ]]; then
-  exec npx jest --forceExit src/__tests__/integration
+  exec npx jest --forceExit --runInBand src/__tests__/integration
 fi
 
-exec npx jest --forceExit "$@"
+exec npx jest --forceExit --runInBand "$@"
