@@ -21,7 +21,7 @@ export const createCaseOutcomesController = (
   ): Promise<void> => {
     try {
       const includeInactive =
-        req.query.includeInactive === 'true' || (req as any).validatedQuery?.includeInactive === true;
+        req.query.includeInactive === 'true' || req.validatedQuery?.includeInactive === true;
       const definitions = await useCase.listDefinitions(includeInactive);
       sendData(res, mode, definitions);
     } catch (error) {
@@ -35,7 +35,7 @@ export const createCaseOutcomesController = (
     next: NextFunction
   ): Promise<void> => {
     try {
-      const params = ((req as any).validatedParams ?? req.params) as {
+      const params = (req.validatedParams ?? req.params) as {
         caseId: string;
         interactionId: string;
       };
@@ -52,7 +52,7 @@ export const createCaseOutcomesController = (
     next: NextFunction
   ): Promise<void> => {
     try {
-      const params = ((req as any).validatedParams ?? req.params) as {
+      const params = (req.validatedParams ?? req.params) as {
         caseId: string;
         interactionId: string;
       };

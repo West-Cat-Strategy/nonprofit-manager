@@ -11,8 +11,12 @@ export class PortalCasesUseCase {
     return this.repository.getPortalCaseById(contactId, caseId);
   }
 
-  getTimeline(contactId: string, caseId: string): Promise<unknown[]> {
-    return this.repository.getPortalCaseTimeline(contactId, caseId);
+  getTimeline(
+    contactId: string,
+    caseId: string,
+    options?: { limit?: number; cursor?: string }
+  ): Promise<{ items: unknown[]; page: { limit: number; has_more: boolean; next_cursor: string | null } }> {
+    return this.repository.getPortalCaseTimeline(contactId, caseId, options);
   }
 
   getDocuments(contactId: string, caseId: string): Promise<unknown[]> {
@@ -27,4 +31,3 @@ export class PortalCasesUseCase {
     return this.repository.getPortalCaseDownloadableDocument(contactId, caseId, documentId);
   }
 }
-

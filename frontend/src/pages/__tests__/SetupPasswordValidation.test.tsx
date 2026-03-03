@@ -41,25 +41,44 @@ const fillSetupForm = async (password: string) => {
   await user.click(screen.getByRole('button', { name: /create admin account/i }));
 };
 
-const mockSuccessfulSetupRequest = () => {
+const mockSuccessfulSetupRequest = (options?: { includeSetupUser?: boolean }) => {
   const postMock = api.post as ReturnType<typeof vi.fn>;
   const getMock = api.get as ReturnType<typeof vi.fn>;
 
   postMock.mockResolvedValue({
-    data: { success: true, data: { organizationId: 'org-1' } },
-  });
-  getMock.mockResolvedValue({
     data: {
       success: true,
       data: {
-        id: 'user-1',
-        email: 'setup@example.com',
-        firstName: 'Setup',
-        lastName: 'Admin',
-        role: 'admin',
+        organizationId: 'org-1',
+        ...(options?.includeSetupUser
+          ? {
+              user: {
+                user_id: 'setup-user-1',
+                email: 'setup@example.com',
+                firstName: 'Setup',
+                lastName: 'Admin',
+                role: 'admin',
+              },
+            }
+          : {}),
       },
     },
   });
+
+  if (!options?.includeSetupUser) {
+    getMock.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          id: 'user-1',
+          email: 'setup@example.com',
+          firstName: 'Setup',
+          lastName: 'Admin',
+          role: 'admin',
+        },
+      },
+    });
+  }
 };
 
 describe('Setup password validation', () => {
@@ -77,6 +96,10 @@ describe('Setup password validation', () => {
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/auth/setup', expect.objectContaining({
         password: 'Strong1#Password',
+        passwordConfirm: 'Strong1#Password',
+        firstName: 'Setup',
+        lastName: 'Admin',
+        organizationName: 'Community Aid Network',
       }));
       expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
     });
@@ -93,6 +116,43 @@ describe('Setup password validation', () => {
         password: 'Strong1Password',
       }));
       expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+    });
+  });
+
+  it('hydrates auth directly from setup response user payload', async () => {
+    mockSuccessfulSetupRequest({ includeSetupUser: true });
+    renderSetup();
+
+    await fillSetupForm('Strong1Password');
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/auth/setup', expect.objectContaining({
+        password: 'Strong1Password',
+      }));
+      expect(api.get).not.toHaveBeenCalledWith('/auth/me');
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+    });
+  });
+
+  it('shows a clear message and routes to login when setup succeeds but /auth/me hydration fails', async () => {
+    const postMock = api.post as ReturnType<typeof vi.fn>;
+    const getMock = api.get as ReturnType<typeof vi.fn>;
+    postMock.mockResolvedValue({
+      data: { success: true, data: { organizationId: 'org-1' } },
+    });
+    getMock.mockRejectedValue(new Error('session failed'));
+
+    renderSetup();
+
+    await fillSetupForm('Strong1Password');
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/auth/setup', expect.any(Object));
+      expect(api.get).toHaveBeenCalledWith('/auth/me');
+      expect(
+        screen.getByText(/setup completed, but automatic sign-in failed/i)
+      ).toBeInTheDocument();
+      expect(mockNavigate).toHaveBeenCalledWith('/login', { replace: true });
     });
   });
 });

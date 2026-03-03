@@ -20,7 +20,46 @@ const PROFILE_COLUMNS = `
 `;
 
 export class PortalRepository {
+  private readonly defaultTimelineLimit = 50;
+  private readonly maxTimelineLimit = 200;
+
   constructor(private readonly pool: Pool) {}
+
+  private decodeTimelineCursor(cursor?: string): { createdAt: string; id: string } | null {
+    if (!cursor) {
+      return null;
+    }
+
+    try {
+      const decoded = Buffer.from(cursor, 'base64url').toString('utf8');
+      const parsed = JSON.parse(decoded) as { createdAt?: string; id?: string };
+      if (!parsed.createdAt || !parsed.id) {
+        return null;
+      }
+
+      const createdAtTime = Date.parse(parsed.createdAt);
+      if (Number.isNaN(createdAtTime)) {
+        return null;
+      }
+
+      return {
+        createdAt: new Date(createdAtTime).toISOString(),
+        id: parsed.id,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private encodeTimelineCursor(row: { id: string; created_at: Date | string }): string {
+    const createdAtIso =
+      row.created_at instanceof Date
+        ? row.created_at.toISOString()
+        : new Date(row.created_at).toISOString();
+    return Buffer.from(JSON.stringify({ createdAt: createdAtIso, id: row.id }), 'utf8').toString(
+      'base64url'
+    );
+  }
 
   async getProfile(contactId: string): Promise<Record<string, unknown> | null> {
     const result = await this.pool.query(
@@ -309,7 +348,16 @@ export class PortalRepository {
     return (result.rows[0] as Record<string, unknown> | undefined) ?? null;
   }
 
-  async getPortalCaseTimeline(contactId: string, caseId: string): Promise<unknown[]> {
+  async getPortalCaseTimeline(
+    contactId: string,
+    caseId: string,
+    options?: { limit?: number; cursor?: string }
+  ): Promise<{ items: unknown[]; page: { limit: number; has_more: boolean; next_cursor: string | null } }> {
+    const requestedLimit = options?.limit ?? this.defaultTimelineLimit;
+    const limit = Math.max(1, Math.min(requestedLimit, this.maxTimelineLimit));
+    const cursor = this.decodeTimelineCursor(options?.cursor);
+    const pageSize = limit + 1;
+
     const result = await this.pool.query(
       `
       SELECT * FROM (
@@ -370,12 +418,31 @@ export class PortalRepository {
           AND cd.visible_to_client = true
           AND COALESCE(cd.is_active, true) = true
       ) timeline
+      WHERE (
+        $3::timestamptz IS NULL
+        OR timeline.created_at < $3::timestamptz
+        OR (timeline.created_at = $3::timestamptz AND timeline.id::text < $4::text)
+      )
       ORDER BY created_at DESC, id DESC
+      LIMIT $5
     `,
-      [caseId, contactId]
+      [caseId, contactId, cursor?.createdAt || null, cursor?.id || null, pageSize]
     );
 
-    return result.rows;
+    const rows = result.rows as Array<{ id: string; created_at: Date | string }>;
+    const hasMore = rows.length > limit;
+    const items = hasMore ? rows.slice(0, limit) : rows;
+    const nextCursor =
+      hasMore && items.length > 0 ? this.encodeTimelineCursor(items[items.length - 1]) : null;
+
+    return {
+      items,
+      page: {
+        limit,
+        has_more: hasMore,
+        next_cursor: nextCursor,
+      },
+    };
   }
 
   async getPortalCaseDocuments(contactId: string, caseId: string): Promise<unknown[]> {

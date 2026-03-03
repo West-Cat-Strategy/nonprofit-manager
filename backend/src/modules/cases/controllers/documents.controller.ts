@@ -135,7 +135,7 @@ export const createCaseDocumentsController = (
 
   const downloadCaseDocument = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const query = ((req as any).validatedQuery ?? req.query) as {
+      const query = (req.validatedQuery ?? req.query) as {
         disposition?: 'inline' | 'attachment' | string;
       };
       const record = (await useCase.get(req.params.id, req.params.documentId)) as

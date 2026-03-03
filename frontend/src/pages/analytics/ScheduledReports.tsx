@@ -74,7 +74,10 @@ export default function ScheduledReportsPage() {
   const [historyReportId, setHistoryReportId] = useState<string | null>(null);
 
   const loadAllScheduledData = useCallback(async () => {
-    await Promise.all([dispatch(fetchScheduledReports()), dispatch(fetchSavedReports())]);
+    await Promise.all([
+      dispatch(fetchScheduledReports()),
+      dispatch(fetchSavedReports({ page: 1, limit: 100, summary: true })),
+    ]);
   }, [dispatch]);
 
   useEffect(() => {

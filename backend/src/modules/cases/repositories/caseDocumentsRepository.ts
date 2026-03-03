@@ -1,14 +1,21 @@
-import { services } from '@container/services';
+import pool from '@config/database';
 import type { UpdateCaseDocumentDTO } from '@app-types/case';
 import type { CaseDocumentsPort } from '../types/ports';
+import {
+  createCaseDocumentQuery,
+  deleteCaseDocumentQuery,
+  getCaseDocumentByIdQuery,
+  getCaseDocumentsQuery,
+  updateCaseDocumentQuery,
+} from '../queries/documentsQueries';
 
 export class CaseDocumentsRepository implements CaseDocumentsPort {
   async getCaseDocuments(caseId: string): Promise<unknown[]> {
-    return services.case.getCaseDocuments(caseId);
+    return getCaseDocumentsQuery(pool, caseId);
   }
 
   async getCaseDocumentById(caseId: string, documentId: string): Promise<unknown | null> {
-    return services.case.getCaseDocumentById(caseId, documentId);
+    return getCaseDocumentByIdQuery(pool, caseId, documentId);
   }
 
   async createCaseDocument(input: {
@@ -24,15 +31,14 @@ export class CaseDocumentsRepository implements CaseDocumentsPort {
     visibleToClient?: boolean;
     userId?: string;
   }): Promise<unknown> {
-    return services.case.createCaseDocument(input);
+    return createCaseDocumentQuery(pool, input);
   }
 
   async updateCaseDocument(documentId: string, data: UpdateCaseDocumentDTO, userId?: string): Promise<unknown> {
-    return services.case.updateCaseDocument(documentId, data, userId);
+    return updateCaseDocumentQuery(pool, documentId, data, userId);
   }
 
   async deleteCaseDocument(documentId: string, userId?: string): Promise<boolean> {
-    return services.case.deleteCaseDocument(documentId, userId);
+    return deleteCaseDocumentQuery(pool, documentId, userId);
   }
 }
-

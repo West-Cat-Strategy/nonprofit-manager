@@ -121,7 +121,7 @@ export const getAnalyticsSummary = async (
     if (denyIfScopedForOrgWide(scope, res)) {
       return;
     }
-    const query = ((req as any).validatedQuery ?? req.query) as {
+    const query = (req.validatedQuery ?? req.query) as {
       start_date?: string;
       end_date?: string;
       account_type?: string;
@@ -274,7 +274,7 @@ export const getDonationTrends = async (
     if (denyIfScopedForOrgWide(scope, res)) {
       return;
     }
-    const query = ((req as any).validatedQuery ?? req.query) as { months?: number | string };
+    const query = (req.validatedQuery ?? req.query) as { months?: number | string };
     const parsedMonths =
       typeof query.months === 'number'
         ? query.months
@@ -302,7 +302,7 @@ export const getVolunteerHoursTrends = async (
     if (denyIfScopedForOrgWide(scope, res)) {
       return;
     }
-    const query = ((req as any).validatedQuery ?? req.query) as { months?: number | string };
+    const query = (req.validatedQuery ?? req.query) as { months?: number | string };
     const parsedMonths =
       typeof query.months === 'number'
         ? query.months
@@ -329,7 +329,7 @@ export const getEventAttendanceTrends = async (
     if (denyIfScopedForOrgWide(scope, res)) {
       return;
     }
-    const query = ((req as any).validatedQuery ?? req.query) as { months?: number | string };
+    const query = (req.validatedQuery ?? req.query) as { months?: number | string };
     const parsedMonths =
       typeof query.months === 'number'
         ? query.months
@@ -356,7 +356,7 @@ export const getComparativeAnalytics = async (
     if (denyIfScopedForOrgWide(scope, res)) {
       return;
     }
-    const query = ((req as any).validatedQuery ?? req.query) as {
+    const query = (req.validatedQuery ?? req.query) as {
       period?: 'month' | 'quarter' | 'year';
     };
     const periodType = query.period || 'month';
@@ -384,7 +384,7 @@ export const getTrendAnalysis = async (
       return;
     }
     const { metricType } = req.params as { metricType: 'donations' | 'volunteer_hours' | 'event_attendance' };
-    const query = ((req as any).validatedQuery ?? req.query) as { months?: number | string };
+    const query = (req.validatedQuery ?? req.query) as { months?: number | string };
     const parsedMonths =
       typeof query.months === 'number'
         ? query.months
@@ -413,7 +413,7 @@ export const detectAnomalies = async (
       return;
     }
     const { metricType } = req.params as { metricType: 'donations' | 'volunteer_hours' | 'event_attendance' };
-    const query = ((req as any).validatedQuery ?? req.query) as {
+    const query = (req.validatedQuery ?? req.query) as {
       months?: number | string;
       sensitivity?: number | string;
     };

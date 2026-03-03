@@ -58,7 +58,7 @@ export const createTasksController = (
     next: NextFunction
   ): Promise<void> => {
     try {
-      const query = ((req as any).validatedQuery ?? req.query) as Record<string, unknown>;
+      const query = (req.validatedQuery ?? req.query) as Record<string, unknown>;
       const filters: TaskFilters = {
         search: getString(query.search),
         status: parseTaskStatus(getString(query.status)),
@@ -86,7 +86,7 @@ export const createTasksController = (
     next: NextFunction
   ): Promise<void> => {
     try {
-      const query = ((req as any).validatedQuery ?? req.query) as Record<string, unknown>;
+      const query = (req.validatedQuery ?? req.query) as Record<string, unknown>;
       const filters: TaskFilters = {
         assigned_to: getString(query.assigned_to),
         related_to_type: parseRelatedToType(getString(query.related_to_type)),

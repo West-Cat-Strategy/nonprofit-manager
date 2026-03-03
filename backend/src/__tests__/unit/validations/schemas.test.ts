@@ -6,6 +6,7 @@
 import {
   loginSchema,
   registerSchema,
+  changePasswordSchema,
   passwordResetRequestSchema,
   setupFirstUserSchema,
   twoFactorVerifySchema,
@@ -73,6 +74,33 @@ describe('Authentication Schemas', () => {
 
       const result = registerSchema.safeParse(validData);
       expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toMatchObject({
+          email: 'newuser@example.com',
+          firstName: 'John',
+          lastName: 'Doe',
+          passwordConfirm: 'SecurePass123',
+        });
+      }
+    });
+
+    it('accepts canonical camelCase registration fields', () => {
+      const result = registerSchema.safeParse({
+        email: 'camel@example.com',
+        password: 'StrongPass123',
+        passwordConfirm: 'StrongPass123',
+        firstName: 'Camel',
+        lastName: 'Case',
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toMatchObject({
+          firstName: 'Camel',
+          lastName: 'Case',
+          passwordConfirm: 'StrongPass123',
+        });
+      }
     });
 
     it('should require strong password', () => {
@@ -166,6 +194,64 @@ describe('Authentication Schemas', () => {
       });
 
       expect(result.success).toBe(true);
+    });
+
+    it('accepts and normalizes canonical setup fields', () => {
+      const result = setupFirstUserSchema.safeParse({
+        email: 'setup2@example.com',
+        password: 'Strong1Password',
+        passwordConfirm: 'Strong1Password',
+        firstName: 'Setup',
+        lastName: 'Admin',
+        organizationName: 'Setup Org 2',
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toMatchObject({
+          email: 'setup2@example.com',
+          firstName: 'Setup',
+          lastName: 'Admin',
+          organizationName: 'Setup Org 2',
+          passwordConfirm: 'Strong1Password',
+        });
+      }
+    });
+  });
+
+  describe('changePasswordSchema', () => {
+    it('accepts and normalizes canonical password fields', () => {
+      const result = changePasswordSchema.safeParse({
+        currentPassword: 'CurrentPass123',
+        newPassword: 'NewPass123',
+        newPasswordConfirm: 'NewPass123',
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toMatchObject({
+          currentPassword: 'CurrentPass123',
+          newPassword: 'NewPass123',
+          newPasswordConfirm: 'NewPass123',
+        });
+      }
+    });
+
+    it('accepts legacy snake_case password fields', () => {
+      const result = changePasswordSchema.safeParse({
+        current_password: 'CurrentPass123',
+        new_password: 'NewPass123',
+        new_password_confirm: 'NewPass123',
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toMatchObject({
+          currentPassword: 'CurrentPass123',
+          newPassword: 'NewPass123',
+          newPasswordConfirm: 'NewPass123',
+        });
+      }
     });
   });
 

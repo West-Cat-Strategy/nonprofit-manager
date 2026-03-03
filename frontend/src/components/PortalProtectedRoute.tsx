@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { portalFetchMe } from '../store/slices/portalAuthSlice';
@@ -7,6 +7,10 @@ import PortalLayout from './PortalLayout';
 interface PortalProtectedRouteProps {
   children: React.ReactNode;
 }
+
+const PortalRouteFallback = () => (
+  <div className="p-4 text-sm text-app-text-muted">Loading portal page...</div>
+);
 
 export default function PortalProtectedRoute({ children }: PortalProtectedRouteProps) {
   const dispatch = useAppDispatch();
@@ -47,5 +51,9 @@ export default function PortalProtectedRoute({ children }: PortalProtectedRouteP
     return <Navigate to="/portal/login" replace />;
   }
 
-  return <PortalLayout>{children}</PortalLayout>;
+  return (
+    <PortalLayout>
+      <Suspense fallback={<PortalRouteFallback />}>{children}</Suspense>
+    </PortalLayout>
+  );
 }

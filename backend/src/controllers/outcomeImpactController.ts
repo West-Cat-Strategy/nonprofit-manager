@@ -42,7 +42,7 @@ export const getCaseOutcomeDefinitions = async (req: AuthRequest, res: Response)
   }
 
   try {
-    const query = ((req as any).validatedQuery ?? req.query) as { includeInactive?: boolean };
+    const query = (req.validatedQuery ?? req.query) as { includeInactive?: boolean };
     const definitions = await outcomeDefinitionService.listOutcomeDefinitions(
       query.includeInactive === true
     );
@@ -59,7 +59,7 @@ export const getInteractionOutcomes = async (req: AuthRequest, res: Response): P
   }
 
   try {
-    const params = ((req as any).validatedParams ?? req.params) as {
+    const params = (req.validatedParams ?? req.params) as {
       caseId: string;
       interactionId: string;
     };
@@ -81,7 +81,7 @@ export const putInteractionOutcomes = async (req: AuthRequest, res: Response): P
   }
 
   try {
-    const params = ((req as any).validatedParams ?? req.params) as {
+    const params = (req.validatedParams ?? req.params) as {
       caseId: string;
       interactionId: string;
     };

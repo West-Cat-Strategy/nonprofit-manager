@@ -14,7 +14,7 @@ export const createPortalMessagingController = (useCase: PortalMessagingUseCase)
         return;
       }
 
-      const query = ((req as any).validatedQuery ?? req.query) as {
+      const query = (req.validatedQuery ?? req.query) as {
         status?: 'open' | 'closed' | 'archived';
         case_id?: string;
         search?: string;

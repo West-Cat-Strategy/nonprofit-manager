@@ -53,13 +53,18 @@ describe('adminStatsController.getAdminStats', () => {
 
     await getAdminStats(req, res);
 
-    expect(res.json).toHaveBeenCalledWith({
-      totalUsers: 0,
-      activeUsers: 0,
-      totalContacts: 0,
-      recentDonations: 0,
-      recentSignups: [],
-    });
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: true,
+        data: {
+          totalUsers: 0,
+          activeUsers: 0,
+          totalContacts: 0,
+          recentDonations: 0,
+          recentSignups: [],
+        },
+      })
+    );
   });
 
   it('falls back to is_active when users.last_login_at does not exist', async () => {
@@ -94,12 +99,17 @@ describe('adminStatsController.getAdminStats', () => {
     await getAdminStats(req, res);
 
     expect(mockedPool.query).toHaveBeenCalledWith('SELECT COUNT(*) FROM users WHERE is_active = true');
-    expect(res.json).toHaveBeenCalledWith({
-      totalUsers: 10,
-      activeUsers: 7,
-      totalContacts: 25,
-      recentDonations: 250.5,
-      recentSignups: expect.any(Array),
-    });
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
+          totalUsers: 10,
+          activeUsers: 7,
+          totalContacts: 25,
+          recentDonations: 250.5,
+          recentSignups: expect.any(Array),
+        }),
+      })
+    );
   });
 });

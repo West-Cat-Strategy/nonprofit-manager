@@ -225,6 +225,15 @@ export interface CaseTimelineEvent {
   last_name?: string | null;
 }
 
+export interface CaseTimelinePage {
+  items: CaseTimelineEvent[];
+  page: {
+    limit: number;
+    has_more: boolean;
+    next_cursor: string | null;
+  };
+}
+
 export type RelationshipType = 'duplicate' | 'related' | 'parent' | 'child' | 'blocked_by' | 'blocks';
 export type ServiceType = 'counseling' | 'legal' | 'financial' | 'housing' | 'healthcare' | 'education' | 'employment' | 'other';
 export type ServiceStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show';

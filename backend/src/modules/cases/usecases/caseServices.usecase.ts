@@ -9,11 +9,31 @@ export class CaseServicesUseCase {
   }
 
   create(caseId: string, data: CreateCaseServiceDTO, userId?: string): Promise<unknown> {
-    return this.repository.createCaseService(caseId, data, userId);
+    return this.repository.createCaseService(
+      caseId,
+      {
+        ...data,
+        service_name: data.service_name.trim(),
+        service_provider: data.service_provider?.trim(),
+        notes: data.notes?.trim(),
+        currency: data.currency?.trim().toUpperCase(),
+      },
+      userId
+    );
   }
 
   update(serviceId: string, data: UpdateCaseServiceDTO, userId?: string): Promise<unknown> {
-    return this.repository.updateCaseService(serviceId, data, userId);
+    return this.repository.updateCaseService(
+      serviceId,
+      {
+        ...data,
+        ...(data.service_name !== undefined ? { service_name: data.service_name.trim() } : {}),
+        ...(data.service_provider !== undefined ? { service_provider: data.service_provider.trim() } : {}),
+        ...(data.notes !== undefined ? { notes: data.notes.trim() } : {}),
+        ...(data.currency !== undefined ? { currency: data.currency.trim().toUpperCase() } : {}),
+      },
+      userId
+    );
   }
 
   delete(serviceId: string): Promise<void> {

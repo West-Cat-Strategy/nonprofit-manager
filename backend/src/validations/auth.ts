@@ -14,20 +14,71 @@ export const loginSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 
+// TODO(P4-T9A): Remove snake_case aliases after July 1, 2026 once
+// docs/phases/auth-alias-deprecation-checklist.md telemetry gates are met.
+const registrationNamesSchema = z
+  .object({
+    firstName: nameSchema.optional(),
+    first_name: nameSchema.optional(),
+    lastName: nameSchema.optional(),
+    last_name: nameSchema.optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (!(data.firstName || data.first_name)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['firstName'],
+        message: 'First name is required',
+      });
+    }
+    if (!(data.lastName || data.last_name)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['lastName'],
+        message: 'Last name is required',
+      });
+    }
+  });
+
+const registrationPasswordsSchema = z
+  .object({
+    password: passwordSchema,
+    passwordConfirm: z.string().optional(),
+    password_confirm: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    const confirmation = data.passwordConfirm ?? data.password_confirm;
+    if (!confirmation) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['passwordConfirm'],
+        message: 'Password confirmation is required',
+      });
+      return;
+    }
+    if (data.password !== confirmation) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['passwordConfirm'],
+        message: 'Passwords do not match',
+      });
+    }
+  });
+
 // Registration request
-export const registerSchema = z.object({
-  email: emailSchema,
-  password: passwordSchema,
-  password_confirm: z.string(),
-  first_name: nameSchema,
-  last_name: nameSchema,
-}).refine(
-  (data) => data.password === data.password_confirm,
-  {
-    message: 'Passwords do not match',
-    path: ['password_confirm'],
-  }
-);
+export const registerSchema = z
+  .object({
+    email: emailSchema,
+  })
+  .and(registrationPasswordsSchema)
+  .and(registrationNamesSchema)
+  .transform((data) => ({
+    email: data.email,
+    password: data.password,
+    passwordConfirm: data.passwordConfirm ?? data.password_confirm ?? '',
+    firstName: data.firstName ?? data.first_name ?? '',
+    lastName: data.lastName ?? data.last_name ?? '',
+  }));
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 
@@ -57,23 +108,67 @@ export const passwordResetTokenParamsSchema = z.object({
   token: z
     .string()
     .trim()
-    .regex(/^[a-fA-F0-9]{64}$/, 'Invalid reset token format'),
+    .regex(
+      /^([a-fA-F0-9]{64}|[0-9a-fA-F-]{36}\.[a-fA-F0-9]{64})$/,
+      'Invalid reset token format'
+    ),
 });
 
 export type PasswordResetTokenParamsInput = z.infer<typeof passwordResetTokenParamsSchema>;
 
 // Change password
-export const changePasswordSchema = z.object({
-  current_password: z.string().min(1, 'Current password is required'),
-  new_password: weakPasswordSchema,
-  new_password_confirm: z.string(),
-}).refine(
-  (data) => data.new_password === data.new_password_confirm,
-  {
-    message: 'Password confirmation does not match',
-    path: ['new_password_confirm'],
-  }
-);
+// TODO(P4-T9A): Remove snake_case aliases after July 1, 2026 once
+// docs/phases/auth-alias-deprecation-checklist.md telemetry gates are met.
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required').optional(),
+    current_password: z.string().min(1, 'Current password is required').optional(),
+    newPassword: weakPasswordSchema.optional(),
+    new_password: weakPasswordSchema.optional(),
+    newPasswordConfirm: z.string().optional(),
+    new_password_confirm: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    const currentPassword = data.currentPassword ?? data.current_password;
+    const newPassword = data.newPassword ?? data.new_password;
+    const newPasswordConfirm = data.newPasswordConfirm ?? data.new_password_confirm;
+
+    if (!currentPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['currentPassword'],
+        message: 'Current password is required',
+      });
+    }
+    if (!newPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['newPassword'],
+        message: 'New password is required',
+      });
+      return;
+    }
+    if (!newPasswordConfirm) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['newPasswordConfirm'],
+        message: 'Password confirmation does not match',
+      });
+      return;
+    }
+    if (newPassword !== newPasswordConfirm) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['newPasswordConfirm'],
+        message: 'Password confirmation does not match',
+      });
+    }
+  })
+  .transform((data) => ({
+    currentPassword: data.currentPassword ?? data.current_password ?? '',
+    newPassword: data.newPassword ?? data.new_password ?? '',
+    newPasswordConfirm: data.newPasswordConfirm ?? data.new_password_confirm ?? '',
+  }));
 
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
@@ -138,6 +233,18 @@ export const passkeyLoginVerifySchema = z.object({
 
 export type PasskeyLoginVerifyInput = z.infer<typeof passkeyLoginVerifySchema>;
 
+export const updatePreferencesSchema = z.object({
+  preferences: z.record(z.string(), z.unknown()),
+});
+
+export type UpdatePreferencesInput = z.infer<typeof updatePreferencesSchema>;
+
+export const updatePreferenceValueSchema = z.object({
+  value: z.unknown(),
+});
+
+export type UpdatePreferenceValueInput = z.infer<typeof updatePreferenceValueSchema>;
+
 export const passkeyIdParamsSchema = z.object({
   id: uuidSchema,
 });
@@ -156,19 +263,32 @@ export const preferenceKeyParamsSchema = z.object({
 export type PreferenceKeyParamsInput = z.infer<typeof preferenceKeyParamsSchema>;
 
 // First User Setup (during initial system setup)
-export const setupFirstUserSchema = z.object({
-  email: emailSchema,
-  password: passwordSchema,
-  password_confirm: z.string(),
-  first_name: nameSchema,
-  last_name: nameSchema,
-  organization_name: z.string().min(1, 'Organization name is required').max(255),
-}).refine(
-  (data) => data.password === data.password_confirm,
-  {
-    message: 'Passwords do not match',
-    path: ['password_confirm'],
-  }
-);
+// TODO(P4-T9A): Remove snake_case aliases after July 1, 2026 once
+// docs/phases/auth-alias-deprecation-checklist.md telemetry gates are met.
+export const setupFirstUserSchema = z
+  .object({
+    email: emailSchema,
+    organizationName: z.string().min(1, 'Organization name is required').max(255).optional(),
+    organization_name: z.string().min(1, 'Organization name is required').max(255).optional(),
+  })
+  .and(registrationPasswordsSchema)
+  .and(registrationNamesSchema)
+  .superRefine((data, ctx) => {
+    if (!(data.organizationName || data.organization_name)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['organizationName'],
+        message: 'Organization name is required',
+      });
+    }
+  })
+  .transform((data) => ({
+    email: data.email,
+    password: data.password,
+    passwordConfirm: data.passwordConfirm ?? data.password_confirm ?? '',
+    firstName: data.firstName ?? data.first_name ?? '',
+    lastName: data.lastName ?? data.last_name ?? '',
+    organizationName: data.organizationName ?? data.organization_name ?? '',
+  }));
 
 export type SetupFirstUserInput = z.infer<typeof setupFirstUserSchema>;

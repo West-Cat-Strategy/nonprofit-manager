@@ -11,7 +11,7 @@ export const createCaseCatalogController = (
 ) => {
   const getCases = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const query = ((req as any).validatedQuery ?? req.query) as {
+      const query = (req.validatedQuery ?? req.query) as {
         search?: string;
         contact_id?: string;
         account_id?: string;
@@ -86,8 +86,24 @@ export const createCaseCatalogController = (
 
   const getCaseTimeline = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const timeline = await useCase.timeline(req.params.id);
-      sendData(res, mode, mode === 'v2' ? timeline : { timeline });
+      const query = (req.validatedQuery ?? req.query) as {
+        limit?: number;
+        cursor?: string;
+      };
+      const timelinePage = await useCase.timeline(req.params.id, {
+        limit: query.limit,
+        cursor: query.cursor,
+      });
+      sendData(
+        res,
+        mode,
+        mode === 'v2'
+          ? timelinePage
+          : {
+              timeline: timelinePage.items,
+              page: timelinePage.page,
+            }
+      );
     } catch (error) {
       next(error);
     }

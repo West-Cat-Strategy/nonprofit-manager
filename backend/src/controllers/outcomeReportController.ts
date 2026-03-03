@@ -9,6 +9,7 @@ import { Permission } from '@utils/permissions';
 import { serverError, validationError } from '@utils/responseHelpers';
 import * as outcomeReportService from '@services/outcomeReportService';
 import type { OutcomeReportFilters } from '@app-types/outcomes';
+import { sendSuccess } from '@modules/shared/http/envelope';
 
 const guardReportPermission = (req: AuthRequest, res: Response): boolean => {
   const guardResult = requirePermissionSafe(req, Permission.OUTCOMES_VIEW_REPORTS);
@@ -29,7 +30,7 @@ export const getOutcomesReport = async (req: AuthRequest, res: Response): Promis
   }
 
   try {
-    const query = ((req as any).validatedQuery ?? req.query) as {
+    const query = (req.validatedQuery ?? req.query) as {
       from: string;
       to: string;
       programId?: string;
@@ -65,7 +66,7 @@ export const getOutcomesReport = async (req: AuthRequest, res: Response): Promis
 
     const report = await outcomeReportService.getOutcomesReport(filters, isAdmin);
 
-    res.json({ success: true, data: report });
+    sendSuccess(res, report);
   } catch {
     serverError(res, 'Failed to generate outcomes report');
   }

@@ -9,7 +9,18 @@ export class CaseRelationshipsUseCase {
   }
 
   create(caseId: string, data: CreateCaseRelationshipDTO, userId?: string): Promise<unknown> {
-    return this.repository.createCaseRelationship(caseId, data, userId);
+    if (caseId === data.related_case_id) {
+      throw new Error('A case cannot be related to itself');
+    }
+
+    return this.repository.createCaseRelationship(
+      caseId,
+      {
+        ...data,
+        description: data.description?.trim() || undefined,
+      },
+      userId
+    );
   }
 
   delete(relationshipId: string): Promise<void> {

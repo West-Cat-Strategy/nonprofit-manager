@@ -26,15 +26,21 @@ const reportB = {
   name: 'Report B',
 } as any;
 
+const pageWithA = {
+  items: [reportA],
+  pagination: { page: 1, limit: 20, total: 1, total_pages: 1 },
+} as any;
+
 describe('savedReportsCore reducer', () => {
   it('handles fetch lifecycles with explicit and fallback errors', () => {
     let state = reducer(undefined, fetchSavedReports.pending('r1', undefined));
     expect(state.loading).toBe(true);
     expect(state.error).toBeNull();
 
-    state = reducer(state, fetchSavedReports.fulfilled([reportA], 'r1', undefined));
+    state = reducer(state, fetchSavedReports.fulfilled(pageWithA, 'r1', undefined));
     expect(state.loading).toBe(false);
     expect(state.reports).toHaveLength(1);
+    expect(state.pagination.total).toBe(1);
 
     state = reducer(
       state,
@@ -68,7 +74,7 @@ describe('savedReportsCore reducer', () => {
   it('handles create/update/delete lifecycles and index/current branches', () => {
     let state = reducer(
       reducer(undefined, { type: '@@INIT' }),
-      fetchSavedReports.fulfilled([reportA], 'base', undefined)
+      fetchSavedReports.fulfilled(pageWithA, 'base', undefined)
     );
 
     state = reducer(state, createSavedReport.pending('r4', reportB));

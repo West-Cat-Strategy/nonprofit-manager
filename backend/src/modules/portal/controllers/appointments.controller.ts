@@ -14,7 +14,7 @@ export const createPortalAppointmentsController = (useCase: PortalAppointmentsUs
         return;
       }
 
-      const query = ((req as any).validatedQuery ?? req.query) as {
+      const query = (req.validatedQuery ?? req.query) as {
         status?: 'requested' | 'confirmed' | 'cancelled' | 'completed';
         case_id?: string;
         from?: string;

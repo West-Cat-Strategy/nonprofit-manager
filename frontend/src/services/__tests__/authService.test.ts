@@ -123,6 +123,7 @@ describe('authService.register', () => {
     const result = await authService.register({
       email: 'new@example.com',
       password: 'pass123',
+      passwordConfirm: 'pass123',
       firstName: 'New',
       lastName: 'User',
     });
@@ -130,6 +131,7 @@ describe('authService.register', () => {
     expect(api.post).toHaveBeenCalledWith('/auth/register', {
       email: 'new@example.com',
       password: 'pass123',
+      passwordConfirm: 'pass123',
       firstName: 'New',
       lastName: 'User',
     });

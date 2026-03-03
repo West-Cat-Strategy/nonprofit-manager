@@ -64,7 +64,7 @@ export const getSharePrincipals = async (
   try {
     if (!ensurePermission(req, res, Permission.REPORT_VIEW)) return;
 
-    const query = ((req as any).validatedQuery ?? req.query) as {
+    const query = (req.validatedQuery ?? req.query) as {
       search?: string;
       limit?: number;
     };
@@ -257,7 +257,7 @@ export const downloadPublicReportByToken = async (
 ): Promise<void> => {
   try {
     const token = String(req.params.token || '');
-    const query = ((req as any).validatedQuery ?? req.query) as {
+    const query = (req.validatedQuery ?? req.query) as {
       format?: 'csv' | 'xlsx';
     };
 

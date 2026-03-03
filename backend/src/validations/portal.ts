@@ -80,6 +80,12 @@ export const portalCaseDocumentDownloadParamsSchema = z.object({
   id: uuidSchema,
   documentId: uuidSchema,
 });
+export const portalCaseTimelineQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(200).default(50),
+    cursor: z.string().trim().max(512).optional(),
+  })
+  .strict();
 export const portalEventParamsSchema = z.object({ eventId: uuidSchema });
 export const portalAppointmentParamsSchema = z.object({ id: uuidSchema });
 export const portalThreadParamsSchema = z.object({ threadId: uuidSchema });

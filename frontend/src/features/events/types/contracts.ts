@@ -22,6 +22,7 @@ export interface EventListQuery {
   limit?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  accumulateAllPages?: boolean;
 }
 
 export interface EventCatalogPort {

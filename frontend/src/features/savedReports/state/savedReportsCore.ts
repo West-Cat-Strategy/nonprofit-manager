@@ -8,13 +8,16 @@ import { savedReportsApiClient } from '../api/savedReportsApiClient';
 import type {
   CreateSavedReportRequest,
   ReportEntity,
+  SavedReportListItem,
+  SavedReportsListPage,
   SavedReport,
   UpdateSavedReportRequest,
 } from '../types/contracts';
 
 export interface SavedReportsState {
-  reports: SavedReport[];
+  reports: SavedReportListItem[];
   currentSavedReport: SavedReport | null;
+  pagination: SavedReportsListPage['pagination'];
   loading: boolean;
   error: string | null;
 }
@@ -22,8 +25,41 @@ export interface SavedReportsState {
 const initialState: SavedReportsState = {
   reports: [],
   currentSavedReport: null,
+  pagination: {
+    page: 1,
+    limit: 20,
+    total: 0,
+    total_pages: 0,
+  },
   loading: false,
   error: null,
+};
+
+export type FetchSavedReportsArgs =
+  | ReportEntity
+  | {
+      entity?: ReportEntity;
+      page?: number;
+      limit?: number;
+      summary?: boolean;
+    }
+  | undefined;
+
+const normalizeFetchSavedReportsArgs = (
+  args: FetchSavedReportsArgs
+): {
+  entity?: ReportEntity;
+  page?: number;
+  limit?: number;
+  summary?: boolean;
+} => {
+  if (!args) {
+    return {};
+  }
+  if (typeof args === 'string') {
+    return { entity: args };
+  }
+  return args;
 };
 
 // Async Thunks
@@ -33,8 +69,8 @@ const initialState: SavedReportsState = {
  */
 export const fetchSavedReports = createAsyncThunk(
   'savedReports/fetchAll',
-  async (entity?: ReportEntity) => {
-    return savedReportsApiClient.fetchSavedReports(entity);
+  async (args?: FetchSavedReportsArgs) => {
+    return savedReportsApiClient.fetchSavedReports(normalizeFetchSavedReportsArgs(args));
   }
 );
 
@@ -100,7 +136,8 @@ const savedReportsSlice = createSlice({
       })
       .addCase(fetchSavedReports.fulfilled, (state, action) => {
         state.loading = false;
-        state.reports = action.payload;
+        state.reports = action.payload.items;
+        state.pagination = action.payload.pagination;
       })
       .addCase(fetchSavedReports.rejected, (state, action) => {
         state.loading = false;
@@ -127,6 +164,9 @@ const savedReportsSlice = createSlice({
       .addCase(createSavedReport.fulfilled, (state, action) => {
         state.loading = false;
         state.reports.unshift(action.payload);
+        state.pagination.total += 1;
+        state.pagination.total_pages =
+          state.pagination.total === 0 ? 0 : Math.ceil(state.pagination.total / state.pagination.limit);
         state.currentSavedReport = action.payload;
       })
       .addCase(createSavedReport.rejected, (state, action) => {
@@ -157,7 +197,13 @@ const savedReportsSlice = createSlice({
       })
       .addCase(deleteSavedReport.fulfilled, (state, action) => {
         state.loading = false;
+        const previousLength = state.reports.length;
         state.reports = state.reports.filter((r) => r.id !== action.payload);
+        if (state.reports.length < previousLength) {
+          state.pagination.total = Math.max(0, state.pagination.total - 1);
+          state.pagination.total_pages =
+            state.pagination.total === 0 ? 0 : Math.ceil(state.pagination.total / state.pagination.limit);
+        }
         if (state.currentSavedReport?.id === action.payload) {
           state.currentSavedReport = null;
         }

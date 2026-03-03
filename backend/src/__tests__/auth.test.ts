@@ -2,7 +2,7 @@ import * as bcrypt from 'bcryptjs';
 import { Response } from 'express';
 import { validationResult } from 'express-validator';
 import pool from '../config/database';
-import { register, login } from '../controllers/authController';
+import { register, login, checkSetupStatus, setupFirstUser } from '../controllers/authController';
 import { AuthRequest } from '../middleware/auth';
 import { getRegistrationMode } from '../services/registrationSettingsService';
 import { createPendingRegistration } from '../services/pendingRegistrationService';
@@ -20,6 +20,7 @@ jest.mock('../config/database', () => ({
 }));
 
 jest.mock('bcryptjs', () => ({
+  genSalt: jest.fn(),
   hash: jest.fn(),
   compare: jest.fn(),
 }));
@@ -261,6 +262,140 @@ describe('Auth API', () => {
           error: expect.objectContaining({
             code: 'unauthorized',
             message: 'Invalid credentials',
+          }),
+        })
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('checkSetupStatus', () => {
+    it('returns setupRequired=true when no admin users exist', async () => {
+      queryMock
+        .mockResolvedValueOnce({ rows: [{ count: '0' }] })
+        .mockResolvedValueOnce({ rows: [{ count: '0' }] });
+
+      const req = {} as AuthRequest;
+      const res = createMockResponse() as unknown as Response;
+      const next = jest.fn();
+
+      await checkSetupStatus(req, res, next);
+
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          data: expect.objectContaining({
+            setupRequired: true,
+            userCount: 0,
+          }),
+        })
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('returns setupRequired=false when an admin user exists', async () => {
+      queryMock
+        .mockResolvedValueOnce({ rows: [{ count: '1' }] })
+        .mockResolvedValueOnce({ rows: [{ count: '4' }] });
+
+      const req = {} as AuthRequest;
+      const res = createMockResponse() as unknown as Response;
+      const next = jest.fn();
+
+      await checkSetupStatus(req, res, next);
+
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          data: expect.objectContaining({
+            setupRequired: false,
+            userCount: 4,
+          }),
+        })
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('setupFirstUser', () => {
+    it('creates the first admin user and organization', async () => {
+      (bcrypt.genSalt as jest.Mock).mockResolvedValueOnce('salt');
+      (bcrypt.hash as jest.Mock).mockResolvedValueOnce('hashed-password');
+
+      queryMock
+        .mockResolvedValueOnce({ rows: [{ count: '0' }] })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'user-setup-1',
+              email: 'setup-admin@example.com',
+              first_name: 'Setup',
+              last_name: 'Admin',
+              role: 'admin',
+              created_at: new Date().toISOString(),
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ rows: [{ id: 'org-setup-1' }] });
+
+      const req = {
+        body: {
+          email: 'setup-admin@example.com',
+          password: 'StrongP@ssw0rd',
+          firstName: 'Setup',
+          lastName: 'Admin',
+          organizationName: 'Setup Org',
+        },
+      } as AuthRequest;
+      const res = createMockResponse() as unknown as Response;
+      const next = jest.fn();
+
+      await setupFirstUser(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          data: expect.objectContaining({
+            message: 'Setup completed successfully',
+            organizationId: 'org-setup-1',
+            user: expect.objectContaining({
+              user_id: 'user-setup-1',
+              email: 'setup-admin@example.com',
+              firstName: 'Setup',
+              lastName: 'Admin',
+              role: 'admin',
+            }),
+          }),
+        })
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('rejects setup once an admin already exists', async () => {
+      queryMock.mockResolvedValueOnce({ rows: [{ count: '1' }] });
+
+      const req = {
+        body: {
+          email: 'setup-admin@example.com',
+          password: 'StrongP@ssw0rd',
+          firstName: 'Setup',
+          lastName: 'Admin',
+          organizationName: 'Setup Org',
+        },
+      } as AuthRequest;
+      const res = createMockResponse() as unknown as Response;
+      const next = jest.fn();
+
+      await setupFirstUser(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'forbidden',
+            message: expect.stringMatching(/setup has already been completed/i),
           }),
         })
       );
