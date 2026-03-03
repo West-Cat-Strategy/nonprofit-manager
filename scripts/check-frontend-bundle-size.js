@@ -20,7 +20,8 @@ const jsFiles = fs
 
 const budgets = [
   { id: 'EventDetailPage', prefix: 'EventDetailPage-', maxBytes: 500 * 1024 },
-  { id: 'AdminSettings', prefix: 'AdminSettings-', maxBytes: 180 * 1024 },
+  // Keep backward compatibility with historical chunk names.
+  { id: 'AdminSettings', prefixes: ['AdminSettingsPage-', 'AdminSettings-'], maxBytes: 180 * 1024 },
   { id: 'vendor-recharts', prefix: 'vendor-recharts-', maxBytes: 380 * 1024 },
   { id: 'vendor-pdf', prefix: 'vendor-pdf-', maxBytes: 450 * 1024 },
   { id: 'index-main', prefix: 'index-', maxBytes: 440 * 1024 },
@@ -32,12 +33,13 @@ let hasViolation = false;
 
 console.log('Frontend bundle budget report:');
 for (const budget of budgets) {
+  const prefixes = budget.prefixes ?? [budget.prefix];
   const match = jsFiles
-    .filter((entry) => entry.file.startsWith(budget.prefix))
+    .filter((entry) => prefixes.some((prefix) => entry.file.startsWith(prefix)))
     .sort((a, b) => b.bytes - a.bytes)[0];
 
   if (!match) {
-    console.error(`- ${budget.id}: missing chunk with prefix "${budget.prefix}"`);
+    console.error(`- ${budget.id}: missing chunk with prefix "${prefixes.join('" or "')}"`);
     hasViolation = true;
     continue;
   }
