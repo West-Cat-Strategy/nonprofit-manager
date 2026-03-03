@@ -191,7 +191,7 @@ describe('Route UX smoke', () => {
         });
       }
       if (url === '/v2/contacts/tags') {
-        return Promise.resolve({ data: { tags: [] } });
+        return Promise.resolve({ data: { success: true, data: [] } });
       }
       if (url.startsWith('/v2/contacts')) {
         return Promise.resolve({
@@ -229,14 +229,16 @@ describe('Route UX smoke', () => {
       if (url.startsWith('/v2/cases/types')) {
         return Promise.resolve({
           data: {
-            types: [{ id: 'type-1', name: 'Housing', category: 'support', is_active: true, display_order: 1 }],
-          },
+            success: true,
+            data: [{ id: 'type-1', name: 'Housing', category: 'support', is_active: true, display_order: 1 }],
+          }
         });
       }
       if (url.startsWith('/v2/cases/statuses')) {
         return Promise.resolve({
           data: {
-            statuses: [
+            success: true,
+            data: [
               {
                 id: 'status-1',
                 name: 'Open',
@@ -247,7 +249,7 @@ describe('Route UX smoke', () => {
                 is_active: true,
               },
             ],
-          },
+          }
         });
       }
       if (url.startsWith('/v2/cases/summary')) {

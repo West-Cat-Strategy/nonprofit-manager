@@ -34,7 +34,18 @@ const renderContactForm = async (component: React.ReactElement) => {
 describe('ContactForm', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
-    mockApi.get.mockResolvedValue({ data: { roles: [] } });
+    mockApi.get.mockImplementation((url: string) => {
+      if (url === '/contacts/roles') {
+        return Promise.resolve({ data: { roles: [] } });
+      }
+      if (url === '/v2/contacts/tags') {
+        return Promise.resolve({ data: { success: true, data: [] } });
+      }
+      if (url.startsWith('/v2/contacts/') && url.endsWith('/relationships')) {
+        return Promise.resolve({ data: { success: true, data: [] } });
+      }
+      return Promise.resolve({ data: { success: true, data: [] } });
+    });
   });
 
   describe('Create Mode', () => {
