@@ -8,6 +8,7 @@ import api from '../services/api';
 import Avatar from './Avatar';
 import ErrorBanner from './ErrorBanner';
 import { useApiError } from '../hooks/useApiError';
+import { validatePassword } from '../utils/validation';
 
 interface User {
   id: string;
@@ -114,8 +115,9 @@ export default function UserManagement() {
       return;
     }
 
-    if (formData.password.length < 8) {
-      setFormErrorFromError(new Error('Password must be at least 8 characters'), 'Password must be at least 8 characters');
+    const passwordError = validatePassword(formData.password);
+    if (passwordError) {
+      setFormErrorFromError(new Error(passwordError), passwordError);
       return;
     }
 
@@ -171,8 +173,9 @@ export default function UserManagement() {
       return;
     }
 
-    if (formData.password.length < 8) {
-      setFormErrorFromError(new Error('Password must be at least 8 characters'), 'Password must be at least 8 characters');
+    const passwordError = validatePassword(formData.password);
+    if (passwordError) {
+      setFormErrorFromError(new Error(passwordError), passwordError);
       return;
     }
 
@@ -454,7 +457,7 @@ export default function UserManagement() {
                     className="w-full px-3 py-2 border border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent"
                   />
                   <p className="mt-1 text-xs text-app-text-muted">
-                    Min 8 chars with uppercase, lowercase, number, and special character
+                    Min 8 chars with uppercase, lowercase, and number
                   </p>
                 </div>
 
@@ -601,7 +604,7 @@ export default function UserManagement() {
                     className="w-full px-3 py-2 border border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent"
                   />
                   <p className="mt-1 text-xs text-app-text-muted">
-                    Min 8 chars with uppercase, lowercase, number, and special character
+                    Min 8 chars with uppercase, lowercase, and number
                   </p>
                 </div>
 

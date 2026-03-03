@@ -17,6 +17,7 @@ import ThemeSelector from '../../components/ThemeSelector';
 import ErrorBanner from '../../components/ErrorBanner';
 import { useApiError } from '../../hooks/useApiError';
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
+import { validatePassword } from '../../utils/validation';
 
 interface AlternativeEmail {
   email: string;
@@ -478,14 +479,9 @@ export default function UserSettings() {
       return;
     }
 
-    if (passwordData.newPassword.length < 8) {
-      setPasswordError('Password must be at least 8 characters');
-      return;
-    }
-
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
-    if (!passwordRegex.test(passwordData.newPassword)) {
-      setPasswordError('Password must contain uppercase, lowercase, number, and special character');
+    const passwordError = validatePassword(passwordData.newPassword);
+    if (passwordError) {
+      setPasswordError(passwordError);
       return;
     }
 
@@ -1066,7 +1062,7 @@ export default function UserSettings() {
                       value={passwordData.newPassword}
                       onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
                       className="w-full px-3 py-2 border-2 border-black bg-app-surface font-medium shadow-[2px_2px_0px_0px_var(--shadow-color)]"
-                      placeholder="Min 8 chars, upper, lower, number, special"
+                      placeholder="Min 8 chars, upper, lower, number"
                     />
                   </div>
                   <div>

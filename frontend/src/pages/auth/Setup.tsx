@@ -13,6 +13,7 @@ import ErrorBanner from '../../components/ErrorBanner';
 import { useApiError } from '../../hooks/useApiError';
 import { useAppDispatch } from '../../store/hooks';
 import { setCredentials } from '../../store/slices/authSlice';
+import { validatePassword } from '../../utils/validation';
 
 interface SetupFormData {
   email: string;
@@ -43,7 +44,6 @@ const Setup: React.FC = () => {
     upper: /[A-Z]/.test(formData.password),
     lower: /[a-z]/.test(formData.password),
     number: /\d/.test(formData.password),
-    special: /[@$!%*?&]/.test(formData.password),
   };
   const passwordsMatch =
     formData.password.length > 0 &&
@@ -86,16 +86,11 @@ const Setup: React.FC = () => {
 
     if (!formData.password) {
       newErrors.push('Password is required');
-    } else if (formData.password.length < 8) {
-      newErrors.push('Password must be at least 8 characters');
-    } else if (
-      !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(
-        formData.password
-      )
-    ) {
-      newErrors.push(
-        'Password must contain uppercase, lowercase, number, and special character'
-      );
+    } else {
+      const passwordError = validatePassword(formData.password);
+      if (passwordError) {
+        newErrors.push(passwordError);
+      }
     }
 
     if (formData.password !== formData.confirmPassword) {
@@ -395,11 +390,10 @@ const Setup: React.FC = () => {
                     <span className="h-2 w-2 rounded-full bg-current" />
                     One number
                   </div>
-                  <div className={`flex items-center gap-2 ${passwordRules.special ? 'text-app-accent' : ''}`}>
-                    <span className="h-2 w-2 rounded-full bg-current" />
-                    One special character
-                  </div>
                 </div>
+                <p className="mt-2 text-xs text-app-text-muted">
+                  Special characters are allowed but not required.
+                </p>
               </div>
 
               <div>

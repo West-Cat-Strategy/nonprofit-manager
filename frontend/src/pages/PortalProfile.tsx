@@ -4,6 +4,7 @@ import { unwrapApiData } from '../services/apiEnvelope';
 import { useToast } from '../contexts/useToast';
 import PortalPageShell from '../components/portal/PortalPageShell';
 import PortalPageState from '../components/portal/PortalPageState';
+import { validatePassword } from '../utils/validation';
 
 interface PortalProfileData {
   contact_id: string;
@@ -114,8 +115,9 @@ export default function PortalProfile() {
       return;
     }
 
-    if (newPassword.length < 8) {
-      const message = 'Password must be at least 8 characters.';
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      const message = `${passwordError}.`;
       setSecurityStatusMessage(message);
       showError(message);
       return;
@@ -383,7 +385,7 @@ export default function PortalProfile() {
                     required
                   />
                   <p className="mt-1 text-xs text-app-text-muted">
-                    Must be at least 8 characters with uppercase, lowercase, number, and special character.
+                    Must be at least 8 characters with uppercase, lowercase, and number.
                   </p>
                 </div>
                 <div>

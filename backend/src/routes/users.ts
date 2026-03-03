@@ -16,17 +16,9 @@ import {
 } from '@controllers/domains/core';
 import { authenticate } from '@middleware/domains/auth';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
-import { emailSchema, uuidSchema } from '@validations/shared';
+import { emailSchema, passwordSchema, uuidSchema } from '@validations/shared';
 
 const router = Router();
-
-const passwordSchema = z
-  .string()
-  .min(8, 'Password must be at least 8 characters')
-  .regex(
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-    'Password must contain uppercase, lowercase, number, and special character'
-  );
 
 const userIdParamsSchema = z.object({
   id: uuidSchema,
