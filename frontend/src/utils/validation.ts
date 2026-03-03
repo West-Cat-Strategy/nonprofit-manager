@@ -22,7 +22,6 @@ const PASSWORD_MIN_LENGTH = 8;
 const PASSWORD_LOWERCASE_REGEX = /[a-z]/;
 const PASSWORD_UPPERCASE_REGEX = /[A-Z]/;
 const PASSWORD_DIGIT_REGEX = /\d/;
-const PASSWORD_SPECIAL_REGEX = /[@$!%*?&]/;
 
 export function validatePassword(password: string): string | null {
   if (password.length < PASSWORD_MIN_LENGTH) {
@@ -36,9 +35,6 @@ export function validatePassword(password: string): string | null {
   }
   if (!PASSWORD_DIGIT_REGEX.test(password)) {
     return 'Password must contain a number';
-  }
-  if (!PASSWORD_SPECIAL_REGEX.test(password)) {
-    return 'Password must contain a special character (@$!%*?&)';
   }
   return null;
 }
