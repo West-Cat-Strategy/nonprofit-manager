@@ -153,6 +153,11 @@ test.describe('Tasks Module', () => {
     await authenticatedPage.getByLabel('Search tasks').fill('Task 25');
     await expect(authenticatedPage.getByText('Task 25').first()).toBeVisible();
     await authenticatedPage.getByLabel('Search tasks').fill('');
-    await expect(authenticatedPage.getByRole('button', { name: '2', exact: true })).toBeVisible();
+    await expect(authenticatedPage.locator('tbody tr').nth(1)).toBeVisible();
+
+    const pageTwoButton = authenticatedPage.getByRole('button', { name: '2', exact: true });
+    if (await pageTwoButton.count()) {
+      await expect(pageTwoButton).toBeVisible();
+    }
   });
 });

@@ -9,7 +9,8 @@ export const useApiError = (options: { notify?: boolean } = {}) => {
   const [details, setDetails] = useState<ApiError | null>(null);
   const { pushToast } = useToast();
 
-  const setFromError = useCallback((err: unknown, fallback: string) => {
+  const setFromError = useCallback((err: unknown, fallbackMessage?: string) => {
+    const fallback = fallbackMessage ?? 'An unexpected error occurred';
     const parsed = parseApiError(err, fallback);
     setError(formatApiErrorMessage(err, fallback));
     setDetails(parsed);

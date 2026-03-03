@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import api from '../../../../../services/api';
+import type { ConfirmOptions } from '../../../../../hooks/useConfirmDialog';
 import type {
   AuditLog,
   UserInvitation,
@@ -7,12 +8,7 @@ import type {
   UserSecurityInfo,
 } from '../types';
 
-type ConfirmFn = (options: {
-  title: string;
-  message: string;
-  confirmLabel?: string;
-  variant?: 'danger' | 'warning' | 'info' | 'success';
-}) => Promise<boolean>;
+type ConfirmFn = (options: ConfirmOptions) => Promise<boolean>;
 
 type UseUsersSettingsParams = {
   activeSection: string;
