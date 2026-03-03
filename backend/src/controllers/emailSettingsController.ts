@@ -10,6 +10,7 @@ import type { AuthRequest } from '@middleware/auth';
 import * as emailSettingsService from '@services/emailSettingsService';
 import { testSmtpConnection } from '@services/emailService';
 import { forbidden } from '@utils/responseHelpers';
+import { sendSuccess } from '@modules/shared/http/envelope';
 
 /**
  * GET /api/admin/email-settings
@@ -30,7 +31,7 @@ export const getEmailSettings = async (
       emailSettingsService.hasStoredCredentials(),
     ]);
 
-    return res.json({
+    return sendSuccess(res, {
       data: settings,
       credentials, // { smtp: true/false, imap: true/false }
     });
@@ -87,7 +88,7 @@ export const updateEmailSettings = async (
       req.user.id
     );
 
-    return res.json({ data: updated, message: 'Email settings updated' });
+    return sendSuccess(res, { data: updated, message: 'Email settings updated' });
   } catch (error) {
     logger.error('Error updating email settings', { error });
     next(error);
@@ -110,7 +111,7 @@ export const testEmailSettings = async (
 
     const result = await testSmtpConnection();
 
-    return res.json({
+    return sendSuccess(res, {
       data: result,
       message: result.success ? 'SMTP connection successful' : 'SMTP connection failed',
     });

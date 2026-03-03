@@ -13,6 +13,9 @@ Usage: scripts/select-checks.sh [--base <ref>] [--files "a,b,c"] [--mode <fast|s
 Examples:
   scripts/select-checks.sh --base HEAD~1 --mode fast
   scripts/select-checks.sh --files "backend/src/routes/accounts.ts,frontend/src/features/events/state/index.ts" --mode strict
+
+Environment:
+  UI_AUDIT_ENFORCE=true  # run ui-audit in enforce mode (default: report mode)
 USAGE
 }
 
@@ -114,6 +117,11 @@ if [[ "$needs_backend" == true ]]; then
 fi
 
 if [[ "$needs_frontend" == true ]]; then
+  if [[ "${UI_AUDIT_ENFORCE:-false}" == "true" ]]; then
+    commands+=("node scripts/ui-audit.ts --enforce-baseline")
+  else
+    commands+=("node scripts/ui-audit.ts")
+  fi
   commands+=("cd frontend && npm test -- --run")
 fi
 

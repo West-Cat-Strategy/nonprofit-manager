@@ -228,13 +228,13 @@ const CaseForm = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">{error}</div>
+        <div className="p-4 bg-app-accent-soft border border-app-border rounded-lg text-app-accent-text">{error}</div>
       )}
 
       {/* Contact Selection */}
       <div>
         <label className="block text-sm font-medium text-app-text-label mb-2">
-          Client <span className="text-red-500">*</span>
+          Client <span className="text-app-accent">*</span>
         </label>
         <div className="relative">
           <input
@@ -285,7 +285,7 @@ const CaseForm = ({
       {/* Case Type */}
       <div>
         <label className="block text-sm font-medium text-app-text-label mb-2">
-          Case Type <span className="text-red-500">*</span>
+          Case Type <span className="text-app-accent">*</span>
         </label>
         <select
           name="case_type_id"
@@ -312,7 +312,7 @@ const CaseForm = ({
       {/* Title */}
       <div>
         <label className="block text-sm font-medium text-app-text-label mb-2">
-          Title <span className="text-red-500">*</span>
+          Title <span className="text-app-accent">*</span>
         </label>
         <input
           type="text"

@@ -130,6 +130,9 @@ export interface EventRegistration {
   registration_status: RegistrationStatus;
   checked_in: boolean;
   check_in_time: string | null;
+  checked_in_by: string | null;
+  check_in_method: 'manual' | 'qr';
+  check_in_token: string;
   notes: string | null;
   created_at: string;
   updated_at: string;

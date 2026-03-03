@@ -3,7 +3,7 @@ import * as reportController from '../../controllers/reportController';
 import { services } from '../../container/services';
 import { AuthRequest } from '../../middleware/auth';
 import {
-  requirePermissionOrError,
+  requirePermissionSafe,
   sendForbidden,
   sendUnauthorized,
 } from '../../services/authGuardService';
@@ -17,7 +17,7 @@ jest.mock('../../utils/responseHelpers', () => ({
 }));
 
 jest.mock('../../services/authGuardService', () => ({
-  requirePermissionOrError: jest.fn(),
+  requirePermissionSafe: jest.fn(),
   sendForbidden: jest.fn(),
   sendUnauthorized: jest.fn(),
 }));
@@ -33,7 +33,7 @@ jest.mock('../../container/services', () => ({
 }));
 
 const mockReportService = services.report as jest.Mocked<typeof services.report>;
-const mockRequirePermissionOrError = requirePermissionOrError as jest.Mock;
+const mockRequirePermissionSafe = requirePermissionSafe as jest.Mock;
 const mockSendForbidden = sendForbidden as jest.Mock;
 const mockSendUnauthorized = sendUnauthorized as jest.Mock;
 
@@ -55,7 +55,7 @@ describe('Report Controller', () => {
     mockSetHeader = jest.fn();
     mockNext = jest.fn();
 
-    mockRequirePermissionOrError.mockReturnValue({ success: true });
+    mockRequirePermissionSafe.mockReturnValue({ ok: true, value: null });
 
     mockRequest = {
       body: {},
@@ -90,7 +90,7 @@ describe('Report Controller', () => {
         mockNext
       );
 
-      expect(mockRequirePermissionOrError).toHaveBeenCalledWith(
+      expect(mockRequirePermissionSafe).toHaveBeenCalledWith(
         mockRequest,
         Permission.REPORT_CREATE
       );
@@ -101,9 +101,12 @@ describe('Report Controller', () => {
     });
 
     it('returns forbidden when permission check fails', async () => {
-      mockRequirePermissionOrError.mockReturnValue({
-        success: false,
-        error: 'Forbidden: Permission denied',
+      mockRequirePermissionSafe.mockReturnValue({
+        ok: false,
+        error: {
+          code: 'forbidden',
+          message: 'Forbidden: Permission denied',
+        },
       });
 
       await reportController.generateReport(
@@ -151,7 +154,7 @@ describe('Report Controller', () => {
       });
     });
 
-    it('returns 400 when fields are missing', async () => {
+    it('returns 400 when fields and aggregations are missing', async () => {
       mockRequest.body = { entity: 'contacts' };
 
       await reportController.generateReport(
@@ -162,9 +165,30 @@ describe('Report Controller', () => {
 
       expect(mockStatus).toHaveBeenCalledWith(400);
       expect(mockJson).toHaveBeenCalledWith({
-        error: 'At least one field must be selected',
+        error: 'At least one field or aggregation must be selected',
         code: 'bad_request',
       });
+    });
+
+    it('allows aggregation-only report generation', async () => {
+      const mockResult = { data: [{ total_count: 4 }], total_count: 1 };
+      const definition = {
+        entity: 'contacts',
+        aggregations: [{ field: 'id', function: 'count', alias: 'total_count' }],
+      };
+      mockRequest.body = definition;
+      mockReportService.generateReport.mockResolvedValue(mockResult as never);
+
+      await reportController.generateReport(
+        mockRequest as AuthRequest,
+        mockResponse as Response,
+        mockNext
+      );
+
+      expect(mockReportService.generateReport).toHaveBeenCalledWith(definition, {
+        organizationId: 'org-1',
+      });
+      expect(mockJson).toHaveBeenCalledWith(mockResult);
     });
   });
 
@@ -180,7 +204,7 @@ describe('Report Controller', () => {
         mockNext
       );
 
-      expect(mockRequirePermissionOrError).toHaveBeenCalledWith(
+      expect(mockRequirePermissionSafe).toHaveBeenCalledWith(
         mockRequest,
         Permission.REPORT_VIEW
       );
@@ -221,7 +245,7 @@ describe('Report Controller', () => {
         mockNext
       );
 
-      expect(mockRequirePermissionOrError).toHaveBeenCalledWith(
+      expect(mockRequirePermissionSafe).toHaveBeenCalledWith(
         mockRequest,
         Permission.REPORT_EXPORT
       );
@@ -268,9 +292,12 @@ describe('Report Controller', () => {
     });
 
     it('routes unauthorized guard failures to sendUnauthorized', async () => {
-      mockRequirePermissionOrError.mockReturnValue({
-        success: false,
-        error: 'Unauthorized: No authenticated user',
+      mockRequirePermissionSafe.mockReturnValue({
+        ok: false,
+        error: {
+          code: 'unauthorized',
+          message: 'Unauthorized: No authenticated user',
+        },
       });
 
       await reportController.exportReport(

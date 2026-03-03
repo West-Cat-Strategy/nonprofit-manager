@@ -4,7 +4,6 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '@config/database';
@@ -15,7 +14,7 @@ import { PASSWORD, JWT } from '@config/constants';
 import { invitationService, syncUserRole } from '@services/domains/integration';
 import { getEmailSettings } from '@services/emailSettingsService';
 import { sendInvitationEmail } from '@services/emailService';
-import { badRequest, conflict, forbidden, notFoundMessage, validationErrorResponse } from '@utils/responseHelpers';
+import { badRequest, conflict, forbidden, notFoundMessage } from '@utils/responseHelpers';
 
 /**
  * POST /api/invitations
@@ -29,11 +28,6 @@ export const createInvitation = async (
   try {
     if (req.user?.role !== 'admin') {
       return forbidden(res, 'Admin access required');
-    }
-
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return validationErrorResponse(res, errors);
     }
 
     const { email, role, message, expiresInDays, sendEmail = false } = req.body as {
@@ -50,7 +44,7 @@ export const createInvitation = async (
     );
 
     // Generate the invitation URL (frontend will need to handle this route)
-    const baseUrl = process.env.FRONTEND_URL || 'HTTP://localhost:5173';
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const inviteUrl = `${baseUrl}/accept-invitation/${invitation.token}`;
 
     const emailDelivery: {
@@ -121,9 +115,23 @@ export const getInvitations = async (
       return forbidden(res, 'Admin access required');
     }
 
-    const includeExpired = req.query.includeExpired === 'true';
-    const includeAccepted = req.query.includeAccepted === 'true';
-    const includeRevoked = req.query.includeRevoked === 'true';
+    const query = ((req as any).validatedQuery ?? req.query) as {
+      includeExpired?: boolean | string;
+      includeAccepted?: boolean | string;
+      includeRevoked?: boolean | string;
+    };
+    const includeExpired =
+      typeof query.includeExpired === 'boolean'
+        ? query.includeExpired
+        : query.includeExpired === 'true';
+    const includeAccepted =
+      typeof query.includeAccepted === 'boolean'
+        ? query.includeAccepted
+        : query.includeAccepted === 'true';
+    const includeRevoked =
+      typeof query.includeRevoked === 'boolean'
+        ? query.includeRevoked
+        : query.includeRevoked === 'true';
 
     const invitations = await invitationService.getInvitations({
       includeExpired,
@@ -208,11 +216,6 @@ export const acceptInvitation = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return validationErrorResponse(res, errors);
-    }
-
     const { token } = req.params;
     const { firstName, lastName, password } = req.body;
 
@@ -324,7 +327,7 @@ export const resendInvitation = async (
     }
 
     // Generate the new invitation URL
-    const baseUrl = process.env.FRONTEND_URL || 'HTTP://localhost:5173';
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const inviteUrl = `${baseUrl}/accept-invitation/${invitation.token}`;
 
     // Resend invitation email

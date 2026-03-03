@@ -60,7 +60,7 @@ function MainLayout({ children }: MainLayoutProps) {
               </span>
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
+                className="px-4 py-2 text-sm font-medium text-white bg-app-accent hover:bg-app-accent-hover rounded-md"
               >
                 Logout
               </button>

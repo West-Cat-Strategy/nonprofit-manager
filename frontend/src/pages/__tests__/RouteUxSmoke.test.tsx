@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { vi } from 'vitest';
 import AccountList from '../people/accounts/AccountList';
 import ContactList from '../people/contacts/ContactList';
@@ -9,12 +9,36 @@ import DonationList from '../finance/donations/DonationList';
 import CaseList from '../engagement/cases/CaseList';
 import FollowUpsPage from '../engagement/followUps/FollowUpsPage';
 import OpportunitiesPage from '../engagement/opportunities/OpportunitiesPage';
+import AnalyticsPage from '../analytics/Analytics';
+import OutcomesReportPage from '../analytics/OutcomesReport';
+import ReportBuilderPage from '../analytics/ReportBuilder';
+import SavedReportsPage from '../analytics/SavedReports';
 import ScheduledReportsPage from '../analytics/ScheduledReports';
 import ReportTemplatesPage from '../analytics/ReportTemplates';
+import IntakeNew from '../workflows/IntakeNew';
+import InteractionNote from '../workflows/InteractionNote';
 import api from '../../services/api';
 import { assertRouteUxContract, createConsoleErrorSpy } from '../../test/uxRouteContract';
 
 vi.mock('../../services/api');
+vi.mock('recharts', () => {
+  const Wrapper = ({ children }: { children?: ReactNode }) => <div>{children}</div>;
+  return {
+    ResponsiveContainer: Wrapper,
+    PieChart: Wrapper,
+    Pie: Wrapper,
+    Cell: () => <div />,
+    BarChart: Wrapper,
+    Bar: Wrapper,
+    LineChart: Wrapper,
+    Line: Wrapper,
+    XAxis: Wrapper,
+    YAxis: Wrapper,
+    CartesianGrid: Wrapper,
+    Tooltip: Wrapper,
+    Legend: () => null,
+  };
+});
 
 const mockApi = api as unknown as {
   get: ReturnType<typeof vi.fn>;
@@ -100,11 +124,53 @@ const smokeCases: SmokeCase[] = [
     primaryActionPattern: /new schedule/i,
   },
   {
+    name: 'saved-reports',
+    route: '/reports/saved',
+    page: <SavedReportsPage />,
+    heading: /saved reports/i,
+    primaryActionPattern: /create new report/i,
+  },
+  {
+    name: 'report-builder',
+    route: '/reports/builder',
+    page: <ReportBuilderPage />,
+    heading: /report builder/i,
+    primaryActionPattern: /generate report/i,
+  },
+  {
     name: 'report-templates',
     route: '/reports/templates',
     page: <ReportTemplatesPage />,
     heading: /report templates/i,
     primaryActionPattern: /create custom report/i,
+  },
+  {
+    name: 'analytics-overview',
+    route: '/analytics',
+    page: <AnalyticsPage />,
+    heading: /analytics & reports/i,
+    primaryActionPattern: /apply filters/i,
+  },
+  {
+    name: 'outcomes-report',
+    route: '/reports/outcomes',
+    page: <OutcomesReportPage />,
+    heading: /outcomes report/i,
+    primaryActionPattern: /export csv/i,
+  },
+  {
+    name: 'intake-new',
+    route: '/intake/new',
+    page: <IntakeNew />,
+    heading: /new intake/i,
+    primaryActionPattern: /create contact/i,
+  },
+  {
+    name: 'interaction-note',
+    route: '/interactions/new',
+    page: <InteractionNote />,
+    heading: /note an interaction/i,
+    primaryActionPattern: /create new person/i,
   },
 ];
 
@@ -116,7 +182,7 @@ describe('Route UX smoke', () => {
     consoleErrorSpy = createConsoleErrorSpy();
 
     mockApi.get.mockImplementation((url: string) => {
-      if (url.startsWith('/accounts')) {
+      if (url.startsWith('/accounts') || url.startsWith('/v2/accounts')) {
         return Promise.resolve({
           data: {
             data: [],
@@ -135,7 +201,7 @@ describe('Route UX smoke', () => {
           },
         });
       }
-      if (url.startsWith('/volunteers')) {
+      if (url.startsWith('/volunteers') || url.startsWith('/v2/volunteers')) {
         return Promise.resolve({
           data: {
             data: [],
@@ -143,7 +209,7 @@ describe('Route UX smoke', () => {
           },
         });
       }
-      if (url.startsWith('/events')) {
+      if (url.startsWith('/events') || url.startsWith('/v2/events')) {
         return Promise.resolve({
           data: {
             data: [],
@@ -151,7 +217,7 @@ describe('Route UX smoke', () => {
           },
         });
       }
-      if (url.startsWith('/tasks')) {
+      if (url.startsWith('/tasks') || url.startsWith('/v2/tasks')) {
         return Promise.resolve({
           data: {
             tasks: [],
@@ -217,7 +283,7 @@ describe('Route UX smoke', () => {
           },
         });
       }
-      if (url.startsWith('/follow-ups/summary')) {
+      if (url.startsWith('/follow-ups/summary') || url.startsWith('/v2/follow-ups/summary')) {
         return Promise.resolve({
           data: {
             total: 0,
@@ -230,7 +296,7 @@ describe('Route UX smoke', () => {
           },
         });
       }
-      if (url.startsWith('/follow-ups')) {
+      if (url.startsWith('/follow-ups') || url.startsWith('/v2/follow-ups')) {
         return Promise.resolve({
           data: {
             data: [],
@@ -263,19 +329,77 @@ describe('Route UX smoke', () => {
           },
         });
       }
-      if (url.startsWith('/scheduled-reports')) {
+      if (url.startsWith('/scheduled-reports') || url.startsWith('/v2/scheduled-reports')) {
         return Promise.resolve({
           data: [],
         });
       }
-      if (url.startsWith('/saved-reports')) {
+      if (url.startsWith('/saved-reports') || url.startsWith('/v2/saved-reports')) {
         return Promise.resolve({
           data: [],
         });
       }
-      if (url.startsWith('/reports/templates')) {
+      if (url.startsWith('/reports/templates') || url.startsWith('/v2/reports/templates')) {
         return Promise.resolve({
           data: [],
+        });
+      }
+      if (url.startsWith('/reports/outcomes')) {
+        return Promise.resolve({
+          data: {
+            success: true,
+            data: {
+              totalsByOutcome: [],
+              timeseries: [],
+            },
+          },
+        });
+      }
+      if (url.startsWith('/v2/analytics/summary')) {
+        return Promise.resolve({
+          data: {
+            total_accounts: 0,
+            active_accounts: 0,
+            total_contacts: 0,
+            active_contacts: 0,
+            total_donations_ytd: 0,
+            donation_count_ytd: 0,
+            average_donation_ytd: 0,
+            total_events_ytd: 0,
+            total_volunteers: 0,
+            total_volunteer_hours_ytd: 0,
+            engagement_distribution: {
+              high: 0,
+              medium: 0,
+              low: 0,
+              inactive: 0,
+            },
+          },
+        });
+      }
+      if (url.startsWith('/v2/analytics/trends/donations')) {
+        return Promise.resolve({ data: [] });
+      }
+      if (url.startsWith('/v2/analytics/trends/volunteer-hours')) {
+        return Promise.resolve({ data: [] });
+      }
+      if (url.startsWith('/v2/analytics/trends/event-attendance')) {
+        return Promise.resolve({ data: [] });
+      }
+      if (url.startsWith('/v2/analytics/comparative')) {
+        return Promise.resolve({
+          data: {
+            current_period: 'Current',
+            previous_period: 'Previous',
+            metrics: {
+              total_donations: { current: 0, previous: 0, change: 0, change_percent: 0 },
+              donation_count: { current: 0, previous: 0, change: 0, change_percent: 0 },
+              average_donation: { current: 0, previous: 0, change: 0, change_percent: 0 },
+              new_contacts: { current: 0, previous: 0, change: 0, change_percent: 0 },
+              total_events: { current: 0, previous: 0, change: 0, change_percent: 0 },
+              volunteer_hours: { current: 0, previous: 0, change: 0, change_percent: 0 },
+            },
+          },
         });
       }
 

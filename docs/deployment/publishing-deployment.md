@@ -16,53 +16,53 @@ The publishing system allows users to:
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/sites` | GET | List all sites (paginated) |
-| `/api/sites` | POST | Create a new site |
-| `/api/sites/:siteId` | GET | Get site details |
-| `/api/sites/:siteId` | PUT | Update site |
-| `/api/sites/:siteId` | DELETE | Delete site |
-| `/api/sites/publish` | POST | Publish a template |
-| `/api/sites/:siteId/unpublish` | POST | Unpublish (set to draft) |
-| `/api/sites/:siteId/deployment` | GET | Get deployment info |
+| `/api/v2/sites` | GET | List all sites (paginated) |
+| `/api/v2/sites` | POST | Create a new site |
+| `/api/v2/sites/:siteId` | GET | Get site details |
+| `/api/v2/sites/:siteId` | PUT | Update site |
+| `/api/v2/sites/:siteId` | DELETE | Delete site |
+| `/api/v2/sites/publish` | POST | Publish a template |
+| `/api/v2/sites/:siteId/unpublish` | POST | Unpublish (set to draft) |
+| `/api/v2/sites/:siteId/deployment` | GET | Get deployment info |
 
 ### Custom Domain
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/sites/:siteId/domain` | POST | Add custom domain |
-| `/api/sites/:siteId/domain` | GET | Get domain config |
-| `/api/sites/:siteId/domain/verify` | POST | Verify DNS records |
-| `/api/sites/:siteId/domain` | DELETE | Remove custom domain |
+| `/api/v2/sites/:siteId/domain` | POST | Add custom domain |
+| `/api/v2/sites/:siteId/domain` | GET | Get domain config |
+| `/api/v2/sites/:siteId/domain/verify` | POST | Verify DNS records |
+| `/api/v2/sites/:siteId/domain` | DELETE | Remove custom domain |
 
 ### SSL Certificates
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/sites/:siteId/ssl` | GET | Get SSL info |
-| `/api/sites/:siteId/ssl/provision` | POST | Provision SSL certificate |
+| `/api/v2/sites/:siteId/ssl` | GET | Get SSL info |
+| `/api/v2/sites/:siteId/ssl/provision` | POST | Provision SSL certificate |
 
 ### Version History
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/sites/:siteId/versions` | GET | Get version history |
-| `/api/sites/:siteId/versions/:version` | GET | Get specific version |
-| `/api/sites/:siteId/rollback` | POST | Rollback to version |
-| `/api/sites/:siteId/versions` | DELETE | Prune old versions |
+| `/api/v2/sites/:siteId/versions` | GET | Get version history |
+| `/api/v2/sites/:siteId/versions/:version` | GET | Get specific version |
+| `/api/v2/sites/:siteId/rollback` | POST | Rollback to version |
+| `/api/v2/sites/:siteId/versions` | DELETE | Prune old versions |
 
 ### Analytics
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/sites/:siteId/analytics` | GET | Get analytics summary |
-| `/api/sites/:siteId/track` | POST | Record analytics event (public) |
+| `/api/v2/sites/:siteId/analytics` | GET | Get analytics summary |
+| `/api/v2/sites/:siteId/track` | POST | Record analytics event (public) |
 
 ## Custom Domain Setup
 
 ### 1. Add Domain
 
 ```bash
-POST /api/sites/:siteId/domain
+POST /api/v2/sites/:siteId/domain
 Content-Type: application/json
 
 {
@@ -108,7 +108,7 @@ Plus the CNAME record above.
 ### 3. Verify Domain
 
 ```bash
-POST /api/sites/:siteId/domain/verify
+POST /api/v2/sites/:siteId/domain/verify
 ```
 
 Response:
@@ -131,7 +131,7 @@ Once a domain is verified, SSL certificates are automatically provisioned using 
 ### Check SSL Status
 
 ```bash
-GET /api/sites/:siteId/ssl
+GET /api/v2/sites/:siteId/ssl
 ```
 
 Response:
@@ -161,7 +161,7 @@ Response:
 ### Manual Provisioning
 
 ```bash
-POST /api/sites/:siteId/ssl/provision
+POST /api/v2/sites/:siteId/ssl/provision
 ```
 
 ## Version History & Rollback
@@ -173,7 +173,7 @@ Every time a site is published, a version snapshot is automatically saved. You c
 ### View Version History
 
 ```bash
-GET /api/sites/:siteId/versions?limit=10
+GET /api/v2/sites/:siteId/versions?limit=10
 ```
 
 Response:
@@ -206,7 +206,7 @@ Response:
 ### Rollback to Previous Version
 
 ```bash
-POST /api/sites/:siteId/rollback
+POST /api/v2/sites/:siteId/rollback
 Content-Type: application/json
 
 {
@@ -231,7 +231,7 @@ Response:
 Remove old versions to save storage:
 
 ```bash
-DELETE /api/sites/:siteId/versions?keep=10
+DELETE /api/v2/sites/:siteId/versions?keep=10
 ```
 
 Response:
@@ -326,7 +326,7 @@ Published sites automatically collect analytics when enabled:
 
 ```javascript
 // Tracking script (injected into published pages)
-fetch('/api/sites/{siteId}/track', {
+fetch('/api/v2/sites/{siteId}/track', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -340,7 +340,7 @@ fetch('/api/sites/{siteId}/track', {
 
 Disable analytics per-site:
 ```bash
-PUT /api/sites/:siteId
+PUT /api/v2/sites/:siteId
 Content-Type: application/json
 
 {

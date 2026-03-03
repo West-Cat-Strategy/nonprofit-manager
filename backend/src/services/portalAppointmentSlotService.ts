@@ -1,5 +1,14 @@
 import pool from '@config/database';
+import { logger } from '@config/logger';
 import { resolvePortalCaseSelection } from '@services/portalPointpersonService';
+import {
+  publishPortalAppointmentUpdated,
+  publishPortalSlotUpdated,
+} from '@services/portalRealtimeService';
+import {
+  cancelPendingJobsForAppointment,
+  syncJobsForAppointment,
+} from '@services/appointmentReminderService';
 
 export interface AppointmentSlot {
   id: string;
@@ -37,6 +46,8 @@ export interface PortalAppointment {
   start_time: string;
   end_time: string | null;
   status: string;
+  checked_in_at?: string | null;
+  checked_in_by?: string | null;
   location: string | null;
   created_at: string;
   updated_at: string;
@@ -47,6 +58,9 @@ export interface PortalAppointment {
   pointperson_email?: string | null;
   portal_user_id?: string | null;
   portal_email?: string | null;
+  next_reminder_at?: string | null;
+  pending_reminder_jobs?: number;
+  last_reminder_sent_at?: string | null;
 }
 
 const APPOINTMENT_SELECT = `
@@ -62,6 +76,8 @@ const APPOINTMENT_SELECT = `
     a.start_time,
     a.end_time,
     a.status,
+    a.checked_in_at,
+    a.checked_in_by,
     a.location,
     a.created_at,
     a.updated_at,
@@ -101,6 +117,89 @@ const normalizeSlot = (row: Record<string, unknown>): AppointmentSlot => {
   };
 };
 
+const getCaseContactId = async (caseId: string | null | undefined): Promise<string | null> => {
+  if (!caseId) {
+    return null;
+  }
+
+  const result = await pool.query<{ contact_id: string }>(
+    'SELECT contact_id FROM cases WHERE id = $1 LIMIT 1',
+    [caseId]
+  );
+
+  return result.rows[0]?.contact_id ?? null;
+};
+
+const statusConsumesSlotCapacity = (status: string): boolean => status !== 'cancelled';
+
+const applySlotTransition = async (
+  client: { query: <T = Record<string, unknown>>(text: string, params?: unknown[]) => Promise<{ rows: T[] }> },
+  args: {
+    slotId: string;
+    previousStatus: string;
+    nextStatus: string;
+  }
+): Promise<void> => {
+  const previousConsumes = statusConsumesSlotCapacity(args.previousStatus);
+  const nextConsumes = statusConsumesSlotCapacity(args.nextStatus);
+
+  if (previousConsumes === nextConsumes) {
+    return;
+  }
+
+  const slotResult = await client.query<{
+    id: string;
+    status: 'open' | 'closed' | 'cancelled';
+    capacity: number;
+    booked_count: number;
+  }>(
+    `SELECT id, status, capacity, booked_count
+     FROM appointment_availability_slots
+     WHERE id = $1
+     FOR UPDATE`,
+    [args.slotId]
+  );
+
+  const slot = slotResult.rows[0];
+  if (!slot) {
+    throw new Error('Appointment slot not found');
+  }
+
+  if (!previousConsumes && nextConsumes) {
+    if (slot.status === 'cancelled') {
+      throw new Error('Cannot confirm an appointment tied to a cancelled slot');
+    }
+    if (Number(slot.booked_count) >= Number(slot.capacity)) {
+      throw new Error('Slot is fully booked');
+    }
+
+    await client.query(
+      `UPDATE appointment_availability_slots
+       SET booked_count = booked_count + 1,
+           status = CASE
+             WHEN booked_count + 1 >= capacity THEN 'closed'
+             ELSE status
+           END,
+           updated_at = NOW()
+       WHERE id = $1`,
+      [args.slotId]
+    );
+    return;
+  }
+
+  await client.query(
+    `UPDATE appointment_availability_slots
+     SET booked_count = GREATEST(booked_count - 1, 0),
+         status = CASE
+           WHEN status = 'closed' AND booked_count - 1 < capacity THEN 'open'
+           ELSE status
+         END,
+         updated_at = NOW()
+     WHERE id = $1`,
+    [args.slotId]
+  );
+};
+
 export const listPortalAppointmentSlots = async (
   contactId: string,
   caseId?: string | null
@@ -138,9 +237,13 @@ export const listAdminAppointmentSlots = async (filters?: {
   status?: 'open' | 'closed' | 'cancelled';
   pointpersonUserId?: string;
   caseId?: string;
+  from?: string;
+  to?: string;
+  limit?: number;
+  offset?: number;
 }): Promise<AppointmentSlot[]> => {
   const conditions: string[] = [];
-  const values: string[] = [];
+  const values: Array<string | number> = [];
 
   if (filters?.status) {
     values.push(filters.status);
@@ -157,16 +260,151 @@ export const listAdminAppointmentSlots = async (filters?: {
     conditions.push(`s.case_id = $${values.length}`);
   }
 
+  if (filters?.from) {
+    values.push(filters.from);
+    conditions.push(`s.start_time >= $${values.length}`);
+  }
+
+  if (filters?.to) {
+    values.push(filters.to);
+    conditions.push(`s.start_time <= $${values.length}`);
+  }
+
+  let paginationSql = '';
+  if (typeof filters?.limit === 'number') {
+    values.push(filters.limit);
+    paginationSql += ` LIMIT $${values.length}`;
+  }
+  if (typeof filters?.offset === 'number' && filters.offset > 0) {
+    values.push(filters.offset);
+    paginationSql += ` OFFSET $${values.length}`;
+  }
+
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
   const result = await pool.query(
     `${SLOT_SELECT}
      ${whereClause}
-     ORDER BY s.start_time ASC`,
+     ORDER BY s.start_time ASC${paginationSql}`,
     values
   );
 
   return result.rows.map((row) => normalizeSlot(row as Record<string, unknown>));
+};
+
+export const listAdminAppointments = async (filters?: {
+  status?: 'requested' | 'confirmed' | 'cancelled' | 'completed';
+  requestType?: 'manual_request' | 'slot_booking';
+  caseId?: string;
+  pointpersonUserId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{ data: PortalAppointment[]; pagination: { page: number; limit: number; total: number; total_pages: number } }> => {
+  const page = Math.max(1, filters?.page ?? 1);
+  const limit = Math.min(100, Math.max(1, filters?.limit ?? 20));
+  const offset = (page - 1) * limit;
+
+  const conditions: string[] = [];
+  const values: Array<string | number> = [];
+
+  if (filters?.status) {
+    values.push(filters.status);
+    conditions.push(`a.status = $${values.length}`);
+  }
+  if (filters?.requestType) {
+    values.push(filters.requestType);
+    conditions.push(`a.request_type = $${values.length}`);
+  }
+  if (filters?.caseId) {
+    values.push(filters.caseId);
+    conditions.push(`a.case_id = $${values.length}`);
+  }
+  if (filters?.pointpersonUserId) {
+    values.push(filters.pointpersonUserId);
+    conditions.push(`a.pointperson_user_id = $${values.length}`);
+  }
+  if (filters?.dateFrom) {
+    values.push(filters.dateFrom);
+    conditions.push(`a.start_time >= $${values.length}`);
+  }
+  if (filters?.dateTo) {
+    values.push(filters.dateTo);
+    conditions.push(`a.start_time <= $${values.length}`);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const countResult = await pool.query<{ total: string }>(
+    `SELECT COUNT(*)::text AS total
+     FROM appointments a
+     ${whereClause}`,
+    values
+  );
+  const total = Number.parseInt(countResult.rows[0]?.total || '0', 10);
+
+  const pagedValues = [...values, limit, offset];
+  const rows = await pool.query<PortalAppointment>(
+    `SELECT
+       a.id,
+       a.contact_id,
+       a.case_id,
+       a.pointperson_user_id,
+       a.slot_id,
+       a.request_type,
+       a.title,
+       a.description,
+       a.start_time,
+       a.end_time,
+       a.status,
+       a.checked_in_at,
+       a.checked_in_by,
+       a.location,
+       a.created_at,
+       a.updated_at,
+       c.case_number,
+       c.title AS case_title,
+       u.first_name AS pointperson_first_name,
+       u.last_name AS pointperson_last_name,
+       u.email AS pointperson_email,
+       pu.id AS portal_user_id,
+       pu.email AS portal_email,
+       reminder_jobs.next_reminder_at,
+       reminder_jobs.pending_reminder_jobs,
+       reminder_history.last_reminder_sent_at
+     FROM appointments a
+     LEFT JOIN cases c ON c.id = a.case_id
+     LEFT JOIN users u ON u.id = a.pointperson_user_id
+     LEFT JOIN portal_users pu ON pu.id = a.requested_by_portal
+     LEFT JOIN LATERAL (
+       SELECT
+         MIN(j.scheduled_for) FILTER (WHERE j.status IN ('pending', 'processing')) AS next_reminder_at,
+         COUNT(*) FILTER (WHERE j.status IN ('pending', 'processing'))::int AS pending_reminder_jobs
+       FROM appointment_reminder_jobs j
+       WHERE j.appointment_id = a.id
+     ) reminder_jobs ON true
+     LEFT JOIN LATERAL (
+       SELECT MAX(d.sent_at) AS last_reminder_sent_at
+       FROM appointment_reminder_deliveries d
+       WHERE d.appointment_id = a.id
+     ) reminder_history ON true
+     ${whereClause}
+     ORDER BY a.start_time ASC
+     LIMIT $${pagedValues.length - 1}
+     OFFSET $${pagedValues.length}`,
+    pagedValues
+  );
+
+  return {
+    data: rows.rows,
+    pagination: {
+      page,
+      limit,
+      total,
+      total_pages: total > 0 ? Math.ceil(total / limit) : 0,
+    },
+  };
 };
 
 export const createAppointmentSlot = async (input: {
@@ -211,6 +449,17 @@ export const createAppointmentSlot = async (input: {
   if (!slot) {
     throw new Error('Failed to create slot');
   }
+
+  const contactId = await getCaseContactId(slot.case_id);
+  publishPortalSlotUpdated({
+    entityId: slot.id,
+    caseId: slot.case_id,
+    status: slot.status,
+    actorType: 'staff',
+    source: 'admin.slot.create',
+    contactId,
+  });
+
   return slot;
 };
 
@@ -265,15 +514,35 @@ export const updateAppointmentSlot = async (input: {
     return null;
   }
 
-  return getSlotById(input.slotId);
+  const updatedSlot = await getSlotById(input.slotId);
+  if (!updatedSlot) {
+    return null;
+  }
+
+  const contactId = await getCaseContactId(updatedSlot.case_id);
+  publishPortalSlotUpdated({
+    entityId: updatedSlot.id,
+    caseId: updatedSlot.case_id,
+    status: updatedSlot.status,
+    actorType: 'staff',
+    source: 'admin.slot.update',
+    contactId,
+  });
+
+  return updatedSlot;
 };
 
 export const deleteAppointmentSlot = async (slotId: string): Promise<boolean> => {
+  const existingSlot = await getSlotById(slotId);
+  if (!existingSlot) {
+    return false;
+  }
+
   const appointmentsUsingSlot = await pool.query(
     `SELECT COUNT(*)::int AS count
      FROM appointments
      WHERE slot_id = $1
-       AND status != 'cancelled'`,
+      AND status != 'cancelled'`,
     [slotId]
   );
 
@@ -285,11 +554,37 @@ export const deleteAppointmentSlot = async (slotId: string): Promise<boolean> =>
        WHERE id = $1`,
       [slotId]
     );
+    const cancelledSlot = await getSlotById(slotId);
+    const contactId = await getCaseContactId(cancelledSlot?.case_id ?? existingSlot.case_id);
+    publishPortalSlotUpdated({
+      entityId: slotId,
+      caseId: cancelledSlot?.case_id ?? existingSlot.case_id,
+      status: cancelledSlot?.status ?? 'cancelled',
+      actorType: 'staff',
+      source: 'admin.slot.cancel',
+      contactId,
+    });
     return true;
   }
 
-  const result = await pool.query('DELETE FROM appointment_availability_slots WHERE id = $1 RETURNING id', [slotId]);
-  return Boolean(result.rows[0]);
+  const result = await pool.query(
+    'DELETE FROM appointment_availability_slots WHERE id = $1 RETURNING id',
+    [slotId]
+  );
+  const deleted = Boolean(result.rows[0]);
+  if (deleted) {
+    const contactId = await getCaseContactId(existingSlot.case_id);
+    publishPortalSlotUpdated({
+      entityId: slotId,
+      caseId: existingSlot.case_id,
+      status: 'deleted',
+      actorType: 'staff',
+      source: 'admin.slot.delete',
+      contactId,
+    });
+  }
+
+  return deleted;
 };
 
 export const getSlotById = async (slotId: string): Promise<AppointmentSlot | null> => {
@@ -406,6 +701,36 @@ export const bookPortalAppointmentSlot = async (input: {
       throw new Error('Failed to load booked appointment');
     }
 
+    const updatedSlot = await getSlotById(slot.id);
+    publishPortalAppointmentUpdated({
+      entityId: appointment.id,
+      caseId: appointment.case_id,
+      status: appointment.status,
+      actorType: 'portal',
+      source: 'portal.appointment.slot_booked',
+      contactId: appointment.contact_id,
+    });
+
+    if (updatedSlot) {
+      publishPortalSlotUpdated({
+        entityId: updatedSlot.id,
+        caseId: updatedSlot.case_id,
+        status: updatedSlot.status,
+        actorType: 'portal',
+        source: 'portal.slot.booked',
+        contactId: appointment.contact_id,
+      });
+    }
+
+    try {
+      await syncJobsForAppointment(appointment.id);
+    } catch (error) {
+      logger.warn('Failed to sync appointment reminder jobs after slot booking', {
+        appointmentId: appointment.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     return appointment;
   } catch (error) {
     await client.query('ROLLBACK');
@@ -464,15 +789,81 @@ export const createPortalManualAppointmentRequest = async (input: {
   if (!appointment) {
     throw new Error('Failed to create appointment request');
   }
+
+  publishPortalAppointmentUpdated({
+    entityId: appointment.id,
+    caseId: appointment.case_id,
+    status: appointment.status,
+    actorType: 'portal',
+    source: 'portal.appointment.requested',
+    contactId: appointment.contact_id,
+  });
+
   return appointment;
 };
 
-export const listPortalAppointments = async (contactId: string): Promise<PortalAppointment[]> => {
+export const listPortalAppointments = async (
+  contactId: string,
+  filters?: {
+    status?: 'requested' | 'confirmed' | 'cancelled' | 'completed';
+    caseId?: string;
+    from?: string;
+    to?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }
+): Promise<PortalAppointment[]> => {
+  const conditions: string[] = ['a.contact_id = $1'];
+  const values: Array<string | number> = [contactId];
+
+  if (filters?.status) {
+    values.push(filters.status);
+    conditions.push(`a.status = $${values.length}`);
+  }
+
+  if (filters?.caseId) {
+    values.push(filters.caseId);
+    conditions.push(`a.case_id = $${values.length}`);
+  }
+
+  if (filters?.from) {
+    values.push(filters.from);
+    conditions.push(`a.start_time >= $${values.length}`);
+  }
+
+  if (filters?.to) {
+    values.push(filters.to);
+    conditions.push(`a.start_time <= $${values.length}`);
+  }
+
+  if (filters?.search) {
+    values.push(`%${filters.search.trim()}%`);
+    conditions.push(
+      `(COALESCE(a.title, '') ILIKE $${values.length}
+        OR COALESCE(a.description, '') ILIKE $${values.length}
+        OR COALESCE(c.case_number, '') ILIKE $${values.length}
+        OR COALESCE(c.title, '') ILIKE $${values.length}
+        OR COALESCE(a.location, '') ILIKE $${values.length}
+        OR COALESCE(a.status, '') ILIKE $${values.length})`
+    );
+  }
+
+  let paginationSql = '';
+  if (typeof filters?.limit === 'number') {
+    values.push(filters.limit);
+    paginationSql += ` LIMIT $${values.length}`;
+  }
+  if (typeof filters?.offset === 'number' && filters.offset > 0) {
+    values.push(filters.offset);
+    paginationSql += ` OFFSET $${values.length}`;
+  }
+
   const result = await pool.query(
     `${APPOINTMENT_SELECT}
-     WHERE a.contact_id = $1
-     ORDER BY a.start_time ASC`,
-    [contactId]
+     WHERE ${conditions.join(' AND ')}
+     ORDER BY a.start_time ASC${paginationSql}`,
+    values
   );
 
   return result.rows as PortalAppointment[];
@@ -518,23 +909,56 @@ export const cancelPortalAppointment = async (input: {
       [input.appointmentId]
     );
 
-    if (current.slot_id && current.status !== 'cancelled') {
-      await client.query(
-        `UPDATE appointment_availability_slots
-         SET booked_count = GREATEST(booked_count - 1, 0),
-             status = CASE
-               WHEN status = 'closed' AND booked_count - 1 < capacity THEN 'open'
-               ELSE status
-             END,
-             updated_at = NOW()
-         WHERE id = $1`,
-        [current.slot_id]
-      );
+    if (current.slot_id) {
+      await applySlotTransition(client, {
+        slotId: current.slot_id,
+        previousStatus: current.status,
+        nextStatus: 'cancelled',
+      });
     }
 
     await client.query('COMMIT');
+    const cancelledAppointment = await getAppointmentById(input.appointmentId);
+    if (!cancelledAppointment) {
+      return null;
+    }
 
-    return getAppointmentById(input.appointmentId);
+    publishPortalAppointmentUpdated({
+      entityId: cancelledAppointment.id,
+      caseId: cancelledAppointment.case_id,
+      status: cancelledAppointment.status,
+      actorType: 'portal',
+      source: 'portal.appointment.cancelled',
+      contactId: cancelledAppointment.contact_id,
+    });
+
+    if (current.slot_id) {
+      const updatedSlot = await getSlotById(current.slot_id);
+      if (updatedSlot) {
+        publishPortalSlotUpdated({
+          entityId: updatedSlot.id,
+          caseId: updatedSlot.case_id,
+          status: updatedSlot.status,
+          actorType: 'portal',
+          source: 'portal.slot.released',
+          contactId: cancelledAppointment.contact_id,
+        });
+      }
+    }
+
+    try {
+      await cancelPendingJobsForAppointment(
+        cancelledAppointment.id,
+        'appointment_cancelled_by_portal'
+      );
+    } catch (error) {
+      logger.warn('Failed to cancel appointment reminder jobs after portal cancellation', {
+        appointmentId: cancelledAppointment.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    return cancelledAppointment;
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -546,6 +970,7 @@ export const cancelPortalAppointment = async (input: {
 export const updateAppointmentStatusByStaff = async (input: {
   appointmentId: string;
   status: 'requested' | 'confirmed' | 'cancelled' | 'completed';
+  checkedInBy?: string | null;
 }): Promise<PortalAppointment | null> => {
   const client = await pool.connect();
 
@@ -568,27 +993,75 @@ export const updateAppointmentStatusByStaff = async (input: {
 
     await client.query(
       `UPDATE appointments
-       SET status = $1, updated_at = NOW()
+       SET status = $1::varchar,
+           checked_in_at = CASE
+             WHEN $4::text = 'completed' THEN COALESCE(checked_in_at, NOW())
+             ELSE checked_in_at
+           END,
+           checked_in_by = CASE
+             WHEN $4::text = 'completed' THEN COALESCE($3::uuid, checked_in_by)
+             ELSE checked_in_by
+           END,
+           updated_at = NOW()
        WHERE id = $2`,
-      [input.status, input.appointmentId]
+      [input.status, input.appointmentId, input.checkedInBy ?? null, input.status]
     );
 
-    if (current.slot_id && input.status === 'cancelled' && current.status !== 'cancelled') {
-      await client.query(
-        `UPDATE appointment_availability_slots
-         SET booked_count = GREATEST(booked_count - 1, 0),
-             status = CASE
-               WHEN status = 'closed' AND booked_count - 1 < capacity THEN 'open'
-               ELSE status
-             END,
-             updated_at = NOW()
-         WHERE id = $1`,
-        [current.slot_id]
-      );
+    if (current.slot_id) {
+      await applySlotTransition(client, {
+        slotId: current.slot_id,
+        previousStatus: current.status,
+        nextStatus: input.status,
+      });
     }
 
     await client.query('COMMIT');
-    return getAppointmentById(input.appointmentId);
+    const updatedAppointment = await getAppointmentById(input.appointmentId);
+    if (!updatedAppointment) {
+      return null;
+    }
+
+    publishPortalAppointmentUpdated({
+      entityId: updatedAppointment.id,
+      caseId: updatedAppointment.case_id,
+      status: updatedAppointment.status,
+      actorType: 'staff',
+      source: 'admin.appointment.status_update',
+      contactId: updatedAppointment.contact_id,
+    });
+
+    if (current.slot_id && current.status !== input.status) {
+      const updatedSlot = await getSlotById(current.slot_id);
+      if (updatedSlot) {
+        publishPortalSlotUpdated({
+          entityId: updatedSlot.id,
+          caseId: updatedSlot.case_id,
+          status: updatedSlot.status,
+          actorType: 'staff',
+          source: 'admin.slot.release',
+          contactId: updatedAppointment.contact_id,
+        });
+      }
+    }
+
+    try {
+      if (input.status === 'confirmed') {
+        await syncJobsForAppointment(updatedAppointment.id);
+      } else if (input.status === 'cancelled' || input.status === 'completed') {
+        await cancelPendingJobsForAppointment(
+          updatedAppointment.id,
+          `appointment_status_${input.status}`
+        );
+      }
+    } catch (error) {
+      logger.warn('Failed to update appointment reminder jobs after status update', {
+        appointmentId: updatedAppointment.id,
+        status: input.status,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    return updatedAppointment;
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -596,3 +1069,13 @@ export const updateAppointmentStatusByStaff = async (input: {
     client.release();
   }
 };
+
+export const checkInAppointmentByStaff = async (input: {
+  appointmentId: string;
+  checkedInBy: string;
+}): Promise<PortalAppointment | null> =>
+  updateAppointmentStatusByStaff({
+    appointmentId: input.appointmentId,
+    status: 'completed',
+    checkedInBy: input.checkedInBy,
+  });

@@ -14,7 +14,25 @@ export const createPortalAppointmentsController = (useCase: PortalAppointmentsUs
         return;
       }
 
-      const appointments = await useCase.list(contactId);
+      const query = ((req as any).validatedQuery ?? req.query) as {
+        status?: 'requested' | 'confirmed' | 'cancelled' | 'completed';
+        case_id?: string;
+        from?: string;
+        to?: string;
+        search?: string;
+        limit?: number;
+        offset?: number;
+      };
+
+      const appointments = await useCase.list(contactId, {
+        status: query.status,
+        caseId: query.case_id,
+        from: query.from,
+        to: query.to,
+        search: query.search,
+        limit: query.limit,
+        offset: query.offset,
+      });
       sendSuccess(res, appointments);
     } catch (error) {
       next(error);

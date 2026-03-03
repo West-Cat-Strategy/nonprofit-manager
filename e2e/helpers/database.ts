@@ -10,6 +10,56 @@ const HTTP_SCHEME = ['http', '://'].join('');
 const isRetryableNetworkError = (error: unknown): boolean =>
   error instanceof Error && RETRYABLE_NETWORK_ERROR.test(error.message);
 
+const normalizeOrganizationId = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const decodeJwtPayload = (token: string): Record<string, unknown> | null => {
+  const segments = token.split('.');
+  if (segments.length < 2) {
+    return null;
+  }
+
+  try {
+    const payload = segments[1];
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    return JSON.parse(Buffer.from(padded, 'base64').toString('utf8')) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+};
+
+const getTokenOrganizationId = (token: string): string | undefined => {
+  const payload = decodeJwtPayload(token);
+  if (!payload) {
+    return undefined;
+  }
+
+  return (
+    normalizeOrganizationId(payload.organizationId) ||
+    normalizeOrganizationId(payload.organization_id)
+  );
+};
+
+const getLocalStorageOrganizationId = async (page: Page): Promise<string | null> =>
+  page.evaluate(() => localStorage.getItem('organizationId')).catch(() => null);
+
+const getEntityId = (item: Record<string, unknown>): string | null => {
+  const value =
+    item.id ||
+    item.account_id ||
+    item.contact_id ||
+    item.donation_id ||
+    item.event_id ||
+    item.task_id;
+  return typeof value === 'string' && value.length > 0 ? value : null;
+};
+
 type ApiSuccessEnvelope<T> = {
   success: true;
   data: T;
@@ -57,15 +107,14 @@ async function getCachedAuthHeaders(
 ): Promise<Record<string, string>> {
   const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
   const cacheKey = `${apiURL}|${token}`;
-  const organizationId = await page
-    .evaluate(() => localStorage.getItem('organizationId'))
-    .catch(() => null);
+  const organizationId =
+    normalizeOrganizationId(await getLocalStorageOrganizationId(page)) || getTokenOrganizationId(token);
 
   let csrfToken = cache.get(cacheKey);
   if (!csrfToken) {
     const csrfResponse = await withRequestRetry(
       () =>
-        page.request.get(`${apiURL}/api/auth/csrf-token`, {
+        page.request.get(`${apiURL}/api/v2/auth/csrf-token`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       'fetch csrf token'
@@ -89,6 +138,8 @@ async function getCachedAuthHeaders(
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',
     'X-CSRF-Token': csrfToken,
+    // Force backend auth middleware to use Authorization instead of any stale auth cookie.
+    Cookie: '',
   };
 
   if (organizationId) {
@@ -111,7 +162,7 @@ export async function seedDatabase(page: Page, token: string): Promise<void> {
   const headers = await getAuthHeaders(page, token);
 
   // Create test accounts
-  await page.request.post(`${apiURL}/api/accounts`, {
+  await page.request.post(`${apiURL}/api/v2/accounts`, {
     headers,
     data: {
       name: 'Test Organization',
@@ -123,7 +174,7 @@ export async function seedDatabase(page: Page, token: string): Promise<void> {
   });
 
   // Create test contacts
-  await page.request.post(`${apiURL}/api/contacts`, {
+  await page.request.post(`${apiURL}/api/v2/contacts`, {
     headers,
     data: {
       firstName: 'John',
@@ -142,15 +193,17 @@ export async function clearDatabase(page: Page, token: string): Promise<void> {
   const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
   const authHeaderCache = new Map<string, string>();
   const maxCleanupPasses = 5;
+  const tokenOrganizationId = getTokenOrganizationId(token);
+  let fallbackOrganizationId: string | null = null;
 
   // Delete in reverse order of dependencies
   const endpoints = [
-    '/api/tasks',
-    '/api/donations',
+    '/api/v2/tasks',
+    '/api/v2/donations',
     '/api/v2/events',
-    '/api/volunteers',
-    '/api/contacts',
-    '/api/accounts',
+    '/api/v2/volunteers',
+    '/api/v2/contacts',
+    '/api/v2/accounts',
   ];
 
   for (const endpoint of endpoints) {
@@ -185,8 +238,48 @@ export async function clearDatabase(page: Page, token: string): Promise<void> {
         }
 
         const itemIds = items
-          .map((item) => item.id || item.account_id || item.contact_id || item.donation_id || item.event_id || item.task_id)
+          .map((item) => getEntityId(item as Record<string, unknown>))
           .filter((value): value is string => typeof value === 'string' && value.length > 0);
+
+        if (endpoint === '/api/v2/accounts') {
+          const preservedIds = new Set<string>();
+          if (tokenOrganizationId) {
+            preservedIds.add(tokenOrganizationId);
+          } else if (!fallbackOrganizationId) {
+            const fallbackAccount = (items as Array<Record<string, unknown>>).find((item) => {
+              const accountId = getEntityId(item);
+              if (!accountId) {
+                return false;
+              }
+              const accountType = typeof item.account_type === 'string'
+                ? item.account_type
+                : typeof item.accountType === 'string'
+                  ? item.accountType
+                  : undefined;
+              const isActive = typeof item.is_active === 'boolean'
+                ? item.is_active
+                : typeof item.isActive === 'boolean'
+                  ? item.isActive
+                  : true;
+              return accountType === 'organization' && isActive;
+            });
+
+            const fallbackId = fallbackAccount ? getEntityId(fallbackAccount) : null;
+            if (fallbackId) {
+              fallbackOrganizationId = fallbackId;
+              preservedIds.add(fallbackId);
+            }
+          } else {
+            preservedIds.add(fallbackOrganizationId);
+          }
+
+          for (const preservedId of preservedIds) {
+            if (itemIds.includes(preservedId)) {
+              // Mark preserved IDs as processed to avoid endless cleanup loops.
+              deletedIds.add(preservedId);
+            }
+          }
+        }
 
         const nextIds = itemIds.filter((id) => !deletedIds.has(id));
         if (nextIds.length === 0) {
@@ -194,13 +287,7 @@ export async function clearDatabase(page: Page, token: string): Promise<void> {
         }
 
         for (const item of items) {
-          const itemId =
-            item.id ||
-            item.account_id ||
-            item.contact_id ||
-            item.donation_id ||
-            item.event_id ||
-            item.task_id;
+          const itemId = getEntityId(item as Record<string, unknown>);
           if (!itemId || deletedIds.has(itemId)) {
             continue;
           }
@@ -240,7 +327,7 @@ export async function createTestAccount(
   const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
   const headers = await getAuthHeaders(page, token);
 
-  const response = await page.request.post(`${apiURL}/api/accounts`, {
+  const response = await page.request.post(`${apiURL}/api/v2/accounts`, {
     headers,
     data: {
       account_name: data.name,
@@ -297,7 +384,7 @@ export async function createTestContact(
   ).id;
 
   const headers = await getAuthHeaders(page, token);
-  const response = await page.request.post(`${apiURL}/api/contacts`, {
+  const response = await page.request.post(`${apiURL}/api/v2/contacts`, {
     headers,
     data: {
       first_name: data.firstName,
@@ -311,8 +398,10 @@ export async function createTestContact(
   });
 
   if (!response.ok()) {
+    const tokenOrganizationId = getTokenOrganizationId(token) || 'none';
+    const localStorageOrganizationId = (await getLocalStorageOrganizationId(page)) || 'none';
     throw new Error(
-      `Failed to create test contact (${response.status()}): ${await response.text()}`
+      `Failed to create test contact (${response.status()}): ${await response.text()} (tokenOrganizationId=${tokenOrganizationId}, localStorageOrganizationId=${localStorageOrganizationId})`
     );
   }
 
@@ -345,26 +434,42 @@ export async function createTestDonation(
 ): Promise<{ id: string }> {
   const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
   const headers = await getAuthHeaders(page, token);
-
   const donationDate = data.donationDate || new Date().toISOString();
-  const response = await page.request.post(`${apiURL}/api/donations`, {
-    headers,
-    data: {
-      account_id: data.accountId,
-      amount: data.amount,
-      donation_date: donationDate,
-      payment_method: data.paymentMethod || 'credit_card',
-      payment_status: data.paymentStatus || 'completed',
-    },
-  });
+  const maxAttempts = 4;
 
-  if (!response.ok()) {
-    throw new Error(`Failed to create test donation (${response.status()}): ${await response.text()}`);
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const response = await page.request.post(`${apiURL}/api/v2/donations`, {
+      headers,
+      data: {
+        account_id: data.accountId,
+        amount: data.amount,
+        donation_date: donationDate,
+        payment_method: data.paymentMethod || 'credit_card',
+        payment_status: data.paymentStatus || 'completed',
+      },
+    });
+
+    if (response.ok()) {
+      const result = unwrapApiData<Record<string, unknown>>(await response.json());
+      const id =
+        result.donation_id ||
+        result.id ||
+        (result.data as Record<string, unknown> | undefined)?.donation_id ||
+        (result.data as Record<string, unknown> | undefined)?.id;
+      return { id: String(id) };
+    }
+
+    const body = await response.text();
+    const isUniqueViolation = response.status() === 500 && body.includes('"code":"23505"');
+    if (isUniqueViolation && attempt < maxAttempts) {
+      await page.waitForTimeout(50 * attempt);
+      continue;
+    }
+
+    throw new Error(`Failed to create test donation (${response.status()}): ${body}`);
   }
 
-  const result = unwrapApiData<Record<string, unknown>>(await response.json());
-  const id = result.donation_id || result.id || (result.data as Record<string, unknown> | undefined)?.donation_id || (result.data as Record<string, unknown> | undefined)?.id;
-  return { id: String(id) };
+  throw new Error('Failed to create test donation after retry attempts');
 }
 
 /**
@@ -450,7 +555,7 @@ export async function createTestVolunteer(
       })
     ).id;
 
-  const response = await page.request.post(`${apiURL}/api/volunteers`, {
+  const response = await page.request.post(`${apiURL}/api/v2/volunteers`, {
     headers,
     data: {
       contact_id: contactId,

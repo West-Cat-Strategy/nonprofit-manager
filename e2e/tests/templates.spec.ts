@@ -4,13 +4,15 @@ import { getAuthHeaders } from '../helpers/database';
 
 test.describe('Template Workflows', () => {
   test('create and delete template via API + verify gallery route', async ({ authenticatedPage, authToken }) => {
+    await authenticatedPage.goto('/dashboard');
+    await expect(authenticatedPage).toHaveURL(/\/dashboard(?:\?|$)/);
     await expect(authenticatedPage.getByRole('heading', { name: 'Quick Tools' })).toBeVisible();
 
     const id = await createTemplate(authenticatedPage, authToken);
     expect(id).toBeTruthy();
 
     const headers = await getAuthHeaders(authenticatedPage, authToken);
-    const created = await authenticatedPage.request.get(`${process.env.API_URL}/api/templates/${id}`, {
+    const created = await authenticatedPage.request.get(`${process.env.API_URL}/api/v2/templates/${id}`, {
       headers,
     });
     expect(created.ok()).toBeTruthy();
@@ -19,7 +21,7 @@ test.describe('Template Workflows', () => {
 
     await deleteTemplate(authenticatedPage, authToken, id);
 
-    const afterDelete = await authenticatedPage.request.get(`${process.env.API_URL}/api/templates/${id}`, {
+    const afterDelete = await authenticatedPage.request.get(`${process.env.API_URL}/api/v2/templates/${id}`, {
       headers,
     });
     expect([400, 404]).toContain(afterDelete.status());

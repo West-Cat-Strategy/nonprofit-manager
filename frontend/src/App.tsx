@@ -10,10 +10,22 @@ import './App.css';
 
 function App() {
   const dispatch = useAppDispatch();
+  const uiRedesignEnabled = import.meta.env.VITE_UI_REDESIGN_ENABLED === 'true';
 
   useEffect(() => {
     dispatch(initializeAuth());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (uiRedesignEnabled) {
+      document.body.classList.add('ui-redesign');
+    } else {
+      document.body.classList.remove('ui-redesign');
+    }
+    return () => {
+      document.body.classList.remove('ui-redesign');
+    };
+  }, [uiRedesignEnabled]);
 
   return (
     <Router>

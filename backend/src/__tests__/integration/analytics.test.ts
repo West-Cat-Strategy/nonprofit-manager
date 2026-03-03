@@ -24,7 +24,7 @@ describe('Analytics API Integration Tests', () => {
   beforeAll(async () => {
     // Register and login a test user
     const email = `analytics-test-${unique()}@example.com`;
-    const registerResponse = await request(app).post('/api/auth/register').send({
+    const registerResponse = await request(app).post('/api/v2/auth/register').send({
       email,
       password: 'Test123!Strong',
       password_confirm: 'Test123!Strong',
@@ -44,49 +44,49 @@ describe('Analytics API Integration Tests', () => {
   });
 
   describe('Authentication Requirements', () => {
-    it('should require authentication for /api/analytics/summary', async () => {
-      await request(app).get('/api/analytics/summary').expect(401);
+    it('should require authentication for /api/v2/analytics/summary', async () => {
+      await request(app).get('/api/v2/analytics/summary').expect(401);
     });
 
-    it('should require authentication for /api/analytics/accounts/:id', async () => {
+    it('should require authentication for /api/v2/analytics/accounts/:id', async () => {
       await request(app)
-        .get('/api/analytics/accounts/00000000-0000-0000-0000-000000000000')
+        .get('/api/v2/analytics/accounts/00000000-0000-0000-0000-000000000000')
         .expect(401);
     });
 
-    it('should require authentication for /api/analytics/contacts/:id', async () => {
+    it('should require authentication for /api/v2/analytics/contacts/:id', async () => {
       await request(app)
-        .get('/api/analytics/contacts/00000000-0000-0000-0000-000000000000')
+        .get('/api/v2/analytics/contacts/00000000-0000-0000-0000-000000000000')
         .expect(401);
     });
 
     it('should require authentication for account donation metrics', async () => {
       await request(app)
-        .get('/api/analytics/accounts/00000000-0000-0000-0000-000000000000/donations')
+        .get('/api/v2/analytics/accounts/00000000-0000-0000-0000-000000000000/donations')
         .expect(401);
     });
 
     it('should require authentication for contact donation metrics', async () => {
       await request(app)
-        .get('/api/analytics/contacts/00000000-0000-0000-0000-000000000000/donations')
+        .get('/api/v2/analytics/contacts/00000000-0000-0000-0000-000000000000/donations')
         .expect(401);
     });
 
     it('should require authentication for account event metrics', async () => {
       await request(app)
-        .get('/api/analytics/accounts/00000000-0000-0000-0000-000000000000/events')
+        .get('/api/v2/analytics/accounts/00000000-0000-0000-0000-000000000000/events')
         .expect(401);
     });
 
     it('should require authentication for contact event metrics', async () => {
       await request(app)
-        .get('/api/analytics/contacts/00000000-0000-0000-0000-000000000000/events')
+        .get('/api/v2/analytics/contacts/00000000-0000-0000-0000-000000000000/events')
         .expect(401);
     });
 
     it('should require authentication for volunteer metrics', async () => {
       await request(app)
-        .get('/api/analytics/contacts/00000000-0000-0000-0000-000000000000/volunteer')
+        .get('/api/v2/analytics/contacts/00000000-0000-0000-0000-000000000000/volunteer')
         .expect(401);
     });
   });
@@ -96,7 +96,7 @@ describe('Analytics API Integration Tests', () => {
     // For now, invalid UUIDs result in either 400 or 500 depending on route config
     it('should reject invalid UUID in account analytics', async () => {
       const response = await request(app)
-        .get('/api/analytics/accounts/not-a-uuid')
+        .get('/api/v2/analytics/accounts/not-a-uuid')
         .set('Authorization', `Bearer ${authToken}`);
 
       // Either 400 (proper validation) or 500 (unhandled database error)
@@ -105,7 +105,7 @@ describe('Analytics API Integration Tests', () => {
 
     it('should reject invalid UUID in contact analytics', async () => {
       const response = await request(app)
-        .get('/api/analytics/contacts/not-a-uuid')
+        .get('/api/v2/analytics/contacts/not-a-uuid')
         .set('Authorization', `Bearer ${authToken}`);
 
       // Either 400 (proper validation) or 500 (unhandled database error)
@@ -116,7 +116,7 @@ describe('Analytics API Integration Tests', () => {
   describe('Not Found Handling', () => {
     it('should return 404 for non-existent account', async () => {
       const response = await request(app)
-        .get('/api/analytics/accounts/00000000-0000-0000-0000-000000000000')
+        .get('/api/v2/analytics/accounts/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -125,7 +125,7 @@ describe('Analytics API Integration Tests', () => {
 
     it('should return 404 for non-existent contact', async () => {
       const response = await request(app)
-        .get('/api/analytics/contacts/00000000-0000-0000-0000-000000000000')
+        .get('/api/v2/analytics/contacts/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -134,14 +134,14 @@ describe('Analytics API Integration Tests', () => {
   });
 
   describe('Trends Endpoints', () => {
-    describe('GET /api/analytics/trends/donations', () => {
+    describe('GET /api/v2/analytics/trends/donations', () => {
       it('should require authentication', async () => {
-        await request(app).get('/api/analytics/trends/donations').expect(401);
+        await request(app).get('/api/v2/analytics/trends/donations').expect(401);
       });
 
       it('should return donation trends with authentication', async () => {
         const response = await request(app)
-          .get('/api/analytics/trends/donations')
+          .get('/api/v2/analytics/trends/donations')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -157,7 +157,7 @@ describe('Analytics API Integration Tests', () => {
 
       it('should accept months query parameter', async () => {
         const response = await request(app)
-          .get('/api/analytics/trends/donations?months=6')
+          .get('/api/v2/analytics/trends/donations?months=6')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -169,7 +169,7 @@ describe('Analytics API Integration Tests', () => {
 
       it('should return max 24 months of data', async () => {
         const response = await request(app)
-          .get('/api/analytics/trends/donations?months=24')
+          .get('/api/v2/analytics/trends/donations?months=24')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -182,14 +182,14 @@ describe('Analytics API Integration Tests', () => {
 
     // NOTE: volunteer_assignments table may not exist in test DB
     // These tests check authentication and handle missing table gracefully
-    describe('GET /api/analytics/trends/volunteer-hours', () => {
+    describe('GET /api/v2/analytics/trends/volunteer-hours', () => {
       it('should require authentication', async () => {
-        await request(app).get('/api/analytics/trends/volunteer-hours').expect(401);
+        await request(app).get('/api/v2/analytics/trends/volunteer-hours').expect(401);
       });
 
       it('should return trends or error if table missing', async () => {
         const response = await request(app)
-          .get('/api/analytics/trends/volunteer-hours')
+          .get('/api/v2/analytics/trends/volunteer-hours')
           .set('Authorization', `Bearer ${authToken}`);
 
         // Accept 200 (success) or 500 (table doesn't exist in test DB)

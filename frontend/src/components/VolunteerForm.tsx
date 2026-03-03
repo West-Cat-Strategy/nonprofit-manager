@@ -218,7 +218,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {errors.submit && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="bg-app-accent-soft border border-app-border text-app-accent-text px-4 py-3 rounded">
           {errors.submit}
         </div>
       )}
@@ -237,7 +237,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
               value={formData.contact_id}
               onChange={handleChange}
               className={`mt-1 block w-full border ${
-                errors.contact_id ? 'border-red-300' : 'border-app-input-border'
+                errors.contact_id ? 'border-app-border' : 'border-app-input-border'
               } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
             >
               <option value="">Select a contact...</option>
@@ -248,7 +248,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
                 </option>
               ))}
             </select>
-            {errors.contact_id && <p className="mt-1 text-sm text-red-600">{errors.contact_id}</p>}
+            {errors.contact_id && <p className="mt-1 text-sm text-app-accent">{errors.contact_id}</p>}
             <p className="mt-1 text-sm text-app-text-muted">
               Volunteers must be associated with an existing contact. Create a contact first if
               needed.
@@ -307,13 +307,13 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
               {formData.preferred_roles?.map((role) => (
                 <span
                   key={role}
-                  className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800"
+                  className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-app-accent-soft text-app-accent-text"
                 >
                   {role}
                   <button
                     type="button"
                     onClick={() => handleRemoveRole(role)}
-                    className="ml-2 text-green-600 hover:text-green-800"
+                    className="ml-2 text-app-accent hover:text-app-accent-text"
                   >
                     ×
                   </button>
@@ -510,11 +510,11 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
               value={formData.emergency_contact_phone ?? ''}
               onChange={handleChange}
               className={`mt-1 block w-full border ${
-                errors.emergency_contact_phone ? 'border-red-300' : 'border-app-input-border'
+                errors.emergency_contact_phone ? 'border-app-border' : 'border-app-input-border'
               } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
             />
             {errors.emergency_contact_phone && (
-              <p className="mt-1 text-sm text-red-600">{errors.emergency_contact_phone}</p>
+              <p className="mt-1 text-sm text-app-accent">{errors.emergency_contact_phone}</p>
             )}
           </div>
         </div>

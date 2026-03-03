@@ -87,7 +87,7 @@ export default function BrandingSection({
                   <button
                     type="button"
                     onClick={onRemoveIcon}
-                    className="ml-2 px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700"
+                    className="ml-2 px-3 py-2 text-sm font-medium text-app-accent hover:text-app-accent-text"
                   >
                     Remove
                   </button>
@@ -129,7 +129,7 @@ export default function BrandingSection({
                   <button
                     type="button"
                     onClick={onRemoveFavicon}
-                    className="ml-2 px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700"
+                    className="ml-2 px-3 py-2 text-sm font-medium text-app-accent hover:text-app-accent-text"
                   >
                     Remove
                   </button>

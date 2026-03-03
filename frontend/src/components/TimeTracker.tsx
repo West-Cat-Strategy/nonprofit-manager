@@ -147,7 +147,7 @@ const TimeTracker = ({
 
       {/* Active Timer Display */}
       {timerState.assignmentId && (
-        <div className="p-6 border-b border-app-border bg-green-50">
+        <div className="p-6 border-b border-app-border bg-app-accent-soft">
           <div className="flex justify-between items-center">
             <div>
               <h4 className="font-semibold text-app-text mb-1">Timer Running</h4>
@@ -162,12 +162,12 @@ const TimeTracker = ({
               </p>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="text-3xl font-mono font-bold text-green-600">
+              <div className="text-3xl font-mono font-bold text-app-accent">
                 {formatElapsedTime(timerState.elapsedSeconds)}
               </div>
               <button
                 onClick={handleStopTimer}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+                className="bg-app-accent text-white px-4 py-2 rounded-lg hover:bg-app-accent-hover transition"
               >
                 Stop
               </button>
@@ -191,7 +191,7 @@ const TimeTracker = ({
                 <div
                   key={assignment.assignment_id}
                   className={`border rounded-lg p-4 ${
-                    isTimerActive ? 'border-green-500 bg-green-50' : 'border-app-border'
+                    isTimerActive ? 'border-app-border bg-app-accent-soft' : 'border-app-border'
                   }`}
                 >
                   <div className="flex justify-between items-start mb-3">
@@ -231,7 +231,7 @@ const TimeTracker = ({
                       {!isTimerActive && !timerState.assignmentId && (
                         <button
                           onClick={() => handleStartTimer(assignment.assignment_id)}
-                          className="bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition text-sm flex items-center space-x-1"
+                          className="bg-app-accent text-white px-3 py-1.5 rounded-lg hover:bg-app-accent-hover transition text-sm flex items-center space-x-1"
                         >
                           <svg
                             className="w-4 h-4"
@@ -305,7 +305,7 @@ const TimeTracker = ({
                     ({new Date(assignment.start_time).toLocaleDateString()})
                   </span>
                 </div>
-                <span className="font-medium text-green-600">
+                <span className="font-medium text-app-accent">
                   {assignment.hours_logged}h
                 </span>
               </div>

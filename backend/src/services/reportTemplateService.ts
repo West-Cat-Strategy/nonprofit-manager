@@ -11,10 +11,56 @@ import type {
     InstantiateTemplateRequest,
     TemplateCategory,
 } from '@app-types/reportTemplate';
-import type { ReportDefinition } from '@app-types/report';
+import { AVAILABLE_FIELDS, REPORT_ENTITIES, type ReportDefinition } from '@app-types/report';
 
 export class ReportTemplateService {
     constructor(private pool: Pool) { }
+
+    private validateTemplateDefinition(definition: ReportDefinition): void {
+        if (!REPORT_ENTITIES.includes(definition.entity)) {
+            throw new Error(`Invalid template entity: ${definition.entity}`);
+        }
+
+        const validFields = new Set(AVAILABLE_FIELDS[definition.entity].map((field) => field.field));
+        const aggregationAliases = new Set<string>();
+
+        for (const field of definition.fields || []) {
+            if (!validFields.has(field)) {
+                throw new Error(`Invalid template field: ${field}`);
+            }
+        }
+
+        for (const field of definition.groupBy || []) {
+            if (!validFields.has(field)) {
+                throw new Error(`Invalid template groupBy field: ${field}`);
+            }
+        }
+
+        for (const filter of definition.filters || []) {
+            if (!validFields.has(filter.field)) {
+                throw new Error(`Invalid template filter field: ${filter.field}`);
+            }
+        }
+
+        for (const aggregation of definition.aggregations || []) {
+            if (!validFields.has(aggregation.field)) {
+                throw new Error(`Invalid template aggregation field: ${aggregation.field}`);
+            }
+            aggregationAliases.add(aggregation.alias || `${aggregation.function}_${aggregation.field}`);
+        }
+
+        for (const sort of definition.sort || []) {
+            if (!validFields.has(sort.field) && !aggregationAliases.has(sort.field)) {
+                throw new Error(`Invalid template sort field: ${sort.field}`);
+            }
+        }
+
+        const hasFields = (definition.fields || []).length > 0;
+        const hasAggregations = (definition.aggregations || []).length > 0;
+        if (!hasFields && !hasAggregations) {
+            throw new Error('Template must include at least one field or aggregation');
+        }
+    }
 
     /**
      * Seed system templates
@@ -24,6 +70,7 @@ export class ReportTemplateService {
 
         for (const template of templates) {
             try {
+                this.validateTemplateDefinition(template.template_definition);
                 await this.pool.query(
                     `INSERT INTO report_templates (name, description, category, tags, entity, template_definition, parameters, is_system)
            VALUES ($1, $2, $3, $4, $5, $6, $7, true)
@@ -99,6 +146,8 @@ export class ReportTemplateService {
      */
     async createTemplate(request: CreateTemplateRequest): Promise<ReportTemplate> {
         try {
+            this.validateTemplateDefinition(request.template_definition as ReportDefinition);
+
             const result = await this.pool.query(
                 `INSERT INTO report_templates (name, description, category, tags, entity, template_definition, parameters, is_system)
          VALUES ($1, $2, $3, $4, $5, $6, $7, false)
@@ -153,6 +202,7 @@ export class ReportTemplateService {
                 definition.name = request.save_as_name;
             }
 
+            this.validateTemplateDefinition(definition as ReportDefinition);
             return definition;
         } catch (error) {
             logger.error('Error instantiating template', { error });

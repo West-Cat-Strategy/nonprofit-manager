@@ -31,7 +31,7 @@ describe('Admin Branding API', () => {
 
     // Create admin user (register -> promote -> login to get admin role in JWT)
     adminEmail = `branding-admin-${Date.now()}@example.com`;
-    const adminRegister = await request(app).post('/api/auth/register').send({
+    const adminRegister = await request(app).post('/api/v2/auth/register').send({
       email: adminEmail,
       password,
       password_confirm: password,
@@ -41,7 +41,7 @@ describe('Admin Branding API', () => {
     const adminUserId = adminRegister.body?.user?.user_id;
     await pool.query("UPDATE users SET role = 'admin' WHERE id = $1", [adminUserId]);
 
-    const adminLogin = await request(app).post('/api/auth/login').send({
+    const adminLogin = await request(app).post('/api/v2/auth/login').send({
       email: adminEmail,
       password,
     });
@@ -49,14 +49,14 @@ describe('Admin Branding API', () => {
 
     // Create regular user
     userEmail = `branding-user-${Date.now()}@example.com`;
-    await request(app).post('/api/auth/register').send({
+    await request(app).post('/api/v2/auth/register').send({
       email: userEmail,
       password,
       password_confirm: password,
       first_name: 'Branding',
       last_name: 'User',
     });
-    const userLogin = await request(app).post('/api/auth/login').send({
+    const userLogin = await request(app).post('/api/v2/auth/login').send({
       email: userEmail,
       password,
     });
@@ -88,7 +88,7 @@ describe('Admin Branding API', () => {
 
   it('allows authenticated users to read branding', async () => {
     const response = await request(app)
-      .get('/api/admin/branding')
+      .get('/api/v2/admin/branding')
       .set('Authorization', `Bearer ${userToken}`);
 
     expect(response.status).toBe(200);
@@ -97,7 +97,7 @@ describe('Admin Branding API', () => {
 
   it('rejects non-admin updates', async () => {
     const response = await request(app)
-      .put('/api/admin/branding')
+      .put('/api/v2/admin/branding')
       .set('Authorization', `Bearer ${userToken}`)
       .send({
         appName: 'Should Not Save',
@@ -120,7 +120,7 @@ describe('Admin Branding API', () => {
     };
 
     const putResponse = await request(app)
-      .put('/api/admin/branding')
+      .put('/api/v2/admin/branding')
       .set('Authorization', `Bearer ${adminToken}`)
       .send(payload);
 
@@ -129,7 +129,7 @@ describe('Admin Branding API', () => {
     expect(putResponse.body.primaryColour).toBe(payload.primaryColour);
 
     const getResponse = await request(app)
-      .get('/api/admin/branding')
+      .get('/api/v2/admin/branding')
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(getResponse.status).toBe(200);

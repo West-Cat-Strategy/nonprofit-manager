@@ -122,6 +122,12 @@ run_ci() {
         run_step "Backend Lint" "cd backend && npm run lint" "[ \$RUN_LINT = false ]"
         run_step "Rate Limit Key Policy" "node scripts/check-rate-limit-key-policy.ts" "[ \$RUN_LINT = false ]"
         run_step "Success Envelope Policy" "node scripts/check-success-envelope-policy.ts" "[ \$RUN_LINT = false ]"
+        run_step "Route Validation Policy" "node scripts/check-route-validation-policy.ts" "[ \$RUN_LINT = false ]"
+        run_step "Query Contract Policy" "node scripts/check-query-contract-policy.ts" "[ \$RUN_LINT = false ]"
+        run_step "Express Validator Migration Policy" "node scripts/check-express-validator-policy.ts" "[ \$RUN_LINT = false ]"
+        run_step "Controller SQL Boundary Policy" "node scripts/check-controller-sql-policy.ts" "[ \$RUN_LINT = false ]"
+        run_step "Legacy Auth Guard Policy" "node scripts/check-auth-guard-policy.ts" "[ \$RUN_LINT = false ]"
+        run_step "Duplicate Test Tree Policy" "node scripts/check-duplicate-test-tree.ts" "[ \$RUN_LINT = false ]"
         run_step "Backend TypeCheck" "cd backend && npm run type-check" "[ \$RUN_TYPECHECK = false ]"
 
         if [ "$RUN_TESTS" = true ] && [ "$SKIP_TESTS" = false ]; then
@@ -158,12 +164,14 @@ run_ci() {
 
         if [ "$RUN_BUILD" = true ]; then
             run_step "Frontend Build" "cd frontend && npm run build"
+            run_step "Frontend Bundle Budget" "node scripts/check-frontend-bundle-size.js"
         fi
     fi
 
     # E2E checks
     if [ "$RUN_E2E" = true ] && [ "$RUN_TESTS" = true ] && [ "$SKIP_TESTS" = false ]; then
         log_info "Running Playwright E2E checks..."
+        run_step "E2E Port Preflight" "E2E_PORT_ACTION=kill \"$SCRIPT_DIR/e2e-port-preflight.sh\""
         run_step "Playwright E2E" "cd e2e && npm run test:ci"
     else
         [ "$VERBOSE" = true ] && log_info "Playwright tests skipped"

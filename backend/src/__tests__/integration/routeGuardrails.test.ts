@@ -16,34 +16,35 @@ type GuardrailCase = {
   expectedCode: string;
   payload?: Record<string, unknown>;
   withActiveOrgContext?: boolean;
+  tokenKind?: 'user' | 'admin';
 };
 
 const AUTH_REQUIRED_CASES: GuardrailCase[] = [
   {
     name: 'accounts list requires auth',
     method: 'get',
-    path: '/api/accounts',
+    path: '/api/v2/accounts',
     expectedStatus: 401,
     expectedCode: 'unauthorized',
   },
   {
     name: 'current user requires auth',
     method: 'get',
-    path: '/api/auth/me',
+    path: '/api/v2/auth/me',
     expectedStatus: 401,
     expectedCode: 'unauthorized',
   },
   {
     name: 'webhook endpoint list requires auth',
     method: 'get',
-    path: '/api/webhooks/endpoints',
+    path: '/api/v2/webhooks/endpoints',
     expectedStatus: 401,
     expectedCode: 'unauthorized',
   },
   {
     name: 'task create requires auth',
     method: 'post',
-    path: '/api/tasks',
+    path: '/api/v2/tasks',
     expectedStatus: 401,
     expectedCode: 'unauthorized',
     payload: {
@@ -56,7 +57,7 @@ const VALIDATION_REQUIRED_CASES: GuardrailCase[] = [
   {
     name: 'register validates payload',
     method: 'post',
-    path: '/api/auth/register',
+    path: '/api/v2/auth/register',
     expectedStatus: 400,
     expectedCode: 'validation_error',
     payload: {
@@ -67,7 +68,7 @@ const VALIDATION_REQUIRED_CASES: GuardrailCase[] = [
   {
     name: 'login validates payload',
     method: 'post',
-    path: '/api/auth/login',
+    path: '/api/v2/auth/login',
     expectedStatus: 400,
     expectedCode: 'validation_error',
     payload: {
@@ -77,7 +78,7 @@ const VALIDATION_REQUIRED_CASES: GuardrailCase[] = [
   {
     name: 'setup validates payload',
     method: 'post',
-    path: '/api/auth/setup',
+    path: '/api/v2/auth/setup',
     expectedStatus: 400,
     expectedCode: 'validation_error',
     payload: {},
@@ -88,7 +89,15 @@ const AUTH_VALIDATION_REQUIRED_CASES: GuardrailCase[] = [
   {
     name: 'activities recent enforces query bounds',
     method: 'get',
-    path: '/api/activities/recent?limit=500',
+    path: '/api/v2/activities/recent?limit=500',
+    expectedStatus: 400,
+    expectedCode: 'validation_error',
+    withActiveOrgContext: true,
+  },
+  {
+    name: 'activities recent rejects unknown query keys',
+    method: 'get',
+    path: '/api/v2/activities/recent?unknown=true',
     expectedStatus: 400,
     expectedCode: 'validation_error',
     withActiveOrgContext: true,
@@ -96,7 +105,7 @@ const AUTH_VALIDATION_REQUIRED_CASES: GuardrailCase[] = [
   {
     name: 'external service provider create enforces body schema',
     method: 'post',
-    path: '/api/external-service-providers',
+    path: '/api/v2/external-service-providers',
     expectedStatus: 400,
     expectedCode: 'validation_error',
     payload: {},
@@ -105,10 +114,166 @@ const AUTH_VALIDATION_REQUIRED_CASES: GuardrailCase[] = [
   {
     name: 'reconciliation endpoints enforce UUID params',
     method: 'get',
-    path: '/api/reconciliation/not-a-uuid',
+    path: '/api/v2/reconciliation/not-a-uuid',
     expectedStatus: 400,
     expectedCode: 'validation_error',
     withActiveOrgContext: true,
+  },
+  {
+    name: 'saved reports list enforces entity enum query',
+    method: 'get',
+    path: '/api/v2/saved-reports?entity=not-a-valid-entity',
+    expectedStatus: 400,
+    expectedCode: 'validation_error',
+  },
+  {
+    name: 'admin audit logs enforces query bounds',
+    method: 'get',
+    path: '/api/v2/admin/audit-logs?limit=500',
+    expectedStatus: 400,
+    expectedCode: 'validation_error',
+    tokenKind: 'admin',
+  },
+  {
+    name: 'admin audit logs rejects unknown query keys',
+    method: 'get',
+    path: '/api/v2/admin/audit-logs?unknown=true',
+    expectedStatus: 400,
+    expectedCode: 'validation_error',
+    tokenKind: 'admin',
+  },
+  {
+    name: 'admin pending registrations enforces status enum query',
+    method: 'get',
+    path: '/api/v2/admin/pending-registrations?status=invalid',
+    expectedStatus: 400,
+    expectedCode: 'validation_error',
+    tokenKind: 'admin',
+  },
+  {
+    name: 'admin pending registrations reject unknown query keys',
+    method: 'get',
+    path: '/api/v2/admin/pending-registrations?unknown=true',
+    expectedStatus: 400,
+    expectedCode: 'validation_error',
+    tokenKind: 'admin',
+  },
+  {
+    name: 'users list enforces is_active boolean query',
+    method: 'get',
+    path: '/api/v2/users?is_active=maybe',
+    expectedStatus: 400,
+    expectedCode: 'validation_error',
+    tokenKind: 'admin',
+  },
+  {
+    name: 'users list rejects unknown query keys',
+    method: 'get',
+    path: '/api/v2/users?unknown=true',
+    expectedStatus: 400,
+    expectedCode: 'validation_error',
+    tokenKind: 'admin',
+  },
+  {
+    name: 'portal admin users enforces search query shape',
+    method: 'get',
+    path: '/api/v2/portal/admin/users?search=alpha&search=beta',
+    expectedStatus: 400,
+    expectedCode: 'validation_error',
+    tokenKind: 'admin',
+  },
+  {
+    name: 'portal admin users reject unknown query keys',
+    method: 'get',
+    path: '/api/v2/portal/admin/users?unknown=true',
+    expectedStatus: 400,
+    expectedCode: 'validation_error',
+    tokenKind: 'admin',
+  },
+  {
+    name: 'portal user activity enforces query bounds',
+    method: 'get',
+    path: '/api/v2/portal/admin/users/11111111-1111-4111-8111-111111111111/activity?limit=500',
+    expectedStatus: 400,
+    expectedCode: 'validation_error',
+    tokenKind: 'admin',
+  },
+  {
+    name: 'templates search rejects unknown query keys',
+    method: 'get',
+    path: '/api/v2/templates?unknown=true',
+    expectedStatus: 400,
+    expectedCode: 'validation_error',
+    tokenKind: 'admin',
+  },
+  {
+    name: 'v2 tasks list rejects unknown query keys',
+    method: 'get',
+    path: '/api/v2/tasks?unknown=true',
+    expectedStatus: 400,
+    expectedCode: 'validation_error',
+    tokenKind: 'admin',
+  },
+  {
+    name: 'v2 volunteers list rejects unknown query keys',
+    method: 'get',
+    path: '/api/v2/volunteers?unknown=true',
+    expectedStatus: 400,
+    expectedCode: 'validation_error',
+    tokenKind: 'admin',
+    withActiveOrgContext: true,
+  },
+  {
+    name: 'v2 case document download rejects unknown query keys',
+    method: 'get',
+    path: '/api/v2/cases/11111111-1111-4111-8111-111111111111/documents/22222222-2222-4222-8222-222222222222/download?unknown=true',
+    expectedStatus: 400,
+    expectedCode: 'validation_error',
+    tokenKind: 'admin',
+    withActiveOrgContext: true,
+  },
+  {
+    name: 'webhook deliveries reject unknown query keys',
+    method: 'get',
+    path: '/api/v2/webhooks/endpoints/11111111-1111-4111-8111-111111111111/deliveries?unknown=true',
+    expectedStatus: 400,
+    expectedCode: 'validation_error',
+    tokenKind: 'admin',
+  },
+  {
+    name: 'api key usage rejects unknown query keys',
+    method: 'get',
+    path: '/api/v2/webhooks/api-keys/11111111-1111-4111-8111-111111111111/usage?unknown=true',
+    expectedStatus: 400,
+    expectedCode: 'validation_error',
+    tokenKind: 'admin',
+  },
+  {
+    name: 'v2 report templates enforce category enum query',
+    method: 'get',
+    path: '/api/v2/reports/templates?category=invalid-category',
+    expectedStatus: 400,
+    expectedCode: 'validation_error',
+    withActiveOrgContext: true,
+    tokenKind: 'admin',
+  },
+  {
+    name: 'v2 report templates reject unknown query keys',
+    method: 'get',
+    path: '/api/v2/reports/templates?unknown=true',
+    expectedStatus: 400,
+    expectedCode: 'validation_error',
+    withActiveOrgContext: true,
+    tokenKind: 'admin',
+  },
+  {
+    name: 'legacy report templates enforce category enum query',
+    method: 'get',
+    path: '/api/v2/reports/templates?category=invalid-category',
+    expectedStatus: 400,
+    expectedCode: 'validation_error',
+    withActiveOrgContext: true,
+    tokenKind: 'admin',
   },
 ];
 
@@ -116,7 +281,7 @@ const WEBHOOK_GUARDRAIL_CASES: GuardrailCase[] = [
   {
     name: 'stripe webhook requires signature',
     method: 'post',
-    path: '/api/payments/webhook',
+    path: '/api/v2/payments/webhook',
     expectedStatus: 400,
     expectedCode: 'bad_request',
     payload: {},
@@ -127,12 +292,12 @@ const SUCCESS_CONTRACT_CASES: Array<{ name: string; method: 'get' | 'post'; path
   {
     name: 'auth setup-status success envelope',
     method: 'get',
-    path: '/api/auth/setup-status',
+    path: '/api/v2/auth/setup-status',
   },
   {
     name: 'payments config success envelope',
     method: 'get',
-    path: '/api/payments/config',
+    path: '/api/v2/payments/config',
   },
 ];
 
@@ -151,15 +316,34 @@ const CORRELATION_ID_POLICY = /^[A-Za-z0-9._:-]{8,128}$/;
 describe('Route Guardrails Integration', () => {
   let authToken: string;
   let authTokenNoOrgContext: string;
+  let authTokenAdmin: string;
   const activeOrgId = randomUUID();
   const inactiveOrgId = randomUUID();
   const activeOrgAccountNumber = `GR-ACT-${activeOrgId.slice(0, 8)}`;
   const inactiveOrgAccountNumber = `GR-INACT-${inactiveOrgId.slice(0, 8)}`;
+  const upsertGuardrailOrgs = async (): Promise<void> => {
+    await pool.query(
+      `INSERT INTO accounts (id, account_number, account_name, account_type, is_active)
+       VALUES ($1, $2, $3, 'organization', true)
+       ON CONFLICT (id) DO UPDATE
+       SET account_name = EXCLUDED.account_name,
+           is_active = EXCLUDED.is_active`,
+      [activeOrgId, activeOrgAccountNumber, 'Guardrails Active Org']
+    );
+    await pool.query(
+      `INSERT INTO accounts (id, account_number, account_name, account_type, is_active)
+       VALUES ($1, $2, $3, 'organization', false)
+       ON CONFLICT (id) DO UPDATE
+       SET account_name = EXCLUDED.account_name,
+           is_active = EXCLUDED.is_active`,
+      [inactiveOrgId, inactiveOrgAccountNumber, 'Guardrails Inactive Org']
+    );
+  };
 
   beforeAll(async () => {
     const unique = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const registerResponse = await request(app)
-      .post('/api/auth/register')
+      .post('/api/v2/auth/register')
       .send({
         email: `guardrails-${unique}@example.com`,
         password: 'Test123!Strong',
@@ -188,23 +372,17 @@ describe('Route Guardrails Integration', () => {
       getJwtSecret(),
       { expiresIn: '1h' }
     );
+    authTokenAdmin = jwt.sign(
+      { id: userId, email: userEmail, role: 'admin' },
+      getJwtSecret(),
+      { expiresIn: '1h' }
+    );
 
-    await pool.query(
-      `INSERT INTO accounts (id, account_number, account_name, account_type, is_active)
-       VALUES ($1, $2, $3, 'organization', true)
-       ON CONFLICT (id) DO UPDATE
-       SET account_name = EXCLUDED.account_name,
-           is_active = EXCLUDED.is_active`,
-      [activeOrgId, activeOrgAccountNumber, 'Guardrails Active Org']
-    );
-    await pool.query(
-      `INSERT INTO accounts (id, account_number, account_name, account_type, is_active)
-       VALUES ($1, $2, $3, 'organization', false)
-       ON CONFLICT (id) DO UPDATE
-       SET account_name = EXCLUDED.account_name,
-           is_active = EXCLUDED.is_active`,
-      [inactiveOrgId, inactiveOrgAccountNumber, 'Guardrails Inactive Org']
-    );
+    await upsertGuardrailOrgs();
+  });
+
+  beforeEach(async () => {
+    await upsertGuardrailOrgs();
   });
 
   afterAll(async () => {
@@ -218,6 +396,12 @@ describe('Route Guardrails Integration', () => {
 
       const response = await req.expect(testCase.expectedStatus);
       expectCanonicalError(response, testCase.expectedCode);
+      if (testCase.expectedCode === 'validation_error') {
+        expect(response.body.error.details).toMatchObject({
+          issues: expect.any(Array),
+          validation: expect.any(Object),
+        });
+      }
     });
   });
 
@@ -233,8 +417,9 @@ describe('Route Guardrails Integration', () => {
 
   describe('validation-required route matrix (authenticated)', () => {
     it.each(AUTH_VALIDATION_REQUIRED_CASES)('$name', async (testCase) => {
+      const token = testCase.tokenKind === 'admin' ? authTokenAdmin : authToken;
       const req = request(app)[testCase.method](testCase.path)
-        .set('Authorization', `Bearer ${authToken}`);
+        .set('Authorization', `Bearer ${token}`);
       if (testCase.withActiveOrgContext) {
         req.set('x-organization-id', activeOrgId);
       }
@@ -249,7 +434,7 @@ describe('Route Guardrails Integration', () => {
   describe('tenant/org activation behavior matrix', () => {
     it('rejects missing org context on org-scoped routes', async () => {
       const response = await request(app)
-        .get('/api/activities/recent')
+        .get('/api/v2/activities/recent')
         .set('Authorization', `Bearer ${authTokenNoOrgContext}`)
         .expect(400);
 
@@ -258,7 +443,7 @@ describe('Route Guardrails Integration', () => {
 
     it('rejects unknown org context on org-scoped routes', async () => {
       const response = await request(app)
-        .get('/api/activities/recent')
+        .get('/api/v2/activities/recent')
         .set('Authorization', `Bearer ${authTokenNoOrgContext}`)
         .set('x-organization-id', randomUUID())
         .expect(404);
@@ -268,7 +453,7 @@ describe('Route Guardrails Integration', () => {
 
     it('rejects inactive org context on org-scoped routes', async () => {
       const response = await request(app)
-        .get('/api/activities/recent')
+        .get('/api/v2/activities/recent')
         .set('Authorization', `Bearer ${authTokenNoOrgContext}`)
         .set('x-organization-id', inactiveOrgId)
         .expect(403);
@@ -278,7 +463,7 @@ describe('Route Guardrails Integration', () => {
 
     it('allows active org context through to downstream validators', async () => {
       const response = await request(app)
-        .get('/api/activities/recent?limit=500')
+        .get('/api/v2/activities/recent?limit=500')
         .set('Authorization', `Bearer ${authToken}`)
         .set('x-organization-id', activeOrgId)
         .expect(400);
@@ -362,7 +547,7 @@ describe('Route Guardrails Integration', () => {
 
   it('attaches correlation id header and body field for canonical failures', async () => {
     const response = await request(app)
-      .post('/api/auth/register')
+      .post('/api/v2/auth/register')
       .set('x-correlation-id', 'corr-guardrail-test')
       .send({})
       .expect(400);
@@ -379,7 +564,7 @@ describe('Route Guardrails Integration', () => {
 
   it('falls back to generated correlation id when inbound value is invalid', async () => {
     const response = await request(app)
-      .post('/api/auth/register')
+      .post('/api/v2/auth/register')
       .set('x-correlation-id', 'bad')
       .send({})
       .expect(400);
@@ -393,7 +578,7 @@ describe('Route Guardrails Integration', () => {
 
   it('returns machine-usable validation issues array', async () => {
     const response = await request(app)
-      .post('/api/auth/register')
+      .post('/api/v2/auth/register')
       .send({})
       .expect(400);
 
@@ -412,12 +597,12 @@ describe('Route Guardrails Integration', () => {
 
   it('keeps validation detail contract parity for express-validator and zod routes', async () => {
     const expressValidatorResponse = await request(app)
-      .post('/api/auth/register')
+      .post('/api/v2/auth/register')
       .send({})
       .expect(400);
 
     const zodResponse = await request(app)
-      .get('/api/activities/recent?limit=500')
+      .get('/api/v2/activities/recent?limit=500')
       .set('Authorization', `Bearer ${authToken}`)
       .set('x-organization-id', activeOrgId)
       .expect(400);
@@ -434,8 +619,8 @@ describe('Route Guardrails Integration', () => {
 
   it('returns provider webhook ack payloads without success-envelope wrapping for stale and duplicate paths', async () => {
     const staleWebhookApp = express();
-    staleWebhookApp.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
-    staleWebhookApp.post('/api/payments/webhook', handleWebhook);
+    staleWebhookApp.use('/api/v2/payments/webhook', express.raw({ type: 'application/json' }));
+    staleWebhookApp.post('/api/v2/payments/webhook', handleWebhook);
 
     const paymentPool = { query: jest.fn() };
     setPaymentPool(paymentPool as any);
@@ -458,7 +643,7 @@ describe('Route Guardrails Integration', () => {
     (paymentPool.query as jest.Mock).mockResolvedValueOnce({ rowCount: 0, rows: [] });
 
     const staleResponse = await request(staleWebhookApp)
-      .post('/api/payments/webhook')
+      .post('/api/v2/payments/webhook')
       .set('stripe-signature', 'sig_test')
       .set('Content-Type', 'application/json')
       .send('{}')
@@ -468,7 +653,7 @@ describe('Route Guardrails Integration', () => {
     expect(staleResponse.body.success).toBeUndefined();
 
     const duplicateResponse = await request(staleWebhookApp)
-      .post('/api/payments/webhook')
+      .post('/api/v2/payments/webhook')
       .set('stripe-signature', 'sig_test')
       .set('Content-Type', 'application/json')
       .send('{}')
@@ -486,12 +671,12 @@ describe('Route Guardrails Integration', () => {
 
     const [first, second] = await Promise.all([
       request(app)
-        .post('/api/auth/register')
+        .post('/api/v2/auth/register')
         .set('x-correlation-id', firstCorrelationId)
         .send({})
         .expect(400),
       request(app)
-        .post('/api/auth/register')
+        .post('/api/v2/auth/register')
         .set('x-correlation-id', secondCorrelationId)
         .send({})
         .expect(400),

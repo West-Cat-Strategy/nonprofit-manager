@@ -73,7 +73,7 @@ const bulkSyncContactsSchema = z.object({
 
 const campaignsQuerySchema = z.object({
   listId: z.string().optional(),
-});
+}).strict();
 
 const dateStringSchema = z
   .string()

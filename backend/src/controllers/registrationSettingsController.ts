@@ -8,6 +8,7 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '@middleware/auth';
 import { logger } from '@config/logger';
 import { conflict, notFoundMessage, unauthorized } from '@utils/responseHelpers';
+import { sendSuccess } from '@modules/shared/http/envelope';
 import {
   getRegistrationSettings,
   getRegistrationMode,
@@ -35,7 +36,7 @@ export const getRegistrationStatus = async (
 ): Promise<Response | void> => {
   try {
     const mode = await getRegistrationMode();
-    return res.json({ registrationEnabled: mode !== 'disabled', mode });
+    return sendSuccess(res, { registrationEnabled: mode !== 'disabled', mode });
   } catch (error) {
     next(error);
   }
@@ -55,7 +56,7 @@ export const getRegistrationSettingsHandler = async (
 ): Promise<Response | void> => {
   try {
     const settings = await getRegistrationSettings();
-    return res.json(settings);
+    return sendSuccess(res, settings);
   } catch (error) {
     next(error);
   }
@@ -77,7 +78,7 @@ export const updateRegistrationSettingsHandler = async (
       userId
     );
     logger.info(`Registration settings updated by user ${userId}`);
-    return res.json(updated);
+    return sendSuccess(res, updated);
   } catch (error) {
     next(error);
   }
@@ -96,11 +97,12 @@ export const listPendingRegistrationsHandler = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const status = req.query.status as string | undefined;
+    const query = ((req as any).validatedQuery ?? req.query) as { status?: string };
+    const status = typeof query.status === 'string' ? query.status : undefined;
     const validStatuses = ['pending', 'approved', 'rejected'];
     const filterStatus = status && validStatuses.includes(status) ? status as 'pending' | 'approved' | 'rejected' : undefined;
     const items = await listPendingRegistrations(filterStatus);
-    return res.json({ data: items });
+    return sendSuccess(res, { data: items });
   } catch (error) {
     next(error);
   }
@@ -121,7 +123,7 @@ export const approvePendingRegistrationHandler = async (
       return unauthorized(res, 'Authentication required');
     }
     const result = await approvePendingRegistration(id, reviewedBy);
-    return res.json({ message: 'Registration approved', user: result.user });
+    return sendSuccess(res, { message: 'Registration approved', user: result.user });
   } catch (error: unknown) {
     if (error instanceof Error && error.message.includes('not found')) {
       return notFoundMessage(res, error.message);
@@ -149,7 +151,7 @@ export const rejectPendingRegistrationHandler = async (
     }
     const { reason } = req.body;
     const result = await rejectPendingRegistration(id, reviewedBy, reason);
-    return res.json({ message: 'Registration rejected', data: result });
+    return sendSuccess(res, { message: 'Registration rejected', data: result });
   } catch (error: unknown) {
     if (error instanceof Error && error.message.includes('not found')) {
       return notFoundMessage(res, error.message);

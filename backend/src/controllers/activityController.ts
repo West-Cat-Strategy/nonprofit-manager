@@ -22,7 +22,12 @@ export const getRecentActivities = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const limit = parseInt(req.query.limit as string) || PAGINATION.ACTIVITY_DEFAULT_LIMIT;
+    const query = ((req as any).validatedQuery ?? req.query) as { limit?: number | string };
+    const parsedLimit =
+      typeof query.limit === 'number'
+        ? query.limit
+        : parseInt(String(query.limit ?? ''), 10);
+    const limit = Number.isFinite(parsedLimit) ? parsedLimit : PAGINATION.ACTIVITY_DEFAULT_LIMIT;
 
     const activities = await activityService.getRecentActivities(limit);
 

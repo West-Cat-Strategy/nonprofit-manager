@@ -89,7 +89,7 @@ export default function UpcomingFollowUpsWidget({ limit = 5 }: UpcomingFollowUps
                 key={followUp.id}
                 className={`p-3 rounded-lg border ${
                   overdue
-                    ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20'
+                    ? 'border-app-border bg-app-accent-soft dark:border-app-accent dark:bg-app-accent-hover/20'
                     : 'border-app-border bg-app-surface-muted'
                 }`}
               >
@@ -106,13 +106,13 @@ export default function UpcomingFollowUpsWidget({ limit = 5 }: UpcomingFollowUps
                         {followUp.title}
                       </span>
                       {overdue && (
-                        <span className="px-1.5 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 rounded">
+                        <span className="px-1.5 py-0.5 text-xs font-medium bg-app-accent-soft text-app-accent-text dark:bg-app-accent-hover dark:text-app-text-muted rounded">
                           Overdue
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-1 text-xs text-app-text-muted dark:text-app-text-subtle">
-                      <span className={overdue ? 'text-red-600 dark:text-red-400 font-medium' : ''}>
+                      <span className={overdue ? 'text-app-accent dark:text-app-text-muted font-medium' : ''}>
                         {formatDateSmart(followUp.scheduled_date)}
                         {followUp.scheduled_time && ` at ${formatTimeString(followUp.scheduled_time)}`}
                       </span>

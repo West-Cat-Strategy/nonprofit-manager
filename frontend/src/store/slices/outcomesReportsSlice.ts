@@ -1,12 +1,8 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import api from '../../services/api';
+import { unwrapApiData, type ApiEnvelope } from '../../services/apiEnvelope';
 import { formatApiErrorMessageWith } from '../../utils/apiError';
 import type { OutcomesReportData, OutcomesReportFilters } from '../../types/outcomes';
-
-interface ApiEnvelope<T> {
-  success: boolean;
-  data: T;
-}
 
 interface OutcomesReportsState {
   report: OutcomesReportData | null;
@@ -25,19 +21,6 @@ const initialState: OutcomesReportsState = {
 const getErrorMessage = (error: unknown, fallbackMessage: string) =>
   formatApiErrorMessageWith(fallbackMessage)(error);
 
-const extractEnvelopeData = <T>(responseData: ApiEnvelope<T> | T): T => {
-  if (
-    responseData &&
-    typeof responseData === 'object' &&
-    'success' in responseData &&
-    'data' in responseData
-  ) {
-    return (responseData as ApiEnvelope<T>).data;
-  }
-
-  return responseData as T;
-};
-
 export const fetchOutcomesReport = createAsyncThunk(
   'outcomesReports/fetchReport',
   async (filters: OutcomesReportFilters, { rejectWithValue }) => {
@@ -54,7 +37,7 @@ export const fetchOutcomesReport = createAsyncThunk(
       );
 
       return {
-        report: extractEnvelopeData<OutcomesReportData>(response.data),
+        report: unwrapApiData<OutcomesReportData>(response.data),
         filters,
       };
     } catch (error) {

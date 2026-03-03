@@ -21,17 +21,27 @@ const getRequestIp = (req: AuthRequest): string | null => {
 
 export const getExternalServiceProviders = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const query = req.query as Record<string, string | string[] | undefined>;
-    const getParam = (key: string) => {
-      const value = query[key];
-      return Array.isArray(value) ? value[0] : value;
+    const query = ((req as any).validatedQuery ?? req.query) as {
+      search?: string;
+      provider_type?: string;
+      include_inactive?: boolean | string;
+      limit?: number | string;
     };
+    const includeInactive =
+      typeof query.include_inactive === 'boolean'
+        ? query.include_inactive
+        : query.include_inactive === 'true';
+    const parsedLimit =
+      typeof query.limit === 'number'
+        ? query.limit
+        : parseInt(String(query.limit ?? ''), 10);
+    const limit = Number.isFinite(parsedLimit) ? parsedLimit : 100;
 
     const providers = await externalServiceProviderService.listProviders({
-      search: getParam('search'),
-      provider_type: getParam('provider_type'),
-      include_inactive: getParam('include_inactive') === 'true',
-      limit: Number(getParam('limit') || 100),
+      search: query.search,
+      provider_type: query.provider_type,
+      include_inactive: includeInactive,
+      limit,
     });
 
     sendSuccess(res, { providers });

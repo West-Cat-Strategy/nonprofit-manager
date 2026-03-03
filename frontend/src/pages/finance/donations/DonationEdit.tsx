@@ -37,7 +37,7 @@ const DonationEdit: React.FC = () => {
   if (error) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="p-4 bg-red-100 text-red-700 rounded-md">Error: {error}</div>
+        <div className="p-4 bg-app-accent-soft text-app-accent-text rounded-md">Error: {error}</div>
       </div>
     );
   }
@@ -45,7 +45,7 @@ const DonationEdit: React.FC = () => {
   if (!selectedDonation) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="p-4 bg-yellow-100 text-yellow-700 rounded-md">Donation not found</div>
+        <div className="p-4 bg-app-accent-soft text-app-accent-text rounded-md">Donation not found</div>
       </div>
     );
   }

@@ -27,8 +27,8 @@ export default function BrutalButton({
     const variantClasses = {
         primary: 'bg-black text-white hover:bg-app-text',
         secondary: 'bg-app-surface text-black hover:bg-app-surface-muted',
-        success: 'bg-[var(--loop-green)] text-black hover:bg-green-400',
-        danger: 'bg-red-500 text-white hover:bg-red-600',
+        success: 'bg-[var(--loop-green)] text-black hover:bg-app-accent-soft',
+        danger: 'bg-app-accent text-white hover:bg-app-accent',
     };
 
     const sizeClasses = {

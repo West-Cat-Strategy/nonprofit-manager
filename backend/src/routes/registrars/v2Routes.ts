@@ -1,5 +1,5 @@
 import { Application } from 'express';
-import { apiV2Routes } from '@routes/v2';
+import { apiV2Routes } from '../v2';
 
 export function registerV2Routes(app: Application): void {
   const v2Enabled = process.env.API_V2_ENABLED !== 'false';

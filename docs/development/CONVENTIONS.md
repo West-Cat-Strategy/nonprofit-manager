@@ -103,9 +103,13 @@ Some integrations can be disabled via environment variables:
 
 ## API Versioning
 
-Current version: **v1** (not yet implemented in routes)
+Current deployment is **v2-only**:
+- Active routes are under `/api/v2/*`
+- Legacy `/api/*` endpoints are tombstoned (`410 Gone`)
 
-Future: When breaking changes needed, create `/api/v2/` routes
+Conventions:
+- New backend API work must be implemented under `/api/v2/*`
+- Breaking changes must be introduced in a new versioned namespace (for example, `/api/v3/*`)
 
 ## Error Codes
 

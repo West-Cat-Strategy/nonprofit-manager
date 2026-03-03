@@ -15,11 +15,14 @@ import { csrfMiddleware } from './middleware/csrf';
 import { correlationIdMiddleware, CORRELATION_ID_HEADER } from './middleware/correlationId';
 import { metricsMiddleware, metricsRouter } from './middleware/metrics';
 import { orgContextMiddleware } from './middleware/orgContext';
+import { legacyApiTombstoneMiddleware } from './middleware/legacyApiTombstone';
 import healthRoutes, { setHealthCheckPool } from '@routes/health';
 import { registerApiRoutes } from '@routes/registrars';
 import { setPaymentPool } from '@controllers/domains';
 import { eventReminderSchedulerService } from '@services/eventReminderSchedulerService';
 import { followUpReminderSchedulerService } from '@services/followUpReminderSchedulerService';
+import { appointmentReminderSchedulerService } from '@services/appointmentReminderSchedulerService';
+import { publicReportSnapshotCleanupSchedulerService } from '@services/publicReportSnapshotCleanupSchedulerService';
 import { scheduledReportSchedulerService } from '@services/scheduledReportSchedulerService';
 import { webhookRetrySchedulerService } from '@services/webhookRetrySchedulerService';
 import pool from './config/database';
@@ -95,12 +98,34 @@ const reminderSchedulerEnabled =
 const followUpReminderSchedulerEnabled =
   process.env.NODE_ENV !== 'test' &&
   process.env.FOLLOW_UP_REMINDER_SCHEDULER_ENABLED === 'true';
+const appointmentReminderSchedulerEnabled =
+  process.env.NODE_ENV !== 'test' &&
+  process.env.APPOINTMENT_REMINDER_SCHEDULER_ENABLED === 'true';
 const scheduledReportSchedulerEnabled =
   process.env.NODE_ENV !== 'test' &&
   process.env.SCHEDULED_REPORT_SCHEDULER_ENABLED === 'true';
+const publicReportSnapshotCleanupEnabled =
+  process.env.NODE_ENV !== 'test' &&
+  process.env.REPORT_PUBLIC_SNAPSHOT_CLEANUP_ENABLED === 'true';
 const webhookRetrySchedulerEnabled =
   process.env.NODE_ENV !== 'test' &&
   process.env.WEBHOOK_RETRY_SCHEDULER_ENABLED === 'true';
+
+const resolveTrustProxy = (): boolean | number | string => {
+  const raw = (process.env.TRUST_PROXY || '').trim().toLowerCase();
+  if (!raw) {
+    return false;
+  }
+  if (raw === 'true') return true;
+  if (raw === 'false') return false;
+  const asNumber = Number(raw);
+  if (Number.isInteger(asNumber) && asNumber >= 0) {
+    return asNumber;
+  }
+  return raw;
+};
+
+app.set('trust proxy', resolveTrustProxy());
 
 // Security Middleware
 app.use(
@@ -116,9 +141,9 @@ app.use(
         // Images: self, data URIs (for small inlined images), and https:// 
         imgSrc: ["'self'", 'data:', 'https:'],
         // Fonts: self and Google Fonts if used
-        fontSrc: ["'self'", 'HTTPS://fonts.googleapis.com', 'HTTPS://fonts.gstatic.com'],
+        fontSrc: ["'self'", 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'],
         // Connect: self + configured API backend
-        connectSrc: ["'self'", `${process.env.API_ORIGIN || 'HTTP://localhost:3000'}`],
+        connectSrc: ["'self'", `${process.env.API_ORIGIN || 'http://localhost:3000'}`],
         // Frame options: prevent clickjacking
         frameSrc: ["'none'"],
         // Object/embed: restrict plugins
@@ -175,7 +200,7 @@ const normalizeOrigin = (value: string): string => {
 };
 
 // CORS configuration
-const allowedOrigins = (process.env.CORS_ORIGIN || 'HTTP://localhost:5173')
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
   .split(',')
   .map((origin) => normalizeOrigin(origin))
   .filter(Boolean);
@@ -219,7 +244,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Stripe webhook needs raw body - must be before json parsing
-app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
+app.use('/api/v2/payments/webhook', express.raw({ type: 'application/json' }));
 
 // Cookie parser middleware (before body parsing for CSRF)
 app.use(cookieParser());
@@ -261,6 +286,9 @@ app.use('/metrics', metricsRouter);
 // API Routes
 registerApiRoutes(app);
 
+// Hard cutover: all legacy `/api/*` (non-v2) endpoints are tombstoned with migration guidance.
+app.use('/api', legacyApiTombstoneMiddleware);
+
 // Sentry error handler (must be after all controllers, before other error handlers)
 sentryErrorHandler(app);
 
@@ -277,6 +305,8 @@ process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, closing server gracefully...');
   eventReminderSchedulerService.stop();
   followUpReminderSchedulerService.stop();
+  appointmentReminderSchedulerService.stop();
+  publicReportSnapshotCleanupSchedulerService.stop();
   scheduledReportSchedulerService.stop();
   webhookRetrySchedulerService.stop();
   await Promise.all([closeRedis(), pool.end()]);
@@ -287,6 +317,8 @@ process.on('SIGINT', async () => {
   logger.info('SIGINT received, closing server gracefully...');
   eventReminderSchedulerService.stop();
   followUpReminderSchedulerService.stop();
+  appointmentReminderSchedulerService.stop();
+  publicReportSnapshotCleanupSchedulerService.stop();
   scheduledReportSchedulerService.stop();
   webhookRetrySchedulerService.stop();
   await Promise.all([closeRedis(), pool.end()]);
@@ -312,10 +344,22 @@ if (shouldStartServer) {
       logger.info('Follow-up reminder scheduler disabled');
     }
 
+    if (appointmentReminderSchedulerEnabled) {
+      appointmentReminderSchedulerService.start();
+    } else {
+      logger.info('Appointment reminder scheduler disabled');
+    }
+
     if (scheduledReportSchedulerEnabled) {
       scheduledReportSchedulerService.start();
     } else {
       logger.info('Scheduled report scheduler disabled');
+    }
+
+    if (publicReportSnapshotCleanupEnabled) {
+      publicReportSnapshotCleanupSchedulerService.start();
+    } else {
+      logger.info('Public report snapshot cleanup scheduler disabled');
     }
 
     if (webhookRetrySchedulerEnabled) {

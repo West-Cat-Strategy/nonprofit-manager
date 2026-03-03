@@ -27,6 +27,15 @@ import {
   reorderOutcomeDefinitionsSchema,
   updateOutcomeDefinitionSchema,
 } from '@validations/outcomeDefinition';
+import {
+  adminAuditLogsQuerySchema,
+  adminPendingRegistrationsQuerySchema,
+  adminPendingRegistrationParamsSchema,
+  rejectPendingRegistrationSchema,
+  updateEmailSettingsSchema,
+  updateRegistrationSettingsSchema,
+  updateTwilioSettingsSchema,
+} from '@validations/admin';
 
 
 const router = express.Router();
@@ -35,16 +44,34 @@ router.get('/branding', authenticate, getBranding);
 router.put('/branding', authenticate, authorize('admin'), putBranding);
 
 router.get('/stats', authenticate, authorize('admin'), getAdminStats);
-router.get('/audit-logs', authenticate, authorize('admin'), getAuditLogs);
+router.get(
+  '/audit-logs',
+  authenticate,
+  authorize('admin'),
+  validateQuery(adminAuditLogsQuerySchema),
+  getAuditLogs
+);
 
 // Email settings (admin only)
 router.get('/email-settings', authenticate, authorize('admin'), getEmailSettings);
-router.put('/email-settings', authenticate, authorize('admin'), updateEmailSettings);
+router.put(
+  '/email-settings',
+  authenticate,
+  authorize('admin'),
+  validateBody(updateEmailSettingsSchema),
+  updateEmailSettings
+);
 router.post('/email-settings/test', authenticate, authorize('admin'), testEmailSettings);
 
 // Twilio settings (admin only)
 router.get('/twilio-settings', authenticate, authorize('admin'), getTwilioSettings);
-router.put('/twilio-settings', authenticate, authorize('admin'), updateTwilioSettings);
+router.put(
+  '/twilio-settings',
+  authenticate,
+  authorize('admin'),
+  validateBody(updateTwilioSettingsSchema),
+  updateTwilioSettings
+);
 router.post('/twilio-settings/test', authenticate, authorize('admin'), testTwilioSettings);
 
 // Roles endpoint - returns hardcoded role definitions
@@ -61,12 +88,37 @@ router.get('/roles', authenticate, authorize('admin'), (_req, res) => {
 
 // Registration settings (admin only)
 router.get('/registration-settings', authenticate, authorize('admin'), getRegistrationSettingsHandler);
-router.put('/registration-settings', authenticate, authorize('admin'), updateRegistrationSettingsHandler);
+router.put(
+  '/registration-settings',
+  authenticate,
+  authorize('admin'),
+  validateBody(updateRegistrationSettingsSchema),
+  updateRegistrationSettingsHandler
+);
 
 // Pending registrations (admin only)
-router.get('/pending-registrations', authenticate, authorize('admin'), listPendingRegistrationsHandler);
-router.post('/pending-registrations/:id/approve', authenticate, authorize('admin'), approvePendingRegistrationHandler);
-router.post('/pending-registrations/:id/reject', authenticate, authorize('admin'), rejectPendingRegistrationHandler);
+router.get(
+  '/pending-registrations',
+  authenticate,
+  authorize('admin'),
+  validateQuery(adminPendingRegistrationsQuerySchema),
+  listPendingRegistrationsHandler
+);
+router.post(
+  '/pending-registrations/:id/approve',
+  authenticate,
+  authorize('admin'),
+  validateParams(adminPendingRegistrationParamsSchema),
+  approvePendingRegistrationHandler
+);
+router.post(
+  '/pending-registrations/:id/reject',
+  authenticate,
+  authorize('admin'),
+  validateParams(adminPendingRegistrationParamsSchema),
+  validateBody(rejectPendingRegistrationSchema),
+  rejectPendingRegistrationHandler
+);
 
 // Outcome definitions (permission guarded at controller level)
 router.get(

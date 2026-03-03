@@ -4,8 +4,10 @@
  */
 
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
+import { getJwtSecret } from '../../config/jwt';
 
 describe('Authorization Integration Tests', () => {
   // Store tokens for different user roles
@@ -13,24 +15,35 @@ describe('Authorization Integration Tests', () => {
   const userIds: Record<string, string> = {};
   const testData: Record<string, string> = {};
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  let defaultOrganizationId: string | null = null;
 
   beforeAll(async () => {
+    const orgResult = await pool.query<{ id: string }>(
+      `SELECT id
+       FROM accounts
+       WHERE account_type = 'organization'
+       ORDER BY created_at ASC
+       LIMIT 1`
+    );
+    defaultOrganizationId = orgResult.rows[0]?.id ?? null;
+
     // Create test users with different roles
     const roles = ['admin', 'manager', 'staff', 'volunteer', 'viewer'];
+    const password = 'Test123!Strong';
 
     for (const role of roles) {
       const email = `auth-test-${role}-${unique()}@example.com`;
       const response = await request(app)
-        .post('/api/auth/register')
+        .post('/api/v2/auth/register')
         .send({
           email,
-          password: 'Test123!Strong',
-          password_confirm: 'Test123!Strong',
+          password,
+          password_confirm: password,
           first_name: `Test`,
           last_name: role.charAt(0).toUpperCase() + role.slice(1),
         });
 
-      tokens[role] = response.body.token;
+      tokens[role] = response.body.token as string;
       userIds[role] = response.body.user.id;
 
       // Update user role in database (bypass normal flow for testing)
@@ -48,11 +61,22 @@ describe('Authorization Integration Tests', () => {
       } catch {
         // Role tables may not exist yet - that's ok for basic auth tests
       }
+
+      tokens[role] = jwt.sign(
+        {
+          id: userIds[role],
+          email,
+          role,
+          ...(defaultOrganizationId ? { organizationId: defaultOrganizationId } : {}),
+        },
+        getJwtSecret(),
+        { expiresIn: '1h' }
+      );
     }
 
     // Create test data using admin user
     const accountResponse = await request(app)
-      .post('/api/accounts')
+      .post('/api/v2/accounts')
       .set('Authorization', `Bearer ${tokens.admin}`)
       .send({
         account_name: 'Auth Test Organization',
@@ -66,7 +90,7 @@ describe('Authorization Integration Tests', () => {
 
     // Create a test contact
     const contactResponse = await request(app)
-      .post('/api/contacts')
+      .post('/api/v2/contacts')
       .set('Authorization', `Bearer ${tokens.admin}`)
       .send({
         first_name: 'Auth',
@@ -109,11 +133,11 @@ describe('Authorization Integration Tests', () => {
   });
 
   describe('Account CRUD Authorization', () => {
-    describe('GET /api/accounts', () => {
+    describe('GET /api/v2/accounts', () => {
       it('should allow authenticated users to list accounts', async () => {
         for (const role of ['admin', 'manager', 'staff']) {
           const response = await request(app)
-            .get('/api/accounts')
+            .get('/api/v2/accounts')
             .set('Authorization', `Bearer ${tokens[role]}`);
 
           expect(response.status).toBe(200);
@@ -122,18 +146,18 @@ describe('Authorization Integration Tests', () => {
       });
 
       it('should require authentication', async () => {
-        const response = await request(app).get('/api/accounts');
+        const response = await request(app).get('/api/v2/accounts');
         expect(response.status).toBe(401);
       });
     });
 
-    describe('GET /api/accounts/:id', () => {
+    describe('GET /api/v2/accounts/:id', () => {
       it('should allow authenticated users to view account details', async () => {
         if (!testData.accountId) return;
 
         for (const role of ['admin', 'manager', 'staff']) {
           const response = await request(app)
-            .get(`/api/accounts/${testData.accountId}`)
+            .get(`/api/v2/accounts/${testData.accountId}`)
             .set('Authorization', `Bearer ${tokens[role]}`);
 
           expect(response.status).toBe(200);
@@ -142,10 +166,10 @@ describe('Authorization Integration Tests', () => {
       });
     });
 
-    describe('POST /api/accounts', () => {
+    describe('POST /api/v2/accounts', () => {
       it('should allow admin to create accounts', async () => {
         const response = await request(app)
-          .post('/api/accounts')
+          .post('/api/v2/accounts')
           .set('Authorization', `Bearer ${tokens.admin}`)
           .send({
             account_name: 'Admin Created Account',
@@ -163,7 +187,7 @@ describe('Authorization Integration Tests', () => {
 
       it('should allow manager to create accounts', async () => {
         const response = await request(app)
-          .post('/api/accounts')
+          .post('/api/v2/accounts')
           .set('Authorization', `Bearer ${tokens.manager}`)
           .send({
             account_name: 'Manager Created Account',
@@ -181,7 +205,7 @@ describe('Authorization Integration Tests', () => {
 
       it('should allow staff to create accounts', async () => {
         const response = await request(app)
-          .post('/api/accounts')
+          .post('/api/v2/accounts')
           .set('Authorization', `Bearer ${tokens.staff}`)
           .send({
             account_name: 'Staff Created Account',
@@ -198,12 +222,12 @@ describe('Authorization Integration Tests', () => {
       });
     });
 
-    describe('PUT /api/accounts/:id', () => {
+    describe('PUT /api/v2/accounts/:id', () => {
       it('should allow admin to update accounts', async () => {
         if (!testData.accountId) return;
 
         const response = await request(app)
-          .put(`/api/accounts/${testData.accountId}`)
+          .put(`/api/v2/accounts/${testData.accountId}`)
           .set('Authorization', `Bearer ${tokens.admin}`)
           .send({
             account_name: 'Updated by Admin',
@@ -217,7 +241,7 @@ describe('Authorization Integration Tests', () => {
         if (!testData.accountId) return;
 
         const response = await request(app)
-          .put(`/api/accounts/${testData.accountId}`)
+          .put(`/api/v2/accounts/${testData.accountId}`)
           .set('Authorization', `Bearer ${tokens.manager}`)
           .send({
             account_name: 'Updated by Manager',
@@ -227,11 +251,11 @@ describe('Authorization Integration Tests', () => {
       });
     });
 
-    describe('DELETE /api/accounts/:id', () => {
+    describe('DELETE /api/v2/accounts/:id', () => {
       it('should allow admin to delete accounts', async () => {
         // Create account to delete
         const createResponse = await request(app)
-          .post('/api/accounts')
+          .post('/api/v2/accounts')
           .set('Authorization', `Bearer ${tokens.admin}`)
           .send({
             account_name: 'Account to Delete',
@@ -243,7 +267,7 @@ describe('Authorization Integration Tests', () => {
         if (!accountId) return;
 
         const response = await request(app)
-          .delete(`/api/accounts/${accountId}`)
+          .delete(`/api/v2/accounts/${accountId}`)
           .set('Authorization', `Bearer ${tokens.admin}`);
 
         expect(response.status).toBe(204);
@@ -252,11 +276,11 @@ describe('Authorization Integration Tests', () => {
   });
 
   describe('Contact CRUD Authorization', () => {
-    describe('GET /api/contacts', () => {
+    describe('GET /api/v2/contacts', () => {
       it('should allow authenticated users to list contacts', async () => {
         for (const role of ['admin', 'manager', 'staff']) {
           const response = await request(app)
-            .get('/api/contacts')
+            .get('/api/v2/contacts')
             .set('Authorization', `Bearer ${tokens[role]}`);
 
           expect(response.status).toBe(200);
@@ -265,15 +289,15 @@ describe('Authorization Integration Tests', () => {
       });
 
       it('should require authentication', async () => {
-        const response = await request(app).get('/api/contacts');
+        const response = await request(app).get('/api/v2/contacts');
         expect(response.status).toBe(401);
       });
     });
 
-    describe('POST /api/contacts', () => {
+    describe('POST /api/v2/contacts', () => {
       it('should allow admin to create contacts', async () => {
         const response = await request(app)
-          .post('/api/contacts')
+          .post('/api/v2/contacts')
           .set('Authorization', `Bearer ${tokens.admin}`)
           .send({
             first_name: 'Admin',
@@ -291,7 +315,7 @@ describe('Authorization Integration Tests', () => {
 
       it('should allow staff to create contacts', async () => {
         const response = await request(app)
-          .post('/api/contacts')
+          .post('/api/v2/contacts')
           .set('Authorization', `Bearer ${tokens.staff}`)
           .send({
             first_name: 'Staff',
@@ -308,12 +332,12 @@ describe('Authorization Integration Tests', () => {
       });
     });
 
-    describe('PUT /api/contacts/:id', () => {
+    describe('PUT /api/v2/contacts/:id', () => {
       it('should allow admin to update contacts', async () => {
         if (!testData.contactId) return;
 
         const response = await request(app)
-          .put(`/api/contacts/${testData.contactId}`)
+          .put(`/api/v2/contacts/${testData.contactId}`)
           .set('Authorization', `Bearer ${tokens.admin}`)
           .send({
             first_name: 'UpdatedByAdmin',
@@ -327,12 +351,12 @@ describe('Authorization Integration Tests', () => {
   describe('Donation CRUD Authorization', () => {
     let testDonationId: string;
 
-    describe('POST /api/donations', () => {
+    describe('POST /api/v2/donations', () => {
       it('should allow admin to create donations', async () => {
         if (!testData.accountId) return;
 
         const response = await request(app)
-          .post('/api/donations')
+          .post('/api/v2/donations')
           .set('Authorization', `Bearer ${tokens.admin}`)
           .send({
             account_id: testData.accountId,
@@ -346,7 +370,7 @@ describe('Authorization Integration Tests', () => {
       });
 
       it('should require authentication', async () => {
-        const response = await request(app).post('/api/donations').send({
+        const response = await request(app).post('/api/v2/donations').send({
           account_id: testData.accountId,
           amount: 50.0,
           donation_date: '2024-01-15',
@@ -356,10 +380,10 @@ describe('Authorization Integration Tests', () => {
       });
     });
 
-    describe('GET /api/donations', () => {
+    describe('GET /api/v2/donations', () => {
       it('should allow authenticated users to list donations', async () => {
         const response = await request(app)
-          .get('/api/donations')
+          .get('/api/v2/donations')
           .set('Authorization', `Bearer ${tokens.admin}`);
 
         expect(response.status).toBe(200);
@@ -426,10 +450,10 @@ describe('Authorization Integration Tests', () => {
   describe('Task CRUD Authorization', () => {
     let testTaskId: string;
 
-    describe('POST /api/tasks', () => {
+    describe('POST /api/v2/tasks', () => {
       it('should allow admin to create tasks', async () => {
         const response = await request(app)
-          .post('/api/tasks')
+          .post('/api/v2/tasks')
           .set('Authorization', `Bearer ${tokens.admin}`)
           .send({
             subject: 'Admin Test Task',
@@ -442,7 +466,7 @@ describe('Authorization Integration Tests', () => {
 
       it('should allow staff to create tasks', async () => {
         const response = await request(app)
-          .post('/api/tasks')
+          .post('/api/v2/tasks')
           .set('Authorization', `Bearer ${tokens.staff}`)
           .send({
             subject: 'Staff Test Task',
@@ -458,10 +482,10 @@ describe('Authorization Integration Tests', () => {
       });
     });
 
-    describe('GET /api/tasks', () => {
+    describe('GET /api/v2/tasks', () => {
       it('should allow authenticated users to list tasks', async () => {
         const response = await request(app)
-          .get('/api/tasks')
+          .get('/api/v2/tasks')
           .set('Authorization', `Bearer ${tokens.admin}`);
 
         expect(response.status).toBe(200);
@@ -478,12 +502,12 @@ describe('Authorization Integration Tests', () => {
   describe('Volunteer CRUD Authorization', () => {
     let testVolunteerId: string;
 
-    describe('POST /api/volunteers', () => {
+    describe('POST /api/v2/volunteers', () => {
       it('should allow admin to create volunteers', async () => {
         if (!testData.contactId) return;
 
         const response = await request(app)
-          .post('/api/volunteers')
+          .post('/api/v2/volunteers')
           .set('Authorization', `Bearer ${tokens.admin}`)
           .send({
             contact_id: testData.contactId,
@@ -496,7 +520,7 @@ describe('Authorization Integration Tests', () => {
       });
 
       it('should require authentication', async () => {
-        const response = await request(app).post('/api/volunteers').send({
+        const response = await request(app).post('/api/v2/volunteers').send({
           contact_id: testData.contactId,
           skills: ['Testing'],
         });
@@ -505,10 +529,10 @@ describe('Authorization Integration Tests', () => {
       });
     });
 
-    describe('GET /api/volunteers', () => {
+    describe('GET /api/v2/volunteers', () => {
       it('should allow authenticated users to list volunteers', async () => {
         const response = await request(app)
-          .get('/api/volunteers')
+          .get('/api/v2/volunteers')
           .set('Authorization', `Bearer ${tokens.admin}`);
 
         expect(response.status).toBe(200);
@@ -528,7 +552,7 @@ describe('Authorization Integration Tests', () => {
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEyMyIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNjA5NDU5MjAwLCJleHAiOjE2MDk0NTkyMDF9.invalid';
 
       const response = await request(app)
-        .get('/api/accounts')
+        .get('/api/v2/accounts')
         .set('Authorization', `Bearer ${expiredToken}`);
 
       expect(response.status).toBe(401);
@@ -536,7 +560,7 @@ describe('Authorization Integration Tests', () => {
 
     it('should reject malformed tokens', async () => {
       const response = await request(app)
-        .get('/api/accounts')
+        .get('/api/v2/accounts')
         .set('Authorization', 'Bearer not-a-valid-token');
 
       expect(response.status).toBe(401);
@@ -544,7 +568,7 @@ describe('Authorization Integration Tests', () => {
 
     it('should reject missing Bearer prefix', async () => {
       const response = await request(app)
-        .get('/api/accounts')
+        .get('/api/v2/accounts')
         .set('Authorization', tokens.admin);
 
       expect(response.status).toBe(401);

@@ -116,7 +116,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
 
       {/* Error Message */}
       {errorMessage && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="bg-app-accent-soft border border-app-border text-app-accent-text px-4 py-3 rounded-lg">
           {errorMessage}
         </div>
       )}

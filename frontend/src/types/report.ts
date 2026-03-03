@@ -53,7 +53,7 @@ export interface ReportDefinition {
   name: string;
   description?: string;
   entity: ReportEntity;
-  fields: string[];
+  fields?: string[];
   aggregations?: ReportAggregation[];
   groupBy?: string[];
   filters?: ReportFilter[];

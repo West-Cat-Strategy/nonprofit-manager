@@ -7,8 +7,19 @@ const normalizeUserAgent = (userAgent?: string | string[]): string | null =>
 export class PortalAppointmentsUseCase {
   constructor(private readonly appointmentsPort: PortalAppointmentsPort) {}
 
-  list(contactId: string): Promise<unknown[]> {
-    return this.appointmentsPort.listPortalAppointments(contactId);
+  list(
+    contactId: string,
+    filters?: {
+      status?: 'requested' | 'confirmed' | 'cancelled' | 'completed';
+      caseId?: string;
+      from?: string;
+      to?: string;
+      search?: string;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<unknown[]> {
+    return this.appointmentsPort.listPortalAppointments(contactId, filters);
   }
 
   listSlots(contactId: string, caseId?: string): Promise<unknown> {

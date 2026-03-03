@@ -18,6 +18,7 @@ import {
   UpdateRegistrationDTO,
   RegistrationFilters,
   CheckInResult,
+  CheckInOptions,
   SendEventRemindersDTO,
   SendEventRemindersContext,
   EventReminderSummary,
@@ -29,6 +30,7 @@ import { sendMail } from '@services/emailService';
 import { getEmailSettings } from '@services/emailSettingsService';
 import { sendSms } from '@services/twilioSmsService';
 import { getTwilioSettings } from '@services/twilioSettingsService';
+import { cancelPendingAutomationsForEvent } from '@services/eventReminderAutomationService';
 
 type QueryValue = string | number | boolean | Date | null | string[];
 
@@ -487,7 +489,22 @@ export class EventService {
     `;
 
     const result = await this.pool.query(query, values);
-    return result.rows[0];
+    const updated = result.rows[0] as Event | undefined;
+    if (!updated) {
+      throw new Error('Event not found');
+    }
+
+    if (updated.status === 'cancelled' || updated.status === 'completed') {
+      await cancelPendingAutomationsForEvent(
+        eventId,
+        `event_status_${updated.status}`,
+        userId
+      );
+    } else if (new Date(updated.start_date).getTime() <= Date.now()) {
+      await cancelPendingAutomationsForEvent(eventId, 'event_start_passed', userId);
+    }
+
+    return updated;
   }
 
   /**
@@ -501,6 +518,7 @@ export class EventService {
     `;
 
     await this.pool.query(query, [userId, eventId]);
+    await cancelPendingAutomationsForEvent(eventId, 'event_deleted', userId);
   }
 
   // ==================== EVENT REGISTRATIONS ====================
@@ -537,6 +555,9 @@ export class EventService {
         er.registration_status,
         er.checked_in,
         er.check_in_time,
+        er.checked_in_by,
+        er.check_in_method,
+        er.check_in_token,
         er.notes,
         er.created_at,
         er.updated_at,
@@ -566,6 +587,9 @@ export class EventService {
         er.registration_status,
         er.checked_in,
         er.check_in_time,
+        er.checked_in_by,
+        er.check_in_method,
+        er.check_in_token,
         er.notes,
         er.created_at,
         er.updated_at,
@@ -584,62 +608,148 @@ export class EventService {
   }
 
   /**
+   * Get a registration by ID.
+   */
+  async getRegistrationById(registrationId: string): Promise<EventRegistration | null> {
+    const query = `
+      SELECT
+        er.id as registration_id,
+        er.event_id,
+        er.contact_id,
+        er.registration_status,
+        er.checked_in,
+        er.check_in_time,
+        er.checked_in_by,
+        er.check_in_method,
+        er.check_in_token,
+        er.notes,
+        er.created_at,
+        er.updated_at,
+        c.first_name || ' ' || c.last_name as contact_name,
+        c.email as contact_email,
+        e.name as event_name
+      FROM event_registrations er
+      JOIN contacts c ON er.contact_id = c.id
+      JOIN events e ON er.event_id = e.id
+      WHERE er.id = $1
+      LIMIT 1
+    `;
+
+    const result = await this.pool.query(query, [registrationId]);
+    return result.rows[0] ?? null;
+  }
+
+  /**
+   * Get a registration by event + check-in token.
+   */
+  async getRegistrationByToken(eventId: string, token: string): Promise<EventRegistration | null> {
+    const query = `
+      SELECT
+        er.id as registration_id,
+        er.event_id,
+        er.contact_id,
+        er.registration_status,
+        er.checked_in,
+        er.check_in_time,
+        er.checked_in_by,
+        er.check_in_method,
+        er.check_in_token,
+        er.notes,
+        er.created_at,
+        er.updated_at,
+        c.first_name || ' ' || c.last_name as contact_name,
+        c.email as contact_email,
+        e.name as event_name
+      FROM event_registrations er
+      JOIN contacts c ON er.contact_id = c.id
+      JOIN events e ON er.event_id = e.id
+      WHERE er.event_id = $1
+        AND er.check_in_token = $2
+      LIMIT 1
+    `;
+
+    const result = await this.pool.query(query, [eventId, token]);
+    return result.rows[0] ?? null;
+  }
+
+  /**
    * Register contact for event
    */
   async registerContact(registrationData: CreateRegistrationDTO): Promise<EventRegistration> {
     const { event_id, contact_id, registration_status = 'registered', notes } = registrationData;
+    const client = await this.pool.connect();
 
-    // Check if event has capacity
-    const event = await this.getEventById(event_id);
-    if (!event) {
-      throw new Error('Event not found');
+    try {
+      await client.query('BEGIN');
+
+      const eventResult = await client.query<{
+        id: string;
+        capacity: number | null;
+        registered_count: number;
+      }>(
+        `SELECT id, capacity, registered_count
+         FROM events
+         WHERE id = $1
+         FOR UPDATE`,
+        [event_id]
+      );
+
+      const event = eventResult.rows[0];
+      if (!event) {
+        throw new Error('Event not found');
+      }
+
+      if (event.capacity && event.registered_count >= event.capacity) {
+        throw new Error('Event is at full capacity');
+      }
+
+      const existingResult = await client.query(
+        `SELECT id
+         FROM event_registrations
+         WHERE event_id = $1 AND contact_id = $2
+         FOR UPDATE`,
+        [event_id, contact_id]
+      );
+
+      if (existingResult.rows.length > 0) {
+        throw new Error('Contact is already registered for this event');
+      }
+
+      const result = await client.query(
+        `INSERT INTO event_registrations (event_id, contact_id, registration_status, notes)
+         VALUES ($1, $2, $3, $4)
+         RETURNING
+           id as registration_id,
+           event_id,
+           contact_id,
+           registration_status,
+           checked_in,
+           check_in_time,
+           checked_in_by,
+           check_in_method,
+           check_in_token,
+           notes,
+           created_at,
+           updated_at`,
+        [event_id, contact_id, registration_status, notes || null]
+      );
+
+      await client.query(
+        `UPDATE events
+         SET registered_count = registered_count + 1,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [event_id]
+      );
+
+      await client.query('COMMIT');
+      return result.rows[0];
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
-
-    if (event.capacity && event.registered_count >= event.capacity) {
-      throw new Error('Event is at full capacity');
-    }
-
-    // Check if contact is already registered
-    const existingQuery = `
-      SELECT id FROM event_registrations
-      WHERE event_id = $1 AND contact_id = $2
-    `;
-    const existingResult = await this.pool.query(existingQuery, [event_id, contact_id]);
-
-    if (existingResult.rows.length > 0) {
-      throw new Error('Contact is already registered for this event');
-    }
-
-    // Create registration
-    const insertQuery = `
-      INSERT INTO event_registrations (event_id, contact_id, registration_status, notes)
-      VALUES ($1, $2, $3, $4)
-      RETURNING 
-        id as registration_id,
-        event_id,
-        contact_id,
-        registration_status,
-        checked_in,
-        check_in_time,
-        notes,
-        created_at,
-        updated_at
-    `;
-
-    const result = await this.pool.query(insertQuery, [
-      event_id,
-      contact_id,
-      registration_status,
-      notes || null,
-    ]);
-
-    // Update event registered count
-    await this.pool.query(
-      'UPDATE events SET registered_count = registered_count + 1 WHERE id = $1',
-      [event_id]
-    );
-
-    return result.rows[0];
   }
 
   /**
@@ -672,13 +782,16 @@ export class EventService {
       UPDATE event_registrations
       SET ${fields.join(', ')}
       WHERE id = $${paramCount}
-      RETURNING 
+      RETURNING
         id as registration_id,
         event_id,
         contact_id,
         registration_status,
         checked_in,
         check_in_time,
+        checked_in_by,
+        check_in_method,
+        check_in_token,
         notes,
         created_at,
         updated_at
@@ -691,62 +804,98 @@ export class EventService {
   /**
    * Check in attendee
    */
-  async checkInAttendee(registrationId: string): Promise<CheckInResult> {
-    try {
-      const getQuery = `
-        SELECT event_id, checked_in 
-        FROM event_registrations 
-        WHERE id = $1
-      `;
-      const registration = await this.pool.query(getQuery, [registrationId]);
+  async checkInAttendee(
+    registrationId: string,
+    options: CheckInOptions = {}
+  ): Promise<CheckInResult> {
+    const client = await this.pool.connect();
 
-      if (registration.rows.length === 0) {
+    try {
+      await client.query('BEGIN');
+
+      const registrationResult = await client.query<{
+        event_id: string;
+        checked_in: boolean;
+      }>(
+        `SELECT event_id, checked_in
+         FROM event_registrations
+         WHERE id = $1
+         FOR UPDATE`,
+        [registrationId]
+      );
+
+      const registrationRow = registrationResult.rows[0];
+      if (!registrationRow) {
+        await client.query('ROLLBACK');
         return {
           success: false,
           message: 'Registration not found',
         };
       }
 
-      if (registration.rows[0].checked_in) {
+      if (registrationRow.checked_in) {
+        await client.query('ROLLBACK');
         return {
           success: false,
           message: 'Already checked in',
         };
       }
 
-      const updateQuery = `
-        UPDATE event_registrations
-        SET checked_in = true, check_in_time = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1
-        RETURNING 
-          id as registration_id,
-          event_id,
-          contact_id,
-          registration_status,
-          checked_in,
-          check_in_time,
-          notes,
-          created_at,
-          updated_at
-      `;
+      await client.query(
+        `SELECT id
+         FROM events
+         WHERE id = $1
+         FOR UPDATE`,
+        [registrationRow.event_id]
+      );
 
-      const result = await this.pool.query(updateQuery, [registrationId]);
+      const method = options.method || 'manual';
+      const checkedInBy = options.checkedInBy ?? null;
 
-      // Update event attended count
-      await this.pool.query('UPDATE events SET attended_count = attended_count + 1 WHERE id = $1', [
-        registration.rows[0].event_id,
-      ]);
+      const result = await client.query(
+        `UPDATE event_registrations
+         SET checked_in = true,
+             check_in_time = CURRENT_TIMESTAMP,
+             checked_in_by = $2,
+             check_in_method = $3,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1
+         RETURNING
+           id as registration_id,
+           event_id,
+           contact_id,
+           registration_status,
+           checked_in,
+           check_in_time,
+           checked_in_by,
+           check_in_method,
+           check_in_token,
+           notes,
+           created_at,
+           updated_at`,
+        [registrationId, checkedInBy, method]
+      );
+
+      await client.query(
+        `UPDATE events
+         SET attended_count = attended_count + 1,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [registrationRow.event_id]
+      );
+
+      await client.query('COMMIT');
 
       return {
         success: true,
         message: 'Successfully checked in',
         registration: result.rows[0],
       };
-    } catch {
-      return {
-        success: false,
-        message: 'Check-in failed',
-      };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
   }
 
@@ -754,27 +903,56 @@ export class EventService {
    * Cancel registration
    */
   async cancelRegistration(registrationId: string): Promise<void> {
-    const getQuery = `
-      SELECT event_id FROM event_registrations WHERE id = $1
-    `;
-    const result = await this.pool.query(getQuery, [registrationId]);
+    const client = await this.pool.connect();
 
-    if (result.rows.length === 0) {
-      throw new Error('Registration not found');
+    try {
+      await client.query('BEGIN');
+
+      const result = await client.query<{
+        event_id: string;
+        checked_in: boolean;
+      }>(
+        `SELECT event_id, checked_in
+         FROM event_registrations
+         WHERE id = $1
+         FOR UPDATE`,
+        [registrationId]
+      );
+
+      const registration = result.rows[0];
+      if (!registration) {
+        throw new Error('Registration not found');
+      }
+
+      await client.query(
+        `SELECT id
+         FROM events
+         WHERE id = $1
+         FOR UPDATE`,
+        [registration.event_id]
+      );
+
+      await client.query('DELETE FROM event_registrations WHERE id = $1', [registrationId]);
+
+      await client.query(
+        `UPDATE events
+         SET registered_count = GREATEST(registered_count - 1, 0),
+             attended_count = CASE
+               WHEN $2::boolean THEN GREATEST(attended_count - 1, 0)
+               ELSE attended_count
+             END,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [registration.event_id, registration.checked_in]
+      );
+
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
-
-    const eventId = result.rows[0].event_id;
-
-    const deleteQuery = `
-      DELETE FROM event_registrations WHERE id = $1
-    `;
-    await this.pool.query(deleteQuery, [registrationId]);
-
-    // Update event registered count
-    await this.pool.query(
-      'UPDATE events SET registered_count = GREATEST(registered_count - 1, 0) WHERE id = $1',
-      [eventId]
-    );
   }
 
   private async recordReminderDelivery(args: {

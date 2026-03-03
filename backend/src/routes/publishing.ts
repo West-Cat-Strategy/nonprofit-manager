@@ -30,6 +30,10 @@ const siteVersionParamsSchema = z.object({
   version: z.string().min(1),
 });
 
+const publishedSiteSubdomainParamsSchema = z.object({
+  subdomain: subdomainSchema,
+});
+
 const createSiteSchema = z.object({
   templateId: uuidSchema,
   name: z.string().trim().min(1).max(255),
@@ -72,11 +76,11 @@ const siteSearchQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
   sortBy: z.enum(['name', 'createdAt', 'publishedAt', 'status']).optional(),
   sortOrder: sortOrderSchema.optional(),
-});
+}).strict();
 
 const siteAnalyticsQuerySchema = z.object({
   period: z.coerce.number().int().min(1).max(365).optional(),
-});
+}).strict();
 
 const addCustomDomainSchema = z.object({
   domain: domainSchema,
@@ -85,7 +89,7 @@ const addCustomDomainSchema = z.object({
 
 const versionHistoryQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
-});
+}).strict();
 
 const rollbackSchema = z.object({
   version: z.string().min(1, 'Version is required'),
@@ -93,7 +97,7 @@ const rollbackSchema = z.object({
 
 const pruneVersionsQuerySchema = z.object({
   keep: z.coerce.number().int().min(1).max(100).optional(),
-});
+}).strict();
 
 // ==================== Protected Routes (require auth) ====================
 
@@ -215,6 +219,10 @@ router.post(
 );
 
 // Serve published site content by subdomain
-router.get('/serve/:subdomain', publishingController.servePublishedSite);
+router.get(
+  '/serve/:subdomain',
+  validateParams(publishedSiteSubdomainParamsSchema),
+  publishingController.servePublishedSite
+);
 
 export default router;

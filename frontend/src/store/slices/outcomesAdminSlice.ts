@@ -1,16 +1,12 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import api from '../../services/api';
+import { unwrapApiData, type ApiEnvelope } from '../../services/apiEnvelope';
 import { formatApiErrorMessageWith } from '../../utils/apiError';
 import type {
   OutcomeDefinition,
   OutcomeDefinitionCreateInput,
   OutcomeDefinitionUpdateInput,
 } from '../../types/outcomes';
-
-interface ApiEnvelope<T> {
-  success: boolean;
-  data: T;
-}
 
 interface OutcomesAdminState {
   definitions: OutcomeDefinition[];
@@ -31,19 +27,6 @@ const initialState: OutcomesAdminState = {
 const getErrorMessage = (error: unknown, fallbackMessage: string) =>
   formatApiErrorMessageWith(fallbackMessage)(error);
 
-const extractEnvelopeData = <T>(responseData: ApiEnvelope<T> | T): T => {
-  if (
-    responseData &&
-    typeof responseData === 'object' &&
-    'success' in responseData &&
-    'data' in responseData
-  ) {
-    return (responseData as ApiEnvelope<T>).data;
-  }
-
-  return responseData as T;
-};
-
 export const fetchOutcomeDefinitionsAdmin = createAsyncThunk(
   'outcomesAdmin/fetchDefinitions',
   async (includeInactive: boolean = true, { rejectWithValue }) => {
@@ -52,7 +35,7 @@ export const fetchOutcomeDefinitionsAdmin = createAsyncThunk(
         `/admin/outcomes?includeInactive=${String(includeInactive)}`
       );
       return {
-        definitions: extractEnvelopeData<OutcomeDefinition[]>(response.data),
+        definitions: unwrapApiData<OutcomeDefinition[]>(response.data),
         includeInactive,
       };
     } catch (error) {
@@ -69,7 +52,7 @@ export const createOutcomeDefinition = createAsyncThunk(
         '/admin/outcomes',
         payload
       );
-      return extractEnvelopeData<OutcomeDefinition>(response.data);
+      return unwrapApiData<OutcomeDefinition>(response.data);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to create outcome'));
     }
@@ -87,7 +70,7 @@ export const updateOutcomeDefinition = createAsyncThunk(
         `/admin/outcomes/${id}`,
         payload
       );
-      return extractEnvelopeData<OutcomeDefinition>(response.data);
+      return unwrapApiData<OutcomeDefinition>(response.data);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to update outcome'));
     }
@@ -101,7 +84,7 @@ export const enableOutcomeDefinition = createAsyncThunk(
       const response = await api.post<ApiEnvelope<OutcomeDefinition> | OutcomeDefinition>(
         `/admin/outcomes/${id}/enable`
       );
-      return extractEnvelopeData<OutcomeDefinition>(response.data);
+      return unwrapApiData<OutcomeDefinition>(response.data);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to enable outcome'));
     }
@@ -115,7 +98,7 @@ export const disableOutcomeDefinition = createAsyncThunk(
       const response = await api.post<ApiEnvelope<OutcomeDefinition> | OutcomeDefinition>(
         `/admin/outcomes/${id}/disable`
       );
-      return extractEnvelopeData<OutcomeDefinition>(response.data);
+      return unwrapApiData<OutcomeDefinition>(response.data);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to disable outcome'));
     }
@@ -130,7 +113,7 @@ export const reorderOutcomeDefinitions = createAsyncThunk(
         '/admin/outcomes/reorder',
         { orderedIds }
       );
-      return extractEnvelopeData<OutcomeDefinition[]>(response.data);
+      return unwrapApiData<OutcomeDefinition[]>(response.data);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to reorder outcomes'));
     }

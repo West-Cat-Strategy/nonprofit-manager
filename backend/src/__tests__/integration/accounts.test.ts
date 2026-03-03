@@ -10,7 +10,7 @@ describe('Account API Integration Tests', () => {
   beforeAll(async () => {
     // Register and login to get auth token
     const registerResponse = await request(app)
-      .post('/api/auth/register')
+      .post('/api/v2/auth/register')
       .send({
         email: `account-test-${unique()}@example.com`,
         password: 'Test123!Strong',
@@ -29,10 +29,10 @@ describe('Account API Integration Tests', () => {
     }
   });
 
-  describe('POST /api/accounts', () => {
+  describe('POST /api/v2/accounts', () => {
     it('should create a new account with valid data', async () => {
       const response = await request(app)
-        .post('/api/accounts')
+        .post('/api/v2/accounts')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_name: 'Test Organization',
@@ -50,7 +50,7 @@ describe('Account API Integration Tests', () => {
 
     it('should require authentication', async () => {
       await request(app)
-        .post('/api/accounts')
+        .post('/api/v2/accounts')
         .send({
           account_name: 'Unauthorized Account',
           account_type: 'individual',
@@ -60,7 +60,7 @@ describe('Account API Integration Tests', () => {
 
     it('should require account_name field', async () => {
       const response = await request(app)
-        .post('/api/accounts')
+        .post('/api/v2/accounts')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_name: 'Required Field Test',
@@ -76,7 +76,7 @@ describe('Account API Integration Tests', () => {
     // The API currently accepts any email format
     it('should accept email field', async () => {
       const response = await request(app)
-        .post('/api/accounts')
+        .post('/api/v2/accounts')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_name: 'Email Test Account',
@@ -92,7 +92,7 @@ describe('Account API Integration Tests', () => {
     // The API currently accepts any account_type value
     it('should accept account_type field', async () => {
       const response = await request(app)
-        .post('/api/accounts')
+        .post('/api/v2/accounts')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_name: 'Type Test Account',
@@ -104,10 +104,10 @@ describe('Account API Integration Tests', () => {
     });
   });
 
-  describe('GET /api/accounts', () => {
+  describe('GET /api/v2/accounts', () => {
     it('should return paginated list of accounts', async () => {
       const response = await request(app)
-        .get('/api/accounts')
+        .get('/api/v2/accounts')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -122,7 +122,7 @@ describe('Account API Integration Tests', () => {
 
     it('should support search query', async () => {
       const response = await request(app)
-        .get('/api/accounts?search=Test')
+        .get('/api/v2/accounts?search=Test')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -131,7 +131,7 @@ describe('Account API Integration Tests', () => {
 
     it('should support pagination parameters', async () => {
       const response = await request(app)
-        .get('/api/accounts?page=1&limit=5')
+        .get('/api/v2/accounts?page=1&limit=5')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -145,7 +145,7 @@ describe('Account API Integration Tests', () => {
 
     it('should filter by account type', async () => {
       const response = await request(app)
-        .get('/api/accounts?account_type=organization')
+        .get('/api/v2/accounts?account_type=organization')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -153,15 +153,15 @@ describe('Account API Integration Tests', () => {
     });
 
     it('should require authentication', async () => {
-      await request(app).get('/api/accounts').expect(401);
+      await request(app).get('/api/v2/accounts').expect(401);
     });
   });
 
-  describe('GET /api/accounts/:id', () => {
+  describe('GET /api/v2/accounts/:id', () => {
     it('should return a single account by ID', async () => {
       // First create an account
       const createResponse = await request(app)
-        .post('/api/accounts')
+        .post('/api/v2/accounts')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_name: 'Single Account Test',
@@ -171,7 +171,7 @@ describe('Account API Integration Tests', () => {
       const accountId = createResponse.body.account_id;
 
       const response = await request(app)
-        .get(`/api/accounts/${accountId}`)
+        .get(`/api/v2/accounts/${accountId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -181,21 +181,21 @@ describe('Account API Integration Tests', () => {
 
     it('should return 404 for non-existent account', async () => {
       await request(app)
-        .get('/api/accounts/00000000-0000-0000-0000-000000000000')
+        .get('/api/v2/accounts/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
     });
 
     it('should require authentication', async () => {
-      await request(app).get('/api/accounts/1').expect(401);
+      await request(app).get('/api/v2/accounts/1').expect(401);
     });
   });
 
-  describe('PUT /api/accounts/:id', () => {
+  describe('PUT /api/v2/accounts/:id', () => {
     it('should update an existing account', async () => {
       // Create account first
       const createResponse = await request(app)
-        .post('/api/accounts')
+        .post('/api/v2/accounts')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_name: 'Original Name',
@@ -206,7 +206,7 @@ describe('Account API Integration Tests', () => {
 
       // Update account
       const response = await request(app)
-        .put(`/api/accounts/${accountId}`)
+        .put(`/api/v2/accounts/${accountId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_name: 'Updated Name',
@@ -220,7 +220,7 @@ describe('Account API Integration Tests', () => {
 
     it('should return 404 for non-existent account', async () => {
       await request(app)
-        .put('/api/accounts/00000000-0000-0000-0000-000000000000')
+        .put('/api/v2/accounts/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_name: 'Updated Name',
@@ -230,7 +230,7 @@ describe('Account API Integration Tests', () => {
 
     it('should allow updating email field', async () => {
       const createResponse = await request(app)
-        .post('/api/accounts')
+        .post('/api/v2/accounts')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_name: 'Test Account',
@@ -240,7 +240,7 @@ describe('Account API Integration Tests', () => {
       const accountId = createResponse.body.account_id;
 
       const response = await request(app)
-        .put(`/api/accounts/${accountId}`)
+        .put(`/api/v2/accounts/${accountId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           email: 'newemail@example.com',
@@ -251,15 +251,15 @@ describe('Account API Integration Tests', () => {
     });
 
     it('should require authentication', async () => {
-      await request(app).put('/api/accounts/1').send({ account_name: 'Test' }).expect(401);
+      await request(app).put('/api/v2/accounts/1').send({ account_name: 'Test' }).expect(401);
     });
   });
 
-  describe('DELETE /api/accounts/:id', () => {
+  describe('DELETE /api/v2/accounts/:id', () => {
     it('should soft delete an account', async () => {
       // Create account
       const createResponse = await request(app)
-        .post('/api/accounts')
+        .post('/api/v2/accounts')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_name: 'To Be Deleted',
@@ -270,13 +270,13 @@ describe('Account API Integration Tests', () => {
 
       // Delete account - returns 204 No Content
       await request(app)
-        .delete(`/api/accounts/${accountId}`)
+        .delete(`/api/v2/accounts/${accountId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(204);
 
       // Verify it's marked as inactive
       const response = await request(app)
-        .get(`/api/accounts/${accountId}`)
+        .get(`/api/v2/accounts/${accountId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -285,13 +285,13 @@ describe('Account API Integration Tests', () => {
 
     it('should return 404 for non-existent account', async () => {
       await request(app)
-        .delete('/api/accounts/00000000-0000-0000-0000-000000000000')
+        .delete('/api/v2/accounts/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
     });
 
     it('should require authentication', async () => {
-      await request(app).delete('/api/accounts/1').expect(401);
+      await request(app).delete('/api/v2/accounts/1').expect(401);
     });
   });
 });

@@ -230,7 +230,7 @@ const DonationPayment: React.FC = () => {
     return (
       <div className="min-h-screen bg-app-surface-muted flex items-center justify-center p-4">
         <div className="bg-app-surface rounded-lg shadow-lg p-8 max-w-md text-center">
-          <div className="text-yellow-500 mb-4">
+          <div className="text-app-accent mb-4">
             <svg className="h-16 w-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -275,7 +275,7 @@ const DonationPayment: React.FC = () => {
                   step === s
                     ? 'bg-app-accent text-white'
                     : ['amount', 'details', 'payment', 'success'].indexOf(step) > index
-                      ? 'bg-green-500 text-white'
+                      ? 'bg-app-accent text-white'
                       : 'bg-app-surface-muted text-app-text-muted'
                 }`}
               >
@@ -295,7 +295,7 @@ const DonationPayment: React.FC = () => {
                 <div
                   className={`w-16 h-1 ${
                     ['amount', 'details', 'payment', 'success'].indexOf(step) > index
-                      ? 'bg-green-500'
+                      ? 'bg-app-accent'
                       : 'bg-app-surface-muted'
                   }`}
                 />
@@ -306,7 +306,7 @@ const DonationPayment: React.FC = () => {
 
         {/* Error Display */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+          <div className="bg-app-accent-soft border border-app-border text-app-accent-text px-4 py-3 rounded-lg mb-6">
             {error}
           </div>
         )}
@@ -513,9 +513,9 @@ const DonationPayment: React.FC = () => {
 	        {/* Step 4: Success */}
 	        {step === 'success' && (
 	          <div className="bg-app-surface rounded-lg shadow-lg p-8 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-16 h-16 bg-app-accent-soft rounded-full flex items-center justify-center mx-auto mb-6">
               <svg
-                className="h-8 w-8 text-green-500"
+                className="h-8 w-8 text-app-accent"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -534,7 +534,7 @@ const DonationPayment: React.FC = () => {
 	              A receipt has been sent to {formData.donorEmail}.
 	            </p>
 	            {donationRecordError && (
-	              <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-6 text-left">
+	              <div className="bg-app-accent-soft border border-app-border text-app-accent-text px-4 py-3 rounded-lg mb-6 text-left">
 	                {donationRecordError}
 	              </div>
 	            )}

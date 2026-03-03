@@ -106,14 +106,14 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 bg-app-surface shadow-md rounded-lg p-6">
-      {error && <div className="p-4 bg-red-100 text-red-700 rounded-md">{error}</div>}
+      {error && <div className="p-4 bg-app-accent-soft text-app-accent-text rounded-md">{error}</div>}
 
       <div>
         <h3 className="text-lg font-semibold mb-4">Donation Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="amount" className="block text-sm font-medium mb-1">
-              Amount <span className="text-red-500">*</span>
+              Amount <span className="text-app-accent">*</span>
             </label>
             <input
               type="number"
@@ -144,7 +144,7 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
 
           <div>
             <label htmlFor="donation_date" className="block text-sm font-medium mb-1">
-              Donation Date <span className="text-red-500">*</span>
+              Donation Date <span className="text-app-accent">*</span>
             </label>
             <input
               type="datetime-local"

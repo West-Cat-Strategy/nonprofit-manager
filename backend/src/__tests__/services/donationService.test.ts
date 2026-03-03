@@ -153,9 +153,6 @@ describe('DonationService', () => {
         payment_status: 'pending',
       };
 
-      // Mock for generateDonationNumber
-      mockQuery.mockResolvedValueOnce({ rows: [{ count: '0' }] });
-      // Mock for INSERT
       mockQuery.mockResolvedValueOnce({ rows: [mockCreatedDonation] });
 
       const result = await donationService.createDonation(
@@ -168,7 +165,7 @@ describe('DonationService', () => {
       );
 
       expect(result).toEqual(mockCreatedDonation);
-      expect(mockQuery).toHaveBeenCalledTimes(2);
+      expect(mockQuery).toHaveBeenCalledTimes(1);
     });
 
     it('should create donation with contact_id', async () => {
@@ -178,7 +175,6 @@ describe('DonationService', () => {
         amount: '50.00',
       };
 
-      mockQuery.mockResolvedValueOnce({ rows: [{ count: '0' }] });
       mockQuery.mockResolvedValueOnce({ rows: [mockCreatedDonation] });
 
       const result = await donationService.createDonation(
@@ -212,7 +208,6 @@ describe('DonationService', () => {
         recurring_frequency: 'monthly',
       };
 
-      mockQuery.mockResolvedValueOnce({ rows: [{ count: '0' }] });
       mockQuery.mockResolvedValueOnce({ rows: [mockCreatedDonation] });
 
       const result = await donationService.createDonation(
@@ -237,7 +232,6 @@ describe('DonationService', () => {
         designation: 'Building Fund',
       };
 
-      mockQuery.mockResolvedValueOnce({ rows: [{ count: '0' }] });
       mockQuery.mockResolvedValueOnce({ rows: [mockCreatedDonation] });
 
       const result = await donationService.createDonation(

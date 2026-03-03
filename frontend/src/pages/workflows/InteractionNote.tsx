@@ -9,10 +9,12 @@ import type { ContactNoteType, CreateContactNoteDTO } from '../../types/contact'
 import { NOTE_TYPES } from '../../types/contact';
 import { useQuickLookup } from '../../components/dashboard';
 import type { SearchResult } from '../../components/dashboard';
+import WorkflowStepper from '../../features/workflows/components/WorkflowStepper';
 
 type Step = 'select' | 'create' | 'note';
 
 const emailRegex = /\S+@\S+\.\S+/;
+const EMPTY_CASES: ReturnType<typeof selectCasesByContact> = [];
 
 export default function InteractionNote() {
   const dispatch = useAppDispatch();
@@ -27,7 +29,7 @@ export default function InteractionNote() {
   const lookup = useQuickLookup({ debounceMs: 250 });
 
   const contactCases = useAppSelector((state) =>
-    selectedContact ? selectCasesByContact(state, selectedContact.contact_id) : []
+    selectedContact ? selectCasesByContact(state, selectedContact.contact_id) : EMPTY_CASES
   );
 
   const [noteForm, setNoteForm] = useState<CreateContactNoteDTO>({
@@ -126,6 +128,22 @@ export default function InteractionNote() {
         </p>
       </div>
 
+      <WorkflowStepper
+        steps={[
+          { key: 'select', label: 'Find Person' },
+          { key: 'create', label: 'Create Person' },
+          { key: 'note', label: 'Write Note' },
+        ]}
+        currentStep={step}
+        onStepClick={(nextStep) => {
+          if (nextStep === 'note' && !selectedContact) {
+            return;
+          }
+          setStep(nextStep as Step);
+        }}
+        className="mb-6"
+      />
+
       <div className="bg-app-surface rounded-lg shadow-sm border border-app-border p-6">
         {step === 'select' && (
           <div className="space-y-4">
@@ -219,7 +237,7 @@ export default function InteractionNote() {
             </div>
 
             {formError && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="rounded-lg border border-app-border bg-app-accent-soft px-4 py-3 text-sm text-app-accent-text">
                 {formError}
               </div>
             )}
@@ -341,7 +359,7 @@ export default function InteractionNote() {
                       className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
                     />
                     {hasInvalidEmails && (
-                      <p className="text-xs text-red-600 mt-1">One or more email addresses look invalid.</p>
+                      <p className="text-xs text-app-accent mt-1">One or more email addresses look invalid.</p>
                     )}
                     <p className="text-xs text-app-text-muted mt-1">
                       Copies will be stored with this note. Configure an email provider to send automatically.

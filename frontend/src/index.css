@@ -796,7 +796,7 @@ body .bg-blue-600 {
   background-color: var(--app-accent) !important;
 }
 
-body .hover\\:bg-blue-700:hover {
+body .hover\:bg-blue-700:hover {
   background-color: var(--app-accent-hover) !important;
 }
 
@@ -805,16 +805,16 @@ body .bg-blue-100 {
   background-color: var(--app-accent-soft) !important;
 }
 
-body .hover\\:bg-blue-50:hover,
-body .hover\\:bg-blue-100:hover {
+body .hover\:bg-blue-50:hover,
+body .hover\:bg-blue-100:hover {
   background-color: var(--app-accent-soft-hover) !important;
 }
 
-body .focus\\:bg-blue-50:focus {
+body .focus\:bg-blue-50:focus {
   background-color: var(--app-accent-soft-hover) !important;
 }
 
-body .hover\\:border-blue-500:hover {
+body .hover\:border-blue-500:hover {
   border-color: var(--app-accent) !important;
 }
 
@@ -826,9 +826,9 @@ body .text-blue-900 {
   color: var(--app-accent-text) !important;
 }
 
-body .hover\\:text-blue-500:hover,
-body .hover\\:text-blue-800:hover,
-body .hover\\:text-blue-900:hover {
+body .hover\:text-blue-500:hover,
+body .hover\:text-blue-800:hover,
+body .hover\:text-blue-900:hover {
   color: var(--app-accent-text-hover) !important;
 }
 
@@ -1183,3 +1183,297 @@ body [class*="focus:border-blue-600"]:focus {
 }
 
 /* ============================================================================== */
+/* ==============================================================================
+   P4-T7 REDESIGN TOKEN LAYER
+   This section intentionally overrides earlier theme rules while preserving IDs.
+   ============================================================================== */
+
+:root {
+  --ui-font-display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;
+  --ui-font-body: 'Space Grotesk', 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  --ui-font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+
+  --ui-radius-xs: 0.375rem;
+  --ui-radius-sm: 0.625rem;
+  --ui-radius-md: 0.875rem;
+  --ui-radius-lg: 1.125rem;
+
+  --ui-elev-1: 0 1px 2px rgba(17, 24, 39, 0.08), 0 0 0 1px rgba(17, 24, 39, 0.04);
+  --ui-elev-2: 0 12px 28px rgba(17, 24, 39, 0.12), 0 2px 6px rgba(17, 24, 39, 0.08);
+
+  --ui-motion-fast: 130ms;
+  --ui-motion-med: 210ms;
+
+  --app-bg: #f6f3ee;
+  --app-surface: #fffaf1;
+  --app-surface-muted: #f0e8db;
+  --app-surface-elevated: #ffffff;
+  --app-text: #1d1b16;
+  --app-text-muted: #4b4234;
+  --app-text-subtle: #6d6457;
+  --app-text-heading: #1a1309;
+  --app-text-label: #3a3024;
+  --app-border: #2b2319;
+  --app-border-muted: #cfc5b6;
+  --app-accent: #ff7a00;
+  --app-accent-hover: #ea6f00;
+  --app-accent-text: #c95f00;
+  --app-accent-text-hover: #a94d00;
+  --app-accent-soft: rgba(255, 122, 0, 0.16);
+  --app-accent-soft-hover: rgba(255, 122, 0, 0.26);
+  --app-hover: rgba(43, 35, 25, 0.08);
+  --app-input-bg: #ffffff;
+  --app-input-border: #534739;
+
+  --loop-yellow: #f8ca4a;
+  --loop-green: #95dfb0;
+  --loop-purple: #d7bee8;
+  --loop-pink: #f4bed3;
+  --loop-cyan: #75d5df;
+  --loop-blue: #8ebeea;
+
+  --shadow-color: rgba(29, 27, 22, 0.42);
+  --focus-ring: #ff7a00;
+}
+
+body.theme-sea-breeze {
+  --app-bg: #e6f7f4;
+  --app-surface: #f8fffd;
+  --app-surface-muted: #d6f0ec;
+  --app-surface-elevated: #ffffff;
+  --app-text: #0f3f3c;
+  --app-text-muted: #266966;
+  --app-text-subtle: #3d7c79;
+  --app-text-heading: #083431;
+  --app-text-label: #1f5f5b;
+  --app-border: #2f837d;
+  --app-border-muted: #9fd4ce;
+  --app-accent: #0d8b80;
+  --app-accent-hover: #0a7168;
+  --app-accent-text: #0d8b80;
+  --app-accent-text-hover: #0a7168;
+  --app-accent-soft: rgba(13, 139, 128, 0.16);
+  --app-accent-soft-hover: rgba(13, 139, 128, 0.25);
+  --app-hover: rgba(13, 139, 128, 0.1);
+  --app-input-bg: #ffffff;
+  --app-input-border: #4aa79f;
+  --shadow-color: rgba(13, 79, 73, 0.28);
+  --focus-ring: #0d8b80;
+}
+
+body.theme-corporate {
+  --app-bg: #f4f6fa;
+  --app-surface: #ffffff;
+  --app-surface-muted: #edf1f6;
+  --app-surface-elevated: #ffffff;
+  --app-text: #1f2937;
+  --app-text-muted: #425165;
+  --app-text-subtle: #5c6b80;
+  --app-text-heading: #0f1728;
+  --app-text-label: #334155;
+  --app-border: #8f9db2;
+  --app-border-muted: #c7d0de;
+  --app-accent: #1d4ed8;
+  --app-accent-hover: #163ca9;
+  --app-accent-text: #1d4ed8;
+  --app-accent-text-hover: #163ca9;
+  --app-accent-soft: rgba(29, 78, 216, 0.13);
+  --app-accent-soft-hover: rgba(29, 78, 216, 0.2);
+  --app-hover: rgba(15, 23, 40, 0.07);
+  --app-input-bg: #ffffff;
+  --app-input-border: #9aa8bc;
+  --shadow-color: rgba(15, 23, 40, 0.22);
+  --focus-ring: #1d4ed8;
+}
+
+body.theme-clean-modern {
+  --app-bg: #eef2ff;
+  --app-surface: #ffffff;
+  --app-surface-muted: #e3e9ff;
+  --app-surface-elevated: #ffffff;
+  --app-text: #17213a;
+  --app-text-muted: #3a4a73;
+  --app-text-subtle: #4f5f88;
+  --app-text-heading: #0f1730;
+  --app-text-label: #33426c;
+  --app-border: #5b6ea3;
+  --app-border-muted: #b7c2e8;
+  --app-accent: #5b4dff;
+  --app-accent-hover: #483dcf;
+  --app-accent-text: #4a3fd6;
+  --app-accent-text-hover: #3d35ad;
+  --app-accent-soft: rgba(91, 77, 255, 0.15);
+  --app-accent-soft-hover: rgba(91, 77, 255, 0.23);
+  --app-hover: rgba(23, 33, 58, 0.08);
+  --app-input-bg: #ffffff;
+  --app-input-border: #8f9cd4;
+  --shadow-color: rgba(21, 28, 48, 0.2);
+  --focus-ring: #5b4dff;
+}
+
+body.theme-glass {
+  --app-bg: #d8dde8;
+  --app-surface: rgba(255, 255, 255, 0.7);
+  --app-surface-muted: rgba(246, 250, 255, 0.8);
+  --app-surface-elevated: rgba(255, 255, 255, 0.82);
+  --app-text: #132033;
+  --app-text-muted: #30445d;
+  --app-text-subtle: #47607d;
+  --app-text-heading: #0d1625;
+  --app-text-label: #20334b;
+  --app-border: #6e86a8;
+  --app-border-muted: #a8b9d0;
+  --app-accent: #00a2ff;
+  --app-accent-hover: #007fcb;
+  --app-accent-text: #006ba9;
+  --app-accent-text-hover: #005581;
+  --app-accent-soft: rgba(0, 162, 255, 0.17);
+  --app-accent-soft-hover: rgba(0, 162, 255, 0.28);
+  --app-hover: rgba(19, 32, 51, 0.09);
+  --app-input-bg: rgba(255, 255, 255, 0.88);
+  --app-input-border: #8fa3bf;
+  --shadow-color: rgba(12, 24, 41, 0.24);
+  --focus-ring: #0099f2;
+}
+
+body.theme-high-contrast {
+  --app-bg: #ffffff;
+  --app-surface: #ffffff;
+  --app-surface-muted: #f2f2f2;
+  --app-surface-elevated: #ffffff;
+  --app-text: #000000;
+  --app-text-muted: #1a1a1a;
+  --app-text-subtle: #2f2f2f;
+  --app-text-heading: #000000;
+  --app-text-label: #121212;
+  --app-border: #000000;
+  --app-border-muted: #303030;
+  --app-accent: #0049d6;
+  --app-accent-hover: #0037a3;
+  --app-accent-text: #0049d6;
+  --app-accent-text-hover: #00307f;
+  --app-accent-soft: rgba(0, 73, 214, 0.18);
+  --app-accent-soft-hover: rgba(0, 73, 214, 0.29);
+  --app-hover: rgba(0, 0, 0, 0.09);
+  --app-input-bg: #ffffff;
+  --app-input-border: #000000;
+  --shadow-color: rgba(0, 0, 0, 0.45);
+  --focus-ring: #0049d6;
+}
+
+body.dark:not([class*='theme-']),
+body.dark.theme-sea-breeze,
+body.dark.theme-corporate,
+body.dark.theme-clean-modern,
+body.dark.theme-glass,
+body.dark.theme-high-contrast {
+  --app-bg: #11131a;
+  --app-surface: #181d28;
+  --app-surface-muted: #252c3b;
+  --app-surface-elevated: #1c2330;
+  --app-text: #f5f7fb;
+  --app-text-muted: #c9d0df;
+  --app-text-subtle: #aeb8cb;
+  --app-text-heading: #ffffff;
+  --app-text-label: #d6ddeb;
+  --app-border: #d9e0ee;
+  --app-border-muted: #4b5569;
+  --app-accent: #6fb2ff;
+  --app-accent-hover: #5c9de8;
+  --app-accent-text: #97c8ff;
+  --app-accent-text-hover: #b8d8ff;
+  --app-accent-soft: rgba(111, 178, 255, 0.2);
+  --app-accent-soft-hover: rgba(111, 178, 255, 0.32);
+  --app-hover: rgba(255, 255, 255, 0.09);
+  --app-input-bg: #0f1420;
+  --app-input-border: #d2d9e8;
+  --shadow-color: rgba(255, 255, 255, 0.2);
+}
+
+body.ui-redesign {
+  font-family: var(--ui-font-body);
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+body.ui-redesign h1,
+body.ui-redesign h2,
+body.ui-redesign h3,
+body.ui-redesign h4,
+body.ui-redesign h5,
+body.ui-redesign h6 {
+  font-family: var(--ui-font-display);
+  letter-spacing: -0.01em;
+  color: var(--app-text-heading);
+}
+
+body.ui-redesign a,
+body.ui-redesign button,
+body.ui-redesign input,
+body.ui-redesign select,
+body.ui-redesign textarea {
+  transition:
+    background-color var(--ui-motion-fast) ease,
+    color var(--ui-motion-fast) ease,
+    border-color var(--ui-motion-fast) ease,
+    box-shadow var(--ui-motion-fast) ease,
+    transform var(--ui-motion-fast) ease;
+}
+
+body.ui-redesign :focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+body.ui-redesign .bg-white,
+body.ui-redesign .bg-gray-50,
+body.ui-redesign .bg-gray-100 {
+  background-color: var(--app-surface) !important;
+}
+
+body.ui-redesign .text-gray-900,
+body.ui-redesign .text-gray-800,
+body.ui-redesign .text-black {
+  color: var(--app-text) !important;
+}
+
+body.ui-redesign .text-gray-600,
+body.ui-redesign .text-gray-500,
+body.ui-redesign .text-slate-600,
+body.ui-redesign .text-slate-500 {
+  color: var(--app-text-muted) !important;
+}
+
+body.ui-redesign .border-gray-200,
+body.ui-redesign .border-gray-300,
+body.ui-redesign .border-slate-200 {
+  border-color: var(--app-border-muted) !important;
+}
+
+body.ui-redesign input,
+body.ui-redesign select,
+body.ui-redesign textarea {
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid var(--app-input-border);
+  background-color: var(--app-input-bg);
+  color: var(--app-text);
+}
+
+body.ui-redesign button {
+  border-radius: var(--ui-radius-sm);
+}
+
+body.ui-redesign .menu-surface-opaque {
+  background-color: var(--app-surface-elevated) !important;
+  backdrop-filter: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.ui-redesign *,
+  body.ui-redesign *::before,
+  body.ui-redesign *::after {
+    animation: none !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

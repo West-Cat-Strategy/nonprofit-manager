@@ -5,49 +5,55 @@ import { PAGINATION } from '@config/constants';
 import { CaseCatalogUseCase } from '../usecases/caseCatalog.usecase';
 import { ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
 
-const getSingleParam = (value: string | string[] | undefined): string | undefined =>
-  Array.isArray(value) ? value[0] : value;
-
-const parseBoolean = (value?: string): boolean | undefined => {
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  return undefined;
-};
-
-const parseNumber = (value?: string): number | undefined => {
-  if (!value) return undefined;
-  const parsed = Number(value);
-  return Number.isNaN(parsed) ? undefined : parsed;
-};
-
 export const createCaseCatalogController = (
   useCase: CaseCatalogUseCase,
   mode: ResponseMode
 ) => {
   const getCases = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const query = req.query as Record<string, string | string[] | undefined>;
+      const query = ((req as any).validatedQuery ?? req.query) as {
+        search?: string;
+        contact_id?: string;
+        account_id?: string;
+        case_type_id?: string;
+        status_id?: string;
+        priority?: CaseFilter['priority'];
+        assigned_to?: string;
+        assigned_team?: string;
+        is_urgent?: boolean;
+        requires_followup?: boolean;
+        intake_start_date?: string;
+        intake_end_date?: string;
+        due_date_start?: string;
+        due_date_end?: string;
+        quick_filter?: CaseFilter['quick_filter'];
+        due_within_days?: number;
+        page?: number;
+        limit?: number;
+        sort_by?: string;
+        sort_order?: CaseFilter['sort_order'];
+      };
       const filter: CaseFilter = {
-        search: getSingleParam(query.search),
-        contact_id: getSingleParam(query.contact_id),
-        account_id: getSingleParam(query.account_id),
-        case_type_id: getSingleParam(query.case_type_id),
-        status_id: getSingleParam(query.status_id),
-        priority: getSingleParam(query.priority) as CaseFilter['priority'],
-        assigned_to: getSingleParam(query.assigned_to),
-        assigned_team: getSingleParam(query.assigned_team),
-        is_urgent: parseBoolean(getSingleParam(query.is_urgent)),
-        requires_followup: parseBoolean(getSingleParam(query.requires_followup)),
-        intake_start_date: getSingleParam(query.intake_start_date),
-        intake_end_date: getSingleParam(query.intake_end_date),
-        due_date_start: getSingleParam(query.due_date_start),
-        due_date_end: getSingleParam(query.due_date_end),
-        quick_filter: getSingleParam(query.quick_filter) as CaseFilter['quick_filter'],
-        due_within_days: parseNumber(getSingleParam(query.due_within_days)),
-        page: parseNumber(getSingleParam(query.page)),
-        limit: parseNumber(getSingleParam(query.limit)),
-        sort_by: getSingleParam(query.sort_by),
-        sort_order: getSingleParam(query.sort_order) as CaseFilter['sort_order'],
+        search: query.search,
+        contact_id: query.contact_id,
+        account_id: query.account_id,
+        case_type_id: query.case_type_id,
+        status_id: query.status_id,
+        priority: query.priority,
+        assigned_to: query.assigned_to,
+        assigned_team: query.assigned_team,
+        is_urgent: query.is_urgent,
+        requires_followup: query.requires_followup,
+        intake_start_date: query.intake_start_date,
+        intake_end_date: query.intake_end_date,
+        due_date_start: query.due_date_start,
+        due_date_end: query.due_date_end,
+        quick_filter: query.quick_filter,
+        due_within_days: query.due_within_days,
+        page: query.page,
+        limit: query.limit,
+        sort_by: query.sort_by,
+        sort_order: query.sort_order,
       };
 
       const { cases, total } = await useCase.list(filter);

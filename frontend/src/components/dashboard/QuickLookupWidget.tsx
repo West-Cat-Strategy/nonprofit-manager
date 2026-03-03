@@ -53,7 +53,7 @@ export default function QuickLookupWidget({ className = '' }: QuickLookupWidgetP
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             placeholder="Search by name, preferred name, email, or phone..."
-            className="block w-full pl-10 pr-10 py-2.5 border border-app-input-border rounded-xl text-sm placeholder-app-text-subtle focus:outline-none focus:ring-2 focus:ring-app-accent focus:border-transparent"
+            className="block w-full pl-10 pr-10 py-2.5 border border-app-input-border rounded-xl text-sm placeholder:text-app-text-subtle focus:outline-none focus:ring-2 focus:ring-app-accent focus:border-transparent"
           />
           {isLoading && (
             <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -133,7 +133,7 @@ export default function QuickLookupWidget({ className = '' }: QuickLookupWidgetP
                               </p>
                             )}
                             {contact.account_name && (
-                              <p className="text-xs text-sky-600 truncate">
+                              <p className="text-xs text-app-accent truncate">
                                 {contact.account_name}
                               </p>
                             )}
@@ -163,7 +163,7 @@ export default function QuickLookupWidget({ className = '' }: QuickLookupWidgetP
               <div className="border-t border-app-border-muted p-2">
                 <Link
                   to={`/contacts?search=${encodeURIComponent(searchTerm)}`}
-                  className="block text-center text-xs text-sky-600 hover:text-sky-800 py-1"
+                  className="block text-center text-xs text-app-accent hover:text-app-accent-text py-1"
                   onClick={closeDropdown}
                 >
                   View all results in People

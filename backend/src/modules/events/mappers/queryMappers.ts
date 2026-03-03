@@ -25,6 +25,9 @@ export const parseBooleanQuery = (value: unknown): boolean | undefined => {
 };
 
 export const parsePositiveInt = (value: unknown): number | undefined => {
+  if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
+    return value;
+  }
   if (typeof value !== 'string') return undefined;
   const parsed = Number.parseInt(value, 10);
   if (Number.isNaN(parsed) || parsed < 1) return undefined;

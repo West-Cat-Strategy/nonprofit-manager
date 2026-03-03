@@ -1,22 +1,46 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { fetchSavedReports, deleteSavedReport } from '../../store/slices/savedReportsSlice';
-import { createScheduledReport } from '../../store/slices/scheduledReportsSlice';
-import type { SavedReport } from '../../types/savedReport';
-import type { ScheduledReportFormat, ScheduledReportFrequency } from '../../types/scheduledReport';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import NeoBrutalistLayout from '../../components/neo-brutalist/NeoBrutalistLayout';
+import {
+  EmptyState,
+  ErrorState,
+  FormField,
+  LoadingState,
+  PageHeader,
+  PrimaryButton,
+  SecondaryButton,
+  SectionCard,
+  SelectField,
+} from '../../components/ui';
 import useConfirmDialog, { confirmPresets } from '../../hooks/useConfirmDialog';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { createScheduledReport } from '../../store/slices/scheduledReportsSlice';
+import { deleteSavedReport, fetchSavedReports } from '../../store/slices/savedReportsSlice';
+import { savedReportsApiClient } from '../../features/savedReports/api/savedReportsApiClient';
+import type { SavedReport, SharePrincipalRole, SharePrincipalUser } from '../../types/savedReport';
+import type { ReportEntity } from '../../types/report';
+import type { ScheduledReportFormat, ScheduledReportFrequency } from '../../types/scheduledReport';
 
 const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
+const toDateTimeLocal = (isoValue?: string): string => {
+  if (!isoValue) return '';
+  const date = new Date(isoValue);
+  if (Number.isNaN(date.getTime())) return '';
+  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+};
 
 function SavedReports() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { reports, loading, error } = useAppSelector((state) => state.savedReports);
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
-  const [filterEntity, setFilterEntity] = useState<string>('');
+
+  const [filterEntity, setFilterEntity] = useState<ReportEntity | ''>('');
   const [scheduleTarget, setScheduleTarget] = useState<SavedReport | null>(null);
+  const [shareTarget, setShareTarget] = useState<SavedReport | null>(null);
   const [scheduleRecipients, setScheduleRecipients] = useState('');
   const [scheduleFrequency, setScheduleFrequency] = useState<ScheduledReportFrequency>('weekly');
   const [scheduleFormat, setScheduleFormat] = useState<ScheduledReportFormat>('csv');
@@ -26,12 +50,27 @@ function SavedReports() {
   const [scheduleDayOfWeek, setScheduleDayOfWeek] = useState('1');
   const [scheduleDayOfMonth, setScheduleDayOfMonth] = useState('1');
 
-  useEffect(() => {
-    dispatch(fetchSavedReports());
+  const [shareSearch, setShareSearch] = useState('');
+  const [shareUsers, setShareUsers] = useState<SharePrincipalUser[]>([]);
+  const [shareRoles, setShareRoles] = useState<SharePrincipalRole[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [selectedRoleNames, setSelectedRoleNames] = useState<string[]>([]);
+  const [shareCanEdit, setShareCanEdit] = useState(false);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [publicLinkExpiryLocal, setPublicLinkExpiryLocal] = useState('');
+  const [publicLinkToken, setPublicLinkToken] = useState<string | null>(null);
+  const [publicLinkUrl, setPublicLinkUrl] = useState<string | null>(null);
+
+  const loadSavedReports = useCallback(async () => {
+    await dispatch(fetchSavedReports());
   }, [dispatch]);
 
+  useEffect(() => {
+    void loadSavedReports();
+  }, [loadSavedReports]);
+
   const handleLoadReport = (report: SavedReport) => {
-    // Navigate to report builder with the saved report ID
     navigate(`/reports/builder?load=${report.id}`);
   };
 
@@ -42,8 +81,13 @@ function SavedReports() {
   };
 
   const filteredReports = filterEntity
-    ? reports.filter((r) => r.entity === filterEntity)
+    ? reports.filter((report) => report.entity === filterEntity)
     : reports;
+
+  const publicLinkDisplay = useMemo(() => {
+    if (!publicLinkToken) return null;
+    return publicLinkUrl || `${window.location.origin}/public/reports/${publicLinkToken}`;
+  }, [publicLinkToken, publicLinkUrl]);
 
   const resetScheduleDialog = () => {
     setScheduleTarget(null);
@@ -88,35 +132,173 @@ function SavedReports() {
     navigate('/reports/scheduled');
   };
 
+  const loadSharePrincipals = async (search?: string) => {
+    setShareBusy(true);
+    setShareError(null);
+    try {
+      const principals = await savedReportsApiClient.fetchSharePrincipals(search, 25);
+      setShareUsers(principals.users);
+      setShareRoles(principals.roles);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load principals';
+      setShareError(message);
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
+  const openShareDialog = (report: SavedReport) => {
+    setShareTarget(report);
+    setSelectedUserIds(report.shared_with_users || []);
+    setSelectedRoleNames(report.shared_with_roles || []);
+    setShareCanEdit(Boolean(report.share_settings?.can_edit));
+    setPublicLinkExpiryLocal(toDateTimeLocal(report.share_settings?.expires_at));
+    setPublicLinkToken(report.public_token || null);
+    setPublicLinkUrl(
+      report.public_token ? `${window.location.origin}/public/reports/${report.public_token}` : null
+    );
+    setShareSearch('');
+    void loadSharePrincipals();
+  };
+
+  const closeShareDialog = () => {
+    setShareTarget(null);
+    setShareUsers([]);
+    setShareRoles([]);
+    setSelectedUserIds([]);
+    setSelectedRoleNames([]);
+    setShareCanEdit(false);
+    setShareBusy(false);
+    setShareError(null);
+    setPublicLinkExpiryLocal('');
+    setPublicLinkToken(null);
+    setPublicLinkUrl(null);
+  };
+
+  const toggleSelection = (current: string[], nextValue: string): string[] =>
+    current.includes(nextValue)
+      ? current.filter((value) => value !== nextValue)
+      : [...current, nextValue];
+
+  const getFilterEntityOrUndefined = (): ReportEntity | undefined =>
+    filterEntity || undefined;
+
+  const handleSaveShare = async () => {
+    if (!shareTarget) return;
+    setShareBusy(true);
+    setShareError(null);
+    try {
+      const updated = await savedReportsApiClient.shareSavedReport(shareTarget.id, {
+        user_ids: selectedUserIds,
+        role_names: selectedRoleNames,
+        share_settings: {
+          can_edit: shareCanEdit,
+          ...(publicLinkExpiryLocal
+            ? { expires_at: new Date(publicLinkExpiryLocal).toISOString() }
+            : {}),
+        },
+      });
+      setShareTarget(updated);
+      await dispatch(fetchSavedReports(getFilterEntityOrUndefined()));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update sharing';
+      setShareError(message);
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
+  const handleRemoveShare = async () => {
+    if (!shareTarget) return;
+    if (selectedUserIds.length === 0 && selectedRoleNames.length === 0) {
+      setShareError('Select at least one user or role to remove');
+      return;
+    }
+
+    setShareBusy(true);
+    setShareError(null);
+    try {
+      const updated = await savedReportsApiClient.removeSavedReportShare(shareTarget.id, {
+        user_ids: selectedUserIds,
+        role_names: selectedRoleNames,
+      });
+      setShareTarget(updated);
+      setSelectedUserIds([]);
+      setSelectedRoleNames([]);
+      await dispatch(fetchSavedReports(getFilterEntityOrUndefined()));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to remove share access';
+      setShareError(message);
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
+  const handleGeneratePublicLink = async () => {
+    if (!shareTarget) return;
+    setShareBusy(true);
+    setShareError(null);
+    try {
+      const response = await savedReportsApiClient.generatePublicLink(
+        shareTarget.id,
+        publicLinkExpiryLocal ? new Date(publicLinkExpiryLocal).toISOString() : undefined
+      );
+      setPublicLinkToken(response.token);
+      setPublicLinkUrl(`${window.location.origin}${response.url}`);
+      await dispatch(fetchSavedReports(getFilterEntityOrUndefined()));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to generate public link';
+      setShareError(message);
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
+  const handleRevokePublicLink = async () => {
+    if (!shareTarget) return;
+    setShareBusy(true);
+    setShareError(null);
+    try {
+      await savedReportsApiClient.revokePublicLink(shareTarget.id);
+      setPublicLinkToken(null);
+      setPublicLinkUrl(null);
+      await dispatch(fetchSavedReports(getFilterEntityOrUndefined()));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to revoke public link';
+      setShareError(message);
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
+  const handleCopyPublicLink = async () => {
+    if (!publicLinkDisplay) return;
+    try {
+      await navigator.clipboard.writeText(publicLinkDisplay);
+    } catch {
+      setShareError('Unable to copy link to clipboard');
+    }
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6 flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-app-text">Saved Reports</h1>
-          <button
-            type="button"
-            onClick={() => navigate('/reports/builder')}
-            className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
-          >
-            Create New Report
-          </button>
-        </div>
+    <NeoBrutalistLayout pageTitle="SAVED REPORTS">
+      <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+        <PageHeader
+          title="Saved Reports"
+          description="Reuse, share, and schedule previously-defined report configurations."
+          actions={
+            <PrimaryButton onClick={() => navigate('/reports/builder')}>Create New Report</PrimaryButton>
+          }
+        />
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
+        {error && <ErrorState message={error} onRetry={() => void loadSavedReports()} />}
 
-        {/* Filter */}
-        <div className="bg-app-surface shadow rounded-lg p-4 mb-6">
-          <label htmlFor="filter-entity" className="block text-sm font-medium text-app-text-muted mb-2">
-            Filter by Entity
-          </label>
-          <select
+        <SectionCard title="Filter" subtitle="Narrow reports by entity.">
+          <SelectField
             id="filter-entity"
+            label="Filter by Entity"
             value={filterEntity}
-            onChange={(e) => setFilterEntity(e.target.value)}
-            className="block w-full px-3 py-2 border border-app-input-border rounded-md shadow-sm focus:outline-none focus:ring-app-accent focus:border-app-accent"
+            onChange={(event) => setFilterEntity(event.target.value as ReportEntity | '')}
           >
             <option value="">All Entities</option>
             <option value="accounts">Accounts</option>
@@ -125,175 +307,148 @@ function SavedReports() {
             <option value="events">Events</option>
             <option value="volunteers">Volunteers</option>
             <option value="tasks">Tasks</option>
-          </select>
-        </div>
+          </SelectField>
+        </SectionCard>
 
-        {/* Reports List */}
         {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-app-accent"></div>
-            <p className="mt-2 text-app-text-muted">Loading saved reports...</p>
-          </div>
+          <LoadingState label="Loading saved reports..." />
         ) : filteredReports.length === 0 ? (
-          <div className="bg-app-surface shadow rounded-lg p-12 text-center">
-            <p className="text-app-text-muted mb-4">No saved reports found</p>
-            <button
-              type="button"
-              onClick={() => navigate('/reports/builder')}
-              className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
-            >
-              Create Your First Report
-            </button>
-          </div>
+          <EmptyState
+            title="No saved reports found"
+            description="Build and save a report definition to make it reusable."
+            action={
+              <PrimaryButton onClick={() => navigate('/reports/builder')}>
+                Create Your First Report
+              </PrimaryButton>
+            }
+          />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filteredReports.map((report) => (
-              <div
+              <SectionCard
                 key={report.id}
-                className="bg-app-surface shadow rounded-lg p-6 hover:shadow-lg transition-shadow"
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="text-lg font-semibold text-app-text flex-1">
-                    {report.name}
-                  </h3>
-                  {report.is_public && (
-                    <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded">
+                title={report.name}
+                subtitle={report.description || 'No description provided.'}
+                className="h-full"
+                actions={
+                  report.is_public ? (
+                    <span className="inline-flex items-center rounded-full border border-app-border bg-app-accent-soft px-2 py-1 text-xs font-semibold text-app-accent-text">
                       Public
                     </span>
-                  )}
-                </div>
+                  ) : null
+                }
+              >
+                <div className="space-y-3">
+                  <p>
+                    <span className="inline-flex items-center rounded-full border border-app-border-muted bg-app-surface-muted px-2 py-1 text-xs capitalize text-app-text-muted">
+                      {report.entity}
+                    </span>
+                  </p>
 
-                {report.description && (
-                  <p className="text-sm text-app-text-muted mb-3">{report.description}</p>
-                )}
-
-                <div className="mb-4">
-                  <span className="inline-block px-3 py-1 bg-app-surface-muted text-app-text-muted text-sm rounded-full capitalize">
-                    {report.entity}
-                  </span>
-                </div>
-
-                <div className="text-xs text-app-text-muted mb-4">
-                  <div>
-                    Created: {new Date(report.created_at).toLocaleDateString()}
+                  <div className="space-y-1 text-xs text-app-text-muted">
+                    <p>Created: {new Date(report.created_at).toLocaleDateString()}</p>
+                    <p>Updated: {new Date(report.updated_at).toLocaleDateString()}</p>
+                    <p>
+                      Fields: {report.report_definition.fields?.length || 0}
+                      {report.report_definition.aggregations &&
+                        report.report_definition.aggregations.length > 0 &&
+                        ` • Aggregations: ${report.report_definition.aggregations.length}`}
+                      {report.report_definition.filters &&
+                        report.report_definition.filters.length > 0 &&
+                        ` • Filters: ${report.report_definition.filters.length}`}
+                    </p>
                   </div>
-                  <div>
-                    Updated: {new Date(report.updated_at).toLocaleDateString()}
-                  </div>
-                  <div className="mt-1">
-                    Fields: {report.report_definition.fields.length}
-                    {report.report_definition.filters &&
-                      report.report_definition.filters.length > 0 &&
-                      ` • Filters: ${report.report_definition.filters.length}`}
-                    {report.report_definition.sort &&
-                      report.report_definition.sort.length > 0 &&
-                      ` • Sorting: ${report.report_definition.sort.length}`}
-                  </div>
-                </div>
 
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleLoadReport(report)}
-                    className="flex-1 px-3 py-2 bg-app-accent text-white text-sm rounded hover:bg-app-accent-hover"
-                  >
-                    Load & Run
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setScheduleTarget(report)}
-                    className="px-3 py-2 bg-[var(--loop-cyan)] text-black text-sm rounded border border-black font-bold"
-                  >
-                    Schedule
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteReport(report.id, report.name)}
-                    className="px-3 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700"
-                  >
-                    Delete
-                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <PrimaryButton className="px-3 py-2 text-xs" onClick={() => handleLoadReport(report)}>
+                      Load & Run
+                    </PrimaryButton>
+                    <SecondaryButton className="px-3 py-2 text-xs" onClick={() => setScheduleTarget(report)}>
+                      Schedule
+                    </SecondaryButton>
+                    <SecondaryButton className="px-3 py-2 text-xs" onClick={() => openShareDialog(report)}>
+                      Share
+                    </SecondaryButton>
+                    <SecondaryButton
+                      className="px-3 py-2 text-xs text-app-accent-text"
+                      onClick={() => void handleDeleteReport(report.id, report.name)}
+                    >
+                      Delete
+                    </SecondaryButton>
+                  </div>
                 </div>
-              </div>
+              </SectionCard>
             ))}
           </div>
         )}
-      {scheduleTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-2xl border-2 border-[var(--app-border)] bg-[var(--app-surface)] p-6 shadow-[6px_6px_0px_0px_var(--shadow-color)]">
-            <h2 className="text-xl font-black text-[var(--app-text)]">Schedule Report</h2>
-            <p className="mt-1 text-sm text-[var(--app-text-muted)]">{scheduleTarget.name}</p>
 
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <label className="flex flex-col text-sm font-bold">
-                Recipients (comma-separated)
-                <input
+        {scheduleTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-3xl rounded-[var(--ui-radius-md)] border border-app-border bg-app-surface p-5 shadow-lg">
+              <PageHeader
+                title="Schedule Report"
+                description={scheduleTarget.name}
+                actions={<SecondaryButton onClick={resetScheduleDialog}>Close</SecondaryButton>}
+              />
+
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <FormField
+                  label="Recipients (comma-separated)"
                   value={scheduleRecipients}
                   onChange={(event) => setScheduleRecipients(event.target.value)}
                   placeholder="ops@example.org, manager@example.org"
-                  className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
                 />
-              </label>
-              <label className="flex flex-col text-sm font-bold">
-                Frequency
-                <select
+
+                <SelectField
+                  label="Frequency"
                   value={scheduleFrequency}
-                  onChange={(event) => setScheduleFrequency(event.target.value as ScheduledReportFrequency)}
-                  className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
+                  onChange={(event) =>
+                    setScheduleFrequency(event.target.value as ScheduledReportFrequency)
+                  }
                 >
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
                   <option value="monthly">Monthly</option>
-                </select>
-              </label>
-              <label className="flex flex-col text-sm font-bold">
-                Format
-                <select
+                </SelectField>
+
+                <SelectField
+                  label="Format"
                   value={scheduleFormat}
                   onChange={(event) => setScheduleFormat(event.target.value as ScheduledReportFormat)}
-                  className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
                 >
                   <option value="csv">CSV</option>
                   <option value="xlsx">XLSX</option>
-                </select>
-              </label>
-              <label className="flex flex-col text-sm font-bold">
-                Timezone
-                <input
+                </SelectField>
+
+                <FormField
+                  label="Timezone"
                   value={scheduleTimezone}
                   onChange={(event) => setScheduleTimezone(event.target.value)}
-                  className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
                 />
-              </label>
-              <label className="flex flex-col text-sm font-bold">
-                Hour
-                <input
+
+                <FormField
                   type="number"
                   min={0}
                   max={23}
+                  label="Hour"
                   value={scheduleHour}
                   onChange={(event) => setScheduleHour(event.target.value)}
-                  className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
                 />
-              </label>
-              <label className="flex flex-col text-sm font-bold">
-                Minute
-                <input
+
+                <FormField
                   type="number"
                   min={0}
                   max={59}
+                  label="Minute"
                   value={scheduleMinute}
                   onChange={(event) => setScheduleMinute(event.target.value)}
-                  className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
                 />
-              </label>
-              {scheduleFrequency === 'weekly' && (
-                <label className="flex flex-col text-sm font-bold">
-                  Day of Week
-                  <select
+
+                {scheduleFrequency === 'weekly' && (
+                  <SelectField
+                    label="Day of Week"
                     value={scheduleDayOfWeek}
                     onChange={(event) => setScheduleDayOfWeek(event.target.value)}
-                    className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
                   >
                     <option value="0">Sunday</option>
                     <option value="1">Monday</option>
@@ -302,45 +457,175 @@ function SavedReports() {
                     <option value="4">Thursday</option>
                     <option value="5">Friday</option>
                     <option value="6">Saturday</option>
-                  </select>
-                </label>
-              )}
-              {scheduleFrequency === 'monthly' && (
-                <label className="flex flex-col text-sm font-bold">
-                  Day of Month
-                  <input
+                  </SelectField>
+                )}
+
+                {scheduleFrequency === 'monthly' && (
+                  <FormField
                     type="number"
                     min={1}
                     max={28}
+                    label="Day of Month"
                     value={scheduleDayOfMonth}
                     onChange={(event) => setScheduleDayOfMonth(event.target.value)}
-                    className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
                   />
-                </label>
-              )}
-            </div>
+                )}
+              </div>
 
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={resetScheduleDialog}
-                className="px-4 py-2 border-2 border-[var(--app-border)] font-bold"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleSchedule()}
-                className="px-4 py-2 border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] font-bold"
-              >
-                Save Schedule
-              </button>
+              <div className="mt-5 flex justify-end gap-2">
+                <SecondaryButton onClick={resetScheduleDialog}>Cancel</SecondaryButton>
+                <PrimaryButton onClick={() => void handleSchedule()}>Save Schedule</PrimaryButton>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
-    </div>
+        )}
+
+        {shareTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="max-h-[90vh] w-full max-w-5xl overflow-auto rounded-[var(--ui-radius-md)] border border-app-border bg-app-surface p-5 shadow-lg">
+              <PageHeader
+                title="Share Saved Report"
+                description={shareTarget.name}
+                actions={<SecondaryButton onClick={closeShareDialog}>Close</SecondaryButton>}
+              />
+
+              {shareError && (
+                <ErrorState
+                  className="mt-4"
+                  message={shareError}
+                />
+              )}
+
+              <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                <SectionCard title="Share Principals" subtitle="Choose users and roles that can access this report.">
+                  <div className="mb-3 flex gap-2">
+                    <FormField
+                      label="Search Users"
+                      className="mt-0"
+                      value={shareSearch}
+                      onChange={(event) => setShareSearch(event.target.value)}
+                      placeholder="Search users"
+                    />
+                    <PrimaryButton
+                      className="self-end"
+                      onClick={() => void loadSharePrincipals(shareSearch)}
+                      disabled={shareBusy}
+                    >
+                      Search
+                    </PrimaryButton>
+                  </div>
+
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-app-text-label">Users</p>
+                  <div className="max-h-48 space-y-1 overflow-auto rounded-[var(--ui-radius-sm)] border border-app-border-muted p-2">
+                    {shareUsers.map((user) => (
+                      <label key={user.id} className="flex items-start gap-2 text-sm text-app-text">
+                        <input
+                          type="checkbox"
+                          checked={selectedUserIds.includes(user.id)}
+                          onChange={() =>
+                            setSelectedUserIds((current) => toggleSelection(current, user.id))
+                          }
+                        />
+                        <span>
+                          <strong>
+                            {user.full_name || `${user.first_name} ${user.last_name}`.trim()}
+                          </strong>
+                          <br />
+                          <span className="text-xs text-app-text-muted">{user.email}</span>
+                        </span>
+                      </label>
+                    ))}
+                    {!shareBusy && shareUsers.length === 0 && (
+                      <p className="text-xs text-app-text-muted">No users found.</p>
+                    )}
+                  </div>
+
+                  <p className="mb-2 mt-3 text-xs font-semibold uppercase tracking-wide text-app-text-label">Roles</p>
+                  <div className="space-y-1 rounded-[var(--ui-radius-sm)] border border-app-border-muted p-2">
+                    {shareRoles.map((role) => (
+                      <label key={role.name} className="flex items-center gap-2 text-sm text-app-text">
+                        <input
+                          type="checkbox"
+                          checked={selectedRoleNames.includes(role.name)}
+                          onChange={() =>
+                            setSelectedRoleNames((current) => toggleSelection(current, role.name))
+                          }
+                        />
+                        <span>{role.label}</span>
+                      </label>
+                    ))}
+                  </div>
+
+                  <label className="mt-3 flex items-center gap-2 text-sm font-semibold text-app-text">
+                    <input
+                      type="checkbox"
+                      checked={shareCanEdit}
+                      onChange={(event) => setShareCanEdit(event.target.checked)}
+                    />
+                    Allow edits for shared users/roles
+                  </label>
+                </SectionCard>
+
+                <SectionCard title="Public Link" subtitle="Create or revoke a link for external viewers.">
+                  <FormField
+                    type="datetime-local"
+                    label="Expiry"
+                    value={publicLinkExpiryLocal}
+                    onChange={(event) => setPublicLinkExpiryLocal(event.target.value)}
+                  />
+
+                  {publicLinkDisplay ? (
+                    <div className="mt-3 rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-muted px-3 py-2 text-xs text-app-text break-all">
+                      {publicLinkDisplay}
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-xs text-app-text-muted">No active public link.</p>
+                  )}
+
+                  <p className="mt-2 text-xs text-app-text-muted">
+                    {publicLinkExpiryLocal
+                      ? `Expires: ${new Date(publicLinkExpiryLocal).toLocaleString()}`
+                      : 'No expiry set'}
+                  </p>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <PrimaryButton onClick={() => void handleGeneratePublicLink()} disabled={shareBusy}>
+                      Generate Link
+                    </PrimaryButton>
+                    <SecondaryButton onClick={() => void handleCopyPublicLink()} disabled={!publicLinkDisplay}>
+                      Copy Link
+                    </SecondaryButton>
+                    <SecondaryButton
+                      onClick={() => void handleRevokePublicLink()}
+                      disabled={!publicLinkDisplay || shareBusy}
+                      className="text-app-accent-text"
+                    >
+                      Revoke Link
+                    </SecondaryButton>
+                  </div>
+                </SectionCard>
+              </div>
+
+              <div className="mt-5 flex flex-wrap justify-end gap-2">
+                <SecondaryButton onClick={closeShareDialog}>Close</SecondaryButton>
+                <SecondaryButton
+                  onClick={() => void handleRemoveShare()}
+                  disabled={shareBusy}
+                  className="text-app-accent-text"
+                >
+                  Remove Selected
+                </SecondaryButton>
+                <PrimaryButton onClick={() => void handleSaveShare()} disabled={shareBusy}>
+                  Save Sharing
+                </PrimaryButton>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
+      </div>
+    </NeoBrutalistLayout>
   );
 }
 

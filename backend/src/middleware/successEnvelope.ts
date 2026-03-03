@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import {
   isApiErrorEnvelope,
   isApiSuccessEnvelope,
+  successEnvelope,
 } from '@modules/shared/http/envelope';
 
 const shouldWrapPayload = (
@@ -16,23 +17,6 @@ const shouldWrapPayload = (
   return true;
 };
 
-const buildSuccessPayload = (payload: unknown): Record<string, unknown> => {
-  const wrapped: Record<string, unknown> = {
-    success: true,
-    data: payload,
-  };
-
-  // Preserve legacy top-level fields for object payloads to avoid client/test regressions.
-  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
-    for (const [key, value] of Object.entries(payload as Record<string, unknown>)) {
-      if (key === 'success' || key === 'data') continue;
-      wrapped[key] = value;
-    }
-  }
-
-  return wrapped;
-};
-
 // Normalize successful /api JSON responses to `{ success: true, data }`.
 export const successEnvelopeMiddleware = (
   _req: Request,
@@ -43,7 +27,7 @@ export const successEnvelopeMiddleware = (
 
   res.json = ((payload: unknown) => {
     if (shouldWrapPayload(res, res.statusCode, payload)) {
-      return originalJson(buildSuccessPayload(payload));
+      return originalJson(successEnvelope(payload));
     }
     return originalJson(payload);
   }) as Response['json'];

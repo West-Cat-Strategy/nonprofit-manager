@@ -60,7 +60,7 @@ describe('ReportTemplates page', () => {
       expect(screen.getByRole('heading', { name: /report templates/i })).toBeInTheDocument();
     });
 
-    expect(getMock).toHaveBeenCalledWith('/reports/templates', { params: {} });
+    expect(getMock).toHaveBeenCalledWith('/v2/reports/templates', { params: {} });
 
     await user.click(screen.getByRole('button', { name: /use template/i }));
 
