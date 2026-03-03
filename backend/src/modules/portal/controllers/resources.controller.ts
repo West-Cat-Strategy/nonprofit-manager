@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { NextFunction, Response } from 'express';
 import { PortalAuthRequest } from '@middleware/portalAuth';
 import { logger } from '@config/logger';
@@ -9,6 +11,19 @@ import { PortalResourcesUseCase } from '../usecases/resourcesUseCase';
 const getPortalContactId = (req: PortalAuthRequest): string | null => req.portalUser?.contactId ?? null;
 const getUserAgent = (req: PortalAuthRequest): string | null =>
   typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : null;
+const sanitizeFileName = (name: string): string => {
+  const candidate = path.basename(name || 'document');
+  const safe = candidate
+    .replace(/[\r\n"]/g, '')
+    .replace(/[^\x20-\x7E]/g, '_')
+    .trim();
+  return safe || 'document';
+};
+const buildContentDisposition = (name: string): string => {
+  const safeName = sanitizeFileName(name);
+  const encoded = encodeURIComponent(safeName);
+  return `attachment; filename="${safeName}"; filename*=UTF-8''${encoded}`;
+};
 
 export const createPortalResourcesController = (useCase: PortalResourcesUseCase) => {
   const getDocuments = async (req: PortalAuthRequest, res: Response, next: NextFunction): Promise<void> => {
@@ -85,12 +100,20 @@ export const createPortalResourcesController = (useCase: PortalResourcesUseCase)
         return;
       }
 
-      const fs = await import('fs');
+      const exists = await fileStorage.fileExists(document.file_path);
+      if (!exists) {
+        sendError(res, 'DOCUMENT_FILE_NOT_FOUND', 'Document file not found', 404);
+        return;
+      }
+
       const fullPath = fileStorage.getFullPath(document.file_path);
       const fileStream = fs.createReadStream(fullPath);
 
-      res.setHeader('Content-Type', document.mime_type);
-      res.setHeader('Content-Disposition', `attachment; filename="${document.original_name}"`);
+      const mimeType = document.mime_type || 'application/octet-stream';
+      const fileName = document.original_name || 'document';
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Disposition', buildContentDisposition(fileName));
+      fileStream.on('error', (streamError) => next(streamError));
       fileStream.pipe(res);
 
       await logPortalActivity({

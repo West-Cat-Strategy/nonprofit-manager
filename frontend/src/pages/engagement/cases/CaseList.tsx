@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BrutalBadge, BrutalButton, BrutalCard, BrutalInput, NeoBrutalistLayout } from '../../../components/neo-brutalist';
+import CaseListFiltersBar from '../../../features/cases/components/CaseListFiltersBar';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   fetchCases,
@@ -28,6 +29,19 @@ type SavedView = {
   filters: CaseFilter;
   quickFilter: QuickFilter;
 };
+
+interface CaseListFilterOverrides {
+  search?: string;
+  priority?: CasePriority | '';
+  status?: string;
+  type?: string;
+  isUrgent?: boolean;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  quickFilter?: QuickFilter;
+  dueSoonDays?: number;
+  page?: number;
+}
 
 const SAVED_VIEWS_KEY = 'cases.savedViews';
 
@@ -184,26 +198,51 @@ const CaseList = () => {
     setSearchParams(params, { replace: true });
   };
 
-  const handleSearch = () => {
-    const normalizedSearch = searchTerm.trim();
+  const applyFilters = ({
+    search = searchTerm,
+    priority = selectedPriority,
+    status = selectedStatus,
+    type = selectedType,
+    isUrgent = showUrgentOnly,
+    sortBy = selectedSort,
+    sortOrder = selectedOrder,
+    quickFilter: nextQuickFilter = quickFilter,
+    dueSoonDays: nextDueSoonDays = dueSoonDays,
+    page: nextPage = 1,
+  }: CaseListFilterOverrides = {}) => {
+    setSearchTerm(search);
+    setSelectedPriority(priority);
+    setSelectedStatus(status);
+    setSelectedType(type);
+    setShowUrgentOnly(isUrgent);
+    setSelectedSort(sortBy);
+    setSelectedOrder(sortOrder);
+    setQuickFilter(nextQuickFilter);
+    setDueSoonDays(nextDueSoonDays);
+
+    const normalizedSearch = search.trim();
     const nextFilters: Partial<CaseFilter> = {
       search: normalizedSearch ? normalizedSearch : undefined,
       contact_id: filters.contact_id || undefined,
       account_id: filters.account_id || undefined,
-      priority: selectedPriority || undefined,
-      status_id: selectedStatus || undefined,
-      case_type_id: selectedType || undefined,
+      priority: priority || undefined,
+      status_id: status || undefined,
+      case_type_id: type || undefined,
       assigned_to: filters.assigned_to || undefined,
-      is_urgent: showUrgentOnly || undefined,
-      sort_by: selectedSort,
-      sort_order: selectedOrder,
-      quick_filter: quickFilter === 'all' ? undefined : quickFilter,
-      due_within_days: quickFilter === 'due_soon' ? dueSoonDays : undefined,
-      page: 1,
+      is_urgent: isUrgent || undefined,
+      sort_by: sortBy,
+      sort_order: sortOrder,
+      quick_filter: nextQuickFilter === 'all' ? undefined : nextQuickFilter,
+      due_within_days: nextQuickFilter === 'due_soon' ? nextDueSoonDays : undefined,
+      page: nextPage,
     };
     dispatch(clearCaseSelection());
     dispatch(setFilters(nextFilters));
     syncUrl(nextFilters);
+  };
+
+  const handleSearch = () => {
+    applyFilters({ page: 1 });
   };
 
   const handleClearFilters = () => {
@@ -231,17 +270,18 @@ const CaseList = () => {
     const view = savedViews.find((item) => item.id === viewId);
     if (!view) return;
     setSelectedViewId(viewId);
-    setQuickFilter(view.quickFilter);
-    setSearchTerm(view.filters.search || '');
-    setSelectedPriority(view.filters.priority || '');
-    setSelectedStatus(view.filters.status_id || '');
-    setSelectedType(view.filters.case_type_id || '');
-    setShowUrgentOnly(view.filters.is_urgent || false);
-    setSelectedSort(view.filters.sort_by || 'created_at');
-    setSelectedOrder(view.filters.sort_order || 'desc');
-    dispatch(clearCaseSelection());
-    dispatch(setFilters({ ...filters, ...view.filters, page: 1 }));
-    syncUrl({ ...view.filters, page: 1, quick_filter: view.quickFilter === 'all' ? undefined : view.quickFilter });
+    applyFilters({
+      search: view.filters.search || '',
+      priority: view.filters.priority || '',
+      status: view.filters.status_id || '',
+      type: view.filters.case_type_id || '',
+      isUrgent: view.filters.is_urgent || false,
+      sortBy: view.filters.sort_by || 'created_at',
+      sortOrder: view.filters.sort_order || 'desc',
+      quickFilter: view.quickFilter,
+      dueSoonDays: view.filters.due_within_days || 7,
+      page: 1,
+    });
   };
 
   const handleSaveView = () => {
@@ -303,6 +343,68 @@ const CaseList = () => {
     filters.quick_filter,
   ].filter(Boolean).length;
   const hasActiveFilters = activeFiltersCount > 0;
+  const activeFilterChips = useMemo(() => {
+    const chips: Array<{ key: string; label: string }> = [];
+    const trimmedSearch = searchTerm.trim();
+    if (trimmedSearch) {
+      chips.push({ key: 'search', label: `Search: ${trimmedSearch}` });
+    }
+    if (selectedType) {
+      const typeLabel = caseTypes.find((item) => item.id === selectedType)?.name || 'Type';
+      chips.push({ key: 'type', label: `Type: ${typeLabel}` });
+    }
+    if (selectedStatus) {
+      const statusLabel = caseStatuses.find((item) => item.id === selectedStatus)?.name || 'Status';
+      chips.push({ key: 'status', label: `Status: ${statusLabel}` });
+    }
+    if (selectedPriority) {
+      chips.push({ key: 'priority', label: `Priority: ${selectedPriority}` });
+    }
+    if (showUrgentOnly) {
+      chips.push({ key: 'urgent', label: 'Urgent only' });
+    }
+    if (quickFilter !== 'all') {
+      chips.push({
+        key: 'quick_filter',
+        label: quickFilter === 'due_soon' ? `Quick: due soon (${dueSoonDays}d)` : `Quick: ${quickFilter.replace('_', ' ')}`,
+      });
+    }
+    return chips;
+  }, [
+    caseStatuses,
+    caseTypes,
+    dueSoonDays,
+    quickFilter,
+    searchTerm,
+    selectedPriority,
+    selectedStatus,
+    selectedType,
+    showUrgentOnly,
+  ]);
+  const handleRemoveFilterChip = (key: string) => {
+    switch (key) {
+      case 'search':
+        applyFilters({ search: '', page: 1 });
+        break;
+      case 'type':
+        applyFilters({ type: '', page: 1 });
+        break;
+      case 'status':
+        applyFilters({ status: '', page: 1 });
+        break;
+      case 'priority':
+        applyFilters({ priority: '', page: 1 });
+        break;
+      case 'urgent':
+        applyFilters({ isUrgent: false, page: 1 });
+        break;
+      case 'quick_filter':
+        applyFilters({ quickFilter: 'all', dueSoonDays: 7, page: 1 });
+        break;
+      default:
+        break;
+    }
+  };
   const assignedLabel = (caseItem: (typeof cases)[number]) => {
     if (caseItem.assigned_first_name || caseItem.assigned_last_name) {
       return `${caseItem.assigned_first_name || ''} ${caseItem.assigned_last_name || ''}`.trim();
@@ -404,11 +506,11 @@ const CaseList = () => {
             </div>
             <div className="border-2 border-black bg-white px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)]">
               <div className="text-xs font-black uppercase text-black/70">Urgent</div>
-              <div className="text-2xl font-black text-red-600">{summary.by_priority.urgent}</div>
+              <div className="text-2xl font-black text-app-accent">{summary.by_priority.urgent}</div>
             </div>
-            <div className={`border-2 border-black px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)] ${summary.overdue_cases > 0 ? 'bg-red-100' : 'bg-white'}`}>
+            <div className={`border-2 border-black px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)] ${summary.overdue_cases > 0 ? 'bg-app-accent-soft' : 'bg-white'}`}>
               <div className="text-xs font-black uppercase text-black/70">Overdue</div>
-              <div className={`text-2xl font-black ${summary.overdue_cases > 0 ? 'text-red-600' : 'text-black'}`}>{summary.overdue_cases}</div>
+              <div className={`text-2xl font-black ${summary.overdue_cases > 0 ? 'text-app-accent' : 'text-black'}`}>{summary.overdue_cases}</div>
             </div>
             <div className="border-2 border-black bg-white px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)]">
               <div className="text-xs font-black uppercase text-black/70">Due This Week</div>
@@ -432,7 +534,12 @@ const CaseList = () => {
               placeholder="Search by case number, title, or description..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSearch();
+                }
+              }}
             />
           </div>
 
@@ -549,16 +656,11 @@ const CaseList = () => {
             <button
               key={value}
               onClick={() => {
-                const nextQuickFilter = value;
-                setQuickFilter(nextQuickFilter);
-                const nextFilters: Partial<CaseFilter> = {
-                  quick_filter: nextQuickFilter === 'all' ? undefined : nextQuickFilter,
-                  due_within_days: nextQuickFilter === 'due_soon' ? dueSoonDays : undefined,
+                applyFilters({
+                  quickFilter: value,
+                  dueSoonDays,
                   page: 1,
-                };
-                dispatch(clearCaseSelection());
-                dispatch(setFilters(nextFilters));
-                syncUrl(nextFilters);
+                });
               }}
               className={`border-2 border-black px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] transition-all ${
                 quickFilter === value
@@ -580,15 +682,11 @@ const CaseList = () => {
                 onChange={(event) => {
                   const value = Number(event.target.value);
                   const nextValue = Number.isNaN(value) ? 7 : Math.max(1, Math.min(60, value));
-                  setDueSoonDays(nextValue);
-                  const nextFilters: Partial<CaseFilter> = {
-                    quick_filter: 'due_soon',
-                    due_within_days: nextValue,
+                  applyFilters({
+                    quickFilter: 'due_soon',
+                    dueSoonDays: nextValue,
                     page: 1,
-                  };
-                  dispatch(clearCaseSelection());
-                  dispatch(setFilters(nextFilters));
-                  syncUrl(nextFilters);
+                  });
                 }}
                 className="w-20 border-2 border-black bg-white text-black px-2 py-1 text-xs font-black uppercase focus:outline-none focus:ring-2 focus:ring-black"
               />
@@ -664,11 +762,17 @@ const CaseList = () => {
             Apply Filters
           </BrutalButton>
         </div>
+
+        <CaseListFiltersBar
+          chips={activeFilterChips}
+          onRemove={handleRemoveFilterChip}
+          onClearAll={handleClearFilters}
+        />
       </BrutalCard>
 
       {/* Error Message */}
       {error && (
-        <div className="border-2 border-black shadow-[6px_6px_0px_var(--shadow-color)] bg-red-200 text-black p-4 font-bold">
+        <div className="border-2 border-black shadow-[6px_6px_0px_var(--shadow-color)] bg-app-accent-soft text-black p-4 font-bold">
           {error}
         </div>
       )}
@@ -753,7 +857,7 @@ const CaseList = () => {
               <BrutalCard
                 key={caseItem.id}
                 color="white"
-                className={`p-4 cursor-pointer transition-colors ${isOverdue(caseItem) ? 'border-red-500 bg-red-50' : 'hover:bg-[var(--loop-yellow)]'}`}
+                className={`p-4 cursor-pointer transition-colors ${isOverdue(caseItem) ? 'border-app-border bg-app-accent-soft' : 'hover:bg-[var(--loop-yellow)]'}`}
                 onClick={() => navigate(`/cases/${caseItem.id}`)}
               >
                 <div className="flex items-start justify-between gap-4">
@@ -787,15 +891,14 @@ const CaseList = () => {
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold text-black/70">
                   <span
-                    className="inline-block border-2 border-black px-2 py-1 text-xs font-black uppercase"
-                    style={{ backgroundColor: caseItem.case_type_color || '#e5e7eb', color: '#000000' }}
+                    className="inline-block border-2 border-black bg-app-surface-muted px-2 py-1 text-xs font-black uppercase text-black"
                   >
                     {caseItem.case_type_name || 'General'}
                   </span>
                   <span>Assigned: {assignedLabel(caseItem)}</span>
                   <span>Age: {getCaseAge(caseItem)}</span>
                   {caseItem.due_date && (
-                    <span className={isOverdue(caseItem) ? 'text-red-600 font-black' : isDueSoon(caseItem) ? 'text-orange-600 font-black' : ''}>
+                    <span className={isOverdue(caseItem) ? 'text-app-accent font-black' : isDueSoon(caseItem) ? 'text-app-accent font-black' : ''}>
                       Due: {formatDueDate(caseItem.due_date)}
                       {isOverdue(caseItem) && ' (OVERDUE)'}
                     </span>
@@ -873,9 +976,9 @@ const CaseList = () => {
                       key={caseItem.id}
                       className={`border-b-2 border-black cursor-pointer transition-colors ${
                         caseOverdue
-                          ? 'bg-red-50 hover:bg-red-100'
+                          ? 'bg-app-accent-soft hover:bg-app-accent-soft'
                           : caseDueSoon
-                          ? 'bg-orange-50 hover:bg-orange-100'
+                          ? 'bg-app-accent-soft hover:bg-app-accent-soft'
                           : 'hover:bg-[var(--loop-yellow)]'
                       } ${selectedCaseIds.includes(caseItem.id) ? 'ring-2 ring-inset ring-black' : ''}`}
                       onClick={() => navigate(`/cases/${caseItem.id}`)}
@@ -908,8 +1011,7 @@ const CaseList = () => {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <span
-                          className="inline-block border-2 border-black px-3 py-1 text-xs font-black uppercase"
-                          style={{ backgroundColor: caseItem.case_type_color || '#e5e7eb', color: '#000000' }}
+                          className="inline-block border-2 border-black bg-app-surface-muted px-3 py-1 text-xs font-black uppercase text-black"
                         >
                           {caseItem.case_type_name || 'General'}
                         </span>
@@ -929,10 +1031,10 @@ const CaseList = () => {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-bold">
                         {caseItem.due_date ? (
-                          <span className={caseOverdue ? 'text-red-600 font-black' : caseDueSoon ? 'text-orange-600 font-black' : 'text-black'}>
+                          <span className={caseOverdue ? 'text-app-accent font-black' : caseDueSoon ? 'text-app-accent font-black' : 'text-black'}>
                             {formatDueDate(caseItem.due_date)}
                             {caseOverdue && (
-                              <span className="block text-xs text-red-600 font-black uppercase">Overdue</span>
+                              <span className="block text-xs text-app-accent font-black uppercase">Overdue</span>
                             )}
                           </span>
                         ) : (

@@ -132,24 +132,24 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
                 </p>
 
                 {sampleData.length === 0 && (
-                  <div className="bg-yellow-50 border-2 border-yellow-600 p-3 rounded">
-                    <p className="text-sm font-mono text-yellow-800">
+                  <div className="bg-app-accent-soft border-2 border-app-accent p-3 rounded">
+                    <p className="text-sm font-mono text-app-accent-text">
                       No data available to export
                     </p>
                   </div>
                 )}
 
                 {importSuccess && (
-                  <div className="bg-green-50 border-2 border-green-600 p-3 rounded">
-                    <p className="text-sm font-mono text-green-800">
+                  <div className="bg-app-accent-soft border-2 border-app-accent p-3 rounded">
+                    <p className="text-sm font-mono text-app-accent-text">
                       Export successful!
                     </p>
                   </div>
                 )}
 
                 {exportError && (
-                  <div className="bg-red-50 border-2 border-red-600 p-3 rounded">
-                    <p className="text-sm font-mono text-red-800">{exportError}</p>
+                  <div className="bg-app-accent-soft border-2 border-app-accent p-3 rounded">
+                    <p className="text-sm font-mono text-app-accent-text">{exportError}</p>
                   </div>
                 )}
               </div>
@@ -181,16 +181,16 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
                 </p>
 
                 {importError && (
-                  <div className="bg-red-50 border-2 border-red-600 p-3 rounded">
-                    <p className="text-sm font-mono text-red-800">
+                  <div className="bg-app-accent-soft border-2 border-app-accent p-3 rounded">
+                    <p className="text-sm font-mono text-app-accent-text">
                       {importError}
                     </p>
                   </div>
                 )}
 
                 {importSuccess && (
-                  <div className="bg-green-50 border-2 border-green-600 p-3 rounded">
-                    <p className="text-sm font-mono text-green-800">
+                  <div className="bg-app-accent-soft border-2 border-app-accent p-3 rounded">
+                    <p className="text-sm font-mono text-app-accent-text">
                       Import successful!
                     </p>
                   </div>

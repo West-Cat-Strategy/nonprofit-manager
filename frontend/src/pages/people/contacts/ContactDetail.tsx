@@ -334,7 +334,7 @@ const ContactDetail = () => {
                     Address
                   </h2>
                   {currentContact.no_fixed_address ? (
-                    <div className="flex items-center gap-2 p-3 bg-yellow-50 border-2 border-yellow-300">
+                    <div className="flex items-center gap-2 p-3 bg-app-accent-soft border-2 border-app-border">
                       <span className="text-xl">📍</span>
                       <span className="font-bold text-black">No fixed address</span>
                     </div>
@@ -416,7 +416,7 @@ const ContactDetail = () => {
                             {case_.status_name || case_.status_type}
                           </BrutalBadge>
                           {case_.is_urgent && (
-                            <span className="text-red-600" aria-label="Urgent">
+                            <span className="text-app-accent" aria-label="Urgent">
                               ⚠️
                             </span>
                           )}
@@ -526,13 +526,13 @@ const ContactDetail = () => {
       {showAlertModal && alertNotes.length > 0 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white border-4 border-black shadow-[8px_8px_0px_rgba(0,0,0,1)] max-w-lg w-full max-h-[80vh] overflow-y-auto">
-            <div className="bg-red-500 border-b-4 border-black p-4 flex items-center gap-3">
+            <div className="bg-app-accent border-b-4 border-black p-4 flex items-center gap-3">
               <span className="text-3xl">⚠️</span>
               <h2 className="text-xl font-black uppercase text-white">Alert Notes</h2>
             </div>
             <div className="p-6 space-y-4">
               {alertNotes.map((note) => (
-                <div key={note.id} className="border-2 border-red-300 bg-red-50 p-4 rounded">
+                <div key={note.id} className="border-2 border-app-border bg-app-accent-soft p-4 rounded">
                   {note.subject && (
                     <div className="font-black text-black mb-1">{note.subject}</div>
                   )}

@@ -33,7 +33,7 @@ export default function PortalSignup() {
 
         {signupStatus === 'success' ? (
           <div className="mt-6">
-            <p className="text-green-700 text-sm">
+            <p className="text-app-accent-text text-sm">
               Request submitted. A staff member will approve your access and share next steps.
             </p>
             <Link to="/portal/login" className="mt-4 inline-block text-app-accent hover:underline">
@@ -42,7 +42,7 @@ export default function PortalSignup() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-sm text-app-accent">{error}</p>}
             <div>
               <label htmlFor="firstName" className="block text-sm font-medium text-app-text-muted">First Name</label>
               <input

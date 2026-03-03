@@ -10,7 +10,7 @@ describe('Donation API Integration Tests', () => {
   beforeAll(async () => {
     // Register and login
     const registerResponse = await request(app)
-      .post('/api/auth/register')
+      .post('/api/v2/auth/register')
       .send({
         email: `donation-test-${unique()}@example.com`,
         password: 'Test123!Strong',
@@ -23,7 +23,7 @@ describe('Donation API Integration Tests', () => {
 
     // Create test account for donations
     const accountResponse = await request(app)
-      .post('/api/accounts')
+      .post('/api/v2/accounts')
       .set('Authorization', `Bearer ${authToken}`)
       .send({
         account_name: 'Test Donor Account',
@@ -41,10 +41,10 @@ describe('Donation API Integration Tests', () => {
     }
   });
 
-  describe('POST /api/donations', () => {
+  describe('POST /api/v2/donations', () => {
     it('should create a new donation with valid data', async () => {
       const response = await request(app)
-        .post('/api/donations')
+        .post('/api/v2/donations')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_id: testAccountId,
@@ -61,7 +61,7 @@ describe('Donation API Integration Tests', () => {
 
     it('should require authentication', async () => {
       await request(app)
-        .post('/api/donations')
+        .post('/api/v2/donations')
         .send({
           account_id: testAccountId,
           amount: 100,
@@ -73,7 +73,7 @@ describe('Donation API Integration Tests', () => {
     it('should require amount and donation_date for creation', async () => {
       // The route validation requires amount and donation_date
       const response = await request(app)
-        .post('/api/donations')
+        .post('/api/v2/donations')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_id: testAccountId,
@@ -87,7 +87,7 @@ describe('Donation API Integration Tests', () => {
 
     it('should create donation with campaign and designation', async () => {
       const response = await request(app)
-        .post('/api/donations')
+        .post('/api/v2/donations')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_id: testAccountId,
@@ -105,7 +105,7 @@ describe('Donation API Integration Tests', () => {
 
     it('should create recurring donation', async () => {
       const response = await request(app)
-        .post('/api/donations')
+        .post('/api/v2/donations')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_id: testAccountId,
@@ -122,10 +122,10 @@ describe('Donation API Integration Tests', () => {
     });
   });
 
-  describe('GET /api/donations', () => {
+  describe('GET /api/v2/donations', () => {
     it('should return paginated list of donations', async () => {
       const response = await request(app)
-        .get('/api/donations')
+        .get('/api/v2/donations')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -137,7 +137,7 @@ describe('Donation API Integration Tests', () => {
 
     it('should filter by account_id', async () => {
       const response = await request(app)
-        .get(`/api/donations?account_id=${testAccountId}`)
+        .get(`/api/v2/donations?account_id=${testAccountId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -146,7 +146,7 @@ describe('Donation API Integration Tests', () => {
 
     it('should filter by date range', async () => {
       const response = await request(app)
-        .get('/api/donations?start_date=2024-01-01&end_date=2024-12-31')
+        .get('/api/v2/donations?start_date=2024-01-01&end_date=2024-12-31')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -155,7 +155,7 @@ describe('Donation API Integration Tests', () => {
 
     it('should filter by payment_method', async () => {
       const response = await request(app)
-        .get('/api/donations?payment_method=credit_card')
+        .get('/api/v2/donations?payment_method=credit_card')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -164,7 +164,7 @@ describe('Donation API Integration Tests', () => {
 
     it('should filter by campaign_name', async () => {
       const response = await request(app)
-        .get('/api/donations?campaign_name=Summer 2024 Campaign')
+        .get('/api/v2/donations?campaign_name=Summer 2024 Campaign')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -172,14 +172,14 @@ describe('Donation API Integration Tests', () => {
     });
 
     it('should require authentication', async () => {
-      await request(app).get('/api/donations').expect(401);
+      await request(app).get('/api/v2/donations').expect(401);
     });
   });
 
-  describe('GET /api/donations/:id', () => {
+  describe('GET /api/v2/donations/:id', () => {
     it('should return a single donation by ID', async () => {
       const createResponse = await request(app)
-        .post('/api/donations')
+        .post('/api/v2/donations')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_id: testAccountId,
@@ -191,7 +191,7 @@ describe('Donation API Integration Tests', () => {
       const donationId = createResponse.body.donation_id;
 
       const response = await request(app)
-        .get(`/api/donations/${donationId}`)
+        .get(`/api/v2/donations/${donationId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -201,20 +201,20 @@ describe('Donation API Integration Tests', () => {
 
     it('should return 404 for non-existent donation', async () => {
       await request(app)
-        .get('/api/donations/00000000-0000-0000-0000-000000000000')
+        .get('/api/v2/donations/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
     });
 
     it('should require authentication', async () => {
-      await request(app).get('/api/donations/00000000-0000-0000-0000-000000000000').expect(401);
+      await request(app).get('/api/v2/donations/00000000-0000-0000-0000-000000000000').expect(401);
     });
   });
 
-  describe('PUT /api/donations/:id', () => {
+  describe('PUT /api/v2/donations/:id', () => {
     it('should update an existing donation', async () => {
       const createResponse = await request(app)
-        .post('/api/donations')
+        .post('/api/v2/donations')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_id: testAccountId,
@@ -226,7 +226,7 @@ describe('Donation API Integration Tests', () => {
       const donationId = createResponse.body.donation_id;
 
       const response = await request(app)
-        .put(`/api/donations/${donationId}`)
+        .put(`/api/v2/donations/${donationId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           amount: 350.00,
@@ -242,7 +242,7 @@ describe('Donation API Integration Tests', () => {
 
     it('should update receipt status', async () => {
       const createResponse = await request(app)
-        .post('/api/donations')
+        .post('/api/v2/donations')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_id: testAccountId,
@@ -254,7 +254,7 @@ describe('Donation API Integration Tests', () => {
       const donationId = createResponse.body.donation_id;
 
       const response = await request(app)
-        .put(`/api/donations/${donationId}`)
+        .put(`/api/v2/donations/${donationId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           receipt_sent: true,
@@ -266,7 +266,7 @@ describe('Donation API Integration Tests', () => {
 
     it('should return 404 for non-existent donation', async () => {
       await request(app)
-        .put('/api/donations/00000000-0000-0000-0000-000000000000')
+        .put('/api/v2/donations/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           amount: 100,
@@ -276,16 +276,16 @@ describe('Donation API Integration Tests', () => {
 
     it('should require authentication', async () => {
       await request(app)
-        .put('/api/donations/00000000-0000-0000-0000-000000000000')
+        .put('/api/v2/donations/00000000-0000-0000-0000-000000000000')
         .send({ amount: 100 })
         .expect(401);
     });
   });
 
-  describe('DELETE /api/donations/:id', () => {
+  describe('DELETE /api/v2/donations/:id', () => {
     it('should delete a donation', async () => {
       const createResponse = await request(app)
-        .post('/api/donations')
+        .post('/api/v2/donations')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_id: testAccountId,
@@ -297,26 +297,26 @@ describe('Donation API Integration Tests', () => {
       const donationId = createResponse.body.donation_id;
 
       await request(app)
-        .delete(`/api/donations/${donationId}`)
+        .delete(`/api/v2/donations/${donationId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(204);
 
       // Verify donation is deleted
       await request(app)
-        .get(`/api/donations/${donationId}`)
+        .get(`/api/v2/donations/${donationId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
     });
 
     it('should return 404 for non-existent donation', async () => {
       await request(app)
-        .delete('/api/donations/00000000-0000-0000-0000-000000000000')
+        .delete('/api/v2/donations/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
     });
 
     it('should require authentication', async () => {
-      await request(app).delete('/api/donations/00000000-0000-0000-0000-000000000000').expect(401);
+      await request(app).delete('/api/v2/donations/00000000-0000-0000-0000-000000000000').expect(401);
     });
   });
 });

@@ -20,7 +20,7 @@ All endpoints require:
 ### Export Backup
 
 ```
-POST /api/backup/export
+POST /api/v2/backup/export
 ```
 
 **Request Body (JSON):**

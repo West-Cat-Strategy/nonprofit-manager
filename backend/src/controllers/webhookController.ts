@@ -236,7 +236,14 @@ export const getWebhookDeliveries = async (req: AuthRequest, res: Response): Pro
     }
 
     const { id } = req.params;
-    const limit = parseInt(req.query.limit as string) || PAGINATION.WEBHOOK_DEFAULT_LIMIT;
+    const query = ((req as any).validatedQuery ?? req.query) as {
+      limit?: number | string;
+    };
+    const parsedLimit =
+      typeof query.limit === 'number'
+        ? query.limit
+        : parseInt(String(query.limit ?? ''), 10);
+    const limit = Number.isFinite(parsedLimit) ? parsedLimit : PAGINATION.WEBHOOK_DEFAULT_LIMIT;
 
     const deliveries = await webhookService.getWebhookDeliveries(id, userId, limit);
     sendSuccess(res, deliveries);
@@ -466,7 +473,15 @@ export const getApiKeyUsage = async (req: AuthRequest, res: Response): Promise<v
     }
 
     const { id } = req.params;
-    const limit = parseInt(req.query.limit as string) || PAGINATION.WEBHOOK_DELIVERY_DEFAULT_LIMIT;
+    const query = ((req as any).validatedQuery ?? req.query) as {
+      limit?: number | string;
+    };
+    const parsedLimit =
+      typeof query.limit === 'number'
+        ? query.limit
+        : parseInt(String(query.limit ?? ''), 10);
+    const limit =
+      Number.isFinite(parsedLimit) ? parsedLimit : PAGINATION.WEBHOOK_DELIVERY_DEFAULT_LIMIT;
 
     const usage = await apiKeyService.getApiKeyUsage(id, userId, limit);
     sendSuccess(res, usage);

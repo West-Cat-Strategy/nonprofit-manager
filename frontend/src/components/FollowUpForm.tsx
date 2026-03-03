@@ -129,7 +129,7 @@ export default function FollowUpForm({
       {/* Title */}
       <div>
         <label htmlFor="followup-title" className="block text-sm font-semibold text-app-text-label mb-1">
-          Title <span className="text-red-500">*</span>
+          Title <span className="text-app-accent">*</span>
         </label>
         <input
           id="followup-title"
@@ -161,7 +161,7 @@ export default function FollowUpForm({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="followup-date" className="block text-sm font-semibold text-app-text-label mb-1">
-            Date <span className="text-red-500">*</span>
+            Date <span className="text-app-accent">*</span>
           </label>
           <input
             id="followup-date"

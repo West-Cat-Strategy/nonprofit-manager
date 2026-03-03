@@ -69,8 +69,9 @@ For **detailed feature specifications**, see linked documentation files.
 | Capacity Management | ✅ | Backend | Same | - | Control registration limits |
 | Registration Form | ✅ | Frontend | Same | `frontend/src/components/EventRegistration.tsx` | Attendee sign-up |
 | Attendee List | ✅ | Backend | Same | - | View registrations |
-| Check-In/QR Codes | 🟡 | Frontend | Same | - | Event day attendance tracking |
-| Reminders | 📋 | Backend | Same | - | Email/SMS event reminders planned |
+| Check-In/QR Codes | ✅ | Backend/Frontend | Same | `backend/src/modules/events/routes/index.ts` | Manual + QR token scan check-in with metadata |
+| Reminders | ✅ | Backend | Same | `backend/src/services/eventReminderAutomationService.ts` | Manual + automated reminder lifecycle complete |
+| Portal Appointment Ops/Reminders | ✅ | Backend/Frontend | [API_REFERENCE_PORTAL_APPOINTMENTS.md](../api/API_REFERENCE_PORTAL_APPOINTMENTS.md) | `backend/src/controllers/portalAdminController.ts` | Admin inbox, reminder history/manual send, and appointment check-in |
 
 ### Financial Management
 

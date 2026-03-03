@@ -288,17 +288,17 @@ describe('VolunteerWidget', () => {
     renderWidget(<VolunteerWidget showDetailedView={true} />);
 
     const availableBadges = screen.getAllByText('available');
-    const volunteerBadge = availableBadges.find((badge) => badge.className.includes('bg-emerald-100'));
+    const volunteerBadge = availableBadges.find((badge) => badge.className.includes('bg-app-accent-soft'));
     expect(volunteerBadge).toBeTruthy();
     if (volunteerBadge) {
-      expect(volunteerBadge).toHaveClass('bg-emerald-100', 'text-emerald-800');
+      expect(volunteerBadge).toHaveClass('bg-app-accent-soft', 'text-app-accent-text');
     }
 
     const limitedBadge = screen.getByText('limited');
-    expect(limitedBadge).toHaveClass('bg-amber-100', 'text-amber-800');
+    expect(limitedBadge).toHaveClass('bg-app-accent-soft', 'text-app-accent-text');
 
     const unavailableBadge = screen.getByText('unavailable');
-    expect(unavailableBadge).toHaveClass('bg-rose-100', 'text-rose-800');
+    expect(unavailableBadge).toHaveClass('bg-app-accent-soft', 'text-app-accent-text');
   });
 
   it('should show ranking numbers for top volunteers', () => {

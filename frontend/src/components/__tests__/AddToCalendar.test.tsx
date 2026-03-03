@@ -267,7 +267,7 @@ describe('AddToCalendar', () => {
     const button = screen.getByText('Add to Calendar');
 
     // Should have focus styles
-    expect(button).toHaveClass('focus:outline-none', 'focus:ring-2', 'focus:ring-green-500');
+    expect(button).toHaveClass('focus:outline-none', 'focus:ring-2', 'focus:ring-app-accent');
   });
 
   it('should render dropdown with correct z-index for layering', () => {

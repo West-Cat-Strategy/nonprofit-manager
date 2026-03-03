@@ -14,8 +14,8 @@ Three feature domains were implemented:
 Backend:
 - Added follow-up service/controller/routes with Zod validation.
 - Added nested endpoints for existing frontend contracts:
-  - `/api/cases/:id/follow-ups`
-  - `/api/tasks/:id/follow-ups`
+  - `/api/v2/cases/:id/follow-ups`
+  - `/api/v2/tasks/:id/follow-ups`
 - Added follow-up reminder scheduler service + startup wiring.
 
 Data:
@@ -44,7 +44,7 @@ Frontend:
 
 Backend:
 - Added `backend/src/modules/opportunities` module.
-- Mounted canonical `/api/v2/opportunities` and alias `/api/opportunities`.
+- Mounted canonical `/api/v2/opportunities`.
 - Added stage reorder validation and transition history writes.
 
 Data:

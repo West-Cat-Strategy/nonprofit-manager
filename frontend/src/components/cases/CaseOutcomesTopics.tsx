@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { casesApiClient } from '../../features/cases/api/casesApiClient';
 import { useToast } from '../../contexts/useToast';
+import ConfirmDialog from '../ConfirmDialog';
+import useConfirmDialog from '../../hooks/useConfirmDialog';
 import type {
   CaseOutcomeEvent,
   CaseTopicDefinition,
@@ -30,6 +32,7 @@ const emptyTopicDraft = (): CreateCaseTopicEventDTO => ({
 
 const CaseOutcomesTopics = ({ caseId, onChanged }: CaseOutcomesTopicsProps) => {
   const { showSuccess, showError } = useToast();
+  const { dialogState, confirm, handleCancel, handleConfirm } = useConfirmDialog();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [outcomes, setOutcomes] = useState<CaseOutcomeEvent[]>([]);
@@ -127,7 +130,13 @@ const CaseOutcomesTopics = ({ caseId, onChanged }: CaseOutcomesTopicsProps) => {
   };
 
   const deleteOutcome = async (outcomeId: string) => {
-    if (!window.confirm('Delete this outcome?')) return;
+    const confirmed = await confirm({
+      title: 'Delete Outcome',
+      message: 'Delete this outcome? This cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       setSaving(true);
       await casesApiClient.deleteCaseOutcome(outcomeId);
@@ -191,7 +200,13 @@ const CaseOutcomesTopics = ({ caseId, onChanged }: CaseOutcomesTopicsProps) => {
   };
 
   const deleteTopicEvent = async (topicEventId: string) => {
-    if (!window.confirm('Remove this topic from the case?')) return;
+    const confirmed = await confirm({
+      title: 'Remove Topic',
+      message: 'Remove this topic from the case?',
+      confirmLabel: 'Remove',
+      variant: 'warning',
+    });
+    if (!confirmed) return;
     try {
       setSaving(true);
       await casesApiClient.deleteCaseTopicEvent(topicEventId);
@@ -386,7 +401,7 @@ const CaseOutcomesTopics = ({ caseId, onChanged }: CaseOutcomesTopicsProps) => {
                   <span
                     className={`mt-1 inline-flex rounded px-2 py-0.5 text-xs ${
                       outcome.visible_to_client
-                        ? 'bg-green-100 text-green-800'
+                        ? 'bg-app-accent-soft text-app-accent-text'
                         : 'bg-app-surface-muted text-app-text-muted'
                     }`}
                   >
@@ -403,7 +418,7 @@ const CaseOutcomesTopics = ({ caseId, onChanged }: CaseOutcomesTopicsProps) => {
                   </button>
                   <button
                     type="button"
-                    className="rounded border border-red-300 px-2 py-1 text-xs text-red-700"
+                    className="rounded border border-app-border px-2 py-1 text-xs text-app-accent-text"
                     onClick={() => void deleteOutcome(outcome.id)}
                   >
                     Delete
@@ -440,7 +455,7 @@ const CaseOutcomesTopics = ({ caseId, onChanged }: CaseOutcomesTopicsProps) => {
                 </div>
                 <button
                   type="button"
-                  className="rounded border border-red-300 px-2 py-1 text-xs text-red-700"
+                  className="rounded border border-app-border px-2 py-1 text-xs text-app-accent-text"
                   onClick={() => void deleteTopicEvent(topicEvent.id)}
                 >
                   Remove
@@ -450,9 +465,9 @@ const CaseOutcomesTopics = ({ caseId, onChanged }: CaseOutcomesTopicsProps) => {
           </div>
         )}
       </div>
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 };
 
 export default CaseOutcomesTopics;
-

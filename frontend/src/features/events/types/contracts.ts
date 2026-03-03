@@ -33,6 +33,7 @@ export interface EventRegistrationPort {
   listEventRegistrations(eventId: string, filters?: RegistrationFilters): Promise<EventRegistration[]>;
   registerContact(eventId: string, contactId: string): Promise<void>;
   checkInRegistration(registrationId: string): Promise<EventRegistration>;
+  scanCheckIn(eventId: string, token: string): Promise<EventRegistration>;
   cancelRegistration(registrationId: string): Promise<void>;
 }
 

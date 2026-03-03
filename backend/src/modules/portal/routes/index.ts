@@ -5,6 +5,7 @@ import { authenticatePortal } from '@middleware/domains/auth';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import {
   portalAppointmentParamsSchema,
+  portalAppointmentsQuerySchema,
   portalBookSlotSchema,
   portalCaseDocumentDownloadParamsSchema,
   portalCaseParamsSchema,
@@ -13,10 +14,12 @@ import {
   portalManualAppointmentRequestSchema,
   portalPointpersonQuerySchema,
   portalProfileUpdateSchema,
+  portalRealtimeStreamQuerySchema,
   portalRelationshipCreateSchema,
   portalRelationshipUpdateSchema,
   portalSlotParamsSchema,
   portalSlotQuerySchema,
+  portalThreadsQuerySchema,
   portalThreadCreateSchema,
   portalThreadMessageSchema,
   portalThreadParamsSchema,
@@ -30,6 +33,7 @@ import { createPortalCasesController } from '../controllers/cases.controller';
 import { createPortalEventsController } from '../controllers/events.controller';
 import { createPortalMessagingController } from '../controllers/messaging.controller';
 import { createPortalProfileController } from '../controllers/profile.controller';
+import { createPortalRealtimeController } from '../controllers/realtime.controller';
 import { createPortalRelationshipsController } from '../controllers/relationships.controller';
 import { createPortalResourcesController } from '../controllers/resources.controller';
 import { PortalRepository } from '../repositories/portalRepository';
@@ -63,9 +67,11 @@ export const createPortalV2Routes = (deps: PortalRouteDependencies = {}): Router
   const relationshipsController = createPortalRelationshipsController(
     new PortalRelationshipsUseCase(repository)
   );
+  const realtimeController = createPortalRealtimeController();
   const portalV2Routes = Router();
 
   portalV2Routes.use(authenticatePortal);
+  portalV2Routes.get('/stream', validateQuery(portalRealtimeStreamQuerySchema), realtimeController.stream);
 
   portalV2Routes.get('/profile', profileController.getProfile);
   portalV2Routes.patch('/profile', validateBody(portalProfileUpdateSchema), profileController.updateProfile);
@@ -105,7 +111,7 @@ export const createPortalV2Routes = (deps: PortalRouteDependencies = {}): Router
     relationshipsController.deleteRelationship
   );
 
-  portalV2Routes.get('/messages/threads', messagingController.getThreads);
+  portalV2Routes.get('/messages/threads', validateQuery(portalThreadsQuerySchema), messagingController.getThreads);
   portalV2Routes.post('/messages/threads', validateBody(portalThreadCreateSchema), messagingController.createThread);
   portalV2Routes.get('/messages/threads/:threadId', validateParams(portalThreadParamsSchema), messagingController.getThread);
   portalV2Routes.post(
@@ -126,7 +132,7 @@ export const createPortalV2Routes = (deps: PortalRouteDependencies = {}): Router
   portalV2Routes.post('/events/:eventId/register', validateParams(portalEventParamsSchema), eventsController.register);
   portalV2Routes.delete('/events/:eventId/register', validateParams(portalEventParamsSchema), eventsController.cancel);
 
-  portalV2Routes.get('/appointments', appointmentsController.getAppointments);
+  portalV2Routes.get('/appointments', validateQuery(portalAppointmentsQuerySchema), appointmentsController.getAppointments);
   portalV2Routes.get('/appointments/slots', validateQuery(portalSlotQuerySchema), appointmentsController.getSlots);
   portalV2Routes.post(
     '/appointments/slots/:slotId/book',

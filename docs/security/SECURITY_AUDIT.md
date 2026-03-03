@@ -213,9 +213,9 @@ cors({
 ### ✅ Rate Limiting
 
 **Endpoints Protected:**
-- ✅ POST /api/auth/login (5 requests per 15 minutes)
-- ✅ POST /api/auth/register (3 requests per hour)
-- ✅ POST /api/auth/password-reset (3 requests per hour)
+- ✅ POST /api/v2/auth/login (5 requests per 15 minutes)
+- ✅ POST /api/v2/auth/register (3 requests per hour)
+- ✅ POST /api/v2/auth/password-reset (3 requests per hour)
 
 **Configuration:**
 ```typescript

@@ -9,4 +9,4 @@ export {
   selectAllCases,
   clearCaseSelection,
   clearError,
-} from './casesLegacyCore';
+} from './casesCore';

@@ -9,6 +9,15 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchDonations } from '../../../store/slices/donationsSlice';
 import type { PaymentMethod, PaymentStatus } from '../../../types/donation';
 import { formatDate, formatCurrency } from '../../../utils/format';
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PageHeader,
+  PrimaryButton,
+  SecondaryButton,
+  StatCard,
+} from '../../../components/ui';
 
 const DONATION_FILTERS_STORAGE_KEY = 'donations_list_filters_v1';
 
@@ -121,10 +130,10 @@ const DonationList: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      completed: 'bg-green-100 text-green-800',
-      failed: 'bg-red-100 text-red-800',
-      refunded: 'bg-purple-100 text-purple-800',
+      pending: 'bg-app-accent-soft text-app-accent-text',
+      completed: 'bg-app-accent-soft text-app-accent-text',
+      failed: 'bg-app-accent-soft text-app-accent-text',
+      refunded: 'bg-app-accent-soft text-app-accent-text',
       cancelled: 'bg-app-surface-muted text-app-text',
     };
     return badges[status] || 'bg-app-surface-muted text-app-text';
@@ -136,31 +145,20 @@ const DonationList: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Donations</h1>
-        <button
-          onClick={() => navigate('/donations/new')}
-          className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover"
-        >
-          Record Donation
-        </button>
-      </div>
+    <div className="space-y-6 p-4 sm:p-6">
+      <PageHeader
+        title="Donations"
+        description="Track donor contributions, payment status, and receipt history."
+        actions={
+          <PrimaryButton onClick={() => navigate('/donations/new')}>Record Donation</PrimaryButton>
+        }
+      />
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-app-surface shadow-md rounded-lg p-6">
-          <h3 className="text-sm font-medium text-app-text-muted mb-2">Total Donations</h3>
-          <p className="text-3xl font-bold text-green-600">{formatCurrency(totalAmount)}</p>
-        </div>
-        <div className="bg-app-surface shadow-md rounded-lg p-6">
-          <h3 className="text-sm font-medium text-app-text-muted mb-2">Average Donation</h3>
-          <p className="text-3xl font-bold text-app-accent">{formatCurrency(averageAmount)}</p>
-        </div>
-        <div className="bg-app-surface shadow-md rounded-lg p-6">
-          <h3 className="text-sm font-medium text-app-text-muted mb-2">Total Count</h3>
-          <p className="text-3xl font-bold text-purple-600">{pagination.total}</p>
-        </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <StatCard label="Total Donations" value={formatCurrency(totalAmount)} />
+        <StatCard label="Average Donation" value={formatCurrency(averageAmount)} />
+        <StatCard label="Total Count" value={pagination.total} />
       </div>
 
       {/* Filters */}
@@ -169,21 +167,21 @@ const DonationList: React.FC = () => {
         <button
           type="button"
           onClick={() => applyPreset('completed')}
-          className="px-2 py-1 text-xs font-semibold border rounded-md bg-green-100 text-green-800"
+          className="px-2 py-1 text-xs font-semibold border rounded-md bg-app-accent-soft text-app-accent-text"
         >
           Completed
         </button>
         <button
           type="button"
           onClick={() => applyPreset('pending')}
-          className="px-2 py-1 text-xs font-semibold border rounded-md bg-yellow-100 text-yellow-800"
+          className="px-2 py-1 text-xs font-semibold border rounded-md bg-app-accent-soft text-app-accent-text"
         >
           Pending
         </button>
         <button
           type="button"
           onClick={() => applyPreset('card')}
-          className="px-2 py-1 text-xs font-semibold border rounded-md bg-blue-100 text-blue-800"
+          className="px-2 py-1 text-xs font-semibold border rounded-md bg-app-accent-soft text-app-accent-text"
         >
           Credit Card
         </button>
@@ -250,24 +248,21 @@ const DonationList: React.FC = () => {
         </div>
       )}
 
-      {error && <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-md">{error}</div>}
+      {error && <ErrorState message={error} />}
 
       {loading ? (
-        <div className="text-center py-12">Loading donations...</div>
+        <LoadingState label="Loading donations..." />
       ) : donations.length === 0 ? (
-        <div className="text-center py-12 text-app-text-muted">
-          <p>No donations match your current filters.</p>
-          <div className="mt-4 flex justify-center gap-3">
-            {hasActiveFilters && (
-              <button onClick={clearFilters} className="px-4 py-2 border rounded-md hover:bg-app-surface-muted">
-                Clear Filters
-              </button>
-            )}
-            <button onClick={() => navigate('/donations/new')} className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover">
-              Record Donation
-            </button>
-          </div>
-        </div>
+        <EmptyState
+          title="No donations match your current filters."
+          description="Adjust filters or add a new donation record."
+          action={
+            <div className="flex flex-wrap gap-2">
+              {hasActiveFilters && <SecondaryButton onClick={clearFilters}>Clear Filters</SecondaryButton>}
+              <PrimaryButton onClick={() => navigate('/donations/new')}>Record Donation</PrimaryButton>
+            </div>
+          }
+        />
       ) : (
         <>
           <div className="bg-app-surface shadow-md rounded-lg overflow-hidden">
@@ -340,7 +335,7 @@ const DonationList: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {donation.receipt_sent ? (
-                        <span className="text-green-600">✓ Sent</span>
+                        <span className="text-app-accent">✓ Sent</span>
                       ) : (
                         <span className="text-app-text-subtle">Not Sent</span>
                       )}
@@ -354,7 +349,7 @@ const DonationList: React.FC = () => {
                       </button>
                       <button
                         onClick={() => navigate(`/donations/${donation.donation_id}/edit`)}
-                        className="text-indigo-600 hover:text-indigo-900"
+                        className="text-app-accent hover:text-app-accent-text"
                       >
                         Edit
                       </button>
@@ -377,14 +372,14 @@ const DonationList: React.FC = () => {
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-app-surface-muted"
+                  className="px-4 py-2 border border-app-border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-app-surface-muted"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(pagination.total_pages, p + 1))}
                   disabled={currentPage === pagination.total_pages}
-                  className="px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-app-surface-muted"
+                  className="px-4 py-2 border border-app-border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-app-surface-muted"
                 >
                   Next
                 </button>

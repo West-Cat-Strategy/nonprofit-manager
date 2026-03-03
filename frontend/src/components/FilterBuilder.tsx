@@ -16,6 +16,7 @@ const OPERATORS: { value: FilterOperator; label: string; types: string[] }[] = [
   { value: 'lte', label: 'Less Than or Equal', types: ['number', 'date'] },
   { value: 'like', label: 'Contains', types: ['string'] },
   { value: 'in', label: 'In List', types: ['string', 'number'] },
+  { value: 'between', label: 'Between', types: ['number', 'date'] },
 ];
 
 function FilterBuilder({ entity, filters, onChange }: FilterBuilderProps) {
@@ -52,6 +53,45 @@ function FilterBuilder({ entity, filters, onChange }: FilterBuilderProps) {
 
   const renderValueInput = (filter: ReportFilter, index: number) => {
     const fieldType = getFieldType(filter.field);
+
+    if (filter.operator === 'between') {
+      const parsedValues = Array.isArray(filter.value)
+        ? filter.value
+        : String(filter.value || '').split(',').map((value) => value.trim()).slice(0, 2);
+      const firstValue = String(parsedValues[0] ?? '');
+      const secondValue = String(parsedValues[1] ?? '');
+      const inputType = fieldType === 'date'
+        ? 'date'
+        : fieldType === 'number' || fieldType === 'currency'
+          ? 'number'
+          : 'text';
+
+      return (
+        <div className="flex flex-1 items-center gap-2">
+          <input
+            type={inputType}
+            value={firstValue}
+            onChange={(event) =>
+              handleUpdateFilter(index, { value: [event.target.value, secondValue] })
+            }
+            placeholder="From"
+            step={fieldType === 'currency' ? '0.01' : undefined}
+            className="w-1/2 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
+          />
+          <span className="text-app-text-muted text-sm font-medium">to</span>
+          <input
+            type={inputType}
+            value={secondValue}
+            onChange={(event) =>
+              handleUpdateFilter(index, { value: [firstValue, event.target.value] })
+            }
+            placeholder="To"
+            step={fieldType === 'currency' ? '0.01' : undefined}
+            className="w-1/2 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
+          />
+        </div>
+      );
+    }
 
     if (filter.operator === 'in') {
       return (
@@ -156,9 +196,13 @@ function FilterBuilder({ entity, filters, onChange }: FilterBuilderProps) {
               {/* Operator Selector */}
               <select
                 value={filter.operator}
-                onChange={(e) =>
-                  handleUpdateFilter(index, { operator: e.target.value as FilterOperator })
-                }
+                onChange={(e) => {
+                  const operator = e.target.value as FilterOperator;
+                  handleUpdateFilter(index, {
+                    operator,
+                    value: operator === 'between' ? ['', ''] : '',
+                  });
+                }}
                 className="w-48 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
               >
                 {availableOperators.map((op) => (
@@ -174,7 +218,7 @@ function FilterBuilder({ entity, filters, onChange }: FilterBuilderProps) {
               {/* Remove Button */}
               <button
                 onClick={() => handleRemoveFilter(index)}
-                className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                className="px-3 py-2 text-app-accent hover:bg-app-accent-soft rounded-lg transition-colors"
                 title="Remove filter"
               >
                 <svg
@@ -206,8 +250,7 @@ function FilterBuilder({ entity, filters, onChange }: FilterBuilderProps) {
       {filters.length > 0 && (
         <div className="mt-4 p-3 bg-app-accent-soft rounded-lg">
           <p className="text-sm text-app-accent-text">
-            <strong>Tip:</strong> For "In List" operator, enter comma-separated values (e.g.,
-            "value1,value2,value3")
+            <strong>Tip:</strong> Use comma-separated values for "In List", and two values for "Between".
           </p>
         </div>
       )}

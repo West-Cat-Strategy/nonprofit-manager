@@ -4,7 +4,7 @@
 # This replaces GitHub Actions with local commands.
 # All CI/CD operations can be run locally or via git hooks.
 
-.PHONY: help install lint lint-rate-limit-keys lint-success-envelope typecheck test test-coverage quality-baseline check-links build \
+.PHONY: help install lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-auth-guards lint-duplicate-tests lint-doc-api-versioning typecheck test test-coverage quality-baseline check-links build \
 	security-audit security-scan ci ci-fast ci-full ci-unit \
         deploy deploy-staging deploy-local \
         docker-build docker-up docker-down docker-logs docker-rebuild \
@@ -36,6 +36,8 @@ help:
 	@echo ""
 	@echo "$(GREEN)Quality Checks:$(RESET)"
 	@echo "  make lint           Run linters on all projects"
+	@echo "  make lint-express-validator Enforce no express-validator production usage"
+	@echo "  make lint-controller-sql Enforce controller->service SQL boundary ratchet"
 	@echo "  make lint-fix       Run linters and auto-fix issues"
 	@echo "  make typecheck      Run TypeScript type checking"
 	@echo "  make test           Run all unit tests"
@@ -89,8 +91,8 @@ install-dev: install hooks
 dev: docker-up
 	@echo ""
 	@echo "$(GREEN)Development environment started!$(RESET)"
-	@echo "  Frontend: HTTP://localhost:5173"
-	@echo "  Backend:  HTTP://localhost:3000"
+	@echo "  Frontend: http://localhost:5173"
+	@echo "  Backend:  http://localhost:3000"
 	@echo "  Database: localhost:5432"
 	@echo ""
 
@@ -119,6 +121,20 @@ lint:
 	node scripts/check-rate-limit-key-policy.ts
 	@echo "$(BLUE)Checking success envelope policy...$(RESET)"
 	node scripts/check-success-envelope-policy.ts
+	@echo "$(BLUE)Checking route validation policy...$(RESET)"
+	node scripts/check-route-validation-policy.ts
+	@echo "$(BLUE)Checking query contract policy...$(RESET)"
+	node scripts/check-query-contract-policy.ts
+	@echo "$(BLUE)Checking express-validator migration policy...$(RESET)"
+	node scripts/check-express-validator-policy.ts
+	@echo "$(BLUE)Checking controller SQL boundary policy...$(RESET)"
+	node scripts/check-controller-sql-policy.ts
+	@echo "$(BLUE)Checking legacy auth guard policy...$(RESET)"
+	node scripts/check-auth-guard-policy.ts
+	@echo "$(BLUE)Checking duplicate backend test paths...$(RESET)"
+	node scripts/check-duplicate-test-tree.ts
+	@echo "$(BLUE)Checking docs API versioning policy...$(RESET)"
+	node scripts/check-doc-api-versioning.ts
 	@echo "$(BLUE)Linting frontend...$(RESET)"
 	cd frontend && npm run lint
 	@echo "$(GREEN)Linting complete!$(RESET)"
@@ -132,6 +148,41 @@ lint-success-envelope:
 	@echo "$(BLUE)Checking success envelope policy...$(RESET)"
 	node scripts/check-success-envelope-policy.ts
 	@echo "$(GREEN)Success envelope policy check complete!$(RESET)"
+
+lint-route-validation:
+	@echo "$(BLUE)Checking route validation policy...$(RESET)"
+	node scripts/check-route-validation-policy.ts
+	@echo "$(GREEN)Route validation policy check complete!$(RESET)"
+
+lint-query-contract:
+	@echo "$(BLUE)Checking query contract policy...$(RESET)"
+	node scripts/check-query-contract-policy.ts
+	@echo "$(GREEN)Query contract policy check complete!$(RESET)"
+
+lint-express-validator:
+	@echo "$(BLUE)Checking express-validator migration policy...$(RESET)"
+	node scripts/check-express-validator-policy.ts
+	@echo "$(GREEN)Express-validator migration policy check complete!$(RESET)"
+
+lint-controller-sql:
+	@echo "$(BLUE)Checking controller SQL boundary policy...$(RESET)"
+	node scripts/check-controller-sql-policy.ts
+	@echo "$(GREEN)Controller SQL boundary policy check complete!$(RESET)"
+
+lint-auth-guards:
+	@echo "$(BLUE)Checking legacy auth guard policy...$(RESET)"
+	node scripts/check-auth-guard-policy.ts
+	@echo "$(GREEN)Legacy auth guard policy check complete!$(RESET)"
+
+lint-duplicate-tests:
+	@echo "$(BLUE)Checking duplicate backend test paths...$(RESET)"
+	node scripts/check-duplicate-test-tree.ts
+	@echo "$(GREEN)Duplicate backend test-path check complete!$(RESET)"
+
+lint-doc-api-versioning:
+	@echo "$(BLUE)Checking docs API versioning policy...$(RESET)"
+	node scripts/check-doc-api-versioning.ts
+	@echo "$(GREEN)Docs API versioning check complete!$(RESET)"
 
 lint-fix:
 	@echo "$(BLUE)Fixing lint issues in backend...$(RESET)"
@@ -216,6 +267,8 @@ build:
 	cd backend && npm run build
 	@echo "$(BLUE)Building frontend...$(RESET)"
 	cd frontend && npm run build
+	@echo "$(BLUE)Checking frontend bundle budgets...$(RESET)"
+	node scripts/check-frontend-bundle-size.js
 	@echo "$(GREEN)Build complete!$(RESET)"
 
 build-backend:
@@ -223,6 +276,7 @@ build-backend:
 
 build-frontend:
 	cd frontend && npm run build
+	node scripts/check-frontend-bundle-size.js
 
 #------------------------------------------------------------------------------
 # CI Pipelines (replaces GitHub Actions)

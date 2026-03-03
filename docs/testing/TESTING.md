@@ -81,7 +81,7 @@ Expected response:
 
 #### 2. Register User
 ```bash
-curl -X POST localhost:3000/api/auth/register \
+curl -X POST localhost:3000/api/v2/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -107,7 +107,7 @@ Expected response:
 
 #### 3. Login
 ```bash
-curl -X POST localhost:3000/api/auth/login \
+curl -X POST localhost:3000/api/v2/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -120,7 +120,7 @@ Expected response: Same format as registration
 #### 4. Access Protected Endpoint
 ```bash
 # Replace YOUR_TOKEN with the token from login/register
-curl -X GET localhost:3000/api/accounts \
+curl -X GET localhost:3000/api/v2/accounts \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 

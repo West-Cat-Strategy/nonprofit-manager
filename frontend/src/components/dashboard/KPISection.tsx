@@ -147,7 +147,7 @@ function KPISection({
             ))}
           </div>
         ) : error ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700" role="alert">
+          <div className="rounded-2xl border border-app-border bg-app-accent-soft p-4 text-app-accent-text" role="alert">
             {error}
           </div>
         ) : summary ? (

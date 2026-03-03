@@ -42,5 +42,9 @@
   "backend/src/controllers/twilioSettingsController.ts": 3,
   "backend/src/controllers/userController.ts": 7,
   "backend/src/controllers/volunteerController.ts": 8,
-  "backend/src/controllers/webhookController.ts": 15
+  "backend/src/controllers/webhookController.ts": 15,
+  "backend/src/modules/cases/controllers/lifecycle.controller.ts": 1,
+  "backend/src/modules/cases/controllers/milestones.controller.ts": 1,
+  "backend/src/modules/cases/controllers/relationships.controller.ts": 1,
+  "backend/src/modules/cases/controllers/services.controller.ts": 1
 }

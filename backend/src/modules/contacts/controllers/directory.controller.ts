@@ -51,15 +51,16 @@ export const createContactDirectoryController = (
 ) => {
   const getContacts = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
+      const query = ((req as any).validatedQuery ?? req.query) as Record<string, unknown>;
       const filters: ContactFilters = {
-        search: getString(req.query.search),
-        role: getRoleFilter(req.query.role),
-        account_id: getString(req.query.account_id),
-        is_active: getBoolean(req.query.is_active),
-        tags: getTagsFilter(req.query.tags),
+        search: getString(query.search),
+        role: getRoleFilter(query.role),
+        account_id: getString(query.account_id),
+        is_active: getBoolean(query.is_active),
+        tags: getTagsFilter(query.tags),
       };
 
-      const pagination: PaginationParams = extractPagination(req.query as Record<string, unknown>);
+      const pagination: PaginationParams = extractPagination(query);
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const result = await useCase.list(filters, pagination, scope);
       sendData(res, mode, result);

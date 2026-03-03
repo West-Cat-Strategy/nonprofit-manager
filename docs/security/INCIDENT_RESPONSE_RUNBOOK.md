@@ -224,7 +224,7 @@ sha256sum /tmp/incident-* > /tmp/incident-checksums.txt
 
 **Example: Unauthorized API Access**
 ```
-10:00 - Attacker discovers /api/contacts endpoint (reconnaissance)
+10:00 - Attacker discovers /api/v2/contacts endpoint (reconnaissance)
 10:15 - Attacker makes 100 requests (probing for vulnerabilities)
 10:20 - Rate limiting triggered, attacker IP blocked (GOOD)
 10:25 - Attacker switches IP, continues probing (PROBLEM: Rate limit per-IP)

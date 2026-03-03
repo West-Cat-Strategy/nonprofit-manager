@@ -132,36 +132,36 @@ export default function Login() {
   };
 
   return (
-    <div className="auth-page-light relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-amber-100 font-body">
+    <div className="auth-page-light relative min-h-screen overflow-hidden bg-gradient-to-br from-app-bg via-white to-app-accent-soft font-body">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-24 left-0 h-72 w-72 rounded-full bg-amber-200/50 blur-3xl"
+        className="pointer-events-none absolute -top-24 left-0 h-72 w-72 rounded-full bg-app-accent-soft/50 blur-3xl"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-24 right-0 h-72 w-72 rounded-full bg-sky-200/50 blur-3xl"
+        className="pointer-events-none absolute -bottom-24 right-0 h-72 w-72 rounded-full bg-app-accent-soft/50 blur-3xl"
       />
       <div className="relative mx-auto flex min-h-screen max-w-6xl items-center px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid w-full gap-10 lg:grid-cols-[1fr_1.05fr]">
           <div className="flex flex-col justify-center">
-            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
+            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-app-border bg-white/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-app-text">
               Secure access
             </span>
-            <h1 className="font-display mt-4 text-4xl font-semibold text-slate-900 sm:text-5xl">
+            <h1 className="font-display mt-4 text-4xl font-semibold text-app-text-heading sm:text-5xl">
               Welcome back to Nonprofit Manager.
             </h1>
-            <p className="mt-4 text-base text-slate-700 sm:text-lg">
+            <p className="mt-4 text-base text-app-text sm:text-lg">
               Sign in to manage donors, volunteers, events, and reporting. Use passkeys or MFA for
               a faster and safer login experience.
             </p>
-            <div className="mt-6 grid gap-3 text-sm text-slate-700">
+            <div className="mt-6 grid gap-3 text-sm text-app-text">
               {[
                 'Real-time dashboards and executive summaries.',
                 'Centralize outreach, cases, and communications.',
                 'SOC2-ready security practices for nonprofit teams.',
               ].map((copy) => (
                 <div key={copy} className="flex items-start gap-3 rounded-xl bg-white/70 p-3 shadow-sm">
-                  <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                  <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-app-accent-soft text-app-accent">
                     <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                       <path
                         fillRule="evenodd"
@@ -176,17 +176,17 @@ export default function Login() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-200/80 bg-white/90 p-8 shadow-xl backdrop-blur">
+          <div className="rounded-3xl border border-app-border/80 bg-white/90 p-8 shadow-xl backdrop-blur">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-text-muted">
                   {step === 'password' ? 'Sign in' : 'Two-factor'}
                 </p>
-                <h2 className="font-display mt-2 text-2xl font-semibold text-slate-900">
+                <h2 className="font-display mt-2 text-2xl font-semibold text-app-text-heading">
                   {step === 'password' ? 'Continue to your dashboard' : 'Verify your identity'}
                 </h2>
               </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-app-text text-white">
                 <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path
                     strokeLinecap="round"
@@ -202,7 +202,7 @@ export default function Login() {
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-5">
               <div>
-                <label htmlFor="email" className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                <label htmlFor="email" className="text-xs font-semibold uppercase tracking-wide text-app-text">
                   Email Address
                 </label>
                 <input
@@ -214,19 +214,19 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={step === 'totp'}
-                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100 disabled:bg-slate-100"
+                  className="mt-2 block w-full rounded-xl border border-app-border bg-white px-4 py-2.5 text-sm text-app-text-heading shadow-sm transition focus:border-app-text focus:outline-none focus:ring-4 focus:ring-app-accent disabled:bg-app-surface"
                 />
               </div>
 
               {step === 'password' ? (
                 <div>
                   <div className="flex items-center justify-between">
-                    <label htmlFor="password" className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    <label htmlFor="password" className="text-xs font-semibold uppercase tracking-wide text-app-text">
                       Password
                     </label>
                     <Link
                       to="/forgot-password"
-                      className="text-xs font-medium text-slate-500 hover:text-slate-900 transition"
+                      className="text-xs font-medium text-app-text-muted hover:text-app-text-heading transition"
                     >
                       Forgot password?
                     </Link>
@@ -239,12 +239,12 @@ export default function Login() {
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                    className="mt-2 block w-full rounded-xl border border-app-border bg-white px-4 py-2.5 text-sm text-app-text-heading shadow-sm transition focus:border-app-text focus:outline-none focus:ring-4 focus:ring-app-accent"
                   />
                 </div>
               ) : (
                 <div>
-                  <label htmlFor="totp" className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  <label htmlFor="totp" className="text-xs font-semibold uppercase tracking-wide text-app-text">
                     Authentication Code
                   </label>
                   <input
@@ -256,9 +256,9 @@ export default function Login() {
                     required
                     value={totpCode}
                     onChange={(e) => setTotpCode(e.target.value)}
-                    className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                    className="mt-2 block w-full rounded-xl border border-app-border bg-white px-4 py-2.5 text-sm text-app-text-heading shadow-sm transition focus:border-app-text focus:outline-none focus:ring-4 focus:ring-app-accent"
                   />
-                  <p className="mt-2 text-xs text-slate-500">
+                  <p className="mt-2 text-xs text-app-text-muted">
                     Enter the 6-digit code from your authenticator app.
                   </p>
                 </div>
@@ -267,7 +267,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:-translate-y-0.5 hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200 disabled:opacity-60"
+                className="flex w-full items-center justify-center rounded-xl bg-app-text px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:-translate-y-0.5 hover:bg-app-text focus:outline-none focus:ring-4 focus:ring-app-accent disabled:opacity-60"
               >
                 {loading ? 'Signing in...' : step === 'password' ? 'Sign In' : 'Verify Code'}
               </button>
@@ -277,7 +277,7 @@ export default function Login() {
                   type="button"
                   onClick={handlePasskeyLogin}
                   disabled={passkeyLoading}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100 disabled:opacity-60"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-app-border bg-white px-4 py-3 text-sm font-semibold text-app-text shadow-sm transition hover:-translate-y-0.5 hover:border-app-border hover:bg-app-surface focus:outline-none focus:ring-4 focus:ring-app-accent disabled:opacity-60"
                 >
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path
@@ -300,18 +300,18 @@ export default function Login() {
                     setTotpCode('');
                     setPassword('');
                   }}
-                  className="flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                  className="flex w-full items-center justify-center rounded-xl border border-app-border bg-white px-4 py-3 text-sm font-semibold text-app-text shadow-sm transition hover:-translate-y-0.5 hover:border-app-border hover:bg-app-surface focus:outline-none focus:ring-4 focus:ring-app-accent"
                 >
                   Back to password sign-in
                 </button>
               )}
 
               {step === 'password' && registrationEnabled && (
-                <p className="text-center text-sm text-slate-500 pt-2">
+                <p className="text-center text-sm text-app-text-muted pt-2">
                   Don&apos;t have an account?{' '}
                   <Link
                     to="/register"
-                    className="font-medium text-slate-900 hover:underline"
+                    className="font-medium text-app-text-heading hover:underline"
                   >
                     Create one
                   </Link>

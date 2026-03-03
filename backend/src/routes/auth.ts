@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { validateBody } from '@middleware/zodValidation';
+import { validateBody, validateParams } from '@middleware/zodValidation';
 import {
   login,
   register,
@@ -51,6 +51,9 @@ import {
   passkeyLoginOptionsSchema,
   passkeyLoginVerifySchema,
   setupFirstUserSchema,
+  passwordResetTokenParamsSchema,
+  passkeyIdParamsSchema,
+  preferenceKeyParamsSchema,
 } from '@validations/auth';
 import { updateUserProfileSchema } from '@validations/user';
 
@@ -97,7 +100,12 @@ router.get('/security', authenticate, getSecurityOverview);
 // User preferences routes
 router.get('/preferences', authenticate, getPreferences);
 router.put('/preferences', authenticate, updatePreferences);
-router.patch('/preferences/:key', authenticate, updatePreferenceKey);
+router.patch(
+  '/preferences/:key',
+  authenticate,
+  validateParams(preferenceKeyParamsSchema),
+  updatePreferenceKey
+);
 
 // User profile routes
 router.get('/profile', authenticate, getProfile);
@@ -123,7 +131,11 @@ router.post(
   validateBody(passwordResetRequestSchema),
   forgotPassword
 );
-router.get('/reset-password/:token', validateResetToken);
+router.get(
+  '/reset-password/:token',
+  validateParams(passwordResetTokenParamsSchema),
+  validateResetToken
+);
 router.post(
   '/reset-password',
   passwordResetLimiterMiddleware,
@@ -148,7 +160,12 @@ router.post(
 
 // Passkeys (WebAuthn)
 router.get('/passkeys', authenticate, listPasskeys);
-router.delete('/passkeys/:id', authenticate, deletePasskey);
+router.delete(
+  '/passkeys/:id',
+  authenticate,
+  validateParams(passkeyIdParamsSchema),
+  deletePasskey
+);
 router.post('/passkeys/register/options', authenticate, passkeyRegistrationOptions);
 router.post(
   '/passkeys/register/verify',

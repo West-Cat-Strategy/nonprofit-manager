@@ -13,9 +13,9 @@ const expectUnauthorizedEnvelope = (response: request.Response): void => {
 
 describe('Reference pattern route guards', () => {
   it.each([
-    '/api/follow-ups',
-    '/api/scheduled-reports',
-    '/api/opportunities',
+    '/api/v2/follow-ups',
+    '/api/v2/scheduled-reports',
+    '/api/v2/opportunities',
     '/api/v2/opportunities',
   ])('requires auth for %s', async (path) => {
     const response = await request(app)

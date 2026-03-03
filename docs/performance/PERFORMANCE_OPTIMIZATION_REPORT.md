@@ -400,7 +400,7 @@ npm run build
 # Check dist/ folder size — should be ~300KB
 
 # Backend compression
-curl -H "Accept-Encoding: gzip" localhost:3000/api/cases | wc -c
+curl -H "Accept-Encoding: gzip" localhost:3000/api/v2/cases | wc -c
 # Should be ~10-30% of uncompressed size
 
 # Memory usage (24-hour test)

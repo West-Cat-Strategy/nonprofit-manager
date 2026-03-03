@@ -85,14 +85,14 @@ export default function UsersSection({
                   <div className="flex items-center space-x-4">
                     <span
                       className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        user.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-app-surface-muted text-app-text'
+                        user.role === 'admin' ? 'bg-app-accent-soft text-app-accent-text' : 'bg-app-surface-muted text-app-text'
                       }`}
                     >
                       {user.role}
                     </span>
                     <span
                       className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        user.isActive ? 'bg-app-accent-soft text-app-accent-text' : 'bg-app-accent-soft text-app-accent-text'
                       }`}
                     >
                       {user.isActive ? 'Active' : 'Inactive'}
@@ -147,8 +147,8 @@ export default function UsersSection({
               onClick={onGoToRoles}
               className="flex items-center p-4 border border-app-border rounded-lg hover:bg-app-surface-muted transition-colors text-left"
             >
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-app-accent-soft rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-app-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
@@ -162,8 +162,8 @@ export default function UsersSection({
               to="/admin/audit-logs"
               className="flex items-center p-4 border border-app-border rounded-lg hover:bg-app-surface-muted transition-colors"
             >
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-app-accent-soft rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-app-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                 </svg>
               </div>
@@ -187,14 +187,14 @@ export default function UsersSection({
               <div className="text-sm font-medium text-app-text">Require Strong Passwords</div>
               <div className="text-sm text-app-text-muted">Minimum 8 characters with uppercase, lowercase, number, and symbol</div>
             </div>
-            <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Enabled</span>
+            <span className="px-2 py-1 text-xs font-medium bg-app-accent-soft text-app-accent-text rounded-full">Enabled</span>
           </div>
           <div className="flex items-center justify-between py-3 border-b border-app-border-muted">
             <div>
               <div className="text-sm font-medium text-app-text">Account Lockout</div>
               <div className="text-sm text-app-text-muted">Lock accounts after 5 failed login attempts</div>
             </div>
-            <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Enabled</span>
+            <span className="px-2 py-1 text-xs font-medium bg-app-accent-soft text-app-accent-text rounded-full">Enabled</span>
           </div>
           <div className="flex items-center justify-between py-3 border-b border-app-border-muted">
             <div>
@@ -227,7 +227,7 @@ export default function UsersSection({
                     <span className="font-medium text-app-text">{invitation.email}</span>
                     <span
                       className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                        invitation.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-app-surface-muted text-app-text'
+                        invitation.role === 'admin' ? 'bg-app-accent-soft text-app-accent-text' : 'bg-app-surface-muted text-app-text'
                       }`}
                     >
                       {invitation.role}
@@ -251,7 +251,7 @@ export default function UsersSection({
                   <button
                     type="button"
                     onClick={() => onRevokeInvitation(invitation.id)}
-                    className="px-3 py-1.5 text-sm text-red-600 hover:text-red-700 font-medium"
+                    className="px-3 py-1.5 text-sm text-app-accent hover:text-app-accent-text font-medium"
                   >
                     Revoke
                   </button>

@@ -1,4 +1,10 @@
-import type { CreateRegistrationDTO, RegistrationFilters, UpdateRegistrationDTO } from '@app-types/event';
+import type {
+  CheckInOptions,
+  CreateRegistrationDTO,
+  EventRegistration,
+  RegistrationFilters,
+  UpdateRegistrationDTO,
+} from '@app-types/event';
 import { EventRepository } from '../repositories/eventRepository';
 
 export class EventRegistrationUseCase {
@@ -12,6 +18,14 @@ export class EventRegistrationUseCase {
     return this.repository.getContactRegistrations(contactId);
   }
 
+  getById(registrationId: string): Promise<EventRegistration | null> {
+    return this.repository.getRegistrationById(registrationId);
+  }
+
+  getByToken(eventId: string, token: string): Promise<EventRegistration | null> {
+    return this.repository.getRegistrationByToken(eventId, token);
+  }
+
   register(data: CreateRegistrationDTO): Promise<unknown> {
     return this.repository.registerContact(data);
   }
@@ -20,8 +34,11 @@ export class EventRegistrationUseCase {
     return this.repository.updateRegistration(registrationId, data);
   }
 
-  checkIn(registrationId: string): Promise<{ success: boolean; message: string; registration?: unknown }> {
-    return this.repository.checkInAttendee(registrationId);
+  checkIn(
+    registrationId: string,
+    options?: CheckInOptions
+  ): Promise<{ success: boolean; message: string; registration?: unknown }> {
+    return this.repository.checkInAttendee(registrationId, options);
   }
 
   cancel(registrationId: string): Promise<void> {

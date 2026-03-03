@@ -66,7 +66,7 @@ export default function RolesSection({ roles, onCreateRole, onEditRole, onDelete
                     <button
                       type="button"
                       onClick={() => onDeleteRole(role.id)}
-                      className="text-red-600 hover:text-red-700 text-sm font-medium"
+                      className="text-app-accent hover:text-app-accent-text text-sm font-medium"
                     >
                       Delete
                     </button>

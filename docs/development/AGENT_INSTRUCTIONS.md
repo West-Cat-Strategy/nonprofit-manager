@@ -96,9 +96,9 @@ frontend/src/
 
 #### API Design
 - RESTful endpoints
-- Versioning: `/api/resource` for legacy routes and `/api/v2/resource` for modular cutovers
-- Plural nouns for collections: `/api/volunteers`
-- Nested resources where appropriate: `/api/events/:id/registrations`
+- Versioning: all active API routes use `/api/v2/resource`; legacy `/api/*` routes are tombstoned
+- Plural nouns for collections: `/api/v2/volunteers`
+- Nested resources where appropriate: `/api/v2/events/:id/registrations`
 - Use proper HTTP methods: GET, POST, PUT, PATCH, DELETE
 - Standard HTTP status codes
 

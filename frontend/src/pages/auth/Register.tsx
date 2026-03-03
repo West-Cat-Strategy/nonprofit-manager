@@ -88,18 +88,18 @@ export default function Register() {
   // -------------------------------------------------------------------------
   if (pendingApproval) {
     return (
-      <div className="auth-page-light relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-amber-100 font-body">
+      <div className="auth-page-light relative min-h-screen overflow-hidden bg-gradient-to-br from-app-bg via-white to-app-accent-soft font-body">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -top-24 left-0 h-72 w-72 rounded-full bg-amber-200/50 blur-3xl"
+          className="pointer-events-none absolute -top-24 left-0 h-72 w-72 rounded-full bg-app-accent-soft/50 blur-3xl"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -bottom-24 right-0 h-72 w-72 rounded-full bg-sky-200/50 blur-3xl"
+          className="pointer-events-none absolute -bottom-24 right-0 h-72 w-72 rounded-full bg-app-accent-soft/50 blur-3xl"
         />
         <div className="relative mx-auto flex min-h-screen max-w-lg items-center px-4 py-12 sm:px-6 lg:px-8">
-          <div className="w-full rounded-3xl border border-slate-200/80 bg-white/90 p-8 shadow-xl backdrop-blur text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100 text-amber-600 mb-6">
+          <div className="w-full rounded-3xl border border-app-border/80 bg-white/90 p-8 shadow-xl backdrop-blur text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-app-accent-soft text-app-accent mb-6">
               <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path
                   strokeLinecap="round"
@@ -109,16 +109,16 @@ export default function Register() {
                 />
               </svg>
             </div>
-            <h2 className="font-display text-2xl font-semibold text-slate-900">
+            <h2 className="font-display text-2xl font-semibold text-app-text-heading">
               Registration Submitted
             </h2>
-            <p className="mt-4 text-sm text-slate-600 leading-relaxed">
+            <p className="mt-4 text-sm text-app-text leading-relaxed">
               Your registration request has been submitted and is awaiting admin approval.
               You will receive an email once your account has been approved.
             </p>
             <Link
               to="/login"
-              className="mt-8 inline-flex items-center justify-center rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:-translate-y-0.5 hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200"
+              className="mt-8 inline-flex items-center justify-center rounded-xl bg-app-text px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:-translate-y-0.5 hover:bg-app-text focus:outline-none focus:ring-4 focus:ring-app-accent"
             >
               Back to Login
             </Link>
@@ -132,37 +132,37 @@ export default function Register() {
   // Registration form
   // -------------------------------------------------------------------------
   return (
-    <div className="auth-page-light relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-amber-100 font-body">
+    <div className="auth-page-light relative min-h-screen overflow-hidden bg-gradient-to-br from-app-bg via-white to-app-accent-soft font-body">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-24 left-0 h-72 w-72 rounded-full bg-amber-200/50 blur-3xl"
+        className="pointer-events-none absolute -top-24 left-0 h-72 w-72 rounded-full bg-app-accent-soft/50 blur-3xl"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-24 right-0 h-72 w-72 rounded-full bg-sky-200/50 blur-3xl"
+        className="pointer-events-none absolute -bottom-24 right-0 h-72 w-72 rounded-full bg-app-accent-soft/50 blur-3xl"
       />
       <div className="relative mx-auto flex min-h-screen max-w-6xl items-center px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid w-full gap-10 lg:grid-cols-[1fr_1.05fr]">
           {/* Left pane */}
           <div className="flex flex-col justify-center">
-            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
+            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-app-border bg-white/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-app-text">
               Create Account
             </span>
-            <h1 className="font-display mt-4 text-4xl font-semibold text-slate-900 sm:text-5xl">
+            <h1 className="font-display mt-4 text-4xl font-semibold text-app-text-heading sm:text-5xl">
               Get started with Nonprofit Manager.
             </h1>
-            <p className="mt-4 text-base text-slate-700 sm:text-lg">
+            <p className="mt-4 text-base text-app-text sm:text-lg">
               Register for an account to access donor management, volunteer tracking, event
               coordination, and more. Your account will be reviewed by an administrator.
             </p>
-            <div className="mt-6 grid gap-3 text-sm text-slate-700">
+            <div className="mt-6 grid gap-3 text-sm text-app-text">
               {[
                 'Manage donors, volunteers, and events in one place.',
                 'Collaborate with your team on outreach and programs.',
                 'Generate reports and track organizational impact.',
               ].map((copy) => (
                 <div key={copy} className="flex items-start gap-3 rounded-xl bg-white/70 p-3 shadow-sm">
-                  <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                  <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-app-accent-soft text-app-accent">
                     <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                       <path
                         fillRule="evenodd"
@@ -178,17 +178,17 @@ export default function Register() {
           </div>
 
           {/* Form card */}
-          <div className="rounded-3xl border border-slate-200/80 bg-white/90 p-8 shadow-xl backdrop-blur">
+          <div className="rounded-3xl border border-app-border/80 bg-white/90 p-8 shadow-xl backdrop-blur">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-text-muted">
                   Register
                 </p>
-                <h2 className="font-display mt-2 text-2xl font-semibold text-slate-900">
+                <h2 className="font-display mt-2 text-2xl font-semibold text-app-text-heading">
                   Create your account
                 </h2>
               </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-app-text text-white">
                 <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path
                     strokeLinecap="round"
@@ -205,7 +205,7 @@ export default function Register() {
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="firstName" className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  <label htmlFor="firstName" className="text-xs font-semibold uppercase tracking-wide text-app-text">
                     First Name
                   </label>
                   <input
@@ -216,11 +216,11 @@ export default function Register() {
                     autoComplete="given-name"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                    className="mt-2 block w-full rounded-xl border border-app-border bg-white px-4 py-2.5 text-sm text-app-text-heading shadow-sm transition focus:border-app-text focus:outline-none focus:ring-4 focus:ring-app-accent"
                   />
                 </div>
                 <div>
-                  <label htmlFor="lastName" className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  <label htmlFor="lastName" className="text-xs font-semibold uppercase tracking-wide text-app-text">
                     Last Name
                   </label>
                   <input
@@ -231,13 +231,13 @@ export default function Register() {
                     autoComplete="family-name"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                    className="mt-2 block w-full rounded-xl border border-app-border bg-white px-4 py-2.5 text-sm text-app-text-heading shadow-sm transition focus:border-app-text focus:outline-none focus:ring-4 focus:ring-app-accent"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="email" className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                <label htmlFor="email" className="text-xs font-semibold uppercase tracking-wide text-app-text">
                   Email Address
                 </label>
                 <input
@@ -248,12 +248,12 @@ export default function Register() {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                  className="mt-2 block w-full rounded-xl border border-app-border bg-white px-4 py-2.5 text-sm text-app-text-heading shadow-sm transition focus:border-app-text focus:outline-none focus:ring-4 focus:ring-app-accent"
                 />
               </div>
 
               <div>
-                <label htmlFor="password" className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                <label htmlFor="password" className="text-xs font-semibold uppercase tracking-wide text-app-text">
                   Password
                 </label>
                 <input
@@ -265,15 +265,15 @@ export default function Register() {
                   minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                  className="mt-2 block w-full rounded-xl border border-app-border bg-white px-4 py-2.5 text-sm text-app-text-heading shadow-sm transition focus:border-app-text focus:outline-none focus:ring-4 focus:ring-app-accent"
                 />
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-app-text-muted">
                   Min 8 characters, with at least one uppercase letter, one lowercase letter, and one number.
                 </p>
               </div>
 
               <div>
-                <label htmlFor="confirmPassword" className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                <label htmlFor="confirmPassword" className="text-xs font-semibold uppercase tracking-wide text-app-text">
                   Confirm Password
                 </label>
                 <input
@@ -284,23 +284,23 @@ export default function Register() {
                   autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                  className="mt-2 block w-full rounded-xl border border-app-border bg-white px-4 py-2.5 text-sm text-app-text-heading shadow-sm transition focus:border-app-text focus:outline-none focus:ring-4 focus:ring-app-accent"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:-translate-y-0.5 hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200 disabled:opacity-60"
+                className="flex w-full items-center justify-center rounded-xl bg-app-text px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:-translate-y-0.5 hover:bg-app-text focus:outline-none focus:ring-4 focus:ring-app-accent disabled:opacity-60"
               >
                 {loading ? 'Submitting...' : 'Create Account'}
               </button>
 
-              <p className="text-center text-sm text-slate-500">
+              <p className="text-center text-sm text-app-text-muted">
                 Already have an account?{' '}
                 <Link
                   to="/login"
-                  className="font-medium text-slate-900 hover:underline"
+                  className="font-medium text-app-text-heading hover:underline"
                 >
                   Sign in
                 </Link>

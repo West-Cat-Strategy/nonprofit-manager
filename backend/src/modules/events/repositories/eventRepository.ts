@@ -2,9 +2,11 @@ import { services } from '@container/services';
 import * as eventReminderAutomationService from '@services/eventReminderAutomationService';
 import type { EventService } from '@services/eventService';
 import type {
+  CheckInOptions,
   CreateEventDTO,
   CreateEventReminderAutomationDTO,
   CreateRegistrationDTO,
+  EventRegistration,
   EventFilters,
   PaginationParams,
   RegistrationFilters,
@@ -26,6 +28,8 @@ type EventServicePort = Pick<
   | 'getEventAttendanceSummary'
   | 'getEventRegistrations'
   | 'getContactRegistrations'
+  | 'getRegistrationById'
+  | 'getRegistrationByToken'
   | 'registerContact'
   | 'updateRegistration'
   | 'checkInAttendee'
@@ -68,6 +72,14 @@ export class EventRepository {
     return this.eventService.getContactRegistrations(contactId);
   }
 
+  getRegistrationById(registrationId: string): Promise<EventRegistration | null> {
+    return this.eventService.getRegistrationById(registrationId);
+  }
+
+  getRegistrationByToken(eventId: string, token: string): Promise<EventRegistration | null> {
+    return this.eventService.getRegistrationByToken(eventId, token);
+  }
+
   registerContact(data: CreateRegistrationDTO): Promise<unknown> {
     return this.eventService.registerContact(data);
   }
@@ -76,8 +88,11 @@ export class EventRepository {
     return this.eventService.updateRegistration(registrationId, data);
   }
 
-  checkInAttendee(registrationId: string): Promise<{ success: boolean; message: string; registration?: unknown }> {
-    return this.eventService.checkInAttendee(registrationId);
+  checkInAttendee(
+    registrationId: string,
+    options?: CheckInOptions
+  ): Promise<{ success: boolean; message: string; registration?: unknown }> {
+    return this.eventService.checkInAttendee(registrationId, options);
   }
 
   cancelRegistration(registrationId: string): Promise<void> {

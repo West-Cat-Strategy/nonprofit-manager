@@ -175,7 +175,7 @@ export default function OrganizationSection({
                 placeholder={config.address.country === 'Canada' ? 'V6B 1A1' : '12345'}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent focus:border-transparent ${
                   config.address.postalCode && !validatePostalCode(config.address.postalCode, config.address.country)
-                    ? 'border-red-300'
+                    ? 'border-app-border'
                     : 'border-app-input-border'
                 }`}
               />

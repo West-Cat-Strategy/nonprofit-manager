@@ -41,6 +41,13 @@ export interface FollowUpWithEntity extends FollowUp {
   task_priority?: string;
 }
 
+export interface FollowUpEntityOption {
+  entityType: FollowUpEntityType;
+  entityId: string;
+  label: string;
+  description?: string;
+}
+
 export interface CreateFollowUpDTO {
   entity_type: FollowUpEntityType;
   entity_id: string;

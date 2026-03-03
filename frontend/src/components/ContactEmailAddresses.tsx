@@ -147,7 +147,7 @@ const ContactEmailAddresses = ({ contactId }: ContactEmailAddressesProps) => {
                 </button>
                 <button
                   onClick={() => handleDelete(email.id)}
-                  className="p-1 text-app-text-subtle hover:text-red-500 transition"
+                  className="p-1 text-app-text-subtle hover:text-app-accent transition"
                   title="Delete"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

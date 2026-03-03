@@ -148,6 +148,9 @@ export interface EventRegistration {
   registration_status: RegistrationStatus;
   checked_in: boolean;
   check_in_time: Date | null;
+  checked_in_by: string | null;
+  check_in_method: 'manual' | 'qr';
+  check_in_token: string;
   notes: string | null;
   created_at: Date;
   updated_at: Date;
@@ -169,6 +172,8 @@ export interface UpdateRegistrationDTO {
   registration_status?: RegistrationStatus;
   checked_in?: boolean;
   check_in_time?: Date;
+  checked_in_by?: string | null;
+  check_in_method?: 'manual' | 'qr';
   notes?: string;
 }
 
@@ -183,6 +188,11 @@ export interface CheckInResult {
   success: boolean;
   message: string;
   registration?: EventRegistration;
+}
+
+export interface CheckInOptions {
+  method?: 'manual' | 'qr';
+  checkedInBy?: string | null;
 }
 
 export interface SendEventRemindersDTO {

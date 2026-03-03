@@ -17,4 +17,4 @@ export {
   fetchCaseOutcomeDefinitions,
   fetchInteractionOutcomes,
   saveInteractionOutcomes,
-} from './casesLegacyCore';
+} from './casesCore';

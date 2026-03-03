@@ -212,76 +212,76 @@ Interaction-level outcome tags with:
 
 ### Case Management
 
-**GET** `/api/cases`
+**GET** `/api/v2/cases`
 - List all cases with filtering
 - Query params: contact_id, case_type_id, status_id, priority, assigned_to, search, page, limit
 
-**POST** `/api/cases`
+**POST** `/api/v2/cases`
 - Create new case
 - Auto-generates case number
 - Creates initial intake note
 
-**GET** `/api/cases/:id`
+**GET** `/api/v2/cases/:id`
 - Get case details with related data
 - Includes contact info, assignment, counts
 
-**PUT** `/api/cases/:id`
+**PUT** `/api/v2/cases/:id`
 - Update case details
 - Tracks modification history
 
-**DELETE** `/api/cases/:id`
+**DELETE** `/api/v2/cases/:id`
 - Delete case (with cascade to related records)
 
-**PUT** `/api/cases/:id/status`
+**PUT** `/api/v2/cases/:id/status`
 - Update case status
 - Creates status change note
 - Validates transitions
 
 ### Case Notes
 
-**GET** `/api/cases/:id/notes`
+**GET** `/api/v2/cases/:id/notes`
 - Get all notes for a case
 - Ordered by date (newest first)
 - Includes creator information
 
-**POST** `/api/cases/notes`
+**POST** `/api/v2/cases/notes`
 - Add note to case
 - Supports attachments
 - Internal/external flag
 
 ### Outcomes (Definitions + Interaction Tagging)
 
-**GET** `/api/admin/outcomes?includeInactive=true|false`
+**GET** `/api/v2/admin/outcomes?includeInactive=true|false`
 - List outcome definitions for admin management
 
-**POST** `/api/admin/outcomes`
+**POST** `/api/v2/admin/outcomes`
 - Create a new outcome definition
 
-**PATCH** `/api/admin/outcomes/:id`
+**PATCH** `/api/v2/admin/outcomes/:id`
 - Update outcome definition metadata
 
-**POST** `/api/admin/outcomes/:id/enable`
+**POST** `/api/v2/admin/outcomes/:id/enable`
 - Set `is_active=true`
 
-**POST** `/api/admin/outcomes/:id/disable`
+**POST** `/api/v2/admin/outcomes/:id/disable`
 - Set `is_active=false`
 
-**POST** `/api/admin/outcomes/reorder`
+**POST** `/api/v2/admin/outcomes/reorder`
 - Reorder by `orderedIds` transactionally
 
-**GET** `/api/cases/outcomes/definitions`
+**GET** `/api/v2/cases/outcomes/definitions`
 - List active outcome definitions for case interaction tagging
 
-**GET** `/api/cases/:caseId/interactions/:interactionId/outcomes`
+**GET** `/api/v2/cases/:caseId/interactions/:interactionId/outcomes`
 - Load saved outcomes for a specific case note interaction
 
-**PUT** `/api/cases/:caseId/interactions/:interactionId/outcomes`
+**PUT** `/api/v2/cases/:caseId/interactions/:interactionId/outcomes`
 - Save outcomes for a specific interaction
 - Supports `mode=replace|merge`
 
 ### Outcomes Reporting
 
-**GET** `/api/reports/outcomes?from=YYYY-MM-DD&to=YYYY-MM-DD&staffId=&interactionType=&bucket=week|month&includeNonReportable=true|false`
+**GET** `/api/v2/reports/outcomes?from=YYYY-MM-DD&to=YYYY-MM-DD&staffId=&interactionType=&bucket=week|month&includeNonReportable=true|false`
 - Returns:
   - `totalsByOutcome` (count impacts, unique clients impacted)
   - `timeseries` bucketed by week or month
@@ -290,15 +290,15 @@ Interaction-level outcome tags with:
 
 ### Metadata
 
-**GET** `/api/cases/types`
+**GET** `/api/v2/cases/types`
 - Get all active case types
 - Used for dropdowns and filtering
 
-**GET** `/api/cases/statuses`
+**GET** `/api/v2/cases/statuses`
 - Get all active statuses
 - Ordered by workflow position
 
-**GET** `/api/cases/summary`
+**GET** `/api/v2/cases/summary`
 - Get dashboard statistics
 - Returns counts by priority, status, type
 - Includes overdue and unassigned counts
@@ -366,7 +366,7 @@ For full details and QA matrix, see:
 ### 1. Create a New Case
 
 ```javascript
-POST /api/cases
+POST /api/v2/cases
 {
   "contact_id": "uuid",
   "case_type_id": "uuid",
@@ -390,7 +390,7 @@ POST /api/cases
 ### 2. List Cases for a Client
 
 ```javascript
-GET /api/cases?contact_id=uuid&page=1&limit=20
+GET /api/v2/cases?contact_id=uuid&page=1&limit=20
 
 Response:
 {
@@ -420,7 +420,7 @@ Response:
 ### 3. Update Case Status
 
 ```javascript
-PUT /api/cases/:id/status
+PUT /api/v2/cases/:id/status
 {
   "new_status_id": "uuid",
   "reason": "Client provided required documentation",
@@ -431,7 +431,7 @@ PUT /api/cases/:id/status
 ### 4. Add Case Note
 
 ```javascript
-POST /api/cases/notes
+POST /api/v2/cases/notes
 {
   "case_id": "uuid",
   "note_type": "call",
@@ -445,7 +445,7 @@ POST /api/cases/notes
 ### 5. Get Dashboard Summary
 
 ```javascript
-GET /api/cases/summary
+GET /api/v2/cases/summary
 
 Response:
 {
@@ -634,15 +634,15 @@ npm run dev
 
 ```bash
 # Get case types
-curl localhost:3000/api/cases/types \
+curl localhost:3000/api/v2/cases/types \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # Get case statuses
-curl localhost:3000/api/cases/statuses \
+curl localhost:3000/api/v2/cases/statuses \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # Create a case
-curl -X POST localhost:3000/api/cases \
+curl -X POST localhost:3000/api/v2/cases \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"contact_id":"uuid","case_type_id":"uuid","title":"Test Case"}'

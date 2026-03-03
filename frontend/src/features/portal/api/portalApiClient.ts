@@ -56,6 +56,14 @@ export class PortalV2ApiClient implements PortalApiClient {
     const query = disposition === 'inline' ? '?disposition=inline' : '';
     return `/api/v2/portal/cases/${caseId}/documents/${documentId}/download${query}`;
   }
+
+  getDocumentDownloadUrl(
+    documentId: string,
+    disposition: 'inline' | 'attachment' = 'attachment'
+  ): string {
+    const query = disposition === 'inline' ? '?disposition=inline' : '';
+    return `/api/v2/portal/documents/${documentId}/download${query}`;
+  }
 }
 
 export const portalV2ApiClient = new PortalV2ApiClient();

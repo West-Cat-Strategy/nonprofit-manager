@@ -7,6 +7,7 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '@middleware/auth';
 import { services } from '../container/services';
 import { badRequest } from '@utils/responseHelpers';
+import type { TemplateCategory } from '@app-types/reportTemplate';
 
 const templateService = services.reportTemplate;
 
@@ -20,8 +21,9 @@ export const getTemplates = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const category = req.query.category as string | undefined;
-        const templates = await templateService.getTemplates(category as any);
+        const query = ((req as any).validatedQuery ?? req.query) as { category?: TemplateCategory };
+        const category = typeof query.category === 'string' ? query.category : undefined;
+        const templates = await templateService.getTemplates(category);
         res.json(templates);
     } catch (error) {
         next(error);

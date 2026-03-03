@@ -27,7 +27,7 @@ export const BrutalFormSelect = React.forwardRef<
         {label && (
           <label className="block text-sm font-bold text-app-text">
             {label}
-            {required && <span className="text-red-600 ml-1">*</span>}
+            {required && <span className="text-app-accent ml-1">*</span>}
           </label>
         )}
         <select
@@ -35,7 +35,7 @@ export const BrutalFormSelect = React.forwardRef<
           className={`w-full px-3 py-2 border-2 border-app-text bg-app-surface text-app-text font-mono
             focus:outline-none focus:border-app-accent focus:ring-0 appearance-none cursor-pointer
             disabled:bg-app-surface-muted disabled:cursor-not-allowed
-            ${error ? 'border-red-600' : 'border-app-text'}
+            ${error ? 'border-app-accent' : 'border-app-text'}
             ${className}`}
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
@@ -54,7 +54,7 @@ export const BrutalFormSelect = React.forwardRef<
             ))}
         </select>
         {error && (
-          <p className="text-xs font-bold text-red-600">{error}</p>
+          <p className="text-xs font-bold text-app-accent">{error}</p>
         )}
         {hint && !error && (
           <p className="text-xs text-app-text-muted">{hint}</p>

@@ -33,6 +33,7 @@ import ConfirmDialog from '../../../components/ConfirmDialog';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 import { getCasePriorityBadgeColor } from '../../../features/cases/utils/casePriority';
 import CaseTeamChatPanel from '../../../features/teamChat/components/CaseTeamChatPanel';
+import CaseDetailTabs from '../../../features/cases/components/CaseDetailTabs';
 
 type TabType =
   | 'overview'
@@ -48,10 +49,42 @@ type TabType =
   | 'portal';
 
 const teamChatEnabled = import.meta.env.VITE_TEAM_CHAT_ENABLED !== 'false';
+const validTabs: TabType[] = [
+  'overview',
+  'timeline',
+  'notes',
+  'outcomes_topics',
+  'documents',
+  'milestones',
+  'followups',
+  'relationships',
+  'services',
+  'team_chat',
+  'portal',
+];
+
+const resolveTab = (requestedTab: string | null): TabType => {
+  if (!requestedTab) return 'overview';
+  if (!validTabs.includes(requestedTab as TabType)) return 'overview';
+  if (requestedTab === 'team_chat' && !teamChatEnabled) return 'overview';
+  return requestedTab as TabType;
+};
+
+const getProgressWidthClass = (value: number): string => {
+  if (value <= 0) return 'w-0';
+  if (value < 12.5) return 'w-1/12';
+  if (value < 25) return 'w-1/4';
+  if (value < 37.5) return 'w-1/3';
+  if (value < 50) return 'w-1/2';
+  if (value < 62.5) return 'w-7/12';
+  if (value < 75) return 'w-3/4';
+  if (value < 87.5) return 'w-10/12';
+  return 'w-full';
+};
 
 const CaseDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { showSuccess, showError } = useToast();
@@ -59,8 +92,7 @@ const CaseDetail = () => {
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
 
   const requestedTab = searchParams.get('tab');
-  const initialTab: TabType =
-    requestedTab === 'team_chat' && teamChatEnabled ? 'team_chat' : 'overview';
+  const initialTab: TabType = resolveTab(requestedTab);
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [isChangingStatus, setIsChangingStatus] = useState(false);
   const [newStatusId, setNewStatusId] = useState('');
@@ -88,10 +120,20 @@ const CaseDetail = () => {
   }, [dispatch, id]);
 
   useEffect(() => {
-    if (requestedTab === 'team_chat' && teamChatEnabled) {
-      setActiveTab('team_chat');
-    }
+    const nextTab = resolveTab(requestedTab);
+    setActiveTab((current) => (current === nextTab ? current : nextTab));
   }, [requestedTab]);
+
+  const setActiveTabWithUrl = (tab: TabType) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams);
+    if (tab === 'overview') {
+      params.delete('tab');
+    } else {
+      params.set('tab', tab);
+    }
+    setSearchParams(params, { replace: true });
+  };
 
   const handleStatusChange = async () => {
     if (!id || !newStatusId) return;
@@ -352,7 +394,7 @@ const CaseDetail = () => {
                   {currentCase.case_number}
                 </h1>
                 {currentCase.is_urgent && (
-                  <span className="px-3 py-1 bg-red-500 text-white text-sm font-black rounded-none border-2 border-black">
+                  <span className="px-3 py-1 bg-app-accent text-white text-sm font-black rounded-none border-2 border-black">
                     ⚠️ URGENT
                   </span>
                 )}
@@ -370,10 +412,10 @@ const CaseDetail = () => {
                 Client Viewable
               </label>
               <div className="flex gap-2">
-                <BrutalButton onClick={() => setActiveTab('notes')} variant="primary" size="sm">
+                <BrutalButton onClick={() => setActiveTabWithUrl('notes')} variant="primary" size="sm">
                   Add Note
                 </BrutalButton>
-                <BrutalButton onClick={() => setActiveTab('documents')} variant="secondary" size="sm">
+                <BrutalButton onClick={() => setActiveTabWithUrl('documents')} variant="secondary" size="sm">
                   Upload Document
                 </BrutalButton>
               </div>
@@ -408,11 +450,7 @@ const CaseDetail = () => {
               <div>
                 <div className="text-xs font-black uppercase text-black/70 mb-1">Type</div>
                 <span
-                  className="inline-block border-2 border-black px-3 py-1 text-xs font-black uppercase"
-                  style={{
-                    backgroundColor: currentCase.case_type_color || '#e5e7eb',
-                    color: '#000000',
-                  }}
+                  className="inline-block border-2 border-black bg-app-surface-muted px-3 py-1 text-xs font-black uppercase text-black"
                 >
                   {currentCase.case_type_name}
                 </span>
@@ -492,30 +530,7 @@ const CaseDetail = () => {
         )}
 
         {/* Tabs */}
-        <div className="border-b-2 border-black dark:border-white">
-          <nav className="flex gap-0" role="tablist" aria-label="Case details tabs">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                role="tab"
-                aria-selected={activeTab === tab.key}
-                aria-controls={`panel-${tab.key}`}
-                className={`px-4 py-3 font-black uppercase text-sm border-b-4 transition-colors ${activeTab === tab.key
-                  ? 'border-black dark:border-white text-black dark:text-white bg-[var(--loop-yellow)]'
-                  : 'border-transparent text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white hover:bg-app-surface-muted dark:hover:bg-app-text'
-                  }`}
-              >
-                {tab.label}
-                {tab.count !== undefined && (
-                  <span className="ml-2 px-2 py-0.5 text-xs bg-black text-white dark:bg-app-surface dark:text-black rounded-none">
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            ))}
-          </nav>
-        </div>
+        <CaseDetailTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTabWithUrl} />
 
         {/* Tab Content */}
         <div>
@@ -719,8 +734,11 @@ const CaseDetail = () => {
                 </div>
                 <div className="w-full h-4 border-2 border-black bg-app-surface">
                   <div
-                    className="h-full bg-[var(--loop-green)] transition-all duration-300"
-                    style={{ width: caseMilestones.length > 0 ? `${(completedMilestones / caseMilestones.length) * 100}%` : '0%' }}
+                    className={`h-full bg-[var(--loop-green)] transition-all duration-300 ${getProgressWidthClass(
+                      caseMilestones.length > 0
+                        ? (completedMilestones / caseMilestones.length) * 100
+                        : 0
+                    )}`}
                   />
                 </div>
               </BrutalCard>
@@ -833,13 +851,13 @@ const CaseDetail = () => {
                             )}
                             <div className="flex gap-4 text-xs font-bold text-black/50 dark:text-white/50">
                               {milestone.due_date && (
-                                <span className={isOverdueMilestone ? 'text-red-600 font-black' : ''}>
+                                <span className={isOverdueMilestone ? 'text-app-accent font-black' : ''}>
                                   Due: {new Date(milestone.due_date).toLocaleDateString()}
                                   {isOverdueMilestone && ' (OVERDUE)'}
                                 </span>
                               )}
                               {milestone.completed_date && (
-                                <span className="text-green-700">Completed: {new Date(milestone.completed_date).toLocaleDateString()}</span>
+                                <span className="text-app-accent-text">Completed: {new Date(milestone.completed_date).toLocaleDateString()}</span>
                               )}
                             </div>
                           </div>
@@ -854,7 +872,7 @@ const CaseDetail = () => {
                             </button>
                             <button
                               onClick={() => handleDeleteMilestone(milestone.id)}
-                              className="border-2 border-black bg-red-100 text-black px-2 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-px hover:translate-y-px hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
+                              className="border-2 border-black bg-app-accent-soft text-black px-2 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-px hover:translate-y-px hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
                             >
                               ✕
                             </button>

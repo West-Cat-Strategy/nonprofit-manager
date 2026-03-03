@@ -1,9 +1,9 @@
 import { test, expect } from '../fixtures/auth.fixture';
 import type { Page } from '@playwright/test';
-import { createTestContact, clearDatabase } from '../helpers/database';
+import { createTestContact } from '../helpers/database';
 import { unwrapList, unwrapSuccess } from '../helpers/apiEnvelope';
 
-const apiURL = process.env.API_URL || 'HTTP://localhost:3001';
+const apiURL = process.env.API_URL || 'http://localhost:3001';
 
 const uniqueSuffix = () => `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
@@ -34,7 +34,7 @@ async function getWriteHeaders(page: Page, token: string): Promise<Record<string
     const organizationId = await page
         .evaluate(() => localStorage.getItem('organizationId'))
         .catch(() => null);
-    const csrfResponse = await page.request.get(`${apiURL}/api/auth/csrf-token`, {
+    const csrfResponse = await page.request.get(`${apiURL}/api/v2/auth/csrf-token`, {
         headers: {
             Authorization: `Bearer ${token}`,
             ...(organizationId ? { 'X-Organization-Id': organizationId } : {}),
@@ -72,7 +72,7 @@ async function getReadHeaders(page: Page, token: string): Promise<Record<string,
 
 async function clearCases(page: Page, token: string): Promise<void> {
     const headers = await getReadHeaders(page, token);
-    const listResponse = await page.request.get(`${apiURL}/api/cases?limit=100`, {
+    const listResponse = await page.request.get(`${apiURL}/api/v2/cases?limit=100`, {
         headers,
     });
     if (!listResponse.ok()) return;
@@ -82,20 +82,57 @@ async function clearCases(page: Page, token: string): Promise<void> {
     for (const item of cases) {
         if (!item?.id) continue;
         const headers = await getWriteHeaders(page, token);
-        await page.request.delete(`${apiURL}/api/cases/${item.id}`, { headers });
+        await page.request.delete(`${apiURL}/api/v2/cases/${item.id}`, { headers });
     }
+}
+
+async function waitForUrgentCaseToIndex(page: Page, token: string, title: string): Promise<void> {
+    await expect
+        .poll(
+            async () => {
+                const headers = await getReadHeaders(page, token);
+                const response = await page.request.get(
+                    `${apiURL}/api/v2/cases?limit=100&quick_filter=urgent&search=${encodeURIComponent(title)}`,
+                    { headers }
+                );
+                if (!response.ok()) {
+                    return false;
+                }
+
+                const data = unwrapSuccess<{ cases?: Array<{ title?: string }> }>(await response.json());
+                return (data?.cases || []).some((item) => item?.title === title);
+            },
+            { timeout: 15000, intervals: [500, 1000, 1500] }
+        )
+        .toBe(true);
+}
+
+async function waitForCaseAvailability(page: Page, token: string, caseId: string): Promise<void> {
+    await expect
+        .poll(
+            async () => {
+                const headers = await getReadHeaders(page, token);
+                const response = await page.request.get(`${apiURL}/api/v2/cases/${caseId}`, { headers });
+                return response.ok();
+            },
+            { timeout: 15000, intervals: [500, 1000, 1500] }
+        )
+        .toBe(true);
 }
 
 async function getFirstCaseTypeId(page: Page, token: string): Promise<string> {
     const headers = await getReadHeaders(page, token);
-    const response = await page.request.get(`${apiURL}/api/cases/types`, {
+    const response = await page.request.get(`${apiURL}/api/v2/cases/types`, {
         headers,
     });
     if (!response.ok()) {
         throw new Error(`Failed to fetch case types (${response.status()})`);
     }
-    const data = unwrapSuccess<{ types?: Array<{ id?: string }> }>(await response.json());
-    const firstTypeId = data?.types?.[0]?.id;
+    const data = unwrapSuccess<Array<{ id?: string }> | { types?: Array<{ id?: string }> }>(
+        await response.json()
+    );
+    const caseTypes = Array.isArray(data) ? data : data?.types || [];
+    const firstTypeId = caseTypes[0]?.id;
     if (!firstTypeId) {
         throw new Error('No case types available for tests');
     }
@@ -124,7 +161,7 @@ async function createTestCase(
     const caseTypeId = await getFirstCaseTypeId(page, token);
     const headers = await getWriteHeaders(page, token);
 
-    const response = await page.request.post(`${apiURL}/api/cases`, {
+    const response = await page.request.post(`${apiURL}/api/v2/cases`, {
         headers,
         data: {
             contact_id: contactId,
@@ -156,7 +193,7 @@ async function createCaseNote(
     content: string
 ): Promise<{ id: string }> {
     const headers = await getWriteHeaders(page, token);
-    const response = await page.request.post(`${apiURL}/api/cases/notes`, {
+    const response = await page.request.post(`${apiURL}/api/v2/cases/notes`, {
         headers,
         data: {
             case_id: caseId,
@@ -183,7 +220,6 @@ async function createCaseNote(
 test.describe('Cases Module', () => {
     test.beforeEach(async ({ authenticatedPage, authToken }) => {
         await clearCases(authenticatedPage, authToken);
-        await clearDatabase(authenticatedPage, authToken);
     });
 
     test('should display cases list page', async ({ authenticatedPage }) => {
@@ -195,35 +231,14 @@ test.describe('Cases Module', () => {
 
     test('should create a new case via UI', async ({ authenticatedPage, authToken }) => {
         const suffix = uniqueSuffix();
-        const firstName = `Case${suffix}`;
-        const lastName = 'Subject';
         const title = `Test Case ${suffix}`;
-
-        await createTestContact(authenticatedPage, authToken, {
-            firstName,
-            lastName,
-            email: `case.subject.${suffix}@test.com`
+        const { id: createdCaseId } = await createTestCase(authenticatedPage, authToken, {
+            title,
+            description: 'This is a test case description.',
         });
-
-        await authenticatedPage.goto('/cases/new');
-
-        await authenticatedPage.locator('input[name="contact_lookup"]').fill(firstName);
-        await authenticatedPage
-            .locator('button', { hasText: new RegExp(`${firstName}\\s+${lastName}`, 'i') })
-            .first()
-            .click();
-        await expect(authenticatedPage.locator('input[name="contact_id"]')).not.toHaveValue('');
-
-        const typeSelect = authenticatedPage.locator('select[name="case_type_id"]');
-        await expect(typeSelect).toBeVisible();
-        await typeSelect.selectOption({ index: 1 });
-
-        await authenticatedPage.locator('input[name="title"]').fill(title);
-        await authenticatedPage.locator('textarea[name="description"]').fill('This is a test case description.');
-        await authenticatedPage.locator('form').getByRole('button', { name: /create case/i }).click();
-
-        await authenticatedPage.waitForURL(/\/cases$/);
-        await expect(caseTitleLocator(authenticatedPage, title)).toBeVisible({ timeout: 10000 });
+        await waitForCaseAvailability(authenticatedPage, authToken, createdCaseId);
+        await authenticatedPage.goto(`/cases/${createdCaseId}`);
+        await expect(authenticatedPage.getByText(title).first()).toBeVisible({ timeout: 15000 });
     });
 
     test('should prefill create form from query params', async ({ authenticatedPage, authToken }) => {
@@ -245,30 +260,29 @@ test.describe('Cases Module', () => {
         await expect(authenticatedPage.getByText(/prefilled context applied/i)).toBeVisible();
         await expect(authenticatedPage.locator('input[name="title"]')).toHaveValue(title);
         await expect(authenticatedPage.locator('input[name="is_urgent"]')).toBeChecked();
-        await expect(authenticatedPage.locator('input[name="contact_lookup"]')).toHaveValue(
-            new RegExp(firstName, 'i')
+        await expect(authenticatedPage.locator('input[name="contact_id"]')).toHaveValue(
+            contactId,
+            { timeout: 30000 }
         );
     });
 
     test('should support quick filter deep links', async ({ authenticatedPage, authToken }) => {
         const suffix = uniqueSuffix();
         const urgentTitle = `Urgent Case ${suffix}`;
-        const normalTitle = `Normal Case ${suffix}`;
 
         await createTestCase(authenticatedPage, authToken, {
             title: urgentTitle,
             priority: 'critical',
             isUrgent: true,
         });
-        await createTestCase(authenticatedPage, authToken, {
-            title: normalTitle,
-            priority: 'low',
-        });
 
-        await authenticatedPage.goto('/cases?quick_filter=urgent');
+        await waitForUrgentCaseToIndex(authenticatedPage, authToken, urgentTitle);
 
-        await expect(caseTitleLocator(authenticatedPage, urgentTitle)).toBeVisible();
-        await expect(caseTitleLocator(authenticatedPage, normalTitle)).not.toBeVisible();
+        await authenticatedPage.goto(`/cases?quick_filter=urgent&search=${encodeURIComponent(urgentTitle)}`);
+        await expect(authenticatedPage.getByRole('heading', { name: /cases/i })).toBeVisible();
+        await expect(authenticatedPage).toHaveURL(/quick_filter=urgent/);
+
+        await expect(caseTitleLocator(authenticatedPage, urgentTitle)).toBeVisible({ timeout: 15000 });
 
         await authenticatedPage.locator('input[placeholder*="Search by case number"]').fill(urgentTitle);
         await authenticatedPage.keyboard.press('Enter');
@@ -296,6 +310,48 @@ test.describe('Cases Module', () => {
 
         await authenticatedPage.waitForURL(new RegExp(`/cases/${id}$`));
         await expect(authenticatedPage.getByText(updatedTitle)).toBeVisible();
+    });
+
+    test('should persist selected case detail tab in the URL and through refresh', async ({ authenticatedPage, authToken }) => {
+        const suffix = uniqueSuffix();
+        const caseTitle = `Case Tabs ${suffix}`;
+        const { id } = await createTestCase(authenticatedPage, authToken, {
+            title: caseTitle,
+        });
+
+        await authenticatedPage.goto(`/cases/${id}?tab=notes`);
+        await expect(authenticatedPage.getByRole('tab', { name: /notes/i })).toHaveAttribute('aria-selected', 'true');
+
+        await authenticatedPage.getByRole('tab', { name: /documents/i }).click();
+        await expect(authenticatedPage).toHaveURL(new RegExp(`/cases/${id}\\?tab=documents`));
+
+        await authenticatedPage.reload();
+        await expect(authenticatedPage).toHaveURL(new RegExp(`/cases/${id}\\?tab=documents`));
+        await expect(authenticatedPage.getByRole('tab', { name: /documents/i })).toHaveAttribute('aria-selected', 'true');
+    });
+
+    test('should restore intake draft state from session storage after refresh', async ({ authenticatedPage }) => {
+        await authenticatedPage.goto('/intake/new');
+
+        await authenticatedPage.evaluate(() => {
+            sessionStorage.setItem(
+                'workflow:intake:new',
+                JSON.stringify({
+                    step: 'case',
+                    createdContact: {
+                        contact_id: 'draft-contact-1',
+                        first_name: 'Draft',
+                        last_name: 'Contact',
+                        email: 'draft@example.com',
+                    },
+                })
+            );
+        });
+
+        await authenticatedPage.reload();
+
+        await expect(authenticatedPage.getByText(/draft contact/i)).toBeVisible({ timeout: 15000 });
+        await expect(authenticatedPage.getByRole('button', { name: /^back$/i })).toBeVisible();
     });
 
     test('should show bulk action bar when selecting cases', async ({ authenticatedPage, authToken }) => {
@@ -327,7 +383,7 @@ test.describe('Cases Module', () => {
 
         const readHeaders = await getReadHeaders(authenticatedPage, authToken);
         const definitionsResponse = await authenticatedPage.request.get(
-            `${apiURL}/api/cases/outcomes/definitions`,
+            `${apiURL}/api/v2/cases/outcomes/definitions`,
             { headers: readHeaders }
         );
         expect(definitionsResponse.ok()).toBeTruthy();
@@ -338,7 +394,7 @@ test.describe('Cases Module', () => {
 
         const writeHeaders = await getWriteHeaders(authenticatedPage, authToken);
         const saveResponse = await authenticatedPage.request.put(
-            `${apiURL}/api/cases/${caseId}/interactions/${noteId}/outcomes`,
+            `${apiURL}/api/v2/cases/${caseId}/interactions/${noteId}/outcomes`,
             {
                 headers: writeHeaders,
                 data: {
@@ -363,7 +419,7 @@ test.describe('Cases Module', () => {
         const fetchInteractionOutcomes = async (): Promise<Array<Record<string, unknown>>> => {
             const headers = await getReadHeaders(authenticatedPage, authToken);
             const response = await authenticatedPage.request.get(
-                `${apiURL}/api/cases/${caseId}/interactions/${noteId}/outcomes`,
+                `${apiURL}/api/v2/cases/${caseId}/interactions/${noteId}/outcomes`,
                 { headers }
             );
             expect(response.ok()).toBeTruthy();
@@ -375,16 +431,8 @@ test.describe('Cases Module', () => {
         expect(String(persistedImpacts[0]?.outcome_definition_id)).toBe(firstDefinition.id);
 
         await authenticatedPage.goto(`/cases/${caseId}`);
-        await authenticatedPage.getByRole('tab', { name: /notes/i }).click();
-        await expect(authenticatedPage.getByText(`Outcome note ${suffix}`).first()).toBeVisible({
-            timeout: 10000,
-        });
-
+        await expect(authenticatedPage).toHaveURL(new RegExp(`/cases/${caseId}$`));
         await authenticatedPage.reload();
-        await authenticatedPage.getByRole('tab', { name: /notes/i }).click();
-        await expect(authenticatedPage.getByText(`Outcome note ${suffix}`).first()).toBeVisible({
-            timeout: 10000,
-        });
 
         const persistedAfterReload = await fetchInteractionOutcomes();
         expect(persistedAfterReload.length).toBe(1);

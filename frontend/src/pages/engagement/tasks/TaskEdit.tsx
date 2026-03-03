@@ -41,7 +41,7 @@ const TaskEdit: React.FC = () => {
     return (
       <NeoBrutalistLayout pageTitle="TASKS">
         <div className="container mx-auto px-4 py-8">
-          <div className="p-4 bg-red-100 text-red-700 rounded-md">
+          <div className="p-4 bg-app-accent-soft text-app-accent-text rounded-md">
             Error: {error}
           </div>
         </div>
@@ -53,7 +53,7 @@ const TaskEdit: React.FC = () => {
     return (
       <NeoBrutalistLayout pageTitle="TASKS">
         <div className="container mx-auto px-4 py-8">
-          <div className="p-4 bg-yellow-100 text-yellow-700 rounded-md">
+          <div className="p-4 bg-app-accent-soft text-app-accent-text rounded-md">
             Task not found
           </div>
         </div>

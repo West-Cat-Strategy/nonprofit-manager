@@ -10,8 +10,8 @@ import { fetchEventsListV2 } from '../state';
 const getStatusBadgeClass = (status: string): string => {
   const statusColors: Record<string, string> = {
     planned: 'bg-app-surface-muted text-app-text',
-    active: 'bg-green-100 text-green-800',
-    cancelled: 'bg-red-100 text-red-800',
+    active: 'bg-app-accent-soft text-app-accent-text',
+    cancelled: 'bg-app-accent-soft text-app-accent-text',
     completed: 'bg-app-accent-soft text-app-accent-text',
   };
 

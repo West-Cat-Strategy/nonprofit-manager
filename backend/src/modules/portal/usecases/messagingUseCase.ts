@@ -7,8 +7,17 @@ const normalizeUserAgent = (userAgent?: string | string[]): string | null =>
 export class PortalMessagingUseCase {
   constructor(private readonly messagingPort: PortalMessagingPort) {}
 
-  listThreads(portalUserId: string): Promise<unknown[]> {
-    return this.messagingPort.listPortalThreads(portalUserId);
+  listThreads(
+    portalUserId: string,
+    filters?: {
+      status?: 'open' | 'closed' | 'archived';
+      caseId?: string;
+      search?: string;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<unknown[]> {
+    return this.messagingPort.listPortalThreads(portalUserId, filters);
   }
 
   async createThread(input: {
@@ -75,11 +84,13 @@ export class PortalMessagingUseCase {
     threadId: string;
     status?: 'open' | 'closed' | 'archived';
     subject?: string | null;
+    actorType?: 'portal' | 'staff' | 'system';
   }): Promise<unknown | null> {
     return this.messagingPort.updateThread({
       threadId: input.threadId,
       status: input.status,
       subject: input.subject,
+      actorType: input.actorType,
       closedBy: null,
     });
   }

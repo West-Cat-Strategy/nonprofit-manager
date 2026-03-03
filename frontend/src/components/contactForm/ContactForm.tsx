@@ -58,7 +58,7 @@ export const ContactForm: React.FC<ContactFormProps> = ({ contact, mode, onCreat
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {errors.submit && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="bg-app-accent-soft border border-app-border text-app-accent-text px-4 py-3 rounded">
           {errors.submit}
         </div>
       )}

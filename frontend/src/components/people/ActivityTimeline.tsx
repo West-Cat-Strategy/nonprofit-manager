@@ -26,18 +26,18 @@ const getEventIcon = (type: ActivityEventType) => {
   const iconClass = 'w-6 h-6 stroke-[3px]';
   switch (type) {
     case 'created':
-      return <CheckCircleIcon className={`${iconClass} text-green-600`} />;
+      return <CheckCircleIcon className={`${iconClass} text-app-accent`} />;
     case 'updated':
       return <PencilIcon className={`${iconClass} text-[var(--app-accent)]`} />;
     case 'deleted':
-      return <TrashIcon className={`${iconClass} text-red-600`} />;
+      return <TrashIcon className={`${iconClass} text-app-accent`} />;
     case 'status_changed':
     case 'status_updated':
-      return <CheckIcon className={`${iconClass} text-yellow-600`} />;
+      return <CheckIcon className={`${iconClass} text-app-accent`} />;
     case 'comment':
-      return <ChatBubbleLeftIcon className={`${iconClass} text-purple-600`} />;
+      return <ChatBubbleLeftIcon className={`${iconClass} text-app-accent`} />;
     case 'assigned':
-      return <LinkIcon className={`${iconClass} text-indigo-600`} />;
+      return <LinkIcon className={`${iconClass} text-app-accent`} />;
     case 'unassigned':
       return <LinkIcon className={`${iconClass} text-[var(--app-text-muted)]`} />;
     case 'field_changed':
@@ -153,13 +153,13 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {change.oldValue !== undefined && (
-                        <div className="bg-red-100 border-2 border-red-900 p-2 text-red-900 font-black flex items-center gap-2">
+                        <div className="bg-app-accent-soft border-2 border-app-accent p-2 text-app-accent-text font-black flex items-center gap-2">
                           <span className="text-2xl leading-none">−</span>
                           <span className="truncate">{String(change.oldValue)}</span>
                         </div>
                       )}
                       {change.newValue !== undefined && (
-                        <div className="bg-green-100 border-2 border-green-900 p-2 text-green-900 font-black flex items-center gap-2">
+                        <div className="bg-app-accent-soft border-2 border-app-accent p-2 text-app-accent-text font-black flex items-center gap-2">
                           <span className="text-2xl leading-none">+</span>
                           <span className="truncate">{String(change.newValue)}</span>
                         </div>

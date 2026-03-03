@@ -3,7 +3,7 @@ import '../helpers/testEnv';
 
 test.describe('Public smoke', () => {
   const waitForAppRoute = async (page: import('@playwright/test').Page) => {
-    const loadingText = page.getByText('Loading...');
+    const loadingText = page.getByText('Loading...').first();
     if (await loadingText.isVisible().catch(() => false)) {
       await loadingText.waitFor({ state: 'detached', timeout: 30_000 });
     }

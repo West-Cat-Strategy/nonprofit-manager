@@ -3,14 +3,14 @@
   "version": "1.0.0",
   "description": "End-to-end tests for Nonprofit Manager",
   "scripts": {
-    "test": "SKIP_WEBSERVER=0 playwright test",
-    "test:headed": "SKIP_WEBSERVER=0 playwright test --headed",
-    "test:debug": "SKIP_WEBSERVER=0 playwright test --debug",
-    "test:ui": "SKIP_WEBSERVER=0 playwright test --ui",
+    "test": "BASE_URL=http://127.0.0.1:5173 API_URL=http://127.0.0.1:3001 SKIP_WEBSERVER=0 E2E_USE_DEV_RUNTIME=${E2E_USE_DEV_RUNTIME:-0} PW_REUSE_EXISTING_SERVER=${PW_REUSE_EXISTING_SERVER:-0} playwright test",
+    "test:headed": "BASE_URL=http://127.0.0.1:5173 API_URL=http://127.0.0.1:3001 SKIP_WEBSERVER=0 E2E_USE_DEV_RUNTIME=${E2E_USE_DEV_RUNTIME:-0} PW_REUSE_EXISTING_SERVER=${PW_REUSE_EXISTING_SERVER:-0} playwright test --headed",
+    "test:debug": "BASE_URL=http://127.0.0.1:5173 API_URL=http://127.0.0.1:3001 SKIP_WEBSERVER=0 E2E_USE_DEV_RUNTIME=${E2E_USE_DEV_RUNTIME:-0} PW_REUSE_EXISTING_SERVER=${PW_REUSE_EXISTING_SERVER:-0} playwright test --debug",
+    "test:ui": "BASE_URL=http://127.0.0.1:5173 API_URL=http://127.0.0.1:3001 SKIP_WEBSERVER=0 E2E_USE_DEV_RUNTIME=${E2E_USE_DEV_RUNTIME:-0} PW_REUSE_EXISTING_SERVER=${PW_REUSE_EXISTING_SERVER:-0} playwright test --ui",
     "test:report": "playwright show-report",
     "test:codegen": "playwright codegen",
-    "test:smoke": "SKIP_WEBSERVER=0 playwright test --project=chromium tests/smoke-public.spec.ts",
-    "test:ci": "SKIP_WEBSERVER=0 playwright test --project=chromium --project=firefox --project=webkit"
+    "test:smoke": "E2E_PORT_ACTION=${E2E_PORT_ACTION:-kill} bash ../scripts/e2e-port-preflight.sh && BASE_URL=http://127.0.0.1:5173 API_URL=http://127.0.0.1:3001 SKIP_WEBSERVER=0 E2E_USE_DEV_RUNTIME=${E2E_USE_DEV_RUNTIME:-0} PW_REUSE_EXISTING_SERVER=${PW_REUSE_EXISTING_SERVER:-0} playwright test --project=chromium tests/smoke-public.spec.ts",
+    "test:ci": "E2E_PORT_ACTION=${E2E_PORT_ACTION:-kill} bash ../scripts/e2e-port-preflight.sh && BASE_URL=http://127.0.0.1:5173 API_URL=http://127.0.0.1:3001 CI=1 SKIP_WEBSERVER=0 E2E_USE_DEV_RUNTIME=${E2E_USE_DEV_RUNTIME:-0} PW_REUSE_EXISTING_SERVER=${PW_REUSE_EXISTING_SERVER:-0} playwright test --project=chromium --project=firefox --project=webkit"
   },
   "keywords": [
     "e2e",

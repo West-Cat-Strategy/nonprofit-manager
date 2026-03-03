@@ -135,6 +135,9 @@ export const createCaseDocumentsController = (
 
   const downloadCaseDocument = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
+      const query = ((req as any).validatedQuery ?? req.query) as {
+        disposition?: 'inline' | 'attachment' | string;
+      };
       const record = (await useCase.get(req.params.id, req.params.documentId)) as
         | {
             file_path?: string | null;
@@ -158,7 +161,7 @@ export const createCaseDocumentsController = (
       const fullPath = fileStorage.getFullPath(record.file_path);
       const fileName = record.original_filename || record.document_name || 'case-document';
       const mimeType = record.mime_type || 'application/octet-stream';
-      const dispositionQuery = String(req.query.disposition || '').toLowerCase();
+      const dispositionQuery = String(query.disposition || '').toLowerCase();
       const wantsInline = dispositionQuery === 'inline' && INLINE_PREVIEW_MIME_TYPES.has(mimeType);
       const disposition = wantsInline ? 'inline' : 'attachment';
 
@@ -181,4 +184,3 @@ export const createCaseDocumentsController = (
     downloadCaseDocument,
   };
 };
-

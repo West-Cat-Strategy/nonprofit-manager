@@ -269,10 +269,10 @@ describe('PaymentHistory', () => {
       renderWithProviders(<PaymentHistory contactId="contact-123" />);
 
       await waitFor(() => {
-        expect(screen.getByText('completed')).toHaveClass('bg-green-100');
-        expect(screen.getByText('pending')).toHaveClass('bg-yellow-100');
-        expect(screen.getByText('failed')).toHaveClass('bg-red-100');
-        expect(screen.getByText('refunded')).toHaveClass('bg-purple-100');
+        expect(screen.getByText('completed')).toHaveClass('bg-app-accent-soft');
+        expect(screen.getByText('pending')).toHaveClass('bg-app-accent-soft');
+        expect(screen.getByText('failed')).toHaveClass('bg-app-accent-soft');
+        expect(screen.getByText('refunded')).toHaveClass('bg-app-accent-soft');
         expect(screen.getByText('cancelled')).toHaveClass('bg-app-surface-muted');
       });
     });

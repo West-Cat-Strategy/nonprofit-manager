@@ -14,13 +14,23 @@ import {
   updateThread,
 } from '@services/portalMessagingService';
 import {
+  checkInAppointmentByStaff,
   createAppointmentSlot,
   deleteAppointmentSlot,
   getAppointmentById,
+  listAdminAppointments,
   listAdminAppointmentSlots,
   updateAppointmentSlot,
   updateAppointmentStatusByStaff,
 } from '@services/portalAppointmentSlotService';
+import {
+  listAppointmentReminders,
+  sendAppointmentReminders,
+} from '@services/appointmentReminderService';
+import {
+  isPortalRealtimeEnabled,
+  openPortalRealtimeStream,
+} from '@services/portalRealtimeService';
 import { badRequest, conflict, forbidden, notFoundMessage } from '@utils/responseHelpers';
 
 const ensureAdmin = (req: AuthRequest, res: Response): boolean => {
@@ -69,7 +79,7 @@ export const listPortalSignupRequests = async (
        ORDER BY psr.requested_at ASC`
     );
 
-    res.json({ requests: result.rows });
+    res.send({ requests: result.rows });
   } catch (error) {
     next(error);
   }
@@ -126,7 +136,7 @@ export const approvePortalSignupRequest = async (
       [id, req.user!.id]
     );
 
-    res.json({
+    res.send({
       message: 'Portal request approved',
       portalUser: portalUserResult.rows[0],
     });
@@ -168,7 +178,7 @@ export const rejectPortalSignupRequest = async (
       [id, req.user!.id, notes || null]
     );
 
-    res.json({ message: 'Portal request rejected' });
+    res.send({ message: 'Portal request rejected' });
   } catch (error) {
     next(error);
   }
@@ -219,7 +229,7 @@ export const createPortalInvitation = async (
       [email.toLowerCase(), contact_id || null, token, expiresAt, req.user!.id]
     );
 
-    const baseUrl = process.env.FRONTEND_URL || 'HTTP://localhost:5173';
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const inviteUrl = `${baseUrl}/portal/accept-invitation/${token}`;
 
     res.status(201).json({
@@ -245,7 +255,7 @@ export const listPortalInvitations = async (
        ORDER BY created_at DESC`
     );
 
-    res.json({ invitations: result.rows });
+    res.send({ invitations: result.rows });
   } catch (error) {
     next(error);
   }
@@ -259,7 +269,8 @@ export const listPortalUsers = async (
   try {
     if (!ensureAdmin(req, res)) return;
 
-    const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+    const query = ((req as any).validatedQuery ?? req.query) as { search?: string };
+    const search = typeof query.search === 'string' ? query.search.trim() : '';
     const params: Array<string> = [];
     let whereClause = '';
 
@@ -342,9 +353,16 @@ export const getPortalUserActivity = async (
     if (!ensureAdmin(req, res)) return;
 
     const { id } = req.params;
-    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+    const query = ((req as any).validatedQuery ?? req.query) as {
+      limit?: number | string;
+    };
+    const parsedLimit =
+      typeof query.limit === 'number'
+        ? query.limit
+        : parseInt(String(query.limit ?? ''), 10);
+    const limit = Number.isFinite(parsedLimit) ? parsedLimit : 20;
 
-    const activity = await getPortalActivity(id, Number.isNaN(limit) ? 20 : limit);
+    const activity = await getPortalActivity(id, limit);
     res.json({ activity });
   } catch (error) {
     next(error);
@@ -381,20 +399,22 @@ export const listPortalAdminConversations = async (
   try {
     if (!ensureAdmin(req, res)) return;
 
-    const status =
-      req.query.status === 'open' || req.query.status === 'closed' || req.query.status === 'archived'
-        ? req.query.status
-        : undefined;
-    const caseId = typeof req.query.case_id === 'string' ? req.query.case_id : undefined;
-    const pointpersonUserId =
-      typeof req.query.pointperson_user_id === 'string'
-        ? req.query.pointperson_user_id
-        : undefined;
+    const query = ((req as any).validatedQuery ?? req.query) as {
+      status?: 'open' | 'closed' | 'archived';
+      case_id?: string;
+      pointperson_user_id?: string;
+      search?: string;
+      limit?: number;
+      offset?: number;
+    };
 
     const conversations = await listStaffThreads({
-      status,
-      caseId,
-      pointpersonUserId,
+      status: query.status,
+      caseId: query.case_id,
+      pointpersonUserId: query.pointperson_user_id,
+      search: query.search,
+      limit: query.limit,
+      offset: query.offset,
     });
 
     res.json({ conversations });
@@ -492,6 +512,7 @@ export const updatePortalAdminConversation = async (
       pointpersonUserId,
       caseId,
       subject,
+      actorType: 'staff',
       closedBy: status === 'closed' ? req.user!.id : null,
     });
 
@@ -514,24 +535,60 @@ export const listPortalAdminAppointmentSlots = async (
   try {
     if (!ensureAdmin(req, res)) return;
 
-    const status =
-      req.query.status === 'open' || req.query.status === 'closed' || req.query.status === 'cancelled'
-        ? req.query.status
-        : undefined;
-    const caseId = typeof req.query.case_id === 'string' ? req.query.case_id : undefined;
-    const pointpersonUserId =
-      typeof req.query.pointperson_user_id === 'string'
-        ? req.query.pointperson_user_id
-        : undefined;
+    const query = ((req as any).validatedQuery ?? req.query) as {
+      status?: 'open' | 'closed' | 'cancelled';
+      case_id?: string;
+      pointperson_user_id?: string;
+      from?: string;
+      to?: string;
+      limit?: number;
+      offset?: number;
+    };
 
     const slots = await listAdminAppointmentSlots({
-      status,
-      caseId,
-      pointpersonUserId,
+      status: query.status,
+      caseId: query.case_id,
+      pointpersonUserId: query.pointperson_user_id,
+      from: query.from,
+      to: query.to,
+      limit: query.limit,
+      offset: query.offset,
     });
 
     res.json({ slots });
   } catch (error) {
+    next(error);
+  }
+};
+
+export const streamPortalAdminRealtime = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    if (!isPortalRealtimeEnabled()) {
+      badRequest(res, 'Portal realtime stream is disabled');
+      return;
+    }
+
+    const query = ((req as any).validatedQuery ?? req.query) as { channels?: string };
+    const channelsRaw = typeof query.channels === 'string' ? query.channels : undefined;
+
+    openPortalRealtimeStream({
+      req,
+      res,
+      audience: 'admin',
+      userId: req.user!.id,
+      channelsRaw,
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      badRequest(res, error.message);
+      return;
+    }
     next(error);
   }
 };
@@ -618,6 +675,131 @@ export const deletePortalAdminAppointmentSlot = async (
   }
 };
 
+export const listPortalAdminAppointments = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    const query = ((req as any).validatedQuery ?? req.query) as {
+      status?: 'requested' | 'confirmed' | 'cancelled' | 'completed';
+      request_type?: 'manual_request' | 'slot_booking';
+      case_id?: string;
+      pointperson_user_id?: string;
+      date_from?: string;
+      date_to?: string;
+      page?: number;
+      limit?: number;
+    };
+
+    const result = await listAdminAppointments({
+      status: query.status,
+      requestType: query.request_type,
+      caseId: query.case_id,
+      pointpersonUserId: query.pointperson_user_id,
+      dateFrom: query.date_from,
+      dateTo: query.date_to,
+      page: query.page,
+      limit: query.limit,
+    });
+
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getPortalAdminAppointmentReminders = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    const { id } = req.params;
+    const appointment = await getAppointmentById(id);
+    if (!appointment) {
+      notFoundMessage(res, 'Appointment not found');
+      return;
+    }
+
+    const reminders = await listAppointmentReminders(id);
+    res.json(reminders);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const sendPortalAdminAppointmentReminders = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    const { id } = req.params;
+    const appointment = await getAppointmentById(id);
+    if (!appointment) {
+      notFoundMessage(res, 'Appointment not found');
+      return;
+    }
+
+    const summary = await sendAppointmentReminders(
+      id,
+      {
+        sendEmail: req.body.sendEmail,
+        sendSms: req.body.sendSms,
+        customMessage: req.body.customMessage,
+      },
+      {
+        triggerType: 'manual',
+        sentBy: req.user?.id ?? null,
+      }
+    );
+
+    res.status(200).json({ summary });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('eligible for reminders')) {
+      badRequest(res, error.message);
+      return;
+    }
+    next(error);
+  }
+};
+
+export const checkInPortalAdminAppointment = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    const { id } = req.params;
+    const appointment = await checkInAppointmentByStaff({
+      appointmentId: id,
+      checkedInBy: req.user!.id,
+    });
+
+    if (!appointment) {
+      notFoundMessage(res, 'Appointment not found');
+      return;
+    }
+
+    res.json({ appointment });
+  } catch (error) {
+    if (error instanceof Error && /slot/i.test(error.message)) {
+      badRequest(res, error.message);
+      return;
+    }
+    next(error);
+  }
+};
+
 export const updatePortalAdminAppointmentStatus = async (
   req: AuthRequest,
   res: Response,
@@ -634,6 +816,7 @@ export const updatePortalAdminAppointmentStatus = async (
     const appointment = await updateAppointmentStatusByStaff({
       appointmentId: id,
       status,
+      checkedInBy: status === 'completed' ? req.user!.id : null,
     });
 
     if (!appointment) {
@@ -661,6 +844,10 @@ export const updatePortalAdminAppointmentStatus = async (
 
     res.json({ appointment: refreshed || appointment });
   } catch (error) {
+    if (error instanceof Error && /slot/i.test(error.message)) {
+      badRequest(res, error.message);
+      return;
+    }
     next(error);
   }
 };

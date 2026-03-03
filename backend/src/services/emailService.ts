@@ -190,7 +190,7 @@ export async function sendPasswordResetEmail(
   resetToken: string,
   firstName: string
 ): Promise<boolean> {
-  const frontendUrl = process.env.FRONTEND_URL || 'HTTP://localhost:5173';
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
   return sendMail({
@@ -236,7 +236,7 @@ export async function sendInvitationEmail(
   role: string,
   personalMessage?: string | null
 ): Promise<boolean> {
-  const frontendUrl = process.env.FRONTEND_URL || 'HTTP://localhost:5173';
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   const acceptUrl = `${frontendUrl}/accept-invitation/${inviteToken}`;
 
   const messageBlock = personalMessage

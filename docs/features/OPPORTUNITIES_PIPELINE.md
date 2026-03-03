@@ -13,17 +13,17 @@ Design goals:
 ## API Surface
 
 Alias routes:
-- `GET /api/opportunities/stages`
-- `POST /api/opportunities/stages`
-- `PUT /api/opportunities/stages/:stageId`
-- `POST /api/opportunities/stages/reorder`
-- `GET /api/opportunities`
-- `GET /api/opportunities/summary`
-- `GET /api/opportunities/:id`
-- `POST /api/opportunities`
-- `PUT /api/opportunities/:id`
-- `POST /api/opportunities/:id/move-stage`
-- `DELETE /api/opportunities/:id`
+- `GET /api/v2/opportunities/stages`
+- `POST /api/v2/opportunities/stages`
+- `PUT /api/v2/opportunities/stages/:stageId`
+- `POST /api/v2/opportunities/stages/reorder`
+- `GET /api/v2/opportunities`
+- `GET /api/v2/opportunities/summary`
+- `GET /api/v2/opportunities/:id`
+- `POST /api/v2/opportunities`
+- `PUT /api/v2/opportunities/:id`
+- `POST /api/v2/opportunities/:id/move-stage`
+- `DELETE /api/v2/opportunities/:id`
 
 Canonical v2 route:
 - `/api/v2/opportunities/*`

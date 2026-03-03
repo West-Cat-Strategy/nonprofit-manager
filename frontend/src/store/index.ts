@@ -20,8 +20,8 @@ import outcomesAdminReducer from './slices/outcomesAdminSlice';
 import outcomesReportsReducer from './slices/outcomesReportsSlice';
 import scheduledReportsReducer from './slices/scheduledReportsSlice';
 import opportunitiesReducer from './slices/opportunitiesSlice';
-import casesV2Reducer from '../features/cases/state/casesLegacyCore';
-import contactsV2Reducer from '../features/contacts/state/contactsLegacyCore';
+import casesV2Reducer from '../features/cases/state/casesCore';
+import contactsV2Reducer from '../features/contacts/state/contactsCore';
 import {
   eventAutomationV2Reducer,
   eventDetailV2Reducer,

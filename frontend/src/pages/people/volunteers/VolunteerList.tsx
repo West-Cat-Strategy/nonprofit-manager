@@ -175,9 +175,9 @@ const VolunteerList = () => {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      available: { bg: 'bg-green-100', text: 'text-green-800', label: 'Available' },
-      unavailable: { bg: 'bg-red-100', text: 'text-red-800', label: 'Unavailable' },
-      limited: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Limited' },
+      available: { bg: 'bg-app-accent-soft', text: 'text-app-accent-text', label: 'Available' },
+      unavailable: { bg: 'bg-app-accent-soft', text: 'text-app-accent-text', label: 'Unavailable' },
+      limited: { bg: 'bg-app-accent-soft', text: 'text-app-accent-text', label: 'Limited' },
     };
     return statusConfig[status as keyof typeof statusConfig] || {
       bg: 'bg-app-surface-muted',
@@ -189,11 +189,11 @@ const VolunteerList = () => {
   const getBackgroundCheckBadge = (status: string) => {
     const statusConfig = {
       not_required: { bg: 'bg-app-surface-muted', text: 'text-app-text' },
-      pending: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+      pending: { bg: 'bg-app-accent-soft', text: 'text-app-accent-text' },
       in_progress: { bg: 'bg-app-accent-soft', text: 'text-app-accent-text' },
-      approved: { bg: 'bg-green-100', text: 'text-green-800' },
-      rejected: { bg: 'bg-red-100', text: 'text-red-800' },
-      expired: { bg: 'bg-orange-100', text: 'text-orange-800' },
+      approved: { bg: 'bg-app-accent-soft', text: 'text-app-accent-text' },
+      rejected: { bg: 'bg-app-accent-soft', text: 'text-app-accent-text' },
+      expired: { bg: 'bg-app-accent-soft', text: 'text-app-accent-text' },
     };
     return statusConfig[status as keyof typeof statusConfig] || {
       bg: 'bg-app-surface-muted',

@@ -31,7 +31,7 @@ const DonationSummaryWidget = ({ widget, editMode, onRemove }: DonationSummaryWi
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/analytics/summary');
+        const response = await api.get('/v2/analytics/summary');
         if (!isMounted) return;
         const payload = response.data ?? {};
         setData({
@@ -88,7 +88,7 @@ const DonationSummaryWidget = ({ widget, editMode, onRemove }: DonationSummaryWi
           </div>
           <div>
             <p className="text-sm text-app-text-muted">MoM Change</p>
-            <p className={`text-2xl font-bold ${data.month_over_month >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <p className={`text-2xl font-bold ${data.month_over_month >= 0 ? 'text-app-accent' : 'text-app-accent'}`}>
               {formatChange(data.month_over_month)}
             </p>
           </div>
