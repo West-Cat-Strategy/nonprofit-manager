@@ -1,5 +1,8 @@
 export type {
   SavedReport,
+  SavedReportListItem,
+  SavedReportSummary,
+  SavedReportsListPage,
   CreateSavedReportRequest,
   UpdateSavedReportRequest,
   PublicLinkLifecycleState,

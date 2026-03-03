@@ -101,6 +101,13 @@ const caseDocumentDownloadQuerySchema = z
   })
   .strict();
 
+const caseTimelineQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(200).default(50),
+    cursor: z.string().trim().max(512).optional(),
+  })
+  .strict();
+
 const caseCatalogQuerySchema = z.object({
   search: z.string().optional(),
   contact_id: uuidSchema.optional(),
@@ -344,7 +351,12 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
   router.get('/', validateQuery(caseCatalogQuerySchema), catalogController.getCases);
   router.get('/:id', validateParams(caseIdParamsSchema), catalogController.getCaseById);
   router.get('/:id/follow-ups', validateParams(caseIdParamsSchema), followUpController.getCaseFollowUps);
-  router.get('/:id/timeline', validateParams(caseIdParamsSchema), catalogController.getCaseTimeline);
+  router.get(
+    '/:id/timeline',
+    validateParams(caseIdParamsSchema),
+    validateQuery(caseTimelineQuerySchema),
+    catalogController.getCaseTimeline
+  );
   router.put('/:id', validateParams(caseIdParamsSchema), validateBody(updateCaseSchema), lifecycleController.updateCase);
   router.put(
     '/:id/client-viewable',

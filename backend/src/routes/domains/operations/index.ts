@@ -1,5 +1,5 @@
-export { default as exportRoutes } from '@routes/export';
-export { default as paymentRoutes } from '@routes/payments';
-export { default as publishingRoutes } from '@routes/publishing';
-export { default as reconciliationRoutes } from '@routes/reconciliation';
-export { default as templateRoutes } from '@routes/templates';
+export { exportV2Routes as exportRoutes } from '@modules/export';
+export { paymentsV2Routes as paymentRoutes } from '@modules/payments';
+export { publishingV2Routes as publishingRoutes } from '@modules/publishing';
+export { reconciliationV2Routes as reconciliationRoutes } from '@modules/reconciliation';
+export { templatesV2Routes as templateRoutes } from '@modules/templates';

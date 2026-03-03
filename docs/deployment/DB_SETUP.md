@@ -60,12 +60,13 @@ docker compose -f docker-compose.dev.yml up postgres -d
 This automatically:
 - Creates the `nonprofit_manager` database
 - Runs all migrations in `database/migrations/` (via `docker-entrypoint-initdb.d`)
+- Loads development seeds from `database/initdb/000_init.sql` (includes seeded users)
 - Sets up persistent volume for data storage
-- Exposes PostgreSQL on `localhost:5432`
+- Exposes PostgreSQL on `localhost:8002`
 
 **Default Credentials:**
 - **Host:** `localhost`
-- **Port:** `5432`
+- **Port:** `8002`
 - **Database:** `nonprofit_manager`
 - **User:** `postgres`
 - **Password:** `postgres`
@@ -97,7 +98,13 @@ docker exec nonprofit-db-dev psql -U postgres -d nonprofit_manager -c "\dt"
 ### 3. Load Seed Data (Optional)
 
 ```bash
-docker exec -i nonprofit-db-dev psql -U postgres -d nonprofit_manager < database/seeds/001_default_users.sql
+docker exec -i nonprofit-db-dev psql -U postgres -d nonprofit_manager < database/seeds/003_mock_data.sql
+```
+
+For a no-user seed set (to preserve first-time setup flow), use:
+
+```bash
+docker exec -i nonprofit-db-dev psql -U postgres -d nonprofit_manager < database/seeds/004_mock_data_no_users.sql
 ```
 
 ### 4. Stop Database
@@ -202,18 +209,22 @@ psql -U postgres -d nonprofit_manager -c "SELECT tablename FROM pg_tables WHERE 
 
 ## Loading Seed Data
 
-Seed data includes default users for testing and development.
+Seed behavior differs by file:
+
+- `database/seeds/003_mock_data.sql` includes users (default login: `admin@example.com` / `password123`).
+- `database/seeds/004_mock_data_no_users.sql` preserves first-time setup behavior (`/setup`).
+- `database/seeds/001_default_users.sql` is placeholder-oriented and not the recommended dev seed path.
 
 ### Docker Environment
 
 ```bash
-docker exec -i nonprofit-db-dev psql -U postgres -d nonprofit_manager < database/seeds/001_default_users.sql
+docker exec -i nonprofit-db-dev psql -U postgres -d nonprofit_manager < database/seeds/003_mock_data.sql
 ```
 
 ### Native PostgreSQL
 
 ```bash
-psql -U postgres -d nonprofit_manager -f database/seeds/001_default_users.sql
+psql -U postgres -d nonprofit_manager -f database/seeds/003_mock_data.sql
 ```
 
 ### Verify Seed Data
@@ -229,7 +240,9 @@ psql -U postgres -d nonprofit_manager -c "SELECT id, email, role FROM users;"
 **Expected Default Users:**
 - `admin@example.com` (role: admin)
 - `manager@example.com` (role: manager)
-- `staff@example.com` (role: staff)
+- `staff@example.com` (role: user)
+
+**Default Password for seeded users:** `password123`
 
 ---
 
@@ -307,7 +320,7 @@ Migration verification completed successfully!
 **Using Docker:**
 ```bash
 docker compose -f docker-compose.dev.yml up postgres -d
-docker exec -i nonprofit-db-dev psql -U postgres -d nonprofit_manager < database/seeds/001_default_users.sql
+docker exec -i nonprofit-db-dev psql -U postgres -d nonprofit_manager < database/seeds/003_mock_data.sql
 ```
 
 **Using Native PostgreSQL:**
@@ -315,7 +328,7 @@ docker exec -i nonprofit-db-dev psql -U postgres -d nonprofit_manager < database
 createdb nonprofit_manager
 psql -U postgres -d nonprofit_manager -f database/migrations/001_initial_schema.sql
 psql -U postgres -d nonprofit_manager -f database/migrations/002_audit_logs.sql
-psql -U postgres -d nonprofit_manager -f database/seeds/001_default_users.sql
+psql -U postgres -d nonprofit_manager -f database/seeds/003_mock_data.sql
 ```
 
 ### Scenario 2: Reset Database (Destructive)
@@ -458,12 +471,12 @@ psql -U postgres -d nonprofit_manager -c "DROP SCHEMA public CASCADE; CREATE SCH
 psql -U postgres -d nonprofit_manager -f database/migrations/001_initial_schema.sql
 ```
 
-### Problem: Port 5432 already in use
+### Problem: Port 8002 already in use
 
 **Find what's using the port:**
 ```bash
 # macOS/Linux
-lsof -i :5432
+lsof -i :8002
 
 # Kill the process if needed
 kill -9 <PID>
@@ -560,4 +573,3 @@ psql -U postgres -d nonprofit_manager -c "
 **Last Updated:** February 1, 2026  
 **Maintained by:** Example Organization  
 **Questions?** Contact [maintainer@example.com](mailto:maintainer@example.com)
-

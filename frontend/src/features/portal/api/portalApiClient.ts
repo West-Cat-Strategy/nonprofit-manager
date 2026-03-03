@@ -6,7 +6,8 @@ import type {
   PortalCaseDetail,
   PortalCaseDocument,
   PortalCaseSummary,
-  PortalCaseTimelineEvent,
+  PortalCaseTimelinePage,
+  PortalCaseTimelineQuery,
   PortalEvent,
 } from '../types/contracts';
 
@@ -34,10 +35,13 @@ export class PortalV2ApiClient implements PortalApiClient {
     return unwrapApiData(response.data);
   }
 
-  async getCaseTimeline(caseId: string): Promise<PortalCaseTimelineEvent[]> {
-    const response = await portalApi.get<ApiEnvelope<PortalCaseTimelineEvent[]>>(
-      `/v2/portal/cases/${caseId}/timeline`
-    );
+  async getCaseTimeline(caseId: string, query: PortalCaseTimelineQuery = {}): Promise<PortalCaseTimelinePage> {
+    const response = await portalApi.get<ApiEnvelope<PortalCaseTimelinePage>>(`/v2/portal/cases/${caseId}/timeline`, {
+      params: {
+        limit: query.limit,
+        cursor: query.cursor,
+      },
+    });
     return unwrapApiData(response.data);
   }
 

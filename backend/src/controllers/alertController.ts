@@ -180,7 +180,7 @@ export const getAlertInstances = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const query = ((req as any).validatedQuery ?? req.query) as {
+    const query = (req.validatedQuery ?? req.query) as {
       status?: string;
       severity?: string;
       limit?: number | string;

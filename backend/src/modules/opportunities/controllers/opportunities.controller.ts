@@ -93,7 +93,7 @@ export const opportunitiesController = {
         return;
       }
 
-      const params = ((req as any).validatedParams ?? req.params) as { stageId: string };
+      const params = (req.validatedParams ?? req.params) as { stageId: string };
       const updated = await opportunityService.updateStage(orgId, params.stageId, userId, req.body);
 
       if (!updated) {
@@ -136,7 +136,7 @@ export const opportunitiesController = {
       }
 
       await opportunityService.ensureDefaultStages(orgId, req.user?.id || null);
-      const query = ((req as any).validatedQuery ?? req.query) as Record<string, unknown>;
+      const query = (req.validatedQuery ?? req.query) as Record<string, unknown>;
       const result = await opportunityService.listOpportunities(orgId, {
         stage_id: query.stage_id as string | undefined,
         status: query.status as OpportunityFilters['status'],
@@ -180,7 +180,7 @@ export const opportunitiesController = {
         return;
       }
 
-      const params = ((req as any).validatedParams ?? req.params) as { id: string };
+      const params = (req.validatedParams ?? req.params) as { id: string };
       const row = await opportunityService.getOpportunityById(orgId, params.id);
 
       if (!row) {
@@ -224,7 +224,7 @@ export const opportunitiesController = {
         return;
       }
 
-      const params = ((req as any).validatedParams ?? req.params) as { id: string };
+      const params = (req.validatedParams ?? req.params) as { id: string };
       const updated = await opportunityService.updateOpportunity(orgId, params.id, userId, req.body);
 
       if (!updated) {
@@ -249,7 +249,7 @@ export const opportunitiesController = {
         return;
       }
 
-      const params = ((req as any).validatedParams ?? req.params) as { id: string };
+      const params = (req.validatedParams ?? req.params) as { id: string };
       const moved = await opportunityService.moveOpportunityStage(orgId, params.id, userId, req.body);
 
       if (!moved) {
@@ -273,7 +273,7 @@ export const opportunitiesController = {
         return;
       }
 
-      const params = ((req as any).validatedParams ?? req.params) as { id: string };
+      const params = (req.validatedParams ?? req.params) as { id: string };
       const deleted = await opportunityService.deleteOpportunity(orgId, params.id);
 
       if (!deleted) {

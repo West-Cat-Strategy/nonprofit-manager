@@ -27,11 +27,15 @@ const initialState: EventsListState = {
 export const fetchEventsListV2 = createAsyncThunk(
   'eventsListV2/fetch',
   async (query: EventListQuery = {}) => {
-    const data = await eventsApiClient.listEvents({
+    const { accumulateAllPages, ...restQuery } = query;
+    const requestQuery: EventListQuery = {
       page: 1,
       limit: 20,
-      ...query,
-    });
+      ...restQuery,
+    };
+    const data = accumulateAllPages
+      ? await eventsApiClient.listEventsAccumulated(requestQuery)
+      : await eventsApiClient.listEvents(requestQuery);
     return data;
   }
 );

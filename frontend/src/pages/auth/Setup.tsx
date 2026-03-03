@@ -24,6 +24,59 @@ interface SetupFormData {
   organizationName: string;
 }
 
+type SetupResponseUser = {
+  id?: string;
+  user_id?: string;
+  email?: string;
+  firstName?: string;
+  first_name?: string;
+  lastName?: string;
+  last_name?: string;
+  role?: string;
+  profilePicture?: string | null;
+  profile_picture?: string | null;
+};
+
+type SetupResponsePayload = {
+  organizationId?: string | null;
+  user?: SetupResponseUser;
+};
+
+const normalizeSetupUser = (
+  value: SetupResponseUser | undefined
+):
+  | {
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      role: string;
+      profilePicture?: string | null;
+    }
+  | null => {
+  if (!value) return null;
+
+  const id = value.id ?? value.user_id;
+  const email = value.email;
+  const role = value.role;
+  const firstName = value.firstName ?? value.first_name;
+  const lastName = value.lastName ?? value.last_name;
+  const profilePicture = value.profilePicture ?? value.profile_picture ?? null;
+
+  if (!id || !email || !role || !firstName || !lastName) {
+    return null;
+  }
+
+  return {
+    id,
+    email,
+    firstName,
+    lastName,
+    role,
+    profilePicture,
+  };
+};
+
 const Setup: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -111,13 +164,13 @@ const Setup: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await api.post<ApiEnvelope<{ organizationId?: string }>>('/auth/setup', {
+      const response = await api.post<SetupResponsePayload | ApiEnvelope<SetupResponsePayload>>('/auth/setup', {
         email: formData.email.trim(),
         password: formData.password,
-        password_confirm: formData.confirmPassword,
-        first_name: formData.firstName.trim(),
-        last_name: formData.lastName.trim(),
-        organization_name: formData.organizationName.trim(),
+        passwordConfirm: formData.confirmPassword,
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        organizationName: formData.organizationName.trim(),
       });
       const setupPayload = unwrapApiData(response.data);
 
@@ -125,17 +178,34 @@ const Setup: React.FC = () => {
         localStorage.setItem('organizationId', setupPayload.organizationId);
       }
 
-      // Hydrate Redux auth state so route protection works.
-      const me = await api.get<ApiEnvelope<Record<string, unknown>>>('/auth/me');
-      const mePayload = unwrapApiData(me.data) as {
-        id: string;
-        email: string;
-        firstName: string;
-        lastName: string;
-        role: string;
-        profilePicture?: string | null;
-      };
-      dispatch(setCredentials({ user: mePayload }));
+      const setupUser = normalizeSetupUser(setupPayload.user);
+      if (setupUser) {
+        dispatch(setCredentials({ user: setupUser }));
+      } else {
+        // Fallback for older API responses that may omit user payload.
+        try {
+          const me = await api.get<ApiEnvelope<Record<string, unknown>>>('/auth/me');
+          const mePayload = unwrapApiData(me.data) as {
+            id: string;
+            email: string;
+            firstName: string;
+            lastName: string;
+            role: string;
+            profilePicture?: string | null;
+          };
+          dispatch(setCredentials({ user: mePayload }));
+        } catch (sessionHydrationError) {
+          setFromError(
+            sessionHydrationError,
+            'Setup completed, but automatic sign-in failed. Please sign in on the login page.'
+          );
+          setErrors([
+            'Setup completed, but automatic sign-in failed. Please sign in on the login page.',
+          ]);
+          navigate('/login', { replace: true });
+          return;
+        }
+      }
 
       // Redirect to dashboard
       navigate('/dashboard');

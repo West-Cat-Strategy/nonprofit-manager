@@ -1,4 +1,4 @@
-import { services } from '@container/services';
+import pool from '@config/database';
 import type { CaseCatalogPort, CaseLifecyclePort } from '../types/ports';
 import type {
   BulkStatusUpdateDTO,
@@ -8,53 +8,72 @@ import type {
   UpdateCaseDTO,
   UpdateCaseStatusDTO,
 } from '@app-types/case';
+import {
+  getCaseByIdQuery,
+  getCaseStatusesQuery,
+  getCaseSummaryQuery,
+  getCasesQuery,
+  getCaseTimelineQuery,
+  getCaseTypesQuery,
+} from '../queries/catalogQueries';
+import {
+  bulkUpdateStatusQuery,
+  createCaseQuery,
+  deleteCaseQuery,
+  reassignCaseQuery,
+  updateCaseQuery,
+  updateCaseStatusQuery,
+} from '../queries/lifecycleQueries';
 
 export class CaseRepository implements CaseCatalogPort, CaseLifecyclePort {
   async getCases(filter: CaseFilter): Promise<{ cases: unknown[]; total: number }> {
-    return services.case.getCases(filter);
+    return getCasesQuery(pool, filter);
   }
 
   async getCaseById(caseId: string): Promise<unknown | null> {
-    return services.case.getCaseById(caseId);
+    return getCaseByIdQuery(pool, caseId);
   }
 
-  async getCaseTimeline(caseId: string): Promise<unknown[]> {
-    return services.case.getCaseTimeline(caseId);
+  async getCaseTimeline(
+    caseId: string,
+    options?: { limit?: number; cursor?: string }
+  ): Promise<{ items: unknown[]; page: { limit: number; has_more: boolean; next_cursor: string | null } }> {
+    return getCaseTimelineQuery(pool, caseId, options);
   }
 
   async getCaseSummary(organizationId?: string): Promise<unknown> {
-    return services.case.getCaseSummary(organizationId);
+    return getCaseSummaryQuery(pool, organizationId);
   }
 
   async getCaseTypes(): Promise<unknown[]> {
-    return services.case.getCaseTypes();
+    return getCaseTypesQuery(pool);
   }
 
   async getCaseStatuses(): Promise<unknown[]> {
-    return services.case.getCaseStatuses();
+    return getCaseStatusesQuery(pool);
   }
 
   async createCase(data: CreateCaseDTO, userId?: string): Promise<unknown> {
-    return services.case.createCase(data, userId);
+    return createCaseQuery(pool, data, userId);
   }
 
   async updateCase(caseId: string, data: UpdateCaseDTO, userId?: string): Promise<unknown> {
-    return services.case.updateCase(caseId, data, userId);
+    return updateCaseQuery(pool, caseId, data, userId);
   }
 
   async updateCaseStatus(caseId: string, data: UpdateCaseStatusDTO, userId?: string): Promise<unknown> {
-    return services.case.updateCaseStatus(caseId, data, userId);
+    return updateCaseStatusQuery(pool, caseId, data, userId);
   }
 
   async reassignCase(caseId: string, data: ReassignCaseDTO, userId?: string): Promise<unknown> {
-    return services.case.reassignCase(caseId, data.assigned_to, data.reason, userId);
+    return reassignCaseQuery(pool, caseId, data, userId);
   }
 
   async bulkUpdateCaseStatus(data: BulkStatusUpdateDTO, userId?: string): Promise<unknown> {
-    return services.case.bulkUpdateStatus(data.case_ids, data.new_status_id, data.notes, userId);
+    return bulkUpdateStatusQuery(pool, data, userId);
   }
 
   async deleteCase(caseId: string): Promise<void> {
-    return services.case.deleteCase(caseId);
+    return deleteCaseQuery(pool, caseId);
   }
 }

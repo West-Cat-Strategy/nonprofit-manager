@@ -23,7 +23,7 @@ export const createAccountsController = (
     next: NextFunction
   ): Promise<void> => {
     try {
-      const query = ((req as any).validatedQuery ?? req.query) as Record<string, unknown>;
+      const query = (req.validatedQuery ?? req.query) as Record<string, unknown>;
       const filters: AccountFilters = {
         search: getString(query.search),
         account_type: getString(query.account_type) as AccountType | undefined,

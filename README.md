@@ -112,8 +112,8 @@ See [Features Documentation](docs/README.md) for detailed guides.
 docker-compose up --build -d
 
 # Access the application
-# - Frontend: localhost:8080
-# - Backend API: localhost:3000
+# - Frontend: http://localhost:8001
+# - Backend API: http://localhost:8000
 ```
 
 ### Development Mode
@@ -122,9 +122,27 @@ docker-compose up --build -d
 docker-compose -f docker-compose.dev.yml up --build -d
 
 # Access
-# - Frontend: localhost:5173
-# - Backend: localhost:3000
+# - Frontend: http://localhost:8005
+# - Backend API: http://localhost:8004
+# - PostgreSQL: localhost:8002
+# - Redis: localhost:8003
 ```
+
+### First Setup vs Seeded Data
+
+- `docker-compose.dev.yml` runs `database/initdb/000_init.sql` on first DB initialization.
+- That init script currently loads `database/seeds/003_mock_data.sql`, which includes an admin user.
+- Seeded login credentials: `admin@example.com` / `password123`.
+- If you want to exercise true first-time setup (`/setup`), use a database that does not load user seeds (or clear users/admins before launch).
+
+### Setup/Launch Troubleshooting
+
+- Symptom: app bounces between `/setup` and `/login`, or auth/setup endpoints return org-context errors.
+- Check org-context flags in backend env:
+  - `ORG_CONTEXT_REQUIRE=true`
+  - `ORG_CONTEXT_VALIDATE=true`
+- Auth/bootstrap routes (`/api/v2/auth/*`, `/api/v2/admin/*`, `/api/v2/invitations/*`, `/api/v2/payments/webhook`) should bypass org-context enforcement.
+- If setup-status cannot be fetched (network/500), keep `/setup` usable and avoid forcing `/setup -> /login` until setup state resolves.
 
 For manual setup and advanced Docker commands, see [Deployment Guide](docs/deployment/DEPLOYMENT.md).
 

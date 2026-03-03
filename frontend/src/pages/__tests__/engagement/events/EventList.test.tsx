@@ -1,5 +1,4 @@
-import { screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import type * as EventsStateModule from '../../../../features/events/state';
 import { vi } from 'vitest';
@@ -54,15 +53,17 @@ vi.mock('../../../../components/neo-brutalist/NeoBrutalistLayout', () => ({
 
 describe('EventList page', () => {
   it('renders events hub and dispatches list fetch on search update', async () => {
-    const user = userEvent.setup();
-
     renderWithProviders(<EventList />);
 
     expect(screen.getByRole('heading', { name: 'Events' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create Event' })).toBeInTheDocument();
 
-    await user.type(screen.getByPlaceholderText('Search events...'), 'gala');
+    fireEvent.change(screen.getByPlaceholderText('Search events...'), {
+      target: { value: 'gala' },
+    });
 
-    expect(dispatchMock).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(dispatchMock).toHaveBeenCalled();
+    });
   });
 });

@@ -19,7 +19,7 @@ export const createPortalRealtimeController = () => {
         return;
       }
 
-      const query = ((req as any).validatedQuery ?? req.query) as { channels?: string };
+      const query = (req.validatedQuery ?? req.query) as { channels?: string };
       const channelsRaw = typeof query.channels === 'string' ? query.channels : undefined;
 
       openPortalRealtimeStream({

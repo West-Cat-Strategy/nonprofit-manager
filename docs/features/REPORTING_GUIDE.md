@@ -77,6 +77,28 @@ Execution behavior:
 
 ## Saved Report Sharing + Public Snapshots
 
+Saved report list endpoint:
+- `GET /api/v2/saved-reports?page=1&limit=20&entity=donations&summary=true`
+- `summary` defaults to `true` for list pages to avoid loading heavy `report_definition` blobs
+
+List response shape:
+
+```json
+{
+  "items": [],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 0,
+    "total_pages": 0
+  }
+}
+```
+
+Notes:
+- Use `summary=true` for index screens.
+- Use `GET /api/v2/saved-reports/:id` when full `report_definition` detail is required.
+
 Internal share endpoints:
 - `GET /api/v2/saved-reports/share/principals?search=...`
 - `POST /api/v2/saved-reports/:id/share`

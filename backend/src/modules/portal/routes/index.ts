@@ -9,6 +9,7 @@ import {
   portalBookSlotSchema,
   portalCaseDocumentDownloadParamsSchema,
   portalCaseParamsSchema,
+  portalCaseTimelineQuerySchema,
   portalChangePasswordSchema,
   portalEventParamsSchema,
   portalManualAppointmentRequestSchema,
@@ -85,7 +86,12 @@ export const createPortalV2Routes = (deps: PortalRouteDependencies = {}): Router
 
   portalV2Routes.get('/cases', casesController.listCases);
   portalV2Routes.get('/cases/:id', validateParams(portalCaseParamsSchema), casesController.getCaseById);
-  portalV2Routes.get('/cases/:id/timeline', validateParams(portalCaseParamsSchema), casesController.getCaseTimeline);
+  portalV2Routes.get(
+    '/cases/:id/timeline',
+    validateParams(portalCaseParamsSchema),
+    validateQuery(portalCaseTimelineQuerySchema),
+    casesController.getCaseTimeline
+  );
   portalV2Routes.get('/cases/:id/documents', validateParams(portalCaseParamsSchema), casesController.getCaseDocuments);
   portalV2Routes.get(
     '/cases/:id/documents/:documentId/download',

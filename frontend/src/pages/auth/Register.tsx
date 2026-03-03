@@ -36,15 +36,14 @@ export default function Register() {
 
     setLoading(true);
     try {
-      const response = await authService.register({
+      const payload: RegisterData = {
         email,
         password,
-        password_confirm: confirmPassword,
+        passwordConfirm: confirmPassword,
         firstName,
         lastName,
-        first_name: firstName,
-        last_name: lastName,
-      } as RegisterData);
+      };
+      const response = await authService.register(payload);
 
       // Check if this required approval (HTTP 202)
       if ('pendingApproval' in response && (response as { pendingApproval?: boolean }).pendingApproval) {

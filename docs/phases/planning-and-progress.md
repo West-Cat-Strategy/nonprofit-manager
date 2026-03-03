@@ -1,7 +1,7 @@
 # 📊 Nonprofit Manager - Planning & Progress
 
 **Current Phase:** 🚀 Phase 4 - Modularity Refactor (In Progress, with active Phase 3 overlap)  
-**Last Updated:** March 3, 2026 (P4-T8 merged to main; moved to Done)  
+**Last Updated:** March 3, 2026 (P4-T9 simplicity continuation wave in progress: cases/auth/admin-settings refactor + alias telemetry instrumentation)  
 **Lead Developer:** Bryan Crockett (@bcroc), Example Organization
 
 ---
@@ -124,10 +124,16 @@ All active work must be **signed out** in the Workboard below before code change
 | P4-T7C | Core app pages migration (people/engagement/finance/analytics/admin/builder/workflows) | Phase 4 | Ready | — | — | TBD | — (parent: P4-T7) |
 | P4-T7C-RPT1 | Reporting module expansion (builder UX + scheduled management + saved-report sharing/public snapshots) | Phase 4 | Ready | — | — | TBD | — (parent: P4-T7C) |
 | P4-T8 | Full-stack v2 cutover refactor (legacy `/api/*` hard removal + frontend v2 contract cutover + security/build hardening) | Phase 4 | Done | Codex | Mar 3, 2026 | TBD | main@09e49f5 |
+| P4-T9 | Setup and launch stabilization + test expansion | Phase 4 | In Progress | Codex | Mar 3, 2026 | TBD | main (active parent stream; linked execution subtask: `P4-T9A`) |
+| P4-T9A | Efficiency remediation pack (Top 15 findings) | Phase 4 | Review | Codex | Mar 3, 2026 | TBD | main (local P4-T9 workspace) (parent: P4-T9) |
 | P4-T7D | Portal + auth/public pages migration | Phase 4 | Ready | — | — | TBD | — (parent: P4-T7) |
 | P4-T7G | Appointments/reminders/check-in infrastructure upgrade (admin-first; links: P3-T1, P3-T2C, P3-T2E) | Phase 4 | Ready | — | — | TBD | — (handled outside canonical P4-T7C-RPT1 stream) |
 | P4-T7E | Accessibility + interaction hardening | Phase 4 | Ready | — | — | TBD | — (parent: P4-T7) |
 | P4-T7F | Regression tests + docs update | Phase 4 | Ready | — | — | TBD | — (parent: P4-T7) |
+| P4-T1R5 | Full remaining `/api/v2` modularization sweep (backend-first, contract-stable) | Phase 4 | In Progress | Codex | Mar 3, 2026 | TBD | codex/p4-t1r5-full-v2-modular-sweep (parent: P4-T1) |
+| P4-T1R5A | Backend all-legacy-v2 module cutover (22 remaining domains) | Phase 4 | Review | Codex | Mar 3, 2026 | TBD | codex/p4-t1r5-full-v2-modular-sweep (parent: P4-T1R5) |
+| P4-T1R5B | Frontend admin/portal feature ownership cutover (`alerts/webhooks/mailchimp/portalAuth/adminOps`) | Phase 4 | Review | Codex | Mar 3, 2026 | TBD | codex/p4-t1r5-full-v2-modular-sweep (parent: P4-T1R5) |
+| P4-T1R5C | Policy ratchets + modularity cleanup + documentation closure | Phase 4 | Review | Codex | Mar 3, 2026 | TBD | codex/p4-t1r5-full-v2-modular-sweep (parent: P4-T1R5) |
 
 ### **Zod Migration Tracker**
 
@@ -146,6 +152,13 @@ This tracker is now a bounded active-gaps snapshot (updated: March 1, 2026).
 - Coverage snapshot: `420` route endpoints scanned (`scripts/policies/query-contract-audit-summary.md`).
 - Findings after hardening: `MISSING_VALIDATE_QUERY=0`, `DIRECT_REQ_QUERY=0`, `NON_STRICT_QUERY_SCHEMA=0`.
 - CI linkage: `scripts/check-query-contract-policy.ts` + `scripts/check-route-validation-policy.ts` + `make lint` guardrail pipeline.
+
+### 🧾 Compatibility Deprecation Tracker (Deferred)
+
+- Auth alias retirement checklist: [docs/phases/auth-alias-deprecation-checklist.md](docs/phases/auth-alias-deprecation-checklist.md)
+- Canonical-only auth field enforcement target: **July 1, 2026** (no earlier in this phase)
+- Required gate before removal: **30 consecutive days** of zero alias usage telemetry across `register`, `setup`, and `change-password`
+- Current phase policy: compatibility aliases stay enabled; no alias removals
 
 ### ✅ Recently Completed (February 1, 2026 - Late Evening + Phase 2 Completion)
 
@@ -2594,6 +2607,12 @@ Frontend Component Tests:
 
 | Date | Task ID | Owner | Status Change | Notes |
 |------|---------|-------|---------------|-------|
+| Mar 3, 2026 | P4-T9 | Codex | In Progress → In Progress | Simplicity continuation wave execution (stages 1-4 ongoing): extracted cases catalog/lifecycle/notes/outcomes/documents query/orchestration helpers and converted `caseService` to compatibility delegation; replaced auth wrapper controllers with bounded module handlers (`registration/session/profile/preferences`) plus shared auth libs and legacy controller delegation shim; moved AdminSettings behavioral handlers into section hooks and reduced page to orchestration/composition responsibilities; added alias telemetry middleware on `/api/v2/auth/register`, `/api/v2/auth/setup`, and `/api/v2/auth/password` emitting structured `auth.alias_input_used` events. Pending targeted verification gate run. |
+| Mar 3, 2026 | P4-T1R5/P4-T1R5A/P4-T1R5B/P4-T1R5C | Codex | In Progress/In Progress/Ready/Ready → In Progress/Review/Review/Review | Completed deep modularization continuation sweep on `codex/p4-t1r5-full-v2-modular-sweep`: all 22 target module routes now own route wiring (no `@routes/*` proxies), legacy `backend/src/routes/*` surfaces converted to compatibility wrappers, auth module controller shims replaced with local module-owned controller implementations, and frontend ownership flipped so `features/{alerts,webhooks,mailchimp,portalAuth,adminOps}` contain real state/page implementations with legacy `store/slices/*` + `pages/*` as shims. Added policy ratchet `scripts/check-module-route-proxy-policy.ts`, wired into `make lint`, and updated policy baselines for copied transitional controllers. Verification passed: `make lint`, `cd backend && npm run type-check` (direct), `cd frontend && npm run type-check`, `node scripts/check-v2-module-ownership-policy.ts`, `node scripts/check-module-boundary-policy.ts`, `node scripts/check-module-route-proxy-policy.ts`, `node scripts/check-frontend-feature-boundary-policy.ts`, `cd backend && npm run test:integration -- routeGuardrails.test.ts`. Residual blocker outside P4-T1R5 scope: `make typecheck` fails on pre-existing `backend/src/services/caseService.ts` TS6192 unused-import errors. |
+| Mar 3, 2026 | P4-T9A | Codex | In Progress → Review | Implemented all 15 efficiency remediations across backend/frontend: setup-status cache, `published_sites` projection cleanup, password-reset composite token lookup + legacy fallback, PII rule prefetch cache, backup chunked exports, staff+portal timeline cursor pagination, Redis pipeline invalidation/warm paths, batched appointment reminder writes, saved-reports pagination + summary projection, nested route suspense boundaries, events search debounce + duplicate-filter removal, paged calendar accumulation (no fixed 250), shared cached user-preferences timezone fetch, and event-scoped portal realtime refresh callback. Verification passed: backend lint + typecheck, targeted backend unit (password reset/saved reports/validation schemas), backend integration (`caseManagementVisibility`, `routeGuardrails`), frontend typecheck, targeted frontend Vitest (setup-check, saved-reports, events list, portal cases, user-preferences cache). Strict selector run halted per policy on first failure at `make lint` due existing route-validation policy baseline drift in `backend/src/routes/auth.ts` route discovery (`PATCH /preferences/:key`, `GET /reset-password/:token`, `DELETE /passkeys/:id`) outside this remediation scope. |
+| Mar 3, 2026 | P4-T9/P4-T9A | Codex | Blocked/In Progress → In Progress/In Progress | Re-activated `P4-T9` and signed out `P4-T9A` on `main` for the efficiency remediation pack (top-15 findings) as a linked parent/subtask stream with strict scoped-file execution. |
+| Mar 3, 2026 | P4-T1R5/P4-T1R5A/P4-T1R5B/P4-T1R5C/P4-T9 | Codex | Ready/Review/In Progress → In Progress/Ready/Blocked | Signed out full remaining `/api/v2` modular sweep on `codex/p4-t1r5-full-v2-modular-sweep` with backend-first execution (`P4-T1R5A` active), frontend ownership cutover (`P4-T1R5B`) and policy/docs closure (`P4-T1R5C`) staged as ready under coordinated concurrency. Paused `P4-T9` to `Blocked` to keep a single active modularity stream. |
+| Mar 3, 2026 | P4-T9 | Codex | Ready → In Progress | Signed out setup/launch stabilization stream on `main` (local workspace) covering org-context bypass hardening, setup redirect/auth-loop resilience, backend+frontend+Playwright test expansion, and setup/launch documentation corrections. |
 | Mar 3, 2026 | P4-T8 | Codex | Review → Done | Consolidation merge completed on `main` via merge commit `09e49f5`; workstream branch integrated and ready for branch-pruning cleanup. |
 | Mar 3, 2026 | P4-T8 | Codex | Blocked → Review | Blocker resolved via CI runtime stabilization and deterministic e2e cutover: canonical port/env defaults (`3001`/`5173`), Playwright `CI=1` detection fix, compiled backend + `vite preview` webserver mode for CI, and quick-filter deep-link test hardening in `e2e/tests/cases.spec.ts`. Strict ordered gate evidence passed: `make lint`, `make typecheck`, backend unit/integration, `node scripts/ui-audit.ts`, frontend Vitest, `DB_NAME=nonprofit_manager_test DB_PASSWORD=postgres make db-verify`, `cd e2e && npm run test:smoke`, `cd e2e && npm run test:ci` (`420 passed`, completed `2026-03-02 20:10:10 PST`), and `make ci-full` (success, completed `2026-03-02 20:22:29 PST`, backend/frontend audit high+ clean). |
 | Mar 3, 2026 | P4-T7 / P4-T7C-RPT1 | Codex | Blocked → Ready | Released paused UI stream after single-task governance window closed with P4-T8 moved to `Review`; both rows returned to `Ready` pending explicit next-task sign-out. |

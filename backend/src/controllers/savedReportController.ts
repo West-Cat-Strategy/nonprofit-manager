@@ -11,7 +11,7 @@ import { badRequest, notFoundMessage, unauthorized } from '@utils/responseHelper
 
 const savedReportService = services.savedReport;
 const getUserRoles = (req: AuthRequest): string[] => {
-  const contextualRoles = (((req as any).authorizationContext?.roles || []) as string[]).filter(Boolean);
+  const contextualRoles = (req.authorizationContext?.roles || []).filter(Boolean);
   const primaryRole = req.user?.role ? [req.user.role] : [];
   return Array.from(new Set([...contextualRoles, ...primaryRole]));
 };
@@ -28,11 +28,23 @@ export const getSavedReports = async (
   try {
     const userId = req.user?.id;
     const userRoles = getUserRoles(req);
-    const query = ((req as any).validatedQuery ?? req.query) as { entity?: string };
+    const query = (req.validatedQuery ?? req.query) as {
+      entity?: string;
+      page?: number;
+      limit?: number;
+      summary?: boolean;
+    };
     const entity = query.entity;
+    const page = query.page;
+    const limit = query.limit;
+    const summary = query.summary;
 
-    const reports = await savedReportService.getSavedReports(userId, entity, userRoles);
-    res.json(reports);
+    const reportsPage = await savedReportService.getSavedReports(userId, entity, userRoles, {
+      page,
+      limit,
+      summary,
+    });
+    res.json(reportsPage);
   } catch (error) {
     next(error);
   }

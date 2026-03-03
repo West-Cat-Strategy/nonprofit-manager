@@ -60,9 +60,12 @@ describe('Saved Report Controller', () => {
 
     describe('getSavedReports', () => {
         it('returns saved reports successfully', async () => {
-            const mockReports = [{ id: '1', name: 'Report 1' }];
+            const mockReportsPage = {
+                items: [{ id: '1', name: 'Report 1' }],
+                pagination: { page: 1, limit: 20, total: 1, total_pages: 1 },
+            };
             mockRequest.query = { entity: 'contacts' };
-            mockSavedReportService.getSavedReports.mockResolvedValue(mockReports as any);
+            mockSavedReportService.getSavedReports.mockResolvedValue(mockReportsPage as any);
 
             await savedReportController.getSavedReports(
                 mockRequest as AuthRequest,
@@ -73,16 +76,24 @@ describe('Saved Report Controller', () => {
             expect(mockSavedReportService.getSavedReports).toHaveBeenCalledWith(
                 'user1',
                 'contacts',
-                ['manager', 'staff']
+                ['manager', 'staff'],
+                expect.objectContaining({
+                    page: undefined,
+                    limit: undefined,
+                    summary: undefined,
+                })
             );
-            expect(mockJson).toHaveBeenCalledWith(mockReports);
+            expect(mockJson).toHaveBeenCalledWith(mockReportsPage);
         });
 
         it('prefers validated query entity when available', async () => {
-            const mockReports = [{ id: '1', name: 'Report 1' }];
+            const mockReportsPage = {
+                items: [{ id: '1', name: 'Report 1' }],
+                pagination: { page: 1, limit: 20, total: 1, total_pages: 1 },
+            };
             mockRequest.query = { entity: 'donations' };
-            (mockRequest as any).validatedQuery = { entity: 'contacts' };
-            mockSavedReportService.getSavedReports.mockResolvedValue(mockReports as any);
+            (mockRequest as any).validatedQuery = { entity: 'contacts', page: 2, limit: 10, summary: false };
+            mockSavedReportService.getSavedReports.mockResolvedValue(mockReportsPage as any);
 
             await savedReportController.getSavedReports(
                 mockRequest as AuthRequest,
@@ -93,9 +104,14 @@ describe('Saved Report Controller', () => {
             expect(mockSavedReportService.getSavedReports).toHaveBeenCalledWith(
                 'user1',
                 'contacts',
-                ['manager', 'staff']
+                ['manager', 'staff'],
+                expect.objectContaining({
+                    page: 2,
+                    limit: 10,
+                    summary: false,
+                })
             );
-            expect(mockJson).toHaveBeenCalledWith(mockReports);
+            expect(mockJson).toHaveBeenCalledWith(mockReportsPage);
         });
     });
 

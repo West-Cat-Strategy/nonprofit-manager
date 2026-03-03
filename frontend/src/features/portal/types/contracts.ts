@@ -37,6 +37,20 @@ export interface PortalCaseTimelineEvent {
   metadata?: Record<string, unknown>;
 }
 
+export interface PortalCaseTimelinePage {
+  items: PortalCaseTimelineEvent[];
+  page: {
+    limit: number;
+    has_more: boolean;
+    next_cursor: string | null;
+  };
+}
+
+export interface PortalCaseTimelineQuery {
+  limit?: number;
+  cursor?: string;
+}
+
 export interface PortalCaseDocument {
   id: string;
   document_name?: string | null;
@@ -54,7 +68,7 @@ export interface PortalApiClient {
   cancelEventRegistration(eventId: string): Promise<void>;
   listCases(): Promise<PortalCaseSummary[]>;
   getCase(caseId: string): Promise<PortalCaseDetail>;
-  getCaseTimeline(caseId: string): Promise<PortalCaseTimelineEvent[]>;
+  getCaseTimeline(caseId: string, query?: PortalCaseTimelineQuery): Promise<PortalCaseTimelinePage>;
   listCaseDocuments(caseId: string): Promise<PortalCaseDocument[]>;
   getCaseDocumentDownloadUrl(caseId: string, documentId: string, disposition?: 'inline' | 'attachment'): string;
   getDocumentDownloadUrl(documentId: string, disposition?: 'inline' | 'attachment'): string;

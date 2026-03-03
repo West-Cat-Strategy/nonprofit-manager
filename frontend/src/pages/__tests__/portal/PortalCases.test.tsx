@@ -70,15 +70,22 @@ describe('Portal cases pages', () => {
       updated_at: new Date().toISOString(),
       status_name: 'Open',
     });
-    getCaseTimelineMock.mockResolvedValue([
-      {
-        id: 'note-visible',
-        type: 'note',
-        created_at: new Date().toISOString(),
-        title: 'Progress Update',
-        content: 'Visible client note content',
+    getCaseTimelineMock.mockResolvedValue({
+      items: [
+        {
+          id: 'note-visible',
+          type: 'note',
+          created_at: new Date().toISOString(),
+          title: 'Progress Update',
+          content: 'Visible client note content',
+        },
+      ],
+      page: {
+        limit: 50,
+        has_more: false,
+        next_cursor: null,
       },
-    ]);
+    });
     listCaseDocumentsMock.mockResolvedValue([
       {
         id: 'doc-1',

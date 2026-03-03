@@ -192,16 +192,12 @@ export class SiteCacheService {
         const client = getRedisClient();
         if (client) {
           const totalTtl = ttlSeconds + STALE_WHILE_REVALIDATE;
-          await client.setEx(
-            `${CACHE_KEY_PREFIX}${key}`,
-            totalTtl,
-            JSON.stringify(entry)
-          );
-
-          // Update tag index in Redis
+          const transaction = client.multi();
+          transaction.setEx(`${CACHE_KEY_PREFIX}${key}`, totalTtl, JSON.stringify(entry));
           for (const tag of tags) {
-            await client.sAdd(`${TAG_KEY_PREFIX}${tag}`, key);
+            transaction.sAdd(`${TAG_KEY_PREFIX}${tag}`, key);
           }
+          await transaction.exec();
 
           cacheStats.size++;
           return entry;
@@ -266,12 +262,20 @@ export class SiteCacheService {
         const client = getRedisClient();
         if (client) {
           const keys = await client.sMembers(`${TAG_KEY_PREFIX}${tag}`);
-          let count = 0;
-          for (const key of keys) {
-            const result = await client.del(`${CACHE_KEY_PREFIX}${key}`);
-            if (result > 0) count++;
+          if (keys.length === 0) {
+            await client.del(`${TAG_KEY_PREFIX}${tag}`);
+            return 0;
           }
-          await client.del(`${TAG_KEY_PREFIX}${tag}`);
+
+          const prefixedKeys = keys.map((key) => `${CACHE_KEY_PREFIX}${key}`);
+          const transaction = client.multi();
+          transaction.del(prefixedKeys);
+          transaction.del(`${TAG_KEY_PREFIX}${tag}`);
+          const results = await transaction.exec();
+          const deletedCount =
+            Array.isArray(results) && typeof results[0] === 'number' ? results[0] : 0;
+
+          const count = Math.max(0, Number(deletedCount) || 0);
           cacheStats.size = Math.max(0, cacheStats.size - count);
           return count;
         }
@@ -444,6 +448,34 @@ export class SiteCacheService {
     pages: Array<{ slug: string; content: unknown }>,
     version: string
   ): Promise<void> {
+    if (this.useRedis()) {
+      try {
+        const client = getRedisClient();
+        if (client) {
+          const transaction = client.multi();
+          for (const page of pages) {
+            const key = this.generateCacheKey(siteId, page.slug);
+            const now = Date.now();
+            const entry: CacheEntry<unknown> = {
+              data: page.content,
+              createdAt: now,
+              expiresAt: now + DEFAULT_TTL * 1000,
+              etag: this.generateETag(page.content),
+              version,
+            };
+            const totalTtl = DEFAULT_TTL + STALE_WHILE_REVALIDATE;
+            transaction.setEx(`${CACHE_KEY_PREFIX}${key}`, totalTtl, JSON.stringify(entry));
+            transaction.sAdd(`${TAG_KEY_PREFIX}site:${siteId}`, key);
+          }
+          await transaction.exec();
+          cacheStats.size += pages.length;
+          return;
+        }
+      } catch (error) {
+        logger.error('Redis cache warm error, falling back to memory', { siteId, error });
+      }
+    }
+
     for (const page of pages) {
       const key = this.generateCacheKey(siteId, page.slug);
       await this.set(key, page.content, version, {

@@ -1,9 +1,9 @@
 import { lazy } from 'react';
 
-export const AdminSettings = lazy(() => import('../pages/admin/AdminSettings'));
-export const UserSettings = lazy(() => import('../pages/admin/UserSettings'));
-export const ApiSettings = lazy(() => import('../pages/admin/ApiSettings'));
-export const AlertsConfig = lazy(() => import('../pages/admin/AlertsConfig'));
-export const NavigationSettings = lazy(() => import('../pages/admin/NavigationSettings'));
-export const DataBackup = lazy(() => import('../pages/admin/DataBackup'));
-export const EmailMarketing = lazy(() => import('../pages/admin/EmailMarketing'));
+export const AdminSettings = lazy(() => import('../features/adminOps/pages/AdminSettingsPage'));
+export const UserSettings = lazy(() => import('../features/adminOps/pages/UserSettingsPage'));
+export const ApiSettings = lazy(() => import('../features/adminOps/pages/ApiSettingsPage'));
+export const AlertsConfig = lazy(() => import('../features/alerts/pages/AlertsConfigPage'));
+export const NavigationSettings = lazy(() => import('../features/adminOps/pages/NavigationSettingsPage'));
+export const DataBackup = lazy(() => import('../features/adminOps/pages/DataBackupPage'));
+export const EmailMarketing = lazy(() => import('../features/adminOps/pages/EmailMarketingPage'));

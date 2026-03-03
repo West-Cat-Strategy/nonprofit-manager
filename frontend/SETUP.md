@@ -1,6 +1,6 @@
 # Frontend Setup Guide
 
-**Last Updated**: 2026-02-18
+**Last Updated**: 2026-03-03
 
 Get the nonprofit-manager frontend running locally for development.
 
@@ -68,11 +68,11 @@ You should see:
 ```
   VITE v5.x.x  ready in 123 ms
 
-  ➜  Local:   localhost:5173/
+  ➜  Local:   localhost:8005/
   ➜  press h + enter to show help
 ```
 
-**Open localhost:5173/ in your browser.** You should see the nonprofit-manager frontend.
+**Open localhost:8005/ in your browser.** You should see the nonprofit-manager frontend.
 
 ---
 
@@ -82,7 +82,7 @@ Create `.env.local` in the `frontend/` directory (copy from `.env.example`):
 
 ```bash
 # Backend API
-VITE_API_URL=localhost:3000
+VITE_API_URL=http://localhost:3000/api
 
 # Authentication
 VITE_AUTH_DOMAIN=dev.example.com
@@ -93,7 +93,7 @@ VITE_PLAUSIBLE_DOMAIN=localhost  # Disable in dev by commenting out
 ```
 
 **Required variables**:
-- `VITE_API_URL` — Backend API endpoint (default: `localhost:3000`)
+- `VITE_API_URL` — Backend API endpoint (default: `http://localhost:3000/api`)
 
 **Optional variables**:
 - `VITE_AUTH_DOMAIN` — For Auth0 integration (development only)
@@ -292,13 +292,13 @@ See [backend/README.md](../backend/README.md) for backend setup.
 In `.env.local`, ensure:
 
 ```bash
-VITE_API_URL=localhost:3000
+VITE_API_URL=http://localhost:3000/api
 ```
 
 Test the connection:
 
 ```bash
-curl localhost:3000/api/health
+curl http://localhost:3000/health/live
 ```
 
 You should see a response with `{"status": "ok"}`.
@@ -347,7 +347,7 @@ Add to `.vscode/launch.json`:
       "type": "chrome",
       "request": "launch",
       "name": "Launch Chrome",
-      "url": "localhost:5173",
+      "url": "http://localhost:8005",
       "webRoot": "${workspaceFolder}/frontend/src",
       "sourceMapPathOverride": {
         "webpack:///src/*": "${webRoot}/*"
@@ -363,11 +363,11 @@ Then press `F5` to start debugging.
 
 ## Troubleshooting
 
-### "Port 5173 already in use"
+### "Port 8005 already in use"
 
 ```bash
-# Kill process on port 5173
-lsof -ti :5173 | xargs kill -9
+# Kill process on port 8005
+lsof -ti :8005 | xargs kill -9
 
 # Or use a different port
 npm run dev -- --port 5174
@@ -385,11 +385,24 @@ npm install
 
 ### "API calls are failing (400, 401, 500)"
 
-1. Check backend is running: `curl localhost:3000/api/health`
+1. Check backend is running: `curl http://localhost:3000/health/live`
 2. Check `.env.local` has correct `VITE_API_URL`
 3. Check browser console for error details
 4. Check network tab to see actual request/response
 5. See [backend/README.md](../backend/README.md) for backend troubleshooting
+
+### "I expected first-time setup, but I only see login"
+
+`docker-compose.dev.yml` seeds an admin user by default (`admin@example.com` / `password123`), so setup is already complete.  
+Use a clean DB path without user seeds to test true first-time `/setup`.
+
+### "Setup/login redirect loop when launching"
+
+If setup/auth routes fail with org-context errors, verify backend env flags and route bypass behavior:
+
+- `ORG_CONTEXT_REQUIRE=true`
+- `ORG_CONTEXT_VALIDATE=true`
+- Auth/bootstrap routes (`/api/v2/auth/*`, `/api/v2/admin/*`, `/api/v2/invitations/*`, `/api/v2/payments/webhook`) should bypass org-context checks.
 
 ### "TypeScript errors in editor"
 

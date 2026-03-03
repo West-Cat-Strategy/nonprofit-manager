@@ -51,6 +51,7 @@ const makeReport = (overrides: Partial<SavedReport> = {}): SavedReport => ({
 const mockState = {
   savedReports: {
     reports: [makeReport()],
+    pagination: { page: 1, limit: 20, total: 1, total_pages: 1 },
     loading: false,
     error: null as string | null,
   },
@@ -105,7 +106,7 @@ vi.mock('../../../store/slices/savedReportsSlice', async () => {
   );
   return {
     ...actual,
-    fetchSavedReports: (entity?: string) => ({ type: 'savedReports/fetch', payload: entity }),
+    fetchSavedReports: (params?: unknown) => ({ type: 'savedReports/fetch', payload: params }),
     deleteSavedReport: (id: string) => ({ type: 'savedReports/delete', payload: id }),
   };
 });
@@ -129,6 +130,7 @@ describe('SavedReports page', () => {
       makeReport({ id: 'saved-report-1', name: 'Donor Growth', entity: 'donations' }),
       makeReport({ id: 'saved-report-2', name: 'Accounts Snapshot', entity: 'accounts' }),
     ];
+    mockState.savedReports.pagination = { page: 1, limit: 20, total: 2, total_pages: 1 };
     mockState.savedReports.loading = false;
     mockState.savedReports.error = null;
 
@@ -168,10 +170,16 @@ describe('SavedReports page', () => {
 
     await user.selectOptions(screen.getByLabelText(/filter by entity/i), 'accounts');
 
-    expect(screen.getByText('Accounts Snapshot')).toBeInTheDocument();
-    expect(screen.queryByText('Donor Growth')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(dispatchMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'savedReports/fetch',
+          payload: expect.objectContaining({ entity: 'accounts' }),
+        })
+      );
+    });
 
-    await user.click(screen.getByRole('button', { name: /load & run/i }));
+    await user.click(screen.getAllByRole('button', { name: /load & run/i })[1]);
     expect(navigateMock).toHaveBeenCalledWith('/reports/builder?load=saved-report-2');
   });
 
