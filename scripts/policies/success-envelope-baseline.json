@@ -43,8 +43,17 @@
   "backend/src/controllers/userController.ts": 7,
   "backend/src/controllers/volunteerController.ts": 8,
   "backend/src/controllers/webhookController.ts": 15,
+  "backend/src/modules/alerts/controllers/alertController.ts": 10,
+  "backend/src/modules/auth/controllers/passkeyController.ts": 5,
+  "backend/src/modules/auth/controllers/passwordResetController.ts": 3,
   "backend/src/modules/cases/controllers/lifecycle.controller.ts": 1,
   "backend/src/modules/cases/controllers/milestones.controller.ts": 1,
   "backend/src/modules/cases/controllers/relationships.controller.ts": 1,
-  "backend/src/modules/cases/controllers/services.controller.ts": 1
+  "backend/src/modules/cases/controllers/services.controller.ts": 1,
+  "backend/src/modules/donations/controllers/donationController.ts": 6,
+  "backend/src/modules/ingest/controllers/ingestController.ts": 2,
+  "backend/src/modules/invitations/controllers/invitationController.ts": 7,
+  "backend/src/modules/mailchimp/controllers/mailchimpController.ts": 13,
+  "backend/src/modules/meetings/controllers/meetingController.ts": 10,
+  "backend/src/modules/publicReports/controllers/reportSharingController.ts": 5
 }

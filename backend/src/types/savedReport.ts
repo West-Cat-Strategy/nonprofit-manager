@@ -53,6 +53,20 @@ export interface SavedReport {
   share_settings?: ShareSettings;
 }
 
+export interface SavedReportSummary extends Omit<SavedReport, 'report_definition'> {
+  report_definition?: never;
+}
+
+export interface SavedReportsListPage<TItem> {
+  items: TItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    total_pages: number;
+  };
+}
+
 export interface CreateSavedReportRequest {
   name: string;
   description?: string;

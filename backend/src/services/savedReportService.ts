@@ -8,6 +8,8 @@ import { Pool } from 'pg';
 import { logger } from '@config/logger';
 import type {
   SavedReport,
+  SavedReportSummary,
+  SavedReportsListPage,
   CreateSavedReportRequest,
   UpdateSavedReportRequest,
 } from '@app-types/savedReport';
@@ -43,6 +45,23 @@ const SHARE_ROLES: SharePrincipalRole[] = [
   { name: 'volunteer', label: 'Volunteer' },
 ];
 
+const SAVED_REPORT_BASE_COLUMNS = `
+  id,
+  name,
+  description,
+  entity,
+  created_by,
+  created_at,
+  updated_at,
+  is_public,
+  shared_with_users,
+  shared_with_roles,
+  public_token,
+  share_settings
+`;
+
+const SAVED_REPORT_DETAIL_COLUMNS = `${SAVED_REPORT_BASE_COLUMNS}, report_definition`;
+
 export class SavedReportService {
   constructor(private pool: Pool) { }
 
@@ -74,10 +93,20 @@ export class SavedReportService {
   /**
    * Get all saved reports (optionally filter by user or entity)
    */
-  async getSavedReports(userId?: string, entity?: string, userRoles: string[] = []): Promise<SavedReport[]> {
+  async getSavedReports(
+    userId?: string,
+    entity?: string,
+    userRoles: string[] = [],
+    options: { page?: number; limit?: number; summary?: boolean } = {}
+  ): Promise<SavedReportsListPage<SavedReport | SavedReportSummary>> {
     try {
-      let query = `
-        SELECT *
+      const page = Math.max(1, Number(options.page || 1));
+      const limit = Math.max(1, Math.min(Number(options.limit || 20), 100));
+      const offset = (page - 1) * limit;
+      const summary = options.summary !== false;
+      const selectColumns = summary ? SAVED_REPORT_BASE_COLUMNS : SAVED_REPORT_DETAIL_COLUMNS;
+
+      let whereClause = `
         FROM saved_reports
         WHERE (
           is_public = TRUE
@@ -87,16 +116,37 @@ export class SavedReportService {
         )
       `;
       const params: unknown[] = [userId || null, userRoles];
+      let nextParamIndex = 3;
 
       if (entity) {
-        query += ` AND entity = $3`;
+        whereClause += ` AND entity = $${nextParamIndex}`;
         params.push(entity);
+        nextParamIndex += 1;
       }
 
-      query += ` ORDER BY updated_at DESC`;
+      const countResult = await this.pool.query<{ total: string }>(
+        `SELECT COUNT(*)::text AS total ${whereClause}`,
+        params
+      );
+      const total = Number.parseInt(countResult.rows[0]?.total || '0', 10);
 
-      const result = await this.pool.query(query, params);
-      return result.rows;
+      const result = await this.pool.query(
+        `SELECT ${selectColumns}
+         ${whereClause}
+         ORDER BY updated_at DESC
+         LIMIT $${nextParamIndex} OFFSET $${nextParamIndex + 1}`,
+        [...params, limit, offset]
+      );
+
+      return {
+        items: result.rows,
+        pagination: {
+          page,
+          limit,
+          total,
+          total_pages: total === 0 ? 0 : Math.ceil(total / limit),
+        },
+      };
     } catch (error) {
       logger.error('Error fetching saved reports', { error, userId, entity, userRoles });
       throw Object.assign(new Error('Failed to fetch saved reports'), { cause: error });
@@ -109,7 +159,7 @@ export class SavedReportService {
   async getSavedReportById(id: string, userId?: string, userRoles: string[] = []): Promise<SavedReport | null> {
     try {
       const query = `
-        SELECT *
+        SELECT ${SAVED_REPORT_DETAIL_COLUMNS}
         FROM saved_reports
         WHERE id = $1
           AND (
@@ -173,7 +223,9 @@ export class SavedReportService {
     try {
       // First check if report exists and user owns it
       const checkQuery = `
-        SELECT * FROM saved_reports
+        SELECT id, name, description, entity, created_by, created_at, updated_at, is_public,
+               shared_with_users, shared_with_roles, public_token, share_settings, report_definition
+        FROM saved_reports
         WHERE id = $1 AND created_by = $2
       `;
       const checkResult = await this.pool.query(checkQuery, [id, userId]);

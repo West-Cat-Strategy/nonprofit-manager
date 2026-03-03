@@ -17,6 +17,23 @@ import type {
 
 // Base URL for published sites (configurable via environment)
 const SITE_BASE_URL = process.env.SITE_BASE_URL || 'https://sites.nonprofitmanager.com';
+const PUBLISHED_SITE_SELECT_COLUMNS = `
+  id,
+  user_id,
+  template_id,
+  name,
+  subdomain,
+  custom_domain,
+  ssl_enabled,
+  ssl_certificate_expires_at,
+  status,
+  published_version,
+  published_at,
+  published_content,
+  analytics_enabled,
+  created_at,
+  updated_at
+`;
 
 export class SiteManagementService {
   constructor(private pool: Pool) {}
@@ -63,7 +80,7 @@ export class SiteManagementService {
       `INSERT INTO published_sites (
         user_id, template_id, name, subdomain, custom_domain, status
       ) VALUES ($1, $2, $3, $4, $5, 'draft')
-      RETURNING *`,
+      RETURNING ${PUBLISHED_SITE_SELECT_COLUMNS}`,
       [
         userId,
         templateId,
@@ -81,7 +98,9 @@ export class SiteManagementService {
    */
   async getSite(siteId: string, userId: string): Promise<PublishedSite | null> {
     const result = await this.pool.query(
-      'SELECT * FROM published_sites WHERE id = $1 AND user_id = $2',
+      `SELECT ${PUBLISHED_SITE_SELECT_COLUMNS}
+       FROM published_sites
+       WHERE id = $1 AND user_id = $2`,
       [siteId, userId]
     );
 
@@ -97,7 +116,9 @@ export class SiteManagementService {
    */
   async getSiteBySubdomain(subdomain: string): Promise<PublishedSite | null> {
     const result = await this.pool.query(
-      'SELECT * FROM published_sites WHERE subdomain = $1 AND status = $2',
+      `SELECT ${PUBLISHED_SITE_SELECT_COLUMNS}
+       FROM published_sites
+       WHERE subdomain = $1 AND status = $2`,
       [subdomain.toLowerCase(), 'published']
     );
 
@@ -113,7 +134,9 @@ export class SiteManagementService {
    */
   async getSiteByDomain(domain: string): Promise<PublishedSite | null> {
     const result = await this.pool.query(
-      'SELECT * FROM published_sites WHERE custom_domain = $1 AND status = $2',
+      `SELECT ${PUBLISHED_SITE_SELECT_COLUMNS}
+       FROM published_sites
+       WHERE custom_domain = $1 AND status = $2`,
       [domain.toLowerCase(), 'published']
     );
 
@@ -192,7 +215,7 @@ export class SiteManagementService {
     const result = await this.pool.query(
       `UPDATE published_sites SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
        WHERE id = $${paramIndex++} AND user_id = $${paramIndex}
-       RETURNING *`,
+       RETURNING ${PUBLISHED_SITE_SELECT_COLUMNS}`,
       values
     );
 
@@ -261,7 +284,8 @@ export class SiteManagementService {
     // Get paginated results
     const offset = (page - 1) * limit;
     const result = await this.pool.query(
-      `SELECT * FROM published_sites
+      `SELECT ${PUBLISHED_SITE_SELECT_COLUMNS}
+       FROM published_sites
        WHERE ${whereClause}
        ORDER BY ${sortColumn} ${order}
        LIMIT $${paramIndex++} OFFSET $${paramIndex}`,

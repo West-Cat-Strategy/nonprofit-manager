@@ -24,6 +24,10 @@ const DEFAULT_SECRET_FIELDS: Record<string, string[]> = {
   portal_invitations: ['token'],
 };
 
+const EXPORT_CHUNK_SIZE = 1000;
+
+const quoteIdentifier = (value: string): string => `"${value.replace(/"/g, '""')}"`;
+
 async function writeChunk(stream: NodeJS.WritableStream, chunk: string): Promise<void> {
   if (stream.write(chunk)) return;
   await new Promise<void>((resolve, reject) => {
@@ -68,9 +72,6 @@ export class BackupService {
 
   constructor() {
     this.exportDir = path.join(__dirname, '../../exports');
-    if (!fs.existsSync(this.exportDir)) {
-      fs.mkdirSync(this.exportDir, { recursive: true });
-    }
   }
 
   async createBackupFile(options: BackupExportOptions): Promise<string> {
@@ -84,6 +85,7 @@ export class BackupService {
     const filenameBase = sanitizeFilename(options.filename, defaultName);
     const extension = compress ? '.json.gz' : '.json';
     const filepath = path.join(this.exportDir, `${filenameBase}${extension}`);
+    await fs.promises.mkdir(this.exportDir, { recursive: true });
 
     const tables = await this.listPublicTables();
 
@@ -192,9 +194,11 @@ export class BackupService {
     let firstTable = true;
     for (const tableName of tables) {
       const columns = await this.getTableColumns(tableName);
-      const dataResult = await pool.query(`SELECT * FROM "${tableName}"`);
-
-      rowCounts[tableName] = dataResult.rowCount || dataResult.rows.length;
+      const columnNames = columns.map((column) => column.name);
+      const selectColumnsSql = columnNames.map((columnName) => quoteIdentifier(columnName)).join(', ');
+      const tableIdentifier = quoteIdentifier(tableName);
+      let offset = 0;
+      let tableRowCount = 0;
 
       if (!firstTable) await writeChunk(stream, ',');
       firstTable = false;
@@ -211,14 +215,32 @@ export class BackupService {
       await writeChunk(stream, `"rows":[`);
 
       let firstRow = true;
-      for (const rawRow of dataResult.rows as Record<string, unknown>[]) {
-        const row = meta.includeSecrets ? rawRow : this.redactRow(tableName, rawRow);
-        if (!firstRow) await writeChunk(stream, ',');
-        firstRow = false;
-        await writeChunk(stream, JSON.stringify(row));
+      while (true) {
+        const chunkResult = await pool.query(
+          `SELECT ${selectColumnsSql}
+           FROM ${tableIdentifier}
+           LIMIT $1 OFFSET $2`,
+          [EXPORT_CHUNK_SIZE, offset]
+        );
+
+        const chunkRows = chunkResult.rows as Record<string, unknown>[];
+        if (chunkRows.length === 0) {
+          break;
+        }
+
+        tableRowCount += chunkRows.length;
+        offset += chunkRows.length;
+
+        for (const rawRow of chunkRows) {
+          const row = meta.includeSecrets ? rawRow : this.redactRow(tableName, rawRow);
+          if (!firstRow) await writeChunk(stream, ',');
+          firstRow = false;
+          await writeChunk(stream, JSON.stringify(row));
+        }
       }
 
       await writeChunk(stream, `]}`);
+      rowCounts[tableName] = tableRowCount;
     }
 
     await writeChunk(stream, `},"row_counts":${JSON.stringify(rowCounts)}}`);

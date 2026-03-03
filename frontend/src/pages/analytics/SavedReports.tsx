@@ -18,7 +18,11 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { createScheduledReport } from '../../store/slices/scheduledReportsSlice';
 import { deleteSavedReport, fetchSavedReports } from '../../store/slices/savedReportsSlice';
 import { savedReportsApiClient } from '../../features/savedReports/api/savedReportsApiClient';
-import type { SavedReport, SharePrincipalRole, SharePrincipalUser } from '../../types/savedReport';
+import type {
+  SavedReportListItem,
+  SharePrincipalRole,
+  SharePrincipalUser,
+} from '../../types/savedReport';
 import type { ReportEntity } from '../../types/report';
 import type { ScheduledReportFormat, ScheduledReportFrequency } from '../../types/scheduledReport';
 
@@ -35,12 +39,22 @@ const toDateTimeLocal = (isoValue?: string): string => {
 function SavedReports() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { reports, loading, error } = useAppSelector((state) => state.savedReports);
+  const savedReportsState = useAppSelector((state) => state.savedReports);
+  const reports = savedReportsState.reports ?? [];
+  const loading = savedReportsState.loading ?? false;
+  const error = savedReportsState.error ?? null;
+  const pagination = savedReportsState.pagination ?? {
+    page: 1,
+    limit: 20,
+    total: 0,
+    total_pages: 0,
+  };
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
 
   const [filterEntity, setFilterEntity] = useState<ReportEntity | ''>('');
-  const [scheduleTarget, setScheduleTarget] = useState<SavedReport | null>(null);
-  const [shareTarget, setShareTarget] = useState<SavedReport | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [scheduleTarget, setScheduleTarget] = useState<SavedReportListItem | null>(null);
+  const [shareTarget, setShareTarget] = useState<SavedReportListItem | null>(null);
   const [scheduleRecipients, setScheduleRecipients] = useState('');
   const [scheduleFrequency, setScheduleFrequency] = useState<ScheduledReportFrequency>('weekly');
   const [scheduleFormat, setScheduleFormat] = useState<ScheduledReportFormat>('csv');
@@ -62,15 +76,26 @@ function SavedReports() {
   const [publicLinkToken, setPublicLinkToken] = useState<string | null>(null);
   const [publicLinkUrl, setPublicLinkUrl] = useState<string | null>(null);
 
-  const loadSavedReports = useCallback(async () => {
-    await dispatch(fetchSavedReports());
-  }, [dispatch]);
+  const selectedEntity = filterEntity || undefined;
+  const loadSavedReports = useCallback(
+    async (page = currentPage) => {
+      await dispatch(
+        fetchSavedReports({
+          entity: selectedEntity,
+          page,
+          limit: pagination.limit,
+          summary: true,
+        })
+      );
+    },
+    [currentPage, dispatch, pagination.limit, selectedEntity]
+  );
 
   useEffect(() => {
-    void loadSavedReports();
-  }, [loadSavedReports]);
+    void loadSavedReports(currentPage);
+  }, [currentPage, loadSavedReports]);
 
-  const handleLoadReport = (report: SavedReport) => {
+  const handleLoadReport = (report: SavedReportListItem) => {
     navigate(`/reports/builder?load=${report.id}`);
   };
 
@@ -80,9 +105,7 @@ function SavedReports() {
     await dispatch(deleteSavedReport(id));
   };
 
-  const filteredReports = filterEntity
-    ? reports.filter((report) => report.entity === filterEntity)
-    : reports;
+  const filteredReports = reports;
 
   const publicLinkDisplay = useMemo(() => {
     if (!publicLinkToken) return null;
@@ -147,7 +170,7 @@ function SavedReports() {
     }
   };
 
-  const openShareDialog = (report: SavedReport) => {
+  const openShareDialog = (report: SavedReportListItem) => {
     setShareTarget(report);
     setSelectedUserIds(report.shared_with_users || []);
     setSelectedRoleNames(report.shared_with_roles || []);
@@ -180,9 +203,6 @@ function SavedReports() {
       ? current.filter((value) => value !== nextValue)
       : [...current, nextValue];
 
-  const getFilterEntityOrUndefined = (): ReportEntity | undefined =>
-    filterEntity || undefined;
-
   const handleSaveShare = async () => {
     if (!shareTarget) return;
     setShareBusy(true);
@@ -199,7 +219,14 @@ function SavedReports() {
         },
       });
       setShareTarget(updated);
-      await dispatch(fetchSavedReports(getFilterEntityOrUndefined()));
+      await dispatch(
+        fetchSavedReports({
+          entity: selectedEntity,
+          page: currentPage,
+          limit: pagination.limit,
+          summary: true,
+        })
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update sharing';
       setShareError(message);
@@ -225,7 +252,14 @@ function SavedReports() {
       setShareTarget(updated);
       setSelectedUserIds([]);
       setSelectedRoleNames([]);
-      await dispatch(fetchSavedReports(getFilterEntityOrUndefined()));
+      await dispatch(
+        fetchSavedReports({
+          entity: selectedEntity,
+          page: currentPage,
+          limit: pagination.limit,
+          summary: true,
+        })
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to remove share access';
       setShareError(message);
@@ -245,7 +279,14 @@ function SavedReports() {
       );
       setPublicLinkToken(response.token);
       setPublicLinkUrl(`${window.location.origin}${response.url}`);
-      await dispatch(fetchSavedReports(getFilterEntityOrUndefined()));
+      await dispatch(
+        fetchSavedReports({
+          entity: selectedEntity,
+          page: currentPage,
+          limit: pagination.limit,
+          summary: true,
+        })
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to generate public link';
       setShareError(message);
@@ -262,7 +303,14 @@ function SavedReports() {
       await savedReportsApiClient.revokePublicLink(shareTarget.id);
       setPublicLinkToken(null);
       setPublicLinkUrl(null);
-      await dispatch(fetchSavedReports(getFilterEntityOrUndefined()));
+      await dispatch(
+        fetchSavedReports({
+          entity: selectedEntity,
+          page: currentPage,
+          limit: pagination.limit,
+          summary: true,
+        })
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to revoke public link';
       setShareError(message);
@@ -298,7 +346,10 @@ function SavedReports() {
             id="filter-entity"
             label="Filter by Entity"
             value={filterEntity}
-            onChange={(event) => setFilterEntity(event.target.value as ReportEntity | '')}
+            onChange={(event) => {
+              setFilterEntity(event.target.value as ReportEntity | '');
+              setCurrentPage(1);
+            }}
           >
             <option value="">All Entities</option>
             <option value="accounts">Accounts</option>
@@ -348,15 +399,19 @@ function SavedReports() {
                   <div className="space-y-1 text-xs text-app-text-muted">
                     <p>Created: {new Date(report.created_at).toLocaleDateString()}</p>
                     <p>Updated: {new Date(report.updated_at).toLocaleDateString()}</p>
-                    <p>
-                      Fields: {report.report_definition.fields?.length || 0}
-                      {report.report_definition.aggregations &&
-                        report.report_definition.aggregations.length > 0 &&
-                        ` • Aggregations: ${report.report_definition.aggregations.length}`}
-                      {report.report_definition.filters &&
-                        report.report_definition.filters.length > 0 &&
-                        ` • Filters: ${report.report_definition.filters.length}`}
-                    </p>
+                    {'report_definition' in report && report.report_definition ? (
+                      <p>
+                        Fields: {report.report_definition.fields?.length || 0}
+                        {report.report_definition.aggregations &&
+                          report.report_definition.aggregations.length > 0 &&
+                          ` • Aggregations: ${report.report_definition.aggregations.length}`}
+                        {report.report_definition.filters &&
+                          report.report_definition.filters.length > 0 &&
+                          ` • Filters: ${report.report_definition.filters.length}`}
+                      </p>
+                    ) : (
+                      <p>Definition details load when opening the report.</p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
@@ -379,6 +434,32 @@ function SavedReports() {
                 </div>
               </SectionCard>
             ))}
+          </div>
+        )}
+
+        {!loading && pagination.total_pages > 1 && (
+          <div className="flex items-center justify-between rounded-[var(--ui-radius-md)] border border-app-border bg-app-surface p-3">
+            <span className="text-xs text-app-text-muted">
+              Page {pagination.page} of {pagination.total_pages} ({pagination.total} reports)
+            </span>
+            <div className="flex items-center gap-2">
+              <SecondaryButton
+                className="px-3 py-1 text-xs"
+                disabled={pagination.page <= 1}
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              >
+                Previous
+              </SecondaryButton>
+              <SecondaryButton
+                className="px-3 py-1 text-xs"
+                disabled={pagination.page >= pagination.total_pages}
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(pagination.total_pages, prev + 1))
+                }
+              >
+                Next
+              </SecondaryButton>
+            </div>
           </div>
         )}
 

@@ -21,7 +21,7 @@ export const getTemplates = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const query = ((req as any).validatedQuery ?? req.query) as { category?: TemplateCategory };
+        const query = (req.validatedQuery ?? req.query) as { category?: TemplateCategory };
         const category = typeof query.category === 'string' ? query.category : undefined;
         const templates = await templateService.getTemplates(category);
         res.json(templates);

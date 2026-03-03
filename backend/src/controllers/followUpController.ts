@@ -38,7 +38,7 @@ export const followUpController = {
         return;
       }
 
-      const query = ((req as any).validatedQuery ?? req.query) as Record<string, unknown>;
+      const query = (req.validatedQuery ?? req.query) as Record<string, unknown>;
       const filters: FollowUpFilters = {
         entity_type: query.entity_type as FollowUpEntityType | undefined,
         entity_id: query.entity_id as string | undefined,
@@ -68,7 +68,7 @@ export const followUpController = {
         return;
       }
 
-      const query = ((req as any).validatedQuery ?? req.query) as Record<string, unknown>;
+      const query = (req.validatedQuery ?? req.query) as Record<string, unknown>;
       const summary = await followUpService.getFollowUpSummary(organizationId, {
         entity_type: query.entity_type as FollowUpEntityType | undefined,
         entity_id: query.entity_id as string | undefined,
@@ -95,7 +95,7 @@ export const followUpController = {
         return;
       }
 
-      const query = ((req as any).validatedQuery ?? req.query) as Record<string, unknown>;
+      const query = (req.validatedQuery ?? req.query) as Record<string, unknown>;
       const limit = Number(query.limit || 10);
       const rows = await followUpService.getUpcomingFollowUps(organizationId, limit);
       sendSuccess(res, rows);
@@ -114,7 +114,7 @@ export const followUpController = {
         return;
       }
 
-      const params = ((req as any).validatedParams ?? req.params) as { id: string };
+      const params = (req.validatedParams ?? req.params) as { id: string };
       const followUp = await followUpService.getFollowUpById(organizationId, params.id);
 
       if (!followUp) {
@@ -157,7 +157,7 @@ export const followUpController = {
         return;
       }
 
-      const params = ((req as any).validatedParams ?? req.params) as { id: string };
+      const params = (req.validatedParams ?? req.params) as { id: string };
       const updated = await followUpService.updateFollowUp(organizationId, params.id, userId, req.body);
       if (!updated) {
         notFoundMessage(res, 'Follow-up not found');
@@ -200,7 +200,7 @@ export const followUpController = {
         return;
       }
 
-      const params = ((req as any).validatedParams ?? req.params) as { id: string };
+      const params = (req.validatedParams ?? req.params) as { id: string };
       const completed = await followUpService.completeFollowUp(organizationId, params.id, userId, req.body || {});
 
       if (!completed) {
@@ -225,7 +225,7 @@ export const followUpController = {
         return;
       }
 
-      const params = ((req as any).validatedParams ?? req.params) as { id: string };
+      const params = (req.validatedParams ?? req.params) as { id: string };
       const cancelled = await followUpService.cancelFollowUp(organizationId, params.id, userId);
 
       if (!cancelled) {
@@ -250,7 +250,7 @@ export const followUpController = {
         return;
       }
 
-      const params = ((req as any).validatedParams ?? req.params) as { id: string };
+      const params = (req.validatedParams ?? req.params) as { id: string };
       const body = req.body as { scheduled_date: string; scheduled_time?: string | null };
       const updated = await followUpService.rescheduleFollowUp(
         organizationId,
@@ -281,7 +281,7 @@ export const followUpController = {
         return;
       }
 
-      const params = ((req as any).validatedParams ?? req.params) as { id: string };
+      const params = (req.validatedParams ?? req.params) as { id: string };
       const deleted = await followUpService.deleteFollowUp(organizationId, params.id);
 
       if (!deleted) {
@@ -305,7 +305,7 @@ export const followUpController = {
         return;
       }
 
-      const params = ((req as any).validatedParams ?? req.params) as { id: string };
+      const params = (req.validatedParams ?? req.params) as { id: string };
       const rows = await followUpService.getEntityFollowUps(organizationId, 'case', params.id);
       sendSuccess(res, rows);
     } catch {
@@ -323,7 +323,7 @@ export const followUpController = {
         return;
       }
 
-      const params = ((req as any).validatedParams ?? req.params) as { id: string };
+      const params = (req.validatedParams ?? req.params) as { id: string };
       const rows = await followUpService.getEntityFollowUps(organizationId, 'task', params.id);
       sendSuccess(res, rows);
     } catch {

@@ -51,7 +51,7 @@ export const createContactDirectoryController = (
 ) => {
   const getContacts = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const query = ((req as any).validatedQuery ?? req.query) as Record<string, unknown>;
+      const query = (req.validatedQuery ?? req.query) as Record<string, unknown>;
       const filters: ContactFilters = {
         search: getString(query.search),
         role: getRoleFilter(query.role),

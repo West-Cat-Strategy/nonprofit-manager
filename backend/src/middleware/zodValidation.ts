@@ -64,8 +64,7 @@ export function validateRequest(sources: ValidationSource) {
         validationMap.query = buildValidationMap(issues);
         hasError = true;
       } else {
-        // Replace req.query with validated data (as any to match Express typing)
-        (req as any).validatedQuery = result.data;
+        req.validatedQuery = result.data as Request['validatedQuery'];
       }
     }
 
@@ -78,8 +77,7 @@ export function validateRequest(sources: ValidationSource) {
         validationMap.params = buildValidationMap(issues);
         hasError = true;
       } else {
-        // Store validated params
-        (req as any).validatedParams = result.data;
+        req.validatedParams = result.data as Request['validatedParams'];
       }
     }
 
@@ -194,9 +192,12 @@ export function validateData<T>(schema: ZodSchema, data: unknown): ValidationRes
 export function validateDataOrThrow<T>(schema: ZodSchema, data: unknown): T {
   const result = validateData<T>(schema, data);
   if (!result.success) {
-    const error = new Error(result.error);
-    (error as any).statusCode = 400;
-    (error as any).details = result.errors;
+    const error = new Error(result.error) as Error & {
+      statusCode?: number;
+      details?: ValidationIssue[];
+    };
+    error.statusCode = 400;
+    error.details = result.errors;
     throw error;
   }
   return result.data as T;
@@ -207,9 +208,9 @@ export function validateDataOrThrow<T>(schema: ZodSchema, data: unknown): T {
  */
 export function validatePartial<T>(schema: ZodSchema, data: unknown): ValidationResult {
   // Convert to partial schema
-  const partialSchema = schema instanceof Object && 'partial' in schema
-    ? (schema as any).partial()
-    : schema;
+  const partialCandidate = schema as ZodSchema & { partial?: () => ZodSchema };
+  const partialSchema =
+    typeof partialCandidate.partial === 'function' ? partialCandidate.partial() : schema;
 
   return validateData<T>(partialSchema, data);
 }

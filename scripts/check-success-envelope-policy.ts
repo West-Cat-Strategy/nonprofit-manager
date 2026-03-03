@@ -16,7 +16,11 @@ const DIRECT_SUCCESS_REGEX = [
 ];
 
 const STRICT_ZERO_CONTROLLERS = new Set([
+  'backend/src/controllers/adminBrandingController.ts',
+  'backend/src/controllers/adminStatsController.ts',
   'backend/src/controllers/caseController.ts',
+  'backend/src/controllers/outcomeDefinitionController.ts',
+  'backend/src/controllers/outcomeReportController.ts',
   'backend/src/controllers/taskController.ts',
   'backend/src/controllers/userController.ts',
   'backend/src/controllers/mfaController.ts',

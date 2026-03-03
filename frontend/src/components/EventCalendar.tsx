@@ -19,9 +19,10 @@ export default function EventCalendar({ onEventClick }: EventCalendarProps) {
           startDate,
           endDate,
           page: 1,
-          limit: 250,
+          limit: 100,
           sortBy: 'start_date',
           sortOrder: 'asc',
+          accumulateAllPages: true,
         })
       );
     },

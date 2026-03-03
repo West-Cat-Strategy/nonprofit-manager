@@ -350,6 +350,40 @@ Complete hard cutover to `/api/v2/*`:
 
 ---
 
+## ADR-013: `/api/v2` Module-Only Route Registration
+
+**Date**: March 3, 2026
+
+**Status**: Accepted
+
+**Context**:
+Even after v2 cutover, `/api/v2` route registration still mixed module surfaces (`@modules/*`) and legacy route surfaces (`@routes/*`), which blurred ownership and complicated modular refactors.
+
+**Decision**:
+`backend/src/routes/v2/index.ts` now imports only module exports from `backend/src/modules/*`.
+
+Legacy `backend/src/routes/*.ts` files are retained as compatibility wrappers or migration scaffolding, but are not mounted directly by the v2 registrar.
+
+For the remaining legacy v2 surfaces (activities/admin/alerts/auth/backup/donations/export/external-service-providers/ingest/invitations/mailchimp/meetings/payments/plausible/public-reports/reconciliation/publishing/templates/users/webhooks/portal-auth/portal-admin), module route entrypoints now own runtime route definitions directly and do not import `@routes/*` proxies.
+
+Module ownership guardrails are enforced in lint via:
+- `scripts/check-v2-module-ownership-policy.ts`
+- `scripts/check-module-boundary-policy.ts`
+- `scripts/check-module-route-proxy-policy.ts`
+
+**Rationale**:
+- Enforces a single ownership boundary for active API runtime.
+- Keeps route-controller-service layering consistent inside module packages.
+- Makes modularity policy checks deterministic in CI.
+
+**Consequences**:
+- New v2 endpoint work must land in `backend/src/modules/<domain>/`.
+- Direct `@routes/*` imports in the v2 registrar are policy violations.
+- Module route files for migrated domains must not proxy `@routes/*`.
+- Legacy route files remain compatibility entrypoints for non-v2 callers and policy/tooling continuity.
+
+---
+
 ## Template for Future ADRs
 
 ```markdown

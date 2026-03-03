@@ -68,8 +68,12 @@ export const createPortalCasesController = (useCase: PortalCasesUseCase) => {
         return;
       }
 
-      const timeline = await useCase.getTimeline(contactId, req.params.id);
-      sendSuccess(res, timeline);
+      const query = (req.validatedQuery ?? req.query) as { limit?: number; cursor?: string };
+      const timelinePage = await useCase.getTimeline(contactId, req.params.id, {
+        limit: query.limit,
+        cursor: query.cursor,
+      });
+      sendSuccess(res, timelinePage);
     } catch (error) {
       next(error);
     }
@@ -148,4 +152,3 @@ export const createPortalCasesController = (useCase: PortalCasesUseCase) => {
     downloadCaseDocument,
   };
 };
-

@@ -316,7 +316,7 @@ Interaction-level outcome tags with:
 ### New/Updated v2 Endpoints
 
 Staff case endpoints:
-- `GET /api/v2/cases/:id/timeline`
+- `GET /api/v2/cases/:id/timeline?limit=50&cursor=...`
 - `PUT /api/v2/cases/:id/client-viewable`
 - `PUT /api/v2/cases/notes/:noteId`
 - `DELETE /api/v2/cases/notes/:noteId`
@@ -332,7 +332,7 @@ Staff case endpoints:
 Portal case endpoints:
 - `GET /api/v2/portal/cases`
 - `GET /api/v2/portal/cases/:id`
-- `GET /api/v2/portal/cases/:id/timeline`
+- `GET /api/v2/portal/cases/:id/timeline?limit=50&cursor=...`
 - `GET /api/v2/portal/cases/:id/documents`
 - `GET /api/v2/portal/cases/:id/documents/:documentId/download`
 
@@ -342,6 +342,22 @@ Staff timeline aggregates:
 - outcomes
 - topics
 - documents
+
+Timeline endpoints are cursor-paginated:
+- `limit` defaults to `50` and is capped at `200`
+- `cursor` is an opaque token from the previous page
+- responses use:
+
+```json
+{
+  "items": [],
+  "page": {
+    "limit": 50,
+    "has_more": false,
+    "next_cursor": null
+  }
+}
+```
 
 Portal timeline is filtered to client-visible records only:
 - notes (`visible_to_client=true`)

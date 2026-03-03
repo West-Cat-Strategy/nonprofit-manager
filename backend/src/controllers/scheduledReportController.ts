@@ -71,7 +71,7 @@ export const scheduledReportController = {
         return;
       }
 
-      const params = ((req as any).validatedParams ?? req.params) as { id: string };
+      const params = (req.validatedParams ?? req.params) as { id: string };
       const report = await scheduledReportService.getScheduledReportById(organizationId, params.id);
       if (!report) {
         notFoundMessage(res, 'Scheduled report not found');
@@ -113,7 +113,7 @@ export const scheduledReportController = {
         return;
       }
 
-      const params = ((req as any).validatedParams ?? req.params) as { id: string };
+      const params = (req.validatedParams ?? req.params) as { id: string };
       const updated = await scheduledReportService.updateScheduledReport(
         organizationId,
         params.id,
@@ -143,7 +143,7 @@ export const scheduledReportController = {
         return;
       }
 
-      const params = ((req as any).validatedParams ?? req.params) as { id: string };
+      const params = (req.validatedParams ?? req.params) as { id: string };
       const toggled = await scheduledReportService.toggleScheduledReport(
         organizationId,
         params.id,
@@ -172,7 +172,7 @@ export const scheduledReportController = {
         return;
       }
 
-      const params = ((req as any).validatedParams ?? req.params) as { id: string };
+      const params = (req.validatedParams ?? req.params) as { id: string };
       const run = await scheduledReportService.runScheduledReportNow(organizationId, params.id);
       if (!run) {
         notFoundMessage(res, 'Scheduled report not found');
@@ -195,7 +195,7 @@ export const scheduledReportController = {
         return;
       }
 
-      const params = ((req as any).validatedParams ?? req.params) as { id: string };
+      const params = (req.validatedParams ?? req.params) as { id: string };
       const deleted = await scheduledReportService.deleteScheduledReport(organizationId, params.id);
 
       if (!deleted) {
@@ -219,8 +219,8 @@ export const scheduledReportController = {
         return;
       }
 
-      const params = ((req as any).validatedParams ?? req.params) as { id: string };
-      const query = ((req as any).validatedQuery ?? req.query) as { limit?: number };
+      const params = (req.validatedParams ?? req.params) as { id: string };
+      const query = (req.validatedQuery ?? req.query) as { limit?: number };
 
       const rows = await scheduledReportService.listScheduledReportRuns(
         organizationId,

@@ -288,7 +288,12 @@ const WEBHOOK_GUARDRAIL_CASES: GuardrailCase[] = [
   },
 ];
 
-const SUCCESS_CONTRACT_CASES: Array<{ name: string; method: 'get' | 'post'; path: string }> = [
+const SUCCESS_CONTRACT_CASES: Array<{
+  name: string;
+  method: 'get' | 'post';
+  path: string;
+  tokenKind?: 'user' | 'admin';
+}> = [
   {
     name: 'auth setup-status success envelope',
     method: 'get',
@@ -298,6 +303,12 @@ const SUCCESS_CONTRACT_CASES: Array<{ name: string; method: 'get' | 'post'; path
     name: 'payments config success envelope',
     method: 'get',
     path: '/api/v2/payments/config',
+  },
+  {
+    name: 'admin roles success envelope',
+    method: 'get',
+    path: '/api/v2/admin/roles',
+    tokenKind: 'admin',
   },
 ];
 
@@ -472,6 +483,63 @@ describe('Route Guardrails Integration', () => {
     });
   });
 
+  describe('strict org-context setup/auth bypass behavior', () => {
+    const originalOrgContextRequire = process.env.ORG_CONTEXT_REQUIRE;
+
+    beforeAll(() => {
+      process.env.ORG_CONTEXT_REQUIRE = 'true';
+    });
+
+    afterAll(() => {
+      process.env.ORG_CONTEXT_REQUIRE = originalOrgContextRequire;
+    });
+
+    it('does not block setup-status behind org-context requirement', async () => {
+      const response = await request(app).get('/api/v2/auth/setup-status').expect(200);
+
+      expect(response.body).toMatchObject({
+        success: true,
+        data: {
+          setupRequired: expect.any(Boolean),
+          userCount: expect.any(Number),
+        },
+      });
+    });
+
+    it('keeps login behavior as auth semantics (not org-context bad request)', async () => {
+      const response = await request(app)
+        .post('/api/v2/auth/login')
+        .send({
+          email: `guardrails-missing-user-${Date.now()}@example.com`,
+          password: 'InvalidPassword123!',
+        })
+        .expect(401);
+
+      expectCanonicalError(response, 'unauthorized');
+      expect(response.body.error.message).not.toMatch(/organization context is required/i);
+    });
+
+    it('keeps setup validation errors as validation semantics (not org-context bad request)', async () => {
+      const response = await request(app)
+        .post('/api/v2/auth/setup')
+        .send({})
+        .expect(400);
+
+      expectCanonicalError(response, 'validation_error');
+      expect(response.body.error.message).not.toMatch(/organization context is required/i);
+    });
+
+    it('still enforces organization context on org-scoped business routes', async () => {
+      const response = await request(app)
+        .get('/api/v2/activities/recent')
+        .set('Authorization', `Bearer ${authTokenNoOrgContext}`)
+        .expect(400);
+
+      expectCanonicalError(response, 'bad_request');
+      expect(response.body.error.message).toMatch(/organization context is required/i);
+    });
+  });
+
   describe('webhook-guardrail route matrix', () => {
     it.each(WEBHOOK_GUARDRAIL_CASES)('$name', async (testCase) => {
       const response = await request(app)[testCase.method](testCase.path)
@@ -485,10 +553,30 @@ describe('Route Guardrails Integration', () => {
 
   describe('success envelope contract matrix', () => {
     it.each(SUCCESS_CONTRACT_CASES)('$name', async (testCase) => {
-      const response = await request(app)[testCase.method](testCase.path).expect(200);
+      const req = request(app)[testCase.method](testCase.path);
+      if (testCase.tokenKind) {
+        const token = testCase.tokenKind === 'admin' ? authTokenAdmin : authToken;
+        req.set('Authorization', `Bearer ${token}`);
+      }
+
+      const response = await req.expect(200);
       expect(response.body).toMatchObject({
         success: true,
         data: expect.anything(),
+      });
+    });
+
+    it('portal admin requests list uses canonical success envelope', async () => {
+      const response = await request(app)
+        .get('/api/v2/portal/admin/requests')
+        .set('Authorization', `Bearer ${authTokenAdmin}`)
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        success: true,
+        data: {
+          requests: expect.any(Array),
+        },
       });
     });
   });

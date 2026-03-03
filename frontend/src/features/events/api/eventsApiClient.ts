@@ -45,6 +45,52 @@ export class EventsApiClient
     return unwrapApiData(response.data);
   }
 
+  async listEventsAccumulated(query: EventListQuery = {}): Promise<PaginatedEvents> {
+    const baseLimit = Math.max(1, Math.min(query.limit ?? 100, 100));
+    const firstPage = await this.listEvents({
+      ...query,
+      page: 1,
+      limit: baseLimit,
+    });
+
+    const firstRows = Array.isArray(firstPage.data) ? firstPage.data : [];
+    const totalPages = Math.max(1, firstPage.pagination?.total_pages ?? 1);
+    if (totalPages === 1) {
+      return firstPage;
+    }
+
+    const accumulated = [...firstRows];
+    const seen = new Set(firstRows.map((event) => event.event_id));
+
+    for (let page = 2; page <= totalPages; page += 1) {
+      const pageResponse = await this.listEvents({
+        ...query,
+        page,
+        limit: baseLimit,
+      });
+      for (const row of pageResponse.data || []) {
+        if (!seen.has(row.event_id)) {
+          seen.add(row.event_id);
+          accumulated.push(row);
+        }
+      }
+    }
+
+    return {
+      data: accumulated,
+      pagination: {
+        ...(firstPage.pagination || {
+          total: accumulated.length,
+          page: 1,
+          limit: baseLimit,
+          total_pages: totalPages,
+        }),
+        page: 1,
+        limit: baseLimit,
+      },
+    };
+  }
+
   async getEventById(eventId: string): Promise<Event> {
     const response = await api.get<ApiEnvelope<Event>>(`/v2/events/${eventId}`);
     return unwrapApiData(response.data);

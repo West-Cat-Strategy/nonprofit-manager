@@ -30,6 +30,14 @@ export interface PIIAccessAudit {
   user_agent?: string;
 }
 
+type FieldAccessLevel = 'full' | 'masked' | 'none';
+type MaskingPattern = 'email' | 'ssn' | 'phone' | 'partial';
+
+interface FieldAccessRule {
+  accessLevel: FieldAccessLevel;
+  maskingPattern: MaskingPattern;
+}
+
 // Map of tables and fields that should be encrypted
 const ENCRYPTED_PII_FIELDS: Record<string, string[]> = {
   contacts: ['phone', 'mobile_phone', 'birth_date'],
@@ -37,7 +45,16 @@ const ENCRYPTED_PII_FIELDS: Record<string, string[]> = {
   volunteers: ['emergency_contact_phone'],
 };
 
+const FIELD_ACCESS_CACHE_TTL_MS = 5 * 60 * 1000;
+
+interface FieldAccessCacheEntry {
+  expiresAt: number;
+  rules: Map<string, FieldAccessRule>;
+}
+
 export class PIIService {
+  private readonly fieldAccessRuleCache = new Map<string, FieldAccessCacheEntry>();
+
   constructor(private pool: Pool) { }
 
   /**
@@ -80,13 +97,14 @@ export class PIIService {
   ): Promise<Record<string, any>> {
     const fieldsToEncrypt = ENCRYPTED_PII_FIELDS[tableName] || [];
     const decrypted = { ...data };
+    const rules = await this.getFieldAccessRules(tableName, userRole);
 
     for (const field of fieldsToEncrypt) {
       const encryptedKey = `${field}_encrypted`;
 
       if (encryptedKey in data && data[encryptedKey]) {
-        // Check field-level access control
-        const accessLevel = await this.getFieldAccessLevel(tableName, field, userRole);
+        const rule = rules.get(field);
+        const accessLevel: FieldAccessLevel = rule?.accessLevel || 'masked';
 
         if (accessLevel === 'full') {
           // User can see full PII - decrypt it
@@ -96,7 +114,7 @@ export class PIIService {
         } else if (accessLevel === 'masked') {
           // User can see masked version
           const plaintext = decryptPII(data[encryptedKey]);
-          const maskingPattern = await this.getMaskingPattern(tableName, field, userRole);
+          const maskingPattern: MaskingPattern = rule?.maskingPattern || 'partial';
           const masked = maskSensitiveField(plaintext || '', maskingPattern);
           decrypted[field] = masked;
           delete decrypted[encryptedKey];
@@ -112,70 +130,59 @@ export class PIIService {
   }
 
   /**
-   * Get access level for a field based on user role
-   * @returns 'full', 'masked', or 'none'
+   * Load field-level access rules for a table + role, with short-lived caching
    */
-  private async getFieldAccessLevel(
+  private async getFieldAccessRules(
     tableName: string,
-    fieldName: string,
     userRole?: string
-  ): Promise<'full' | 'masked' | 'none'> {
+  ): Promise<Map<string, FieldAccessRule>> {
     if (!userRole) {
-      return 'none'; // Default to no access if role not specified
+      return new Map();
+    }
+
+    const cacheKey = `${tableName}:${userRole}`;
+    const cached = this.fieldAccessRuleCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.rules;
     }
 
     try {
       const result = await this.pool.query(
-        `SELECT access_level FROM pii_field_access_rules
-         WHERE table_name = $1 AND field_name = $2 
-         AND role_id = (SELECT id FROM roles WHERE name = $3)
-         LIMIT 1`,
-        [tableName, fieldName, userRole]
+        `SELECT
+           r.field_name,
+           r.access_level,
+           r.masking_pattern
+         FROM pii_field_access_rules r
+         JOIN roles role_table ON role_table.id = r.role_id
+         WHERE r.table_name = $1
+           AND role_table.name = $2`,
+        [tableName, userRole]
       );
 
-      if (result.rows.length > 0) {
-        return result.rows[0].access_level;
-      }
-
-      return 'masked'; // Default to masked access
-    } catch (error) {
-      logger.error('Failed to get field access level', { tableName, fieldName, userRole, error });
-      return 'none'; // Fail secure
-    }
-  }
-
-  /**
-   * Get masking pattern for a field
-   */
-  private async getMaskingPattern(
-    tableName: string,
-    fieldName: string,
-    userRole?: string
-  ): Promise<'email' | 'ssn' | 'phone' | 'partial'> {
-    if (!userRole) {
-      return 'partial'; // Default pattern
-    }
-
-    try {
-      const result = await this.pool.query(
-        `SELECT masking_pattern FROM pii_field_access_rules
-         WHERE table_name = $1 AND field_name = $2
-         AND role_id = (SELECT id FROM roles WHERE name = $3)
-         LIMIT 1`,
-        [tableName, fieldName, userRole]
-      );
-
-      if (result.rows.length > 0 && result.rows[0].masking_pattern) {
-        const pattern = result.rows[0].masking_pattern;
-        if (['email', 'ssn', 'phone', 'partial'].includes(pattern)) {
-          return pattern as 'email' | 'ssn' | 'phone' | 'partial';
+      const rules = new Map<string, FieldAccessRule>();
+      for (const row of result.rows) {
+        const accessLevel = row.access_level as FieldAccessLevel | undefined;
+        const maskingPattern = row.masking_pattern as MaskingPattern | undefined;
+        if (!row.field_name || !accessLevel || !['full', 'masked', 'none'].includes(accessLevel)) {
+          continue;
         }
+        rules.set(row.field_name as string, {
+          accessLevel,
+          maskingPattern:
+            maskingPattern && ['email', 'ssn', 'phone', 'partial'].includes(maskingPattern)
+              ? maskingPattern
+              : 'partial',
+        });
       }
 
-      return 'partial'; // Default pattern
+      this.fieldAccessRuleCache.set(cacheKey, {
+        rules,
+        expiresAt: Date.now() + FIELD_ACCESS_CACHE_TTL_MS,
+      });
+      return rules;
     } catch (error) {
-      logger.error('Failed to get masking pattern', { tableName, fieldName, userRole, error });
-      return 'partial'; // Default pattern
+      logger.error('Failed to load field access rules', { tableName, userRole, error });
+      return new Map();
     }
   }
 

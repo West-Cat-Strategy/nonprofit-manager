@@ -148,14 +148,17 @@ describe('SavedReportService', () => {
         createMockReport({ name: 'Public Report 1', is_public: true }),
       ];
 
-      mockQuery.mockResolvedValueOnce({ rows: mockReports } as QueryResult);
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ total: String(mockReports.length) }] } as QueryResult)
+        .mockResolvedValueOnce({ rows: mockReports } as QueryResult);
 
       const result = await service.getSavedReports(testUserId);
 
-      expect(result.length).toBe(2);
-      const names = result.map((r) => r.name);
+      expect(result.items.length).toBe(2);
+      const names = result.items.map((r) => r.name);
       expect(names).toContain('Private Report 1');
       expect(names).toContain('Public Report 1');
+      expect(result.pagination.total).toBe(2);
     });
 
     it('should filter by entity', async () => {
@@ -163,18 +166,17 @@ describe('SavedReportService', () => {
         createMockReport({ name: 'Contact Report', entity: 'contacts' }),
       ];
 
-      mockQuery.mockResolvedValueOnce({ rows: mockReports } as QueryResult);
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ total: String(mockReports.length) }] } as QueryResult)
+        .mockResolvedValueOnce({ rows: mockReports } as QueryResult);
 
       const result = await service.getSavedReports(testUserId, 'contacts');
 
-      expect(result.length).toBe(1);
-      result.forEach((report) => {
+      expect(result.items.length).toBe(1);
+      result.items.forEach((report) => {
         expect(report.entity).toBe('contacts');
       });
-      expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('AND entity = $3'),
-        [testUserId, [], 'contacts']
-      );
+      expect(mockQuery.mock.calls[0][0]).toContain('AND entity = $3');
     });
 
     it('should return reports created by user', async () => {
@@ -182,12 +184,14 @@ describe('SavedReportService', () => {
         createMockReport({ created_by: testUserId }),
       ];
 
-      mockQuery.mockResolvedValueOnce({ rows: mockReports } as QueryResult);
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ total: String(mockReports.length) }] } as QueryResult)
+        .mockResolvedValueOnce({ rows: mockReports } as QueryResult);
 
       const result = await service.getSavedReports(testUserId);
 
-      expect(result.length).toBe(1);
-      expect(result[0].created_by).toBe(testUserId);
+      expect(result.items.length).toBe(1);
+      expect(result.items[0].created_by).toBe(testUserId);
     });
   });
 

@@ -414,8 +414,11 @@ describe('Case Management Visibility Integration', () => {
       .get(`/api/v2/portal/cases/${caseAId}/timeline`)
       .set('Cookie', [`portal_auth_token=${portalAToken}`])
       .expect(200);
-    const timeline = unwrap<Array<{ id: string; type: string }>>(timelineResponse.body);
-    const timelineIds = timeline.map((entry) => entry.id);
+    const timelinePage = unwrap<{
+      items: Array<{ id: string; type: string }>;
+      page: { limit: number; has_more: boolean; next_cursor: string | null };
+    }>(timelineResponse.body);
+    const timelineIds = timelinePage.items.map((entry) => entry.id);
     expect(timelineIds).toContain(visibleNote.id);
     expect(timelineIds).toContain(visibleOutcome.id);
     expect(timelineIds).toContain(visibleDoc.id);

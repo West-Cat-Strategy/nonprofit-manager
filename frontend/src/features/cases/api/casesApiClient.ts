@@ -6,7 +6,7 @@ import type {
   CasePriority,
   CaseDocument,
   CaseOutcomeEvent,
-  CaseTimelineEvent,
+  CaseTimelinePage,
   CaseTopicDefinition,
   CaseTopicEvent,
   CaseMilestone,
@@ -40,7 +40,7 @@ import type {
   OutcomeDefinition,
   UpdateInteractionOutcomesInput,
 } from '../../../types/outcomes';
-import type { CasesApiClientPort, CasesListQuery } from '../types/contracts';
+import type { CaseTimelineQuery, CasesApiClientPort, CasesListQuery } from '../types/contracts';
 import { normalizeCasePriorityForApi } from '../utils/casePriority';
 
 export class CasesApiClient implements CasesApiClientPort {
@@ -101,8 +101,13 @@ export class CasesApiClient implements CasesApiClientPort {
     return unwrapApiData(response.data);
   }
 
-  async getCaseTimeline(caseId: string): Promise<CaseTimelineEvent[]> {
-    const response = await api.get<ApiEnvelope<CaseTimelineEvent[]>>(`/v2/cases/${caseId}/timeline`);
+  async getCaseTimeline(caseId: string, query: CaseTimelineQuery = {}): Promise<CaseTimelinePage> {
+    const response = await api.get<ApiEnvelope<CaseTimelinePage>>(`/v2/cases/${caseId}/timeline`, {
+      params: {
+        limit: query.limit,
+        cursor: query.cursor,
+      },
+    });
     return unwrapApiData(response.data);
   }
 

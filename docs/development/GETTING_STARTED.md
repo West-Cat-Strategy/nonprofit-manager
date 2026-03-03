@@ -1,6 +1,6 @@
 # Getting Started
 
-**Last Updated**: 2026-02-18
+**Last Updated**: 2026-03-03
 
 Welcome! This guide will get you set up to develop on nonprofit-manager in **~2 hours**. 
 
@@ -81,6 +81,12 @@ Pick **one** based on your focus:
 | Backend only | Node.js/Database developer | 20 min | [Path B](#path-b-backend-only-20-minutes) |
 | Full stack | Full-stack or new contributors | 30-45 min | [Path C](#path-c-full-stack-30-45-minutes) |
 
+If you run the full Docker development stack (`docker compose -f docker-compose.dev.yml up`), current host ports are:
+- Frontend: `http://localhost:8005`
+- Backend API: `http://localhost:8004`
+- PostgreSQL: `localhost:8002`
+- Redis: `localhost:8003`
+
 ---
 
 ## Path A: Frontend Only (20 minutes)
@@ -111,10 +117,10 @@ npm run dev
 You should see:
 ```
 VITE v5.x.x  ready in 123 ms
-➜  Local:   localhost:5173/
+➜  Local:   localhost:8005/
 ```
 
-Open localhost:5173/ in your browser. You should see the frontend!
+Open localhost:8005/ in your browser. You should see the frontend!
 
 ### Step 4: Verify Setup
 
@@ -154,7 +160,7 @@ The easiest way is to use Docker:
 
 ```bash
 # Start database container
-docker-compose -f ../docker-compose.dev.yml up -d nonprofit-db-dev
+docker compose -f ../docker-compose.dev.yml up -d postgres
 
 # Wait for database to be ready (30 seconds)
 sleep 30
@@ -238,7 +244,7 @@ cd nonprofit-manager
 cd frontend
 npm install
 npm run dev
-# Verify at localhost:5173/
+# Verify at localhost:8005/
 ```
 
 Keep the dev server running. Open a **new terminal window** for backend setup.
@@ -252,7 +258,7 @@ Keep the dev server running. Open a **new terminal window** for backend setup.
 cd nonprofit-manager/backend
 
 # Start database with Docker
-docker-compose -f ../docker-compose.dev.yml up -d nonprofit-db-dev
+docker compose -f ../docker-compose.dev.yml up -d postgres
 
 # Wait for database
 sleep 30
@@ -411,17 +417,17 @@ npm is not installed (comes with Node.js):
 npm --version
 ```
 
-### "Port 5173 (frontend) already in use"
+### "Port 8005 (frontend) already in use"
 
 Another process is using the port:
 
 ```bash
 # Kill process on that port
-lsof -ti :5173 | xargs kill -9
+lsof -ti :8005 | xargs kill -9
 
 # Or use different port
 cd frontend
-npm run dev -- --port 5174
+npm run dev -- --port 5174 --strictPort
 ```
 
 ### "Port 3000 (backend) already in use"
@@ -443,11 +449,25 @@ PORT=3001 npm run dev
 docker ps | grep nonprofit-db-dev
 
 # If not running, start it
-docker-compose -f docker-compose.dev.yml up -d nonprofit-db-dev
+docker compose -f docker-compose.dev.yml up -d postgres
 
 # Check logs
 docker logs nonprofit-db-dev
 ```
+
+### "I expected first-time setup, but I only see login"
+
+`docker-compose.dev.yml` seeds users by default via `database/initdb/000_init.sql` (including `admin@example.com` / `password123`).  
+If you need true first-run setup flow (`/setup`), use a DB initialization path without user seeds.
+
+### "Setup/login redirect loop or org-context errors on auth routes"
+
+If setup/auth routes are blocked with `Organization context is required`, check backend env flags:
+
+- `ORG_CONTEXT_REQUIRE=true`
+- `ORG_CONTEXT_VALIDATE=true`
+
+Auth/bootstrap routes (`/api/v2/auth/*`, `/api/v2/admin/*`, `/api/v2/invitations/*`, `/api/v2/payments/webhook`) must bypass org-context enforcement.
 
 **If using local PostgreSQL**:
 

@@ -31,7 +31,7 @@ export const fetchOutcomeDefinitionsAdmin = createAsyncThunk(
   'outcomesAdmin/fetchDefinitions',
   async (includeInactive: boolean = true, { rejectWithValue }) => {
     try {
-      const response = await api.get<ApiEnvelope<OutcomeDefinition[]> | OutcomeDefinition[]>(
+      const response = await api.get<ApiEnvelope<OutcomeDefinition[]>>(
         `/admin/outcomes?includeInactive=${String(includeInactive)}`
       );
       return {
@@ -48,7 +48,7 @@ export const createOutcomeDefinition = createAsyncThunk(
   'outcomesAdmin/createDefinition',
   async (payload: OutcomeDefinitionCreateInput, { rejectWithValue }) => {
     try {
-      const response = await api.post<ApiEnvelope<OutcomeDefinition> | OutcomeDefinition>(
+      const response = await api.post<ApiEnvelope<OutcomeDefinition>>(
         '/admin/outcomes',
         payload
       );
@@ -66,7 +66,7 @@ export const updateOutcomeDefinition = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await api.patch<ApiEnvelope<OutcomeDefinition> | OutcomeDefinition>(
+      const response = await api.patch<ApiEnvelope<OutcomeDefinition>>(
         `/admin/outcomes/${id}`,
         payload
       );
@@ -81,7 +81,7 @@ export const enableOutcomeDefinition = createAsyncThunk(
   'outcomesAdmin/enableDefinition',
   async (id: string, { rejectWithValue }) => {
     try {
-      const response = await api.post<ApiEnvelope<OutcomeDefinition> | OutcomeDefinition>(
+      const response = await api.post<ApiEnvelope<OutcomeDefinition>>(
         `/admin/outcomes/${id}/enable`
       );
       return unwrapApiData<OutcomeDefinition>(response.data);
@@ -95,7 +95,7 @@ export const disableOutcomeDefinition = createAsyncThunk(
   'outcomesAdmin/disableDefinition',
   async (id: string, { rejectWithValue }) => {
     try {
-      const response = await api.post<ApiEnvelope<OutcomeDefinition> | OutcomeDefinition>(
+      const response = await api.post<ApiEnvelope<OutcomeDefinition>>(
         `/admin/outcomes/${id}/disable`
       );
       return unwrapApiData<OutcomeDefinition>(response.data);
@@ -109,7 +109,7 @@ export const reorderOutcomeDefinitions = createAsyncThunk(
   'outcomesAdmin/reorderDefinitions',
   async (orderedIds: string[], { rejectWithValue }) => {
     try {
-      const response = await api.post<ApiEnvelope<OutcomeDefinition[]> | OutcomeDefinition[]>(
+      const response = await api.post<ApiEnvelope<OutcomeDefinition[]>>(
         '/admin/outcomes/reorder',
         { orderedIds }
       );

@@ -15,6 +15,9 @@ const reportIdParamsSchema = z.object({
 });
 const savedReportListQuerySchema = z.object({
   entity: reportEntitySchema.optional(),
+  page: z.coerce.number().int().min(1).max(10_000).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  summary: z.coerce.boolean().optional(),
 }).strict();
 
 const sharePrincipalsQuerySchema = z.object({

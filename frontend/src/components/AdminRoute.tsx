@@ -5,12 +5,17 @@
  */
 
 import { Navigate } from 'react-router-dom';
+import { Suspense } from 'react';
 import { useAppSelector } from '../store/hooks';
 import Layout from './Layout';
 
 interface AdminRouteProps {
   children: React.ReactNode;
 }
+
+const AdminRouteFallback = () => (
+  <div className="p-6 text-sm text-app-text-muted">Loading admin page...</div>
+);
 
 export default function AdminRoute({ children }: AdminRouteProps) {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
@@ -24,5 +29,9 @@ export default function AdminRoute({ children }: AdminRouteProps) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return <Layout>{children}</Layout>;
+  return (
+    <Layout>
+      <Suspense fallback={<AdminRouteFallback />}>{children}</Suspense>
+    </Layout>
+  );
 }

@@ -8,6 +8,8 @@ interface CaseTimelineProps {
   refreshKey?: number;
 }
 
+const TIMELINE_PAGE_LIMIT = 50;
+
 const eventTypeLabel: Record<CaseTimelineEvent['type'], string> = {
   note: 'Note',
   outcome: 'Outcome',
@@ -25,21 +27,58 @@ const eventTypeBadgeClass: Record<CaseTimelineEvent['type'], string> = {
 const CaseTimeline = ({ caseId, refreshKey }: CaseTimelineProps) => {
   const { showError } = useToast();
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [events, setEvents] = useState<CaseTimelineEvent[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
 
-  const loadTimeline = useCallback(async () => {
+  const loadTimeline = useCallback(async (options?: { append?: boolean; cursor?: string | null }) => {
+    const append = Boolean(options?.append);
     try {
-      setLoading(true);
-      const rows = await casesApiClient.getCaseTimeline(caseId);
-      setEvents(rows || []);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
+      const timelinePage = await casesApiClient.getCaseTimeline(caseId, {
+        limit: TIMELINE_PAGE_LIMIT,
+        cursor: options?.cursor || undefined,
+      });
+      const rows = timelinePage.items || [];
+
+      setEvents((previous) => {
+        if (!append) {
+          return rows;
+        }
+
+        const seen = new Set(previous.map((entry) => `${entry.type}-${entry.id}`));
+        const merged = [...previous];
+        for (const row of rows) {
+          const key = `${row.type}-${row.id}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            merged.push(row);
+          }
+        }
+        return merged;
+      });
+      setHasMore(Boolean(timelinePage.page?.has_more));
+      setNextCursor(timelinePage.page?.next_cursor || null);
     } catch {
       showError('Failed to load case timeline');
     } finally {
-      setLoading(false);
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, [caseId, showError]);
 
   useEffect(() => {
+    setHasMore(false);
+    setNextCursor(null);
     void loadTimeline();
   }, [loadTimeline, refreshKey]);
 
@@ -83,9 +122,21 @@ const CaseTimeline = ({ caseId, refreshKey }: CaseTimelineProps) => {
           )}
         </div>
       ))}
+
+      {hasMore && (
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={() => void loadTimeline({ append: true, cursor: nextCursor })}
+            disabled={loadingMore}
+            className="rounded border border-app-input-border bg-app-surface px-3 py-2 text-sm text-app-text disabled:opacity-60"
+          >
+            {loadingMore ? 'Loading more...' : 'Load more'}
+          </button>
+        </div>
+      )}
     </div>
   );
 };
 
 export default CaseTimeline;
-

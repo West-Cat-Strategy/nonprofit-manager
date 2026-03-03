@@ -81,10 +81,10 @@ const getScopeFilter = (req: AuthRequest): DataScopeFilter | undefined =>
   req.dataScope?.filter as DataScopeFilter | undefined;
 
 const getValidatedQuery = (req: AuthRequest): Record<string, unknown> =>
-  ((req as any).validatedQuery ?? req.query) as Record<string, unknown>;
+  (req.validatedQuery ?? req.query) as Record<string, unknown>;
 
 const getValidatedParams = (req: AuthRequest): Record<string, string> =>
-  ((req as any).validatedParams ?? req.params) as Record<string, string>;
+  (req.validatedParams ?? req.params) as Record<string, string>;
 
 export const createEventsController = (
   catalogUseCase: EventCatalogUseCase,

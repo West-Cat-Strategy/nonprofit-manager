@@ -7,7 +7,7 @@ import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLa
 import { useToast } from '../../../contexts/useToast';
 import { useDocumentMeta } from '../../../hooks/useDocumentMeta';
 import useConfirmDialog from '../../../hooks/useConfirmDialog';
-import api from '../../../services/api';
+import { getUserTimezoneCached } from '../../../services/userPreferencesService';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import type { CreateEventReminderAutomationDTO, EventReminderAutomation } from '../../../types/event';
 import EventInfoPanel from '../components/EventInfoPanel';
@@ -27,15 +27,6 @@ import { clearEventDetailV2 } from '../state/eventDetailSlice';
 import { clearEventRegistrationsV2 } from '../state/eventRegistrationSlice';
 import { clearEventRemindersStateV2 } from '../state/eventRemindersSlice';
 import { getBrowserTimeZone } from '../utils/reminderTime';
-
-interface UserPreferencesResponse {
-  preferences?: {
-    timezone?: string;
-    organization?: {
-      timezone?: string;
-    };
-  };
-}
 
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -63,20 +54,10 @@ export default function EventDetailPage() {
     let isMounted = true;
 
     const loadTimezone = async () => {
-      try {
-        const response = await api.get<UserPreferencesResponse>('/auth/preferences');
-        const prefs = response.data?.preferences;
-        const timezoneFromOrganization = prefs?.organization?.timezone?.trim();
-        const timezoneFromRoot = prefs?.timezone?.trim();
-        const resolvedTimezone = timezoneFromOrganization || timezoneFromRoot || getBrowserTimeZone();
-
-        if (isMounted) {
-          setOrganizationTimezone(resolvedTimezone);
-        }
-      } catch {
-        if (isMounted) {
-          setOrganizationTimezone(getBrowserTimeZone());
-        }
+      const fallbackTimezone = getBrowserTimeZone();
+      const timezone = await getUserTimezoneCached(fallbackTimezone);
+      if (isMounted) {
+        setOrganizationTimezone(timezone);
       }
     };
 

@@ -354,80 +354,137 @@ export async function syncJobsForAppointment(
 
   const now = new Date();
   const schedules = computeSchedule(appointment.start_time);
-  const keepKeys = new Set<string>();
+  const activeCombos: Array<{
+    cadenceKey: ReminderCadenceKey;
+    channel: ReminderChannel;
+    scheduledFor: Date;
+  }> = [];
+  const outsideWindowCombos: Array<{
+    cadenceKey: ReminderCadenceKey;
+    channel: ReminderChannel;
+  }> = [];
+
+  for (const schedule of schedules) {
+    for (const channel of CHANNELS) {
+      if (schedule.scheduledFor <= now) {
+        outsideWindowCombos.push({
+          cadenceKey: schedule.cadenceKey,
+          channel,
+        });
+        continue;
+      }
+
+      activeCombos.push({
+        cadenceKey: schedule.cadenceKey,
+        channel,
+        scheduledFor: schedule.scheduledFor,
+      });
+    }
+  }
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
-    for (const schedule of schedules) {
-      for (const channel of CHANNELS) {
-        const comboKey = `${schedule.cadenceKey}:${channel}`;
-        keepKeys.add(comboKey);
-
-        if (schedule.scheduledFor <= now) {
-          await client.query(
-            `UPDATE appointment_reminder_jobs
-             SET status = 'cancelled',
-                 processing_started_at = NULL,
-                 cancelled_reason = 'outside_send_window',
-                 updated_at = NOW()
-             WHERE appointment_id = $1
-               AND cadence_key = $2
-               AND channel = $3
-               AND status IN ('pending', 'processing')`,
-            [appointmentId, schedule.cadenceKey, channel]
-          );
-          continue;
-        }
-
-        await client.query(
-          `INSERT INTO appointment_reminder_jobs (
-             appointment_id,
-             cadence_key,
-             channel,
-             scheduled_for,
-             status,
-             processing_started_at,
-             attempt_count,
-             last_error,
-             cancelled_reason
-           )
-           VALUES ($1, $2, $3, $4, 'pending', NULL, 0, NULL, NULL)
-           ON CONFLICT (appointment_id, cadence_key, channel)
-           DO UPDATE
-           SET scheduled_for = EXCLUDED.scheduled_for,
-               status = CASE
-                 WHEN appointment_reminder_jobs.status = 'sent' THEN 'sent'
-                 ELSE 'pending'
-               END,
-               processing_started_at = NULL,
-               last_error = NULL,
-               cancelled_reason = NULL,
-               updated_at = NOW()`,
-          [appointmentId, schedule.cadenceKey, channel, schedule.scheduledFor]
-        );
-      }
+    if (outsideWindowCombos.length > 0) {
+      await client.query(
+        `UPDATE appointment_reminder_jobs AS jobs
+         SET status = 'cancelled',
+             processing_started_at = NULL,
+             cancelled_reason = 'outside_send_window',
+             updated_at = NOW()
+         FROM UNNEST($2::varchar[], $3::varchar[]) AS stale(cadence_key, channel)
+         WHERE jobs.appointment_id = $1
+           AND jobs.cadence_key = stale.cadence_key
+           AND jobs.channel = stale.channel
+           AND jobs.status IN ('pending', 'processing')`,
+        [
+          appointmentId,
+          outsideWindowCombos.map((combo) => combo.cadenceKey),
+          outsideWindowCombos.map((combo) => combo.channel),
+        ]
+      );
     }
 
-    const keepCadences = Array.from(
-      new Set(Array.from(keepKeys.values()).map((entry) => entry.split(':')[0]))
-    ) as ReminderCadenceKey[];
-    const keepChannels = Array.from(
-      new Set(Array.from(keepKeys.values()).map((entry) => entry.split(':')[1]))
-    ) as ReminderChannel[];
+    if (activeCombos.length > 0) {
+      await client.query(
+        `INSERT INTO appointment_reminder_jobs (
+           appointment_id,
+           cadence_key,
+           channel,
+           scheduled_for,
+           status,
+           processing_started_at,
+           attempt_count,
+           last_error,
+           cancelled_reason
+         )
+         SELECT
+           $1,
+           entries.cadence_key,
+           entries.channel,
+           entries.scheduled_for,
+           'pending',
+           NULL,
+           0,
+           NULL,
+           NULL
+         FROM UNNEST($2::varchar[], $3::varchar[], $4::timestamptz[]) AS entries(
+           cadence_key,
+           channel,
+           scheduled_for
+         )
+         ON CONFLICT (appointment_id, cadence_key, channel)
+         DO UPDATE
+         SET scheduled_for = EXCLUDED.scheduled_for,
+             status = CASE
+               WHEN appointment_reminder_jobs.status = 'sent' THEN 'sent'
+               ELSE 'pending'
+             END,
+             processing_started_at = NULL,
+             last_error = NULL,
+             cancelled_reason = NULL,
+             updated_at = NOW()`,
+        [
+          appointmentId,
+          activeCombos.map((combo) => combo.cadenceKey),
+          activeCombos.map((combo) => combo.channel),
+          activeCombos.map((combo) => combo.scheduledFor),
+        ]
+      );
 
-    await client.query(
-      `UPDATE appointment_reminder_jobs
-       SET status = 'cancelled',
-           processing_started_at = NULL,
-           cancelled_reason = 'cadence_removed',
-           updated_at = NOW()
-       WHERE appointment_id = $1
-         AND status IN ('pending', 'processing')
-         AND NOT (cadence_key = ANY($2::varchar[]) AND channel = ANY($3::varchar[]))`,
-      [appointmentId, keepCadences, keepChannels]
-    );
+      await client.query(
+        `UPDATE appointment_reminder_jobs AS jobs
+         SET status = 'cancelled',
+             processing_started_at = NULL,
+             cancelled_reason = 'cadence_removed',
+             updated_at = NOW()
+         WHERE jobs.appointment_id = $1
+           AND jobs.status IN ('pending', 'processing')
+           AND NOT EXISTS (
+             SELECT 1
+             FROM UNNEST($2::varchar[], $3::varchar[]) AS keep(cadence_key, channel)
+             WHERE keep.cadence_key = jobs.cadence_key
+               AND keep.channel = jobs.channel
+           )`,
+        [
+          appointmentId,
+          activeCombos.map((combo) => combo.cadenceKey),
+          activeCombos.map((combo) => combo.channel),
+        ]
+      );
+    } else {
+      await client.query(
+        `UPDATE appointment_reminder_jobs
+         SET status = 'cancelled',
+             processing_started_at = NULL,
+             cancelled_reason = 'cadence_removed',
+             updated_at = NOW()
+         WHERE appointment_id = $1
+           AND status IN ('pending', 'processing')`,
+        [appointmentId]
+      );
+    }
 
     await client.query('COMMIT');
   } catch (error) {

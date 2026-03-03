@@ -32,7 +32,7 @@ export const fetchOutcomesReport = createAsyncThunk(
         }
       });
 
-      const response = await api.get<ApiEnvelope<OutcomesReportData> | OutcomesReportData>(
+      const response = await api.get<ApiEnvelope<OutcomesReportData>>(
         `/reports/outcomes?${params.toString()}`
       );
 

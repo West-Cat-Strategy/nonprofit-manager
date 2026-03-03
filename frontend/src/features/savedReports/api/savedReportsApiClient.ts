@@ -4,6 +4,7 @@ import type {
   PublicReportSnapshotMeta,
   ReportEntity,
   SavedReport,
+  SavedReportsListPage,
   SharePrincipalRole,
   SharePrincipalUser,
   ShareSettings,
@@ -27,9 +28,19 @@ interface ShareRequestPayload {
 }
 
 export class SavedReportsApiClient {
-  async fetchSavedReports(entity?: ReportEntity): Promise<SavedReport[]> {
-    const response = await api.get<SavedReport[]>('/v2/saved-reports', {
-      params: entity ? { entity } : undefined,
+  async fetchSavedReports(options: {
+    entity?: ReportEntity;
+    page?: number;
+    limit?: number;
+    summary?: boolean;
+  } = {}): Promise<SavedReportsListPage> {
+    const response = await api.get<SavedReportsListPage>('/v2/saved-reports', {
+      params: {
+        ...(options.entity ? { entity: options.entity } : {}),
+        ...(typeof options.page === 'number' ? { page: options.page } : {}),
+        ...(typeof options.limit === 'number' ? { limit: options.limit } : {}),
+        ...(typeof options.summary === 'boolean' ? { summary: options.summary } : {}),
+      },
     });
     return response.data;
   }

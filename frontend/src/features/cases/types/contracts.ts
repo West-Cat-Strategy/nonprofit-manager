@@ -2,7 +2,7 @@ import type {
   BulkStatusUpdateDTO,
   CaseDocument,
   CaseOutcomeEvent,
-  CaseTimelineEvent,
+  CaseTimelinePage,
   CaseTopicDefinition,
   CaseTopicEvent,
   CaseFilter,
@@ -61,10 +61,15 @@ export interface CasesListQuery {
   sortOrder?: 'asc' | 'desc';
 }
 
+export interface CaseTimelineQuery {
+  limit?: number;
+  cursor?: string;
+}
+
 export interface CasesApiClientPort {
   listCases(query?: CasesListQuery): Promise<CasesResponse>;
   getCase(caseId: string): Promise<CaseWithDetails>;
-  getCaseTimeline(caseId: string): Promise<CaseTimelineEvent[]>;
+  getCaseTimeline(caseId: string, query?: CaseTimelineQuery): Promise<CaseTimelinePage>;
   createCase(payload: CreateCaseDTO): Promise<CaseWithDetails>;
   updateCase(caseId: string, payload: UpdateCaseDTO): Promise<CaseWithDetails>;
   deleteCase(caseId: string): Promise<void>;

@@ -73,11 +73,23 @@ Inline preview is supported for safe mime types (`application/pdf`, images) usin
 
 - `GET /api/v2/portal/cases`
 - `GET /api/v2/portal/cases/:id`
-- `GET /api/v2/portal/cases/:id/timeline`
+- `GET /api/v2/portal/cases/:id/timeline?limit=50&cursor=...`
 - `GET /api/v2/portal/cases/:id/documents`
 - `GET /api/v2/portal/cases/:id/documents/:documentId/download`
 
 Portal timeline intentionally excludes staff-only topic events.
+Both staff and portal timeline endpoints return a cursor-paged payload:
+
+```json
+{
+  "items": [],
+  "page": {
+    "limit": 50,
+    "has_more": false,
+    "next_cursor": null
+  }
+}
+```
 
 ## Data Model Changes
 

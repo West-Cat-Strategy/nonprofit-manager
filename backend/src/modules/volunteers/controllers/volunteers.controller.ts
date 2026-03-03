@@ -23,7 +23,7 @@ export const createVolunteersController = (
     next: NextFunction
   ): Promise<void> => {
     try {
-      const query = ((req as any).validatedQuery ?? req.query) as Record<string, unknown>;
+      const query = (req.validatedQuery ?? req.query) as Record<string, unknown>;
       const filters: VolunteerFilters = {
         search: getString(query.search),
         skills: getString(query.skills)?.split(','),
@@ -68,7 +68,7 @@ export const createVolunteersController = (
     next: NextFunction
   ): Promise<void> => {
     try {
-      const query = ((req as any).validatedQuery ?? req.query) as { skills?: string };
+      const query = (req.validatedQuery ?? req.query) as { skills?: string };
       const skills = getString(query.skills)
         ?.split(',')
         .map((skill) => skill.trim())

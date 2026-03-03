@@ -1,6 +1,6 @@
 import * as outcomeDefinitionService from '@services/outcomeDefinitionService';
 import * as outcomeImpactService from '@services/outcomeImpactService';
-import { services } from '@container/services';
+import pool from '@config/database';
 import type { CaseOutcomesPort } from '../types/ports';
 import type {
   CreateCaseOutcomeDTO,
@@ -9,6 +9,17 @@ import type {
   UpdateCaseOutcomeDTO,
 } from '@app-types/case';
 import type { UpdateInteractionOutcomeImpactsDTO } from '@app-types/outcomes';
+import {
+  addCaseTopicEventQuery,
+  createCaseOutcomeQuery,
+  createCaseTopicDefinitionQuery,
+  deleteCaseOutcomeQuery,
+  deleteCaseTopicEventQuery,
+  getCaseOutcomesQuery,
+  getCaseTopicDefinitionsQuery,
+  getCaseTopicEventsQuery,
+  updateCaseOutcomeQuery,
+} from '../queries/outcomesQueries';
 
 export class CaseOutcomesRepository implements CaseOutcomesPort {
   async listOutcomeDefinitions(includeInactive?: boolean): Promise<unknown[]> {
@@ -29,23 +40,23 @@ export class CaseOutcomesRepository implements CaseOutcomesPort {
   }
 
   async getCaseOutcomes(caseId: string): Promise<unknown[]> {
-    return services.case.getCaseOutcomes(caseId);
+    return getCaseOutcomesQuery(pool, caseId);
   }
 
   async createCaseOutcome(caseId: string, data: CreateCaseOutcomeDTO, userId?: string): Promise<unknown> {
-    return services.case.createCaseOutcome(caseId, data, userId);
+    return createCaseOutcomeQuery(pool, caseId, data, userId);
   }
 
   async updateCaseOutcome(outcomeId: string, data: UpdateCaseOutcomeDTO, userId?: string): Promise<unknown> {
-    return services.case.updateCaseOutcome(outcomeId, data, userId);
+    return updateCaseOutcomeQuery(pool, outcomeId, data, userId);
   }
 
   async deleteCaseOutcome(outcomeId: string): Promise<boolean> {
-    return services.case.deleteCaseOutcome(outcomeId);
+    return deleteCaseOutcomeQuery(pool, outcomeId);
   }
 
   async getCaseTopicDefinitions(caseId: string): Promise<unknown[]> {
-    return services.case.getCaseTopicDefinitions(caseId);
+    return getCaseTopicDefinitionsQuery(pool, caseId);
   }
 
   async createCaseTopicDefinition(
@@ -53,18 +64,18 @@ export class CaseOutcomesRepository implements CaseOutcomesPort {
     data: CreateCaseTopicDefinitionDTO,
     userId?: string
   ): Promise<unknown> {
-    return services.case.createCaseTopicDefinition(caseId, data, userId);
+    return createCaseTopicDefinitionQuery(pool, caseId, data, userId);
   }
 
   async getCaseTopicEvents(caseId: string): Promise<unknown[]> {
-    return services.case.getCaseTopicEvents(caseId);
+    return getCaseTopicEventsQuery(pool, caseId);
   }
 
   async addCaseTopicEvent(caseId: string, data: CreateCaseTopicEventDTO, userId?: string): Promise<unknown> {
-    return services.case.addCaseTopicEvent(caseId, data, userId);
+    return addCaseTopicEventQuery(pool, caseId, data, userId);
   }
 
   async deleteCaseTopicEvent(topicEventId: string): Promise<boolean> {
-    return services.case.deleteCaseTopicEvent(topicEventId);
+    return deleteCaseTopicEventQuery(pool, topicEventId);
   }
 }

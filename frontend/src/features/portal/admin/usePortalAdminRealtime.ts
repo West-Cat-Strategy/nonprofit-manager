@@ -6,7 +6,7 @@ import type {
   PortalAppointmentSlot,
   PortalConversationDetail,
   PortalConversationThread,
-} from '../../../pages/admin/adminSettings/types';
+} from '../../adminOps/pages/adminSettings/types';
 
 const PAGE_SIZE = 20;
 const POLL_INTERVAL_MS = 30_000;
@@ -38,6 +38,7 @@ interface UsePortalAdminRealtimeOptions {
   showSuccess: (message: string) => void;
   showError: (message: string) => void;
   notifyError: (error: unknown, fallback: string) => void;
+  onAppointmentUpdated?: () => void | Promise<void>;
 }
 
 interface FetchOptions {
@@ -99,6 +100,7 @@ export function usePortalAdminRealtime({
   showSuccess,
   showError,
   notifyError,
+  onAppointmentUpdated,
 }: UsePortalAdminRealtimeOptions): UsePortalAdminRealtimeResult {
   const [conversationFilters, setConversationFilters] = useState<PortalConversationFilters>({
     status: 'all',
@@ -456,15 +458,22 @@ export function usePortalAdminRealtime({
         return;
       }
 
-      void fetchPortalConversations({ quiet: true, offsetValue: 0 });
-      void fetchPortalSlots({ quiet: true, offsetValue: 0 });
+      if (eventName === 'portal.thread.updated') {
+        void fetchPortalConversations({ quiet: true, offsetValue: 0 });
+        const selectedThreadId = selectedPortalConversation?.thread.id;
+        if (selectedThreadId && payload.entity_id === selectedThreadId) {
+          void openPortalConversation(selectedThreadId);
+        }
+        return;
+      }
 
-      if (
-        selectedPortalConversation &&
-        (payload.entity_id === selectedPortalConversation.thread.id ||
-          eventName === 'portal.thread.updated')
-      ) {
-        void openPortalConversation(selectedPortalConversation.thread.id);
+      if (eventName === 'portal.slot.updated') {
+        void fetchPortalSlots({ quiet: true, offsetValue: 0 });
+        return;
+      }
+
+      if (eventName === 'portal.appointment.updated' && onAppointmentUpdated) {
+        void onAppointmentUpdated();
       }
     },
   });

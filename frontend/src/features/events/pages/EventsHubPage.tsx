@@ -12,7 +12,8 @@ export default function EventsHubPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
   const [eventTypeFilter, setEventTypeFilter] = useState('');
 
   const listState = useAppSelector((state) => state.eventsListV2);
@@ -21,15 +22,24 @@ export default function EventsHubPage() {
   const remindersState = useAppSelector((state) => state.eventRemindersV2);
 
   useEffect(() => {
+    const debounceTimer = window.setTimeout(() => {
+      setAppliedSearch(searchInput.trim());
+    }, 300);
+    return () => {
+      window.clearTimeout(debounceTimer);
+    };
+  }, [searchInput]);
+
+  useEffect(() => {
     dispatch(
       fetchEventsListV2({
-        search: search || undefined,
+        search: appliedSearch || undefined,
         eventType: eventTypeFilter || undefined,
         page: 1,
         limit: 50,
       })
     );
-  }, [dispatch, search, eventTypeFilter]);
+  }, [appliedSearch, dispatch, eventTypeFilter]);
 
   useEffect(() => {
     if (!selectedEventId) return;
@@ -41,17 +51,6 @@ export default function EventsHubPage() {
     () => detailState.event ?? listState.events.find((event) => event.event_id === selectedEventId) ?? null,
     [detailState.event, listState.events, selectedEventId]
   );
-
-  const filteredEvents = useMemo(() => {
-    return listState.events.filter((event) => {
-      const matchesSearch =
-        search.length === 0 ||
-        event.event_name.toLowerCase().includes(search.toLowerCase()) ||
-        (event.description ?? '').toLowerCase().includes(search.toLowerCase());
-      const matchesType = eventTypeFilter.length === 0 || event.event_type === eventTypeFilter;
-      return matchesSearch && matchesType;
-    });
-  }, [listState.events, search, eventTypeFilter]);
 
   return (
     <div className="space-y-6">
@@ -65,8 +64,8 @@ export default function EventsHubPage() {
           Create Event
         </button>
         <input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          value={searchInput}
+          onChange={(event) => setSearchInput(event.target.value)}
           placeholder="Search events..."
           className="min-w-64 rounded border border-app-border bg-app-surface px-3 py-2 text-sm"
         />
@@ -94,10 +93,10 @@ export default function EventsHubPage() {
           <h2 className="mb-3 text-lg font-medium text-app-text">Event Catalog</h2>
           {listState.loading && <p className="text-sm text-app-text-muted">Loading events...</p>}
           {listState.error && <p className="text-sm text-app-accent">{listState.error}</p>}
-          {!listState.loading && filteredEvents.length === 0 && (
+          {!listState.loading && listState.events.length === 0 && (
             <p className="text-sm text-app-text-muted">No events match your current filters.</p>
           )}
-          {filteredEvents.length > 0 && (
+          {listState.events.length > 0 && (
             <table className="w-full text-left text-sm">
               <thead>
                 <tr>
@@ -107,7 +106,7 @@ export default function EventsHubPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredEvents.map((event) => (
+                {listState.events.map((event) => (
                   <tr key={event.event_id}>
                     <td className="py-2">
                       <button

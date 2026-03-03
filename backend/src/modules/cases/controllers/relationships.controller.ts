@@ -2,7 +2,7 @@ import { NextFunction, Response } from 'express';
 import { AuthRequest } from '@middleware/auth';
 import type { CreateCaseRelationshipDTO } from '@app-types/case';
 import { CaseRelationshipsUseCase } from '../usecases/caseRelationships.usecase';
-import { ResponseMode, sendData } from '../mappers/responseMode';
+import { ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
 
 export const createCaseRelationshipsController = (
   useCase: CaseRelationshipsUseCase,
@@ -22,6 +22,10 @@ export const createCaseRelationshipsController = (
       const relationship = await useCase.create(req.params.id, req.body as CreateCaseRelationshipDTO, req.user?.id);
       sendData(res, mode, relationship, 201);
     } catch (error) {
+      if (error instanceof Error && error.message.includes('cannot be related to itself')) {
+        sendFailure(res, mode, 'VALIDATION_ERROR', error.message, 400);
+        return;
+      }
       next(error);
     }
   };

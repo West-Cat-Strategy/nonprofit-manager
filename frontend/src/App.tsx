@@ -8,6 +8,12 @@ import { useAppDispatch } from './store/hooks';
 import { initializeAuth } from './store/slices/authSlice';
 import './App.css';
 
+const AppRouteFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-app-bg text-app-text-muted">
+    <PageLoader />
+  </div>
+);
+
 function App() {
   const dispatch = useAppDispatch();
   const uiRedesignEnabled = import.meta.env.VITE_UI_REDESIGN_ENABLED === 'true';
@@ -31,7 +37,7 @@ function App() {
     <Router>
       <div className="min-h-screen bg-app-bg text-app-text transition-colors duration-300">
         <ThemeProvider>
-          <Suspense fallback={<PageLoader />}>
+          <Suspense fallback={<AppRouteFallback />}>
             <AppRoutes />
           </Suspense>
           <ToastHost />

@@ -71,13 +71,16 @@ const AppRoutes = () => {
     return <PageLoader />;
   }
 
+  const setupStatusResolved = setupRequired !== null;
+  const isPortalRoute = location.pathname.startsWith('/portal');
+
   // Redirect to setup if required and not already on setup page
-  if (setupRequired && location.pathname !== '/setup') {
+  if (setupStatusResolved && !isPortalRoute && setupRequired === true && location.pathname !== '/setup') {
     return <Navigate to="/setup" replace />;
   }
 
   // Redirect to login if setup is complete but user tries to access setup page
-  if (!setupRequired && location.pathname === '/setup') {
+  if (setupStatusResolved && !isPortalRoute && setupRequired === false && location.pathname === '/setup') {
     return <Navigate to="/login" replace />;
   }
 
