@@ -46,7 +46,7 @@ export default function AuditLogsSection() {
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-black uppercase">Audit Logs</h2>
                 {warning && (
-                    <span className="px-3 py-1 bg-yellow-100 text-yellow-800 border-2 border-yellow-800 text-xs font-bold uppercase">
+                    <span className="px-3 py-1 bg-app-accent-soft text-app-accent-text border-2 border-app-accent text-xs font-bold uppercase">
                         {warning}
                     </span>
                 )}
@@ -72,9 +72,9 @@ export default function AuditLogsSection() {
                                     </td>
                                     <td className="p-3 font-medium">{log.changed_by_email || 'System'}</td>
                                     <td className="p-3">
-                                        <span className={`px-2 py-0.5 text-xs font-bold uppercase border border-[var(--app-border)] ${log.operation === 'DELETE' ? 'bg-red-100 text-red-800' :
-                                                log.operation === 'INSERT' ? 'bg-green-100 text-green-800' :
-                                                    'bg-blue-100 text-blue-800'
+                                        <span className={`px-2 py-0.5 text-xs font-bold uppercase border border-[var(--app-border)] ${log.operation === 'DELETE' ? 'bg-app-accent-soft text-app-accent-text' :
+                                                log.operation === 'INSERT' ? 'bg-app-accent-soft text-app-accent-text' :
+                                                    'bg-app-accent-soft text-app-accent-text'
                                             }`}>
                                             {log.operation}
                                         </span>

@@ -50,16 +50,16 @@ const MyCasesWidget = ({ widget, editMode, onRemove }: MyCasesWidgetProps) => {
 
   const getPriorityColor = (priority: CasePriority) => {
     if (isUrgentEquivalentPriority(priority)) {
-      return 'bg-red-100 text-red-800 border-red-200';
+      return 'bg-app-accent-soft text-app-accent-text border-app-border';
     }
 
     switch (priority) {
       case 'low':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-app-accent-soft text-app-accent-text border-app-border';
       case 'medium':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-app-accent-soft text-app-accent-text border-app-border';
       case 'high':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
+        return 'bg-app-accent-soft text-app-accent-text border-app-border';
       default:
         return 'bg-app-surface-muted text-app-text border-app-border';
     }
@@ -73,13 +73,13 @@ const MyCasesWidget = ({ widget, editMode, onRemove }: MyCasesWidgetProps) => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) {
-      return <span className="text-red-600 font-medium">Overdue</span>;
+      return <span className="text-app-accent font-medium">Overdue</span>;
     } else if (diffDays === 0) {
-      return <span className="text-orange-600 font-medium">Due today</span>;
+      return <span className="text-app-accent font-medium">Due today</span>;
     } else if (diffDays === 1) {
-      return <span className="text-yellow-600">Due tomorrow</span>;
+      return <span className="text-app-accent">Due tomorrow</span>;
     } else if (diffDays <= 7) {
-      return <span className="text-yellow-600">Due in {diffDays} days</span>;
+      return <span className="text-app-accent">Due in {diffDays} days</span>;
     } else {
       return <span className="text-app-text-muted">Due {date.toLocaleDateString()}</span>;
     }

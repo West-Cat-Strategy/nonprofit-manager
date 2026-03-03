@@ -41,16 +41,18 @@ const templateVersionParamsSchema = z.object({
 const searchTemplatesQuerySchema = z.object({
   search: z.string().max(100).optional(),
   category: z.enum(validCategories).optional(),
+  tags: z.string().max(500).optional(),
   status: z.enum(validStatuses).optional(),
+  isSystemTemplate: z.coerce.boolean().optional(),
   page: z.coerce.number().int().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
   sortBy: z.enum(['name', 'createdAt', 'updatedAt']).optional(),
   sortOrder: z.enum(['asc', 'desc']).optional(),
-});
+}).strict();
 
 const previewTemplateQuerySchema = z.object({
   page: z.string().optional(),
-});
+}).strict();
 
 const applyPaletteSchema = z.object({
   paletteId: uuidSchema,

@@ -18,16 +18,16 @@ interface VolunteerWidgetProps {
 }
 
 const statCards = [
-  { key: 'total' as const, label: 'Total', bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-600', sub: 'text-sky-700' },
-  { key: 'available' as const, label: 'Available', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600', sub: 'text-emerald-700' },
-  { key: 'limited' as const, label: 'Limited', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-600', sub: 'text-amber-700' },
-  { key: 'unavailable' as const, label: 'Unavailable', bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-600', sub: 'text-rose-700' },
+  { key: 'total' as const, label: 'Total', bg: 'bg-app-accent-soft', border: 'border-app-border', text: 'text-app-accent', sub: 'text-app-accent-text' },
+  { key: 'available' as const, label: 'Available', bg: 'bg-app-accent-soft', border: 'border-app-border', text: 'text-app-accent', sub: 'text-app-accent-text' },
+  { key: 'limited' as const, label: 'Limited', bg: 'bg-app-accent-soft', border: 'border-app-border', text: 'text-app-accent', sub: 'text-app-accent-text' },
+  { key: 'unavailable' as const, label: 'Unavailable', bg: 'bg-app-accent-soft', border: 'border-app-border', text: 'text-app-accent', sub: 'text-app-accent-text' },
 ];
 
 const availabilityBadge: Record<string, string> = {
-  available: 'bg-emerald-100 text-emerald-800',
-  limited: 'bg-amber-100 text-amber-800',
-  unavailable: 'bg-rose-100 text-rose-800',
+  available: 'bg-app-accent-soft text-app-accent-text',
+  limited: 'bg-app-accent-soft text-app-accent-text',
+  unavailable: 'bg-app-accent-soft text-app-accent-text',
 };
 
 const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetProps) => {
@@ -82,7 +82,7 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
           <h3 className="text-lg font-semibold text-app-text-heading">Volunteer Overview</h3>
           <Link
             to="/volunteers"
-            className="text-sm text-sky-600 hover:text-sky-800 font-medium"
+            className="text-sm text-app-accent hover:text-app-accent-text font-medium"
           >
             View All &rarr;
           </Link>
@@ -101,17 +101,17 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
         </div>
 
         {/* Hours Summary */}
-        <div className="bg-gradient-to-r from-violet-50 to-indigo-50 rounded-xl p-4 mb-6 border border-violet-200/70">
+        <div className="bg-gradient-to-r from-app-surface to-app-accent-soft rounded-xl p-4 mb-6 border border-app-border/70">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-violet-700 font-medium">Total Hours Logged</div>
-              <div className="text-2xl font-bold text-violet-900 mt-1">
+              <div className="text-sm text-app-accent-text font-medium">Total Hours Logged</div>
+              <div className="text-2xl font-bold text-app-accent-text mt-1">
                 {calculatedStats.totalHoursThisMonth.toFixed(1)}
               </div>
             </div>
             <div className="bg-white p-3 rounded-full">
               <svg
-                className="w-8 h-8 text-violet-600"
+                className="w-8 h-8 text-app-accent"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -139,7 +139,7 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
                   className="flex items-center justify-between p-3 bg-app-surface-muted rounded-xl hover:bg-app-hover transition"
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="shrink-0 w-8 h-8 bg-sky-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                    <div className="shrink-0 w-8 h-8 bg-app-accent rounded-full flex items-center justify-center text-white font-medium text-sm">
                       {idx + 1}
                     </div>
                     <div>
@@ -173,7 +173,7 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
           <div className="grid grid-cols-2 gap-3">
             <Link
               to="/volunteers/new"
-              className="flex items-center justify-center space-x-2 px-4 py-2 bg-sky-600 text-white rounded-xl hover:bg-sky-700 transition text-sm"
+              className="flex items-center justify-center space-x-2 px-4 py-2 bg-app-accent text-white rounded-xl hover:bg-app-accent-hover transition text-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -182,7 +182,7 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
             </Link>
             <Link
               to="/volunteers/assignments/new"
-              className="flex items-center justify-center space-x-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition text-sm"
+              className="flex items-center justify-center space-x-2 px-4 py-2 bg-app-accent text-white rounded-xl hover:bg-app-accent-hover transition text-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -204,17 +204,17 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
           <h4 className="text-sm font-semibold text-app-text-label mb-3">Availability Breakdown</h4>
           <div className="flex h-3 rounded-full overflow-hidden bg-app-surface-muted">
             <div
-              className="bg-emerald-500"
+              className="bg-app-accent"
               style={{ width: `${(calculatedStats.available / calculatedStats.total) * 100}%` }}
               title={`Available: ${calculatedStats.available}`}
             />
             <div
-              className="bg-amber-500"
+              className="bg-app-accent"
               style={{ width: `${(calculatedStats.limited / calculatedStats.total) * 100}%` }}
               title={`Limited: ${calculatedStats.limited}`}
             />
             <div
-              className="bg-rose-500"
+              className="bg-app-accent"
               style={{ width: `${(calculatedStats.unavailable / calculatedStats.total) * 100}%` }}
               title={`Unavailable: ${calculatedStats.unavailable}`}
             />

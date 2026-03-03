@@ -1,1 +1,1 @@
-export { fetchContacts, fetchContactTags, setFilters, clearFilters } from './contactsLegacyCore';
+export { fetchContacts, fetchContactTags, setFilters, clearFilters } from './contactsCore';

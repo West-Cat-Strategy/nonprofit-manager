@@ -90,7 +90,7 @@ const alertInstancesQuerySchema = z.object({
   status: z.string().optional(),
   severity: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
-});
+}).strict();
 
 // All routes require authentication
 router.use(authenticate);

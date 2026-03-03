@@ -1,10 +1,14 @@
 openapi: 3.0.3
 info:
   title: Nonprofit Manager API
-  version: 0.1.0
-  description: API specification for Nonprofit Manager
+  version: 0.2.0
+  description: |
+    Partial OpenAPI contract for actively maintained auth/admin/report endpoints.
+    This repository runs v2-only APIs under `/api/v2/*`.
+    Documented query contracts are strict: malformed values or unknown keys return
+    canonical `400` responses with `error.code: validation_error`.
 servers:
-  - url: HTTP://localhost:3000/api
+  - url: http://localhost:3000/api/v2
 paths:
   /auth/register:
     post:
@@ -29,6 +33,10 @@ paths:
       responses:
         '201':
           description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
   /auth/login:
     post:
       summary: Login user
@@ -48,6 +56,10 @@ paths:
       responses:
         '200':
           description: Login success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
   /auth/me:
     get:
       summary: Get current user
@@ -56,9 +68,959 @@ paths:
       responses:
         '200':
           description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+  /auth/preferences/{key}:
+    patch:
+      summary: Update a single user preference key
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [value]
+              properties:
+                value:
+                  nullable: true
+      responses:
+        '200':
+          description: Preference updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+  /auth/reset-password/{token}:
+    get:
+      summary: Validate reset-password token
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-fA-F0-9]{64}$'
+      responses:
+        '200':
+          description: Token validation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+  /auth/passkeys/{id}:
+    delete:
+      summary: Delete a passkey by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Passkey deleted
+  /users:
+    get:
+      summary: List users
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          required: false
+          schema:
+            type: string
+            maxLength: 255
+        - in: query
+          name: role
+          required: false
+          schema:
+            type: string
+            enum: [admin, manager, user, readonly]
+        - in: query
+          name: is_active
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: User list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Validation error for malformed or unknown query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /admin/audit-logs:
+    get:
+      summary: List audit logs
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+        - in: query
+          name: offset
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 5000
+      responses:
+        '200':
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Validation error for malformed or unknown query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /admin/email-settings:
+    put:
+      summary: Update email settings
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                smtpHost: { type: string, nullable: true }
+                smtpPort: { type: integer, minimum: 1, maximum: 65535 }
+                smtpSecure: { type: boolean }
+                smtpUser: { type: string, nullable: true }
+                smtpPass: { type: string }
+                smtpFromAddress: { type: string, format: email, nullable: true }
+                smtpFromName: { type: string, nullable: true }
+                imapHost: { type: string, nullable: true }
+                imapPort: { type: integer, minimum: 1, maximum: 65535 }
+                imapSecure: { type: boolean }
+                imapUser: { type: string, nullable: true }
+                imapPass: { type: string }
+      responses:
+        '200':
+          description: Email settings updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+  /admin/twilio-settings:
+    put:
+      summary: Update Twilio settings
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                accountSid: { type: string, nullable: true }
+                authToken: { type: string }
+                messagingServiceSid: { type: string, nullable: true }
+                fromPhoneNumber: { type: string, nullable: true }
+      responses:
+        '200':
+          description: Twilio settings updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+  /admin/registration-settings:
+    put:
+      summary: Update registration settings
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                registrationMode:
+                  type: string
+                  enum: [disabled, approval_required]
+                defaultRole:
+                  type: string
+                  enum: [admin, manager, user, readonly]
+      responses:
+        '200':
+          description: Registration settings updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+  /admin/pending-registrations:
+    get:
+      summary: List pending registrations
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+      responses:
+        '200':
+          description: Pending registrations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Validation error for malformed or unknown query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /admin/pending-registrations/{id}/approve:
+    post:
+      summary: Approve pending registration
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Registration approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+  /admin/pending-registrations/{id}/reject:
+    post:
+      summary: Reject pending registration
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+      responses:
+        '200':
+          description: Registration rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+  /v2/portal/stream:
+    get:
+      summary: Open client portal realtime stream (SSE)
+      parameters:
+        - in: query
+          name: channels
+          required: false
+          schema:
+            type: string
+            example: messages,appointments
+      responses:
+        '200':
+          description: SSE stream opened
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '400':
+          description: Invalid channel selection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Realtime disabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /v2/portal/messages/threads:
+    get:
+      summary: List portal message threads
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [open, closed, archived]
+        - in: query
+          name: case_id
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: search
+          required: false
+          schema:
+            type: string
+            maxLength: 255
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - in: query
+          name: offset
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 10000
+      responses:
+        '200':
+          description: Thread list payload in `data.threads`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Validation error for malformed query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /v2/portal/appointments:
+    get:
+      summary: List portal appointments
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [requested, confirmed, cancelled, completed]
+        - in: query
+          name: case_id
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: from
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: search
+          required: false
+          schema:
+            type: string
+            maxLength: 255
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - in: query
+          name: offset
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 10000
+      responses:
+        '200':
+          description: Appointment list in `data`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Validation error for malformed query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /portal/admin/stream:
+    get:
+      summary: Open admin portal realtime stream (SSE)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: channels
+          required: false
+          schema:
+            type: string
+            example: conversations,appointments,slots
+      responses:
+        '200':
+          description: SSE stream opened
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '400':
+          description: Invalid channel selection or realtime disabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /portal/admin/conversations:
+    get:
+      summary: List portal admin conversations
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [open, closed, archived]
+        - in: query
+          name: case_id
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: pointperson_user_id
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: search
+          required: false
+          schema:
+            type: string
+            maxLength: 255
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - in: query
+          name: offset
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 10000
+      responses:
+        '200':
+          description: Conversation list in `conversations`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Validation error for malformed query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /portal/admin/appointment-slots:
+    get:
+      summary: List admin appointment slots
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [open, closed, cancelled]
+        - in: query
+          name: case_id
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: pointperson_user_id
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: from
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - in: query
+          name: offset
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 10000
+      responses:
+        '200':
+          description: Slot list in `slots`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Validation error for malformed query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /portal/admin/users:
+    get:
+      summary: List portal users
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          required: false
+          schema:
+            type: string
+            maxLength: 255
+      responses:
+        '200':
+          description: Portal users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Validation error for malformed or unknown query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /portal/admin/users/{id}/activity:
+    get:
+      summary: Get portal user activity
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+      responses:
+        '200':
+          description: Portal user activity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Validation error for malformed path parameters or malformed/unknown query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /reports/templates:
+    get:
+      summary: List report templates (legacy)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: category
+          required: false
+          schema:
+            type: string
+            enum: [fundraising, engagement, operations, finance, compliance, custom]
+      responses:
+        '200':
+          description: Template list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Validation error for malformed or unknown query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /v2/reports/templates:
+    get:
+      summary: List report templates (v2)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: category
+          required: false
+          schema:
+            type: string
+            enum: [fundraising, engagement, operations, finance, compliance, custom]
+      responses:
+        '200':
+          description: Template list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Validation error for malformed or unknown query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /v2/tasks:
+    get:
+      summary: List tasks (v2)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [not_started, in_progress, waiting, completed, deferred, cancelled]
+        - in: query
+          name: priority
+          schema:
+            type: string
+            enum: [low, normal, high, urgent]
+        - in: query
+          name: assigned_to
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: related_to_type
+          schema:
+            type: string
+            enum: [account, contact, event, donation, volunteer]
+        - in: query
+          name: related_to_id
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: due_before
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: due_after
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: overdue
+          schema:
+            type: boolean
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Task list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Validation error for malformed or unknown query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /v2/volunteers:
+    get:
+      summary: List volunteers (v2)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - in: query
+          name: sort_by
+          schema:
+            type: string
+        - in: query
+          name: sort_order
+          schema:
+            type: string
+            enum: [asc, desc]
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: skills
+          schema:
+            type: string
+        - in: query
+          name: availability_status
+          schema:
+            type: string
+            enum: [available, unavailable, limited]
+        - in: query
+          name: background_check_status
+          schema:
+            type: string
+            enum: [not_required, pending, in_progress, approved, rejected, expired]
+        - in: query
+          name: is_active
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Volunteer list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Validation error for malformed or unknown query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /v2/cases/{id}/documents/{documentId}/download:
+    get:
+      summary: Download a case document (v2)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: path
+          name: documentId
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: disposition
+          required: false
+          schema:
+            type: string
+            enum: [inline, attachment]
+      responses:
+        '200':
+          description: Binary document stream
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Validation error for malformed path parameters or malformed/unknown query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /reports/templates/{id}:
+    get:
+      summary: Get report template by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Template payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+    delete:
+      summary: Delete report template by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Template deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+  /reports/templates/{id}/instantiate:
+    post:
+      summary: Instantiate report template
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                parameter_values:
+                  type: object
+                  additionalProperties: true
+                save_as_name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+      responses:
+        '200':
+          description: Instantiated definition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+  schemas:
+    SuccessEnvelope:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          nullable: true
+    ErrorEnvelope:
+      type: object
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              nullable: true

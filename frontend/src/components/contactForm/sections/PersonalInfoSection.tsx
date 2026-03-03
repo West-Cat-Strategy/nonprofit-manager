@@ -44,10 +44,10 @@ export default function PersonalInfoSection({
             value={formData.first_name}
             onChange={onChange}
             className={`mt-1 block w-full border ${
-              errors.first_name ? 'border-red-300' : 'border-app-input-border'
+              errors.first_name ? 'border-app-border' : 'border-app-input-border'
             } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
           />
-          {errors.first_name && <p className="mt-1 text-sm text-red-600">{errors.first_name}</p>}
+          {errors.first_name && <p className="mt-1 text-sm text-app-accent">{errors.first_name}</p>}
         </div>
 
         <div>
@@ -89,10 +89,10 @@ export default function PersonalInfoSection({
             value={formData.last_name}
             onChange={onChange}
             className={`mt-1 block w-full border ${
-              errors.last_name ? 'border-red-300' : 'border-app-input-border'
+              errors.last_name ? 'border-app-border' : 'border-app-input-border'
             } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
           />
-          {errors.last_name && <p className="mt-1 text-sm text-red-600">{errors.last_name}</p>}
+          {errors.last_name && <p className="mt-1 text-sm text-app-accent">{errors.last_name}</p>}
         </div>
 
         <div>

@@ -859,7 +859,7 @@ export default function UserSettings() {
                 <div key={item.field} className="space-y-2">
                   <div className="flex justify-between items-center">
                     <label className="block font-bold text-sm uppercase tracking-wide">
-                      {item.label} {item.req && <span className="text-red-500">*</span>}
+                      {item.label} {item.req && <span className="text-app-accent">*</span>}
                     </label>
                     <button
                       onClick={() => toggleFieldVisibility(item.field)}
@@ -946,7 +946,7 @@ export default function UserSettings() {
 
               <div className="space-y-2">
                 <label className="block font-bold text-sm uppercase tracking-wide">
-                  Primary Frequency (Email) <span className="text-red-500">*</span>
+                  Primary Frequency (Email) <span className="text-app-accent">*</span>
                 </label>
                 <input
                   type="email"
@@ -1037,16 +1037,16 @@ export default function UserSettings() {
               </div>
 
               {passwordStatus === 'success' && (
-                <div className="bg-green-100 border-2 border-green-600 p-3 mb-3">
-                  <span className="font-bold text-green-800">Password changed successfully!</span>
+                <div className="bg-app-accent-soft border-2 border-app-accent p-3 mb-3">
+                  <span className="font-bold text-app-accent-text">Password changed successfully!</span>
                 </div>
               )}
 
               {showPasswordSection && (
                 <div className="space-y-3 border-2 border-black p-4 bg-app-surface-muted shadow-[4px_4px_0px_0px_var(--shadow-color)]">
                   {passwordError && (
-                    <div className="bg-red-100 border-2 border-red-500 p-3">
-                      <span className="font-bold text-red-700">{passwordError}</span>
+                    <div className="bg-app-accent-soft border-2 border-app-border p-3">
+                      <span className="font-bold text-app-accent-text">{passwordError}</span>
                     </div>
                   )}
                   <div>
@@ -1103,7 +1103,7 @@ export default function UserSettings() {
                 <div className="mt-3 flex items-center justify-between">
                   <div className="text-sm text-app-text-muted">
                     Status:{' '}
-                    <span className={security.totpEnabled ? 'text-green-700 font-medium' : 'text-app-text-muted font-medium'}>
+                    <span className={security.totpEnabled ? 'text-app-accent-text font-medium' : 'text-app-text-muted font-medium'}>
                       {security.totpEnabled ? 'Enabled' : 'Not enabled'}
                     </span>
                   </div>
@@ -1130,7 +1130,7 @@ export default function UserSettings() {
                 <div className="mt-4 bg-app-surface-muted border border-app-border rounded-lg p-4">
                   {/* Timeout warning banner */}
                   {totpSecondsRemaining > 0 && (
-                    <div className={`mb-4 p-3 rounded-lg border ${totpSecondsRemaining < 60 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-yellow-50 border-yellow-200 text-yellow-700'}`}>
+                    <div className={`mb-4 p-3 rounded-lg border ${totpSecondsRemaining < 60 ? 'bg-app-accent-soft border-app-border text-app-accent-text' : 'bg-app-accent-soft border-app-border text-app-accent-text'}`}>
                       <div className="flex items-center gap-2">
                         <span>{totpSecondsRemaining < 60 ? '⚠️' : '⏱️'}</span>
                         <span className="font-medium">
@@ -1229,7 +1229,7 @@ export default function UserSettings() {
                       type="button"
                       onClick={handleDisableTotp}
                       disabled={securityActionLoading}
-                      className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50"
+                      className="px-4 py-2 bg-app-accent text-white font-medium rounded-lg hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
                     >
                       {securityActionLoading ? 'Disabling…' : 'Disable 2FA'}
                     </button>
@@ -1285,7 +1285,7 @@ export default function UserSettings() {
                         type="button"
                         onClick={() => handleDeletePasskey(pk.id)}
                         disabled={securityActionLoading}
-                        className="px-3 py-1.5 text-sm font-medium text-red-700 hover:text-red-800 hover:bg-red-50 rounded"
+                        className="px-3 py-1.5 text-sm font-medium text-app-accent-text hover:text-app-accent-text hover:bg-app-accent-soft rounded"
                       >
                         Remove
                       </button>

@@ -64,10 +64,10 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({
 
   const getStatusBadge = (status: string) => {
     const statusStyles: Record<string, string> = {
-      completed: 'bg-green-100 text-green-800',
-      pending: 'bg-yellow-100 text-yellow-800',
-      failed: 'bg-red-100 text-red-800',
-      refunded: 'bg-purple-100 text-purple-800',
+      completed: 'bg-app-accent-soft text-app-accent-text',
+      pending: 'bg-app-accent-soft text-app-accent-text',
+      failed: 'bg-app-accent-soft text-app-accent-text',
+      refunded: 'bg-app-accent-soft text-app-accent-text',
       cancelled: 'bg-app-surface-muted text-app-text',
     };
 
@@ -97,7 +97,7 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({
     return (
       <div className="bg-app-surface rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold mb-4">Payment History</h2>
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="bg-app-accent-soft border border-app-border text-app-accent-text px-4 py-3 rounded">
           {error}
         </div>
       </div>
@@ -112,7 +112,7 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({
           {totalCount > 0 && (
             <p className="text-sm text-app-text-muted mt-1">
               {totalCount} donation{totalCount !== 1 ? 's' : ''} totaling{' '}
-              <span className="font-semibold text-green-600">
+              <span className="font-semibold text-app-accent">
                 {formatCurrency(totalAmount)}
               </span>
             </p>

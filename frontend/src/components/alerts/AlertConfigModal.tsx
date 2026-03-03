@@ -166,7 +166,7 @@ const AlertConfigModal = ({ config, onClose, onSuccess }: AlertConfigModalProps)
               className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
               placeholder="e.g., Low Donation Alert"
             />
-            {errors.name && <p className="text-sm text-red-600 mt-1">{errors.name}</p>}
+            {errors.name && <p className="text-sm text-app-accent mt-1">{errors.name}</p>}
           </div>
 
           <div>
@@ -225,7 +225,7 @@ const AlertConfigModal = ({ config, onClose, onSuccess }: AlertConfigModalProps)
                 className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
                 placeholder="Enter threshold value"
               />
-              {errors.threshold && <p className="text-sm text-red-600 mt-1">{errors.threshold}</p>}
+              {errors.threshold && <p className="text-sm text-app-accent mt-1">{errors.threshold}</p>}
             </div>
           )}
 
@@ -242,7 +242,7 @@ const AlertConfigModal = ({ config, onClose, onSuccess }: AlertConfigModalProps)
                 placeholder="e.g., 20 for 20% change"
               />
               {errors.percentage_change && (
-                <p className="text-sm text-red-600 mt-1">{errors.percentage_change}</p>
+                <p className="text-sm text-app-accent mt-1">{errors.percentage_change}</p>
               )}
             </div>
           )}
@@ -313,13 +313,13 @@ const AlertConfigModal = ({ config, onClose, onSuccess }: AlertConfigModalProps)
                 </label>
               ))}
             </div>
-            {errors.channels && <p className="text-sm text-red-600 mt-1">{errors.channels}</p>}
+            {errors.channels && <p className="text-sm text-app-accent mt-1">{errors.channels}</p>}
           </div>
 
           {/* Test Result */}
           {testResult && (
             isAlertTestResult(testResult) ? (
-              <div className={`p-4 rounded-lg ${testResult.would_trigger ? 'bg-orange-50 border border-orange-200' : 'bg-green-50 border border-green-200'}`}>
+              <div className={`p-4 rounded-lg ${testResult.would_trigger ? 'bg-app-accent-soft border border-app-border' : 'bg-app-accent-soft border border-app-border'}`}>
                 <p className="font-medium text-sm mb-1">
                   {testResult.would_trigger ? '⚠️ Alert would trigger' : '✓ Alert would not trigger'}
                 </p>
@@ -332,7 +332,7 @@ const AlertConfigModal = ({ config, onClose, onSuccess }: AlertConfigModalProps)
                 )}
               </div>
             ) : (
-              <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+              <div className="p-4 rounded-lg bg-app-accent-soft border border-app-border text-sm text-app-accent-text">
                 {testResult.error}
               </div>
             )

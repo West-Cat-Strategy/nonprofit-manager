@@ -1,8 +1,8 @@
 import { useToast } from '../contexts/useToast';
 
 const variantStyles: Record<string, string> = {
-  error: 'border-red-200 bg-red-50 text-red-700',
-  success: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  error: 'border-app-border bg-app-accent-soft text-app-accent-text',
+  success: 'border-app-border bg-app-accent-soft text-app-accent-text',
   info: 'border-app-accent-soft bg-app-accent-soft text-app-accent',
 };
 

@@ -1,5 +1,14 @@
 export interface PortalMessagingPort {
-  listPortalThreads(portalUserId: string): Promise<unknown[]>;
+  listPortalThreads(
+    portalUserId: string,
+    filters?: {
+      status?: 'open' | 'closed' | 'archived';
+      caseId?: string;
+      search?: string;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<unknown[]>;
   createThreadWithMessage(input: {
     portalUserId: string;
     contactId: string;
@@ -18,12 +27,24 @@ export interface PortalMessagingPort {
     threadId: string;
     status?: 'open' | 'closed' | 'archived';
     subject?: string | null;
+    actorType?: 'portal' | 'staff' | 'system';
     closedBy: string | null;
   }): Promise<unknown | null>;
 }
 
 export interface PortalAppointmentsPort {
-  listPortalAppointments(contactId: string): Promise<unknown[]>;
+  listPortalAppointments(
+    contactId: string,
+    filters?: {
+      status?: 'requested' | 'confirmed' | 'cancelled' | 'completed';
+      caseId?: string;
+      from?: string;
+      to?: string;
+      search?: string;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<unknown[]>;
   listPortalAppointmentSlots(contactId: string, caseId?: string): Promise<unknown>;
   bookPortalAppointmentSlot(input: {
     slotId: string;

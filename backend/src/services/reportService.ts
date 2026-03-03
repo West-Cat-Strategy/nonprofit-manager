@@ -20,6 +20,13 @@ export interface ReportGenerationScope {
 export class ReportService {
   constructor(private pool: Pool) { }
 
+  private sanitizeAlias(alias: string): string {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(alias)) {
+      throw new Error(`Invalid aggregation alias: ${alias}`);
+    }
+    return alias;
+  }
+
   private getFieldSpecs(entity: ReportEntity): Record<
     string,
     { label: string; type: 'string' | 'number' | 'date' | 'boolean' | 'currency'; column: string }
@@ -34,6 +41,7 @@ export class ReportService {
           priority: { label: 'Priority', type: 'string', column: 'c.priority' },
           outcome: { label: 'Outcome', type: 'string', column: 'c.outcome' },
           status_name: { label: 'Status', type: 'string', column: 'cs.name' },
+          status: { label: 'Status', type: 'string', column: 'cs.name' },
           status_type: { label: 'Status Type', type: 'string', column: 'cs.status_type' },
           case_type_name: { label: 'Case Type', type: 'string', column: 'ct.name' },
           assigned_to_name: {
@@ -122,6 +130,12 @@ export class ReportService {
         return {
           id: { label: 'Donation ID', type: 'string', column: 'd.id' },
           donation_number: { label: 'Donation Number', type: 'string', column: 'd.donation_number' },
+          donor_name: {
+            label: 'Donor Name',
+            type: 'string',
+            column:
+              "COALESCE(NULLIF(TRIM(CONCAT(COALESCE(dc.first_name, ''), ' ', COALESCE(dc.last_name, ''))), ''), da.account_name, 'Unknown')",
+          },
           amount: { label: 'Amount', type: 'currency', column: 'd.amount' },
           currency: { label: 'Currency', type: 'string', column: 'd.currency' },
           payment_method: { label: 'Payment Method', type: 'string', column: 'd.payment_method' },
@@ -152,9 +166,11 @@ export class ReportService {
           last_name: { label: 'Last Name', type: 'string', column: 'c.last_name' },
           email: { label: 'Email', type: 'string', column: 'c.email' },
           phone: { label: 'Phone', type: 'string', column: 'c.phone' },
+          status: { label: 'Status', type: 'string', column: 'v.volunteer_status' },
           volunteer_status: { label: 'Status', type: 'string', column: 'v.volunteer_status' },
           skills: { label: 'Skills', type: 'string', column: 'v.skills' },
           availability: { label: 'Availability', type: 'string', column: 'v.availability' },
+          total_hours: { label: 'Total Hours', type: 'number', column: 'v.hours_contributed' },
           hours_contributed: { label: 'Hours Contributed', type: 'number', column: 'v.hours_contributed' },
           created_at: { label: 'Created Date', type: 'date', column: 'v.created_at' },
         };
@@ -236,6 +252,8 @@ export class ReportService {
           funder: { label: 'Funder', type: 'string', column: 'g.funder' },
           amount: { label: 'Amount', type: 'currency', column: 'g.amount' },
           status: { label: 'Status', type: 'string', column: 'g.status' },
+          start_date: { label: 'Start Date', type: 'date', column: 'g.award_date' },
+          end_date: { label: 'End Date', type: 'date', column: 'g.expiry_date' },
           award_date: { label: 'Award Date', type: 'date', column: 'g.award_date' },
           expiry_date: { label: 'Expiry Date', type: 'date', column: 'g.expiry_date' },
           created_at: { label: 'Created Date', type: 'date', column: 'g.created_at' },
@@ -397,18 +415,29 @@ export class ReportService {
    */
   private buildOrderByClause(
     sort: ReportSort[] | undefined,
-    fieldSpecs: Record<string, { column: string }>
+    fieldSpecs: Record<string, { column: string }>,
+    aggregationAliases: Set<string>
   ): string {
     if (!sort || sort.length === 0) {
       return '';
     }
 
     const orderClauses = sort.map((s) => {
-      const fieldSpec = fieldSpecs[s.field];
-      if (!fieldSpec) {
-        throw new Error(`Invalid sort field: ${s.field}`);
+      const direction = s.direction.toUpperCase();
+      if (direction !== 'ASC' && direction !== 'DESC') {
+        throw new Error(`Invalid sort direction: ${s.direction}`);
       }
-      return `${fieldSpec.column} ${s.direction.toUpperCase()}`;
+
+      const fieldSpec = fieldSpecs[s.field];
+      if (fieldSpec) {
+        return `${fieldSpec.column} ${direction}`;
+      }
+
+      if (aggregationAliases.has(s.field)) {
+        return `"${s.field}" ${direction}`;
+      }
+
+      throw new Error(`Invalid sort field: ${s.field}`);
     });
     return `ORDER BY ${orderClauses.join(', ')}`;
   }
@@ -422,7 +451,7 @@ export class ReportService {
         'cases c LEFT JOIN contacts con ON c.contact_id = con.id LEFT JOIN accounts acc ON acc.id = COALESCE(c.account_id, con.account_id) LEFT JOIN users assignee ON assignee.id = c.assigned_to LEFT JOIN case_statuses cs ON c.status_id = cs.id LEFT JOIN case_types ct ON c.case_type_id = ct.id LEFT JOIN LATERAL (SELECT s.outcome FROM case_services s WHERE s.case_id = c.id ORDER BY s.service_date DESC NULLS LAST, s.created_at DESC LIMIT 1) svc ON true',
       accounts: 'accounts a',
       contacts: 'contacts c LEFT JOIN accounts a ON c.account_id = a.id',
-      donations: 'donations d',
+      donations: 'donations d LEFT JOIN contacts dc ON d.contact_id = dc.id LEFT JOIN accounts da ON d.account_id = da.id',
       events: 'events e',
       volunteers: 'volunteers v INNER JOIN contacts c ON v.contact_id = c.id',
       tasks: 'tasks t',
@@ -448,6 +477,7 @@ export class ReportService {
       const fieldSpecs = this.getFieldSpecs(definition.entity);
 
       const selectParts: string[] = [];
+      const aggregationAliases = new Set<string>();
 
       // Handle grouping fields
       if (definition.groupBy && definition.groupBy.length > 0) {
@@ -476,8 +506,9 @@ export class ReportService {
           if (!fieldSpecs[agg.field]) {
             throw new Error(`Invalid aggregation field: ${agg.field}`);
           }
-          const alias = agg.alias || `${agg.function}_${agg.field}`;
-          selectParts.push(`${agg.function.toUpperCase()}(${fieldSpecs[agg.field].column}) AS ${alias}`);
+          const alias = this.sanitizeAlias(agg.alias || `${agg.function}_${agg.field}`);
+          aggregationAliases.add(alias);
+          selectParts.push(`${agg.function.toUpperCase()}(${fieldSpecs[agg.field].column}) AS "${alias}"`);
         }
       }
 
@@ -506,7 +537,11 @@ export class ReportService {
         : '';
 
       // Build ORDER BY clause
-      const orderByClause = this.buildOrderByClause(definition.sort, fieldSpecs);
+      const orderByClause = this.buildOrderByClause(
+        definition.sort,
+        fieldSpecs,
+        aggregationAliases
+      );
 
       // Build LIMIT clause
       const limitClause = definition.limit ? `LIMIT ${definition.limit}` : '';
@@ -569,11 +604,17 @@ export class ReportService {
     try {
       const { definition, data } = result;
       const fieldSpecs = this.getFieldSpecs(definition.entity);
+      const escapeCsv = (value: unknown): string => {
+        if (value === null || value === undefined) return '';
+        const text = String(value);
+        const escaped = text.replace(/"/g, '""');
+        return /[",\n\r]/.test(escaped) ? `"${escaped}"` : escaped;
+      };
 
       // Determine columns to include
       const columns = (definition.groupBy || []).concat(definition.fields || []);
-      const aggs = (definition.aggregations || []).map(a => a.alias || `${a.function}_${a.field}`);
-      const allColumns = columns.concat(aggs);
+      const aggs = (definition.aggregations || []).map((a) => a.alias || `${a.function}_${a.field}`);
+      const allColumns = Array.from(new Set(columns.concat(aggs)));
 
       if (format === 'xlsx') {
         const Workbook = (await import('exceljs')).default.Workbook;
@@ -581,7 +622,7 @@ export class ReportService {
         const worksheet = workbook.addWorksheet(definition.name || 'Report');
 
         // Add headers
-        worksheet.columns = allColumns.map(col => {
+        worksheet.columns = allColumns.map((col) => {
           let label = col;
           if (fieldSpecs[col]) {
             label = fieldSpecs[col].label;
@@ -600,15 +641,9 @@ export class ReportService {
 
         return (await workbook.xlsx.writeBuffer()) as unknown as Buffer;
       } else {
-        // Simple CSV generation
-        const headers = allColumns.join(',');
-        const rows = data.map(row =>
-          allColumns.map(col => {
-            const val = row[col];
-            if (val === null || val === undefined) return '';
-            const str = String(val);
-            return str.includes(',') ? `"${str}"` : str;
-          }).join(',')
+        const headers = allColumns.map((column) => escapeCsv(column)).join(',');
+        const rows = data.map((row) =>
+          allColumns.map((column) => escapeCsv(row[column])).join(',')
         );
         const csvContent = [headers, ...rows].join('\n');
         return Buffer.from(csvContent);

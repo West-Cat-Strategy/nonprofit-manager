@@ -93,7 +93,7 @@ export default function EventsHubPage() {
         <section className="rounded-lg border border-app-border bg-app-surface p-4">
           <h2 className="mb-3 text-lg font-medium text-app-text">Event Catalog</h2>
           {listState.loading && <p className="text-sm text-app-text-muted">Loading events...</p>}
-          {listState.error && <p className="text-sm text-red-600">{listState.error}</p>}
+          {listState.error && <p className="text-sm text-app-accent">{listState.error}</p>}
           {!listState.loading && filteredEvents.length === 0 && (
             <p className="text-sm text-app-text-muted">No events match your current filters.</p>
           )}
@@ -154,7 +154,7 @@ export default function EventsHubPage() {
               >
                 {remindersState.sending ? 'Sending...' : 'Send Email Reminder'}
               </button>
-              {remindersState.error && <p className="mt-2 text-xs text-red-600">{remindersState.error}</p>}
+              {remindersState.error && <p className="mt-2 text-xs text-app-accent">{remindersState.error}</p>}
             </>
           )}
         </section>

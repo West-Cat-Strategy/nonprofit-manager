@@ -1,9 +1,9 @@
 import { lazy } from 'react';
 
-export const Analytics = lazy(() => import('../pages/analytics/Analytics'));
-export const CustomDashboard = lazy(() => import('../pages/analytics/CustomDashboard'));
-export const ReportBuilder = lazy(() => import('../pages/analytics/ReportBuilder'));
-export const ReportTemplates = lazy(() => import('../pages/analytics/ReportTemplates'));
-export const SavedReports = lazy(() => import('../pages/analytics/SavedReports'));
-export const OutcomesReport = lazy(() => import('../pages/analytics/OutcomesReport'));
-export const ScheduledReports = lazy(() => import('../pages/analytics/ScheduledReports'));
+export const Analytics = lazy(() => import('../features/analytics/pages/AnalyticsPage'));
+export const CustomDashboard = lazy(() => import('../features/dashboard/pages/CustomDashboardPage'));
+export const ReportBuilder = lazy(() => import('../features/reports/pages/ReportBuilderPage'));
+export const ReportTemplates = lazy(() => import('../features/reports/pages/ReportTemplatesPage'));
+export const SavedReports = lazy(() => import('../features/savedReports/pages/SavedReportsPage'));
+export const OutcomesReport = lazy(() => import('../features/reports/pages/OutcomesReportPage'));
+export const ScheduledReports = lazy(() => import('../features/scheduledReports/pages/ScheduledReportsPage'));

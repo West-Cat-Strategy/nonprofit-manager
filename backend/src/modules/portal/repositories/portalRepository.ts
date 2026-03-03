@@ -496,7 +496,8 @@ export class PortalRepository {
        FROM appointments a
        LEFT JOIN cases c ON c.id = a.case_id
        WHERE a.contact_id = $1
-         AND a.status IN ('requested', 'confirmed')
+         AND a.status = 'confirmed'
+         AND a.start_time >= NOW()
          AND (
            a.case_id IS NULL
            OR (c.contact_id = a.contact_id AND c.client_viewable = true)
@@ -513,7 +514,10 @@ export class PortalRepository {
       `SELECT e.id, e.name, e.start_date
        FROM event_registrations er
        JOIN events e ON e.id = er.event_id
-       WHERE er.contact_id = $1 AND e.start_date >= NOW()
+       WHERE er.contact_id = $1
+         AND er.registration_status IN ('registered', 'confirmed')
+         AND e.start_date >= NOW()
+         AND e.status NOT IN ('cancelled', 'completed')
        ORDER BY e.start_date ASC`,
       [contactId]
     );

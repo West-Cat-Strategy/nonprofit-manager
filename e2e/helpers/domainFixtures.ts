@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { getAuthHeaders } from './database';
 
-const apiURL = () => process.env.API_URL || 'HTTP://localhost:3001';
+const apiURL = () => process.env.API_URL || 'http://localhost:3001';
 
 async function postJSON(page: Page, token: string, path: string, data: unknown) {
   const headers = await getAuthHeaders(page, token);
@@ -14,7 +14,7 @@ async function deleteWithAuth(page: Page, token: string, path: string) {
 }
 
 export async function createAlertConfig(page: Page, token: string): Promise<string> {
-  const response = await postJSON(page, token, '/api/alerts/configs', {
+  const response = await postJSON(page, token, '/api/v2/alerts/configs', {
     name: `E2E Alert ${Date.now()}`,
     metric_type: 'donations',
     condition: 'exceeds',
@@ -35,11 +35,11 @@ export async function createAlertConfig(page: Page, token: string): Promise<stri
 }
 
 export async function deleteAlertConfig(page: Page, token: string, id: string) {
-  await deleteWithAuth(page, token, `/api/alerts/configs/${id}`);
+  await deleteWithAuth(page, token, `/api/v2/alerts/configs/${id}`);
 }
 
 export async function createSavedReport(page: Page, token: string): Promise<string> {
-  const response = await postJSON(page, token, '/api/saved-reports', {
+  const response = await postJSON(page, token, '/api/v2/saved-reports', {
     name: `E2E Saved Report ${Date.now()}`,
     entity: 'contacts',
     report_definition: {
@@ -54,11 +54,11 @@ export async function createSavedReport(page: Page, token: string): Promise<stri
 }
 
 export async function deleteSavedReport(page: Page, token: string, id: string) {
-  await deleteWithAuth(page, token, `/api/saved-reports/${id}`);
+  await deleteWithAuth(page, token, `/api/v2/saved-reports/${id}`);
 }
 
 export async function createTemplate(page: Page, token: string): Promise<string> {
-  const response = await postJSON(page, token, '/api/templates', {
+  const response = await postJSON(page, token, '/api/v2/templates', {
     name: `E2E Template ${Date.now()}`,
     category: 'landing-page',
     description: 'E2E test template',
@@ -75,13 +75,13 @@ export async function createTemplate(page: Page, token: string): Promise<string>
 }
 
 export async function deleteTemplate(page: Page, token: string, id: string) {
-  await deleteWithAuth(page, token, `/api/templates/${id}`);
+  await deleteWithAuth(page, token, `/api/v2/templates/${id}`);
 }
 
 export async function createWebhookEndpoint(page: Page, token: string): Promise<string> {
-  const response = await postJSON(page, token, '/api/webhooks/endpoints', {
+  const response = await postJSON(page, token, '/api/v2/webhooks/endpoints', {
     // Use a public IP literal to avoid DNS resolution flakes in restricted environments.
-    url: 'HTTPS://8.8.8.8/webhook',
+    url: 'https://8.8.8.8/webhook',
     events: ['account.created'],
     description: 'E2E endpoint',
   });
@@ -103,5 +103,5 @@ export async function createWebhookEndpoint(page: Page, token: string): Promise<
 }
 
 export async function deleteWebhookEndpoint(page: Page, token: string, id: string) {
-  await deleteWithAuth(page, token, `/api/webhooks/endpoints/${id}`);
+  await deleteWithAuth(page, token, `/api/v2/webhooks/endpoints/${id}`);
 }

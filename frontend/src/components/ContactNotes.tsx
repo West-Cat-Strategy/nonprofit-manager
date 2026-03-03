@@ -272,7 +272,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
           {/* Content */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-app-text-label mb-2">
-              Content <span className="text-red-500">*</span>
+              Content <span className="text-app-accent">*</span>
             </label>
             <textarea
               value={newNote.content}
@@ -331,7 +331,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
                 type="checkbox"
                 checked={newNote.is_alert}
                 onChange={(e) => setNewNote((prev) => ({ ...prev, is_alert: e.target.checked }))}
-                className="rounded border-app-input-border text-red-600 focus:ring-red-500"
+                className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
               />
               <span className="text-sm text-app-text-muted">Mark as alert (shows popup when viewing contact)</span>
             </label>
@@ -390,9 +390,9 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
             key={note.id}
             className={`bg-app-surface rounded-lg border p-4 ${
               note.is_alert
-                ? 'border-red-300 bg-red-50'
+                ? 'border-app-border bg-app-accent-soft'
                 : note.is_important
-                ? 'border-yellow-300 bg-yellow-50'
+                ? 'border-app-border bg-app-accent-soft'
                 : note.is_pinned
                 ? 'border-app-accent bg-app-accent-soft'
                 : 'border-app-border'
@@ -423,12 +423,12 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
                       </span>
                     )}
                     {note.is_important && (
-                      <span className="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded">
+                      <span className="px-2 py-0.5 text-xs bg-app-accent-soft text-app-accent-text rounded">
                         Important
                       </span>
                     )}
                     {note.is_alert && (
-                      <span className="px-2 py-0.5 text-xs bg-red-100 text-red-800 rounded font-semibold">
+                      <span className="px-2 py-0.5 text-xs bg-app-accent-soft text-app-accent-text rounded font-semibold">
                         Alert
                       </span>
                     )}
@@ -452,7 +452,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
                 <button
                   onClick={() => handleToggleFlag(note.id, { is_important: !note.is_important })}
                   className={`text-xs font-bold uppercase px-2 py-1 border rounded ${
-                    note.is_important ? 'border-yellow-400 text-yellow-700' : 'border-app-input-border text-app-text-muted'
+                    note.is_important ? 'border-app-border text-app-accent-text' : 'border-app-input-border text-app-text-muted'
                   }`}
                   title="Toggle important"
                 >
@@ -461,7 +461,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
                 <button
                   onClick={() => handleToggleFlag(note.id, { is_alert: !note.is_alert })}
                   className={`text-xs font-bold uppercase px-2 py-1 border rounded ${
-                    note.is_alert ? 'border-red-400 text-red-700' : 'border-app-input-border text-app-text-muted'
+                    note.is_alert ? 'border-app-border text-app-accent-text' : 'border-app-input-border text-app-text-muted'
                   }`}
                   title="Toggle alert"
                 >
@@ -469,7 +469,7 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
                 </button>
                 <button
                   onClick={() => handleDeleteNote(note.id)}
-                  className="text-app-text-subtle hover:text-red-500 transition"
+                  className="text-app-text-subtle hover:text-app-accent transition"
                   title="Delete note"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

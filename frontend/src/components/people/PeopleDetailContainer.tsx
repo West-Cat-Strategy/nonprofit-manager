@@ -89,7 +89,7 @@ export const PeopleDetailContainer: React.FC<PeopleDetailContainerProps> = ({
     return (
       <div className="min-h-screen bg-[var(--app-bg)] p-6 transition-colors duration-300">
         <div className="max-w-6xl mx-auto">
-          <BrutalCard className="border-4 border-black bg-red-500 text-white p-8 shadow-[8px_8px_0px_0px_var(--shadow-color)]">
+          <BrutalCard className="border-4 border-black bg-app-accent text-white p-8 shadow-[8px_8px_0px_0px_var(--shadow-color)]">
             <p className="font-black uppercase text-2xl mb-6">{error}</p>
             {(backPath || onBack) && (
               <button
@@ -165,7 +165,7 @@ export const PeopleDetailContainer: React.FC<PeopleDetailContainerProps> = ({
               <BrutalButton
                 variant="secondary"
                 onClick={onDelete}
-                className="px-8 py-3 bg-red-500 text-white text-xl"
+                className="px-8 py-3 bg-app-accent text-white text-xl"
               >
                 Delete
               </BrutalButton>

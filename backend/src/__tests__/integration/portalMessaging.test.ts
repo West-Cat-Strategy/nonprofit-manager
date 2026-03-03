@@ -1,4 +1,6 @@
 import request from 'supertest';
+import http from 'http';
+import type { AddressInfo } from 'net';
 import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
@@ -37,6 +39,61 @@ describe('Portal Messaging Integration', () => {
     );
   const unwrap = <T>(body: { data?: T } | T): T =>
     (body && typeof body === 'object' && 'data' in body ? (body as { data: T }).data : body) as T;
+
+  const openStreamAndReadFirstChunk = async (input: {
+    path: string;
+    headers?: Record<string, string>;
+  }): Promise<{ status: number; contentType: string | undefined; firstChunk: string }> =>
+    new Promise((resolve, reject) => {
+      let settled = false;
+      const server = app.listen(0, () => {
+        const port = (server.address() as AddressInfo).port;
+        const req = http.request(
+          {
+            hostname: '127.0.0.1',
+            port,
+            path: input.path,
+            method: 'GET',
+            headers: input.headers,
+          },
+          (res) => {
+            res.setEncoding('utf8');
+            res.once('data', (chunk) => {
+              settled = true;
+              req.destroy();
+              res.destroy();
+              server.close(() => {
+                resolve({
+                  status: res.statusCode || 0,
+                  contentType: typeof res.headers['content-type'] === 'string' ? res.headers['content-type'] : undefined,
+                  firstChunk: chunk,
+                });
+              });
+            });
+
+            res.once('end', () => {
+              if (settled) return;
+              settled = true;
+              server.close(() => {
+                reject(new Error('Stream ended before data was received'));
+              });
+            });
+          }
+        );
+
+        req.setTimeout(5000, () => {
+          if (settled) return;
+          settled = true;
+          req.destroy(new Error('Timed out waiting for SSE stream'));
+        });
+        req.once('error', (error) => {
+          if (settled) return;
+          settled = true;
+          server.close(() => reject(error));
+        });
+        req.end();
+      });
+    });
 
   beforeAll(async () => {
     const suffix = unique();
@@ -160,7 +217,7 @@ describe('Portal Messaging Integration', () => {
     const threadId = created.thread.id as string;
 
     await request(app)
-      .post(`/api/portal/admin/conversations/${threadId}/messages`)
+      .post(`/api/v2/portal/admin/conversations/${threadId}/messages`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         message: 'Absolutely. Please suggest two time options.',
@@ -190,5 +247,89 @@ describe('Portal Messaging Integration', () => {
       .expect(400);
 
     expect(response.body.error?.message ?? response.body.error).toMatch(/assigned pointperson/i);
+  });
+
+  it('supports thread filtering and pagination for portal and admin views', async () => {
+    const portalToken = buildPortalToken();
+    const adminToken = buildAdminToken();
+
+    const openThreadResponse = await request(app)
+      .post('/api/v2/portal/messages/threads')
+      .set('Cookie', [`portal_auth_token=${portalToken}`])
+      .send({
+        case_id: assignedCaseId,
+        subject: 'Open thread for filters',
+        message: 'Need a status filter check',
+      })
+      .expect(201);
+
+    const closedThreadResponse = await request(app)
+      .post('/api/v2/portal/messages/threads')
+      .set('Cookie', [`portal_auth_token=${portalToken}`])
+      .send({
+        case_id: assignedCaseId,
+        subject: 'Closed thread for filters',
+        message: 'Need a second thread',
+      })
+      .expect(201);
+
+    const openThreadId = unwrap<{ thread: { id: string } }>(openThreadResponse.body).thread.id;
+    const closedThreadId = unwrap<{ thread: { id: string } }>(closedThreadResponse.body).thread.id;
+
+    await request(app)
+      .patch(`/api/v2/portal/messages/threads/${closedThreadId}`)
+      .set('Cookie', [`portal_auth_token=${portalToken}`])
+      .send({ status: 'closed' })
+      .expect(200);
+
+    const openFiltered = await request(app)
+      .get('/api/v2/portal/messages/threads')
+      .set('Cookie', [`portal_auth_token=${portalToken}`])
+      .query({ status: 'open', search: 'Open thread', limit: 10, offset: 0 })
+      .expect(200);
+
+    const openRows = unwrap<{ threads: Array<{ id: string }> }>(openFiltered.body).threads;
+    expect(openRows.some((row) => row.id === openThreadId)).toBe(true);
+    expect(openRows.some((row) => row.id === closedThreadId)).toBe(false);
+
+    const adminFiltered = await request(app)
+      .get('/api/v2/portal/admin/conversations')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .query({ status: 'closed', search: 'Closed thread', limit: 1, offset: 0 })
+      .expect(200);
+
+    const adminRows = adminFiltered.body.conversations as Array<{ id: string }>;
+    expect(adminRows.length).toBe(1);
+    expect(adminRows[0]?.id).toBe(closedThreadId);
+  });
+
+  it('rejects unauthorized stream clients and opens stream for authenticated sessions when enabled', async () => {
+    const portalToken = buildPortalToken();
+    const adminToken = buildAdminToken();
+    const originalRealtime = process.env.PORTAL_REALTIME_ENABLED;
+    process.env.PORTAL_REALTIME_ENABLED = 'true';
+
+    try {
+      await request(app).get('/api/v2/portal/stream').expect(401);
+      await request(app).get('/api/v2/portal/admin/stream').expect(401);
+
+      const portalStream = await openStreamAndReadFirstChunk({
+        path: '/api/v2/portal/stream?channels=messages',
+        headers: { Cookie: `portal_auth_token=${portalToken}` },
+      });
+      expect(portalStream.status).toBe(200);
+      expect(portalStream.contentType).toContain('text/event-stream');
+      expect(portalStream.firstChunk).toMatch(/event:/i);
+
+      const adminStream = await openStreamAndReadFirstChunk({
+        path: '/api/v2/portal/admin/stream?channels=conversations',
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+      expect(adminStream.status).toBe(200);
+      expect(adminStream.contentType).toContain('text/event-stream');
+      expect(adminStream.firstChunk).toMatch(/event:/i);
+    } finally {
+      process.env.PORTAL_REALTIME_ENABLED = originalRealtime;
+    }
   });
 });

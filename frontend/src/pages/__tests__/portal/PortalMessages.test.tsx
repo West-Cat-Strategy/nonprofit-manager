@@ -21,6 +21,9 @@ vi.mock('../../../contexts/useToast', () => ({
 
 describe('PortalMessages page', () => {
   beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem('portal:selectedCaseId', 'case-2');
+
     getMock.mockImplementation((url: string) => {
       if (url === '/v2/portal/pointperson/context') {
         return Promise.resolve({
@@ -37,6 +40,16 @@ describe('PortalMessages page', () => {
                 pointperson_last_name: 'Rivera',
                 is_messageable: true,
                 is_default: true,
+              },
+              {
+                case_id: 'case-2',
+                case_number: 'CASE-002',
+                case_title: 'Employment Support',
+                assigned_to: 'user-2',
+                pointperson_first_name: 'Sam',
+                pointperson_last_name: 'Jordan',
+                is_messageable: true,
+                is_default: false,
               },
             ],
           },
@@ -90,6 +103,10 @@ describe('PortalMessages page', () => {
     patchMock.mockResolvedValue({ data: {} });
   });
 
+  afterEach(() => {
+    localStorage.clear();
+  });
+
   it('creates a new thread for the selected case', async () => {
     renderWithProviders(<PortalMessages />);
 
@@ -107,7 +124,7 @@ describe('PortalMessages page', () => {
 
     await waitFor(() => {
       expect(postMock).toHaveBeenCalledWith('/v2/portal/messages/threads', {
-        case_id: 'case-1',
+        case_id: 'case-2',
         subject: 'Need help',
         message: 'Can we meet this week?',
       });

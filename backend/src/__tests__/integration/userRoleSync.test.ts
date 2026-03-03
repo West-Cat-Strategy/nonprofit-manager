@@ -45,7 +45,7 @@ describe('User Role Sync Integration', () => {
     await pool.query('DELETE FROM user_roles WHERE user_id = $1', [userId]);
 
     const response = await request(app)
-      .post('/api/auth/login')
+      .post('/api/v2/auth/login')
       .send({
         email,
         password: testPassword,
@@ -79,7 +79,7 @@ describe('User Role Sync Integration', () => {
     });
 
     try {
-      const response = await request(app).post('/api/auth/login').send({
+      const response = await request(app).post('/api/v2/auth/login').send({
         email,
         password: testPassword,
       });

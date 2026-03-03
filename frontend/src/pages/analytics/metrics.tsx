@@ -11,8 +11,8 @@ interface MetricCardProps {
 
 export function MetricCard({ title, value, subtitle, trend, trendValue }: MetricCardProps) {
   const trendColors = {
-    up: 'text-green-600',
-    down: 'text-red-600',
+    up: 'text-app-accent',
+    down: 'text-app-accent',
     neutral: 'text-app-text-muted',
   };
 
@@ -55,13 +55,13 @@ export function ComparisonCard({ title, comparison, format = 'number' }: Compari
   const getTrendIcon = () => {
     if (comparison.trend === 'up') {
       return (
-        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5 text-app-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
         </svg>
       );
     } else if (comparison.trend === 'down') {
       return (
-        <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5 text-app-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
         </svg>
       );
@@ -74,7 +74,7 @@ export function ComparisonCard({ title, comparison, format = 'number' }: Compari
   };
 
   const trendColor =
-    comparison.trend === 'up' ? 'text-green-600' : comparison.trend === 'down' ? 'text-red-600' : 'text-app-text-muted';
+    comparison.trend === 'up' ? 'text-app-accent' : comparison.trend === 'down' ? 'text-app-accent' : 'text-app-text-muted';
 
   return (
     <div className="bg-app-surface rounded-lg shadow p-4">

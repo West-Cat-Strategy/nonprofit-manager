@@ -31,7 +31,7 @@ export const VolunteerEdit: React.FC = () => {
   if (error) {
     return (
       <div className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="bg-app-accent-soft border border-app-border text-app-accent-text px-4 py-3 rounded">
           Error loading volunteer: {error}
         </div>
         <button
@@ -47,7 +47,7 @@ export const VolunteerEdit: React.FC = () => {
   if (!currentVolunteer) {
     return (
       <div className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded">
+        <div className="bg-app-accent-soft border border-app-border text-app-accent-text px-4 py-3 rounded">
           Volunteer not found
         </div>
         <button

@@ -277,9 +277,9 @@ const TemplateGallery: React.FC = () => {
       {/* Error display */}
       {error && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
+          <div className="bg-app-accent-soft border border-app-border text-app-accent-text px-4 py-3 rounded-lg flex items-center justify-between">
             <span>{error}</span>
-            <button onClick={() => dispatch(clearError())} className="text-red-500 hover:text-red-700">
+            <button onClick={() => dispatch(clearError())} className="text-app-accent hover:text-app-accent-text">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -424,7 +424,7 @@ const TemplateGallery: React.FC = () => {
               </button>
               <button
                 onClick={confirmDelete}
-                className="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                className="flex-1 py-2 px-4 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
               >
                 Delete
               </button>

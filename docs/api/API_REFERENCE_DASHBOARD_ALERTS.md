@@ -31,7 +31,7 @@ Manage customizable dashboard configurations with drag-and-drop widget layouts.
 Get all dashboard configurations for the authenticated user.
 
 ```
-GET /api/dashboard/configs
+GET /api/v2/dashboard/configs
 ```
 
 **Response**: `200 OK`
@@ -74,7 +74,7 @@ GET /api/dashboard/configs
 Get the user's default dashboard, or create one if it doesn't exist.
 
 ```
-GET /api/dashboard/configs/default
+GET /api/v2/dashboard/configs/default
 ```
 
 **Response**: `200 OK` (same format as above)
@@ -88,7 +88,7 @@ GET /api/dashboard/configs/default
 Get a single dashboard configuration by ID.
 
 ```
-GET /api/dashboard/configs/:id
+GET /api/v2/dashboard/configs/:id
 ```
 
 **Parameters**:
@@ -116,7 +116,7 @@ GET /api/dashboard/configs/:id
 Create a new dashboard configuration.
 
 ```
-POST /api/dashboard/configs
+POST /api/v2/dashboard/configs
 ```
 
 **Request Body**:
@@ -169,7 +169,7 @@ POST /api/dashboard/configs
 Update an existing dashboard configuration.
 
 ```
-PUT /api/dashboard/configs/:id
+PUT /api/v2/dashboard/configs/:id
 ```
 
 **Parameters**:
@@ -197,7 +197,7 @@ PUT /api/dashboard/configs/:id
 Quick update for just the layout (useful during drag-and-drop).
 
 ```
-PUT /api/dashboard/configs/:id/layout
+PUT /api/v2/dashboard/configs/:id/layout
 ```
 
 **Parameters**:
@@ -223,7 +223,7 @@ PUT /api/dashboard/configs/:id/layout
 Delete a dashboard configuration.
 
 ```
-DELETE /api/dashboard/configs/:id
+DELETE /api/v2/dashboard/configs/:id
 ```
 
 **Parameters**:
@@ -248,7 +248,7 @@ Configure and manage analytics alerts for monitoring key metrics.
 Get all alert configurations for the authenticated user.
 
 ```
-GET /api/alerts/configs
+GET /api/v2/alerts/configs
 ```
 
 **Response**: `200 OK`
@@ -284,7 +284,7 @@ GET /api/alerts/configs
 Get a specific alert configuration.
 
 ```
-GET /api/alerts/configs/:id
+GET /api/v2/alerts/configs/:id
 ```
 
 **Parameters**:
@@ -302,7 +302,7 @@ GET /api/alerts/configs/:id
 Create a new alert configuration.
 
 ```
-POST /api/alerts/configs
+POST /api/v2/alerts/configs
 ```
 
 **Request Body**:
@@ -359,7 +359,7 @@ POST /api/alerts/configs
 Update an existing alert configuration.
 
 ```
-PUT /api/alerts/configs/:id
+PUT /api/v2/alerts/configs/:id
 ```
 
 **Parameters**:
@@ -376,7 +376,7 @@ PUT /api/alerts/configs/:id
 Delete an alert configuration.
 
 ```
-DELETE /api/alerts/configs/:id
+DELETE /api/v2/alerts/configs/:id
 ```
 
 **Parameters**:
@@ -391,7 +391,7 @@ DELETE /api/alerts/configs/:id
 Toggle an alert's enabled status.
 
 ```
-PATCH /api/alerts/configs/:id/toggle
+PATCH /api/v2/alerts/configs/:id/toggle
 ```
 
 **Parameters**:
@@ -408,7 +408,7 @@ Returns the updated alert configuration with toggled `enabled` field.
 Test an alert configuration without saving it.
 
 ```
-POST /api/alerts/test
+POST /api/v2/alerts/test
 ```
 
 **Request Body**: Same as Create Alert
@@ -437,7 +437,7 @@ POST /api/alerts/test
 Get triggered alert instances (historical alerts).
 
 ```
-GET /api/alerts/instances?status=triggered&severity=high&limit=50
+GET /api/v2/alerts/instances?status=triggered&severity=high&limit=50
 ```
 
 **Query Parameters**:
@@ -476,7 +476,7 @@ GET /api/alerts/instances?status=triggered&severity=high&limit=50
 Mark an alert instance as acknowledged.
 
 ```
-PATCH /api/alerts/instances/:id/acknowledge
+PATCH /api/v2/alerts/instances/:id/acknowledge
 ```
 
 **Parameters**:
@@ -493,7 +493,7 @@ Sets `acknowledged_by` and `acknowledged_at` fields.
 Mark an alert instance as resolved.
 
 ```
-PATCH /api/alerts/instances/:id/resolve
+PATCH /api/v2/alerts/instances/:id/resolve
 ```
 
 **Parameters**:
@@ -510,7 +510,7 @@ Sets `status` to `resolved` and `resolved_at` timestamp.
 Get comprehensive alert statistics for the current user.
 
 ```
-GET /api/alerts/stats
+GET /api/v2/alerts/stats
 ```
 
 **Response**: `200 OK`
@@ -569,11 +569,11 @@ GET /api/alerts/stats
 
 ```bash
 # 1. Get user's dashboards
-curl -X GET localhost:3000/api/dashboard/configs \
+curl -X GET localhost:3000/api/v2/dashboard/configs \
   -H "Authorization: Bearer $TOKEN"
 
 # 2. Create custom dashboard
-curl -X POST localhost:3000/api/dashboard/configs \
+curl -X POST localhost:3000/api/v2/dashboard/configs \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -590,7 +590,7 @@ curl -X POST localhost:3000/api/dashboard/configs \
   }'
 
 # 3. Update layout after drag-and-drop
-curl -X PUT localhost:3000/api/dashboard/configs/$DASHBOARD_ID/layout \
+curl -X PUT localhost:3000/api/v2/dashboard/configs/$DASHBOARD_ID/layout \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -602,7 +602,7 @@ curl -X PUT localhost:3000/api/dashboard/configs/$DASHBOARD_ID/layout \
 
 ```bash
 # 1. Test alert configuration
-curl -X POST localhost:3000/api/alerts/test \
+curl -X POST localhost:3000/api/v2/alerts/test \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -617,21 +617,21 @@ curl -X POST localhost:3000/api/alerts/test \
   }'
 
 # 2. Create alert if test passes
-curl -X POST localhost:3000/api/alerts/configs \
+curl -X POST localhost:3000/api/v2/alerts/configs \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{ ... same body as test ... }'
 
 # 3. Get alert statistics
-curl -X GET localhost:3000/api/alerts/stats \
+curl -X GET localhost:3000/api/v2/alerts/stats \
   -H "Authorization: Bearer $TOKEN"
 
 # 4. Get triggered alerts
-curl -X GET "localhost:3000/api/alerts/instances?status=triggered&limit=10" \
+curl -X GET "localhost:3000/api/v2/alerts/instances?status=triggered&limit=10" \
   -H "Authorization: Bearer $TOKEN"
 
 # 5. Acknowledge an alert
-curl -X PATCH localhost:3000/api/alerts/instances/$INSTANCE_ID/acknowledge \
+curl -X PATCH localhost:3000/api/v2/alerts/instances/$INSTANCE_ID/acknowledge \
   -H "Authorization: Bearer $TOKEN"
 ```
 

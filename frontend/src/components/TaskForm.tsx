@@ -82,7 +82,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, isEdit = false }) =
   return (
     <form onSubmit={handleSubmit} className="space-y-6 bg-app-surface shadow-md rounded-lg p-6">
       {error && (
-        <div className="p-4 bg-red-100 text-red-700 rounded-md">
+        <div className="p-4 bg-app-accent-soft text-app-accent-text rounded-md">
           {error}
         </div>
       )}
@@ -92,7 +92,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, isEdit = false }) =
         <div className="space-y-4">
           <div>
             <label htmlFor="subject" className="block text-sm font-medium mb-1">
-              Subject <span className="text-red-500">*</span>
+              Subject <span className="text-app-accent">*</span>
             </label>
             <input
               type="text"

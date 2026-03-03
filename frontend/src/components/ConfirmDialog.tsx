@@ -26,21 +26,21 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   const variantStyles = {
     danger: {
       icon: (
-        <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-6 h-6 text-app-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
       ),
-      iconBg: 'bg-red-100',
-      confirmBtn: 'bg-red-600 hover:bg-red-700 focus:ring-red-500',
+      iconBg: 'bg-app-accent-soft',
+      confirmBtn: 'bg-app-accent hover:bg-app-accent-hover focus:ring-app-accent',
     },
     warning: {
       icon: (
-        <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-6 h-6 text-app-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
       ),
-      iconBg: 'bg-yellow-100',
-      confirmBtn: 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500',
+      iconBg: 'bg-app-accent-soft',
+      confirmBtn: 'bg-app-accent hover:bg-app-accent-hover focus:ring-app-accent',
     },
     info: {
       icon: (

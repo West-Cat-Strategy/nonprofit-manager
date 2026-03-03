@@ -69,12 +69,12 @@ export const BrutalMultiSelect: React.FC<BrutalMultiSelectProps> = ({
       {label && (
         <label className="block text-sm font-bold text-app-text">
           {label}
-          {required && <span className="text-red-600 ml-1">*</span>}
+          {required && <span className="text-app-accent ml-1">*</span>}
         </label>
       )}
       <div
         className={`border-2 bg-app-surface cursor-pointer
-          ${error ? 'border-red-600' : 'border-app-text'}
+          ${error ? 'border-app-accent' : 'border-app-text'}
           ${isOpen ? 'border-app-accent' : 'border-app-text'}
           focus:outline-none focus:border-app-accent`}
       >
@@ -124,7 +124,7 @@ export const BrutalMultiSelect: React.FC<BrutalMultiSelectProps> = ({
       )}
 
       {error && (
-        <p className="text-xs font-bold text-red-600">{error}</p>
+        <p className="text-xs font-bold text-app-accent">{error}</p>
       )}
       {hint && !error && (
         <p className="text-xs text-app-text-muted">{hint}</p>

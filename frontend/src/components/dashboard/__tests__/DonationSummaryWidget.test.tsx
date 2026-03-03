@@ -151,7 +151,7 @@ describe('DonationSummaryWidget', () => {
       );
 
       await waitFor(() => {
-        expect(api.get).toHaveBeenCalledWith('/analytics/summary');
+        expect(api.get).toHaveBeenCalledWith('/v2/analytics/summary');
       });
     });
 
@@ -343,7 +343,7 @@ describe('DonationSummaryWidget', () => {
 
       await waitFor(() => {
         const changeElement = screen.getByText('+15.5%');
-        expect(changeElement).toHaveClass('text-green-600');
+        expect(changeElement).toHaveClass('text-app-accent');
       });
     });
 
@@ -365,7 +365,7 @@ describe('DonationSummaryWidget', () => {
 
       await waitFor(() => {
         const changeElement = screen.getByText('-8.2%');
-        expect(changeElement).toHaveClass('text-red-600');
+        expect(changeElement).toHaveClass('text-app-accent');
       });
     });
 
@@ -387,7 +387,7 @@ describe('DonationSummaryWidget', () => {
 
       await waitFor(() => {
         const changeElement = screen.getByText('+0.0%');
-        expect(changeElement).toHaveClass('text-green-600');
+        expect(changeElement).toHaveClass('text-app-accent');
       });
     });
   });

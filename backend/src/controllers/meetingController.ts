@@ -1,8 +1,7 @@
 import { Response, NextFunction } from 'express';
-import { validationResult } from 'express-validator';
 import type { AuthRequest } from '@middleware/auth';
 import { meetingService } from '@services/domains/engagement';
-import { notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
+import { notFoundMessage, unauthorized } from '@utils/responseHelpers';
 
 export const listCommittees = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -23,12 +22,23 @@ export const listMeetings = async (req: AuthRequest, res: Response, next: NextFu
       unauthorized(res, 'Unauthorized');
       return;
     }
+    const query = ((req as any).validatedQuery ?? req.query) as {
+      committee_id?: string;
+      status?: string;
+      from?: string;
+      to?: string;
+      limit?: number | string;
+    };
+    const parsedLimit =
+      typeof query.limit === 'number'
+        ? query.limit
+        : parseInt(String(query.limit ?? ''), 10);
     const meetings = await meetingService.listMeetings({
-      committee_id: typeof req.query.committee_id === 'string' ? req.query.committee_id : undefined,
-      status: typeof req.query.status === 'string' ? req.query.status : undefined,
-      from: typeof req.query.from === 'string' ? req.query.from : undefined,
-      to: typeof req.query.to === 'string' ? req.query.to : undefined,
-      limit: typeof req.query.limit === 'string' ? parseInt(req.query.limit, 10) : undefined,
+      committee_id: query.committee_id,
+      status: query.status,
+      from: query.from,
+      to: query.to,
+      limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
     });
     res.json({ meetings });
   } catch (error) {
@@ -59,11 +69,6 @@ export const createMeeting = async (req: AuthRequest, res: Response, next: NextF
       unauthorized(res, 'Unauthorized');
       return;
     }
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      validationErrorResponse(res, errors);
-      return;
-    }
 
     const meeting = await meetingService.createMeeting(
       {
@@ -91,11 +96,6 @@ export const updateMeeting = async (req: AuthRequest, res: Response, next: NextF
       unauthorized(res, 'Unauthorized');
       return;
     }
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      validationErrorResponse(res, errors);
-      return;
-    }
 
     const meeting = await meetingService.updateMeeting(req.params.id, req.body, req.user.id);
     if (!meeting) {
@@ -112,11 +112,6 @@ export const addAgendaItem = async (req: AuthRequest, res: Response, next: NextF
   try {
     if (!req.user) {
       unauthorized(res, 'Unauthorized');
-      return;
-    }
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      validationErrorResponse(res, errors);
       return;
     }
 
@@ -144,11 +139,6 @@ export const reorderAgenda = async (req: AuthRequest, res: Response, next: NextF
       unauthorized(res, 'Unauthorized');
       return;
     }
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      validationErrorResponse(res, errors);
-      return;
-    }
 
     await meetingService.reorderAgendaItems(req.params.id, req.body.orderedIds, req.user.id);
     res.status(204).send();
@@ -161,11 +151,6 @@ export const addMotion = async (req: AuthRequest, res: Response, next: NextFunct
   try {
     if (!req.user) {
       unauthorized(res, 'Unauthorized');
-      return;
-    }
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      validationErrorResponse(res, errors);
       return;
     }
 
@@ -193,11 +178,6 @@ export const updateMotion = async (req: AuthRequest, res: Response, next: NextFu
       unauthorized(res, 'Unauthorized');
       return;
     }
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      validationErrorResponse(res, errors);
-      return;
-    }
 
     const motion = await meetingService.updateMotion(req.params.motionId, req.body, req.user.id);
     if (!motion) {
@@ -214,11 +194,6 @@ export const createActionItem = async (req: AuthRequest, res: Response, next: Ne
   try {
     if (!req.user) {
       unauthorized(res, 'Unauthorized');
-      return;
-    }
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      validationErrorResponse(res, errors);
       return;
     }
 

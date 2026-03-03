@@ -1,8 +1,5 @@
 import { test, expect } from '@playwright/test';
-import crypto from 'crypto';
-import fs from 'fs';
-import path from 'path';
-import { ensureAdminLoginViaAPI } from '../helpers/auth';
+import { ensureEffectiveAdminLoginViaAPI } from '../helpers/auth';
 import { createTestContact, getAuthHeaders } from '../helpers/database';
 
 type SuccessEnvelope<T> = {
@@ -17,109 +14,6 @@ const unwrap = <T>(payload: SuccessEnvelope<T> | T): T => {
   return payload as T;
 };
 
-const toBase64Url = (value: string): string =>
-  Buffer.from(value)
-    .toString('base64')
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-
-const signJwtHs256 = (payload: Record<string, unknown>, secret: string): string => {
-  const encodedHeader = toBase64Url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const encodedPayload = toBase64Url(JSON.stringify(payload));
-  const body = `${encodedHeader}.${encodedPayload}`;
-  const signature = crypto
-    .createHmac('sha256', secret)
-    .update(body)
-    .digest('base64')
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-  return `${body}.${signature}`;
-};
-
-const parseJwtSecretFromEnvFile = (filePath: string): string | null => {
-  try {
-    const file = fs.readFileSync(filePath, 'utf8');
-    const match = file.match(/^JWT_SECRET=(.+)$/m);
-    if (!match || !match[1]) {
-      return null;
-    }
-    return match[1].trim().replace(/^['"]|['"]$/g, '');
-  } catch {
-    return null;
-  }
-};
-
-const resolveJwtSecret = (): string | null => {
-  if (process.env.JWT_SECRET?.trim()) {
-    return process.env.JWT_SECRET.trim();
-  }
-
-  const envTestSecret = parseJwtSecretFromEnvFile(
-    path.resolve(__dirname, '..', '..', 'backend', '.env.test')
-  );
-  if (envTestSecret) {
-    process.env.JWT_SECRET = envTestSecret;
-    return envTestSecret;
-  }
-
-  const envSecret = parseJwtSecretFromEnvFile(
-    path.resolve(__dirname, '..', '..', 'backend', '.env')
-  );
-  if (envSecret) {
-    process.env.JWT_SECRET = envSecret;
-    return envSecret;
-  }
-
-  return null;
-};
-
-const decodeJwtRole = (token: string): string | null => {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    const payloadJson = Buffer.from(parts[1], 'base64url').toString('utf8');
-    const payload = JSON.parse(payloadJson) as { role?: string };
-    return payload.role ?? null;
-  } catch {
-    return null;
-  }
-};
-
-type AuthLoginPayload = {
-  token: string;
-  user?: {
-    id?: string;
-    role?: string;
-  };
-};
-
-const tryLoginAsAdmin = async (
-  page: import('@playwright/test').Page,
-  apiURL: string,
-  email: string,
-  passwords: string[]
-): Promise<AuthLoginPayload | null> => {
-  for (const password of passwords) {
-    const response = await page.request.post(`${apiURL}/api/auth/login`, {
-      data: { email, password },
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!response.ok()) {
-      continue;
-    }
-
-    const payload = unwrap<AuthLoginPayload>(await response.json());
-    if (payload.user?.role?.toLowerCase() === 'admin') {
-      return payload;
-    }
-  }
-
-  return null;
-};
-
 test.use({ baseURL: 'http://127.0.0.1:5173' });
 
 test.describe('Portal Cases Visibility', () => {
@@ -128,60 +22,13 @@ test.describe('Portal Cases Visibility', () => {
     const frontendURL = 'http://127.0.0.1:5173';
     process.env.API_URL = apiURL;
     process.env.BASE_URL = frontendURL;
-    const adminSession = await ensureAdminLoginViaAPI(page, {
+    const adminSession = await ensureEffectiveAdminLoginViaAPI(page, {
       firstName: 'Portal',
       lastName: 'Staff',
       organizationName: 'Portal Visibility Org',
     });
-
-    let effectiveAdminToken = adminSession.token;
-    let effectiveAdminUserId = adminSession.user?.id;
-    let hasAdminRole = adminSession.isAdmin;
-
-    if (!hasAdminRole) {
-      const adminEmail = process.env.ADMIN_USER_EMAIL?.trim() || 'admin@example.com';
-      const credentialCandidates = [
-        process.env.ADMIN_USER_PASSWORD?.trim() || '',
-        'Admin123!@',
-        'Admin123!@#',
-        'Admin123!@#$',
-      ].filter((value, index, values) => value.length > 0 && values.indexOf(value) === index);
-
-      const adminLoginPayload = await tryLoginAsAdmin(page, apiURL, adminEmail, credentialCandidates);
-      if (adminLoginPayload?.token) {
-        effectiveAdminToken = adminLoginPayload.token;
-        effectiveAdminUserId = adminLoginPayload.user?.id;
-        hasAdminRole = true;
-      }
-    }
-
-    if (!hasAdminRole) {
-      if (!effectiveAdminUserId) {
-        throw new Error('Admin bootstrap user id is required for portal approval flow');
-      }
-
-      effectiveAdminToken = (() => {
-          const jwtSecret = resolveJwtSecret();
-          if (!jwtSecret) {
-            throw new Error(
-              'JWT_SECRET is required to elevate fallback admin session for portal approval flow'
-            );
-          }
-
-          return signJwtHs256(
-            {
-              id: String(effectiveAdminUserId),
-              email: adminSession.email,
-              role: 'admin',
-            },
-            jwtSecret
-          );
-        })();
-    }
-    expect(
-      decodeJwtRole(effectiveAdminToken),
-      'Expected effective admin token to have role=admin for portal admin endpoints'
-    ).toBe('admin');
+    expect(adminSession.isAdmin).toBeTruthy();
+    const effectiveAdminToken = adminSession.token;
 
     await page.context().clearCookies();
     const unique = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
@@ -254,7 +101,7 @@ test.describe('Portal Cases Visibility', () => {
     );
     expect(shareCaseResponse.ok()).toBeTruthy();
 
-    const signupResponse = await page.request.post(`${apiURL}/api/portal/auth/signup`, {
+    const signupResponse = await page.request.post(`${apiURL}/api/v2/portal/auth/signup`, {
       data: {
         email: portalEmail,
         password: portalPassword,
@@ -264,8 +111,8 @@ test.describe('Portal Cases Visibility', () => {
     });
     expect(signupResponse.status()).toBe(201);
 
-    const pendingRequestsResponse = await page.request.get(`${apiURL}/api/portal/admin/requests`, {
-      headers: { Authorization: `Bearer ${effectiveAdminToken}` },
+    const pendingRequestsResponse = await page.request.get(`${apiURL}/api/v2/portal/admin/requests`, {
+      headers: authHeaders,
     });
     const pendingRequestsStatus = pendingRequestsResponse.status();
     const pendingRequestsBodyText = await pendingRequestsResponse.text();
@@ -282,7 +129,7 @@ test.describe('Portal Cases Visibility', () => {
     expect(pendingRequest).toBeTruthy();
 
     const approveRequestResponse = await page.request.post(
-      `${apiURL}/api/portal/admin/requests/${pendingRequest!.id}/approve`,
+      `${apiURL}/api/v2/portal/admin/requests/${pendingRequest!.id}/approve`,
       {
         headers: authHeaders,
       }

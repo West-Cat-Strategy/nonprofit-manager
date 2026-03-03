@@ -57,10 +57,10 @@ const DonationDetail: React.FC = () => {
             <span
               className={`px-3 py-1 text-sm font-semibold rounded-full ${
                 donation.payment_status === 'completed'
-                  ? 'bg-green-100 text-green-800'
+                  ? 'bg-app-accent-soft text-app-accent-text'
                   : donation.payment_status === 'pending'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-red-100 text-red-800'
+                    ? 'bg-app-accent-soft text-app-accent-text'
+                    : 'bg-app-accent-soft text-app-accent-text'
               }`}
             >
               {donation.payment_status}
@@ -76,7 +76,7 @@ const DonationDetail: React.FC = () => {
           {!donation.receipt_sent && (
             <button
               onClick={handleSendReceipt}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+              className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover"
             >
               Send Receipt
             </button>
@@ -103,7 +103,7 @@ const DonationDetail: React.FC = () => {
             <dl className="space-y-3">
               <div>
                 <dt className="text-sm font-medium text-app-text-muted">Amount</dt>
-                <dd className="text-2xl font-bold text-green-600">
+                <dd className="text-2xl font-bold text-app-accent">
                   {formatCurrency(donation.amount, donation.currency)}
                 </dd>
               </div>
@@ -181,9 +181,9 @@ const DonationDetail: React.FC = () => {
               <dt className="text-sm font-medium text-app-text-muted">Receipt Status</dt>
               <dd className="text-sm">
                 {donation.receipt_sent ? (
-                  <span className="text-green-600 font-semibold">✓ Sent</span>
+                  <span className="text-app-accent font-semibold">✓ Sent</span>
                 ) : (
-                  <span className="text-yellow-600">Not Sent</span>
+                  <span className="text-app-accent">Not Sent</span>
                 )}
               </dd>
             </div>

@@ -246,12 +246,12 @@ const OutcomeDefinitionsSection = () => {
                 <td className="px-3 py-2 text-sm text-[var(--app-text-muted)]">{definition.key}</td>
                 <td className="px-3 py-2 text-sm text-[var(--app-text-muted)]">{definition.category || '—'}</td>
                 <td className="px-3 py-2 text-sm">
-                  <span className={definition.is_reportable ? 'text-green-700 font-semibold' : 'text-gray-500'}>
+                  <span className={definition.is_reportable ? 'text-app-accent-text font-semibold' : 'text-app-text-muted'}>
                     {definition.is_reportable ? 'Yes' : 'No'}
                   </span>
                 </td>
                 <td className="px-3 py-2 text-sm">
-                  <span className={definition.is_active ? 'text-blue-700 font-semibold' : 'text-gray-500'}>
+                  <span className={definition.is_active ? 'text-app-accent-text font-semibold' : 'text-app-text-muted'}>
                     {definition.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </td>

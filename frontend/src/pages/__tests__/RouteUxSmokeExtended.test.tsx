@@ -3,7 +3,9 @@ import { vi } from 'vitest';
 import Login from '../auth/Login';
 import Register from '../auth/Register';
 import Setup from '../auth/Setup';
+import AcceptInvitation from '../auth/AcceptInvitation';
 import ForgotPassword from '../auth/ForgotPassword';
+import ResetPassword from '../auth/ResetPassword';
 import PortalLogin from '../PortalLogin';
 import PortalSignup from '../PortalSignup';
 import NavigationSettings from '../admin/NavigationSettings';
@@ -53,6 +55,22 @@ const smokeCases: SmokeCase[] = [
     page: <ForgotPassword />,
     heading: /forgot your password/i,
     primaryActionPattern: /send reset link/i,
+  },
+  {
+    name: 'accept-invitation',
+    route: '/accept-invitation/test-token',
+    page: <AcceptInvitation />,
+    heading: /invalid invitation/i,
+    primaryActionPattern: /go to login/i,
+    primaryActionRole: 'link',
+  },
+  {
+    name: 'reset-password',
+    route: '/reset-password/test-token',
+    page: <ResetPassword />,
+    heading: /reset your password/i,
+    primaryActionPattern: /request a new reset link/i,
+    primaryActionRole: 'link',
   },
   {
     name: 'portal-login',
@@ -106,6 +124,23 @@ describe('Route UX smoke (auth/portal/settings)', () => {
       }
       if (url === '/webhooks/api-keys/scopes') {
         return Promise.resolve({ data: [] });
+      }
+      if (url === '/invitations/validate/test-token') {
+        return Promise.resolve({
+          data: {
+            valid: true,
+            invitation: {
+              email: 'invitee@example.org',
+              role: 'Coordinator',
+              message: null,
+              invitedBy: 'Admin User',
+              expiresAt: new Date().toISOString(),
+            },
+          },
+        });
+      }
+      if (url === '/auth/reset-password/test-token') {
+        return Promise.resolve({ data: { valid: true } });
       }
 
       return Promise.resolve({ data: {} });

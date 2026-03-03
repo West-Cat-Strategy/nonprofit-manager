@@ -288,7 +288,7 @@ Example:
   "message": "Incoming request",
   "requestId": "550e8400-e29b-41d4-a716-446655440000",
   "method": "GET",
-  "path": "/api/v1/contacts/abc123",
+  "path": "/api/v2/contacts/abc123",
   "userId": "user-id",
   "userRole": "admin",
   "ip": "192.168.1.1",
@@ -306,7 +306,7 @@ Errors include full stack trace:
   "message": "Request error",
   "requestId": "550e8400-e29b-41d4-a716-446655440000",
   "method": "POST",
-  "path": "/api/v1/donations",
+  "path": "/api/v2/donations",
   "statusCode": 500,
   "error": {
     "name": "DatabaseError",
@@ -362,7 +362,7 @@ Every API key request is logged:
   "level": "info",
   "message": "API key usage",
   "apiKeyId": "app_xxxxx",
-  "endpoint": "/api/v1/contacts",
+  "endpoint": "/api/v2/contacts",
   "method": "GET",
   "statusCode": 200,
   "duration": "145ms",
@@ -383,7 +383,7 @@ Access to sensitive data:
   "fieldName": "phone",
   "accessType": "read",
   "userId": "user-id",
-  "reason": "GET /api/v1/contacts/contact-123",
+  "reason": "GET /api/v2/contacts/contact-123",
   "ip": "192.168.1.1",
   "timestamp": "2025-02-14T12:34:56.789Z"
 }

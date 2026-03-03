@@ -3,17 +3,24 @@ import type {
   CreateEventDTO,
   CreateRegistrationDTO,
   EventFilters,
+  EventRegistration,
   PaginationParams,
   RegistrationFilters,
   SendEventRemindersDTO,
+  SyncEventReminderAutomationsDTO,
   UpdateEventDTO,
+  UpdateEventReminderAutomationDTO,
   UpdateRegistrationDTO,
   CreateEventReminderAutomationDTO,
-  UpdateEventReminderAutomationDTO,
-  SyncEventReminderAutomationsDTO,
 } from '@app-types/event';
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { AuthRequest } from '@middleware/auth';
+import {
+  requirePermissionSafe,
+  sendForbidden,
+  sendUnauthorized,
+} from '@services/authGuardService';
+import { Permission } from '@utils/permissions';
 import { sendError, sendSuccess } from '../../shared/http/envelope';
 import {
   parseBooleanQuery,
@@ -70,32 +77,97 @@ const buildEventLocation = (event: EventCalendarPayload): string | null => {
   return parts.length > 0 ? parts.join(', ') : null;
 };
 
+const getScopeFilter = (req: AuthRequest): DataScopeFilter | undefined =>
+  req.dataScope?.filter as DataScopeFilter | undefined;
+
+const getValidatedQuery = (req: AuthRequest): Record<string, unknown> =>
+  ((req as any).validatedQuery ?? req.query) as Record<string, unknown>;
+
+const getValidatedParams = (req: AuthRequest): Record<string, string> =>
+  ((req as any).validatedParams ?? req.params) as Record<string, string>;
+
 export const createEventsController = (
   catalogUseCase: EventCatalogUseCase,
   registrationUseCase: EventRegistrationUseCase,
   remindersUseCase: EventRemindersUseCase
 ) => {
+  const ensurePermission = (req: AuthRequest, res: Response, permission: Permission): boolean => {
+    const guard = requirePermissionSafe(req, permission);
+    if (!guard.ok) {
+      if (guard.error.code === 'unauthorized') {
+        sendUnauthorized(res, guard.error.message);
+      } else {
+        sendForbidden(res, guard.error.message || 'Forbidden');
+      }
+      return false;
+    }
+
+    return true;
+  };
+
+  const ensureEventAccess = async (
+    eventId: string,
+    req: AuthRequest,
+    res: Response
+  ): Promise<boolean> => {
+    const scopedEvent = await catalogUseCase.getById(eventId, getScopeFilter(req));
+    if (scopedEvent) {
+      return true;
+    }
+
+    const unscopedEvent = await catalogUseCase.getById(eventId);
+    if (unscopedEvent) {
+      sendError(res, 'FORBIDDEN', 'Event is outside your data scope', 403);
+      return false;
+    }
+
+    sendError(res, 'EVENT_NOT_FOUND', 'Event not found', 404);
+    return false;
+  };
+
+  const ensureRegistrationEventAccess = async (
+    registrationId: string,
+    req: AuthRequest,
+    res: Response
+  ): Promise<EventRegistration | null> => {
+    const registration = await registrationUseCase.getById(registrationId);
+    if (!registration) {
+      sendError(res, 'REGISTRATION_NOT_FOUND', 'Registration not found', 404);
+      return null;
+    }
+
+    const canAccess = await ensureEventAccess(registration.event_id, req, res);
+    if (!canAccess) {
+      return null;
+    }
+
+    return registration;
+  };
+
   const getEvents = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_VIEW)) return;
+
     try {
+      const query = getValidatedQuery(req);
+
       const filters: EventFilters = {
-        event_type: parseEventType(req.query.event_type),
-        status: parseEventStatus(req.query.status),
-        is_public: parseBooleanQuery(req.query.is_public),
-        start_date: req.query.start_date ? new Date(req.query.start_date as string) : undefined,
-        end_date: req.query.end_date ? new Date(req.query.end_date as string) : undefined,
-        search: req.query.search as string,
+        event_type: parseEventType(query.event_type),
+        status: parseEventStatus(query.status),
+        is_public: parseBooleanQuery(query.is_public),
+        start_date: query.start_date ? new Date(query.start_date as string) : undefined,
+        end_date: query.end_date ? new Date(query.end_date as string) : undefined,
+        search: typeof query.search === 'string' ? query.search : undefined,
       };
 
       const pagination: PaginationParams = {
-        page: parsePositiveInt(req.query.page),
-        limit: parsePositiveInt(req.query.limit),
-        sort_by: typeof req.query.sort_by === 'string' ? req.query.sort_by : undefined,
-        sort_order: req.query.sort_order === 'asc' || req.query.sort_order === 'desc'
-          ? req.query.sort_order
-          : undefined,
+        page: parsePositiveInt(query.page),
+        limit: parsePositiveInt(query.limit),
+        sort_by: typeof query.sort_by === 'string' ? query.sort_by : undefined,
+        sort_order:
+          query.sort_order === 'asc' || query.sort_order === 'desc' ? query.sort_order : undefined,
       };
 
-      const events = await catalogUseCase.list(filters, pagination, req.dataScope?.filter as DataScopeFilter | undefined);
+      const events = await catalogUseCase.list(filters, pagination, getScopeFilter(req));
       sendSuccess(res, events);
     } catch (error) {
       next(error);
@@ -103,8 +175,11 @@ export const createEventsController = (
   };
 
   const getEvent = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_VIEW)) return;
+
     try {
-      const event = await catalogUseCase.getById(req.params.id, req.dataScope?.filter as DataScopeFilter | undefined);
+      const params = getValidatedParams(req);
+      const event = await catalogUseCase.getById(params.id, getScopeFilter(req));
       if (!event) {
         sendError(res, 'EVENT_NOT_FOUND', 'Event not found', 404);
         return;
@@ -116,8 +191,10 @@ export const createEventsController = (
   };
 
   const getSummary = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_VIEW)) return;
+
     try {
-      const summary = await catalogUseCase.attendanceSummary(req.dataScope?.filter as DataScopeFilter | undefined);
+      const summary = await catalogUseCase.attendanceSummary(getScopeFilter(req));
       sendSuccess(res, summary);
     } catch (error) {
       next(error);
@@ -125,8 +202,11 @@ export const createEventsController = (
   };
 
   const downloadCalendarIcs = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_VIEW)) return;
+
     try {
-      const eventRaw = await catalogUseCase.getById(req.params.id, req.dataScope?.filter as DataScopeFilter | undefined);
+      const params = getValidatedParams(req);
+      const eventRaw = await catalogUseCase.getById(params.id, getScopeFilter(req));
       if (!eventRaw) {
         sendError(res, 'EVENT_NOT_FOUND', 'Event not found', 404);
         return;
@@ -186,6 +266,8 @@ export const createEventsController = (
   };
 
   const createEvent = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_CREATE)) return;
+
     try {
       const event = await catalogUseCase.create(req.body as CreateEventDTO, req.user!.id);
       sendSuccess(res, event, 201);
@@ -195,21 +277,37 @@ export const createEventsController = (
   };
 
   const updateEvent = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_EDIT)) return;
+
     try {
-      const event = await catalogUseCase.update(req.params.id, req.body as UpdateEventDTO, req.user!.id);
+      const params = getValidatedParams(req);
+      const canAccess = await ensureEventAccess(params.id, req, res);
+      if (!canAccess) return;
+
+      const event = await catalogUseCase.update(params.id, req.body as UpdateEventDTO, req.user!.id);
       if (!event) {
         sendError(res, 'EVENT_NOT_FOUND', 'Event not found', 404);
         return;
       }
       sendSuccess(res, event);
     } catch (error) {
+      if (error instanceof Error && error.message === 'Event not found') {
+        sendError(res, 'EVENT_NOT_FOUND', error.message, 404);
+        return;
+      }
       next(error);
     }
   };
 
   const deleteEvent = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_DELETE)) return;
+
     try {
-      await catalogUseCase.delete(req.params.id, req.user!.id);
+      const params = getValidatedParams(req);
+      const canAccess = await ensureEventAccess(params.id, req, res);
+      if (!canAccess) return;
+
+      await catalogUseCase.delete(params.id, req.user!.id);
       res.status(204).send();
     } catch (error) {
       next(error);
@@ -217,15 +315,21 @@ export const createEventsController = (
   };
 
   const listRegistrations = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_VIEW)) return;
+
     try {
-      const eventId = req.params.id || (req.query.event_id as string | undefined);
-      const contactId = req.query.contact_id as string | undefined;
+      const params = getValidatedParams(req);
+      const query = getValidatedQuery(req);
+      const eventId = params.id || (typeof query.event_id === 'string' ? query.event_id : undefined);
+      const contactId = typeof query.contact_id === 'string' ? query.contact_id : undefined;
 
       if (eventId) {
+        const canAccess = await ensureEventAccess(eventId, req, res);
+        if (!canAccess) return;
+
         const filters: RegistrationFilters = {
-          registration_status: parseRegistrationStatus(req.query.registration_status ?? req.query.status),
-          checked_in:
-            req.query.checked_in === 'true' ? true : req.query.checked_in === 'false' ? false : undefined,
+          registration_status: parseRegistrationStatus(query.registration_status ?? query.status),
+          checked_in: parseBooleanQuery(query.checked_in),
         };
         const rows = await registrationUseCase.listByEvent(eventId, filters);
         sendSuccess(res, rows);
@@ -245,10 +349,16 @@ export const createEventsController = (
   };
 
   const register = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_EDIT)) return;
+
     try {
+      const params = getValidatedParams(req);
+      const canAccess = await ensureEventAccess(params.id, req, res);
+      if (!canAccess) return;
+
       const data: CreateRegistrationDTO = {
         ...(req.body as CreateRegistrationDTO),
-        event_id: req.params.id,
+        event_id: params.id,
       };
       const registration = await registrationUseCase.register(data);
       sendSuccess(res, registration, 201);
@@ -262,24 +372,40 @@ export const createEventsController = (
   };
 
   const updateRegistration = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_EDIT)) return;
+
     try {
-      const registration = await registrationUseCase.update(
-        req.params.id,
+      const params = getValidatedParams(req);
+      const registration = await ensureRegistrationEventAccess(params.id, req, res);
+      if (!registration) return;
+
+      const updated = await registrationUseCase.update(
+        registration.registration_id,
         req.body as UpdateRegistrationDTO
       );
-      if (!registration) {
+      if (!updated) {
         sendError(res, 'REGISTRATION_NOT_FOUND', 'Registration not found', 404);
         return;
       }
-      sendSuccess(res, registration);
+      sendSuccess(res, updated);
     } catch (error) {
       next(error);
     }
   };
 
   const checkIn = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_EDIT)) return;
+
     try {
-      const result = await registrationUseCase.checkIn(req.params.id);
+      const params = getValidatedParams(req);
+      const registration = await ensureRegistrationEventAccess(params.id, req, res);
+      if (!registration) return;
+
+      const result = await registrationUseCase.checkIn(registration.registration_id, {
+        method: 'manual',
+        checkedInBy: req.user?.id ?? null,
+      });
+
       if (!result.success) {
         sendError(res, 'CHECKIN_ERROR', result.message, 400);
         return;
@@ -290,9 +416,47 @@ export const createEventsController = (
     }
   };
 
-  const cancelRegistration = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const scanCheckIn = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_EDIT)) return;
+
     try {
-      await registrationUseCase.cancel(req.params.id);
+      const params = getValidatedParams(req);
+      const body = req.body as { token: string };
+
+      const canAccess = await ensureEventAccess(params.id, req, res);
+      if (!canAccess) return;
+
+      const registration = await registrationUseCase.getByToken(params.id, body.token);
+      if (!registration) {
+        sendError(res, 'REGISTRATION_NOT_FOUND', 'Registration not found', 404);
+        return;
+      }
+
+      const result = await registrationUseCase.checkIn(registration.registration_id, {
+        method: 'qr',
+        checkedInBy: req.user?.id ?? null,
+      });
+
+      if (!result.success) {
+        sendError(res, 'CHECKIN_ERROR', result.message, 400);
+        return;
+      }
+
+      sendSuccess(res, result.registration ?? null);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const cancelRegistration = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_EDIT)) return;
+
+    try {
+      const params = getValidatedParams(req);
+      const registration = await ensureRegistrationEventAccess(params.id, req, res);
+      if (!registration) return;
+
+      await registrationUseCase.cancel(registration.registration_id);
       res.status(204).send();
     } catch (error) {
       next(error);
@@ -300,9 +464,15 @@ export const createEventsController = (
   };
 
   const sendReminders = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_EDIT)) return;
+
     try {
+      const params = getValidatedParams(req);
+      const canAccess = await ensureEventAccess(params.id, req, res);
+      if (!canAccess) return;
+
       const summary = await remindersUseCase.send(
-        req.params.id,
+        params.id,
         req.body as SendEventRemindersDTO,
         req.user?.id ?? null
       );
@@ -317,8 +487,14 @@ export const createEventsController = (
   };
 
   const listAutomations = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_VIEW)) return;
+
     try {
-      const rows = await remindersUseCase.listAutomations(req.params.id);
+      const params = getValidatedParams(req);
+      const canAccess = await ensureEventAccess(params.id, req, res);
+      if (!canAccess) return;
+
+      const rows = await remindersUseCase.listAutomations(params.id);
       sendSuccess(res, rows);
     } catch (error) {
       next(error);
@@ -326,7 +502,13 @@ export const createEventsController = (
   };
 
   const createAutomation = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_EDIT)) return;
+
     try {
+      const params = getValidatedParams(req);
+      const canAccess = await ensureEventAccess(params.id, req, res);
+      if (!canAccess) return;
+
       const payload: CreateEventReminderAutomationDTO = {
         timingType: req.body.timingType,
         relativeMinutesBefore: req.body.relativeMinutesBefore,
@@ -337,7 +519,7 @@ export const createEventsController = (
         timezone: req.body.timezone,
       };
 
-      const row = await remindersUseCase.createAutomation(req.params.id, payload, req.user!.id);
+      const row = await remindersUseCase.createAutomation(params.id, payload, req.user!.id);
       sendSuccess(res, row, 201);
     } catch (error) {
       next(error);
@@ -345,7 +527,13 @@ export const createEventsController = (
   };
 
   const updateAutomation = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_EDIT)) return;
+
     try {
+      const params = getValidatedParams(req);
+      const canAccess = await ensureEventAccess(params.id, req, res);
+      if (!canAccess) return;
+
       const payload: UpdateEventReminderAutomationDTO = {
         timingType: req.body.timingType,
         relativeMinutesBefore: req.body.relativeMinutesBefore,
@@ -357,7 +545,7 @@ export const createEventsController = (
         isActive: req.body.isActive,
       };
 
-      const row = await remindersUseCase.updateAutomation(req.params.id, req.params.automationId, payload, req.user!.id);
+      const row = await remindersUseCase.updateAutomation(params.id, params.automationId, payload, req.user!.id);
       sendSuccess(res, row);
     } catch (error) {
       if (error instanceof Error && error.message === 'Reminder automation not found') {
@@ -369,8 +557,14 @@ export const createEventsController = (
   };
 
   const cancelAutomation = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_EDIT)) return;
+
     try {
-      const row = await remindersUseCase.cancelAutomation(req.params.id, req.params.automationId, req.user!.id);
+      const params = getValidatedParams(req);
+      const canAccess = await ensureEventAccess(params.id, req, res);
+      if (!canAccess) return;
+
+      const row = await remindersUseCase.cancelAutomation(params.id, params.automationId, req.user!.id);
       sendSuccess(res, row);
     } catch (error) {
       if (error instanceof Error && error.message === 'Reminder automation not found') {
@@ -382,7 +576,13 @@ export const createEventsController = (
   };
 
   const syncAutomations = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_EDIT)) return;
+
     try {
+      const params = getValidatedParams(req);
+      const canAccess = await ensureEventAccess(params.id, req, res);
+      if (!canAccess) return;
+
       const itemsRaw: Array<Record<string, unknown>> = Array.isArray(req.body?.items) ? req.body.items : [];
       const payload: SyncEventReminderAutomationsDTO = {
         items: itemsRaw.map((item: Record<string, unknown>) => ({
@@ -397,7 +597,7 @@ export const createEventsController = (
         })),
       };
 
-      const rows = await remindersUseCase.syncAutomations(req.params.id, payload, req.user!.id);
+      const rows = await remindersUseCase.syncAutomations(params.id, payload, req.user!.id);
       sendSuccess(res, rows);
     } catch (error) {
       next(error);
@@ -416,6 +616,7 @@ export const createEventsController = (
     register,
     updateRegistration,
     checkIn,
+    scanCheckIn,
     cancelRegistration,
     sendReminders,
     listAutomations,

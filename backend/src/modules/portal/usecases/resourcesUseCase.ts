@@ -21,7 +21,7 @@ export class PortalResourcesUseCase {
       this.repository.getPortalReminderEvents(contactId),
     ]);
 
-    return [
+    const reminders = [
       ...appointments.map((appointment) => ({
         type: 'appointment',
         id: (appointment as { id: string }).id,
@@ -35,6 +35,10 @@ export class PortalResourcesUseCase {
         date: (event as { start_date: string }).start_date,
       })),
     ];
+
+    return reminders.sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
   }
 
   getDownloadableDocument(contactId: string, documentId: string): Promise<{

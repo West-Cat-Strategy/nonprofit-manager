@@ -48,7 +48,7 @@ Authorization: Bearer <your_jwt_token>
 
 **Obtaining a Token:**
 ```bash
-POST /api/auth/login
+POST /api/v2/auth/login
 Content-Type: application/json
 
 {
@@ -84,7 +84,7 @@ The reconciliation system matches Stripe transactions with internal donation rec
 
 #### 1. Create Reconciliation Run
 
-**POST** `/api/reconciliation`
+**POST** `/api/v2/reconciliation`
 
 Creates a new reconciliation run for a specified date range.
 
@@ -124,7 +124,7 @@ Creates a new reconciliation run for a specified date range.
 
 #### 2. Get Reconciliation Dashboard
 
-**GET** `/api/reconciliation/dashboard`
+**GET** `/api/v2/reconciliation/dashboard`
 
 Returns summary statistics for all reconciliations.
 
@@ -148,7 +148,7 @@ Returns summary statistics for all reconciliations.
 
 #### 3. Get Reconciliation Details
 
-**GET** `/api/reconciliation/:id`
+**GET** `/api/v2/reconciliation/:id`
 
 Returns detailed information about a specific reconciliation run.
 
@@ -179,7 +179,7 @@ Returns detailed information about a specific reconciliation run.
 
 #### 4. Get Reconciliation Items
 
-**GET** `/api/reconciliation/:id/items?match_status=unmatched_donation`
+**GET** `/api/v2/reconciliation/:id/items?match_status=unmatched_donation`
 
 Returns individual transaction matches for a reconciliation.
 
@@ -216,7 +216,7 @@ Returns individual transaction matches for a reconciliation.
 
 #### 5. Get Discrepancies
 
-**GET** `/api/reconciliation/discrepancies/all?status=open&severity=high`
+**GET** `/api/v2/reconciliation/discrepancies/all?status=open&severity=high`
 
 Returns all payment discrepancies with filtering.
 
@@ -252,7 +252,7 @@ Returns all payment discrepancies with filtering.
 
 #### 6. Manually Match Transaction
 
-**POST** `/api/reconciliation/match`
+**POST** `/api/v2/reconciliation/match`
 
 Manually links a donation to a Stripe transaction.
 
@@ -275,7 +275,7 @@ Manually links a donation to a Stripe transaction.
 
 #### 7. Resolve Discrepancy
 
-**PUT** `/api/reconciliation/discrepancies/:id/resolve`
+**PUT** `/api/v2/reconciliation/discrepancies/:id/resolve`
 
 Marks a discrepancy as resolved.
 
@@ -297,7 +297,7 @@ Marks a discrepancy as resolved.
 
 #### 8. Assign Discrepancy
 
-**PUT** `/api/reconciliation/discrepancies/:id/assign`
+**PUT** `/api/v2/reconciliation/discrepancies/:id/assign`
 
 Assigns a discrepancy to a user for investigation.
 
@@ -324,7 +324,7 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 
 ### Create Payment Intent
 
-**POST** `/api/payments/intents`
+**POST** `/api/v2/payments/intents`
 
 **Request:**
 ```json
@@ -355,7 +355,7 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 
 Stripe sends webhooks to:
 ```
-POST /api/payments/webhook
+POST /api/v2/payments/webhook
 ```
 
 **Supported Events:**
@@ -372,7 +372,7 @@ Automatically verified using `STRIPE_WEBHOOK_SECRET`.
 
 ### Sync Contacts
 
-**POST** `/api/mailchimp/sync`
+**POST** `/api/v2/mailchimp/sync`
 
 Syncs contact data to Mailchimp audience.
 
@@ -387,7 +387,7 @@ Syncs contact data to Mailchimp audience.
 
 ### Create Campaign
 
-**POST** `/api/mailchimp/campaigns`
+**POST** `/api/v2/mailchimp/campaigns`
 
 **Request:**
 ```json
@@ -407,7 +407,7 @@ Syncs contact data to Mailchimp audience.
 
 ### Register Webhook
 
-**POST** `/api/webhooks`
+**POST** `/api/v2/webhooks`
 
 **Request:**
 ```json
@@ -523,7 +523,7 @@ Always check HTTP status codes and handle errors gracefully:
 
 ```javascript
 try {
-  const response = await fetch('/api/reconciliation', {
+  const response = await fetch('/api/v2/reconciliation', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -555,7 +555,7 @@ async function fetchAllReconciliations() {
 
   while (true) {
     const response = await fetch(
-      `/api/reconciliation?page=${page}&limit=20`
+      `/api/v2/reconciliation?page=${page}&limit=20`
     );
     const data = await response.json();
 
@@ -575,7 +575,7 @@ Use idempotency keys for critical operations:
 ```javascript
 const idempotencyKey = `reconciliation-${Date.now()}`;
 
-fetch('/api/reconciliation', {
+fetch('/api/v2/reconciliation', {
   method: 'POST',
   headers: {
     'Idempotency-Key': idempotencyKey,
@@ -613,7 +613,7 @@ console.log(`Discrepancies: ${reconciliation.discrepancy_count}`);
 
 // 2. Fetch discrepancies
 const discrepancies = await fetch(
-  `/api/reconciliation/${reconciliation.id}/discrepancies`
+  `/api/v2/reconciliation/${reconciliation.id}/discrepancies`
 ).then(r => r.json());
 
 // 3. Handle high-severity discrepancies
@@ -642,7 +642,7 @@ await generatePDFReport(summary);
 
 ```javascript
 // Frontend: Create payment intent
-const { clientSecret } = await fetch('/api/payments/intents', {
+const { clientSecret } = await fetch('/api/v2/payments/intents', {
   method: 'POST',
   headers: {
     'Authorization': `Bearer ${token}`,

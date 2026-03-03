@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
+import ConfirmDialog from '../../../components/ConfirmDialog';
 import FollowUpForm from '../../../components/FollowUpForm';
+import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
+import { useToast } from '../../../contexts/useToast';
+import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   cancelFollowUp,
@@ -11,7 +14,14 @@ import {
   fetchFollowUps,
   rescheduleFollowUp,
 } from '../../../store/slices/followUpsSlice';
-import type { FollowUpEntityType, FollowUpWithEntity, FollowUpFilters } from '../../../types/followup';
+import type {
+  FollowUpEntityOption,
+  FollowUpEntityType,
+  FollowUpFilters,
+  FollowUpWithEntity,
+} from '../../../types/followup';
+import FollowUpEntityPicker from '../../../features/followUps/components/FollowUpEntityPicker';
+import RescheduleFollowUpDialog from '../../../features/followUps/components/RescheduleFollowUpDialog';
 
 const PAGE_SIZE = 20;
 
@@ -38,7 +48,9 @@ const getEntityHref = (followUp: FollowUpWithEntity): string => {
 
 export default function FollowUpsPage() {
   const dispatch = useAppDispatch();
+  const { showError } = useToast();
   const { followUps, summary, loading, pagination, error } = useAppSelector((state) => state.followUps);
+  const { dialogState, confirm, handleCancel, handleConfirm } = useConfirmDialog();
 
   const [page, setPage] = useState(1);
   const [entityTypeFilter, setEntityTypeFilter] = useState<FollowUpEntityType | ''>('');
@@ -47,7 +59,9 @@ export default function FollowUpsPage() {
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUpWithEntity | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newEntityType, setNewEntityType] = useState<FollowUpEntityType>('case');
-  const [newEntityId, setNewEntityId] = useState('');
+  const [newEntityOption, setNewEntityOption] = useState<FollowUpEntityOption | null>(null);
+  const [rescheduleTarget, setRescheduleTarget] = useState<FollowUpWithEntity | null>(null);
+  const [isRescheduling, setIsRescheduling] = useState(false);
 
   const filters: FollowUpFilters = useMemo(
     () => ({
@@ -95,22 +109,40 @@ export default function FollowUpsPage() {
     await refresh();
   };
 
-  const handleCancel = async (followUpId: string) => {
+  const handleCancelFollowUp = async (followUpId: string) => {
     await dispatch(cancelFollowUp(followUpId));
     await refresh();
   };
 
-  const handleReschedule = async (followUpId: string) => {
-    const nextDate = window.prompt('New scheduled date (YYYY-MM-DD):');
-    if (!nextDate) return;
-    await dispatch(rescheduleFollowUp({ followUpId, newDate: nextDate }));
+  const handleDelete = async (followUpId: string) => {
+    const confirmed = await confirm(confirmPresets.delete('Follow-up'));
+    if (!confirmed) return;
+
+    await dispatch(deleteFollowUp(followUpId));
     await refresh();
   };
 
-  const handleDelete = async (followUpId: string) => {
-    if (!window.confirm('Delete this follow-up?')) return;
-    await dispatch(deleteFollowUp(followUpId));
-    await refresh();
+  const handleSaveReschedule = async (scheduledDate: string, scheduledTime?: string) => {
+    if (!rescheduleTarget) {
+      return;
+    }
+
+    try {
+      setIsRescheduling(true);
+      await dispatch(
+        rescheduleFollowUp({
+          followUpId: rescheduleTarget.id,
+          newDate: scheduledDate,
+          newTime: scheduledTime,
+        })
+      );
+      await refresh();
+      setRescheduleTarget(null);
+    } catch {
+      showError('Failed to reschedule follow-up');
+    } finally {
+      setIsRescheduling(false);
+    }
   };
 
   return (
@@ -138,7 +170,7 @@ export default function FollowUpsPage() {
             <div className="p-3 border-2 border-[var(--app-border)] bg-[var(--loop-blue)]"><p className="text-xs font-bold">Scheduled</p><p className="text-2xl font-black">{summary.scheduled}</p></div>
             <div className="p-3 border-2 border-[var(--app-border)] bg-[var(--loop-cyan)]"><p className="text-xs font-bold">Completed</p><p className="text-2xl font-black">{summary.completed}</p></div>
             <div className="p-3 border-2 border-[var(--app-border)] bg-[var(--loop-pink)]"><p className="text-xs font-bold">Cancelled</p><p className="text-2xl font-black">{summary.cancelled}</p></div>
-            <div className="p-3 border-2 border-[var(--app-border)] bg-red-100"><p className="text-xs font-bold">Overdue</p><p className="text-2xl font-black">{summary.overdue}</p></div>
+            <div className="p-3 border-2 border-[var(--app-border)] bg-app-accent-soft"><p className="text-xs font-bold">Overdue</p><p className="text-2xl font-black">{summary.overdue}</p></div>
             <div className="p-3 border-2 border-[var(--app-border)] bg-[var(--loop-yellow)]"><p className="text-xs font-bold">Due Today</p><p className="text-2xl font-black">{summary.due_today}</p></div>
             <div className="p-3 border-2 border-[var(--app-border)] bg-[var(--app-surface-muted)]"><p className="text-xs font-bold">Next 7 Days</p><p className="text-2xl font-black">{summary.due_this_week}</p></div>
           </div>
@@ -146,42 +178,31 @@ export default function FollowUpsPage() {
 
         {showCreateForm && (
           <div className="mb-6 border-2 border-[var(--app-border)] bg-[var(--app-surface)] p-4 shadow-[4px_4px_0px_0px_var(--shadow-color)]">
-            <div className="mb-3 grid gap-3 md:grid-cols-3">
-              <label className="flex flex-col text-sm font-bold">
-                Entity Type
-                <select
-                  value={newEntityType}
-                  onChange={(event) => setNewEntityType(event.target.value as FollowUpEntityType)}
-                  className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
-                >
-                  <option value="case">Case</option>
-                  <option value="task">Task</option>
-                </select>
-              </label>
-              <label className="md:col-span-2 flex flex-col text-sm font-bold">
-                Entity ID
-                <input
-                  value={newEntityId}
-                  onChange={(event) => setNewEntityId(event.target.value)}
-                  placeholder="UUID of the case/task"
-                  className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
-                />
-              </label>
-            </div>
+            <FollowUpEntityPicker
+              entityType={newEntityType}
+              selectedOption={newEntityOption}
+              onEntityTypeChange={(nextType) => {
+                setNewEntityType(nextType);
+                setNewEntityOption(null);
+              }}
+              onSelect={setNewEntityOption}
+            />
 
-            {newEntityId ? (
-              <FollowUpForm
-                entityType={newEntityType}
-                entityId={newEntityId}
-                onSuccess={async () => {
-                  await refresh();
-                  setShowCreateForm(false);
-                  setNewEntityId('');
-                }}
-              />
+            {newEntityOption ? (
+              <div className="mt-3">
+                <FollowUpForm
+                  entityType={newEntityOption.entityType}
+                  entityId={newEntityOption.entityId}
+                  onSuccess={async () => {
+                    await refresh();
+                    setShowCreateForm(false);
+                    setNewEntityOption(null);
+                  }}
+                />
+              </div>
             ) : (
-              <p className="text-sm text-[var(--app-text-muted)]">
-                Enter an entity ID to create a follow-up. You can also create follow-ups directly from case or task detail pages.
+              <p className="mt-3 text-sm text-[var(--app-text-muted)]">
+                Search and select a case or task to create a follow-up.
               </p>
             )}
           </div>
@@ -259,7 +280,7 @@ export default function FollowUpsPage() {
         </div>
 
         {error && (
-          <div className="mb-4 border-2 border-red-600 bg-red-100 p-3 text-sm font-bold text-red-700">
+          <div className="mb-4 border-2 border-app-accent bg-app-accent-soft p-3 text-sm font-bold text-app-accent-text">
             {error}
           </div>
         )}
@@ -303,12 +324,12 @@ export default function FollowUpsPage() {
                         {followUp.status === 'scheduled' && (
                           <>
                             <button type="button" onClick={() => void handleComplete(followUp.id)} className="border-2 border-[var(--app-border)] px-2 py-1 text-xs font-bold">Complete</button>
-                            <button type="button" onClick={() => void handleCancel(followUp.id)} className="border-2 border-[var(--app-border)] px-2 py-1 text-xs font-bold">Cancel</button>
-                            <button type="button" onClick={() => void handleReschedule(followUp.id)} className="border-2 border-[var(--app-border)] px-2 py-1 text-xs font-bold">Reschedule</button>
+                            <button type="button" onClick={() => void handleCancelFollowUp(followUp.id)} className="border-2 border-[var(--app-border)] px-2 py-1 text-xs font-bold">Cancel</button>
+                            <button type="button" onClick={() => setRescheduleTarget(followUp)} className="border-2 border-[var(--app-border)] px-2 py-1 text-xs font-bold">Reschedule</button>
                           </>
                         )}
                         <button type="button" onClick={() => setEditingFollowUp(followUp)} className="border-2 border-[var(--app-border)] px-2 py-1 text-xs font-bold">Edit</button>
-                        <button type="button" onClick={() => void handleDelete(followUp.id)} className="border-2 border-red-600 bg-red-100 px-2 py-1 text-xs font-bold text-red-700">Delete</button>
+                        <button type="button" onClick={() => void handleDelete(followUp.id)} className="border-2 border-app-accent bg-app-accent-soft px-2 py-1 text-xs font-bold text-app-accent-text">Delete</button>
                       </div>
                     </td>
                   </tr>
@@ -342,6 +363,16 @@ export default function FollowUpsPage() {
           </div>
         )}
       </div>
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
+      <RescheduleFollowUpDialog
+        isOpen={Boolean(rescheduleTarget)}
+        followUpTitle={rescheduleTarget?.title}
+        initialDate={rescheduleTarget?.scheduled_date}
+        initialTime={rescheduleTarget?.scheduled_time}
+        isSaving={isRescheduling}
+        onConfirm={handleSaveReschedule}
+        onCancel={() => setRescheduleTarget(null)}
+      />
     </NeoBrutalistLayout>
   );
 }

@@ -172,8 +172,8 @@ describe('SavedReportService', () => {
         expect(report.entity).toBe('contacts');
       });
       expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('AND entity = $2'),
-        [testUserId, 'contacts']
+        expect.stringContaining('AND entity = $3'),
+        [testUserId, [], 'contacts']
       );
     });
 

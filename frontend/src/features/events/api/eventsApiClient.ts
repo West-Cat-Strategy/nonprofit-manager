@@ -89,6 +89,14 @@ export class EventsApiClient
     return unwrapApiData(response.data);
   }
 
+  async scanCheckIn(eventId: string, token: string): Promise<EventRegistration> {
+    const response = await api.post<ApiEnvelope<EventRegistration>>(
+      `/v2/events/${eventId}/check-in/scan`,
+      { token }
+    );
+    return unwrapApiData(response.data);
+  }
+
   async cancelRegistration(registrationId: string): Promise<void> {
     await api.delete(`/v2/events/registrations/${registrationId}`);
   }

@@ -103,11 +103,11 @@ const AvailabilityCalendar = ({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-100 text-green-800 border-green-300';
+        return 'bg-app-accent-soft text-app-accent-text border-app-border';
       case 'in_progress':
         return 'bg-app-accent-soft text-app-accent-text border-app-accent';
       case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-300';
+        return 'bg-app-accent-soft text-app-accent-text border-app-border';
       case 'scheduled':
       default:
         return 'bg-app-surface-muted text-app-text border-app-input-border';
@@ -193,10 +193,10 @@ const AvailabilityCalendar = ({
           <span
             className={`px-2 py-1 text-xs rounded-full capitalize ${
               availabilityStatus === 'available'
-                ? 'bg-green-100 text-green-800'
+                ? 'bg-app-accent-soft text-app-accent-text'
                 : availabilityStatus === 'limited'
-                  ? 'bg-yellow-100 text-yellow-800'
-                  : 'bg-red-100 text-red-800'
+                  ? 'bg-app-accent-soft text-app-accent-text'
+                  : 'bg-app-accent-soft text-app-accent-text'
             }`}
           >
             {availabilityStatus}
@@ -315,11 +315,11 @@ const AvailabilityCalendar = ({
             <span className="text-app-text-muted">Scheduled</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
+            <div className="w-4 h-4 bg-app-accent-soft border border-app-border rounded"></div>
             <span className="text-app-text-muted">Completed</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-red-100 border border-red-300 rounded"></div>
+            <div className="w-4 h-4 bg-app-accent-soft border border-app-border rounded"></div>
             <span className="text-app-text-muted">Cancelled</span>
           </div>
         </div>

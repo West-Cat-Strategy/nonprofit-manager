@@ -91,7 +91,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                       onFilterChange(field.id, e.target.value)
                     }
                     className="w-full px-3 py-2 border-2 border-app-text bg-app-surface text-app-text
-                      font-mono placeholder-app-text-subtle focus:outline-none focus:border-app-accent"
+                      font-mono placeholder:text-app-text-subtle focus:outline-none focus:border-app-accent"
                   />
                 )}
 

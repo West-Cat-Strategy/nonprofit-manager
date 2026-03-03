@@ -332,21 +332,21 @@ Adopt module ownership rules inspired by `wc-manage`:
 **Status**: Accepted
 
 **Context**:
-`/api/v2` modules are active, but legacy `/api/*` paths still exist and are relied on by existing clients.
+Legacy `/api/*` compatibility wrappers introduced migration ambiguity and duplicated route surfaces.
 
 **Decision**:
-Use explicit compatibility wrappers for legacy routes:
-- Legacy route files delegate to module route factories (for example `createCasesRoutes('legacy')`).
-- Deprecation headers are emitted where a v2 equivalent exists.
-- Legacy wrappers should not re-implement business logic.
+Complete hard cutover to `/api/v2/*`:
+- Runtime API registration is v2-only.
+- Requests to legacy `/api/*` paths are tombstoned with canonical `410 Gone` responses and migration guidance.
+- Feature work no longer targets legacy wrappers.
 
 **Rationale**:
-- Preserves compatibility while accelerating migration to v2 modules.
-- Keeps legacy behavior observable and intentionally transitional.
+- Removes dual-surface drift and simplifies ownership and testing.
+- Makes contract expectations explicit for all clients.
 
 **Consequences**:
-- Wrapper files remain thin and should only contain delegation + migration headers.
-- Breaking response-shape changes must be coordinated and documented in release notes.
+- Clients must call `/api/v2/*` endpoints.
+- Any remaining references to legacy paths are treated as migration defects.
 
 ---
 

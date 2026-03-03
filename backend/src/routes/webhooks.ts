@@ -45,7 +45,7 @@ const updateWebhookEndpointSchema = z.object({
 
 const deliveriesQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
-});
+}).strict();
 
 const dateStringSchema = z
   .string()
@@ -65,7 +65,7 @@ const updateApiKeySchema = z.object({
 
 const apiKeyUsageQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(500).optional(),
-});
+}).strict();
 
 // All routes require authentication
 router.use(authenticate);

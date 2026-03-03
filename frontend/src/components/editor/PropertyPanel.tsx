@@ -148,7 +148,7 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({
           <div className="pt-4 border-t border-app-border">
             <button
               onClick={() => onDeleteSection(selectedSection.id)}
-              className="w-full py-2 px-4 bg-red-50 text-red-600 rounded-md text-sm hover:bg-red-100"
+              className="w-full py-2 px-4 bg-app-accent-soft text-app-accent rounded-md text-sm hover:bg-app-accent-soft"
             >
               Delete Section
             </button>
@@ -336,7 +336,7 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({
                 onChange={(e) =>
                   onUpdateComponent(selectedComponent.id, { href: e.target.value })
                 }
-                placeholder="HTTPS://..."
+                placeholder="https://..."
                 className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
               />
             </div>
@@ -413,7 +413,7 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({
                 onChange={(e) =>
                   onUpdateComponent(selectedComponent.id, { src: e.target.value })
                 }
-                placeholder="HTTPS://..."
+                placeholder="https://..."
                 className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
               />
             </div>
@@ -703,7 +703,7 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({
         <div className="pt-4 border-t border-app-border">
           <button
             onClick={() => onDeleteComponent(selectedComponent.id)}
-            className="w-full py-2 px-4 bg-red-50 text-red-600 rounded-md text-sm hover:bg-red-100"
+            className="w-full py-2 px-4 bg-app-accent-soft text-app-accent rounded-md text-sm hover:bg-app-accent-soft"
           >
             Delete Component
           </button>

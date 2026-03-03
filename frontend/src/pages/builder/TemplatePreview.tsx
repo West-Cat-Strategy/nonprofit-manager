@@ -20,7 +20,7 @@ const TemplatePreview: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const previewUrl = useMemo(() => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'HTTP://localhost:8000/api';
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
     const baseUrl = apiUrl.endsWith('/api') ? apiUrl.slice(0, -4) : apiUrl;
     return `${baseUrl}/api/templates/${templateId}/preview?page=${encodeURIComponent(pageSlug)}`;
   }, [templateId, pageSlug]);
@@ -69,8 +69,8 @@ const TemplatePreview: React.FC = () => {
     return (
       <div className="min-h-screen bg-app-surface-muted flex items-center justify-center">
         <div className="max-w-md w-full bg-app-surface shadow-lg rounded-lg p-6">
-          <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
-            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center justify-center w-12 h-12 mx-auto bg-app-accent-soft rounded-full mb-4">
+            <svg className="w-6 h-6 text-app-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </div>

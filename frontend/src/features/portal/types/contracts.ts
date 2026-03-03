@@ -57,4 +57,5 @@ export interface PortalApiClient {
   getCaseTimeline(caseId: string): Promise<PortalCaseTimelineEvent[]>;
   listCaseDocuments(caseId: string): Promise<PortalCaseDocument[]>;
   getCaseDocumentDownloadUrl(caseId: string, documentId: string, disposition?: 'inline' | 'attachment'): string;
+  getDocumentDownloadUrl(documentId: string, disposition?: 'inline' | 'attachment'): string;
 }

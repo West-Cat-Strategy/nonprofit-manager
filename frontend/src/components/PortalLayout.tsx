@@ -1,24 +1,25 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { portalLogoutAsync } from '../store/slices/portalAuthSlice';
+import { AppShell, SideNav, TopNav, SecondaryButton } from './ui';
 
 interface PortalLayoutProps {
   children: React.ReactNode;
 }
 
 const navItems = [
-  { label: 'Dashboard', path: '/portal' },
-  { label: 'Profile', path: '/portal/profile' },
-  { label: 'People', path: '/portal/people' },
-  { label: 'Events', path: '/portal/events' },
-  { label: 'Messages', path: '/portal/messages' },
-  { label: 'Cases', path: '/portal/cases' },
-  { label: 'Appointments', path: '/portal/appointments' },
-  { label: 'Documents', path: '/portal/documents' },
-  { label: 'Notes', path: '/portal/notes' },
-  { label: 'Forms', path: '/portal/forms' },
-  { label: 'Reminders', path: '/portal/reminders' },
+  { key: 'dashboard', label: 'Dashboard', path: '/portal' },
+  { key: 'profile', label: 'Profile', path: '/portal/profile' },
+  { key: 'people', label: 'People', path: '/portal/people' },
+  { key: 'events', label: 'Events', path: '/portal/events' },
+  { key: 'messages', label: 'Messages', path: '/portal/messages' },
+  { key: 'cases', label: 'Cases', path: '/portal/cases' },
+  { key: 'appointments', label: 'Appointments', path: '/portal/appointments' },
+  { key: 'documents', label: 'Documents', path: '/portal/documents' },
+  { key: 'notes', label: 'Notes', path: '/portal/notes' },
+  { key: 'forms', label: 'Forms', path: '/portal/forms' },
+  { key: 'reminders', label: 'Reminders', path: '/portal/reminders' },
 ];
 
 export default function PortalLayout({ children }: PortalLayoutProps) {
@@ -28,66 +29,76 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
   const portalUser = useAppSelector((state) => state.portalAuth.user);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
   const isActive = (path: string) => {
     if (path === '/portal') return location.pathname === '/portal';
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
-  return (
-    <div className="min-h-screen bg-app-surface-muted">
-      <header className="bg-app-surface border-b border-app-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-app-text">Client Portal</h1>
-            {portalUser?.email && <p className="text-sm text-app-text-muted">{portalUser.email}</p>}
-          </div>
-          <button
-            onClick={async () => {
-              await dispatch(portalLogoutAsync());
-              navigate('/portal/login', { replace: true });
-            }}
-            className="px-4 py-2 text-sm bg-app-surface-muted rounded-lg hover:bg-app-surface-muted"
-          >
-            Sign out
-          </button>
-        </div>
-      </header>
+  const sideItems = navItems.map((item) => ({
+    key: item.key,
+    label: item.label,
+    to: item.path,
+    isActive: isActive(item.path),
+  }));
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
-        <nav className="bg-app-surface rounded-lg shadow p-4">
+  const topNav = (
+    <TopNav
+      left={
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            className="mb-4 inline-flex items-center rounded-md border border-app-border px-3 py-2 text-sm font-medium text-app-text lg:hidden"
+            className="inline-flex items-center rounded-[var(--ui-radius-sm)] border border-app-border px-2 py-1 text-xs font-semibold text-app-text lg:hidden"
             onClick={() => setMobileMenuOpen((prev) => !prev)}
             aria-expanded={mobileMenuOpen}
-            aria-controls="portal-nav-items"
+            aria-controls="portal-nav"
           >
-            {mobileMenuOpen ? 'Hide menu' : 'Show menu'}
+            {mobileMenuOpen ? 'Hide menu' : 'Menu'}
           </button>
-          <div id="portal-nav-items" className={`${mobileMenuOpen ? 'block' : 'hidden'} lg:block`}>
-          <ul className="space-y-2">
-            {navItems.map((item) => {
-              const active = isActive(item.path);
-              return (
-                <li key={item.path}>
-                  <Link
-                    to={item.path}
-                    className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      active ? 'bg-app-accent-soft text-app-accent' : 'text-app-text-muted hover:bg-app-surface-muted'
-                    }`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          <div>
+            <h1 className="text-base font-semibold text-app-text-heading">Client Portal</h1>
+            {portalUser?.email && <p className="text-xs text-app-text-muted">{portalUser.email}</p>}
           </div>
-        </nav>
+        </div>
+      }
+      right={
+        <SecondaryButton
+          onClick={async () => {
+            await dispatch(portalLogoutAsync());
+            navigate('/portal/login', { replace: true });
+          }}
+        >
+          Sign out
+        </SecondaryButton>
+      }
+    />
+  );
 
-        <main className="bg-app-surface rounded-lg shadow p-6">{children}</main>
-      </div>
+  const sidebar = (
+    <div id="portal-nav" className={mobileMenuOpen ? 'block' : 'hidden lg:block'}>
+      <SideNav
+        title="Portal"
+        items={sideItems}
+        footer={
+          <Link
+            to="/portal/profile"
+            className="block text-xs font-medium text-app-accent hover:text-app-accent-text"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Manage your profile
+          </Link>
+        }
+        onNavigate={() => setMobileMenuOpen(false)}
+      />
     </div>
+  );
+
+  return (
+    <AppShell topNav={topNav} sidebar={sidebar} contentClassName="rounded-[var(--ui-radius-md)] bg-app-surface p-4 shadow-sm sm:p-6">
+      {children}
+    </AppShell>
   );
 }

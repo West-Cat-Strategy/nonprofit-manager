@@ -21,4 +21,4 @@ export {
   uploadContactDocument,
   updateContactDocument,
   deleteContactDocument,
-} from './contactsLegacyCore';
+} from './contactsCore';

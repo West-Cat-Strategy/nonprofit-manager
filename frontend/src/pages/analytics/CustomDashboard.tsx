@@ -212,7 +212,7 @@ const CustomDashboard = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="text-red-600 mb-2">Failed to load dashboard.</div>
+          <div className="text-app-accent mb-2">Failed to load dashboard.</div>
           <div className="text-sm text-app-text-muted mb-4">{error}</div>
           <button
             onClick={() => dispatch(fetchDefaultDashboard())}
@@ -254,7 +254,7 @@ const CustomDashboard = () => {
             <>
               <button
                 onClick={() => setShowAddWidget(true)}
-                className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
+                className="px-4 py-2 text-sm font-medium text-white bg-app-accent rounded-lg hover:bg-app-accent-hover"
               >
                 Add Widget
               </button>

@@ -1,5 +1,5 @@
 import { Route, Routes } from 'react-router-dom';
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import PortalCases from '../../PortalCases';
 import PortalCaseDetail from '../../PortalCaseDetail';
@@ -34,6 +34,12 @@ describe('Portal cases pages', () => {
         title: 'Housing Support Plan',
         updated_at: new Date().toISOString(),
       },
+      {
+        id: 'case-2',
+        case_number: 'CASE-002',
+        title: 'Employment Transition',
+        updated_at: new Date().toISOString(),
+      },
     ]);
 
     renderWithProviders(<PortalCases />);
@@ -42,8 +48,18 @@ describe('Portal cases pages', () => {
       expect(screen.getByRole('heading', { name: /my cases/i })).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Housing Support Plan')).toBeInTheDocument();
+    expect(await screen.findByText('Housing Support Plan')).toBeInTheDocument();
+    expect(await screen.findByText('Employment Transition')).toBeInTheDocument();
     expect(listCasesMock).toHaveBeenCalledTimes(1);
+
+    fireEvent.change(screen.getByPlaceholderText(/search cases/i), {
+      target: { value: 'housing' },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Housing Support Plan')).toBeInTheDocument();
+      expect(screen.queryByText('Employment Transition')).not.toBeInTheDocument();
+    });
   });
 
   it('renders only the timeline items returned by portal visibility filters', async () => {

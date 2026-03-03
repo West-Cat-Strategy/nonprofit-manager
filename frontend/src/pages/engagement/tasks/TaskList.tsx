@@ -163,10 +163,10 @@ const TaskList: React.FC = () => {
     const statusColors: Record<TaskStatus, string> = {
       [TaskStatus.NOT_STARTED]: 'bg-app-surface-muted text-app-text',
       [TaskStatus.IN_PROGRESS]: 'bg-app-accent-soft text-app-accent-text',
-      [TaskStatus.WAITING]: 'bg-yellow-100 text-yellow-800',
-      [TaskStatus.COMPLETED]: 'bg-green-100 text-green-800',
-      [TaskStatus.DEFERRED]: 'bg-purple-100 text-purple-800',
-      [TaskStatus.CANCELLED]: 'bg-red-100 text-red-800',
+      [TaskStatus.WAITING]: 'bg-app-accent-soft text-app-accent-text',
+      [TaskStatus.COMPLETED]: 'bg-app-accent-soft text-app-accent-text',
+      [TaskStatus.DEFERRED]: 'bg-app-accent-soft text-app-accent-text',
+      [TaskStatus.CANCELLED]: 'bg-app-accent-soft text-app-accent-text',
     };
 
     return (
@@ -180,8 +180,8 @@ const TaskList: React.FC = () => {
     const priorityColors: Record<TaskPriority, string> = {
       [TaskPriority.LOW]: 'bg-app-surface-muted text-app-text-muted',
       [TaskPriority.NORMAL]: 'bg-app-accent-soft text-app-accent',
-      [TaskPriority.HIGH]: 'bg-orange-100 text-orange-600',
-      [TaskPriority.URGENT]: 'bg-red-100 text-red-600',
+      [TaskPriority.HIGH]: 'bg-app-accent-soft text-app-accent',
+      [TaskPriority.URGENT]: 'bg-app-accent-soft text-app-accent',
     };
 
     return (
@@ -195,7 +195,7 @@ const TaskList: React.FC = () => {
     return (
       <NeoBrutalistLayout pageTitle="TASKS">
       <div className="container mx-auto px-4 py-8">
-        <div className="p-4 bg-red-100 border-2 border-red-500 text-red-700 shadow-[4px_4px_0px_0px_var(--shadow-color)]">Error: {error}</div>
+        <div className="p-4 bg-app-accent-soft border-2 border-app-border text-app-accent-text shadow-[4px_4px_0px_0px_var(--shadow-color)]">Error: {error}</div>
       </div>
       </NeoBrutalistLayout>
     );
@@ -217,9 +217,9 @@ const TaskList: React.FC = () => {
       {/* Summary Cards */}
       {summary && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-red-100 border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-4">
-            <div className="text-red-600 text-sm font-bold uppercase">Overdue</div>
-            <div className="text-2xl font-black text-red-900">{summary.overdue}</div>
+          <div className="bg-app-accent-soft border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-4">
+            <div className="text-app-accent text-sm font-bold uppercase">Overdue</div>
+            <div className="text-2xl font-black text-app-accent-text">{summary.overdue}</div>
           </div>
           <div className="bg-[var(--loop-yellow)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-4">
             <div className="text-black text-sm font-bold uppercase">Due Today</div>
@@ -243,21 +243,21 @@ const TaskList: React.FC = () => {
           <button
             type="button"
             onClick={() => applyPreset('overdue')}
-            className="px-2 py-1 text-xs font-bold border-2 border-[var(--app-border)] bg-red-100 text-red-700"
+            className="px-2 py-1 text-xs font-bold border-2 border-[var(--app-border)] bg-app-accent-soft text-app-accent-text"
           >
             Overdue
           </button>
           <button
             type="button"
             onClick={() => applyPreset('in_progress')}
-            className="px-2 py-1 text-xs font-bold border-2 border-[var(--app-border)] bg-blue-100 text-blue-800"
+            className="px-2 py-1 text-xs font-bold border-2 border-[var(--app-border)] bg-app-accent-soft text-app-accent-text"
           >
             In Progress
           </button>
           <button
             type="button"
             onClick={() => applyPreset('high_priority')}
-            className="px-2 py-1 text-xs font-bold border-2 border-[var(--app-border)] bg-orange-100 text-orange-800"
+            className="px-2 py-1 text-xs font-bold border-2 border-[var(--app-border)] bg-app-accent-soft text-app-accent-text"
           >
             High Priority
           </button>
@@ -377,7 +377,7 @@ const TaskList: React.FC = () => {
                     <div
                       className={`text-sm ${
                         isOverdue(task.due_date, task.status)
-                          ? 'text-red-600 font-semibold'
+                          ? 'text-app-accent font-semibold'
                           : 'text-[var(--app-text)]'
                       }`}
                     >
@@ -394,7 +394,7 @@ const TaskList: React.FC = () => {
                     {task.status !== TaskStatus.COMPLETED && (
                       <button
                         onClick={() => handleComplete(task.id)}
-                        className="text-green-600 hover:text-green-900"
+                        className="text-app-accent hover:text-app-accent-text"
                       >
                         Complete
                       </button>
@@ -407,7 +407,7 @@ const TaskList: React.FC = () => {
                     </button>
                     <button
                       onClick={() => handleDelete(task.id)}
-                      className="text-red-600 hover:text-red-900"
+                      className="text-app-accent hover:text-app-accent-text"
                     >
                       Delete
                     </button>

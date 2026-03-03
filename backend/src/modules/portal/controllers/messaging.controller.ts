@@ -14,7 +14,20 @@ export const createPortalMessagingController = (useCase: PortalMessagingUseCase)
         return;
       }
 
-      const threads = await useCase.listThreads(req.portalUser.id);
+      const query = ((req as any).validatedQuery ?? req.query) as {
+        status?: 'open' | 'closed' | 'archived';
+        case_id?: string;
+        search?: string;
+        limit?: number;
+        offset?: number;
+      };
+      const threads = await useCase.listThreads(req.portalUser.id, {
+        status: query.status,
+        caseId: query.case_id,
+        search: query.search,
+        limit: query.limit,
+        offset: query.offset,
+      });
       sendSuccess(res, { threads });
     } catch (error) {
       next(error);
@@ -124,6 +137,7 @@ export const createPortalMessagingController = (useCase: PortalMessagingUseCase)
         threadId: req.params.threadId,
         status: normalizePortalStatus(req.body.status),
         subject: (req.body.subject as string | null | undefined) ?? undefined,
+        actorType: 'portal',
       });
 
       if (!thread) {

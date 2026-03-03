@@ -1,5 +1,5 @@
-export { default as casesV2Reducer } from './casesLegacyCore';
-export * from './casesLegacyCore';
+export { default as casesV2Reducer } from './casesCore';
+export * from './casesCore';
 export * from './casesListSlice';
 export * from './caseDetailSlice';
 export * from './caseMutationSlice';

@@ -3,6 +3,7 @@
  * Handles CRUD operations for saved reports
  */
 
+import crypto from 'crypto';
 import { Pool } from 'pg';
 import { logger } from '@config/logger';
 import type {
@@ -11,22 +12,84 @@ import type {
   UpdateSavedReportRequest,
 } from '@app-types/savedReport';
 
+interface SharePrincipalUser {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+}
+
+interface SharePrincipalRole {
+  name: string;
+  label: string;
+}
+
+interface SharePrincipalsResult {
+  users: Array<{
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    full_name: string;
+  }>;
+  roles: SharePrincipalRole[];
+}
+
+const SHARE_ROLES: SharePrincipalRole[] = [
+  { name: 'admin', label: 'Admin' },
+  { name: 'manager', label: 'Manager' },
+  { name: 'staff', label: 'Staff' },
+  { name: 'member', label: 'Member' },
+  { name: 'volunteer', label: 'Volunteer' },
+];
+
 export class SavedReportService {
   constructor(private pool: Pool) { }
+
+  private async assertOwnerOrAdmin(
+    reportId: string,
+    actorUserId: string,
+    actorRole: string
+  ): Promise<void> {
+    const result = await this.pool.query<{ created_by: string | null }>(
+      `SELECT created_by
+       FROM saved_reports
+       WHERE id = $1
+       LIMIT 1`,
+      [reportId]
+    );
+
+    if (result.rows.length === 0) {
+      throw new Error('Report not found');
+    }
+
+    const ownerId = result.rows[0].created_by;
+    if (actorRole === 'admin' || (ownerId && ownerId === actorUserId)) {
+      return;
+    }
+
+    throw new Error('Only report owner or admin can modify sharing settings');
+  }
 
   /**
    * Get all saved reports (optionally filter by user or entity)
    */
-  async getSavedReports(userId?: string, entity?: string): Promise<SavedReport[]> {
+  async getSavedReports(userId?: string, entity?: string, userRoles: string[] = []): Promise<SavedReport[]> {
     try {
       let query = `
-        SELECT * FROM saved_reports
-        WHERE (is_public = TRUE OR created_by = $1)
+        SELECT *
+        FROM saved_reports
+        WHERE (
+          is_public = TRUE
+          OR created_by = $1
+          OR ($1 IS NOT NULL AND $1 = ANY(COALESCE(shared_with_users, '{}'::uuid[])))
+          OR (COALESCE(shared_with_roles, '{}'::text[]) && $2::text[])
+        )
       `;
-      const params: (string | undefined)[] = [userId];
+      const params: unknown[] = [userId || null, userRoles];
 
       if (entity) {
-        query += ` AND entity = $2`;
+        query += ` AND entity = $3`;
         params.push(entity);
       }
 
@@ -35,7 +98,7 @@ export class SavedReportService {
       const result = await this.pool.query(query, params);
       return result.rows;
     } catch (error) {
-      logger.error('Error fetching saved reports', { error, userId, entity });
+      logger.error('Error fetching saved reports', { error, userId, entity, userRoles });
       throw Object.assign(new Error('Failed to fetch saved reports'), { cause: error });
     }
   }
@@ -43,13 +106,20 @@ export class SavedReportService {
   /**
    * Get a single saved report by ID
    */
-  async getSavedReportById(id: string, userId?: string): Promise<SavedReport | null> {
+  async getSavedReportById(id: string, userId?: string, userRoles: string[] = []): Promise<SavedReport | null> {
     try {
       const query = `
-        SELECT * FROM saved_reports
-        WHERE id = $1 AND (is_public = TRUE OR created_by = $2)
+        SELECT *
+        FROM saved_reports
+        WHERE id = $1
+          AND (
+            is_public = TRUE
+            OR created_by = $2
+            OR ($2 IS NOT NULL AND $2 = ANY(COALESCE(shared_with_users, '{}'::uuid[])))
+            OR (COALESCE(shared_with_roles, '{}'::text[]) && $3::text[])
+          )
       `;
-      const result = await this.pool.query(query, [id, userId]);
+      const result = await this.pool.query(query, [id, userId || null, userRoles]);
 
       if (result.rows.length === 0) {
         return null;
@@ -57,7 +127,7 @@ export class SavedReportService {
 
       return result.rows[0];
     } catch (error) {
-      logger.error('Error fetching saved report by ID', { error, id, userId });
+      logger.error('Error fetching saved report by ID', { error, id, userId, userRoles });
       throw Object.assign(new Error('Failed to fetch saved report'), { cause: error });
     }
   }
@@ -180,22 +250,76 @@ export class SavedReportService {
     }
   }
 
+  async getSharePrincipals(search?: string, limit = 25): Promise<SharePrincipalsResult> {
+    try {
+      const safeLimit = Math.max(1, Math.min(limit, 50));
+      const term = search?.trim() || null;
+
+      const usersResult = await this.pool.query<SharePrincipalUser>(
+        `SELECT id, email, first_name, last_name
+         FROM users
+         WHERE is_active = true
+           AND (
+             $1::text IS NULL
+             OR email ILIKE '%' || $1 || '%'
+             OR first_name ILIKE '%' || $1 || '%'
+             OR last_name ILIKE '%' || $1 || '%'
+           )
+         ORDER BY first_name ASC, last_name ASC
+         LIMIT $2`,
+        [term, safeLimit]
+      );
+
+      return {
+        users: usersResult.rows.map((row) => ({
+          ...row,
+          full_name: `${row.first_name} ${row.last_name}`.trim(),
+        })),
+        roles: SHARE_ROLES,
+      };
+    } catch (error) {
+      logger.error('Error fetching share principals', { error, search, limit });
+      throw Object.assign(new Error('Failed to fetch share principals'), { cause: error });
+    }
+  }
+
   /**
    * Share report with users or roles
    */
   async shareReport(
     reportId: string,
+    actorUserId: string,
+    actorRole: string,
     userIds?: string[],
     roleNames?: string[],
     shareSettings?: { can_edit: boolean; expires_at?: string }
   ): Promise<SavedReport> {
     try {
+      await this.assertOwnerOrAdmin(reportId, actorUserId, actorRole);
+
+      const dedupedUserIds = Array.from(new Set((userIds || []).filter(Boolean)));
+      const dedupedRoleNames = Array.from(new Set((roleNames || []).filter(Boolean)));
+      const nextShareSettings = shareSettings ? JSON.stringify(shareSettings) : null;
+
       const query = `
         UPDATE saved_reports
-        SET 
-          shared_with_users = COALESCE(shared_with_users, '{}') || $2::uuid[],
-          shared_with_roles = COALESCE(shared_with_roles, '{}') || $3::text[],
-          share_settings = $4,
+        SET
+          shared_with_users = (
+            SELECT ARRAY(
+              SELECT DISTINCT x
+              FROM unnest(COALESCE(shared_with_users, '{}'::uuid[]) || $2::uuid[]) AS x
+            )
+          ),
+          shared_with_roles = (
+            SELECT ARRAY(
+              SELECT DISTINCT x
+              FROM unnest(COALESCE(shared_with_roles, '{}'::text[]) || $3::text[]) AS x
+            )
+          ),
+          share_settings = CASE
+            WHEN $4::jsonb IS NULL THEN share_settings
+            ELSE COALESCE(share_settings, '{}'::jsonb) || $4::jsonb
+          END,
           updated_at = NOW()
         WHERE id = $1
         RETURNING *
@@ -203,9 +327,9 @@ export class SavedReportService {
 
       const result = await this.pool.query(query, [
         reportId,
-        userIds || [],
-        roleNames || [],
-        JSON.stringify(shareSettings || { can_edit: false }),
+        dedupedUserIds,
+        dedupedRoleNames,
+        nextShareSettings,
       ]);
 
       if (result.rows.length === 0) {
@@ -214,7 +338,10 @@ export class SavedReportService {
 
       return result.rows[0];
     } catch (error) {
-      logger.error('Error sharing report', { error, reportId });
+      logger.error('Error sharing report', { error, reportId, actorUserId, actorRole });
+      if (error instanceof Error) {
+        throw error;
+      }
       throw Object.assign(new Error('Failed to share report'), { cause: error });
     }
   }
@@ -224,35 +351,44 @@ export class SavedReportService {
    */
   async removeShare(
     reportId: string,
+    actorUserId: string,
+    actorRole: string,
     userIds?: string[],
     roleNames?: string[]
   ): Promise<SavedReport> {
     try {
-      let query = 'UPDATE saved_reports SET ';
-      const setClauses: string[] = [];
-      const params: any[] = [reportId];
-      let paramIndex = 2;
+      await this.assertOwnerOrAdmin(reportId, actorUserId, actorRole);
 
-      if (userIds && userIds.length > 0) {
-        setClauses.push(`shared_with_users = array_remove_all(shared_with_users, $${paramIndex}::uuid[])`);
-        params.push(userIds);
-        paramIndex++;
-      }
+      const dedupedUserIds = Array.from(new Set((userIds || []).filter(Boolean)));
+      const dedupedRoleNames = Array.from(new Set((roleNames || []).filter(Boolean)));
 
-      if (roleNames && roleNames.length > 0) {
-        setClauses.push(`shared_with_roles = array_remove_all(shared_with_roles, $${paramIndex}::text[])`);
-        params.push(roleNames);
-        paramIndex++;
-      }
-
-      if (setClauses.length === 0) {
+      if (dedupedUserIds.length === 0 && dedupedRoleNames.length === 0) {
         throw new Error('No users or roles specified to remove');
       }
 
-      query += setClauses.join(', ');
-      query += ', updated_at = NOW() WHERE id = $1 RETURNING *';
+      const query = `
+        UPDATE saved_reports
+        SET
+          shared_with_users = (
+            SELECT ARRAY(
+              SELECT x
+              FROM unnest(COALESCE(shared_with_users, '{}'::uuid[])) AS x
+              WHERE NOT (x = ANY($2::uuid[]))
+            )
+          ),
+          shared_with_roles = (
+            SELECT ARRAY(
+              SELECT x
+              FROM unnest(COALESCE(shared_with_roles, '{}'::text[])) AS x
+              WHERE NOT (x = ANY($3::text[]))
+            )
+          ),
+          updated_at = NOW()
+        WHERE id = $1
+        RETURNING *
+      `;
 
-      const result = await this.pool.query(query, params);
+      const result = await this.pool.query(query, [reportId, dedupedUserIds, dedupedRoleNames]);
 
       if (result.rows.length === 0) {
         throw new Error('Report not found');
@@ -260,7 +396,10 @@ export class SavedReportService {
 
       return result.rows[0];
     } catch (error) {
-      logger.error('Error removing share', { error, reportId });
+      logger.error('Error removing share', { error, reportId, actorUserId, actorRole });
+      if (error instanceof Error) {
+        throw error;
+      }
       throw Object.assign(new Error('Failed to remove share'), { cause: error });
     }
   }
@@ -270,18 +409,20 @@ export class SavedReportService {
    */
   async generatePublicLink(reportId: string, expiresAt?: string): Promise<string> {
     try {
-      // Generate a random token
-      const token = this.generateToken();
+      const token = crypto.randomBytes(24).toString('base64url');
 
       const query = `
         UPDATE saved_reports
-        SET 
+        SET
           public_token = $2,
-          share_settings = jsonb_set(
-            COALESCE(share_settings, '{}'::jsonb),
-            '{expires_at}',
-            $3::jsonb
-          ),
+          share_settings = CASE
+            WHEN $3::jsonb IS NULL THEN COALESCE(share_settings, '{}'::jsonb) - 'expires_at'
+            ELSE jsonb_set(
+              COALESCE(share_settings, '{}'::jsonb),
+              '{expires_at}',
+              $3::jsonb
+            )
+          END,
           updated_at = NOW()
         WHERE id = $1
         RETURNING public_token
@@ -290,7 +431,7 @@ export class SavedReportService {
       const result = await this.pool.query(query, [
         reportId,
         token,
-        expiresAt ? JSON.stringify(expiresAt) : 'null',
+        expiresAt ? JSON.stringify(expiresAt) : null,
       ]);
 
       if (result.rows.length === 0) {
@@ -335,7 +476,6 @@ export class SavedReportService {
 
       const report = result.rows[0];
 
-      // Check if link has expired
       if (report.share_settings?.expires_at) {
         const expiresAt = new Date(report.share_settings.expires_at);
         if (expiresAt < new Date()) {
@@ -356,13 +496,13 @@ export class SavedReportService {
   async checkAccess(reportId: string, userId: string, userRoles: string[]): Promise<boolean> {
     try {
       const result = await this.pool.query(
-        `SELECT id FROM saved_reports 
-         WHERE id = $1 
+        `SELECT id FROM saved_reports
+         WHERE id = $1
          AND (
-           created_by = $2 
-           OR is_public = TRUE 
-           OR $2 = ANY(shared_with_users)
-           OR shared_with_roles && $3::text[]
+           created_by = $2
+           OR is_public = TRUE
+           OR $2 = ANY(COALESCE(shared_with_users, '{}'::uuid[]))
+           OR COALESCE(shared_with_roles, '{}'::text[]) && $3::text[]
          )`,
         [reportId, userId, userRoles]
       );
@@ -372,18 +512,6 @@ export class SavedReportService {
       logger.error('Error checking access', { error, reportId, userId });
       return false;
     }
-  }
-
-  /**
-   * Generate a random token for public links
-   */
-  private generateToken(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let token = '';
-    for (let i = 0; i < 32; i++) {
-      token += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return token;
   }
 }
 

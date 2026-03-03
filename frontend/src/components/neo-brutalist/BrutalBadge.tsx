@@ -21,10 +21,10 @@ export default function BrutalBadge({
     const colorClasses = {
         green: 'bg-loop-green text-black border-black',
         yellow: 'bg-loop-yellow text-black border-black',
-        red: 'bg-red-400 text-black border-black',
+        red: 'bg-app-accent-soft text-black border-black',
         gray: 'bg-app-hover text-black border-black',
         purple: 'bg-loop-purple text-black border-black',
-        blue: 'bg-blue-300 text-black border-black',
+        blue: 'bg-app-accent-soft text-black border-black',
     };
 
     const sizeClasses = {

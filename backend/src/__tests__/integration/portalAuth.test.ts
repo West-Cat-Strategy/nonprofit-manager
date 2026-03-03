@@ -9,7 +9,7 @@ describe('Portal Auth API Integration', () => {
 
   it('validates portal signup payload', async () => {
     await request(app)
-      .post('/api/portal/auth/signup')
+      .post('/api/v2/portal/auth/signup')
       .send({
         email: 'not-an-email',
         password: 'weak',
@@ -20,7 +20,7 @@ describe('Portal Auth API Integration', () => {
   });
 
   it('requires portal auth for /me', async () => {
-    await request(app).get('/api/portal/auth/me').expect(401);
+    await request(app).get('/api/v2/portal/auth/me').expect(401);
   });
 
   it('accepts portal auth token from cookie for /me', async () => {
@@ -53,7 +53,7 @@ describe('Portal Auth API Integration', () => {
       );
 
       const response = await request(app)
-        .get('/api/portal/auth/me')
+        .get('/api/v2/portal/auth/me')
         .set('Cookie', [`portal_auth_token=${token}`])
         .expect(200);
 
