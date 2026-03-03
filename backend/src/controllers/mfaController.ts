@@ -1,5 +1,4 @@
 import { Response, NextFunction } from 'express';
-import { validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '@config/database';
@@ -9,7 +8,7 @@ import { AuthRequest } from '@middleware/auth';
 import { trackLoginAttempt } from '@middleware/accountLockout';
 import { JWT, TIME } from '@config/constants';
 import { decrypt, encrypt } from '@utils/encryption';
-import { badRequest, conflict, notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
+import { badRequest, conflict, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import { setAuthCookie, setRefreshCookie } from '@utils/cookieHelper';
 import { buildAuthTokenResponse } from '@utils/authResponse';
 import { authenticator } from '@otplib/preset-default';
@@ -159,11 +158,6 @@ export const enableTotp = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return validationErrorResponse(res, errors);
-    }
-
     const { code }: { code: string } = req.body;
 
     const result = await pool.query<{ mfa_totp_enabled: boolean; mfa_totp_pending_secret_enc: string | null }>(
@@ -211,11 +205,6 @@ export const disableTotp = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return validationErrorResponse(res, errors);
-    }
-
     const { password, code }: { password: string; code: string } = req.body;
 
     const result = await pool.query<TotpUserRow>(
@@ -269,11 +258,6 @@ export const completeTotpLogin = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return validationErrorResponse(res, errors);
-    }
-
     const {
       email,
       mfaToken,

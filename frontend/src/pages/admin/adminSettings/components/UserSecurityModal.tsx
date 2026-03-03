@@ -58,17 +58,17 @@ export default function UserSecurityModal({
                 <p className="text-app-text-muted">{selectedUser.email}</p>
                 <div className="flex items-center space-x-2 mt-1">
                   <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                    selectedUser.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-app-surface-muted text-app-text'
+                    selectedUser.role === 'admin' ? 'bg-app-accent-soft text-app-accent-text' : 'bg-app-surface-muted text-app-text'
                   }`}>
                     {selectedUser.role}
                   </span>
                   <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                    selectedUser.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    selectedUser.isActive ? 'bg-app-accent-soft text-app-accent-text' : 'bg-app-accent-soft text-app-accent-text'
                   }`}>
                     {selectedUser.isActive ? 'Active' : 'Inactive'}
                   </span>
                   {selectedUser.isLocked && (
-                    <span className="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded-full">
+                    <span className="px-2 py-0.5 text-xs font-medium bg-app-accent-soft text-app-accent-text rounded-full">
                       Locked
                     </span>
                   )}
@@ -121,8 +121,8 @@ export default function UserSecurityModal({
                 onClick={onToggleUserLock}
                 className={`px-4 py-2 text-sm font-medium rounded-lg ${
                   selectedUser.isLocked
-                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                    : 'bg-red-100 text-red-700 hover:bg-red-200'
+                    ? 'bg-app-accent-soft text-app-accent-text hover:bg-app-accent-soft'
+                    : 'bg-app-accent-soft text-app-accent-text hover:bg-app-accent-soft'
                 }`}
               >
                 {selectedUser.isLocked ? 'Unlock Account' : 'Lock Account'}

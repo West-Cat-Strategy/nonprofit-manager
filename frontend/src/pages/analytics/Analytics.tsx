@@ -5,33 +5,53 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  EmptyState,
+  ErrorState,
+  FormField,
+  LoadingState,
+  PageHeader,
+  PrimaryButton,
+  SecondaryButton,
+  SectionCard,
+} from '../../components/ui';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
   fetchAnalyticsSummary,
-  fetchDonationTrends,
-  fetchVolunteerHoursTrends,
-  fetchEventAttendanceTrends,
   fetchComparativeAnalytics,
+  fetchDonationTrends,
+  fetchEventAttendanceTrends,
+  fetchVolunteerHoursTrends,
   setFilters,
 } from '../../store/slices/analyticsSlice';
 import {
   exportAnalyticsSummaryToCSV,
   exportAnalyticsSummaryToPDF,
-  exportEngagementToCSV,
   exportConstituentOverviewToCSV,
+  exportEngagementToCSV,
 } from '../../utils/exportUtils';
-import { formatCurrency, formatNumber } from './utils';
-import { MetricCard, ComparisonCard } from './metrics';
 import {
-  EngagementPieChart,
   ConstituentBarChart,
-  SummaryStatsChart,
   DonationTrendsChart,
-  VolunteerTrendsChart,
+  EngagementPieChart,
   EventAttendanceTrendsChart,
+  SummaryStatsChart,
+  VolunteerTrendsChart,
 } from './charts';
+import { ComparisonCard, MetricCard } from './metrics';
+import { formatCurrency, formatNumber } from './utils';
 
-// Charts and cards live in ./analytics/*
+const getProgressWidthClass = (value: number): string => {
+  if (value <= 0) return 'w-0';
+  if (value < 12.5) return 'w-1/12';
+  if (value < 25) return 'w-1/4';
+  if (value < 37.5) return 'w-1/3';
+  if (value < 50) return 'w-1/2';
+  if (value < 62.5) return 'w-7/12';
+  if (value < 75) return 'w-3/4';
+  if (value < 87.5) return 'w-10/12';
+  return 'w-full';
+};
 
 export default function Analytics() {
   const navigate = useNavigate();
@@ -85,186 +105,131 @@ export default function Analytics() {
   };
 
   return (
-    <div className="min-h-screen bg-app-surface-muted">
-      {/* Header */}
-      <div className="bg-app-surface shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                type="button"
-                onClick={() => navigate('/dashboard')}
-                className="text-app-text-muted hover:text-app-text-muted"
-              >
-                ← Back
-              </button>
-              <h1 className="text-2xl font-bold text-app-text-heading">Analytics & Reports</h1>
-            </div>
-            {summary && (
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => exportAnalyticsSummaryToCSV(summary)}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm flex items-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  CSV
-                </button>
-                <button
-                  type="button"
-                  onClick={() => exportAnalyticsSummaryToPDF(summary)}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm flex items-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                  PDF
-                </button>
-              </div>
-            )}
-          </div>
-          <p className="mt-2 text-sm text-app-text-muted">
-            Last updated:{' '}
-            {lastUpdatedAt
-              ? new Intl.DateTimeFormat('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                  hour: 'numeric',
-                  minute: '2-digit',
-                }).format(lastUpdatedAt)
-              : 'Not yet loaded'}
-          </p>
-        </div>
-      </div>
-
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        {/* Date Filters */}
-        <div className="bg-app-surface rounded-lg shadow p-4 mb-6">
-          <div className="flex flex-wrap items-end gap-4">
-            <div>
-              <label htmlFor="start_date" className="block text-sm font-medium text-app-text-label">
-                Start Date
-              </label>
-              <input
-                type="date"
-                id="start_date"
-                value={dateRange.start_date}
-                onChange={(e) => setDateRange({ ...dateRange, start_date: e.target.value })}
-                className="mt-1 block w-full rounded-md border-app-input-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              />
-            </div>
-            <div>
-              <label htmlFor="end_date" className="block text-sm font-medium text-app-text-label">
-                End Date
-              </label>
-              <input
-                type="date"
-                id="end_date"
-                value={dateRange.end_date}
-                onChange={(e) => setDateRange({ ...dateRange, end_date: e.target.value })}
-                className="mt-1 block w-full rounded-md border-app-input-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={handleApplyFilters}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
-            >
-              Apply Filters
-            </button>
-            <button
-              type="button"
-              onClick={handleClearFilters}
-              className="px-4 py-2 bg-app-surface-muted text-app-text-muted rounded-md hover:bg-app-hover text-sm"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-
-        {/* Loading State */}
-        {summaryLoading && (
-          <div className="py-12" aria-live="polite">
-            <p className="text-center text-app-text-muted mb-6">Loading analytics...</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div key={`kpi-skeleton-${index}`} className="bg-app-surface rounded-lg shadow p-6">
-                  <div className="h-4 w-32 bg-app-surface-muted rounded animate-pulse mb-3" />
-                  <div className="h-8 w-24 bg-app-surface-muted rounded animate-pulse mb-2" />
-                  <div className="h-3 w-20 bg-app-surface-muted rounded animate-pulse" />
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-app-surface rounded-lg shadow p-6">
-                <div className="h-5 w-40 bg-app-surface-muted rounded animate-pulse mb-4" />
-                <div className="h-64 bg-app-surface-muted rounded animate-pulse" />
-              </div>
-              <div className="bg-app-surface rounded-lg shadow p-6">
-                <div className="h-5 w-40 bg-app-surface-muted rounded animate-pulse mb-4" />
-                <div className="h-64 bg-app-surface-muted rounded animate-pulse" />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-700">{error}</p>
-          </div>
-        )}
-
-        {/* Analytics Content */}
-        {!summaryLoading && summary && (
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+      <PageHeader
+        title="Analytics & Reports"
+        description={`Last updated: ${
+          lastUpdatedAt
+            ? new Intl.DateTimeFormat('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+              }).format(lastUpdatedAt)
+            : 'Not yet loaded'
+        }`}
+        actions={
           <>
-            {/* Key Metrics */}
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold text-app-text-heading mb-4">Key Performance Indicators</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <MetricCard
-                  title="Total Donations (YTD)"
-                  value={formatCurrency(summary.total_donations_ytd)}
-                  subtitle={`${summary.donation_count_ytd} donations`}
-                />
-                <MetricCard
-                  title="Average Donation"
-                  value={formatCurrency(summary.average_donation_ytd)}
-                />
-                <MetricCard
-                  title="Active Constituents"
-                  value={formatNumber(summary.active_accounts + summary.active_contacts)}
-                  subtitle={`${summary.active_accounts} accounts, ${summary.active_contacts} contacts`}
-                />
-                <MetricCard
-                  title="Volunteer Hours (YTD)"
-                  value={formatNumber(summary.total_volunteer_hours_ytd)}
-                  subtitle={`${summary.total_volunteers} active volunteers`}
-                />
-              </div>
-            </div>
+            <SecondaryButton onClick={() => navigate('/dashboard')}>← Back</SecondaryButton>
+            {summary && (
+              <>
+                <SecondaryButton onClick={() => exportAnalyticsSummaryToCSV(summary)}>CSV</SecondaryButton>
+                <SecondaryButton onClick={() => exportAnalyticsSummaryToPDF(summary)}>PDF</SecondaryButton>
+              </>
+            )}
+          </>
+        }
+      />
 
-            {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              {/* Engagement Pie Chart */}
+      <SectionCard title="Date Filters" subtitle="Apply a reporting period to all analytics modules.">
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <FormField
+              id="start_date"
+              type="date"
+              label="Start Date"
+              value={dateRange.start_date}
+              onChange={(event) =>
+                setDateRange({ ...dateRange, start_date: event.target.value })
+              }
+            />
+          </div>
+          <div>
+            <FormField
+              id="end_date"
+              type="date"
+              label="End Date"
+              value={dateRange.end_date}
+              onChange={(event) => setDateRange({ ...dateRange, end_date: event.target.value })}
+            />
+          </div>
+          <PrimaryButton onClick={handleApplyFilters}>Apply Filters</PrimaryButton>
+          <SecondaryButton onClick={handleClearFilters}>Clear</SecondaryButton>
+        </div>
+      </SectionCard>
+
+      {summaryLoading && (
+        <div className="space-y-4">
+          <LoadingState label="Loading analytics..." />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4" aria-busy="true">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={`kpi-skeleton-${index}`} className="rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface p-6">
+                <div className="mb-3 h-4 w-32 animate-pulse rounded bg-app-surface-muted" />
+                <div className="mb-2 h-8 w-24 animate-pulse rounded bg-app-surface-muted" />
+                <div className="h-3 w-20 animate-pulse rounded bg-app-surface-muted" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!summaryLoading && error && (
+        <ErrorState
+          message={error}
+          onRetry={() => {
+            dispatch(fetchAnalyticsSummary(filters));
+            dispatch(fetchDonationTrends(12));
+            dispatch(fetchVolunteerHoursTrends(12));
+            dispatch(fetchEventAttendanceTrends(12));
+            dispatch(fetchComparativeAnalytics(comparisonPeriod));
+          }}
+          retryLabel="Retry analytics"
+        />
+      )}
+
+      {!summaryLoading && !error && summary && (
+        <>
+          <SectionCard title="Key Performance Indicators">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <MetricCard
+                title="Total Donations (YTD)"
+                value={formatCurrency(summary.total_donations_ytd)}
+                subtitle={`${summary.donation_count_ytd} donations`}
+              />
+              <MetricCard
+                title="Average Donation"
+                value={formatCurrency(summary.average_donation_ytd)}
+              />
+              <MetricCard
+                title="Active Constituents"
+                value={formatNumber(summary.active_accounts + summary.active_contacts)}
+                subtitle={`${summary.active_accounts} accounts, ${summary.active_contacts} contacts`}
+              />
+              <MetricCard
+                title="Volunteer Hours (YTD)"
+                value={formatNumber(summary.total_volunteer_hours_ytd)}
+                subtitle={`${summary.total_volunteers} active volunteers`}
+              />
+            </div>
+          </SectionCard>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <SectionCard>
               <div className="relative">
                 <EngagementPieChart distribution={summary.engagement_distribution} />
                 <button
                   type="button"
                   onClick={() => exportEngagementToCSV(summary.engagement_distribution)}
-                  className="absolute top-4 right-4 p-2 text-app-text-subtle hover:text-app-text-muted hover:bg-app-surface-muted rounded"
+                  className="absolute right-2 top-2 rounded-[var(--ui-radius-sm)] border border-app-border px-2 py-1 text-xs text-app-text-muted hover:bg-app-hover"
                   title="Export Engagement Data (CSV)"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
+                  Export
                 </button>
               </div>
+            </SectionCard>
 
-              {/* Constituent Bar Chart */}
+            <SectionCard>
               <div className="relative">
                 <ConstituentBarChart
                   accounts={{ total: summary.total_accounts, active: summary.active_accounts }}
@@ -281,317 +246,275 @@ export default function Analytics() {
                       volunteerHours: summary.total_volunteer_hours_ytd,
                     })
                   }
-                  className="absolute top-4 right-4 p-2 text-app-text-subtle hover:text-app-text-muted hover:bg-app-surface-muted rounded"
+                  className="absolute right-2 top-2 rounded-[var(--ui-radius-sm)] border border-app-border px-2 py-1 text-xs text-app-text-muted hover:bg-app-hover"
                   title="Export Constituent Data (CSV)"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
+                  Export
                 </button>
               </div>
-            </div>
-
-            {/* Activity Summary Chart */}
-            <div className="mb-6">
-              <SummaryStatsChart
-                donations={summary.donation_count_ytd}
-                events={summary.total_events_ytd}
-                volunteerHours={summary.total_volunteer_hours_ytd}
-              />
-            </div>
-
-            {/* Trends Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <DonationTrendsChart data={donationTrends} loading={trendsLoading} />
-              <VolunteerTrendsChart data={volunteerHoursTrends} loading={trendsLoading} />
-            </div>
-
-            {/* Event Attendance Chart */}
-            <div className="mb-6">
-              <EventAttendanceTrendsChart data={eventAttendanceTrends} loading={trendsLoading} />
-            </div>
-
-            {/* Comparative Analytics Section */}
-            <div className="bg-app-surface rounded-lg shadow p-6 mb-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-medium text-app-text-heading">
-                  Period Comparison
-                  {comparativeAnalytics && (
-                    <span className="ml-2 text-sm font-normal text-app-text-muted">
-                      ({comparativeAnalytics.previous_period} vs {comparativeAnalytics.current_period})
-                    </span>
-                  )}
-                </h3>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setComparisonPeriod('month')}
-                    className={`px-3 py-1 text-sm rounded ${
-                      comparisonPeriod === 'month'
-                        ? 'bg-app-accent text-white'
-                        : 'bg-app-surface-muted text-app-text-muted hover:bg-app-surface-muted'
-                    }`}
-                  >
-                    Month
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setComparisonPeriod('quarter')}
-                    className={`px-3 py-1 text-sm rounded ${
-                      comparisonPeriod === 'quarter'
-                        ? 'bg-app-accent text-white'
-                        : 'bg-app-surface-muted text-app-text-muted hover:bg-app-surface-muted'
-                    }`}
-                  >
-                    Quarter
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setComparisonPeriod('year')}
-                    className={`px-3 py-1 text-sm rounded ${
-                      comparisonPeriod === 'year'
-                        ? 'bg-app-accent text-white'
-                        : 'bg-app-surface-muted text-app-text-muted hover:bg-app-surface-muted'
-                    }`}
-                  >
-                    Year
-                  </button>
-                </div>
-              </div>
-
-              {comparativeLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" aria-busy="true">
-                  {Array.from({ length: 6 }).map((_, index) => (
-                    <div key={`comparison-skeleton-${index}`} className="border border-app-border rounded-lg p-4">
-                      <div className="h-4 w-28 bg-app-surface-muted rounded animate-pulse mb-3" />
-                      <div className="h-7 w-24 bg-app-surface-muted rounded animate-pulse mb-2" />
-                      <div className="h-3 w-20 bg-app-surface-muted rounded animate-pulse" />
-                    </div>
-                  ))}
-                </div>
-              ) : comparativeAnalytics ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <ComparisonCard
-                    title="Total Donations"
-                    comparison={comparativeAnalytics.metrics.total_donations}
-                    format="currency"
-                  />
-                  <ComparisonCard
-                    title="Donation Count"
-                    comparison={comparativeAnalytics.metrics.donation_count}
-                    format="number"
-                  />
-                  <ComparisonCard
-                    title="Average Donation"
-                    comparison={comparativeAnalytics.metrics.average_donation}
-                    format="currency"
-                  />
-                  <ComparisonCard
-                    title="New Contacts"
-                    comparison={comparativeAnalytics.metrics.new_contacts}
-                    format="number"
-                  />
-                  <ComparisonCard
-                    title="Total Events"
-                    comparison={comparativeAnalytics.metrics.total_events}
-                    format="number"
-                  />
-                  <ComparisonCard
-                    title="Volunteer Hours"
-                    comparison={comparativeAnalytics.metrics.volunteer_hours}
-                    format="decimal"
-                  />
-                </div>
-              ) : (
-                <div className="text-center py-8 text-app-text-muted">
-                  <p>No comparison data available for this period.</p>
-                  <p className="text-sm mt-2">Try another period or broaden the date filter to include more activity.</p>
-                </div>
-              )}
-            </div>
-
-            {/* Detailed Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div className="bg-app-surface rounded-lg shadow p-6">
-                <h3 className="text-sm font-medium text-app-text-muted mb-4">Accounts</h3>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-2xl font-bold text-app-text-heading">{summary.total_accounts}</p>
-                    <p className="text-sm text-app-text-muted">Total</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-green-600">{summary.active_accounts}</p>
-                    <p className="text-sm text-app-text-muted">Active</p>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <div className="bg-app-surface-muted rounded-full h-2">
-                    <div
-                      className="bg-green-500 rounded-full h-2"
-                      style={{
-                        width:
-                          summary.total_accounts > 0
-                            ? `${(summary.active_accounts / summary.total_accounts) * 100}%`
-                            : '0%',
-                      }}
-                    />
-                  </div>
-                  <p className="text-xs text-app-text-muted mt-1">
-                    {summary.total_accounts > 0
-                      ? `${((summary.active_accounts / summary.total_accounts) * 100).toFixed(1)}% active`
-                      : 'No accounts'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-app-surface rounded-lg shadow p-6">
-                <h3 className="text-sm font-medium text-app-text-muted mb-4">Contacts</h3>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-2xl font-bold text-app-text-heading">{summary.total_contacts}</p>
-                    <p className="text-sm text-app-text-muted">Total</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-green-600">{summary.active_contacts}</p>
-                    <p className="text-sm text-app-text-muted">Active</p>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <div className="bg-app-surface-muted rounded-full h-2">
-                    <div
-                      className="bg-green-500 rounded-full h-2"
-                      style={{
-                        width:
-                          summary.total_contacts > 0
-                            ? `${(summary.active_contacts / summary.total_contacts) * 100}%`
-                            : '0%',
-                      }}
-                    />
-                  </div>
-                  <p className="text-xs text-app-text-muted mt-1">
-                    {summary.total_contacts > 0
-                      ? `${((summary.active_contacts / summary.total_contacts) * 100).toFixed(1)}% active`
-                      : 'No contacts'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-app-surface rounded-lg shadow p-6">
-                <h3 className="text-sm font-medium text-app-text-muted mb-4">Volunteers</h3>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-2xl font-bold text-app-text-heading">{summary.total_volunteers}</p>
-                    <p className="text-sm text-app-text-muted">Registered</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-app-accent">
-                      {formatNumber(summary.total_volunteer_hours_ytd)}
-                    </p>
-                    <p className="text-sm text-app-text-muted">Hours YTD</p>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <p className="text-xs text-app-text-muted">
-                    Avg{' '}
-                    {summary.total_volunteers > 0
-                      ? (summary.total_volunteer_hours_ytd / summary.total_volunteers).toFixed(1)
-                      : 0}{' '}
-                    hours per volunteer
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Events & Donations Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-app-surface rounded-lg shadow p-6">
-                <h3 className="text-lg font-medium text-app-text-heading mb-4">Events Summary</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center pb-3 border-b">
-                    <span className="text-app-text-muted">Total Events (YTD)</span>
-                    <span className="text-xl font-bold text-app-text">{summary.total_events_ytd}</span>
-                  </div>
-                  <p className="text-sm text-app-text-muted">
-                    View event details in the{' '}
-                    <button
-                      type="button"
-                      onClick={() => navigate('/events')}
-                      className="text-indigo-600 hover:text-indigo-800"
-                    >
-                      Events module
-                    </button>
-                  </p>
-                  {summary.total_events_ytd === 0 && (
-                    <p className="text-sm text-app-text-muted">
-                      No events in this range. Try creating an event or clearing date filters.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-app-surface rounded-lg shadow p-6">
-                <h3 className="text-lg font-medium text-app-text-heading mb-4">Donations Summary</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center pb-3 border-b">
-                    <span className="text-app-text-muted">Total Amount (YTD)</span>
-                    <span className="text-xl font-bold text-green-600">
-                      {formatCurrency(summary.total_donations_ytd)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center pb-3 border-b">
-                    <span className="text-app-text-muted">Number of Donations</span>
-                    <span className="font-medium text-app-text">{summary.donation_count_ytd}</span>
-                  </div>
-                  <div className="flex justify-between items-center pb-3 border-b">
-                    <span className="text-app-text-muted">Average Donation</span>
-                    <span className="font-medium text-app-text">
-                      {formatCurrency(summary.average_donation_ytd)}
-                    </span>
-                  </div>
-                  <p className="text-sm text-app-text-muted">
-                    View donation details in the{' '}
-                    <button
-                      type="button"
-                      onClick={() => navigate('/donations')}
-                      className="text-indigo-600 hover:text-indigo-800"
-                    >
-                      Donations module
-                    </button>
-                  </p>
-                  {summary.donation_count_ytd === 0 && (
-                    <p className="text-sm text-app-text-muted">
-                      No donations in this range. Try recording a donation or widening the date range.
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Empty State */}
-        {!summaryLoading && !error && !summary && (
-          <div className="text-center py-12">
-            <p className="text-app-text-muted">No analytics data available for this date range.</p>
-            <div className="mt-4 flex flex-wrap justify-center gap-3">
-              <button
-                type="button"
-                onClick={handleClearFilters}
-                className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover text-sm"
-              >
-                Clear Filters
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/donations/new')}
-                className="px-4 py-2 bg-app-surface-muted text-app-text-muted rounded-md hover:bg-app-hover text-sm"
-              >
-                Add Donation
-              </button>
-            </div>
+            </SectionCard>
           </div>
-        )}
-      </main>
+
+          <SectionCard>
+            <SummaryStatsChart
+              donations={summary.donation_count_ytd}
+              events={summary.total_events_ytd}
+              volunteerHours={summary.total_volunteer_hours_ytd}
+            />
+          </SectionCard>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <SectionCard>
+              <DonationTrendsChart data={donationTrends} loading={trendsLoading} />
+            </SectionCard>
+            <SectionCard>
+              <VolunteerTrendsChart data={volunteerHoursTrends} loading={trendsLoading} />
+            </SectionCard>
+          </div>
+
+          <SectionCard>
+            <EventAttendanceTrendsChart data={eventAttendanceTrends} loading={trendsLoading} />
+          </SectionCard>
+
+          <SectionCard
+            title="Period Comparison"
+            subtitle={
+              comparativeAnalytics
+                ? `(${comparativeAnalytics.previous_period} vs ${comparativeAnalytics.current_period})`
+                : undefined
+            }
+            actions={
+              <div className="flex gap-2">
+                <SecondaryButton
+                  className={comparisonPeriod === 'month' ? 'border-app-accent bg-app-accent-soft text-app-accent-text' : ''}
+                  onClick={() => setComparisonPeriod('month')}
+                >
+                  Month
+                </SecondaryButton>
+                <SecondaryButton
+                  className={comparisonPeriod === 'quarter' ? 'border-app-accent bg-app-accent-soft text-app-accent-text' : ''}
+                  onClick={() => setComparisonPeriod('quarter')}
+                >
+                  Quarter
+                </SecondaryButton>
+                <SecondaryButton
+                  className={comparisonPeriod === 'year' ? 'border-app-accent bg-app-accent-soft text-app-accent-text' : ''}
+                  onClick={() => setComparisonPeriod('year')}
+                >
+                  Year
+                </SecondaryButton>
+              </div>
+            }
+          >
+            {comparativeLoading ? (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3" aria-busy="true">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <div key={`comparison-skeleton-${index}`} className="rounded-[var(--ui-radius-md)] border border-app-border-muted p-4">
+                    <div className="mb-3 h-4 w-28 animate-pulse rounded bg-app-surface-muted" />
+                    <div className="mb-2 h-7 w-24 animate-pulse rounded bg-app-surface-muted" />
+                    <div className="h-3 w-20 animate-pulse rounded bg-app-surface-muted" />
+                  </div>
+                ))}
+              </div>
+            ) : comparativeAnalytics ? (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <ComparisonCard
+                  title="Total Donations"
+                  comparison={comparativeAnalytics.metrics.total_donations}
+                  format="currency"
+                />
+                <ComparisonCard
+                  title="Donation Count"
+                  comparison={comparativeAnalytics.metrics.donation_count}
+                  format="number"
+                />
+                <ComparisonCard
+                  title="Average Donation"
+                  comparison={comparativeAnalytics.metrics.average_donation}
+                  format="currency"
+                />
+                <ComparisonCard
+                  title="New Contacts"
+                  comparison={comparativeAnalytics.metrics.new_contacts}
+                  format="number"
+                />
+                <ComparisonCard
+                  title="Total Events"
+                  comparison={comparativeAnalytics.metrics.total_events}
+                  format="number"
+                />
+                <ComparisonCard
+                  title="Volunteer Hours"
+                  comparison={comparativeAnalytics.metrics.volunteer_hours}
+                  format="decimal"
+                />
+              </div>
+            ) : (
+              <EmptyState
+                title="No comparison data available"
+                description="Try another period or widen the date range to include more activity."
+              />
+            )}
+          </SectionCard>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <SectionCard title="Accounts">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-semibold text-app-text-heading">{summary.total_accounts}</p>
+                  <p className="text-sm text-app-text-muted">Total</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-semibold text-app-accent">{summary.active_accounts}</p>
+                  <p className="text-sm text-app-text-muted">Active</p>
+                </div>
+              </div>
+              <div className="mt-4">
+                <div className="h-2 rounded-full bg-app-surface-muted">
+                  <div
+                    className={`h-2 rounded-full bg-app-accent transition-all ${getProgressWidthClass(
+                      summary.total_accounts > 0
+                        ? (summary.active_accounts / summary.total_accounts) * 100
+                        : 0
+                    )}`}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-app-text-muted">
+                  {summary.total_accounts > 0
+                    ? `${((summary.active_accounts / summary.total_accounts) * 100).toFixed(1)}% active`
+                    : 'No accounts'}
+                </p>
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Contacts">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-semibold text-app-text-heading">{summary.total_contacts}</p>
+                  <p className="text-sm text-app-text-muted">Total</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-semibold text-app-accent">{summary.active_contacts}</p>
+                  <p className="text-sm text-app-text-muted">Active</p>
+                </div>
+              </div>
+              <div className="mt-4">
+                <div className="h-2 rounded-full bg-app-surface-muted">
+                  <div
+                    className={`h-2 rounded-full bg-app-accent transition-all ${getProgressWidthClass(
+                      summary.total_contacts > 0
+                        ? (summary.active_contacts / summary.total_contacts) * 100
+                        : 0
+                    )}`}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-app-text-muted">
+                  {summary.total_contacts > 0
+                    ? `${((summary.active_contacts / summary.total_contacts) * 100).toFixed(1)}% active`
+                    : 'No contacts'}
+                </p>
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Volunteers">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-semibold text-app-text-heading">{summary.total_volunteers}</p>
+                  <p className="text-sm text-app-text-muted">Registered</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-semibold text-app-accent">
+                    {formatNumber(summary.total_volunteer_hours_ytd)}
+                  </p>
+                  <p className="text-sm text-app-text-muted">Hours YTD</p>
+                </div>
+              </div>
+              <p className="mt-4 text-xs text-app-text-muted">
+                Avg{' '}
+                {summary.total_volunteers > 0
+                  ? (summary.total_volunteer_hours_ytd / summary.total_volunteers).toFixed(1)
+                  : 0}{' '}
+                hours per volunteer
+              </p>
+            </SectionCard>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <SectionCard title="Events Summary">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-app-border-muted pb-3">
+                  <span className="text-app-text-muted">Total Events (YTD)</span>
+                  <span className="text-xl font-semibold text-app-text">{summary.total_events_ytd}</span>
+                </div>
+                <p className="text-sm text-app-text-muted">
+                  View event details in the{' '}
+                  <button
+                    type="button"
+                    onClick={() => navigate('/events')}
+                    className="font-semibold text-app-accent hover:underline"
+                  >
+                    Events module
+                  </button>
+                </p>
+                {summary.total_events_ytd === 0 && (
+                  <p className="text-sm text-app-text-muted">
+                    No events in this range. Try creating an event or clearing date filters.
+                  </p>
+                )}
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Donations Summary">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-app-border-muted pb-3">
+                  <span className="text-app-text-muted">Total Amount (YTD)</span>
+                  <span className="text-xl font-semibold text-app-accent">
+                    {formatCurrency(summary.total_donations_ytd)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between border-b border-app-border-muted pb-3">
+                  <span className="text-app-text-muted">Number of Donations</span>
+                  <span className="font-medium text-app-text">{summary.donation_count_ytd}</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-app-border-muted pb-3">
+                  <span className="text-app-text-muted">Average Donation</span>
+                  <span className="font-medium text-app-text">
+                    {formatCurrency(summary.average_donation_ytd)}
+                  </span>
+                </div>
+                <p className="text-sm text-app-text-muted">
+                  View donation details in the{' '}
+                  <button
+                    type="button"
+                    onClick={() => navigate('/donations')}
+                    className="font-semibold text-app-accent hover:underline"
+                  >
+                    Donations module
+                  </button>
+                </p>
+                {summary.donation_count_ytd === 0 && (
+                  <p className="text-sm text-app-text-muted">
+                    No donations in this range. Try recording a donation or widening the date range.
+                  </p>
+                )}
+              </div>
+            </SectionCard>
+          </div>
+        </>
+      )}
+
+      {!summaryLoading && !error && !summary && (
+        <EmptyState
+          title="No analytics data available"
+          description="No data is available for the current filters."
+          action={
+            <div className="flex flex-wrap gap-2">
+              <PrimaryButton onClick={handleClearFilters}>Clear Filters</PrimaryButton>
+              <SecondaryButton onClick={() => navigate('/donations/new')}>Add Donation</SecondaryButton>
+            </div>
+          }
+        />
+      )}
     </div>
   );
 }

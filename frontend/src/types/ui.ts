@@ -1,6 +1,8 @@
 export interface UiAction {
   label: string;
   onClick: () => void;
+  disabled?: boolean;
+  ariaLabel?: string;
 }
 
 export interface UiStateProps {
@@ -11,3 +13,10 @@ export interface UiStateProps {
   primaryAction?: UiAction;
 }
 
+export interface PageContract {
+  title: string;
+  description?: string;
+  primaryAction?: UiAction;
+  loading?: boolean;
+  error?: string | null;
+}

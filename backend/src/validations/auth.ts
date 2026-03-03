@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { emailSchema, passwordSchema, weakPasswordSchema, nameSchema } from './shared';
+import { emailSchema, passwordSchema, weakPasswordSchema, nameSchema, uuidSchema } from './shared';
 
 // Login request
 export const loginSchema = z.object({
@@ -52,6 +52,15 @@ export const passwordResetConfirmSchema = z.object({
 );
 
 export type PasswordResetConfirmInput = z.infer<typeof passwordResetConfirmSchema>;
+
+export const passwordResetTokenParamsSchema = z.object({
+  token: z
+    .string()
+    .trim()
+    .regex(/^[a-fA-F0-9]{64}$/, 'Invalid reset token format'),
+});
+
+export type PasswordResetTokenParamsInput = z.infer<typeof passwordResetTokenParamsSchema>;
 
 // Change password
 export const changePasswordSchema = z.object({
@@ -128,6 +137,23 @@ export const passkeyLoginVerifySchema = z.object({
 });
 
 export type PasskeyLoginVerifyInput = z.infer<typeof passkeyLoginVerifySchema>;
+
+export const passkeyIdParamsSchema = z.object({
+  id: uuidSchema,
+});
+
+export type PasskeyIdParamsInput = z.infer<typeof passkeyIdParamsSchema>;
+
+export const preferenceKeyParamsSchema = z.object({
+  key: z
+    .string()
+    .trim()
+    .min(1, 'Preference key is required')
+    .max(128, 'Preference key is too long')
+    .regex(/^[a-zA-Z0-9_.-]+$/, 'Invalid preference key format'),
+});
+
+export type PreferenceKeyParamsInput = z.infer<typeof preferenceKeyParamsSchema>;
 
 // First User Setup (during initial system setup)
 export const setupFirstUserSchema = z.object({

@@ -73,7 +73,7 @@ export default function LinkingModule() {
                     </div>
                     <button
                         onClick={handleNewItem}
-                        className="px-6 py-2 bg-[var(--loop-cyan)] text-black border-2 border-black dark:border-white shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-cyan-400 font-bold uppercase"
+                        className="px-6 py-2 bg-[var(--loop-cyan)] text-black border-2 border-black dark:border-white shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-app-accent-soft font-bold uppercase"
                     >
                         + NEW ITEM
                     </button>

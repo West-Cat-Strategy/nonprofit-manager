@@ -221,8 +221,8 @@ export default function PeopleDirectory() {
         return (
             <NeoBrutalistLayout pageTitle="DIRECTORY">
                 <div className="p-6">
-                    <div className="bg-red-100 border-2 border-red-500 p-6 text-center shadow-[4px_4px_0px_0px_var(--shadow-color)]">
-                        <h2 className="text-2xl font-black text-red-600 mb-2 uppercase">Directory Unavailable</h2>
+                    <div className="bg-app-accent-soft border-2 border-app-border p-6 text-center shadow-[4px_4px_0px_0px_var(--shadow-color)]">
+                        <h2 className="text-2xl font-black text-app-accent mb-2 uppercase">Directory Unavailable</h2>
                         <p className="font-bold">
                             {isRateLimited
                                 ? `Rate limit reached. Try again in about ${waitSeconds} seconds.`
@@ -231,7 +231,7 @@ export default function PeopleDirectory() {
                         <button
                             onClick={() => refresh(activeTab, searchTerm)}
                             disabled={isRateLimited}
-                            className="mt-4 px-6 py-2 bg-red-500 text-white font-bold border-2 border-black hover:bg-red-600 uppercase disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="mt-4 px-6 py-2 bg-app-accent text-white font-bold border-2 border-black hover:bg-app-accent uppercase disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Retry
                         </button>
@@ -263,7 +263,7 @@ export default function PeopleDirectory() {
                     </div>
                     <button
                         onClick={handleNewPerson}
-                        className="px-6 py-2 bg-[var(--loop-cyan)] text-black border-2 border-black dark:border-white shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-cyan-400 font-bold uppercase"
+                        className="px-6 py-2 bg-[var(--loop-cyan)] text-black border-2 border-black dark:border-white shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-app-accent-soft font-bold uppercase"
                     >
                         + NEW ITEM
                     </button>

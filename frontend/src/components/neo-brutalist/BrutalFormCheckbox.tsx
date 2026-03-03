@@ -28,7 +28,7 @@ export const BrutalFormCheckbox = React.forwardRef<
         {label && (
           <span
             className={`text-sm font-medium text-app-text leading-relaxed ${
-              error ? 'text-red-600 font-bold' : ''
+              error ? 'text-app-accent font-bold' : ''
             }`}
           >
             {label}
@@ -36,7 +36,7 @@ export const BrutalFormCheckbox = React.forwardRef<
         )}
       </label>
       {error && (
-        <p className="text-xs font-bold text-red-600 ml-7">{error}</p>
+        <p className="text-xs font-bold text-app-accent ml-7">{error}</p>
       )}
       {hint && !error && (
         <p className="text-xs text-app-text-muted ml-7">{hint}</p>

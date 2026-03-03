@@ -20,18 +20,28 @@ import {
   updatePortalAdminAppointmentSlot,
   deletePortalAdminAppointmentSlot,
   updatePortalAdminAppointmentStatus,
+  listPortalAdminAppointments,
+  getPortalAdminAppointmentReminders,
+  sendPortalAdminAppointmentReminders,
+  checkInPortalAdminAppointment,
+  streamPortalAdminRealtime,
 } from '@controllers/domains/portal';
 import {
+  portalAdminAppointmentsQuerySchema,
   portalAdminAppointmentStatusSchema,
   portalAdminConversationQuerySchema,
   portalAdminCreateInvitationSchema,
+  portalAdminReminderSendSchema,
   portalAdminRejectRequestSchema,
   portalAdminResetPasswordSchema,
   portalAdminSlotQuerySchema,
   portalAdminSlotCreateSchema,
   portalAdminSlotPatchSchema,
+  portalAdminRealtimeStreamQuerySchema,
   portalAdminThreadMessageSchema,
+  portalAdminUserActivityQuerySchema,
   portalAdminUserPatchSchema,
+  portalAdminUsersQuerySchema,
   portalThreadParamsSchema,
   portalThreadUpdateSchema,
   portalUuidParamsSchema,
@@ -42,6 +52,7 @@ import {
 const router = Router();
 
 router.use(authenticate);
+router.get('/stream', validateQuery(portalAdminRealtimeStreamQuerySchema), streamPortalAdminRealtime);
 
 router.get('/requests', listPortalSignupRequests);
 router.post('/requests/:id/approve', validateParams(portalUuidParamsSchema), approvePortalSignupRequest);
@@ -55,9 +66,14 @@ router.post(
 router.get('/invitations', listPortalInvitations);
 router.post('/invitations', validateBody(portalAdminCreateInvitationSchema), createPortalInvitation);
 
-router.get('/users', listPortalUsers);
+router.get('/users', validateQuery(portalAdminUsersQuerySchema), listPortalUsers);
 router.patch('/users/:id', validateParams(portalUuidParamsSchema), validateBody(portalAdminUserPatchSchema), updatePortalUserStatus);
-router.get('/users/:id/activity', validateParams(portalUuidParamsSchema), getPortalUserActivity);
+router.get(
+  '/users/:id/activity',
+  validateParams(portalUuidParamsSchema),
+  validateQuery(portalAdminUserActivityQuerySchema),
+  getPortalUserActivity
+);
 router.post('/reset-password', validateBody(portalAdminResetPasswordSchema), resetPortalUserPassword);
 
 router.get('/conversations', validateQuery(portalAdminConversationQuerySchema), listPortalAdminConversations);
@@ -85,6 +101,15 @@ router.patch(
 );
 router.delete('/appointment-slots/:slotId', validateParams(portalSlotParamsSchema), deletePortalAdminAppointmentSlot);
 
+router.get('/appointments', validateQuery(portalAdminAppointmentsQuerySchema), listPortalAdminAppointments);
+router.get('/appointments/:id/reminders', validateParams(portalAppointmentParamsSchema), getPortalAdminAppointmentReminders);
+router.post(
+  '/appointments/:id/reminders/send',
+  validateParams(portalAppointmentParamsSchema),
+  validateBody(portalAdminReminderSendSchema),
+  sendPortalAdminAppointmentReminders
+);
+router.post('/appointments/:id/check-in', validateParams(portalAppointmentParamsSchema), checkInPortalAdminAppointment);
 router.patch(
   '/appointments/:id/status',
   validateParams(portalAppointmentParamsSchema),

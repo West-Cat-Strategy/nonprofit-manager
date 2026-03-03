@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { casesApiClient } from '../features/cases/api/casesApiClient';
 import { useToast } from '../contexts/useToast';
+import ConfirmDialog from './ConfirmDialog';
+import useConfirmDialog, { confirmPresets } from '../hooks/useConfirmDialog';
 import type { CaseDocument, UpdateCaseDocumentDTO } from '../types/case';
 
 interface CaseDocumentsProps {
@@ -71,6 +73,7 @@ const canInlinePreview = (mimeType?: string | null): boolean =>
 
 const CaseDocuments = ({ caseId, onChanged }: CaseDocumentsProps) => {
   const { showSuccess, showError } = useToast();
+  const { dialogState, confirm, handleCancel, handleConfirm } = useConfirmDialog();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [documents, setDocuments] = useState<CaseDocument[]>([]);
@@ -201,7 +204,7 @@ const CaseDocuments = ({ caseId, onChanged }: CaseDocumentsProps) => {
   };
 
   const deleteDocument = async (documentId: string) => {
-    const confirmed = window.confirm('Delete this document?');
+    const confirmed = await confirm(confirmPresets.delete('Document'));
     if (!confirmed) return;
 
     try {
@@ -292,7 +295,7 @@ const CaseDocuments = ({ caseId, onChanged }: CaseDocumentsProps) => {
           />
           Visible to client
         </label>
-        {uploadError && <p className="mt-2 text-sm text-red-700">{uploadError}</p>}
+        {uploadError && <p className="mt-2 text-sm text-app-accent-text">{uploadError}</p>}
         <div className="mt-3 flex justify-end">
           <button
             type="submit"
@@ -396,7 +399,7 @@ const CaseDocuments = ({ caseId, onChanged }: CaseDocumentsProps) => {
                         {new Date(doc.created_at || doc.uploaded_at || Date.now()).toLocaleString()}
                       </p>
                       {doc.visible_to_client ? (
-                        <span className="mt-1 inline-flex rounded bg-green-100 px-2 py-0.5 text-xs text-green-800">
+                        <span className="mt-1 inline-flex rounded bg-app-accent-soft px-2 py-0.5 text-xs text-app-accent-text">
                           Client visible
                         </span>
                       ) : (
@@ -432,7 +435,7 @@ const CaseDocuments = ({ caseId, onChanged }: CaseDocumentsProps) => {
                       </button>
                       <button
                         type="button"
-                        className="rounded border border-red-300 px-2 py-1 text-xs text-red-700"
+                        className="rounded border border-app-border px-2 py-1 text-xs text-app-accent-text"
                         onClick={() => void deleteDocument(doc.id)}
                       >
                         Delete
@@ -445,9 +448,9 @@ const CaseDocuments = ({ caseId, onChanged }: CaseDocumentsProps) => {
           })}
         </div>
       )}
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 };
 
 export default CaseDocuments;
-

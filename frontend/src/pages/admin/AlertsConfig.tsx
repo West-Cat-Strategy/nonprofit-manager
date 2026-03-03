@@ -56,8 +56,8 @@ const AlertsConfig = () => {
     const colors = {
       low: 'text-app-text-muted bg-app-surface-muted',
       medium: 'text-app-accent bg-app-accent-soft',
-      high: 'text-orange-600 bg-orange-100',
-      critical: 'text-red-600 bg-red-100',
+      high: 'text-app-accent bg-app-accent-soft',
+      critical: 'text-app-accent bg-app-accent-soft',
     };
     return colors[severity as keyof typeof colors] || colors.low;
   };
@@ -112,11 +112,11 @@ const AlertsConfig = () => {
           </div>
           <div className="bg-app-surface rounded-lg shadow-sm border border-app-border p-4">
             <p className="text-sm text-app-text-muted">Active Alerts</p>
-            <p className="text-2xl font-bold text-green-600">{stats.active_alerts}</p>
+            <p className="text-2xl font-bold text-app-accent">{stats.active_alerts}</p>
           </div>
           <div className="bg-app-surface rounded-lg shadow-sm border border-app-border p-4">
             <p className="text-sm text-app-text-muted">Triggered Today</p>
-            <p className="text-2xl font-bold text-orange-600">{stats.triggered_today}</p>
+            <p className="text-2xl font-bold text-app-accent">{stats.triggered_today}</p>
           </div>
           <div className="bg-app-surface rounded-lg shadow-sm border border-app-border p-4">
             <p className="text-sm text-app-text-muted">This Week</p>
@@ -187,7 +187,7 @@ const AlertsConfig = () => {
                         {config.severity}
                       </span>
                       <span className={`px-2 py-1 text-xs font-medium rounded ${
-                        config.enabled ? 'bg-green-100 text-green-700' : 'bg-app-surface-muted text-app-text-muted'
+                        config.enabled ? 'bg-app-accent-soft text-app-accent-text' : 'bg-app-surface-muted text-app-text-muted'
                       }`}>
                         {config.enabled ? 'Active' : 'Paused'}
                       </span>
@@ -281,7 +281,7 @@ const AlertsConfig = () => {
                           handleDelete(config.id);
                         }
                       }}
-                      className="p-2 text-app-text-subtle hover:text-red-600 transition-colors"
+                      className="p-2 text-app-text-subtle hover:text-app-accent transition-colors"
                       title="Delete alert"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

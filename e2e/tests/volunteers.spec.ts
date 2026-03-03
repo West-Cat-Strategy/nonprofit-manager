@@ -1,11 +1,7 @@
 import { test, expect } from '../fixtures/auth.fixture';
-import { createTestVolunteer, clearDatabase } from '../helpers/database';
+import { createTestVolunteer } from '../helpers/database';
 
 test.describe('Volunteers Module', () => {
-    test.beforeEach(async ({ authenticatedPage, authToken }) => {
-        await clearDatabase(authenticatedPage, authToken);
-    });
-
     test('should display volunteers list page', async ({ authenticatedPage }) => {
         await authenticatedPage.goto('/volunteers');
 
@@ -43,7 +39,7 @@ test.describe('Volunteers Module', () => {
         await authenticatedPage.getByLabel(/background check status/i).selectOption('pending');
 
         const createVolunteerResponsePromise = authenticatedPage.waitForResponse((response) => {
-            return response.url().includes('/api/volunteers') && response.request().method() === 'POST';
+            return response.url().includes('/api/v2/volunteers') && response.request().method() === 'POST';
         });
         await authenticatedPage.getByRole('button', { name: /create volunteer/i }).click();
         const createVolunteerResponse = await createVolunteerResponsePromise;

@@ -14,7 +14,7 @@ export async function registerTestUser(app: Express, prefix = 'itest'): Promise<
   const password = 'StrongPassword123!';
 
   const response = await request(app)
-    .post('/api/auth/register')
+    .post('/api/v2/auth/register')
     .send({
       email,
       password,

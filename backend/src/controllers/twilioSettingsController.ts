@@ -10,6 +10,7 @@ import { logger } from '@config/logger';
 import { forbidden } from '@utils/responseHelpers';
 import * as twilioSettingsService from '@services/twilioSettingsService';
 import { testTwilioConnection } from '@services/twilioSmsService';
+import { sendSuccess } from '@modules/shared/http/envelope';
 
 const normalizeOptionalString = (value: unknown): string | null | undefined => {
   if (value === undefined) return undefined;
@@ -37,7 +38,7 @@ export const getTwilioSettings = async (
       twilioSettingsService.hasStoredCredentials(),
     ]);
 
-    return res.json({
+    return sendSuccess(res, {
       data: settings,
       credentials, // { authToken: true/false }
     });
@@ -71,7 +72,7 @@ export const updateTwilioSettings = async (
       req.user.id
     );
 
-    return res.json({ data: updated, message: 'Twilio settings updated' });
+    return sendSuccess(res, { data: updated, message: 'Twilio settings updated' });
   } catch (error) {
     logger.error('Error updating Twilio settings', { error });
     next(error);
@@ -94,7 +95,7 @@ export const testTwilioSettings = async (
 
     const result = await testTwilioConnection();
 
-    return res.json({
+    return sendSuccess(res, {
       data: result,
       message: result.success ? 'Twilio connection successful' : 'Twilio connection failed',
     });

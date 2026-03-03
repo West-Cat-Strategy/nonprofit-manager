@@ -207,7 +207,7 @@ The preview system allows you to see exactly how a template will look before pub
 
 1. **Backend Preview Generation**:
    ```
-   GET /api/templates/:templateId/preview?page=home
+   GET /api/v2/templates/:templateId/preview?page=home
    ```
    - Fetches template and page data
    - Converts to published format
@@ -316,7 +316,7 @@ The drag-and-drop page editor allows visual customization of templates.
 
 2. **Publish Site**:
    ```
-   POST /api/sites/publish
+   POST /api/v2/sites/publish
    {
      "templateId": "uuid",
      "name": "My Nonprofit Site",
@@ -334,7 +334,7 @@ Add your own domain:
 
 1. **Add Domain**:
    ```
-   POST /api/sites/:siteId/domain
+   POST /api/v2/sites/:siteId/domain
    {
      "customDomain": "www.mynonprofit.org"
    }
@@ -346,7 +346,7 @@ Add your own domain:
 
 3. **Verify Domain**:
    ```
-   POST /api/sites/:siteId/domain/verify
+   POST /api/v2/sites/:siteId/domain/verify
    ```
 
 4. **Provision SSL**:
@@ -358,13 +358,13 @@ Add your own domain:
 Roll back to previous versions:
 
 ```
-POST /api/sites/:siteId/versions/:versionId/rollback
+POST /api/v2/sites/:siteId/versions/:versionId/rollback
 ```
 
 View version history:
 
 ```
-GET /api/sites/:siteId/versions
+GET /api/v2/sites/:siteId/versions
 ```
 
 ---
@@ -375,7 +375,7 @@ GET /api/sites/:siteId/versions
 
 #### List Templates
 ```http
-GET /api/templates
+GET /api/v2/templates
 Query Parameters:
   - search: string
   - category: TemplateCategory
@@ -388,12 +388,12 @@ Query Parameters:
 
 #### Get Template
 ```http
-GET /api/templates/:templateId
+GET /api/v2/templates/:templateId
 ```
 
 #### Create Template
 ```http
-POST /api/templates
+POST /api/v2/templates
 Body: {
   name: string;
   description?: string;
@@ -407,49 +407,49 @@ Body: {
 
 #### Update Template
 ```http
-PUT /api/templates/:templateId
+PUT /api/v2/templates/:templateId
 Body: Partial<Template>
 ```
 
 #### Delete Template
 ```http
-DELETE /api/templates/:templateId
+DELETE /api/v2/templates/:templateId
 ```
 
 #### Duplicate Template
 ```http
-POST /api/templates/:templateId/duplicate
+POST /api/v2/templates/:templateId/duplicate
 Body: { name?: string }
 ```
 
 #### Preview Template
 ```http
-GET /api/templates/:templateId/preview?page=home
+GET /api/v2/templates/:templateId/preview?page=home
 Returns: HTML string
 ```
 
 #### Get System Templates
 ```http
-GET /api/templates/system
+GET /api/v2/templates/system
 ```
 
 #### Theme Presets
 ```http
-GET /api/templates/palettes
-GET /api/templates/fonts
+GET /api/v2/templates/palettes
+GET /api/v2/templates/fonts
 ```
 
 #### Template Theme CSS Variables
 ```http
-GET /api/templates/:templateId/css
+GET /api/v2/templates/:templateId/css
 ```
 
 #### Apply Palette / Font Pairing
 ```http
-POST /api/templates/:templateId/apply-palette
+POST /api/v2/templates/:templateId/apply-palette
 Body: { paletteId: string }
 
-POST /api/templates/:templateId/apply-font
+POST /api/v2/templates/:templateId/apply-font
 Body: { fontPairingId: string }
 ```
 
@@ -457,17 +457,17 @@ Body: { fontPairingId: string }
 
 #### List Pages
 ```http
-GET /api/templates/:templateId/pages
+GET /api/v2/templates/:templateId/pages
 ```
 
 #### Get Page
 ```http
-GET /api/templates/:templateId/pages/:pageId
+GET /api/v2/templates/:templateId/pages/:pageId
 ```
 
 #### Create Page
 ```http
-POST /api/templates/:templateId/pages
+POST /api/v2/templates/:templateId/pages
 Body: {
   name: string;
   slug: string;
@@ -479,18 +479,18 @@ Body: {
 
 #### Update Page
 ```http
-PUT /api/templates/:templateId/pages/:pageId
+PUT /api/v2/templates/:templateId/pages/:pageId
 Body: Partial<TemplatePage>
 ```
 
 #### Delete Page
 ```http
-DELETE /api/templates/:templateId/pages/:pageId
+DELETE /api/v2/templates/:templateId/pages/:pageId
 ```
 
 #### Reorder Pages
 ```http
-PUT /api/templates/:templateId/pages/reorder
+PUT /api/v2/templates/:templateId/pages/reorder
 Body: { pageIds: string[] }
 ```
 
@@ -498,18 +498,18 @@ Body: { pageIds: string[] }
 
 #### Get Versions
 ```http
-GET /api/templates/:templateId/versions
+GET /api/v2/templates/:templateId/versions
 ```
 
 #### Create Version
 ```http
-POST /api/templates/:templateId/versions
+POST /api/v2/templates/:templateId/versions
 Body: { changes?: string }
 ```
 
 #### Restore Version
 ```http
-POST /api/templates/:templateId/versions/:versionId/restore
+POST /api/v2/templates/:templateId/versions/:versionId/restore
 ```
 
 ---

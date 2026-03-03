@@ -180,10 +180,19 @@ export const getAlertInstances = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const query = ((req as any).validatedQuery ?? req.query) as {
+      status?: string;
+      severity?: string;
+      limit?: number | string;
+    };
+    const parsedLimit =
+      typeof query.limit === 'number'
+        ? query.limit
+        : parseInt(String(query.limit ?? ''), 10);
     const filters = {
-      status: req.query.status as string | undefined,
-      severity: req.query.severity as string | undefined,
-      limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+      status: query.status,
+      severity: query.severity,
+      limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
     };
 
     const instances = await alertService.getAlertInstances(filters);

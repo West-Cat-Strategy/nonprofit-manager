@@ -1,8 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import portalApi from '../services/portalApi';
 import { unwrapApiData } from '../services/apiEnvelope';
 import { useToast } from '../contexts/useToast';
 import PortalPageState from '../components/portal/PortalPageState';
+import PortalPageShell from '../components/portal/PortalPageShell';
+import PortalListCard from '../components/portal/PortalListCard';
+import { usePersistentPortalCaseContext } from '../hooks/usePersistentPortalCaseContext';
+import usePortalMessageThreads from '../features/portal/client/usePortalMessageThreads';
+import type { PortalStreamStatus } from '../features/portal/client/types';
 
 interface PortalCaseContext {
   case_id: string;
@@ -49,79 +54,153 @@ interface ThreadDetailResponse {
   messages: MessageEntry[];
 }
 
+type ThreadStatusFilter = 'all' | 'open' | 'closed' | 'archived';
+type ThreadCaseFilter = 'all' | 'selected';
+
 const formatTimestamp = (value: string): string => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 };
 
+const getStreamStatusBadge = (status: PortalStreamStatus): { label: string; className: string } => {
+  if (status === 'connected') {
+    return {
+      label: 'Live updates on',
+      className: 'bg-app-accent-soft text-app-accent-text',
+    };
+  }
+
+  if (status === 'connecting') {
+    return {
+      label: 'Connecting live updates...',
+      className: 'bg-app-surface-muted text-app-text-muted',
+    };
+  }
+
+  if (status === 'error') {
+    return {
+      label: 'Live updates unavailable (polling)',
+      className: 'bg-app-accent-soft text-app-accent-text',
+    };
+  }
+
+  return {
+    label: 'Live updates disabled (polling)',
+    className: 'bg-app-surface-muted text-app-text-muted',
+  };
+};
+
 export default function PortalMessages() {
   const { showSuccess, showError } = useToast();
   const [context, setContext] = useState<PointpersonContextPayload | null>(null);
-  const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [activeThread, setActiveThread] = useState<ThreadDetailResponse | null>(null);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [threadsLoading, setThreadsLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [replying, setReplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedCaseId, setSelectedCaseId] = useState<string>('');
   const [newSubject, setNewSubject] = useState('');
   const [newMessage, setNewMessage] = useState('');
   const [replyMessage, setReplyMessage] = useState('');
+  const [threadSearch, setThreadSearch] = useState('');
+  const [threadStatusFilter, setThreadStatusFilter] = useState<ThreadStatusFilter>('all');
+  const [threadCaseFilter, setThreadCaseFilter] = useState<ThreadCaseFilter>('selected');
+
+  const {
+    selectedCaseId,
+    setSelectedCaseId,
+    clearSelectedCaseId,
+  } = usePersistentPortalCaseContext();
 
   const selectedCase = useMemo(
     () => context?.cases.find((entry) => entry.case_id === selectedCaseId) || null,
     [context, selectedCaseId]
   );
 
-  const loadContext = async () => {
+  const loadThreadDetail = useCallback(async (threadId: string, markRead = true) => {
+    const response = await portalApi.get<ThreadDetailResponse>(`/v2/portal/messages/threads/${threadId}`);
+    setActiveThread(unwrapApiData(response.data));
+    setActiveThreadId(threadId);
+
+    if (markRead) {
+      await portalApi.post(`/v2/portal/messages/threads/${threadId}/read`);
+    }
+  }, []);
+
+  const {
+    threads,
+    loading: threadsLoading,
+    loadingMore,
+    hasMore,
+    error: threadsError,
+    streamStatus,
+    refresh: refreshThreads,
+    loadMore,
+  } = usePortalMessageThreads({
+    statusFilter: threadStatusFilter,
+    search: threadSearch,
+    selectedCaseId,
+    caseFilter: threadCaseFilter,
+    onRealtimeEvent: () => {
+      if (!activeThreadId) {
+        return;
+      }
+      void loadThreadDetail(activeThreadId, false);
+    },
+  });
+
+  const streamBadge = useMemo(() => getStreamStatusBadge(streamStatus), [streamStatus]);
+
+  const loadContext = useCallback(async () => {
     const response = await portalApi.get<PointpersonContextPayload>('/v2/portal/pointperson/context');
     const payload = unwrapApiData(response.data);
     setContext(payload);
 
-    const fallbackCaseId = payload.selected_case_id || payload.default_case_id || payload.cases[0]?.case_id || '';
-    if (!selectedCaseId) {
+    const caseIds = new Set(payload.cases.map((entry) => entry.case_id));
+    const fallbackCaseId =
+      (selectedCaseId && caseIds.has(selectedCaseId) ? selectedCaseId : null) ||
+      (payload.selected_case_id && caseIds.has(payload.selected_case_id) ? payload.selected_case_id : null) ||
+      (payload.default_case_id && caseIds.has(payload.default_case_id) ? payload.default_case_id : null) ||
+      payload.cases[0]?.case_id ||
+      '';
+
+    if (fallbackCaseId) {
       setSelectedCaseId(fallbackCaseId);
+    } else {
+      clearSelectedCaseId();
     }
-  };
+  }, [clearSelectedCaseId, selectedCaseId, setSelectedCaseId]);
 
-  const loadThreads = async () => {
-    setThreadsLoading(true);
-    try {
-      const response = await portalApi.get<{ threads: ThreadSummary[] }>('/v2/portal/messages/threads');
-      setThreads(unwrapApiData(response.data).threads || []);
-    } finally {
-      setThreadsLoading(false);
-    }
-  };
-
-  const loadThreadDetail = async (threadId: string) => {
-    const response = await portalApi.get<ThreadDetailResponse>(`/v2/portal/messages/threads/${threadId}`);
-    setActiveThread(unwrapApiData(response.data));
-    setActiveThreadId(threadId);
-    await portalApi.post(`/v2/portal/messages/threads/${threadId}/read`);
-    await loadThreads();
-  };
-
-  const loadInitial = async () => {
+  const loadInitial = useCallback(async () => {
     try {
       setError(null);
       setLoading(true);
-      await Promise.all([loadContext(), loadThreads()]);
-    } catch (err) {
-      console.error('Failed to load portal messaging context', err);
+      await Promise.all([loadContext(), refreshThreads()]);
+    } catch (loadError) {
+      console.error('Failed to load portal messaging context', loadError);
       setError('Unable to load messages right now.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [loadContext, refreshThreads]);
 
   useEffect(() => {
     void loadInitial();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadInitial]);
+
+  useEffect(() => {
+    if (!activeThreadId) {
+      return;
+    }
+
+    const threadStillVisible = threads.some((thread) => thread.id === activeThreadId);
+    if (!threadStillVisible) {
+      setActiveThreadId(null);
+      setActiveThread(null);
+      setReplyMessage('');
+    }
+  }, [activeThreadId, threads]);
 
   const handleCreateThread = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,12 +234,22 @@ export default function PortalMessages() {
       setActiveThread(created);
       setActiveThreadId(created.thread.id);
       showSuccess('Message sent to your pointperson.');
-      await loadThreads();
-    } catch (err) {
-      console.error('Failed to create thread', err);
+      await refreshThreads();
+    } catch (createError) {
+      console.error('Failed to create thread', createError);
       showError('Could not send message.');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleOpenThread = async (threadId: string) => {
+    try {
+      await loadThreadDetail(threadId, true);
+      await refreshThreads();
+    } catch (detailError) {
+      console.error('Failed to load thread detail', detailError);
+      showError('Could not load this conversation.');
     }
   };
 
@@ -177,9 +266,10 @@ export default function PortalMessages() {
         message: replyMessage.trim(),
       });
       setReplyMessage('');
-      await loadThreadDetail(activeThreadId);
-    } catch (err) {
-      console.error('Failed to reply in thread', err);
+      await loadThreadDetail(activeThreadId, false);
+      await refreshThreads();
+    } catch (replyError) {
+      console.error('Failed to reply in thread', replyError);
       showError('Could not send reply.');
     } finally {
       setReplying(false);
@@ -197,38 +287,41 @@ export default function PortalMessages() {
         status: nextStatus,
       });
       showSuccess(nextStatus === 'closed' ? 'Conversation closed.' : 'Conversation reopened.');
-      await loadThreadDetail(activeThreadId);
-    } catch (err) {
-      console.error('Failed to update thread status', err);
+      await loadThreadDetail(activeThreadId, false);
+      await refreshThreads();
+    } catch (statusError) {
+      console.error('Failed to update thread status', statusError);
       showError('Could not update conversation status.');
     }
   };
 
   const composerBlocked = selectedCase ? !selectedCase.is_messageable : true;
+  const resolvedError = error || threadsError;
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-app-text">Messages</h2>
-
+    <PortalPageShell
+      title="Messages"
+      description="Send and track secure conversations with your assigned pointperson."
+    >
       <PortalPageState
         loading={loading}
-        error={error}
+        error={resolvedError}
         empty={false}
         loadingLabel="Loading messages..."
         onRetry={loadInitial}
       />
 
-      {!loading && !error && (
-        <>
+      {!loading && !resolvedError && (
+        <div className="space-y-4">
           <section className="rounded-lg border border-app-border bg-app-surface p-4">
-            <h3 className="text-lg font-medium text-app-text">New Message</h3>
+            <h3 className="text-base font-semibold text-app-text">New Message</h3>
             <p className="mt-1 text-sm text-app-text-muted">
               Messages are sent to your assigned case pointperson.
             </p>
 
             <form onSubmit={handleCreateThread} className="mt-4 space-y-3">
               <div>
-                <label className="block text-sm font-medium text-app-text-label mb-1">Case</label>
+                <label className="mb-1 block text-sm font-medium text-app-text-label">Case</label>
                 <select
                   value={selectedCaseId}
                   onChange={(e) => setSelectedCaseId(e.target.value)}
@@ -246,14 +339,14 @@ export default function PortalMessages() {
                   )}
                 </select>
                 {selectedCase && !selectedCase.is_messageable && (
-                  <p className="mt-1 text-xs text-red-600">
+                  <p className="mt-1 text-xs text-app-accent">
                     This case has no assigned pointperson yet. Ask staff to assign one before messaging.
                   </p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-app-text-label mb-1">Subject (optional)</label>
+                <label className="mb-1 block text-sm font-medium text-app-text-label">Subject (optional)</label>
                 <input
                   type="text"
                   value={newSubject}
@@ -264,7 +357,7 @@ export default function PortalMessages() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-app-text-label mb-1">Message</label>
+                <label className="mb-1 block text-sm font-medium text-app-text-label">Message</label>
                 <textarea
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
@@ -284,51 +377,95 @@ export default function PortalMessages() {
             </form>
           </section>
 
-          <section className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_1fr]">
+          <section className="grid grid-cols-1 gap-4 lg:grid-cols-[320px_1fr]">
             <div className="rounded-lg border border-app-border bg-app-surface">
-              <div className="border-b border-app-border px-4 py-3">
-                <h3 className="text-sm font-semibold text-app-text">Conversations</h3>
+              <div className="space-y-3 border-b border-app-border px-4 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-app-text">Conversations</h3>
+                  <span className={`rounded px-2 py-1 text-xs ${streamBadge.className}`}>
+                    {streamBadge.label}
+                  </span>
+                </div>
+                <input
+                  value={threadSearch}
+                  onChange={(event) => setThreadSearch(event.target.value)}
+                  placeholder="Search conversations"
+                  className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+                />
+                <select
+                  value={threadStatusFilter}
+                  onChange={(event) =>
+                    setThreadStatusFilter(event.target.value as ThreadStatusFilter)
+                  }
+                  className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+                >
+                  <option value="all">All statuses</option>
+                  <option value="open">Open</option>
+                  <option value="closed">Closed</option>
+                  <option value="archived">Archived</option>
+                </select>
+                <select
+                  value={threadCaseFilter}
+                  onChange={(event) => setThreadCaseFilter(event.target.value as ThreadCaseFilter)}
+                  className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+                >
+                  <option value="selected">Selected case only</option>
+                  <option value="all">All accessible cases</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void refreshThreads();
+                  }}
+                  className="w-full rounded-md border border-app-input-border px-3 py-2 text-xs"
+                >
+                  Refresh
+                </button>
               </div>
-              <div className="max-h-[540px] overflow-y-auto">
-                {threadsLoading ? (
-                  <p className="px-4 py-3 text-sm text-app-text-muted">Refreshing...</p>
+              <div className="max-h-[560px] overflow-y-auto p-3">
+                {threadsLoading && threads.length === 0 ? (
+                  <p className="px-2 py-3 text-sm text-app-text-muted">Loading conversations...</p>
                 ) : threads.length === 0 ? (
-                  <p className="px-4 py-6 text-sm text-app-text-muted">No conversations yet.</p>
+                  <p className="px-2 py-6 text-sm text-app-text-muted">
+                    {threadSearch || threadStatusFilter !== 'all' || threadCaseFilter !== 'selected'
+                      ? 'No conversations match your filters.'
+                      : 'No conversations yet.'}
+                  </p>
                 ) : (
-                  <ul>
+                  <ul className="space-y-2">
                     {threads.map((thread) => {
                       const isActive = activeThreadId === thread.id;
                       return (
                         <li key={thread.id}>
                           <button
                             type="button"
-                            onClick={() => loadThreadDetail(thread.id)}
-                            className={`w-full border-b border-app-border px-4 py-3 text-left hover:bg-app-surface-muted ${
-                              isActive ? 'bg-app-surface-muted' : ''
+                            onClick={() => {
+                              void handleOpenThread(thread.id);
+                            }}
+                            className={`block w-full rounded-md text-left ${
+                              isActive ? 'ring-2 ring-app-accent' : ''
                             }`}
                           >
-                            <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <div className="text-sm font-medium text-app-text">
-                                  {thread.subject || thread.case_title || 'Conversation'}
-                                </div>
-                                <div className="text-xs text-app-text-muted">
-                                  {thread.case_number || 'No case'} • {thread.pointperson_first_name || 'Staff'}{' '}
-                                  {thread.pointperson_last_name || ''}
-                                </div>
-                              </div>
-                              {thread.unread_count > 0 && (
-                                <span className="rounded-full bg-app-accent px-2 py-0.5 text-xs text-white">
-                                  {thread.unread_count}
-                                </span>
-                              )}
-                            </div>
-                            <p className="mt-1 line-clamp-2 text-xs text-app-text-muted">
-                              {thread.last_message_preview || 'No preview'}
-                            </p>
-                            <div className="mt-1 text-[11px] text-app-text-subtle">
-                              {formatTimestamp(thread.last_message_at)}
-                            </div>
+                            <PortalListCard
+                              title={thread.subject || thread.case_title || 'Conversation'}
+                              subtitle={`${thread.case_number || 'No case'} • ${thread.pointperson_first_name || 'Staff'} ${thread.pointperson_last_name || ''}`}
+                              meta={formatTimestamp(thread.last_message_at)}
+                              badges={
+                                thread.unread_count > 0 ? (
+                                  <span className="rounded-full bg-app-accent px-2 py-0.5 text-xs text-white">
+                                    {thread.unread_count} unread
+                                  </span>
+                                ) : (
+                                  <span className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted">
+                                    {thread.status}
+                                  </span>
+                                )
+                              }
+                            >
+                              <p className="line-clamp-2 text-xs text-app-text-muted">
+                                {thread.last_message_preview || 'No preview'}
+                              </p>
+                            </PortalListCard>
                           </button>
                         </li>
                       );
@@ -336,6 +473,20 @@ export default function PortalMessages() {
                   </ul>
                 )}
               </div>
+              {hasMore && (
+                <div className="border-t border-app-border p-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void loadMore();
+                    }}
+                    disabled={loadingMore}
+                    className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm disabled:opacity-50"
+                  >
+                    {loadingMore ? 'Loading...' : 'Load more'}
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="rounded-lg border border-app-border bg-app-surface">
@@ -350,13 +501,13 @@ export default function PortalMessages() {
                       <div className="text-sm font-semibold text-app-text">
                         {activeThread.thread.subject || activeThread.thread.case_title || 'Conversation'}
                       </div>
-                      <div className="text-xs text-app-text-muted">
-                        Status: {activeThread.thread.status}
-                      </div>
+                      <div className="text-xs text-app-text-muted">Status: {activeThread.thread.status}</div>
                     </div>
                     <button
                       type="button"
-                      onClick={handleToggleThreadStatus}
+                      onClick={() => {
+                        void handleToggleThreadStatus();
+                      }}
                       className="rounded-md border border-app-input-border px-3 py-1 text-xs"
                     >
                       {activeThread.thread.status === 'open' ? 'Close' : 'Reopen'}
@@ -370,15 +521,16 @@ export default function PortalMessages() {
                       activeThread.messages.map((message) => (
                         <div
                           key={message.id}
-                          className={`max-w-[90%] rounded-lg px-3 py-2 text-sm ${
+                          className={`max-w-[92%] rounded-lg px-3 py-2 text-sm ${
                             message.sender_type === 'portal'
                               ? 'ml-auto bg-app-accent text-white'
                               : 'bg-app-surface-muted text-app-text'
                           }`}
                         >
                           <div className="text-[11px] opacity-80">
-                            {message.sender_display_name || (message.sender_type === 'portal' ? 'You' : 'Staff')} •{' '}
-                            {formatTimestamp(message.created_at)}
+                            {message.sender_display_name ||
+                              (message.sender_type === 'portal' ? 'You' : 'Staff')}{' '}
+                            • {formatTimestamp(message.created_at)}
                           </div>
                           <div className="mt-1 whitespace-pre-wrap">{message.message_text}</div>
                         </div>
@@ -413,8 +565,8 @@ export default function PortalMessages() {
               )}
             </div>
           </section>
-        </>
+        </div>
       )}
-    </div>
+    </PortalPageShell>
   );
 }

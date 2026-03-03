@@ -1,33 +1,40 @@
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
+import { getJwtSecret } from '../../config/jwt';
 
 describe('Event API Integration Tests', () => {
   let authToken: string;
-  let testEventId: string;
+  let adminUserId: string;
+  const createdContactIds: string[] = [];
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const unwrap = <T>(body: { data?: T } | T): T =>
     (body && typeof body === 'object' && 'data' in body ? (body as { data: T }).data : body) as T;
 
   beforeAll(async () => {
-    // Register and login
-    const registerResponse = await request(app)
-      .post('/api/auth/register')
-      .send({
-        email: `event-test-${unique()}@example.com`,
-        password: 'Test123!Strong',
-        password_confirm: 'Test123!Strong',
-        first_name: 'Event',
-        last_name: 'Tester',
-      });
+    const adminEmail = `event-admin-${unique()}@example.com`;
+    const adminUserResult = await pool.query<{ id: string }>(
+      `INSERT INTO users (email, password_hash, first_name, last_name, role, created_at, updated_at)
+       VALUES ($1, $2, 'Event', 'Tester', 'admin', NOW(), NOW())
+       RETURNING id`,
+      [adminEmail, '$2a$10$012345678901234567890uI6TTMsnx6Vf7hYhVJrV2N4mcoX8f6mG']
+    );
 
-    authToken = registerResponse.body.token;
+    adminUserId = adminUserResult.rows[0].id;
+    authToken = jwt.sign({ id: adminUserId, email: adminEmail, role: 'admin' }, getJwtSecret(), {
+      expiresIn: '1h',
+    });
   });
 
   afterAll(async () => {
-    // Clean up
-    if (testEventId) {
-      await pool.query('DELETE FROM events WHERE id = $1', [testEventId]);
+    if (createdContactIds.length > 0) {
+      await pool.query('DELETE FROM contacts WHERE id = ANY($1::uuid[])', [createdContactIds]);
+    }
+
+    if (adminUserId) {
+      await pool.query('DELETE FROM events WHERE created_by = $1 OR modified_by = $1', [adminUserId]);
+      await pool.query('DELETE FROM users WHERE id = $1', [adminUserId]);
     }
   });
 
@@ -51,7 +58,6 @@ describe('Event API Integration Tests', () => {
       expect(event).toHaveProperty('event_id');
       expect(event.event_name).toBe('Annual Fundraiser Gala');
       expect(event.event_type).toBe('fundraiser');
-      testEventId = event.event_id;
     });
 
     it('should require authentication', async () => {
@@ -169,7 +175,8 @@ describe('Event API Integration Tests', () => {
           start_date: '2024-10-20T10:00:00Z',
           end_date: '2024-10-20T16:00:00Z',
           location_name: 'Community Center',
-        });
+        })
+        .expect(201);
 
       const created = unwrap<{ event_id: string }>(createResponse.body);
       const eventId = created.event_id;
@@ -268,7 +275,8 @@ describe('Event API Integration Tests', () => {
           event_type: 'meeting',
           start_date: '2024-11-05T09:00:00Z',
           end_date: '2024-11-05T12:00:00Z',
-        });
+        })
+        .expect(201);
 
       const created = unwrap<{ event_id: string }>(createResponse.body);
       const eventId = created.event_id;
@@ -299,7 +307,8 @@ describe('Event API Integration Tests', () => {
           start_date: '2024-12-01T14:00:00Z',
           end_date: '2024-12-01T17:00:00Z',
           capacity: 50,
-        });
+        })
+        .expect(201);
 
       const created = unwrap<{ event_id: string }>(createResponse.body);
       const eventId = created.event_id;
@@ -334,7 +343,8 @@ describe('Event API Integration Tests', () => {
           event_type: 'other',
           start_date: '2025-01-15T10:00:00Z',
           end_date: '2025-01-15T14:00:00Z',
-        });
+        })
+        .expect(201);
 
       const created = unwrap<{ event_id: string }>(createResponse.body);
       const eventId = created.event_id;
@@ -355,6 +365,51 @@ describe('Event API Integration Tests', () => {
 
     it('should require authentication', async () => {
       await request(app).delete('/api/v2/events/1').expect(401);
+    });
+  });
+
+  describe('POST /api/v2/events/:id/check-in/scan', () => {
+    it('checks in a registration by QR token', async () => {
+      const createEventResponse = await request(app)
+        .post('/api/v2/events')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          event_name: 'QR Scan Check-In Event',
+          event_type: 'community',
+          start_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          end_date: new Date(Date.now() + 25 * 60 * 60 * 1000).toISOString(),
+        })
+        .expect(201);
+
+      const eventId = unwrap<{ event_id: string }>(createEventResponse.body).event_id;
+
+      const contactResult = await pool.query<{ id: string }>(
+        `INSERT INTO contacts (first_name, last_name, email, created_by, modified_by)
+         VALUES ('QR', 'Tester', $1, NULL, NULL)
+         RETURNING id`,
+        [`qr-checkin-${unique()}@example.com`]
+      );
+      const contactId = contactResult.rows[0].id;
+      createdContactIds.push(contactId);
+
+      const registrationResponse = await request(app)
+        .post(`/api/v2/events/${eventId}/register`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ contact_id: contactId })
+        .expect(201);
+
+      const registration = unwrap<{ check_in_token: string }>(registrationResponse.body);
+      expect(registration.check_in_token).toBeTruthy();
+
+      const scanResponse = await request(app)
+        .post(`/api/v2/events/${eventId}/check-in/scan`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ token: registration.check_in_token })
+        .expect(200);
+
+      const checkedIn = unwrap<{ checked_in: boolean; check_in_method: string }>(scanResponse.body);
+      expect(checkedIn.checked_in).toBe(true);
+      expect(checkedIn.check_in_method).toBe('qr');
     });
   });
 });

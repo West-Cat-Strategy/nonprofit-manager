@@ -404,5 +404,44 @@ describe('ReportService', () => {
       expect(sql).toContain('AS age_bucket');
       expect(values).toEqual(['org-456']);
     });
+
+    it('supports sorting by aggregation alias', async () => {
+      const definition: ReportDefinition = {
+        name: 'Donations by Campaign',
+        entity: 'donations',
+        fields: ['campaign_name'],
+        groupBy: ['campaign_name'],
+        aggregations: [{ field: 'amount', function: 'sum', alias: 'total_donated' }],
+        sort: [{ field: 'total_donated', direction: 'desc' }],
+      };
+
+      await reportService.generateReport(definition);
+
+      const [sql] = query.mock.calls[0] as [string, unknown[]];
+      expect(sql).toContain('AS "total_donated"');
+      expect(sql).toContain('ORDER BY "total_donated" DESC');
+    });
+  });
+
+  describe('exportReport', () => {
+    it('escapes commas, quotes, and newlines in CSV output', async () => {
+      const csv = await reportService.exportReport(
+        {
+          definition: {
+            name: 'CSV Escape Test',
+            entity: 'contacts',
+            fields: ['first_name'],
+          },
+          data: [{ first_name: 'He said "Hi",\nTeam' }],
+          total_count: 1,
+          generated_at: new Date().toISOString(),
+        },
+        'csv'
+      );
+
+      const text = csv.toString('utf8');
+      expect(text).toContain('first_name');
+      expect(text).toContain('"He said ""Hi"",\nTeam"');
+    });
   });
 });

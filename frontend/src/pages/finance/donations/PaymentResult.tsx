@@ -70,9 +70,9 @@ const PaymentResult: React.FC = () => {
         );
       case 'success':
         return (
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+          <div className="w-16 h-16 bg-app-accent-soft rounded-full flex items-center justify-center">
             <svg
-              className="h-8 w-8 text-green-500"
+              className="h-8 w-8 text-app-accent"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -88,9 +88,9 @@ const PaymentResult: React.FC = () => {
         );
       case 'processing':
         return (
-          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
+          <div className="w-16 h-16 bg-app-accent-soft rounded-full flex items-center justify-center">
             <svg
-              className="h-8 w-8 text-yellow-500"
+              className="h-8 w-8 text-app-accent"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -106,9 +106,9 @@ const PaymentResult: React.FC = () => {
         );
       case 'failed':
         return (
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+          <div className="w-16 h-16 bg-app-accent-soft rounded-full flex items-center justify-center">
             <svg
-              className="h-8 w-8 text-red-500"
+              className="h-8 w-8 text-app-accent"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

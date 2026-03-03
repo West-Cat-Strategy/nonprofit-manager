@@ -13,6 +13,14 @@ The app supports 6 visual themes with light/dark mode and system preference dete
 | **Glass** | Frosted glass effects, transparency, backdrop blur |
 | **High-Contrast** | WCAG AAA (7:1+), no rounded corners, 3px borders, zero shadows |
 
+## P4-T7 Redesign Notes (March 2026)
+
+- Theme IDs are now typed through `ThemeId` in `frontend/src/theme/themeRegistry.ts`.
+- Theme metadata (label/description/preview/body class) is centralized in the registry and consumed by `ThemeContext` + `ThemeSelector`.
+- The redesign can be controlled with `VITE_UI_REDESIGN_ENABLED` (default: `false` until cutover).
+- The frontend UI debt baseline is tracked with `node scripts/ui-audit.ts --write-baseline`; migration phases use report mode (`node scripts/ui-audit.ts`) and release gates enforce via `node scripts/ui-audit.ts --enforce-baseline`.
+- March 3 migration sweep replaced hardcoded Tailwind palette utilities across route/page/feature codepaths; `hardcodedColorUtilities` is now `0` in `node scripts/ui-audit.ts`.
+
 ## Architecture
 
 ### CSS Variable Layer (`index.css`)
@@ -195,6 +203,15 @@ Keep hardcoded colors for:
 
 ### Remaining
 Small utility components and legacy widgets in `frontend/src/components/` that are scheduled for refactoring in Phase 4.
+
+## Migration Rules (P4-T7)
+
+- Prefer semantic tokens (`bg-app-*`, `text-app-*`, `border-app-*`) over raw Tailwind palette classes.
+- Do not introduce new inline `style={{ ... }}` blocks unless value is runtime/dynamic geometry (chart widths, editor canvas geometry, or third-party rendering constraints).
+- Use shared primitives in `frontend/src/components/ui` for new or rewritten route-level UI shells.
+- Keep theme IDs stable (`neobrutalist`, `sea-breeze`, `corporate`, `clean-modern`, `glass`, `high-contrast`) and evolve token values rather than renaming IDs.
+- During active migration, run `node scripts/ui-audit.ts` to track drift.
+- Run `node scripts/ui-audit.ts --enforce-baseline` for release/cutover verification.
 
 ## Adding a New Theme
 

@@ -8,7 +8,7 @@ describe('Auth Debugging', () => {
         const email = `debug-${unique()}@example.com`;
 
         const registerResponse = await request(app)
-            .post('/api/auth/register')
+            .post('/api/v2/auth/register')
             .send({
                 email,
                 password: 'Test123!Strong',
@@ -26,7 +26,7 @@ describe('Auth Debugging', () => {
         }
 
         const protectedResponse = await request(app)
-            .get('/api/tasks')
+            .get('/api/v2/tasks')
             .set('Authorization', `Bearer ${token}`);
 
         expect(protectedResponse.status).toBe(200);

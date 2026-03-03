@@ -67,9 +67,9 @@ function EngagementPieChartComponent({ distribution }: EngagementPieChartProps) 
       </div>
       <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
         {[
-          { label: 'High', value: distribution.high, color: 'bg-green-500' },
-          { label: 'Medium', value: distribution.medium, color: 'bg-yellow-500' },
-          { label: 'Low', value: distribution.low, color: 'bg-orange-500' },
+          { label: 'High', value: distribution.high, color: 'bg-app-accent' },
+          { label: 'Medium', value: distribution.medium, color: 'bg-app-accent' },
+          { label: 'Low', value: distribution.low, color: 'bg-app-accent' },
           { label: 'Inactive', value: distribution.inactive, color: 'bg-app-text-subtle' },
         ].map((item) => (
           <div key={item.label} className="flex flex-col items-center">
@@ -164,7 +164,7 @@ export function DonationTrendsChartComponent({ data, loading }: DonationTrendsCh
       <div className="bg-app-surface rounded-lg shadow p-6">
         <h3 className="text-lg font-medium text-app-text mb-4">Donation Trends (12 Months)</h3>
         <div className="h-64 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-app-accent" />
         </div>
       </div>
     );
@@ -188,7 +188,7 @@ export function DonationTrendsChartComponent({ data, loading }: DonationTrendsCh
         <button
           type="button"
           onClick={() => exportDonationTrendsToPDF(data)}
-          className="p-2 text-app-text-subtle hover:text-red-600 hover:bg-app-surface-muted rounded"
+          className="p-2 text-app-text-subtle hover:text-app-accent hover:bg-app-surface-muted rounded"
           title="Export to PDF"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -248,7 +248,7 @@ export function VolunteerTrendsChartComponent({ data, loading }: VolunteerTrends
       <div className="bg-app-surface rounded-lg shadow p-6">
         <h3 className="text-lg font-medium text-app-text mb-4">Volunteer Hours Trends (12 Months)</h3>
         <div className="h-64 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-app-accent" />
         </div>
       </div>
     );
@@ -272,7 +272,7 @@ export function VolunteerTrendsChartComponent({ data, loading }: VolunteerTrends
         <button
           type="button"
           onClick={() => exportVolunteerTrendsToPDF(data)}
-          className="p-2 text-app-text-subtle hover:text-red-600 hover:bg-app-surface-muted rounded"
+          className="p-2 text-app-text-subtle hover:text-app-accent hover:bg-app-surface-muted rounded"
           title="Export to PDF"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -405,13 +405,13 @@ function EventAttendanceTrendsChartComponent({ data, loading }: EventAttendanceT
           <p className="text-sm text-app-text-muted">Total Events</p>
         </div>
         <div>
-          <p className="text-2xl font-bold text-purple-600">
+          <p className="text-2xl font-bold text-app-accent">
             {data.reduce((sum, t) => sum + t.total_registrations, 0)}
           </p>
           <p className="text-sm text-app-text-muted">Total Registrations</p>
         </div>
         <div>
-          <p className="text-2xl font-bold text-green-600">
+          <p className="text-2xl font-bold text-app-accent">
             {data.reduce((sum, t) => sum + t.total_attendance, 0)}
           </p>
           <p className="text-sm text-app-text-muted">Total Attendance</p>

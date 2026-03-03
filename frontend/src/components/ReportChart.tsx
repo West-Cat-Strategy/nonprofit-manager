@@ -33,7 +33,7 @@ const ReportChart: React.FC<ReportChartProps> = ({
     title,
 }) => {
     if (!data || data.length === 0) {
-        return <div className="p-4 text-center text-gray-500">No data available for chart</div>;
+        return <div className="p-4 text-center text-app-text-muted">No data available for chart</div>;
     }
 
     const renderChart = () => {

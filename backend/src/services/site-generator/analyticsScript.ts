@@ -17,7 +17,7 @@ export function generateSiteAnalyticsScript(templateId: string): string {
         return id;
       })();
 
-      fetch('/api/sites/' + siteId + '/track', {
+      fetch('/api/v2/sites/' + siteId + '/track', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

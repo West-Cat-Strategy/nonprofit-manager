@@ -3,13 +3,12 @@
  */
 
 import { test, expect } from '../fixtures/auth.fixture';
-import { createTestAccount, createTestDonation, clearDatabase } from '../helpers/database';
+import { createTestAccount, createTestDonation } from '../helpers/database';
+
+const makeUnique = (prefix: string): string =>
+  `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 test.describe('Donations Module', () => {
-  test.beforeEach(async ({ authenticatedPage, authToken }) => {
-    await clearDatabase(authenticatedPage, authToken);
-  });
-
   test('should display donations list page', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/donations');
     await authenticatedPage.waitForURL(/\/donations(?:\?|$)/);
@@ -21,9 +20,10 @@ test.describe('Donations Module', () => {
   });
 
   test('should create a new donation via UI', async ({ authenticatedPage, authToken }) => {
+    const unique = makeUnique('create');
     await createTestAccount(authenticatedPage, authToken, {
-      name: 'Test Donor',
-      email: 'donor@example.com',
+      name: `Test Donor ${unique}`,
+      email: `${unique}@example.com`,
     });
 
     await authenticatedPage.goto('/donations/new');
@@ -37,7 +37,7 @@ test.describe('Donations Module', () => {
     const responsePromise = authenticatedPage
       .waitForResponse(
         (response) =>
-          response.url().includes('/api/donations') && response.request().method() === 'POST',
+          response.url().includes('/api/v2/donations') && response.request().method() === 'POST',
         { timeout: 15000 }
       )
       .catch(() => null);
@@ -68,9 +68,10 @@ test.describe('Donations Module', () => {
   });
 
   test('should view donation details', async ({ authenticatedPage, authToken }) => {
+    const unique = makeUnique('detail');
     const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
-      name: 'Generous Donor',
-      email: 'generous@example.com',
+      name: `Generous Donor ${unique}`,
+      email: `${unique}@example.com`,
     });
 
     const { id: donationId } = await createTestDonation(authenticatedPage, authToken, {
@@ -88,8 +89,9 @@ test.describe('Donations Module', () => {
   });
 
   test('should edit donation details', async ({ authenticatedPage, authToken }) => {
+    const unique = makeUnique('edit');
     const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
-      name: 'Edit Test Donor',
+      name: `Edit Test Donor ${unique}`,
     });
 
     const { id: donationId } = await createTestDonation(authenticatedPage, authToken, {
@@ -111,9 +113,10 @@ test.describe('Donations Module', () => {
   });
 
   test('should mark receipt as sent', async ({ authenticatedPage, authToken }) => {
+    const unique = makeUnique('receipt');
     const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
-      name: 'Receipt Test Donor',
-      email: 'receipt@example.com',
+      name: `Receipt Test Donor ${unique}`,
+      email: `${unique}@example.com`,
     });
 
     const { id: donationId } = await createTestDonation(authenticatedPage, authToken, {
@@ -135,8 +138,9 @@ test.describe('Donations Module', () => {
   });
 
   test('should filter donations by payment status', async ({ authenticatedPage, authToken }) => {
+    const unique = makeUnique('status-filter');
     const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
-      name: 'Filter Test Donor',
+      name: `Filter Test Donor ${unique}`,
     });
 
     await createTestDonation(authenticatedPage, authToken, {
@@ -160,8 +164,9 @@ test.describe('Donations Module', () => {
   });
 
   test('should filter donations by payment method', async ({ authenticatedPage, authToken }) => {
+    const unique = makeUnique('method-filter');
     const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
-      name: 'Method Test Donor',
+      name: `Method Test Donor ${unique}`,
     });
 
     await createTestDonation(authenticatedPage, authToken, {
@@ -183,8 +188,9 @@ test.describe('Donations Module', () => {
   });
 
   test('should display donation summary statistics', async ({ authenticatedPage, authToken }) => {
+    const unique = makeUnique('summary');
     const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
-      name: 'Stats Test Donor',
+      name: `Stats Test Donor ${unique}`,
     });
 
     await createTestDonation(authenticatedPage, authToken, {
@@ -205,14 +211,15 @@ test.describe('Donations Module', () => {
 
     await authenticatedPage.goto('/donations');
 
-    await expect(authenticatedPage.getByRole('heading', { name: 'Total Donations', exact: true })).toBeVisible();
-    await expect(authenticatedPage.getByRole('heading', { name: 'Average Donation', exact: true })).toBeVisible();
+    await expect(authenticatedPage.getByText('Total Donations', { exact: true })).toBeVisible();
+    await expect(authenticatedPage.getByText('Average Donation', { exact: true })).toBeVisible();
   });
 
   test('should handle recurring donations', async ({ authenticatedPage, authToken }) => {
+    const unique = makeUnique('recurring');
     await createTestAccount(authenticatedPage, authToken, {
-      name: 'Recurring Donor',
-      email: 'recurring@example.com',
+      name: `Recurring Donor ${unique}`,
+      email: `${unique}@example.com`,
     });
 
     await authenticatedPage.goto('/donations/new');
@@ -224,7 +231,7 @@ test.describe('Donations Module', () => {
     const responsePromise = authenticatedPage
       .waitForResponse(
         (response) =>
-          response.url().includes('/api/donations') && response.request().method() === 'POST',
+          response.url().includes('/api/v2/donations') && response.request().method() === 'POST',
         { timeout: 15000 }
       )
       .catch(() => null);
@@ -243,11 +250,12 @@ test.describe('Donations Module', () => {
   });
 
   test('should paginate donations list', async ({ authenticatedPage, authToken }) => {
+    const unique = makeUnique('pagination');
     const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
-      name: 'Pagination Test Donor',
+      name: `Pagination Test Donor ${unique}`,
     });
 
-    for (let i = 1; i <= 25; i++) {
+    for (let i = 1; i <= 21; i++) {
       await createTestDonation(authenticatedPage, authToken, {
         accountId,
         amount: i * 10,
@@ -257,8 +265,22 @@ test.describe('Donations Module', () => {
     await authenticatedPage.goto('/donations');
     const nextButton = authenticatedPage.getByRole('button', { name: 'Next' });
     await expect(nextButton).toBeVisible();
+    await expect(authenticatedPage.getByText(/Showing page 1 of/i)).toBeVisible({ timeout: 15000 });
+    const pageTwoResponsePromise = authenticatedPage
+      .waitForResponse(
+        (response) =>
+          response.url().includes('/api/v2/donations') &&
+          response.url().includes('page=2') &&
+          response.status() === 200,
+        { timeout: 15000 }
+      )
+      .catch(() => null);
     await nextButton.click();
+    await pageTwoResponsePromise;
 
-    await expect(authenticatedPage.getByText(/Showing page 2 of/i)).toBeVisible();
+    await expect(authenticatedPage).toHaveURL(/\/donations\?(?:.*&)?page=2(?:&.*)?$/, {
+      timeout: 15000,
+    });
+    await expect(authenticatedPage.getByText(/Showing page 2 of/i)).toBeVisible({ timeout: 15000 });
   });
 });

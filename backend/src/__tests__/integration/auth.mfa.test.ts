@@ -56,7 +56,7 @@ describe('Auth MFA Integration Tests', () => {
 
   it('requires MFA on password login for TOTP-enabled users', async () => {
     const response = await request(app)
-      .post('/api/auth/login')
+      .post('/api/v2/auth/login')
       .send({
         email: mfaEmail.toUpperCase(),
         password: mfaPassword,
@@ -74,7 +74,7 @@ describe('Auth MFA Integration Tests', () => {
 
   it('completes MFA login with code payload', async () => {
     const loginResponse = await request(app)
-      .post('/api/auth/login')
+      .post('/api/v2/auth/login')
       .send({
         email: mfaEmail,
         password: mfaPassword,
@@ -84,7 +84,7 @@ describe('Auth MFA Integration Tests', () => {
     const code = authenticator.generate(mfaSecret);
 
     const response = await request(app)
-      .post('/api/auth/login/2fa')
+      .post('/api/v2/auth/login/2fa')
       .send({
         email: mfaEmail,
         mfaToken: loginResponse.body.mfaToken,
@@ -105,7 +105,7 @@ describe('Auth MFA Integration Tests', () => {
 
   it('accepts legacy token payload for MFA code', async () => {
     const loginResponse = await request(app)
-      .post('/api/auth/login')
+      .post('/api/v2/auth/login')
       .send({
         email: mfaEmail,
         password: mfaPassword,
@@ -115,7 +115,7 @@ describe('Auth MFA Integration Tests', () => {
     const legacyCode = authenticator.generate(mfaSecret);
 
     const response = await request(app)
-      .post('/api/auth/login/2fa')
+      .post('/api/v2/auth/login/2fa')
       .send({
         email: mfaEmail,
         mfaToken: loginResponse.body.mfaToken,

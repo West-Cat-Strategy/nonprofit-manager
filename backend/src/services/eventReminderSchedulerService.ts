@@ -5,6 +5,7 @@
 
 import { services } from '../container/services';
 import {
+  cancelPendingAutomationsForNonSendableEvents,
   claimDueAutomations,
   markAutomationAttemptResult,
 } from '@services/eventReminderAutomationService';
@@ -101,6 +102,7 @@ class EventReminderSchedulerService {
   }
 
   private async runBatch(): Promise<number> {
+    await cancelPendingAutomationsForNonSendableEvents(this.batchSize * 2);
     const dueAutomations = await claimDueAutomations(this.batchSize);
 
     let processed = 0;

@@ -16,7 +16,7 @@ const activityEntityTypeSchema = z.enum(['case', 'donation', 'volunteer', 'event
 
 const activityQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).optional(),
-});
+}).strict();
 
 const activityEntityParamsSchema = z.object({
   entityType: activityEntityTypeSchema,

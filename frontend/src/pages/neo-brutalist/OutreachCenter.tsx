@@ -67,7 +67,7 @@ export default function OutreachCenter() {
                     </div>
                     <button
                         onClick={handleNewItem}
-                        className="px-6 py-2 bg-[var(--loop-cyan)] text-black border-2 border-black dark:border-white shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-cyan-400 font-bold uppercase"
+                        className="px-6 py-2 bg-[var(--loop-cyan)] text-black border-2 border-black dark:border-white shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-app-accent-soft font-bold uppercase"
                     >
                         + NEW ITEM
                     </button>
@@ -101,19 +101,19 @@ export default function OutreachCenter() {
                 {/* Campaign Types Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                     <div className="bg-[var(--loop-purple)] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 text-center">
-                        <EnvelopeIcon className="w-12 h-12 mx-auto mb-3 text-purple-600" />
+                        <EnvelopeIcon className="w-12 h-12 mx-auto mb-3 text-app-accent" />
                         <h3 className="font-black text-lg mb-2 uppercase text-black">Newsletter</h3>
                         <p className="text-sm text-black">{stats?.newsletterSubs}</p>
                     </div>
 
                     <div className="bg-[var(--loop-purple)] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 text-center">
-                        <CalendarIcon className="w-12 h-12 mx-auto mb-3 text-pink-500" />
+                        <CalendarIcon className="w-12 h-12 mx-auto mb-3 text-app-accent" />
                         <h3 className="font-black text-lg mb-2 uppercase text-black">Events</h3>
                         <p className="text-sm text-black">{stats?.upcomingEvents}</p>
                     </div>
 
                     <div className="bg-[var(--loop-purple)] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 text-center">
-                        <CurrencyDollarIcon className="w-12 h-12 mx-auto mb-3 text-green-600" />
+                        <CurrencyDollarIcon className="w-12 h-12 mx-auto mb-3 text-app-accent" />
                         <h3 className="font-black text-lg mb-2 uppercase text-black">Donors</h3>
                         <p className="text-sm text-black">{stats?.activeDonors}</p>
                     </div>

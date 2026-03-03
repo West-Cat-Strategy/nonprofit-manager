@@ -1,2 +1,2 @@
-export * from '../../features/contacts/state/contactsLegacyCore';
-export { default } from '../../features/contacts/state/contactsLegacyCore';
+export * from '../../features/contacts/state/contactsCore';
+export { default } from '../../features/contacts/state/contactsCore';

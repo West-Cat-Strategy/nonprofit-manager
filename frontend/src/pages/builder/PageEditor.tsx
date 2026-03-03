@@ -584,7 +584,7 @@ const PageEditor: React.FC = () => {
 
               <div className="p-4 space-y-4">
                 {templateSettingsError && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded">
+                  <div className="bg-app-accent-soft border border-app-border text-app-accent-text px-3 py-2 rounded">
                     {templateSettingsError}
                   </div>
                 )}
@@ -658,7 +658,7 @@ const PageEditor: React.FC = () => {
 
         {/* Error Toast */}
         {error && (
-          <div className="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg">
+          <div className="fixed bottom-4 right-4 bg-app-accent text-white px-4 py-2 rounded-lg shadow-lg">
             {error}
           </div>
         )}

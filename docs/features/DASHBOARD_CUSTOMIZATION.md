@@ -50,12 +50,12 @@ This document describes the customizable dashboard feature implementation with d
 2. **Backend API Implementation**
    - Create dashboard configuration endpoints:
      ```
-     GET    /api/dashboard/configs         # List user's dashboards
-     GET    /api/dashboard/configs/:id     # Get specific dashboard
-     POST   /api/dashboard/configs         # Create new dashboard
-     PUT    /api/dashboard/configs/:id     # Update dashboard
-     DELETE /api/dashboard/configs/:id     # Delete dashboard
-     PUT    /api/dashboard/configs/:id/layout  # Save layout changes
+     GET    /api/v2/dashboard/configs         # List user's dashboards
+     GET    /api/v2/dashboard/configs/:id     # Get specific dashboard
+     POST   /api/v2/dashboard/configs         # Create new dashboard
+     PUT    /api/v2/dashboard/configs/:id     # Update dashboard
+     DELETE /api/v2/dashboard/configs/:id     # Delete dashboard
+     PUT    /api/v2/dashboard/configs/:id/layout  # Save layout changes
      ```
 
 3. **Database Schema**

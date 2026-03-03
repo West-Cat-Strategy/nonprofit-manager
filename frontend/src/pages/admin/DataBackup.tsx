@@ -102,7 +102,7 @@ export default function DataBackup() {
           </label>
 
           {warningText && (
-            <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-900">
+            <div className="rounded-md border border-app-border bg-app-accent-soft p-4 text-sm text-app-accent-text">
               {warningText}
             </div>
           )}

@@ -133,7 +133,7 @@ brew install stripe/stripe-cli/stripe
 stripe login
 
 # Forward webhooks to local server
-stripe listen --forward-to localhost:3000/api/payments/webhook
+stripe listen --forward-to localhost:3000/api/v2/payments/webhook
 
 # Trigger test events
 stripe trigger payment_intent.succeeded

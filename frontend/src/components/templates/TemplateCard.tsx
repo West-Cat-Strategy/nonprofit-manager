@@ -17,11 +17,11 @@ interface TemplateCardProps {
 
 const categoryColors: Record<TemplateCategory, string> = {
   'landing-page': 'bg-app-accent-soft text-app-accent-text',
-  event: 'bg-purple-100 text-purple-800',
-  donation: 'bg-green-100 text-green-800',
-  blog: 'bg-yellow-100 text-yellow-800',
-  'multi-page': 'bg-indigo-100 text-indigo-800',
-  portfolio: 'bg-pink-100 text-pink-800',
+  event: 'bg-app-accent-soft text-app-accent-text',
+  donation: 'bg-app-accent-soft text-app-accent-text',
+  blog: 'bg-app-accent-soft text-app-accent-text',
+  'multi-page': 'bg-app-accent-soft text-app-accent-text',
+  portfolio: 'bg-app-accent-soft text-app-accent-text',
   contact: 'bg-app-surface-muted text-app-text',
 };
 
@@ -37,8 +37,8 @@ const categoryLabels: Record<TemplateCategory, string> = {
 
 const statusColors: Record<string, string> = {
   draft: 'bg-app-surface-muted text-app-text-muted',
-  published: 'bg-green-100 text-green-600',
-  archived: 'bg-red-100 text-red-600',
+  published: 'bg-app-accent-soft text-app-accent',
+  archived: 'bg-app-accent-soft text-app-accent',
 };
 
 const TemplateCard: React.FC<TemplateCardProps> = ({
@@ -195,7 +195,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
             {onDelete && !template.isSystemTemplate && (
               <button
                 onClick={() => onDelete(template)}
-                className="p-1.5 text-app-text-muted hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                className="p-1.5 text-app-text-muted hover:text-app-accent hover:bg-app-accent-soft rounded transition-colors"
                 title="Delete"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

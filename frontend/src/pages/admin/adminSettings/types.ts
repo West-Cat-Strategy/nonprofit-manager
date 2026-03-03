@@ -174,4 +174,65 @@ export interface PortalAppointmentSlot {
   pointperson_last_name?: string | null;
 }
 
+export interface PortalAdminAppointmentInboxItem {
+  id: string;
+  contact_id: string;
+  case_id: string | null;
+  pointperson_user_id: string | null;
+  slot_id: string | null;
+  request_type: 'manual_request' | 'slot_booking';
+  title: string;
+  description: string | null;
+  start_time: string;
+  end_time: string | null;
+  status: 'requested' | 'confirmed' | 'cancelled' | 'completed';
+  checked_in_at?: string | null;
+  checked_in_by?: string | null;
+  location: string | null;
+  created_at: string;
+  updated_at: string;
+  case_number?: string | null;
+  case_title?: string | null;
+  pointperson_first_name?: string | null;
+  pointperson_last_name?: string | null;
+  pointperson_email?: string | null;
+  portal_user_id?: string | null;
+  portal_email?: string | null;
+  next_reminder_at?: string | null;
+  pending_reminder_jobs?: number;
+  last_reminder_sent_at?: string | null;
+}
+
+export interface PortalAdminAppointmentReminderJob {
+  id: string;
+  appointment_id: string;
+  cadence_key: '24h' | '2h';
+  channel: 'email' | 'sms';
+  scheduled_for: string;
+  status: 'pending' | 'processing' | 'sent' | 'failed' | 'skipped' | 'cancelled';
+  processing_started_at: string | null;
+  attempt_count: number;
+  last_error: string | null;
+  cancelled_reason: string | null;
+}
+
+export interface PortalAdminAppointmentReminderDelivery {
+  id: string;
+  appointment_id: string;
+  job_id: string | null;
+  channel: 'email' | 'sms';
+  trigger_type: 'manual' | 'automated';
+  recipient: string;
+  delivery_status: 'sent' | 'failed' | 'skipped';
+  error_message: string | null;
+  message_preview: string | null;
+  sent_by: string | null;
+  sent_at: string;
+}
+
+export interface PortalAdminAppointmentReminderHistory {
+  jobs: PortalAdminAppointmentReminderJob[];
+  deliveries: PortalAdminAppointmentReminderDelivery[];
+}
+
 export type SaveStatus = 'idle' | 'success' | 'error';

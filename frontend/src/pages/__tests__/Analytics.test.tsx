@@ -104,13 +104,13 @@ const setupMocks = (options: {
       return Promise.reject(new Error('API Error'));
     }
 
-    if (url === '/analytics/summary') {
+    if (url === '/v2/analytics/summary') {
       return Promise.resolve({ data: summary });
     }
-    if (url === '/analytics/trends/donations') {
+    if (url === '/v2/analytics/trends/donations') {
       return Promise.resolve({ data: donationTrends });
     }
-    if (url === '/analytics/trends/volunteer-hours') {
+    if (url === '/v2/analytics/trends/volunteer-hours') {
       return Promise.resolve({ data: volunteerTrends });
     }
     return Promise.resolve({ data: null });

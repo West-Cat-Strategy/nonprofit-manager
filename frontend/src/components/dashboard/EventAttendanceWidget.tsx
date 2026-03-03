@@ -34,7 +34,7 @@ const EventAttendanceWidget = ({ widget, editMode, onRemove }: EventAttendanceWi
     const loadSummary = async () => {
       try {
         setIsLoading(true);
-        const response = await api.get('/events/summary');
+        const response = await api.get('/v2/events/summary');
         if (!isMounted) return;
         setSummary({
           upcoming_events: response.data?.upcoming_events ?? 0,
@@ -86,7 +86,7 @@ const EventAttendanceWidget = ({ widget, editMode, onRemove }: EventAttendanceWi
           </div>
         </div>
         {error && (
-          <p className="text-xs text-red-600">Unable to load event summary</p>
+          <p className="text-xs text-app-accent">Unable to load event summary</p>
         )}
       </div>
     </WidgetContainer>

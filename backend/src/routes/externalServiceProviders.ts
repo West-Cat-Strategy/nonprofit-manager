@@ -19,7 +19,7 @@ const externalServiceProviderQuerySchema = z.object({
   provider_type: z.string().trim().min(1).max(100).optional(),
   include_inactive: z.coerce.boolean().optional(),
   limit: z.coerce.number().int().min(1).max(200).optional(),
-});
+}).strict();
 
 const createExternalServiceProviderSchema = z.object({
   provider_name: z.string().trim().min(1).max(255),

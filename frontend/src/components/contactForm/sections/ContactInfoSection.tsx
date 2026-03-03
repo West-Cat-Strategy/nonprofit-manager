@@ -22,10 +22,10 @@ export default function ContactInfoSection({ formData, errors, onChange }: Conta
             value={formData.email ?? ''}
             onChange={onChange}
             className={`mt-1 block w-full border ${
-              errors.email ? 'border-red-300' : 'border-app-input-border'
+              errors.email ? 'border-app-border' : 'border-app-input-border'
             } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
           />
-          {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+          {errors.email && <p className="mt-1 text-sm text-app-accent">{errors.email}</p>}
         </div>
 
         <div>
@@ -60,10 +60,10 @@ export default function ContactInfoSection({ formData, errors, onChange }: Conta
             value={formData.phone ?? ''}
             onChange={onChange}
             className={`mt-1 block w-full border ${
-              errors.phone ? 'border-red-300' : 'border-app-input-border'
+              errors.phone ? 'border-app-border' : 'border-app-input-border'
             } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
           />
-          {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
+          {errors.phone && <p className="mt-1 text-sm text-app-accent">{errors.phone}</p>}
         </div>
 
         <div>
@@ -77,11 +77,11 @@ export default function ContactInfoSection({ formData, errors, onChange }: Conta
             value={formData.mobile_phone ?? ''}
             onChange={onChange}
             className={`mt-1 block w-full border ${
-              errors.mobile_phone ? 'border-red-300' : 'border-app-input-border'
+              errors.mobile_phone ? 'border-app-border' : 'border-app-input-border'
             } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
           />
           {errors.mobile_phone && (
-            <p className="mt-1 text-sm text-red-600">{errors.mobile_phone}</p>
+            <p className="mt-1 text-sm text-app-accent">{errors.mobile_phone}</p>
           )}
         </div>
 

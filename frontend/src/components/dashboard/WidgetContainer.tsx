@@ -34,7 +34,7 @@ const WidgetContainer = ({
         {editMode && (
           <button
             onClick={onRemove}
-            className="text-app-text-subtle hover:text-red-600 transition-colors"
+            className="text-app-text-subtle hover:text-app-accent transition-colors"
             title="Remove widget"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,7 +52,7 @@ const WidgetContainer = ({
           </div>
         ) : error ? (
           <div className="flex items-center justify-center h-full">
-            <div className="text-sm text-red-600">Error: {error}</div>
+            <div className="text-sm text-app-accent">Error: {error}</div>
           </div>
         ) : (
           children

@@ -1,11 +1,13 @@
 # 📐 User Interface Template Information
 
 > **Document Type:** Design System Constitution  
-> **Version:** 1.0.0  
-> **Last Updated:** 2026-02-03  
-> **Status:** FROZEN - Canonical Reference
+> **Version:** 1.1.1  
+> **Last Updated:** 2026-03-03  
+> **Status:** Active - Canonical Reference
 
 This document serves as the authoritative reference for the Nonprofit Manager UI design system. Any AI agent or developer working on this project MUST adhere to these specifications to maintain visual and functional consistency.
+
+> P4-T7 update: theme registry is now typed (`ThemeId`) and the redesign rollout is feature-flagged via `VITE_UI_REDESIGN_ENABLED`.
 
 ---
 
@@ -393,6 +395,8 @@ Hard shadows with no blur, creating a "sticker" or "stacked paper" effect:
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
+| 1.1.1 | 2026-03-03 | UI/Frontend Refactor Stream (P4-T7) | Completed semantic token migration sweep across route/page/feature surfaces and set redesign flag default to off until cutover. |
+| 1.1.0 | 2026-03-02 | UI/Frontend Refactor Stream (P4-T7) | Introduced typed theme registry + redesign token layer and feature-flagged rollout path. |
 | 1.0.0 | 2026-02-03 | Design System Architect | Initial constitution freeze |
 
 ---

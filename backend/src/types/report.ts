@@ -51,7 +51,7 @@ export interface ReportDefinition {
   name: string;
   description?: string;
   entity: ReportEntity;
-  fields: string[];
+  fields?: string[];
   aggregations?: ReportAggregation[];
   groupBy?: string[];
   filters?: ReportFilter[];
@@ -98,6 +98,7 @@ export const AVAILABLE_FIELDS: Record<ReportEntity, ReportField[]> = {
   donations: [
     { field: 'id', label: 'Donation ID', type: 'string' },
     { field: 'donation_number', label: 'Donation Number', type: 'string' },
+    { field: 'donor_name', label: 'Donor Name', type: 'string' },
     { field: 'amount', label: 'Amount', type: 'currency' },
     { field: 'payment_method', label: 'Payment Method', type: 'string' },
     { field: 'payment_status', label: 'Payment Status', type: 'string' },
@@ -124,9 +125,12 @@ export const AVAILABLE_FIELDS: Record<ReportEntity, ReportField[]> = {
     { field: 'last_name', label: 'Last Name', type: 'string' },
     { field: 'email', label: 'Email', type: 'string' },
     { field: 'phone', label: 'Phone', type: 'string' },
+    { field: 'status', label: 'Status', type: 'string' },
     { field: 'volunteer_status', label: 'Status', type: 'string' },
     { field: 'skills', label: 'Skills', type: 'string' },
     { field: 'availability', label: 'Availability', type: 'string' },
+    { field: 'total_hours', label: 'Total Hours', type: 'number' },
+    { field: 'hours_contributed', label: 'Hours Contributed', type: 'number' },
     { field: 'created_at', label: 'Created Date', type: 'date' },
   ],
   tasks: [
@@ -146,6 +150,7 @@ export const AVAILABLE_FIELDS: Record<ReportEntity, ReportField[]> = {
     { field: 'priority', label: 'Priority', type: 'string' },
     { field: 'outcome', label: 'Outcome', type: 'string' },
     { field: 'status_name', label: 'Status', type: 'string' },
+    { field: 'status', label: 'Status', type: 'string' },
     { field: 'status_type', label: 'Status Type', type: 'string' },
     { field: 'case_type_name', label: 'Case Type', type: 'string' },
     { field: 'assigned_to_name', label: 'Assigned To', type: 'string' },
@@ -201,6 +206,8 @@ export const AVAILABLE_FIELDS: Record<ReportEntity, ReportField[]> = {
     { field: 'funder', label: 'Funder', type: 'string' },
     { field: 'amount', label: 'Amount', type: 'currency' },
     { field: 'status', label: 'Status', type: 'string' },
+    { field: 'start_date', label: 'Start Date', type: 'date' },
+    { field: 'end_date', label: 'End Date', type: 'date' },
     { field: 'award_date', label: 'Award Date', type: 'date' },
     { field: 'expiry_date', label: 'Expiry Date', type: 'date' },
     { field: 'created_at', label: 'Created Date', type: 'date' },

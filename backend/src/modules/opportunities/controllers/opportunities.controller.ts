@@ -3,7 +3,7 @@ import type { AuthRequest } from '@middleware/auth';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import { badRequest, notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
 import {
-  requirePermissionOrError,
+  requirePermissionSafe,
   sendForbidden,
   sendUnauthorized,
 } from '@services/authGuardService';
@@ -14,12 +14,12 @@ import { opportunityService } from '../services/opportunity.service';
 const getOrgId = (req: AuthRequest): string | null => req.organizationId || req.accountId || req.tenantId || null;
 
 const ensurePermission = (req: AuthRequest, res: Response, permission: Permission): boolean => {
-  const guard = requirePermissionOrError(req, permission);
-  if (!guard.success) {
-    if (guard.error?.toLowerCase().startsWith('unauthorized')) {
-      sendUnauthorized(res, guard.error);
+  const guard = requirePermissionSafe(req, permission);
+  if (!guard.ok) {
+    if (guard.error.code === 'unauthorized') {
+      sendUnauthorized(res, guard.error.message);
     } else {
-      sendForbidden(res, guard.error || 'Forbidden');
+      sendForbidden(res, guard.error.message || 'Forbidden');
     }
     return false;
   }

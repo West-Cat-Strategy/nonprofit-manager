@@ -1,5 +1,4 @@
 import { Response, NextFunction } from 'express';
-import { validationResult } from 'express-validator';
 import {
   generateAuthenticationOptions,
   generateRegistrationOptions,
@@ -20,7 +19,7 @@ import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '@config/jwt';
 import { JWT } from '@config/constants';
 import { trackLoginAttempt } from '@middleware/accountLockout';
-import { badRequest, notFoundMessage, unauthorized, validationErrorResponse } from '@utils/responseHelpers';
+import { badRequest, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import { setAuthCookie, setRefreshCookie } from '@utils/cookieHelper';
 import { buildAuthTokenResponse } from '@utils/authResponse';
 
@@ -196,11 +195,6 @@ export const registrationVerify = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return validationErrorResponse(res, errors);
-    }
-
     const { origins, rpID } = getWebAuthnConfig();
     const { challengeId, credential, name }: { challengeId: string; credential: RegistrationResponseJSON; name?: string } =
       req.body;
@@ -279,11 +273,6 @@ export const loginOptions = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return validationErrorResponse(res, errors);
-    }
-
     const { rpID } = getWebAuthnConfig();
     const { email }: { email: string } = req.body;
 
@@ -332,11 +321,6 @@ export const loginVerify = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return validationErrorResponse(res, errors);
-    }
-
     const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
     const { origins, rpID } = getWebAuthnConfig();
 
