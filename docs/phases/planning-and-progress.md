@@ -1,7 +1,7 @@
 # 📊 Nonprofit Manager - Planning & Progress
 
 **Current Phase:** 🚀 Phase 4 - Modularity Refactor (In Progress, with active Phase 3 overlap)  
-**Last Updated:** March 3, 2026 (P4-T8 strict gate passed; moved to Review)  
+**Last Updated:** March 3, 2026 (P4-T8 merged to main; moved to Done)  
 **Lead Developer:** Bryan Crockett (@bcroc), West Cat Strategy Ltd.
 
 ---
@@ -123,7 +123,7 @@ All active work must be **signed out** in the Workboard below before code change
 | P4-T7B | Global app shell + navigation replacement | Phase 4 | Ready | — | — | TBD | — (parent: P4-T7) |
 | P4-T7C | Core app pages migration (people/engagement/finance/analytics/admin/builder/workflows) | Phase 4 | Ready | — | — | TBD | — (parent: P4-T7) |
 | P4-T7C-RPT1 | Reporting module expansion (builder UX + scheduled management + saved-report sharing/public snapshots) | Phase 4 | Ready | — | — | TBD | — (parent: P4-T7C) |
-| P4-T8 | Full-stack v2 cutover refactor (legacy `/api/*` hard removal + frontend v2 contract cutover + security/build hardening) | Phase 4 | Review | Codex | Mar 3, 2026 | TBD | codex/p4-t8-full-stack-v2-cutover |
+| P4-T8 | Full-stack v2 cutover refactor (legacy `/api/*` hard removal + frontend v2 contract cutover + security/build hardening) | Phase 4 | Done | Codex | Mar 3, 2026 | TBD | main@09e49f5 |
 | P4-T7D | Portal + auth/public pages migration | Phase 4 | Ready | — | — | TBD | — (parent: P4-T7) |
 | P4-T7G | Appointments/reminders/check-in infrastructure upgrade (admin-first; links: P3-T1, P3-T2C, P3-T2E) | Phase 4 | Ready | — | — | TBD | — (handled outside canonical P4-T7C-RPT1 stream) |
 | P4-T7E | Accessibility + interaction hardening | Phase 4 | Ready | — | — | TBD | — (parent: P4-T7) |
@@ -2594,6 +2594,7 @@ Frontend Component Tests:
 
 | Date | Task ID | Owner | Status Change | Notes |
 |------|---------|-------|---------------|-------|
+| Mar 3, 2026 | P4-T8 | Codex | Review → Done | Consolidation merge completed on `main` via merge commit `09e49f5`; workstream branch integrated and ready for branch-pruning cleanup. |
 | Mar 3, 2026 | P4-T8 | Codex | Blocked → Review | Blocker resolved via CI runtime stabilization and deterministic e2e cutover: canonical port/env defaults (`3001`/`5173`), Playwright `CI=1` detection fix, compiled backend + `vite preview` webserver mode for CI, and quick-filter deep-link test hardening in `e2e/tests/cases.spec.ts`. Strict ordered gate evidence passed: `make lint`, `make typecheck`, backend unit/integration, `node scripts/ui-audit.ts`, frontend Vitest, `DB_NAME=nonprofit_manager_test DB_PASSWORD=postgres make db-verify`, `cd e2e && npm run test:smoke`, `cd e2e && npm run test:ci` (`420 passed`, completed `2026-03-02 20:10:10 PST`), and `make ci-full` (success, completed `2026-03-02 20:22:29 PST`, backend/frontend audit high+ clean). |
 | Mar 3, 2026 | P4-T7 / P4-T7C-RPT1 | Codex | Blocked → Ready | Released paused UI stream after single-task governance window closed with P4-T8 moved to `Review`; both rows returned to `Ready` pending explicit next-task sign-out. |
 | Mar 3, 2026 | P4-T7 / P4-T7C-RPT1 / P4-T7G | Codex | Governance correction | Re-activated canonical UI stream on `codex/p4-t7-ui-ux-full-replacement`: set parent `P4-T7` and subtask `P4-T7C-RPT1` back to `In Progress`, kept `P4-T7C-RPT1` as the only active P4-T7 subtask, and kept `P4-T7G` in `Ready` with out-of-stream note. |
