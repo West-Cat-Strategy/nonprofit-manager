@@ -185,7 +185,7 @@ export default function UsersSection({
           <div className="flex items-center justify-between py-3 border-b border-app-border-muted">
             <div>
               <div className="text-sm font-medium text-app-text">Require Strong Passwords</div>
-              <div className="text-sm text-app-text-muted">Minimum 8 characters with uppercase, lowercase, number, and symbol</div>
+              <div className="text-sm text-app-text-muted">Minimum 8 characters with uppercase, lowercase, and number</div>
             </div>
             <span className="px-2 py-1 text-xs font-medium bg-app-accent-soft text-app-accent-text rounded-full">Enabled</span>
           </div>

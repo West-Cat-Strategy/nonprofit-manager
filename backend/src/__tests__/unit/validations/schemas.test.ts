@@ -7,6 +7,7 @@ import {
   loginSchema,
   registerSchema,
   passwordResetRequestSchema,
+  setupFirstUserSchema,
   twoFactorVerifySchema,
 } from '../../../validations/auth';
 import {
@@ -16,7 +17,8 @@ import {
 import {
   createEventSchema,
 } from '../../../validations/event';
-import { paginationSchema } from '../../../validations/shared';
+import { paginationSchema, passwordSchema } from '../../../validations/shared';
+import { portalChangePasswordSchema, portalSignupSchema } from '../../../validations/portal';
 
 describe('Authentication Schemas', () => {
   describe('loginSchema', () => {
@@ -135,6 +137,35 @@ describe('Authentication Schemas', () => {
         const result = registerSchema.safeParse(data);
         expect(result.success).toBe(shouldPass);
       });
+    });
+  });
+
+  describe('setupFirstUserSchema', () => {
+    const baseSetupData = {
+      email: 'setup@example.com',
+      first_name: 'Setup',
+      last_name: 'Admin',
+      organization_name: 'Setup Org',
+    };
+
+    it('accepts passwords with common special characters', () => {
+      const result = setupFirstUserSchema.safeParse({
+        ...baseSetupData,
+        password: 'Strong1#Password',
+        password_confirm: 'Strong1#Password',
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts passwords without special characters', () => {
+      const result = setupFirstUserSchema.safeParse({
+        ...baseSetupData,
+        password: 'Strong1Password',
+        password_confirm: 'Strong1Password',
+      });
+
+      expect(result.success).toBe(true);
     });
   });
 
@@ -315,6 +346,23 @@ describe('Event Schemas', () => {
 });
 
 describe('Shared Schemas', () => {
+  describe('passwordSchema', () => {
+    const passwordCases = [
+      { password: 'Strong1Password', shouldPass: true },
+      { password: 'Strong1#Password', shouldPass: true },
+      { password: 'Valid9_^word', shouldPass: true },
+      { password: 'nouppercase123', shouldPass: false },
+      { password: 'NOLOWERCASE123', shouldPass: false },
+      { password: 'NoNumbersHere', shouldPass: false },
+      { password: 'Shrt1a', shouldPass: false },
+    ];
+
+    it.each(passwordCases)('validates "$password" => $shouldPass', ({ password, shouldPass }) => {
+      const result = passwordSchema.safeParse(password);
+      expect(result.success).toBe(shouldPass);
+    });
+  });
+
   describe('paginationSchema', () => {
     it('should provide defaults', () => {
       const result = paginationSchema.safeParse({});
@@ -349,5 +397,27 @@ describe('Shared Schemas', () => {
       const result = paginationSchema.safeParse(tooHigh);
       expect(result.success).toBe(false);
     });
+  });
+});
+
+describe('Portal Schemas', () => {
+  it('accepts portal signup passwords without required special characters', () => {
+    const result = portalSignupSchema.safeParse({
+      email: 'portal@example.com',
+      password: 'Portal1Password',
+      firstName: 'Portal',
+      lastName: 'User',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts portal password updates with non-whitelisted special characters', () => {
+    const result = portalChangePasswordSchema.safeParse({
+      currentPassword: 'Current1Password',
+      newPassword: 'Portal1#Password',
+    });
+
+    expect(result.success).toBe(true);
   });
 });
