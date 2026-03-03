@@ -173,7 +173,7 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {errors.submit && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="bg-app-accent-soft border border-app-border text-app-accent-text px-4 py-3 rounded">
           {errors.submit}
         </div>
       )}
@@ -221,10 +221,10 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
                 onChange={handleChange}
                 placeholder="Event ID (e.g., from events list)"
                 className={`mt-1 block w-full border ${
-                  errors.event_id ? 'border-red-300' : 'border-app-input-border'
+                  errors.event_id ? 'border-app-border' : 'border-app-input-border'
                 } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
               />
-              {errors.event_id && <p className="mt-1 text-sm text-red-600">{errors.event_id}</p>}
+              {errors.event_id && <p className="mt-1 text-sm text-app-accent">{errors.event_id}</p>}
               <p className="mt-1 text-sm text-app-text-muted">
                 Enter the event UUID. Event management will be available in Step 2.3.
               </p>
@@ -244,10 +244,10 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
                 onChange={handleChange}
                 placeholder="Task ID (e.g., from tasks list)"
                 className={`mt-1 block w-full border ${
-                  errors.task_id ? 'border-red-300' : 'border-app-input-border'
+                  errors.task_id ? 'border-app-border' : 'border-app-input-border'
                 } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
               />
-              {errors.task_id && <p className="mt-1 text-sm text-red-600">{errors.task_id}</p>}
+              {errors.task_id && <p className="mt-1 text-sm text-app-accent">{errors.task_id}</p>}
               <p className="mt-1 text-sm text-app-text-muted">
                 Enter the task UUID. Task management will be available in Step 2.5.
               </p>
@@ -286,10 +286,10 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
               value={formData.start_time}
               onChange={handleChange}
               className={`mt-1 block w-full border ${
-                errors.start_time ? 'border-red-300' : 'border-app-input-border'
+                errors.start_time ? 'border-app-border' : 'border-app-input-border'
               } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
             />
-            {errors.start_time && <p className="mt-1 text-sm text-red-600">{errors.start_time}</p>}
+            {errors.start_time && <p className="mt-1 text-sm text-app-accent">{errors.start_time}</p>}
           </div>
 
           <div>
@@ -303,10 +303,10 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
               value={formData.end_time ?? ''}
               onChange={handleChange}
               className={`mt-1 block w-full border ${
-                errors.end_time ? 'border-red-300' : 'border-app-input-border'
+                errors.end_time ? 'border-app-border' : 'border-app-input-border'
               } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
             />
-            {errors.end_time && <p className="mt-1 text-sm text-red-600">{errors.end_time}</p>}
+            {errors.end_time && <p className="mt-1 text-sm text-app-accent">{errors.end_time}</p>}
           </div>
         </div>
       </div>

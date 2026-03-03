@@ -17,11 +17,11 @@ process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'test-encryption-key'
 process.env.DATABASE_URL = process.env.DATABASE_URL
   || `postgres://${process.env.DB_USER || 'postgres'}:${process.env.DB_PASSWORD || 'postgres'}@${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || '5432'}/${process.env.DB_NAME || 'nonprofit_manager'}`;
 
-beforeAll(async () => {
-  const setupFlag = '__NONPROFIT_MANAGER_DB_COMPAT_SETUP_DONE__';
-  const globalWithSetupFlag = globalThis as Record<string, unknown>;
+const DB_COMPAT_SETUP_FLAG = '__NONPROFIT_MANAGER_DB_COMPAT_SETUP_DONE__';
 
-  if (globalWithSetupFlag[setupFlag] === true) {
+beforeAll(async () => {
+  // setupFilesAfterEnv runs for each test file, so use process-level state.
+  if (process.env[DB_COMPAT_SETUP_FLAG] === 'true') {
     return;
   }
 
@@ -30,11 +30,16 @@ beforeAll(async () => {
     return;
   }
 
-  globalWithSetupFlag[setupFlag] = true;
+  process.env[DB_COMPAT_SETUP_FLAG] = 'true';
+  const dbClient = await pool.connect();
 
   try {
+    // Never wait indefinitely on table locks in test setup.
+    await dbClient.query("SET lock_timeout TO '2000ms'");
+    await dbClient.query("SET statement_timeout TO '30000ms'");
+
     // Keep integration tests resilient when local test DB lags behind recent migrations.
-    await pool.query(`
+    await dbClient.query(`
       ALTER TABLE events
       ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT FALSE,
       ADD COLUMN IF NOT EXISTS is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
@@ -45,12 +50,12 @@ beforeAll(async () => {
       ADD COLUMN IF NOT EXISTS attended_count INTEGER NOT NULL DEFAULT 0
     `);
 
-    await pool.query(`
+    await dbClient.query(`
       ALTER TABLE cases
       ADD COLUMN IF NOT EXISTS client_viewable BOOLEAN NOT NULL DEFAULT FALSE
     `);
 
-    await pool.query(`
+    await dbClient.query(`
       ALTER TABLE case_notes
       ADD COLUMN IF NOT EXISTS visible_to_client BOOLEAN NOT NULL DEFAULT FALSE,
       ADD COLUMN IF NOT EXISTS category VARCHAR(100),
@@ -58,7 +63,7 @@ beforeAll(async () => {
       ADD COLUMN IF NOT EXISTS updated_by UUID REFERENCES users(id)
     `);
 
-    await pool.query(`
+    await dbClient.query(`
       CREATE TABLE IF NOT EXISTS case_outcomes (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
@@ -74,7 +79,7 @@ beforeAll(async () => {
       )
     `);
 
-    await pool.query(`
+    await dbClient.query(`
       CREATE TABLE IF NOT EXISTS case_topic_definitions (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         account_id UUID REFERENCES accounts(id) ON DELETE CASCADE,
@@ -88,7 +93,7 @@ beforeAll(async () => {
       )
     `);
 
-    await pool.query(`
+    await dbClient.query(`
       DO $$
       BEGIN
         IF NOT EXISTS (
@@ -103,7 +108,7 @@ beforeAll(async () => {
       END $$;
     `);
 
-    await pool.query(`
+    await dbClient.query(`
       CREATE TABLE IF NOT EXISTS case_topic_events (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
@@ -118,7 +123,7 @@ beforeAll(async () => {
       )
     `);
 
-    await pool.query(`
+    await dbClient.query(`
       ALTER TABLE case_documents
       ADD COLUMN IF NOT EXISTS account_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
       ADD COLUMN IF NOT EXISTS file_name VARCHAR(255),
@@ -129,11 +134,21 @@ beforeAll(async () => {
       ADD COLUMN IF NOT EXISTS updated_by UUID REFERENCES users(id)
     `);
 
-    await pool.query(`
+    await dbClient.query(`
       ALTER TABLE case_documents
       ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     `);
   } catch {
     // Allow pure unit tests to run without a live DB.
+  } finally {
+    dbClient.release();
+  }
+});
+
+afterAll(async () => {
+  try {
+    await pool.end();
+  } catch {
+    // Allow unit suites without an active DB connection to complete cleanly.
   }
 });

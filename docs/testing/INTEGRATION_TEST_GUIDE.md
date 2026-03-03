@@ -512,7 +512,7 @@ cd backend/tests/integration
 ./integration-full-system.sh
 
 # Check server status
-curl localhost:3000/api/health
+curl localhost:3000/health/live
 
 # Clean test data (if needed)
 psql -d nonprofit_manager -c "DELETE FROM contacts WHERE email LIKE '%@example.com';"

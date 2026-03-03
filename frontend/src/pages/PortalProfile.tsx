@@ -1,6 +1,9 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import portalApi from '../services/portalApi';
 import { unwrapApiData } from '../services/apiEnvelope';
+import { useToast } from '../contexts/useToast';
+import PortalPageShell from '../components/portal/PortalPageShell';
+import PortalPageState from '../components/portal/PortalPageState';
 
 interface PortalProfileData {
   contact_id: string;
@@ -24,31 +27,36 @@ interface PortalProfileData {
 export default function PortalProfile() {
   const [formData, setFormData] = useState<PortalProfileData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
 
-  // Password change state
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [changingPassword, setChangingPassword] = useState(false);
 
+  const [profileStatusMessage, setProfileStatusMessage] = useState<string | null>(null);
+  const [securityStatusMessage, setSecurityStatusMessage] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { showSuccess, showError } = useToast();
+
+  const loadProfile = async () => {
+    try {
+      setError(null);
+      const response = await portalApi.get('/v2/portal/profile');
+      setFormData(unwrapApiData(response.data));
+    } catch (loadError) {
+      console.error('Failed to load profile', loadError);
+      setError('Unable to load profile.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const response = await portalApi.get('/v2/portal/profile');
-        setFormData(unwrapApiData(response.data));
-      } catch (error) {
-        console.error('Failed to load profile', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+    void loadProfile();
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -61,14 +69,16 @@ export default function PortalProfile() {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      setMessage('Image must be less than 5MB');
+      const message = 'Image must be less than 5MB';
+      setProfileStatusMessage(message);
+      showError(message);
       return;
     }
 
     const reader = new FileReader();
     reader.onload = (event) => {
       const base64 = event.target?.result as string;
-      setFormData((prev) => prev ? { ...prev, profile_picture: base64 } : null);
+      setFormData((prev) => (prev ? { ...prev, profile_picture: base64 } : null));
     };
     reader.readAsDataURL(file);
   };
@@ -80,11 +90,14 @@ export default function PortalProfile() {
       setSaving(true);
       const response = await portalApi.patch('/v2/portal/profile', formData);
       setFormData(unwrapApiData(response.data));
-      setMessage('Profile updated successfully');
-      setTimeout(() => setMessage(null), 3000);
-    } catch (error) {
-      console.error('Failed to update profile', error);
-      setMessage('Failed to update profile');
+      const message = 'Profile updated successfully.';
+      setProfileStatusMessage(message);
+      showSuccess(message);
+    } catch (submitError) {
+      console.error('Failed to update profile', submitError);
+      const message = 'Failed to update profile.';
+      setProfileStatusMessage(message);
+      showError(message);
     } finally {
       setSaving(false);
     }
@@ -92,15 +105,19 @@ export default function PortalProfile() {
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPasswordMessage(null);
+    setSecurityStatusMessage(null);
 
     if (newPassword !== confirmPassword) {
-      setPasswordMessage('Passwords do not match');
+      const message = 'Passwords do not match.';
+      setSecurityStatusMessage(message);
+      showError(message);
       return;
     }
 
     if (newPassword.length < 8) {
-      setPasswordMessage('Password must be at least 8 characters');
+      const message = 'Password must be at least 8 characters.';
+      setSecurityStatusMessage(message);
+      showError(message);
       return;
     }
 
@@ -110,292 +127,287 @@ export default function PortalProfile() {
         currentPassword,
         newPassword,
       });
-      setPasswordMessage('Password changed successfully');
+      const message = 'Password changed successfully.';
+      setSecurityStatusMessage(message);
+      showSuccess(message);
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      setTimeout(() => setPasswordMessage(null), 3000);
-    } catch (error: unknown) {
+    } catch (passwordError: unknown) {
       const message =
-        typeof error === 'object' &&
-        error !== null &&
-        'response' in error &&
-        typeof (error as { response?: unknown }).response === 'object' &&
-        (error as { response?: { data?: { message?: string } } }).response?.data?.message
-          ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
-          : 'Failed to change password';
-      setPasswordMessage(message ?? 'Failed to change password');
+        typeof passwordError === 'object' &&
+        passwordError !== null &&
+        'response' in passwordError &&
+        typeof (passwordError as { response?: unknown }).response === 'object' &&
+        (passwordError as { response?: { data?: { message?: string } } }).response?.data?.message
+          ? (passwordError as { response?: { data?: { message?: string } } }).response?.data?.message
+          : 'Failed to change password.';
+      setSecurityStatusMessage(message ?? 'Failed to change password.');
+      showError(message ?? 'Failed to change password.');
     } finally {
       setChangingPassword(false);
     }
   };
 
-  if (loading) {
-    return <p className="text-sm text-app-text-muted">Loading profile...</p>;
-  }
-
-  if (!formData) {
-    return <p className="text-sm text-red-600">Unable to load profile.</p>;
-  }
-
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h2 className="text-2xl font-bold text-app-text mb-6">Your Profile</h2>
+    <PortalPageShell title="Your Profile" description="Update your contact details and account security settings.">
+      <PortalPageState
+        loading={loading}
+        error={error}
+        empty={!loading && !error && !formData}
+        loadingLabel="Loading profile..."
+        emptyTitle="Unable to load profile."
+        emptyDescription="Please retry in a moment."
+        onRetry={loadProfile}
+      />
 
-      {/* Tabs */}
-      <div className="mb-6 border-b border-app-border">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab('profile')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'profile'
-                ? 'border-app-accent text-app-accent'
-                : 'border-transparent text-app-text-muted hover:text-app-text hover:border-app-border'
-              }`}
-          >
-            Profile Information
-          </button>
-          <button
-            onClick={() => setActiveTab('security')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'security'
-                ? 'border-app-accent text-app-accent'
-                : 'border-transparent text-app-text-muted hover:text-app-text hover:border-app-border'
-              }`}
-          >
-            Security
-          </button>
-        </nav>
-      </div>
-
-      {/* Profile Tab */}
-      {activeTab === 'profile' && (
-        <div>
-          {message && (
-            <div className={`mb-4 p-3 rounded-md ${message.includes('success') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
-              {message}
-            </div>
-          )}
-
-          {/* Avatar Section */}
-          <div className="mb-6 bg-app-surface border border-app-border rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-app-text mb-4">Profile Picture</h3>
-            <div className="flex items-center space-x-6">
-              <div className="w-24 h-24 rounded-full overflow-hidden bg-app-surface-muted border-2 border-app-border">
-                {formData.profile_picture ? (
-                  <img src={formData.profile_picture} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-app-text-muted">
-                    {formData.first_name?.[0]}{formData.last_name?.[0]}
-                  </div>
-                )}
-              </div>
-              <div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover text-sm font-medium"
-                >
-                  Upload Photo
-                </button>
-                {formData.profile_picture && (
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, profile_picture: null })}
-                    className="ml-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium"
-                  >
-                    Remove
-                  </button>
-                )}
-                <p className="mt-2 text-xs text-app-text-muted">JPG, PNG or GIF. Max 5MB.</p>
-              </div>
-            </div>
+      {!loading && !error && formData && (
+        <div className="space-y-6">
+          <div className="border-b border-app-border">
+            <nav className="-mb-px flex gap-8">
+              <button
+                onClick={() => setActiveTab('profile')}
+                className={`border-b-2 px-1 py-4 text-sm font-medium ${
+                  activeTab === 'profile'
+                    ? 'border-app-accent text-app-accent'
+                    : 'border-transparent text-app-text-muted hover:border-app-border hover:text-app-text'
+                }`}
+              >
+                Profile Information
+              </button>
+              <button
+                onClick={() => setActiveTab('security')}
+                className={`border-b-2 px-1 py-4 text-sm font-medium ${
+                  activeTab === 'security'
+                    ? 'border-app-accent text-app-accent'
+                    : 'border-transparent text-app-text-muted hover:border-app-border hover:text-app-text'
+                }`}
+              >
+                Security
+              </button>
+            </nav>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="bg-app-surface border border-app-border rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-app-text mb-4">Personal Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-app-text mb-1">First Name</label>
-                  <input
-                    name="first_name"
-                    value={formData.first_name || ''}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-app-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-app-accent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-app-text mb-1">Last Name</label>
-                  <input
-                    name="last_name"
-                    value={formData.last_name || ''}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-app-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-app-accent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-app-text mb-1">Email</label>
-                  <input
-                    name="email"
-                    type="email"
-                    value={formData.email || ''}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-app-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-app-accent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-app-text mb-1">Phone</label>
-                  <input
-                    name="phone"
-                    value={formData.phone || ''}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-app-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-app-accent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-app-text mb-1">Mobile Phone</label>
-                  <input
-                    name="mobile_phone"
-                    value={formData.mobile_phone || ''}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-app-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-app-accent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-app-text mb-1">Pronouns</label>
-                  <input
-                    name="pronouns"
-                    value={formData.pronouns || ''}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-app-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-app-accent"
-                  />
-                </div>
-              </div>
-            </div>
+          <p className="sr-only" role="status" aria-live="polite">
+            {profileStatusMessage || securityStatusMessage || ''}
+          </p>
 
-            <div className="bg-app-surface border border-app-border rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-app-text mb-4">Address</h3>
-              <div className="space-y-4">
-                <input
-                  name="address_line1"
-                  placeholder="Address Line 1"
-                  value={formData.address_line1 || ''}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-app-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-app-accent"
-                />
-                <input
-                  name="address_line2"
-                  placeholder="Address Line 2"
-                  value={formData.address_line2 || ''}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-app-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-app-accent"
-                />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <input
-                    name="city"
-                    placeholder="City"
-                    value={formData.city || ''}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-app-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-app-accent"
-                  />
-                  <input
-                    name="state_province"
-                    placeholder="State/Province"
-                    value={formData.state_province || ''}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-app-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-app-accent"
-                  />
-                  <input
-                    name="postal_code"
-                    placeholder="Postal Code"
-                    value={formData.postal_code || ''}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-app-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-app-accent"
-                  />
+          {activeTab === 'profile' && (
+            <div className="space-y-6">
+              <section className="rounded-lg border border-app-border bg-app-surface p-6">
+                <h3 className="text-base font-semibold text-app-text">Profile Picture</h3>
+                <div className="mt-4 flex items-center gap-6">
+                  <div className="h-24 w-24 overflow-hidden rounded-full border-2 border-app-border bg-app-surface-muted">
+                    {formData.profile_picture ? (
+                      <img src={formData.profile_picture} alt="Profile" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-3xl font-bold text-app-text-muted">
+                        {formData.first_name?.[0]}
+                        {formData.last_name?.[0]}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="rounded-md bg-app-accent px-4 py-2 text-sm font-medium text-white"
+                    >
+                      Upload Photo
+                    </button>
+                    {formData.profile_picture && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, profile_picture: null })}
+                        className="ml-2 rounded-md bg-app-accent px-4 py-2 text-sm font-medium text-white"
+                      >
+                        Remove
+                      </button>
+                    )}
+                    <p className="mt-2 text-xs text-app-text-muted">JPG, PNG or GIF. Max 5MB.</p>
+                  </div>
                 </div>
-                <input
-                  name="country"
-                  placeholder="Country"
-                  value={formData.country || ''}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-app-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-app-accent"
-                />
-              </div>
-            </div>
+              </section>
 
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-6 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover font-medium disabled:opacity-50"
-            >
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-          </form>
-        </div>
-      )}
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <section className="rounded-lg border border-app-border bg-app-surface p-6">
+                  <h3 className="text-base font-semibold text-app-text">Personal Information</h3>
+                  <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-app-text">First Name</label>
+                      <input
+                        name="first_name"
+                        value={formData.first_name || ''}
+                        onChange={handleChange}
+                        className="w-full rounded-md border border-app-input-border px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-app-text">Last Name</label>
+                      <input
+                        name="last_name"
+                        value={formData.last_name || ''}
+                        onChange={handleChange}
+                        className="w-full rounded-md border border-app-input-border px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-app-text">Email</label>
+                      <input
+                        name="email"
+                        type="email"
+                        value={formData.email || ''}
+                        onChange={handleChange}
+                        className="w-full rounded-md border border-app-input-border px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-app-text">Phone</label>
+                      <input
+                        name="phone"
+                        value={formData.phone || ''}
+                        onChange={handleChange}
+                        className="w-full rounded-md border border-app-input-border px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-app-text">Mobile Phone</label>
+                      <input
+                        name="mobile_phone"
+                        value={formData.mobile_phone || ''}
+                        onChange={handleChange}
+                        className="w-full rounded-md border border-app-input-border px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-app-text">Pronouns</label>
+                      <input
+                        name="pronouns"
+                        value={formData.pronouns || ''}
+                        onChange={handleChange}
+                        className="w-full rounded-md border border-app-input-border px-3 py-2"
+                      />
+                    </div>
+                  </div>
+                </section>
 
-      {/* Security Tab */}
-      {activeTab === 'security' && (
-        <div>
-          {passwordMessage && (
-            <div className={`mb-4 p-3 rounded-md ${passwordMessage.includes('success') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
-              {passwordMessage}
+                <section className="rounded-lg border border-app-border bg-app-surface p-6">
+                  <h3 className="text-base font-semibold text-app-text">Address</h3>
+                  <div className="mt-4 space-y-4">
+                    <input
+                      name="address_line1"
+                      placeholder="Address Line 1"
+                      value={formData.address_line1 || ''}
+                      onChange={handleChange}
+                      className="w-full rounded-md border border-app-input-border px-3 py-2"
+                    />
+                    <input
+                      name="address_line2"
+                      placeholder="Address Line 2"
+                      value={formData.address_line2 || ''}
+                      onChange={handleChange}
+                      className="w-full rounded-md border border-app-input-border px-3 py-2"
+                    />
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                      <input
+                        name="city"
+                        placeholder="City"
+                        value={formData.city || ''}
+                        onChange={handleChange}
+                        className="w-full rounded-md border border-app-input-border px-3 py-2"
+                      />
+                      <input
+                        name="state_province"
+                        placeholder="State/Province"
+                        value={formData.state_province || ''}
+                        onChange={handleChange}
+                        className="w-full rounded-md border border-app-input-border px-3 py-2"
+                      />
+                      <input
+                        name="postal_code"
+                        placeholder="Postal Code"
+                        value={formData.postal_code || ''}
+                        onChange={handleChange}
+                        className="w-full rounded-md border border-app-input-border px-3 py-2"
+                      />
+                    </div>
+                    <input
+                      name="country"
+                      placeholder="Country"
+                      value={formData.country || ''}
+                      onChange={handleChange}
+                      className="w-full rounded-md border border-app-input-border px-3 py-2"
+                    />
+                  </div>
+                </section>
+
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="rounded-md bg-app-accent px-6 py-2 font-medium text-white disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </form>
             </div>
           )}
 
-          <form onSubmit={handlePasswordChange} className="bg-app-surface border border-app-border rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-app-text mb-4">Change Password</h3>
-            <div className="space-y-4 max-w-md">
-              <div>
-                <label className="block text-sm font-medium text-app-text mb-1">Current Password</label>
-                <input
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-app-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-app-accent"
-                  required
-                />
+          {activeTab === 'security' && (
+            <form onSubmit={handlePasswordChange} className="rounded-lg border border-app-border bg-app-surface p-6">
+              <h3 className="text-base font-semibold text-app-text">Change Password</h3>
+              <div className="mt-4 max-w-md space-y-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-app-text">Current Password</label>
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="w-full rounded-md border border-app-input-border px-3 py-2"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-app-text">New Password</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full rounded-md border border-app-input-border px-3 py-2"
+                    required
+                  />
+                  <p className="mt-1 text-xs text-app-text-muted">
+                    Must be at least 8 characters with uppercase, lowercase, number, and special character.
+                  </p>
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-app-text">Confirm New Password</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full rounded-md border border-app-input-border px-3 py-2"
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={changingPassword}
+                  className="rounded-md bg-app-accent px-6 py-2 font-medium text-white disabled:opacity-50"
+                >
+                  {changingPassword ? 'Changing...' : 'Change Password'}
+                </button>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-app-text mb-1">New Password</label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-app-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-app-accent"
-                  required
-                />
-                <p className="mt-1 text-xs text-app-text-muted">
-                  Must be at least 8 characters with uppercase, lowercase, number, and special character
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-app-text mb-1">Confirm New Password</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-app-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-app-accent"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={changingPassword}
-                className="px-6 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover font-medium disabled:opacity-50"
-              >
-                {changingPassword ? 'Changing...' : 'Change Password'}
-              </button>
-            </div>
-          </form>
+            </form>
+          )}
         </div>
       )}
-    </div>
+    </PortalPageShell>
   );
 }

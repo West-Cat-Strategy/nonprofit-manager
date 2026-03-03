@@ -9,7 +9,7 @@ import { AuthRequest } from '@middleware/auth';
 import { REPORT_ENTITIES, type ReportDefinition, type ReportEntity } from '@app-types/report';
 import { badRequest, unauthorized } from '@utils/responseHelpers';
 import {
-  requirePermissionOrError,
+  requirePermissionSafe,
   sendForbidden,
   sendUnauthorized,
 } from '@services/authGuardService';
@@ -24,12 +24,12 @@ const ensurePermission = (
   res: Response,
   permission: Permission
 ): boolean => {
-  const guard = requirePermissionOrError(req, permission);
-  if (!guard.success) {
-    if (guard.error?.toLowerCase().startsWith('unauthorized')) {
-      sendUnauthorized(res, guard.error);
+  const guard = requirePermissionSafe(req, permission);
+  if (!guard.ok) {
+    if (guard.error.code === 'unauthorized') {
+      sendUnauthorized(res, guard.error.message);
     } else {
-      sendForbidden(res, guard.error || 'Forbidden');
+      sendForbidden(res, guard.error.message || 'Forbidden');
     }
     return false;
   }
@@ -56,8 +56,12 @@ export const generateReport = async (
       return;
     }
 
-    if (!definition.fields || definition.fields.length === 0) {
-      badRequest(res, 'At least one field must be selected');
+    const hasFields = Array.isArray(definition.fields) && definition.fields.length > 0;
+    const hasAggregations =
+      Array.isArray(definition.aggregations) && definition.aggregations.length > 0;
+
+    if (!hasFields && !hasAggregations) {
+      badRequest(res, 'At least one field or aggregation must be selected');
       return;
     }
 

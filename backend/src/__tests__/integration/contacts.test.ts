@@ -10,7 +10,7 @@ describe('Contact API Integration Tests', () => {
   beforeAll(async () => {
     // Register and login
     const registerResponse = await request(app)
-      .post('/api/auth/register')
+      .post('/api/v2/auth/register')
       .send({
         email: `contact-test-${unique()}@example.com`,
         password: 'Test123!Strong',
@@ -23,7 +23,7 @@ describe('Contact API Integration Tests', () => {
 
     // Create a test account for contacts
     const accountResponse = await request(app)
-      .post('/api/accounts')
+      .post('/api/v2/accounts')
       .set('Authorization', `Bearer ${authToken}`)
       .send({
         account_name: 'Test Account for Contacts',
@@ -41,10 +41,10 @@ describe('Contact API Integration Tests', () => {
     }
   });
 
-  describe('POST /api/contacts', () => {
+  describe('POST /api/v2/contacts', () => {
     it('should create a new contact with valid data', async () => {
       const response = await request(app)
-        .post('/api/contacts')
+        .post('/api/v2/contacts')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_id: testAccountId,
@@ -62,7 +62,7 @@ describe('Contact API Integration Tests', () => {
 
     it('should require authentication', async () => {
       await request(app)
-        .post('/api/contacts')
+        .post('/api/v2/contacts')
         .send({
           account_id: testAccountId,
           first_name: 'Jane',
@@ -73,7 +73,7 @@ describe('Contact API Integration Tests', () => {
 
     it('should create contact with required fields', async () => {
       const response = await request(app)
-        .post('/api/contacts')
+        .post('/api/v2/contacts')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_id: testAccountId,
@@ -88,7 +88,7 @@ describe('Contact API Integration Tests', () => {
 
     it('should create contact with email', async () => {
       const response = await request(app)
-        .post('/api/contacts')
+        .post('/api/v2/contacts')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_id: testAccountId,
@@ -102,10 +102,10 @@ describe('Contact API Integration Tests', () => {
     });
   });
 
-  describe('GET /api/contacts', () => {
+  describe('GET /api/v2/contacts', () => {
     it('should return paginated list of contacts', async () => {
       const response = await request(app)
-        .get('/api/contacts')
+        .get('/api/v2/contacts')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -117,7 +117,7 @@ describe('Contact API Integration Tests', () => {
 
     it('should support search query', async () => {
       const response = await request(app)
-        .get('/api/contacts?search=John')
+        .get('/api/v2/contacts?search=John')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -126,7 +126,7 @@ describe('Contact API Integration Tests', () => {
 
     it('should filter by account_id', async () => {
       const response = await request(app)
-        .get(`/api/contacts?account_id=${testAccountId}`)
+        .get(`/api/v2/contacts?account_id=${testAccountId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -134,14 +134,14 @@ describe('Contact API Integration Tests', () => {
     });
 
     it('should require authentication', async () => {
-      await request(app).get('/api/contacts').expect(401);
+      await request(app).get('/api/v2/contacts').expect(401);
     });
   });
 
-  describe('GET /api/contacts/:id', () => {
+  describe('GET /api/v2/contacts/:id', () => {
     it('should return a single contact by ID', async () => {
       const createResponse = await request(app)
-        .post('/api/contacts')
+        .post('/api/v2/contacts')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_id: testAccountId,
@@ -153,7 +153,7 @@ describe('Contact API Integration Tests', () => {
       const contactId = createResponse.body.contact_id;
 
       const response = await request(app)
-        .get(`/api/contacts/${contactId}`)
+        .get(`/api/v2/contacts/${contactId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -163,20 +163,20 @@ describe('Contact API Integration Tests', () => {
 
     it('should return 404 for non-existent contact', async () => {
       await request(app)
-        .get('/api/contacts/00000000-0000-0000-0000-000000000000')
+        .get('/api/v2/contacts/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
     });
 
     it('should require authentication', async () => {
-      await request(app).get('/api/contacts/1').expect(401);
+      await request(app).get('/api/v2/contacts/1').expect(401);
     });
   });
 
-  describe('PUT /api/contacts/:id', () => {
+  describe('PUT /api/v2/contacts/:id', () => {
     it('should update an existing contact', async () => {
       const createResponse = await request(app)
-        .post('/api/contacts')
+        .post('/api/v2/contacts')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_id: testAccountId,
@@ -187,7 +187,7 @@ describe('Contact API Integration Tests', () => {
       const contactId = createResponse.body.contact_id;
 
       const response = await request(app)
-        .put(`/api/contacts/${contactId}`)
+        .put(`/api/v2/contacts/${contactId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Updated',
@@ -201,7 +201,7 @@ describe('Contact API Integration Tests', () => {
 
     it('should return 404 for non-existent contact', async () => {
       await request(app)
-        .put('/api/contacts/00000000-0000-0000-0000-000000000000')
+        .put('/api/v2/contacts/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Updated',
@@ -210,14 +210,14 @@ describe('Contact API Integration Tests', () => {
     });
 
     it('should require authentication', async () => {
-      await request(app).put('/api/contacts/1').send({ first_name: 'Test' }).expect(401);
+      await request(app).put('/api/v2/contacts/1').send({ first_name: 'Test' }).expect(401);
     });
   });
 
-  describe('DELETE /api/contacts/:id', () => {
+  describe('DELETE /api/v2/contacts/:id', () => {
     it('should soft delete a contact', async () => {
       const createResponse = await request(app)
-        .post('/api/contacts')
+        .post('/api/v2/contacts')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_id: testAccountId,
@@ -229,12 +229,12 @@ describe('Contact API Integration Tests', () => {
 
       // Delete returns 204 No Content
       await request(app)
-        .delete(`/api/contacts/${contactId}`)
+        .delete(`/api/v2/contacts/${contactId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(204);
 
       const response = await request(app)
-        .get(`/api/contacts/${contactId}`)
+        .get(`/api/v2/contacts/${contactId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -243,13 +243,13 @@ describe('Contact API Integration Tests', () => {
 
     it('should return 404 for non-existent contact', async () => {
       await request(app)
-        .delete('/api/contacts/00000000-0000-0000-0000-000000000000')
+        .delete('/api/v2/contacts/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
     });
 
     it('should require authentication', async () => {
-      await request(app).delete('/api/contacts/1').expect(401);
+      await request(app).delete('/api/v2/contacts/1').expect(401);
     });
   });
 });

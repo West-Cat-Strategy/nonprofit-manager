@@ -9,7 +9,7 @@ import { AuthRequest } from '@middleware/auth';
 import type { AnalyticsFilters } from '@app-types/analytics';
 import { maskFinancialData } from '@middleware/analyticsAuth';
 import type { DataScopeFilter } from '@app-types/dataScope';
-import { badRequest, forbidden, notFoundMessage } from '@utils/responseHelpers';
+import { forbidden, notFoundMessage } from '@utils/responseHelpers';
 
 const analyticsService = services.analytics;
 
@@ -121,11 +121,17 @@ export const getAnalyticsSummary = async (
     if (denyIfScopedForOrgWide(scope, res)) {
       return;
     }
+    const query = ((req as any).validatedQuery ?? req.query) as {
+      start_date?: string;
+      end_date?: string;
+      account_type?: string;
+      category?: string;
+    };
     const filters: AnalyticsFilters = {
-      start_date: req.query.start_date as string | undefined,
-      end_date: req.query.end_date as string | undefined,
-      account_type: req.query.account_type as string | undefined,
-      category: req.query.category as string | undefined,
+      start_date: query.start_date,
+      end_date: query.end_date,
+      account_type: query.account_type,
+      category: query.category,
     };
 
     const summary = await analyticsService.getAnalyticsSummary(filters);
@@ -268,7 +274,12 @@ export const getDonationTrends = async (
     if (denyIfScopedForOrgWide(scope, res)) {
       return;
     }
-    const months = parseInt(req.query.months as string) || 12;
+    const query = ((req as any).validatedQuery ?? req.query) as { months?: number | string };
+    const parsedMonths =
+      typeof query.months === 'number'
+        ? query.months
+        : parseInt(String(query.months ?? ''), 10);
+    const months = Number.isFinite(parsedMonths) ? parsedMonths : 12;
     const trends = await analyticsService.getDonationTrends(Math.min(months, 24));
     const maskedTrends = maskFinancialData(trends, req.user!.role);
     res.json(maskedTrends);
@@ -291,7 +302,12 @@ export const getVolunteerHoursTrends = async (
     if (denyIfScopedForOrgWide(scope, res)) {
       return;
     }
-    const months = parseInt(req.query.months as string) || 12;
+    const query = ((req as any).validatedQuery ?? req.query) as { months?: number | string };
+    const parsedMonths =
+      typeof query.months === 'number'
+        ? query.months
+        : parseInt(String(query.months ?? ''), 10);
+    const months = Number.isFinite(parsedMonths) ? parsedMonths : 12;
     const trends = await analyticsService.getVolunteerHoursTrends(Math.min(months, 24));
     res.json(trends);
   } catch (error) {
@@ -313,7 +329,12 @@ export const getEventAttendanceTrends = async (
     if (denyIfScopedForOrgWide(scope, res)) {
       return;
     }
-    const months = parseInt(req.query.months as string) || 12;
+    const query = ((req as any).validatedQuery ?? req.query) as { months?: number | string };
+    const parsedMonths =
+      typeof query.months === 'number'
+        ? query.months
+        : parseInt(String(query.months ?? ''), 10);
+    const months = Number.isFinite(parsedMonths) ? parsedMonths : 12;
     const trends = await analyticsService.getEventAttendanceTrends(Math.min(months, 24));
     res.json(trends);
   } catch (error) {
@@ -335,13 +356,10 @@ export const getComparativeAnalytics = async (
     if (denyIfScopedForOrgWide(scope, res)) {
       return;
     }
-    const periodType = (req.query.period as 'month' | 'quarter' | 'year') || 'month';
-
-    // Validate period type
-    if (!['month', 'quarter', 'year'].includes(periodType)) {
-      badRequest(res, 'Invalid period type. Must be month, quarter, or year');
-      return;
-    }
+    const query = ((req as any).validatedQuery ?? req.query) as {
+      period?: 'month' | 'quarter' | 'year';
+    };
+    const periodType = query.period || 'month';
 
     const analytics = await analyticsService.getComparativeAnalytics(periodType);
     const maskedAnalytics = maskFinancialData(analytics, req.user!.role);
@@ -366,17 +384,12 @@ export const getTrendAnalysis = async (
       return;
     }
     const { metricType } = req.params as { metricType: 'donations' | 'volunteer_hours' | 'event_attendance' };
-    const months = parseInt(req.query.months as string) || 12;
-
-    if (!['donations', 'volunteer_hours', 'event_attendance'].includes(metricType)) {
-      badRequest(res, 'Invalid metric type. Must be donations, volunteer_hours, or event_attendance');
-      return;
-    }
-
-    if (months < 1 || months > 36) {
-      badRequest(res, 'Months must be between 1 and 36');
-      return;
-    }
+    const query = ((req as any).validatedQuery ?? req.query) as { months?: number | string };
+    const parsedMonths =
+      typeof query.months === 'number'
+        ? query.months
+        : parseInt(String(query.months ?? ''), 10);
+    const months = Number.isFinite(parsedMonths) ? parsedMonths : 12;
 
     const analysis = await analyticsService.getTrendAnalysis(metricType, months);
     res.json(analysis);
@@ -400,23 +413,20 @@ export const detectAnomalies = async (
       return;
     }
     const { metricType } = req.params as { metricType: 'donations' | 'volunteer_hours' | 'event_attendance' };
-    const months = parseInt(req.query.months as string) || 12;
-    const sensitivity = parseFloat(req.query.sensitivity as string) || 2.0;
-
-    if (!['donations', 'volunteer_hours', 'event_attendance'].includes(metricType)) {
-      badRequest(res, 'Invalid metric type. Must be donations, volunteer_hours, or event_attendance');
-      return;
-    }
-
-    if (months < 3 || months > 36) {
-      badRequest(res, 'Months must be between 3 and 36 for anomaly detection');
-      return;
-    }
-
-    if (sensitivity < 1.0 || sensitivity > 4.0) {
-      badRequest(res, 'Sensitivity must be between 1.0 (very sensitive) and 4.0 (less sensitive)');
-      return;
-    }
+    const query = ((req as any).validatedQuery ?? req.query) as {
+      months?: number | string;
+      sensitivity?: number | string;
+    };
+    const parsedMonths =
+      typeof query.months === 'number'
+        ? query.months
+        : parseInt(String(query.months ?? ''), 10);
+    const months = Number.isFinite(parsedMonths) ? parsedMonths : 12;
+    const parsedSensitivity =
+      typeof query.sensitivity === 'number'
+        ? query.sensitivity
+        : parseFloat(String(query.sensitivity ?? ''));
+    const sensitivity = Number.isFinite(parsedSensitivity) ? parsedSensitivity : 2.0;
 
     const result = await analyticsService.detectAnomalies(metricType, months, sensitivity);
     res.json(result);

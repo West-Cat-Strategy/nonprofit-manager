@@ -1,3 +1,6 @@
+import type { ReactNode } from 'react';
+import { EmptyState, ErrorState, LoadingState } from '../ui';
+
 interface PortalPageStateProps {
   loading?: boolean;
   error?: string | null;
@@ -7,6 +10,10 @@ interface PortalPageStateProps {
   emptyDescription?: string;
   retryLabel?: string;
   onRetry?: () => void;
+  title?: string;
+  description?: string;
+  actions?: ReactNode;
+  compact?: boolean;
 }
 
 export default function PortalPageState({
@@ -18,37 +25,63 @@ export default function PortalPageState({
   emptyDescription,
   retryLabel = 'Try again',
   onRetry,
+  title,
+  description,
+  actions,
+  compact = false,
 }: PortalPageStateProps) {
+  const spacingClass = compact ? 'mt-2' : 'mt-4';
+
   if (loading) {
-    return <p className="text-sm text-app-text-muted mt-2">{loadingLabel}</p>;
+    return (
+      <div>
+        {(title || description || actions) && (
+          <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+            <div>
+              {title && <h3 className="text-base font-semibold text-app-text">{title}</h3>}
+              {description && <p className="text-sm text-app-text-muted">{description}</p>}
+            </div>
+            {actions}
+          </div>
+        )}
+        <LoadingState className={spacingClass} label={loadingLabel} />
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-        <p className="text-sm text-red-700">{error}</p>
-        {onRetry && (
-          <button
-            type="button"
-            onClick={onRetry}
-            className="mt-3 rounded-md bg-white px-3 py-2 text-sm font-medium text-red-700 border border-red-200 hover:bg-red-100"
-          >
-            {retryLabel}
-          </button>
+      <div>
+        {(title || description || actions) && (
+          <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+            <div>
+              {title && <h3 className="text-base font-semibold text-app-text">{title}</h3>}
+              {description && <p className="text-sm text-app-text-muted">{description}</p>}
+            </div>
+            {actions}
+          </div>
         )}
+        <ErrorState className={spacingClass} message={error} onRetry={onRetry} retryLabel={retryLabel} />
       </div>
     );
   }
 
   if (empty) {
     return (
-      <div className="mt-4 rounded-lg border border-app-border bg-app-surface-muted px-4 py-4">
-        <p className="text-sm font-medium text-app-text">{emptyTitle}</p>
-        {emptyDescription && <p className="mt-1 text-sm text-app-text-muted">{emptyDescription}</p>}
+      <div>
+        {(title || description || actions) && (
+          <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+            <div>
+              {title && <h3 className="text-base font-semibold text-app-text">{title}</h3>}
+              {description && <p className="text-sm text-app-text-muted">{description}</p>}
+            </div>
+            {actions}
+          </div>
+        )}
+        <EmptyState className={spacingClass} title={emptyTitle} description={emptyDescription} />
       </div>
     );
   }
 
   return null;
 }
-

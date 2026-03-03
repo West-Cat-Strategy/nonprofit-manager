@@ -12,18 +12,18 @@ Primary objectives:
 
 ## API Surface
 
-- `GET /api/follow-ups`
-- `GET /api/follow-ups/summary`
-- `GET /api/follow-ups/upcoming`
-- `GET /api/follow-ups/:id`
-- `POST /api/follow-ups`
-- `PUT /api/follow-ups/:id`
-- `POST /api/follow-ups/:id/complete`
-- `POST /api/follow-ups/:id/cancel`
-- `POST /api/follow-ups/:id/reschedule`
-- `DELETE /api/follow-ups/:id`
-- `GET /api/cases/:id/follow-ups`
-- `GET /api/tasks/:id/follow-ups`
+- `GET /api/v2/follow-ups`
+- `GET /api/v2/follow-ups/summary`
+- `GET /api/v2/follow-ups/upcoming`
+- `GET /api/v2/follow-ups/:id`
+- `POST /api/v2/follow-ups`
+- `PUT /api/v2/follow-ups/:id`
+- `POST /api/v2/follow-ups/:id/complete`
+- `POST /api/v2/follow-ups/:id/cancel`
+- `POST /api/v2/follow-ups/:id/reschedule`
+- `DELETE /api/v2/follow-ups/:id`
+- `GET /api/v2/cases/:id/follow-ups`
+- `GET /api/v2/tasks/:id/follow-ups`
 
 ## Lifecycle Rules
 

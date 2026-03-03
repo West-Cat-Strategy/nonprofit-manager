@@ -39,7 +39,7 @@ const listMeetingsQuerySchema = z.object({
   from: dateStringSchema.optional(),
   to: dateStringSchema.optional(),
   limit: z.coerce.number().int().min(1).max(200).optional(),
-});
+}).strict();
 
 const createMeetingSchema = z.object({
   meeting_type: meetingTypeSchema,

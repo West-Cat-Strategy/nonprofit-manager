@@ -7,14 +7,18 @@ import { vi } from 'vitest';
 import ReportBuilder from '../../analytics/ReportBuilder';
 import { renderWithProviders } from '../../../test/testUtils';
 
-const dispatchMock = vi.fn(() => Promise.resolve());
+const { dispatchMock, instantiateTemplateMock } = vi.hoisted(() => ({
+  dispatchMock: vi.fn(() => Promise.resolve()),
+  instantiateTemplateMock: vi.fn(),
+}));
+
 const mockState = {
   reports: {
     currentReport: null,
     loading: false,
     availableFields: {
-      accounts: [],
-      contacts: [],
+      accounts: [{ field: 'name', label: 'Name', type: 'string' }],
+      contacts: [{ field: 'email', label: 'Email', type: 'string' }],
       donations: [],
       events: [],
       volunteers: [],
@@ -26,12 +30,34 @@ const mockState = {
       programs: [],
     },
   },
-  savedReports: { currentSavedReport: null },
+  savedReports: { currentSavedReport: null as null | {
+    id: string;
+    name: string;
+    description?: string;
+    entity: 'contacts' | 'accounts';
+    report_definition: {
+      name: string;
+      entity: 'contacts' | 'accounts';
+      fields?: string[];
+      filters?: [];
+      sort?: [];
+      groupBy?: string[];
+      aggregations?: [];
+      limit?: number;
+    };
+  } },
 };
 
 vi.mock('../../../store/hooks', () => ({
   useAppDispatch: () => dispatchMock,
   useAppSelector: (selector: (state: typeof mockState) => unknown) => selector(mockState),
+}));
+
+vi.mock('../../../features/reports/api/reportsApiClient', () => ({
+  reportsApiClient: {
+    instantiateTemplate: (templateId: string) => instantiateTemplateMock(templateId),
+    exportReport: vi.fn(() => Promise.resolve(new Uint8Array())),
+  },
 }));
 
 vi.mock('../../../store/slices/reportsSlice', async () => {
@@ -65,6 +91,8 @@ describe('ReportBuilder page', () => {
   beforeEach(() => {
     vi.spyOn(window, 'alert').mockImplementation(() => {});
     dispatchMock.mockClear();
+    instantiateTemplateMock.mockReset();
+    mockState.savedReports.currentSavedReport = null;
   });
 
   it('renders report builder title', () => {
@@ -84,6 +112,85 @@ describe('ReportBuilder page', () => {
     await user.click(screen.getByRole('button', { name: /generate report/i }));
     expect(dispatchMock).not.toHaveBeenCalledWith(
       expect.objectContaining({ type: 'reports/generate' })
+    );
+  });
+
+  it('dispatches saved report fetch when load query param is present', async () => {
+    renderWithProviders(<ReportBuilder />, { route: '/reports/builder?load=saved-123' });
+    expect(dispatchMock).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'saved/fetchById', payload: 'saved-123' })
+    );
+  });
+
+  it('loads template from query param and generates report from template fields', async () => {
+    instantiateTemplateMock.mockResolvedValue({
+      name: 'Accounts Template',
+      entity: 'accounts',
+      fields: ['name'],
+      filters: [],
+      sort: [],
+      groupBy: ['name'],
+      aggregations: [],
+      limit: 150,
+    });
+
+    const user = userEvent.setup();
+    renderWithProviders(<ReportBuilder />, { route: '/reports/builder?template=tpl-1' });
+
+    expect(instantiateTemplateMock).toHaveBeenCalledWith('tpl-1');
+
+    await user.click(screen.getByRole('button', { name: /generate report/i }));
+    expect(dispatchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'reports/generate',
+        payload: expect.objectContaining({
+          entity: 'accounts',
+          fields: ['name'],
+          groupBy: ['name'],
+          limit: 150,
+        }),
+      })
+    );
+  });
+
+  it('shows alert when template loading fails', async () => {
+    instantiateTemplateMock.mockRejectedValue(new Error('fail'));
+    renderWithProviders(<ReportBuilder />, { route: '/reports/builder?template=tpl-fail' });
+    await Promise.resolve();
+    expect(window.alert).toHaveBeenCalledWith('Failed to load template');
+  });
+
+  it('validates report name before saving and then saves successfully', async () => {
+    mockState.savedReports.currentSavedReport = {
+      id: 'saved-1',
+      name: 'Existing Name',
+      entity: 'contacts',
+      report_definition: {
+        name: 'Existing Name',
+        entity: 'contacts',
+        fields: ['email'],
+      },
+    };
+
+    const user = userEvent.setup();
+    renderWithProviders(<ReportBuilder />);
+
+    await user.click(screen.getByRole('button', { name: /save definition/i }));
+    const reportNameField = screen.getByLabelText(/report name/i);
+    await user.clear(reportNameField);
+    await user.click(screen.getByRole('button', { name: /^save$/i }));
+    expect(window.alert).toHaveBeenCalledWith('Please enter a report name');
+
+    await user.type(reportNameField, 'Monthly Contact Snapshot');
+    await user.click(screen.getByRole('button', { name: /^save$/i }));
+    expect(dispatchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'saved/create',
+        payload: expect.objectContaining({
+          name: 'Monthly Contact Snapshot',
+          entity: 'contacts',
+        }),
+      })
     );
   });
 });

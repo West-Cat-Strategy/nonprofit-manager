@@ -117,7 +117,7 @@ export default function ContactTasks({ contactId }: ContactTasksProps) {
       )}
 
       {loading && <div className="text-sm font-bold text-black/60">Loading tasks...</div>}
-      {error && <div className="text-sm font-bold text-red-600">{error}</div>}
+      {error && <div className="text-sm font-bold text-app-accent">{error}</div>}
 
       {!loading && tasks.length === 0 && (
         <div className="text-sm font-bold text-black/60">No tasks linked to this person</div>

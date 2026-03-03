@@ -40,10 +40,10 @@ describe('Auth API Integration Tests', () => {
     }
   });
 
-  describe('POST /api/auth/register', () => {
+  describe('POST /api/v2/auth/register', () => {
     it('should register a new user with valid data', async () => {
       const response = await request(app)
-        .post('/api/auth/register')
+        .post('/api/v2/auth/register')
         .send({
           email: testEmail,
           password: testPassword,
@@ -63,7 +63,7 @@ describe('Auth API Integration Tests', () => {
 
     it('should reject duplicate email registration', async () => {
       const response = await request(app)
-        .post('/api/auth/register')
+        .post('/api/v2/auth/register')
         .send({
           email: testEmail,
           password: 'AnotherPassword123!',
@@ -79,7 +79,7 @@ describe('Auth API Integration Tests', () => {
     it('should hash the password before storage', async () => {
       const newEmail = `hash-test-${unique()}@example.com`;
       await request(app)
-        .post('/api/auth/register')
+        .post('/api/v2/auth/register')
         .send({
           email: newEmail,
           password: testPassword,
@@ -101,10 +101,10 @@ describe('Auth API Integration Tests', () => {
     });
   });
 
-  describe('POST /api/auth/login', () => {
+  describe('POST /api/v2/auth/login', () => {
     it('should login with correct credentials', async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v2/auth/login')
         .send({
           email: testEmail,
           password: testPassword,
@@ -118,7 +118,7 @@ describe('Auth API Integration Tests', () => {
 
     it('should reject incorrect password', async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v2/auth/login')
         .send({
           email: testEmail,
           password: 'WrongPassword123!',
@@ -136,7 +136,7 @@ describe('Auth API Integration Tests', () => {
 
     it('should reject non-existent user', async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v2/auth/login')
         .send({
           email: 'nonexistent@example.com',
           password: testPassword,
@@ -154,7 +154,7 @@ describe('Auth API Integration Tests', () => {
 
     it('should return valid JWT token', async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v2/auth/login')
         .send({
           email: testEmail,
           password: testPassword,
@@ -169,10 +169,10 @@ describe('Auth API Integration Tests', () => {
 
   });
 
-  describe('GET /api/auth/me', () => {
+  describe('GET /api/v2/auth/me', () => {
     it('should return current user with valid token', async () => {
       const response = await request(app)
-        .get('/api/auth/me')
+        .get('/api/v2/auth/me')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -182,32 +182,32 @@ describe('Auth API Integration Tests', () => {
     });
 
     it('should reject request without token', async () => {
-      await request(app).get('/api/auth/me').expect(401);
+      await request(app).get('/api/v2/auth/me').expect(401);
     });
 
     it('should reject request with invalid token', async () => {
       await request(app)
-        .get('/api/auth/me')
+        .get('/api/v2/auth/me')
         .set('Authorization', 'Bearer invalid.token.here')
         .expect(401);
     });
 
     it('should reject request with malformed Authorization header', async () => {
       await request(app)
-        .get('/api/auth/me')
+        .get('/api/v2/auth/me')
         .set('Authorization', 'InvalidFormat')
         .expect(401);
     });
   });
 
-  describe('GET /api/auth/check-access', () => {
+  describe('GET /api/v2/auth/check-access', () => {
     it('should require authentication', async () => {
-      await request(app).get('/api/auth/check-access').expect(401);
+      await request(app).get('/api/v2/auth/check-access').expect(401);
     });
 
     it('should return authorization matrix for authenticated user', async () => {
       const response = await request(app)
-        .get('/api/auth/check-access')
+        .get('/api/v2/auth/check-access')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -237,7 +237,7 @@ describe('Auth API Integration Tests', () => {
       const lockoutEmail = `lockout-${unique()}@example.com`;
 
       // Register user for lockout testing
-      await request(app).post('/api/auth/register').send({
+      await request(app).post('/api/v2/auth/register').send({
         email: lockoutEmail,
         password: testPassword,
         password_confirm: testPassword,
@@ -247,14 +247,14 @@ describe('Auth API Integration Tests', () => {
 
       // Make multiple failed login attempts sequentially
       for (let i = 0; i < 5; i++) {
-        await request(app).post('/api/auth/login').send({
+        await request(app).post('/api/v2/auth/login').send({
           email: lockoutEmail,
           password: 'WrongPassword',
         });
       }
 
       // Attempt login with correct password after lockout
-      const response = await request(app).post('/api/auth/login').send({
+      const response = await request(app).post('/api/v2/auth/login').send({
         email: lockoutEmail,
         password: testPassword,
       });

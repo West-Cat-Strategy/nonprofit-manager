@@ -69,7 +69,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
             variant={action.variant === 'danger' ? 'danger' : action.variant}
             onClick={action.onClick}
             disabled={action.disabled}
-            className={`text-sm px-4 py-2 font-black uppercase ${action.variant === 'danger' ? 'bg-red-500 text-white' : 'bg-white text-black'
+            className={`text-sm px-4 py-2 font-black uppercase ${action.variant === 'danger' ? 'bg-app-accent text-white' : 'bg-white text-black'
               }`}
           >
             {action.icon && <span className="mr-2 inline-block">{action.icon}</span>}

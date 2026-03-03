@@ -15,6 +15,9 @@ export const getString = (value: unknown): string | undefined =>
  * Parse a query parameter as a number
  */
 export const getNumber = (value: unknown): number | undefined => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
+  }
   if (typeof value === 'string') {
     const num = parseFloat(value);
     return isNaN(num) ? undefined : num;
@@ -26,6 +29,9 @@ export const getNumber = (value: unknown): number | undefined => {
  * Parse a query parameter as an integer
  */
 export const getInteger = (value: unknown): number | undefined => {
+  if (typeof value === 'number') {
+    return Number.isInteger(value) ? value : undefined;
+  }
   if (typeof value === 'string') {
     const num = parseInt(value, 10);
     return isNaN(num) ? undefined : num;
@@ -38,6 +44,7 @@ export const getInteger = (value: unknown): number | undefined => {
  * Accepts: 'true', 'false', '1', '0'
  */
 export const getBoolean = (value: unknown): boolean | undefined => {
+  if (typeof value === 'boolean') return value;
   if (value === 'true' || value === '1') return true;
   if (value === 'false' || value === '0') return false;
   return undefined;

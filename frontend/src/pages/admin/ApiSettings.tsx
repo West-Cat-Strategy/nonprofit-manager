@@ -38,13 +38,13 @@ import useConfirmDialog, { confirmPresets } from '../../hooks/useConfirmDialog';
  */
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    active: 'bg-green-100 text-green-800',
-    success: 'bg-green-100 text-green-800',
-    revoked: 'bg-red-100 text-red-800',
-    failed: 'bg-red-100 text-red-800',
+    active: 'bg-app-accent-soft text-app-accent-text',
+    success: 'bg-app-accent-soft text-app-accent-text',
+    revoked: 'bg-app-accent-soft text-app-accent-text',
+    failed: 'bg-app-accent-soft text-app-accent-text',
     expired: 'bg-app-surface-muted text-app-text',
-    pending: 'bg-yellow-100 text-yellow-800',
-    retrying: 'bg-orange-100 text-orange-800',
+    pending: 'bg-app-accent-soft text-app-accent-text',
+    retrying: 'bg-app-accent-soft text-app-accent-text',
   };
 
   return (
@@ -88,7 +88,7 @@ function SecretDisplay({ secret, onRegenerate }: { secret: string; onRegenerate:
       </button>
       <button
         onClick={onRegenerate}
-        className="px-3 py-2 text-orange-600 hover:text-orange-800"
+        className="px-3 py-2 text-app-accent hover:text-app-accent-text"
         title="Regenerate"
       >
         Regenerate
@@ -142,7 +142,7 @@ function WebhookEndpointCard({
           </button>
           <button
             onClick={onDelete}
-            className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded"
+            className="px-3 py-1.5 text-sm text-app-accent hover:bg-app-accent-soft rounded"
           >
             Delete
           </button>
@@ -194,11 +194,11 @@ function WebhookEndpointCard({
             <div className="text-xs text-app-text-muted">Total</div>
           </div>
           <div>
-            <div className="text-2xl font-semibold text-green-600">{endpoint.successfulDeliveries}</div>
+            <div className="text-2xl font-semibold text-app-accent">{endpoint.successfulDeliveries}</div>
             <div className="text-xs text-app-text-muted">Successful</div>
           </div>
           <div>
-            <div className="text-2xl font-semibold text-red-600">{endpoint.failedDeliveries}</div>
+            <div className="text-2xl font-semibold text-app-accent">{endpoint.failedDeliveries}</div>
             <div className="text-xs text-app-text-muted">Failed</div>
           </div>
         </div>
@@ -233,14 +233,14 @@ function ApiKeyCard({
           {apiKey.status === 'active' && (
             <button
               onClick={onRevoke}
-              className="px-3 py-1.5 text-sm text-orange-600 hover:bg-orange-50 rounded"
+              className="px-3 py-1.5 text-sm text-app-accent hover:bg-app-accent-soft rounded"
             >
               Revoke
             </button>
           )}
           <button
             onClick={onDelete}
-            className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded"
+            className="px-3 py-1.5 text-sm text-app-accent hover:bg-app-accent-soft rounded"
           >
             Delete
           </button>
@@ -381,8 +381,8 @@ function NewApiKeyModal({
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-app-surface rounded-lg shadow-xl w-full max-w-lg p-6">
         <div className="text-center mb-6">
-          <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
-            <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="mx-auto w-12 h-12 bg-app-accent-soft rounded-full flex items-center justify-center mb-4">
+            <svg className="w-6 h-6 text-app-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
@@ -404,7 +404,7 @@ function NewApiKeyModal({
               onClick={handleCopy}
               className={`px-4 py-2 rounded font-medium ${
                 copied
-                  ? 'bg-green-600 text-white'
+                  ? 'bg-app-accent text-white'
                   : 'bg-app-accent text-white hover:bg-app-accent-hover'
               }`}
             >
@@ -413,8 +413,8 @@ function NewApiKeyModal({
           </div>
         </div>
 
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-          <p className="text-sm text-yellow-800">
+        <div className="bg-app-accent-soft border border-app-border rounded-lg p-4 mb-6">
+          <p className="text-sm text-app-accent-text">
             <strong>Important:</strong> Store this key securely. It will only be shown once.
           </p>
         </div>
@@ -608,9 +608,9 @@ export default function ApiSettings() {
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
+        <div className="bg-app-accent-soft border border-app-border text-app-accent-text px-4 py-3 rounded-lg flex items-center justify-between">
           <span>{error}</span>
-          <button onClick={() => dispatch(clearWebhookError())} className="text-red-500 hover:text-red-700">
+          <button onClick={() => dispatch(clearWebhookError())} className="text-app-accent hover:text-app-accent-text">
             Dismiss
           </button>
         </div>
@@ -620,8 +620,8 @@ export default function ApiSettings() {
       {testResult && (
         <div className={`border px-4 py-3 rounded-lg flex items-center justify-between ${
           testResult.success
-            ? 'bg-green-50 border-green-200 text-green-700'
-            : 'bg-red-50 border-red-200 text-red-700'
+            ? 'bg-app-accent-soft border-app-border text-app-accent-text'
+            : 'bg-app-accent-soft border-app-border text-app-accent-text'
         }`}>
           <span>
             {testResult.success
@@ -688,7 +688,7 @@ export default function ApiSettings() {
                   type="url"
                   value={webhookUrl}
                   onChange={(e) => setWebhookUrl(e.target.value)}
-                  placeholder="HTTPS://your-server.com/webhook"
+                  placeholder="https://your-server.com/webhook"
                   className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
                 />
               </div>

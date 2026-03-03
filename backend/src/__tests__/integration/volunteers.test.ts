@@ -11,7 +11,7 @@ describe('Volunteer API Integration Tests', () => {
   beforeAll(async () => {
     // Register and login
     const registerResponse = await request(app)
-      .post('/api/auth/register')
+      .post('/api/v2/auth/register')
       .send({
         email: `volunteer-test-${unique()}@example.com`,
         password: 'Test123!Strong',
@@ -24,7 +24,7 @@ describe('Volunteer API Integration Tests', () => {
 
     // Create test account
     const accountResponse = await request(app)
-      .post('/api/accounts')
+      .post('/api/v2/accounts')
       .set('Authorization', `Bearer ${authToken}`)
       .send({
         account_name: 'Test Account for Volunteers',
@@ -35,7 +35,7 @@ describe('Volunteer API Integration Tests', () => {
 
     // Create test contact for volunteer
     const contactResponse = await request(app)
-      .post('/api/contacts')
+      .post('/api/v2/contacts')
       .set('Authorization', `Bearer ${authToken}`)
       .send({
         account_id: testAccountId,
@@ -63,10 +63,10 @@ describe('Volunteer API Integration Tests', () => {
     }
   });
 
-  describe('POST /api/volunteers', () => {
+  describe('POST /api/v2/volunteers', () => {
     it('should create a new volunteer with valid data', async () => {
       const response = await request(app)
-        .post('/api/volunteers')
+        .post('/api/v2/volunteers')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           contact_id: testContactId,
@@ -82,7 +82,7 @@ describe('Volunteer API Integration Tests', () => {
 
     it('should require authentication', async () => {
       await request(app)
-        .post('/api/volunteers')
+        .post('/api/v2/volunteers')
         .send({
           contact_id: testContactId,
           skills: ['Marketing'],
@@ -93,7 +93,7 @@ describe('Volunteer API Integration Tests', () => {
     it('should require contact_id field', async () => {
       // The API validates that contact_id is required
       const response = await request(app)
-        .post('/api/volunteers')
+        .post('/api/v2/volunteers')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           contact_id: testContactId,
@@ -106,7 +106,7 @@ describe('Volunteer API Integration Tests', () => {
 
     it('should create volunteer with background check info', async () => {
       const newContactResponse = await request(app)
-        .post('/api/contacts')
+        .post('/api/v2/contacts')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_id: testAccountId,
@@ -116,7 +116,7 @@ describe('Volunteer API Integration Tests', () => {
         });
 
       const response = await request(app)
-        .post('/api/volunteers')
+        .post('/api/v2/volunteers')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           contact_id: newContactResponse.body.contact_id,
@@ -130,10 +130,10 @@ describe('Volunteer API Integration Tests', () => {
     });
   });
 
-  describe('GET /api/volunteers', () => {
+  describe('GET /api/v2/volunteers', () => {
     it('should return paginated list of volunteers', async () => {
       const response = await request(app)
-        .get('/api/volunteers')
+        .get('/api/v2/volunteers')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -145,7 +145,7 @@ describe('Volunteer API Integration Tests', () => {
 
     it('should support search query', async () => {
       const response = await request(app)
-        .get('/api/volunteers?search=Volunteer')
+        .get('/api/v2/volunteers?search=Volunteer')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -154,7 +154,7 @@ describe('Volunteer API Integration Tests', () => {
 
     it('should filter by skills', async () => {
       const response = await request(app)
-        .get('/api/volunteers?skills=Fundraising')
+        .get('/api/v2/volunteers?skills=Fundraising')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -163,7 +163,7 @@ describe('Volunteer API Integration Tests', () => {
 
     it('should filter by background_check_status', async () => {
       const response = await request(app)
-        .get('/api/volunteers?background_check_status=approved')
+        .get('/api/v2/volunteers?background_check_status=approved')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -171,14 +171,14 @@ describe('Volunteer API Integration Tests', () => {
     });
 
     it('should require authentication', async () => {
-      await request(app).get('/api/volunteers').expect(401);
+      await request(app).get('/api/v2/volunteers').expect(401);
     });
   });
 
-  describe('GET /api/volunteers/:id', () => {
+  describe('GET /api/v2/volunteers/:id', () => {
     it('should return a single volunteer by ID', async () => {
       const createResponse = await request(app)
-        .post('/api/contacts')
+        .post('/api/v2/contacts')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_id: testAccountId,
@@ -188,7 +188,7 @@ describe('Volunteer API Integration Tests', () => {
         });
 
       const volunteerResponse = await request(app)
-        .post('/api/volunteers')
+        .post('/api/v2/volunteers')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           contact_id: createResponse.body.contact_id,
@@ -198,7 +198,7 @@ describe('Volunteer API Integration Tests', () => {
       const volunteerId = volunteerResponse.body.id;
 
       const response = await request(app)
-        .get(`/api/volunteers/${volunteerId}`)
+        .get(`/api/v2/volunteers/${volunteerId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -207,20 +207,20 @@ describe('Volunteer API Integration Tests', () => {
 
     it('should return 404 for non-existent volunteer', async () => {
       await request(app)
-        .get('/api/volunteers/00000000-0000-0000-0000-000000000000')
+        .get('/api/v2/volunteers/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
     });
 
     it('should require authentication', async () => {
-      await request(app).get('/api/volunteers/00000000-0000-0000-0000-000000000000').expect(401);
+      await request(app).get('/api/v2/volunteers/00000000-0000-0000-0000-000000000000').expect(401);
     });
   });
 
-  describe('PUT /api/volunteers/:id', () => {
+  describe('PUT /api/v2/volunteers/:id', () => {
     it('should update an existing volunteer', async () => {
       const createContactResponse = await request(app)
-        .post('/api/contacts')
+        .post('/api/v2/contacts')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_id: testAccountId,
@@ -230,7 +230,7 @@ describe('Volunteer API Integration Tests', () => {
         });
 
       const createResponse = await request(app)
-        .post('/api/volunteers')
+        .post('/api/v2/volunteers')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           contact_id: createContactResponse.body.contact_id,
@@ -240,7 +240,7 @@ describe('Volunteer API Integration Tests', () => {
       const volunteerId = createResponse.body.id;
 
       const response = await request(app)
-        .put(`/api/volunteers/${volunteerId}`)
+        .put(`/api/v2/volunteers/${volunteerId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           skills: ['Updated Skill', 'New Skill'],
@@ -254,7 +254,7 @@ describe('Volunteer API Integration Tests', () => {
 
     it('should update background check information', async () => {
       const createContactResponse = await request(app)
-        .post('/api/contacts')
+        .post('/api/v2/contacts')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_id: testAccountId,
@@ -264,7 +264,7 @@ describe('Volunteer API Integration Tests', () => {
         });
 
       const createResponse = await request(app)
-        .post('/api/volunteers')
+        .post('/api/v2/volunteers')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           contact_id: createContactResponse.body.contact_id,
@@ -275,7 +275,7 @@ describe('Volunteer API Integration Tests', () => {
       const volunteerId = createResponse.body.id;
 
       const response = await request(app)
-        .put(`/api/volunteers/${volunteerId}`)
+        .put(`/api/v2/volunteers/${volunteerId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           background_check_status: 'approved',
@@ -288,7 +288,7 @@ describe('Volunteer API Integration Tests', () => {
 
     it('should return 404 for non-existent volunteer', async () => {
       await request(app)
-        .put('/api/volunteers/00000000-0000-0000-0000-000000000000')
+        .put('/api/v2/volunteers/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           skills: ['Updated'],
@@ -298,16 +298,16 @@ describe('Volunteer API Integration Tests', () => {
 
     it('should require authentication', async () => {
       await request(app)
-        .put('/api/volunteers/00000000-0000-0000-0000-000000000000')
+        .put('/api/v2/volunteers/00000000-0000-0000-0000-000000000000')
         .send({ skills: ['Test'] })
         .expect(401);
     });
   });
 
-  describe('DELETE /api/volunteers/:id', () => {
+  describe('DELETE /api/v2/volunteers/:id', () => {
     it('should soft delete a volunteer', async () => {
       const createContactResponse = await request(app)
-        .post('/api/contacts')
+        .post('/api/v2/contacts')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           account_id: testAccountId,
@@ -317,7 +317,7 @@ describe('Volunteer API Integration Tests', () => {
         });
 
       const createResponse = await request(app)
-        .post('/api/volunteers')
+        .post('/api/v2/volunteers')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           contact_id: createContactResponse.body.contact_id,
@@ -327,20 +327,20 @@ describe('Volunteer API Integration Tests', () => {
       const volunteerId = createResponse.body.id;
 
       await request(app)
-        .delete(`/api/volunteers/${volunteerId}`)
+        .delete(`/api/v2/volunteers/${volunteerId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(204);
     });
 
     it('should return 404 for non-existent volunteer', async () => {
       await request(app)
-        .delete('/api/volunteers/00000000-0000-0000-0000-000000000000')
+        .delete('/api/v2/volunteers/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
     });
 
     it('should require authentication', async () => {
-      await request(app).delete('/api/volunteers/00000000-0000-0000-0000-000000000000').expect(401);
+      await request(app).delete('/api/v2/volunteers/00000000-0000-0000-0000-000000000000').expect(401);
     });
   });
 });

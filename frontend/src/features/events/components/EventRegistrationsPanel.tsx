@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import QRCode from 'qrcode';
 import type {
   CreateEventReminderAutomationDTO,
   EventRegistration,
@@ -15,6 +16,7 @@ import {
   toMinutes,
   toRelativeDisplay,
 } from '../utils/reminderTime';
+import EventQrScanner from './EventQrScanner';
 
 const MAX_CUSTOM_MESSAGE_LENGTH = 500;
 
@@ -47,6 +49,7 @@ interface EventRegistrationsPanelProps {
     sendSms: boolean;
     customMessage?: string;
   }) => Promise<void>;
+  onScanCheckIn?: (token: string) => Promise<void>;
   onCancelAutomation: (automation: EventReminderAutomation) => Promise<void>;
   onCreateAutomation: (payload: CreateEventReminderAutomationDTO) => Promise<void>;
 }
@@ -64,17 +67,17 @@ const getAutomationStatus = (
 const getStatusStyles = (status: 'pending' | EventReminderAttemptStatus): string => {
   switch (status) {
     case 'sent':
-      return 'bg-green-100 text-green-800';
+      return 'bg-app-accent-soft text-app-accent-text';
     case 'partial':
-      return 'bg-amber-100 text-amber-800';
+      return 'bg-app-accent-soft text-app-accent-text';
     case 'failed':
-      return 'bg-red-100 text-red-800';
+      return 'bg-app-accent-soft text-app-accent-text';
     case 'skipped':
-      return 'bg-slate-100 text-slate-700';
+      return 'bg-app-surface text-app-text';
     case 'cancelled':
-      return 'bg-slate-200 text-slate-700';
+      return 'bg-app-surface text-app-text';
     default:
-      return 'bg-blue-100 text-blue-800';
+      return 'bg-app-accent-soft text-app-accent-text';
   }
 };
 
@@ -112,23 +115,87 @@ export default function EventRegistrationsPanel({
   onCheckIn,
   onCancelRegistration,
   onSendReminders,
+  onScanCheckIn,
   onCancelAutomation,
   onCreateAutomation,
 }: EventRegistrationsPanelProps) {
   const [registrationFilter, setRegistrationFilter] = useState('');
+  const [registrationSearch, setRegistrationSearch] = useState('');
+  const [qrCodesByRegistration, setQrCodesByRegistration] = useState<Record<string, string>>({});
   const [sendEmailReminders, setSendEmailReminders] = useState(true);
   const [sendSmsReminders, setSendSmsReminders] = useState(true);
   const [customReminderMessage, setCustomReminderMessage] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
   const [retryDraft, setRetryDraft] = useState<ReminderRetryDraft | null>(null);
+  const [scanToken, setScanToken] = useState('');
+  const [cameraScannerOpen, setCameraScannerOpen] = useState(false);
+  const [scanStatusMessage, setScanStatusMessage] = useState<string | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
 
-  const filteredRegistrations = useMemo(
-    () =>
-      registrationFilter
-        ? registrations.filter((registration) => registration.registration_status === registrationFilter)
-        : registrations,
-    [registrations, registrationFilter]
-  );
+  const filteredRegistrations = useMemo(() => {
+    const needle = registrationSearch.trim().toLowerCase();
+
+    return registrations.filter((registration) => {
+      const matchesStatus = registrationFilter
+        ? registration.registration_status === registrationFilter
+        : true;
+
+      if (!matchesStatus) return false;
+      if (!needle) return true;
+
+      const haystack = [
+        registration.contact_name,
+        registration.contact_email,
+        registration.registration_status,
+        registration.check_in_token,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return haystack.includes(needle);
+    });
+  }, [registrations, registrationFilter, registrationSearch]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const generateCodes = async () => {
+      const entries = await Promise.all(
+        registrations.map(async (registration) => {
+          if (!registration.check_in_token) {
+            return [registration.registration_id, ''] as const;
+          }
+
+          try {
+            const dataUrl = await QRCode.toDataURL(registration.check_in_token, {
+              width: 96,
+              margin: 1,
+            });
+            return [registration.registration_id, dataUrl] as const;
+          } catch {
+            return [registration.registration_id, ''] as const;
+          }
+        })
+      );
+
+      if (cancelled) return;
+      setQrCodesByRegistration(
+        entries.reduce<Record<string, string>>((accumulator, [registrationId, dataUrl]) => {
+          if (dataUrl) {
+            accumulator[registrationId] = dataUrl;
+          }
+          return accumulator;
+        }, {})
+      );
+    };
+
+    void generateCodes();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [registrations]);
 
   const handleStartRetryDraft = (automation: EventReminderAutomation) => {
     const relative = toRelativeDisplay(automation.relative_minutes_before);
@@ -222,10 +289,40 @@ export default function EventRegistrationsPanel({
     setRetryDraft(null);
   };
 
+  const submitScanCheckIn = useCallback(
+    async (rawToken: string) => {
+      if (!onScanCheckIn) return;
+
+      const token = rawToken.trim();
+      if (!token) return;
+
+      setScanError(null);
+      setScanStatusMessage(null);
+
+      try {
+        await onScanCheckIn(token);
+        setScanStatusMessage(`Checked in token ${token.slice(0, 10)}${token.length > 10 ? '...' : ''}`);
+      } catch {
+        setScanError('Failed to check in scanned token.');
+      }
+    },
+    [onScanCheckIn]
+  );
+
+  const handleCameraTokenScanned = useCallback(
+    (token: string) => {
+      setScanToken(token);
+      void submitScanCheckIn(token).then(() => {
+        setScanToken('');
+      });
+    },
+    [submitScanCheckIn]
+  );
+
   return (
     <div className="rounded-lg bg-app-surface p-6 shadow-md">
       {(localError || remindersError) && (
-        <div className="mb-4 rounded-md bg-red-100 p-3 text-sm text-red-700">{localError || remindersError}</div>
+        <div className="mb-4 rounded-md bg-app-accent-soft p-3 text-sm text-app-accent-text">{localError || remindersError}</div>
       )}
 
       <div className="mb-4 rounded-lg border border-app-border bg-app-surface-muted p-4">
@@ -287,7 +384,7 @@ export default function EventRegistrationsPanel({
             {reminderSummary.sms.sent}/{reminderSummary.sms.attempted}
           </p>
           {reminderSummary.warnings.length > 0 && (
-            <p className="mt-2 text-sm text-amber-600">{reminderSummary.warnings[0]}</p>
+            <p className="mt-2 text-sm text-app-accent">{reminderSummary.warnings[0]}</p>
           )}
         </div>
       )}
@@ -330,7 +427,7 @@ export default function EventRegistrationsPanel({
                   </div>
 
                   {attemptSummary && <p className="mt-2 text-xs text-app-text-muted">{attemptSummary}</p>}
-                  {automation.last_error && <p className="mt-2 text-xs text-red-700">{automation.last_error}</p>}
+                  {automation.last_error && <p className="mt-2 text-xs text-app-accent-text">{automation.last_error}</p>}
 
                   <div className="mt-3 flex flex-wrap gap-2">
                     {isPending && (
@@ -338,7 +435,7 @@ export default function EventRegistrationsPanel({
                         type="button"
                         onClick={() => void onCancelAutomation(automation)}
                         disabled={automationsBusy}
-                        className="rounded-md border border-red-300 px-3 py-1.5 text-red-700 hover:bg-red-50 disabled:opacity-60"
+                        className="rounded-md border border-app-border px-3 py-1.5 text-app-accent-text hover:bg-app-accent-soft disabled:opacity-60"
                       >
                         {automationsBusy ? 'Cancelling...' : 'Cancel'}
                       </button>
@@ -501,20 +598,70 @@ export default function EventRegistrationsPanel({
         )}
       </div>
 
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h3 className="text-lg font-semibold">Event Registrations</h3>
-        <select
-          value={registrationFilter}
-          onChange={(event) => setRegistrationFilter(event.target.value)}
-          className="rounded-md border px-4 py-2"
-        >
-          <option value="">All Statuses</option>
-          <option value="registered">Registered</option>
-          <option value="waitlisted">Waitlisted</option>
-          <option value="confirmed">Confirmed</option>
-          <option value="cancelled">Cancelled</option>
-          <option value="no_show">No Show</option>
-        </select>
+        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+          {onScanCheckIn && (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <input
+                  value={scanToken}
+                  onChange={(event) => setScanToken(event.target.value)}
+                  placeholder="Scan token"
+                  className="rounded-md border px-3 py-2"
+                />
+                <button
+                  type="button"
+                  disabled={!scanToken.trim() || actionLoading}
+                  onClick={() => {
+                    const token = scanToken.trim();
+                    if (!token) return;
+                    void submitScanCheckIn(token).then(() => {
+                      setScanToken('');
+                    });
+                  }}
+                  className="rounded-md bg-app-accent px-3 py-2 text-xs text-white hover:bg-app-accent-hover disabled:opacity-50"
+                >
+                  QR Check-In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCameraScannerOpen((current) => !current)}
+                  className="rounded-md border px-3 py-2 text-xs hover:bg-app-surface-muted"
+                >
+                  {cameraScannerOpen ? 'Close Camera' : 'Open Camera'}
+                </button>
+              </div>
+              {scanStatusMessage && <p className="text-xs text-app-accent">{scanStatusMessage}</p>}
+              {scanError && <p className="text-xs text-app-accent-text">{scanError}</p>}
+              {cameraScannerOpen && (
+                <EventQrScanner
+                  enabled={cameraScannerOpen}
+                  disabled={actionLoading}
+                  onTokenScanned={handleCameraTokenScanned}
+                />
+              )}
+            </div>
+          )}
+          <input
+            value={registrationSearch}
+            onChange={(event) => setRegistrationSearch(event.target.value)}
+            placeholder="Search attendee or token"
+            className="rounded-md border px-3 py-2"
+          />
+          <select
+            value={registrationFilter}
+            onChange={(event) => setRegistrationFilter(event.target.value)}
+            className="rounded-md border px-4 py-2"
+          >
+            <option value="">All Statuses</option>
+            <option value="registered">Registered</option>
+            <option value="waitlisted">Waitlisted</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="no_show">No Show</option>
+          </select>
+        </div>
       </div>
 
       {filteredRegistrations.length === 0 ? (
@@ -525,6 +672,7 @@ export default function EventRegistrationsPanel({
             <thead className="bg-app-surface-muted">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-app-text-muted">Contact</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-app-text-muted">QR Check-In</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-app-text-muted">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-app-text-muted">Checked In</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-app-text-muted">Registered At</th>
@@ -538,6 +686,37 @@ export default function EventRegistrationsPanel({
                     <div className="text-sm font-medium text-app-text">{registration.contact_name}</div>
                     <div className="text-sm text-app-text-muted">{registration.contact_email}</div>
                   </td>
+                  <td className="px-6 py-4">
+                    {registration.check_in_token ? (
+                      <div className="flex items-center gap-3">
+                        {qrCodesByRegistration[registration.registration_id] ? (
+                          <img
+                            src={qrCodesByRegistration[registration.registration_id]}
+                            alt="Check-in QR"
+                            className="h-14 w-14 rounded border border-app-border bg-white p-1"
+                          />
+                        ) : (
+                          <div className="h-14 w-14 rounded border border-app-border bg-app-surface-muted" />
+                        )}
+                        <div className="max-w-[240px]">
+                          <div className="truncate text-xs text-app-text-muted font-mono">
+                            {registration.check_in_token}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void navigator.clipboard?.writeText(registration.check_in_token || '')
+                            }
+                            className="mt-1 text-xs text-app-accent hover:text-app-accent-text"
+                          >
+                            Copy Token
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-app-text-subtle">N/A</span>
+                    )}
+                  </td>
                   <td className="whitespace-nowrap px-6 py-4">
                     <span className="rounded-full bg-app-accent-soft px-2 py-1 text-xs font-semibold text-app-accent-text">
                       {registration.registration_status}
@@ -546,10 +725,15 @@ export default function EventRegistrationsPanel({
                   <td className="whitespace-nowrap px-6 py-4">
                     {registration.checked_in ? (
                       <div>
-                        <span className="font-semibold text-green-600">✓ Yes</span>
+                        <span className="font-semibold text-app-accent">✓ Yes</span>
                         {registration.check_in_time && (
                           <div className="text-xs text-app-text-muted">
                             {new Date(registration.check_in_time).toLocaleString()}
+                          </div>
+                        )}
+                        {registration.check_in_method && (
+                          <div className="text-xs text-app-text-subtle">
+                            Method: {registration.check_in_method}
                           </div>
                         )}
                       </div>
@@ -566,7 +750,7 @@ export default function EventRegistrationsPanel({
                         type="button"
                         onClick={() => void onCheckIn(registration.registration_id)}
                         disabled={actionLoading}
-                        className="mr-4 text-green-600 hover:text-green-900 disabled:opacity-60"
+                        className="mr-4 text-app-accent hover:text-app-accent-text disabled:opacity-60"
                       >
                         Check In
                       </button>
@@ -575,7 +759,7 @@ export default function EventRegistrationsPanel({
                       type="button"
                       onClick={() => void onCancelRegistration(registration.registration_id)}
                       disabled={actionLoading}
-                      className="text-red-600 hover:text-red-900 disabled:opacity-60"
+                      className="text-app-accent hover:text-app-accent-text disabled:opacity-60"
                     >
                       Cancel
                     </button>

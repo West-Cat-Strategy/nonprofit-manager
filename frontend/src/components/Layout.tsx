@@ -5,6 +5,7 @@
 
 import Navigation from './Navigation';
 import SkipLink from './SkipLink';
+import { AppShell } from './ui';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -14,8 +15,7 @@ const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="min-h-screen bg-app-bg text-app-text">
       <SkipLink />
-      <Navigation />
-      <main id="main-content">{children}</main>
+      <AppShell topNav={<Navigation />}>{children}</AppShell>
     </div>
   );
 };

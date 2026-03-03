@@ -21,9 +21,9 @@ function EngagementChart({ distribution }: EngagementChartProps) {
   const { total, segments } = useMemo(() => {
     const total = distribution.high + distribution.medium + distribution.low + distribution.inactive;
     const segments: Segment[] = [
-      { label: 'High', value: distribution.high, color: 'bg-green-500' },
-      { label: 'Medium', value: distribution.medium, color: 'bg-yellow-500' },
-      { label: 'Low', value: distribution.low, color: 'bg-orange-500' },
+      { label: 'High', value: distribution.high, color: 'bg-app-accent' },
+      { label: 'Medium', value: distribution.medium, color: 'bg-app-accent' },
+      { label: 'Low', value: distribution.low, color: 'bg-app-accent' },
       { label: 'Inactive', value: distribution.inactive, color: 'bg-app-text-subtle' },
     ];
     return { total, segments };

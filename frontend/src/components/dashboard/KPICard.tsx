@@ -10,23 +10,23 @@ interface KPICardProps {
 }
 
 const accentGlow: Record<KPICardProps['color'], string> = {
-  blue: 'bg-sky-200/60',
-  green: 'bg-emerald-200/60',
-  purple: 'bg-violet-200/60',
-  yellow: 'bg-amber-200/60',
-  red: 'bg-rose-200/60',
-  teal: 'bg-teal-200/60',
-  indigo: 'bg-indigo-200/60',
+  blue: 'bg-app-accent-soft/60',
+  green: 'bg-app-accent-soft/60',
+  purple: 'bg-app-accent-soft/60',
+  yellow: 'bg-app-accent-soft/60',
+  red: 'bg-app-accent-soft/60',
+  teal: 'bg-app-accent-soft/60',
+  indigo: 'bg-app-accent-soft/60',
 };
 
 const accentText: Record<KPICardProps['color'], string> = {
-  blue: 'text-sky-700',
-  green: 'text-emerald-700',
-  purple: 'text-violet-700',
-  yellow: 'text-amber-700',
-  red: 'text-rose-700',
-  teal: 'text-teal-700',
-  indigo: 'text-indigo-700',
+  blue: 'text-app-accent-text',
+  green: 'text-app-accent-text',
+  purple: 'text-app-accent-text',
+  yellow: 'text-app-accent-text',
+  red: 'text-app-accent-text',
+  teal: 'text-app-accent-text',
+  indigo: 'text-app-accent-text',
 };
 
 function KPICard({ title, value, subtitle, caption, color }: KPICardProps) {

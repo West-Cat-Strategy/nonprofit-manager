@@ -54,10 +54,10 @@ export default function NeoBrutalistDashboard() {
         return (
             <NeoBrutalistLayout pageTitle="WORKBENCH OVERVIEW">
                 <div className="p-6">
-                    <div className="bg-red-100 border-2 border-red-500 p-6 text-center shadow-[4px_4px_0px_0px_var(--shadow-color)]">
-                        <h2 className="text-2xl font-black text-red-600 mb-2 uppercase">System Error</h2>
+                    <div className="bg-app-accent-soft border-2 border-app-border p-6 text-center shadow-[4px_4px_0px_0px_var(--shadow-color)]">
+                        <h2 className="text-2xl font-black text-app-accent mb-2 uppercase">System Error</h2>
                         <p className="font-bold">Failed to load dashboard data. Please check your connection.</p>
-                        <button onClick={() => window.location.reload()} className="mt-4 px-6 py-2 bg-red-500 text-white font-bold border-2 border-black hover:bg-red-600 uppercase">
+                        <button onClick={() => window.location.reload()} className="mt-4 px-6 py-2 bg-app-accent text-white font-bold border-2 border-black hover:bg-app-accent uppercase">
                             Retry
                         </button>
                     </div>

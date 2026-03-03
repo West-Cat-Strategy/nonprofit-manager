@@ -1,15 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import FieldSelector from '../../components/FieldSelector';
+import FilterBuilder from '../../components/FilterBuilder';
+import NeoBrutalistLayout from '../../components/neo-brutalist/NeoBrutalistLayout';
+import ReportChart from '../../components/ReportChart';
+import SortBuilder from '../../components/SortBuilder';
+import {
+  EmptyState,
+  FormField,
+  PageHeader,
+  PrimaryButton,
+  SecondaryButton,
+  SectionCard,
+  SelectField,
+  TextareaField,
+} from '../../components/ui';
+import { reportsApiClient } from '../../features/reports/api/reportsApiClient';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { generateReport } from '../../store/slices/reportsSlice';
 import { createSavedReport, fetchSavedReportById } from '../../store/slices/savedReportsSlice';
-import FieldSelector from '../../components/FieldSelector';
-import FilterBuilder from '../../components/FilterBuilder';
-import SortBuilder from '../../components/SortBuilder';
-import type { ReportEntity, ReportFilter, ReportSort, ReportAggregation, AggregateFunction } from '../../types/report';
-import NeoBrutalistLayout from '../../components/neo-brutalist/NeoBrutalistLayout';
-import ReportChart from '../../components/ReportChart';
-
+import type {
+  AggregateFunction,
+  ReportAggregation,
+  ReportDefinition,
+  ReportEntity,
+  ReportFilter,
+  ReportSort,
+} from '../../types/report';
 
 const ENTITIES: { value: ReportEntity; label: string }[] = [
   { value: 'accounts', label: 'Accounts' },
@@ -39,17 +56,25 @@ function ReportBuilder() {
   const [sorts, setSorts] = useState<ReportSort[]>([]);
   const [groupBy, setGroupBy] = useState<string[]>([]);
   const [aggregations, setAggregations] = useState<ReportAggregation[]>([]);
+  const [rowLimit, setRowLimit] = useState('500');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [savedReportName, setSavedReportName] = useState('');
   const [savedReportDescription, setSavedReportDescription] = useState('');
 
-  // Visualization state
   const [showChart, setShowChart] = useState(false);
   const [chartType, setChartType] = useState<'bar' | 'pie' | 'line'>('bar');
   const [xAxisField, setXAxisField] = useState('');
   const [yAxisField, setYAxisField] = useState('');
 
-  // Load saved report or template if ID is in URL
+  const allOutputFields = useMemo(
+    () => [
+      ...groupBy,
+      ...selectedFields,
+      ...aggregations.map((aggregation) => aggregation.alias || `${aggregation.function}_${aggregation.field}`),
+    ],
+    [groupBy, selectedFields, aggregations]
+  );
+
   useEffect(() => {
     const loadId = searchParams.get('load');
     const templateId = searchParams.get('template');
@@ -57,18 +82,13 @@ function ReportBuilder() {
     if (loadId) {
       dispatch(fetchSavedReportById(loadId));
     } else if (templateId) {
-      loadTemplate(templateId);
+      void loadTemplate(templateId);
     }
   }, [searchParams, dispatch]);
 
   const loadTemplate = async (templateId: string) => {
     try {
-      const response = await fetch(`/api/reports/templates/${templateId}/instantiate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      const definition = await response.json();
+      const definition = await reportsApiClient.instantiateTemplate(templateId);
 
       setEntity(definition.entity);
       setSelectedFields(definition.fields || []);
@@ -76,6 +96,7 @@ function ReportBuilder() {
       setSorts(definition.sort || []);
       setGroupBy(definition.groupBy || []);
       setAggregations(definition.aggregations || []);
+      setRowLimit(definition.limit ? String(definition.limit) : '500');
       setSavedReportName(definition.name);
     } catch (error) {
       console.error('Error loading template:', error);
@@ -83,19 +104,36 @@ function ReportBuilder() {
     }
   };
 
-  // When saved report is loaded, populate the form
   useEffect(() => {
     if (currentSavedReport) {
       setEntity(currentSavedReport.entity);
-      setSelectedFields(currentSavedReport.report_definition.fields);
+      setSelectedFields(currentSavedReport.report_definition.fields || []);
       setFilters(currentSavedReport.report_definition.filters || []);
       setSorts(currentSavedReport.report_definition.sort || []);
       setGroupBy(currentSavedReport.report_definition.groupBy || []);
       setAggregations(currentSavedReport.report_definition.aggregations || []);
+      setRowLimit(currentSavedReport.report_definition.limit ? String(currentSavedReport.report_definition.limit) : '500');
       setSavedReportName(currentSavedReport.name);
       setSavedReportDescription(currentSavedReport.description || '');
     }
   }, [currentSavedReport]);
+
+  const buildDefinition = (): ReportDefinition => {
+    const parsedLimit = Number.parseInt(rowLimit, 10);
+    const safeLimit =
+      Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 10000) : undefined;
+
+    return {
+      name: savedReportName || `${entity}_report_${new Date().toISOString().split('T')[0]}`,
+      entity,
+      fields: selectedFields.length > 0 ? selectedFields : undefined,
+      filters,
+      sort: sorts,
+      groupBy: groupBy.length > 0 ? groupBy : undefined,
+      aggregations: aggregations.length > 0 ? aggregations : undefined,
+      limit: safeLimit,
+    };
+  };
 
   const handleGenerateReport = async () => {
     if (selectedFields.length === 0 && aggregations.length === 0) {
@@ -103,72 +141,42 @@ function ReportBuilder() {
       return;
     }
 
-    const reportName = `${entity}_report_${new Date().toISOString().split('T')[0]}`;
-
-    await dispatch(
-      generateReport({
-        name: reportName,
-        entity,
-        fields: selectedFields,
-        filters,
-        sort: sorts,
-        groupBy: groupBy.length > 0 ? groupBy : undefined,
-        aggregations: aggregations.length > 0 ? aggregations : undefined,
-      })
-    );
+    await dispatch(generateReport(buildDefinition()));
   };
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     if (!currentReport || currentReport.data.length === 0) {
       alert('No report data to export');
       return;
     }
 
-    const allHeaders = [...groupBy, ...selectedFields, ...aggregations.map(a => a.alias || `${a.function}_${a.field}`)];
-    const headers = allHeaders.join(',');
-    const rows = currentReport.data.map((row) =>
-      allHeaders.map((field) => {
-        const value = row[field];
-        if (value === null || value === undefined) return '';
-        const stringValue = String(value);
-        return stringValue.includes(',') ? `"${stringValue}"` : stringValue;
-      }).join(',')
-    );
-    const csvContent = [headers, ...rows].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${entity}_report_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const blobPart = await reportsApiClient.exportReport(buildDefinition(), 'csv');
+      const url = window.URL.createObjectURL(new Blob([blobPart], { type: 'text/csv' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${entity}_report_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('CSV export failed', error);
+      alert('Failed to export CSV');
+    }
   };
 
   const handleExportXLSX = async () => {
-    const { default: api } = await import('../../services/api');
     try {
-      const response = await api.post('/reports/export', {
-        definition: {
-          name: savedReportName || 'Custom Report',
-          entity,
-          fields: selectedFields,
-          filters,
-          sort: sorts,
-          groupBy: groupBy.length > 0 ? groupBy : undefined,
-          aggregations: aggregations.length > 0 ? aggregations : undefined,
-        },
-        format: 'xlsx'
-      }, { responseType: 'blob' });
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const blob = await reportsApiClient.exportReport(buildDefinition(), 'xlsx');
+      const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `${entity}_report_${new Date().toISOString().split('T')[0]}.xlsx`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Export failed', error);
       alert('Failed to export to Excel');
@@ -182,12 +190,11 @@ function ReportBuilder() {
     const doc = new jsPDF();
     doc.text(`${entity.toUpperCase()} REPORT`, 14, 15);
 
-    const allHeaders = [...groupBy, ...selectedFields, ...aggregations.map(a => a.alias || `${a.function}_${a.field}`)];
-    const body = currentReport?.data.map(row => allHeaders.map(h => String(row[h] ?? ''))) || [];
+    const body = currentReport?.data.map((row) => allOutputFields.map((field) => String(row[field] ?? ''))) || [];
 
     autoTable(doc, {
-      head: [allHeaders.map(h => h.replace(/_/g, ' ').toUpperCase())],
-      body: body,
+      head: [allOutputFields.map((field) => field.replace(/_/g, ' ').toUpperCase())],
+      body,
       startY: 20,
     });
 
@@ -213,11 +220,15 @@ function ReportBuilder() {
         report_definition: {
           name: savedReportName,
           entity,
-          fields: selectedFields,
+          fields: selectedFields.length > 0 ? selectedFields : undefined,
           filters,
           sort: sorts,
           groupBy: groupBy.length > 0 ? groupBy : undefined,
           aggregations: aggregations.length > 0 ? aggregations : undefined,
+          limit:
+            Number.isFinite(Number.parseInt(rowLimit, 10)) && Number.parseInt(rowLimit, 10) > 0
+              ? Math.min(Number.parseInt(rowLimit, 10), 10000)
+              : undefined,
         },
       })
     );
@@ -228,8 +239,6 @@ function ReportBuilder() {
     alert('Report saved successfully!');
   };
 
-
-
   const handleEntityChange = (newEntity: ReportEntity) => {
     setEntity(newEntity);
     setSelectedFields([]);
@@ -237,237 +246,221 @@ function ReportBuilder() {
     setSorts([]);
     setGroupBy([]);
     setAggregations([]);
+    setRowLimit('500');
     setShowChart(false);
   };
 
   return (
     <NeoBrutalistLayout pageTitle="REPORTS">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h1 className="text-3xl font-black text-[var(--app-text)]">Report Builder</h1>
-              <p className="mt-2 text-[var(--app-text-muted)]">
-                Create custom reports by selecting entity, fields, filters, and sorting options
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => navigate('/reports/templates')}
-                className="px-4 py-2 bg-[var(--loop-yellow)] text-black border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold uppercase text-sm"
-              >
-                KPI Templates
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/reports/outcomes')}
-                className="px-4 py-2 bg-[var(--loop-cyan)] text-black border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold uppercase text-sm"
-              >
-                Outcomes Report
-              </button>
-            </div>
-          </div>
-        </div>
+      <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+        <PageHeader
+          title="Report Builder"
+          description="Create custom reports by selecting entities, fields, filters, and exports."
+          actions={
+            <>
+              <SecondaryButton onClick={() => navigate('/reports/templates')}>KPI Templates</SecondaryButton>
+              <SecondaryButton onClick={() => navigate('/reports/outcomes')}>Outcomes Report</SecondaryButton>
+            </>
+          }
+        />
 
-        {/* Entity Selector */}
-        <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 mb-6">
-          <h2 className="text-lg font-bold text-[var(--app-text)] mb-4 uppercase">1. Select Entity</h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            {ENTITIES.map((ent) => (
+        <SectionCard title="1. Select Entity" subtitle="Choose the source dataset for this report.">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            {ENTITIES.map((entry) => (
               <button
-                key={ent.value}
-                onClick={() => handleEntityChange(ent.value)}
-                className={`px-4 py-3 border-2 border-[var(--app-border)] font-bold transition-all shadow-[2px_2px_0px_0px_var(--shadow-color)] ${entity === ent.value
-                  ? 'bg-[var(--loop-yellow)] text-black'
-                  : 'bg-[var(--app-surface)] text-[var(--app-text)] hover:bg-[var(--app-surface-muted)]'
-                  }`}
+                key={entry.value}
+                type="button"
+                onClick={() => handleEntityChange(entry.value)}
+                className={`rounded-[var(--ui-radius-sm)] border px-3 py-2 text-sm font-semibold ${
+                  entity === entry.value
+                    ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
+                    : 'border-app-border bg-app-surface text-app-text hover:bg-app-hover'
+                }`}
               >
-                {ent.label}
+                {entry.label}
               </button>
             ))}
           </div>
-        </div>
+        </SectionCard>
 
-        {/* Field Selector */}
-        <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 mb-6">
-          <h2 className="text-lg font-bold text-[var(--app-text)] mb-4 uppercase">2. Select Fields</h2>
-          <FieldSelector
-            entity={entity}
-            selectedFields={selectedFields}
-            onChange={setSelectedFields}
-          />
-        </div>
+        <SectionCard title="2. Select Fields">
+          <FieldSelector entity={entity} selectedFields={selectedFields} onChange={setSelectedFields} />
+        </SectionCard>
 
-        {/* Group By (Optional) */}
-        <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 mb-6">
-          <h2 className="text-lg font-bold text-[var(--app-text)] mb-4 uppercase">3. Group By (Optional)</h2>
-          <div className="flex flex-wrap gap-3">
-            {(availableFields[entity] || []).filter(f => f.type === 'string' || f.type === 'date').map(field => {
-              const isActive = groupBy.includes(field.field);
-              return (
-                <button
-                  key={field.field}
-                  onClick={() => {
-                    if (isActive) setGroupBy(groupBy.filter(g => g !== field.field));
-                    else setGroupBy([...groupBy, field.field]);
-                  }}
-                  className={`px-4 py-2 border-2 border-[var(--app-border)] font-bold transition-all shadow-[2px_2px_0px_0px_var(--shadow-color)] ${isActive ? 'bg-[var(--loop-blue)] text-black' : 'bg-[var(--app-surface)] text-[var(--app-text)]'
+        <SectionCard title="3. Group By (Optional)">
+          <div className="flex flex-wrap gap-2">
+            {(availableFields[entity] || [])
+              .filter((field) => field.type === 'string' || field.type === 'date')
+              .map((field) => {
+                const isActive = groupBy.includes(field.field);
+                return (
+                  <button
+                    key={field.field}
+                    type="button"
+                    onClick={() => {
+                      if (isActive) {
+                        setGroupBy(groupBy.filter((item) => item !== field.field));
+                      } else {
+                        setGroupBy([...groupBy, field.field]);
+                      }
+                    }}
+                    className={`rounded-[var(--ui-radius-sm)] border px-3 py-2 text-xs font-semibold uppercase tracking-wide ${
+                      isActive
+                        ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
+                        : 'border-app-border bg-app-surface text-app-text'
                     }`}
-                >
-                  {field.label}
-                </button>
-              );
-            })}
+                  >
+                    {field.label}
+                  </button>
+                );
+              })}
           </div>
-        </div>
+        </SectionCard>
 
-        {/* Aggregations (Optional) */}
-        <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 mb-6">
-          <h2 className="text-lg font-bold text-[var(--app-text)] mb-4 uppercase">4. Aggregations (Optional)</h2>
+        <SectionCard title="4. Aggregations (Optional)">
           <div className="space-y-4">
-            {(availableFields[entity] || []).filter(f => ['number', 'currency'].includes(f.type)).map(field => (
-              <div key={field.field} className="flex items-center gap-4">
-                <span className="font-bold uppercase w-32">{field.label}:</span>
-                <div className="flex gap-2">
-                  {(['sum', 'avg', 'count', 'min', 'max'] as AggregateFunction[]).map(func => {
-                    const isActive = aggregations.some(a => a.field === field.field && a.function === func);
-                    return (
-                      <button
-                        key={func}
-                        onClick={() => {
-                          if (isActive) {
-                            setAggregations(aggregations.filter(a => !(a.field === field.field && a.function === func)));
-                          } else {
-                            setAggregations([...aggregations, { field: field.field, function: func }]);
-                          }
-                        }}
-                        className={`px-3 py-1 border-2 border-[var(--app-border)] font-bold text-xs uppercase transition-all shadow-[1px_1px_0px_0px_var(--shadow-color)] ${isActive ? 'bg-[var(--loop-green)] text-black' : 'bg-[var(--app-surface)] text-[var(--app-text)]'
+            {(availableFields[entity] || [])
+              .filter((field) => ['number', 'currency'].includes(field.type))
+              .map((field) => (
+                <div key={field.field} className="flex flex-wrap items-center gap-3">
+                  <span className="w-28 text-sm font-semibold uppercase tracking-wide text-app-text-muted">
+                    {field.label}
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {(['sum', 'avg', 'count', 'min', 'max'] as AggregateFunction[]).map((func) => {
+                      const isActive = aggregations.some(
+                        (item) => item.field === field.field && item.function === func
+                      );
+                      return (
+                        <button
+                          key={func}
+                          type="button"
+                          onClick={() => {
+                            if (isActive) {
+                              setAggregations(
+                                aggregations.filter(
+                                  (item) => !(item.field === field.field && item.function === func)
+                                )
+                              );
+                            } else {
+                              setAggregations([...aggregations, { field: field.field, function: func }]);
+                            }
+                          }}
+                          className={`rounded-[var(--ui-radius-sm)] border px-3 py-1 text-xs font-semibold uppercase ${
+                            isActive
+                              ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
+                              : 'border-app-border bg-app-surface text-app-text'
                           }`}
-                      >
-                        {func}
-                      </button>
-                    );
-                  })}
+                        >
+                          {func}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
-        </div>
+        </SectionCard>
 
-        {/* Filter Builder */}
-        <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 mb-6">
-          <h2 className="text-lg font-bold text-[var(--app-text)] mb-4 uppercase">5. Add Filters (Optional)</h2>
+        <SectionCard title="5. Add Filters (Optional)">
           <FilterBuilder entity={entity} filters={filters} onChange={setFilters} />
-        </div>
+        </SectionCard>
 
-        {/* Sort Builder */}
-        <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 mb-6">
-          <h2 className="text-lg font-bold text-[var(--app-text)] mb-4 uppercase">6. Add Sorting (Optional)</h2>
+        <SectionCard title="6. Add Sorting (Optional)">
           <SortBuilder
             entity={entity}
-            selectedFields={[...groupBy, ...selectedFields]}
+            selectedFields={allOutputFields}
             sorts={sorts}
             onChange={setSorts}
           />
-        </div>
+        </SectionCard>
 
-        {/* Actions */}
-        <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 mb-6">
-          <h2 className="text-lg font-bold text-[var(--app-text)] mb-4 uppercase">7. Generate & Export</h2>
-          <div className="flex flex-wrap gap-4">
-            <button
-              onClick={handleGenerateReport}
+        <SectionCard title="7. Row Limit">
+          <div className="max-w-xs">
+            <FormField
+              type="number"
+              min={1}
+              max={10000}
+              label="Max rows to return (1-10000)"
+              value={rowLimit}
+              onChange={(event) => setRowLimit(event.target.value)}
+            />
+          </div>
+        </SectionCard>
+
+        <SectionCard title="8. Generate & Export">
+          <div className="flex flex-wrap gap-2">
+            <PrimaryButton
+              onClick={() => void handleGenerateReport()}
               disabled={loading || (selectedFields.length === 0 && aggregations.length === 0)}
-              className="px-6 py-3 bg-[var(--loop-blue)] text-black border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all disabled:opacity-50"
             >
               {loading ? 'Generating...' : 'Generate Report'}
-            </button>
-            <button
+            </PrimaryButton>
+
+            <SecondaryButton
               onClick={() => setShowSaveDialog(true)}
               disabled={selectedFields.length === 0 && aggregations.length === 0}
-              className="px-6 py-3 bg-[var(--loop-yellow)] text-black border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all disabled:opacity-50"
             >
               Save Definition
-            </button>
+            </SecondaryButton>
+
             {reportRows.length > 0 && (
               <>
-                <button
-                  onClick={handleExportCSV}
-                  className="px-6 py-3 bg-[var(--loop-green)] text-black border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
-                >
-                  Export CSV
-                </button>
-                <button
-                  onClick={handleExportXLSX}
-                  className="px-6 py-3 bg-[var(--loop-green)] text-black border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
-                >
-                  Export Excel
-                </button>
-                <button
-                  onClick={handleExportPDF}
-                  className="px-6 py-3 bg-[var(--loop-purple)] text-black border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
-                >
-                  Export PDF
-                </button>
-                <button
-                  onClick={() => setShowChart(!showChart)}
-                  className={`px-6 py-3 text-black border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all ${showChart ? 'bg-[var(--loop-red)]' : 'bg-[var(--loop-yellow)]'}`}
-                >
+                <SecondaryButton onClick={() => void handleExportCSV()}>Export CSV</SecondaryButton>
+                <SecondaryButton onClick={() => void handleExportXLSX()}>Export Excel</SecondaryButton>
+                <SecondaryButton onClick={() => void handleExportPDF()}>Export PDF</SecondaryButton>
+                <SecondaryButton onClick={() => setShowChart((value) => !value)}>
                   {showChart ? 'Hide Chart' : 'Show Chart'}
-                </button>
+                </SecondaryButton>
               </>
             )}
           </div>
-        </div>
+        </SectionCard>
 
-        {/* Visualization Settings */}
         {showChart && reportRows.length > 0 && (
-          <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 mb-6">
-            <h2 className="text-lg font-bold text-[var(--app-text)] mb-4 uppercase">Visualization Settings</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-xs font-bold uppercase mb-1">Chart Type</label>
-                <select
-                  value={chartType}
-                  onChange={(e) => setChartType(e.target.value as 'bar' | 'pie' | 'line')}
-                  className="w-full border-2 border-black p-2 font-bold bg-white"
-                >
-                  <option value="bar">Bar Chart</option>
-                  <option value="line">Line Chart</option>
-                  <option value="pie">Pie Chart</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase mb-1">X-Axis (Label)</label>
-                <select
-                  value={xAxisField}
-                  onChange={(e) => setXAxisField(e.target.value)}
-                  className="w-full border-2 border-black p-2 font-bold bg-white"
-                >
-                  <option value="">Select Field</option>
-                  {[...groupBy, ...selectedFields].map(f => (
-                    <option key={f} value={f}>{f.replace(/_/g, ' ').toUpperCase()}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase mb-1">Y-Axis (Value)</label>
-                <select
-                  value={yAxisField}
-                  onChange={(e) => setYAxisField(e.target.value)}
-                  className="w-full border-2 border-black p-2 font-bold bg-white"
-                >
-                  <option value="">Select Field</option>
-                  {[...selectedFields, ...aggregations.map(a => a.alias || `${a.function}_${a.field}`)].map(f => (
-                    <option key={f} value={f}>{f.replace(/_/g, ' ').toUpperCase()}</option>
-                  ))}
-                </select>
-              </div>
+          <SectionCard title="Visualization Settings">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+              <SelectField
+                label="Chart Type"
+                value={chartType}
+                onChange={(event) => setChartType(event.target.value as 'bar' | 'pie' | 'line')}
+              >
+                <option value="bar">Bar Chart</option>
+                <option value="line">Line Chart</option>
+                <option value="pie">Pie Chart</option>
+              </SelectField>
+
+              <SelectField
+                label="X-Axis (Label)"
+                value={xAxisField}
+                onChange={(event) => setXAxisField(event.target.value)}
+              >
+                <option value="">Select Field</option>
+                {[...groupBy, ...selectedFields].map((field) => (
+                  <option key={field} value={field}>
+                    {field.replace(/_/g, ' ').toUpperCase()}
+                  </option>
+                ))}
+              </SelectField>
+
+              <SelectField
+                label="Y-Axis (Value)"
+                value={yAxisField}
+                onChange={(event) => setYAxisField(event.target.value)}
+              >
+                <option value="">Select Field</option>
+                {[...selectedFields, ...aggregations.map((item) => item.alias || `${item.function}_${item.field}`)].map(
+                  (field) => (
+                    <option key={field} value={field}>
+                      {field.replace(/_/g, ' ').toUpperCase()}
+                    </option>
+                  )
+                )}
+              </SelectField>
             </div>
 
             {xAxisField && yAxisField && (
-              <div className="mt-8">
+              <div className="mt-6">
                 <ReportChart
                   data={reportRows}
                   chartType={chartType}
@@ -477,35 +470,31 @@ function ReportBuilder() {
                 />
               </div>
             )}
-          </div>
+          </SectionCard>
         )}
 
-        {/* Report Preview */}
         {reportRows.length > 0 && (
-          <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6">
-            <h2 className="text-lg font-bold text-[var(--app-text)] mb-4 uppercase">Data Preview</h2>
-            <div className="overflow-x-auto">
-              <table className="min-w-full border-2 border-black">
-                <thead className="bg-[var(--app-surface-muted)]">
+          <SectionCard title="Data Preview" subtitle={`Showing ${Math.min(reportRows.length, 50)} of ${reportRows.length} rows`}>
+            <div className="overflow-x-auto rounded-[var(--ui-radius-sm)] border border-app-border-muted">
+              <table className="min-w-full divide-y divide-app-border-muted bg-app-surface text-sm">
+                <thead className="bg-app-surface-muted">
                   <tr>
-                    {[...groupBy, ...selectedFields, ...aggregations.map(a => a.alias || `${a.function}_${a.field}`)].map((field) => (
+                    {allOutputFields.map((field) => (
                       <th
                         key={field}
-                        className="px-6 py-3 text-left text-xs font-black text-black uppercase tracking-wider border-2 border-black"
+                        className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-app-text-muted"
                       >
                         {field.replace(/_/g, ' ')}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="bg-[var(--app-surface)]">
-                  {reportRows.slice(0, 50).map((row, idx) => (
-                    <tr key={idx} className="border-b-2 border-black hover:bg-gray-50">
-                      {[...groupBy, ...selectedFields, ...aggregations.map(a => a.alias || `${a.function}_${a.field}`)].map((field) => (
-                        <td key={field} className="px-6 py-4 whitespace-nowrap text-sm font-bold text-black border-r-2 border-black">
-                          {row[field] !== null && row[field] !== undefined
-                            ? String(row[field])
-                            : '-'}
+                <tbody className="divide-y divide-app-border-muted">
+                  {reportRows.slice(0, 50).map((row, index) => (
+                    <tr key={index}>
+                      {allOutputFields.map((field) => (
+                        <td key={field} className="px-4 py-3 text-app-text">
+                          {row[field] !== null && row[field] !== undefined ? String(row[field]) : '-'}
                         </td>
                       ))}
                     </tr>
@@ -514,69 +503,56 @@ function ReportBuilder() {
               </table>
             </div>
             {reportRows.length > 50 && (
-              <p className="mt-4 text-sm font-bold text-[var(--app-text-muted)] uppercase italic">
-                Showing first 50 of {reportRows.length} records. Export to view all
-                data.
+              <p className="mt-3 text-xs text-app-text-muted">
+                Export the report to view the full dataset.
               </p>
             )}
-          </div>
+          </SectionCard>
         )}
 
         {currentReport && reportRows.length === 0 && (
-          <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6">
-            <p className="font-bold uppercase text-[var(--app-text-muted)]">No data found matching your criteria.</p>
-          </div>
+          <EmptyState
+            title="No data found"
+            description="No rows matched your selected filters and output fields."
+          />
         )}
 
-        {/* Save Report Dialog */}
         {showSaveDialog && (
-          <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-            <div className="bg-[var(--app-surface)] border-4 border-black shadow-[12px_12px_0px_0px_var(--shadow-color)] p-8 w-full max-w-md">
-              <h3 className="text-2xl font-black text-[var(--app-text)] mb-6 uppercase italic">Save Report Definition</h3>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-lg rounded-[var(--ui-radius-md)] border border-app-border bg-app-surface p-5 shadow-lg">
+              <PageHeader
+                title="Save Report Definition"
+                description="Store this report configuration so it can be reused later."
+              />
 
-              <div className="mb-4">
-                <label className="block text-sm font-bold text-[var(--app-text)] mb-2 uppercase">
-                  Report Name *
-                </label>
-                <input
-                  type="text"
+              <div className="mt-4 space-y-3">
+                <FormField
+                  required
+                  label="Report Name"
                   value={savedReportName}
-                  onChange={(e) => setSavedReportName(e.target.value)}
-                  className="block w-full px-3 py-2 border-2 border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] focus:outline-none focus:ring-2 focus:ring-[var(--loop-yellow)]"
+                  onChange={(event) => setSavedReportName(event.target.value)}
                   placeholder="e.g., Monthly Donor Report"
                 />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-bold text-[var(--app-text)] mb-2 uppercase">
-                  Description (Optional)
-                </label>
-                <textarea
-                  value={savedReportDescription}
-                  onChange={(e) => setSavedReportDescription(e.target.value)}
+                <TextareaField
+                  label="Description (Optional)"
                   rows={3}
-                  className="block w-full px-3 py-2 border-2 border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] focus:outline-none focus:ring-2 focus:ring-[var(--loop-yellow)]"
+                  value={savedReportDescription}
+                  onChange={(event) => setSavedReportDescription(event.target.value)}
                   placeholder="Describe what this report is for..."
                 />
               </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={handleSaveReport}
-                  className="flex-1 px-4 py-3 bg-[var(--loop-blue)] text-black border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
-                >
-                  Save
-                </button>
-                <button
+              <div className="mt-5 flex justify-end gap-2">
+                <SecondaryButton
                   onClick={() => {
                     setShowSaveDialog(false);
                     setSavedReportName('');
                     setSavedReportDescription('');
                   }}
-                  className="flex-1 px-4 py-3 bg-[var(--app-surface-muted)] text-[var(--app-text)] border-2 border-[var(--app-border)] shadow-[2px_2px_0px_0px_var(--shadow-color)] font-bold hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
                 >
                   Cancel
-                </button>
+                </SecondaryButton>
+                <PrimaryButton onClick={() => void handleSaveReport()}>Save</PrimaryButton>
               </div>
             </div>
           </div>

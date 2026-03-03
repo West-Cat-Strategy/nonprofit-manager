@@ -224,13 +224,13 @@ export default function UserManagement() {
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'admin':
-        return 'bg-purple-100 text-purple-800';
+        return 'bg-app-accent-soft text-app-accent-text';
       case 'manager':
         return 'bg-app-accent-soft text-app-accent-text';
       case 'readonly':
         return 'bg-app-surface-muted text-app-text';
       default:
-        return 'bg-green-100 text-green-800';
+        return 'bg-app-accent-soft text-app-accent-text';
     }
   };
 
@@ -349,7 +349,7 @@ export default function UserManagement() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      user.isActive ? 'bg-app-accent-soft text-app-accent-text' : 'bg-app-accent-soft text-app-accent-text'
                     }`}>
                       {user.isActive ? 'Active' : 'Inactive'}
                     </span>
@@ -372,7 +372,7 @@ export default function UserManagement() {
                     <button
                       type="button"
                       onClick={() => handleToggleActive(user)}
-                      className={user.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}
+                      className={user.isActive ? 'text-app-accent hover:text-app-accent-text' : 'text-app-accent hover:text-app-accent-text'}
                     >
                       {user.isActive ? 'Deactivate' : 'Activate'}
                     </button>

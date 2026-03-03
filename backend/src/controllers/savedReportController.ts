@@ -10,6 +10,11 @@ import type { CreateSavedReportRequest, UpdateSavedReportRequest } from '@app-ty
 import { badRequest, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 
 const savedReportService = services.savedReport;
+const getUserRoles = (req: AuthRequest): string[] => {
+  const contextualRoles = (((req as any).authorizationContext?.roles || []) as string[]).filter(Boolean);
+  const primaryRole = req.user?.role ? [req.user.role] : [];
+  return Array.from(new Set([...contextualRoles, ...primaryRole]));
+};
 
 /**
  * GET /api/saved-reports
@@ -22,9 +27,11 @@ export const getSavedReports = async (
 ): Promise<void> => {
   try {
     const userId = req.user?.id;
-    const entity = req.query.entity as string | undefined;
+    const userRoles = getUserRoles(req);
+    const query = ((req as any).validatedQuery ?? req.query) as { entity?: string };
+    const entity = query.entity;
 
-    const reports = await savedReportService.getSavedReports(userId, entity);
+    const reports = await savedReportService.getSavedReports(userId, entity, userRoles);
     res.json(reports);
   } catch (error) {
     next(error);
@@ -42,9 +49,10 @@ export const getSavedReportById = async (
 ): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const userRoles = getUserRoles(req);
     const { id } = req.params;
 
-    const report = await savedReportService.getSavedReportById(id, userId);
+    const report = await savedReportService.getSavedReportById(id, userId, userRoles);
 
     if (!report) {
       notFoundMessage(res, 'Saved report not found or access denied');

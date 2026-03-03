@@ -236,7 +236,7 @@ export default function RegistrationSettingsSection() {
 
           {/* Save feedback */}
           {saveStatus === 'success' && (
-            <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-2">
+            <div className="flex items-center gap-2 text-sm text-app-accent-text bg-app-accent-soft border border-app-border rounded-lg px-4 py-2">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   fillRule="evenodd"
@@ -248,7 +248,7 @@ export default function RegistrationSettingsSection() {
             </div>
           )}
           {saveStatus === 'error' && (
-            <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-2">
+            <div className="flex items-center gap-2 text-sm text-app-accent-text bg-app-accent-soft border border-app-border rounded-lg px-4 py-2">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   fillRule="evenodd"
@@ -270,7 +270,7 @@ export default function RegistrationSettingsSection() {
               <h2 className="text-lg font-semibold text-app-text-heading">
                 Pending Registrations
                 {pendingRegistrations.length > 0 && (
-                  <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
+                  <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-app-accent-soft text-app-accent-text rounded-full">
                     {pendingRegistrations.length}
                   </span>
                 )}
@@ -318,7 +318,7 @@ export default function RegistrationSettingsSection() {
                           type="button"
                           onClick={() => handleApprove(reg.id)}
                           disabled={actionLoading === reg.id}
-                          className="px-4 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg disabled:opacity-50"
+                          className="px-4 py-1.5 text-sm font-medium text-white bg-app-accent hover:bg-app-accent-hover rounded-lg disabled:opacity-50"
                         >
                           {actionLoading === reg.id ? 'Processing...' : 'Approve'}
                         </button>
@@ -326,7 +326,7 @@ export default function RegistrationSettingsSection() {
                           type="button"
                           onClick={() => setRejectingId(reg.id)}
                           disabled={actionLoading === reg.id}
-                          className="px-4 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 border border-red-200 rounded-lg disabled:opacity-50"
+                          className="px-4 py-1.5 text-sm font-medium text-app-accent hover:text-app-accent-text border border-app-border rounded-lg disabled:opacity-50"
                         >
                           Reject
                         </button>
@@ -353,7 +353,7 @@ export default function RegistrationSettingsSection() {
                         type="button"
                         onClick={() => handleReject(reg.id)}
                         disabled={actionLoading === reg.id}
-                        className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-50"
+                        className="px-4 py-2 text-sm font-medium text-white bg-app-accent hover:bg-app-accent-hover rounded-lg disabled:opacity-50"
                       >
                         {actionLoading === reg.id ? 'Rejecting...' : 'Confirm Reject'}
                       </button>

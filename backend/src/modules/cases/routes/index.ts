@@ -95,6 +95,12 @@ const documentIdParamsSchema = z.object({
   documentId: uuidSchema,
 });
 
+const caseDocumentDownloadQuerySchema = z
+  .object({
+    disposition: z.enum(['inline', 'attachment']).optional(),
+  })
+  .strict();
+
 const caseCatalogQuerySchema = z.object({
   search: z.string().optional(),
   contact_id: uuidSchema.optional(),
@@ -116,7 +122,7 @@ const caseCatalogQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
   sort_by: z.string().optional(),
   sort_order: z.enum(['asc', 'desc']).optional(),
-});
+}).strict();
 
 const createCaseSchema = z.object({
   contact_id: uuidSchema,
@@ -374,7 +380,12 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
     handleMulterError,
     documentsController.uploadCaseDocument
   );
-  router.get('/:id/documents/:documentId/download', validateParams(documentIdParamsSchema), documentsController.downloadCaseDocument);
+  router.get(
+    '/:id/documents/:documentId/download',
+    validateParams(documentIdParamsSchema),
+    validateQuery(caseDocumentDownloadQuerySchema),
+    documentsController.downloadCaseDocument
+  );
   router.put('/:id/documents/:documentId', validateParams(documentIdParamsSchema), validateBody(updateCaseDocumentSchema), documentsController.updateCaseDocument);
   router.delete('/:id/documents/:documentId', validateParams(documentIdParamsSchema), documentsController.deleteCaseDocument);
 

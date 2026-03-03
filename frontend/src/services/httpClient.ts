@@ -42,6 +42,15 @@ const resolveOrganizationId = (
   return localStorage.getItem(organizationIdKey) || defaultOrganizationId || undefined;
 };
 
+const hasV2BasePath = (baseURL: string): boolean => {
+  try {
+    const parsed = new URL(baseURL, window.location.origin);
+    return parsed.pathname.replace(/\/+$/, '').endsWith('/api/v2');
+  } catch {
+    return baseURL.replace(/\/+$/, '').endsWith('/api/v2');
+  }
+};
+
 /**
  * Calculate exponential backoff delay with jitter
  */
@@ -73,10 +82,35 @@ const isApiSuccessEnvelope = (payload: unknown): payload is ApiEnvelope<unknown>
   return candidate.success === true && Object.prototype.hasOwnProperty.call(candidate, 'data');
 };
 
+const extractErrorMessage = (payload: unknown): string | undefined => {
+  if (!payload || typeof payload !== 'object') {
+    return undefined;
+  }
+
+  const candidate = payload as {
+    error?: string | { message?: string };
+    message?: string;
+  };
+
+  if (typeof candidate.error === 'string') {
+    return candidate.error;
+  }
+
+  if (candidate.error && typeof candidate.error === 'object' && typeof candidate.error.message === 'string') {
+    return candidate.error.message;
+  }
+
+  if (typeof candidate.message === 'string') {
+    return candidate.message;
+  }
+
+  return undefined;
+};
+
 export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
   const {
     onUnauthorized,
-    baseURL = import.meta.env.VITE_API_URL || 'HTTP://localhost:3000/api',
+    baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
     includeOrganizationHeader = true,
     organizationIdKey = 'organizationId',
     defaultOrganizationId = import.meta.env.VITE_DEFAULT_ORGANIZATION_ID,
@@ -96,6 +130,7 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
 
   // CSRF token cache
   let csrfToken: string | null = null;
+  const baseIsV2 = hasV2BasePath(baseURL);
 
   // Fetch CSRF token from server
   const fetchCsrfToken = async (): Promise<string | null> => {
@@ -113,6 +148,15 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
   // Note: Auth tokens are handled via httpOnly cookies (withCredentials: true)
   client.interceptors.request.use(
     async (config: InternalAxiosRequestConfig) => {
+      if (
+        !baseIsV2 &&
+        typeof config.url === 'string' &&
+        config.url.startsWith('/') &&
+        !config.url.startsWith('/v2/')
+      ) {
+        config.url = `/v2${config.url}`;
+      }
+
       if (includeOrganizationHeader) {
         const organizationId = resolveOrganizationId(organizationIdKey, defaultOrganizationId);
         if (organizationId) {
@@ -167,8 +211,8 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
 
       // Handle 403 CSRF errors - refresh token and retry once
       if (error.response?.status === 403 && config) {
-        const responseData = error.response.data as { error?: string } | undefined;
-        if (responseData?.error?.includes('CSRF')) {
+        const errorMessage = extractErrorMessage(error.response.data);
+        if (typeof errorMessage === 'string' && /csrf/i.test(errorMessage)) {
           // Clear cached token and fetch a new one
           csrfToken = null;
           await fetchCsrfToken();

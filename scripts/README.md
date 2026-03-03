@@ -132,6 +132,67 @@ Enforces a no-regression baseline for direct 2xx `res.json()` responses in backe
 node scripts/check-success-envelope-policy.ts
 ```
 
+#### `check-route-validation-policy.ts` - Route Validation Guardrail
+Enforces required `validateParams`/`validateBody` middleware coverage for critical backend routes.
+
+```bash
+node scripts/check-route-validation-policy.ts
+```
+
+#### `audit-query-contracts.ts` - Query Contract Audit Snapshot
+Builds deterministic query-contract inventory artifacts under `scripts/policies/`:
+- `query-contract-audit-baseline.json`
+- `query-contract-audit-summary.md`
+
+```bash
+node scripts/audit-query-contracts.ts
+```
+
+#### `check-query-contract-policy.ts` - Query Contract Guardrail
+Enforces no-regression policy for query-validation coverage:
+- no new query-consuming routes without `validateQuery`
+- no direct controller query regressions
+- no non-strict query schema regressions
+
+```bash
+node scripts/check-query-contract-policy.ts
+```
+
+#### `check-express-validator-policy.ts` - Validation Migration Guardrail
+Blocks production `express-validator` usage in routes/controllers/modules after Zod migration.
+
+```bash
+node scripts/check-express-validator-policy.ts
+```
+
+#### `check-controller-sql-policy.ts` - Controller SQL Boundary Guardrail
+Enforces a no-regression baseline for direct SQL in controllers, with strict-zero on migrated controllers.
+
+```bash
+node scripts/check-controller-sql-policy.ts
+```
+
+#### `check-auth-guard-policy.ts` - Auth Guard Usage Guardrail
+Blocks reintroduction of legacy `require*OrError` auth-guard helpers in controllers/modules.
+
+```bash
+node scripts/check-auth-guard-policy.ts
+```
+
+#### `check-duplicate-test-tree.ts` - Duplicate Test Path Guardrail
+Blocks duplicate backend test trees under `backend/backend/src/__tests__`.
+
+```bash
+node scripts/check-duplicate-test-tree.ts
+```
+
+#### `check-doc-api-versioning.ts` - Docs API Versioning Guardrail
+Blocks legacy `/api/*` endpoint examples in project docs (requires `/api/v2/*` or `/health*` for backend health checks).
+
+```bash
+node scripts/check-doc-api-versioning.ts
+```
+
 #### `select-checks.sh` - Deterministic Check Selector
 Chooses the minimal command set for changed files (`fast` or `strict` mode).
 
@@ -139,6 +200,23 @@ Chooses the minimal command set for changed files (`fast` or `strict` mode).
 ./scripts/select-checks.sh --base HEAD~1 --mode fast
 ./scripts/select-checks.sh --files \"backend/src/routes/tasks.ts,frontend/src/features/events/api/eventsApiClient.ts\" --mode strict
 ```
+
+#### `ui-audit.ts` - UI Debt Baseline and Policy Check
+Scans frontend route/component files for hardcoded color utilities, semantic token usage, and inline-style hotspots.
+
+```bash
+# Print current report
+node scripts/ui-audit.ts
+
+# Refresh baseline snapshot
+node scripts/ui-audit.ts --write-baseline
+
+# Enforce policy against baseline
+node scripts/ui-audit.ts --enforce-baseline
+```
+
+`scripts/select-checks.sh` runs this in report mode by default for migration phases.
+Use `UI_AUDIT_ENFORCE=true` to force baseline failure mode in strict release gates.
 
 ### Git Hooks
 

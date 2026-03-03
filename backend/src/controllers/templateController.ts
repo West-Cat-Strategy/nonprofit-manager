@@ -33,17 +33,31 @@ export const searchTemplates = async (req: AuthRequest, res: Response): Promise<
       return;
     }
 
-    const { page, limit } = extractPagination(req.query, { defaultLimit: 20, maxLimit: 100 });
+    const query = ((req as any).validatedQuery ?? req.query) as {
+      search?: string;
+      category?: TemplateCategory;
+      tags?: string;
+      status?: TemplateStatus;
+      isSystemTemplate?: boolean;
+      page?: number;
+      limit?: number;
+      sortBy?: 'name' | 'createdAt' | 'updatedAt';
+      sortOrder?: 'asc' | 'desc';
+    };
+    const { page, limit } = extractPagination(query as Record<string, unknown>, {
+      defaultLimit: 20,
+      maxLimit: 100,
+    });
     const params: TemplateSearchParams = {
-      search: req.query.search as string,
-      category: req.query.category as TemplateCategory,
-      tags: req.query.tags ? (req.query.tags as string).split(',') : undefined,
-      status: req.query.status as TemplateStatus,
-      isSystemTemplate: req.query.isSystemTemplate === 'true' ? true : req.query.isSystemTemplate === 'false' ? false : undefined,
+      search: query.search,
+      category: query.category,
+      tags: query.tags ? query.tags.split(',') : undefined,
+      status: query.status,
+      isSystemTemplate: query.isSystemTemplate,
       page,
       limit,
-      sortBy: (req.query.sortBy as 'name' | 'createdAt' | 'updatedAt') || 'createdAt',
-      sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
+      sortBy: query.sortBy || 'createdAt',
+      sortOrder: query.sortOrder || 'desc',
     };
 
     const result = await templateService.searchTemplates(userId, params);
@@ -675,7 +689,10 @@ export const previewTemplate = async (req: AuthRequest, res: Response): Promise<
     }
 
     const { templateId } = req.params;
-    const pageSlug = (req.query.page as string) || 'home';
+    const query = ((req as any).validatedQuery ?? req.query) as {
+      page?: string;
+    };
+    const pageSlug = query.page || 'home';
 
     const preview = await templateService.generateTemplatePreview(templateId, userId, pageSlug);
 

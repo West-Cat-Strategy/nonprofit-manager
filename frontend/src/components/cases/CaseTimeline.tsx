@@ -16,10 +16,10 @@ const eventTypeLabel: Record<CaseTimelineEvent['type'], string> = {
 };
 
 const eventTypeBadgeClass: Record<CaseTimelineEvent['type'], string> = {
-  note: 'bg-blue-100 text-blue-800',
-  outcome: 'bg-green-100 text-green-800',
-  topic: 'bg-orange-100 text-orange-800',
-  document: 'bg-purple-100 text-purple-800',
+  note: 'bg-app-accent-soft text-app-accent-text',
+  outcome: 'bg-app-accent-soft text-app-accent-text',
+  topic: 'bg-app-accent-soft text-app-accent-text',
+  document: 'bg-app-accent-soft text-app-accent-text',
 };
 
 const CaseTimeline = ({ caseId, refreshKey }: CaseTimelineProps) => {
@@ -64,7 +64,7 @@ const CaseTimeline = ({ caseId, refreshKey }: CaseTimelineProps) => {
               {eventTypeLabel[event.type]}
             </span>
             {event.visible_to_client ? (
-              <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-800">Client visible</span>
+              <span className="rounded bg-app-accent-soft px-2 py-0.5 text-xs text-app-accent-text">Client visible</span>
             ) : (
               <span className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted">
                 Internal

@@ -57,13 +57,13 @@ const reconciliationListQuerySchema = z.object({
   initiated_by: uuidSchema.optional(),
   page: z.coerce.number().int().min(1).max(10000).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
-});
+}).strict();
 
 const reconciliationItemsQuerySchema = z.object({
   match_status: matchStatusSchema.optional(),
   page: z.coerce.number().int().min(1).max(10000).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
-});
+}).strict();
 
 const discrepanciesQuerySchema = z.object({
   status: discrepancyStatusSchema.optional(),
@@ -74,7 +74,7 @@ const discrepanciesQuerySchema = z.object({
   donation_id: uuidSchema.optional(),
   page: z.coerce.number().int().min(1).max(10000).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
-});
+}).strict();
 
 const manualMatchSchema = z.object({
   donation_id: uuidSchema,

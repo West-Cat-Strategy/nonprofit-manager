@@ -46,7 +46,7 @@ const invitationListQuerySchema = z.object({
   includeExpired: z.coerce.boolean().optional(),
   includeAccepted: z.coerce.boolean().optional(),
   includeRevoked: z.coerce.boolean().optional(),
-});
+}).strict();
 
 const createInvitationSchema = z.object({
   email: emailSchema,

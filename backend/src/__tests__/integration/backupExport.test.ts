@@ -67,7 +67,7 @@ describe('Backup Export API', () => {
 
     // Create admin user (register -> promote -> login to get admin role in JWT)
     adminEmail = `backup-admin-${Date.now()}@example.com`;
-    const adminRegister = await request(app).post('/api/auth/register').send({
+    const adminRegister = await request(app).post('/api/v2/auth/register').send({
       email: adminEmail,
       password,
       password_confirm: password,
@@ -77,7 +77,7 @@ describe('Backup Export API', () => {
     const adminUserId = adminRegister.body?.user?.user_id;
     await pool.query("UPDATE users SET role = 'admin' WHERE id = $1", [adminUserId]);
 
-    const adminLogin = await request(app).post('/api/auth/login').send({
+    const adminLogin = await request(app).post('/api/v2/auth/login').send({
       email: adminEmail,
       password,
     });
@@ -85,14 +85,14 @@ describe('Backup Export API', () => {
 
     // Create regular user
     userEmail = `backup-user-${Date.now()}@example.com`;
-    await request(app).post('/api/auth/register').send({
+    await request(app).post('/api/v2/auth/register').send({
       email: userEmail,
       password,
       password_confirm: password,
       first_name: 'Backup',
       last_name: 'User',
     });
-    const userLogin = await request(app).post('/api/auth/login').send({
+    const userLogin = await request(app).post('/api/v2/auth/login').send({
       email: userEmail,
       password,
     });
@@ -122,7 +122,7 @@ describe('Backup Export API', () => {
 
   it('rejects non-admin export', async () => {
     const response = await request(app)
-      .post('/api/backup/export')
+      .post('/api/v2/backup/export')
       .set('Authorization', `Bearer ${userToken}`)
       .send({ include_secrets: false });
 
@@ -131,7 +131,7 @@ describe('Backup Export API', () => {
 
   it('exports a redacted backup by default', async () => {
     const response = await request(app)
-      .post('/api/backup/export')
+      .post('/api/v2/backup/export')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ include_secrets: false, compress: true })
       .buffer(true)
@@ -154,7 +154,7 @@ describe('Backup Export API', () => {
 
   it('can export an unredacted (full) backup', async () => {
     const response = await request(app)
-      .post('/api/backup/export')
+      .post('/api/v2/backup/export')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ include_secrets: true, compress: true })
       .buffer(true)

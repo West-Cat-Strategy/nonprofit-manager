@@ -191,7 +191,7 @@ export function highlightMatch(text: string, term: string): React.ReactNode {
 
   return parts.map((part, i) =>
     part.toLowerCase() === term.toLowerCase() ? (
-      <mark key={i} className="bg-yellow-200 rounded px-0.5">{part}</mark>
+      <mark key={i} className="bg-app-accent-soft rounded px-0.5">{part}</mark>
     ) : (
       part
     )

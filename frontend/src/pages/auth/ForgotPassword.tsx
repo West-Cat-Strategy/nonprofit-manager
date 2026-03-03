@@ -36,19 +36,19 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="auth-page-light relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-amber-100 font-body">
+    <div className="auth-page-light relative min-h-screen overflow-hidden bg-gradient-to-br from-app-bg via-white to-app-accent-soft font-body">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-24 left-0 h-72 w-72 rounded-full bg-amber-200/50 blur-3xl"
+        className="pointer-events-none absolute -top-24 left-0 h-72 w-72 rounded-full bg-app-accent-soft/50 blur-3xl"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-24 right-0 h-72 w-72 rounded-full bg-sky-200/50 blur-3xl"
+        className="pointer-events-none absolute -bottom-24 right-0 h-72 w-72 rounded-full bg-app-accent-soft/50 blur-3xl"
       />
 
       <div className="relative mx-auto flex min-h-screen max-w-md items-center px-4 py-12">
-        <div className="w-full rounded-3xl border border-slate-200/80 bg-white/90 p-8 shadow-xl backdrop-blur">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white">
+        <div className="w-full rounded-3xl border border-app-border/80 bg-white/90 p-8 shadow-xl backdrop-blur">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-app-text text-white">
             <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path
                 strokeLinecap="round"
@@ -59,18 +59,18 @@ export default function ForgotPassword() {
             </svg>
           </div>
 
-          <h1 className="font-display mt-4 text-2xl font-semibold text-slate-900">
+          <h1 className="font-display mt-4 text-2xl font-semibold text-app-text-heading">
             Forgot your password?
           </h1>
 
           {!submitted ? (
             <>
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-2 text-sm text-app-text">
                 Enter your email address and we'll send you a link to reset your password.
               </p>
 
               {error && (
-                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="mt-4 rounded-lg border border-app-border bg-app-accent-soft px-4 py-3 text-sm text-app-accent-text">
                   {error}
                 </div>
               )}
@@ -79,7 +79,7 @@ export default function ForgotPassword() {
                 <div>
                   <label
                     htmlFor="email"
-                    className="text-xs font-semibold uppercase tracking-wide text-slate-600"
+                    className="text-xs font-semibold uppercase tracking-wide text-app-text"
                   >
                     Email Address
                   </label>
@@ -91,14 +91,14 @@ export default function ForgotPassword() {
                     autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-100"
+                    className="mt-2 block w-full rounded-xl border border-app-border bg-white px-4 py-2.5 text-sm text-app-text-heading shadow-sm transition focus:border-app-text focus:outline-none focus:ring-4 focus:ring-app-accent"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:-translate-y-0.5 hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200 disabled:opacity-60"
+                  className="flex w-full items-center justify-center rounded-xl bg-app-text px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:-translate-y-0.5 hover:bg-app-text focus:outline-none focus:ring-4 focus:ring-app-accent disabled:opacity-60"
                 >
                   {loading ? 'Sending...' : 'Send Reset Link'}
                 </button>
@@ -106,7 +106,7 @@ export default function ForgotPassword() {
             </>
           ) : (
             <div className="mt-4">
-              <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+              <div className="rounded-lg border border-app-border bg-app-accent-soft px-4 py-3 text-sm text-app-accent-text">
                 If an account with that email exists, we've sent a password reset link. Please check
                 your inbox (and spam folder).
               </div>
@@ -116,7 +116,7 @@ export default function ForgotPassword() {
           <div className="mt-6 text-center">
             <Link
               to="/login"
-              className="text-sm font-medium text-slate-600 hover:text-slate-900"
+              className="text-sm font-medium text-app-text hover:text-app-text-heading"
             >
               &larr; Back to sign in
             </Link>

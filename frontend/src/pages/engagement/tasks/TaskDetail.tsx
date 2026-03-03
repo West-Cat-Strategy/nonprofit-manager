@@ -48,10 +48,10 @@ const TaskDetail: React.FC = () => {
     const statusColors: Record<TaskStatus, string> = {
       [TaskStatus.NOT_STARTED]: 'bg-app-surface-muted text-app-text',
       [TaskStatus.IN_PROGRESS]: 'bg-app-accent-soft text-app-accent-text',
-      [TaskStatus.WAITING]: 'bg-yellow-100 text-yellow-800',
-      [TaskStatus.COMPLETED]: 'bg-green-100 text-green-800',
-      [TaskStatus.DEFERRED]: 'bg-purple-100 text-purple-800',
-      [TaskStatus.CANCELLED]: 'bg-red-100 text-red-800',
+      [TaskStatus.WAITING]: 'bg-app-accent-soft text-app-accent-text',
+      [TaskStatus.COMPLETED]: 'bg-app-accent-soft text-app-accent-text',
+      [TaskStatus.DEFERRED]: 'bg-app-accent-soft text-app-accent-text',
+      [TaskStatus.CANCELLED]: 'bg-app-accent-soft text-app-accent-text',
     };
 
     return (
@@ -65,8 +65,8 @@ const TaskDetail: React.FC = () => {
     const priorityColors: Record<TaskPriority, string> = {
       [TaskPriority.LOW]: 'bg-app-surface-muted text-app-text-muted',
       [TaskPriority.NORMAL]: 'bg-app-accent-soft text-app-accent',
-      [TaskPriority.HIGH]: 'bg-orange-100 text-orange-600',
-      [TaskPriority.URGENT]: 'bg-red-100 text-red-600',
+      [TaskPriority.HIGH]: 'bg-app-accent-soft text-app-accent',
+      [TaskPriority.URGENT]: 'bg-app-accent-soft text-app-accent',
     };
 
     return (
@@ -90,7 +90,7 @@ const TaskDetail: React.FC = () => {
     return (
       <NeoBrutalistLayout pageTitle="TASKS">
         <div className="container mx-auto px-4 py-8">
-          <div className="p-4 bg-red-100 text-red-700 rounded-md">Error: {error}</div>
+          <div className="p-4 bg-app-accent-soft text-app-accent-text rounded-md">Error: {error}</div>
         </div>
       </NeoBrutalistLayout>
     );
@@ -100,7 +100,7 @@ const TaskDetail: React.FC = () => {
     return (
       <NeoBrutalistLayout pageTitle="TASKS">
         <div className="container mx-auto px-4 py-8">
-          <div className="p-4 bg-yellow-100 text-yellow-700 rounded-md">Task not found</div>
+          <div className="p-4 bg-app-accent-soft text-app-accent-text rounded-md">Task not found</div>
         </div>
       </NeoBrutalistLayout>
     );
@@ -129,7 +129,7 @@ const TaskDetail: React.FC = () => {
               {getStatusBadge(selectedTask.status)}
               {getPriorityBadge(selectedTask.priority)}
               {isOverdue && (
-                <span className="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                <span className="px-3 py-1 rounded-full text-sm font-medium bg-app-accent-soft text-app-accent-text">
                   OVERDUE
                 </span>
               )}
@@ -139,7 +139,7 @@ const TaskDetail: React.FC = () => {
             {selectedTask.status !== TaskStatus.COMPLETED && (
               <button
                 onClick={handleComplete}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover"
               >
                 Mark Complete
               </button>
@@ -152,7 +152,7 @@ const TaskDetail: React.FC = () => {
             </button>
             <button
               onClick={handleDelete}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover"
             >
               Delete
             </button>
@@ -172,7 +172,7 @@ const TaskDetail: React.FC = () => {
               </>
             )}
             <dt className="text-sm font-medium text-app-text-muted">Due Date</dt>
-            <dd className={`text-sm ${isOverdue ? 'text-red-600 font-semibold' : 'text-app-text'}`}>
+            <dd className={`text-sm ${isOverdue ? 'text-app-accent font-semibold' : 'text-app-text'}`}>
               {formatDateTimeOrNA(selectedTask.due_date)}
             </dd>
             {selectedTask.completed_date && (

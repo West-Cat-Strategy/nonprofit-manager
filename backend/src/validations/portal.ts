@@ -91,6 +91,13 @@ export const portalAppointmentParamsSchema = z.object({ id: uuidSchema });
 export const portalThreadParamsSchema = z.object({ threadId: uuidSchema });
 export const portalSlotParamsSchema = z.object({ slotId: uuidSchema });
 
+const portalPaginationQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    offset: z.coerce.number().int().min(0).max(10_000).optional(),
+  })
+  .strict();
+
 export const portalThreadCreateSchema = z.object({
   case_id: uuidSchema.optional(),
   subject: z.string().max(255).optional().nullable(),
@@ -110,13 +117,37 @@ export const portalThreadUpdateSchema = z
   })
   .strict();
 
-export const portalPointpersonQuerySchema = z.object({
-  case_id: uuidSchema.optional(),
-});
+export const portalPointpersonQuerySchema = z
+  .object({
+    case_id: uuidSchema.optional(),
+  })
+  .strict();
 
-export const portalSlotQuerySchema = z.object({
+export const portalSlotQuerySchema = z
+  .object({
+    case_id: uuidSchema.optional(),
+  })
+  .strict();
+
+export const portalThreadsQuerySchema = portalPaginationQuerySchema.extend({
+  status: z.enum(['open', 'closed', 'archived']).optional(),
   case_id: uuidSchema.optional(),
-});
+  search: z.string().trim().max(255).optional(),
+}).strict();
+
+export const portalAppointmentsQuerySchema = portalPaginationQuerySchema.extend({
+  status: z.enum(['requested', 'confirmed', 'cancelled', 'completed']).optional(),
+  case_id: uuidSchema.optional(),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  search: z.string().trim().max(255).optional(),
+}).strict();
+
+export const portalRealtimeStreamQuerySchema = z
+  .object({
+    channels: z.string().trim().max(255).optional(),
+  })
+  .strict();
 
 export const portalBookSlotSchema = z.object({
   case_id: uuidSchema.optional(),
@@ -124,18 +155,39 @@ export const portalBookSlotSchema = z.object({
   description: z.string().max(2000).optional().nullable(),
 });
 
-export const portalManualAppointmentRequestSchema = z.object({
-  case_id: uuidSchema.optional(),
-  title: z.string().trim().min(1).max(255),
-  start_time: z.string().datetime(),
-  end_time: z.string().datetime().optional(),
-  description: z.string().max(2000).optional().nullable(),
-  location: z.string().max(255).optional().nullable(),
-});
+export const portalManualAppointmentRequestSchema = z
+  .object({
+    case_id: uuidSchema.optional(),
+    title: z.string().trim().min(1).max(255),
+    start_time: z.string().datetime(),
+    end_time: z.string().datetime().optional(),
+    description: z.string().max(2000).optional().nullable(),
+    location: z.string().max(255).optional().nullable(),
+  })
+  .strict()
+  .refine(
+    (data) => !data.end_time || new Date(data.end_time).getTime() > new Date(data.start_time).getTime(),
+    {
+      message: 'end_time must be after start_time',
+      path: ['end_time'],
+    }
+  );
 
 export const portalAdminUserPatchSchema = z.object({
   status: z.enum(['active', 'suspended']),
 });
+
+export const portalAdminUsersQuerySchema = z
+  .object({
+    search: z.string().trim().max(255).optional(),
+  })
+  .strict();
+
+export const portalAdminUserActivityQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(200).optional(),
+  })
+  .strict();
 
 export const portalAdminRejectRequestSchema = z.object({
   notes: z.string().max(1000).optional(),
@@ -152,17 +204,34 @@ export const portalAdminResetPasswordSchema = z.object({
   password: portalPasswordSchema,
 });
 
-export const portalAdminConversationQuerySchema = z.object({
-  status: z.enum(['open', 'closed', 'archived']).optional(),
-  case_id: uuidSchema.optional(),
-  pointperson_user_id: uuidSchema.optional(),
-});
+export const portalAdminConversationQuerySchema = z
+  .object({
+    status: z.enum(['open', 'closed', 'archived']).optional(),
+    case_id: uuidSchema.optional(),
+    pointperson_user_id: uuidSchema.optional(),
+    search: z.string().trim().max(255).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    offset: z.coerce.number().int().min(0).max(10_000).optional(),
+  })
+  .strict();
 
-export const portalAdminSlotQuerySchema = z.object({
-  status: z.enum(['open', 'closed', 'cancelled']).optional(),
-  case_id: uuidSchema.optional(),
-  pointperson_user_id: uuidSchema.optional(),
-});
+export const portalAdminSlotQuerySchema = z
+  .object({
+    status: z.enum(['open', 'closed', 'cancelled']).optional(),
+    case_id: uuidSchema.optional(),
+    pointperson_user_id: uuidSchema.optional(),
+    from: z.string().datetime().optional(),
+    to: z.string().datetime().optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    offset: z.coerce.number().int().min(0).max(10_000).optional(),
+  })
+  .strict();
+
+export const portalAdminRealtimeStreamQuerySchema = z
+  .object({
+    channels: z.string().trim().max(255).optional(),
+  })
+  .strict();
 
 export const portalAdminThreadMessageSchema = z.object({
   message: z.string().trim().min(1).max(5000),
@@ -173,16 +242,50 @@ export const portalAdminAppointmentStatusSchema = z.object({
   status: z.enum(['requested', 'confirmed', 'cancelled', 'completed']),
 });
 
-export const portalAdminSlotCreateSchema = z.object({
-  pointperson_user_id: uuidSchema,
-  case_id: uuidSchema.optional().nullable(),
-  title: z.string().max(255).optional().nullable(),
-  details: z.string().max(2000).optional().nullable(),
-  location: z.string().max(255).optional().nullable(),
-  start_time: z.string().datetime(),
-  end_time: z.string().datetime(),
-  capacity: z.number().int().min(1).max(200).optional(),
-});
+export const portalAdminAppointmentsQuerySchema = z
+  .object({
+    status: z.enum(['requested', 'confirmed', 'cancelled', 'completed']).optional(),
+    request_type: z.enum(['manual_request', 'slot_booking']).optional(),
+    case_id: uuidSchema.optional(),
+    pointperson_user_id: uuidSchema.optional(),
+    date_from: z.string().datetime().optional(),
+    date_to: z.string().datetime().optional(),
+    page: z.coerce.number().int().min(1).max(10_000).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+  })
+  .strict();
+
+export const portalAdminReminderSendSchema = z
+  .object({
+    sendEmail: z.coerce.boolean().optional(),
+    sendSms: z.coerce.boolean().optional(),
+    customMessage: z.string().max(500).optional(),
+  })
+  .strict()
+  .refine((data) => data.sendEmail !== false || data.sendSms !== false, {
+    message: 'At least one reminder channel must be enabled',
+    path: ['sendEmail'],
+  });
+
+export const portalAdminSlotCreateSchema = z
+  .object({
+    pointperson_user_id: uuidSchema,
+    case_id: uuidSchema.optional().nullable(),
+    title: z.string().max(255).optional().nullable(),
+    details: z.string().max(2000).optional().nullable(),
+    location: z.string().max(255).optional().nullable(),
+    start_time: z.string().datetime(),
+    end_time: z.string().datetime(),
+    capacity: z.number().int().min(1).max(200).optional(),
+  })
+  .strict()
+  .refine(
+    (data) => new Date(data.end_time).getTime() > new Date(data.start_time).getTime(),
+    {
+      message: 'end_time must be after start_time',
+      path: ['end_time'],
+    }
+  );
 
 export const portalAdminSlotPatchSchema = z
   .object({
@@ -196,7 +299,16 @@ export const portalAdminSlotPatchSchema = z
     capacity: z.number().int().min(1).max(200).optional(),
     status: z.enum(['open', 'closed', 'cancelled']).optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (data) =>
+      !(data.start_time && data.end_time) ||
+      new Date(data.end_time).getTime() > new Date(data.start_time).getTime(),
+    {
+      message: 'end_time must be after start_time',
+      path: ['end_time'],
+    }
+  );
 
 export const casePortalConversationParamsSchema = z.object({
   id: uuidSchema,

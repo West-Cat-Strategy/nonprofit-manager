@@ -268,7 +268,7 @@ export default function NavigationSettings() {
                     <div>
                       <div className="flex items-center space-x-2">
                         <span className="font-medium text-app-text">Organization</span>
-                        <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded">
+                        <span className="px-2 py-0.5 text-xs font-medium bg-app-accent-soft text-app-accent-text rounded">
                           Admin
                         </span>
                       </div>

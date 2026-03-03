@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 import * as dotenv from 'dotenv';
 
 // Load environment variables from .env.test if it exists
-dotenv.config({ path: '.env.test' });
+dotenv.config({ path: '.env.test', quiet: true });
 
 /**
  * Playwright Configuration for Nonprofit Manager E2E Tests
@@ -15,23 +15,38 @@ const API_URL = process.env.API_URL || `${HTTP_SCHEME}127.0.0.1:3001`;
 process.env.BASE_URL = BASE_URL;
 process.env.API_URL = API_URL;
 const SKIP_WEBSERVER = process.env.SKIP_WEBSERVER === '1';
+const RUNNING_IN_CI = ['1', 'true'].includes((process.env.CI || '').toLowerCase());
+const USE_DEV_RUNTIME = process.env.E2E_USE_DEV_RUNTIME === '1';
 const REUSE_EXISTING_SERVER = process.env.PW_REUSE_EXISTING_SERVER === '1';
 const E2E_DB_HOST = process.env.E2E_DB_HOST || '127.0.0.1';
 const E2E_DB_PORT = process.env.E2E_DB_PORT || '8012';
 const E2E_DB_NAME = process.env.E2E_DB_NAME || 'nonprofit_manager';
 const E2E_DB_USER = process.env.E2E_DB_USER || 'postgres';
 const E2E_DB_PASSWORD = process.env.E2E_DB_PASSWORD || process.env.DB_PASSWORD || 'postgres';
+const clearFrontendPortCommand =
+  'for p in $(lsof -ti tcp:5173 2>/dev/null); do kill -9 \"$p\" 2>/dev/null || true; done';
+const useCompiledCiRuntime = RUNNING_IN_CI && !USE_DEV_RUNTIME;
+
+const backendRuntimeCommand = useCompiledCiRuntime
+  ? 'npm run build && node dist/index.js'
+  : 'npx ts-node -r tsconfig-paths/register --transpileOnly src/index.ts';
+const backendStartCommand = `cd .. && ./scripts/db-migrate.sh && cd backend && ${backendRuntimeCommand}`;
+
+const frontendRuntimeCommand = useCompiledCiRuntime
+  ? `${clearFrontendPortCommand} && npm run build && npx vite preview --host 127.0.0.1 --port 5173 --strictPort`
+  : `${clearFrontendPortCommand} && npm run dev -- --host 127.0.0.1 --port 5173`;
+const frontendStartCommand = `cd ../frontend && ${frontendRuntimeCommand}`;
 export default defineConfig({
   testDir: './tests',
 
   // Maximum time one test can run
-  timeout: 60 * 1000,
+  timeout: 120 * 1000,
 
   // Test execution settings
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.PW_WORKERS ? Number(process.env.PW_WORKERS) : 1,
+  retries: RUNNING_IN_CI ? 1 : 0,
+  workers: 1,
 
   // Reporter configuration
   reporter: [
@@ -49,10 +64,10 @@ export default defineConfig({
     screenshot: 'only-on-failure',
 
     // Record video on first retry
-    video: 'retain-on-failure',
+    video: RUNNING_IN_CI ? 'retain-on-failure' : 'off',
 
     // Collect trace on failure
-    trace: 'on-first-retry',
+    trace: RUNNING_IN_CI ? 'on-first-retry' : 'off',
 
     // Browser viewport
     viewport: { width: 1280, height: 720 },
@@ -101,8 +116,7 @@ export default defineConfig({
     ? undefined
     : [
       {
-        command:
-          'cd .. && ./scripts/db-migrate.sh && cd backend && npx ts-node -r tsconfig-paths/register --transpileOnly src/index.ts',
+        command: backendStartCommand,
         url: `${HTTP_SCHEME}127.0.0.1:3001/health/live`,
         timeout: 120 * 1000,
         reuseExistingServer: REUSE_EXISTING_SERVER,
@@ -125,7 +139,7 @@ export default defineConfig({
         },
       },
       {
-        command: 'cd ../frontend && npm run dev -- --host 127.0.0.1 --port 5173',
+        command: frontendStartCommand,
         url: `${HTTP_SCHEME}127.0.0.1:5173`,
         timeout: 120 * 1000,
         reuseExistingServer: REUSE_EXISTING_SERVER,

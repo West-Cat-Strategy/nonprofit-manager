@@ -4,6 +4,7 @@
  */
 
 import { Pool } from 'pg';
+import { randomInt } from 'crypto';
 import pool from '@config/database';
 import {
   Donation,
@@ -22,25 +23,28 @@ type QueryValue = string | number | boolean | Date | null | string[];
 export class DonationService {
   constructor(private pool: Pool) {}
 
+  private isDonationNumberCollision(error: unknown): boolean {
+    if (!error || typeof error !== 'object') {
+      return false;
+    }
+
+    const dbError = error as { code?: string; constraint?: string };
+    return (
+      dbError.code === '23505' &&
+      dbError.constraint === 'donations_donation_number_key'
+    );
+  }
+
   /**
    * Generate unique donation number (DON-YYMMDD-XXXXX)
    */
-  private async generateDonationNumber(): Promise<string> {
+  private generateDonationNumber(): string {
     const now = new Date();
     const year = now.getFullYear().toString().slice(-2);
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     const prefix = `DON-${year}${month}${day}`;
-
-    // Get count of donations with same prefix today
-    const countQuery = `
-      SELECT COUNT(*) FROM donations 
-      WHERE donation_number LIKE $1
-    `;
-    const result = await this.pool.query(countQuery, [`${prefix}%`]);
-    const count = parseInt(result.rows[0].count) + 1;
-    const sequence = String(count).padStart(5, '0');
-
+    const sequence = String(randomInt(0, 100000)).padStart(5, '0');
     return `${prefix}-${sequence}`;
   }
 
@@ -341,8 +345,6 @@ export class DonationService {
       throw new Error('Either account_id or contact_id must be provided');
     }
 
-    const donation_number = await this.generateDonationNumber();
-
     const query = `
       INSERT INTO donations (
         donation_number, account_id, contact_id, amount, currency, donation_date,
@@ -373,26 +375,39 @@ export class DonationService {
         created_by,
         modified_by
     `;
+    const maxAttempts = 6;
 
-    const result = await this.pool.query(query, [
-      donation_number,
-      account_id || null,
-      contact_id || null,
-      amount,
-      currency,
-      donation_date,
-      payment_method || null,
-      payment_status,
-      transaction_id || null,
-      campaign_name || null,
-      designation || null,
-      is_recurring,
-      recurring_frequency || null,
-      notes || null,
-      userId,
-    ]);
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const donation_number = this.generateDonationNumber();
 
-    return result.rows[0];
+      try {
+        const result = await this.pool.query(query, [
+          donation_number,
+          account_id || null,
+          contact_id || null,
+          amount,
+          currency,
+          donation_date,
+          payment_method || null,
+          payment_status,
+          transaction_id || null,
+          campaign_name || null,
+          designation || null,
+          is_recurring,
+          recurring_frequency || null,
+          notes || null,
+          userId,
+        ]);
+
+        return result.rows[0];
+      } catch (error) {
+        if (!this.isDonationNumberCollision(error) || attempt === maxAttempts) {
+          throw error;
+        }
+      }
+    }
+
+    throw new Error('Failed to generate unique donation number');
   }
 
   /**

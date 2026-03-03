@@ -578,7 +578,7 @@ alerts:
       - disable_user_account  # Optional
       
   - name: "Unusual API access pattern"
-    condition: "endpoint:/api/contacts AND rows>10000 AND request_duration>5000ms"
+    condition: "endpoint:/api/v2/contacts AND rows>10000 AND request_duration>5000ms"
     severity: "MEDIUM"
     actions:
       - notify_on_call

@@ -86,7 +86,7 @@ export function getNoteBadgeClass(options: {
   isPinned?: boolean;
 }): string {
   const { isImportant, isPinned } = options;
-  if (isImportant) return 'border-yellow-300 bg-yellow-50';
+  if (isImportant) return 'border-app-border bg-app-accent-soft';
   if (isPinned) return 'border-app-accent bg-app-accent-soft';
   return 'border-app-border';
 }
@@ -108,7 +108,7 @@ export function getTagBadges(options: {
     badges.push({ label: 'Internal', className: 'bg-app-surface-muted text-app-text-muted' });
   }
   if (options.isImportant) {
-    badges.push({ label: 'Important', className: 'bg-yellow-100 text-yellow-800' });
+    badges.push({ label: 'Important', className: 'bg-app-accent-soft text-app-accent-text' });
   }
 
   return badges;

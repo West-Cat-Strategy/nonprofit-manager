@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { casesApiClient } from '../features/cases/api/casesApiClient';
 import { useToast } from '../contexts/useToast';
+import ConfirmDialog from './ConfirmDialog';
+import useConfirmDialog, { confirmPresets } from '../hooks/useConfirmDialog';
 import type { CaseNote, CreateCaseNoteDTO, NoteType, UpdateCaseNoteDTO } from '../types/case';
 import { formatNoteDate, getNoteIcon, getNoteTypeLabel } from '../utils/notes';
 
@@ -68,6 +70,7 @@ const noteToDraft = (note: CaseNote): NoteDraft => ({
 
 const CaseNotes = ({ caseId, onChanged }: CaseNotesProps) => {
   const { showSuccess, showError } = useToast();
+  const { dialogState, confirm, handleCancel, handleConfirm } = useConfirmDialog();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -145,7 +148,7 @@ const CaseNotes = ({ caseId, onChanged }: CaseNotesProps) => {
   };
 
   const handleDelete = async (noteId: string) => {
-    const confirmed = window.confirm('Delete this note?');
+    const confirmed = await confirm(confirmPresets.delete('Note'));
     if (!confirmed) return;
 
     try {
@@ -290,7 +293,7 @@ const CaseNotes = ({ caseId, onChanged }: CaseNotesProps) => {
                       {getNoteTypeLabel(note.note_type)}
                     </span>
                     {note.visible_to_client ? (
-                      <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-800">
+                      <span className="rounded bg-app-accent-soft px-2 py-0.5 text-xs text-app-accent-text">
                         Client visible
                       </span>
                     ) : (
@@ -299,7 +302,7 @@ const CaseNotes = ({ caseId, onChanged }: CaseNotesProps) => {
                       </span>
                     )}
                     {note.is_important && (
-                      <span className="rounded bg-yellow-100 px-2 py-0.5 text-xs text-yellow-800">
+                      <span className="rounded bg-app-accent-soft px-2 py-0.5 text-xs text-app-accent-text">
                         Important
                       </span>
                     )}
@@ -320,7 +323,7 @@ const CaseNotes = ({ caseId, onChanged }: CaseNotesProps) => {
                     <button
                       type="button"
                       onClick={() => void handleDelete(note.id)}
-                      className="rounded border border-red-300 px-2 py-1 text-xs text-red-700"
+                      className="rounded border border-app-border px-2 py-1 text-xs text-app-accent-text"
                     >
                       Delete
                     </button>
@@ -440,9 +443,9 @@ const CaseNotes = ({ caseId, onChanged }: CaseNotesProps) => {
             </div>
           );
         })}
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 };
 
 export default CaseNotes;
-

@@ -100,11 +100,11 @@ export default function AddressSection({
             value={formData.postal_code ?? ''}
             onChange={onChange}
             className={`mt-1 block w-full border ${
-              errors.postal_code ? 'border-red-300' : 'border-app-input-border'
+              errors.postal_code ? 'border-app-border' : 'border-app-input-border'
             } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
           />
           {errors.postal_code && (
-            <p className="mt-1 text-sm text-red-600">{errors.postal_code}</p>
+            <p className="mt-1 text-sm text-app-accent">{errors.postal_code}</p>
           )}
         </div>
 

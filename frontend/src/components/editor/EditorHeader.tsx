@@ -83,11 +83,11 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
         </div>
 
         {hasUnsavedChanges ? (
-          <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
+          <span className="text-xs text-app-accent bg-app-accent-soft px-2 py-1 rounded">
             Unsaved changes
           </span>
         ) : lastSaved ? (
-          <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+          <span className="text-xs text-app-accent bg-app-accent-soft px-2 py-1 rounded">
             Saved {formatLastSaved(lastSaved)}
           </span>
         ) : null}

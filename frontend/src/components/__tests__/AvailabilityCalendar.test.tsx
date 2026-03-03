@@ -103,7 +103,7 @@ describe('AvailabilityCalendar', () => {
     );
 
     const statusBadge = screen.getByText('unavailable');
-    expect(statusBadge).toHaveClass('bg-red-100', 'text-red-800');
+    expect(statusBadge).toHaveClass('bg-app-accent-soft', 'text-app-accent-text');
   });
 
   it('should display limited status with yellow color', () => {
@@ -112,7 +112,7 @@ describe('AvailabilityCalendar', () => {
     );
 
     const statusBadge = screen.getByText('limited');
-    expect(statusBadge).toHaveClass('bg-yellow-100', 'text-yellow-800');
+    expect(statusBadge).toHaveClass('bg-app-accent-soft', 'text-app-accent-text');
   });
 
   it('should navigate to previous month when clicking previous button', () => {
@@ -230,7 +230,7 @@ describe('AvailabilityCalendar', () => {
     renderWithProviders(<AvailabilityCalendar assignments={mockAssignments} />);
 
     const completedAssignment = screen.getByText('Fundraiser');
-    expect(completedAssignment).toHaveClass('bg-green-100', 'text-green-800');
+    expect(completedAssignment).toHaveClass('bg-app-accent-soft', 'text-app-accent-text');
   });
 
   it('should display status colors correctly for in_progress assignments', () => {

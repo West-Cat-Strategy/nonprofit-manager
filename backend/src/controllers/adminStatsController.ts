@@ -80,10 +80,18 @@ export const getAdminStats = async (req: AuthRequest, res: Response) => {
 };
 
 export const getAuditLogs = async (req: AuthRequest, res: Response) => {
-    try {
-        const limit = parseInt(req.query.limit as string) || 50;
-        const offset = parseInt(req.query.offset as string) || 0;
+    const query = ((req as any).validatedQuery ?? req.query) as {
+        limit?: number | string;
+        offset?: number | string;
+    };
+    const parsedLimit =
+        typeof query.limit === 'number' ? query.limit : parseInt(String(query.limit ?? ''), 10);
+    const parsedOffset =
+        typeof query.offset === 'number' ? query.offset : parseInt(String(query.offset ?? ''), 10);
+    const limit = Number.isFinite(parsedLimit) ? parsedLimit : 50;
+    const offset = Number.isFinite(parsedOffset) ? parsedOffset : 0;
 
+    try {
         // Check if audit_log table exists (it might not in early dev environments without full migrations)
         // and fallback gracefully if it doesn't to prevent crashing the admin panel
         const tableCheck = await pool.query(
@@ -120,9 +128,6 @@ export const getAuditLogs = async (req: AuthRequest, res: Response) => {
         // The migration 033 uses 'old_values', 'new_values', 'changed_fields'.
         // Let's adjust the query to match 033 schema better.
         try {
-            const limit = parseInt(req.query.limit as string) || 50;
-            const offset = parseInt(req.query.offset as string) || 0;
-
             const logsRetry = await pool.query(
                 `SELECT 
             al.id, 

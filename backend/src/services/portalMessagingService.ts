@@ -5,6 +5,7 @@ import {
   resolvePortalCaseSelection,
   ensureCaseIsPortalAccessible,
 } from '@services/portalPointpersonService';
+import { publishPortalThreadUpdated } from '@services/portalRealtimeService';
 
 export interface PortalThreadSummary {
   id: string;
@@ -121,7 +122,51 @@ const notifyEmail = async (args: {
   }
 };
 
-export const listPortalThreads = async (portalUserId: string): Promise<PortalThreadSummary[]> => {
+export const listPortalThreads = async (
+  portalUserId: string,
+  filters?: {
+    status?: 'open' | 'closed' | 'archived';
+    caseId?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }
+): Promise<PortalThreadSummary[]> => {
+  const conditions: string[] = ['t.portal_user_id = $1'];
+  const values: Array<string | number> = [portalUserId];
+
+  if (filters?.status) {
+    values.push(filters.status);
+    conditions.push(`t.status = $${values.length}`);
+  }
+
+  if (filters?.caseId) {
+    values.push(filters.caseId);
+    conditions.push(`t.case_id = $${values.length}`);
+  }
+
+  if (filters?.search) {
+    values.push(`%${filters.search.trim()}%`);
+    conditions.push(
+      `(COALESCE(t.subject, '') ILIKE $${values.length}
+        OR COALESCE(c.case_number, '') ILIKE $${values.length}
+        OR COALESCE(c.title, '') ILIKE $${values.length}
+        OR COALESCE(t.last_message_preview, '') ILIKE $${values.length}
+        OR COALESCE(u.first_name, '') ILIKE $${values.length}
+        OR COALESCE(u.last_name, '') ILIKE $${values.length})`
+    );
+  }
+
+  let paginationSql = '';
+  if (typeof filters?.limit === 'number') {
+    values.push(filters.limit);
+    paginationSql += ` LIMIT $${values.length}`;
+  }
+  if (typeof filters?.offset === 'number' && filters.offset > 0) {
+    values.push(filters.offset);
+    paginationSql += ` OFFSET $${values.length}`;
+  }
+
   const result = await pool.query(
     `${THREAD_BASE_SELECT}
      LEFT JOIN LATERAL (
@@ -132,9 +177,9 @@ export const listPortalThreads = async (portalUserId: string): Promise<PortalThr
          AND pm.read_by_portal_at IS NULL
          AND pm.is_internal = false
      ) unread ON true
-     WHERE t.portal_user_id = $1
-     ORDER BY t.last_message_at DESC`,
-    [portalUserId]
+     WHERE ${conditions.join(' AND ')}
+     ORDER BY t.last_message_at DESC${paginationSql}`,
+    values
   );
 
   return result.rows.map((row) => ({
@@ -147,9 +192,12 @@ export const listStaffThreads = async (filters?: {
   status?: 'open' | 'closed' | 'archived';
   caseId?: string;
   pointpersonUserId?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
 }): Promise<PortalThreadSummary[]> => {
   const conditions: string[] = [];
-  const values: Array<string> = [];
+  const values: Array<string | number> = [];
 
   if (filters?.status) {
     values.push(filters.status);
@@ -166,6 +214,29 @@ export const listStaffThreads = async (filters?: {
     conditions.push(`t.pointperson_user_id = $${values.length}`);
   }
 
+  if (filters?.search) {
+    values.push(`%${filters.search.trim()}%`);
+    conditions.push(
+      `(COALESCE(t.subject, '') ILIKE $${values.length}
+        OR COALESCE(c.case_number, '') ILIKE $${values.length}
+        OR COALESCE(c.title, '') ILIKE $${values.length}
+        OR COALESCE(t.last_message_preview, '') ILIKE $${values.length}
+        OR COALESCE(pu.email, '') ILIKE $${values.length}
+        OR COALESCE(u.first_name, '') ILIKE $${values.length}
+        OR COALESCE(u.last_name, '') ILIKE $${values.length})`
+    );
+  }
+
+  let paginationSql = '';
+  if (typeof filters?.limit === 'number') {
+    values.push(filters.limit);
+    paginationSql += ` LIMIT $${values.length}`;
+  }
+  if (typeof filters?.offset === 'number' && filters.offset > 0) {
+    values.push(filters.offset);
+    paginationSql += ` OFFSET $${values.length}`;
+  }
+
   const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
   const result = await pool.query(
@@ -178,7 +249,7 @@ export const listStaffThreads = async (filters?: {
          AND pm.read_by_staff_at IS NULL
      ) unread ON true
      ${whereClause}
-     ORDER BY t.last_message_at DESC`,
+     ORDER BY t.last_message_at DESC${paginationSql}`,
     values
   );
 
@@ -349,6 +420,15 @@ export const createPortalThreadWithMessage = async (input: {
         .join('\n'),
     });
 
+    publishPortalThreadUpdated({
+      entityId: thread.id,
+      caseId: thread.case_id,
+      status: thread.status,
+      actorType: 'portal',
+      source: 'portal.thread.create',
+      contactId: thread.contact_id,
+    });
+
     return { thread, messages };
   } catch (error) {
     await client.query('ROLLBACK');
@@ -405,6 +485,15 @@ export const addPortalMessage = async (input: {
       body: input.messageText.trim(),
     });
 
+    publishPortalThreadUpdated({
+      entityId: thread.id,
+      caseId: thread.case_id,
+      status: thread.status,
+      actorType: 'portal',
+      source: 'portal.thread.reply',
+      contactId: thread.contact_id,
+    });
+
     return created;
   } catch (error) {
     await client.query('ROLLBACK');
@@ -448,6 +537,17 @@ export const addStaffMessage = async (input: {
       to: thread.portal_email,
       subject: `New staff reply${thread.case_number ? ` (${thread.case_number})` : ''}`,
       body: input.messageText.trim(),
+    });
+  }
+
+  if (thread) {
+    publishPortalThreadUpdated({
+      entityId: thread.id,
+      caseId: thread.case_id,
+      status: thread.status,
+      actorType: 'staff',
+      source: internal ? 'admin.thread.internal_note' : 'admin.thread.reply',
+      contactId: thread.contact_id,
     });
   }
 
@@ -495,6 +595,7 @@ export const updateThread = async (input: {
   pointpersonUserId?: string | null;
   caseId?: string | null;
   subject?: string | null;
+  actorType?: 'portal' | 'staff' | 'system';
   closedBy?: string | null;
 }): Promise<PortalThreadSummary | null> => {
   const fields: string[] = [];
@@ -550,7 +651,21 @@ export const updateThread = async (input: {
     return null;
   }
 
-  return getThreadById(input.threadId);
+  const updatedThread = await getThreadById(input.threadId);
+  if (!updatedThread) {
+    return null;
+  }
+
+  publishPortalThreadUpdated({
+    entityId: updatedThread.id,
+    caseId: updatedThread.case_id,
+    status: updatedThread.status,
+    actorType: input.actorType || 'staff',
+    source: input.status ? 'thread.status.update' : 'thread.update',
+    contactId: updatedThread.contact_id,
+  });
+
+  return updatedThread;
 };
 
 export const listCaseThreads = async (caseId: string): Promise<PortalThreadSummary[]> => {

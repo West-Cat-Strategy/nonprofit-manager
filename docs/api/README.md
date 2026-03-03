@@ -1,6 +1,6 @@
 # API Documentation Index
 
-**Last Updated**: 2026-02-18
+**Last Updated**: 2026-03-02
 
 Master index for all nonprofit-manager API endpoints and integration documentation.
 
@@ -24,6 +24,7 @@ Looking for a specific endpoint? Use this table:
 |---|---|---|
 | **Dashboard & Alerts** | Dashboard config, alert management | [API_REFERENCE_DASHBOARD_ALERTS.md](API_REFERENCE_DASHBOARD_ALERTS.md) |
 | **Events** | Event CRUD, registrations, management | [API_REFERENCE_EVENTS.md](API_REFERENCE_EVENTS.md) |
+| **Portal Appointments** | Portal appointment booking + admin inbox/reminders/check-in | [API_REFERENCE_PORTAL_APPOINTMENTS.md](API_REFERENCE_PORTAL_APPOINTMENTS.md) |
 | **Reporting & Export** | Report generation, CSV/Excel export, analytics | [API_REFERENCE_EXPORT.md](API_REFERENCE_EXPORT.md) |
 | **Backup & Restore** | Database backup, restore, data recovery | [API_REFERENCE_BACKUP.md](API_REFERENCE_BACKUP.md) |
 | **Payments & Integrations** | Stripe integration, Mailchimp sync, webhooks | [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md) |
@@ -42,13 +43,13 @@ Complete API for dashboard customization and alert configuration.
 
 - **File**: [API_REFERENCE_DASHBOARD_ALERTS.md](API_REFERENCE_DASHBOARD_ALERTS.md)
 - **Endpoints**:
-  - `GET /api/dashboards` — List user dashboards
-  - `POST /api/dashboards` — Create new dashboard
-  - `PUT /api/dashboards/:id` — Update dashboard configuration
-  - `DELETE /api/dashboards/:id` — Delete dashboard
-  - `GET /api/alerts` — List configured alerts  
-  - `POST /api/alerts` — Create alert rule
-  - `PUT /api/alerts/:id` — Update alert configuration
+  - `GET /api/v2/dashboards` — List user dashboards
+  - `POST /api/v2/dashboards` — Create new dashboard
+  - `PUT /api/v2/dashboards/:id` — Update dashboard configuration
+  - `DELETE /api/v2/dashboards/:id` — Delete dashboard
+  - `GET /api/v2/alerts` — List configured alerts  
+  - `POST /api/v2/alerts` — Create alert rule
+  - `PUT /api/v2/alerts/:id` — Update alert configuration
 - **Example Use Cases**:
   - User creating custom dashboard with widgets
   - Setting up fundraising goal alerts
@@ -60,18 +61,33 @@ Event management endpoints for creating, updating, and managing events.
 
 - **File**: [API_REFERENCE_EVENTS.md](API_REFERENCE_EVENTS.md)
 - **Endpoints**:
-  - `GET /api/events` — List all events
-  - `GET /api/events/:id` — Get event details
-  - `POST /api/events` — Create new event
-  - `PUT /api/events/:id` — Update event
-  - `DELETE /api/events/:id` — Delete event
-  - `POST /api/events/:id/register` — Register attendee
-  - `GET /api/events/:id/registrations` — List registrations
+  - `GET /api/v2/events` — List all events
+  - `GET /api/v2/events/:id` — Get event details
+  - `POST /api/v2/events` — Create new event
+  - `PUT /api/v2/events/:id` — Update event
+  - `DELETE /api/v2/events/:id` — Delete event
+  - `POST /api/v2/events/:id/register` — Register attendee
+  - `POST /api/v2/events/:id/check-in/scan` — QR scan check-in
+  - `GET /api/v2/events/:id/registrations` — List registrations
 - **Example Use Cases**:
   - Creating a volunteer orientation event
   - Updating event date and location
   - Exporting attendee list
   - Managing registrations and check-ins
+
+#### Portal Appointments
+
+Portal and admin operations for appointments, reminders, and check-in.
+
+- **File**: [API_REFERENCE_PORTAL_APPOINTMENTS.md](API_REFERENCE_PORTAL_APPOINTMENTS.md)
+- **Endpoints**:
+  - `GET /api/v2/portal/appointments` — Portal user appointment list
+  - `POST /api/v2/portal/appointments/slots/:slotId/book` — Book a slot
+  - `POST /api/v2/portal/appointments/requests` — Manual appointment request
+  - `GET /api/v2/portal/admin/appointments` — Admin appointment inbox
+  - `GET /api/v2/portal/admin/appointments/:id/reminders` — Reminder jobs/history
+  - `POST /api/v2/portal/admin/appointments/:id/reminders/send` — Manual reminder send
+  - `POST /api/v2/portal/admin/appointments/:id/check-in` — Admin appointment check-in
 
 #### Reporting & Analytics
 
@@ -79,11 +95,11 @@ Generate reports, export data to CSV/Excel, and analyze trends.
 
 - **File**: [API_REFERENCE_EXPORT.md](API_REFERENCE_EXPORT.md)
 - **Endpoints**:
-  - `GET /api/reports` — List available reports
-  - `POST /api/reports/generate` — Generate custom report
-  - `GET /api/reports/:id/export` — Export report as CSV/Excel
-  - `GET /api/analytics/trends` — Get trend data
-  - `GET /api/analytics/metrics` — Get key metrics
+  - `GET /api/v2/reports` — List available reports
+  - `POST /api/v2/reports/generate` — Generate custom report
+  - `GET /api/v2/reports/:id/export` — Export report as CSV/Excel
+  - `GET /api/v2/analytics/trends` — Get trend data
+  - `GET /api/v2/analytics/metrics` — Get key metrics
 - **Export Formats**: CSV, Excel (.xlsx), PDF
 - **Example Use Cases**:
   - Annual impact report generation
@@ -97,10 +113,10 @@ Database backup and recovery procedures.
 
 - **File**: [API_REFERENCE_BACKUP.md](API_REFERENCE_BACKUP.md)
 - **Endpoints**:
-  - `POST /api/backup` — Create database backup
-  - `GET /api/backup/status` — Check backup status
-  - `POST /api/restore` — Restore from backup
-  - `GET /api/backup/list` — List available backups
+  - `POST /api/v2/backup` — Create database backup
+  - `GET /api/v2/backup/status` — Check backup status
+  - `POST /api/v2/restore` — Restore from backup
+  - `GET /api/v2/backup/list` — List available backups
 - **Example Use Cases**:
   - Daily automated backups
   - Disaster recovery
@@ -211,7 +227,7 @@ All endpoint documentation includes `curl` command examples.
 Example:
 
 ```bash
-curl -X GET localhost:3000/api/events \
+curl -X GET localhost:3000/api/v2/events \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -223,9 +239,9 @@ You can copy-paste these examples directly into your terminal.
 
 ### Current API Version
 
-- **Version**: 1.0
-- **Base URL**: `localhost:3000/api` (development)
-- **Status**: Stable
+- **Versioning Mode**: v2-only (`/api/v2/*`)
+- **Primary Base URL**: `http://localhost:3000/api/v2`
+- **Status**: Legacy `/api/*` endpoints are removed and return `410 Gone` with migration guidance.
 
 ### Authentication
 
@@ -390,7 +406,7 @@ Endpoint URL might be wrong:
 
 Server error. Check:
 
-1. Backend is running: `curl localhost:3000/api/health`
+1. Backend is running: `curl localhost:3000/api/v2/health`
 2. Database is connected
 3. Check backend logs for error details
 

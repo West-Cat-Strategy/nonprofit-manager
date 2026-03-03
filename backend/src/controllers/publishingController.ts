@@ -4,7 +4,6 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import { validationResult } from 'express-validator';
 import { getCacheControlHeader, publishingService, siteCacheService } from '@services/domains/content';
 import { logger } from '@config/logger';
 import type { AuthRequest } from '@middleware/auth';
@@ -14,18 +13,14 @@ import type {
   PublishedSiteSearchParams,
   AnalyticsEventType,
 } from '@app-types/publishing';
-import { badRequest, conflict, forbidden, noContent, notFoundMessage, validationErrorResponse } from '@utils/responseHelpers';
+import { badRequest, conflict, forbidden, noContent, notFoundMessage } from '@utils/responseHelpers';
 import { extractPagination } from '@utils/queryHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
 
-const hasValidationErrors = (req: Request, res: Response): boolean => {
-  const errors = validationResult(req);
-  if (errors.isEmpty()) return false;
-  validationErrorResponse(res, errors);
-  return true;
-};
-
 const parseIntQuery = (value: unknown, fallback: number): number => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Math.trunc(value);
+  }
   if (typeof value !== 'string') return fallback;
   const parsed = parseInt(value, 10);
   return Number.isNaN(parsed) ? fallback : parsed;
@@ -82,8 +77,6 @@ export const createSite = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    if (hasValidationErrors(req, res)) return;
-
     const userId = req.user!.id;
     const data: CreatePublishedSiteDTO = req.body;
 
@@ -128,8 +121,6 @@ export const updateSite = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    if (hasValidationErrors(req, res)) return;
-
     const userId = req.user!.id;
     const { siteId } = req.params;
     const data: UpdatePublishedSiteDTO = req.body;
@@ -181,14 +172,15 @@ export const searchSites = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
-    const { page, limit } = extractPagination(req.query, { defaultLimit: 10 });
+    const query = ((req as any).validatedQuery ?? req.query) as Record<string, unknown>;
+    const { page, limit } = extractPagination(query, { defaultLimit: 10 });
     const params: PublishedSiteSearchParams = {
-      status: req.query.status as PublishedSiteSearchParams['status'],
-      search: req.query.search as string,
+      status: query.status as PublishedSiteSearchParams['status'],
+      search: query.search as string,
       page,
       limit,
-      sortBy: req.query.sortBy as PublishedSiteSearchParams['sortBy'],
-      sortOrder: req.query.sortOrder as PublishedSiteSearchParams['sortOrder'],
+      sortBy: query.sortBy as PublishedSiteSearchParams['sortBy'],
+      sortOrder: query.sortOrder as PublishedSiteSearchParams['sortOrder'],
     };
 
     const result = await publishingService.searchSites(userId, params);
@@ -207,8 +199,6 @@ export const publishSite = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    if (hasValidationErrors(req, res)) return;
-
     const userId = req.user!.id;
     const { templateId } = req.body;
     const siteId = req.body.siteId as string | undefined;
@@ -278,8 +268,6 @@ export const recordAnalytics = async (
   _next: NextFunction
 ): Promise<void> => {
   try {
-    if (hasValidationErrors(req, res)) return;
-
     const { siteId } = req.params;
     const eventType = req.body.eventType as AnalyticsEventType;
 
@@ -321,7 +309,10 @@ export const getAnalyticsSummary = async (
   try {
     const userId = req.user!.id;
     const { siteId } = req.params;
-    const periodDays = parseIntQuery(req.query.period, 30);
+    const query = ((req as any).validatedQuery ?? req.query) as {
+      period?: number | string;
+    };
+    const periodDays = parseIntQuery(query.period, 30);
 
     const summary = await publishingService.getAnalyticsSummary(
       siteId,
@@ -372,8 +363,6 @@ export const addCustomDomain = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    if (hasValidationErrors(req, res)) return;
-
     const userId = req.user!.id;
     const { siteId } = req.params;
     const { domain, verificationMethod } = req.body;
@@ -522,7 +511,10 @@ export const getVersionHistory = async (
   try {
     const userId = req.user!.id;
     const { siteId } = req.params;
-    const limit = parseIntQuery(req.query.limit, 10);
+    const query = ((req as any).validatedQuery ?? req.query) as {
+      limit?: number | string;
+    };
+    const limit = parseIntQuery(query.limit, 10);
 
     const history = await publishingService.getVersionHistory(siteId, userId, limit);
     sendSuccess(res, history);
@@ -565,8 +557,6 @@ export const rollbackVersion = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    if (hasValidationErrors(req, res)) return;
-
     const userId = req.user!.id;
     const { siteId } = req.params;
     const { version } = req.body;
@@ -590,7 +580,10 @@ export const pruneVersions = async (
   try {
     const userId = req.user!.id;
     const { siteId } = req.params;
-    const keepCount = parseIntQuery(req.query.keep, 10);
+    const query = ((req as any).validatedQuery ?? req.query) as {
+      keep?: number | string;
+    };
+    const keepCount = parseIntQuery(query.keep, 10);
 
     const deletedCount = await publishingService.pruneVersions(siteId, userId, keepCount);
     sendSuccess(res, { deleted: deletedCount });

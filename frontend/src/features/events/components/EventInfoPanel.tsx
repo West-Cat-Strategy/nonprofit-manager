@@ -78,10 +78,10 @@ export default function EventInfoPanel({ event }: EventInfoPanelProps) {
                 <div
                   className={`h-2 rounded-full ${
                     capacityPercentage >= 100
-                      ? 'bg-red-600'
+                      ? 'bg-app-accent'
                       : capacityPercentage >= 80
-                        ? 'bg-orange-500'
-                        : 'bg-green-600'
+                        ? 'bg-app-accent'
+                        : 'bg-app-accent'
                   }`}
                   style={{ width: `${Math.min(capacityPercentage, 100)}%` }}
                 />
@@ -100,7 +100,7 @@ export default function EventInfoPanel({ event }: EventInfoPanelProps) {
 
         <div>
           <h3 className="mb-2 text-lg font-semibold">Attended</h3>
-          <p className="text-2xl font-bold text-green-600">{event.attended_count || 0}</p>
+          <p className="text-2xl font-bold text-app-accent">{event.attended_count || 0}</p>
         </div>
       </div>
 
