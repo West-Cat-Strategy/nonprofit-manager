@@ -76,6 +76,7 @@ export default function Analytics() {
 
   const [comparisonPeriod, setComparisonPeriod] = useState<'month' | 'quarter' | 'year'>('month');
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+  const [summaryPdfExporting, setSummaryPdfExporting] = useState(false);
 
   useEffect(() => {
     dispatch(fetchAnalyticsSummary(filters));
@@ -104,6 +105,17 @@ export default function Analytics() {
     dispatch(setFilters({ start_date: undefined, end_date: undefined }));
   };
 
+  const handleExportSummaryPdf = async () => {
+    if (!summary || summaryPdfExporting) return;
+
+    setSummaryPdfExporting(true);
+    try {
+      await exportAnalyticsSummaryToPDF(summary);
+    } finally {
+      setSummaryPdfExporting(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
@@ -125,7 +137,12 @@ export default function Analytics() {
             {summary && (
               <>
                 <SecondaryButton onClick={() => exportAnalyticsSummaryToCSV(summary)}>CSV</SecondaryButton>
-                <SecondaryButton onClick={() => exportAnalyticsSummaryToPDF(summary)}>PDF</SecondaryButton>
+                <SecondaryButton
+                  onClick={() => void handleExportSummaryPdf()}
+                  disabled={summaryPdfExporting}
+                >
+                  {summaryPdfExporting ? 'Generating PDF...' : 'PDF'}
+                </SecondaryButton>
               </>
             )}
           </>

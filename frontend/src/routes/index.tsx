@@ -40,13 +40,31 @@ const OutreachCenter = lazy(() => import('../pages/neo-brutalist/OutreachCenter'
 const PeopleDirectory = lazy(() => import('../pages/neo-brutalist/PeopleDirectory'));
 const ThemeAudit = lazy(() => import('../pages/neo-brutalist/ThemeAudit'));
 
+const isSetupGateRoute = (pathname: string): boolean =>
+  pathname === '/' ||
+  pathname === '/setup' ||
+  pathname === '/login' ||
+  pathname === '/register' ||
+  pathname === '/forgot-password' ||
+  pathname.startsWith('/accept-invitation/') ||
+  pathname.startsWith('/reset-password/');
+
+const shouldEnableSetupCheck = (pathname: string): boolean => {
+  if (pathname.startsWith('/portal') || pathname.startsWith('/public') || pathname.startsWith('/event-check-in/')) {
+    return false;
+  }
+
+  return isSetupGateRoute(pathname);
+};
+
 // AppRoutes component with setup check logic
 const AppRoutes = () => {
   const dispatch = useAppDispatch();
   const { isAuthenticated, authLoading } = useAppSelector((state) => state.auth);
-  const { setupRequired, loading } = useSetupCheck();
   const location = useLocation();
   const navigate = useNavigate();
+  const setupCheckEnabled = shouldEnableSetupCheck(location.pathname);
+  const { setupRequired, loading } = useSetupCheck({ enabled: setupCheckEnabled });
 
   useEffect(() => {
     const handleUnauthorized = () => {
@@ -71,20 +89,19 @@ const AppRoutes = () => {
   }, [dispatch, navigate]);
 
   // Show loader while verifying auth cookie or checking setup status
-  if (authLoading || loading) {
+  if (authLoading || (setupCheckEnabled && loading)) {
     return <PageLoader />;
   }
 
-  const setupStatusResolved = setupRequired !== null;
-  const isPortalRoute = location.pathname.startsWith('/portal');
+  const setupStatusResolved = setupCheckEnabled && setupRequired !== null;
 
   // Redirect to setup if required and not already on setup page
-  if (setupStatusResolved && !isPortalRoute && setupRequired === true && location.pathname !== '/setup') {
+  if (setupStatusResolved && setupRequired === true && location.pathname !== '/setup') {
     return <Navigate to="/setup" replace />;
   }
 
   // Redirect to login if setup is complete but user tries to access setup page
-  if (setupStatusResolved && !isPortalRoute && setupRequired === false && location.pathname === '/setup') {
+  if (setupStatusResolved && setupRequired === false && location.pathname === '/setup') {
     return <Navigate to="/login" replace />;
   }
 
