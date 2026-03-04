@@ -101,6 +101,41 @@ test.describe('Authentication Flow', () => {
     expect(user).toBeTruthy();
   });
 
+  test('dashboard startup does not request analytics/task summary endpoints', async ({ page }) => {
+    const startupRequests: string[] = [];
+    page.on('request', (request) => {
+      const url = request.url();
+      if (
+        /\/api\/(?:v2\/)?analytics\/summary(?:\?|$)/.test(url) ||
+        /\/api\/(?:v2\/)?tasks\/summary(?:\?|$)/.test(url)
+      ) {
+        startupRequests.push(url);
+      }
+    });
+
+    const { email, password } = getCreds();
+    await login(page, email, password);
+    await expect(page).toHaveURL('/dashboard');
+    await expect
+      .poll(
+        async () => {
+          const headingVisible = await page
+            .getByRole('heading', { name: /workbench overview|dashboard/i })
+            .first()
+            .isVisible();
+          if (headingVisible) {
+            return true;
+          }
+          return page.getByRole('link', { name: /dashboard|accounts/i }).first().isVisible();
+        },
+        { timeout: 10000 }
+      )
+      .toBe(true);
+
+    await page.waitForTimeout(800);
+    expect(startupRequests).toEqual([]);
+  });
+
   test('should logout successfully', async ({ page }) => {
     // Login first
     const { email, password } = getCreds();

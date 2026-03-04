@@ -3,68 +3,20 @@
  * Uses LoopApiService for data, BrutalInput for search, and CSS variables
  */
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MagnifyingGlassIcon, UserPlusIcon, CalendarDaysIcon, ClipboardDocumentListIcon, DocumentPlusIcon } from '@heroicons/react/24/outline';
 import NeoBrutalistLayout from '../../components/neo-brutalist/NeoBrutalistLayout';
 import BrutalInput from '../../components/neo-brutalist/BrutalInput';
-import LoopApiService from '../../services/LoopApiService';
-import type { DashboardStats } from '../../types/schema';
 
 export default function NeoBrutalistDashboard() {
-    const [_stats, setStats] = useState<DashboardStats | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [quickSearch, setQuickSearch] = useState('');
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setError(false);
-                const data = await LoopApiService.getDashboardStats();
-                setStats(data);
-            } catch (err) {
-                console.error('Failed to fetch dashboard stats:', err);
-                setError(true);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
-     
-    }, []);
-
     const handleNewItem = () => {
         navigate('/contacts/new');
     };
-
-    if (loading) {
-        return (
-            <NeoBrutalistLayout pageTitle="WORKBENCH OVERVIEW">
-                <div className="flex justify-center items-center h-screen pb-40">
-                    <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-black dark:border-white"></div>
-                </div>
-            </NeoBrutalistLayout>
-        );
-    }
-
-    if (error) {
-        return (
-            <NeoBrutalistLayout pageTitle="WORKBENCH OVERVIEW">
-                <div className="p-6">
-                    <div className="bg-app-accent-soft border-2 border-app-border p-6 text-center shadow-[4px_4px_0px_0px_var(--shadow-color)]">
-                        <h2 className="text-2xl font-black text-app-accent mb-2 uppercase">System Error</h2>
-                        <p className="font-bold">Failed to load dashboard data. Please check your connection.</p>
-                        <button onClick={() => window.location.reload()} className="mt-4 px-6 py-2 bg-app-accent text-white font-bold border-2 border-black hover:bg-app-accent uppercase">
-                            Retry
-                        </button>
-                    </div>
-                </div>
-            </NeoBrutalistLayout>
-        );
-    }
 
     return (
         <NeoBrutalistLayout pageTitle="WORKBENCH OVERVIEW">

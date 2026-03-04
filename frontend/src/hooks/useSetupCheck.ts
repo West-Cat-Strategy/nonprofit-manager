@@ -95,10 +95,20 @@ const getSetupStatusErrorMessage = (error: unknown): string => {
   return 'Failed to check setup status.';
 };
 
-export const useSetupCheck = () => {
-  const cachedSnapshot = setupStatusSnapshot && isSnapshotFresh(setupStatusSnapshot) ? setupStatusSnapshot : null;
-  const [setupRequired, setSetupRequired] = useState<SetupRequiredState>(cachedSnapshot?.setupRequired ?? null);
-  const [loading, setLoading] = useState(!cachedSnapshot);
+interface UseSetupCheckOptions {
+  enabled?: boolean;
+}
+
+export const useSetupCheck = (options?: UseSetupCheckOptions) => {
+  const enabled = options?.enabled !== false;
+  const cachedSnapshot =
+    enabled && setupStatusSnapshot && isSnapshotFresh(setupStatusSnapshot)
+      ? setupStatusSnapshot
+      : null;
+  const [setupRequired, setSetupRequired] = useState<SetupRequiredState>(
+    cachedSnapshot?.setupRequired ?? null
+  );
+  const [loading, setLoading] = useState(enabled && !cachedSnapshot);
   const [error, setError] = useState<string | null>(cachedSnapshot?.error ?? null);
 
   const applySnapshot = useCallback((snapshot: SetupStatusSnapshot) => {
@@ -108,6 +118,13 @@ export const useSetupCheck = () => {
 
   const refreshSetupStatus = useCallback(
     async (options?: { forceRefresh?: boolean }) => {
+      if (!enabled) {
+        setLoading(false);
+        setError(null);
+        setSetupRequired(null);
+        return;
+      }
+
       setLoading(true);
       try {
         const snapshot = await getSetupStatusSnapshot(Boolean(options?.forceRefresh));
@@ -116,10 +133,17 @@ export const useSetupCheck = () => {
         setLoading(false);
       }
     },
-    [applySnapshot]
+    [applySnapshot, enabled]
   );
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      setError(null);
+      setSetupRequired(null);
+      return;
+    }
+
     if (cachedSnapshot) {
       return;
     }
@@ -144,7 +168,7 @@ export const useSetupCheck = () => {
     return () => {
       isMounted = false;
     };
-  }, [applySnapshot, cachedSnapshot]);
+  }, [applySnapshot, cachedSnapshot, enabled]);
 
   return { setupRequired, loading, error, refreshSetupStatus };
 };

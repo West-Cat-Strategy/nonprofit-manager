@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { __resetSetupStatusCacheForTests, useSetupCheck } from '../useSetupCheck';
 
 // Mock the API module
@@ -65,6 +65,27 @@ describe('useSetupCheck', () => {
     renderHook(() => useSetupCheck());
 
     await waitFor(() => expect(api.get).toHaveBeenCalledWith('/auth/setup-status'));
+  });
+
+  it('skips setup-status request when disabled', async () => {
+    const { result } = renderHook(() => useSetupCheck({ enabled: false }));
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.setupRequired).toBeNull();
+    expect(result.current.error).toBeNull();
+    expect(api.get).not.toHaveBeenCalled();
+  });
+
+  it('refreshSetupStatus is a no-op when disabled', async () => {
+    const { result } = renderHook(() => useSetupCheck({ enabled: false }));
+
+    await act(async () => {
+      await result.current.refreshSetupStatus({ forceRefresh: true });
+    });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.setupRequired).toBeNull();
+    expect(api.get).not.toHaveBeenCalled();
   });
 
   it('reuses cached setup status across hook mounts', async () => {
