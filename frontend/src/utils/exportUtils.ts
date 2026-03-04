@@ -3,8 +3,36 @@
  * Functions for exporting data to various formats (CSV, PDF)
  */
 
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import type { jsPDF as JsPdfClass } from 'jspdf';
+import type autoTableType from 'jspdf-autotable';
+
+type JsPdfConstructor = typeof JsPdfClass;
+type JsPdfInstance = InstanceType<JsPdfConstructor>;
+type AutoTableFn = typeof autoTableType;
+
+interface PdfDeps {
+  jsPDF: JsPdfConstructor;
+  autoTable: AutoTableFn;
+}
+
+type JsPdfWithAutoTable = JsPdfInstance & {
+  lastAutoTable: { finalY: number };
+};
+
+let pdfDepsPromise: Promise<PdfDeps> | null = null;
+
+const loadPdfDeps = async (): Promise<PdfDeps> => {
+  if (!pdfDepsPromise) {
+    pdfDepsPromise = Promise.all([import('jspdf'), import('jspdf-autotable')]).then(
+      ([jspdfModule, autoTableModule]) => ({
+        jsPDF: jspdfModule.jsPDF,
+        autoTable: autoTableModule.default,
+      })
+    );
+  }
+
+  return pdfDepsPromise;
+};
 
 /**
  * Convert an array of objects to CSV format
@@ -214,7 +242,7 @@ function formatCurrency(amount: number): string {
 /**
  * Export analytics summary to PDF
  */
-export function exportAnalyticsSummaryToPDF(summary: {
+export async function exportAnalyticsSummaryToPDF(summary: {
   total_accounts: number;
   active_accounts: number;
   total_contacts: number;
@@ -231,7 +259,8 @@ export function exportAnalyticsSummaryToPDF(summary: {
     low: number;
     inactive: number;
   };
-}): void {
+}): Promise<void> {
+  const { jsPDF, autoTable } = await loadPdfDeps();
   const doc = new jsPDF();
   const date = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
@@ -275,7 +304,7 @@ export function exportAnalyticsSummaryToPDF(summary: {
   });
 
   // Constituent Overview Section
-  const constituentY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
+  const constituentY = (doc as JsPdfWithAutoTable).lastAutoTable.finalY + 15;
   doc.setFontSize(14);
   doc.text('Constituent Overview', 14, constituentY);
 
@@ -304,7 +333,7 @@ export function exportAnalyticsSummaryToPDF(summary: {
   });
 
   // Engagement Distribution Section
-  const engagementY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
+  const engagementY = (doc as JsPdfWithAutoTable).lastAutoTable.finalY + 15;
   doc.setFontSize(14);
   doc.text('Engagement Distribution', 14, engagementY);
 
@@ -360,9 +389,10 @@ export function exportAnalyticsSummaryToPDF(summary: {
 /**
  * Export donation trends to PDF
  */
-export function exportDonationTrendsToPDF(
+export async function exportDonationTrendsToPDF(
   trends: Array<{ month: string; amount: number; count: number }>
-): void {
+): Promise<void> {
+  const { jsPDF, autoTable } = await loadPdfDeps();
   const doc = new jsPDF();
   const date = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
@@ -423,9 +453,10 @@ export function exportDonationTrendsToPDF(
 /**
  * Export volunteer hours trends to PDF
  */
-export function exportVolunteerTrendsToPDF(
+export async function exportVolunteerTrendsToPDF(
   trends: Array<{ month: string; hours: number; assignments: number }>
-): void {
+): Promise<void> {
+  const { jsPDF, autoTable } = await loadPdfDeps();
   const doc = new jsPDF();
   const date = new Date().toLocaleDateString('en-US', {
     year: 'numeric',

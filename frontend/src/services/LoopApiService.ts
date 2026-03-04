@@ -11,7 +11,6 @@ import type {
   Task,
   CampaignEvent,
   UserProfile,
-  DashboardStats,
   CampaignStats,
   PeopleFilter,
 } from '../types/schema';
@@ -25,7 +24,6 @@ import {
   getUserProfile,
   updateUserProfile,
 } from './loop/profile';
-import { getDashboardStats } from './loop/dashboard';
 import { getCampaignStats, getCampaignEvents } from './loop/campaign';
 import { getOrganizations } from './loop/organizations';
 import { getTasks } from './loop/tasks';
@@ -63,14 +61,6 @@ class LoopApiService {
 
   async updateUserProfile(data: Partial<UserProfile>): Promise<UserProfile> {
     return updateUserProfile(data);
-  }
-
-  // ==========================================================================
-  // DASHBOARD
-  // ==========================================================================
-
-  async getDashboardStats(): Promise<DashboardStats> {
-    return getDashboardStats();
   }
 
   // ==========================================================================
