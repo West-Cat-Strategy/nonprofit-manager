@@ -10,6 +10,7 @@ import {
 } from '@controllers/domains/portal';
 import {
   caseOutcomeDefinitionsQuerySchema,
+  interactionOutcomeImpactItemSchema,
   interactionOutcomeParamsSchema,
   updateInteractionOutcomeImpactsSchema,
 } from '@validations/outcomeImpact';
@@ -61,6 +62,7 @@ const noteTypeSchema = z.enum([
 ]);
 
 const dateStringSchema = z.string().refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid ISO8601 date');
+const outcomesModeSchema = z.enum(['replace', 'merge']);
 
 const caseIdParamsSchema = z.object({
   id: uuidSchema,
@@ -200,6 +202,8 @@ const createCaseNoteSchema = z.object({
   is_portal_visible: z.coerce.boolean().optional(),
   is_important: z.coerce.boolean().optional(),
   attachments: z.array(z.unknown()).optional(),
+  outcome_impacts: z.array(interactionOutcomeImpactItemSchema).optional(),
+  outcomes_mode: outcomesModeSchema.optional(),
 });
 
 const updateCaseNoteSchema = z.object({
@@ -212,23 +216,31 @@ const updateCaseNoteSchema = z.object({
   is_portal_visible: z.coerce.boolean().optional(),
   is_important: z.coerce.boolean().optional(),
   attachments: z.array(z.unknown()).optional().nullable(),
+  outcome_impacts: z.array(interactionOutcomeImpactItemSchema).optional(),
+  outcomes_mode: outcomesModeSchema.optional(),
 });
 
 const createCaseOutcomeSchema = z.object({
   outcome_type: z.string().max(100).optional(),
+  outcome_definition_id: uuidSchema.optional(),
   outcome_date: dateStringSchema.optional(),
   notes: z.string().optional(),
   visible_to_client: z.coerce.boolean().optional(),
   is_portal_visible: z.coerce.boolean().optional(),
 });
 
-const updateCaseOutcomeSchema = z.object({
-  outcome_type: z.string().max(100).optional().nullable(),
-  outcome_date: dateStringSchema.optional(),
-  notes: z.string().optional().nullable(),
-  visible_to_client: z.coerce.boolean().optional(),
-  is_portal_visible: z.coerce.boolean().optional(),
-});
+const updateCaseOutcomeSchema = z
+  .object({
+    outcome_type: z.string().max(100).optional().nullable(),
+    outcome_definition_id: uuidSchema.optional(),
+    outcome_date: dateStringSchema.optional(),
+    notes: z.string().optional().nullable(),
+    visible_to_client: z.coerce.boolean().optional(),
+    is_portal_visible: z.coerce.boolean().optional(),
+  })
+  .refine((payload) => Object.values(payload).some((value) => value !== undefined), {
+    message: 'At least one field must be provided',
+  });
 
 const createTopicDefinitionSchema = z.object({
   name: z.string().min(1).max(120),

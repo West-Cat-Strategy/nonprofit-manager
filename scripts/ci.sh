@@ -109,11 +109,26 @@ run_step() {
 run_ci() {
     print_header "CI Pipeline" "$ENVIRONMENT environment"
 
+    # Keep backend/.env.test DB host/port defaults reachable during local CI.
+    local infra_compose_args="-f docker-compose.yml"
+    if [ -f "docker-compose.host-access.yml" ]; then
+        infra_compose_args="$infra_compose_args -f docker-compose.host-access.yml"
+    fi
+    local ci_e2e_lock_file="${E2E_CI_LOCK_FILE:-/tmp/nonprofit-manager-e2e-ci.lock}"
+
     # Bring up infra before tests so backend integration tests do not race DB availability.
     if [ "$RUN_TESTS" = true ] && [ "$SKIP_TESTS" = false ] && { [ "$RUN_BACKEND" = true ] || [ "$RUN_E2E" = true ]; }; then
-        run_step "Test Infra" "DB_PASSWORD=postgres docker-compose up -d postgres redis"
+        run_step "Test Infra" "DB_PASSWORD=postgres docker_compose $infra_compose_args up -d postgres redis"
         run_step "DB Migrations" "\"$SCRIPT_DIR/db-migrate.sh\""
+        run_step "Test Runner Cleanup" "E2E_LOCK_FILE=$ci_e2e_lock_file \"$SCRIPT_DIR/e2e-lock-cleanup.sh\""
     fi
+
+    # Pin test DB connectivity to CI infra ports to avoid host-specific overrides in backend/.env.test.
+    local ci_db_host="${DB_HOST:-localhost}"
+    local ci_db_port="${DB_PORT:-5432}"
+    local ci_db_name="${DB_NAME:-nonprofit_manager}"
+    local ci_db_user="${DB_USER:-postgres}"
+    local ci_db_password="${DB_PASSWORD:-postgres}"
 
     # Backend checks
     if [ "$RUN_BACKEND" = true ]; then
@@ -132,9 +147,9 @@ run_ci() {
 
         if [ "$RUN_TESTS" = true ] && [ "$SKIP_TESTS" = false ]; then
             if [ "$RUN_COVERAGE" = true ]; then
-                run_step "Backend Tests (Coverage)" "cd backend && npm test -- --coverage --watchAll=false --runInBand"
+                run_step "Backend Tests (Coverage)" "cd backend && DB_HOST=$ci_db_host DB_PORT=$ci_db_port DB_NAME=$ci_db_name DB_USER=$ci_db_user DB_PASSWORD=$ci_db_password npm test -- --coverage --watchAll=false --runInBand"
             else
-                run_step "Backend Tests" "cd backend && npm test -- --watchAll=false --runInBand"
+                run_step "Backend Tests" "cd backend && DB_HOST=$ci_db_host DB_PORT=$ci_db_port DB_NAME=$ci_db_name DB_USER=$ci_db_user DB_PASSWORD=$ci_db_password npm test -- --watchAll=false --runInBand"
             fi
         else
             [ "$VERBOSE" = true ] && log_info "Backend tests skipped"
@@ -172,7 +187,7 @@ run_ci() {
     if [ "$RUN_E2E" = true ] && [ "$RUN_TESTS" = true ] && [ "$SKIP_TESTS" = false ]; then
         log_info "Running Playwright E2E checks..."
         run_step "E2E Port Preflight" "E2E_PORT_ACTION=kill \"$SCRIPT_DIR/e2e-port-preflight.sh\""
-        run_step "Playwright E2E" "cd e2e && npm run test:ci"
+        run_step "Playwright E2E" "cd e2e && E2E_LOCK_FILE=$ci_e2e_lock_file E2E_RUNNER_ACTION=kill E2E_DB_HOST=$ci_db_host E2E_DB_PORT=$ci_db_port E2E_DB_NAME=$ci_db_name E2E_DB_USER=$ci_db_user E2E_DB_PASSWORD=$ci_db_password npm run test:ci"
     else
         [ "$VERBOSE" = true ] && log_info "Playwright tests skipped"
     fi

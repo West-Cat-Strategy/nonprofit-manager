@@ -3,7 +3,7 @@
 
 # Project settings
 PROJECT_NAME="nonprofit-manager"
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # Docker settings
 DOCKER_COMPOSE_FILE="docker-compose.yml"
@@ -24,9 +24,9 @@ FRONTEND_DEV_CONTAINER="nonprofit-frontend-dev"
 DB_USER="postgres"
 DB_NAME="nonprofit_manager"
 DB_HOST="localhost"
-DB_PORT="8012"
+DB_PORT="5432"
 DB_DEV_PORT="8002"
-REDIS_PORT="8013"
+REDIS_PORT="6379"
 REDIS_DEV_PORT="8003"
 
 # Service ports (development)
@@ -34,11 +34,11 @@ BACKEND_DEV_PORT="8004"
 FRONTEND_DEV_PORT="8005"
 
 # Service ports (production)
-BACKEND_PORT="3000"
+BACKEND_PORT="8000"
 FRONTEND_PORT="8001"
 
 # API settings
-API_BASE_URL="http://localhost:3000/api"
+API_BASE_URL="http://localhost:8000/api"
 API_DEV_URL="http://localhost:8004/api"
 
 # Health check settings

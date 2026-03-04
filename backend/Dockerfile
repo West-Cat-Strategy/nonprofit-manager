@@ -13,7 +13,7 @@ RUN --mount=type=cache,target=/root/.npm \
 
 # Copy source and compile
 COPY . .
-RUN npm run build
+RUN npm run build && npm prune --omit=dev
 
 # ── Stage 2: Production ───────────────────────────────────────────────────────
 FROM node:20-alpine3.20 AS production
@@ -30,12 +30,9 @@ RUN apk add --no-cache dumb-init curl && \
     mkdir -p /app/exports /app/logs && \
     chown -R nodejs:nodejs /app
 
-# Install production deps only
-COPY --chown=nodejs:nodejs package*.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev --no-audit --no-fund
-
-# Copy compiled output from builder
+# Copy runtime dependencies and compiled output from builder
+COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 
 USER nodejs
@@ -43,7 +40,7 @@ USER nodejs
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f HTTP://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:8000/health || exit 1
 
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "dist/index.js"]

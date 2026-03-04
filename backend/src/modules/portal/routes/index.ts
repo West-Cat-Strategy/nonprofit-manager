@@ -11,11 +11,16 @@ import {
   portalCaseParamsSchema,
   portalCaseTimelineQuerySchema,
   portalChangePasswordSchema,
+  portalDocumentsQuerySchema,
   portalEventParamsSchema,
+  portalEventsQuerySchema,
+  portalFormsQuerySchema,
   portalManualAppointmentRequestSchema,
+  portalNotesQuerySchema,
   portalPointpersonQuerySchema,
   portalProfileUpdateSchema,
   portalRealtimeStreamQuerySchema,
+  portalRemindersQuerySchema,
   portalRelationshipCreateSchema,
   portalRelationshipUpdateSchema,
   portalSlotParamsSchema,
@@ -134,7 +139,7 @@ export const createPortalV2Routes = (deps: PortalRouteDependencies = {}): Router
     messagingController.updateThread
   );
 
-  portalV2Routes.get('/events', eventsController.getEvents);
+  portalV2Routes.get('/events', validateQuery(portalEventsQuerySchema), eventsController.getEvents);
   portalV2Routes.post('/events/:eventId/register', validateParams(portalEventParamsSchema), eventsController.register);
   portalV2Routes.delete('/events/:eventId/register', validateParams(portalEventParamsSchema), eventsController.cancel);
 
@@ -149,11 +154,11 @@ export const createPortalV2Routes = (deps: PortalRouteDependencies = {}): Router
   portalV2Routes.post('/appointments/requests', validateBody(portalManualAppointmentRequestSchema), appointmentsController.createRequest);
   portalV2Routes.patch('/appointments/:id/cancel', validateParams(portalAppointmentParamsSchema), appointmentsController.cancelAppointment);
 
-  portalV2Routes.get('/documents', resourcesController.getDocuments);
+  portalV2Routes.get('/documents', validateQuery(portalDocumentsQuerySchema), resourcesController.getDocuments);
   portalV2Routes.get('/documents/:id/download', validateParams(portalUuidParamsSchema), resourcesController.downloadDocument);
-  portalV2Routes.get('/forms', resourcesController.getForms);
-  portalV2Routes.get('/notes', resourcesController.getNotes);
-  portalV2Routes.get('/reminders', resourcesController.getReminders);
+  portalV2Routes.get('/forms', validateQuery(portalFormsQuerySchema), resourcesController.getForms);
+  portalV2Routes.get('/notes', validateQuery(portalNotesQuerySchema), resourcesController.getNotes);
+  portalV2Routes.get('/reminders', validateQuery(portalRemindersQuerySchema), resourcesController.getReminders);
 
   return portalV2Routes;
 };

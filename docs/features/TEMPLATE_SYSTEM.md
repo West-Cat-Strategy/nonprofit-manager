@@ -229,6 +229,15 @@ Example:
 /website-builder/:templateId/preview?page=about
 ```
 
+### Events Page Fallback + Live Event Data
+
+- Builder-authored `events` page remains authoritative when present.
+- If a template has no `events` slug, preview and publish snapshots now append a system fallback `events` page that contains:
+  - heading (`Upcoming Events`)
+  - `event-list` component
+- Published/previewed `event-list` blocks fetch live data from `/api/v2/public/events*` at runtime, so event catalog updates do not require republish.
+- `calendar` layout currently falls back to list rendering with a user-visible notice.
+
 ### Implementation Details
 
 **Backend Service** (`templateService.ts`):
@@ -648,6 +657,20 @@ POST /api/v2/templates/:templateId/versions/:versionId/restore
 }
 ```
 
+### Event List Component
+```typescript
+{
+  type: 'event-list',
+  maxEvents?: number,              // default: 6
+  showPastEvents?: boolean,        // default: false
+  layout?: 'grid' | 'list' | 'calendar',
+  eventType?: string,              // optional event-type filter
+  emptyMessage?: string,           // fallback when no rows
+  siteKey?: string,                // optional explicit site binding
+  filterByTag?: string             // deprecated compatibility alias
+}
+```
+
 ---
 
 ## Best Practices
@@ -720,5 +743,5 @@ For additional help:
 
 ---
 
-**Last Updated**: February 1, 2026
-**Version**: 1.0.0
+**Last Updated**: March 3, 2026
+**Version**: 1.1.0

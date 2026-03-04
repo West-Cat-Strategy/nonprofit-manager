@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import portalApi from '../../../services/portalApi';
 import { useApiError } from '../../../hooks/useApiError';
 import ErrorBanner from '../../../components/ErrorBanner';
 import { useAppDispatch } from '../../../store/hooks';
 import { portalLogin } from '../../../store/slices/portalAuthSlice';
+import { AuthHeroShell, FormField, PrimaryButton } from '../../../components/ui';
 
 interface InvitationInfo {
   email: string;
@@ -59,64 +60,79 @@ export default function PortalAcceptInvitation() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-app-surface-muted px-4">
-      <div className="bg-app-surface shadow rounded-lg p-8 w-full max-w-md">
-        <h1 className="text-2xl font-semibold text-app-text">Accept Portal Invitation</h1>
-        <ErrorBanner message={error} correlationId={details?.correlationId} className="mt-4" />
-        {invitation && (
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-app-text-muted">Email</label>
-              <input
-                type="email"
-                value={invitation.email}
-                disabled
-                className="mt-1 w-full px-3 py-2 border border-app-border rounded-md bg-app-surface-muted"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-app-text-muted">First Name</label>
-              <input
-                type="text"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleChange}
-                className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-app-text-muted">Last Name</label>
-              <input
-                type="text"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
-                className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-app-text-muted">Password</label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
-                minLength={8}
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover"
-            >
-              Activate Portal Account
-            </button>
-          </form>
-        )}
-      </div>
-    </div>
+    <AuthHeroShell
+      badge="Client portal"
+      title="Accept Portal Invitation"
+      description="Finish account setup and start using your portal immediately."
+      highlights={[
+        'Invitation tokens enforce secure account creation.',
+        'Your login maps to staff-approved contact visibility.',
+      ]}
+    >
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-text-muted">Invitation</p>
+      <h2 className="font-display mt-2 text-2xl font-semibold text-app-text-heading">
+        Activate your portal account
+      </h2>
+      <p className="mt-2 text-sm text-app-text-muted">
+        Set your name and password to complete onboarding.
+      </p>
+
+      <ErrorBanner message={error} correlationId={details?.correlationId} className="mt-4" />
+
+      {!invitation && !error && (
+        <p className="mt-6 text-sm text-app-text-muted" aria-live="polite">
+          Validating invitation...
+        </p>
+      )}
+
+      {invitation && (
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <FormField label="Email" type="email" value={invitation.email} disabled />
+          <FormField
+            id="portal-invite-first-name"
+            label="First Name"
+            type="text"
+            name="firstName"
+            value={formData.firstName}
+            onChange={handleChange}
+            required
+            autoComplete="given-name"
+          />
+          <FormField
+            id="portal-invite-last-name"
+            label="Last Name"
+            type="text"
+            name="lastName"
+            value={formData.lastName}
+            onChange={handleChange}
+            required
+            autoComplete="family-name"
+          />
+          <FormField
+            id="portal-invite-password"
+            label="Password"
+            type="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            minLength={8}
+            required
+            autoComplete="new-password"
+          />
+          <PrimaryButton type="submit" className="w-full justify-center">
+            Activate Portal Account
+          </PrimaryButton>
+        </form>
+      )}
+
+      {error && (
+        <p className="mt-4 text-sm text-app-text-muted">
+          Need a fresh link?{' '}
+          <Link to="/portal/login" className="font-medium text-app-text-heading hover:underline">
+            Return to portal login
+          </Link>
+        </p>
+      )}
+    </AuthHeroShell>
   );
 }

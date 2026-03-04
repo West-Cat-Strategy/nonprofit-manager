@@ -10,10 +10,28 @@ import PortalLogin from '../PortalLogin';
 import PortalSignup from '../PortalSignup';
 import NavigationSettings from '../admin/NavigationSettings';
 import ApiSettings from '../admin/ApiSettings';
+import DataBackup from '../admin/DataBackup';
+import EmailMarketing from '../admin/EmailMarketing';
+import AdminSettings from '../admin/AdminSettings';
 import api from '../../services/api';
 import { assertRouteUxContract, createConsoleErrorSpy } from '../../test/uxRouteContract';
 
 vi.mock('../../services/api');
+vi.mock('../../contexts/BrandingContext', () => ({
+  useBranding: () => ({
+    branding: {
+      organizationName: 'Test Org',
+      logoUrl: null,
+      primaryColor: '#0f172a',
+      secondaryColor: '#475569',
+      accentColor: '#10b981',
+      faviconUrl: null,
+      customDomain: null,
+    },
+    setBranding: vi.fn(),
+    refreshBranding: vi.fn(),
+  }),
+}));
 
 const mockApi = api as unknown as {
   get: ReturnType<typeof vi.fn>;
@@ -25,6 +43,7 @@ type SmokeCase = {
   page: ReactElement;
   heading: string | RegExp;
   primaryActionPattern: RegExp;
+  primaryActionRole?: 'button' | 'link';
 };
 
 const smokeCases: SmokeCase[] = [
@@ -100,6 +119,28 @@ const smokeCases: SmokeCase[] = [
     heading: /api settings/i,
     primaryActionPattern: /add webhook/i,
   },
+  {
+    name: 'admin-settings',
+    route: '/settings/admin',
+    page: <AdminSettings />,
+    heading: /admin settings/i,
+    primaryActionPattern: /show advanced|hide advanced/i,
+  },
+  {
+    name: 'data-backup',
+    route: '/settings/backup',
+    page: <DataBackup />,
+    heading: /data backup/i,
+    primaryActionPattern: /download backup/i,
+  },
+  {
+    name: 'email-marketing',
+    route: '/settings/email-marketing',
+    page: <EmailMarketing />,
+    heading: /email marketing/i,
+    primaryActionPattern: /admin\.mailchimp\.com\/account\/api/i,
+    primaryActionRole: 'link',
+  },
 ];
 
 describe('Route UX smoke (auth/portal/settings)', () => {
@@ -124,6 +165,32 @@ describe('Route UX smoke (auth/portal/settings)', () => {
       }
       if (url === '/webhooks/api-keys/scopes') {
         return Promise.resolve({ data: [] });
+      }
+      if (url === '/auth/preferences') {
+        return Promise.resolve({ data: { preferences: {} } });
+      }
+      if (url === '/admin/branding') {
+        return Promise.resolve({ data: {} });
+      }
+      if (url === '/admin/roles') {
+        return Promise.resolve({ data: { roles: [] } });
+      }
+      if (url === '/mailchimp/status') {
+        return Promise.resolve({ data: { configured: false, accountName: null, listCount: 0 } });
+      }
+      if (url === '/mailchimp/lists') {
+        return Promise.resolve({ data: [] });
+      }
+      if (url === '/mailchimp/campaigns') {
+        return Promise.resolve({ data: [] });
+      }
+      if (url.startsWith('/v2/contacts')) {
+        return Promise.resolve({
+          data: {
+            data: [],
+            pagination: { total: 0, page: 1, limit: 100, total_pages: 0 },
+          },
+        });
       }
       if (url === '/invitations/validate/test-token') {
         return Promise.resolve({

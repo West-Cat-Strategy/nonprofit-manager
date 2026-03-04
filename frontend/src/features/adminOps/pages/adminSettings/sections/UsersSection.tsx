@@ -159,7 +159,7 @@ export default function UsersSection({
             </button>
 
             <Link
-              to="/admin/audit-logs"
+              to="/settings/admin?section=audit_logs"
               className="flex items-center p-4 border border-app-border rounded-lg hover:bg-app-surface-muted transition-colors"
             >
               <div className="w-10 h-10 bg-app-accent-soft rounded-lg flex items-center justify-center">

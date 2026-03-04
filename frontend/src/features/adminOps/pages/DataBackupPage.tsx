@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import api from '../../../services/api';
 import ErrorBanner from '../../../components/ErrorBanner';
 import { useApiError } from '../../../hooks/useApiError';
+import AdminPanelLayout from '../components/AdminPanelLayout';
+import AdminPanelNav from '../components/AdminPanelNav';
 
 function getFilenameFromContentDisposition(headerValue: string | undefined): string | null {
   if (!headerValue) return null;
@@ -24,6 +27,7 @@ function getFilenameFromContentDisposition(headerValue: string | undefined): str
 }
 
 export default function DataBackup() {
+  const location = useLocation();
   const [includeSecrets, setIncludeSecrets] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const { error, details, setFromError, clear } = useApiError();
@@ -71,14 +75,11 @@ export default function DataBackup() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-app-text">Data Backup</h1>
-        <p className="mt-2 text-app-text-muted">
-          Download a backup of your database as a gzipped JSON file.
-        </p>
-      </div>
-
+    <AdminPanelLayout
+      title="Data Backup"
+      description="Download a backup of your database as a gzipped JSON file."
+      sidebar={<AdminPanelNav currentPath={location.pathname} />}
+    >
       <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
         <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
           <h2 className="text-lg font-semibold text-app-text">Export Backup</h2>
@@ -126,6 +127,6 @@ export default function DataBackup() {
           </p>
         </div>
       </div>
-    </div>
+    </AdminPanelLayout>
   );
 }

@@ -12,6 +12,7 @@ export type ContactFormValues = {
   birth_date?: string | null;
   gender?: string | null;
   pronouns?: string | null;
+  phn?: string | null;
   email?: string | null;
   phone?: string | null;
   mobile_phone?: string | null;

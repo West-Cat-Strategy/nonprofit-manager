@@ -305,6 +305,12 @@ const ContactDetail = () => {
                   </div>
                   <div>
                     <label className="block text-xs font-black uppercase text-black/60">
+                      Personal Health Number (PHN)
+                    </label>
+                    <p className="mt-1 font-bold text-black">{currentContact.phn || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black uppercase text-black/60">
                       Preferred Contact Method
                     </label>
                     <p className="mt-1 font-bold text-black capitalize">

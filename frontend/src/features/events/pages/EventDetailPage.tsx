@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AddToCalendar from '../../../components/AddToCalendar';
 import ConfirmDialog from '../../../components/ConfirmDialog';
@@ -9,9 +9,12 @@ import { useDocumentMeta } from '../../../hooks/useDocumentMeta';
 import useConfirmDialog from '../../../hooks/useConfirmDialog';
 import { getUserTimezoneCached } from '../../../services/userPreferencesService';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import type { CreateEventReminderAutomationDTO, EventReminderAutomation } from '../../../types/event';
+import type {
+  CreateEventReminderAutomationDTO,
+  EventCheckInSettings,
+  EventReminderAutomation,
+} from '../../../types/event';
 import EventInfoPanel from '../components/EventInfoPanel';
-import EventRegistrationsPanel from '../components/EventRegistrationsPanel';
 import { eventsApiClient } from '../api/eventsApiClient';
 import {
   cancelEventAutomationV2,
@@ -28,6 +31,8 @@ import { clearEventRegistrationsV2 } from '../state/eventRegistrationSlice';
 import { clearEventRemindersStateV2 } from '../state/eventRemindersSlice';
 import { getBrowserTimeZone } from '../utils/reminderTime';
 
+const EventRegistrationsPanel = lazy(() => import('../components/EventRegistrationsPanel'));
+
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -41,7 +46,10 @@ export default function EventDetailPage() {
   const automationState = useAppSelector((state) => state.eventAutomationV2);
 
   const [activeTab, setActiveTab] = useState<'info' | 'registrations'>('info');
+  const [registrationsTabLoaded, setRegistrationsTabLoaded] = useState(false);
   const [organizationTimezone, setOrganizationTimezone] = useState(getBrowserTimeZone());
+  const [checkInSettings, setCheckInSettings] = useState<EventCheckInSettings | null>(null);
+  const [checkInSettingsLoading, setCheckInSettingsLoading] = useState(false);
 
   useDocumentMeta({
     title: detailState.event?.event_name,
@@ -72,8 +80,9 @@ export default function EventDetailPage() {
     if (!id) return;
 
     dispatch(fetchEventDetailV2(id));
-    dispatch(fetchEventRegistrationsV2(id));
-    dispatch(fetchEventAutomationsV2(id));
+    setRegistrationsTabLoaded(false);
+    setCheckInSettings(null);
+    setCheckInSettingsLoading(false);
 
     return () => {
       dispatch(clearEventDetailV2());
@@ -81,6 +90,26 @@ export default function EventDetailPage() {
       dispatch(clearEventRemindersStateV2());
     };
   }, [dispatch, id]);
+
+  useEffect(() => {
+    if (!id || activeTab !== 'registrations' || registrationsTabLoaded) return;
+
+    dispatch(fetchEventRegistrationsV2(id));
+    dispatch(fetchEventAutomationsV2(id));
+    setCheckInSettingsLoading(true);
+    void eventsApiClient
+      .getCheckInSettings(id)
+      .then((settings) => {
+        setCheckInSettings(settings);
+      })
+      .catch(() => {
+        setCheckInSettings(null);
+      })
+      .finally(() => {
+        setCheckInSettingsLoading(false);
+      });
+    setRegistrationsTabLoaded(true);
+  }, [activeTab, dispatch, id, registrationsTabLoaded]);
 
   const refreshDetailData = () => {
     if (!id) return;
@@ -198,6 +227,30 @@ export default function EventDetailPage() {
     }
   };
 
+  const handleUpdateCheckInSettings = async (enabled: boolean) => {
+    if (!id) return;
+
+    const updated = await eventsApiClient.updateCheckInSettings(id, {
+      public_checkin_enabled: enabled,
+    });
+    setCheckInSettings(updated);
+  };
+
+  const handleRotateCheckInPin = async (): Promise<string> => {
+    if (!id) {
+      throw new Error('Event ID is missing');
+    }
+
+    const rotated = await eventsApiClient.rotateCheckInPin(id);
+    setCheckInSettings({
+      event_id: rotated.event_id,
+      public_checkin_enabled: rotated.public_checkin_enabled,
+      public_checkin_pin_configured: rotated.public_checkin_pin_configured,
+      public_checkin_pin_rotated_at: rotated.public_checkin_pin_rotated_at,
+    });
+    return rotated.pin;
+  };
+
   if (detailState.loading || !detailState.event) {
     return (
       <NeoBrutalistLayout pageTitle="EVENTS">
@@ -280,7 +333,7 @@ export default function EventDetailPage() {
                   : 'border-transparent text-app-text-muted hover:text-app-text-muted'
               }`}
             >
-              Registrations ({registrationState.registrations.length})
+              Registrations ({event.registered_count})
             </button>
           </nav>
         </div>
@@ -288,24 +341,31 @@ export default function EventDetailPage() {
         {activeTab === 'info' && <EventInfoPanel event={event} />}
 
         {activeTab === 'registrations' && (
-          <EventRegistrationsPanel
-            eventStartDate={event.start_date}
-            organizationTimezone={organizationTimezone}
-            registrations={registrationState.registrations}
-            actionLoading={registrationState.actionLoading}
-            remindersSending={remindersState.sending}
-            remindersError={remindersState.error}
-            reminderSummary={remindersState.lastSummary}
-            reminderAutomations={automationState.automations}
-            automationsLoading={automationState.loading}
-            automationsBusy={automationState.cancelling || automationState.creating}
-            onCheckIn={handleCheckIn}
-            onScanCheckIn={handleScanCheckIn}
-            onCancelRegistration={handleCancelRegistration}
-            onSendReminders={handleSendReminders}
-            onCancelAutomation={handleCancelAutomation}
-            onCreateAutomation={handleCreateAutomation}
-          />
+          <Suspense fallback={<div className="rounded-md border border-app-border bg-app-surface p-4 text-center text-sm text-app-text-muted">Loading registrations...</div>}>
+            <EventRegistrationsPanel
+              eventId={event.event_id}
+              eventStartDate={event.start_date}
+              organizationTimezone={organizationTimezone}
+              registrations={registrationState.registrations}
+              checkInSettings={checkInSettings}
+              checkInSettingsLoading={checkInSettingsLoading}
+              actionLoading={registrationState.actionLoading}
+              remindersSending={remindersState.sending}
+              remindersError={remindersState.error}
+              reminderSummary={remindersState.lastSummary}
+              reminderAutomations={automationState.automations}
+              automationsLoading={automationState.loading}
+              automationsBusy={automationState.cancelling || automationState.creating}
+              onCheckIn={handleCheckIn}
+              onScanCheckIn={handleScanCheckIn}
+              onCancelRegistration={handleCancelRegistration}
+              onSendReminders={handleSendReminders}
+              onUpdateCheckInSettings={handleUpdateCheckInSettings}
+              onRotateCheckInPin={handleRotateCheckInPin}
+              onCancelAutomation={handleCancelAutomation}
+              onCreateAutomation={handleCreateAutomation}
+            />
+          </Suspense>
         )}
       </div>
 

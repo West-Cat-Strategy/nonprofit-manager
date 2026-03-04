@@ -25,6 +25,7 @@ export class PortalProfileUseCase {
       'email',
       'phone',
       'mobile_phone',
+      'phn',
       'address_line1',
       'address_line2',
       'city',

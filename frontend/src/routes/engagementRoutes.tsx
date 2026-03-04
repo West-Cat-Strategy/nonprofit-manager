@@ -5,7 +5,7 @@
 
 import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
-import { EventList, EventDetail, EventCreate, EventEdit, EventCalendarPage, TaskList, TaskDetail, TaskCreate, TaskEdit, CaseList, CaseDetail, CaseCreate, CaseEdit, ExternalServiceProviders, FollowUpsPage, OpportunitiesPage, TeamChatInboxPage } from './engagementRouteComponents';
+import { EventList, EventDetail, EventCreate, EventEdit, EventCalendarPage, EventCheckInDesk, TaskList, TaskDetail, TaskCreate, TaskEdit, CaseList, CaseDetail, CaseCreate, CaseEdit, ExternalServiceProviders, FollowUpsPage, OpportunitiesPage, TeamChatInboxPage } from './engagementRouteComponents';
 
 // Lazy load event pages
 
@@ -32,6 +32,10 @@ export function createEngagementRoutes(
       <Route
         path="/events/calendar"
         element={<NeoBrutalistRoute><EventCalendarPage /></NeoBrutalistRoute>}
+      />
+      <Route
+        path="/events/check-in"
+        element={<NeoBrutalistRoute><EventCheckInDesk /></NeoBrutalistRoute>}
       />
       <Route
         path="/events/new"

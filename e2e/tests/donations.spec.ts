@@ -209,10 +209,37 @@ test.describe('Donations Module', () => {
       paymentStatus: 'completed',
     });
 
-    await authenticatedPage.goto('/donations');
+    const donationsResponsePromise = authenticatedPage
+      .waitForResponse(
+        (response) =>
+          response.request().method() === 'GET' &&
+          response.url().includes('/api/v2/donations') &&
+          response.status() === 200,
+        { timeout: 15000 }
+      )
+      .catch(() => null);
 
-    await expect(authenticatedPage.getByText('Total Donations', { exact: true })).toBeVisible();
-    await expect(authenticatedPage.getByText('Average Donation', { exact: true })).toBeVisible();
+    await authenticatedPage.goto('/donations');
+    await donationsResponsePromise;
+
+    await expect
+      .poll(
+        async () => {
+          const totalVisible = await authenticatedPage
+            .getByText('Total Donations', { exact: true })
+            .first()
+            .isVisible()
+            .catch(() => false);
+          const averageVisible = await authenticatedPage
+            .getByText('Average Donation', { exact: true })
+            .first()
+            .isVisible()
+            .catch(() => false);
+          return totalVisible && averageVisible;
+        },
+        { timeout: 15000, intervals: [500, 1000, 1500] }
+      )
+      .toBe(true);
   });
 
   test('should handle recurring donations', async ({ authenticatedPage, authToken }) => {
@@ -276,11 +303,20 @@ test.describe('Donations Module', () => {
       )
       .catch(() => null);
     await nextButton.click();
-    await pageTwoResponsePromise;
+    const pageTwoResponse = await pageTwoResponsePromise;
+    expect(pageTwoResponse).not.toBeNull();
 
-    await expect(authenticatedPage).toHaveURL(/\/donations\?(?:.*&)?page=2(?:&.*)?$/, {
-      timeout: 15000,
-    });
-    await expect(authenticatedPage.getByText(/Showing page 2 of/i)).toBeVisible({ timeout: 15000 });
+    await expect
+      .poll(
+        () => /\/donations\?(?:.*&)?page=2(?:&.*)?$/.test(authenticatedPage.url()),
+        { timeout: 15000, intervals: [500, 1000, 1500] }
+      )
+      .toBe(true);
+    await expect
+      .poll(
+        async () => authenticatedPage.getByText(/Showing page 2 of/i).count(),
+        { timeout: 15000, intervals: [500, 1000, 1500] }
+      )
+      .toBeGreaterThan(0);
   });
 });

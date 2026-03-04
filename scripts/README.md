@@ -93,6 +93,21 @@ Deploys the application locally, to staging, or production.
 ./scripts/deploy.sh production
 ```
 
+### Docker Compose Overlays
+
+Use these commands from the repo root when you need optional overlay stacks:
+
+```bash
+# Dev stack + tools profile
+docker compose -f docker-compose.dev.yml -f docker-compose.tools.yml --profile tools up -d
+
+# Dev stack + Caddy overlay
+docker compose -f docker-compose.dev.yml -f docker-compose.caddy.yml up -d
+
+# Production-like stack + optional DB/Redis host access
+docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.host-access.yml up -d
+```
+
 ### Security
 
 #### `security-scan.sh` - Security Scanning
@@ -296,7 +311,7 @@ chmod +x scripts/*.sh
 
 **Container not running**
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 **Database connection failed**

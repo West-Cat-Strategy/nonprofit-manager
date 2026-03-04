@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BrutalBadge, BrutalButton, BrutalCard, BrutalInput, NeoBrutalistLayout } from '../../../components/neo-brutalist';
 import CaseListFiltersBar from '../../../features/cases/components/CaseListFiltersBar';
@@ -44,6 +44,221 @@ interface CaseListFilterOverrides {
 }
 
 const SAVED_VIEWS_KEY = 'cases.savedViews';
+
+const getStatusTypeBadgeColor = (statusType: CaseStatusType): 'purple' | 'green' | 'yellow' | 'gray' | 'red' => {
+  const colors: Record<CaseStatusType, 'purple' | 'green' | 'yellow' | 'gray' | 'red'> = {
+    intake: 'purple',
+    active: 'green',
+    review: 'yellow',
+    closed: 'gray',
+    cancelled: 'red',
+  };
+  return colors[statusType];
+};
+
+interface CaseDisplayMeta {
+  isOverdue: boolean;
+  isDueSoon: boolean;
+  ageLabel: string;
+  dueDateLabel: string;
+  assignedLabel: string;
+  contactLabel: string;
+}
+
+interface MobileCaseCardProps {
+  caseItem: CaseWithDetails;
+  caseMeta: CaseDisplayMeta;
+  isSelected: boolean;
+  onToggleSelection: (caseId: string) => void;
+  onNavigateCase: (caseId: string) => void;
+  onEditCase: (caseId: string) => void;
+}
+
+const MobileCaseCard = memo(
+  ({ caseItem, caseMeta, isSelected, onToggleSelection, onNavigateCase, onEditCase }: MobileCaseCardProps) => (
+    <BrutalCard
+      color="white"
+      className={`p-4 cursor-pointer transition-colors ${caseMeta.isOverdue ? 'border-app-border bg-app-accent-soft' : 'hover:bg-[var(--loop-yellow)]'}`}
+      onClick={() => onNavigateCase(caseItem.id)}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-2">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(event) => {
+              event.stopPropagation();
+              onToggleSelection(caseItem.id);
+            }}
+            onClick={(event) => event.stopPropagation()}
+            className="mt-1 w-5 h-5 border-2 border-black accent-black"
+          />
+          <div>
+            <div className="flex items-center gap-2">
+              {caseItem.is_urgent && (
+                <span className="text-black" title="Urgent">⚠️</span>
+              )}
+              <span className="text-xs font-black uppercase text-black/70">{caseItem.case_number}</span>
+            </div>
+            <div className="text-lg font-black text-black">{caseItem.title}</div>
+            <div className="text-sm font-bold text-black">{caseMeta.contactLabel}</div>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <BrutalBadge color={caseItem.status_type ? getStatusTypeBadgeColor(caseItem.status_type) : 'gray'} size="sm">
+            {caseItem.status_name}
+          </BrutalBadge>
+          <BrutalBadge color={getCasePriorityBadgeColor(caseItem.priority)} size="sm">
+            {caseItem.priority}
+          </BrutalBadge>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold text-black/70">
+        <span
+          className="inline-block border-2 border-black bg-app-surface-muted px-2 py-1 text-xs font-black uppercase text-black"
+        >
+          {caseItem.case_type_name || 'General'}
+        </span>
+        <span>Assigned: {caseMeta.assignedLabel}</span>
+        <span>Age: {caseMeta.ageLabel}</span>
+        {caseItem.due_date && (
+          <span className={caseMeta.isOverdue ? 'text-app-accent font-black' : caseMeta.isDueSoon ? 'text-app-accent font-black' : ''}>
+            Due: {caseMeta.dueDateLabel}
+            {caseMeta.isOverdue && ' (OVERDUE)'}
+          </span>
+        )}
+      </div>
+      <div className="mt-4 flex gap-2">
+        <button
+          onClick={(event) => {
+            event.stopPropagation();
+            onEditCase(caseItem.id);
+          }}
+          className="flex-1 border-2 border-black bg-white text-black px-3 py-2 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
+        >
+          Edit
+        </button>
+        <button
+          onClick={(event) => {
+            event.stopPropagation();
+            onNavigateCase(caseItem.id);
+          }}
+          className="flex-1 border-2 border-black bg-[var(--loop-green)] text-black px-3 py-2 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
+        >
+          View
+        </button>
+      </div>
+    </BrutalCard>
+  )
+);
+
+interface DesktopCaseRowProps {
+  caseItem: CaseWithDetails;
+  caseMeta: CaseDisplayMeta;
+  isSelected: boolean;
+  onToggleSelection: (caseId: string) => void;
+  onNavigateCase: (caseId: string) => void;
+  onEditCase: (caseId: string) => void;
+}
+
+const DesktopCaseRow = memo(
+  ({ caseItem, caseMeta, isSelected, onToggleSelection, onNavigateCase, onEditCase }: DesktopCaseRowProps) => (
+    <tr
+      className={`border-b-2 border-black cursor-pointer transition-colors ${
+        caseMeta.isOverdue
+          ? 'bg-app-accent-soft hover:bg-app-accent-soft'
+          : caseMeta.isDueSoon
+          ? 'bg-app-accent-soft hover:bg-app-accent-soft'
+          : 'hover:bg-[var(--loop-yellow)]'
+      } ${isSelected ? 'ring-2 ring-inset ring-black' : ''}`}
+      onClick={() => onNavigateCase(caseItem.id)}
+    >
+      <td className="px-4 py-4 whitespace-nowrap">
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={() => onToggleSelection(caseItem.id)}
+          onClick={(event) => event.stopPropagation()}
+          className="w-5 h-5 border-2 border-black accent-black"
+        />
+      </td>
+      <td className="px-4 py-4 whitespace-nowrap">
+        <div className="flex items-center gap-2">
+          {caseItem.is_urgent && (
+            <span className="text-black" title="Urgent">⚠️</span>
+          )}
+          <span className="text-sm font-black text-black">{caseItem.case_number}</span>
+        </div>
+      </td>
+      <td className="px-4 py-4">
+        <div className="text-sm font-black text-black">{caseItem.title}</div>
+        {caseItem.description && (
+          <div className="text-sm text-black/70 truncate max-w-xs">{caseItem.description}</div>
+        )}
+      </td>
+      <td className="px-4 py-4 whitespace-nowrap">
+        <div className="text-sm font-bold text-black">{caseMeta.contactLabel}</div>
+      </td>
+      <td className="px-4 py-4 whitespace-nowrap">
+        <span
+          className="inline-block border-2 border-black bg-app-surface-muted px-3 py-1 text-xs font-black uppercase text-black"
+        >
+          {caseItem.case_type_name || 'General'}
+        </span>
+      </td>
+      <td className="px-4 py-4 whitespace-nowrap">
+        <BrutalBadge color={caseItem.status_type ? getStatusTypeBadgeColor(caseItem.status_type) : 'gray'} size="sm">
+          {caseItem.status_name}
+        </BrutalBadge>
+      </td>
+      <td className="px-4 py-4 whitespace-nowrap">
+        <BrutalBadge color={getCasePriorityBadgeColor(caseItem.priority)} size="sm">
+          {caseItem.priority}
+        </BrutalBadge>
+      </td>
+      <td className="px-4 py-4 whitespace-nowrap text-sm font-bold text-black">
+        {caseMeta.assignedLabel}
+      </td>
+      <td className="px-4 py-4 whitespace-nowrap text-sm font-bold">
+        {caseItem.due_date ? (
+          <span className={caseMeta.isOverdue ? 'text-app-accent font-black' : caseMeta.isDueSoon ? 'text-app-accent font-black' : 'text-black'}>
+            {caseMeta.dueDateLabel}
+            {caseMeta.isOverdue && (
+              <span className="block text-xs text-app-accent font-black uppercase">Overdue</span>
+            )}
+          </span>
+        ) : (
+          <span className="text-black/40">—</span>
+        )}
+      </td>
+      <td className="px-4 py-4 whitespace-nowrap text-xs font-bold text-black/60">
+        {caseMeta.ageLabel}
+      </td>
+      <td className="px-4 py-4 whitespace-nowrap text-sm">
+        <div className="flex gap-2">
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              onEditCase(caseItem.id);
+            }}
+            className="border-2 border-black bg-white text-black px-3 py-1 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
+          >
+            Edit
+          </button>
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              onNavigateCase(caseItem.id);
+            }}
+            className="border-2 border-black bg-[var(--loop-green)] text-black px-3 py-1 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
+          >
+            View
+          </button>
+        </div>
+      </td>
+    </tr>
+  )
+);
 
 const CaseList = () => {
   const navigate = useNavigate();
@@ -318,17 +533,6 @@ const CaseList = () => {
     setSelectedViewId('');
   };
 
-  const getStatusTypeBadgeColor = (statusType: CaseStatusType) => {
-    const colors: Record<CaseStatusType, 'purple' | 'green' | 'yellow' | 'gray' | 'red'> = {
-      intake: 'purple',
-      active: 'green',
-      review: 'yellow',
-      closed: 'gray',
-      cancelled: 'red',
-    };
-    return colors[statusType];
-  };
-
   const totalPages = Math.ceil(total / (filters.limit || 20));
   const currentPage = filters.page || 1;
   const activeFiltersCount = [
@@ -405,48 +609,91 @@ const CaseList = () => {
         break;
     }
   };
-  const assignedLabel = (caseItem: (typeof cases)[number]) => {
-    if (caseItem.assigned_first_name || caseItem.assigned_last_name) {
-      return `${caseItem.assigned_first_name || ''} ${caseItem.assigned_last_name || ''}`.trim();
+
+  const caseDisplayMetaById = useMemo(() => {
+    const caseMeta = new Map<string, CaseDisplayMeta>();
+    const nowMs = Date.now();
+    const dueSoonCutoffMs = nowMs + dueSoonDays * 24 * 60 * 60 * 1000;
+
+    for (const caseItem of cases) {
+      const contactLabel = `${caseItem.contact_first_name || ''} ${caseItem.contact_last_name || ''}`.trim() || 'Unknown contact';
+      const assignedLabel =
+        (caseItem.assigned_first_name || caseItem.assigned_last_name)
+          ? `${caseItem.assigned_first_name || ''} ${caseItem.assigned_last_name || ''}`.trim()
+          : caseItem.assigned_to
+          ? 'Assigned'
+          : 'Unassigned';
+
+      const createdMs = new Date(caseItem.created_at).getTime();
+      const days = Math.max(0, Math.floor((nowMs - createdMs) / (1000 * 60 * 60 * 24)));
+      const ageLabel =
+        days === 0
+          ? 'Today'
+          : days === 1
+          ? '1 day'
+          : days < 30
+          ? `${days} days`
+          : `${Math.floor(days / 30)} ${Math.floor(days / 30) === 1 ? 'month' : 'months'}`;
+
+      let dueDateLabel = '—';
+      let isOverdue = false;
+      let isDueSoon = false;
+
+      if (caseItem.due_date) {
+        const dueMs = new Date(caseItem.due_date).getTime();
+        const isClosedState = caseItem.status_type === 'closed' || caseItem.status_type === 'cancelled';
+        dueDateLabel = new Date(caseItem.due_date).toLocaleDateString();
+        if (!isClosedState) {
+          isOverdue = dueMs < nowMs;
+          isDueSoon = !isOverdue && dueMs >= nowMs && dueMs <= dueSoonCutoffMs;
+        }
+      }
+
+      caseMeta.set(caseItem.id, {
+        isOverdue,
+        isDueSoon,
+        ageLabel,
+        dueDateLabel,
+        assignedLabel,
+        contactLabel,
+      });
     }
-    return caseItem.assigned_to ? 'Assigned' : 'Unassigned';
-  };
-  const contactLabel = (caseItem: (typeof cases)[number]) => {
-    const name = `${caseItem.contact_first_name || ''} ${caseItem.contact_last_name || ''}`.trim();
-    return name || 'Unknown contact';
-  };
 
-  // Overdue and due-soon helpers
-  const isOverdue = (caseItem: CaseWithDetails): boolean => {
-    if (!caseItem.due_date) return false;
-    if (caseItem.status_type === 'closed' || caseItem.status_type === 'cancelled') return false;
-    return new Date(caseItem.due_date) < new Date();
-  };
+    return caseMeta;
+  }, [cases, dueSoonDays]);
 
-  const isDueSoon = (caseItem: CaseWithDetails, days = 7): boolean => {
-    if (!caseItem.due_date) return false;
-    if (caseItem.status_type === 'closed' || caseItem.status_type === 'cancelled') return false;
-    const due = new Date(caseItem.due_date);
-    const now = new Date();
-    const future = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
-    return due >= now && due <= future;
-  };
+  const handleToggleSelection = useCallback(
+    (caseId: string) => {
+      dispatch(toggleCaseSelection(caseId));
+    },
+    [dispatch]
+  );
 
-  const getCaseAge = (caseItem: CaseWithDetails): string => {
-    const created = new Date(caseItem.created_at);
-    const now = new Date();
-    const days = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
-    if (days === 0) return 'Today';
-    if (days === 1) return '1 day';
-    if (days < 30) return `${days} days`;
-    const months = Math.floor(days / 30);
-    return months === 1 ? '1 month' : `${months} months`;
-  };
+  const handleNavigateCase = useCallback(
+    (caseId: string) => {
+      navigate(`/cases/${caseId}`);
+    },
+    [navigate]
+  );
 
-  const formatDueDate = (dateStr?: string | null): string => {
-    if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString();
-  };
+  const handleEditCase = useCallback(
+    (caseId: string) => {
+      navigate(`/cases/${caseId}/edit`);
+    },
+    [navigate]
+  );
+
+  const handleNavigateNewCase = useCallback(() => {
+    navigate('/cases/new');
+  }, [navigate]);
+
+  const handleClearSelection = useCallback(() => {
+    dispatch(clearCaseSelection());
+  }, [dispatch]);
+
+  const handleSelectAllCases = useCallback(() => {
+    dispatch(selectAllCases());
+  }, [dispatch]);
 
   const handleBulkStatusUpdate = async () => {
     if (!bulkStatusId || selectedCaseIds.length === 0) return;
@@ -494,7 +741,7 @@ const CaseList = () => {
               {total} {total === 1 ? 'case' : 'cases'} found
             </p>
           </div>
-          <BrutalButton onClick={() => navigate('/cases/new')} variant="primary">
+          <BrutalButton onClick={handleNavigateNewCase} variant="primary">
             + New Case
           </BrutalButton>
         </div>
@@ -792,7 +1039,7 @@ const CaseList = () => {
               <span className="text-sm font-black uppercase text-black">
                 {selectedCaseIds.length} case{selectedCaseIds.length === 1 ? '' : 's'} selected
               </span>
-              <BrutalButton onClick={() => dispatch(clearCaseSelection())} variant="secondary" size="sm">
+              <BrutalButton onClick={handleClearSelection} variant="secondary" size="sm">
                 Clear
               </BrutalButton>
             </div>
@@ -853,73 +1100,21 @@ const CaseList = () => {
       {!loading && visibleCases.length > 0 && (
         <>
           <div className="grid grid-cols-1 gap-4 md:hidden">
-            {visibleCases.map((caseItem) => (
-              <BrutalCard
-                key={caseItem.id}
-                color="white"
-                className={`p-4 cursor-pointer transition-colors ${isOverdue(caseItem) ? 'border-app-border bg-app-accent-soft' : 'hover:bg-[var(--loop-yellow)]'}`}
-                onClick={() => navigate(`/cases/${caseItem.id}`)}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedCaseIds.includes(caseItem.id)}
-                      onChange={(e) => { e.stopPropagation(); dispatch(toggleCaseSelection(caseItem.id)); }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="mt-1 w-5 h-5 border-2 border-black accent-black"
-                    />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        {caseItem.is_urgent && (
-                          <span className="text-black" title="Urgent">⚠️</span>
-                        )}
-                        <span className="text-xs font-black uppercase text-black/70">{caseItem.case_number}</span>
-                      </div>
-                      <div className="text-lg font-black text-black">{caseItem.title}</div>
-                      <div className="text-sm font-bold text-black">{contactLabel(caseItem)}</div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <BrutalBadge color={caseItem.status_type ? getStatusTypeBadgeColor(caseItem.status_type) : 'gray'} size="sm">
-                      {caseItem.status_name}
-                    </BrutalBadge>
-                    <BrutalBadge color={getCasePriorityBadgeColor(caseItem.priority)} size="sm">
-                      {caseItem.priority}
-                    </BrutalBadge>
-                  </div>
-                </div>
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold text-black/70">
-                  <span
-                    className="inline-block border-2 border-black bg-app-surface-muted px-2 py-1 text-xs font-black uppercase text-black"
-                  >
-                    {caseItem.case_type_name || 'General'}
-                  </span>
-                  <span>Assigned: {assignedLabel(caseItem)}</span>
-                  <span>Age: {getCaseAge(caseItem)}</span>
-                  {caseItem.due_date && (
-                    <span className={isOverdue(caseItem) ? 'text-app-accent font-black' : isDueSoon(caseItem) ? 'text-app-accent font-black' : ''}>
-                      Due: {formatDueDate(caseItem.due_date)}
-                      {isOverdue(caseItem) && ' (OVERDUE)'}
-                    </span>
-                  )}
-                </div>
-                <div className="mt-4 flex gap-2">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); navigate(`/cases/${caseItem.id}/edit`); }}
-                    className="flex-1 border-2 border-black bg-white text-black px-3 py-2 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); navigate(`/cases/${caseItem.id}`); }}
-                    className="flex-1 border-2 border-black bg-[var(--loop-green)] text-black px-3 py-2 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
-                  >
-                    View
-                  </button>
-                </div>
-              </BrutalCard>
-            ))}
+            {visibleCases.map((caseItem) => {
+              const caseMeta = caseDisplayMetaById.get(caseItem.id);
+              if (!caseMeta) return null;
+              return (
+                <MobileCaseCard
+                  key={caseItem.id}
+                  caseItem={caseItem}
+                  caseMeta={caseMeta}
+                  isSelected={selectedCaseIds.includes(caseItem.id)}
+                  onToggleSelection={handleToggleSelection}
+                  onNavigateCase={handleNavigateCase}
+                  onEditCase={handleEditCase}
+                />
+              );
+            })}
           </div>
 
           <BrutalCard color="white" className="hidden md:block overflow-hidden">
@@ -931,7 +1126,11 @@ const CaseList = () => {
                       <input
                         type="checkbox"
                         checked={selectedCaseIds.length === visibleCases.length && visibleCases.length > 0}
-                        onChange={() => selectedCaseIds.length === visibleCases.length ? dispatch(clearCaseSelection()) : dispatch(selectAllCases())}
+                        onChange={() =>
+                          selectedCaseIds.length === visibleCases.length
+                            ? handleClearSelection()
+                            : handleSelectAllCases()
+                        }
                         className="w-5 h-5 border-2 border-black accent-black"
                       />
                     </th>
@@ -969,98 +1168,18 @@ const CaseList = () => {
                 </thead>
                 <tbody className="bg-white">
                   {visibleCases.map((caseItem) => {
-                    const caseOverdue = isOverdue(caseItem);
-                    const caseDueSoon = isDueSoon(caseItem);
+                    const caseMeta = caseDisplayMetaById.get(caseItem.id);
+                    if (!caseMeta) return null;
                     return (
-                    <tr
-                      key={caseItem.id}
-                      className={`border-b-2 border-black cursor-pointer transition-colors ${
-                        caseOverdue
-                          ? 'bg-app-accent-soft hover:bg-app-accent-soft'
-                          : caseDueSoon
-                          ? 'bg-app-accent-soft hover:bg-app-accent-soft'
-                          : 'hover:bg-[var(--loop-yellow)]'
-                      } ${selectedCaseIds.includes(caseItem.id) ? 'ring-2 ring-inset ring-black' : ''}`}
-                      onClick={() => navigate(`/cases/${caseItem.id}`)}
-                    >
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <input
-                          type="checkbox"
-                          checked={selectedCaseIds.includes(caseItem.id)}
-                          onChange={() => dispatch(toggleCaseSelection(caseItem.id))}
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-5 h-5 border-2 border-black accent-black"
-                        />
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          {caseItem.is_urgent && (
-                            <span className="text-black" title="Urgent">⚠️</span>
-                          )}
-                          <span className="text-sm font-black text-black">{caseItem.case_number}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="text-sm font-black text-black">{caseItem.title}</div>
-                        {caseItem.description && (
-                          <div className="text-sm text-black/70 truncate max-w-xs">{caseItem.description}</div>
-                        )}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="text-sm font-bold text-black">{contactLabel(caseItem)}</div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span
-                          className="inline-block border-2 border-black bg-app-surface-muted px-3 py-1 text-xs font-black uppercase text-black"
-                        >
-                          {caseItem.case_type_name || 'General'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <BrutalBadge color={caseItem.status_type ? getStatusTypeBadgeColor(caseItem.status_type) : 'gray'} size="sm">
-                          {caseItem.status_name}
-                        </BrutalBadge>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                          <BrutalBadge color={getCasePriorityBadgeColor(caseItem.priority)} size="sm">
-                            {caseItem.priority}
-                          </BrutalBadge>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm font-bold text-black">
-                        {assignedLabel(caseItem)}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm font-bold">
-                        {caseItem.due_date ? (
-                          <span className={caseOverdue ? 'text-app-accent font-black' : caseDueSoon ? 'text-app-accent font-black' : 'text-black'}>
-                            {formatDueDate(caseItem.due_date)}
-                            {caseOverdue && (
-                              <span className="block text-xs text-app-accent font-black uppercase">Overdue</span>
-                            )}
-                          </span>
-                        ) : (
-                          <span className="text-black/40">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-xs font-bold text-black/60">
-                        {getCaseAge(caseItem)}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); navigate(`/cases/${caseItem.id}/edit`); }}
-                            className="border-2 border-black bg-white text-black px-3 py-1 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); navigate(`/cases/${caseItem.id}`); }}
-                            className="border-2 border-black bg-[var(--loop-green)] text-black px-3 py-1 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
-                          >
-                            View
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                      <DesktopCaseRow
+                        key={caseItem.id}
+                        caseItem={caseItem}
+                        caseMeta={caseMeta}
+                        isSelected={selectedCaseIds.includes(caseItem.id)}
+                        onToggleSelection={handleToggleSelection}
+                        onNavigateCase={handleNavigateCase}
+                        onEditCase={handleEditCase}
+                      />
                     );
                   })}
                 </tbody>
@@ -1081,7 +1200,7 @@ const CaseList = () => {
               : 'Get started by creating your first case'}
           </p>
           <div className="flex justify-center">
-            <BrutalButton onClick={() => navigate('/cases/new')} variant="primary">
+            <BrutalButton onClick={handleNavigateNewCase} variant="primary">
               Create First Case
             </BrutalButton>
           </div>

@@ -14,7 +14,7 @@ import { getRegistrationMode } from '@services/registrationSettingsService';
 import { createPendingRegistration } from '@services/pendingRegistrationService';
 import {
   countAdminUsers,
-  countAllUsers,
+  getSetupUserCounts,
   createAuthUser,
   createInitialAdminUser,
   createOrganizationAccount,
@@ -33,62 +33,85 @@ export const register = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
+    const runStep = async <T>(step: string, operation: () => Promise<T>): Promise<T> => {
+      try {
+        return await operation();
+      } catch (error) {
+        const registerError = error as {
+          code?: string;
+          message?: string;
+          stack?: string;
+          errors?: unknown[];
+        };
+        logger.error('register.step_failed', {
+          step,
+          code: registerError.code,
+          message: registerError.message,
+          stack: registerError.stack,
+          errors: registerError.errors,
+        });
+        throw error;
+      }
+    };
+
     const bypassRegistrationPolicyInTests =
       process.env.NODE_ENV === 'test' &&
       process.env.BYPASS_REGISTRATION_POLICY_IN_TEST === 'true';
-    const registrationMode = await getRegistrationMode();
-    if (!bypassRegistrationPolicyInTests && registrationMode === 'disabled') {
-      return forbidden(res, 'Registration is currently disabled');
-    }
-
     const { email, password, firstName, lastName } = req.body as RegisterRequest;
 
-    if (!bypassRegistrationPolicyInTests && registrationMode === 'approval_required') {
-      try {
-        await createPendingRegistration({
-          email,
-          password,
-          firstName,
-          lastName,
-        });
-      } catch (err: unknown) {
-        if (err instanceof Error && err.message.includes('already pending')) {
-          return conflict(res, err.message);
-        }
-        if (err instanceof Error && err.message.includes('already exists')) {
-          return conflict(res, err.message);
-        }
-        throw err;
+    if (!bypassRegistrationPolicyInTests) {
+      const registrationMode = await runStep('getRegistrationMode', () => getRegistrationMode());
+      if (registrationMode === 'disabled') {
+        return forbidden(res, 'Registration is currently disabled');
       }
 
-      return sendSuccess(
-        res,
-        {
-          message:
-            'Your registration request has been submitted and is awaiting admin approval. You will receive an email once your account is approved.',
-          pendingApproval: true,
-        },
-        202
-      );
+      if (registrationMode === 'approval_required') {
+        try {
+          await runStep('createPendingRegistration', () => createPendingRegistration({
+            email,
+            password,
+            firstName,
+            lastName,
+          }));
+        } catch (err: unknown) {
+          if (err instanceof Error && err.message.includes('already pending')) {
+            return conflict(res, err.message);
+          }
+          if (err instanceof Error && err.message.includes('already exists')) {
+            return conflict(res, err.message);
+          }
+          throw err;
+        }
+
+        return sendSuccess(
+          res,
+          {
+            message:
+              'Your registration request has been submitted and is awaiting admin approval. You will receive an email once your account is approved.',
+            pendingApproval: true,
+          },
+          202
+        );
+      }
     }
 
-    const existingUserId = await findUserIdByEmail(email);
+    const existingUserId = await runStep('findUserIdByEmail', () => findUserIdByEmail(email));
     if (existingUserId) {
       return conflict(res, 'User already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(password, PASSWORD.BCRYPT_SALT_ROUNDS);
+    const hashedPassword = await runStep('hashPassword', () => bcrypt.hash(password, PASSWORD.BCRYPT_SALT_ROUNDS));
 
-    const user = await createAuthUser({
+    const user = await runStep('createAuthUser', () => createAuthUser({
       email,
       passwordHash: hashedPassword,
       firstName,
       lastName,
       role: 'user',
-    });
-    await syncUserRole(user.id, user.role);
+    }));
+    await runStep('syncUserRole', () => syncUserRole(user.id, user.role));
 
-    const organizationId = await getDefaultOrganizationId();
+    const organizationId = await runStep('getDefaultOrganizationId', () => getDefaultOrganizationId());
     const jwtSecret = getJwtSecret();
     const token = jwt.sign(
       {
@@ -124,8 +147,7 @@ export const checkSetupStatus = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const adminCount = await countAdminUsers();
-    const userCount = await countAllUsers();
+    const { adminCount, userCount } = await getSetupUserCounts();
 
     return sendSuccess(res, {
       setupRequired: adminCount === 0,

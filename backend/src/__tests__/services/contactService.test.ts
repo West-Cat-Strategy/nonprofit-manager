@@ -1,5 +1,6 @@
 import { ContactService } from '@services';
 import { Pool } from 'pg';
+import { decrypt, encrypt } from '@utils/encryption';
 
 // Mock the logger
 jest.mock('../../config/logger', () => ({
@@ -9,6 +10,16 @@ jest.mock('../../config/logger', () => ({
     warn: jest.fn(),
     debug: jest.fn(),
   },
+}));
+
+jest.mock('@utils/encryption', () => ({
+  encrypt: jest.fn((value: string) => `enc:${value}`),
+  decrypt: jest.fn((value: string) => {
+    if (!value.startsWith('enc:')) {
+      throw new Error('Invalid encrypted payload');
+    }
+    return value.slice(4);
+  }),
 }));
 
 describe('ContactService', () => {
@@ -41,7 +52,10 @@ describe('ContactService', () => {
 
       const result = await contactService.getContacts();
 
-      expect(result.data).toEqual(mockContacts);
+      expect(result.data).toEqual([
+        expect.objectContaining({ contact_id: '1', first_name: 'John', last_name: 'Doe', phn: null }),
+        expect.objectContaining({ contact_id: '2', first_name: 'Jane', last_name: 'Smith', phn: null }),
+      ]);
       expect(result.pagination.total).toBe(2);
       expect(result.pagination.page).toBe(1);
       expect(result.pagination.limit).toBe(20);
@@ -130,8 +144,39 @@ describe('ContactService', () => {
 
       const result = await contactService.getContactById('123');
 
-      expect(result).toEqual(mockContact);
+      expect(result).toEqual(expect.objectContaining({ ...mockContact, phn: null }));
       expect(mockQuery).toHaveBeenCalledWith(expect.any(String), ['123']);
+    });
+
+    it('should return full PHN for staff role', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ contact_id: '123', first_name: 'John', last_name: 'Doe', phn_encrypted: 'enc:1234567890' }],
+      });
+
+      const result = await contactService.getContactById('123', 'staff');
+
+      expect(decrypt).toHaveBeenCalledWith('enc:1234567890');
+      expect(result).toEqual(expect.objectContaining({ phn: '1234567890' }));
+    });
+
+    it('should return masked PHN for non-staff role', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ contact_id: '123', first_name: 'John', last_name: 'Doe', phn_encrypted: 'enc:1234567890' }],
+      });
+
+      const result = await contactService.getContactById('123', 'volunteer');
+
+      expect(result).toEqual(expect.objectContaining({ phn: '******7890' }));
+    });
+
+    it('should fail safe when PHN decrypt fails', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ contact_id: '123', first_name: 'John', last_name: 'Doe', phn_encrypted: 'invalid-value' }],
+      });
+
+      const result = await contactService.getContactById('123', 'admin');
+
+      expect(result).toEqual(expect.objectContaining({ phn: null }));
     });
 
     it('should return null when contact not found', async () => {
@@ -164,7 +209,7 @@ describe('ContactService', () => {
         'user-123'
       );
 
-      expect(result).toEqual(mockCreatedContact);
+      expect(result).toEqual(expect.objectContaining({ ...mockCreatedContact, phn: null }));
     });
 
     it('should create contact with all optional fields', async () => {
@@ -196,6 +241,24 @@ describe('ContactService', () => {
       expect(result.job_title).toBe('Developer');
     });
 
+    it('should encrypt PHN on create and never persist plaintext PHN', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ contact_id: 'uuid', first_name: 'John', last_name: 'Doe', phn_encrypted: 'enc:1234567890' }],
+      });
+
+      const result = await contactService.createContact(
+        { first_name: 'John', last_name: 'Doe', phn: '123-456-7890' },
+        'user-123',
+        'staff'
+      );
+
+      expect(encrypt).toHaveBeenCalledWith('1234567890');
+      const insertValues = mockQuery.mock.calls[0][1] as unknown[];
+      expect(insertValues).toContain('enc:1234567890');
+      expect(insertValues).not.toContain('1234567890');
+      expect(result.phn).toBe('1234567890');
+    });
+
     it('should throw error on database failure', async () => {
       mockQuery.mockRejectedValueOnce(new Error('Database error'));
 
@@ -217,7 +280,7 @@ describe('ContactService', () => {
 
       const result = await contactService.updateContact('123', { first_name: 'Johnny' }, 'user-123');
 
-      expect(result).toEqual(mockUpdatedContact);
+      expect(result).toEqual(expect.objectContaining({ ...mockUpdatedContact, phn: null }));
     });
 
     it('should return null when contact not found', async () => {
@@ -230,6 +293,34 @@ describe('ContactService', () => {
 
     it('should throw error when no fields to update', async () => {
       await expect(contactService.updateContact('123', {}, 'user-123')).rejects.toThrow('Failed to update contact');
+    });
+
+    it('should clear encrypted PHN when update uses empty string or null', async () => {
+      mockQuery.mockResolvedValue({
+        rows: [{ contact_id: '123', first_name: 'John', last_name: 'Doe', phn_encrypted: null }],
+      });
+
+      const fromEmptyString = await contactService.updateContact(
+        '123',
+        { phn: '' },
+        'user-123',
+        'staff'
+      );
+      const emptyStringCall = mockQuery.mock.calls[0];
+      expect(emptyStringCall[0]).toContain('phn_encrypted');
+      expect(emptyStringCall[1]).toContain(null);
+      expect(fromEmptyString).toEqual(expect.objectContaining({ phn: null }));
+
+      mockQuery.mockClear();
+      mockQuery.mockResolvedValue({
+        rows: [{ contact_id: '123', first_name: 'John', last_name: 'Doe', phn_encrypted: null }],
+      });
+
+      const fromNull = await contactService.updateContact('123', { phn: null }, 'user-123', 'staff');
+      const nullCall = mockQuery.mock.calls[0];
+      expect(nullCall[0]).toContain('phn_encrypted');
+      expect(nullCall[1]).toContain(null);
+      expect(fromNull).toEqual(expect.objectContaining({ phn: null }));
     });
 
     it('should update multiple fields at once', async () => {
@@ -248,7 +339,7 @@ describe('ContactService', () => {
         'user-123'
       );
 
-      expect(result).toEqual(mockUpdatedContact);
+      expect(result).toEqual(expect.objectContaining({ ...mockUpdatedContact, phn: null }));
     });
 
     it('should throw error on database failure', async () => {

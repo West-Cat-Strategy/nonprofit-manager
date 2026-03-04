@@ -1,7 +1,19 @@
 import { screen, waitFor } from '@testing-library/react';
+import type { NavigateFunction } from 'react-router-dom';
+import type * as ReactRouterDom from 'react-router-dom';
+import { vi } from 'vitest';
 import AdminSettings from '../../admin/AdminSettings';
 import { renderWithProviders } from '../../../test/testUtils';
-import { vi } from 'vitest';
+
+const mockNavigate = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof ReactRouterDom>('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate as unknown as NavigateFunction,
+  };
+});
 
 vi.mock('../../../services/api', () => ({
   default: {
@@ -33,10 +45,49 @@ vi.mock('../../../features/adminOps/pages/adminSettings/components/UserSecurityM
 vi.mock('../../../features/adminOps/pages/adminSettings/components/PortalResetPasswordModal', () => ({ default: () => null }));
 
 describe('AdminSettings page', () => {
-  it('renders admin settings shell', async () => {
+  beforeEach(() => {
+    mockNavigate.mockClear();
+    window.localStorage.clear();
+  });
+
+  it('renders admin settings shell and portal launch links', async () => {
     renderWithProviders(<AdminSettings />);
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /admin settings/i })).toBeInTheDocument();
+    });
+    expect(screen.getByRole('heading', { name: /portal operations/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /access/i })).toHaveAttribute(
+      'href',
+      '/settings/admin/portal/access'
+    );
+    expect(screen.queryByText(/portal section/i)).not.toBeInTheDocument();
+  });
+
+  it('honors a valid section query parameter', async () => {
+    renderWithProviders(<AdminSettings />, { route: '/settings/admin?section=organization' });
+    await waitFor(() => {
+      expect(screen.getByText('Organization Section')).toBeInTheDocument();
+    });
+  });
+
+  it('falls back to dashboard when section query is invalid', async () => {
+    renderWithProviders(<AdminSettings />, { route: '/settings/admin?section=not-a-real-section' });
+    await waitFor(() => {
+      expect(screen.getByText('Dashboard Section')).toBeInTheDocument();
+    });
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: '/settings/admin',
+        search: expect.stringContaining('section=dashboard'),
+      }),
+      { replace: true }
+    );
+  });
+
+  it('redirects section=portal to dedicated portal route', async () => {
+    renderWithProviders(<AdminSettings />, { route: '/settings/admin?section=portal' });
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/settings/admin/portal/access', { replace: true });
     });
   });
 });

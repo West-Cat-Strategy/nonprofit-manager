@@ -1,6 +1,9 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
+const hasPackage = (id: string, packageName: string): boolean =>
+  id.includes(`/node_modules/${packageName}/`)
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -9,23 +12,46 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Core React runtime — cached across all routes
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          // State management
-          'vendor-redux': ['@reduxjs/toolkit', 'react-redux'],
-          // Heavy charting library — only loaded on analytics pages
-          'vendor-recharts': ['recharts'],
-          // UI libraries
-          'vendor-ui': ['@headlessui/react', '@heroicons/react'],
-          // Date utilities
-          'vendor-date': ['date-fns'],
-          // Drag and drop
-          'vendor-dnd': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
-          // PDF generation — only loaded when exporting
-          'vendor-pdf': ['jspdf', 'jspdf-autotable'],
-          // Stripe — only loaded on payment pages
-          'vendor-stripe': ['@stripe/react-stripe-js', '@stripe/stripe-js'],
+        manualChunks(id) {
+          if (
+            id.includes('\0vite/preload-helper') ||
+            id.includes('\0commonjsHelpers') ||
+            id.includes('/vite/dist/client/')
+          ) {
+            return 'vendor-runtime'
+          }
+
+          if (hasPackage(id, 'react') || hasPackage(id, 'react-dom') || hasPackage(id, 'react-router-dom')) {
+            return 'vendor-react'
+          }
+
+          if (hasPackage(id, '@reduxjs/toolkit') || hasPackage(id, 'react-redux')) {
+            return 'vendor-redux'
+          }
+
+          if (hasPackage(id, 'recharts')) {
+            return 'vendor-recharts'
+          }
+
+          if (hasPackage(id, '@headlessui/react') || hasPackage(id, '@heroicons/react')) {
+            return 'vendor-ui'
+          }
+
+          if (hasPackage(id, 'date-fns')) {
+            return 'vendor-date'
+          }
+
+          if (hasPackage(id, '@dnd-kit/core') || hasPackage(id, '@dnd-kit/sortable') || hasPackage(id, '@dnd-kit/utilities')) {
+            return 'vendor-dnd'
+          }
+
+          if (hasPackage(id, 'jspdf') || hasPackage(id, 'jspdf-autotable')) {
+            return 'vendor-pdf'
+          }
+
+          if (hasPackage(id, '@stripe/react-stripe-js') || hasPackage(id, '@stripe/stripe-js')) {
+            return 'vendor-stripe'
+          }
         },
       },
     },
@@ -46,7 +72,7 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'HTTP://backend-dev:3000',
+        target: 'http://backend-dev:3000',
         changeOrigin: true,
       },
     },

@@ -36,6 +36,7 @@ const getDefaultFilters = (): OutcomesReportFilters => {
     to: getDateString(now),
     bucket: 'month',
     includeNonReportable: false,
+    source: 'all',
   };
 };
 
@@ -51,6 +52,9 @@ const formatBucket = (value: string): string => {
   });
 };
 
+const formatSeriesKey = (outcomeName: string, source: 'interaction' | 'event'): string =>
+  `${outcomeName} (${source === 'interaction' ? 'Interaction' : 'Event'})`;
+
 const seriesColors = [
   'var(--loop-blue)',
   'var(--loop-yellow)',
@@ -58,6 +62,12 @@ const seriesColors = [
   'var(--loop-purple)',
   'var(--loop-red)',
   'var(--loop-cyan)',
+  '#1f8f5f',
+  '#b45a1a',
+  '#4b5dff',
+  '#9466ff',
+  '#0b7285',
+  '#9a031e',
 ];
 
 const OutcomesReport = () => {
@@ -83,7 +93,9 @@ const OutcomesReport = () => {
 
     for (const point of report.timeseries) {
       const key = point.bucketStart;
-      const label = outcomeNameById.get(point.outcomeDefinitionId) || point.outcomeDefinitionId;
+      const outcomeName = outcomeNameById.get(point.outcomeDefinitionId) || point.outcomeDefinitionId;
+      const seriesKey = formatSeriesKey(outcomeName, point.source);
+
       if (!grouped.has(key)) {
         grouped.set(key, { bucketStart: key });
       }
@@ -91,7 +103,7 @@ const OutcomesReport = () => {
       if (!current) {
         continue;
       }
-      current[label] = Number(current[label] || 0) + point.countImpacts;
+      current[seriesKey] = Number(current[seriesKey] || 0) + point.countImpacts;
     }
 
     return Array.from(grouped.entries())
@@ -103,7 +115,31 @@ const OutcomesReport = () => {
       }));
   }, [report]);
 
-  const outcomeSeries = useMemo(() => report?.totalsByOutcome.map((row) => row.name) || [], [report]);
+  const outcomeSeries = useMemo(() => {
+    if (!report) {
+      return [];
+    }
+
+    const sourceScope =
+      filters.source === 'interaction'
+        ? (['interaction'] as const)
+        : filters.source === 'event'
+          ? (['event'] as const)
+          : (['interaction', 'event'] as const);
+
+    const series: string[] = [];
+
+    for (const row of report.totalsByOutcome) {
+      for (const source of sourceScope) {
+        const sourceCount = row.sourceBreakdown[source].countImpacts;
+        if (sourceCount > 0) {
+          series.push(formatSeriesKey(row.name, source));
+        }
+      }
+    }
+
+    return Array.from(new Set(series));
+  }, [filters.source, report]);
 
   const handleFilterChange = <K extends keyof OutcomesReportFilters>(
     key: K,
@@ -120,12 +156,25 @@ const OutcomesReport = () => {
       return;
     }
 
-    const headers = ['Outcome', 'Key', 'Count Impacts', 'Unique Clients Impacted'];
+    const headers = [
+      'Outcome',
+      'Key',
+      'Total Impacts',
+      'Unique Clients Impacted',
+      'Interaction Impacts',
+      'Interaction Unique Clients',
+      'Event Impacts',
+      'Event Unique Clients',
+    ];
     const rows = report.totalsByOutcome.map((row) => [
       row.name,
       row.key,
       String(row.countImpacts),
       String(row.uniqueClientsImpacted),
+      String(row.sourceBreakdown.interaction.countImpacts),
+      String(row.sourceBreakdown.interaction.uniqueClientsImpacted),
+      String(row.sourceBreakdown.event.countImpacts),
+      String(row.sourceBreakdown.event.uniqueClientsImpacted),
     ]);
 
     const csvContent = [headers, ...rows]
@@ -148,7 +197,7 @@ const OutcomesReport = () => {
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
         <PageHeader
           title="Outcomes Report"
-          description="Track interaction-level outcomes over time."
+          description="Track outcomes across both interaction tags and case outcome events."
           actions={
             <PrimaryButton onClick={handleCsvExport} disabled={!report || report.totalsByOutcome.length === 0}>
               Export CSV
@@ -156,8 +205,8 @@ const OutcomesReport = () => {
           }
         />
 
-        <SectionCard title="Filters" subtitle="Adjust date range, segmentation, and reporting scope.">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3 lg:grid-cols-6">
+        <SectionCard title="Filters" subtitle="Adjust date range, segmentation, source scope, and reporting options.">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3 lg:grid-cols-7">
             <FormField
               type="date"
               label="From"
@@ -179,6 +228,17 @@ const OutcomesReport = () => {
             >
               <option value="week">Week</option>
               <option value="month">Month</option>
+            </SelectField>
+            <SelectField
+              label="Source"
+              value={filters.source || 'all'}
+              onChange={(event) =>
+                handleFilterChange('source', event.target.value as OutcomesReportFilters['source'])
+              }
+            >
+              <option value="all">All</option>
+              <option value="interaction">Interaction tags</option>
+              <option value="event">Case outcome events</option>
             </SelectField>
             <FormField
               type="text"
@@ -245,10 +305,16 @@ const OutcomesReport = () => {
                           Outcome
                         </th>
                         <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-app-text-muted">
-                          Impacts
+                          Total Impacts
                         </th>
                         <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-app-text-muted">
-                          Unique Clients
+                          Total Unique Clients
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-app-text-muted">
+                          Interaction Impacts
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-app-text-muted">
+                          Event Impacts
                         </th>
                       </tr>
                     </thead>
@@ -261,6 +327,12 @@ const OutcomesReport = () => {
                           </td>
                           <td className="px-3 py-2 text-sm text-app-text">{row.countImpacts}</td>
                           <td className="px-3 py-2 text-sm text-app-text">{row.uniqueClientsImpacted}</td>
+                          <td className="px-3 py-2 text-sm text-app-text">
+                            {row.sourceBreakdown.interaction.countImpacts}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-app-text">
+                            {row.sourceBreakdown.event.countImpacts}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

@@ -1,5 +1,7 @@
 export type OutcomeAttribution = 'DIRECT' | 'LIKELY' | 'POSSIBLE';
 export type OutcomeUpdateMode = 'replace' | 'merge';
+export type OutcomeReportSource = 'interaction' | 'event';
+export type OutcomeReportSourceFilter = 'all' | OutcomeReportSource;
 
 export interface OutcomeDefinition {
   id: string;
@@ -67,11 +69,22 @@ export interface OutcomesReportTotal {
   name: string;
   countImpacts: number;
   uniqueClientsImpacted: number;
+  sourceBreakdown: {
+    interaction: {
+      countImpacts: number;
+      uniqueClientsImpacted: number;
+    };
+    event: {
+      countImpacts: number;
+      uniqueClientsImpacted: number;
+    };
+  };
 }
 
 export interface OutcomesReportTimeseriesPoint {
   bucketStart: string;
   outcomeDefinitionId: string;
+  source: OutcomeReportSource;
   countImpacts: number;
 }
 
@@ -88,4 +101,5 @@ export interface OutcomesReportFilters {
   interactionType?: 'note' | 'email' | 'call' | 'meeting' | 'update' | 'status_change';
   bucket?: 'week' | 'month';
   includeNonReportable?: boolean;
+  source?: OutcomeReportSourceFilter;
 }

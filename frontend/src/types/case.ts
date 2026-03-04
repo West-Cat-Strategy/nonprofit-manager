@@ -1,7 +1,12 @@
 // Case Management Types
 // Frontend types matching backend case management system
 
-import type { InteractionOutcomeImpact, OutcomeDefinition } from './outcomes';
+import type {
+  InteractionOutcomeImpact,
+  InteractionOutcomeImpactInput,
+  OutcomeDefinition,
+  OutcomeUpdateMode,
+} from './outcomes';
 
 export type CasePriority = 'low' | 'medium' | 'high' | 'urgent' | 'critical';
 export type CaseSource = 'phone' | 'email' | 'walk-in' | 'referral' | 'web' | 'other';
@@ -149,6 +154,11 @@ export interface CaseOutcomeEvent {
   case_id: string;
   account_id?: string | null;
   outcome_type?: string | null;
+  outcome_definition_id?: string | null;
+  outcome_definition_key?: string | null;
+  outcome_definition_name?: string | null;
+  source_interaction_id?: string | null;
+  entry_source?: CaseOutcomeEntrySource | null;
   outcome_date: string;
   notes?: string | null;
   visible_to_client: boolean;
@@ -238,6 +248,7 @@ export type RelationshipType = 'duplicate' | 'related' | 'parent' | 'child' | 'b
 export type ServiceType = 'counseling' | 'legal' | 'financial' | 'housing' | 'healthcare' | 'education' | 'employment' | 'other';
 export type ServiceStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show';
 export type ServiceOutcome = 'attended_event' | 'additional_related_case' | 'completed' | 'follow_up_needed' | 'other';
+export type CaseOutcomeEntrySource = 'manual' | 'interaction_sync' | 'legacy';
 
 export interface ExternalServiceProvider {
   id: string;
@@ -402,6 +413,8 @@ export interface CreateCaseNoteDTO {
   is_portal_visible?: boolean;
   is_important?: boolean;
   attachments?: unknown[];
+  outcome_impacts?: InteractionOutcomeImpactInput[];
+  outcomes_mode?: OutcomeUpdateMode;
 }
 
 export interface UpdateCaseNoteDTO {
@@ -414,10 +427,13 @@ export interface UpdateCaseNoteDTO {
   is_portal_visible?: boolean;
   is_important?: boolean;
   attachments?: unknown[] | null;
+  outcome_impacts?: InteractionOutcomeImpactInput[];
+  outcomes_mode?: OutcomeUpdateMode;
 }
 
 export interface CreateCaseOutcomeDTO {
   outcome_type?: string;
+  outcome_definition_id?: string;
   outcome_date?: string;
   notes?: string;
   visible_to_client?: boolean;
@@ -426,6 +442,7 @@ export interface CreateCaseOutcomeDTO {
 
 export interface UpdateCaseOutcomeDTO {
   outcome_type?: string | null;
+  outcome_definition_id?: string;
   outcome_date?: string;
   notes?: string | null;
   visible_to_client?: boolean;
