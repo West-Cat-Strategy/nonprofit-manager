@@ -10,6 +10,7 @@ const sampleFilters = {
   from: '2026-01-01',
   to: '2026-01-31',
   bucket: 'week' as const,
+  source: 'all' as const,
 };
 
 const sampleReport = {
@@ -20,12 +21,23 @@ const sampleReport = {
       name: 'Maintained employment',
       countImpacts: 4,
       uniqueClientsImpacted: 3,
+      sourceBreakdown: {
+        interaction: {
+          countImpacts: 2,
+          uniqueClientsImpacted: 2,
+        },
+        event: {
+          countImpacts: 2,
+          uniqueClientsImpacted: 2,
+        },
+      },
     },
   ],
   timeseries: [
     {
       bucketStart: '2026-01-01',
       outcomeDefinitionId: 'outcome-1',
+      source: 'interaction' as const,
       countImpacts: 2,
     },
   ],

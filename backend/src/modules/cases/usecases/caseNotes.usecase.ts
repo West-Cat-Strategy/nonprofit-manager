@@ -1,10 +1,24 @@
 import type { CaseNotesPort } from '../types/ports';
 import type { CreateCaseNoteDTO, UpdateCaseNoteDTO } from '@app-types/case';
+import type { InteractionOutcomeImpactInput } from '@app-types/outcomes';
 
 const normalizeText = (value: string | undefined | null): string | undefined | null => {
   if (typeof value !== 'string') return value;
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : undefined;
+};
+
+const normalizeOutcomeImpacts = (
+  impacts: InteractionOutcomeImpactInput[] | undefined
+): InteractionOutcomeImpactInput[] | undefined => {
+  if (!impacts) {
+    return impacts;
+  }
+
+  return impacts.map((impact) => ({
+    ...impact,
+    evidenceNote: normalizeText(impact.evidenceNote) ?? null,
+  }));
 };
 
 export class CaseNotesUseCase {
@@ -21,6 +35,7 @@ export class CaseNotesUseCase {
       subject: normalizeText(data.subject) ?? undefined,
       category: normalizeText(data.category) ?? undefined,
       content: data.content.trim(),
+      outcome_impacts: normalizeOutcomeImpacts(data.outcome_impacts),
     };
     return this.repository.createCaseNote(normalizedData, userId);
   }
@@ -31,6 +46,7 @@ export class CaseNotesUseCase {
       subject: normalizeText(data.subject) ?? undefined,
       category: normalizeText(data.category),
       content: normalizeText(data.content) ?? undefined,
+      outcome_impacts: normalizeOutcomeImpacts(data.outcome_impacts),
     };
     return this.repository.updateCaseNote(noteId.trim(), normalizedData, userId);
   }

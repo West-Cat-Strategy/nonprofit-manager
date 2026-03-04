@@ -131,6 +131,42 @@ describe('TaskService', () => {
     });
   });
 
+  describe('getTaskSummary', () => {
+    it('should execute a single summary query without list/count queries', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          {
+            total: '5',
+            not_started: '1',
+            in_progress: '2',
+            waiting: '0',
+            completed: '1',
+            deferred: '1',
+            cancelled: '0',
+            priority_low: '1',
+            priority_normal: '2',
+            priority_high: '1',
+            priority_urgent: '1',
+            overdue: '2',
+            due_today: '1',
+            due_this_week: '3',
+          },
+        ],
+      });
+
+      const summary = await taskService.getTaskSummary({ assigned_to: 'user-123' });
+
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.stringContaining('FROM tasks t'),
+        ['user-123']
+      );
+      expect(summary.total).toBe(5);
+      expect(summary.by_status.not_started).toBe(1);
+      expect(summary.by_priority.urgent).toBe(1);
+    });
+  });
+
   describe('getTaskById', () => {
     it('should return task when found', async () => {
       const mockTask = {

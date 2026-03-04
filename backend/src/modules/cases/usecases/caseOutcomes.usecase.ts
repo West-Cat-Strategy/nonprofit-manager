@@ -40,6 +40,7 @@ export class CaseOutcomesUseCase {
   createCaseOutcome(caseId: string, data: CreateCaseOutcomeDTO, userId?: string): Promise<unknown> {
     const normalizedData: CreateCaseOutcomeDTO = {
       ...data,
+      outcome_definition_id: normalizeText(data.outcome_definition_id) ?? undefined,
       outcome_type: normalizeText(data.outcome_type) ?? undefined,
       notes: normalizeText(data.notes) ?? undefined,
     };
@@ -49,6 +50,7 @@ export class CaseOutcomesUseCase {
   updateCaseOutcome(outcomeId: string, data: UpdateCaseOutcomeDTO, userId?: string): Promise<unknown> {
     const normalizedData: UpdateCaseOutcomeDTO = {
       ...data,
+      outcome_definition_id: normalizeText(data.outcome_definition_id) ?? undefined,
       outcome_type: normalizeText(data.outcome_type),
       notes: normalizeText(data.notes),
     };

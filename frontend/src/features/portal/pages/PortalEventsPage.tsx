@@ -1,148 +1,137 @@
 import { useEffect, useMemo, useState } from 'react';
-import portalApi from '../../../services/portalApi';
-import { unwrapApiData } from '../../../services/apiEnvelope';
-import { useToast } from '../../../contexts/useToast';
 import PortalPageState from '../../../components/portal/PortalPageState';
 import PortalPageShell from '../../../components/portal/PortalPageShell';
 import PortalListCard from '../../../components/portal/PortalListCard';
+import PortalListToolbar from '../../../components/portal/PortalListToolbar';
+import { useToast } from '../../../contexts/useToast';
+import { formatApiErrorMessage } from '../../../utils/apiError';
+import { portalV2ApiClient } from '../api/portalApiClient';
+import usePortalEventsList from '../client/usePortalEventsList';
+import type { PortalEvent } from '../types/contracts';
 
-interface PortalEvent {
-  id: string;
-  name: string;
-  description?: string;
-  start_date: string;
-  end_date: string;
-  location_name?: string;
-  event_type?: string;
-  registration_id?: string | null;
-  registration_status?: string | null;
-}
+const formatDateRange = (startDate: string, endDate: string): string =>
+  `${new Date(startDate).toLocaleString()} - ${new Date(endDate).toLocaleString()}`;
 
-export default function PortalEvents() {
-  const [events, setEvents] = useState<PortalEvent[]>([]);
+export default function PortalEventsPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('oldest');
-  const [loading, setLoading] = useState(true);
+  const [sortField, setSortField] = useState<'start_date' | 'name' | 'created_at'>('start_date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [savingEventId, setSavingEventId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [passEvent, setPassEvent] = useState<PortalEvent | null>(null);
+  const [passQrDataUrl, setPassQrDataUrl] = useState<string | null>(null);
   const { showSuccess, showError } = useToast();
 
-  const visibleEvents = useMemo(() => {
-    const needle = searchTerm.trim().toLowerCase();
-    const sorted = [...events].sort((a, b) => {
-      const aTime = new Date(a.start_date).getTime();
-      const bTime = new Date(b.start_date).getTime();
-      return sortOrder === 'newest' ? bTime - aTime : aTime - bTime;
-    });
-
-    return sorted.filter((event) => {
-      if (!needle) {
-        return true;
-      }
-
-      const haystack = [
-        event.name,
-        event.description,
-        event.location_name,
-        event.event_type,
-        event.registration_status,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-
-      return haystack.includes(needle);
-    });
-  }, [events, searchTerm, sortOrder]);
-
-  const loadEvents = async () => {
-    try {
-      setError(null);
-      const response = await portalApi.get('/v2/portal/events');
-      setEvents(unwrapApiData(response.data));
-    } catch (loadError) {
-      console.error('Failed to load events', loadError);
-      setError('Unable to load events right now.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    items: events,
+    total,
+    hasMore,
+    loading,
+    loadingMore,
+    error,
+    refresh,
+    loadMore,
+  } = usePortalEventsList({
+    search: searchTerm,
+    sort: sortField,
+    order: sortOrder,
+  });
 
   useEffect(() => {
-    void loadEvents();
-  }, []);
+    let cancelled = false;
+
+    const generateQr = async () => {
+      if (!passEvent?.check_in_token) {
+        setPassQrDataUrl(null);
+        return;
+      }
+
+      try {
+        const { toDataURL } = await import('qrcode');
+        const dataUrl = await toDataURL(passEvent.check_in_token, {
+          width: 320,
+          margin: 1,
+        });
+        if (!cancelled) {
+          setPassQrDataUrl(dataUrl);
+        }
+      } catch {
+        if (!cancelled) {
+          setPassQrDataUrl(null);
+        }
+      }
+    };
+
+    void generateQr();
+    return () => {
+      cancelled = true;
+    };
+  }, [passEvent]);
+
+  const checkedInLabel = useMemo(() => {
+    if (!passEvent?.checked_in || !passEvent.check_in_time) return null;
+    return new Date(passEvent.check_in_time).toLocaleString();
+  }, [passEvent]);
 
   const handleRegister = async (eventId: string) => {
-    const previous = events;
     setSavingEventId(eventId);
-    setEvents((current) =>
-      current.map((event) =>
-        event.id === eventId
-          ? { ...event, registration_id: event.registration_id || 'optimistic', registration_status: 'registered' }
-          : event
-      )
-    );
     try {
-      await portalApi.post(`/v2/portal/events/${eventId}/register`);
+      await portalV2ApiClient.registerEvent(eventId);
       showSuccess('Registered for event.');
-      await loadEvents();
+      await refresh();
     } catch (registerError) {
-      setEvents(previous);
-      showError('Could not register for this event.');
-      console.error('Failed to register event', registerError);
+      showError(formatApiErrorMessage(registerError, 'Could not register for this event.'));
     } finally {
       setSavingEventId(null);
     }
   };
 
   const handleCancel = async (eventId: string) => {
-    const previous = events;
     setSavingEventId(eventId);
-    setEvents((current) =>
-      current.map((event) =>
-        event.id === eventId ? { ...event, registration_id: null, registration_status: 'cancelled' } : event
-      )
-    );
     try {
-      await portalApi.delete(`/v2/portal/events/${eventId}/register`);
+      await portalV2ApiClient.cancelEventRegistration(eventId);
       showSuccess('Registration canceled.');
-      await loadEvents();
+      await refresh();
     } catch (cancelError) {
-      setEvents(previous);
-      showError('Could not cancel registration.');
-      console.error('Failed to cancel event registration', cancelError);
+      showError(formatApiErrorMessage(cancelError, 'Could not cancel registration.'));
     } finally {
       setSavingEventId(null);
     }
   };
 
+  const downloadPass = () => {
+    if (!passQrDataUrl || !passEvent) return;
+    const anchor = document.createElement('a');
+    anchor.href = passQrDataUrl;
+    anchor.download = `event-pass-${passEvent.id}.png`;
+    anchor.click();
+  };
+
   return (
     <PortalPageShell
       title="Events"
-      description="Browse upcoming opportunities and manage your registrations."
-      actions={
-        <div className="flex flex-wrap gap-2">
-          <input
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search events"
-            className="rounded-md border border-app-input-border px-3 py-2 text-sm"
-          />
-          <select
-            value={sortOrder}
-            onChange={(event) => setSortOrder(event.target.value as 'newest' | 'oldest')}
-            className="rounded-md border border-app-input-border px-3 py-2 text-sm"
-          >
-            <option value="oldest">Soonest first</option>
-            <option value="newest">Latest first</option>
-          </select>
-        </div>
-      }
+      description="Browse upcoming opportunities, manage registrations, and present your QR pass at check-in."
     >
+      <PortalListToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search events by name, type, location, or status"
+        sortValue={sortField}
+        onSortChange={setSortField}
+        sortOptions={[
+          { value: 'start_date', label: 'Start date' },
+          { value: 'name', label: 'Name' },
+          { value: 'created_at', label: 'Added date' },
+        ]}
+        orderValue={sortOrder}
+        onOrderChange={setSortOrder}
+        showingCount={events.length}
+        totalCount={total}
+      />
+
       <PortalPageState
         loading={loading}
         error={error}
-        empty={!loading && !error && visibleEvents.length === 0}
+        empty={!loading && !error && events.length === 0}
         loadingLabel="Loading events..."
         emptyTitle={searchTerm ? 'No matching events.' : 'No events available right now.'}
         emptyDescription={
@@ -150,17 +139,23 @@ export default function PortalEvents() {
             ? 'Try a different search term.'
             : 'Staff will publish upcoming opportunities here.'
         }
-        onRetry={loadEvents}
+        onRetry={refresh}
       />
-      {!loading && !error && visibleEvents.length > 0 && (
+
+      {!loading && !error && events.length > 0 && (
         <ul className="space-y-3">
-          {visibleEvents.map((event) => {
+          {events.map((event) => {
             const isRegistered = Boolean(event.registration_id);
+            const isCheckedIn = Boolean(event.checked_in);
+            const checkedInTime = event.check_in_time
+              ? new Date(event.check_in_time).toLocaleString()
+              : null;
+
             return (
               <li key={event.id}>
                 <PortalListCard
                   title={event.name}
-                  subtitle={`${new Date(event.start_date).toLocaleString()} - ${new Date(event.end_date).toLocaleString()}`}
+                  subtitle={formatDateRange(event.start_date, event.end_date)}
                   meta={event.location_name || 'Location provided by staff'}
                   badges={
                     <>
@@ -174,22 +169,40 @@ export default function PortalEvents() {
                           Registered
                         </span>
                       )}
+                      {isCheckedIn && (
+                        <span className="rounded bg-app-accent-soft px-2 py-0.5 text-xs text-app-accent-text">
+                          Checked In
+                        </span>
+                      )}
                     </>
                   }
                   actions={
                     isRegistered ? (
-                      <button
-                        onClick={() => void handleCancel(event.id)}
-                        disabled={savingEventId === event.id}
-                        className="rounded border border-app-input-border px-3 py-1 text-xs"
-                      >
-                        {savingEventId === event.id ? 'Saving...' : 'Cancel'}
-                      </button>
+                      <div className="flex gap-2">
+                        {event.check_in_token && (
+                          <button
+                            type="button"
+                            onClick={() => setPassEvent(event)}
+                            className="rounded border border-app-input-border px-3 py-1 text-xs"
+                          >
+                            QR Pass
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => void handleCancel(event.id)}
+                          disabled={savingEventId === event.id || isCheckedIn}
+                          className="rounded border border-app-input-border px-3 py-1 text-xs disabled:opacity-60"
+                        >
+                          {savingEventId === event.id ? 'Saving...' : 'Cancel'}
+                        </button>
+                      </div>
                     ) : (
                       <button
+                        type="button"
                         onClick={() => void handleRegister(event.id)}
                         disabled={savingEventId === event.id}
-                        className="rounded bg-app-accent px-3 py-1 text-xs text-white"
+                        className="rounded bg-app-accent px-3 py-1 text-xs text-white disabled:opacity-60"
                       >
                         {savingEventId === event.id ? 'Saving...' : 'Register'}
                       </button>
@@ -197,11 +210,83 @@ export default function PortalEvents() {
                   }
                 >
                   {event.description && <p className="text-sm text-app-text-muted">{event.description}</p>}
+                  {isCheckedIn && checkedInTime && (
+                    <p className="mt-2 text-xs text-app-text-muted">Checked in at {checkedInTime}</p>
+                  )}
                 </PortalListCard>
               </li>
             );
           })}
         </ul>
+      )}
+
+      {!loading && !error && hasMore && (
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => void loadMore()}
+            disabled={loadingMore}
+            className="rounded-md border border-app-input-border px-4 py-2 text-sm font-medium text-app-text disabled:opacity-60"
+          >
+            {loadingMore ? 'Loading more...' : 'Load more events'}
+          </button>
+        </div>
+      )}
+
+      {passEvent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-lg border border-app-border bg-app-surface p-5 shadow-xl">
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-app-text">Event QR Pass</h2>
+                <p className="text-xs text-app-text-muted">{passEvent.name}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPassEvent(null)}
+                className="rounded border border-app-input-border px-2 py-1 text-xs"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="rounded-md border border-app-border bg-white p-3">
+              {passQrDataUrl ? (
+                <img src={passQrDataUrl} alt="Event check-in QR pass" className="mx-auto h-64 w-64" />
+              ) : (
+                <div className="flex h-64 items-center justify-center text-xs text-app-text-muted">
+                  Generating QR pass...
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3 space-y-1 text-xs text-app-text-muted">
+              <p>{formatDateRange(passEvent.start_date, passEvent.end_date)}</p>
+              {passEvent.location_name && <p>{passEvent.location_name}</p>}
+              {checkedInLabel && <p>Checked in at {checkedInLabel}</p>}
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={downloadPass}
+                disabled={!passQrDataUrl}
+                className="rounded bg-app-accent px-3 py-2 text-xs text-white disabled:opacity-60"
+              >
+                Download PNG
+              </button>
+              {passEvent.check_in_token && (
+                <button
+                  type="button"
+                  onClick={() => void navigator.clipboard?.writeText(passEvent.check_in_token || '')}
+                  className="rounded border border-app-input-border px-3 py-2 text-xs"
+                >
+                  Copy Token
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </PortalPageShell>
   );

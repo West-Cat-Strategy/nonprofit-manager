@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { savedReportsApiClient } from '../../features/savedReports/api/savedReportsApiClient';
 import type { PublicReportSnapshotMeta } from '../../types/savedReport';
+import { AuthHeroShell, PrimaryButton, SecondaryButton } from '../../components/ui';
 
 const LIFECYCLE_LABELS: Record<string, string> = {
   active: 'Active',
@@ -85,66 +86,89 @@ export default function PublicReportSnapshotPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[var(--app-bg)] p-6">
-      <div className="mx-auto max-w-3xl border-2 border-[var(--app-border)] bg-[var(--app-surface)] p-6 shadow-[6px_6px_0px_0px_var(--shadow-color)]">
-        <h1 className="text-2xl font-black text-[var(--app-text)]">Public Report Snapshot</h1>
+    <AuthHeroShell
+      badge="Public report"
+      title="Public Report Snapshot"
+      description="View metadata and export the shared report snapshot."
+      highlights={[
+        'Read-only access through an expiring token link.',
+        'Lifecycle controls automatically disable expired snapshots.',
+      ]}
+    >
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-text-muted">Snapshot details</p>
+      {loading && (
+        <p className="mt-4 text-sm text-app-text-muted" aria-live="polite">
+          Loading snapshot details...
+        </p>
+      )}
 
-        {loading && (
-          <p className="mt-4 text-sm text-[var(--app-text-muted)]">Loading snapshot details...</p>
-        )}
+      {!loading && error && (
+        <div className="mt-4 rounded-lg border border-app-border bg-app-accent-soft p-3 text-sm text-app-accent-text" role="alert">
+          {error}
+        </div>
+      )}
 
-        {!loading && error && (
-          <div className="mt-4 border-2 border-app-accent bg-app-accent-soft p-3 text-sm font-bold text-app-accent-text">
-            {error}
+      {!loading && !error && meta && (
+        <>
+          <dl className="mt-4 grid grid-cols-1 gap-3 text-sm text-app-text sm:grid-cols-2">
+            <div>
+              <dt className="font-semibold text-app-text-heading">Name</dt>
+              <dd>{meta.report_name}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-app-text-heading">Entity</dt>
+              <dd>{meta.entity}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-app-text-heading">Rows</dt>
+              <dd>{meta.rows_count}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-app-text-heading">Status</dt>
+              <dd>{LIFECYCLE_LABELS[meta.lifecycle_state] || meta.lifecycle_state}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-app-text-heading">Created</dt>
+              <dd>{new Date(meta.created_at).toLocaleString()}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-app-text-heading">Expires</dt>
+              <dd>{meta.expires_at ? new Date(meta.expires_at).toLocaleString() : 'No expiry'}</dd>
+            </div>
+          </dl>
+
+          {statusNote && (
+            <div className="mt-4 rounded-lg border border-app-border bg-app-accent-soft p-3 text-sm text-app-accent-text">
+              {statusNote}
+            </div>
+          )}
+
+          <div className="mt-6 flex flex-wrap gap-2">
+            <PrimaryButton
+              type="button"
+              onClick={() => void handleDownload('csv')}
+              disabled={
+                meta.lifecycle_state !== 'active' ||
+                !meta.available_formats.includes('csv') ||
+                downloading !== null
+              }
+            >
+              {downloading === 'csv' ? 'Downloading CSV...' : 'Download CSV'}
+            </PrimaryButton>
+            <SecondaryButton
+              type="button"
+              onClick={() => void handleDownload('xlsx')}
+              disabled={
+                meta.lifecycle_state !== 'active' ||
+                !meta.available_formats.includes('xlsx') ||
+                downloading !== null
+              }
+            >
+              {downloading === 'xlsx' ? 'Downloading XLSX...' : 'Download XLSX'}
+            </SecondaryButton>
           </div>
-        )}
-
-        {!loading && !error && meta && (
-          <>
-            <div className="mt-4 space-y-2 text-sm text-[var(--app-text)]">
-              <p><strong>Name:</strong> {meta.report_name}</p>
-              <p><strong>Entity:</strong> {meta.entity}</p>
-              <p><strong>Rows:</strong> {meta.rows_count}</p>
-              <p><strong>Status:</strong> {LIFECYCLE_LABELS[meta.lifecycle_state] || meta.lifecycle_state}</p>
-              <p><strong>Created:</strong> {new Date(meta.created_at).toLocaleString()}</p>
-              <p><strong>Expires:</strong> {meta.expires_at ? new Date(meta.expires_at).toLocaleString() : 'No expiry'}</p>
-            </div>
-
-            {statusNote && (
-              <div className="mt-4 border-2 border-app-accent bg-app-accent-soft p-3 text-sm font-bold text-app-accent-text">
-                {statusNote}
-              </div>
-            )}
-
-            <div className="mt-6 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => void handleDownload('csv')}
-                disabled={
-                  meta.lifecycle_state !== 'active' ||
-                  !meta.available_formats.includes('csv') ||
-                  downloading !== null
-                }
-                className="border-2 border-[var(--app-border)] bg-[var(--loop-cyan)] px-4 py-2 text-sm font-bold text-black disabled:opacity-50"
-              >
-                {downloading === 'csv' ? 'Downloading CSV...' : 'Download CSV'}
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleDownload('xlsx')}
-                disabled={
-                  meta.lifecycle_state !== 'active' ||
-                  !meta.available_formats.includes('xlsx') ||
-                  downloading !== null
-                }
-                className="border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] px-4 py-2 text-sm font-bold text-black disabled:opacity-50"
-              >
-                {downloading === 'xlsx' ? 'Downloading XLSX...' : 'Download XLSX'}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </main>
+        </>
+      )}
+    </AuthHeroShell>
   );
 }

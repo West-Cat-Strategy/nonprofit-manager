@@ -73,7 +73,7 @@ export default function OtherSettingsSection() {
         </li>
         <li>
           <Link
-            to="/email-marketing"
+            to="/settings/email-marketing"
             className="flex items-center justify-between px-6 py-4 hover:bg-app-surface-muted"
           >
             <div className="flex items-center space-x-4">

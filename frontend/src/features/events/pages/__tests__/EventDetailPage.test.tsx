@@ -1,0 +1,183 @@
+import { fireEvent, screen, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import type * as ReactRouterDomModule from 'react-router-dom';
+import type * as EventsStateModule from '../../state';
+import { vi } from 'vitest';
+import EventDetailPage from '../EventDetailPage';
+import { renderWithProviders } from '../../../../test/testUtils';
+
+const dispatchMock = vi.fn();
+const navigateMock = vi.fn();
+
+const mockState = {
+  eventDetailV2: {
+    loading: false,
+    event: {
+      event_id: 'event-123',
+      event_name: 'Spring Gala',
+      description: 'Fundraising night',
+      event_type: 'fundraiser',
+      status: 'planned',
+      is_public: true,
+      is_recurring: false,
+      start_date: '2026-06-01T18:00:00.000Z',
+      end_date: '2026-06-01T20:00:00.000Z',
+      registered_count: 3,
+    },
+  },
+  eventRegistrationV2: {
+    registrations: [],
+    loading: false,
+    actionLoading: false,
+    error: null,
+  },
+  eventRemindersV2: {
+    sending: false,
+    lastSummary: null,
+    error: null,
+  },
+  eventAutomationV2: {
+    automations: [],
+    loading: false,
+    creating: false,
+    cancelling: false,
+    syncing: false,
+    lastCancelledAutomationId: null,
+    error: null,
+  },
+};
+
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof ReactRouterDomModule>();
+  return {
+    ...actual,
+    useNavigate: () => navigateMock,
+    useParams: () => ({ id: 'event-123' }),
+  };
+});
+
+vi.mock('../../../../store/hooks', () => ({
+  useAppDispatch: () => dispatchMock,
+  useAppSelector: (selector: (state: typeof mockState) => unknown) => selector(mockState),
+}));
+
+vi.mock('../../state', async (importOriginal) => {
+  const actual = await importOriginal<typeof EventsStateModule>();
+  return {
+    ...actual,
+    fetchEventDetailV2: (eventId: string) => ({ type: 'eventDetailV2/fetch', payload: eventId }),
+    fetchEventRegistrationsV2: (eventId: string) => ({
+      type: 'eventRegistrationV2/fetch',
+      payload: eventId,
+    }),
+    fetchEventAutomationsV2: (eventId: string) => ({
+      type: 'eventAutomationV2/fetch',
+      payload: eventId,
+    }),
+  };
+});
+
+vi.mock('../../../../services/userPreferencesService', () => ({
+  getUserTimezoneCached: vi.fn().mockResolvedValue('America/Vancouver'),
+}));
+
+vi.mock('../../../../contexts/useToast', () => ({
+  useToast: () => ({
+    showError: vi.fn(),
+    showSuccess: vi.fn(),
+  }),
+}));
+
+vi.mock('../../../../hooks/useDocumentMeta', () => ({
+  useDocumentMeta: vi.fn(),
+}));
+
+vi.mock('../../../../hooks/useConfirmDialog', () => ({
+  default: () => ({
+    dialogState: { isOpen: false },
+    confirm: vi.fn().mockResolvedValue(false),
+    handleCancel: vi.fn(),
+    handleConfirm: vi.fn(),
+  }),
+}));
+
+vi.mock('../../../../components/AddToCalendar', () => ({
+  default: () => <div data-testid="add-to-calendar" />,
+}));
+
+vi.mock('../../../../components/SocialShare', () => ({
+  default: () => <div data-testid="social-share" />,
+}));
+
+vi.mock('../../../../components/ConfirmDialog', () => ({
+  default: () => <div data-testid="confirm-dialog" />,
+}));
+
+vi.mock('../../../../components/neo-brutalist/NeoBrutalistLayout', () => ({
+  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}));
+
+vi.mock('../../components/EventInfoPanel', () => ({
+  default: () => <div data-testid="event-info">Event info panel</div>,
+}));
+
+vi.mock('../../components/EventRegistrationsPanel', () => ({
+  default: () => <div data-testid="event-registrations">Event registrations panel</div>,
+}));
+
+vi.mock('../../api/eventsApiClient', () => ({
+  eventsApiClient: {
+    getCheckInSettings: vi.fn().mockResolvedValue({
+      event_id: 'event-123',
+      public_checkin_enabled: false,
+      public_checkin_pin_configured: false,
+      public_checkin_pin_rotated_at: null,
+    }),
+    updateCheckInSettings: vi.fn(),
+    rotateCheckInPin: vi.fn(),
+    scanCheckIn: vi.fn(),
+  },
+}));
+
+describe('EventDetailPage deferred registrations loading', () => {
+  beforeEach(() => {
+    dispatchMock.mockClear();
+    navigateMock.mockClear();
+  });
+
+  it('fetches only event detail on initial info-tab render', async () => {
+    renderWithProviders(<EventDetailPage />);
+
+    await waitFor(() => {
+      const actionTypes = dispatchMock.mock.calls.map(([action]) => action.type);
+      expect(actionTypes).toContain('eventDetailV2/fetch');
+      expect(actionTypes).not.toContain('eventRegistrationV2/fetch');
+      expect(actionTypes).not.toContain('eventAutomationV2/fetch');
+    });
+  });
+
+  it('fetches registrations and automations once when registrations tab opens', async () => {
+    renderWithProviders(<EventDetailPage />);
+
+    const tabButton = await screen.findByRole('button', { name: /Registrations \(3\)/i });
+    fireEvent.click(tabButton);
+
+    await waitFor(() => {
+      const actionTypes = dispatchMock.mock.calls.map(([action]) => action.type);
+      expect(actionTypes).toContain('eventRegistrationV2/fetch');
+      expect(actionTypes).toContain('eventAutomationV2/fetch');
+    });
+
+    fireEvent.click(tabButton);
+
+    const registrationDispatchCount = dispatchMock.mock.calls.filter(
+      ([action]) => action.type === 'eventRegistrationV2/fetch'
+    ).length;
+    const automationsDispatchCount = dispatchMock.mock.calls.filter(
+      ([action]) => action.type === 'eventAutomationV2/fetch'
+    ).length;
+
+    expect(registrationDispatchCount).toBe(1);
+    expect(automationsDispatchCount).toBe(1);
+  });
+});

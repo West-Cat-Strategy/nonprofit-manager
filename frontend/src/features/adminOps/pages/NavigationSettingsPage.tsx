@@ -5,11 +5,14 @@
  */
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useNavigationPreferences } from '../../../hooks/useNavigationPreferences';
 import { useAppSelector } from '../../../store/hooks';
+import AdminPanelLayout from '../components/AdminPanelLayout';
+import AdminPanelNav from '../components/AdminPanelNav';
 
 export default function NavigationSettings() {
+  const location = useLocation();
   const { allItems, toggleItem, resetToDefaults, reorderItems, moveItemUp, moveItemDown } = useNavigationPreferences();
   const { user } = useAppSelector((state) => state.auth);
   const isAdmin = user?.role === 'admin';
@@ -58,24 +61,11 @@ export default function NavigationSettings() {
   const enabledCount = allItems.filter((item) => item.enabled).length;
 
   return (
-    <div className="min-h-screen bg-app-surface-muted p-6">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center space-x-2 text-sm text-app-text-muted mb-2">
-            <Link to="/settings/api" className="hover:text-app-text-muted">
-              Settings
-            </Link>
-            <span>/</span>
-            <span className="text-app-text">Navigation</span>
-          </div>
-          <h1 className="text-3xl font-bold text-app-text">Navigation Settings</h1>
-          <p className="mt-2 text-app-text-muted">
-            Choose which modules appear in your navigation menu. Disabled modules are still
-            accessible via direct URL.
-          </p>
-        </div>
-
+    <AdminPanelLayout
+      title="Navigation Settings"
+      description="Choose which modules appear in your navigation menu. Disabled modules are still accessible via direct URL."
+      sidebar={<AdminPanelNav currentPath={location.pathname} />}
+    >
         {/* Settings Card */}
         <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
           {/* Card Header */}
@@ -248,7 +238,7 @@ export default function NavigationSettings() {
             {isAdmin && (
               <li>
                 <Link
-                  to="/settings/organization"
+                  to="/settings/admin?section=organization"
                   className="flex items-center justify-between px-6 py-4 hover:bg-app-surface-muted"
                 >
                   <div className="flex items-center space-x-4">
@@ -338,7 +328,6 @@ export default function NavigationSettings() {
             </li>
           </ul>
         </div>
-      </div>
-    </div>
+    </AdminPanelLayout>
   );
 }

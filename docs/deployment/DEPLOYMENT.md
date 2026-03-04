@@ -344,33 +344,35 @@ nano frontend/.env
 ### 3. Build Images
 
 ```bash
-docker-compose build
+docker compose --env-file .env.production build
 ```
 
 ### 4. Start Services
 
 ```bash
-docker-compose up -d
+docker compose --env-file .env.production up -d
+
+# Optional: expose postgres/redis to host for local admin/debug access
+docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.host-access.yml up -d
 ```
 
 ### 5. Run Database Migrations
 
 ```bash
-docker-compose exec postgres psql -U postgres -d nonprofit_manager -f /docker-entrypoint-initdb.d/001_initial_schema.sql
-docker-compose exec postgres psql -U postgres -d nonprofit_manager -f /docker-entrypoint-initdb.d/002_audit_logs.sql
+./scripts/db-migrate.sh
 ```
 
 ### 6. Verify Deployment
 
 ```bash
 # Check backend health
-curl localhost:3000/health
+curl http://localhost:8000/health
 
 # Check frontend
-curl localhost:8080/
+curl http://localhost:8001/health
 
 # View logs
-docker-compose logs -f
+docker compose --env-file .env.production logs -f
 ```
 
 ## Manual Deployment
@@ -557,8 +559,8 @@ curl https://api.your-domain.com/health
 
 ```bash
 # View Docker logs
-docker-compose logs -f backend
-docker-compose logs -f frontend
+docker compose --env-file .env.production logs -f backend
+docker compose --env-file .env.production logs -f frontend
 
 # PM2 logs (manual deployment)
 pm2 logs nonprofit-backend
@@ -612,10 +614,10 @@ docker scan nonprofit-manager-frontend:latest
 docker images | grep nonprofit
 
 # Stop current containers
-docker-compose down
+docker compose --env-file .env.production down
 
 # Deploy previous version
-docker-compose up -d --force-recreate
+docker compose --env-file .env.production up -d --force-recreate
 ```
 
 ### Database Rollback
@@ -630,10 +632,10 @@ psql -U nonprofit_user -d nonprofit_manager < /backups/nonprofit_20260131.sql
 ```bash
 # Quick rollback script
 #!/bin/bash
-docker-compose down
+docker compose --env-file .env.production down
 git checkout tags/v1.0.0  # Replace with stable version
-docker-compose build
-docker-compose up -d
+docker compose --env-file .env.production build
+docker compose --env-file .env.production up -d
 ```
 
 ## Troubleshooting
@@ -642,7 +644,7 @@ docker-compose up -d
 
 ```bash
 # Check logs
-docker-compose logs backend
+docker compose --env-file .env.production logs backend
 
 # Common issues:
 # 1. Database connection failed
@@ -667,10 +669,10 @@ npm run build
 
 ```bash
 # Test connection
-docker-compose exec postgres psql -U postgres -c "SELECT version();"
+docker compose --env-file .env.production exec postgres psql -U postgres -c "SELECT version();"
 
 # Check PostgreSQL logs
-docker-compose logs postgres
+docker compose --env-file .env.production logs postgres
 ```
 
 ## Production Checklist

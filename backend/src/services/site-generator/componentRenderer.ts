@@ -15,6 +15,7 @@ import {
   generateNewsletterSignup,
   generateSocialLinks,
 } from './componentRenderer/forms';
+import { generateEventList } from './componentRenderer/events';
 
 export function generateSectionHtml(section: PublishedSection, theme: PublishedTheme): string {
   const style: string[] = [];
@@ -67,6 +68,8 @@ function generateComponentHtml(component: PublishedComponent, theme: PublishedTh
       return generateDonationForm(component, theme);
     case 'social-links':
       return generateSocialLinks(component);
+    case 'event-list':
+      return generateEventList(component, theme);
     default:
       return `<!-- Unknown component type: ${component.type} -->`;
   }

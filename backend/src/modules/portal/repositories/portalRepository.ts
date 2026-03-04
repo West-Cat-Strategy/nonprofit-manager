@@ -1,4 +1,6 @@
 import { Pool } from 'pg';
+import { logger } from '@config/logger';
+import { decrypt, encrypt } from '@utils/encryption';
 
 const PROFILE_COLUMNS = `
   c.id as contact_id,
@@ -16,14 +18,140 @@ const PROFILE_COLUMNS = `
   c.preferred_contact_method,
   c.pronouns,
   c.gender,
+  c.phn_encrypted,
   c.profile_picture
 `;
+
+const PORTAL_EVENT_COLUMNS = `
+  e.id,
+  e.name,
+  e.description,
+  e.event_type,
+  e.status,
+  e.is_public,
+  e.is_recurring,
+  e.recurrence_pattern,
+  e.recurrence_interval,
+  e.recurrence_end_date,
+  e.start_date,
+  e.end_date,
+  e.location_name,
+  e.address_line1,
+  e.address_line2,
+  e.city,
+  e.state_province,
+  e.postal_code,
+  e.country,
+  e.capacity,
+  e.registered_count,
+  e.attended_count,
+  e.created_at,
+  e.updated_at,
+  e.created_by,
+  e.modified_by,
+  e.public_checkin_enabled,
+  e.public_checkin_pin_rotated_at
+`;
+
+type PortalListOrder = 'asc' | 'desc';
+
+type PortalOffsetPage = {
+  limit: number;
+  offset: number;
+  has_more: boolean;
+  total: number;
+};
+
+type PortalPagedResult<T> = {
+  items: T[];
+  page: PortalOffsetPage;
+};
 
 export class PortalRepository {
   private readonly defaultTimelineLimit = 50;
   private readonly maxTimelineLimit = 200;
+  private readonly defaultOffsetLimit = 20;
+  private readonly maxOffsetLimit = 100;
 
   constructor(private readonly pool: Pool) {}
+
+  private normalizePhn(phn: unknown): string | null {
+    if (phn === null || phn === undefined) {
+      return null;
+    }
+    if (typeof phn !== 'string') {
+      throw new Error('PHN must be a string');
+    }
+
+    const digits = phn.replace(/\D/g, '');
+    if (digits.length === 0) {
+      return null;
+    }
+    if (digits.length !== 10) {
+      throw new Error('PHN must contain exactly 10 digits');
+    }
+
+    return digits;
+  }
+
+  private decryptPhn(phnEncrypted: unknown, contactId: unknown): string | null {
+    if (typeof phnEncrypted !== 'string' || phnEncrypted.length === 0) {
+      return null;
+    }
+
+    try {
+      return decrypt(phnEncrypted);
+    } catch (error) {
+      logger.warn('Failed to decrypt portal profile PHN; returning null', {
+        contactId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
+  }
+
+  private mapProfileRow(row: Record<string, unknown> | null): Record<string, unknown> | null {
+    if (!row) {
+      return null;
+    }
+
+    const phn = this.decryptPhn(row.phn_encrypted, row.contact_id);
+    const rest = { ...row };
+    delete rest.phn_encrypted;
+
+    return {
+      ...rest,
+      phn,
+    };
+  }
+
+  private normalizeOffsetPage(query?: { limit?: number; offset?: number }): {
+    limit: number;
+    offset: number;
+  } {
+    const requestedLimit = query?.limit ?? this.defaultOffsetLimit;
+    const limit = Math.max(1, Math.min(requestedLimit, this.maxOffsetLimit));
+    const requestedOffset = query?.offset ?? 0;
+    const offset = Math.max(0, requestedOffset);
+    return { limit, offset };
+  }
+
+  private normalizeSearch(search?: string): string | null {
+    const normalized = search?.trim();
+    if (!normalized) {
+      return null;
+    }
+    return normalized;
+  }
+
+  private buildOffsetPage(limit: number, offset: number, total: number): PortalOffsetPage {
+    return {
+      limit,
+      offset,
+      has_more: offset + limit < total,
+      total,
+    };
+  }
 
   private decodeTimelineCursor(cursor?: string): { createdAt: string; id: string } | null {
     if (!cursor) {
@@ -69,14 +197,21 @@ export class PortalRepository {
       [contactId]
     );
 
-    return result.rows[0] ?? null;
+    return this.mapProfileRow(result.rows[0] ?? null);
   }
 
   async updateProfile(
     contactId: string,
     updates: Record<string, string | null>
   ): Promise<Record<string, unknown> | null> {
-    const fields = Object.keys(updates);
+    const normalizedUpdates: Record<string, string | null> = { ...updates };
+    if (Object.prototype.hasOwnProperty.call(normalizedUpdates, 'phn')) {
+      const normalizedPhn = this.normalizePhn(normalizedUpdates.phn);
+      normalizedUpdates.phn_encrypted = normalizedPhn ? encrypt(normalizedPhn) : null;
+      delete normalizedUpdates.phn;
+    }
+
+    const fields = Object.keys(normalizedUpdates);
     if (fields.length === 0) {
       return null;
     }
@@ -86,7 +221,7 @@ export class PortalRepository {
 
     fields.forEach((field, idx) => {
       assignments.push(`${field} = $${idx + 1}`);
-      values.push(updates[field]);
+      values.push(normalizedUpdates[field]);
     });
 
     values.push(contactId);
@@ -99,7 +234,7 @@ export class PortalRepository {
       values
     );
 
-    return result.rows[0] ?? null;
+    return this.mapProfileRow(result.rows[0] ?? null);
   }
 
   async getPortalUserPasswordHash(portalUserId: string): Promise<string | null> {
@@ -125,26 +260,96 @@ export class PortalRepository {
     ]);
   }
 
-  async getPortalEvents(contactId: string): Promise<unknown[]> {
-    const result = await this.pool.query(
-      `SELECT
-         e.*,
-         er.id as registration_id,
-         er.registration_status
+  async getPortalEvents(
+    contactId: string,
+    query?: {
+      search?: string;
+      sort?: 'start_date' | 'name' | 'created_at';
+      order?: PortalListOrder;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<PortalPagedResult<Record<string, unknown>>> {
+    const { limit, offset } = this.normalizeOffsetPage(query);
+    const search = this.normalizeSearch(query?.search);
+    const sortColumns: Record<'start_date' | 'name' | 'created_at', string> = {
+      start_date: 'e.start_date',
+      name: 'LOWER(e.name)',
+      created_at: 'e.created_at',
+    };
+    const sort = query?.sort ?? 'start_date';
+    const sortColumn = sortColumns[sort];
+    const order = query?.order === 'desc' ? 'DESC' : 'ASC';
+
+    const totalResult = await this.pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count
        FROM events e
-       LEFT JOIN event_registrations er
-         ON er.event_id = e.id AND er.contact_id = $1
        WHERE e.start_date >= NOW()
          AND e.status NOT IN ('cancelled', 'completed')
          AND (
            e.is_public = true
-           OR er.id IS NOT NULL
+           OR EXISTS (
+             SELECT 1
+             FROM event_registrations er
+             WHERE er.event_id = e.id
+               AND er.contact_id = $1
+           )
          )
-       ORDER BY e.start_date ASC`,
-      [contactId]
+         AND (
+           $2::text IS NULL
+           OR concat_ws(' ', e.name, e.description, e.location_name, e.event_type) ILIKE '%' || $2 || '%'
+         )`,
+      [contactId, search]
+    );
+    const total = Number(totalResult.rows[0]?.count ?? '0');
+
+    const result = await this.pool.query<Record<string, unknown>>(
+      `SELECT
+         ${PORTAL_EVENT_COLUMNS},
+         er.registration_id,
+         er.registration_status,
+         er.check_in_token,
+         er.checked_in,
+         er.check_in_time,
+         er.check_in_method
+       FROM events e
+       LEFT JOIN LATERAL (
+         SELECT
+           reg.id AS registration_id,
+           reg.registration_status,
+           reg.check_in_token,
+           reg.checked_in,
+           reg.check_in_time,
+           reg.check_in_method
+         FROM event_registrations reg
+         WHERE reg.event_id = e.id
+           AND reg.contact_id = $1
+         LIMIT 1
+       ) er ON true
+       WHERE e.start_date >= NOW()
+         AND e.status NOT IN ('cancelled', 'completed')
+         AND (
+           e.is_public = true
+           OR EXISTS (
+             SELECT 1
+             FROM event_registrations reg_exists
+             WHERE reg_exists.event_id = e.id
+               AND reg_exists.contact_id = $1
+           )
+         )
+         AND (
+           $2::text IS NULL
+           OR concat_ws(' ', e.name, e.description, e.location_name, e.event_type) ILIKE '%' || $2 || '%'
+         )
+       ORDER BY ${sortColumn} ${order}, e.id ${order}
+       LIMIT $3 OFFSET $4`,
+      [contactId, search, limit, offset]
     );
 
-    return result.rows;
+    return {
+      items: result.rows,
+      page: this.buildOffsetPage(limit, offset, total),
+    };
   }
 
   async getPortalRelationships(contactId: string): Promise<unknown[]> {
@@ -360,7 +565,14 @@ export class PortalRepository {
 
     const result = await this.pool.query(
       `
-      SELECT * FROM (
+      SELECT
+        timeline.id,
+        timeline.type,
+        timeline.created_at,
+        timeline.title,
+        timeline.content,
+        timeline.metadata
+      FROM (
         SELECT
           cn.id,
           'note'::text AS type,
@@ -499,97 +711,379 @@ export class PortalRepository {
     return result.rows[0] ?? null;
   }
 
-  async getPortalDocuments(contactId: string): Promise<unknown[]> {
-    const result = await this.pool.query(
-      `SELECT cd.id, cd.original_name, cd.document_type, cd.title, cd.description, cd.file_size, cd.mime_type, cd.created_at
+  async getPortalDocuments(
+    contactId: string,
+    query?: {
+      search?: string;
+      sort?: 'created_at' | 'title' | 'document_type' | 'original_name';
+      order?: PortalListOrder;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<PortalPagedResult<Record<string, unknown>>> {
+    const { limit, offset } = this.normalizeOffsetPage(query);
+    const search = this.normalizeSearch(query?.search);
+    const sortColumns: Record<'created_at' | 'title' | 'document_type' | 'original_name', string> = {
+      created_at: 'cd.created_at',
+      title: 'LOWER(COALESCE(cd.title, cd.original_name))',
+      document_type: 'LOWER(cd.document_type)',
+      original_name: 'LOWER(cd.original_name)',
+    };
+    const sort = query?.sort ?? 'created_at';
+    const sortColumn = sortColumns[sort];
+    const order = query?.order === 'asc' ? 'ASC' : 'DESC';
+
+    const totalResult = await this.pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count
        FROM contact_documents cd
-       LEFT JOIN cases c ON c.id = cd.case_id
        WHERE cd.contact_id = $1
          AND cd.is_active = true
          AND cd.is_portal_visible = true
          AND (
            cd.case_id IS NULL
-           OR (c.contact_id = cd.contact_id AND c.client_viewable = true)
+           OR EXISTS (
+             SELECT 1
+             FROM cases c
+             WHERE c.id = cd.case_id
+               AND c.contact_id = $1
+               AND c.client_viewable = true
+           )
          )
-       ORDER BY cd.created_at DESC`,
-      [contactId]
+         AND (
+           $2::text IS NULL
+           OR concat_ws(' ', cd.title, cd.original_name, cd.document_type, cd.description, cd.mime_type)
+             ILIKE '%' || $2 || '%'
+         )`,
+      [contactId, search]
+    );
+    const total = Number(totalResult.rows[0]?.count ?? '0');
+
+    const result = await this.pool.query<Record<string, unknown>>(
+      `SELECT
+         cd.id,
+         cd.original_name,
+         cd.document_type,
+         cd.title,
+         cd.description,
+         cd.file_size,
+         cd.mime_type,
+         cd.created_at
+       FROM contact_documents cd
+       WHERE cd.contact_id = $1
+         AND cd.is_active = true
+         AND cd.is_portal_visible = true
+         AND (
+           cd.case_id IS NULL
+           OR EXISTS (
+             SELECT 1
+             FROM cases c
+             WHERE c.id = cd.case_id
+               AND c.contact_id = $1
+               AND c.client_viewable = true
+           )
+         )
+         AND (
+           $2::text IS NULL
+           OR concat_ws(' ', cd.title, cd.original_name, cd.document_type, cd.description, cd.mime_type)
+             ILIKE '%' || $2 || '%'
+         )
+       ORDER BY ${sortColumn} ${order}, cd.id ${order}
+       LIMIT $3 OFFSET $4`,
+      [contactId, search, limit, offset]
     );
 
-    return result.rows;
+    return {
+      items: result.rows,
+      page: this.buildOffsetPage(limit, offset, total),
+    };
   }
 
-  async getPortalForms(contactId: string): Promise<unknown[]> {
-    const result = await this.pool.query(
-      `SELECT cd.id, cd.original_name, cd.document_type, cd.title, cd.description, cd.created_at
+  async getPortalForms(
+    contactId: string,
+    query?: {
+      search?: string;
+      sort?: 'created_at' | 'title' | 'document_type' | 'original_name';
+      order?: PortalListOrder;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<PortalPagedResult<Record<string, unknown>>> {
+    const { limit, offset } = this.normalizeOffsetPage(query);
+    const search = this.normalizeSearch(query?.search);
+    const sortColumns: Record<'created_at' | 'title' | 'document_type' | 'original_name', string> = {
+      created_at: 'cd.created_at',
+      title: 'LOWER(COALESCE(cd.title, cd.original_name))',
+      document_type: 'LOWER(cd.document_type)',
+      original_name: 'LOWER(cd.original_name)',
+    };
+    const sort = query?.sort ?? 'created_at';
+    const sortColumn = sortColumns[sort];
+    const order = query?.order === 'asc' ? 'ASC' : 'DESC';
+
+    const totalResult = await this.pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count
        FROM contact_documents cd
-       LEFT JOIN cases c ON c.id = cd.case_id
        WHERE cd.contact_id = $1
          AND cd.is_active = true
          AND cd.is_portal_visible = true
          AND cd.document_type IN ('consent_form', 'assessment', 'report')
          AND (
            cd.case_id IS NULL
-           OR (c.contact_id = cd.contact_id AND c.client_viewable = true)
+           OR EXISTS (
+             SELECT 1
+             FROM cases c
+             WHERE c.id = cd.case_id
+               AND c.contact_id = $1
+               AND c.client_viewable = true
+           )
          )
-       ORDER BY cd.created_at DESC`,
-      [contactId]
+         AND (
+           $2::text IS NULL
+           OR concat_ws(' ', cd.title, cd.original_name, cd.document_type, cd.description)
+             ILIKE '%' || $2 || '%'
+         )`,
+      [contactId, search]
+    );
+    const total = Number(totalResult.rows[0]?.count ?? '0');
+
+    const result = await this.pool.query<Record<string, unknown>>(
+      `SELECT
+         cd.id,
+         cd.original_name,
+         cd.document_type,
+         cd.title,
+         cd.description,
+         cd.created_at
+       FROM contact_documents cd
+       WHERE cd.contact_id = $1
+         AND cd.is_active = true
+         AND cd.is_portal_visible = true
+         AND cd.document_type IN ('consent_form', 'assessment', 'report')
+         AND (
+           cd.case_id IS NULL
+           OR EXISTS (
+             SELECT 1
+             FROM cases c
+             WHERE c.id = cd.case_id
+               AND c.contact_id = $1
+               AND c.client_viewable = true
+           )
+         )
+         AND (
+           $2::text IS NULL
+           OR concat_ws(' ', cd.title, cd.original_name, cd.document_type, cd.description)
+             ILIKE '%' || $2 || '%'
+         )
+       ORDER BY ${sortColumn} ${order}, cd.id ${order}
+       LIMIT $3 OFFSET $4`,
+      [contactId, search, limit, offset]
     );
 
-    return result.rows;
+    return {
+      items: result.rows,
+      page: this.buildOffsetPage(limit, offset, total),
+    };
   }
 
-  async getPortalNotes(contactId: string): Promise<unknown[]> {
-    const result = await this.pool.query(
-      `SELECT cn.id, cn.note_type, cn.subject, cn.content, cn.created_at
+  async getPortalNotes(
+    contactId: string,
+    query?: {
+      search?: string;
+      sort?: 'created_at' | 'subject' | 'note_type';
+      order?: PortalListOrder;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<PortalPagedResult<Record<string, unknown>>> {
+    const { limit, offset } = this.normalizeOffsetPage(query);
+    const search = this.normalizeSearch(query?.search);
+    const sortColumns: Record<'created_at' | 'subject' | 'note_type', string> = {
+      created_at: 'cn.created_at',
+      subject: "LOWER(COALESCE(cn.subject, ''))",
+      note_type: 'LOWER(cn.note_type)',
+    };
+    const sort = query?.sort ?? 'created_at';
+    const sortColumn = sortColumns[sort];
+    const order = query?.order === 'asc' ? 'ASC' : 'DESC';
+
+    const totalResult = await this.pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count
        FROM contact_notes cn
-       LEFT JOIN cases c ON c.id = cn.case_id
        WHERE cn.contact_id = $1
          AND cn.is_internal = false
          AND cn.is_portal_visible = true
          AND (
            cn.case_id IS NULL
-           OR (c.contact_id = cn.contact_id AND c.client_viewable = true)
+           OR EXISTS (
+             SELECT 1
+             FROM cases c
+             WHERE c.id = cn.case_id
+               AND c.contact_id = $1
+               AND c.client_viewable = true
+           )
          )
-       ORDER BY cn.created_at DESC`,
-      [contactId]
-    );
-
-    return result.rows;
-  }
-
-  async getPortalReminderAppointments(contactId: string): Promise<unknown[]> {
-    const result = await this.pool.query(
-      `SELECT a.id, a.title, a.start_time
-       FROM appointments a
-       LEFT JOIN cases c ON c.id = a.case_id
-       WHERE a.contact_id = $1
-         AND a.status = 'confirmed'
-         AND a.start_time >= NOW()
          AND (
-           a.case_id IS NULL
-           OR (c.contact_id = a.contact_id AND c.client_viewable = true)
+           $2::text IS NULL
+           OR concat_ws(' ', cn.note_type, cn.subject, cn.content) ILIKE '%' || $2 || '%'
+         )`,
+      [contactId, search]
+    );
+    const total = Number(totalResult.rows[0]?.count ?? '0');
+
+    const result = await this.pool.query<Record<string, unknown>>(
+      `SELECT
+         cn.id,
+         cn.note_type,
+         cn.subject,
+         cn.content,
+         cn.created_at
+       FROM contact_notes cn
+       WHERE cn.contact_id = $1
+         AND cn.is_internal = false
+         AND cn.is_portal_visible = true
+         AND (
+           cn.case_id IS NULL
+           OR EXISTS (
+             SELECT 1
+             FROM cases c
+             WHERE c.id = cn.case_id
+               AND c.contact_id = $1
+               AND c.client_viewable = true
+           )
          )
-       ORDER BY a.start_time ASC`,
-      [contactId]
+         AND (
+           $2::text IS NULL
+           OR concat_ws(' ', cn.note_type, cn.subject, cn.content) ILIKE '%' || $2 || '%'
+         )
+       ORDER BY ${sortColumn} ${order}, cn.id ${order}
+       LIMIT $3 OFFSET $4`,
+      [contactId, search, limit, offset]
     );
 
-    return result.rows;
+    return {
+      items: result.rows,
+      page: this.buildOffsetPage(limit, offset, total),
+    };
   }
 
-  async getPortalReminderEvents(contactId: string): Promise<unknown[]> {
-    const result = await this.pool.query(
-      `SELECT e.id, e.name, e.start_date
-       FROM event_registrations er
-       JOIN events e ON e.id = er.event_id
-       WHERE er.contact_id = $1
-         AND er.registration_status IN ('registered', 'confirmed')
-         AND e.start_date >= NOW()
-         AND e.status NOT IN ('cancelled', 'completed')
-       ORDER BY e.start_date ASC`,
-      [contactId]
+  async getPortalReminders(
+    contactId: string,
+    query?: {
+      search?: string;
+      sort?: 'date' | 'title' | 'type';
+      order?: PortalListOrder;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<PortalPagedResult<Record<string, unknown>>> {
+    const { limit, offset } = this.normalizeOffsetPage(query);
+    const search = this.normalizeSearch(query?.search);
+    const sortColumns: Record<'date' | 'title' | 'type', string> = {
+      date: 'reminder.date',
+      title: 'LOWER(reminder.title)',
+      type: 'LOWER(reminder.type)',
+    };
+    const sort = query?.sort ?? 'date';
+    const sortColumn = sortColumns[sort];
+    const order = query?.order === 'desc' ? 'DESC' : 'ASC';
+
+    const totalResult = await this.pool.query<{ count: string }>(
+      `WITH reminder AS (
+          SELECT
+            'appointment'::text AS type,
+            a.id::text AS id,
+            COALESCE(NULLIF(a.title, ''), 'Appointment') AS title,
+            a.start_time AS date
+          FROM appointments a
+          WHERE a.contact_id = $1
+            AND a.status = 'confirmed'
+            AND a.start_time >= NOW()
+            AND (
+              a.case_id IS NULL
+              OR EXISTS (
+                SELECT 1
+                FROM cases c
+                WHERE c.id = a.case_id
+                  AND c.contact_id = $1
+                  AND c.client_viewable = true
+              )
+            )
+
+          UNION ALL
+
+          SELECT
+            'event'::text AS type,
+            e.id::text AS id,
+            e.name AS title,
+            e.start_date AS date
+          FROM event_registrations er
+          JOIN events e ON e.id = er.event_id
+          WHERE er.contact_id = $1
+            AND er.registration_status IN ('registered', 'confirmed')
+            AND e.start_date >= NOW()
+            AND e.status NOT IN ('cancelled', 'completed')
+        )
+       SELECT COUNT(*)::text AS count
+       FROM reminder
+       WHERE (
+         $2::text IS NULL
+         OR concat_ws(' ', reminder.type, reminder.title, reminder.date::text) ILIKE '%' || $2 || '%'
+       )`,
+      [contactId, search]
+    );
+    const total = Number(totalResult.rows[0]?.count ?? '0');
+
+    const result = await this.pool.query<Record<string, unknown>>(
+      `WITH reminder AS (
+          SELECT
+            'appointment'::text AS type,
+            a.id::text AS id,
+            COALESCE(NULLIF(a.title, ''), 'Appointment') AS title,
+            a.start_time AS date
+          FROM appointments a
+          WHERE a.contact_id = $1
+            AND a.status = 'confirmed'
+            AND a.start_time >= NOW()
+            AND (
+              a.case_id IS NULL
+              OR EXISTS (
+                SELECT 1
+                FROM cases c
+                WHERE c.id = a.case_id
+                  AND c.contact_id = $1
+                  AND c.client_viewable = true
+              )
+            )
+
+          UNION ALL
+
+          SELECT
+            'event'::text AS type,
+            e.id::text AS id,
+            e.name AS title,
+            e.start_date AS date
+          FROM event_registrations er
+          JOIN events e ON e.id = er.event_id
+          WHERE er.contact_id = $1
+            AND er.registration_status IN ('registered', 'confirmed')
+            AND e.start_date >= NOW()
+            AND e.status NOT IN ('cancelled', 'completed')
+        )
+       SELECT reminder.type, reminder.id, reminder.title, reminder.date
+       FROM reminder
+       WHERE (
+         $2::text IS NULL
+         OR concat_ws(' ', reminder.type, reminder.title, reminder.date::text) ILIKE '%' || $2 || '%'
+       )
+       ORDER BY ${sortColumn} ${order}, reminder.id ${order}
+       LIMIT $3 OFFSET $4`,
+      [contactId, search, limit, offset]
     );
 
-    return result.rows;
+    return {
+      items: result.rows,
+      page: this.buildOffsetPage(limit, offset, total),
+    };
   }
 
   async getDownloadableDocument(
@@ -597,16 +1091,24 @@ export class PortalRepository {
     documentId: string
   ): Promise<{ file_path: string; original_name: string; mime_type: string } | null> {
     const result = await this.pool.query(
-      `SELECT cd.file_path, cd.original_name, cd.mime_type
+      `SELECT
+         cd.file_path,
+         cd.original_name,
+         cd.mime_type
        FROM contact_documents cd
-       LEFT JOIN cases c ON c.id = cd.case_id
        WHERE cd.id = $1
          AND cd.contact_id = $2
          AND cd.is_active = true
          AND cd.is_portal_visible = true
          AND (
            cd.case_id IS NULL
-           OR (c.contact_id = cd.contact_id AND c.client_viewable = true)
+           OR EXISTS (
+             SELECT 1
+             FROM cases c
+             WHERE c.id = cd.case_id
+               AND c.contact_id = $2
+               AND c.client_viewable = true
+           )
          )`,
       [documentId, contactId]
     );

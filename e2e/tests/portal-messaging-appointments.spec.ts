@@ -12,7 +12,7 @@ test.describe('Portal Messaging + Appointments', () => {
 
   test('renders portal auth entry points', async ({ page }) => {
     await page.goto('/portal/login');
-    await expect(page.getByRole('heading', { name: /portal/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /client portal login/i })).toBeVisible();
 
     await page.goto('/portal/signup');
     await expect(page.getByRole('heading', { name: /request portal access/i })).toBeVisible();

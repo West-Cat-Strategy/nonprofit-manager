@@ -484,17 +484,86 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
       );
 
     case 'event-list':
-      return (
-        <div style={baseStyle} className="p-6 bg-app-surface-muted rounded-lg">
-          <div className="text-center text-app-text-muted">
-            <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <p className="font-medium">Event List</p>
-            <p className="text-sm">Shows {component.maxEvents} events</p>
+      {
+        const filterType = component.eventType || component.filterByTag || '';
+        const maxEvents = Math.max(1, component.maxEvents || 6);
+        const layout = component.layout || 'grid';
+        const previewEvents = [
+          {
+            id: 'preview-1',
+            title: 'Community Dinner',
+            eventType: 'community',
+            date: 'Apr 2, 2026 · 6:00 PM',
+            location: 'Main Hall, Vancouver',
+            description: 'Join volunteers and neighbors for an evening meal and program updates.',
+          },
+          {
+            id: 'preview-2',
+            title: 'Fundraising Breakfast',
+            eventType: 'fundraiser',
+            date: 'Apr 9, 2026 · 8:00 AM',
+            location: 'Harbor Center, Vancouver',
+            description: 'Sponsor breakfast with a short impact presentation and donor Q&A.',
+          },
+          {
+            id: 'preview-3',
+            title: 'Volunteer Orientation',
+            eventType: 'volunteer',
+            date: 'Apr 12, 2026 · 10:00 AM',
+            location: 'Outreach Hub, Burnaby',
+            description: 'Onboarding session for new volunteers supporting spring campaigns.',
+          },
+        ]
+          .filter((event) => !filterType || event.eventType === filterType)
+          .slice(0, maxEvents);
+
+        const resolvedLayout = layout === 'calendar' ? 'list' : layout;
+
+        return (
+          <div style={baseStyle} className="space-y-3 rounded-lg border border-app-border p-4 bg-app-surface-muted">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-app-text-muted">
+              <span className="rounded-full bg-app-surface px-2 py-1">
+                Layout: {layout}
+              </span>
+              <span className="rounded-full bg-app-surface px-2 py-1">
+                Max: {maxEvents}
+              </span>
+              {filterType ? (
+                <span className="rounded-full bg-app-surface px-2 py-1">
+                  Type: {filterType}
+                </span>
+              ) : null}
+              {component.showPastEvents ? (
+                <span className="rounded-full bg-app-surface px-2 py-1">Includes past events</span>
+              ) : null}
+            </div>
+
+            {layout === 'calendar' ? (
+              <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-xs text-app-text-muted">
+                Calendar mode is a fallback preview in this release. Published pages render list layout.
+              </div>
+            ) : null}
+
+            {previewEvents.length === 0 ? (
+              <div className="rounded-md border border-dashed border-app-border bg-app-surface px-3 py-6 text-center text-sm text-app-text-muted">
+                {component.emptyMessage || 'No public events are available right now.'}
+              </div>
+            ) : (
+              <div className={resolvedLayout === 'grid' ? 'grid gap-3 md:grid-cols-2' : 'space-y-3'}>
+                {previewEvents.map((event) => (
+                  <article key={event.id} className="rounded-md border border-app-border bg-app-surface p-3">
+                    <h4 className="font-medium text-app-text">{event.title}</h4>
+                    <p className="mt-1 text-xs uppercase tracking-wide text-app-text-muted">{event.eventType}</p>
+                    <p className="mt-2 text-sm text-app-text-muted">{event.date}</p>
+                    <p className="text-sm text-app-text-muted">{event.location}</p>
+                    <p className="mt-2 text-sm text-app-text">{event.description}</p>
+                  </article>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      );
+        );
+      }
 
     case 'gallery':
       return (

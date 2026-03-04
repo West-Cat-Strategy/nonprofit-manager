@@ -62,7 +62,7 @@ export const createContactDirectoryController = (
 
       const pagination: PaginationParams = extractPagination(query);
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
-      const result = await useCase.list(filters, pagination, scope);
+      const result = await useCase.list(filters, pagination, scope, req.user?.role);
       sendData(res, mode, result);
     } catch (error) {
       next(error);
@@ -124,7 +124,7 @@ export const createContactDirectoryController = (
   const getContactById = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
-      const contact = await useCase.getById(req.params.id, scope);
+      const contact = await useCase.getById(req.params.id, scope, req.user?.role);
 
       if (!contact) {
         sendFailure(res, mode, 'NOT_FOUND', 'Contact not found', 404);
@@ -145,7 +145,7 @@ export const createContactDirectoryController = (
         return;
       }
 
-      const contact = await useCase.create(req.body as CreateContactDTO, userId);
+      const contact = await useCase.create(req.body as CreateContactDTO, userId, req.user?.role);
       sendData(res, mode, contact, 201);
     } catch (error) {
       next(error);
@@ -161,7 +161,13 @@ export const createContactDirectoryController = (
       }
 
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
-      const contact = await useCase.update(req.params.id, req.body as UpdateContactDTO, userId, scope);
+      const contact = await useCase.update(
+        req.params.id,
+        req.body as UpdateContactDTO,
+        userId,
+        scope,
+        req.user?.role
+      );
 
       if (!contact) {
         sendFailure(res, mode, 'NOT_FOUND', 'Contact not found', 404);

@@ -67,6 +67,11 @@ type ApiLoginResult = {
   organizationId?: string;
 };
 
+type SetupStatusResult = {
+  setupRequired: boolean;
+  userCount: number;
+};
+
 type DecodedJwtPayload = {
   id?: unknown;
   sub?: unknown;
@@ -370,6 +375,69 @@ const getSessionOrganizationId = async (page: Page): Promise<string | undefined>
   return normalizeOrganizationId(localStorageOrganizationId);
 };
 
+const getApiBaseUrl = (): string => process.env.API_URL || `${HTTP_SCHEME}127.0.0.1:3001`;
+
+const isAdminRole = (role: unknown): boolean =>
+  typeof role === 'string' && role.trim().toLowerCase() === 'admin';
+
+const generateUniqueAdminEmail = (): string =>
+  `e2e+admin-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
+
+const fetchSetupStatus = async (page: Page): Promise<SetupStatusResult> => {
+  const setupStatusResponse = await withNetworkRetry(() =>
+    page.request.get(`${getApiBaseUrl()}/api/v2/auth/setup-status`)
+  );
+
+  if (!setupStatusResponse.ok()) {
+    const responseBody = await setupStatusResponse.text().catch(() => '');
+    throw new Error(
+      `setup-status failed (${setupStatusResponse.status()}): ${responseBody || 'empty response'}`
+    );
+  }
+
+  const payload = unwrapApiData<{
+    setupRequired?: unknown;
+    userCount?: unknown;
+  }>(await setupStatusResponse.json());
+
+  if (typeof payload?.setupRequired !== 'boolean') {
+    throw new Error(`setup-status payload missing boolean setupRequired: ${JSON.stringify(payload)}`);
+  }
+
+  const rawUserCount = payload.userCount;
+  const userCount =
+    typeof rawUserCount === 'number'
+      ? rawUserCount
+      : Number.parseInt(String(rawUserCount ?? '0'), 10) || 0;
+
+  return {
+    setupRequired: payload.setupRequired,
+    userCount,
+  };
+};
+
+const waitForSetupStatus = async (
+  page: Page,
+  options: { attempts?: number; delayMs?: number } = {}
+): Promise<SetupStatusResult> => {
+  const attempts = options.attempts ?? 5;
+  const delayMs = options.delayMs ?? 250;
+
+  let latestStatus: SetupStatusResult | null = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    latestStatus = await fetchSetupStatus(page);
+    if (!latestStatus.setupRequired) {
+      return latestStatus;
+    }
+
+    if (attempt < attempts) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+
+  return latestStatus ?? { setupRequired: true, userCount: 0 };
+};
+
 const resolveOrganizationIdFromPayload = (payload: unknown): string | undefined => {
   if (!payload || typeof payload !== 'object') {
     return undefined;
@@ -491,38 +559,64 @@ export async function ensureSetupComplete(
   email: string,
   password: string,
   profile?: { firstName?: string; lastName?: string; organizationName?: string }
-): Promise<void> {
-  const apiURL = process.env.API_URL || `${HTTP_SCHEME}127.0.0.1:3001`;
+): Promise<{ email: string; password: string }> {
+  const apiURL = getApiBaseUrl();
   const firstName = profile?.firstName || 'Test';
   const lastName = profile?.lastName || 'User';
   const organizationName = profile?.organizationName || 'E2E Organization';
-  const setupResponse = await withNetworkRetry(() =>
-    page.request.post(`${apiURL}/api/v2/auth/setup`, {
-      data: {
-        email,
-        password,
-        password_confirm: password,
-        first_name: firstName,
-        last_name: lastName,
-        organization_name: organizationName
-      },
-      headers: { 'Content-Type': 'application/json' },
-    })
-  );
 
-  if (setupResponse.ok()) {
-    return;
+  const submitSetup = async (setupEmail: string) =>
+    withNetworkRetry(() =>
+      page.request.post(`${apiURL}/api/v2/auth/setup`, {
+        data: {
+          email: setupEmail,
+          password,
+          password_confirm: password,
+          first_name: firstName,
+          last_name: lastName,
+          organization_name: organizationName,
+        },
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+
+  let setupEmail = email;
+
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const setupResponse = await submitSetup(setupEmail);
+    if (setupResponse.ok()) {
+      const setupStatus = await waitForSetupStatus(page);
+      if (setupStatus.setupRequired) {
+        throw new Error(
+          `setup completed for ${setupEmail}, but setup-status still requires setup (userCount=${setupStatus.userCount})`
+        );
+      }
+      return { email: setupEmail, password };
+    }
+
+    const status = setupResponse.status();
+    const responseText = await setupResponse.text().catch(() => '');
+
+    const setupStatus = await waitForSetupStatus(page, { attempts: 3, delayMs: 200 });
+    if (!setupStatus.setupRequired) {
+      return { email: setupEmail, password };
+    }
+
+    const shouldRetryWithUniqueEmail =
+      attempt === 1 &&
+      (status === 409 || status === 400 || messageIndicatesUserAlreadyExists(responseText));
+
+    if (shouldRetryWithUniqueEmail) {
+      setupEmail = generateUniqueAdminEmail();
+      continue;
+    }
+
+    throw new Error(
+      `setup failed for ${setupEmail} (${status}) while setupRequired=true: ${responseText || 'empty response'}`
+    );
   }
 
-  const status = setupResponse.status();
-  if (status === 400 || status === 403 || status === 409 || status === 500) {
-    // Setup already completed or user exists.
-    return;
-  }
-
-  const responseText = await setupResponse.text().catch(() => '');
-  console.log(`Setup failed with status ${status}. Response: ${responseText}`);
-  throw new Error(`Setup failed with status ${status}: ${responseText}`);
+  throw new Error(`setup failed to complete admin bootstrap for ${email}`);
 }
 
 /**
@@ -607,8 +701,30 @@ export async function ensureAdminLoginViaAPI(
     ...result,
     email,
     password,
-    isAdmin: typeof result.user?.role === 'string' && result.user.role.toLowerCase() === 'admin',
+    isAdmin: isAdminRole(result.user?.role),
   });
+
+  const loginAndValidateAdminSession = async (
+    email: string,
+    password: string
+  ): Promise<AuthSession> => {
+    const loginResult = await loginViaAPI(page, email, password);
+    const session = toSession(
+      await ensureOrganizationBackedSession(page, email, password, loginResult),
+      email,
+      password
+    );
+    const setupStatus = await waitForSetupStatus(page);
+    if (setupStatus.setupRequired) {
+      throw new Error(
+        `setup-status still requires setup after login for ${email} (role=${String(session.user?.role ?? 'unknown')})`
+      );
+    }
+    if (!session.isAdmin) {
+      throw new Error(`authenticated user ${email} is not admin (role=${String(session.user?.role ?? 'unknown')})`);
+    }
+    return session;
+  };
 
   const sharedUser = getSharedTestUser();
   if (
@@ -621,50 +737,40 @@ export async function ensureAdminLoginViaAPI(
         firstName: profile?.firstName || 'Admin',
         lastName: profile?.lastName || 'User',
       });
-      return toSession(sharedSession, sharedUser.email, sharedUser.password);
+      const normalizedSharedSession = toSession(sharedSession, sharedUser.email, sharedUser.password);
+      if (normalizedSharedSession.isAdmin) {
+        const setupStatus = await waitForSetupStatus(page);
+        if (!setupStatus.setupRequired) {
+          return normalizedSharedSession;
+        }
+      }
     } catch {
       // Continue to configured admin flow.
     }
   }
 
+  let initialLoginError: unknown;
   try {
-    const loginResult = await loginViaAPI(page, adminEmail, adminPassword);
-    return toSession(
-      await ensureOrganizationBackedSession(page, adminEmail, adminPassword, loginResult),
-      adminEmail,
-      adminPassword
-    );
-  } catch {
-    await ensureSetupComplete(page, adminEmail, adminPassword, {
-      firstName: profile?.firstName || 'Admin',
-      lastName: profile?.lastName || 'User',
-      organizationName: profile?.organizationName || 'E2E Organization',
-    });
-    try {
-      const loginResult = await loginViaAPI(page, adminEmail, adminPassword);
-      return toSession(
-        await ensureOrganizationBackedSession(page, adminEmail, adminPassword, loginResult),
-        adminEmail,
-        adminPassword
-      );
-    } catch {
-      const fallbackEmail =
-        process.env.TEST_USER_EMAIL?.trim()?.toLowerCase() === adminEmail.toLowerCase()
-          ? `e2e+admin-fallback-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`
-          : process.env.TEST_USER_EMAIL?.trim() ||
-            `e2e+admin-fallback-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
-      const fallbackPassword = process.env.TEST_USER_PASSWORD?.trim() || 'Test123!@#';
+    return await loginAndValidateAdminSession(adminEmail, adminPassword);
+  } catch (error) {
+    initialLoginError = error;
+  }
 
-      // Keep tests resilient when a persisted local admin user password drifts from .env.test.
-      return toSession(
-        await ensureLoginViaAPI(page, fallbackEmail, fallbackPassword, {
-          firstName: profile?.firstName || 'Admin',
-          lastName: profile?.lastName || 'User',
-        }),
-        fallbackEmail,
-        fallbackPassword
-      );
-    }
+  const setupCredentials = await ensureSetupComplete(page, adminEmail, adminPassword, {
+    firstName: profile?.firstName || 'Admin',
+    lastName: profile?.lastName || 'User',
+    organizationName: profile?.organizationName || 'E2E Organization',
+  });
+
+  try {
+    return await loginAndValidateAdminSession(setupCredentials.email, setupCredentials.password);
+  } catch (error) {
+    const firstErrorMessage =
+      initialLoginError instanceof Error ? initialLoginError.message : String(initialLoginError);
+    const secondErrorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Unable to establish admin setup-complete session. Initial login error: ${firstErrorMessage}. Post-setup error: ${secondErrorMessage}`
+    );
   }
 }
 
@@ -675,7 +781,32 @@ export async function ensureEffectiveAdminLoginViaAPI(
   page: Page,
   profile?: { firstName?: string; lastName?: string; organizationName?: string }
 ): Promise<AuthSession> {
-  const session = await ensureAdminLoginViaAPI(page, profile);
+  let session: AuthSession;
+  let strictAdminError: unknown;
+
+  try {
+    session = await ensureAdminLoginViaAPI(page, profile);
+  } catch (error) {
+    strictAdminError = error;
+    const setupStatus = await waitForSetupStatus(page);
+    if (setupStatus.setupRequired) {
+      throw error;
+    }
+
+    const sharedUser = getSharedTestUser();
+    const fallbackSession = await ensureLoginViaAPI(page, sharedUser.email, sharedUser.password, {
+      firstName: profile?.firstName || 'Admin',
+      lastName: profile?.lastName || 'User',
+    });
+
+    session = {
+      ...fallbackSession,
+      email: sharedUser.email,
+      password: sharedUser.password,
+      isAdmin: isAdminRole(fallbackSession.user?.role),
+    };
+  }
+
   if (session.isAdmin) {
     return session;
   }
@@ -728,7 +859,7 @@ export async function ensureEffectiveAdminLoginViaAPI(
 
   const baseUser =
     session.user && typeof session.user === 'object' ? (session.user as Record<string, unknown>) : {};
-  return {
+  const elevatedSession: AuthSession = {
     ...session,
     token: elevatedToken,
     user: {
@@ -741,6 +872,16 @@ export async function ensureEffectiveAdminLoginViaAPI(
     },
     isAdmin: true,
   };
+
+  if (strictAdminError) {
+    const strictErrorMessage =
+      strictAdminError instanceof Error ? strictAdminError.message : String(strictAdminError);
+    console.warn(
+      `ensureEffectiveAdminLoginViaAPI: elevated fallback session after strict admin bootstrap failure: ${strictErrorMessage}`
+    );
+  }
+
+  return elevatedSession;
 }
 
 /**

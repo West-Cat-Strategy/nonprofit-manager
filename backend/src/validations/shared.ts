@@ -36,6 +36,48 @@ export const phoneSchema = z
   .optional()
   .or(z.literal(''));
 
+const phnDigitsSchema = z
+  .string()
+  .regex(/^\d{10}$/, 'PHN must contain exactly 10 digits');
+
+const normalizePhnDigits = (value: string): string => value.replace(/\D/g, '');
+
+/**
+ * Optional PHN value for create flows.
+ * Empty strings are treated as "not provided".
+ */
+export const optionalPhnSchema = z.preprocess(
+  (value) => {
+    if (value === undefined) {
+      return undefined;
+    }
+    if (typeof value !== 'string') {
+      return value;
+    }
+    const normalized = normalizePhnDigits(value);
+    return normalized.length === 0 ? undefined : normalized;
+  },
+  phnDigitsSchema.optional()
+);
+
+/**
+ * Optional + nullable PHN value for update flows.
+ * Null clears the field; empty strings are normalized to null.
+ */
+export const optionalNullablePhnSchema = z.preprocess(
+  (value) => {
+    if (value === undefined || value === null) {
+      return value;
+    }
+    if (typeof value !== 'string') {
+      return value;
+    }
+    const normalized = normalizePhnDigits(value);
+    return normalized.length === 0 ? null : normalized;
+  },
+  phnDigitsSchema.nullable().optional()
+);
+
 // URL validation
 export const urlSchema = z
   .string()

@@ -12,6 +12,7 @@ import type {
 } from '@app-types/publishing';
 import type { TemplatePage, PageSection } from '@app-types/websiteBuilder';
 import { SiteManagementService } from './siteManagementService';
+import { ensureEventsPage } from '../template/helpers';
 
 export class PublishService {
   private siteManagement: SiteManagementService;
@@ -60,6 +61,7 @@ export class PublishService {
           createdAt: p.created_at as string,
           updatedAt: p.updated_at as string,
         }));
+      const pagesWithEventsFallback = ensureEventsPage(pages, templateRow.id as string);
 
       // Generate version
       const version = `v${Date.now()}`;
@@ -69,13 +71,13 @@ export class PublishService {
         templateId: templateRow.id,
         templateName: templateRow.name,
         theme: templateRow.theme || {},
-        pages: pages.map((page: { id: string; slug: string; name: string; isHomepage: boolean; sections: PageSection[]; seo: Record<string, unknown> }) => ({
+        pages: pagesWithEventsFallback.map((page) => ({
           id: page.id,
           slug: page.slug,
           name: page.name,
           isHomepage: page.isHomepage,
           sections: page.sections as unknown as import('../../types/publishing').PublishedSection[],
-          seo: page.seo as import('../../types/publishing').PublishedPageSEO,
+          seo: page.seo as unknown as import('../../types/publishing').PublishedPageSEO,
         })),
         navigation: globalSettings.header || { items: [], style: 'horizontal', sticky: false, transparent: false },
         footer: globalSettings.footer || { columns: [], copyright: '' },

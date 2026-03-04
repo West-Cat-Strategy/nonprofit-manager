@@ -1,10 +1,19 @@
 import type {
   CheckInOptions,
+  EventCheckInSettings,
   CreateRegistrationDTO,
   EventRegistration,
+  EventWalkInCheckInDTO,
+  EventWalkInCheckInResult,
+  PublicEventCheckInDTO,
+  PublicEventCheckInInfo,
+  PublicEventCheckInResult,
   RegistrationFilters,
+  RotateEventCheckInPinResult,
+  UpdateEventCheckInSettingsDTO,
   UpdateRegistrationDTO,
 } from '@app-types/event';
+import type { DataScopeFilter } from '@app-types/dataScope';
 import { EventRepository } from '../repositories/eventRepository';
 
 export class EventRegistrationUseCase {
@@ -14,8 +23,8 @@ export class EventRegistrationUseCase {
     return this.repository.getEventRegistrations(eventId, filters);
   }
 
-  listByContact(contactId: string): Promise<unknown[]> {
-    return this.repository.getContactRegistrations(contactId);
+  listByContact(contactId: string, scope?: DataScopeFilter): Promise<unknown[]> {
+    return this.repository.getContactRegistrations(contactId, scope);
   }
 
   getById(registrationId: string): Promise<EventRegistration | null> {
@@ -24,6 +33,10 @@ export class EventRegistrationUseCase {
 
   getByToken(eventId: string, token: string): Promise<EventRegistration | null> {
     return this.repository.getRegistrationByToken(eventId, token);
+  }
+
+  getByTokenGlobal(token: string, scope?: DataScopeFilter): Promise<EventRegistration | null> {
+    return this.repository.getRegistrationByTokenGlobal(token, scope);
   }
 
   register(data: CreateRegistrationDTO): Promise<unknown> {
@@ -43,5 +56,37 @@ export class EventRegistrationUseCase {
 
   cancel(registrationId: string): Promise<void> {
     return this.repository.cancelRegistration(registrationId);
+  }
+
+  getCheckInSettings(eventId: string): Promise<EventCheckInSettings | null> {
+    return this.repository.getEventCheckInSettings(eventId);
+  }
+
+  updateCheckInSettings(
+    eventId: string,
+    data: UpdateEventCheckInSettingsDTO,
+    userId: string
+  ): Promise<EventCheckInSettings | null> {
+    return this.repository.updateEventCheckInSettings(eventId, data, userId);
+  }
+
+  rotateCheckInPin(eventId: string, userId: string): Promise<RotateEventCheckInPinResult> {
+    return this.repository.rotateEventCheckInPin(eventId, userId);
+  }
+
+  walkInCheckIn(
+    eventId: string,
+    data: EventWalkInCheckInDTO,
+    checkedInBy: string
+  ): Promise<EventWalkInCheckInResult> {
+    return this.repository.walkInCheckIn(eventId, data, checkedInBy);
+  }
+
+  getPublicCheckInInfo(eventId: string): Promise<PublicEventCheckInInfo | null> {
+    return this.repository.getPublicCheckInInfo(eventId);
+  }
+
+  submitPublicCheckIn(eventId: string, data: PublicEventCheckInDTO): Promise<PublicEventCheckInResult> {
+    return this.repository.submitPublicCheckIn(eventId, data);
   }
 }

@@ -5,12 +5,22 @@ import type {
   CreateEventDTO,
   CreateEventReminderAutomationDTO,
   Event,
+  EventCheckInSettings,
   EventReminderAutomation,
   EventRegistration,
   EventReminderSummary,
+  EventWalkInCheckInDTO,
+  EventWalkInCheckInResult,
   PaginatedEvents,
+  PublicEventCheckInDTO,
+  PublicEventCheckInInfo,
+  PublicEventCheckInResult,
+  PublicEventsListResult,
+  PublicEventsQuery,
   RegistrationFilters,
+  RotateEventCheckInPinResult,
   SyncEventReminderAutomationsDTO,
+  UpdateEventCheckInSettingsDTO,
   UpdateEventDTO,
 } from '../../../types/event';
 import type {
@@ -36,6 +46,19 @@ export class EventsApiClient
     if (query.limit) params.set('limit', String(query.limit));
     if (query.sortBy) params.set('sort_by', query.sortBy);
     if (query.sortOrder) params.set('sort_order', query.sortOrder);
+    return params;
+  }
+
+  private buildPublicEventsParams(query: PublicEventsQuery, site?: string): URLSearchParams {
+    const params = new URLSearchParams();
+    if (query.search) params.set('search', query.search);
+    if (query.event_type) params.set('event_type', query.event_type);
+    if (typeof query.include_past === 'boolean') params.set('include_past', String(query.include_past));
+    if (query.limit) params.set('limit', String(query.limit));
+    if (typeof query.offset === 'number') params.set('offset', String(query.offset));
+    if (query.sort_by) params.set('sort_by', query.sort_by);
+    if (query.sort_order) params.set('sort_order', query.sort_order);
+    if (site) params.set('site', site);
     return params;
   }
 
@@ -140,6 +163,88 @@ export class EventsApiClient
       `/v2/events/${eventId}/check-in/scan`,
       { token }
     );
+    return unwrapApiData(response.data);
+  }
+
+  async scanCheckInGlobal(token: string): Promise<EventRegistration> {
+    const response = await api.post<ApiEnvelope<EventRegistration>>('/v2/events/check-in/scan', {
+      token,
+    });
+    return unwrapApiData(response.data);
+  }
+
+  async getCheckInSettings(eventId: string): Promise<EventCheckInSettings> {
+    const response = await api.get<ApiEnvelope<EventCheckInSettings>>(
+      `/v2/events/${eventId}/check-in/settings`
+    );
+    return unwrapApiData(response.data);
+  }
+
+  async updateCheckInSettings(
+    eventId: string,
+    payload: UpdateEventCheckInSettingsDTO
+  ): Promise<EventCheckInSettings> {
+    const response = await api.patch<ApiEnvelope<EventCheckInSettings>>(
+      `/v2/events/${eventId}/check-in/settings`,
+      payload
+    );
+    return unwrapApiData(response.data);
+  }
+
+  async rotateCheckInPin(eventId: string): Promise<RotateEventCheckInPinResult> {
+    const response = await api.post<ApiEnvelope<RotateEventCheckInPinResult>>(
+      `/v2/events/${eventId}/check-in/pin/rotate`
+    );
+    return unwrapApiData(response.data);
+  }
+
+  async walkInCheckIn(eventId: string, payload: EventWalkInCheckInDTO): Promise<EventWalkInCheckInResult> {
+    const response = await api.post<ApiEnvelope<EventWalkInCheckInResult>>(
+      `/v2/events/${eventId}/walk-ins`,
+      payload
+    );
+    return unwrapApiData(response.data);
+  }
+
+  async getPublicCheckInInfo(eventId: string): Promise<PublicEventCheckInInfo> {
+    const response = await api.get<ApiEnvelope<PublicEventCheckInInfo>>(
+      `/v2/public/events/${eventId}/check-in`
+    );
+    return unwrapApiData(response.data);
+  }
+
+  async submitPublicCheckIn(
+    eventId: string,
+    payload: PublicEventCheckInDTO
+  ): Promise<PublicEventCheckInResult> {
+    const response = await api.post<ApiEnvelope<PublicEventCheckInResult>>(
+      `/v2/public/events/${eventId}/check-in`,
+      payload
+    );
+    return unwrapApiData(response.data);
+  }
+
+  async listPublicEventsBySite(
+    site: string,
+    query: PublicEventsQuery = {}
+  ): Promise<PublicEventsListResult> {
+    const params = this.buildPublicEventsParams(query);
+    const queryString = params.toString();
+    const suffix = queryString ? `?${queryString}` : '';
+    const response = await api.get<ApiEnvelope<PublicEventsListResult>>(
+      `/v2/public/events/sites/${encodeURIComponent(site)}${suffix}`
+    );
+    return unwrapApiData(response.data);
+  }
+
+  async listPublicEventsByHost(
+    query: PublicEventsQuery = {},
+    site?: string
+  ): Promise<PublicEventsListResult> {
+    const params = this.buildPublicEventsParams(query, site);
+    const queryString = params.toString();
+    const suffix = queryString ? `?${queryString}` : '';
+    const response = await api.get<ApiEnvelope<PublicEventsListResult>>(`/v2/public/events${suffix}`);
     return unwrapApiData(response.data);
   }
 

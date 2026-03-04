@@ -4,7 +4,8 @@
  * user management, roles, and security settings
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { lazy, Suspense, useState, useEffect, useRef } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useToast } from '../../../contexts/useToast';
 import { useApiError } from '../../../hooks/useApiError';
 import { useUnsavedChangesGuard } from '../../../hooks/useUnsavedChangesGuard';
@@ -12,40 +13,43 @@ import { useBranding } from '../../../contexts/BrandingContext';
 import ErrorBanner from '../../../components/ErrorBanner';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import useConfirmDialog from '../../../hooks/useConfirmDialog';
-import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
+import AdminPanelLayout from '../components/AdminPanelLayout';
+import AdminPanelNav from '../components/AdminPanelNav';
 import { adminSettingsTabs, defaultPermissions } from './adminSettings/constants';
-import OrganizationSection from './adminSettings/sections/OrganizationSection';
-import BrandingSection from './adminSettings/sections/BrandingSection';
-import UsersSection from './adminSettings/sections/UsersSection';
-import PortalSection from './adminSettings/sections/PortalSection';
-import RolesSection from './adminSettings/sections/RolesSection';
-import OtherSettingsSection from './adminSettings/sections/OtherSettingsSection';
-import DashboardSection from './adminSettings/sections/DashboardSection';
-import AuditLogsSection from './adminSettings/sections/AuditLogsSection';
-import EmailSettingsSection from './adminSettings/sections/EmailSettingsSection';
-import TwilioSettingsSection from './adminSettings/sections/TwilioSettingsSection';
-import RegistrationSettingsSection from './adminSettings/sections/RegistrationSettingsSection';
-import OutcomeDefinitionsSection from './adminSettings/sections/OutcomeDefinitionsSection';
 import UserSecurityModal from './adminSettings/components/UserSecurityModal';
-import PortalResetPasswordModal from './adminSettings/components/PortalResetPasswordModal';
 import { useOrganizationSettings } from './adminSettings/hooks/useOrganizationSettings';
 import { useUsersSettings } from './adminSettings/hooks/useUsersSettings';
-import { usePortalSettings } from './adminSettings/hooks/usePortalSettings';
 import { useRolesSettings } from './adminSettings/hooks/useRolesSettings';
-import usePortalAdminRealtime from '../../../features/portal/admin/usePortalAdminRealtime';
 
 const ADMIN_SETTINGS_MODE_KEY = 'admin_settings_mode_v1';
 const ADMIN_SETTINGS_SECTION_KEY = 'admin_settings_section_v1';
+
+const OrganizationSection = lazy(() => import('./adminSettings/sections/OrganizationSection'));
+const BrandingSection = lazy(() => import('./adminSettings/sections/BrandingSection'));
+const UsersSection = lazy(() => import('./adminSettings/sections/UsersSection'));
+const RolesSection = lazy(() => import('./adminSettings/sections/RolesSection'));
+const OtherSettingsSection = lazy(() => import('./adminSettings/sections/OtherSettingsSection'));
+const DashboardSection = lazy(() => import('./adminSettings/sections/DashboardSection'));
+const AuditLogsSection = lazy(() => import('./adminSettings/sections/AuditLogsSection'));
+const EmailSettingsSection = lazy(() => import('./adminSettings/sections/EmailSettingsSection'));
+const TwilioSettingsSection = lazy(() => import('./adminSettings/sections/TwilioSettingsSection'));
+const RegistrationSettingsSection = lazy(
+  () => import('./adminSettings/sections/RegistrationSettingsSection')
+);
+const OutcomeDefinitionsSection = lazy(
+  () => import('./adminSettings/sections/OutcomeDefinitionsSection')
+);
 
 // ============================================================================
 // Main Component
 // ============================================================================
 
 export default function AdminSettings() {
-  const { showSuccess, showError } = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { showSuccess } = useToast();
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const { error: formError, setFromError: setFormErrorFromError, clear: clearFormError } = useApiError();
-  const { setFromError: notifyError } = useApiError({ notify: true });
   const { setBranding: setGlobalBranding } = useBranding();
   const persistedMode =
     (typeof window !== 'undefined'
@@ -54,9 +58,21 @@ export default function AdminSettings() {
   const persistedSection =
     (typeof window !== 'undefined' ? window.localStorage.getItem(ADMIN_SETTINGS_SECTION_KEY) : null) ||
     'dashboard';
+  const sectionFromQuery =
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('section')
+      : null;
+  const querySectionIsValid =
+    sectionFromQuery !== null && adminSettingsTabs.some((tab) => tab.id === sectionFromQuery);
+  const persistedSectionIsValid = adminSettingsTabs.some((tab) => tab.id === persistedSection);
+  const initialSection = querySectionIsValid
+    ? sectionFromQuery
+    : persistedSectionIsValid
+      ? persistedSection
+      : 'dashboard';
 
   // State
-  const [activeSection, setActiveSection] = useState<string>(persistedSection);
+  const [activeSection, setActiveSection] = useState<string>(initialSection);
   const [isLoading, setIsLoading] = useState(true);
   const {
     showAdvancedSettings,
@@ -139,112 +155,6 @@ export default function AdminSettings() {
     setFormErrorFromError,
     clearFormError,
   });
-  const {
-    portalRequests,
-    portalInvitations,
-    portalInviteEmail,
-    setPortalInviteEmail,
-    setPortalInviteContactId,
-    portalInviteUrl,
-    portalLoading,
-    portalUsers,
-    portalUsersLoading,
-    portalUserSearch,
-    setPortalUserSearch,
-    portalUserActivity,
-    portalActivityLoading,
-    selectedPortalUser,
-    portalResetTarget,
-    setPortalResetTarget,
-    portalResetPassword,
-    setPortalResetPassword,
-    portalResetConfirmPassword,
-    setPortalResetConfirmPassword,
-    portalResetLoading,
-    showPortalResetModal,
-    setShowPortalResetModal,
-    portalContactSearch,
-    setPortalContactSearch,
-    portalContactResults,
-    setPortalContactResults,
-    portalContactLoading,
-    selectedPortalContact,
-    setSelectedPortalContact,
-    portalAppointments,
-    portalAppointmentsLoading,
-    portalAppointmentsPagination,
-    portalAppointmentFilters,
-    portalSelectedAppointmentId,
-    portalAppointmentReminders,
-    portalAppointmentRemindersLoading,
-    portalAppointmentActionLoading,
-    portalReminderCustomMessage,
-    setPortalReminderCustomMessage,
-    onAppointmentUpdated,
-    refreshPortalData,
-    fetchPortalUsers,
-    fetchPortalAppointments,
-    handleApprovePortalRequest,
-    handleRejectPortalRequest,
-    handleCreatePortalInvite,
-    handlePortalAppointmentFilterChange,
-    handlePortalAppointmentStatusChange,
-    handlePortalAppointmentCheckIn,
-    handlePortalAppointmentReminderHistory,
-    handlePortalSendAppointmentReminder,
-    handlePortalUserStatusChange,
-    handlePortalUserActivity,
-    handlePortalPasswordReset,
-  } = usePortalSettings({
-    activeSection,
-    showSuccess,
-    showError,
-    notifyError,
-    confirm,
-    setFormErrorFromError,
-    clearFormError,
-  });
-  const portalSectionActive = activeSection === 'portal';
-  const {
-    streamStatus: portalStreamStatus,
-    conversationFilters: portalConversationFilters,
-    onConversationFilterChange: onPortalConversationFilterChange,
-    portalConversationsLoading,
-    portalConversationsLoadingMore,
-    portalConversationsHasMore,
-    portalConversations,
-    selectedPortalConversation,
-    portalConversationReply,
-    setPortalConversationReply,
-    portalConversationReplyInternal,
-    setPortalConversationReplyInternal,
-    portalConversationReplyLoading,
-    fetchPortalConversations,
-    loadMorePortalConversations,
-    openPortalConversation,
-    sendPortalConversationReply,
-    updatePortalConversationStatus,
-    slotFilters: portalSlotFilters,
-    onSlotFilterChange: onPortalSlotFilterChange,
-    portalSlotsLoading,
-    portalSlotsLoadingMore,
-    portalSlotsHasMore,
-    portalSlots,
-    portalSlotSaving,
-    portalSlotForm,
-    onPortalSlotFormChange,
-    fetchPortalSlots,
-    loadMorePortalSlots,
-    createPortalSlot,
-    updatePortalSlotStatus,
-    deletePortalSlot,
-  } = usePortalAdminRealtime({
-    active: portalSectionActive,
-    showSuccess,
-    showError,
-    notifyError,
-    onAppointmentUpdated,
-  });
 
   // Refs
   const iconInputRef = useRef<HTMLInputElement>(null);
@@ -280,6 +190,35 @@ export default function AdminSettings() {
   }, [activeSection, showAdvancedSettings]);
 
   useEffect(() => {
+    if (location.pathname !== '/settings/admin') {
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    const section = params.get('section');
+
+    if (section === 'portal') {
+      navigate('/settings/admin/portal/access', { replace: true });
+      return;
+    }
+
+    if (!section) {
+      return;
+    }
+
+    const isKnownSection = adminSettingsTabs.some((tab) => tab.id === section);
+    if (!isKnownSection) {
+      params.set('section', 'dashboard');
+      navigate({ pathname: '/settings/admin', search: `?${params.toString()}` }, { replace: true });
+      return;
+    }
+
+    if (section !== activeSection) {
+      setActiveSection(section);
+    }
+  }, [activeSection, location.pathname, location.search, navigate]);
+
+  useEffect(() => {
     window.localStorage.setItem(
       ADMIN_SETTINGS_MODE_KEY,
       showAdvancedSettings ? 'advanced' : 'basic'
@@ -290,24 +229,19 @@ export default function AdminSettings() {
     window.localStorage.setItem(ADMIN_SETTINGS_SECTION_KEY, activeSection);
   }, [activeSection]);
 
-  const refreshPortalDataWithRealtime = async () => {
-    await refreshPortalData({
-      refreshConversations: () => fetchPortalConversations({ offsetValue: 0 }),
-      refreshSlots: () => fetchPortalSlots({ offsetValue: 0 }),
-    });
-  };
+  useEffect(() => {
+    if (location.pathname !== '/settings/admin') {
+      return;
+    }
 
-  const handleDeletePortalSlot = async (slotId: string) => {
-    const confirmed = await confirm({
-      title: 'Delete Appointment Slot',
-      message: 'This slot will be permanently deleted. Continue?',
-      confirmLabel: 'Delete',
-      variant: 'danger',
-    });
-    if (!confirmed) return;
+    const params = new URLSearchParams(location.search);
+    if (params.get('section') === activeSection) {
+      return;
+    }
 
-    await deletePortalSlot(slotId);
-  };
+    params.set('section', activeSection);
+    navigate({ pathname: '/settings/admin', search: `?${params.toString()}` }, { replace: true });
+  }, [activeSection, location.pathname, location.search, navigate]);
 
   // ============================================================================
   // Loading State
@@ -315,11 +249,15 @@ export default function AdminSettings() {
 
   if (isLoading) {
     return (
-      <NeoBrutalistLayout pageTitle="ADMIN SETTINGS">
-        <div className="min-h-screen p-6 flex items-center justify-center">
+      <AdminPanelLayout
+        title="Admin Settings"
+        description="Configure organization settings, branding, users, roles, and security."
+        sidebar={<AdminPanelNav currentPath={location.pathname} />}
+      >
+        <div className="min-h-[240px] flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--loop-blue)]"></div>
         </div>
-      </NeoBrutalistLayout>
+      </AdminPanelLayout>
     );
   }
 
@@ -334,265 +272,163 @@ export default function AdminSettings() {
     adminSettingsTabs.find((tab) => tab.id === activeSection)?.label || 'Dashboard';
 
   return (
-    <NeoBrutalistLayout pageTitle="ADMIN SETTINGS">
-      <div className="min-h-screen bg-[var(--app-bg)] p-6">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-black text-[var(--app-text)] uppercase">Admin Settings</h1>
-                <p className="mt-2 text-[var(--app-text-muted)]">
-                  Configure organization settings, branding, users, roles, and security.
-                </p>
-              </div>
-              <span className="px-3 py-1 text-xs font-bold bg-[var(--loop-purple)] text-black border-2 border-[var(--app-border)] uppercase">
-                Admin Only
-              </span>
-            </div>
-          </div>
-
-          {/* Navigation Tabs */}
-          <div className="mb-6 border-b-2 border-[var(--app-border)] bg-[var(--app-bg)] sticky top-0 z-10">
-            <div className="flex items-center justify-between pb-3">
-              <p className="text-sm text-[var(--app-text-muted)]">
-                Showing {showAdvancedSettings ? 'all sections' : 'basic sections'}. You are here:{' '}
-                <span className="font-bold text-[var(--app-text)]">{activeTabLabel}</span>
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowAdvancedSettings((prev) => !prev)}
-                className="px-3 py-2 text-xs font-bold uppercase border-2 border-[var(--app-border)] bg-[var(--app-surface)] hover:bg-[var(--app-surface-muted)]"
-              >
-                {showAdvancedSettings ? 'Hide Advanced' : 'Show Advanced'}
-              </button>
-            </div>
-            <nav className="-mb-px flex space-x-4 overflow-x-auto">
-              {visibleTabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveSection(tab.id)}
-                  className={`py-3 px-4 border-b-4 font-bold text-sm uppercase whitespace-nowrap transition-colors ${activeSection === tab.id
-                    ? 'border-[var(--loop-yellow)] text-[var(--app-text)] bg-[var(--loop-yellow)]'
-                    : 'border-transparent text-[var(--app-text-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-muted)]'
-                    }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          {/* Dashboard Section */}
-          {activeSection === 'dashboard' && <DashboardSection onShowInvite={() => setShowInviteModal(true)} />}
-
-          {/* Organization Section */}
-          {activeSection === 'organization' && (
-
-            <OrganizationSection
-              config={config}
-              onChange={handleChange}
-              onAddressChange={handleAddressChange}
-              onPhoneChange={handlePhoneChange}
-              onSave={handleSaveOrganization}
-              isSaving={isSaving}
-              saveStatus={saveStatus}
-              isDirty={isOrganizationDirty}
-              lastSavedAt={organizationLastSavedAt}
-            />
-          )}
-
-          {/* Branding Section */}
-          {activeSection === 'branding' && (
-            <BrandingSection
-              branding={branding}
-              onBrandingChange={handleBrandingChange}
-              onImageUpload={handleImageUpload}
-              onRemoveIcon={() => setBranding((prev) => ({ ...prev, appIcon: null }))}
-              onRemoveFavicon={() => setBranding((prev) => ({ ...prev, favicon: null }))}
-              iconInputRef={iconInputRef}
-              faviconInputRef={faviconInputRef}
-              onSave={handleSaveBranding}
-              isSaving={isSaving}
-              saveStatus={saveStatus}
-              isDirty={isBrandingDirty}
-              lastSavedAt={brandingLastSavedAt}
-            />
-          )}
-
-          {/* Users & Security Section */}
-          {activeSection === 'users' && (
-            <>
-              <UsersSection
-                userSearchQuery={userSearchQuery}
-                onSearchChange={setUserSearchQuery}
-                isSearching={isSearching}
-                userSearchResults={userSearchResults}
-                onSelectUser={fetchUserSecurityInfo}
-                onShowInvite={() => setShowInviteModal(true)}
-                onGoToRoles={() => setActiveSection('roles')}
-                invitations={invitations}
-                onResendInvitation={handleResendInvitation}
-                onRevokeInvitation={handleRevokeInvitation}
-              />
-              <div className="mt-6">
-                <RegistrationSettingsSection />
-              </div>
-            </>
-          )}
-
-          {/* Client Portal Section */}
-          {activeSection === 'portal' && (
-            <PortalSection
-              portalInviteUrl={portalInviteUrl}
-              portalLoading={portalLoading}
-              portalRequests={portalRequests}
-              portalInviteEmail={portalInviteEmail}
-              portalContactSearch={portalContactSearch}
-              portalContactLoading={portalContactLoading}
-              portalContactResults={portalContactResults}
-              selectedPortalContact={selectedPortalContact}
-              portalInvitations={portalInvitations}
-              portalUsers={portalUsers}
-              portalUsersLoading={portalUsersLoading}
-              portalUserSearch={portalUserSearch}
-              selectedPortalUser={selectedPortalUser}
-              portalUserActivity={portalUserActivity}
-              portalActivityLoading={portalActivityLoading}
-              formError={formError}
-              onRefreshPortal={refreshPortalDataWithRealtime}
-              onApproveRequest={async (requestId) => {
-                await handleApprovePortalRequest(requestId);
-                await refreshPortalDataWithRealtime();
-              }}
-              onRejectRequest={async (requestId) => {
-                await handleRejectPortalRequest(requestId);
-                await refreshPortalDataWithRealtime();
-              }}
-              onPortalInviteEmailChange={setPortalInviteEmail}
-              onPortalContactSearchChange={setPortalContactSearch}
-              onSelectPortalContact={(contact) => {
-                setSelectedPortalContact(contact);
-                setPortalInviteContactId(contact.contact_id);
-                if (contact.email) {
-                  setPortalInviteEmail(contact.email);
-                }
-                setPortalContactResults([]);
-                setPortalContactSearch('');
-              }}
-              onClearPortalContact={() => {
-                setSelectedPortalContact(null);
-                setPortalInviteContactId('');
-              }}
-              onCreateInvitation={async () => {
-                await handleCreatePortalInvite();
-                await refreshPortalDataWithRealtime();
-              }}
-              onPortalUserSearchChange={setPortalUserSearch}
-              onRefreshUsers={() => fetchPortalUsers(portalUserSearch)}
-              onViewUserActivity={handlePortalUserActivity}
-              onToggleUserStatus={handlePortalUserStatusChange}
-              onOpenResetModal={(user) => {
-                setPortalResetTarget(user);
-                setPortalResetPassword('');
-                setPortalResetConfirmPassword('');
-                setShowPortalResetModal(true);
-              }}
-              portalStreamStatus={portalStreamStatus}
-              portalConversationFilters={portalConversationFilters}
-              onPortalConversationFilterChange={onPortalConversationFilterChange}
-              portalConversationsLoading={portalConversationsLoading}
-              portalConversationsLoadingMore={portalConversationsLoadingMore}
-              portalConversationsHasMore={portalConversationsHasMore}
-              portalConversations={portalConversations}
-              selectedPortalConversation={selectedPortalConversation}
-              portalConversationReply={portalConversationReply}
-              portalConversationReplyInternal={portalConversationReplyInternal}
-              portalConversationReplyLoading={portalConversationReplyLoading}
-              onRefreshPortalConversations={() => fetchPortalConversations({ offsetValue: 0 })}
-              onLoadMorePortalConversations={loadMorePortalConversations}
-              onOpenPortalConversation={openPortalConversation}
-              onPortalConversationReplyChange={setPortalConversationReply}
-              onPortalConversationReplyInternalChange={setPortalConversationReplyInternal}
-              onSendPortalConversationReply={sendPortalConversationReply}
-              onUpdatePortalConversationStatus={updatePortalConversationStatus}
-              portalSlotFilters={portalSlotFilters}
-              onPortalSlotFilterChange={onPortalSlotFilterChange}
-              portalSlotsLoading={portalSlotsLoading}
-              portalSlotsLoadingMore={portalSlotsLoadingMore}
-              portalSlotsHasMore={portalSlotsHasMore}
-              portalSlots={portalSlots}
-              portalSlotSaving={portalSlotSaving}
-              portalSlotForm={portalSlotForm}
-              onPortalSlotFormChange={onPortalSlotFormChange}
-              onCreatePortalSlot={createPortalSlot}
-              onRefreshPortalSlots={() => fetchPortalSlots({ offsetValue: 0 })}
-              onLoadMorePortalSlots={loadMorePortalSlots}
-              onUpdatePortalSlotStatus={updatePortalSlotStatus}
-              onDeletePortalSlot={handleDeletePortalSlot}
-              portalAppointments={portalAppointments}
-              portalAppointmentsLoading={portalAppointmentsLoading}
-              portalAppointmentsPagination={portalAppointmentsPagination}
-              portalAppointmentFilters={portalAppointmentFilters}
-              onPortalAppointmentFilterChange={handlePortalAppointmentFilterChange}
-              onPortalAppointmentPageChange={(page) =>
-                void fetchPortalAppointments(page)
-              }
-              onRefreshPortalAppointments={() =>
-                void fetchPortalAppointments(portalAppointmentsPagination.page)
-              }
-              onPortalAppointmentStatusChange={handlePortalAppointmentStatusChange}
-              onPortalAppointmentCheckIn={handlePortalAppointmentCheckIn}
-              selectedPortalAppointmentId={portalSelectedAppointmentId}
-              portalAppointmentReminders={portalAppointmentReminders}
-              portalAppointmentRemindersLoading={portalAppointmentRemindersLoading}
-              portalAppointmentActionLoading={portalAppointmentActionLoading}
-              onPortalAppointmentReminderHistory={handlePortalAppointmentReminderHistory}
-              portalReminderCustomMessage={portalReminderCustomMessage}
-              onPortalReminderCustomMessageChange={setPortalReminderCustomMessage}
-              onPortalSendAppointmentReminder={handlePortalSendAppointmentReminder}
-            />
-          )}
-
-          {/* Roles & Permissions Section */}
-          {activeSection === 'roles' && (
-            <RolesSection
-              roles={roles}
-              onCreateRole={() => {
-                setEditingRole({
-                  id: '',
-                  name: '',
-                  description: '',
-                  permissions: [],
-                  isSystem: false,
-                  userCount: 0
-                });
-                setShowRoleModal(true);
-              }}
-              onEditRole={(role) => {
-                setEditingRole(role);
-                setShowRoleModal(true);
-              }}
-              onDeleteRole={handleDeleteRole}
-            />
-          )}
-
-          {/* Audit Logs Section */}
-          {activeSection === 'audit_logs' && <AuditLogsSection />}
-
-          {/* Email Settings Section */}
-          {activeSection === 'email' && <EmailSettingsSection />}
-
-          {/* Messaging Settings Section */}
-          {activeSection === 'messaging' && <TwilioSettingsSection />}
-
-          {/* Outcome Definitions Section */}
-          {activeSection === 'outcomes' && <OutcomeDefinitionsSection />}
-
-          {/* Other Settings Section */}
-          {activeSection === 'other' && <OtherSettingsSection />}
+    <AdminPanelLayout
+      title="Admin Settings"
+      description="Configure organization settings, branding, users, roles, and security."
+      badge={
+        <span className="px-3 py-1 text-xs font-bold bg-[var(--loop-purple)] text-black border-2 border-[var(--app-border)] uppercase">
+          Admin Only
+        </span>
+      }
+      sidebar={<AdminPanelNav currentPath={location.pathname} />}
+    >
+      {/* Navigation Tabs */}
+      <div className="mb-6 border-b-2 border-[var(--app-border)] bg-[var(--app-bg)] sticky top-0 z-10">
+        <div className="flex items-center justify-between pb-3">
+          <p className="text-sm text-[var(--app-text-muted)]">
+            Showing {showAdvancedSettings ? 'all sections' : 'basic sections'}. You are here:{' '}
+            <span className="font-bold text-[var(--app-text)]">{activeTabLabel}</span>
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowAdvancedSettings((prev) => !prev)}
+            className="px-3 py-2 text-xs font-bold uppercase border-2 border-[var(--app-border)] bg-[var(--app-surface)] hover:bg-[var(--app-surface-muted)]"
+          >
+            {showAdvancedSettings ? 'Hide Advanced' : 'Show Advanced'}
+          </button>
         </div>
+        <nav className="-mb-px flex space-x-4 overflow-x-auto">
+          {visibleTabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveSection(tab.id)}
+              className={`py-3 px-4 border-b-4 font-bold text-sm uppercase whitespace-nowrap transition-colors ${activeSection === tab.id
+                ? 'border-[var(--loop-yellow)] text-[var(--app-text)] bg-[var(--loop-yellow)]'
+                : 'border-transparent text-[var(--app-text-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-muted)]'
+                }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      <div className="rounded-lg border border-app-border bg-app-surface p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold text-app-text-heading">Portal Operations</h3>
+            <p className="text-sm text-app-text-muted">
+              Portal tooling now runs in dedicated pages for access, users, conversations, appointments, and slots.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/settings/admin/portal/access" className="px-3 py-2 text-sm bg-app-surface-muted rounded hover:bg-app-hover">Access</Link>
+            <Link to="/settings/admin/portal/users" className="px-3 py-2 text-sm bg-app-surface-muted rounded hover:bg-app-hover">Users</Link>
+            <Link to="/settings/admin/portal/conversations" className="px-3 py-2 text-sm bg-app-surface-muted rounded hover:bg-app-hover">Conversations</Link>
+            <Link to="/settings/admin/portal/appointments" className="px-3 py-2 text-sm bg-app-surface-muted rounded hover:bg-app-hover">Appointments</Link>
+            <Link to="/settings/admin/portal/slots" className="px-3 py-2 text-sm bg-app-surface-muted rounded hover:bg-app-hover">Slots</Link>
+          </div>
+        </div>
+      </div>
+
+      <Suspense fallback={<div className="rounded-md border-2 border-[var(--app-border)] bg-[var(--app-surface)] p-4 text-sm font-bold text-[var(--app-text-muted)]">Loading section...</div>}>
+            {/* Dashboard Section */}
+            {activeSection === 'dashboard' && <DashboardSection onShowInvite={() => setShowInviteModal(true)} />}
+
+            {/* Organization Section */}
+            {activeSection === 'organization' && (
+
+              <OrganizationSection
+                config={config}
+                onChange={handleChange}
+                onAddressChange={handleAddressChange}
+                onPhoneChange={handlePhoneChange}
+                onSave={handleSaveOrganization}
+                isSaving={isSaving}
+                saveStatus={saveStatus}
+                isDirty={isOrganizationDirty}
+                lastSavedAt={organizationLastSavedAt}
+              />
+            )}
+
+            {/* Branding Section */}
+            {activeSection === 'branding' && (
+              <BrandingSection
+                branding={branding}
+                onBrandingChange={handleBrandingChange}
+                onImageUpload={handleImageUpload}
+                onRemoveIcon={() => setBranding((prev) => ({ ...prev, appIcon: null }))}
+                onRemoveFavicon={() => setBranding((prev) => ({ ...prev, favicon: null }))}
+                iconInputRef={iconInputRef}
+                faviconInputRef={faviconInputRef}
+                onSave={handleSaveBranding}
+                isSaving={isSaving}
+                saveStatus={saveStatus}
+                isDirty={isBrandingDirty}
+                lastSavedAt={brandingLastSavedAt}
+              />
+            )}
+
+            {/* Users & Security Section */}
+            {activeSection === 'users' && (
+              <>
+                <UsersSection
+                  userSearchQuery={userSearchQuery}
+                  onSearchChange={setUserSearchQuery}
+                  isSearching={isSearching}
+                  userSearchResults={userSearchResults}
+                  onSelectUser={fetchUserSecurityInfo}
+                  onShowInvite={() => setShowInviteModal(true)}
+                  onGoToRoles={() => setActiveSection('roles')}
+                  invitations={invitations}
+                  onResendInvitation={handleResendInvitation}
+                  onRevokeInvitation={handleRevokeInvitation}
+                />
+                <div className="mt-6">
+                  <RegistrationSettingsSection />
+                </div>
+              </>
+            )}
+
+            {/* Roles & Permissions Section */}
+            {activeSection === 'roles' && (
+              <RolesSection
+                roles={roles}
+                onCreateRole={() => {
+                  setEditingRole({
+                    id: '',
+                    name: '',
+                    description: '',
+                    permissions: [],
+                    isSystem: false,
+                    userCount: 0
+                  });
+                  setShowRoleModal(true);
+                }}
+                onEditRole={(role) => {
+                  setEditingRole(role);
+                  setShowRoleModal(true);
+                }}
+                onDeleteRole={handleDeleteRole}
+              />
+            )}
+
+            {/* Audit Logs Section */}
+            {activeSection === 'audit_logs' && <AuditLogsSection />}
+
+            {/* Email Settings Section */}
+            {activeSection === 'email' && <EmailSettingsSection />}
+
+            {/* Messaging Settings Section */}
+            {activeSection === 'messaging' && <TwilioSettingsSection />}
+
+            {/* Outcome Definitions Section */}
+            {activeSection === 'outcomes' && <OutcomeDefinitionsSection />}
+
+            {/* Other Settings Section */}
+            {activeSection === 'other' && <OtherSettingsSection />}
+          </Suspense>
 
         <UserSecurityModal
           open={showSecurityModal}
@@ -606,23 +442,6 @@ export default function AdminSettings() {
             setShowResetEmailModal(true);
           }}
           onToggleUserLock={handleToggleUserLock}
-        />
-
-        <PortalResetPasswordModal
-          open={showPortalResetModal}
-          target={portalResetTarget}
-          password={portalResetPassword}
-          confirmPassword={portalResetConfirmPassword}
-          loading={portalResetLoading}
-          onPasswordChange={setPortalResetPassword}
-          onConfirmPasswordChange={setPortalResetConfirmPassword}
-          onClose={() => {
-            setShowPortalResetModal(false);
-            setPortalResetTarget(null);
-            setPortalResetPassword('');
-            setPortalResetConfirmPassword('');
-          }}
-          onSubmit={handlePortalPasswordReset}
         />
 
         {/* Reset Password Modal */}
@@ -995,7 +814,6 @@ export default function AdminSettings() {
           </div>
         )}
         <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
-      </div>
-    </NeoBrutalistLayout>
+    </AdminPanelLayout>
   );
 }

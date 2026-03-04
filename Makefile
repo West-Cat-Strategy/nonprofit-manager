@@ -7,7 +7,7 @@
 .PHONY: help install lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-auth-guards lint-duplicate-tests lint-doc-api-versioning lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-frontend-feature-boundary typecheck test test-coverage quality-baseline check-links build \
 	security-audit security-scan ci ci-fast ci-full ci-unit \
         deploy deploy-staging deploy-local \
-        docker-build docker-up docker-down docker-logs docker-rebuild \
+        docker-build docker-up docker-up-dev docker-up-tools docker-up-caddy docker-down docker-logs docker-rebuild docker-validate \
         db-migrate db-verify clean hooks test-e2e
 
 # Colors for output
@@ -20,6 +20,9 @@ RESET := \033[0m
 # Default target
 .DEFAULT_GOAL := help
 
+DOCKER_COMPOSE ?= $(shell if docker compose version >/dev/null 2>&1; then echo "docker compose"; elif docker-compose version >/dev/null 2>&1; then echo "docker-compose"; else echo "docker compose"; fi)
+PROD_ENV_FILE ?= .env.production
+
 #------------------------------------------------------------------------------
 # Help
 #------------------------------------------------------------------------------
@@ -29,10 +32,14 @@ help:
 	@echo "$(GREEN)Development:$(RESET)"
 	@echo "  make install        Install all dependencies"
 	@echo "  make dev            Start development environment (Docker)"
-	@echo "  make docker-up      Start all Docker services"
+	@echo "  make docker-up      Start production-like Docker stack"
+	@echo "  make docker-up-dev  Start development stack (hot reload)"
+	@echo "  make docker-up-tools Start dev stack + optional tools profile"
+	@echo "  make docker-up-caddy Start dev stack + Caddy overlay"
 	@echo "  make docker-down    Stop all Docker services"
 	@echo "  make docker-logs    View Docker logs"
 	@echo "  make docker-rebuild Rebuild containers (no cache)"
+	@echo "  make docker-validate Validate compose files and overlays"
 	@echo ""
 	@echo "$(GREEN)Quality Checks:$(RESET)"
 	@echo "  make lint           Run linters on all projects"
@@ -92,28 +99,48 @@ install-dev: install hooks
 #------------------------------------------------------------------------------
 # Development
 #------------------------------------------------------------------------------
-dev: docker-up
+dev: docker-up-dev
 	@echo ""
 	@echo "$(GREEN)Development environment started!$(RESET)"
-	@echo "  Frontend: http://localhost:5173"
-	@echo "  Backend:  http://localhost:3000"
-	@echo "  Database: localhost:5432"
+	@echo "  Frontend: http://localhost:8005"
+	@echo "  Backend:  http://localhost:8004"
+	@echo "  Database: localhost:8002"
+	@echo "  Redis:    localhost:8003"
 	@echo ""
 
 docker-up:
-	docker-compose up -d
+	$(DOCKER_COMPOSE) --env-file $(PROD_ENV_FILE) up -d
+
+docker-up-dev:
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml up -d
+
+docker-up-tools:
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml -f docker-compose.tools.yml --profile tools up -d
+
+docker-up-caddy:
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml -f docker-compose.caddy.yml up -d
 
 docker-down:
-	docker-compose down
+	$(DOCKER_COMPOSE) --env-file $(PROD_ENV_FILE) down
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml down
 
 docker-logs:
-	docker-compose logs -f
+	$(DOCKER_COMPOSE) --env-file $(PROD_ENV_FILE) logs -f
 
 docker-build:
-	docker-compose build
+	$(DOCKER_COMPOSE) --env-file $(PROD_ENV_FILE) build
 
 docker-rebuild:
-	docker-compose build --no-cache
+	$(DOCKER_COMPOSE) --env-file $(PROD_ENV_FILE) build --no-cache
+
+docker-validate:
+	$(DOCKER_COMPOSE) --env-file $(PROD_ENV_FILE) -f docker-compose.yml config > /tmp/nonprofit-compose-config.txt
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml config > /tmp/nonprofit-compose-dev-config.txt
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml -f docker-compose.tools.yml --profile tools config > /tmp/nonprofit-compose-dev-tools-config.txt
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml -f docker-compose.caddy.yml config > /tmp/nonprofit-compose-dev-caddy-config.txt
+	$(DOCKER_COMPOSE) -f docker-compose.plausible.yml config > /tmp/nonprofit-compose-plausible-config.txt
+	$(DOCKER_COMPOSE) -f docker-compose.elk.yml config > /tmp/nonprofit-compose-elk-config.txt
+	@echo "$(GREEN)Compose validation complete!$(RESET)"
 
 #------------------------------------------------------------------------------
 # Quality Checks
@@ -232,7 +259,7 @@ typecheck:
 
 test:
 	@echo "$(BLUE)Ensuring test infrastructure is running (Postgres/Redis)...$(RESET)"
-	DB_PASSWORD=postgres docker-compose up -d postgres redis
+	DB_PASSWORD=postgres $(DOCKER_COMPOSE) up -d postgres redis
 	@echo "$(BLUE)Applying pending database migrations...$(RESET)"
 	@./scripts/db-migrate.sh
 	@echo "$(BLUE)Running backend tests...$(RESET)"
@@ -245,7 +272,7 @@ test:
 
 test-coverage:
 	@echo "$(BLUE)Ensuring test infrastructure is running (Postgres/Redis)...$(RESET)"
-	DB_PASSWORD=postgres docker-compose up -d postgres redis
+	DB_PASSWORD=postgres $(DOCKER_COMPOSE) up -d postgres redis
 	@echo "$(BLUE)Applying pending database migrations...$(RESET)"
 	@./scripts/db-migrate.sh
 	@echo "$(BLUE)Running backend tests with coverage...$(RESET)"
@@ -257,7 +284,7 @@ test-coverage:
 	@echo "$(GREEN)Coverage reports generated!$(RESET)"
 
 test-backend:
-	DB_PASSWORD=postgres docker-compose up -d postgres redis
+	DB_PASSWORD=postgres $(DOCKER_COMPOSE) up -d postgres redis
 	@./scripts/db-migrate.sh
 	cd backend && npm test -- --runInBand
 
@@ -265,7 +292,7 @@ test-frontend:
 	cd frontend && npm test -- --run
 
 test-e2e:
-	DB_PASSWORD=postgres docker-compose up -d postgres redis
+	DB_PASSWORD=postgres $(DOCKER_COMPOSE) up -d postgres redis
 	@./scripts/db-migrate.sh
 	cd e2e && npm run test:ci
 
