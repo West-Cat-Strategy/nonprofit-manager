@@ -1,21 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-import portalApi from '../../../services/portalApi';
-import { unwrapApiData } from '../../../services/apiEnvelope';
+import { useState } from 'react';
 import PortalPageState from '../../../components/portal/PortalPageState';
 import PortalPageShell from '../../../components/portal/PortalPageShell';
 import PortalListCard from '../../../components/portal/PortalListCard';
-import { portalV2ApiClient } from '../../../features/portal/api/portalApiClient';
-
-interface DocumentRow {
-  id: string;
-  original_name: string;
-  document_type: string;
-  title?: string | null;
-  description?: string | null;
-  file_size: number;
-  mime_type: string;
-  created_at: string;
-}
+import PortalListToolbar from '../../../components/portal/PortalListToolbar';
+import { portalV2ApiClient } from '../api/portalApiClient';
+import usePortalDocumentsList from '../client/usePortalDocumentsList';
+import type { PortalDocument } from '../types/contracts';
 
 const formatFileSize = (bytes: number): string => {
   if (!Number.isFinite(bytes) || bytes <= 0) return 'Unknown size';
@@ -25,78 +15,52 @@ const formatFileSize = (bytes: number): string => {
 };
 
 export default function PortalDocuments() {
-  const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const visibleDocuments = useMemo(() => {
-    const needle = searchTerm.trim().toLowerCase();
-    const sorted = [...documents].sort((a, b) => {
-      const aTime = new Date(a.created_at).getTime();
-      const bTime = new Date(b.created_at).getTime();
-      return sortOrder === 'newest' ? bTime - aTime : aTime - bTime;
-    });
-
-    return sorted.filter((doc) => {
-      if (!needle) {
-        return true;
-      }
-
-      const haystack = [doc.title, doc.original_name, doc.document_type, doc.description, doc.mime_type]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-
-      return haystack.includes(needle);
-    });
-  }, [documents, searchTerm, sortOrder]);
-
-  const load = async () => {
-    try {
-      setError(null);
-      const response = await portalApi.get('/v2/portal/documents');
-      setDocuments(unwrapApiData(response.data));
-    } catch (loadError) {
-      console.error('Failed to load documents', loadError);
-      setError('Unable to load documents right now.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void load();
-  }, []);
+  const [sortField, setSortField] = useState<'created_at' | 'title' | 'document_type' | 'original_name'>(
+    'created_at'
+  );
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const {
+    items: documents,
+    total,
+    hasMore,
+    loading,
+    loadingMore,
+    error,
+    refresh,
+    loadMore,
+  } = usePortalDocumentsList({
+    search: searchTerm,
+    sort: sortField,
+    order: sortOrder,
+  });
 
   return (
     <PortalPageShell
       title="Documents"
       description="Only documents explicitly shared by staff appear here."
-      actions={
-        <div className="flex flex-wrap gap-2">
-          <input
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search documents"
-            className="rounded-md border border-app-input-border px-3 py-2 text-sm"
-          />
-          <select
-            value={sortOrder}
-            onChange={(event) => setSortOrder(event.target.value as 'newest' | 'oldest')}
-            className="rounded-md border border-app-input-border px-3 py-2 text-sm"
-          >
-            <option value="newest">Newest first</option>
-            <option value="oldest">Oldest first</option>
-          </select>
-        </div>
-      }
     >
+      <PortalListToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search documents by title, type, or mime"
+        sortValue={sortField}
+        onSortChange={setSortField}
+        sortOptions={[
+          { value: 'created_at', label: 'Shared date' },
+          { value: 'title', label: 'Title' },
+          { value: 'document_type', label: 'Type' },
+          { value: 'original_name', label: 'Original file name' },
+        ]}
+        orderValue={sortOrder}
+        onOrderChange={setSortOrder}
+        showingCount={documents.length}
+        totalCount={total}
+      />
       <PortalPageState
         loading={loading}
         error={error}
-        empty={!loading && !error && visibleDocuments.length === 0}
+        empty={!loading && !error && documents.length === 0}
         loadingLabel="Loading documents..."
         emptyTitle={searchTerm ? 'No matching documents.' : 'No documents available.'}
         emptyDescription={
@@ -104,11 +68,11 @@ export default function PortalDocuments() {
             ? 'Try a different search term.'
             : 'Only documents explicitly shared by staff will appear here.'
         }
-        onRetry={load}
+        onRetry={refresh}
       />
-      {!loading && !error && visibleDocuments.length > 0 && (
+      {!loading && !error && documents.length > 0 && (
         <ul className="space-y-3">
-          {visibleDocuments.map((doc) => (
+          {documents.map((doc: PortalDocument) => (
             <li key={doc.id}>
               <PortalListCard
                 title={doc.title || doc.original_name}
@@ -117,11 +81,13 @@ export default function PortalDocuments() {
                 badges={
                   <>
                     <span className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted">
-                      {formatFileSize(doc.file_size)}
+                      {formatFileSize(doc.file_size ?? 0)}
                     </span>
-                    <span className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted">
-                      {doc.mime_type}
-                    </span>
+                    {doc.mime_type && (
+                      <span className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted">
+                        {doc.mime_type}
+                      </span>
+                    )}
                   </>
                 }
                 actions={
@@ -138,6 +104,18 @@ export default function PortalDocuments() {
             </li>
           ))}
         </ul>
+      )}
+      {!loading && !error && hasMore && (
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => void loadMore()}
+            disabled={loadingMore}
+            className="rounded-md border border-app-input-border px-4 py-2 text-sm font-medium text-app-text disabled:opacity-60"
+          >
+            {loadingMore ? 'Loading more...' : 'Load more documents'}
+          </button>
+        </div>
       )}
     </PortalPageShell>
   );

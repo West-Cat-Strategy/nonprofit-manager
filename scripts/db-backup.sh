@@ -37,7 +37,8 @@ mkdir -p "$BACKUP_DIR"
 # Check if database container is running
 if ! docker ps --format '{{.Names}}' | grep -q "^${DB_CONTAINER}$"; then
     log_error "Database container '$DB_CONTAINER' is not running"
-    log_info "Start it with: docker-compose up -d postgres"
+    compose_cmd="$(docker_compose_cmd 2>/dev/null || echo "docker compose")"
+    log_info "Start it with: $compose_cmd up -d postgres"
     exit 1
 fi
 

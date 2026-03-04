@@ -22,25 +22,36 @@ vi.mock('../../../contexts/useToast', () => ({
 describe('PortalEvents page', () => {
   beforeEach(() => {
     getMock.mockResolvedValue({
-      data: [
-        {
-          id: 'event-public',
-          name: 'Public Workshop',
-          description: 'Open to all clients',
-          start_date: new Date(Date.now() + 7200_000).toISOString(),
-          end_date: new Date(Date.now() + 9000_000).toISOString(),
-          registration_id: null,
+      data: {
+        success: true,
+        data: {
+          items: [
+            {
+              id: 'event-public',
+              name: 'Public Workshop',
+              description: 'Open to all clients',
+              start_date: new Date(Date.now() + 7200_000).toISOString(),
+              end_date: new Date(Date.now() + 9000_000).toISOString(),
+              registration_id: null,
+            },
+            {
+              id: 'event-private-registered',
+              name: 'Private Case Seminar',
+              description: 'Registered private event',
+              start_date: new Date(Date.now() + 10_800_000).toISOString(),
+              end_date: new Date(Date.now() + 12_600_000).toISOString(),
+              registration_id: 'reg-1',
+              registration_status: 'registered',
+            },
+          ],
+          page: {
+            limit: 20,
+            offset: 0,
+            has_more: false,
+            total: 2,
+          },
         },
-        {
-          id: 'event-private-registered',
-          name: 'Private Case Seminar',
-          description: 'Registered private event',
-          start_date: new Date(Date.now() + 10_800_000).toISOString(),
-          end_date: new Date(Date.now() + 12_600_000).toISOString(),
-          registration_id: 'reg-1',
-          registration_status: 'registered',
-        },
-      ],
+      },
     });
   });
 

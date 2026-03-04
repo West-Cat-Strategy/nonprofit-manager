@@ -10,16 +10,128 @@ import type {
   PaymentReconciliation,
   ReconciliationItem,
   PaymentDiscrepancy,
-  StripeBalanceTransaction,
   ReconciliationSummary,
   CreateReconciliationRequest,
   MatchStatus,
   MatchConfidence,
-  DiscrepancySeverity,
 } from '@app-types/reconciliation';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 let stripe: Stripe | null = null;
+
+const PAYMENT_RECONCILIATION_COLUMNS = `
+  id,
+  reconciliation_number,
+  reconciliation_type,
+  status,
+  start_date,
+  end_date,
+  stripe_balance_amount,
+  stripe_charge_count,
+  stripe_refund_count,
+  stripe_total_fees,
+  donations_total_amount,
+  donations_count,
+  matched_count,
+  unmatched_stripe_count,
+  unmatched_donations_count,
+  discrepancy_count,
+  started_at,
+  completed_at,
+  initiated_by,
+  notes,
+  created_at,
+  updated_at
+`;
+
+const RECONCILIATION_ITEM_COLUMNS = `
+  id,
+  reconciliation_id,
+  donation_id,
+  stripe_payment_intent_id,
+  stripe_charge_id,
+  stripe_balance_transaction_id,
+  stripe_amount,
+  stripe_fee,
+  stripe_net,
+  stripe_created_at,
+  stripe_status,
+  donation_amount,
+  donation_date,
+  donation_status,
+  match_status,
+  match_confidence,
+  has_discrepancy,
+  discrepancy_type,
+  discrepancy_amount,
+  notes,
+  resolved,
+  resolved_at,
+  resolved_by,
+  created_at,
+  updated_at
+`;
+
+const PAYMENT_DISCREPANCY_COLUMNS = `
+  id,
+  reconciliation_id,
+  reconciliation_item_id,
+  discrepancy_type,
+  severity,
+  donation_id,
+  stripe_payment_intent_id,
+  stripe_charge_id,
+  expected_amount,
+  actual_amount,
+  difference_amount,
+  description,
+  status,
+  resolution_notes,
+  resolved_at,
+  resolved_by,
+  assigned_to,
+  due_date,
+  created_at,
+  updated_at
+`;
+
+interface MatchedReconciliationBatchRow {
+  donationId: string;
+  stripePaymentIntentId: string | null;
+  stripeChargeId: string | null;
+  stripeBalanceTransactionId: string;
+  stripeAmount: number;
+  stripeFee: number;
+  stripeNet: number;
+  stripeCreatedAt: Date;
+  stripeStatus: string | null;
+  donationAmount: number;
+  donationDate: Date | string;
+  donationStatus: string | null;
+  matchStatus: MatchStatus;
+  matchConfidence: MatchConfidence;
+  hasDiscrepancy: boolean;
+  discrepancyType: string | null;
+  discrepancyAmount: number | null;
+  donationReconciliationStatus: 'matched' | 'discrepancy';
+}
+
+interface UnmatchedDonationBatchRow {
+  donationId: string;
+  donationAmount: number;
+  donationDate: Date | string;
+  donationStatus: string | null;
+}
+
+interface UnmatchedStripeBatchRow {
+  stripeChargeId: string | null;
+  stripeBalanceTransactionId: string;
+  stripeAmount: number;
+  stripeFee: number;
+  stripeNet: number;
+  stripeCreatedAt: Date;
+  stripeStatus: string | null;
+}
 
 /**
  * Get or initialize Stripe client
@@ -105,35 +217,83 @@ async function saveStripeBalanceTransactions(
   transactions: Stripe.BalanceTransaction[],
   reconciliationId: string
 ): Promise<void> {
-  for (const tx of transactions) {
-    const data: Partial<StripeBalanceTransaction> = {
-      stripe_balance_transaction_id: tx.id,
-      stripe_source_id: tx.source as string,
-      stripe_source_type: tx.type,
-      amount: tx.amount / 100, // Convert cents to dollars
-      fee: tx.fee / 100,
-      net: tx.net / 100,
-      currency: tx.currency.toUpperCase(),
-      status: tx.status,
-      transaction_type: tx.type,
-      stripe_description: tx.description || null,
-      stripe_metadata: null, // Metadata not available on balance transactions
-      stripe_created_at: new Date(tx.created * 1000),
-      stripe_available_on: tx.available_on ? new Date(tx.available_on * 1000) : null,
-      reconciliation_id: reconciliationId,
-      synced_at: new Date(),
-    };
+  if (transactions.length === 0) {
+    return;
+  }
 
-    // Insert or update balance transaction
-    await pool.query(
-      `
+  const syncedAt = new Date();
+  const rows = transactions.map((tx) => ({
+    stripe_balance_transaction_id: tx.id,
+    stripe_source_id: typeof tx.source === 'string' ? tx.source : null,
+    stripe_source_type: tx.type,
+    amount: tx.amount / 100,
+    fee: tx.fee / 100,
+    net: tx.net / 100,
+    currency: tx.currency.toUpperCase(),
+    status: tx.status ?? null,
+    transaction_type: tx.type,
+    stripe_description: tx.description || null,
+    stripe_created_at: new Date(tx.created * 1000),
+    stripe_available_on: tx.available_on ? new Date(tx.available_on * 1000) : null,
+    synced_at: syncedAt,
+  }));
+
+  await pool.query(
+    `
+      WITH stripe_payload AS (
+        SELECT
+          UNNEST($1::text[]) AS stripe_balance_transaction_id,
+          UNNEST($2::text[]) AS stripe_source_id,
+          UNNEST($3::text[]) AS stripe_source_type,
+          UNNEST($4::numeric[]) AS amount,
+          UNNEST($5::numeric[]) AS fee,
+          UNNEST($6::numeric[]) AS net,
+          UNNEST($7::text[]) AS currency,
+          UNNEST($8::text[]) AS status,
+          UNNEST($9::text[]) AS transaction_type,
+          UNNEST($10::text[]) AS stripe_description,
+          UNNEST($11::timestamptz[]) AS stripe_created_at,
+          UNNEST($12::timestamptz[]) AS stripe_available_on,
+          UNNEST($13::timestamptz[]) AS synced_at
+      )
       INSERT INTO stripe_balance_transactions (
-        stripe_balance_transaction_id, stripe_source_id, stripe_source_type,
-        amount, fee, net, currency, status, transaction_type,
-        stripe_description, stripe_metadata, stripe_created_at,
-        stripe_available_on, reconciliation_id, synced_at,
-        created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW(), NOW())
+        stripe_balance_transaction_id,
+        stripe_source_id,
+        stripe_source_type,
+        amount,
+        fee,
+        net,
+        currency,
+        status,
+        transaction_type,
+        stripe_description,
+        stripe_metadata,
+        stripe_created_at,
+        stripe_available_on,
+        reconciliation_id,
+        synced_at,
+        created_at,
+        updated_at
+      )
+      SELECT
+        stripe_balance_transaction_id,
+        stripe_source_id,
+        stripe_source_type,
+        amount,
+        fee,
+        net,
+        currency,
+        status,
+        transaction_type,
+        stripe_description,
+        NULL::jsonb,
+        stripe_created_at,
+        stripe_available_on,
+        $14,
+        synced_at,
+        NOW(),
+        NOW()
+      FROM stripe_payload
       ON CONFLICT (stripe_balance_transaction_id)
       DO UPDATE SET
         amount = EXCLUDED.amount,
@@ -144,25 +304,23 @@ async function saveStripeBalanceTransactions(
         synced_at = EXCLUDED.synced_at,
         updated_at = NOW()
     `,
-      [
-        data.stripe_balance_transaction_id,
-        data.stripe_source_id,
-        data.stripe_source_type,
-        data.amount,
-        data.fee,
-        data.net,
-        data.currency,
-        data.status,
-        data.transaction_type,
-        data.stripe_description,
-        JSON.stringify(data.stripe_metadata),
-        data.stripe_created_at,
-        data.stripe_available_on,
-        data.reconciliation_id,
-        data.synced_at,
-      ]
-    );
-  }
+    [
+      rows.map((row) => row.stripe_balance_transaction_id),
+      rows.map((row) => row.stripe_source_id),
+      rows.map((row) => row.stripe_source_type),
+      rows.map((row) => row.amount),
+      rows.map((row) => row.fee),
+      rows.map((row) => row.net),
+      rows.map((row) => row.currency),
+      rows.map((row) => row.status),
+      rows.map((row) => row.transaction_type),
+      rows.map((row) => row.stripe_description),
+      rows.map((row) => row.stripe_created_at),
+      rows.map((row) => row.stripe_available_on),
+      rows.map((row) => row.synced_at),
+      reconciliationId,
+    ]
+  );
 }
 
 /**
@@ -301,100 +459,266 @@ async function createReconciliationItems(
   unmatchedDonations: any[],
   unmatchedStripe: Stripe.BalanceTransaction[]
 ): Promise<void> {
-  // Create items for matched transactions
-  for (const match of matched) {
-    const { donation, transaction, confidence } = match;
+  const matchedRows: MatchedReconciliationBatchRow[] = matched.map(({ donation, transaction, confidence }) => {
     const stripeAmount = transaction.amount / 100;
     const donationAmount = parseFloat(donation.amount);
     const amountDiff = Math.abs(stripeAmount - donationAmount);
     const hasDiscrepancy = amountDiff > 0.01;
+    return {
+      donationId: donation.id,
+      stripePaymentIntentId: donation.stripe_payment_intent_id ?? null,
+      stripeChargeId: donation.stripe_charge_id || (transaction.source as string) || null,
+      stripeBalanceTransactionId: transaction.id,
+      stripeAmount,
+      stripeFee: transaction.fee / 100,
+      stripeNet: transaction.net / 100,
+      stripeCreatedAt: new Date(transaction.created * 1000),
+      stripeStatus: transaction.status ?? null,
+      donationAmount,
+      donationDate: donation.donation_date,
+      donationStatus: donation.payment_status ?? null,
+      matchStatus: hasDiscrepancy ? 'amount_mismatch' : 'matched',
+      matchConfidence: confidence,
+      hasDiscrepancy,
+      discrepancyType: hasDiscrepancy ? 'amount_mismatch' : null,
+      discrepancyAmount: hasDiscrepancy ? amountDiff : null,
+      donationReconciliationStatus: hasDiscrepancy ? 'discrepancy' : 'matched',
+    };
+  });
 
+  if (matchedRows.length > 0) {
     await pool.query(
       `
+      WITH matched_payload AS (
+        SELECT
+          UNNEST($2::uuid[]) AS donation_id,
+          UNNEST($3::text[]) AS stripe_payment_intent_id,
+          UNNEST($4::text[]) AS stripe_charge_id,
+          UNNEST($5::text[]) AS stripe_balance_transaction_id,
+          UNNEST($6::numeric[]) AS stripe_amount,
+          UNNEST($7::numeric[]) AS stripe_fee,
+          UNNEST($8::numeric[]) AS stripe_net,
+          UNNEST($9::timestamptz[]) AS stripe_created_at,
+          UNNEST($10::text[]) AS stripe_status,
+          UNNEST($11::numeric[]) AS donation_amount,
+          UNNEST($12::timestamptz[]) AS donation_date,
+          UNNEST($13::text[]) AS donation_status,
+          UNNEST($14::text[]) AS match_status,
+          UNNEST($15::text[]) AS match_confidence,
+          UNNEST($16::boolean[]) AS has_discrepancy,
+          UNNEST($17::text[]) AS discrepancy_type,
+          UNNEST($18::numeric[]) AS discrepancy_amount
+      )
       INSERT INTO reconciliation_items (
-        reconciliation_id, donation_id,
-        stripe_payment_intent_id, stripe_charge_id, stripe_balance_transaction_id,
-        stripe_amount, stripe_fee, stripe_net, stripe_created_at, stripe_status,
-        donation_amount, donation_date, donation_status,
-        match_status, match_confidence,
-        has_discrepancy, discrepancy_type, discrepancy_amount,
-        created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW(), NOW())
+        reconciliation_id,
+        donation_id,
+        stripe_payment_intent_id,
+        stripe_charge_id,
+        stripe_balance_transaction_id,
+        stripe_amount,
+        stripe_fee,
+        stripe_net,
+        stripe_created_at,
+        stripe_status,
+        donation_amount,
+        donation_date,
+        donation_status,
+        match_status,
+        match_confidence,
+        has_discrepancy,
+        discrepancy_type,
+        discrepancy_amount,
+        created_at,
+        updated_at
+      )
+      SELECT
+        $1,
+        donation_id,
+        stripe_payment_intent_id,
+        stripe_charge_id,
+        stripe_balance_transaction_id,
+        stripe_amount,
+        stripe_fee,
+        stripe_net,
+        stripe_created_at,
+        stripe_status,
+        donation_amount,
+        donation_date,
+        donation_status,
+        match_status,
+        match_confidence,
+        has_discrepancy,
+        discrepancy_type,
+        discrepancy_amount,
+        NOW(),
+        NOW()
+      FROM matched_payload
     `,
       [
         reconciliationId,
-        donation.id,
-        donation.stripe_payment_intent_id,
-        donation.stripe_charge_id || transaction.source,
-        transaction.id,
-        stripeAmount,
-        transaction.fee / 100,
-        transaction.net / 100,
-        new Date(transaction.created * 1000),
-        transaction.status,
-        donationAmount,
-        donation.donation_date,
-        donation.payment_status,
-        hasDiscrepancy ? 'amount_mismatch' : 'matched',
-        confidence,
-        hasDiscrepancy,
-        hasDiscrepancy ? 'amount_mismatch' : null,
-        hasDiscrepancy ? amountDiff : null,
+        matchedRows.map((row) => row.donationId),
+        matchedRows.map((row) => row.stripePaymentIntentId),
+        matchedRows.map((row) => row.stripeChargeId),
+        matchedRows.map((row) => row.stripeBalanceTransactionId),
+        matchedRows.map((row) => row.stripeAmount),
+        matchedRows.map((row) => row.stripeFee),
+        matchedRows.map((row) => row.stripeNet),
+        matchedRows.map((row) => row.stripeCreatedAt),
+        matchedRows.map((row) => row.stripeStatus),
+        matchedRows.map((row) => row.donationAmount),
+        matchedRows.map((row) => row.donationDate),
+        matchedRows.map((row) => row.donationStatus),
+        matchedRows.map((row) => row.matchStatus),
+        matchedRows.map((row) => row.matchConfidence),
+        matchedRows.map((row) => row.hasDiscrepancy),
+        matchedRows.map((row) => row.discrepancyType),
+        matchedRows.map((row) => row.discrepancyAmount),
       ]
     );
 
-    // Update donation reconciliation status
     await pool.query(
       `
-      UPDATE donations
+      WITH donation_updates AS (
+        SELECT
+          UNNEST($1::uuid[]) AS donation_id,
+          UNNEST($2::text[]) AS reconciliation_status,
+          UNNEST($3::numeric[]) AS stripe_fee,
+          UNNEST($4::numeric[]) AS net_amount
+      )
+      UPDATE donations d
       SET
-        reconciliation_status = $1,
+        reconciliation_status = updates.reconciliation_status,
         reconciled_at = NOW(),
-        stripe_fee = $2,
-        net_amount = $3,
+        stripe_fee = updates.stripe_fee,
+        net_amount = updates.net_amount,
         updated_at = NOW()
-      WHERE id = $4
+      FROM donation_updates updates
+      WHERE d.id = updates.donation_id
     `,
-      [hasDiscrepancy ? 'discrepancy' : 'matched', transaction.fee / 100, transaction.net / 100, donation.id]
+      [
+        matchedRows.map((row) => row.donationId),
+        matchedRows.map((row) => row.donationReconciliationStatus),
+        matchedRows.map((row) => row.stripeFee),
+        matchedRows.map((row) => row.stripeNet),
+      ]
     );
   }
 
-  // Create items for unmatched donations
-  for (const donation of unmatchedDonations) {
-    await pool.query(
-      `
-      INSERT INTO reconciliation_items (
-        reconciliation_id, donation_id,
-        donation_amount, donation_date, donation_status,
-        match_status, has_discrepancy, discrepancy_type,
-        created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, 'unmatched_donation', true, 'missing_stripe_transaction', NOW(), NOW())
-    `,
-      [reconciliationId, donation.id, donation.amount, donation.donation_date, donation.payment_status]
-    );
-  }
+  const unmatchedDonationRows: UnmatchedDonationBatchRow[] = unmatchedDonations.map((donation) => ({
+    donationId: donation.id,
+    donationAmount: parseFloat(donation.amount),
+    donationDate: donation.donation_date,
+    donationStatus: donation.payment_status ?? null,
+  }));
 
-  // Create items for unmatched Stripe transactions
-  for (const tx of unmatchedStripe) {
+  if (unmatchedDonationRows.length > 0) {
     await pool.query(
       `
+      WITH unmatched_donation_payload AS (
+        SELECT
+          UNNEST($2::uuid[]) AS donation_id,
+          UNNEST($3::numeric[]) AS donation_amount,
+          UNNEST($4::timestamptz[]) AS donation_date,
+          UNNEST($5::text[]) AS donation_status
+      )
       INSERT INTO reconciliation_items (
         reconciliation_id,
-        stripe_charge_id, stripe_balance_transaction_id,
-        stripe_amount, stripe_fee, stripe_net, stripe_created_at, stripe_status,
-        match_status, has_discrepancy, discrepancy_type,
-        created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'unmatched_stripe', true, 'missing_donation', NOW(), NOW())
+        donation_id,
+        donation_amount,
+        donation_date,
+        donation_status,
+        match_status,
+        has_discrepancy,
+        discrepancy_type,
+        created_at,
+        updated_at
+      )
+      SELECT
+        $1,
+        donation_id,
+        donation_amount,
+        donation_date,
+        donation_status,
+        'unmatched_donation',
+        true,
+        'missing_stripe_transaction',
+        NOW(),
+        NOW()
+      FROM unmatched_donation_payload
     `,
       [
         reconciliationId,
-        tx.source as string,
-        tx.id,
-        tx.amount / 100,
-        tx.fee / 100,
-        tx.net / 100,
-        new Date(tx.created * 1000),
-        tx.status,
+        unmatchedDonationRows.map((row) => row.donationId),
+        unmatchedDonationRows.map((row) => row.donationAmount),
+        unmatchedDonationRows.map((row) => row.donationDate),
+        unmatchedDonationRows.map((row) => row.donationStatus),
+      ]
+    );
+  }
+
+  const unmatchedStripeRows: UnmatchedStripeBatchRow[] = unmatchedStripe.map((tx) => ({
+    stripeChargeId: (tx.source as string) || null,
+    stripeBalanceTransactionId: tx.id,
+    stripeAmount: tx.amount / 100,
+    stripeFee: tx.fee / 100,
+    stripeNet: tx.net / 100,
+    stripeCreatedAt: new Date(tx.created * 1000),
+    stripeStatus: tx.status ?? null,
+  }));
+
+  if (unmatchedStripeRows.length > 0) {
+    await pool.query(
+      `
+      WITH unmatched_stripe_payload AS (
+        SELECT
+          UNNEST($2::text[]) AS stripe_charge_id,
+          UNNEST($3::text[]) AS stripe_balance_transaction_id,
+          UNNEST($4::numeric[]) AS stripe_amount,
+          UNNEST($5::numeric[]) AS stripe_fee,
+          UNNEST($6::numeric[]) AS stripe_net,
+          UNNEST($7::timestamptz[]) AS stripe_created_at,
+          UNNEST($8::text[]) AS stripe_status
+      )
+      INSERT INTO reconciliation_items (
+        reconciliation_id,
+        stripe_charge_id,
+        stripe_balance_transaction_id,
+        stripe_amount,
+        stripe_fee,
+        stripe_net,
+        stripe_created_at,
+        stripe_status,
+        match_status,
+        has_discrepancy,
+        discrepancy_type,
+        created_at,
+        updated_at
+      )
+      SELECT
+        $1,
+        stripe_charge_id,
+        stripe_balance_transaction_id,
+        stripe_amount,
+        stripe_fee,
+        stripe_net,
+        stripe_created_at,
+        stripe_status,
+        'unmatched_stripe',
+        true,
+        'missing_donation',
+        NOW(),
+        NOW()
+      FROM unmatched_stripe_payload
+    `,
+      [
+        reconciliationId,
+        unmatchedStripeRows.map((row) => row.stripeChargeId),
+        unmatchedStripeRows.map((row) => row.stripeBalanceTransactionId),
+        unmatchedStripeRows.map((row) => row.stripeAmount),
+        unmatchedStripeRows.map((row) => row.stripeFee),
+        unmatchedStripeRows.map((row) => row.stripeNet),
+        unmatchedStripeRows.map((row) => row.stripeCreatedAt),
+        unmatchedStripeRows.map((row) => row.stripeStatus),
       ]
     );
   }
@@ -404,56 +728,62 @@ async function createReconciliationItems(
  * Create discrepancy records
  */
 async function createDiscrepancies(reconciliationId: string): Promise<void> {
-  // Find all reconciliation items with discrepancies
-  const itemsResult = await pool.query(
+  await pool.query(
     `
-    SELECT * FROM reconciliation_items
-    WHERE reconciliation_id = $1 AND has_discrepancy = true
+    INSERT INTO payment_discrepancies (
+      reconciliation_id,
+      reconciliation_item_id,
+      discrepancy_type,
+      severity,
+      donation_id,
+      stripe_payment_intent_id,
+      stripe_charge_id,
+      expected_amount,
+      actual_amount,
+      difference_amount,
+      description,
+      status,
+      created_at,
+      updated_at
+    )
+    SELECT
+      ri.reconciliation_id,
+      ri.id AS reconciliation_item_id,
+      ri.discrepancy_type,
+      CASE
+        WHEN ri.match_status IN ('unmatched_donation', 'unmatched_stripe') THEN 'high'
+        WHEN ri.match_status = 'amount_mismatch' AND COALESCE(ri.discrepancy_amount, 0) > 10 THEN 'high'
+        ELSE 'medium'
+      END::text AS severity,
+      ri.donation_id,
+      ri.stripe_payment_intent_id,
+      ri.stripe_charge_id,
+      ri.donation_amount,
+      ri.stripe_amount,
+      ri.discrepancy_amount,
+      CASE
+        WHEN ri.match_status = 'unmatched_donation' THEN
+          'Donation ' || COALESCE(ri.donation_id::text, 'unknown') || ' (' ||
+          COALESCE(ri.donation_amount::text, '0') || ' ' || COALESCE(ri.donation_status, 'unknown') ||
+          ') has no matching Stripe transaction'
+        WHEN ri.match_status = 'unmatched_stripe' THEN
+          'Stripe transaction ' || COALESCE(ri.stripe_charge_id, 'unknown') || ' (' ||
+          COALESCE(ri.stripe_amount::text, '0') || ') has no matching donation record'
+        WHEN ri.match_status = 'amount_mismatch' THEN
+          'Amount mismatch: Donation ' || COALESCE(ri.donation_amount::text, '0') || ' vs Stripe ' ||
+          COALESCE(ri.stripe_amount::text, '0') || ' (difference: ' ||
+          COALESCE(ri.discrepancy_amount::text, '0') || ')'
+        ELSE 'Reconciliation discrepancy detected'
+      END AS description,
+      'open',
+      NOW(),
+      NOW()
+    FROM reconciliation_items ri
+    WHERE ri.reconciliation_id = $1
+      AND ri.has_discrepancy = true
   `,
     [reconciliationId]
   );
-
-  for (const item of itemsResult.rows) {
-    let severity: DiscrepancySeverity = 'medium';
-    let description = '';
-
-    if (item.match_status === 'unmatched_donation') {
-      severity = 'high';
-      description = `Donation ${item.donation_id} (${item.donation_amount} ${item.donation_status}) has no matching Stripe transaction`;
-    } else if (item.match_status === 'unmatched_stripe') {
-      severity = 'high';
-      description = `Stripe transaction ${item.stripe_charge_id} (${item.stripe_amount}) has no matching donation record`;
-    } else if (item.match_status === 'amount_mismatch') {
-      severity = item.discrepancy_amount > 10 ? 'high' : 'medium';
-      description = `Amount mismatch: Donation ${item.donation_amount} vs Stripe ${item.stripe_amount} (difference: ${item.discrepancy_amount})`;
-    }
-
-    await pool.query(
-      `
-      INSERT INTO payment_discrepancies (
-        reconciliation_id, reconciliation_item_id,
-        discrepancy_type, severity,
-        donation_id, stripe_payment_intent_id, stripe_charge_id,
-        expected_amount, actual_amount, difference_amount,
-        description, status,
-        created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'open', NOW(), NOW())
-    `,
-      [
-        reconciliationId,
-        item.id,
-        item.discrepancy_type,
-        severity,
-        item.donation_id,
-        item.stripe_payment_intent_id,
-        item.stripe_charge_id,
-        item.donation_amount,
-        item.stripe_amount,
-        item.discrepancy_amount,
-        description,
-      ]
-    );
-  }
 }
 
 /**
@@ -572,7 +902,9 @@ export async function createReconciliation(
 export async function getReconciliationById(reconciliationId: string): Promise<any> {
   const result = await pool.query(
     `
-    SELECT * FROM payment_reconciliations WHERE id = $1
+    SELECT ${PAYMENT_RECONCILIATION_COLUMNS}
+    FROM payment_reconciliations
+    WHERE id = $1
   `,
     [reconciliationId]
   );
@@ -591,7 +923,7 @@ export async function getReconciliationItems(
   reconciliationId: string,
   matchStatus?: MatchStatus
 ): Promise<ReconciliationItem[]> {
-  let query = `SELECT * FROM reconciliation_items WHERE reconciliation_id = $1`;
+  let query = `SELECT ${RECONCILIATION_ITEM_COLUMNS} FROM reconciliation_items WHERE reconciliation_id = $1`;
   const params: any[] = [reconciliationId];
 
   if (matchStatus) {
@@ -611,7 +943,8 @@ export async function getReconciliationItems(
 export async function getDiscrepancies(reconciliationId: string): Promise<PaymentDiscrepancy[]> {
   const result = await pool.query(
     `
-    SELECT * FROM payment_discrepancies
+    SELECT ${PAYMENT_DISCREPANCY_COLUMNS}
+    FROM payment_discrepancies
     WHERE reconciliation_id = $1
     ORDER BY severity DESC, created_at DESC
   `,

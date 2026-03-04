@@ -122,14 +122,14 @@ test.describe('Events Module', () => {
   test('should register and check in attendee', async ({ authenticatedPage }) => {
     if (!adminToken) throw new Error('Admin auth token was not initialized');
     const apiURL = process.env.API_URL || 'http://localhost:3001';
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const checkInWindowStart = new Date(Date.now() + 30 * 60 * 1000);
     const headers = await getAuthHeaders(authenticatedPage, adminToken);
 
     const unique = makeUnique('register');
+    const eventName = `Check-in Test Event ${unique}`;
     const { id: eventId } = await createTestEvent(authenticatedPage, adminToken, {
-      name: `Check-in Test Event ${unique}`,
-      startDate: tomorrow.toISOString(),
+      name: eventName,
+      startDate: checkInWindowStart.toISOString(),
     });
     const { id: contactId } = await createTestContact(authenticatedPage, adminToken, {
       firstName: 'Jane',
@@ -156,9 +156,26 @@ test.describe('Events Module', () => {
         headers,
       }
     );
-    expect(checkInResponse.ok()).toBeTruthy();
+    if (!checkInResponse.ok()) {
+      const checkInBody = await checkInResponse.text().catch(() => '<unreadable response body>');
+      throw new Error(
+        `Event check-in failed (status=${checkInResponse.status()}, eventId=${eventId}, registrationId=${registrationId}): ${checkInBody}`
+      );
+    }
 
+    const eventDetailResponsePromise = authenticatedPage.waitForResponse(
+      (response) =>
+        response.request().method() === 'GET' &&
+        /\/api\/v2\/events\/[^/]+$/.test(response.url()) &&
+        response.url().includes(`/api/v2/events/${eventId}`),
+      { timeout: 15000 }
+    );
     await authenticatedPage.goto(`/events/${eventId}`);
+    await authenticatedPage.waitForURL(new RegExp(`/events/${eventId}(?:\\?|$)`));
+    await eventDetailResponsePromise.catch(() => undefined);
+    await expect(authenticatedPage.getByRole('heading', { name: eventName })).toBeVisible({
+      timeout: 15000,
+    });
     await expect(authenticatedPage.getByRole('button', { name: /Registrations/i })).toBeVisible();
   });
 

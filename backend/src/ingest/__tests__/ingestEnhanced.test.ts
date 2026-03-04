@@ -66,4 +66,13 @@ describe('matcher intelligence', () => {
     expect(suggestion.bestTable?.table).toBe('contacts');
     expect(Object.values(suggestion.bestTable?.suggestedMapping ?? {})).toContain('contacts.contact_id');
   });
+
+  test('maps PHN aliases to contacts.phn', () => {
+    const csv = `First Name,Last Name,Personal Health Number\nJane,Doe,123-456-7890\n`;
+    const ds = parseCsvToDataset(csv, { name: 'contacts-phn.csv' });
+    const suggestion = suggestSchemaMatches(ds, schemaRegistry);
+
+    expect(suggestion.bestTable?.table).toBe('contacts');
+    expect(Object.values(suggestion.bestTable?.suggestedMapping ?? {})).toContain('contacts.phn');
+  });
 });

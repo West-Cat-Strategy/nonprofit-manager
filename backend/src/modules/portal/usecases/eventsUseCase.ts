@@ -13,8 +13,20 @@ export class PortalEventsUseCase {
     this.service = eventService;
   }
 
-  listEvents(contactId: string): Promise<unknown[]> {
-    return this.repository.getPortalEvents(contactId);
+  listEvents(
+    contactId: string,
+    query?: {
+      search?: string;
+      sort?: 'start_date' | 'name' | 'created_at';
+      order?: 'asc' | 'desc';
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<{
+    items: unknown[];
+    page: { limit: number; offset: number; has_more: boolean; total: number };
+  }> {
+    return this.repository.getPortalEvents(contactId, query);
   }
 
   async register(input: {

@@ -328,10 +328,69 @@ describe('Route Guardrails Integration', () => {
   let authToken: string;
   let authTokenNoOrgContext: string;
   let authTokenAdmin: string;
+  let guardrailUserIdentity: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  } | null = null;
   const activeOrgId = randomUUID();
   const inactiveOrgId = randomUUID();
   const activeOrgAccountNumber = `GR-ACT-${activeOrgId.slice(0, 8)}`;
   const inactiveOrgAccountNumber = `GR-INACT-${inactiveOrgId.slice(0, 8)}`;
+  const buildToken = (
+    role: 'user' | 'admin',
+    options?: {
+      includeOrgContext?: boolean;
+    }
+  ): string => {
+    if (!guardrailUserIdentity) {
+      throw new Error('Guardrail user identity has not been initialized');
+    }
+
+    const includeOrgContext = options?.includeOrgContext ?? true;
+    return jwt.sign(
+      {
+        id: guardrailUserIdentity.id,
+        email: guardrailUserIdentity.email,
+        role,
+        ...(includeOrgContext ? { organizationId: activeOrgId } : {}),
+      },
+      getJwtSecret(),
+      { expiresIn: '1h' }
+    );
+  };
+
+  const refreshAuthTokens = (): void => {
+    authToken = buildToken('user', { includeOrgContext: true });
+    authTokenNoOrgContext = buildToken('user', { includeOrgContext: false });
+    authTokenAdmin = buildToken('admin', { includeOrgContext: true });
+  };
+
+  const ensureGuardrailUserExists = async (): Promise<void> => {
+    if (!guardrailUserIdentity) return;
+
+    await pool.query(
+      `INSERT INTO users (id, email, password_hash, first_name, last_name, role, is_active, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, 'user', true, NOW(), NOW())
+       ON CONFLICT (id)
+       DO UPDATE SET
+         email = EXCLUDED.email,
+         first_name = EXCLUDED.first_name,
+         last_name = EXCLUDED.last_name,
+         role = 'user',
+         is_active = true,
+         updated_at = NOW()`,
+      [
+        guardrailUserIdentity.id,
+        guardrailUserIdentity.email,
+        '$2b$10$2B5xCiFv0to6v3sQm6rQOu/xM2bYf7jdd2fNf7q5sWubEjkVif7PO',
+        guardrailUserIdentity.firstName,
+        guardrailUserIdentity.lastName,
+      ]
+    );
+  };
+
   const upsertGuardrailOrgs = async (): Promise<void> => {
     await pool.query(
       `INSERT INTO accounts (id, account_number, account_name, account_type, is_active)
@@ -364,36 +423,30 @@ describe('Route Guardrails Integration', () => {
       })
       .expect(201);
 
-    authToken = registerResponse.body.token || registerResponse.body?.data?.token;
-    if (!authToken) {
-      throw new Error('Failed to extract auth token for guardrail validation tests');
-    }
-
     const registeredUser =
       registerResponse.body.user ||
       registerResponse.body?.data?.user;
     const userId = registeredUser?.id || registeredUser?.user_id;
     const userEmail = registeredUser?.email;
-    const userRole = registeredUser?.role || 'user';
     if (!userId || !userEmail) {
       throw new Error('Failed to extract user identity for guardrail no-org token');
     }
-    authTokenNoOrgContext = jwt.sign(
-      { id: userId, email: userEmail, role: userRole },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
-    authTokenAdmin = jwt.sign(
-      { id: userId, email: userEmail, role: 'admin' },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
+    guardrailUserIdentity = {
+      id: userId,
+      email: userEmail,
+      firstName: registeredUser?.firstName || registeredUser?.first_name || 'Guardrail',
+      lastName: registeredUser?.lastName || registeredUser?.last_name || 'Tester',
+    };
 
+    await ensureGuardrailUserExists();
+    refreshAuthTokens();
     await upsertGuardrailOrgs();
   });
 
   beforeEach(async () => {
+    await ensureGuardrailUserExists();
     await upsertGuardrailOrgs();
+    refreshAuthTokens();
   });
 
   afterAll(async () => {

@@ -31,7 +31,13 @@ beforeAll(async () => {
   }
 
   process.env[DB_COMPAT_SETUP_FLAG] = 'true';
-  const dbClient = await pool.connect();
+  let dbClient;
+  try {
+    dbClient = await pool.connect();
+  } catch {
+    // Keep pure unit suites runnable when local DB creds/ports are unavailable.
+    return;
+  }
 
   try {
     // Never wait indefinitely on table locks in test setup.
@@ -77,6 +83,12 @@ beforeAll(async () => {
         created_by UUID REFERENCES users(id) ON DELETE SET NULL,
         updated_by UUID REFERENCES users(id) ON DELETE SET NULL
       )
+    `);
+
+    await dbClient.query(`
+      ALTER TABLE case_outcomes
+      ADD COLUMN IF NOT EXISTS outcome_definition_id UUID,
+      ADD COLUMN IF NOT EXISTS entry_source VARCHAR(32) NOT NULL DEFAULT 'manual'
     `);
 
     await dbClient.query(`

@@ -125,4 +125,57 @@ describe('createApiClient', () => {
     const cfg = result as { headers?: Record<string, string> };
     expect(cfg.headers?.['X-Organization-Id']).toBeUndefined();
   });
+
+  it('fetches CSRF from /api/v2 when baseURL is /api', async () => {
+    let capturedRequestInterceptor: ((config: object) => Promise<object>) | null = null;
+
+    vi.mocked(axios.create).mockReturnValueOnce({
+      interceptors: {
+        request: {
+          use: vi.fn((fn) => {
+            capturedRequestInterceptor = fn as (config: object) => Promise<object>;
+          }),
+        },
+        response: { use: vi.fn() },
+      },
+      defaults: { headers: {} },
+    } as ReturnType<typeof axios.create>);
+
+    createApiClient({ onUnauthorized: vi.fn(), baseURL: '/api' });
+
+    if (!capturedRequestInterceptor) {
+      throw new Error('Request interceptor was not captured');
+    }
+
+    const result = await capturedRequestInterceptor({ method: 'post', headers: {} });
+    const cfg = result as { headers?: Record<string, string> };
+
+    expect(axios.get).toHaveBeenCalledWith('/api/v2/auth/csrf-token', { withCredentials: true });
+    expect(cfg.headers?.['X-CSRF-Token']).toBe('test-csrf');
+  });
+
+  it('fetches CSRF from /api/v2/auth when baseURL already includes /api/v2', async () => {
+    let capturedRequestInterceptor: ((config: object) => Promise<object>) | null = null;
+
+    vi.mocked(axios.create).mockReturnValueOnce({
+      interceptors: {
+        request: {
+          use: vi.fn((fn) => {
+            capturedRequestInterceptor = fn as (config: object) => Promise<object>;
+          }),
+        },
+        response: { use: vi.fn() },
+      },
+      defaults: { headers: {} },
+    } as ReturnType<typeof axios.create>);
+
+    createApiClient({ onUnauthorized: vi.fn(), baseURL: '/api/v2' });
+
+    if (!capturedRequestInterceptor) {
+      throw new Error('Request interceptor was not captured');
+    }
+
+    await capturedRequestInterceptor({ method: 'post', headers: {} });
+    expect(axios.get).toHaveBeenCalledWith('/api/v2/auth/csrf-token', { withCredentials: true });
+  });
 });

@@ -1,6 +1,6 @@
 # Case Client Visibility and Files
 
-**Last Updated:** 2026-02-23
+**Last Updated:** 2026-03-03
 **Applies To:** `/api/v2/cases/*`, `/api/v2/portal/cases/*`
 
 ## Purpose
@@ -36,6 +36,7 @@ Staff can:
 - delete notes (`DELETE /api/v2/cases/notes/:noteId`)
 - set optional `category`
 - mark `visible_to_client`
+- optionally include `outcome_impacts[]` + `outcomes_mode` in note create/update payloads (atomic write)
 
 Compatibility aliases are accepted during transition:
 - `visible_to_client`
@@ -45,7 +46,9 @@ Compatibility aliases are accepted during transition:
 
 Outcomes are structured case events:
 - list/create/update/delete under `/api/v2/cases/:id/outcomes` and `/api/v2/cases/outcomes/:outcomeId`
-- fields: `outcome_type`, `outcome_date`, `notes`, `visible_to_client`
+- fields: `outcome_type`, `outcome_definition_id`, `outcome_date`, `notes`, `visible_to_client`
+- read metadata includes `outcome_definition_key`, `outcome_definition_name`, `source_interaction_id`, `entry_source`
+- `entry_source` values: `manual`, `interaction_sync`, `legacy`
 
 Topics are account-scoped taxonomy plus case events:
 - definitions: `/api/v2/cases/:id/topics/definitions`
@@ -95,11 +98,13 @@ Both staff and portal timeline endpoints return a cursor-paged payload:
 
 Primary migration:
 - `database/migrations/050_case_client_visibility_notes_outcomes_topics_documents.sql`
+- `database/migrations/063_case_outcomes_dual_model_alignment.sql`
 
 Key changes:
 - `cases.client_viewable`
 - `case_notes.visible_to_client`, `category`, update audit fields
 - new `case_outcomes`
+- case outcomes linkage columns (`outcome_definition_id`, `source_interaction_id`, `entry_source`)
 - new `case_topic_definitions`, `case_topic_events`
 - activated `case_documents` as primary case attachment model with visibility + audit fields
 
@@ -130,6 +135,8 @@ Controls:
 - Edit same note to `visible_to_client=true`; verify timeline badge update.
 
 2. Outcomes + topics
+- Add manual outcome with definition selected; verify definition metadata and `entry_source=manual`.
+- Add interaction outcome tags on a note; verify synced case outcomes appear with `entry_source=interaction_sync`.
 - Add outcome with `visible_to_client=false`; verify it appears in staff timeline only.
 - Add outcome with `visible_to_client=true`; verify it appears in portal timeline.
 - Create topic definition + topic event; verify visible on staff timeline.

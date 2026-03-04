@@ -230,14 +230,19 @@ export const reorderAgendaItems = async (meetingId: string, orderedIds: string[]
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    for (let i = 0; i < orderedIds.length; i++) {
-      await client.query(
-        `UPDATE meeting_agenda_items
-         SET position = $1, updated_at = NOW(), modified_by = $2
-         WHERE id = $3 AND meeting_id = $4`,
-        [i + 1, userId, orderedIds[i], meetingId]
-      );
-    }
+    await client.query(
+      `UPDATE meeting_agenda_items AS items
+       SET position = ordered.position,
+           updated_at = NOW(),
+           modified_by = $2
+       FROM (
+         SELECT agenda_item_id, ordinality AS position
+         FROM UNNEST($3::uuid[]) WITH ORDINALITY AS input(agenda_item_id, ordinality)
+       ) AS ordered
+       WHERE items.meeting_id = $1
+         AND items.id = ordered.agenda_item_id`,
+      [meetingId, userId, orderedIds]
+    );
     await client.query('COMMIT');
   } catch (error) {
     await client.query('ROLLBACK');
@@ -403,4 +408,3 @@ export const generateMinutesDraft = async (meetingId: string): Promise<{ markdow
 
   return { markdown: lines.join('\n') };
 };
-

@@ -34,6 +34,32 @@ const renderContactForm = async (component: React.ReactElement) => {
 describe('ContactForm', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
+    mockApi.post.mockReset();
+    mockApi.put.mockReset();
+    mockApi.post.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          contact_id: 'contact-1',
+          first_name: 'Created',
+          last_name: 'Contact',
+          phn: null,
+          roles: [],
+        },
+      },
+    });
+    mockApi.put.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          contact_id: 'contact-1',
+          first_name: 'Updated',
+          last_name: 'Contact',
+          phn: null,
+          roles: [],
+        },
+      },
+    });
     mockApi.get.mockImplementation((url: string) => {
       if (url === '/contacts/roles') {
         return Promise.resolve({ data: { roles: [] } });
@@ -115,6 +141,7 @@ describe('ContactForm', () => {
       first_name: 'Jane',
       preferred_name: 'Jay',
       last_name: 'Smith',
+      phn: null,
       email: 'jane.smith@example.com',
       phone: '555-0200',
       mobile_phone: '555-0201',
@@ -181,6 +208,11 @@ describe('ContactForm', () => {
       fireEvent.change(preferredNameInput, { target: { value: 'Johnny' } });
       expect(preferredNameInput.value).toBe('Johnny');
     });
+
+    it('renders PHN field', async () => {
+      await renderContactForm(<ContactForm mode="create" />);
+      expect(screen.getByLabelText(/personal health number \(phn\)/i)).toBeInTheDocument();
+    });
   });
 
   describe('Form Validation', () => {
@@ -206,6 +238,39 @@ describe('ContactForm', () => {
 
       await waitFor(() => {
         expect(mockNavigate).not.toHaveBeenCalled();
+      });
+    });
+
+    it('shows validation message when PHN is not 10 digits', async () => {
+      await renderContactForm(<ContactForm mode="create" />);
+
+      fireEvent.change(screen.getByLabelText(/first name \*/i), { target: { value: 'John' } });
+      fireEvent.change(screen.getByLabelText(/last name \*/i), { target: { value: 'Doe' } });
+      fireEvent.change(screen.getByLabelText(/personal health number \(phn\)/i), {
+        target: { value: '12345' },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /create contact/i }));
+
+      expect(await screen.findByText(/phn must contain exactly 10 digits/i)).toBeInTheDocument();
+    });
+
+    it('submits normalized 10-digit PHN payload', async () => {
+      await renderContactForm(<ContactForm mode="create" />);
+
+      fireEvent.change(screen.getByLabelText(/first name \*/i), { target: { value: 'John' } });
+      fireEvent.change(screen.getByLabelText(/last name \*/i), { target: { value: 'Doe' } });
+      fireEvent.change(screen.getByLabelText(/personal health number \(phn\)/i), {
+        target: { value: '123-456-7890' },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /create contact/i }));
+
+      await waitFor(() => {
+        expect(mockApi.post).toHaveBeenCalledWith(
+          '/v2/contacts',
+          expect.objectContaining({ phn: '1234567890' })
+        );
       });
     });
   });

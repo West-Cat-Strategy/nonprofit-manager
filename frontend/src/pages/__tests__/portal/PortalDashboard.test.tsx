@@ -21,7 +21,15 @@ vi.mock('../../../components/portal/PortalPageState', () => ({
 
 describe('PortalDashboard page', () => {
   it('renders reminders from API', async () => {
-    getMock.mockResolvedValueOnce({ data: [{ type: 'event', id: '1', title: 'Town Hall', date: new Date().toISOString() }] });
+    getMock.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          items: [{ type: 'event', id: '1', title: 'Town Hall', date: new Date().toISOString() }],
+          page: { limit: 20, offset: 0, has_more: false, total: 1 },
+        },
+      },
+    });
     renderWithProviders(<PortalDashboard />);
     await waitFor(() => {
       expect(screen.getByText('Town Hall')).toBeInTheDocument();
@@ -31,7 +39,15 @@ describe('PortalDashboard page', () => {
   it('shows retry when API fails', async () => {
     const user = userEvent.setup();
     getMock.mockRejectedValueOnce(new Error('fail'));
-    getMock.mockResolvedValueOnce({ data: [] });
+    getMock.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          items: [],
+          page: { limit: 20, offset: 0, has_more: false, total: 0 },
+        },
+      },
+    });
     renderWithProviders(<PortalDashboard />);
 
     await waitFor(() => {

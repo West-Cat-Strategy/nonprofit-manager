@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import QRCode from 'qrcode';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import type {
   CreateEventReminderAutomationDTO,
+  EventCheckInSettings,
   EventRegistration,
   EventReminderAttemptStatus,
   EventReminderAutomation,
@@ -16,7 +16,7 @@ import {
   toMinutes,
   toRelativeDisplay,
 } from '../utils/reminderTime';
-import EventQrScanner from './EventQrScanner';
+const EventQrScanner = lazy(() => import('./EventQrScanner'));
 
 const MAX_CUSTOM_MESSAGE_LENGTH = 500;
 
@@ -32,9 +32,12 @@ interface ReminderRetryDraft {
 }
 
 interface EventRegistrationsPanelProps {
+  eventId: string;
   eventStartDate: string;
   organizationTimezone: string;
   registrations: EventRegistration[];
+  checkInSettings: EventCheckInSettings | null;
+  checkInSettingsLoading: boolean;
   actionLoading: boolean;
   remindersSending: boolean;
   remindersError: string | null;
@@ -49,6 +52,8 @@ interface EventRegistrationsPanelProps {
     sendSms: boolean;
     customMessage?: string;
   }) => Promise<void>;
+  onUpdateCheckInSettings: (enabled: boolean) => Promise<void>;
+  onRotateCheckInPin: () => Promise<string>;
   onScanCheckIn?: (token: string) => Promise<void>;
   onCancelAutomation: (automation: EventReminderAutomation) => Promise<void>;
   onCreateAutomation: (payload: CreateEventReminderAutomationDTO) => Promise<void>;
@@ -102,9 +107,12 @@ const getAttemptSummaryText = (automation: EventReminderAutomation): string | nu
 };
 
 export default function EventRegistrationsPanel({
+  eventId,
   eventStartDate,
   organizationTimezone,
   registrations,
+  checkInSettings,
+  checkInSettingsLoading,
   actionLoading,
   remindersSending,
   remindersError,
@@ -115,6 +123,8 @@ export default function EventRegistrationsPanel({
   onCheckIn,
   onCancelRegistration,
   onSendReminders,
+  onUpdateCheckInSettings,
+  onRotateCheckInPin,
   onScanCheckIn,
   onCancelAutomation,
   onCreateAutomation,
@@ -131,6 +141,11 @@ export default function EventRegistrationsPanel({
   const [cameraScannerOpen, setCameraScannerOpen] = useState(false);
   const [scanStatusMessage, setScanStatusMessage] = useState<string | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [kioskEnabledDraft, setKioskEnabledDraft] = useState(false);
+  const [kioskBusy, setKioskBusy] = useState(false);
+  const [kioskMessage, setKioskMessage] = useState<string | null>(null);
+  const [kioskError, setKioskError] = useState<string | null>(null);
+  const [latestPin, setLatestPin] = useState<string | null>(null);
 
   const filteredRegistrations = useMemo(() => {
     const needle = registrationSearch.trim().toLowerCase();
@@ -161,33 +176,48 @@ export default function EventRegistrationsPanel({
     let cancelled = false;
 
     const generateCodes = async () => {
-      const entries = await Promise.all(
-        registrations.map(async (registration) => {
-          if (!registration.check_in_token) {
-            return [registration.registration_id, ''] as const;
+      try {
+        const registrationsWithTokens = registrations.filter((registration) => registration.check_in_token);
+        if (registrationsWithTokens.length === 0) {
+          if (!cancelled) {
+            setQrCodesByRegistration({});
           }
+          return;
+        }
 
-          try {
-            const dataUrl = await QRCode.toDataURL(registration.check_in_token, {
-              width: 96,
-              margin: 1,
-            });
-            return [registration.registration_id, dataUrl] as const;
-          } catch {
-            return [registration.registration_id, ''] as const;
-          }
-        })
-      );
+        const { toDataURL } = await import('qrcode');
+        const entries = await Promise.all(
+          registrations.map(async (registration) => {
+            if (!registration.check_in_token) {
+              return [registration.registration_id, ''] as const;
+            }
 
-      if (cancelled) return;
-      setQrCodesByRegistration(
-        entries.reduce<Record<string, string>>((accumulator, [registrationId, dataUrl]) => {
-          if (dataUrl) {
-            accumulator[registrationId] = dataUrl;
-          }
-          return accumulator;
-        }, {})
-      );
+            try {
+              const dataUrl = await toDataURL(registration.check_in_token, {
+                width: 96,
+                margin: 1,
+              });
+              return [registration.registration_id, dataUrl] as const;
+            } catch {
+              return [registration.registration_id, ''] as const;
+            }
+          })
+        );
+
+        if (cancelled) return;
+        setQrCodesByRegistration(
+          entries.reduce<Record<string, string>>((accumulator, [registrationId, dataUrl]) => {
+            if (dataUrl) {
+              accumulator[registrationId] = dataUrl;
+            }
+            return accumulator;
+          }, {})
+        );
+      } catch {
+        if (!cancelled) {
+          setQrCodesByRegistration({});
+        }
+      }
     };
 
     void generateCodes();
@@ -196,6 +226,48 @@ export default function EventRegistrationsPanel({
       cancelled = true;
     };
   }, [registrations]);
+
+  useEffect(() => {
+    if (checkInSettings) {
+      setKioskEnabledDraft(checkInSettings.public_checkin_enabled);
+    }
+  }, [checkInSettings]);
+
+  const kioskUrl =
+    typeof window === 'undefined'
+      ? `/event-check-in/${eventId}`
+      : `${window.location.origin}/event-check-in/${eventId}`;
+
+  const saveKioskSettings = async () => {
+    setKioskBusy(true);
+    setKioskError(null);
+    setKioskMessage(null);
+    try {
+      await onUpdateCheckInSettings(kioskEnabledDraft);
+      setKioskMessage(
+        kioskEnabledDraft ? 'Public kiosk enabled.' : 'Public kiosk disabled.'
+      );
+    } catch {
+      setKioskError('Failed to update kiosk settings.');
+    } finally {
+      setKioskBusy(false);
+    }
+  };
+
+  const rotateKioskPin = async () => {
+    setKioskBusy(true);
+    setKioskError(null);
+    setKioskMessage(null);
+    try {
+      const pin = await onRotateCheckInPin();
+      setLatestPin(pin);
+      setKioskMessage('PIN rotated. Share this PIN with on-site staff only.');
+    } catch {
+      setKioskError('Failed to rotate kiosk PIN.');
+    } finally {
+      setKioskBusy(false);
+    }
+  };
 
   const handleStartRetryDraft = (automation: EventReminderAutomation) => {
     const relative = toRelativeDisplay(automation.relative_minutes_before);
@@ -324,6 +396,67 @@ export default function EventRegistrationsPanel({
       {(localError || remindersError) && (
         <div className="mb-4 rounded-md bg-app-accent-soft p-3 text-sm text-app-accent-text">{localError || remindersError}</div>
       )}
+
+      <div className="mb-4 rounded-lg border border-app-border bg-app-surface-muted p-4">
+        <h3 className="text-lg font-semibold text-app-text">Public Kiosk Check-In</h3>
+        <p className="mt-1 text-sm text-app-text-muted">
+          Allow attendees to self check-in at the event with a staff-issued PIN.
+        </p>
+
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-sm text-app-text">
+            <input
+              type="checkbox"
+              checked={kioskEnabledDraft}
+              disabled={checkInSettingsLoading || kioskBusy}
+              onChange={(event) => setKioskEnabledDraft(event.target.checked)}
+            />
+            Enable public kiosk
+          </label>
+          <button
+            type="button"
+            onClick={() => void saveKioskSettings()}
+            disabled={checkInSettingsLoading || kioskBusy}
+            className="rounded-md border border-app-border px-3 py-1.5 text-sm hover:bg-app-surface disabled:opacity-60"
+          >
+            {kioskBusy ? 'Saving...' : 'Save'}
+          </button>
+          <button
+            type="button"
+            onClick={() => void rotateKioskPin()}
+            disabled={checkInSettingsLoading || kioskBusy}
+            className="rounded-md bg-app-accent px-3 py-1.5 text-sm text-white hover:bg-app-accent-hover disabled:opacity-60"
+          >
+            Rotate PIN
+          </button>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <code className="rounded bg-app-surface px-2 py-1 text-xs text-app-text">{kioskUrl}</code>
+          <button
+            type="button"
+            onClick={() => void navigator.clipboard?.writeText(kioskUrl)}
+            className="rounded border border-app-border px-2 py-1 text-xs hover:bg-app-surface"
+          >
+            Copy URL
+          </button>
+        </div>
+
+        {checkInSettings?.public_checkin_pin_rotated_at && (
+          <p className="mt-2 text-xs text-app-text-muted">
+            Last PIN rotation:{' '}
+            {new Date(checkInSettings.public_checkin_pin_rotated_at).toLocaleString()}
+          </p>
+        )}
+
+        {latestPin && (
+          <p className="mt-2 text-sm font-medium text-app-accent-text">
+            Current PIN: <span className="font-mono">{latestPin}</span>
+          </p>
+        )}
+        {kioskMessage && <p className="mt-2 text-sm text-app-accent">{kioskMessage}</p>}
+        {kioskError && <p className="mt-2 text-sm text-app-accent-text">{kioskError}</p>}
+      </div>
 
       <div className="mb-4 rounded-lg border border-app-border bg-app-surface-muted p-4">
         <h3 className="text-lg font-semibold text-app-text">Send Reminders</h3>
@@ -635,11 +768,13 @@ export default function EventRegistrationsPanel({
               {scanStatusMessage && <p className="text-xs text-app-accent">{scanStatusMessage}</p>}
               {scanError && <p className="text-xs text-app-accent-text">{scanError}</p>}
               {cameraScannerOpen && (
-                <EventQrScanner
-                  enabled={cameraScannerOpen}
-                  disabled={actionLoading}
-                  onTokenScanned={handleCameraTokenScanned}
-                />
+                <Suspense fallback={<div className="mt-2 rounded-md border border-app-border bg-app-surface p-3 text-xs text-app-text-muted">Initializing camera scanner...</div>}>
+                  <EventQrScanner
+                    enabled={cameraScannerOpen}
+                    disabled={actionLoading}
+                    onTokenScanned={handleCameraTokenScanned}
+                  />
+                </Suspense>
               )}
             </div>
           )}

@@ -80,7 +80,7 @@ const unwrapApiData = <T>(payload: ApiSuccessEnvelope<T> | T): T => {
 async function withRequestRetry<T>(
   fn: () => Promise<T>,
   context: string,
-  attempts: number = 3
+  attempts: number = 6
 ): Promise<T> {
   let lastError: unknown;
   for (let attempt = 1; attempt <= attempts; attempt++) {
@@ -91,7 +91,7 @@ async function withRequestRetry<T>(
       if (!isRetryableNetworkError(error) || attempt === attempts) {
         throw error;
       }
-      await new Promise((resolve) => setTimeout(resolve, 200 * attempt));
+      await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
     }
   }
 

@@ -146,6 +146,24 @@ export default function PersonalInfoSection({
             ))}
           </select>
         </div>
+
+        <div>
+          <label htmlFor="phn" className="block text-sm font-medium text-app-text-muted">
+            Personal Health Number (PHN)
+          </label>
+          <input
+            type="text"
+            name="phn"
+            id="phn"
+            placeholder="10 digits"
+            value={formData.phn ?? ''}
+            onChange={onChange}
+            className={`mt-1 block w-full border ${
+              errors.phn ? 'border-app-border' : 'border-app-input-border'
+            } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
+          />
+          {errors.phn && <p className="mt-1 text-sm text-app-accent">{errors.phn}</p>}
+        </div>
       </div>
     </div>
   );

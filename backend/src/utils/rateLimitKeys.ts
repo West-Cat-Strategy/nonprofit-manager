@@ -82,6 +82,18 @@ export const rateLimitKeys = {
   registration(req: Request): string {
     return buildScopedRateLimitKey('registration', getIp(req), getOrganizationId(req));
   },
+
+  publicEventCheckIn(req: Request): string {
+    const eventId =
+      typeof req.params?.id === 'string' && req.params.id.trim().length > 0
+        ? req.params.id
+        : 'unknown-event';
+    return buildScopedRateLimitKey(
+      'public-event-checkin',
+      `${eventId}:${getIp(req)}`,
+      undefined
+    );
+  },
 };
 
 export default rateLimitKeys;

@@ -6,11 +6,21 @@ import type {
   CreateEventDTO,
   CreateEventReminderAutomationDTO,
   CreateRegistrationDTO,
+  EventCheckInSettings,
   EventRegistration,
   EventFilters,
+  EventWalkInCheckInDTO,
+  EventWalkInCheckInResult,
   PaginationParams,
+  PublicEventsListData,
+  PublicEventsQuery,
+  PublicEventCheckInDTO,
+  PublicEventCheckInInfo,
+  PublicEventCheckInResult,
   RegistrationFilters,
+  RotateEventCheckInPinResult,
   SendEventRemindersDTO,
+  UpdateEventCheckInSettingsDTO,
   SyncEventReminderAutomationsDTO,
   UpdateEventDTO,
   UpdateEventReminderAutomationDTO,
@@ -28,12 +38,20 @@ type EventServicePort = Pick<
   | 'getEventAttendanceSummary'
   | 'getEventRegistrations'
   | 'getContactRegistrations'
+  | 'getRegistrationByTokenGlobal'
   | 'getRegistrationById'
   | 'getRegistrationByToken'
   | 'registerContact'
   | 'updateRegistration'
   | 'checkInAttendee'
   | 'cancelRegistration'
+  | 'getEventCheckInSettings'
+  | 'updateEventCheckInSettings'
+  | 'rotateEventCheckInPin'
+  | 'walkInCheckIn'
+  | 'listPublicEventsByOwner'
+  | 'getPublicCheckInInfo'
+  | 'submitPublicCheckIn'
   | 'sendEventReminders'
 >;
 
@@ -68,8 +86,12 @@ export class EventRepository {
     return this.eventService.getEventRegistrations(eventId, filters);
   }
 
-  getContactRegistrations(contactId: string): Promise<unknown[]> {
-    return this.eventService.getContactRegistrations(contactId);
+  getContactRegistrations(contactId: string, scope?: DataScopeFilter): Promise<unknown[]> {
+    return this.eventService.getContactRegistrations(contactId, scope);
+  }
+
+  getRegistrationByTokenGlobal(token: string, scope?: DataScopeFilter): Promise<EventRegistration | null> {
+    return this.eventService.getRegistrationByTokenGlobal(token, scope);
   }
 
   getRegistrationById(registrationId: string): Promise<EventRegistration | null> {
@@ -97,6 +119,42 @@ export class EventRepository {
 
   cancelRegistration(registrationId: string): Promise<void> {
     return this.eventService.cancelRegistration(registrationId);
+  }
+
+  getEventCheckInSettings(eventId: string): Promise<EventCheckInSettings | null> {
+    return this.eventService.getEventCheckInSettings(eventId);
+  }
+
+  updateEventCheckInSettings(
+    eventId: string,
+    data: UpdateEventCheckInSettingsDTO,
+    userId: string
+  ): Promise<EventCheckInSettings | null> {
+    return this.eventService.updateEventCheckInSettings(eventId, data, userId);
+  }
+
+  rotateEventCheckInPin(eventId: string, userId: string): Promise<RotateEventCheckInPinResult> {
+    return this.eventService.rotateEventCheckInPin(eventId, userId);
+  }
+
+  walkInCheckIn(
+    eventId: string,
+    data: EventWalkInCheckInDTO,
+    checkedInBy: string
+  ): Promise<EventWalkInCheckInResult> {
+    return this.eventService.walkInCheckIn(eventId, data, checkedInBy);
+  }
+
+  listPublicEventsByOwner(ownerUserId: string, query: PublicEventsQuery): Promise<PublicEventsListData> {
+    return this.eventService.listPublicEventsByOwner(ownerUserId, query);
+  }
+
+  getPublicCheckInInfo(eventId: string): Promise<PublicEventCheckInInfo | null> {
+    return this.eventService.getPublicCheckInInfo(eventId);
+  }
+
+  submitPublicCheckIn(eventId: string, data: PublicEventCheckInDTO): Promise<PublicEventCheckInResult> {
+    return this.eventService.submitPublicCheckIn(eventId, data);
   }
 
   sendEventReminders(

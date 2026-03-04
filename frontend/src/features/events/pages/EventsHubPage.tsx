@@ -63,6 +63,13 @@ export default function EventsHubPage() {
         >
           Create Event
         </button>
+        <button
+          type="button"
+          onClick={() => navigate('/events/check-in')}
+          className="rounded border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text"
+        >
+          Open Check-In Desk
+        </button>
         <input
           value={searchInput}
           onChange={(event) => setSearchInput(event.target.value)}

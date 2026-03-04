@@ -27,6 +27,51 @@ A comprehensive code review identified **23 critical efficiency issues** across 
 
 ---
 
+## March 3, 2026 Runtime Speed Wave (P4-T9B)
+
+### Scope
+- Priority path: `/login` -> `/dashboard` -> `/events/:id`
+- Guardrails: no API envelope changes, no schema migrations
+
+### Implemented Changes
+- Frontend bootstrap reduction:
+  - `frontend/src/App.tsx`: route tree is now lazy loaded.
+  - `frontend/vite.config.ts`: function-based `manualChunks` with explicit runtime/preload helper routing to `vendor-runtime`, while preserving existing `vendor-*` package splits.
+  - Built `frontend/dist/index.html` preload chain no longer includes `vendor-pdf`.
+- Event detail deferment:
+  - `frontend/src/features/events/pages/EventDetailPage.tsx`: initial mount fetches event detail only.
+  - Registrations + automations are fetched only when the registrations tab is first opened.
+  - Tab badge now uses `event.registered_count` and does not require eager registrations fetch.
+- Backend query-path optimization:
+  - `backend/src/services/taskService.ts`: `getTaskSummary()` now executes a dedicated summary query path directly (no list/count chain).
+  - `backend/src/modules/auth/lib/authQueries.ts` + `backend/src/modules/auth/controllers/registration.controller.ts`: setup-status now uses a single aggregate query helper (`getSetupUserCounts`).
+  - `backend/src/services/registrationSettingsService.ts`: replaced `SELECT *` / wildcard returning with explicit column projection.
+
+### Measured Results
+- Baseline (`node scripts/check-frontend-bundle-size.js` before this wave):
+  - `index-main`: ~410.2 KiB
+- Post-change (`node scripts/check-frontend-bundle-size.js`):
+  - `index-main`: ~157.3 KiB
+  - Reduction: ~61.7%
+- `frontend/dist/index.html` modulepreloads now:
+  - `vendor-runtime`, `vendor-react`, `vendor-redux`
+  - `vendor-pdf` preload removed
+
+### Verification Snapshot
+- Frontend:
+  - `cd frontend && npm run build` ✅
+  - `cd frontend && npm run lint` ✅ (warnings only)
+  - `cd frontend && npm run type-check` ✅
+  - `cd frontend && npm run test -- src/routes/__tests__/setupRedirects.test.tsx src/features/events/components/__tests__/EventRegistrationsPanel.test.tsx src/pages/__tests__/Login.test.tsx src/features/events/pages/__tests__/EventDetailPage.test.tsx` ✅
+- Backend:
+  - `cd backend && npm test -- src/__tests__/services/taskService.test.ts src/__tests__/auth.test.ts src/__tests__/services/eventService.test.ts` ✅
+  - `cd backend && npm run lint` ⚠️ blocked by pre-existing unrelated issues in `events.controller.ts` and `eventService.ts`
+  - `cd backend && npm run type-check` ⚠️ blocked by pre-existing unrelated issues in `events.controller.ts` and `outcomeReportService.ts`
+- E2E:
+  - `cd e2e && npm test -- tests/auth.spec.ts tests/events.spec.ts --project=chromium` ⚠️ 17 passed / 1 failed (deterministic existing failure: `tests/events.spec.ts` "should register and check in attendee")
+
+---
+
 ## Implemented Optimizations
 
 ### 1. ✅ HTTP Response Compression (Backend)
@@ -468,6 +513,83 @@ Monitor these metrics post-deployment:
 - `http_request_duration_ms` (p50, p95, p99) — API latency
 - `nodejs_memory_heap_used_bytes` — memory growth trend
 - Application load time (Lighthouse)
+
+---
+
+## P4-T9B Single-Pass Efficiency Wave (March 3, 2026)
+
+### Measured Before/After Results
+
+Baseline was captured from `main` (`b838029`) using a clean temporary worktree build.  
+After values were captured from `codex/p4-t9b-efficiency-wave2` using the same build command (`cd frontend && npm run build`).
+
+| Metric | Baseline | After | Delta | Threshold |
+|--------|----------|-------|-------|-----------|
+| Event Detail route chunk (`EventDetailPage-*.js`) | 451.41 kB | 23.07 kB | **-94.89%** | ✅ ≥25% reduction |
+| Admin Settings route chunk (`AdminSettingsPage-*.js`) | 158.71 kB | 42.11 kB | **-73.47%** | ✅ ≥20% reduction |
+| Global `SELECT *` count (`backend/src/services` + `backend/src/modules`) | 69 | 58 | **-11 (-15.94%)** | ✅ reduced |
+
+### Measurement Refresh (March 3, 2026, post-wave rerun)
+
+Refreshed using the current `codex/p4-t9b-efficiency-wave2` tree after the final lazy-boundary and query-projection pass (`cd frontend && npm run build`).
+
+| Metric | Baseline | After (Refreshed) | Delta | Threshold |
+|--------|----------|-------------------|-------|-----------|
+| Event Detail route chunk (`EventDetailPage-*.js`) | 451.41 kB | 23.86 kB | **-94.71%** | ✅ ≥25% reduction |
+| Admin Settings route chunk (`AdminSettingsPage-*.js`) | 158.71 kB | 38.36 kB | **-75.83%** | ✅ ≥20% reduction |
+| Global `SELECT *` count (`backend/src/services` + `backend/src/modules`) | 69 | 57 | **-12 (-17.39%)** | ✅ reduced |
+
+### Backend Efficiency Refactors Included
+
+- Reconciliation writes converted from per-row insert/update loops to batched set-based SQL (`UNNEST` + CTE payloads) in `reconciliationService`.
+- Discrepancy generation converted from row-by-row inserts to one `INSERT ... SELECT` statement in `reconciliationService`.
+- Bulk case status note writes converted from looped inserts to one set-based `INSERT ... SELECT` in `lifecycleQueries`.
+- Pending-registration admin notifications moved from sequential sends to bounded parallel dispatch (`Promise.allSettled`, batch size 4).
+- Portal repository visibility predicates changed from `LEFT JOIN` checks to cheaper `EXISTS`-style predicates while preserving response shape and ordering.
+- Hot-path list/query reads tightened to explicit projections in reconciliation, case catalog, and outcome definition paths.
+
+### DB Index Refactor Migration
+
+- Added `database/migrations/062_efficiency_refactor_indexes.sql` with `IF NOT EXISTS` indexes for:
+  - `contact_documents(contact_id, created_at DESC)` filtered by active + portal-visible
+  - `contact_notes(contact_id, created_at DESC)` filtered by external + portal-visible
+  - `appointments(contact_id, status, start_time)`
+  - `event_registrations(contact_id, registration_status, event_id)`
+  - `reconciliation_items(reconciliation_id, created_at DESC)`
+  - `payment_discrepancies(reconciliation_id, severity, created_at DESC)`
+
+### P4-T9B Continuation Gate-Closure Verification (Mar 3, 2026)
+
+#### Command Matrix (Exact Runs)
+
+- ✅ `cd backend && npm run lint`
+- ✅ `cd backend && npm run type-check`
+- ✅ `cd frontend && npm run lint` (warnings only, no errors)
+- ✅ `cd frontend && npm run type-check`
+- ✅ `cd frontend && npm run test -- src/routes/__tests__/setupRedirects.test.tsx src/features/events/components/__tests__/EventRegistrationsPanel.test.tsx src/pages/__tests__/Login.test.tsx src/features/events/pages/__tests__/EventDetailPage.test.tsx`
+- ✅ `cd frontend && npm run build`
+- ✅ `node /Users/bryan/projects/nonprofit-manager/scripts/check-frontend-bundle-size.js`
+- ✅ `cd backend && npm test -- src/__tests__/services/taskService.test.ts src/__tests__/auth.test.ts src/__tests__/services/eventService.test.ts`
+- ✅ `cd e2e && npm test -- tests/auth.spec.ts tests/events.spec.ts --project=chromium` (run 1)
+- ✅ `cd e2e && npm test -- tests/auth.spec.ts tests/events.spec.ts --project=chromium` (run 2)
+
+#### Startup Bundle Checks
+
+- `frontend/dist/index.html` preload chain confirms `vendor-pdf` is absent.
+- Current preloads are runtime/bootstrap chunks (`vendor-runtime`, `vendor-react`, `vendor-redux`).
+- Current main entry chunk from build output: `index-Bb8JQ3KT.js` at `161.79 kB` raw (`40.32 kB` gzip).
+
+#### Before/After E2E Failure Signatures (Resolved)
+
+- Before fix: strict admin helper produced repeated setup/bootstrap failures:
+  - `Unable to establish admin setup-complete session... Invalid credentials (email: admin@example.com)`
+- Before fix: events check-in test could fail with policy-window mismatch:
+  - `CHECKIN_ERROR: Check-in is available 180 minutes before start until 240 minutes after end.`
+- After fix: auth/events Chromium suite now passes twice consecutively with deterministic setup/bootstrap behavior and in-window check-in timestamps.
+
+#### Residual Notes
+
+- Local environment can still surface admin credential/MFA drift for `ADMIN_USER_EMAIL`; this is now handled explicitly by `ensureEffectiveAdminLoginViaAPI` fallback for E2E determinism, while `ensureAdminLoginViaAPI` remains strict and fails loudly when true admin-backed bootstrap cannot be established.
 
 ---
 

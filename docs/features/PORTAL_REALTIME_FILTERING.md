@@ -18,11 +18,46 @@ This document describes the P4-T7D contract extension for client and admin porta
 - `GET /api/v2/portal/appointments`
   - optional query: `status`, `case_id`, `from`, `to`, `search`, `limit`, `offset`
   - response envelope unchanged: `data`
+- `GET /api/v2/portal/events`
+  - optional query: `search`, `sort`, `order`, `limit`, `offset`
+  - allowed sort values: `start_date`, `name`, `created_at`
+  - response contract: `data = { items, page }`
+- `GET /api/v2/portal/documents`
+  - optional query: `search`, `sort`, `order`, `limit`, `offset`
+  - allowed sort values: `created_at`, `title`, `document_type`, `original_name`
+  - response contract: `data = { items, page }`
+- `GET /api/v2/portal/forms`
+  - optional query: `search`, `sort`, `order`, `limit`, `offset`
+  - allowed sort values: `created_at`, `title`, `document_type`, `original_name`
+  - response contract: `data = { items, page }`
+- `GET /api/v2/portal/notes`
+  - optional query: `search`, `sort`, `order`, `limit`, `offset`
+  - allowed sort values: `created_at`, `subject`, `note_type`
+  - response contract: `data = { items, page }`
+- `GET /api/v2/portal/reminders`
+  - optional query: `search`, `sort`, `order`, `limit`, `offset`
+  - allowed sort values: `date`, `title`, `type`
+  - response contract: `data = { items, page }`
 - `GET /api/v2/portal/stream?channels=messages,appointments`
   - SSE events:
     - `portal.thread.updated`
     - `portal.appointment.updated`
     - `portal.slot.updated`
+
+### Shared offset page payload
+All list-heavy client resources above return:
+
+```json
+{
+  "items": [],
+  "page": {
+    "limit": 20,
+    "offset": 0,
+    "has_more": false,
+    "total": 0
+  }
+}
+```
 
 ## Admin Endpoints
 - `GET /api/v2/portal/admin/conversations`

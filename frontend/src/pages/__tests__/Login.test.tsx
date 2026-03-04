@@ -39,7 +39,10 @@ describe('Login page', () => {
 
     expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^sign in$/i })).toBeInTheDocument();
+    const submitButton = screen.getByRole('button', { name: /^sign in$/i });
+    expect(submitButton).toBeInTheDocument();
+    expect(submitButton).toHaveTextContent(/^sign in$/i);
+    expect(submitButton).toBeEnabled();
   });
 
   it('submits credentials and navigates on success', async () => {

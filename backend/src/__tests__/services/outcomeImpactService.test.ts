@@ -34,14 +34,36 @@ describe('OutcomeImpactService', () => {
     } as unknown as Pool);
   });
 
-  it('saves impacts in replace mode and deletes missing rows', async () => {
+  it('saves impacts in replace mode and syncs case outcomes', async () => {
     const clientQuery = jest.fn();
     const release = jest.fn();
 
     clientQuery
       .mockResolvedValueOnce({ rows: [] })
-      .mockResolvedValueOnce({ rows: [{ id: 'interaction-1' }] })
-      .mockResolvedValueOnce({ rows: [{ id: 'outcome-1' }] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            interaction_id: 'interaction-1',
+            case_id: 'case-1',
+            account_id: 'account-1',
+            visible_to_client: true,
+            created_at: '2026-02-19T00:00:00.000Z',
+            created_by: 'user-1',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'outcome-1',
+            key: 'maintained_employment',
+            name: 'Maintained employment',
+            is_active: true,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({
@@ -88,22 +110,56 @@ describe('OutcomeImpactService', () => {
 
     expect(result).toHaveLength(1);
     expect(clientQuery).toHaveBeenCalledWith('BEGIN');
-    expect(clientQuery).toHaveBeenCalledWith(
-      expect.stringContaining('DELETE FROM interaction_outcome_impacts'),
-      ['interaction-1', ['outcome-1']]
-    );
+
+    expect(
+      clientQuery.mock.calls.some(
+        (call) => typeof call[0] === 'string' && call[0].includes('DELETE FROM interaction_outcome_impacts')
+      )
+    ).toBe(true);
+    expect(
+      clientQuery.mock.calls.some(
+        (call) => typeof call[0] === 'string' && call[0].includes('INSERT INTO case_outcomes')
+      )
+    ).toBe(true);
+    expect(
+      clientQuery.mock.calls.some(
+        (call) => typeof call[0] === 'string' && call[0].includes('DELETE FROM case_outcomes')
+      )
+    ).toBe(true);
+
     expect(clientQuery).toHaveBeenCalledWith('COMMIT');
     expect(release).toHaveBeenCalled();
   });
 
-  it('saves impacts in merge mode without delete', async () => {
+  it('saves impacts in merge mode without replace deletions', async () => {
     const clientQuery = jest.fn();
     const release = jest.fn();
 
     clientQuery
       .mockResolvedValueOnce({ rows: [] })
-      .mockResolvedValueOnce({ rows: [{ id: 'interaction-1' }] })
-      .mockResolvedValueOnce({ rows: [{ id: 'outcome-1' }] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            interaction_id: 'interaction-1',
+            case_id: 'case-1',
+            account_id: 'account-1',
+            visible_to_client: false,
+            created_at: '2026-02-19T00:00:00.000Z',
+            created_by: 'user-1',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'outcome-1',
+            key: 'maintained_employment',
+            name: 'Maintained employment',
+            is_active: true,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [] });
@@ -120,10 +176,18 @@ describe('OutcomeImpactService', () => {
       'user-1'
     );
 
-    expect(clientQuery).not.toHaveBeenCalledWith(
-      expect.stringContaining('DELETE FROM interaction_outcome_impacts'),
-      expect.anything()
+    const deleteInteractionCalls = clientQuery.mock.calls.filter(
+      (call) => typeof call[0] === 'string' && call[0].includes('DELETE FROM interaction_outcome_impacts')
     );
+    const deleteSyncedCaseOutcomeCalls = clientQuery.mock.calls.filter(
+      (call) =>
+        typeof call[0] === 'string' &&
+        call[0].includes('DELETE FROM case_outcomes') &&
+        call[0].includes("entry_source = 'interaction_sync'")
+    );
+
+    expect(deleteInteractionCalls).toHaveLength(0);
+    expect(deleteSyncedCaseOutcomeCalls).toHaveLength(0);
     expect(clientQuery).toHaveBeenCalledWith('COMMIT');
   });
 
@@ -131,10 +195,7 @@ describe('OutcomeImpactService', () => {
     const clientQuery = jest.fn();
     const release = jest.fn();
 
-    clientQuery
-      .mockResolvedValueOnce({ rows: [] })
-      .mockResolvedValueOnce({ rows: [] })
-      .mockResolvedValueOnce({ rows: [] });
+    clientQuery.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [] });
 
     mockConnect.mockResolvedValue({ query: clientQuery, release });
 

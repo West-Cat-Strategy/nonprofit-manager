@@ -13,9 +13,54 @@ describe('Authorization Integration Tests', () => {
   // Store tokens for different user roles
   const tokens: Record<string, string> = {};
   const userIds: Record<string, string> = {};
+  const testUsers: Array<{
+    id: string;
+    email: string;
+    role: string;
+    firstName: string;
+    lastName: string;
+  }> = [];
   const testData: Record<string, string> = {};
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   let defaultOrganizationId: string | null = null;
+  const ensureTestUsersExist = async (): Promise<void> => {
+    for (const testUser of testUsers) {
+      await pool.query(
+        `INSERT INTO users (id, email, password_hash, first_name, last_name, role, is_active, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, true, NOW(), NOW())
+         ON CONFLICT (id)
+         DO UPDATE SET
+           email = EXCLUDED.email,
+           first_name = EXCLUDED.first_name,
+           last_name = EXCLUDED.last_name,
+           role = EXCLUDED.role,
+           is_active = true,
+           updated_at = NOW()`,
+        [
+          testUser.id,
+          testUser.email,
+          '$2b$10$2B5xCiFv0to6v3sQm6rQOu/xM2bYf7jdd2fNf7q5sWubEjkVif7PO',
+          testUser.firstName,
+          testUser.lastName,
+          testUser.role,
+        ]
+      );
+
+      try {
+        const roleResult = await pool.query<{ id: string }>('SELECT id FROM roles WHERE name = $1', [
+          testUser.role,
+        ]);
+        if (roleResult.rows.length > 0) {
+          await pool.query(
+            'INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+            [testUser.id, roleResult.rows[0].id]
+          );
+        }
+      } catch {
+        // Role tables may not exist yet - that's ok for basic auth tests
+      }
+    }
+  };
 
   beforeAll(async () => {
     const orgResult = await pool.query<{ id: string }>(
@@ -33,18 +78,27 @@ describe('Authorization Integration Tests', () => {
 
     for (const role of roles) {
       const email = `auth-test-${role}-${unique()}@example.com`;
+      const firstName = 'Test';
+      const lastName = role.charAt(0).toUpperCase() + role.slice(1);
       const response = await request(app)
         .post('/api/v2/auth/register')
         .send({
           email,
           password,
           password_confirm: password,
-          first_name: `Test`,
-          last_name: role.charAt(0).toUpperCase() + role.slice(1),
+          first_name: firstName,
+          last_name: lastName,
         });
 
       tokens[role] = response.body.token as string;
       userIds[role] = response.body.user.id;
+      testUsers.push({
+        id: userIds[role],
+        email,
+        role,
+        firstName,
+        lastName,
+      });
 
       // Update user role in database (bypass normal flow for testing)
       await pool.query('UPDATE users SET role = $1 WHERE id = $2', [role, userIds[role]]);
@@ -73,6 +127,7 @@ describe('Authorization Integration Tests', () => {
         { expiresIn: '1h' }
       );
     }
+    await ensureTestUsersExist();
 
     // Create test data using admin user
     const accountResponse = await request(app)
@@ -102,6 +157,10 @@ describe('Authorization Integration Tests', () => {
     if (contactResponse.body.id) {
       testData.contactId = contactResponse.body.id;
     }
+  });
+
+  beforeEach(async () => {
+    await ensureTestUsersExist();
   });
 
   afterAll(async () => {

@@ -32,6 +32,7 @@ export const outcomesReportQuerySchema = z.object({
   to: dateStringSchema,
   programId: uuidSchema.optional(),
   staffId: uuidSchema.optional(),
+  source: z.enum(['all', 'interaction', 'event']).optional(),
   interactionType: z
     .enum(['note', 'email', 'call', 'meeting', 'update', 'status_change'])
     .optional(),

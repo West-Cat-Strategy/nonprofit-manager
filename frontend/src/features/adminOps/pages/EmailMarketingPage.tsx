@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   fetchMailchimpStatus,
@@ -25,6 +26,8 @@ import type {
   MailchimpSegment,
 } from '../../../types/mailchimp';
 import type { Contact } from '../../../features/contacts/state';
+import AdminPanelLayout from '../components/AdminPanelLayout';
+import AdminPanelNav from '../components/AdminPanelNav';
 
 /**
  * Status Badge Component
@@ -470,6 +473,7 @@ function CampaignCreateModal({
  * Email Marketing Page Component
  */
 export default function EmailMarketing() {
+  const location = useLocation();
   const dispatch = useAppDispatch();
   const { status, lists, selectedList, campaigns, segments, syncResult, isLoading, isSyncing, error } =
     useAppSelector((state) => state.mailchimp);
@@ -586,7 +590,11 @@ export default function EmailMarketing() {
   // Not configured state
   if (status && !status.configured) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
+      <AdminPanelLayout
+        title="Email Marketing"
+        description="Manage your Mailchimp integration and sync contacts."
+        sidebar={<AdminPanelNav currentPath={location.pathname} />}
+      >
         <div className="bg-app-accent-soft border border-app-border rounded-lg p-6">
           <div className="flex items-start gap-4">
             <svg className="w-8 h-8 text-app-accent flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -610,19 +618,17 @@ export default function EmailMarketing() {
             </div>
           </div>
         </div>
-      </div>
+      </AdminPanelLayout>
     );
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-app-text-heading">Email Marketing</h1>
-        <p className="mt-1 text-sm text-app-text-muted">
-          Manage your Mailchimp integration and sync contacts
-        </p>
-      </div>
+    <AdminPanelLayout
+      title="Email Marketing"
+      description="Manage your Mailchimp integration and sync contacts."
+      sidebar={<AdminPanelNav currentPath={location.pathname} />}
+    >
+      <div className="space-y-8">
 
       {/* Error display */}
       {error && (
@@ -836,6 +842,7 @@ export default function EmailMarketing() {
           onSubmit={handleCreateCampaign}
         />
       )}
-    </div>
+      </div>
+    </AdminPanelLayout>
   );
 }
