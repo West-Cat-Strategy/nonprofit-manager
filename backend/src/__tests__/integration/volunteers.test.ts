@@ -1,26 +1,78 @@
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
+import { getJwtSecret } from '../../config/jwt';
 
 describe('Volunteer API Integration Tests', () => {
   let authToken: string;
+  let userId: string;
   let testContactId: string;
   let testAccountId: string;
+  let organizationId: string;
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const unwrap = <T>(body: { data?: T } | T): T =>
+    (body && typeof body === 'object' && 'data' in body ? (body as { data: T }).data : body) as T;
 
   beforeAll(async () => {
     // Register and login
+    const email = `volunteer-test-${unique()}@example.com`;
     const registerResponse = await request(app)
       .post('/api/v2/auth/register')
       .send({
-        email: `volunteer-test-${unique()}@example.com`,
+        email,
         password: 'Test123!Strong',
         password_confirm: 'Test123!Strong',
         first_name: 'Volunteer',
         last_name: 'Tester',
       });
 
-    authToken = registerResponse.body.token;
+    const registerPayload = unwrap<{
+      user?: {
+        id: string;
+        email: string;
+        role: string;
+      };
+    }>(registerResponse.body);
+    const registeredUser = registerPayload.user;
+
+    if (!registeredUser?.id) {
+      throw new Error('Failed to register volunteer test user');
+    }
+
+    userId = registeredUser.id;
+
+    const orgResult = await pool.query<{ id: string }>(
+      `SELECT id
+       FROM accounts
+       WHERE account_type = 'organization'
+         AND COALESCE(is_active, true) = true
+       ORDER BY created_at ASC
+       LIMIT 1`
+    );
+
+    if (orgResult.rows[0]?.id) {
+      organizationId = orgResult.rows[0].id;
+    } else {
+      const createdOrg = await pool.query<{ id: string }>(
+        `INSERT INTO accounts (account_name, account_type, created_by, modified_by, created_at, updated_at)
+         VALUES ($1, 'organization', $2, $2, NOW(), NOW())
+         RETURNING id`,
+        [`Volunteer Test Organization ${unique()}`, userId]
+      );
+      organizationId = createdOrg.rows[0].id;
+    }
+
+    authToken = jwt.sign(
+      {
+        id: userId,
+        email: registeredUser.email ?? email,
+        role: registeredUser.role ?? 'user',
+        organizationId,
+      },
+      getJwtSecret(),
+      { expiresIn: '1h' }
+    );
 
     // Create test account
     const accountResponse = await request(app)
@@ -31,7 +83,11 @@ describe('Volunteer API Integration Tests', () => {
         account_type: 'individual',
       });
 
-    testAccountId = accountResponse.body.account_id;
+    const createdAccount = unwrap<{ account_id?: string; id?: string }>(accountResponse.body);
+    testAccountId = createdAccount.account_id ?? createdAccount.id ?? '';
+    if (!testAccountId) {
+      throw new Error('Failed to create volunteer test account');
+    }
 
     // Create test contact for volunteer
     const contactResponse = await request(app)
@@ -41,10 +97,14 @@ describe('Volunteer API Integration Tests', () => {
         account_id: testAccountId,
         first_name: 'Volunteer',
         last_name: 'Contact',
-        email: 'volunteer.contact@example.com',
+        email: `volunteer-contact-${unique()}@example.com`,
       });
 
-    testContactId = contactResponse.body.contact_id;
+    const createdContact = unwrap<{ contact_id?: string; id?: string }>(contactResponse.body);
+    testContactId = createdContact.contact_id ?? createdContact.id ?? '';
+    if (!testContactId) {
+      throw new Error('Failed to create volunteer test contact');
+    }
   });
 
   afterAll(async () => {
@@ -60,6 +120,12 @@ describe('Volunteer API Integration Tests', () => {
       await pool.query('DELETE FROM contacts WHERE account_id = $1', [testAccountId]);
       // Finally delete account
       await pool.query('DELETE FROM accounts WHERE id = $1', [testAccountId]);
+    }
+    if (userId) {
+      await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    }
+    if (organizationId) {
+      await pool.query('DELETE FROM accounts WHERE id = $1 AND created_by = $2', [organizationId, userId]);
     }
   });
 
@@ -112,14 +178,20 @@ describe('Volunteer API Integration Tests', () => {
           account_id: testAccountId,
           first_name: 'Background',
           last_name: 'Check',
-          email: 'bg.check@example.com',
+          email: `bg-check-${unique()}@example.com`,
         });
+
+      const createdContact = unwrap<{ contact_id?: string; id?: string }>(newContactResponse.body);
+      const contactId = createdContact.contact_id ?? createdContact.id;
+      if (!contactId) {
+        throw new Error('Failed to create background-check test contact');
+      }
 
       const response = await request(app)
         .post('/api/v2/volunteers')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          contact_id: newContactResponse.body.contact_id,
+          contact_id: contactId,
           skills: ['Mentoring'],
           background_check_status: 'approved',
           background_check_date: '2024-01-15',
@@ -184,14 +256,20 @@ describe('Volunteer API Integration Tests', () => {
           account_id: testAccountId,
           first_name: 'Single',
           last_name: 'Volunteer',
-          email: 'single.volunteer@example.com',
+          email: `single-volunteer-${unique()}@example.com`,
         });
+
+      const createdContact = unwrap<{ contact_id?: string; id?: string }>(createResponse.body);
+      const contactId = createdContact.contact_id ?? createdContact.id;
+      if (!contactId) {
+        throw new Error('Failed to create single-volunteer test contact');
+      }
 
       const volunteerResponse = await request(app)
         .post('/api/v2/volunteers')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          contact_id: createResponse.body.contact_id,
+          contact_id: contactId,
           skills: ['Teaching'],
         });
 
@@ -226,14 +304,20 @@ describe('Volunteer API Integration Tests', () => {
           account_id: testAccountId,
           first_name: 'Update',
           last_name: 'Test',
-          email: 'update.test@example.com',
+          email: `update-test-${unique()}@example.com`,
         });
+
+      const createdContact = unwrap<{ contact_id?: string; id?: string }>(createContactResponse.body);
+      const contactId = createdContact.contact_id ?? createdContact.id;
+      if (!contactId) {
+        throw new Error('Failed to create update test contact');
+      }
 
       const createResponse = await request(app)
         .post('/api/v2/volunteers')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          contact_id: createContactResponse.body.contact_id,
+          contact_id: contactId,
           skills: ['Original Skill'],
         });
 
@@ -260,14 +344,20 @@ describe('Volunteer API Integration Tests', () => {
           account_id: testAccountId,
           first_name: 'BG',
           last_name: 'Update',
-          email: 'bg.update@example.com',
+          email: `bg-update-${unique()}@example.com`,
         });
+
+      const createdContact = unwrap<{ contact_id?: string; id?: string }>(createContactResponse.body);
+      const contactId = createdContact.contact_id ?? createdContact.id;
+      if (!contactId) {
+        throw new Error('Failed to create background update test contact');
+      }
 
       const createResponse = await request(app)
         .post('/api/v2/volunteers')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          contact_id: createContactResponse.body.contact_id,
+          contact_id: contactId,
           skills: ['Coaching'],
           background_check_status: 'pending',
         });
@@ -313,14 +403,20 @@ describe('Volunteer API Integration Tests', () => {
           account_id: testAccountId,
           first_name: 'ToDelete',
           last_name: 'Volunteer',
-          email: 'delete.volunteer@example.com',
+          email: `delete-volunteer-${unique()}@example.com`,
         });
+
+      const createdContact = unwrap<{ contact_id?: string; id?: string }>(createContactResponse.body);
+      const contactId = createdContact.contact_id ?? createdContact.id;
+      if (!contactId) {
+        throw new Error('Failed to create delete test contact');
+      }
 
       const createResponse = await request(app)
         .post('/api/v2/volunteers')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          contact_id: createContactResponse.body.contact_id,
+          contact_id: contactId,
           skills: ['Temporary'],
         });
 
