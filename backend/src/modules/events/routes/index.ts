@@ -9,12 +9,15 @@ import {
   createRegistrationSchema,
   eventAutomationParamsSchema,
   eventCheckInScanSchema,
+  eventWalkInCheckInSchema,
   eventIdParamsSchema,
+  globalEventCheckInScanSchema,
   listEventRegistrationsQuerySchema,
   listEventsQuerySchema,
   listRegistrationsQuerySchema,
   sendRemindersSchema,
   syncAutomationsSchema,
+  updateEventCheckInSettingsSchema,
   updateAutomationSchema,
   updateEventSchema,
   updateRegistrationSchema,
@@ -40,10 +43,44 @@ export const createEventsV2Routes = (): Router => {
   eventsV2Routes.get('/', validateQuery(listEventsQuerySchema), controller.getEvents);
 
   eventsV2Routes.get('/summary', controller.getSummary);
-  eventsV2Routes.get('/:id', validateParams(eventIdParamsSchema), controller.getEvent);
-  eventsV2Routes.get('/:id/calendar.ics', validateParams(eventIdParamsSchema), controller.downloadCalendarIcs);
+  eventsV2Routes.get('/registrations', validateQuery(listRegistrationsQuerySchema), controller.listRegistrations);
+  eventsV2Routes.post('/check-in/scan', validateBody(globalEventCheckInScanSchema), controller.scanCheckInGlobal);
 
   eventsV2Routes.post('/', validateBody(createEventSchema), controller.createEvent);
+
+  eventsV2Routes.post('/registrations/:id/check-in', validateParams(eventIdParamsSchema), controller.checkIn);
+  eventsV2Routes.post('/registrations/:id/checkin', validateParams(eventIdParamsSchema), controller.checkIn);
+  eventsV2Routes.put(
+    '/registrations/:id',
+    validateParams(eventIdParamsSchema),
+    validateBody(updateRegistrationSchema),
+    controller.updateRegistration
+  );
+  eventsV2Routes.post(
+    '/:id/check-in/scan',
+    validateParams(eventIdParamsSchema),
+    validateBody(eventCheckInScanSchema),
+    controller.scanCheckIn
+  );
+  eventsV2Routes.delete('/registrations/:id', validateParams(eventIdParamsSchema), controller.cancelRegistration);
+
+  eventsV2Routes.get('/:id/check-in/settings', validateParams(eventIdParamsSchema), controller.getCheckInSettings);
+  eventsV2Routes.patch(
+    '/:id/check-in/settings',
+    validateParams(eventIdParamsSchema),
+    validateBody(updateEventCheckInSettingsSchema),
+    controller.updateCheckInSettings
+  );
+  eventsV2Routes.post('/:id/check-in/pin/rotate', validateParams(eventIdParamsSchema), controller.rotateCheckInPin);
+  eventsV2Routes.post(
+    '/:id/walk-ins',
+    validateParams(eventIdParamsSchema),
+    validateBody(eventWalkInCheckInSchema),
+    controller.walkInCheckIn
+  );
+
+  eventsV2Routes.get('/:id', validateParams(eventIdParamsSchema), controller.getEvent);
+  eventsV2Routes.get('/:id/calendar.ics', validateParams(eventIdParamsSchema), controller.downloadCalendarIcs);
 
   eventsV2Routes.put('/:id', validateParams(eventIdParamsSchema), validateBody(updateEventSchema), controller.updateEvent);
 
@@ -56,21 +93,12 @@ export const createEventsV2Routes = (): Router => {
     controller.listRegistrations
   );
 
-  eventsV2Routes.get('/registrations', validateQuery(listRegistrationsQuerySchema), controller.listRegistrations);
-
-  eventsV2Routes.post('/:id/register', validateParams(eventIdParamsSchema), validateBody(createRegistrationSchema), controller.register);
-
-  eventsV2Routes.put('/registrations/:id', validateParams(eventIdParamsSchema), validateBody(updateRegistrationSchema), controller.updateRegistration);
-
-  eventsV2Routes.post('/registrations/:id/check-in', validateParams(eventIdParamsSchema), controller.checkIn);
-  eventsV2Routes.post('/registrations/:id/checkin', validateParams(eventIdParamsSchema), controller.checkIn);
   eventsV2Routes.post(
-    '/:id/check-in/scan',
+    '/:id/register',
     validateParams(eventIdParamsSchema),
-    validateBody(eventCheckInScanSchema),
-    controller.scanCheckIn
+    validateBody(createRegistrationSchema),
+    controller.register
   );
-  eventsV2Routes.delete('/registrations/:id', validateParams(eventIdParamsSchema), controller.cancelRegistration);
 
   eventsV2Routes.post('/:id/reminders/send', validateParams(eventIdParamsSchema), validateBody(sendRemindersSchema), controller.sendReminders);
 
@@ -107,3 +135,4 @@ export const createEventsV2Routes = (): Router => {
 };
 
 export const eventsV2Routes = createEventsV2Routes();
+export * from './public';

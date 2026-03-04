@@ -15,13 +15,62 @@ async function getAccountsFilterForm(authenticatedPage: Page) {
   return filterForm;
 }
 
+function parseUrl(input: string): URL | null {
+  try {
+    return new URL(input);
+  } catch {
+    try {
+      return new URL(input, 'http://127.0.0.1');
+    } catch {
+      return null;
+    }
+  }
+}
+
+function hasQueryParam(url: string, key: string, value: string): boolean {
+  const parsed = parseUrl(url);
+  if (!parsed) {
+    return false;
+  }
+  return parsed.searchParams.get(key) === value;
+}
+
+function isFirstPageQuery(url: string): boolean {
+  const parsed = parseUrl(url);
+  if (!parsed) {
+    return false;
+  }
+  const page = parsed.searchParams.get('page');
+  return page === null || page === '1';
+}
+
+function hasSearchQuery(url: string, searchTerm: string): boolean {
+  const parsed = parseUrl(url);
+  if (!parsed) {
+    return false;
+  }
+  return parsed.searchParams.get('search') === searchTerm;
+}
+
 async function searchAccountByName(authenticatedPage: Page, name: string) {
   await authenticatedPage.goto('/accounts', { waitUntil: 'domcontentloaded' });
   const filterForm = await getAccountsFilterForm(authenticatedPage);
   const searchInput = filterForm.getByRole('textbox').first();
   await expect(searchInput).toBeVisible({ timeout: 15000 });
+  const searchRequest = authenticatedPage.waitForResponse((response) => {
+    const url = response.url();
+    return (
+      response.request().method() === 'GET' &&
+      response.status() === 200 &&
+      url.includes('/api/v2/accounts') &&
+      hasSearchQuery(url, name)
+    );
+  });
   await searchInput.fill(name);
   await filterForm.getByRole('button', { name: 'Search' }).click();
+  await searchRequest;
+  await expect.poll(() => hasSearchQuery(authenticatedPage.url(), name), { timeout: 10000 }).toBe(true);
+  await authenticatedPage.waitForLoadState('networkidle');
 }
 
 test.describe('Accounts Module', () => {
@@ -107,27 +156,32 @@ test.describe('Accounts Module', () => {
     await authenticatedPage.goto('/accounts');
     await authenticatedPage.waitForLoadState('networkidle');
 
-    // Search for "Apple" - use correct placeholder
+    // Search by the unique full account name to avoid cross-test contamination.
     const filterForm = await getAccountsFilterForm(authenticatedPage);
     const searchInput = filterForm.getByRole('textbox').first();
-    await searchInput.fill('Apple');
-
-    // Wait for search to complete
-    const searchPromise = authenticatedPage.waitForResponse(resp =>
-      resp.url().includes('/api/v2/accounts') && resp.status() === 200
-    );
+    const searchTerm = `Apple Foundation ${suffix}`;
+    const searchPromise = authenticatedPage.waitForResponse((response) => {
+      const url = response.url();
+      return (
+        response.request().method() === 'GET' &&
+        response.status() === 200 &&
+        url.includes('/api/v2/accounts') &&
+        hasSearchQuery(url, searchTerm)
+      );
+    });
+    await searchInput.fill(searchTerm);
 
     await filterForm.getByRole('button', { name: 'Search' }).click();
-
     await searchPromise;
+    await expect.poll(() => hasSearchQuery(authenticatedPage.url(), searchTerm), { timeout: 10000 }).toBe(true);
+    await authenticatedPage.waitForLoadState('networkidle');
 
     // Wait for search results
-    await expect(authenticatedPage.locator(`text=Apple Foundation ${suffix}`)).toBeVisible({
-      timeout: 15000,
+    await expect(authenticatedPage.getByRole('link', { name: searchTerm }).first()).toBeVisible({
+      timeout: 30000,
     });
 
-    // Should show Apple Foundation
-    // Search is server-side; ensure at least the expected result is present.
+    // Search is server-side; ensure the expected result is present.
   });
 
   test('should view account details', async ({
@@ -146,7 +200,7 @@ test.describe('Accounts Module', () => {
     const detailAccountLink = authenticatedPage
       .getByRole('link', { name: `Detail Test Org ${detailSuffix}` })
       .first();
-    await expect(detailAccountLink).toBeVisible({ timeout: 15000 });
+    await expect(detailAccountLink).toBeVisible({ timeout: 30000 });
 
     // Click on the account
     await detailAccountLink.click({ timeout: 15000 });
@@ -264,12 +318,26 @@ test.describe('Accounts Module', () => {
       });
     }
 
-    await authenticatedPage.goto('/accounts');
+    await authenticatedPage.goto('/accounts', { waitUntil: 'domcontentloaded' });
 
-    const clearButton = authenticatedPage.locator('button:has-text("Clear")');
-    if (await clearButton.isVisible()) {
-      await clearButton.click();
-    }
+    // Narrow to this test's dataset so page transitions are deterministic.
+    const filterForm = await getAccountsFilterForm(authenticatedPage);
+    const searchInput = filterForm.getByRole('textbox').first();
+    const paginationSearchTerm = `Page Test ${paginateSuffix}`;
+    const firstPageRequest = authenticatedPage.waitForResponse((response) => {
+      const url = response.url();
+      return (
+        response.request().method() === 'GET' &&
+        response.status() === 200 &&
+        url.includes('/api/v2/accounts') &&
+        hasSearchQuery(url, paginationSearchTerm) &&
+        isFirstPageQuery(url)
+      );
+    });
+    await searchInput.fill(paginationSearchTerm);
+    await filterForm.getByRole('button', { name: 'Search' }).click();
+    await firstPageRequest;
+    await expect.poll(() => hasSearchQuery(authenticatedPage.url(), paginationSearchTerm), { timeout: 10000 }).toBe(true);
 
     await expect(
       authenticatedPage.locator(`text=Page Test ${paginateSuffix} 25`)
@@ -280,7 +348,19 @@ test.describe('Accounts Module', () => {
     await expect(nextButton).toBeVisible();
 
     // Click next page
+    const nextPageRequest = authenticatedPage.waitForResponse((response) => {
+      const url = response.url();
+      return (
+        response.request().method() === 'GET' &&
+        response.status() === 200 &&
+        url.includes('/api/v2/accounts') &&
+        hasSearchQuery(url, paginationSearchTerm) &&
+        hasQueryParam(url, 'page', '2')
+      );
+    });
     await nextButton.click();
+    await nextPageRequest;
+    await expect.poll(() => hasQueryParam(authenticatedPage.url(), 'page', '2'), { timeout: 10000 }).toBe(true);
     await expect(authenticatedPage.getByRole('button', { name: /previous/i })).toBeEnabled({
       timeout: 10000,
     });
@@ -305,19 +385,40 @@ test.describe('Accounts Module', () => {
       accountType: 'individual',
     });
 
-    await authenticatedPage.goto('/accounts');
-    await authenticatedPage.waitForTimeout(1000);
+    await authenticatedPage.goto('/accounts', { waitUntil: 'domcontentloaded' });
 
     // Filter by organization type using the labeled Type control.
     const filterForm = authenticatedPage
       .locator('form')
       .filter({ has: authenticatedPage.getByLabel('Type') })
       .first();
+    const searchInput = filterForm.getByRole('textbox').first();
+    const filterSearchTerm = `Account ${filterSuffix}`;
+    const filterRequest = authenticatedPage.waitForResponse((response) => {
+      const url = response.url();
+      return (
+        response.request().method() === 'GET' &&
+        response.status() === 200 &&
+        url.includes('/api/v2/accounts') &&
+        hasSearchQuery(url, filterSearchTerm) &&
+        hasQueryParam(url, 'account_type', 'organization')
+      );
+    });
+    await searchInput.fill(filterSearchTerm);
     await authenticatedPage.getByLabel('Type').selectOption('organization');
     await filterForm.getByRole('button', { name: 'Search' }).click();
+    await filterRequest;
+    await expect
+      .poll(
+        () =>
+          hasSearchQuery(authenticatedPage.url(), filterSearchTerm) &&
+          hasQueryParam(authenticatedPage.url(), 'type', 'organization'),
+        { timeout: 10000 }
+      )
+      .toBe(true);
 
     await expect(
-      authenticatedPage.locator(`text=Organization Account ${filterSuffix}`)
+      authenticatedPage.getByRole('link', { name: `Organization Account ${filterSuffix}` }).first()
     ).toBeVisible({ timeout: 15000 });
   });
 });

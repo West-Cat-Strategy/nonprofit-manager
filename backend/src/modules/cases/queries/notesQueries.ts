@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { Pool, PoolClient } from 'pg';
 import type { CaseNote, CreateCaseNoteDTO, UpdateCaseNoteDTO } from '@app-types/case';
 import {
   normalizeCaseNoteType,
@@ -7,49 +7,67 @@ import {
   resolveVisibleToClient,
 } from './shared';
 
-export const getCaseNotesQuery = async (db: Pool, caseId: string): Promise<CaseNote[]> => {
-  const result = await db.query(
-    `
-    SELECT
-      cn.*,
-      u.first_name,
-      u.last_name,
-      COALESCE((
-        SELECT json_agg(
-          json_build_object(
-            'id', ioi.id,
-            'interaction_id', ioi.interaction_id,
-            'outcome_definition_id', ioi.outcome_definition_id,
-            'impact', ioi.impact,
-            'attribution', ioi.attribution,
-            'intensity', ioi.intensity,
-            'evidence_note', ioi.evidence_note,
-            'created_by_user_id', ioi.created_by_user_id,
-            'created_at', ioi.created_at,
-            'updated_at', ioi.updated_at,
-            'outcome_definition', json_build_object(
-              'id', od.id,
-              'key', od.key,
-              'name', od.name,
-              'description', od.description,
-              'category', od.category,
-              'is_active', od.is_active,
-              'is_reportable', od.is_reportable,
-              'sort_order', od.sort_order
-            )
+type PgExecutor = Pool | PoolClient;
+
+const CASE_NOTE_SELECT_WITH_OUTCOMES = `
+  SELECT
+    cn.*,
+    u.first_name,
+    u.last_name,
+    COALESCE((
+      SELECT json_agg(
+        json_build_object(
+          'id', ioi.id,
+          'interaction_id', ioi.interaction_id,
+          'outcome_definition_id', ioi.outcome_definition_id,
+          'impact', ioi.impact,
+          'attribution', ioi.attribution,
+          'intensity', ioi.intensity,
+          'evidence_note', ioi.evidence_note,
+          'created_by_user_id', ioi.created_by_user_id,
+          'created_at', ioi.created_at,
+          'updated_at', ioi.updated_at,
+          'outcome_definition', json_build_object(
+            'id', od.id,
+            'key', od.key,
+            'name', od.name,
+            'description', od.description,
+            'category', od.category,
+            'is_active', od.is_active,
+            'is_reportable', od.is_reportable,
+            'sort_order', od.sort_order
           )
-          ORDER BY od.sort_order ASC, od.name ASC
         )
-        FROM interaction_outcome_impacts ioi
-        INNER JOIN outcome_definitions od
-          ON od.id = ioi.outcome_definition_id
-        WHERE ioi.interaction_id = cn.id
-      ), '[]'::json) AS outcome_impacts
-    FROM case_notes cn
-    LEFT JOIN users u ON cn.created_by = u.id
+        ORDER BY od.sort_order ASC, od.name ASC
+      )
+      FROM interaction_outcome_impacts ioi
+      INNER JOIN outcome_definitions od
+        ON od.id = ioi.outcome_definition_id
+      WHERE ioi.interaction_id = cn.id
+    ), '[]'::json) AS outcome_impacts
+  FROM case_notes cn
+  LEFT JOIN users u ON cn.created_by = u.id
+`;
+
+export const getCaseNoteByIdQuery = async (
+  db: PgExecutor,
+  noteId: string
+): Promise<CaseNote | null> => {
+  const result = await db.query(
+    `${CASE_NOTE_SELECT_WITH_OUTCOMES}
+    WHERE cn.id = $1
+    LIMIT 1`,
+    [noteId]
+  );
+
+  return result.rows[0] || null;
+};
+
+export const getCaseNotesQuery = async (db: PgExecutor, caseId: string): Promise<CaseNote[]> => {
+  const result = await db.query(
+    `${CASE_NOTE_SELECT_WITH_OUTCOMES}
     WHERE cn.case_id = $1
-    ORDER BY cn.created_at DESC
-  `,
+    ORDER BY cn.created_at DESC`,
     [caseId]
   );
 
@@ -57,7 +75,7 @@ export const getCaseNotesQuery = async (db: Pool, caseId: string): Promise<CaseN
 };
 
 export const createCaseNoteQuery = async (
-  db: Pool,
+  db: PgExecutor,
   data: CreateCaseNoteDTO,
   userId?: string
 ): Promise<CaseNote> => {
@@ -91,27 +109,21 @@ export const createCaseNoteQuery = async (
     ]
   );
 
-  const noteId = insertedResult.rows[0]?.id;
-  const result = await db.query(
-    `
-    SELECT
-      cn.*,
-      u.first_name,
-      u.last_name,
-      '[]'::json AS outcome_impacts
-    FROM case_notes cn
-    LEFT JOIN users u ON cn.created_by = u.id
-    WHERE cn.id = $1
-    LIMIT 1
-  `,
-    [noteId]
-  );
+  const noteId = insertedResult.rows[0]?.id as string | undefined;
+  if (!noteId) {
+    throw new Error('Failed to create case note');
+  }
 
-  return result.rows[0];
+  const note = await getCaseNoteByIdQuery(db, noteId);
+  if (!note) {
+    throw new Error('Case note not found');
+  }
+
+  return note;
 };
 
 export const updateCaseNoteQuery = async (
-  db: Pool,
+  db: PgExecutor,
   noteId: string,
   data: UpdateCaseNoteDTO,
   userId?: string
@@ -179,7 +191,16 @@ export const updateCaseNoteQuery = async (
   }
 
   if (fields.length === 0) {
-    throw new Error('No fields to update');
+    const hasOutcomePayload = data.outcome_impacts !== undefined || data.outcomes_mode !== undefined;
+    if (!hasOutcomePayload) {
+      throw new Error('No fields to update');
+    }
+
+    const existing = await getCaseNoteByIdQuery(db, noteId);
+    if (!existing) {
+      throw new Error('Case note not found');
+    }
+    return existing;
   }
 
   fields.push(`updated_at = NOW()`);
@@ -200,55 +221,15 @@ export const updateCaseNoteQuery = async (
     throw new Error('Case note not found');
   }
 
-  const result = await db.query(
-    `
-    SELECT
-      cn.*,
-      u.first_name,
-      u.last_name,
-      COALESCE((
-        SELECT json_agg(
-          json_build_object(
-            'id', ioi.id,
-            'interaction_id', ioi.interaction_id,
-            'outcome_definition_id', ioi.outcome_definition_id,
-            'impact', ioi.impact,
-            'attribution', ioi.attribution,
-            'intensity', ioi.intensity,
-            'evidence_note', ioi.evidence_note,
-            'created_by_user_id', ioi.created_by_user_id,
-            'created_at', ioi.created_at,
-            'updated_at', ioi.updated_at,
-            'outcome_definition', json_build_object(
-              'id', od.id,
-              'key', od.key,
-              'name', od.name,
-              'description', od.description,
-              'category', od.category,
-              'is_active', od.is_active,
-              'is_reportable', od.is_reportable,
-              'sort_order', od.sort_order
-            )
-          )
-          ORDER BY od.sort_order ASC, od.name ASC
-        )
-        FROM interaction_outcome_impacts ioi
-        INNER JOIN outcome_definitions od
-          ON od.id = ioi.outcome_definition_id
-        WHERE ioi.interaction_id = cn.id
-      ), '[]'::json) AS outcome_impacts
-    FROM case_notes cn
-    LEFT JOIN users u ON cn.created_by = u.id
-    WHERE cn.id = $1
-    LIMIT 1
-  `,
-    [noteId]
-  );
+  const note = await getCaseNoteByIdQuery(db, noteId);
+  if (!note) {
+    throw new Error('Case note not found');
+  }
 
-  return result.rows[0];
+  return note;
 };
 
-export const deleteCaseNoteQuery = async (db: Pool, noteId: string): Promise<boolean> => {
+export const deleteCaseNoteQuery = async (db: PgExecutor, noteId: string): Promise<boolean> => {
   const caseId = await requireCaseIdForNote(db, noteId);
   await requireCaseOwnership(db, caseId);
 

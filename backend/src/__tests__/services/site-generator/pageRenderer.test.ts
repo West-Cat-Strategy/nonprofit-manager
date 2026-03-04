@@ -48,5 +48,44 @@ describe('pageRenderer.renderPageHtml', () => {
     expect(html).toContain('tpl_123');
     expect(html).toContain('body { color: red; }');
     expect(html).toContain('Welcome');
+    expect(html).not.toContain('/api/v2/public/events');
+  });
+
+  it('injects the public event list runtime only when an event-list component exists', () => {
+    const page: PublishedPage = {
+      id: 'p-events',
+      slug: 'events',
+      name: 'Events',
+      isHomepage: false,
+      seo: { title: 'Events' },
+      sections: [
+        {
+          id: 's-events',
+          name: 'Events Section',
+          components: [{ id: 'c-events', type: 'event-list', maxEvents: 8, layout: 'grid' }],
+        },
+      ],
+    };
+
+    const content: PublishedContent = {
+      templateId: 'tpl_123',
+      templateName: 'Template',
+      theme,
+      pages: [page],
+      navigation: {
+        style: 'horizontal',
+        sticky: true,
+        transparent: false,
+        items: [{ id: 'n1', label: 'Events', url: '/events' }],
+      },
+      footer: { columns: [], copyright: 'Copyright' },
+      seoDefaults: { title: 'Default', description: 'Default desc' },
+      publishedAt: '2026-02-12T00:00:00Z',
+      version: '1',
+    };
+
+    const html = renderPageHtml(page, content, 'body { color: red; }');
+    expect(html).toContain('data-event-list="true"');
+    expect(html).toContain('/api/v2/public/events');
   });
 });

@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { uuidSchema } from './shared';
+import { emailSchema, phoneSchema, uuidSchema } from './shared';
 
 export const eventTypeSchema = z.enum([
   'fundraiser',
@@ -142,6 +142,34 @@ export const listEventsQuerySchema = eventFilterSchema.extend({
   sort_order: z.enum(['asc', 'desc']).optional(),
 });
 
+export const publicEventsQuerySchema = z
+  .object({
+    search: z.string().trim().max(120).optional(),
+    event_type: eventTypeSchema.optional(),
+    include_past: z.coerce.boolean().optional(),
+    limit: z.coerce.number().int().min(1).max(50).optional(),
+    offset: z.coerce.number().int().min(0).optional(),
+    sort_by: z.enum(['start_date', 'name', 'created_at']).optional(),
+    sort_order: z.enum(['asc', 'desc']).optional(),
+    site: z
+      .string()
+      .trim()
+      .min(1)
+      .max(255)
+      .regex(/^[a-z0-9.-]+$/i, 'site must be a valid site key')
+      .optional(),
+  })
+  .strict();
+
+export const publicEventsSiteParamsSchema = z.object({
+  siteKey: z
+    .string()
+    .trim()
+    .min(1)
+    .max(255)
+    .regex(/^[a-z0-9.-]+$/i, 'siteKey must be a valid site key'),
+});
+
 export const eventIdParamsSchema = z.object({
   id: uuidSchema,
 });
@@ -255,6 +283,52 @@ export const eventCheckInScanSchema = z
     token: uuidSchema,
   })
   .strict();
+
+export const updateEventCheckInSettingsSchema = z
+  .object({
+    public_checkin_enabled: z.coerce.boolean(),
+  })
+  .strict();
+
+export const globalEventCheckInScanSchema = z
+  .object({
+    token: uuidSchema,
+  })
+  .strict();
+
+export const eventWalkInCheckInSchema = z
+  .object({
+    first_name: z.string().trim().min(1).max(100),
+    last_name: z.string().trim().min(1).max(100),
+    email: emailSchema.optional(),
+    phone: phoneSchema.optional(),
+    notes: z.string().max(1000).optional(),
+    registration_status: registrationStatusSchema.optional(),
+  })
+  .strict()
+  .refine((data) => Boolean(data.email || data.phone), {
+    message: 'Either email or phone is required',
+    path: ['email'],
+  });
+
+export const publicEventCheckInSchema = z
+  .object({
+    first_name: z.string().trim().min(1).max(100),
+    last_name: z.string().trim().min(1).max(100),
+    email: emailSchema.optional(),
+    phone: phoneSchema.optional(),
+    pin: z
+      .string()
+      .trim()
+      .min(4)
+      .max(12)
+      .regex(/^[0-9]+$/),
+  })
+  .strict()
+  .refine((data) => Boolean(data.email || data.phone), {
+    message: 'Either email or phone is required',
+    path: ['email'],
+  });
 
 // Re-export shared schemas
 export { uuidSchema } from './shared';

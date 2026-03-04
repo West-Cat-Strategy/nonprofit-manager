@@ -363,7 +363,10 @@ export interface EventListComponent extends BaseComponentProps {
   maxEvents?: number;
   showPastEvents?: boolean;
   layout?: 'list' | 'grid' | 'calendar';
-  filterByTag?: string;
+  eventType?: string;
+  emptyMessage?: string;
+  siteKey?: string;
+  filterByTag?: string; // Deprecated compatibility alias; use eventType.
 }
 
 export interface NewsletterSignupComponent extends BaseComponentProps {

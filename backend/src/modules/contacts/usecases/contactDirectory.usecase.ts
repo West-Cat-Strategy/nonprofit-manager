@@ -79,9 +79,10 @@ export class ContactDirectoryUseCase {
   async list(
     filters: ContactFilters,
     pagination: PaginationParams,
-    scope?: DataScopeFilter
+    scope?: DataScopeFilter,
+    viewerRole?: string
   ): Promise<PaginatedContacts> {
-    return this.repository.getContacts(filters, pagination, scope);
+    return this.repository.getContacts(filters, pagination, scope, viewerRole);
   }
 
   async listTags(scope?: DataScopeFilter): Promise<string[]> {
@@ -107,10 +108,14 @@ export class ContactDirectoryUseCase {
     return this.repository.bulkUpdateContacts(contactIds, payload, userId);
   }
 
-  async getById(contactId: string, scope?: DataScopeFilter): Promise<(Contact & { roles: string[] }) | null> {
+  async getById(
+    contactId: string,
+    scope?: DataScopeFilter,
+    viewerRole?: string
+  ): Promise<(Contact & { roles: string[] }) | null> {
     const contact = scope
-      ? await this.repository.getContactByIdWithScope(contactId, scope)
-      : await this.repository.getContactById(contactId);
+      ? await this.repository.getContactByIdWithScope(contactId, scope, viewerRole)
+      : await this.repository.getContactById(contactId, viewerRole);
 
     if (!contact) {
       return null;
@@ -125,7 +130,8 @@ export class ContactDirectoryUseCase {
 
   async create(
     payload: CreateContactDTO,
-    userId: string
+    userId: string,
+    viewerRole?: string
   ): Promise<Contact & { roles: string[]; staffInvitation: { inviteUrl?: string; role?: string } | null }> {
     const rolesInput = Array.isArray(payload.roles) ? payload.roles : [];
     const createPayload: CreateContactDTO = {
@@ -133,7 +139,7 @@ export class ContactDirectoryUseCase {
       roles: undefined,
     };
 
-    const created = await this.repository.createContact(createPayload, userId);
+    const created = await this.repository.createContact(createPayload, userId, viewerRole);
     let assignedRoles: string[] = [];
     let staffInvitation: { inviteUrl?: string; role?: string } | null = null;
 
@@ -154,10 +160,11 @@ export class ContactDirectoryUseCase {
     contactId: string,
     payload: UpdateContactDTO,
     userId: string,
-    scope?: DataScopeFilter
+    scope?: DataScopeFilter,
+    viewerRole?: string
   ): Promise<(Contact & { roles: string[]; staffInvitation: { inviteUrl?: string; role?: string } | null }) | null> {
     if (scope) {
-      const scopedContact = await this.repository.getContactByIdWithScope(contactId, scope);
+      const scopedContact = await this.repository.getContactByIdWithScope(contactId, scope, viewerRole);
       if (!scopedContact) {
         return null;
       }
@@ -169,7 +176,7 @@ export class ContactDirectoryUseCase {
       roles: undefined,
     };
 
-    const updated = await this.repository.updateContact(contactId, updatePayload, userId);
+    const updated = await this.repository.updateContact(contactId, updatePayload, userId, viewerRole);
     if (!updated) {
       return null;
     }

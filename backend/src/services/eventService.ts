@@ -4,11 +4,26 @@
  */
 
 import { Pool } from 'pg';
+import bcrypt from 'bcryptjs';
+import { randomInt } from 'crypto';
 import pool from '@config/database';
 import { logger } from '@config/logger';
+import { PASSWORD } from '@config/constants';
 import {
   Event,
+  EventCheckInSettings,
+  EventWalkInCheckInDTO,
+  EventWalkInCheckInResult,
   CreateEventDTO,
+  PublicEventCheckInDTO,
+  PublicEventCheckInInfo,
+  PublicEventCheckInResult,
+  PublicEventListItem,
+  PublicEventsListData,
+  PublicEventsQuery,
+  RegistrationStatus,
+  RotateEventCheckInPinResult,
+  UpdateEventCheckInSettingsDTO,
   UpdateEventDTO,
   EventFilters,
   PaginationParams,
@@ -52,6 +67,45 @@ interface EventReminderRecipientRow {
   do_not_text: boolean;
 }
 
+interface EventCheckInWindowEventRow {
+  id: string;
+  start_date: Date;
+  end_date: Date;
+  status: string;
+  capacity: number | null;
+  registered_count: number;
+}
+
+interface EventContactRow {
+  id: string;
+}
+
+const parsePositiveMinutes = (value: string | undefined, fallback: number): number => {
+  const parsed = Number.parseInt(value ?? '', 10);
+  if (!Number.isFinite(parsed) || Number.isNaN(parsed) || parsed < 0) {
+    return fallback;
+  }
+  return parsed;
+};
+
+const EVENT_CHECKIN_WINDOW_BEFORE_MINUTES = parsePositiveMinutes(
+  process.env.EVENT_CHECKIN_WINDOW_BEFORE_MINUTES,
+  180
+);
+const EVENT_CHECKIN_WINDOW_AFTER_MINUTES = parsePositiveMinutes(
+  process.env.EVENT_CHECKIN_WINDOW_AFTER_MINUTES,
+  240
+);
+
+const normalizePhone = (value: string | null | undefined): string | null => {
+  if (!value) return null;
+  const digits = value.replace(/\D/g, '');
+  return digits.length > 0 ? digits : null;
+};
+
+const buildCheckInWindowMessage = (windowBefore: number, windowAfter: number): string =>
+  `Check-in is available ${windowBefore} minutes before start until ${windowAfter} minutes after end`;
+
 const createChannelSummary = (
   requested: boolean,
   enabled: boolean
@@ -76,6 +130,112 @@ const formatReminderDate = (date: Date): string =>
 
 export class EventService {
   constructor(private pool: Pool) {}
+
+  private getCheckInWindowBounds(event: EventCheckInWindowEventRow): {
+    openAt: Date;
+    closeAt: Date;
+  } {
+    const openAt = new Date(event.start_date);
+    openAt.setMinutes(openAt.getMinutes() - EVENT_CHECKIN_WINDOW_BEFORE_MINUTES);
+
+    const closeAt = new Date(event.end_date);
+    closeAt.setMinutes(closeAt.getMinutes() + EVENT_CHECKIN_WINDOW_AFTER_MINUTES);
+
+    return { openAt, closeAt };
+  }
+
+  private assertCheckInAllowed(
+    event: EventCheckInWindowEventRow,
+    now: Date = new Date(),
+    enforceWindow: boolean = true
+  ): void {
+    if (event.status === 'cancelled' || event.status === 'completed') {
+      throw new Error('Event is not accepting check-ins');
+    }
+
+    if (!enforceWindow) {
+      return;
+    }
+
+    const { openAt, closeAt } = this.getCheckInWindowBounds(event);
+    const nowMs = now.getTime();
+    if (nowMs < openAt.getTime() || nowMs > closeAt.getTime()) {
+      throw new Error(
+        `${buildCheckInWindowMessage(EVENT_CHECKIN_WINDOW_BEFORE_MINUTES, EVENT_CHECKIN_WINDOW_AFTER_MINUTES)}.`
+      );
+    }
+  }
+
+  private async resolveContactIdByIdentity(
+    client: { query: Pool['query'] },
+    identity: { email?: string; phone?: string }
+  ): Promise<string | null> {
+    const email = identity.email?.trim().toLowerCase();
+    if (email) {
+      const byEmail = await client.query<EventContactRow>(
+        `SELECT id
+         FROM contacts
+         WHERE lower(email) = $1
+         ORDER BY created_at ASC
+         LIMIT 1`,
+        [email]
+      );
+      if (byEmail.rows[0]?.id) {
+        return byEmail.rows[0].id;
+      }
+    }
+
+    const normalizedPhone = normalizePhone(identity.phone);
+    if (normalizedPhone) {
+      const byPhone = await client.query<EventContactRow>(
+        `SELECT id
+         FROM contacts
+         WHERE regexp_replace(COALESCE(mobile_phone, ''), '[^0-9]', '', 'g') = $1
+            OR regexp_replace(COALESCE(phone, ''), '[^0-9]', '', 'g') = $1
+         ORDER BY created_at ASC
+         LIMIT 1`,
+        [normalizedPhone]
+      );
+      if (byPhone.rows[0]?.id) {
+        return byPhone.rows[0].id;
+      }
+    }
+
+    return null;
+  }
+
+  private async createWalkInContact(
+    client: { query: Pool['query'] },
+    args: {
+      firstName: string;
+      lastName: string;
+      email?: string;
+      phone?: string;
+      createdBy: string | null;
+    }
+  ): Promise<string> {
+    const result = await client.query<{ id: string }>(
+      `INSERT INTO contacts (
+        first_name,
+        last_name,
+        email,
+        phone,
+        mobile_phone,
+        created_by,
+        modified_by
+      ) VALUES ($1, $2, $3, $4, $4, $5, $5)
+      RETURNING id`,
+      [
+        args.firstName.trim(),
+        args.lastName.trim(),
+        args.email?.trim().toLowerCase() || null,
+        args.phone?.trim() || null,
+        args.createdBy,
+      ]
+    );
+
+    return result.rows[0].id;
+  }
 
   /**
    * Get all events with filtering and pagination
@@ -578,7 +738,16 @@ export class EventService {
   /**
    * Get registrations for a contact
    */
-  async getContactRegistrations(contactId: string): Promise<EventRegistration[]> {
+  async getContactRegistrations(contactId: string, scope?: DataScopeFilter): Promise<EventRegistration[]> {
+    const conditions: string[] = ['er.contact_id = $1'];
+    const params: QueryValue[] = [contactId];
+
+    if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
+      conditions.push(`e.created_by = ANY($${params.length + 1}::uuid[])`);
+      params.push(scope.createdByUserIds);
+    }
+
+    const whereClause = conditions.join(' AND ');
     const query = `
       SELECT 
         er.id as registration_id,
@@ -599,11 +768,11 @@ export class EventService {
       FROM event_registrations er
       JOIN contacts c ON er.contact_id = c.id
       JOIN events e ON er.event_id = e.id
-      WHERE er.contact_id = $1
+      WHERE ${whereClause}
       ORDER BY e.start_date DESC
     `;
 
-    const result = await this.pool.query(query, [contactId]);
+    const result = await this.pool.query(query, params);
     return result.rows;
   }
 
@@ -669,6 +838,47 @@ export class EventService {
     `;
 
     const result = await this.pool.query(query, [eventId, token]);
+    return result.rows[0] ?? null;
+  }
+
+  async getRegistrationByTokenGlobal(
+    token: string,
+    scope?: DataScopeFilter
+  ): Promise<EventRegistration | null> {
+    const params: QueryValue[] = [token];
+    const conditions: string[] = ['er.check_in_token = $1'];
+
+    if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
+      conditions.push(`e.created_by = ANY($${params.length + 1}::uuid[])`);
+      params.push(scope.createdByUserIds);
+    }
+
+    const whereClause = conditions.join(' AND ');
+    const query = `
+      SELECT
+        er.id as registration_id,
+        er.event_id,
+        er.contact_id,
+        er.registration_status,
+        er.checked_in,
+        er.check_in_time,
+        er.checked_in_by,
+        er.check_in_method,
+        er.check_in_token,
+        er.notes,
+        er.created_at,
+        er.updated_at,
+        c.first_name || ' ' || c.last_name as contact_name,
+        c.email as contact_email,
+        e.name as event_name
+      FROM event_registrations er
+      JOIN contacts c ON er.contact_id = c.id
+      JOIN events e ON er.event_id = e.id
+      WHERE ${whereClause}
+      LIMIT 1
+    `;
+
+    const result = await this.pool.query(query, params);
     return result.rows[0] ?? null;
   }
 
@@ -841,13 +1051,37 @@ export class EventService {
         };
       }
 
-      await client.query(
-        `SELECT id
+      const eventResult = await client.query<EventCheckInWindowEventRow>(
+        `SELECT
+           id,
+           start_date,
+           end_date,
+           status,
+           capacity,
+           registered_count
          FROM events
          WHERE id = $1
          FOR UPDATE`,
         [registrationRow.event_id]
       );
+      const eventRow = eventResult.rows[0];
+      if (!eventRow) {
+        await client.query('ROLLBACK');
+        return {
+          success: false,
+          message: 'Event not found',
+        };
+      }
+
+      try {
+        this.assertCheckInAllowed(eventRow);
+      } catch (error) {
+        await client.query('ROLLBACK');
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Check-in is currently unavailable',
+        };
+      }
 
       const method = options.method || 'manual';
       const checkedInBy = options.checkedInBy ?? null;
@@ -953,6 +1187,620 @@ export class EventService {
     } finally {
       client.release();
     }
+  }
+
+  async getEventCheckInSettings(eventId: string): Promise<EventCheckInSettings | null> {
+    const result = await this.pool.query<EventCheckInSettings>(
+      `SELECT
+         id as event_id,
+         public_checkin_enabled,
+         (public_checkin_pin_hash IS NOT NULL) as public_checkin_pin_configured,
+         public_checkin_pin_rotated_at
+       FROM events
+       WHERE id = $1`,
+      [eventId]
+    );
+
+    return result.rows[0] ?? null;
+  }
+
+  async updateEventCheckInSettings(
+    eventId: string,
+    data: UpdateEventCheckInSettingsDTO,
+    userId: string
+  ): Promise<EventCheckInSettings | null> {
+    const result = await this.pool.query<EventCheckInSettings>(
+      `UPDATE events
+       SET
+         public_checkin_enabled = $1,
+         modified_by = $2,
+         updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3
+       RETURNING
+         id as event_id,
+         public_checkin_enabled,
+         (public_checkin_pin_hash IS NOT NULL) as public_checkin_pin_configured,
+         public_checkin_pin_rotated_at`,
+      [data.public_checkin_enabled, userId, eventId]
+    );
+
+    return result.rows[0] ?? null;
+  }
+
+  async rotateEventCheckInPin(eventId: string, userId: string): Promise<RotateEventCheckInPinResult> {
+    const pin = String(randomInt(100000, 1000000));
+    const pinHash = await bcrypt.hash(pin, PASSWORD.BCRYPT_SALT_ROUNDS);
+
+    const result = await this.pool.query<EventCheckInSettings>(
+      `UPDATE events
+       SET
+         public_checkin_enabled = true,
+         public_checkin_pin_hash = $1,
+         public_checkin_pin_rotated_at = CURRENT_TIMESTAMP,
+         modified_by = $2,
+         updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3
+       RETURNING
+         id as event_id,
+         public_checkin_enabled,
+         (public_checkin_pin_hash IS NOT NULL) as public_checkin_pin_configured,
+         public_checkin_pin_rotated_at`,
+      [pinHash, userId, eventId]
+    );
+
+    const settings = result.rows[0];
+    if (!settings) {
+      throw new Error('Event not found');
+    }
+
+    return {
+      ...settings,
+      pin,
+    };
+  }
+
+  async walkInCheckIn(
+    eventId: string,
+    data: EventWalkInCheckInDTO,
+    checkedInBy: string
+  ): Promise<EventWalkInCheckInResult> {
+    const client = await this.pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const eventResult = await client.query<EventCheckInWindowEventRow>(
+        `SELECT
+           id,
+           start_date,
+           end_date,
+           status,
+           capacity,
+           registered_count
+         FROM events
+         WHERE id = $1
+         FOR UPDATE`,
+        [eventId]
+      );
+      const eventRow = eventResult.rows[0];
+      if (!eventRow) {
+        throw new Error('Event not found');
+      }
+
+      this.assertCheckInAllowed(eventRow);
+
+      let createdContact = false;
+      let contactId = await this.resolveContactIdByIdentity(client, {
+        email: data.email,
+        phone: data.phone,
+      });
+
+      if (!contactId) {
+        contactId = await this.createWalkInContact(client, {
+          firstName: data.first_name,
+          lastName: data.last_name,
+          email: data.email,
+          phone: data.phone,
+          createdBy: checkedInBy,
+        });
+        createdContact = true;
+      }
+
+      const existingRegistrationResult = await client.query<EventRegistration>(
+        `SELECT
+           id as registration_id,
+           event_id,
+           contact_id,
+           registration_status,
+           checked_in,
+           check_in_time,
+           checked_in_by,
+           check_in_method,
+           check_in_token,
+           notes,
+           created_at,
+           updated_at
+         FROM event_registrations
+         WHERE event_id = $1 AND contact_id = $2
+         FOR UPDATE`,
+        [eventId, contactId]
+      );
+
+      let createdRegistration = false;
+      let registration: EventRegistration;
+
+      if (existingRegistrationResult.rows.length === 0) {
+        if (eventRow.capacity && eventRow.registered_count >= eventRow.capacity) {
+          throw new Error('Event is at full capacity');
+        }
+
+        const createdRegistrationResult = await client.query<EventRegistration>(
+          `INSERT INTO event_registrations (
+             event_id,
+             contact_id,
+             registration_status,
+             notes
+           )
+           VALUES ($1, $2, $3, $4)
+           RETURNING
+             id as registration_id,
+             event_id,
+             contact_id,
+             registration_status,
+             checked_in,
+             check_in_time,
+             checked_in_by,
+             check_in_method,
+             check_in_token,
+             notes,
+             created_at,
+             updated_at`,
+          [
+            eventId,
+            contactId,
+            data.registration_status || RegistrationStatus.REGISTERED,
+            data.notes?.trim() || null,
+          ]
+        );
+
+        await client.query(
+          `UPDATE events
+           SET
+             registered_count = registered_count + 1,
+             updated_at = CURRENT_TIMESTAMP
+           WHERE id = $1`,
+          [eventId]
+        );
+
+        registration = createdRegistrationResult.rows[0];
+        createdRegistration = true;
+      } else {
+        registration = existingRegistrationResult.rows[0];
+      }
+
+      if (registration.checked_in) {
+        await client.query('COMMIT');
+        return {
+          status: 'already_checked_in',
+          contact_id: contactId,
+          registration,
+          created_contact: createdContact,
+          created_registration: createdRegistration,
+        };
+      }
+
+      const checkedInResult = await client.query<EventRegistration>(
+        `UPDATE event_registrations
+         SET
+           checked_in = true,
+           check_in_time = CURRENT_TIMESTAMP,
+           checked_in_by = $2,
+           check_in_method = 'manual',
+           registration_status = CASE
+             WHEN registration_status IN ('cancelled', 'no_show') THEN 'registered'
+             ELSE registration_status
+           END,
+           notes = COALESCE($3, notes),
+           updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1
+         RETURNING
+           id as registration_id,
+           event_id,
+           contact_id,
+           registration_status,
+           checked_in,
+           check_in_time,
+           checked_in_by,
+           check_in_method,
+           check_in_token,
+           notes,
+           created_at,
+           updated_at`,
+        [registration.registration_id, checkedInBy, data.notes?.trim() || null]
+      );
+
+      await client.query(
+        `UPDATE events
+         SET
+           attended_count = attended_count + 1,
+           updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [eventId]
+      );
+
+      await client.query('COMMIT');
+
+      return {
+        status: createdRegistration ? 'created_and_checked_in' : 'existing_checked_in',
+        contact_id: contactId,
+        registration: checkedInResult.rows[0],
+        created_contact: createdContact,
+        created_registration: createdRegistration,
+      };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async getPublicCheckInInfo(eventId: string): Promise<PublicEventCheckInInfo | null> {
+    const result = await this.pool.query<{
+      event_id: string;
+      event_name: string;
+      description: string | null;
+      event_type: Event['event_type'];
+      status: Event['status'];
+      start_date: Date;
+      end_date: Date;
+      location_name: string | null;
+      public_checkin_enabled: boolean;
+      public_checkin_pin_required: boolean;
+      is_public: boolean;
+    }>(
+      `SELECT
+         id as event_id,
+         name as event_name,
+         description,
+         event_type,
+         status,
+         start_date,
+         end_date,
+         location_name,
+         public_checkin_enabled,
+         (public_checkin_pin_hash IS NOT NULL) as public_checkin_pin_required,
+         is_public
+       FROM events
+       WHERE id = $1`,
+      [eventId]
+    );
+    const row = result.rows[0];
+    if (!row) return null;
+    if (!row.is_public || !row.public_checkin_enabled) return null;
+
+    const checkinOpen =
+      (() => {
+        try {
+          this.assertCheckInAllowed({
+            id: row.event_id,
+            start_date: row.start_date,
+            end_date: row.end_date,
+            status: row.status,
+            capacity: null,
+            registered_count: 0,
+          });
+          return true;
+        } catch {
+          return false;
+        }
+      })();
+
+    return {
+      event_id: row.event_id,
+      event_name: row.event_name,
+      description: row.description,
+      event_type: row.event_type,
+      status: row.status,
+      start_date: row.start_date,
+      end_date: row.end_date,
+      location_name: row.location_name,
+      public_checkin_enabled: row.public_checkin_enabled,
+      public_checkin_pin_required: row.public_checkin_pin_required,
+      checkin_open: checkinOpen,
+      checkin_window_before_minutes: EVENT_CHECKIN_WINDOW_BEFORE_MINUTES,
+      checkin_window_after_minutes: EVENT_CHECKIN_WINDOW_AFTER_MINUTES,
+    };
+  }
+
+  async submitPublicCheckIn(
+    eventId: string,
+    data: PublicEventCheckInDTO
+  ): Promise<PublicEventCheckInResult> {
+    const client = await this.pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const eventResult = await client.query<
+        EventCheckInWindowEventRow & {
+          is_public: boolean;
+          public_checkin_enabled: boolean;
+          public_checkin_pin_hash: string | null;
+        }
+      >(
+        `SELECT
+           id,
+           start_date,
+           end_date,
+           status,
+           capacity,
+           registered_count,
+           is_public,
+           public_checkin_enabled,
+           public_checkin_pin_hash
+         FROM events
+         WHERE id = $1
+         FOR UPDATE`,
+        [eventId]
+      );
+      const eventRow = eventResult.rows[0];
+      if (!eventRow) {
+        throw new Error('Event not found');
+      }
+      if (!eventRow.is_public || !eventRow.public_checkin_enabled) {
+        throw new Error('Public check-in is not enabled for this event');
+      }
+      if (!eventRow.public_checkin_pin_hash) {
+        throw new Error('Event check-in PIN is not configured');
+      }
+
+      const pinMatch = await bcrypt.compare(data.pin.trim(), eventRow.public_checkin_pin_hash);
+      if (!pinMatch) {
+        throw new Error('Invalid event check-in PIN');
+      }
+
+      this.assertCheckInAllowed(eventRow);
+
+      let createdContact = false;
+      let contactId = await this.resolveContactIdByIdentity(client, {
+        email: data.email,
+        phone: data.phone,
+      });
+
+      if (!contactId) {
+        contactId = await this.createWalkInContact(client, {
+          firstName: data.first_name,
+          lastName: data.last_name,
+          email: data.email,
+          phone: data.phone,
+          createdBy: null,
+        });
+        createdContact = true;
+      }
+
+      const existingRegistrationResult = await client.query<EventRegistration>(
+        `SELECT
+           id as registration_id,
+           event_id,
+           contact_id,
+           registration_status,
+           checked_in,
+           check_in_time,
+           checked_in_by,
+           check_in_method,
+           check_in_token,
+           notes,
+           created_at,
+           updated_at
+         FROM event_registrations
+         WHERE event_id = $1 AND contact_id = $2
+         FOR UPDATE`,
+        [eventId, contactId]
+      );
+
+      let createdRegistration = false;
+      let registration: EventRegistration;
+
+      if (existingRegistrationResult.rows.length === 0) {
+        if (eventRow.capacity && eventRow.registered_count >= eventRow.capacity) {
+          throw new Error('Event is at full capacity');
+        }
+
+        const createdRegistrationResult = await client.query<EventRegistration>(
+          `INSERT INTO event_registrations (
+             event_id,
+             contact_id,
+             registration_status
+           )
+           VALUES ($1, $2, $3)
+           RETURNING
+             id as registration_id,
+             event_id,
+             contact_id,
+             registration_status,
+             checked_in,
+             check_in_time,
+             checked_in_by,
+             check_in_method,
+             check_in_token,
+             notes,
+             created_at,
+             updated_at`,
+          [eventId, contactId, RegistrationStatus.REGISTERED]
+        );
+
+        await client.query(
+          `UPDATE events
+           SET
+             registered_count = registered_count + 1,
+             updated_at = CURRENT_TIMESTAMP
+           WHERE id = $1`,
+          [eventId]
+        );
+
+        registration = createdRegistrationResult.rows[0];
+        createdRegistration = true;
+      } else {
+        registration = existingRegistrationResult.rows[0];
+      }
+
+      if (registration.checked_in) {
+        await client.query('COMMIT');
+        return {
+          status: 'already_checked_in',
+          contact_id: contactId,
+          registration,
+          created_contact: createdContact,
+          created_registration: createdRegistration,
+        };
+      }
+
+      const checkedInResult = await client.query<EventRegistration>(
+        `UPDATE event_registrations
+         SET
+           checked_in = true,
+           check_in_time = CURRENT_TIMESTAMP,
+           checked_in_by = NULL,
+           check_in_method = 'qr',
+           registration_status = CASE
+             WHEN registration_status IN ('cancelled', 'no_show') THEN 'registered'
+             ELSE registration_status
+           END,
+           updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1
+         RETURNING
+           id as registration_id,
+           event_id,
+           contact_id,
+           registration_status,
+           checked_in,
+           check_in_time,
+           checked_in_by,
+           check_in_method,
+           check_in_token,
+           notes,
+           created_at,
+           updated_at`,
+        [registration.registration_id]
+      );
+
+      await client.query(
+        `UPDATE events
+         SET
+           attended_count = attended_count + 1,
+           updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [eventId]
+      );
+
+      await client.query('COMMIT');
+
+      return {
+        status: 'checked_in',
+        contact_id: contactId,
+        registration: checkedInResult.rows[0],
+        created_contact: createdContact,
+        created_registration: createdRegistration,
+      };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async listPublicEventsByOwner(
+    ownerUserId: string,
+    query: PublicEventsQuery = {}
+  ): Promise<PublicEventsListData> {
+    const limit = query.limit ?? 12;
+    const offset = query.offset ?? 0;
+    const includePast = query.include_past ?? false;
+
+    const where: string[] = [
+      'created_by = $1',
+      'is_public = true',
+      "status IN ('planned', 'active', 'postponed')",
+    ];
+    const params: QueryValue[] = [ownerUserId];
+    let paramCount = 2;
+
+    if (!includePast) {
+      where.push('end_date >= NOW()');
+    }
+
+    if (query.event_type) {
+      where.push(`event_type = $${paramCount}`);
+      params.push(query.event_type);
+      paramCount += 1;
+    }
+
+    if (query.search) {
+      where.push(`(
+        name ILIKE $${paramCount}
+        OR COALESCE(description, '') ILIKE $${paramCount}
+        OR COALESCE(location_name, '') ILIKE $${paramCount}
+        OR COALESCE(city, '') ILIKE $${paramCount}
+        OR COALESCE(state_province, '') ILIKE $${paramCount}
+      )`);
+      params.push(`%${query.search}%`);
+      paramCount += 1;
+    }
+
+    const sortColumnMap: Record<NonNullable<PublicEventsQuery['sort_by']>, string> = {
+      start_date: 'start_date',
+      name: 'name',
+      created_at: 'created_at',
+    };
+    const resolvedSortBy =
+      query.sort_by && Object.prototype.hasOwnProperty.call(sortColumnMap, query.sort_by)
+        ? query.sort_by
+        : 'start_date';
+    const resolvedSortOrder = query.sort_order === 'desc' ? 'DESC' : 'ASC';
+    const whereClause = `WHERE ${where.join(' AND ')}`;
+
+    const countResult = await this.pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text as count
+       FROM events
+       ${whereClause}`,
+      params
+    );
+    const total = Number.parseInt(countResult.rows[0]?.count ?? '0', 10);
+
+    const rowsResult = await this.pool.query<PublicEventListItem>(
+      `SELECT
+         id as event_id,
+         name as event_name,
+         description,
+         event_type,
+         status,
+         start_date,
+         end_date,
+         location_name,
+         city,
+         state_province,
+         country,
+         capacity,
+         registered_count
+       FROM events
+       ${whereClause}
+       ORDER BY ${sortColumnMap[resolvedSortBy]} ${resolvedSortOrder}
+       LIMIT $${paramCount}
+       OFFSET $${paramCount + 1}`,
+      [...params, limit, offset]
+    );
+
+    return {
+      items: rowsResult.rows,
+      page: {
+        limit,
+        offset,
+        total,
+        has_more: offset + rowsResult.rows.length < total,
+      },
+    };
   }
 
   private async recordReminderDelivery(args: {

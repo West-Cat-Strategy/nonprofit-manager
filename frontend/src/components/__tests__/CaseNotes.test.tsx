@@ -4,11 +4,13 @@ import CaseNotes from '../CaseNotes';
 import { renderWithProviders } from '../../test/testUtils';
 
 const listCaseNotesMock = vi.fn();
+const listOutcomeDefinitionsMock = vi.fn();
 const createCaseNoteMock = vi.fn();
 
 vi.mock('../../features/cases/api/casesApiClient', () => ({
   casesApiClient: {
     listCaseNotes: (...args: unknown[]) => listCaseNotesMock(...args),
+    listOutcomeDefinitions: (...args: unknown[]) => listOutcomeDefinitionsMock(...args),
     createCaseNote: (...args: unknown[]) => createCaseNoteMock(...args),
     updateCaseNote: vi.fn(),
     deleteCaseNote: vi.fn(),
@@ -26,6 +28,20 @@ describe('CaseNotes component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     listCaseNotesMock.mockResolvedValue({ notes: [] });
+    listOutcomeDefinitionsMock.mockResolvedValue([
+      {
+        id: 'outcome-1',
+        key: 'maintained_employment',
+        name: 'Maintained employment',
+        description: null,
+        category: null,
+        is_active: true,
+        is_reportable: true,
+        sort_order: 10,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+      },
+    ]);
     createCaseNoteMock.mockResolvedValue({ id: 'note-1' });
   });
 

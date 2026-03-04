@@ -27,6 +27,10 @@ const AcceptInvitation = lazy(() => import('../pages/auth/AcceptInvitation'));
 const ForgotPassword = lazy(() => import('../pages/auth/ForgotPassword'));
 const ResetPassword = lazy(() => import('../pages/auth/ResetPassword'));
 const PublicReportSnapshot = lazy(() => import('../pages/public/PublicReportSnapshot'));
+const PublicEventCheckInPage = lazy(
+  () => import('../features/events/pages/PublicEventCheckInPage')
+);
+const PublicEventsPage = lazy(() => import('../features/events/pages/PublicEventsPage'));
 
 // Lazy load Neo-Brutalist pages (remain in their directory)
 const NeoBrutalistDashboard = lazy(() => import('../pages/neo-brutalist/NeoBrutalistDashboard'));
@@ -94,6 +98,8 @@ const AppRoutes = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:token" element={<ResetPassword />} />
       <Route path="/public/reports/:token" element={<PublicReportSnapshot />} />
+      <Route path="/public/events/:site" element={<PublicEventsPage />} />
+      <Route path="/event-check-in/:id" element={<PublicEventCheckInPage />} />
 
       {/* Portal Routes */}
       {createPortalRoutes(PortalProtectedRoute)}

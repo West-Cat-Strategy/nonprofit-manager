@@ -58,13 +58,12 @@ test.describe('Complete User Workflows', () => {
     if (!adminToken) throw new Error('Admin auth token was not initialized');
     const apiURL = getApiUrl();
     const headers = await getAuthHeaders(authenticatedPage, adminToken);
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const checkInWindowStart = new Date(Date.now() + 30 * 60 * 1000);
 
     const { id: eventId } = await createTestEvent(authenticatedPage, adminToken, {
       name: 'Community Volunteer Day',
       eventType: 'volunteer',
-      startDate: tomorrow.toISOString(),
+      startDate: checkInWindowStart.toISOString(),
       capacity: 50,
     });
     const { id: contactId } = await createTestContact(authenticatedPage, adminToken, {

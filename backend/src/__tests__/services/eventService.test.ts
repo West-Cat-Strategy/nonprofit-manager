@@ -53,8 +53,12 @@ describe('EventService', () => {
     cancelPendingAutomationsForEvent as jest.MockedFunction<typeof cancelPendingAutomationsForEvent>;
 
   beforeEach(() => {
-    eventService = new EventService(mockPool);
     jest.clearAllMocks();
+    mockQuery.mockReset();
+    mockConnect.mockReset();
+    mockClientRelease.mockReset();
+    mockClientQuery.mockClear();
+    eventService = new EventService(mockPool);
     mockConnect.mockResolvedValue({
       query: mockClientQuery,
       release: mockClientRelease,
@@ -418,11 +422,23 @@ describe('EventService', () => {
         checked_in: true,
         check_in_time: new Date(),
       };
+      const now = Date.now();
 
       // Mock get registration query
       mockQuery.mockResolvedValueOnce({ rows: [mockRegistrationCheck] });
       // Mock event lock query
-      mockQuery.mockResolvedValueOnce({ rows: [{ id: 'event-123' }] });
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'event-123',
+            start_date: new Date(now + 30 * 60 * 1000),
+            end_date: new Date(now + 90 * 60 * 1000),
+            status: 'planned',
+            capacity: null,
+            registered_count: 0,
+          },
+        ],
+      });
       // Mock update registration
       mockQuery.mockResolvedValueOnce({ rows: [mockUpdatedRegistration] });
       // Mock update event attendance count
@@ -441,6 +457,102 @@ describe('EventService', () => {
 
       expect(result.success).toBe(false);
       expect(result.message).toContain('Registration not found');
+    });
+
+    it('should reject check-in when event is outside configured window', async () => {
+      const mockRegistrationCheck = { event_id: 'event-123', checked_in: false };
+      const now = Date.now();
+
+      mockQuery.mockResolvedValueOnce({ rows: [mockRegistrationCheck] });
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'event-123',
+            start_date: new Date(now + 8 * 60 * 60 * 1000),
+            end_date: new Date(now + 9 * 60 * 60 * 1000),
+            status: 'planned',
+            capacity: null,
+            registered_count: 0,
+          },
+        ],
+      });
+
+      const result = await eventService.checkInAttendee('registration-1');
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Check-in is available');
+    });
+
+    it('should reject check-in when event status is cancelled', async () => {
+      const mockRegistrationCheck = { event_id: 'event-123', checked_in: false };
+      const now = Date.now();
+
+      mockQuery.mockResolvedValueOnce({ rows: [mockRegistrationCheck] });
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'event-123',
+            start_date: new Date(now - 60 * 60 * 1000),
+            end_date: new Date(now + 60 * 60 * 1000),
+            status: 'cancelled',
+            capacity: null,
+            registered_count: 0,
+          },
+        ],
+      });
+
+      const result = await eventService.checkInAttendee('registration-1');
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('not accepting check-ins');
+    });
+
+    it('should reject check-in when event status is completed', async () => {
+      const mockRegistrationCheck = { event_id: 'event-123', checked_in: false };
+      const now = Date.now();
+
+      mockQuery.mockResolvedValueOnce({ rows: [mockRegistrationCheck] });
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'event-123',
+            start_date: new Date(now - 60 * 60 * 1000),
+            end_date: new Date(now + 60 * 60 * 1000),
+            status: 'completed',
+            capacity: null,
+            registered_count: 0,
+          },
+        ],
+      });
+
+      const result = await eventService.checkInAttendee('registration-1');
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('not accepting check-ins');
+    });
+
+    it('should reject check-in after the event grace window closes', async () => {
+      const mockRegistrationCheck = { event_id: 'event-123', checked_in: false };
+      const now = Date.now();
+
+      mockQuery.mockResolvedValueOnce({ rows: [mockRegistrationCheck] });
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'event-123',
+            start_date: new Date(now - 10 * 60 * 60 * 1000),
+            end_date: new Date(now - 8 * 60 * 60 * 1000),
+            status: 'planned',
+            capacity: null,
+            registered_count: 0,
+          },
+        ],
+      });
+
+      const result = await eventService.checkInAttendee('registration-1');
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Check-in is available');
     });
   });
 
@@ -479,6 +591,78 @@ describe('EventService', () => {
       const result = await eventService.getContactRegistrations('contact-123');
 
       expect(result).toEqual(mockRegistrations);
+    });
+
+    it('applies event creator scope filtering when provided', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      await eventService.getContactRegistrations('contact-123', {
+        createdByUserIds: ['user-1'],
+      });
+
+      const [sql, params] = mockQuery.mock.calls[0] as [string, unknown[]];
+      expect(sql).toContain('e.created_by = ANY');
+      expect(params).toEqual(['contact-123', ['user-1']]);
+    });
+  });
+
+  describe('listPublicEventsByOwner', () => {
+    it('returns owner-scoped public events with pagination metadata', async () => {
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ count: '2' }] })
+        .mockResolvedValueOnce({
+          rows: [
+            { event_id: 'event-1', event_name: 'Upcoming Event' },
+            { event_id: 'event-2', event_name: 'Community Meetup' },
+          ],
+        });
+
+      const result = await eventService.listPublicEventsByOwner('owner-1', {
+        limit: 2,
+        offset: 0,
+      });
+
+      expect(result.items).toHaveLength(2);
+      expect(result.page).toEqual({
+        limit: 2,
+        offset: 0,
+        total: 2,
+        has_more: false,
+      });
+
+      const [countSql, countParams] = mockQuery.mock.calls[0] as [string, unknown[]];
+      expect(countSql).toContain("is_public = true");
+      expect(countSql).toContain("status IN ('planned', 'active', 'postponed')");
+      expect(countSql).toContain('end_date >= NOW()');
+      expect(countParams).toEqual(['owner-1']);
+    });
+
+    it('applies search/type/include_past filters and sorting controls', async () => {
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ count: '1' }] })
+        .mockResolvedValueOnce({
+          rows: [{ event_id: 'event-3', event_name: 'Past Fundraiser' }],
+        });
+
+      await eventService.listPublicEventsByOwner('owner-2', {
+        search: 'Fundraiser',
+        event_type: EventType.FUNDRAISER,
+        include_past: true,
+        limit: 5,
+        offset: 10,
+        sort_by: 'name',
+        sort_order: 'desc',
+      });
+
+      const [countSql, countParams] = mockQuery.mock.calls[0] as [string, unknown[]];
+      const [dataSql, dataParams] = mockQuery.mock.calls[1] as [string, unknown[]];
+
+      expect(countSql).toContain('event_type = $2');
+      expect(countSql).toContain('name ILIKE $3');
+      expect(countSql).not.toContain('end_date >= NOW()');
+      expect(dataSql).toContain('ORDER BY name DESC');
+      expect(countParams).toEqual(['owner-2', EventType.FUNDRAISER, '%Fundraiser%']);
+      expect(dataParams).toEqual(['owner-2', EventType.FUNDRAISER, '%Fundraiser%', 5, 10]);
     });
   });
 

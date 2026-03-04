@@ -13,6 +13,7 @@ interface PortalProfileData {
   email: string | null;
   phone: string | null;
   mobile_phone: string | null;
+  phn: string | null;
   address_line1: string | null;
   address_line2: string | null;
   city: string | null;
@@ -25,12 +26,25 @@ interface PortalProfileData {
   profile_picture: string | null;
 }
 
+const normalizeDigits = (value: string): string => value.replace(/\D/g, '');
+
+const toOptionalString = (value: string | null): string | undefined => {
+  const trimmed = value?.trim() ?? '';
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const toNullableString = (value: string | null): string | null => {
+  const trimmed = value?.trim() ?? '';
+  return trimmed.length > 0 ? trimmed : null;
+};
+
 export default function PortalProfile() {
   const [formData, setFormData] = useState<PortalProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
+  const [phnError, setPhnError] = useState<string | null>(null);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -63,6 +77,9 @@ export default function PortalProfile() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     if (!formData) return;
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (e.target.name === 'phn') {
+      setPhnError(null);
+    }
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,10 +104,44 @@ export default function PortalProfile() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData) return;
+
+    const normalizedPhn = normalizeDigits(formData.phn || '');
+    if (normalizedPhn.length > 0 && normalizedPhn.length !== 10) {
+      const message = 'PHN must contain exactly 10 digits.';
+      setPhnError(message);
+      setProfileStatusMessage(message);
+      showError(message);
+      return;
+    }
+
+    const updatePayload = {
+      first_name: toOptionalString(formData.first_name),
+      last_name: toOptionalString(formData.last_name),
+      email: toOptionalString(formData.email),
+      phone: toOptionalString(formData.phone),
+      mobile_phone: toOptionalString(formData.mobile_phone),
+      phn: normalizedPhn.length > 0 ? normalizedPhn : null,
+      address_line1: toNullableString(formData.address_line1),
+      address_line2: toNullableString(formData.address_line2),
+      city: toNullableString(formData.city),
+      state_province: toNullableString(formData.state_province),
+      postal_code: toNullableString(formData.postal_code),
+      country: toNullableString(formData.country),
+      preferred_contact_method: toNullableString(formData.preferred_contact_method),
+      pronouns: toNullableString(formData.pronouns),
+      gender: toNullableString(formData.gender),
+      profile_picture: formData.profile_picture ?? null,
+    };
+
+    const payload = Object.fromEntries(
+      Object.entries(updatePayload).filter(([, value]) => value !== undefined)
+    );
+
     try {
       setSaving(true);
-      const response = await portalApi.patch('/v2/portal/profile', formData);
+      const response = await portalApi.patch('/v2/portal/profile', payload);
       setFormData(unwrapApiData(response.data));
+      setPhnError(null);
       const message = 'Profile updated successfully.';
       setProfileStatusMessage(message);
       showSuccess(message);
@@ -287,6 +338,17 @@ export default function PortalProfile() {
                         onChange={handleChange}
                         className="w-full rounded-md border border-app-input-border px-3 py-2"
                       />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-app-text">Personal Health Number (PHN)</label>
+                      <input
+                        name="phn"
+                        value={formData.phn || ''}
+                        onChange={handleChange}
+                        placeholder="10 digits"
+                        className="w-full rounded-md border border-app-input-border px-3 py-2"
+                      />
+                      {phnError && <p className="mt-1 text-xs text-app-accent">{phnError}</p>}
                     </div>
                     <div>
                       <label className="mb-1 block text-sm font-medium text-app-text">Pronouns</label>

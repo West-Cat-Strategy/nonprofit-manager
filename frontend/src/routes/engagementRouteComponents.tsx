@@ -5,6 +5,7 @@ export const EventDetail = lazy(() => import('../features/events/pages/EventDeta
 export const EventCreate = lazy(() => import('../features/events/pages/EventCreatePage'));
 export const EventEdit = lazy(() => import('../features/events/pages/EventEditPage'));
 export const EventCalendarPage = lazy(() => import('../features/events/pages/EventCalendarPage'));
+export const EventCheckInDesk = lazy(() => import('../features/events/pages/EventCheckInDeskPage'));
 export const TaskList = lazy(() => import('../features/tasks/pages/TaskListPage'));
 export const TaskDetail = lazy(() => import('../features/tasks/pages/TaskDetailPage'));
 export const TaskCreate = lazy(() => import('../features/tasks/pages/TaskCreatePage'));

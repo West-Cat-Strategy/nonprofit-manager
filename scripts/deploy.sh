@@ -55,19 +55,19 @@ deploy_local() {
     fi
 
     log_info "Building Docker images..."
-    docker-compose build
+    docker_compose --env-file "$PROJECT_ROOT/.env.production" build
 
     log_info "Running database migrations..."
     "$SCRIPT_DIR/db-migrate.sh" || log_warn "Migration script not found or failed"
 
     log_info "Restarting containers..."
-    docker-compose up -d
+    docker_compose --env-file "$PROJECT_ROOT/.env.production" up -d
 
     # Wait for health check
     log_info "Waiting for services to be healthy..."
     sleep 5
 
-    if curl -sf http://localhost:3000/health > /dev/null 2>&1; then
+    if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
         log_success "Backend is healthy"
     else
         log_warn "Backend health check failed (may still be starting)"
@@ -76,8 +76,8 @@ deploy_local() {
     echo ""
     log_success "Local deployment complete!"
     echo ""
-    echo "  Frontend: http://localhost:5173"
-    echo "  Backend:  http://localhost:3000"
+    echo "  Frontend: http://localhost:8001"
+    echo "  Backend:  http://localhost:8000"
     echo ""
 }
 
@@ -143,7 +143,7 @@ deploy_remote() {
 
     # Build images
     log_info "Building Docker images..."
-    docker-compose build
+    docker_compose --env-file "$PROJECT_ROOT/.env.production" build
 
     # If using a registry, push images
     if [ -n "${REGISTRY:-}" ]; then
@@ -163,25 +163,34 @@ deploy_remote() {
         set -e
         cd $deploy_path
 
+        if docker compose version >/dev/null 2>&1; then
+          COMPOSE="docker compose"
+        elif command -v docker-compose >/dev/null 2>&1; then
+          COMPOSE="docker-compose"
+        else
+          echo "Neither 'docker compose' nor 'docker-compose' is available on remote host"
+          exit 1
+        fi
+
         echo "Pulling latest code..."
         git fetch origin
         git checkout $GIT_COMMIT
 
         echo "Building/pulling images..."
-        docker-compose pull 2>/dev/null || docker-compose build
+        \$COMPOSE --env-file .env.production pull 2>/dev/null || \$COMPOSE --env-file .env.production build
 
         echo "Running migrations..."
-        docker-compose exec -T db psql -U postgres -d nonprofit_manager -c "SELECT 1" || true
+        \$COMPOSE exec -T postgres psql -U postgres -d nonprofit_manager -c "SELECT 1" || true
 
         echo "Restarting services..."
-        docker-compose up -d
+        \$COMPOSE --env-file .env.production up -d
 
         echo "Cleaning up..."
         docker system prune -f
 
         echo "Health check..."
         sleep 10
-        curl -sf http://localhost:3000/health || echo "Warning: Health check failed"
+        curl -sf http://localhost:8000/health || echo "Warning: Health check failed"
 DEPLOY_SCRIPT
 
     if [ $? -eq 0 ]; then

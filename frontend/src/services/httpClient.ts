@@ -51,6 +51,15 @@ const hasV2BasePath = (baseURL: string): boolean => {
   }
 };
 
+const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '');
+
+const resolveCsrfTokenEndpoint = (baseURL: string, baseIsV2: boolean): string => {
+  const normalizedBase = trimTrailingSlash(baseURL);
+  return baseIsV2
+    ? `${normalizedBase}/auth/csrf-token`
+    : `${normalizedBase}/v2/auth/csrf-token`;
+};
+
 /**
  * Calculate exponential backoff delay with jitter
  */
@@ -131,11 +140,12 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
   // CSRF token cache
   let csrfToken: string | null = null;
   const baseIsV2 = hasV2BasePath(baseURL);
+  const csrfTokenEndpoint = resolveCsrfTokenEndpoint(baseURL, baseIsV2);
 
   // Fetch CSRF token from server
   const fetchCsrfToken = async (): Promise<string | null> => {
     try {
-      const response = await axios.get(`${baseURL}/auth/csrf-token`, { withCredentials: true });
+      const response = await axios.get(csrfTokenEndpoint, { withCredentials: true });
       csrfToken = response.data.csrfToken;
       return csrfToken;
     } catch (error) {

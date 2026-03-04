@@ -7,6 +7,13 @@ import { Pool } from 'pg';
 import pool from '@config/database';
 import { Task, CreateTaskDTO, UpdateTaskDTO, TaskFilters, TaskSummary, TaskStatus, TaskPriority } from '@app-types/task';
 
+type TaskQueryValue = string | number | boolean;
+
+interface TaskFilterSql {
+  whereClause: string;
+  values: TaskQueryValue[];
+}
+
 export class TaskService {
   constructor(private pool: Pool) {}
 
@@ -14,78 +21,10 @@ export class TaskService {
    * Get tasks with optional filtering and pagination
    */
   async getTasks(filters: TaskFilters): Promise<{ tasks: Task[]; pagination: { total: number; page: number; limit: number; pages: number }; summary: TaskSummary }> {
-    const {
-      search,
-      status,
-      priority,
-      assigned_to,
-      related_to_type,
-      related_to_id,
-      due_before,
-      due_after,
-      overdue,
-      page = 1,
-      limit = 20,
-    } = filters;
+    const { page = 1, limit = 20 } = filters;
 
     const offset = (page - 1) * limit;
-    const conditions: string[] = [];
-    const values: any[] = [];
-    let paramCount = 0;
-
-    if (search) {
-      paramCount++;
-      conditions.push(`(t.subject ILIKE $${paramCount} OR t.description ILIKE $${paramCount})`);
-      values.push(`%${search}%`);
-    }
-
-    if (status) {
-      paramCount++;
-      conditions.push(`t.status = $${paramCount}`);
-      values.push(status);
-    }
-
-    if (priority) {
-      paramCount++;
-      conditions.push(`t.priority = $${paramCount}`);
-      values.push(priority);
-    }
-
-    if (assigned_to) {
-      paramCount++;
-      conditions.push(`t.assigned_to = $${paramCount}`);
-      values.push(assigned_to);
-    }
-
-    if (related_to_type) {
-      paramCount++;
-      conditions.push(`t.related_to_type = $${paramCount}`);
-      values.push(related_to_type);
-    }
-
-    if (related_to_id) {
-      paramCount++;
-      conditions.push(`t.related_to_id = $${paramCount}`);
-      values.push(related_to_id);
-    }
-
-    if (due_before) {
-      paramCount++;
-      conditions.push(`t.due_date <= $${paramCount}`);
-      values.push(due_before);
-    }
-
-    if (due_after) {
-      paramCount++;
-      conditions.push(`t.due_date >= $${paramCount}`);
-      values.push(due_after);
-    }
-
-    if (overdue) {
-      conditions.push(`t.due_date < CURRENT_TIMESTAMP AND t.status NOT IN ('completed', 'cancelled')`);
-    }
-
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const { whereClause, values } = this.buildTaskFilterSql(filters);
 
     // Get total count
     const countQuery = `SELECT COUNT(*) FROM tasks t ${whereClause}`;
@@ -93,6 +32,7 @@ export class TaskService {
     const total = parseInt(countResult.rows[0].count);
 
     // Get tasks with joined data
+    let paramCount = values.length;
     paramCount++;
     const limitParam = paramCount;
     paramCount++;
@@ -135,49 +75,7 @@ export class TaskService {
     const tasks = result.rows;
 
     // Get summary statistics
-    const summaryQuery = `
-      SELECT
-        COUNT(*) as total,
-        COUNT(*) FILTER (WHERE status = 'not_started') as not_started,
-        COUNT(*) FILTER (WHERE status = 'in_progress') as in_progress,
-        COUNT(*) FILTER (WHERE status = 'waiting') as waiting,
-        COUNT(*) FILTER (WHERE status = 'completed') as completed,
-        COUNT(*) FILTER (WHERE status = 'deferred') as deferred,
-        COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled,
-        COUNT(*) FILTER (WHERE priority = 'low') as priority_low,
-        COUNT(*) FILTER (WHERE priority = 'normal') as priority_normal,
-        COUNT(*) FILTER (WHERE priority = 'high') as priority_high,
-        COUNT(*) FILTER (WHERE priority = 'urgent') as priority_urgent,
-        COUNT(*) FILTER (WHERE due_date < CURRENT_TIMESTAMP AND status NOT IN ('completed', 'cancelled')) as overdue,
-        COUNT(*) FILTER (WHERE DATE(due_date) = CURRENT_DATE AND status NOT IN ('completed', 'cancelled')) as due_today,
-        COUNT(*) FILTER (WHERE due_date BETWEEN CURRENT_TIMESTAMP AND CURRENT_TIMESTAMP + INTERVAL '7 days' AND status NOT IN ('completed', 'cancelled')) as due_this_week
-      FROM tasks t
-      ${whereClause}
-    `;
-
-    const summaryResult = await this.pool.query(summaryQuery, values);
-    const summaryRow = summaryResult.rows[0];
-
-    const summary: TaskSummary = {
-      total: parseInt(summaryRow.total),
-      by_status: {
-        [TaskStatus.NOT_STARTED]: parseInt(summaryRow.not_started),
-        [TaskStatus.IN_PROGRESS]: parseInt(summaryRow.in_progress),
-        [TaskStatus.WAITING]: parseInt(summaryRow.waiting),
-        [TaskStatus.COMPLETED]: parseInt(summaryRow.completed),
-        [TaskStatus.DEFERRED]: parseInt(summaryRow.deferred),
-        [TaskStatus.CANCELLED]: parseInt(summaryRow.cancelled),
-      },
-      by_priority: {
-        [TaskPriority.LOW]: parseInt(summaryRow.priority_low),
-        [TaskPriority.NORMAL]: parseInt(summaryRow.priority_normal),
-        [TaskPriority.HIGH]: parseInt(summaryRow.priority_high),
-        [TaskPriority.URGENT]: parseInt(summaryRow.priority_urgent),
-      },
-      overdue: parseInt(summaryRow.overdue),
-      due_today: parseInt(summaryRow.due_today),
-      due_this_week: parseInt(summaryRow.due_this_week),
-    };
+    const summary = await this.queryTaskSummary(whereClause, values);
 
     return {
       tasks,
@@ -336,8 +234,117 @@ export class TaskService {
    * Get task summary statistics
    */
   async getTaskSummary(filters: TaskFilters = {}): Promise<TaskSummary> {
-    const result = await this.getTasks({ ...filters, limit: 1 });
-    return result.summary;
+    const { whereClause, values } = this.buildTaskFilterSql(filters);
+    return this.queryTaskSummary(whereClause, values);
+  }
+
+  private buildTaskFilterSql(filters: TaskFilters): TaskFilterSql {
+    const conditions: string[] = [];
+    const values: TaskQueryValue[] = [];
+    let paramCount = 0;
+
+    if (filters.search) {
+      paramCount++;
+      conditions.push(`(t.subject ILIKE $${paramCount} OR t.description ILIKE $${paramCount})`);
+      values.push(`%${filters.search}%`);
+    }
+
+    if (filters.status) {
+      paramCount++;
+      conditions.push(`t.status = $${paramCount}`);
+      values.push(filters.status);
+    }
+
+    if (filters.priority) {
+      paramCount++;
+      conditions.push(`t.priority = $${paramCount}`);
+      values.push(filters.priority);
+    }
+
+    if (filters.assigned_to) {
+      paramCount++;
+      conditions.push(`t.assigned_to = $${paramCount}`);
+      values.push(filters.assigned_to);
+    }
+
+    if (filters.related_to_type) {
+      paramCount++;
+      conditions.push(`t.related_to_type = $${paramCount}`);
+      values.push(filters.related_to_type);
+    }
+
+    if (filters.related_to_id) {
+      paramCount++;
+      conditions.push(`t.related_to_id = $${paramCount}`);
+      values.push(filters.related_to_id);
+    }
+
+    if (filters.due_before) {
+      paramCount++;
+      conditions.push(`t.due_date <= $${paramCount}`);
+      values.push(filters.due_before);
+    }
+
+    if (filters.due_after) {
+      paramCount++;
+      conditions.push(`t.due_date >= $${paramCount}`);
+      values.push(filters.due_after);
+    }
+
+    if (filters.overdue) {
+      conditions.push(`t.due_date < CURRENT_TIMESTAMP AND t.status NOT IN ('completed', 'cancelled')`);
+    }
+
+    return {
+      whereClause: conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '',
+      values,
+    };
+  }
+
+  private async queryTaskSummary(whereClause: string, values: TaskQueryValue[]): Promise<TaskSummary> {
+    const summaryQuery = `
+      SELECT
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE status = 'not_started') as not_started,
+        COUNT(*) FILTER (WHERE status = 'in_progress') as in_progress,
+        COUNT(*) FILTER (WHERE status = 'waiting') as waiting,
+        COUNT(*) FILTER (WHERE status = 'completed') as completed,
+        COUNT(*) FILTER (WHERE status = 'deferred') as deferred,
+        COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled,
+        COUNT(*) FILTER (WHERE priority = 'low') as priority_low,
+        COUNT(*) FILTER (WHERE priority = 'normal') as priority_normal,
+        COUNT(*) FILTER (WHERE priority = 'high') as priority_high,
+        COUNT(*) FILTER (WHERE priority = 'urgent') as priority_urgent,
+        COUNT(*) FILTER (WHERE due_date < CURRENT_TIMESTAMP AND status NOT IN ('completed', 'cancelled')) as overdue,
+        COUNT(*) FILTER (WHERE DATE(due_date) = CURRENT_DATE AND status NOT IN ('completed', 'cancelled')) as due_today,
+        COUNT(*) FILTER (WHERE due_date BETWEEN CURRENT_TIMESTAMP AND CURRENT_TIMESTAMP + INTERVAL '7 days' AND status NOT IN ('completed', 'cancelled')) as due_this_week
+      FROM tasks t
+      ${whereClause}
+    `;
+
+    const summaryResult = await this.pool.query(summaryQuery, values);
+    const summaryRow = summaryResult.rows[0];
+
+    return {
+      total: parseInt(summaryRow.total),
+      by_status: {
+        [TaskStatus.NOT_STARTED]: parseInt(summaryRow.not_started),
+        [TaskStatus.IN_PROGRESS]: parseInt(summaryRow.in_progress),
+        [TaskStatus.WAITING]: parseInt(summaryRow.waiting),
+        [TaskStatus.COMPLETED]: parseInt(summaryRow.completed),
+        [TaskStatus.DEFERRED]: parseInt(summaryRow.deferred),
+        [TaskStatus.CANCELLED]: parseInt(summaryRow.cancelled),
+      },
+      by_priority: {
+        [TaskPriority.LOW]: parseInt(summaryRow.priority_low),
+        [TaskPriority.NORMAL]: parseInt(summaryRow.priority_normal),
+        [TaskPriority.HIGH]: parseInt(summaryRow.priority_high),
+        [TaskPriority.URGENT]: parseInt(summaryRow.priority_urgent),
+      },
+      overdue: parseInt(summaryRow.overdue),
+      due_today: parseInt(summaryRow.due_today),
+      due_this_week: parseInt(summaryRow.due_this_week),
+    };
   }
 }
 

@@ -11,7 +11,7 @@ source "$SCRIPT_DIR/lib/config.sh"
 print_header "Authentication Flow Test"
 
 # API base URL
-API_URL="${API_BASE_URL:-http://localhost:3000/api}"
+API_URL="${API_BASE_URL:-http://localhost:8000/api}"
 
 # Function to print success
 success() {

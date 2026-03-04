@@ -7,3 +7,4 @@ export const AlertsConfig = lazy(() => import('../features/alerts/pages/AlertsCo
 export const NavigationSettings = lazy(() => import('../features/adminOps/pages/NavigationSettingsPage'));
 export const DataBackup = lazy(() => import('../features/adminOps/pages/DataBackupPage'));
 export const EmailMarketing = lazy(() => import('../features/adminOps/pages/EmailMarketingPage'));
+export const PortalAdminPage = lazy(() => import('../features/adminOps/pages/portalAdmin/PortalAdminPage'));

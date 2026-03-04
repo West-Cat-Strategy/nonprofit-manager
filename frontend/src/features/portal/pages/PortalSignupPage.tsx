@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { portalSignup } from '../../../store/slices/portalAuthSlice';
+import { AuthHeroShell, FormField, PrimaryButton } from '../../../components/ui';
 
 export default function PortalSignup() {
   const dispatch = useAppDispatch();
@@ -24,102 +25,98 @@ export default function PortalSignup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-app-surface-muted px-4">
-      <div className="bg-app-surface shadow rounded-lg p-8 w-full max-w-md">
-        <h1 className="text-2xl font-semibold text-app-text">Request Portal Access</h1>
-        <p className="text-sm text-app-text-muted mt-2">
-          Submit your details and a staff member will approve your access.
-        </p>
+    <AuthHeroShell
+      badge="Client portal"
+      title="Request Portal Access"
+      description="Submit your details and staff will review your request."
+      highlights={[
+        'Use the same email tied to your client contact.',
+        'Approval keeps portal access aligned with case visibility rules.',
+        'You will sign in immediately once approved.',
+      ]}
+    >
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-text-muted">Access request</p>
+      <h2 className="font-display mt-2 text-2xl font-semibold text-app-text-heading">
+        Request your portal account
+      </h2>
 
-        {signupStatus === 'success' ? (
-          <div className="mt-6">
-            <p className="text-app-accent-text text-sm">
-              Request submitted. A staff member will approve your access and share next steps.
-            </p>
-            <Link to="/portal/login" className="mt-4 inline-block text-app-accent hover:underline">
-              Back to login
-            </Link>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-            {error && <p className="text-sm text-app-accent">{error}</p>}
-            <div>
-              <label htmlFor="firstName" className="block text-sm font-medium text-app-text-muted">First Name</label>
-              <input
-                id="firstName"
-                type="text"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleChange}
-                className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="lastName" className="block text-sm font-medium text-app-text-muted">Last Name</label>
-              <input
-                id="lastName"
-                type="text"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
-                className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-app-text-muted">Email</label>
-              <input
-                id="email"
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-app-text-muted">Phone (optional)</label>
-              <input
-                id="phone"
-                type="text"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-app-text-muted">Password</label>
-              <input
-                id="password"
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
-                required
-                minLength={8}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover disabled:opacity-50"
-            >
-              {loading ? 'Submitting...' : 'Submit Request'}
-            </button>
-          </form>
-        )}
-
-        <div className="mt-4 text-sm text-app-text-muted">
-          Already have access?{' '}
-          <Link to="/portal/login" className="text-app-accent hover:underline">
-            Sign in
+      {signupStatus === 'success' ? (
+        <div className="mt-4 rounded-lg border border-app-border bg-app-accent-soft px-4 py-4 text-sm text-app-accent-text">
+          <p>Request submitted. A staff member will review and share next steps.</p>
+          <Link to="/portal/login" className="mt-3 inline-block font-medium text-app-text-heading hover:underline">
+            Back to login
           </Link>
         </div>
-      </div>
-    </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          {error && (
+            <div className="rounded-lg border border-app-border bg-app-accent-soft px-4 py-3 text-sm text-app-accent-text" role="alert" aria-live="polite">
+              {error}
+            </div>
+          )}
+          <FormField
+            id="portal-signup-first-name"
+            type="text"
+            name="firstName"
+            label="First Name"
+            value={formData.firstName}
+            onChange={handleChange}
+            required
+            autoComplete="given-name"
+          />
+          <FormField
+            id="portal-signup-last-name"
+            type="text"
+            name="lastName"
+            label="Last Name"
+            value={formData.lastName}
+            onChange={handleChange}
+            required
+            autoComplete="family-name"
+          />
+          <FormField
+            id="portal-signup-email"
+            type="email"
+            name="email"
+            label="Email"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            autoComplete="email"
+          />
+          <FormField
+            id="portal-signup-phone"
+            type="text"
+            name="phone"
+            label="Phone"
+            helperText="Optional"
+            value={formData.phone}
+            onChange={handleChange}
+            autoComplete="tel"
+          />
+          <FormField
+            id="portal-signup-password"
+            type="password"
+            name="password"
+            label="Password"
+            value={formData.password}
+            onChange={handleChange}
+            required
+            minLength={8}
+            autoComplete="new-password"
+          />
+          <PrimaryButton type="submit" disabled={loading} className="w-full justify-center">
+            {loading ? 'Submitting...' : 'Submit Request'}
+          </PrimaryButton>
+        </form>
+      )}
+
+      <p className="mt-4 text-sm text-app-text-muted">
+        Already have access?{' '}
+        <Link to="/portal/login" className="font-medium text-app-text-heading hover:underline">
+          Sign in
+        </Link>
+      </p>
+    </AuthHeroShell>
   );
 }

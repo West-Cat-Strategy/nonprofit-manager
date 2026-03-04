@@ -53,34 +53,46 @@ export class OpportunityService {
       return;
     }
 
-    for (let idx = 0; idx < DEFAULT_STAGES.length; idx += 1) {
-      const stage = DEFAULT_STAGES[idx];
-      await this.db.query(
-        `INSERT INTO opportunity_stages (
-           organization_id,
-           name,
-           stage_order,
-           probability,
-           is_closed,
-           is_won,
-           is_active,
-           created_by,
-           modified_by
-         )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
-         ON CONFLICT (organization_id, name) DO NOTHING`,
-        [
-          organizationId,
-          stage.name,
-          idx,
-          stage.probability || null,
-          stage.is_closed || false,
-          stage.is_won || false,
-          stage.is_active ?? true,
-          userId,
-        ]
-      );
-    }
+    await this.db.query(
+      `INSERT INTO opportunity_stages (
+         organization_id,
+         name,
+         stage_order,
+         probability,
+         is_closed,
+         is_won,
+         is_active,
+         created_by,
+         modified_by
+       )
+       SELECT
+         $1,
+         staged.name,
+         staged.ordinality - 1,
+         staged.probability,
+         staged.is_closed,
+         staged.is_won,
+         staged.is_active,
+         $2,
+         $2
+       FROM UNNEST(
+         $3::text[],
+         $4::smallint[],
+         $5::boolean[],
+         $6::boolean[],
+         $7::boolean[]
+       ) WITH ORDINALITY AS staged(name, probability, is_closed, is_won, is_active, ordinality)
+       ON CONFLICT (organization_id, name) DO NOTHING`,
+      [
+        organizationId,
+        userId,
+        DEFAULT_STAGES.map((stage) => stage.name),
+        DEFAULT_STAGES.map((stage) => stage.probability ?? null),
+        DEFAULT_STAGES.map((stage) => stage.is_closed ?? false),
+        DEFAULT_STAGES.map((stage) => stage.is_won ?? false),
+        DEFAULT_STAGES.map((stage) => stage.is_active ?? true),
+      ]
+    );
   }
 
   async listStages(organizationId: string): Promise<OpportunityStage[]> {
@@ -203,17 +215,19 @@ export class OpportunityService {
     try {
       await client.query('BEGIN');
 
-      for (let idx = 0; idx < data.stage_ids.length; idx += 1) {
-        await client.query(
-          `UPDATE opportunity_stages
-           SET stage_order = $4,
-               modified_by = $3,
-               updated_at = NOW()
-           WHERE organization_id = $1
-             AND id = $2`,
-          [organizationId, data.stage_ids[idx], userId, idx]
-        );
-      }
+      await client.query(
+        `UPDATE opportunity_stages AS stages
+         SET stage_order = ordered.stage_order,
+             modified_by = $2,
+             updated_at = NOW()
+         FROM (
+           SELECT stage_id, ordinality - 1 AS stage_order
+           FROM UNNEST($3::uuid[]) WITH ORDINALITY AS input(stage_id, ordinality)
+         ) AS ordered
+         WHERE stages.organization_id = $1
+           AND stages.id = ordered.stage_id`,
+        [organizationId, userId, data.stage_ids]
+      );
 
       const result = await client.query<StageRow>(
         `SELECT *

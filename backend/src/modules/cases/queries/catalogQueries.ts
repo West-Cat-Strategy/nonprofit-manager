@@ -8,6 +8,40 @@ import {
   requireCaseOwnership,
 } from './shared';
 
+const CASE_COLUMNS = `
+  c.id,
+  c.case_number,
+  c.contact_id,
+  c.account_id,
+  c.case_type_id,
+  c.status_id,
+  c.priority,
+  c.title,
+  c.description,
+  c.source,
+  c.referral_source,
+  c.intake_date,
+  c.opened_date,
+  c.closed_date,
+  c.due_date,
+  c.assigned_to,
+  c.assigned_team,
+  c.outcome,
+  c.outcome_notes,
+  c.closure_reason,
+  c.intake_data,
+  c.custom_data,
+  c.is_urgent,
+  c.requires_followup,
+  c.followup_date,
+  c.tags,
+  c.client_viewable,
+  c.created_at,
+  c.updated_at,
+  c.created_by,
+  c.modified_by
+`;
+
 export const getCasesQuery = async (
   db: Pool,
   filter: CaseFilter = {}
@@ -103,7 +137,7 @@ export const getCasesQuery = async (
   const total = parseInt(countResult.rows[0].count, 10);
 
   let query = `
-    SELECT c.*,
+    SELECT ${CASE_COLUMNS},
       ct.name as case_type_name, ct.color as case_type_color, ct.icon as case_type_icon,
       cs.name as status_name, cs.color as status_color, cs.status_type,
       con.first_name as contact_first_name, con.last_name as contact_last_name,
@@ -150,7 +184,7 @@ export const getCaseByIdQuery = async (
 ): Promise<CaseWithDetails | null> => {
   const result = await db.query(
     `
-    SELECT c.*,
+    SELECT ${CASE_COLUMNS},
       ct.name as case_type_name, ct.color as case_type_color, ct.icon as case_type_icon,
       cs.name as status_name, cs.color as status_color, cs.status_type,
       con.first_name as contact_first_name, con.last_name as contact_last_name,
@@ -185,7 +219,19 @@ export const getCaseTimelineQuery = async (
 
   const result = await db.query(
     `
-    SELECT * FROM (
+    SELECT
+      timeline.id,
+      timeline.type,
+      timeline.case_id,
+      timeline.created_at,
+      timeline.visible_to_client,
+      timeline.title,
+      timeline.content,
+      timeline.metadata,
+      timeline.created_by,
+      timeline.first_name,
+      timeline.last_name
+    FROM (
       SELECT
         cn.id,
         'note'::text AS type,
@@ -380,11 +426,45 @@ export const getCaseSummaryQuery = async (db: Pool, organizationId?: string): Pr
 };
 
 export const getCaseTypesQuery = async (db: Pool): Promise<unknown[]> => {
-  const result = await db.query(`SELECT * FROM case_types WHERE is_active = true ORDER BY name`);
+  const result = await db.query(
+    `SELECT
+      id,
+      name,
+      description,
+      color,
+      icon,
+      is_active,
+      requires_intake,
+      average_duration_days,
+      custom_fields,
+      created_at,
+      updated_at,
+      created_by,
+      modified_by
+    FROM case_types
+    WHERE is_active = true
+    ORDER BY name`
+  );
   return result.rows;
 };
 
 export const getCaseStatusesQuery = async (db: Pool): Promise<unknown[]> => {
-  const result = await db.query(`SELECT * FROM case_statuses WHERE is_active = true ORDER BY sort_order`);
+  const result = await db.query(
+    `SELECT
+      id,
+      name,
+      status_type,
+      description,
+      color,
+      sort_order,
+      is_active,
+      can_transition_to,
+      requires_reason,
+      created_at,
+      updated_at
+    FROM case_statuses
+    WHERE is_active = true
+    ORDER BY sort_order`
+  );
   return result.rows;
 };

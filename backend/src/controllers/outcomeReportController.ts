@@ -35,6 +35,7 @@ export const getOutcomesReport = async (req: AuthRequest, res: Response): Promis
       to: string;
       programId?: string;
       staffId?: string;
+      source?: 'all' | 'interaction' | 'event';
       interactionType?: string;
       bucket?: 'week' | 'month';
       includeNonReportable?: boolean;
@@ -59,6 +60,7 @@ export const getOutcomesReport = async (req: AuthRequest, res: Response): Promis
       to: query.to,
       programId: query.programId,
       staffId: query.staffId,
+      source: query.source || 'all',
       interactionType: query.interactionType,
       bucket: query.bucket || 'week',
       includeNonReportable: query.includeNonReportable,

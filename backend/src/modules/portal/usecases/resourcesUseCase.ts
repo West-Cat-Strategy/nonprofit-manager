@@ -1,44 +1,70 @@
 import { PortalRepository } from '../repositories/portalRepository';
 
+type PortalOffsetPage = {
+  limit: number;
+  offset: number;
+  has_more: boolean;
+  total: number;
+};
+
+type PortalPagedResult = {
+  items: unknown[];
+  page: PortalOffsetPage;
+};
+
 export class PortalResourcesUseCase {
   constructor(private readonly repository: PortalRepository) {}
 
-  getDocuments(contactId: string): Promise<unknown[]> {
-    return this.repository.getPortalDocuments(contactId);
+  getDocuments(
+    contactId: string,
+    query?: {
+      search?: string;
+      sort?: 'created_at' | 'title' | 'document_type' | 'original_name';
+      order?: 'asc' | 'desc';
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<PortalPagedResult> {
+    return this.repository.getPortalDocuments(contactId, query);
   }
 
-  getForms(contactId: string): Promise<unknown[]> {
-    return this.repository.getPortalForms(contactId);
+  getForms(
+    contactId: string,
+    query?: {
+      search?: string;
+      sort?: 'created_at' | 'title' | 'document_type' | 'original_name';
+      order?: 'asc' | 'desc';
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<PortalPagedResult> {
+    return this.repository.getPortalForms(contactId, query);
   }
 
-  getNotes(contactId: string): Promise<unknown[]> {
-    return this.repository.getPortalNotes(contactId);
+  getNotes(
+    contactId: string,
+    query?: {
+      search?: string;
+      sort?: 'created_at' | 'subject' | 'note_type';
+      order?: 'asc' | 'desc';
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<PortalPagedResult> {
+    return this.repository.getPortalNotes(contactId, query);
   }
 
-  async getReminders(contactId: string): Promise<unknown[]> {
-    const [appointments, events] = await Promise.all([
-      this.repository.getPortalReminderAppointments(contactId),
-      this.repository.getPortalReminderEvents(contactId),
-    ]);
-
-    const reminders = [
-      ...appointments.map((appointment) => ({
-        type: 'appointment',
-        id: (appointment as { id: string }).id,
-        title: (appointment as { title: string }).title,
-        date: (appointment as { start_time: string }).start_time,
-      })),
-      ...events.map((event) => ({
-        type: 'event',
-        id: (event as { id: string }).id,
-        title: (event as { name: string }).name,
-        date: (event as { start_date: string }).start_date,
-      })),
-    ];
-
-    return reminders.sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
+  getReminders(
+    contactId: string,
+    query?: {
+      search?: string;
+      sort?: 'date' | 'title' | 'type';
+      order?: 'asc' | 'desc';
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<PortalPagedResult> {
+    return this.repository.getPortalReminders(contactId, query);
   }
 
   getDownloadableDocument(contactId: string, documentId: string): Promise<{

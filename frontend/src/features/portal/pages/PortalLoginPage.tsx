@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { portalLogin } from '../../../store/slices/portalAuthSlice';
+import { AuthHeroShell, FormField, PrimaryButton } from '../../../components/ui';
 
 export default function PortalLogin() {
   const dispatch = useAppDispatch();
@@ -21,55 +22,61 @@ export default function PortalLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-app-surface-muted px-4">
-      <div className="bg-app-surface shadow rounded-lg p-8 w-full max-w-md">
-        <h1 className="text-2xl font-semibold text-app-text">Client Portal Login</h1>
-        <p className="text-sm text-app-text-muted mt-2">Access your portal to manage your information.</p>
+    <AuthHeroShell
+      badge="Client portal"
+      title="Client Portal Login"
+      description="Access case updates, shared documents, appointments, and messages."
+      highlights={[
+        'Secure session-based sign in.',
+        'Private view of only staff-shared records.',
+        'Messaging and appointments in one workspace.',
+      ]}
+    >
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-text-muted">Sign in</p>
+      <h2 className="font-display mt-2 text-2xl font-semibold text-app-text-heading">
+        Continue to your client portal
+      </h2>
+      <p className="mt-2 text-sm text-app-text-muted">
+        Use the email and password from your approved invitation.
+      </p>
 
-        {error && <p className="mt-4 text-sm text-app-accent">{error}</p>}
-        {error && (
-          <p className="mt-2 text-xs text-app-text-muted">
-            If your invitation has expired, contact your organization to request a new portal invite.
+      {error && (
+        <div className="mt-4 rounded-lg border border-app-border bg-app-accent-soft px-4 py-3 text-sm text-app-accent-text" role="alert" aria-live="polite">
+          {error}
+          <p className="mt-1 text-xs text-app-text-muted">
+            If your invitation has expired, contact your organization to request a new invite.
           </p>
-        )}
-
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-app-text-muted">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-app-text-muted">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full px-3 py-2 border border-app-input-border rounded-md"
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover disabled:opacity-50"
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-
-        <div className="mt-4 text-sm text-app-text-muted">
-          New here?{' '}
-          <Link to="/portal/signup" className="text-app-accent hover:underline">
-            Request access
-          </Link>
         </div>
-      </div>
-    </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <FormField
+          type="email"
+          label="Email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+          autoComplete="email"
+        />
+        <FormField
+          type="password"
+          label="Password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          required
+          autoComplete="current-password"
+        />
+        <PrimaryButton type="submit" disabled={loading} className="w-full justify-center">
+          {loading ? 'Signing in...' : 'Sign In'}
+        </PrimaryButton>
+      </form>
+
+      <p className="mt-4 text-sm text-app-text-muted">
+        New here?{' '}
+        <Link to="/portal/signup" className="font-medium text-app-text-heading hover:underline">
+          Request access
+        </Link>
+      </p>
+    </AuthHeroShell>
   );
 }

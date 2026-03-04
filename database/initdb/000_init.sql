@@ -62,12 +62,25 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 \i /migrations/050_case_client_visibility_notes_outcomes_topics_documents.sql
 \i /migrations/051_webhook_delivery_queue_hardening.sql
 \i /migrations/052_webhook_delivery_and_payment_webhook_idempotency.sql
+\i /migrations/053_follow_ups.sql
+\i /migrations/054_scheduled_reports.sql
+\i /migrations/055_opportunities_pipeline.sql
+\i /migrations/056_team_chat_case_threads.sql
+\i /migrations/057_saved_reports_entity_alignment.sql
+\i /migrations/058_report_templates.sql
+\i /migrations/059_saved_report_public_snapshots.sql
+\i /migrations/060_event_checkin_and_appointment_reminders.sql
+\i /migrations/060_saved_reports_sharing_columns.sql
+\i /migrations/061_audit_log_partition_rollforward.sql
+\i /migrations/062_efficiency_refactor_indexes.sql
+\i /migrations/063_case_outcomes_dual_model_alignment.sql
+\i /migrations/064_contacts_phn_encrypted.sql
+\i /migrations/065_event_public_checkin_settings.sql
+\i /migrations/066_efficiency_refactor_indexes.sql
 
-\i /seeds/001_default_users.sql
+-- No-user seed path so fresh environments land on /setup first.
 \i /seeds/002_starter_templates.sql
-\i /seeds/003_mock_data.sql
 \i /seeds/004_mock_data_no_users.sql
-\i /seeds/005_kingdom_hearts_mock_data.sql
 \i /seeds/006_theme_presets.sql
 \i /seeds/007_data_scopes.sql
 \i /seeds/008_outcome_definitions.sql

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { portalV2Routes } from '@modules/portal';
-import { eventsV2Routes } from '@modules/events';
+import { eventsV2Routes, publicEventsV2Routes } from '@modules/events';
 import { casesV2Routes } from '@modules/cases';
 import { contactsV2Routes } from '@modules/contacts';
 import { opportunitiesV2Routes } from '@modules/opportunities';
@@ -54,6 +54,7 @@ apiV2Routes.use('/invitations', invitationsV2Routes);
 apiV2Routes.use('/mailchimp', mailchimpV2Routes);
 apiV2Routes.use('/meetings', meetingsV2Routes);
 apiV2Routes.use('/payments', paymentsV2Routes);
+apiV2Routes.use('/public/events', publicEventsV2Routes);
 apiV2Routes.use('/public/reports', publicReportsV2Routes);
 apiV2Routes.use('/reconciliation', reconciliationV2Routes);
 apiV2Routes.use('/sites', publishingV2Routes);

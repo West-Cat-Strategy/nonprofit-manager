@@ -21,12 +21,43 @@ log_debug() { echo -e "${PURPLE}[DEBUG]${NC} $1"; }
 # Project paths
 get_project_root() {
     # Get the absolute path to the project root
-    cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd
+    cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd
 }
 
 # Check if command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
+}
+
+# Resolve the available Docker Compose command.
+docker_compose_cmd() {
+    if command_exists docker && docker compose version >/dev/null 2>&1; then
+        echo "docker compose"
+        return 0
+    fi
+
+    if command_exists docker-compose; then
+        echo "docker-compose"
+        return 0
+    fi
+
+    return 1
+}
+
+# Run Docker Compose commands with v2->v1 fallback.
+docker_compose() {
+    if command_exists docker && docker compose version >/dev/null 2>&1; then
+        docker compose "$@"
+        return $?
+    fi
+
+    if command_exists docker-compose; then
+        docker-compose "$@"
+        return $?
+    fi
+
+    log_error "Neither 'docker compose' nor 'docker-compose' is available"
+    return 127
 }
 
 # Check if we're in a git repository
@@ -65,7 +96,9 @@ check_docker_containers() {
     done
 
     if [ "$all_running" = false ]; then
-        log_info "Start containers with: docker-compose up -d"
+        local compose_cmd="docker compose"
+        compose_cmd="$(docker_compose_cmd 2>/dev/null || echo "docker compose")"
+        log_info "Start containers with: $compose_cmd up -d"
         return 1
     fi
 

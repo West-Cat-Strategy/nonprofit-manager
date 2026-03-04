@@ -5,6 +5,16 @@ import pool from '../../config/database';
 import { getJwtSecret } from '../../config/jwt';
 
 describe('Portal Visibility Integration', () => {
+  type PortalPagedPayload<T> = {
+    items: T[];
+    page: {
+      limit: number;
+      offset: number;
+      has_more: boolean;
+      total: number;
+    };
+  };
+
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   let contactId: string;
@@ -17,11 +27,16 @@ describe('Portal Visibility Integration', () => {
   let hiddenDocId: string;
   let visibleFormDocId: string;
   let missingFileDocId: string;
+  let portalEventId: string;
+  let portalRegistrationId: string;
+  let portalCheckInToken: string;
 
   const createdDocIds: string[] = [];
   const createdNoteIds: string[] = [];
   const createdPortalUserIds: string[] = [];
   const createdContactIds: string[] = [];
+  const createdEventIds: string[] = [];
+  const createdRegistrationIds: string[] = [];
 
   const buildPortalToken = () =>
     jwt.sign(
@@ -177,9 +192,60 @@ describe('Portal Visibility Integration', () => {
     );
     missingFileDocId = missingFileDoc.rows[0].id as string;
     createdDocIds.push(missingFileDocId);
+
+    const portalEvent = await pool.query(
+      `INSERT INTO events (
+         name,
+         description,
+         event_type,
+         status,
+         is_public,
+         start_date,
+         end_date,
+         location_name,
+         created_by,
+         modified_by
+       ) VALUES (
+         'Portal Registration Event',
+         'Visible via registration',
+         'community',
+         'planned',
+         false,
+         NOW() + interval '2 days',
+         NOW() + interval '2 days 2 hours',
+         'Portal Hall',
+         NULL,
+         NULL
+       )
+       RETURNING id`
+    );
+    portalEventId = portalEvent.rows[0].id as string;
+    createdEventIds.push(portalEventId);
+
+    const portalRegistration = await pool.query<{ id: string; check_in_token: string }>(
+      `INSERT INTO event_registrations (
+         event_id,
+         contact_id,
+         registration_status,
+         checked_in,
+         check_in_time,
+         check_in_method
+       ) VALUES ($1, $2, 'registered', true, NOW(), 'qr')
+       RETURNING id, check_in_token`,
+      [portalEventId, contactId]
+    );
+    portalRegistrationId = portalRegistration.rows[0].id as string;
+    portalCheckInToken = portalRegistration.rows[0].check_in_token;
+    createdRegistrationIds.push(portalRegistrationId);
   });
 
   afterAll(async () => {
+    if (createdRegistrationIds.length > 0) {
+      await pool.query('DELETE FROM event_registrations WHERE id = ANY($1)', [createdRegistrationIds]);
+    }
+    if (createdEventIds.length > 0) {
+      await pool.query('DELETE FROM events WHERE id = ANY($1)', [createdEventIds]);
+    }
     if (createdDocIds.length > 0) {
       await pool.query('DELETE FROM contact_documents WHERE id = ANY($1)', [createdDocIds]);
     }
@@ -200,12 +266,37 @@ describe('Portal Visibility Integration', () => {
       .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
       .expect(200);
 
-    const noteRows = unwrap<Array<{ id: string }>>(response.body);
-    const noteIds = noteRows.map((entry) => entry.id);
+    const notesPayload = unwrap<PortalPagedPayload<{ id: string }>>(response.body);
+    const noteIds = notesPayload.items.map((entry) => entry.id);
 
     expect(noteIds).toContain(visibleNoteId);
     expect(noteIds).not.toContain(hiddenNoteId);
     expect(noteIds).not.toContain(internalVisibleNoteId);
+    expect(notesPayload.page.total).toBe(1);
+  });
+
+  it('supports filtered/paged note queries using the portal offset-page contract', async () => {
+    const response = await request(app)
+      .get('/api/v2/portal/notes')
+      .query({
+        search: 'Visible portal',
+        sort: 'subject',
+        order: 'asc',
+        limit: 1,
+        offset: 0,
+      })
+      .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
+      .expect(200);
+
+    const notesPayload = unwrap<PortalPagedPayload<{ id: string }>>(response.body);
+    expect(notesPayload.items).toHaveLength(1);
+    expect(notesPayload.items[0].id).toBe(visibleNoteId);
+    expect(notesPayload.page).toEqual({
+      limit: 1,
+      offset: 0,
+      has_more: false,
+      total: 1,
+    });
   });
 
   it('only returns explicitly shared documents and forms and blocks hidden downloads', async () => {
@@ -214,21 +305,23 @@ describe('Portal Visibility Integration', () => {
       .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
       .expect(200);
 
-    const docRows = unwrap<Array<{ id: string }>>(docsResponse.body);
-    const docIds = docRows.map((entry) => entry.id);
+    const docsPayload = unwrap<PortalPagedPayload<{ id: string }>>(docsResponse.body);
+    const docIds = docsPayload.items.map((entry) => entry.id);
     expect(docIds).toContain(visibleDocId);
     expect(docIds).toContain(visibleFormDocId);
     expect(docIds).not.toContain(hiddenDocId);
+    expect(docsPayload.page.total).toBeGreaterThanOrEqual(2);
 
     const formsResponse = await request(app)
       .get('/api/v2/portal/forms')
       .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
       .expect(200);
 
-    const formRows = unwrap<Array<{ id: string }>>(formsResponse.body);
-    const formIds = formRows.map((entry) => entry.id);
+    const formsPayload = unwrap<PortalPagedPayload<{ id: string }>>(formsResponse.body);
+    const formIds = formsPayload.items.map((entry) => entry.id);
     expect(formIds).toContain(visibleFormDocId);
     expect(formIds).not.toContain(visibleDocId);
+    expect(formsPayload.page.total).toBe(1);
 
     await request(app)
       .get(`/api/v2/portal/documents/${hiddenDocId}/download`)
@@ -242,5 +335,53 @@ describe('Portal Visibility Integration', () => {
 
     const errorCode = missingFileResponse.body?.error?.code || missingFileResponse.body?.code;
     expect(errorCode).toMatch(/DOCUMENT_FILE_NOT_FOUND|NOT_FOUND/i);
+  });
+
+  it('validates resource/event list query params for strict sort/search/order/limit/offset support', async () => {
+    await request(app)
+      .get('/api/v2/portal/events')
+      .query({ sort: 'invalid_field' })
+      .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
+      .expect(400);
+
+    await request(app)
+      .get('/api/v2/portal/documents')
+      .query({ unknown: 'true' })
+      .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
+      .expect(400);
+
+    await request(app)
+      .get('/api/v2/portal/reminders')
+      .query({ order: 'up' })
+      .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
+      .expect(400);
+  });
+
+  it('returns portal event registration check-in metadata for the portal user', async () => {
+    const response = await request(app)
+      .get('/api/v2/portal/events')
+      .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
+      .expect(200);
+
+    const payload = unwrap<
+      PortalPagedPayload<{
+        id: string;
+        registration_id?: string | null;
+        check_in_token?: string | null;
+        checked_in?: boolean | null;
+        check_in_time?: string | null;
+        check_in_method?: string | null;
+        public_checkin_pin_hash?: string | null;
+      }>
+    >(response.body);
+
+    const eventRow = payload.items.find((item) => item.id === portalEventId);
+    expect(eventRow).toBeDefined();
+    expect(eventRow?.registration_id).toBe(portalRegistrationId);
+    expect(eventRow?.check_in_token).toBe(portalCheckInToken);
+    expect(eventRow?.checked_in).toBe(true);
+    expect(eventRow?.check_in_time).toBeTruthy();
+    expect(eventRow?.check_in_method).toBe('qr');
+    expect(eventRow).not.toHaveProperty('public_checkin_pin_hash');
   });
 });

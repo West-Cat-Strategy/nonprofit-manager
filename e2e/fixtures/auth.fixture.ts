@@ -5,9 +5,8 @@
 
 import '../helpers/testEnv';
 import { test as base, Page } from '@playwright/test';
-import { ensureLoginViaAPI, clearAuth, applyAuthTokenState } from '../helpers/auth';
+import { ensureEffectiveAdminLoginViaAPI, clearAuth, applyAuthTokenState } from '../helpers/auth';
 import { clearDatabase } from '../helpers/database';
-import { getSharedTestUser } from '../helpers/testUser';
 
 // Extend base test with custom fixtures
 type AuthFixtures = {
@@ -36,18 +35,18 @@ const ensureSharedAuthState = async (page: Page): Promise<CachedAuthState> => {
     return cachedAuthState;
   }
 
-  const sharedUser = getSharedTestUser();
-  const login = await ensureLoginViaAPI(page, sharedUser.email, sharedUser.password, {
+  const session = await ensureEffectiveAdminLoginViaAPI(page, {
     firstName: 'Test',
     lastName: 'User',
+    organizationName: 'E2E Organization',
   });
-  const loginRecord = login as { organizationId?: unknown; user?: Record<string, unknown> };
+  const sessionRecord = session as { organizationId?: unknown; user?: Record<string, unknown> };
   cachedAuthState = {
-    token: login.token,
+    token: session.token,
     organizationId:
-      normalizeOrganizationId(loginRecord.organizationId) ||
-      normalizeOrganizationId(loginRecord.user?.organizationId) ||
-      normalizeOrganizationId(loginRecord.user?.organization_id),
+      normalizeOrganizationId(sessionRecord.organizationId) ||
+      normalizeOrganizationId(sessionRecord.user?.organizationId) ||
+      normalizeOrganizationId(sessionRecord.user?.organization_id),
   };
   return cachedAuthState;
 };

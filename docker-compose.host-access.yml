@@ -1,0 +1,11 @@
+services:
+  # Optional host-port exposure for local admin/debug access.
+  # Usage:
+  #   docker compose -f docker-compose.yml -f docker-compose.host-access.yml up -d
+  postgres:
+    ports:
+      - "8012:5432"
+
+  redis:
+    ports:
+      - "8013:6379"

@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { emailSchema, passwordSchema, phoneSchema, uuidSchema } from './shared';
+import {
+  emailSchema,
+  optionalNullablePhnSchema,
+  passwordSchema,
+  phoneSchema,
+  uuidSchema,
+} from './shared';
 
 const portalPasswordSchema = passwordSchema;
 
@@ -38,6 +44,7 @@ export const portalProfileUpdateSchema = z
     email: emailSchema.optional(),
     phone: phoneSchema,
     mobile_phone: phoneSchema,
+    phn: optionalNullablePhnSchema,
     address_line1: z.string().max(255).optional().nullable(),
     address_line2: z.string().max(255).optional().nullable(),
     city: z.string().max(100).optional().nullable(),
@@ -95,6 +102,45 @@ const portalPaginationQuerySchema = z
   .object({
     limit: z.coerce.number().int().min(1).max(100).optional(),
     offset: z.coerce.number().int().min(0).max(10_000).optional(),
+  })
+  .strict();
+
+const portalListOrderSchema = z.enum(['asc', 'desc']);
+
+const portalListQueryBaseSchema = portalPaginationQuerySchema
+  .extend({
+    search: z.string().trim().max(255).optional(),
+    order: portalListOrderSchema.optional(),
+  })
+  .strict();
+
+export const portalEventsQuerySchema = portalListQueryBaseSchema
+  .extend({
+    sort: z.enum(['start_date', 'name', 'created_at']).optional(),
+  })
+  .strict();
+
+export const portalDocumentsQuerySchema = portalListQueryBaseSchema
+  .extend({
+    sort: z.enum(['created_at', 'title', 'document_type', 'original_name']).optional(),
+  })
+  .strict();
+
+export const portalFormsQuerySchema = portalListQueryBaseSchema
+  .extend({
+    sort: z.enum(['created_at', 'title', 'document_type', 'original_name']).optional(),
+  })
+  .strict();
+
+export const portalNotesQuerySchema = portalListQueryBaseSchema
+  .extend({
+    sort: z.enum(['created_at', 'subject', 'note_type']).optional(),
+  })
+  .strict();
+
+export const portalRemindersQuerySchema = portalListQueryBaseSchema
+  .extend({
+    sort: z.enum(['date', 'title', 'type']).optional(),
   })
   .strict();
 
