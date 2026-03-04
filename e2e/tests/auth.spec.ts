@@ -6,7 +6,7 @@
 import '../helpers/testEnv';
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { login, logout, clearAuth, ensureAdminLoginViaAPI } from '../helpers/auth';
+import { login, logout, clearAuth, ensureEffectiveAdminLoginViaAPI } from '../helpers/auth';
 
 const defaultCreds = {
   email: process.env.ADMIN_USER_EMAIL?.trim() || 'admin@example.com',
@@ -26,7 +26,7 @@ const gotoLogin = async (page: Page) => {
 
 test.describe('Authentication Flow', () => {
   test.beforeEach(async ({ page }) => {
-    const session = await ensureAdminLoginViaAPI(page, {
+    const session = await ensureEffectiveAdminLoginViaAPI(page, {
       firstName: 'Test',
       lastName: 'User',
     });
@@ -123,6 +123,12 @@ test.describe('Authentication Flow', () => {
     page,
   }) => {
     await clearAuth(page);
+    await gotoLogin(page);
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+    });
+    await page.context().clearCookies();
 
     // Try to access protected route
     try {
@@ -200,7 +206,7 @@ test.describe('Authentication Flow', () => {
 
 test.describe('Session Management', () => {
   test.beforeEach(async ({ page }) => {
-    const session = await ensureAdminLoginViaAPI(page, {
+    const session = await ensureEffectiveAdminLoginViaAPI(page, {
       firstName: 'Test',
       lastName: 'User',
     });

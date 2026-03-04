@@ -23,6 +23,7 @@
   --app-border: #000000;
   --app-accent: #2563EB;
   --app-accent-hover: #1D4ED8;
+  --app-accent-foreground: #FFFFFF;
   --app-accent-text: #2563EB;
   --app-accent-text-hover: #1D4ED8;
   --app-accent-soft: #DBEAFE;
@@ -72,6 +73,7 @@ body.dark:not([class*="theme-"]) {
   --app-border: #FFFFFF;
   --app-accent: #2563EB;
   --app-accent-hover: #1D4ED8;
+  --app-accent-foreground: #FFFFFF;
   --app-accent-text: #60A5FA;
   --app-accent-text-hover: #93C5FD;
   --app-accent-soft: rgba(37, 99, 235, 0.2);
@@ -649,6 +651,7 @@ body.theme-high-contrast.dark {
   --app-border: #FFFFFF;
   --app-accent: #FFD700;
   --app-accent-hover: #FFC000;
+  --app-accent-foreground: #000000;
   --app-accent-text: #FFD700;
   --app-accent-text-hover: #FFC000;
   --app-accent-soft: rgba(255, 215, 0, 0.2);
@@ -1217,6 +1220,7 @@ body [class*="focus:border-blue-600"]:focus {
   --app-border-muted: #cfc5b6;
   --app-accent: #ff7a00;
   --app-accent-hover: #ea6f00;
+  --app-accent-foreground: #1a1309;
   --app-accent-text: #c95f00;
   --app-accent-text-hover: #a94d00;
   --app-accent-soft: rgba(255, 122, 0, 0.16);
@@ -1250,6 +1254,7 @@ body.theme-sea-breeze {
   --app-border-muted: #9fd4ce;
   --app-accent: #0d8b80;
   --app-accent-hover: #0a7168;
+  --app-accent-foreground: #ffffff;
   --app-accent-text: #0d8b80;
   --app-accent-text-hover: #0a7168;
   --app-accent-soft: rgba(13, 139, 128, 0.16);
@@ -1275,6 +1280,7 @@ body.theme-corporate {
   --app-border-muted: #c7d0de;
   --app-accent: #1d4ed8;
   --app-accent-hover: #163ca9;
+  --app-accent-foreground: #ffffff;
   --app-accent-text: #1d4ed8;
   --app-accent-text-hover: #163ca9;
   --app-accent-soft: rgba(29, 78, 216, 0.13);
@@ -1300,6 +1306,7 @@ body.theme-clean-modern {
   --app-border-muted: #b7c2e8;
   --app-accent: #5b4dff;
   --app-accent-hover: #483dcf;
+  --app-accent-foreground: #ffffff;
   --app-accent-text: #4a3fd6;
   --app-accent-text-hover: #3d35ad;
   --app-accent-soft: rgba(91, 77, 255, 0.15);
@@ -1325,6 +1332,7 @@ body.theme-glass {
   --app-border-muted: #a8b9d0;
   --app-accent: #00a2ff;
   --app-accent-hover: #007fcb;
+  --app-accent-foreground: #0d1625;
   --app-accent-text: #006ba9;
   --app-accent-text-hover: #005581;
   --app-accent-soft: rgba(0, 162, 255, 0.17);
@@ -1350,6 +1358,7 @@ body.theme-high-contrast {
   --app-border-muted: #303030;
   --app-accent: #0049d6;
   --app-accent-hover: #0037a3;
+  --app-accent-foreground: #ffffff;
   --app-accent-text: #0049d6;
   --app-accent-text-hover: #00307f;
   --app-accent-soft: rgba(0, 73, 214, 0.18);
@@ -1380,6 +1389,7 @@ body.dark.theme-high-contrast {
   --app-border-muted: #4b5569;
   --app-accent: #6fb2ff;
   --app-accent-hover: #5c9de8;
+  --app-accent-foreground: #0b1220;
   --app-accent-text: #97c8ff;
   --app-accent-text-hover: #b8d8ff;
   --app-accent-soft: rgba(111, 178, 255, 0.2);

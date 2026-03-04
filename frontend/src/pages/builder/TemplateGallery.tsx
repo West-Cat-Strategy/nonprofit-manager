@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../../store';
 import {
+  createTemplate,
   searchTemplates,
   fetchSystemTemplates,
   deleteTemplate,
@@ -153,6 +154,21 @@ const TemplateGallery: React.FC = () => {
     },
     [dispatch]
   );
+
+  const handleStartFromScratch = useCallback(() => {
+    dispatch(
+      createTemplate({
+        name: 'Untitled Website',
+        description: 'New website template',
+        category: 'multi-page',
+        tags: [],
+      })
+    ).then((result) => {
+      if (createTemplate.fulfilled.match(result)) {
+        navigate(`/website-builder/${result.payload.id}`);
+      }
+    });
+  }, [dispatch, navigate]);
 
   const displayedTemplates = activeTab === 'starter-templates' ? systemTemplates : templates;
 
@@ -387,7 +403,7 @@ const TemplateGallery: React.FC = () => {
               <button
                 onClick={() => {
                   setShowNewModal(false);
-                  navigate('/website-builder/new');
+                  handleStartFromScratch();
                 }}
                 className="w-full p-4 text-left border border-app-border rounded-lg hover:border-app-accent hover:bg-app-accent-soft transition-colors"
               >

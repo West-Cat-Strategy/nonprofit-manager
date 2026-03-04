@@ -26,6 +26,15 @@ const buildContentDisposition = (name: string): string => {
 };
 
 export const createPortalResourcesController = (useCase: PortalResourcesUseCase) => {
+  const getListQuery = (req: PortalAuthRequest) =>
+    (req.validatedQuery ?? req.query) as {
+      search?: string;
+      sort?: string;
+      order?: 'asc' | 'desc';
+      limit?: number;
+      offset?: number;
+    };
+
   const getDocuments = async (req: PortalAuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const contactId = getPortalContactId(req);
@@ -34,7 +43,14 @@ export const createPortalResourcesController = (useCase: PortalResourcesUseCase)
         return;
       }
 
-      const documents = await useCase.getDocuments(contactId);
+      const query = getListQuery(req);
+      const documents = await useCase.getDocuments(contactId, {
+        search: query.search,
+        sort: query.sort as 'created_at' | 'title' | 'document_type' | 'original_name' | undefined,
+        order: query.order,
+        limit: query.limit,
+        offset: query.offset,
+      });
       sendSuccess(res, documents);
     } catch (error) {
       next(error);
@@ -49,7 +65,14 @@ export const createPortalResourcesController = (useCase: PortalResourcesUseCase)
         return;
       }
 
-      const forms = await useCase.getForms(contactId);
+      const query = getListQuery(req);
+      const forms = await useCase.getForms(contactId, {
+        search: query.search,
+        sort: query.sort as 'created_at' | 'title' | 'document_type' | 'original_name' | undefined,
+        order: query.order,
+        limit: query.limit,
+        offset: query.offset,
+      });
       sendSuccess(res, forms);
     } catch (error) {
       next(error);
@@ -64,7 +87,14 @@ export const createPortalResourcesController = (useCase: PortalResourcesUseCase)
         return;
       }
 
-      const notes = await useCase.getNotes(contactId);
+      const query = getListQuery(req);
+      const notes = await useCase.getNotes(contactId, {
+        search: query.search,
+        sort: query.sort as 'created_at' | 'subject' | 'note_type' | undefined,
+        order: query.order,
+        limit: query.limit,
+        offset: query.offset,
+      });
       sendSuccess(res, notes);
     } catch (error) {
       next(error);
@@ -79,7 +109,14 @@ export const createPortalResourcesController = (useCase: PortalResourcesUseCase)
         return;
       }
 
-      const reminders = await useCase.getReminders(contactId);
+      const query = getListQuery(req);
+      const reminders = await useCase.getReminders(contactId, {
+        search: query.search,
+        sort: query.sort as 'date' | 'title' | 'type' | undefined,
+        order: query.order,
+        limit: query.limit,
+        offset: query.offset,
+      });
       sendSuccess(res, reminders);
     } catch (error) {
       next(error);

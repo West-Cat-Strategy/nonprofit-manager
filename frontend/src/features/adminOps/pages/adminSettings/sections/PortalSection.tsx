@@ -13,6 +13,8 @@ import type {
   PortalUser,
 } from '../types';
 
+export type PortalSectionPanel = 'access' | 'users' | 'conversations' | 'appointments' | 'slots';
+
 const getStreamStatusBadge = (
   status: PortalStreamStatus
 ): { label: string; className: string } => {
@@ -43,7 +45,7 @@ const getStreamStatusBadge = (
   };
 };
 
-interface PortalSectionProps {
+export interface PortalSectionProps {
   portalInviteUrl: string | null;
   portalLoading: boolean;
   portalRequests: PortalSignupRequest[];
@@ -169,6 +171,7 @@ interface PortalSectionProps {
     appointmentId: string,
     options: { sendEmail?: boolean; sendSms?: boolean }
   ) => void;
+  visiblePanels?: PortalSectionPanel[];
 }
 
 export default function PortalSection({
@@ -250,11 +253,16 @@ export default function PortalSection({
   portalReminderCustomMessage,
   onPortalReminderCustomMessageChange,
   onPortalSendAppointmentReminder,
+  visiblePanels,
 }: PortalSectionProps) {
   const streamBadge = getStreamStatusBadge(portalStreamStatus);
+  const isPanelVisible = (panel: PortalSectionPanel): boolean =>
+    !visiblePanels || visiblePanels.includes(panel);
 
   return (
     <div className="space-y-6">
+      {isPanelVisible('access') && (
+        <>
       <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
         <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
           <h2 className="text-lg font-semibold text-app-text-heading">Client Portal Access</h2>
@@ -445,7 +453,10 @@ export default function PortalSection({
           </div>
         </div>
       </div>
+      </>
+      )}
 
+      {isPanelVisible('users') && (
       <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
         <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
           <h3 className="text-lg font-semibold text-app-text-heading">Portal Users</h3>
@@ -549,7 +560,9 @@ export default function PortalSection({
           )}
         </div>
       </div>
+      )}
 
+      {isPanelVisible('conversations') && (
       <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
         <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
           <div className="flex items-center justify-between gap-3">
@@ -746,7 +759,9 @@ export default function PortalSection({
           </div>
         </div>
       </div>
+      )}
 
+      {isPanelVisible('appointments') && (
       <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
         <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
           <h3 className="text-lg font-semibold text-app-text-heading">Appointment Inbox</h3>
@@ -1004,7 +1019,9 @@ export default function PortalSection({
           )}
         </div>
       </div>
+      )}
 
+      {isPanelVisible('slots') && (
       <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
         <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
           <h3 className="text-lg font-semibold text-app-text-heading">Appointment Slots</h3>
@@ -1185,8 +1202,9 @@ export default function PortalSection({
           )}
         </div>
       </div>
+      )}
 
-      {selectedPortalUser && (
+      {isPanelVisible('users') && selectedPortalUser && (
         <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
           <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
             <h3 className="text-lg font-semibold text-app-text-heading">Recent Portal Activity</h3>

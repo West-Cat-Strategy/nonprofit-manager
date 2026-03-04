@@ -1,37 +1,17 @@
 import { Pool } from 'pg';
 import pool from '@config/database';
-import type { OutcomeReportFilters, OutcomeReportResult } from '@app-types/outcomes';
+import type {
+  OutcomeReportFilters,
+  OutcomeReportResult,
+  OutcomeReportSourceFilter,
+} from '@app-types/outcomes';
 
-const buildSharedWhereClause = (
-  filters: OutcomeReportFilters,
-  includeNonReportable: boolean
-): { clause: string; values: unknown[] } => {
-  const conditions: string[] = [
-    `ioi.impact = true`,
-    `cn.created_at >= $1::date`,
-    `cn.created_at < ($2::date + INTERVAL '1 day')`,
-  ];
-
-  const values: unknown[] = [filters.from, filters.to];
-
-  if (!includeNonReportable) {
-    conditions.push(`od.is_reportable = true`);
+const normalizeSourceFilter = (source: OutcomeReportFilters['source']): OutcomeReportSourceFilter => {
+  if (source === 'interaction' || source === 'event') {
+    return source;
   }
 
-  if (filters.staffId) {
-    values.push(filters.staffId);
-    conditions.push(`cn.created_by = $${values.length}`);
-  }
-
-  if (filters.interactionType) {
-    values.push(filters.interactionType);
-    conditions.push(`cn.note_type = $${values.length}`);
-  }
-
-  return {
-    clause: conditions.join(' AND '),
-    values,
-  };
+  return 'all';
 };
 
 export class OutcomeReportService {
@@ -40,49 +20,148 @@ export class OutcomeReportService {
   async getOutcomesReport(filters: OutcomeReportFilters, isAdmin: boolean): Promise<OutcomeReportResult> {
     const bucket = filters.bucket === 'month' ? 'month' : 'week';
     const includeNonReportable = Boolean(filters.includeNonReportable && isAdmin);
+    const sourceFilter = normalizeSourceFilter(filters.source);
 
-    const sharedWhere = buildSharedWhereClause(filters, includeNonReportable);
+    const values: unknown[] = [];
+    const addValue = (value: unknown): string => {
+      values.push(value);
+      return `$${values.length}`;
+    };
+
+    const sourceQueries: string[] = [];
+
+    if (sourceFilter === 'all' || sourceFilter === 'interaction') {
+      const interactionConditions: string[] = [`ioi.impact = true`];
+
+      const interactionFromRef = addValue(filters.from);
+      const interactionToRef = addValue(filters.to);
+      interactionConditions.push(`cn.created_at >= ${interactionFromRef}::date`);
+      interactionConditions.push(`cn.created_at < (${interactionToRef}::date + INTERVAL '1 day')`);
+
+      if (!includeNonReportable) {
+        interactionConditions.push(`od.is_reportable = true`);
+      }
+
+      if (filters.staffId) {
+        const staffRef = addValue(filters.staffId);
+        interactionConditions.push(`cn.created_by = ${staffRef}`);
+      }
+
+      if (filters.interactionType) {
+        const interactionTypeRef = addValue(filters.interactionType);
+        interactionConditions.push(`cn.note_type = ${interactionTypeRef}`);
+      }
+
+      sourceQueries.push(`
+        SELECT
+          od.id::text AS outcome_definition_id,
+          od.key AS key,
+          od.name AS name,
+          c.contact_id,
+          date_trunc('${bucket}', cn.created_at)::date AS bucket_start,
+          'interaction'::text AS source,
+          od.sort_order AS sort_order
+        FROM interaction_outcome_impacts ioi
+        INNER JOIN outcome_definitions od
+          ON od.id = ioi.outcome_definition_id
+        INNER JOIN case_notes cn
+          ON cn.id = ioi.interaction_id
+        INNER JOIN cases c
+          ON c.id = cn.case_id
+        WHERE ${interactionConditions.join(' AND ')}
+      `);
+    }
+
+    if (sourceFilter === 'all' || sourceFilter === 'event') {
+      const eventConditions: string[] = [];
+
+      const eventFromRef = addValue(filters.from);
+      const eventToRef = addValue(filters.to);
+      eventConditions.push(`co.outcome_date >= ${eventFromRef}::date`);
+      eventConditions.push(`co.outcome_date < (${eventToRef}::date + INTERVAL '1 day')`);
+
+      if (!includeNonReportable) {
+        eventConditions.push(`(od.id IS NULL OR od.is_reportable = true)`);
+      }
+
+      if (filters.staffId) {
+        const staffRef = addValue(filters.staffId);
+        eventConditions.push(`co.created_by = ${staffRef}`);
+      }
+
+      sourceQueries.push(`
+        SELECT
+          COALESCE(
+            co.outcome_definition_id::text,
+            'event:' || md5(lower(trim(COALESCE(co.outcome_type, 'unspecified'))))
+          ) AS outcome_definition_id,
+          COALESCE(
+            od.key,
+            'legacy_' || regexp_replace(lower(COALESCE(co.outcome_type, 'unspecified')), '[^a-z0-9]+', '_', 'g')
+          ) AS key,
+          COALESCE(
+            od.name,
+            NULLIF(BTRIM(co.outcome_type), ''),
+            'Unspecified outcome'
+          ) AS name,
+          c.contact_id,
+          date_trunc('${bucket}', co.outcome_date::timestamptz)::date AS bucket_start,
+          'event'::text AS source,
+          COALESCE(od.sort_order, 999999) AS sort_order
+        FROM case_outcomes co
+        INNER JOIN cases c
+          ON c.id = co.case_id
+        LEFT JOIN outcome_definitions od
+          ON od.id = co.outcome_definition_id
+        WHERE ${eventConditions.join(' AND ')}
+      `);
+    }
+
+    if (sourceQueries.length === 0) {
+      return {
+        totalsByOutcome: [],
+        timeseries: [],
+      };
+    }
+
+    const sourceRowsCte = `WITH source_rows AS (\n${sourceQueries.join('\nUNION ALL\n')}\n)`;
 
     const totalsResult = await this.pool.query(
-      `
+      `${sourceRowsCte}
       SELECT
-        od.id AS outcome_definition_id,
-        od.key,
-        od.name,
+        source_rows.outcome_definition_id,
+        MIN(source_rows.key) AS key,
+        MIN(source_rows.name) AS name,
         COUNT(*)::int AS count_impacts,
-        COUNT(DISTINCT c.contact_id)::int AS unique_clients_impacted,
-        od.sort_order
-      FROM interaction_outcome_impacts ioi
-      INNER JOIN outcome_definitions od
-        ON od.id = ioi.outcome_definition_id
-      INNER JOIN case_notes cn
-        ON cn.id = ioi.interaction_id
-      INNER JOIN cases c
-        ON c.id = cn.case_id
-      WHERE ${sharedWhere.clause}
-      GROUP BY od.id, od.key, od.name, od.sort_order
-      ORDER BY od.sort_order ASC, od.name ASC
+        COUNT(DISTINCT source_rows.contact_id)::int AS unique_clients_impacted,
+        COUNT(*) FILTER (WHERE source_rows.source = 'interaction')::int AS interaction_count_impacts,
+        COUNT(DISTINCT CASE WHEN source_rows.source = 'interaction' THEN source_rows.contact_id END)::int
+          AS interaction_unique_clients_impacted,
+        COUNT(*) FILTER (WHERE source_rows.source = 'event')::int AS event_count_impacts,
+        COUNT(DISTINCT CASE WHEN source_rows.source = 'event' THEN source_rows.contact_id END)::int
+          AS event_unique_clients_impacted,
+        MIN(source_rows.sort_order) AS sort_order
+      FROM source_rows
+      GROUP BY source_rows.outcome_definition_id
+      ORDER BY sort_order ASC, MIN(source_rows.name) ASC
     `,
-      sharedWhere.values
+      values
     );
 
     const timeseriesResult = await this.pool.query(
-      `
+      `${sourceRowsCte}
       SELECT
-        date_trunc('${bucket}', cn.created_at)::date AS bucket_start,
-        od.id AS outcome_definition_id,
+        source_rows.bucket_start,
+        source_rows.outcome_definition_id,
+        source_rows.source,
         COUNT(*)::int AS count_impacts,
-        od.sort_order
-      FROM interaction_outcome_impacts ioi
-      INNER JOIN outcome_definitions od
-        ON od.id = ioi.outcome_definition_id
-      INNER JOIN case_notes cn
-        ON cn.id = ioi.interaction_id
-      WHERE ${sharedWhere.clause}
-      GROUP BY bucket_start, od.id, od.sort_order
-      ORDER BY bucket_start ASC, od.sort_order ASC
+        MIN(source_rows.sort_order) AS sort_order,
+        MIN(source_rows.name) AS name
+      FROM source_rows
+      GROUP BY source_rows.bucket_start, source_rows.outcome_definition_id, source_rows.source
+      ORDER BY source_rows.bucket_start ASC, sort_order ASC, name ASC, source_rows.source ASC
     `,
-      sharedWhere.values
+      values
     );
 
     return {
@@ -92,10 +171,21 @@ export class OutcomeReportService {
         name: row.name,
         countImpacts: row.count_impacts,
         uniqueClientsImpacted: row.unique_clients_impacted,
+        sourceBreakdown: {
+          interaction: {
+            countImpacts: row.interaction_count_impacts,
+            uniqueClientsImpacted: row.interaction_unique_clients_impacted,
+          },
+          event: {
+            countImpacts: row.event_count_impacts,
+            uniqueClientsImpacted: row.event_unique_clients_impacted,
+          },
+        },
       })),
       timeseries: timeseriesResult.rows.map((row) => ({
         bucketStart: row.bucket_start,
         outcomeDefinitionId: row.outcome_definition_id,
+        source: row.source,
         countImpacts: row.count_impacts,
       })),
     };

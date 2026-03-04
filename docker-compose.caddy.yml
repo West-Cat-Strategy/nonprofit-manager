@@ -1,3 +1,8 @@
+# Overlay-only compose file.
+# Use with docker-compose.dev.yml:
+#   docker compose -f docker-compose.dev.yml -f docker-compose.caddy.yml up -d
+# This file is not intended to run standalone.
+
 services:
   caddy:
     image: nonprofit-caddy-local:latest

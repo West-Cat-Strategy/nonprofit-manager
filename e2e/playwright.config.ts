@@ -10,13 +10,20 @@ dotenv.config({ path: '.env.test', quiet: true });
  * See https://playwright.dev/docs/test-configuration
  */
 const HTTP_SCHEME = ['http', '://'].join('');
-const BASE_URL = process.env.BASE_URL || `${HTTP_SCHEME}127.0.0.1:5173`;
-const API_URL = process.env.API_URL || `${HTTP_SCHEME}127.0.0.1:3001`;
+const E2E_BACKEND_HOST = process.env.E2E_BACKEND_HOST || '127.0.0.1';
+const E2E_FRONTEND_HOST = process.env.E2E_FRONTEND_HOST || '127.0.0.1';
+const E2E_BACKEND_PORT = process.env.E2E_BACKEND_PORT || '3001';
+const E2E_FRONTEND_PORT = process.env.E2E_FRONTEND_PORT || '5173';
+const DEFAULT_BASE_URL = `${HTTP_SCHEME}${E2E_FRONTEND_HOST}:${E2E_FRONTEND_PORT}`;
+const DEFAULT_API_URL = `${HTTP_SCHEME}${E2E_BACKEND_HOST}:${E2E_BACKEND_PORT}`;
+const BASE_URL = process.env.BASE_URL || DEFAULT_BASE_URL;
+const API_URL = process.env.API_URL || DEFAULT_API_URL;
 process.env.BASE_URL = BASE_URL;
 process.env.API_URL = API_URL;
 const SKIP_WEBSERVER = process.env.SKIP_WEBSERVER === '1';
 const RUNNING_IN_CI = ['1', 'true'].includes((process.env.CI || '').toLowerCase());
 const USE_DEV_RUNTIME = process.env.E2E_USE_DEV_RUNTIME === '1';
+const FORCE_COMPILED_RUNTIME = process.env.E2E_FORCE_COMPILED_RUNTIME === '1';
 const REUSE_EXISTING_SERVER = process.env.PW_REUSE_EXISTING_SERVER === '1';
 const E2E_DB_HOST = process.env.E2E_DB_HOST || '127.0.0.1';
 const E2E_DB_PORT = process.env.E2E_DB_PORT || '8012';
@@ -24,8 +31,8 @@ const E2E_DB_NAME = process.env.E2E_DB_NAME || 'nonprofit_manager';
 const E2E_DB_USER = process.env.E2E_DB_USER || 'postgres';
 const E2E_DB_PASSWORD = process.env.E2E_DB_PASSWORD || process.env.DB_PASSWORD || 'postgres';
 const clearFrontendPortCommand =
-  'for p in $(lsof -ti tcp:5173 2>/dev/null); do kill -9 \"$p\" 2>/dev/null || true; done';
-const useCompiledCiRuntime = RUNNING_IN_CI && !USE_DEV_RUNTIME;
+  `for p in $(lsof -ti tcp:${E2E_FRONTEND_PORT} 2>/dev/null); do kill -9 "$p" 2>/dev/null || true; done`;
+const useCompiledCiRuntime = FORCE_COMPILED_RUNTIME || (RUNNING_IN_CI && !USE_DEV_RUNTIME);
 
 const backendRuntimeCommand = useCompiledCiRuntime
   ? 'npm run build && node dist/index.js'
@@ -33,8 +40,8 @@ const backendRuntimeCommand = useCompiledCiRuntime
 const backendStartCommand = `cd .. && ./scripts/db-migrate.sh && cd backend && ${backendRuntimeCommand}`;
 
 const frontendRuntimeCommand = useCompiledCiRuntime
-  ? `${clearFrontendPortCommand} && npm run build && npx vite preview --host 127.0.0.1 --port 5173 --strictPort`
-  : `${clearFrontendPortCommand} && npm run dev -- --host 127.0.0.1 --port 5173`;
+  ? `${clearFrontendPortCommand} && npm run build && ${clearFrontendPortCommand} && npx vite preview --host ${E2E_FRONTEND_HOST} --port ${E2E_FRONTEND_PORT} --strictPort`
+  : `${clearFrontendPortCommand} && npm run dev -- --host ${E2E_FRONTEND_HOST} --port ${E2E_FRONTEND_PORT}`;
 const frontendStartCommand = `cd ../frontend && ${frontendRuntimeCommand}`;
 export default defineConfig({
   testDir: './tests',
@@ -117,14 +124,14 @@ export default defineConfig({
     : [
       {
         command: backendStartCommand,
-        url: `${HTTP_SCHEME}127.0.0.1:3001/health/live`,
+        url: `${HTTP_SCHEME}${E2E_BACKEND_HOST}:${E2E_BACKEND_PORT}/health/live`,
         timeout: 120 * 1000,
         reuseExistingServer: REUSE_EXISTING_SERVER,
         env: {
           NODE_ENV: 'test',
-          PORT: '3001',
+          PORT: E2E_BACKEND_PORT,
           REDIS_ENABLED: 'false',
-          CORS_ORIGIN: `${HTTP_SCHEME}127.0.0.1:5173,${HTTP_SCHEME}localhost:5173`,
+          CORS_ORIGIN: `${HTTP_SCHEME}${E2E_FRONTEND_HOST}:${E2E_FRONTEND_PORT},${HTTP_SCHEME}localhost:${E2E_FRONTEND_PORT}`,
           DB_HOST: E2E_DB_HOST,
           DB_PORT: E2E_DB_PORT,
           DB_NAME: E2E_DB_NAME,
@@ -140,11 +147,11 @@ export default defineConfig({
       },
       {
         command: frontendStartCommand,
-        url: `${HTTP_SCHEME}127.0.0.1:5173`,
+        url: `${HTTP_SCHEME}${E2E_FRONTEND_HOST}:${E2E_FRONTEND_PORT}`,
         timeout: 120 * 1000,
         reuseExistingServer: REUSE_EXISTING_SERVER,
         env: {
-          VITE_API_URL: `${HTTP_SCHEME}127.0.0.1:3001/api`,
+          VITE_API_URL: `${HTTP_SCHEME}${E2E_BACKEND_HOST}:${E2E_BACKEND_PORT}/api`,
         },
       },
     ],

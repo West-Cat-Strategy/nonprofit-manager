@@ -3,7 +3,7 @@
 **Nonprofit Manager - Comprehensive CRM Case Management**
 **Version:** 2.0
 **Created:** February 2, 2026
-**Last Updated:** February 23, 2026
+**Last Updated:** March 3, 2026
 
 ---
 
@@ -86,10 +86,13 @@ Each type supports:
 ### 8. **Outcome Tracking**
 - Admin-managed outcome definitions (active/inactive, reportable, reorderable)
 - Tag case note interactions with one or more outcomes
+- Staff can capture note text and outcome tags in one atomic save
 - Attribution tracking (`DIRECT`, `LIKELY`, `POSSIBLE`)
 - Optional intensity scoring (1-5) and evidence notes
 - Historical tags are preserved even if a definition is later disabled
-- Reporting supports totals, unique impacted clients, and week/month time series
+- Case outcome events remain timeline/report artifacts with definition linkage metadata
+- Interaction tags auto-sync to case outcome events (`entry_source=interaction_sync`)
+- Reporting supports totals, unique impacted clients, week/month time series, and source splits
 
 ### 9. **Service Tracking**
 - Record services provided
@@ -206,6 +209,13 @@ Interaction-level outcome tags with:
 - Optional intensity and evidence note
 - Unique constraint per `(interaction_id, outcome_definition_id)`
 
+#### `case_outcomes`
+Case outcome event artifacts with:
+- Optional `outcome_definition_id` linkage to canonical definitions
+- Optional `source_interaction_id` linkage to originating note interaction
+- `entry_source` values (`manual`, `interaction_sync`, `legacy`)
+- Backfill-safe legacy rows preserved for manual curation when no deterministic match exists
+
 ---
 
 ## API Endpoints
@@ -248,6 +258,7 @@ Interaction-level outcome tags with:
 - Add note to case
 - Supports attachments
 - Internal/external flag
+- Optional inline `outcome_impacts[]` + `outcomes_mode` (`replace|merge`) for atomic note+outcome save
 
 ### Outcomes (Definitions + Interaction Tagging)
 
@@ -278,13 +289,22 @@ Interaction-level outcome tags with:
 **PUT** `/api/v2/cases/:caseId/interactions/:interactionId/outcomes`
 - Save outcomes for a specific interaction
 - Supports `mode=replace|merge`
+- Auto-syncs case outcome events with `entry_source=interaction_sync`
+
+**POST** `/api/v2/cases/:id/outcomes`
+- Create a manual case outcome event
+- Supports optional `outcome_definition_id` linkage with legacy `outcome_type` fallback
+
+**PUT** `/api/v2/cases/outcomes/:outcomeId`
+- Update manual case outcome events
+- Requires a non-empty payload
 
 ### Outcomes Reporting
 
-**GET** `/api/v2/reports/outcomes?from=YYYY-MM-DD&to=YYYY-MM-DD&staffId=&interactionType=&bucket=week|month&includeNonReportable=true|false`
+**GET** `/api/v2/reports/outcomes?from=YYYY-MM-DD&to=YYYY-MM-DD&staffId=&interactionType=&bucket=week|month&source=all|interaction|event&includeNonReportable=true|false`
 - Returns:
-  - `totalsByOutcome` (count impacts, unique clients impacted)
-  - `timeseries` bucketed by week or month
+  - `totalsByOutcome` (count impacts, unique clients impacted, source breakdown)
+  - `timeseries` bucketed by week or month with `source` on each point
 - `includeNonReportable=true` is admin-only
 - `programId` is currently unsupported and returns a validation error
 

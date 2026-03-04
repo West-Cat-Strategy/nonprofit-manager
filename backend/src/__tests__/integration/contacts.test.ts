@@ -4,7 +4,9 @@ import pool from '../../config/database';
 
 describe('Contact API Integration Tests', () => {
   let authToken: string;
+  let staffAuthToken: string;
   let testAccountId: string;
+  const sharedPassword = 'Test123!Strong';
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const tokenFromResponse = (body: unknown): string | undefined => {
     if (typeof body !== 'object' || body === null) {
@@ -29,10 +31,14 @@ describe('Contact API Integration Tests', () => {
     }
     return body as T;
   };
-  const withAuth = (req: ReturnType<typeof request>): ReturnType<typeof request> =>
+  const withAuthToken = (token: string, req: ReturnType<typeof request>): ReturnType<typeof request> =>
     req
-      .set('Authorization', `Bearer ${authToken}`)
+      .set('Authorization', `Bearer ${token}`)
       .set('X-Organization-Id', testAccountId);
+  const withAuth = (req: ReturnType<typeof request>): ReturnType<typeof request> =>
+    withAuthToken(authToken, req);
+  const withStaffAuth = (req: ReturnType<typeof request>): ReturnType<typeof request> =>
+    withAuthToken(staffAuthToken, req);
 
   beforeAll(async () => {
     // Register and login
@@ -40,8 +46,8 @@ describe('Contact API Integration Tests', () => {
       .post('/api/v2/auth/register')
       .send({
         email: `contact-test-${unique()}@example.com`,
-        password: 'Test123!Strong',
-        password_confirm: 'Test123!Strong',
+        password: sharedPassword,
+        password_confirm: sharedPassword,
         first_name: 'Contact',
         last_name: 'Tester',
       });
@@ -60,6 +66,27 @@ describe('Contact API Integration Tests', () => {
 
     testAccountId = accountIdFromResponse(accountResponse.body) || '';
     expect(testAccountId).toBeTruthy();
+
+    const staffEmail = `contact-staff-${unique()}@example.com`;
+    await request(app)
+      .post('/api/v2/auth/register')
+      .send({
+        email: staffEmail,
+        password: sharedPassword,
+        password_confirm: sharedPassword,
+        first_name: 'Staff',
+        last_name: 'Tester',
+      })
+      .expect(201);
+
+    await pool.query('UPDATE users SET role = $1 WHERE email = $2', ['staff', staffEmail.toLowerCase()]);
+
+    const staffLoginResponse = await request(app)
+      .post('/api/v2/auth/login')
+      .send({ email: staffEmail, password: sharedPassword })
+      .expect(200);
+    staffAuthToken = tokenFromResponse(staffLoginResponse.body) || '';
+    expect(staffAuthToken).toBeTruthy();
   });
 
   afterAll(async () => {
@@ -131,6 +158,33 @@ describe('Contact API Integration Tests', () => {
       const payload = payloadFromResponse<{ email: string }>(response.body);
       expect(payload.email).toBe('email.test@example.com');
     });
+
+    it('should accept formatted PHN input and normalize to 10 digits', async () => {
+      const response = await withStaffAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: 'Phn',
+          last_name: 'Normalized',
+          phn: '123-456-7890',
+        }))
+        .expect(201);
+
+      const payload = payloadFromResponse<{ phn: string | null }>(response.body);
+      expect(payload.phn).toBe('1234567890');
+    });
+
+    it('should reject invalid PHN length', async () => {
+      await withStaffAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: 'Bad',
+          last_name: 'Phn',
+          phn: '12345',
+        }))
+        .expect(400);
+    });
   });
 
   describe('GET /api/v2/contacts', () => {
@@ -147,7 +201,7 @@ describe('Contact API Integration Tests', () => {
     });
 
     it('should support search query', async () => {
-      const response = await withAuth(request(app)
+      const response = await withStaffAuth(request(app)
         .get('/api/v2/contacts?search=John')
       )
         .expect(200);
@@ -157,7 +211,7 @@ describe('Contact API Integration Tests', () => {
     });
 
     it('should filter by account_id', async () => {
-      const response = await withAuth(request(app)
+      const response = await withStaffAuth(request(app)
         .get(`/api/v2/contacts?account_id=${testAccountId}`)
       )
         .expect(200);
@@ -184,7 +238,7 @@ describe('Contact API Integration Tests', () => {
 
       const contactId = payloadFromResponse<{ contact_id: string }>(createResponse.body).contact_id;
 
-      const response = await withAuth(request(app)
+      const response = await withStaffAuth(request(app)
         .get(`/api/v2/contacts/${contactId}`)
       )
         .expect(200);
@@ -195,7 +249,7 @@ describe('Contact API Integration Tests', () => {
     });
 
     it('should return 404 for non-existent contact', async () => {
-      await withAuth(request(app)
+      await withStaffAuth(request(app)
         .get('/api/v2/contacts/00000000-0000-0000-0000-000000000000')
       )
         .expect(404);
@@ -203,6 +257,32 @@ describe('Contact API Integration Tests', () => {
 
     it('should require authentication', async () => {
       await request(app).get('/api/v2/contacts/1').expect(401);
+    });
+
+    it('should return full PHN for staff and masked PHN for non-staff', async () => {
+      const createResponse = await withStaffAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: 'Visibility',
+          last_name: 'Phn',
+          phn: '0987654321',
+        }))
+        .expect(201);
+
+      const contactId = payloadFromResponse<{ contact_id: string }>(createResponse.body).contact_id;
+
+      const staffViewResponse = await withStaffAuth(request(app)
+        .get(`/api/v2/contacts/${contactId}`))
+        .expect(200);
+      const staffPayload = payloadFromResponse<{ phn: string | null }>(staffViewResponse.body);
+      expect(staffPayload.phn).toBe('0987654321');
+
+      const nonStaffViewResponse = await withAuth(request(app)
+        .get(`/api/v2/contacts/${contactId}`))
+        .expect(200);
+      const nonStaffPayload = payloadFromResponse<{ phn: string | null }>(nonStaffViewResponse.body);
+      expect(nonStaffPayload.phn).toBe('******4321');
     });
   });
 
@@ -218,7 +298,7 @@ describe('Contact API Integration Tests', () => {
 
       const contactId = payloadFromResponse<{ contact_id: string }>(createResponse.body).contact_id;
 
-      const response = await withAuth(request(app)
+      const response = await withStaffAuth(request(app)
         .put(`/api/v2/contacts/${contactId}`)
         .send({
           first_name: 'Updated',
@@ -232,7 +312,7 @@ describe('Contact API Integration Tests', () => {
     });
 
     it('should return 404 for non-existent contact', async () => {
-      await withAuth(request(app)
+      await withStaffAuth(request(app)
         .put('/api/v2/contacts/00000000-0000-0000-0000-000000000000')
         .send({
           first_name: 'Updated',
@@ -258,12 +338,12 @@ describe('Contact API Integration Tests', () => {
       const contactId = payloadFromResponse<{ contact_id: string }>(createResponse.body).contact_id;
 
       // Delete returns 204 No Content
-      await withAuth(request(app)
+      await withStaffAuth(request(app)
         .delete(`/api/v2/contacts/${contactId}`)
       )
         .expect(204);
 
-      const response = await withAuth(request(app)
+      const response = await withStaffAuth(request(app)
         .get(`/api/v2/contacts/${contactId}`)
       )
         .expect(200);
@@ -273,7 +353,7 @@ describe('Contact API Integration Tests', () => {
     });
 
     it('should return 404 for non-existent contact', async () => {
-      await withAuth(request(app)
+      await withStaffAuth(request(app)
         .delete('/api/v2/contacts/00000000-0000-0000-0000-000000000000')
       )
         .expect(404);

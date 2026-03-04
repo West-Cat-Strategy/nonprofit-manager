@@ -1,93 +1,59 @@
-import { useEffect, useMemo, useState } from 'react';
-import portalApi from '../../../services/portalApi';
-import { unwrapApiData } from '../../../services/apiEnvelope';
+import { useState } from 'react';
 import PortalPageState from '../../../components/portal/PortalPageState';
 import PortalPageShell from '../../../components/portal/PortalPageShell';
 import PortalListCard from '../../../components/portal/PortalListCard';
-import { portalV2ApiClient } from '../../../features/portal/api/portalApiClient';
-
-interface FormDoc {
-  id: string;
-  original_name: string;
-  document_type: string;
-  title?: string | null;
-  description?: string | null;
-  created_at: string;
-}
+import PortalListToolbar from '../../../components/portal/PortalListToolbar';
+import { portalV2ApiClient } from '../api/portalApiClient';
+import usePortalFormsList from '../client/usePortalFormsList';
+import type { PortalDocument } from '../types/contracts';
 
 export default function PortalForms() {
-  const [forms, setForms] = useState<FormDoc[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const visibleForms = useMemo(() => {
-    const needle = searchTerm.trim().toLowerCase();
-    const sorted = [...forms].sort((a, b) => {
-      const aTime = new Date(a.created_at).getTime();
-      const bTime = new Date(b.created_at).getTime();
-      return sortOrder === 'newest' ? bTime - aTime : aTime - bTime;
-    });
-
-    return sorted.filter((form) => {
-      if (!needle) {
-        return true;
-      }
-
-      const haystack = [form.title, form.original_name, form.document_type, form.description]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-
-      return haystack.includes(needle);
-    });
-  }, [forms, searchTerm, sortOrder]);
-
-  const load = async () => {
-    try {
-      setError(null);
-      const response = await portalApi.get('/v2/portal/forms');
-      setForms(unwrapApiData(response.data));
-    } catch (loadError) {
-      console.error('Failed to load forms', loadError);
-      setError('Unable to load forms right now.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void load();
-  }, []);
+  const [sortField, setSortField] = useState<'created_at' | 'title' | 'document_type' | 'original_name'>(
+    'created_at'
+  );
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const {
+    items: forms,
+    total,
+    hasMore,
+    loading,
+    loadingMore,
+    error,
+    refresh,
+    loadMore,
+  } = usePortalFormsList({
+    search: searchTerm,
+    sort: sortField,
+    order: sortOrder,
+  });
 
   return (
     <PortalPageShell
       title="Forms"
       description="Download forms that staff have shared with you."
-      actions={
-        <div className="flex flex-wrap gap-2">
-          <input
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search forms"
-            className="rounded-md border border-app-input-border px-3 py-2 text-sm"
-          />
-          <select
-            value={sortOrder}
-            onChange={(event) => setSortOrder(event.target.value as 'newest' | 'oldest')}
-            className="rounded-md border border-app-input-border px-3 py-2 text-sm"
-          >
-            <option value="newest">Newest first</option>
-            <option value="oldest">Oldest first</option>
-          </select>
-        </div>
-      }
     >
+      <PortalListToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search forms by name or type"
+        sortValue={sortField}
+        onSortChange={setSortField}
+        sortOptions={[
+          { value: 'created_at', label: 'Shared date' },
+          { value: 'title', label: 'Title' },
+          { value: 'document_type', label: 'Type' },
+          { value: 'original_name', label: 'Original file name' },
+        ]}
+        orderValue={sortOrder}
+        onOrderChange={setSortOrder}
+        showingCount={forms.length}
+        totalCount={total}
+      />
       <PortalPageState
         loading={loading}
         error={error}
-        empty={!loading && !error && visibleForms.length === 0}
+        empty={!loading && !error && forms.length === 0}
         loadingLabel="Loading forms..."
         emptyTitle={searchTerm ? 'No matching forms.' : 'No forms available.'}
         emptyDescription={
@@ -95,11 +61,11 @@ export default function PortalForms() {
             ? 'Try a different search term.'
             : 'Forms appear only when staff explicitly share them with you.'
         }
-        onRetry={load}
+        onRetry={refresh}
       />
-      {!loading && !error && visibleForms.length > 0 && (
+      {!loading && !error && forms.length > 0 && (
         <ul className="space-y-3">
-          {visibleForms.map((form) => (
+          {forms.map((form: PortalDocument) => (
             <li key={form.id}>
               <PortalListCard
                 title={form.title || form.original_name}
@@ -119,6 +85,18 @@ export default function PortalForms() {
             </li>
           ))}
         </ul>
+      )}
+      {!loading && !error && hasMore && (
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => void loadMore()}
+            disabled={loadingMore}
+            className="rounded-md border border-app-input-border px-4 py-2 text-sm font-medium text-app-text disabled:opacity-60"
+          >
+            {loadingMore ? 'Loading more...' : 'Load more forms'}
+          </button>
+        </div>
       )}
     </PortalPageShell>
   );

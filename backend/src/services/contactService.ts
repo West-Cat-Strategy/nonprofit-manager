@@ -14,9 +14,13 @@ import {
 } from '@app-types/contact';
 import { logger } from '@config/logger';
 import { resolveSort } from '@utils/queryHelpers';
+import { decrypt, encrypt } from '@utils/encryption';
 import type { DataScopeFilter } from '@app-types/dataScope';
 
-type QueryValue = string | number | boolean | null | string[];
+type QueryValue = string | number | boolean | null | string[] | Date;
+type ViewerRole = string | undefined;
+type ContactRecord = Omit<Contact, 'phn'> & { phn?: string | null; phn_encrypted?: string | null };
+const PHN_FULL_ACCESS_ROLES = new Set(['admin', 'manager', 'staff']);
 
 export class ContactService {
   private pool: Pool;
@@ -25,13 +29,75 @@ export class ContactService {
     this.pool = pool;
   }
 
+  private normalizePhn(phn: unknown): string | null | undefined {
+    if (phn === undefined) {
+      return undefined;
+    }
+    if (phn === null) {
+      return null;
+    }
+    if (typeof phn !== 'string') {
+      throw new Error('PHN must be a string');
+    }
+
+    const digits = phn.replace(/\D/g, '');
+    if (digits.length === 0) {
+      return null;
+    }
+    if (digits.length !== 10) {
+      throw new Error('PHN must contain exactly 10 digits');
+    }
+
+    return digits;
+  }
+
+  private decryptPhn(phnEncrypted: string | null | undefined, contactId?: string): string | null {
+    if (!phnEncrypted) {
+      return null;
+    }
+
+    try {
+      return decrypt(phnEncrypted);
+    } catch (error) {
+      logger.warn('Failed to decrypt contact PHN; returning null', {
+        contactId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
+  }
+
+  private formatPhnForViewer(phn: string | null, viewerRole: ViewerRole): string | null {
+    if (!phn) {
+      return null;
+    }
+    if (viewerRole && PHN_FULL_ACCESS_ROLES.has(viewerRole)) {
+      return phn;
+    }
+
+    return `******${phn.slice(-4)}`;
+  }
+
+  private mapContactRow(row: ContactRecord, viewerRole?: ViewerRole): Contact {
+    const decryptedPhn = this.decryptPhn(row.phn_encrypted, row.contact_id);
+    const phn = this.formatPhnForViewer(decryptedPhn, viewerRole);
+    const rest = { ...row };
+    delete rest.phn_encrypted;
+
+    return {
+      ...rest,
+      phn,
+    };
+  }
+
   /**
    * Get all contacts with filtering and pagination
    */
   async getContacts(
     filters: ContactFilters = {},
     pagination: PaginationParams = {},
-    scope?: DataScopeFilter
+    scope?: DataScopeFilter,
+    viewerRole?: ViewerRole
   ): Promise<PaginatedContacts> {
     try {
       const page = pagination.page || 1;
@@ -149,6 +215,7 @@ export class ContactService {
           c.birth_date,
           c.gender,
           c.pronouns,
+          c.phn_encrypted,
           c.email,
           c.phone,
           c.mobile_phone,
@@ -203,7 +270,7 @@ export class ContactService {
       const dataResult = await this.pool.query(dataQuery, [...values, limit, offset]);
 
       return {
-        data: dataResult.rows,
+        data: dataResult.rows.map((row) => this.mapContactRow(row as ContactRecord, viewerRole)),
         pagination: {
           total,
           page,
@@ -266,7 +333,7 @@ export class ContactService {
   /**
    * Get contact by ID
    */
-  async getContactById(contactId: string): Promise<Contact | null> {
+  async getContactById(contactId: string, viewerRole?: ViewerRole): Promise<Contact | null> {
     try {
       const result = await this.pool.query(
         `SELECT
@@ -281,6 +348,7 @@ export class ContactService {
           c.birth_date,
           c.gender,
           c.pronouns,
+          c.phn_encrypted,
           c.email,
           c.phone,
           c.mobile_phone,
@@ -320,7 +388,8 @@ export class ContactService {
         [contactId]
       );
 
-      return result.rows[0] || null;
+      const row = result.rows[0] as ContactRecord | undefined;
+      return row ? this.mapContactRow(row, viewerRole) : null;
     } catch (error) {
       logger.error('Error getting contact by ID:', error);
       throw Object.assign(new Error('Failed to retrieve contact'), { cause: error });
@@ -329,7 +398,8 @@ export class ContactService {
 
   async getContactByIdWithScope(
     contactId: string,
-    scope?: DataScopeFilter
+    scope?: DataScopeFilter,
+    viewerRole?: ViewerRole
   ): Promise<Contact | null> {
     try {
       const conditions = ['c.id = $1'];
@@ -367,6 +437,7 @@ export class ContactService {
           c.birth_date,
           c.gender,
           c.pronouns,
+          c.phn_encrypted,
           c.email,
           c.phone,
           c.mobile_phone,
@@ -406,7 +477,8 @@ export class ContactService {
         values
       );
 
-      return result.rows[0] || null;
+      const row = result.rows[0] as ContactRecord | undefined;
+      return row ? this.mapContactRow(row, viewerRole) : null;
     } catch (error) {
       logger.error('Error getting contact by ID with scope:', error);
       throw Object.assign(new Error('Failed to retrieve contact'), { cause: error });
@@ -416,21 +488,24 @@ export class ContactService {
   /**
    * Create new contact
    */
-  async createContact(data: CreateContactDTO, userId: string): Promise<Contact> {
+  async createContact(data: CreateContactDTO, userId: string, viewerRole?: ViewerRole): Promise<Contact> {
     try {
+      const normalizedPhn = this.normalizePhn(data.phn);
+      const encryptedPhn = normalizedPhn ? encrypt(normalizedPhn) : null;
+
       const result = await this.pool.query(
         `INSERT INTO contacts (
           account_id, first_name, preferred_name, last_name, middle_name, salutation, suffix,
-          birth_date, gender, pronouns,
+          birth_date, gender, pronouns, phn_encrypted,
           email, phone, mobile_phone,
           address_line1, address_line2, city, state_province, postal_code, country,
           no_fixed_address,
           job_title, department, preferred_contact_method, do_not_email, do_not_phone, do_not_text, do_not_voicemail, notes,
           tags,
           created_by, modified_by
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $30)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $31)
         RETURNING id as contact_id, account_id, first_name, preferred_name, last_name, middle_name, salutation, suffix,
-          birth_date, gender, pronouns,
+          birth_date, gender, pronouns, phn_encrypted,
           email, phone, mobile_phone,
           address_line1, address_line2, city, state_province, postal_code, country,
           no_fixed_address,
@@ -448,6 +523,7 @@ export class ContactService {
           data.birth_date || null,
           data.gender || null,
           data.pronouns || null,
+          encryptedPhn,
           data.email || null,
           data.phone || null,
           data.mobile_phone || null,
@@ -472,7 +548,7 @@ export class ContactService {
       );
 
       logger.info(`Contact created: ${result.rows[0].contact_id}`);
-      return result.rows[0];
+      return this.mapContactRow(result.rows[0] as ContactRecord, viewerRole);
     } catch (error) {
       logger.error('Error creating contact:', error);
       throw Object.assign(new Error('Failed to create contact'), { cause: error });
@@ -485,18 +561,26 @@ export class ContactService {
   async updateContact(
     contactId: string,
     data: UpdateContactDTO,
-    userId: string
+    userId: string,
+    viewerRole?: ViewerRole
   ): Promise<Contact | null> {
     try {
+      const updateData: Record<string, unknown> = { ...data };
+      if (Object.prototype.hasOwnProperty.call(updateData, 'phn')) {
+        const normalizedPhn = this.normalizePhn(updateData.phn);
+        updateData.phn_encrypted = normalizedPhn ? encrypt(normalizedPhn) : null;
+        delete updateData.phn;
+      }
+
       const fields: string[] = [];
       const values: QueryValue[] = [];
       let paramCounter = 1;
 
       // Build dynamic update query
-      Object.entries(data).forEach(([key, value]) => {
+      Object.entries(updateData).forEach(([key, value]) => {
         if (value !== undefined) {
           fields.push(`${key} = $${paramCounter}`);
-          values.push(value);
+          values.push(value as QueryValue);
           paramCounter++;
         }
       });
@@ -519,7 +603,7 @@ export class ContactService {
         SET ${fields.join(', ')}
         WHERE id = $${paramCounter}
         RETURNING id as contact_id, account_id, first_name, preferred_name, last_name, middle_name, salutation, suffix,
-          birth_date, gender, pronouns,
+          birth_date, gender, pronouns, phn_encrypted,
           email, phone, mobile_phone, job_title, department, preferred_contact_method,
           do_not_email, do_not_phone, do_not_text, do_not_voicemail,
           address_line1, address_line2, city, state_province, postal_code, country,
@@ -534,7 +618,7 @@ export class ContactService {
       }
 
       logger.info(`Contact updated: ${contactId}`);
-      return result.rows[0];
+      return this.mapContactRow(result.rows[0] as ContactRecord, viewerRole);
     } catch (error) {
       logger.error('Error updating contact:', error);
       throw Object.assign(new Error('Failed to update contact'), { cause: error });

@@ -1,5 +1,7 @@
-import { Pool } from 'pg';
+import { Pool, PoolClient } from 'pg';
 import type { CaseTimelineEvent } from '@app-types/case';
+
+type PgExecutor = Pool | PoolClient;
 
 export const DEFAULT_TIMELINE_LIMIT = 50;
 export const MAX_TIMELINE_LIMIT = 200;
@@ -87,7 +89,7 @@ export const resolveVisibleToClient = (input: {
 };
 
 export const getCaseOwnership = async (
-  db: Pool,
+  db: PgExecutor,
   caseId: string
 ): Promise<{ case_id: string; contact_id: string; account_id: string | null } | null> => {
   const result = await db.query(
@@ -104,7 +106,7 @@ export const getCaseOwnership = async (
 };
 
 export const requireCaseOwnership = async (
-  db: Pool,
+  db: PgExecutor,
   caseId: string
 ): Promise<{ case_id: string; contact_id: string; account_id: string | null }> => {
   const ownership = await getCaseOwnership(db, caseId);
@@ -115,7 +117,7 @@ export const requireCaseOwnership = async (
   return ownership;
 };
 
-export const requireCaseIdForNote = async (db: Pool, noteId: string): Promise<string> => {
+export const requireCaseIdForNote = async (db: PgExecutor, noteId: string): Promise<string> => {
   const result = await db.query(
     `
     SELECT case_id
@@ -133,7 +135,7 @@ export const requireCaseIdForNote = async (db: Pool, noteId: string): Promise<st
   return caseId;
 };
 
-export const requireCaseIdForOutcome = async (db: Pool, outcomeId: string): Promise<string> => {
+export const requireCaseIdForOutcome = async (db: PgExecutor, outcomeId: string): Promise<string> => {
   const result = await db.query(
     `
     SELECT case_id
@@ -151,7 +153,7 @@ export const requireCaseIdForOutcome = async (db: Pool, outcomeId: string): Prom
   return caseId;
 };
 
-export const requireCaseIdForTopicEvent = async (db: Pool, topicEventId: string): Promise<string> => {
+export const requireCaseIdForTopicEvent = async (db: PgExecutor, topicEventId: string): Promise<string> => {
   const result = await db.query(
     `
     SELECT case_id
@@ -169,7 +171,7 @@ export const requireCaseIdForTopicEvent = async (db: Pool, topicEventId: string)
   return caseId;
 };
 
-export const requireCaseIdForDocument = async (db: Pool, documentId: string): Promise<string> => {
+export const requireCaseIdForDocument = async (db: PgExecutor, documentId: string): Promise<string> => {
   const result = await db.query(
     `
     SELECT case_id
@@ -187,7 +189,7 @@ export const requireCaseIdForDocument = async (db: Pool, documentId: string): Pr
   return caseId;
 };
 
-export const generateCaseNumber = async (db: Pool): Promise<string> => {
+export const generateCaseNumber = async (db: PgExecutor): Promise<string> => {
   const date = new Date();
   const year = date.getFullYear().toString().slice(-2);
   const month = String(date.getMonth() + 1).padStart(2, '0');

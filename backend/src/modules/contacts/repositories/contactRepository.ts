@@ -15,9 +15,10 @@ export class ContactRepository implements ContactDirectoryPort {
   async getContacts(
     filters: ContactFilters = {},
     pagination: PaginationParams = {},
-    scope?: DataScopeFilter
+    scope?: DataScopeFilter,
+    viewerRole?: string
   ): Promise<PaginatedContacts> {
-    return services.contact.getContacts(filters, pagination, scope);
+    return services.contact.getContacts(filters, pagination, scope, viewerRole);
   }
 
   async getContactTags(scope?: DataScopeFilter): Promise<string[]> {
@@ -36,20 +37,29 @@ export class ContactRepository implements ContactDirectoryPort {
     return services.contactRole.setRolesForContact(contactId, roles, assignedBy);
   }
 
-  async getContactById(contactId: string): Promise<Contact | null> {
-    return services.contact.getContactById(contactId);
+  async getContactById(contactId: string, viewerRole?: string): Promise<Contact | null> {
+    return services.contact.getContactById(contactId, viewerRole);
   }
 
-  async getContactByIdWithScope(contactId: string, scope: DataScopeFilter): Promise<Contact | null> {
-    return services.contact.getContactByIdWithScope(contactId, scope);
+  async getContactByIdWithScope(
+    contactId: string,
+    scope: DataScopeFilter,
+    viewerRole?: string
+  ): Promise<Contact | null> {
+    return services.contact.getContactByIdWithScope(contactId, scope, viewerRole);
   }
 
-  async createContact(payload: CreateContactDTO, userId: string): Promise<Contact> {
-    return services.contact.createContact(payload, userId);
+  async createContact(payload: CreateContactDTO, userId: string, viewerRole?: string): Promise<Contact> {
+    return services.contact.createContact(payload, userId, viewerRole);
   }
 
-  async updateContact(contactId: string, payload: UpdateContactDTO, userId: string): Promise<Contact | null> {
-    return services.contact.updateContact(contactId, payload, userId);
+  async updateContact(
+    contactId: string,
+    payload: UpdateContactDTO,
+    userId: string,
+    viewerRole?: string
+  ): Promise<Contact | null> {
+    return services.contact.updateContact(contactId, payload, userId, viewerRole);
   }
 
   async bulkUpdateContacts(

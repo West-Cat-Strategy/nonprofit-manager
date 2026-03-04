@@ -271,9 +271,7 @@ describe('Auth API', () => {
 
   describe('checkSetupStatus', () => {
     it('returns setupRequired=true when no admin users exist', async () => {
-      queryMock
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] })
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] });
+      queryMock.mockResolvedValueOnce({ rows: [{ admin_count: '0', user_count: '0' }] });
 
       const req = {} as AuthRequest;
       const res = createMockResponse() as unknown as Response;
@@ -290,13 +288,36 @@ describe('Auth API', () => {
           }),
         })
       );
+      expect(queryMock).toHaveBeenCalledTimes(1);
+      expect(queryMock.mock.calls[0]?.[0]).toEqual(expect.stringContaining('COUNT(*) FILTER'));
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('returns setupRequired=true when only non-admin users exist', async () => {
+      queryMock.mockResolvedValueOnce({ rows: [{ admin_count: '0', user_count: '3' }] });
+
+      const req = {} as AuthRequest;
+      const res = createMockResponse() as unknown as Response;
+      const next = jest.fn();
+
+      await checkSetupStatus(req, res, next);
+
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          data: expect.objectContaining({
+            setupRequired: true,
+            userCount: 3,
+          }),
+        })
+      );
+      expect(queryMock).toHaveBeenCalledTimes(1);
+      expect(queryMock.mock.calls[0]?.[0]).toEqual(expect.stringContaining('COUNT(*) FILTER'));
       expect(next).not.toHaveBeenCalled();
     });
 
     it('returns setupRequired=false when an admin user exists', async () => {
-      queryMock
-        .mockResolvedValueOnce({ rows: [{ count: '1' }] })
-        .mockResolvedValueOnce({ rows: [{ count: '4' }] });
+      queryMock.mockResolvedValueOnce({ rows: [{ admin_count: '1', user_count: '4' }] });
 
       const req = {} as AuthRequest;
       const res = createMockResponse() as unknown as Response;
@@ -313,6 +334,8 @@ describe('Auth API', () => {
           }),
         })
       );
+      expect(queryMock).toHaveBeenCalledTimes(1);
+      expect(queryMock.mock.calls[0]?.[0]).toEqual(expect.stringContaining('COUNT(*) FILTER'));
       expect(next).not.toHaveBeenCalled();
     });
   });

@@ -232,6 +232,38 @@ test.describe('Admin & Settings Module', () => {
     await assertSettingsRouteShell(request, '/settings/email-marketing');
   });
 
+  test('should load admin settings hub shell', async ({ request }) => {
+    await ensureAuthenticatedSession(request);
+    await assertSettingsRouteShell(request, '/settings/admin');
+  });
+
+  test('should load portal admin settings route shells', async ({ request }) => {
+    await ensureAuthenticatedSession(request);
+    const portalRoutes = [
+      '/settings/admin/portal',
+      '/settings/admin/portal/access',
+      '/settings/admin/portal/users',
+      '/settings/admin/portal/conversations',
+      '/settings/admin/portal/appointments',
+      '/settings/admin/portal/slots',
+    ];
+    for (const route of portalRoutes) {
+      await assertSettingsRouteShell(request, route);
+    }
+  });
+
+  test('should load compatibility redirect entry-point shells', async ({ request }) => {
+    await ensureAuthenticatedSession(request);
+    const compatibilityRoutes = [
+      '/email-marketing',
+      '/admin/audit-logs',
+      '/settings/organization',
+    ];
+    for (const route of compatibilityRoutes) {
+      await assertSettingsRouteShell(request, route);
+    }
+  });
+
   test('admin can create and disable an outcome definition', async ({ request }) => {
     const session = await ensureAuthenticatedSession(request);
     const role = session.userRole?.toLowerCase();

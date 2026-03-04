@@ -52,6 +52,24 @@ interface UserRow {
   role: string;
 }
 
+const ADMIN_NOTIFICATION_BATCH_SIZE = 4;
+const PENDING_REGISTRATION_COLUMNS = `
+  id,
+  email,
+  first_name,
+  last_name,
+  status,
+  reviewed_by,
+  reviewed_at,
+  rejection_reason,
+  created_at,
+  updated_at
+`;
+const PENDING_REGISTRATION_COLUMNS_WITH_PASSWORD = `
+  ${PENDING_REGISTRATION_COLUMNS},
+  password_hash
+`;
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -104,7 +122,7 @@ export async function createPendingRegistration(data: {
   const result = await pool.query<PendingRow>(
     `INSERT INTO pending_registrations (email, password_hash, first_name, last_name, status)
      VALUES ($1, $2, $3, $4, 'pending')
-     RETURNING *`,
+     RETURNING ${PENDING_REGISTRATION_COLUMNS}`,
     [data.email, hashedPassword, data.firstName ?? null, data.lastName ?? null]
   );
 
@@ -124,7 +142,7 @@ export async function createPendingRegistration(data: {
 export async function listPendingRegistrations(
   status?: PendingStatus
 ): Promise<PendingRegistration[]> {
-  let query = 'SELECT * FROM pending_registrations';
+  let query = `SELECT ${PENDING_REGISTRATION_COLUMNS} FROM pending_registrations`;
   const params: string[] = [];
 
   if (status) {
@@ -145,7 +163,7 @@ export async function getPendingRegistration(
   id: string
 ): Promise<PendingRegistration | null> {
   const result = await pool.query<PendingRow>(
-    'SELECT * FROM pending_registrations WHERE id = $1',
+    `SELECT ${PENDING_REGISTRATION_COLUMNS} FROM pending_registrations WHERE id = $1`,
     [id]
   );
   return result.rows.length > 0 ? toModel(result.rows[0]) : null;
@@ -159,7 +177,7 @@ export async function approvePendingRegistration(
   reviewedBy: string
 ): Promise<{ user: UserRow }> {
   const result = await pool.query<PendingRow>(
-    'SELECT * FROM pending_registrations WHERE id = $1',
+    `SELECT ${PENDING_REGISTRATION_COLUMNS_WITH_PASSWORD} FROM pending_registrations WHERE id = $1`,
     [id]
   );
 
@@ -228,7 +246,7 @@ export async function rejectPendingRegistration(
   reason?: string
 ): Promise<PendingRegistration> {
   const result = await pool.query<PendingRow>(
-    'SELECT * FROM pending_registrations WHERE id = $1',
+    `SELECT ${PENDING_REGISTRATION_COLUMNS} FROM pending_registrations WHERE id = $1`,
     [id]
   );
 
@@ -247,7 +265,7 @@ export async function rejectPendingRegistration(
      SET status = 'rejected', reviewed_by = $1, reviewed_at = NOW(),
          rejection_reason = $2, updated_at = NOW()
      WHERE id = $3
-     RETURNING *`,
+     RETURNING ${PENDING_REGISTRATION_COLUMNS}`,
     [reviewedBy, reason ?? null, id]
   );
 
@@ -276,20 +294,34 @@ async function notifyAdminsOfPendingRegistration(
 
   const name = [firstName, lastName].filter(Boolean).join(' ') || email;
 
-  for (const admin of admins.rows) {
-    await sendMail({
-      to: admin.email,
-      subject: 'New Registration Request Pending Approval',
-      text: `A new user registration request requires your review.\n\nName: ${name}\nEmail: ${email}\n\nPlease log in to the admin settings to approve or reject this request.`,
-      html: `
-        <h2>New Registration Request</h2>
-        <p>A new user registration request requires your review.</p>
-        <table style="border-collapse:collapse;margin:16px 0">
-          <tr><td style="padding:4px 12px 4px 0;font-weight:bold">Name:</td><td>${name}</td></tr>
-          <tr><td style="padding:4px 12px 4px 0;font-weight:bold">Email:</td><td>${email}</td></tr>
-        </table>
-        <p>Please log in to the admin settings to approve or reject this request.</p>
-      `,
+  for (let i = 0; i < admins.rows.length; i += ADMIN_NOTIFICATION_BATCH_SIZE) {
+    const batch = admins.rows.slice(i, i + ADMIN_NOTIFICATION_BATCH_SIZE);
+    const settled = await Promise.allSettled(
+      batch.map((admin) =>
+        sendMail({
+          to: admin.email,
+          subject: 'New Registration Request Pending Approval',
+          text: `A new user registration request requires your review.\n\nName: ${name}\nEmail: ${email}\n\nPlease log in to the admin settings to approve or reject this request.`,
+          html: `
+            <h2>New Registration Request</h2>
+            <p>A new user registration request requires your review.</p>
+            <table style="border-collapse:collapse;margin:16px 0">
+              <tr><td style="padding:4px 12px 4px 0;font-weight:bold">Name:</td><td>${name}</td></tr>
+              <tr><td style="padding:4px 12px 4px 0;font-weight:bold">Email:</td><td>${email}</td></tr>
+            </table>
+            <p>Please log in to the admin settings to approve or reject this request.</p>
+          `,
+        })
+      )
+    );
+
+    settled.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        logger.warn('Failed to send pending-registration admin notification', {
+          adminEmail: batch[index]?.email,
+          error: result.reason,
+        });
+      }
     });
   }
 }

@@ -164,6 +164,117 @@ export interface CheckInResult {
   registration?: EventRegistration;
 }
 
+export interface EventCheckInSettings {
+  event_id: string;
+  public_checkin_enabled: boolean;
+  public_checkin_pin_configured: boolean;
+  public_checkin_pin_rotated_at: string | null;
+}
+
+export interface UpdateEventCheckInSettingsDTO {
+  public_checkin_enabled: boolean;
+}
+
+export interface RotateEventCheckInPinResult extends EventCheckInSettings {
+  pin: string;
+}
+
+export interface EventWalkInCheckInDTO {
+  first_name: string;
+  last_name: string;
+  email?: string;
+  phone?: string;
+  notes?: string;
+  registration_status?: RegistrationStatus;
+}
+
+export interface EventWalkInCheckInResult {
+  status: 'created_and_checked_in' | 'existing_checked_in' | 'already_checked_in';
+  contact_id: string;
+  registration: EventRegistration;
+  created_contact: boolean;
+  created_registration: boolean;
+}
+
+export interface PublicEventCheckInInfo {
+  event_id: string;
+  event_name: string;
+  description: string | null;
+  event_type: EventType;
+  status: EventStatus;
+  start_date: string;
+  end_date: string;
+  location_name: string | null;
+  public_checkin_enabled: boolean;
+  public_checkin_pin_required: boolean;
+  checkin_open: boolean;
+  checkin_window_before_minutes: number;
+  checkin_window_after_minutes: number;
+}
+
+export interface PublicEventCheckInDTO {
+  first_name: string;
+  last_name: string;
+  email?: string;
+  phone?: string;
+  pin: string;
+}
+
+export interface PublicEventCheckInResult {
+  status: 'checked_in' | 'already_checked_in';
+  contact_id: string;
+  registration: EventRegistration;
+  created_contact: boolean;
+  created_registration: boolean;
+}
+
+export interface PublicEventsQuery {
+  search?: string;
+  event_type?: EventType;
+  include_past?: boolean;
+  limit?: number;
+  offset?: number;
+  sort_by?: 'start_date' | 'name' | 'created_at';
+  sort_order?: 'asc' | 'desc';
+  site?: string;
+}
+
+export interface PublicEventListItem {
+  event_id: string;
+  event_name: string;
+  description: string | null;
+  event_type: EventType;
+  status: EventStatus;
+  start_date: string;
+  end_date: string;
+  location_name: string | null;
+  city: string | null;
+  state_province: string | null;
+  country: string | null;
+  capacity: number | null;
+  registered_count: number;
+}
+
+export interface PublicEventsPageInfo {
+  limit: number;
+  offset: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface PublicEventsSiteInfo {
+  id: string;
+  name: string;
+  subdomain: string | null;
+  customDomain: string | null;
+}
+
+export interface PublicEventsListResult {
+  items: PublicEventListItem[];
+  page: PublicEventsPageInfo;
+  site: PublicEventsSiteInfo;
+}
+
 export interface SendEventRemindersDTO {
   sendEmail?: boolean;
   sendSms?: boolean;

@@ -1,6 +1,7 @@
 export { default as AppShell } from './AppShell';
 export { default as TopNav } from './TopNav';
 export { default as SideNav } from './SideNav';
+export { default as AuthHeroShell } from './AuthHeroShell';
 export { default as PageHeader } from './PageHeader';
 export { default as SectionCard } from './SectionCard';
 export { default as Button, PrimaryButton, SecondaryButton, DangerButton } from './Button';

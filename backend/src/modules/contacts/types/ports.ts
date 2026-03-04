@@ -28,16 +28,26 @@ export interface ContactDirectoryPort {
   getContacts(
     filters?: ContactFilters,
     pagination?: PaginationParams,
-    scope?: DataScopeFilter
+    scope?: DataScopeFilter,
+    viewerRole?: string
   ): Promise<PaginatedContacts>;
   getContactTags(scope?: DataScopeFilter): Promise<string[]>;
   getContactRoles(): Promise<ContactRole[]>;
   getRolesForContact(contactId: string): Promise<ContactRole[]>;
   setRolesForContact(contactId: string, roles: string[], assignedBy?: string): Promise<ContactRole[]>;
-  getContactById(contactId: string): Promise<Contact | null>;
-  getContactByIdWithScope(contactId: string, scope: DataScopeFilter): Promise<Contact | null>;
-  createContact(payload: CreateContactDTO, userId: string): Promise<Contact>;
-  updateContact(contactId: string, payload: UpdateContactDTO, userId: string): Promise<Contact | null>;
+  getContactById(contactId: string, viewerRole?: string): Promise<Contact | null>;
+  getContactByIdWithScope(
+    contactId: string,
+    scope: DataScopeFilter,
+    viewerRole?: string
+  ): Promise<Contact | null>;
+  createContact(payload: CreateContactDTO, userId: string, viewerRole?: string): Promise<Contact>;
+  updateContact(
+    contactId: string,
+    payload: UpdateContactDTO,
+    userId: string,
+    viewerRole?: string
+  ): Promise<Contact | null>;
   bulkUpdateContacts(
     contactIds: string[],
     payload: {

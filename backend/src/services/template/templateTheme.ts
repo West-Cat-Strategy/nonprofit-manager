@@ -4,7 +4,13 @@ import { SiteGeneratorService } from '../site-generator.service';
 import type { Template, TemplateListItem } from '@app-types/websiteBuilder';
 import type { PublishedContent, GeneratedPage } from '@app-types/publishing';
 import type { ColorPalette } from '@app-types/websiteBuilder';
-import { mapRowToListItem, generateThemeCssVariables, convertToPublishedTheme, convertToPublishedPage } from './helpers';
+import {
+  mapRowToListItem,
+  generateThemeCssVariables,
+  convertToPublishedTheme,
+  convertToPublishedPage,
+  ensureEventsPage,
+} from './helpers';
 import { getTemplate } from './templateCrud';
 import { createTemplate, updateTemplate } from './templateCrud';
 import { getTemplatePages } from './templatePages';
@@ -64,10 +70,11 @@ export async function generateTemplatePreview(
       return null;
     }
 
-    const pages = await getTemplatePages(templateId);
-    if (pages.length === 0) {
+    const templatePages = await getTemplatePages(templateId);
+    if (templatePages.length === 0) {
       return null;
     }
+    const pages = ensureEventsPage(templatePages, templateId);
 
     const requestedPage = pages.find(p => p.slug === pageSlug) || pages.find(p => p.isHomepage) || pages[0];
     if (!requestedPage) {

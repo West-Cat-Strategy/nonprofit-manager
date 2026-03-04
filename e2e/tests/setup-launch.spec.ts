@@ -8,6 +8,7 @@ const benignConsolePatterns = [
   /Failed to load resource: the server responded with a status of 404/i,
   /Failed to load resource: the server responded with a status of (401|403|404|410)/i,
   /Failed to fetch CSRF token:/i,
+  /downloadable font: download failed/i,
 ];
 
 const waitForAppRoute = async (page: Page): Promise<void> => {

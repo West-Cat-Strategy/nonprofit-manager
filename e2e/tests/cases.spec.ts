@@ -2,6 +2,7 @@ import { test, expect } from '../fixtures/auth.fixture';
 import type { Page } from '@playwright/test';
 import { createTestContact } from '../helpers/database';
 import { unwrapList, unwrapSuccess } from '../helpers/apiEnvelope';
+import { ensureEffectiveAdminLoginViaAPI } from '../helpers/auth';
 
 const apiURL = process.env.API_URL || 'http://localhost:3001';
 
@@ -370,18 +371,24 @@ test.describe('Cases Module', () => {
     });
 
     test('staff can tag an interaction outcome and see it persisted', async ({ authenticatedPage, authToken }) => {
+        const elevatedSession = await ensureEffectiveAdminLoginViaAPI(authenticatedPage, {
+            firstName: 'Test',
+            lastName: 'User',
+        });
+        const actingToken = elevatedSession.token || authToken;
+
         const suffix = uniqueSuffix();
-        const { id: caseId } = await createTestCase(authenticatedPage, authToken, {
+        const { id: caseId } = await createTestCase(authenticatedPage, actingToken, {
             title: `Outcome Case ${suffix}`,
         });
         const { id: noteId } = await createCaseNote(
             authenticatedPage,
-            authToken,
+            actingToken,
             caseId,
             `Outcome note ${suffix}`
         );
 
-        const readHeaders = await getReadHeaders(authenticatedPage, authToken);
+        const readHeaders = await getReadHeaders(authenticatedPage, actingToken);
         const definitionsResponse = await authenticatedPage.request.get(
             `${apiURL}/api/v2/cases/outcomes/definitions`,
             { headers: readHeaders }
@@ -392,7 +399,7 @@ test.describe('Cases Module', () => {
         const firstDefinition = definitions?.[0];
         expect(firstDefinition?.id).toBeTruthy();
 
-        const writeHeaders = await getWriteHeaders(authenticatedPage, authToken);
+        const writeHeaders = await getWriteHeaders(authenticatedPage, actingToken);
         const saveResponse = await authenticatedPage.request.put(
             `${apiURL}/api/v2/cases/${caseId}/interactions/${noteId}/outcomes`,
             {
@@ -417,7 +424,7 @@ test.describe('Cases Module', () => {
         expect(String(savedImpacts[0]?.outcome_definition_id)).toBe(firstDefinition.id);
 
         const fetchInteractionOutcomes = async (): Promise<Array<Record<string, unknown>>> => {
-            const headers = await getReadHeaders(authenticatedPage, authToken);
+            const headers = await getReadHeaders(authenticatedPage, actingToken);
             const response = await authenticatedPage.request.get(
                 `${apiURL}/api/v2/cases/${caseId}/interactions/${noteId}/outcomes`,
                 { headers }

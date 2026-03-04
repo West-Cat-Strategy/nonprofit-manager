@@ -10,10 +10,11 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const toneClasses: Record<ButtonTone, string> = {
   primary:
-    'bg-app-accent text-white border border-app-accent hover:bg-app-accent-hover hover:border-app-accent-hover',
+    'bg-app-accent text-[var(--app-accent-foreground)] border border-app-accent hover:bg-app-accent-hover hover:border-app-accent-hover disabled:bg-app-accent-soft disabled:border-app-border-muted disabled:text-app-text disabled:hover:bg-app-accent-soft disabled:hover:border-app-border-muted',
   secondary:
     'bg-app-surface text-app-text border border-app-border hover:bg-app-hover',
-  danger: 'bg-app-accent text-white border border-app-accent hover:bg-app-accent-hover hover:border-app-accent',
+  danger:
+    'bg-app-accent text-[var(--app-accent-foreground)] border border-app-accent hover:bg-app-accent-hover hover:border-app-accent',
 };
 
 export default function Button({
@@ -29,7 +30,7 @@ export default function Button({
       type={type}
       className={classNames(
         'inline-flex items-center justify-center gap-2 rounded-[var(--ui-radius-sm)] px-4 py-2 text-sm font-semibold shadow-sm',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent disabled:opacity-60 disabled:cursor-not-allowed',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent disabled:cursor-not-allowed disabled:shadow-none',
         toneClasses[tone],
         className
       )}

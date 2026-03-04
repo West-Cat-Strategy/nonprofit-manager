@@ -1,4 +1,11 @@
-import type { EventFilters, PaginationParams, CreateEventDTO, UpdateEventDTO } from '@app-types/event';
+import type {
+  EventFilters,
+  PaginationParams,
+  CreateEventDTO,
+  PublicEventsListData,
+  PublicEventsQuery,
+  UpdateEventDTO,
+} from '@app-types/event';
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { EventRepository } from '../repositories/eventRepository';
 
@@ -11,6 +18,10 @@ export class EventCatalogUseCase {
 
   getById(eventId: string, scope?: DataScopeFilter): Promise<unknown | null> {
     return this.repository.getEventById(eventId, scope);
+  }
+
+  listPublicByOwner(ownerUserId: string, query: PublicEventsQuery): Promise<PublicEventsListData> {
+    return this.repository.listPublicEventsByOwner(ownerUserId, query);
   }
 
   create(data: CreateEventDTO, userId: string): Promise<unknown> {

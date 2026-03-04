@@ -242,20 +242,26 @@ export const bulkUpdateStatusQuery = async (
   const caseIds = data.case_ids;
   if (caseIds.length === 0) return { updated: 0 };
 
-  const currentCases = await db.query(`SELECT id, status_id FROM cases WHERE id = ANY($1)`, [caseIds]);
-
-  const updateResult = await db.query(
-    `UPDATE cases SET status_id = $1, modified_by = $2, updated_at = NOW() WHERE id = ANY($3)`,
-    [data.new_status_id, userId, caseIds]
+  await db.query(
+    `
+    INSERT INTO case_notes (case_id, note_type, content, previous_status_id, new_status_id, created_by)
+    SELECT
+      c.id,
+      'status_change',
+      $1,
+      c.status_id,
+      $2,
+      $3
+    FROM cases c
+    WHERE c.id = ANY($4::uuid[])
+  `,
+    [data.notes || 'Bulk status update', data.new_status_id, userId, caseIds]
   );
 
-  for (const row of currentCases.rows) {
-    await db.query(
-      `INSERT INTO case_notes (case_id, note_type, content, previous_status_id, new_status_id, created_by)
-       VALUES ($1, 'status_change', $2, $3, $4, $5)`,
-      [row.id, data.notes || 'Bulk status update', row.status_id, data.new_status_id, userId]
-    );
-  }
+  const updateResult = await db.query(
+    `UPDATE cases SET status_id = $1, modified_by = $2, updated_at = NOW() WHERE id = ANY($3::uuid[])`,
+    [data.new_status_id, userId, caseIds]
+  );
 
   logger.info('Bulk status update', { count: updateResult.rowCount, newStatusId: data.new_status_id });
   return { updated: updateResult.rowCount || 0 };

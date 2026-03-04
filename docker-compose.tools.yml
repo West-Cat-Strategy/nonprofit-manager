@@ -1,3 +1,8 @@
+# Overlay-only compose file.
+# Use with docker-compose.dev.yml:
+#   docker compose -f docker-compose.dev.yml -f docker-compose.tools.yml --profile tools up -d
+# This file is not intended to run standalone.
+
 services:
   # pgAdmin - Database Administration Tool
   pgadmin:
@@ -53,7 +58,3 @@ services:
 volumes:
   pgadmin_data:
     driver: local
-
-networks:
-  nonprofit-dev-network:
-    external: true

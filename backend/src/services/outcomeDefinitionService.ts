@@ -9,6 +9,18 @@ import type {
 } from '@app-types/outcomes';
 
 const normalizeKey = (value: string): string => value.trim().toLowerCase().replace(/[-\s]+/g, '_');
+const OUTCOME_DEFINITION_COLUMNS = `
+  id,
+  key,
+  name,
+  description,
+  category,
+  is_active,
+  is_reportable,
+  sort_order,
+  created_at,
+  updated_at
+`;
 
 export class OutcomeDefinitionService {
   constructor(private readonly pool: Pool) {}
@@ -24,7 +36,7 @@ export class OutcomeDefinitionService {
 
     const result = await this.pool.query<OutcomeDefinition>(
       `
-      SELECT *
+      SELECT ${OUTCOME_DEFINITION_COLUMNS}
       FROM outcome_definitions
       ${whereClause}
       ORDER BY sort_order ASC, name ASC
@@ -43,7 +55,7 @@ export class OutcomeDefinitionService {
         `
         INSERT INTO outcome_definitions (key, name, description, category, is_active, is_reportable, sort_order)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
-        RETURNING *
+        RETURNING ${OUTCOME_DEFINITION_COLUMNS}
       `,
         [
           key,
@@ -120,7 +132,7 @@ export class OutcomeDefinitionService {
         UPDATE outcome_definitions
         SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
         WHERE id = $${idx}
-        RETURNING *
+        RETURNING ${OUTCOME_DEFINITION_COLUMNS}
       `,
         values
       );
@@ -144,7 +156,7 @@ export class OutcomeDefinitionService {
       SET is_active = $1,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = $2
-      RETURNING *
+      RETURNING ${OUTCOME_DEFINITION_COLUMNS}
     `,
       [isActive, id]
     );
@@ -174,7 +186,7 @@ export class OutcomeDefinitionService {
 
       const listResult = await this.pool.query<OutcomeDefinition>(
         `
-        SELECT *
+        SELECT ${OUTCOME_DEFINITION_COLUMNS}
         FROM outcome_definitions
         ORDER BY sort_order ASC, name ASC
       `
@@ -199,7 +211,7 @@ export class OutcomeDefinitionService {
   async getOutcomeDefinitionById(id: string): Promise<OutcomeDefinition | null> {
     const result = await this.pool.query<OutcomeDefinition>(
       `
-      SELECT *
+      SELECT ${OUTCOME_DEFINITION_COLUMNS}
       FROM outcome_definitions
       WHERE id = $1
       LIMIT 1

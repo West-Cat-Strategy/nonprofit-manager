@@ -14,7 +14,21 @@ export const createPortalEventsController = (useCase: PortalEventsUseCase) => {
         return;
       }
 
-      const events = await useCase.listEvents(contactId);
+      const query = (req.validatedQuery ?? req.query) as {
+        search?: string;
+        sort?: 'start_date' | 'name' | 'created_at';
+        order?: 'asc' | 'desc';
+        limit?: number;
+        offset?: number;
+      };
+
+      const events = await useCase.listEvents(contactId, {
+        search: query.search,
+        sort: query.sort,
+        order: query.order,
+        limit: query.limit,
+        offset: query.offset,
+      });
       sendSuccess(res, events);
     } catch (error) {
       next(error);

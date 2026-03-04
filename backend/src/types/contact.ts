@@ -199,6 +199,7 @@ export interface Contact {
   birth_date: Date | null;
   gender: string | null;
   pronouns: string | null;
+  phn: string | null;
 
   // Legacy contact information (kept for backwards compatibility)
   email: string | null;
@@ -262,6 +263,7 @@ export interface CreateContactDTO {
   birth_date?: Date | string;
   gender?: string;
   pronouns?: string;
+  phn?: string | null;
   email?: string;
   phone?: string;
   mobile_phone?: string;
@@ -295,6 +297,7 @@ export interface UpdateContactDTO {
   birth_date?: Date | string | null;
   gender?: string | null;
   pronouns?: string | null;
+  phn?: string | null;
   email?: string;
   phone?: string;
   mobile_phone?: string;

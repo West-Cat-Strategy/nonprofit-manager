@@ -19,7 +19,7 @@ describe('OutcomeReportService', () => {
     service = new OutcomeReportService({ query: mockQuery } as unknown as Pool);
   });
 
-  it('returns totals and timeseries with reportable filter by default', async () => {
+  it('returns totals and source-aware timeseries with reportable filter by default', async () => {
     mockQuery
       .mockResolvedValueOnce({
         rows: [
@@ -29,6 +29,10 @@ describe('OutcomeReportService', () => {
             name: 'Maintained employment',
             count_impacts: 4,
             unique_clients_impacted: 2,
+            interaction_count_impacts: 2,
+            interaction_unique_clients_impacted: 2,
+            event_count_impacts: 2,
+            event_unique_clients_impacted: 1,
             sort_order: 10,
           },
         ],
@@ -38,8 +42,10 @@ describe('OutcomeReportService', () => {
           {
             bucket_start: '2026-01-01',
             outcome_definition_id: 'outcome-1',
+            source: 'interaction',
             count_impacts: 2,
             sort_order: 10,
+            name: 'Maintained employment',
           },
         ],
       });
@@ -59,29 +65,40 @@ describe('OutcomeReportService', () => {
       name: 'Maintained employment',
       countImpacts: 4,
       uniqueClientsImpacted: 2,
+      sourceBreakdown: {
+        interaction: {
+          countImpacts: 2,
+          uniqueClientsImpacted: 2,
+        },
+        event: {
+          countImpacts: 2,
+          uniqueClientsImpacted: 1,
+        },
+      },
     });
     expect(result.timeseries[0]).toEqual({
       bucketStart: '2026-01-01',
       outcomeDefinitionId: 'outcome-1',
+      source: 'interaction',
       countImpacts: 2,
     });
 
     const totalsSql = mockQuery.mock.calls[0][0] as string;
     const timeseriesSql = mockQuery.mock.calls[1][0] as string;
+    expect(totalsSql).toContain('WITH source_rows AS');
     expect(totalsSql).toContain('od.is_reportable = true');
     expect(timeseriesSql).toContain("date_trunc('week'");
   });
 
-  it('supports includeNonReportable for admins and applies optional filters', async () => {
-    mockQuery
-      .mockResolvedValueOnce({ rows: [] })
-      .mockResolvedValueOnce({ rows: [] });
+  it('supports includeNonReportable for admins, source filter, and optional filters', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [] });
 
     await service.getOutcomesReport(
       {
         from: '2026-01-01',
         to: '2026-01-31',
         bucket: 'month',
+        source: 'interaction',
         includeNonReportable: true,
         staffId: 'user-1',
         interactionType: 'meeting',
@@ -94,8 +111,9 @@ describe('OutcomeReportService', () => {
     const timeseriesSql = mockQuery.mock.calls[1][0] as string;
 
     expect(totalsSql).not.toContain('od.is_reportable = true');
-    expect(totalsSql).toContain('cn.created_by = $3');
-    expect(totalsSql).toContain('cn.note_type = $4');
+    expect(totalsSql).toContain('cn.created_by =');
+    expect(totalsSql).toContain('cn.note_type =');
+    expect(totalsSql).not.toContain('FROM case_outcomes');
     expect(timeseriesSql).toContain("date_trunc('month'");
     expect(totalsValues).toEqual(['2026-01-01', '2026-01-31', 'user-1', 'meeting']);
   });

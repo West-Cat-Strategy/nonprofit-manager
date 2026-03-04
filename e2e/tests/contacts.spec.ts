@@ -183,10 +183,61 @@ test.describe('Contacts Module', () => {
     await authenticatedPage.getByLabel(/last name \*/i).fill('Entry');
     await authenticatedPage.getByLabel(/^email$/i).fill('invalid.entry@example.com');
     await authenticatedPage.locator('input[name="phone"]').fill('12345');
+    await authenticatedPage.getByLabel(/personal health number \(phn\)/i).fill('12345');
 
     await authenticatedPage.getByRole('button', { name: /create contact/i }).click();
 
     await expect(authenticatedPage.getByText(/phone number must be at least 10 digits/i)).toBeVisible();
+    await expect(authenticatedPage.getByText(/phn must contain exactly 10 digits/i)).toBeVisible();
+  });
+
+  test('should support PHN create and edit happy path', async ({ authenticatedPage, authToken }) => {
+    const suffix = uniqueSuffix();
+    const firstName = `Phn${suffix}`;
+    const lastName = 'Flow';
+
+    await authenticatedPage.goto('/contacts/new');
+
+    await authenticatedPage.getByLabel(/first name \*/i).fill(firstName);
+    await authenticatedPage.getByLabel(/last name \*/i).fill(lastName);
+    await authenticatedPage.getByLabel(/^email$/i).fill(`phn.${suffix}@example.com`);
+    await authenticatedPage.locator('input[name="phone"]').fill('5550201234');
+    await authenticatedPage.getByLabel(/personal health number \(phn\)/i).fill('123-456-7890');
+
+    const { contactId } = await createContactViaUI(authenticatedPage);
+    await authenticatedPage.waitForURL(/\/contacts\/[a-f0-9-]+$/, { timeout: 30000 });
+
+    const contactIdFromUrl = authenticatedPage.url().match(/\/contacts\/([a-f0-9-]+)$/i)?.[1] || null;
+    const resolvedContactId = contactIdFromUrl || contactId;
+    if (!resolvedContactId) {
+      throw new Error('Unable to resolve created contact id');
+    }
+
+    await waitForContactAvailability(authenticatedPage, authToken, resolvedContactId);
+    await waitForContactDetailReady(authenticatedPage);
+    await expect(authenticatedPage.getByText(/1234567890|\*{2,}7890/i)).toBeVisible();
+
+    await authenticatedPage.getByRole('button', { name: /edit contact/i }).click();
+    await authenticatedPage.waitForURL(/\/contacts\/[a-f0-9-]+\/edit$/, { timeout: 30000 });
+    await authenticatedPage.getByLabel(/personal health number \(phn\)/i).fill('098-765-4321');
+    const updateResponsePromise = authenticatedPage
+      .waitForResponse(
+        (response) =>
+          response.request().method() === 'PUT' &&
+          response.url().includes(`/api/v2/contacts/${resolvedContactId}`),
+        { timeout: 30000 }
+      )
+      .catch(() => null);
+    await authenticatedPage.getByRole('button', { name: /update contact/i }).click();
+    const updateResponse = await updateResponsePromise;
+    expect(updateResponse).not.toBeNull();
+    expect(updateResponse?.ok()).toBeTruthy();
+
+    await authenticatedPage.waitForURL(/\/contacts\/[a-f0-9-]+$/, { timeout: 30000 }).catch(async () => {
+      await authenticatedPage.goto(`/contacts/${resolvedContactId}`);
+    });
+    await waitForContactDetailReady(authenticatedPage);
+    await expect(authenticatedPage.getByText(/0987654321|\*{2,}4321/i)).toBeVisible();
   });
 
   test('should support create -> detail -> edit lifecycle', async ({ authenticatedPage, authToken }) => {
@@ -379,8 +430,13 @@ test.describe('Contacts Module', () => {
     await authenticatedPage.goto('/contacts');
     await authenticatedPage.getByLabel('Search contacts').fill(`Delete${suffix}`);
     await authenticatedPage.locator('form').getByRole('button', { name: /^search$/i }).click();
+    await expect
+      .poll(
+        async () => authenticatedPage.locator('tr', { hasText: fullName }).count(),
+        { timeout: 15000, intervals: [500, 1000, 1500] }
+      )
+      .toBeGreaterThan(0);
     const row = authenticatedPage.locator('tr', { hasText: fullName }).first();
-    await expect(row).toBeVisible({ timeout: 15000 });
 
     await row.getByRole('button', { name: /delete/i }).click();
     const confirmDeleteDialog = authenticatedPage
