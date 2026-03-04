@@ -22,6 +22,8 @@ describe('Authorization Integration Tests', () => {
   }> = [];
   const testData: Record<string, string> = {};
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const unwrap = <T>(body: { data?: T } | T): T =>
+    (body && typeof body === 'object' && 'data' in body ? (body as { data: T }).data : body) as T;
   let defaultOrganizationId: string | null = null;
   const ensureTestUsersExist = async (): Promise<void> => {
     for (const testUser of testUsers) {
@@ -63,15 +65,6 @@ describe('Authorization Integration Tests', () => {
   };
 
   beforeAll(async () => {
-    const orgResult = await pool.query<{ id: string }>(
-      `SELECT id
-       FROM accounts
-       WHERE account_type = 'organization'
-       ORDER BY created_at ASC
-       LIMIT 1`
-    );
-    defaultOrganizationId = orgResult.rows[0]?.id ?? null;
-
     // Create test users with different roles
     const roles = ['admin', 'manager', 'staff', 'volunteer', 'viewer'];
     const password = 'Test123!Strong';
@@ -90,8 +83,24 @@ describe('Authorization Integration Tests', () => {
           last_name: lastName,
         });
 
-      tokens[role] = response.body.token as string;
-      userIds[role] = response.body.user.id;
+      const registered = unwrap<{
+        user?: {
+          id: string;
+        };
+      }>(response.body);
+      let resolvedUserId = registered.user?.id;
+
+      if (!resolvedUserId) {
+        const createdUser = await pool.query<{ id: string }>(
+          `INSERT INTO users (email, password_hash, first_name, last_name, role, is_active, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, true, NOW(), NOW())
+           RETURNING id`,
+          [email, '$2b$10$2B5xCiFv0to6v3sQm6rQOu/xM2bYf7jdd2fNf7q5sWubEjkVif7PO', firstName, lastName, role]
+        );
+        resolvedUserId = createdUser.rows[0].id;
+      }
+
+      userIds[role] = resolvedUserId;
       testUsers.push({
         id: userIds[role],
         email,
@@ -115,11 +124,34 @@ describe('Authorization Integration Tests', () => {
       } catch {
         // Role tables may not exist yet - that's ok for basic auth tests
       }
+    }
+    await ensureTestUsersExist();
 
+    const orgResult = await pool.query<{ id: string }>(
+      `SELECT id
+       FROM accounts
+       WHERE account_type = 'organization'
+         AND COALESCE(is_active, true) = true
+       ORDER BY created_at ASC
+       LIMIT 1`
+    );
+    defaultOrganizationId = orgResult.rows[0]?.id ?? null;
+
+    if (!defaultOrganizationId) {
+      const createdOrganization = await pool.query<{ id: string }>(
+        `INSERT INTO accounts (account_name, account_type, created_by, modified_by, created_at, updated_at)
+         VALUES ($1, 'organization', $2, $2, NOW(), NOW())
+         RETURNING id`,
+        [`Authorization Test Organization ${unique()}`, userIds.admin]
+      );
+      defaultOrganizationId = createdOrganization.rows[0].id;
+    }
+
+    for (const role of roles) {
       tokens[role] = jwt.sign(
         {
           id: userIds[role],
-          email,
+          email: testUsers.find((user) => user.role === role)?.email ?? `auth-${role}-${unique()}@example.com`,
           role,
           ...(defaultOrganizationId ? { organizationId: defaultOrganizationId } : {}),
         },
@@ -127,7 +159,6 @@ describe('Authorization Integration Tests', () => {
         { expiresIn: '1h' }
       );
     }
-    await ensureTestUsersExist();
 
     // Create test data using admin user
     const accountResponse = await request(app)
@@ -139,8 +170,9 @@ describe('Authorization Integration Tests', () => {
         category: 'donor',
       });
 
-    if (accountResponse.body.id) {
-      testData.accountId = accountResponse.body.id;
+    const accountPayload = unwrap<{ account_id?: string; id?: string }>(accountResponse.body);
+    if (accountPayload.account_id || accountPayload.id) {
+      testData.accountId = accountPayload.account_id ?? accountPayload.id ?? '';
     }
 
     // Create a test contact
@@ -150,12 +182,13 @@ describe('Authorization Integration Tests', () => {
       .send({
         first_name: 'Auth',
         last_name: 'TestContact',
-        email: 'authtest@example.com',
+        email: `auth-test-contact-${unique()}@example.com`,
         account_id: testData.accountId,
       });
 
-    if (contactResponse.body.id) {
-      testData.contactId = contactResponse.body.id;
+    const contactPayload = unwrap<{ contact_id?: string; id?: string }>(contactResponse.body);
+    if (contactPayload.contact_id || contactPayload.id) {
+      testData.contactId = contactPayload.contact_id ?? contactPayload.id ?? '';
     }
   });
 
@@ -167,7 +200,39 @@ describe('Authorization Integration Tests', () => {
     // Clean up test data
     const testUserIds = Object.values(userIds);
     if (testUserIds.length > 0) {
-      // Accounts reference users via created_by; remove any leftovers before deleting users.
+      // Remove dependent rows before deleting accounts created by test users.
+      await pool.query(
+        `DELETE FROM volunteers
+         WHERE contact_id IN (
+           SELECT id
+           FROM contacts
+           WHERE account_id IN (
+             SELECT id
+             FROM accounts
+             WHERE created_by = ANY($1::uuid[])
+           )
+         )`,
+        [testUserIds]
+      );
+      await pool.query(
+        `DELETE FROM contacts
+         WHERE account_id IN (
+           SELECT id
+           FROM accounts
+           WHERE created_by = ANY($1::uuid[])
+         )`,
+        [testUserIds]
+      );
+      await pool.query(
+        `DELETE FROM donations
+         WHERE account_id IN (
+           SELECT id
+           FROM accounts
+           WHERE created_by = ANY($1::uuid[])
+         )`,
+        [testUserIds]
+      );
+      // Accounts reference users via created_by; remove account rows before deleting users.
       await pool.query('DELETE FROM accounts WHERE created_by = ANY($1::uuid[])', [testUserIds]);
     }
     if (testData.contactId) {
@@ -239,8 +304,10 @@ describe('Authorization Integration Tests', () => {
         expect(response.status).toBe(201);
 
         // Clean up
-        if (response.body.id) {
-          await pool.query('DELETE FROM accounts WHERE id = $1', [response.body.id]);
+        const createdAccount = unwrap<{ account_id?: string; id?: string }>(response.body);
+        const createdAccountId = createdAccount.account_id ?? createdAccount.id;
+        if (createdAccountId) {
+          await pool.query('DELETE FROM accounts WHERE id = $1', [createdAccountId]);
         }
       });
 
@@ -257,8 +324,10 @@ describe('Authorization Integration Tests', () => {
         expect(response.status).toBe(201);
 
         // Clean up
-        if (response.body.id) {
-          await pool.query('DELETE FROM accounts WHERE id = $1', [response.body.id]);
+        const createdAccount = unwrap<{ account_id?: string; id?: string }>(response.body);
+        const createdAccountId = createdAccount.account_id ?? createdAccount.id;
+        if (createdAccountId) {
+          await pool.query('DELETE FROM accounts WHERE id = $1', [createdAccountId]);
         }
       });
 
@@ -275,8 +344,10 @@ describe('Authorization Integration Tests', () => {
         expect(response.status).toBe(201);
 
         // Clean up
-        if (response.body.id) {
-          await pool.query('DELETE FROM accounts WHERE id = $1', [response.body.id]);
+        const createdAccount = unwrap<{ account_id?: string; id?: string }>(response.body);
+        const createdAccountId = createdAccount.account_id ?? createdAccount.id;
+        if (createdAccountId) {
+          await pool.query('DELETE FROM accounts WHERE id = $1', [createdAccountId]);
         }
       });
     });
@@ -293,7 +364,8 @@ describe('Authorization Integration Tests', () => {
           });
 
         expect(response.status).toBe(200);
-        expect(response.body.account_name).toBe('Updated by Admin');
+        const payload = unwrap<{ account_name?: string }>(response.body);
+        expect(payload.account_name).toBe('Updated by Admin');
       });
 
       it('should allow manager to update accounts', async () => {
@@ -367,8 +439,10 @@ describe('Authorization Integration Tests', () => {
         expect(response.status).toBe(201);
 
         // Clean up
-        if (response.body.id) {
-          await pool.query('DELETE FROM contacts WHERE id = $1', [response.body.id]);
+        const createdContact = unwrap<{ contact_id?: string; id?: string }>(response.body);
+        const createdContactId = createdContact.contact_id ?? createdContact.id;
+        if (createdContactId) {
+          await pool.query('DELETE FROM contacts WHERE id = $1', [createdContactId]);
         }
       });
 
@@ -385,8 +459,10 @@ describe('Authorization Integration Tests', () => {
         expect(response.status).toBe(201);
 
         // Clean up
-        if (response.body.id) {
-          await pool.query('DELETE FROM contacts WHERE id = $1', [response.body.id]);
+        const createdContact = unwrap<{ contact_id?: string; id?: string }>(response.body);
+        const createdContactId = createdContact.contact_id ?? createdContact.id;
+        if (createdContactId) {
+          await pool.query('DELETE FROM contacts WHERE id = $1', [createdContactId]);
         }
       });
     });
