@@ -41,6 +41,11 @@ export const schemaRegistry: SchemaTable[] = [
       { field: 'birth_date', type: 'date', aliases: ['dob', 'birthdate', 'date_of_birth'] },
       { field: 'gender', type: 'string' },
       { field: 'pronouns', type: 'string', aliases: ['pronoun'] },
+      {
+        field: 'phn',
+        type: 'string',
+        aliases: ['personal_health_number', 'personal_health_no', 'health_number', 'health_no', 'phn_number'],
+      },
       { field: 'email', type: 'string', aliases: ['email_address', 'e-mail'] },
       { field: 'phone', type: 'string', aliases: ['telephone', 'tel', 'home_phone', 'work_phone'] },
       { field: 'mobile_phone', type: 'string', aliases: ['mobile', 'cell', 'cell_phone', 'cellphone'] },
@@ -129,4 +134,3 @@ export const schemaRegistry: SchemaTable[] = [
     ],
   },
 ];
-

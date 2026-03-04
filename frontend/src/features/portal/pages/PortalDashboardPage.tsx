@@ -1,32 +1,24 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import PortalPageState from '../../../components/portal/PortalPageState';
 import PortalPageShell from '../../../components/portal/PortalPageShell';
 import PortalListCard from '../../../components/portal/PortalListCard';
-import { unwrapApiData } from '../../../services/apiEnvelope';
-import portalApi from '../../../services/portalApi';
-
-interface ReminderItem {
-  type: 'appointment' | 'event';
-  id: string;
-  title: string;
-  date: string;
-}
+import { portalV2ApiClient } from '../api/portalApiClient';
+import type { PortalReminder } from '../types/contracts';
 
 export default function PortalDashboard() {
-  const [reminders, setReminders] = useState<ReminderItem[]>([]);
+  const [reminders, setReminders] = useState<PortalReminder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const sortedReminders = useMemo(
-    () => [...reminders].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
-    [reminders]
-  );
 
   const load = async () => {
     try {
       setError(null);
-      const response = await portalApi.get('/v2/portal/reminders');
-      setReminders(unwrapApiData(response.data));
+      const response = await portalV2ApiClient.listReminders({
+        limit: 8,
+        sort: 'date',
+        order: 'asc',
+      });
+      setReminders(response.items);
     } catch (err) {
       console.error('Failed to load reminders', err);
       setError('Unable to load reminders right now.');
@@ -47,16 +39,16 @@ export default function PortalDashboard() {
       <PortalPageState
         loading={loading}
         error={error}
-        empty={!loading && !error && sortedReminders.length === 0}
+        empty={!loading && !error && reminders.length === 0}
         loadingLabel="Loading reminders..."
         emptyTitle="No upcoming reminders."
         emptyDescription="When events or appointments are due soon, they will appear here."
         onRetry={load}
       />
 
-      {!loading && !error && sortedReminders.length > 0 && (
+      {!loading && !error && reminders.length > 0 && (
         <ul className="space-y-3">
-          {sortedReminders.map((reminder) => {
+          {reminders.map((reminder) => {
             const when = new Date(reminder.date);
             return (
               <li key={`${reminder.type}-${reminder.id}`}>

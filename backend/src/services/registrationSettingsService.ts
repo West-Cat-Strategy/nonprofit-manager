@@ -33,6 +33,14 @@ interface SettingsRow {
   updated_at: Date;
 }
 
+const SETTINGS_COLUMNS = `
+  id,
+  registration_mode,
+  default_role,
+  created_at,
+  updated_at
+`;
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -56,7 +64,10 @@ function toModel(row: SettingsRow): RegistrationSettings {
  */
 export async function getRegistrationSettings(): Promise<RegistrationSettings> {
   const result = await pool.query<SettingsRow>(
-    'SELECT * FROM registration_settings ORDER BY created_at LIMIT 1'
+    `SELECT ${SETTINGS_COLUMNS}
+     FROM registration_settings
+     ORDER BY created_at
+     LIMIT 1`
   );
 
   if (result.rows.length > 0) {
@@ -66,7 +77,7 @@ export async function getRegistrationSettings(): Promise<RegistrationSettings> {
   // Ensure singleton row exists
   const insert = await pool.query<SettingsRow>(
     `INSERT INTO registration_settings (registration_mode) VALUES ('disabled')
-     RETURNING *`
+     RETURNING ${SETTINGS_COLUMNS}`
   );
   return toModel(insert.rows[0]);
 }
@@ -90,7 +101,7 @@ export async function updateRegistrationSettings(
          modified_by = $3,
          updated_at = NOW()
      WHERE id = $4
-     RETURNING *`,
+     RETURNING ${SETTINGS_COLUMNS}`,
     [mode, role, modifiedBy ?? null, current.id]
   );
 

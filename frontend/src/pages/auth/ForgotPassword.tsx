@@ -1,12 +1,8 @@
-/**
- * Forgot Password Page
- * Allows users to request a password reset email.
- */
-
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
+import { AuthHeroShell, FormField, PrimaryButton } from '../../components/ui';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -18,8 +14,8 @@ export default function ForgotPassword() {
     document.title = 'Forgot Password | Nonprofit Manager';
   }, []);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
     setError(null);
     setLoading(true);
 
@@ -27,8 +23,7 @@ export default function ForgotPassword() {
       await api.post('/auth/forgot-password', { email: email.trim() });
       setSubmitted(true);
     } catch {
-      // Always show success to prevent user enumeration. Only show real
-      // errors for network failures etc.
+      // Always show success to prevent user enumeration.
       setSubmitted(true);
     } finally {
       setLoading(false);
@@ -36,93 +31,57 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="auth-page-light relative min-h-screen overflow-hidden bg-gradient-to-br from-app-bg via-white to-app-accent-soft font-body">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-24 left-0 h-72 w-72 rounded-full bg-app-accent-soft/50 blur-3xl"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -bottom-24 right-0 h-72 w-72 rounded-full bg-app-accent-soft/50 blur-3xl"
-      />
+    <AuthHeroShell
+      badge="Account recovery"
+      title="Forgot your password?"
+      description="Request a secure password-reset email."
+      highlights={[
+        'Reset links are time-limited for security.',
+        'We always return the same response to protect account privacy.',
+      ]}
+    >
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-text-muted">Password reset</p>
 
-      <div className="relative mx-auto flex min-h-screen max-w-md items-center px-4 py-12">
-        <div className="w-full rounded-3xl border border-app-border/80 bg-white/90 p-8 shadow-xl backdrop-blur">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-app-text text-white">
-            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-              />
-            </svg>
-          </div>
+      {!submitted ? (
+        <>
+          <p className="mt-2 text-sm text-app-text">
+            Enter your email address and we&apos;ll send you a link to reset your password.
+          </p>
 
-          <h1 className="font-display mt-4 text-2xl font-semibold text-app-text-heading">
-            Forgot your password?
-          </h1>
-
-          {!submitted ? (
-            <>
-              <p className="mt-2 text-sm text-app-text">
-                Enter your email address and we'll send you a link to reset your password.
-              </p>
-
-              {error && (
-                <div className="mt-4 rounded-lg border border-app-border bg-app-accent-soft px-4 py-3 text-sm text-app-accent-text">
-                  {error}
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-                <div>
-                  <label
-                    htmlFor="email"
-                    className="text-xs font-semibold uppercase tracking-wide text-app-text"
-                  >
-                    Email Address
-                  </label>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    required
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="mt-2 block w-full rounded-xl border border-app-border bg-white px-4 py-2.5 text-sm text-app-text-heading shadow-sm transition focus:border-app-text focus:outline-none focus:ring-4 focus:ring-app-accent"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex w-full items-center justify-center rounded-xl bg-app-text px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:-translate-y-0.5 hover:bg-app-text focus:outline-none focus:ring-4 focus:ring-app-accent disabled:opacity-60"
-                >
-                  {loading ? 'Sending...' : 'Send Reset Link'}
-                </button>
-              </form>
-            </>
-          ) : (
-            <div className="mt-4">
-              <div className="rounded-lg border border-app-border bg-app-accent-soft px-4 py-3 text-sm text-app-accent-text">
-                If an account with that email exists, we've sent a password reset link. Please check
-                your inbox (and spam folder).
-              </div>
+          {error && (
+            <div className="mt-4 rounded-lg border border-app-border bg-app-accent-soft px-4 py-3 text-sm text-app-accent-text">
+              {error}
             </div>
           )}
 
-          <div className="mt-6 text-center">
-            <Link
-              to="/login"
-              className="text-sm font-medium text-app-text hover:text-app-text-heading"
-            >
-              &larr; Back to sign in
-            </Link>
-          </div>
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            <FormField
+              id="forgot-password-email"
+              name="email"
+              type="email"
+              label="Email Address"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+            <PrimaryButton type="submit" disabled={loading} className="w-full justify-center">
+              {loading ? 'Sending...' : 'Send Reset Link'}
+            </PrimaryButton>
+          </form>
+        </>
+      ) : (
+        <div className="mt-4 rounded-lg border border-app-border bg-app-accent-soft px-4 py-3 text-sm text-app-accent-text">
+          If an account with that email exists, we&apos;ve sent a password reset link. Please check
+          your inbox and spam folder.
         </div>
+      )}
+
+      <div className="mt-6 text-center">
+        <Link to="/login" className="text-sm font-medium text-app-text hover:text-app-text-heading">
+          &larr; Back to sign in
+        </Link>
       </div>
-    </div>
+    </AuthHeroShell>
   );
 }

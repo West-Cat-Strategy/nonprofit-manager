@@ -8,12 +8,29 @@ import type {
   PortalCaseSummary,
   PortalCaseTimelinePage,
   PortalCaseTimelineQuery,
+  PortalDocument,
+  PortalDocumentsQuery,
   PortalEvent,
+  PortalEventsQuery,
+  PortalFormsQuery,
+  PortalNote,
+  PortalNotesQuery,
+  PortalPagedResult,
+  PortalReminder,
+  PortalRemindersQuery,
 } from '../types/contracts';
 
 export class PortalV2ApiClient implements PortalApiClient {
-  async listEvents(): Promise<PortalEvent[]> {
-    const response = await portalApi.get<ApiEnvelope<PortalEvent[]>>('/v2/portal/events');
+  async listEvents(query: PortalEventsQuery = {}): Promise<PortalPagedResult<PortalEvent>> {
+    const response = await portalApi.get<ApiEnvelope<PortalPagedResult<PortalEvent>>>('/v2/portal/events', {
+      params: {
+        search: query.search,
+        sort: query.sort,
+        order: query.order,
+        limit: query.limit,
+        offset: query.offset,
+      },
+    });
     return unwrapApiData(response.data);
   }
 
@@ -23,6 +40,64 @@ export class PortalV2ApiClient implements PortalApiClient {
 
   async cancelEventRegistration(eventId: string): Promise<void> {
     await portalApi.delete(`/v2/portal/events/${eventId}/register`);
+  }
+
+  async listDocuments(query: PortalDocumentsQuery = {}): Promise<PortalPagedResult<PortalDocument>> {
+    const response = await portalApi.get<ApiEnvelope<PortalPagedResult<PortalDocument>>>(
+      '/v2/portal/documents',
+      {
+        params: {
+          search: query.search,
+          sort: query.sort,
+          order: query.order,
+          limit: query.limit,
+          offset: query.offset,
+        },
+      }
+    );
+    return unwrapApiData(response.data);
+  }
+
+  async listForms(query: PortalFormsQuery = {}): Promise<PortalPagedResult<PortalDocument>> {
+    const response = await portalApi.get<ApiEnvelope<PortalPagedResult<PortalDocument>>>('/v2/portal/forms', {
+      params: {
+        search: query.search,
+        sort: query.sort,
+        order: query.order,
+        limit: query.limit,
+        offset: query.offset,
+      },
+    });
+    return unwrapApiData(response.data);
+  }
+
+  async listNotes(query: PortalNotesQuery = {}): Promise<PortalPagedResult<PortalNote>> {
+    const response = await portalApi.get<ApiEnvelope<PortalPagedResult<PortalNote>>>('/v2/portal/notes', {
+      params: {
+        search: query.search,
+        sort: query.sort,
+        order: query.order,
+        limit: query.limit,
+        offset: query.offset,
+      },
+    });
+    return unwrapApiData(response.data);
+  }
+
+  async listReminders(query: PortalRemindersQuery = {}): Promise<PortalPagedResult<PortalReminder>> {
+    const response = await portalApi.get<ApiEnvelope<PortalPagedResult<PortalReminder>>>(
+      '/v2/portal/reminders',
+      {
+        params: {
+          search: query.search,
+          sort: query.sort,
+          order: query.order,
+          limit: query.limit,
+          offset: query.offset,
+        },
+      }
+    );
+    return unwrapApiData(response.data);
   }
 
   async listCases(): Promise<PortalCaseSummary[]> {

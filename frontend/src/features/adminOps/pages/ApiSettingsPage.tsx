@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   fetchWebhookEndpoints,
@@ -32,6 +33,8 @@ import type {
 } from '../../../types/webhook';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
+import AdminPanelLayout from '../components/AdminPanelLayout';
+import AdminPanelNav from '../components/AdminPanelNav';
 
 /**
  * Status Badge Component
@@ -434,6 +437,7 @@ function NewApiKeyModal({
  * API Settings Page Component
  */
 export default function ApiSettings() {
+  const location = useLocation();
   const dispatch = useAppDispatch();
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const {
@@ -597,15 +601,11 @@ export default function ApiSettings() {
   }, {} as Record<string, typeof availableEvents>);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-app-text-heading">API Settings</h1>
-        <p className="mt-1 text-app-text-muted">
-          Manage webhooks and API keys for external integrations
-        </p>
-      </div>
-
+    <AdminPanelLayout
+      title="API Settings"
+      description="Manage webhooks and API keys for external integrations."
+      sidebar={<AdminPanelNav currentPath={location.pathname} />}
+    >
       {/* Error Display */}
       {error && (
         <div className="bg-app-accent-soft border border-app-border text-app-accent-text px-4 py-3 rounded-lg flex items-center justify-between">
@@ -908,6 +908,6 @@ export default function ApiSettings() {
         </div>
       )}
       <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
-    </div>
+    </AdminPanelLayout>
   );
 }

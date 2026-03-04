@@ -109,7 +109,7 @@ See [Features Documentation](docs/README.md) for detailed guides.
 ### Quick Start
 ```bash
 # Start all services
-docker-compose up --build -d
+docker compose --env-file .env.production up --build -d
 
 # Access the application
 # - Frontend: http://localhost:8001
@@ -119,13 +119,26 @@ docker-compose up --build -d
 ### Development Mode
 ```bash
 # Start with hot reload
-docker-compose -f docker-compose.dev.yml up --build -d
+docker compose -f docker-compose.dev.yml up --build -d
 
 # Access
 # - Frontend: http://localhost:8005
 # - Backend API: http://localhost:8004
 # - PostgreSQL: localhost:8002
 # - Redis: localhost:8003
+```
+
+### Optional Docker Overlays
+
+```bash
+# Dev stack + tools profile (pgAdmin, Redis Commander, MailHog)
+docker compose -f docker-compose.dev.yml -f docker-compose.tools.yml --profile tools up -d
+
+# Dev stack + Caddy overlay
+docker compose -f docker-compose.dev.yml -f docker-compose.caddy.yml up -d
+
+# Production-like stack + optional DB/Redis host-port access
+docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.host-access.yml up -d
 ```
 
 ### First Setup vs Seeded Data

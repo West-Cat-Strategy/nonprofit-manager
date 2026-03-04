@@ -1,5 +1,11 @@
 import { NextFunction, Response } from 'express';
 import { AuthRequest } from '@middleware/auth';
+import {
+  requirePermissionSafe,
+  sendForbidden,
+  sendUnauthorized,
+} from '@services/authGuardService';
+import { Permission } from '@utils/permissions';
 import type {
   CreateCaseOutcomeDTO,
   CreateCaseTopicDefinitionDTO,
@@ -14,12 +20,29 @@ export const createCaseOutcomesController = (
   useCase: CaseOutcomesUseCase,
   mode: ResponseMode
 ) => {
+  const guardTagPermission = (req: AuthRequest, res: Response): boolean => {
+    const guardResult = requirePermissionSafe(req, Permission.OUTCOMES_TAG_INTERACTION);
+    if (!guardResult.ok) {
+      if (guardResult.error.code === 'unauthorized') {
+        sendUnauthorized(res, guardResult.error.message);
+      } else {
+        sendForbidden(res, guardResult.error.message || 'Forbidden');
+      }
+      return false;
+    }
+    return true;
+  };
+
   const getCaseOutcomeDefinitions = async (
     req: AuthRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
     try {
+      if (!guardTagPermission(req, res)) {
+        return;
+      }
+
       const includeInactive =
         req.query.includeInactive === 'true' || req.validatedQuery?.includeInactive === true;
       const definitions = await useCase.listDefinitions(includeInactive);
@@ -35,6 +58,10 @@ export const createCaseOutcomesController = (
     next: NextFunction
   ): Promise<void> => {
     try {
+      if (!guardTagPermission(req, res)) {
+        return;
+      }
+
       const params = (req.validatedParams ?? req.params) as {
         caseId: string;
         interactionId: string;
@@ -52,6 +79,10 @@ export const createCaseOutcomesController = (
     next: NextFunction
   ): Promise<void> => {
     try {
+      if (!guardTagPermission(req, res)) {
+        return;
+      }
+
       const params = (req.validatedParams ?? req.params) as {
         caseId: string;
         interactionId: string;
@@ -74,6 +105,10 @@ export const createCaseOutcomesController = (
     next: NextFunction
   ): Promise<void> => {
     try {
+      if (!guardTagPermission(req, res)) {
+        return;
+      }
+
       const outcomes = await useCase.listCaseOutcomes(req.params.id);
       sendData(res, mode, mode === 'v2' ? outcomes : { outcomes });
     } catch (error) {
@@ -87,6 +122,10 @@ export const createCaseOutcomesController = (
     next: NextFunction
   ): Promise<void> => {
     try {
+      if (!guardTagPermission(req, res)) {
+        return;
+      }
+
       const outcome = await useCase.createCaseOutcome(
         req.params.id,
         req.body as CreateCaseOutcomeDTO,
@@ -104,6 +143,10 @@ export const createCaseOutcomesController = (
     next: NextFunction
   ): Promise<void> => {
     try {
+      if (!guardTagPermission(req, res)) {
+        return;
+      }
+
       const outcome = await useCase.updateCaseOutcome(
         req.params.outcomeId,
         req.body as UpdateCaseOutcomeDTO,
@@ -121,6 +164,10 @@ export const createCaseOutcomesController = (
     next: NextFunction
   ): Promise<void> => {
     try {
+      if (!guardTagPermission(req, res)) {
+        return;
+      }
+
       const deleted = await useCase.deleteCaseOutcome(req.params.outcomeId);
       if (!deleted) {
         sendFailure(res, mode, 'NOT_FOUND', 'Case outcome not found', 404);
@@ -144,6 +191,10 @@ export const createCaseOutcomesController = (
     next: NextFunction
   ): Promise<void> => {
     try {
+      if (!guardTagPermission(req, res)) {
+        return;
+      }
+
       const topics = await useCase.listTopicDefinitions(req.params.id);
       sendData(res, mode, mode === 'v2' ? topics : { topics });
     } catch (error) {
@@ -157,6 +208,10 @@ export const createCaseOutcomesController = (
     next: NextFunction
   ): Promise<void> => {
     try {
+      if (!guardTagPermission(req, res)) {
+        return;
+      }
+
       const topic = await useCase.createTopicDefinition(
         req.params.id,
         req.body as CreateCaseTopicDefinitionDTO,
@@ -174,6 +229,10 @@ export const createCaseOutcomesController = (
     next: NextFunction
   ): Promise<void> => {
     try {
+      if (!guardTagPermission(req, res)) {
+        return;
+      }
+
       const topicEvents = await useCase.listTopicEvents(req.params.id);
       sendData(res, mode, mode === 'v2' ? topicEvents : { topic_events: topicEvents });
     } catch (error) {
@@ -187,6 +246,10 @@ export const createCaseOutcomesController = (
     next: NextFunction
   ): Promise<void> => {
     try {
+      if (!guardTagPermission(req, res)) {
+        return;
+      }
+
       const topicEvent = await useCase.addTopicEvent(
         req.params.id,
         req.body as CreateCaseTopicEventDTO,
@@ -204,6 +267,10 @@ export const createCaseOutcomesController = (
     next: NextFunction
   ): Promise<void> => {
     try {
+      if (!guardTagPermission(req, res)) {
+        return;
+      }
+
       const deleted = await useCase.deleteTopicEvent(req.params.topicEventId);
       if (!deleted) {
         sendFailure(res, mode, 'NOT_FOUND', 'Case topic event not found', 404);

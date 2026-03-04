@@ -25,6 +25,8 @@ interface UseContactFormProps {
   onCancel?: () => void;
 }
 
+const isMaskedPhn = (value: string): boolean => /^\*{2,}\d{4}$/.test(value.trim());
+
 export function useContactForm({ contact, mode, onCreated, onCancel }: UseContactFormProps) {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -54,6 +56,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
     birth_date: '',
     gender: '',
     pronouns: '',
+    phn: '',
     email: '',
     phone: '',
     mobile_phone: '',
@@ -266,6 +269,13 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
       }
     }
 
+    if (formData.phn && !isMaskedPhn(formData.phn)) {
+      const digitCount = formData.phn.replace(/\D/g, '').length;
+      if (digitCount !== 10) {
+        newErrors.phn = 'PHN must contain exactly 10 digits';
+      }
+    }
+
     if (formData.postal_code) {
       const postalError = validatePostalCode(formData.postal_code, formData.country);
       if (postalError) {
@@ -290,6 +300,15 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
       const cleanedTags = (formData.tags || [])
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0);
+      const rawPhn = (formData.phn || '').trim();
+      let normalizedPhn: string | null | undefined;
+      if (rawPhn.length === 0) {
+        normalizedPhn = mode === 'edit' ? null : undefined;
+      } else if (isMaskedPhn(rawPhn)) {
+        normalizedPhn = undefined;
+      } else {
+        normalizedPhn = rawPhn.replace(/\D/g, '');
+      }
 
       const cleanedData = {
         ...formData,
@@ -297,12 +316,16 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
         preferred_name: formData.preferred_name || undefined,
         middle_name: formData.middle_name || undefined,
         salutation: formData.salutation || undefined,
+        suffix: formData.suffix || undefined,
         birth_date: formData.birth_date || undefined,
         gender: formData.gender || undefined,
         pronouns: formData.pronouns || undefined,
+        phn: normalizedPhn,
         email: formData.email || undefined,
         phone: formData.phone || undefined,
         mobile_phone: formData.mobile_phone || undefined,
+        job_title: formData.job_title || undefined,
+        department: formData.department || undefined,
         address_line1: formData.no_fixed_address ? undefined : (formData.address_line1 || undefined),
         address_line2: formData.no_fixed_address ? undefined : (formData.address_line2 || undefined),
         city: formData.no_fixed_address ? undefined : (formData.city || undefined),

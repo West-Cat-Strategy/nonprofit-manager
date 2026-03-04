@@ -7,6 +7,7 @@ import {
 } from './layoutRenderer';
 import { generateSectionHtml } from './componentRenderer';
 import { generateSiteAnalyticsScript } from './analyticsScript';
+import { generateEventListRuntimeScript } from './eventListRuntimeScript';
 
 export function renderPageHtml(
   page: PublishedPage,
@@ -19,6 +20,11 @@ export function renderPageHtml(
     ? generateGoogleAnalyticsScript(content.seoDefaults.googleAnalyticsId)
     : '';
 
+  const hasEventList = page.sections.some((section) =>
+    section.components.some((component) => component.type === 'event-list')
+  );
+  const eventListScript = hasEventList ? generateEventListRuntimeScript() : '';
+
   const bodyHtml = `
   ${generateNavigationHtml(content)}
 
@@ -28,6 +34,7 @@ export function renderPageHtml(
 
   ${generateFooterHtml(content)}
   ${generateSiteAnalyticsScript(content.templateId)}
+  ${eventListScript}
 `;
 
   return buildSeoMeta(

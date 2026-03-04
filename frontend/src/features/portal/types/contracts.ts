@@ -5,8 +5,93 @@ export interface PortalEvent {
   start_date: string;
   end_date: string;
   location_name?: string;
+  event_type?: string;
   registration_id?: string | null;
   registration_status?: string | null;
+  check_in_token?: string | null;
+  checked_in?: boolean | null;
+  check_in_time?: string | null;
+  check_in_method?: 'manual' | 'qr' | null;
+}
+
+export type PortalSortOrder = 'asc' | 'desc';
+
+export interface PortalOffsetPage {
+  limit: number;
+  offset: number;
+  has_more: boolean;
+  total: number;
+}
+
+export interface PortalPagedResult<T> {
+  items: T[];
+  page: PortalOffsetPage;
+}
+
+export interface PortalEventsQuery {
+  search?: string;
+  sort?: 'start_date' | 'name' | 'created_at';
+  order?: PortalSortOrder;
+  limit?: number;
+  offset?: number;
+}
+
+export interface PortalDocument {
+  id: string;
+  original_name: string;
+  document_type: string;
+  title?: string | null;
+  description?: string | null;
+  file_size?: number | null;
+  mime_type?: string | null;
+  created_at: string;
+}
+
+export interface PortalDocumentsQuery {
+  search?: string;
+  sort?: 'created_at' | 'title' | 'document_type' | 'original_name';
+  order?: PortalSortOrder;
+  limit?: number;
+  offset?: number;
+}
+
+export interface PortalFormsQuery {
+  search?: string;
+  sort?: 'created_at' | 'title' | 'document_type' | 'original_name';
+  order?: PortalSortOrder;
+  limit?: number;
+  offset?: number;
+}
+
+export interface PortalNote {
+  id: string;
+  note_type: string;
+  subject?: string | null;
+  content: string;
+  created_at: string;
+}
+
+export interface PortalNotesQuery {
+  search?: string;
+  sort?: 'created_at' | 'subject' | 'note_type';
+  order?: PortalSortOrder;
+  limit?: number;
+  offset?: number;
+}
+
+export interface PortalReminder {
+  type: 'appointment' | 'event';
+  id: string;
+  title: string;
+  date: string;
+}
+
+export interface PortalRemindersQuery {
+  search?: string;
+  sort?: 'date' | 'title' | 'type';
+  order?: PortalSortOrder;
+  limit?: number;
+  offset?: number;
 }
 
 export interface PortalCaseSummary {
@@ -63,9 +148,13 @@ export interface PortalCaseDocument {
 }
 
 export interface PortalApiClient {
-  listEvents(): Promise<PortalEvent[]>;
+  listEvents(query?: PortalEventsQuery): Promise<PortalPagedResult<PortalEvent>>;
   registerEvent(eventId: string): Promise<void>;
   cancelEventRegistration(eventId: string): Promise<void>;
+  listDocuments(query?: PortalDocumentsQuery): Promise<PortalPagedResult<PortalDocument>>;
+  listForms(query?: PortalFormsQuery): Promise<PortalPagedResult<PortalDocument>>;
+  listNotes(query?: PortalNotesQuery): Promise<PortalPagedResult<PortalNote>>;
+  listReminders(query?: PortalRemindersQuery): Promise<PortalPagedResult<PortalReminder>>;
   listCases(): Promise<PortalCaseSummary[]>;
   getCase(caseId: string): Promise<PortalCaseDetail>;
   getCaseTimeline(caseId: string, query?: PortalCaseTimelineQuery): Promise<PortalCaseTimelinePage>;

@@ -1,8 +1,10 @@
 import { NextFunction, Response } from 'express';
 import type {
   CreateEventDTO,
+  EventWalkInCheckInDTO,
   CreateRegistrationDTO,
   EventFilters,
+  RotateEventCheckInPinResult,
   EventRegistration,
   PaginationParams,
   RegistrationFilters,
@@ -10,6 +12,7 @@ import type {
   SyncEventReminderAutomationsDTO,
   UpdateEventDTO,
   UpdateEventReminderAutomationDTO,
+  UpdateEventCheckInSettingsDTO,
   UpdateRegistrationDTO,
   CreateEventReminderAutomationDTO,
 } from '@app-types/event';
@@ -337,7 +340,7 @@ export const createEventsController = (
       }
 
       if (contactId) {
-        const rows = await registrationUseCase.listByContact(contactId);
+        const rows = await registrationUseCase.listByContact(contactId, getScopeFilter(req));
         sendSuccess(res, rows);
         return;
       }
@@ -393,6 +396,74 @@ export const createEventsController = (
     }
   };
 
+  const getCheckInSettings = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_VIEW)) return;
+
+    try {
+      const params = getValidatedParams(req);
+      const canAccess = await ensureEventAccess(params.id, req, res);
+      if (!canAccess) return;
+
+      const settings = await registrationUseCase.getCheckInSettings(params.id);
+      if (!settings) {
+        sendError(res, 'EVENT_NOT_FOUND', 'Event not found', 404);
+        return;
+      }
+
+      sendSuccess(res, settings);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const updateCheckInSettings = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_EDIT)) return;
+
+    try {
+      const params = getValidatedParams(req);
+      const canAccess = await ensureEventAccess(params.id, req, res);
+      if (!canAccess) return;
+
+      const updated = await registrationUseCase.updateCheckInSettings(
+        params.id,
+        req.body as UpdateEventCheckInSettingsDTO,
+        req.user!.id
+      );
+      if (!updated) {
+        sendError(res, 'EVENT_NOT_FOUND', 'Event not found', 404);
+        return;
+      }
+
+      sendSuccess(res, updated);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const rotateCheckInPin = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_EDIT)) return;
+
+    try {
+      const params = getValidatedParams(req);
+      const canAccess = await ensureEventAccess(params.id, req, res);
+      if (!canAccess) return;
+
+      const updated = await registrationUseCase.rotateCheckInPin(params.id, req.user!.id);
+      const response: RotateEventCheckInPinResult = updated;
+      sendSuccess(res, response);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Event not found') {
+        sendError(res, 'EVENT_NOT_FOUND', error.message, 404);
+        return;
+      }
+      next(error);
+    }
+  };
+
   const checkIn = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     if (!ensurePermission(req, res, Permission.EVENT_EDIT)) return;
 
@@ -444,6 +515,70 @@ export const createEventsController = (
 
       sendSuccess(res, result.registration ?? null);
     } catch (error) {
+      next(error);
+    }
+  };
+
+  const scanCheckInGlobal = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_EDIT)) return;
+
+    try {
+      const body = req.body as { token: string };
+      const registration = await registrationUseCase.getByTokenGlobal(
+        body.token,
+        getScopeFilter(req)
+      );
+
+      if (!registration) {
+        sendError(res, 'REGISTRATION_NOT_FOUND', 'Registration not found', 404);
+        return;
+      }
+
+      const result = await registrationUseCase.checkIn(registration.registration_id, {
+        method: 'qr',
+        checkedInBy: req.user?.id ?? null,
+      });
+
+      if (!result.success) {
+        sendError(res, 'CHECKIN_ERROR', result.message, 400);
+        return;
+      }
+
+      sendSuccess(res, result.registration ?? null);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const walkInCheckIn = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_EDIT)) return;
+
+    try {
+      const params = getValidatedParams(req);
+      const canAccess = await ensureEventAccess(params.id, req, res);
+      if (!canAccess) return;
+
+      const result = await registrationUseCase.walkInCheckIn(
+        params.id,
+        req.body as EventWalkInCheckInDTO,
+        req.user!.id
+      );
+      sendSuccess(res, result, result.created_registration ? 201 : 200);
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === 'Event not found') {
+          sendError(res, 'EVENT_NOT_FOUND', error.message, 404);
+          return;
+        }
+        if (
+          error.message === 'Event is at full capacity' ||
+          error.message === 'Event is not accepting check-ins' ||
+          error.message.includes('Check-in is available')
+        ) {
+          sendError(res, 'CHECKIN_ERROR', error.message, 400);
+          return;
+        }
+      }
       next(error);
     }
   };
@@ -615,8 +750,13 @@ export const createEventsController = (
     listRegistrations,
     register,
     updateRegistration,
+    getCheckInSettings,
+    updateCheckInSettings,
+    rotateCheckInPin,
     checkIn,
     scanCheckIn,
+    scanCheckInGlobal,
+    walkInCheckIn,
     cancelRegistration,
     sendReminders,
     listAutomations,

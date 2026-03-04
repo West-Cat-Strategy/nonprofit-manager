@@ -50,6 +50,7 @@ describe('componentRenderer.generateSectionHtml', () => {
         { id: 'c2', type: 'button', text: 'Donate', url: '/donate', variant: 'primary' },
         { id: 'c3', type: 'video', src: 'https://youtu.be/abc123', provider: 'youtube' },
         { id: 'c4', type: 'newsletter-signup', buttonText: 'Join' },
+        { id: 'c5', type: 'event-list', maxEvents: 4, layout: 'grid' },
       ],
     };
 
@@ -61,6 +62,7 @@ describe('componentRenderer.generateSectionHtml', () => {
     expect(html).toContain('>Donate<');
     expect(html).toContain('youtube.com/embed/abc123');
     expect(html).toContain('newsletter-form');
+    expect(html).toContain('data-event-list="true"');
   });
 
   it('renders unknown components as html comments', () => {

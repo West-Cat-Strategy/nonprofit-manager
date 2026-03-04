@@ -562,6 +562,131 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({
           </>
         );
 
+      case 'event-list': {
+        const selectedEventType = selectedComponent.eventType || selectedComponent.filterByTag || '';
+
+        return (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Max Events
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={50}
+                value={selectedComponent.maxEvents || 6}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    maxEvents: Math.max(1, Math.min(50, Number.parseInt(e.target.value || '6', 10) || 6)),
+                  })
+                }
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Layout
+              </label>
+              <select
+                value={selectedComponent.layout || 'grid'}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    layout: e.target.value as 'grid' | 'list' | 'calendar',
+                  })
+                }
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              >
+                <option value="grid">Grid</option>
+                <option value="list">List</option>
+                <option value="calendar">Calendar (fallback to list)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Event Type
+              </label>
+              <select
+                value={selectedEventType}
+                onChange={(e) => {
+                  const value = e.target.value.trim();
+                  onUpdateComponent(selectedComponent.id, {
+                    eventType: value || undefined,
+                    filterByTag: value || undefined,
+                  });
+                }}
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              >
+                <option value="">All public events</option>
+                <option value="fundraiser">Fundraiser</option>
+                <option value="community">Community</option>
+                <option value="training">Training</option>
+                <option value="meeting">Meeting</option>
+                <option value="workshop">Workshop</option>
+                <option value="webinar">Webinar</option>
+                <option value="conference">Conference</option>
+                <option value="outreach">Outreach</option>
+                <option value="volunteer">Volunteer</option>
+                <option value="social">Social</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Empty Message
+              </label>
+              <input
+                type="text"
+                value={selectedComponent.emptyMessage || ''}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    emptyMessage: e.target.value || undefined,
+                  })
+                }
+                placeholder="No public events are available right now."
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Site Key (Optional)
+              </label>
+              <input
+                type="text"
+                value={selectedComponent.siteKey || ''}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    siteKey: e.target.value.trim() || undefined,
+                  })
+                }
+                placeholder="Use only when embedding cross-site events"
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={selectedComponent.showPastEvents || false}
+                  onChange={(e) =>
+                    onUpdateComponent(selectedComponent.id, {
+                      showPastEvents: e.target.checked,
+                    })
+                  }
+                  className="rounded border-app-input-border"
+                />
+                Show past events
+              </label>
+            </div>
+          </>
+        );
+      }
+
       default:
         return (
           <>

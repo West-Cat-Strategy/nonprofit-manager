@@ -118,7 +118,7 @@ export const getContacts = async (
     const pagination: PaginationParams = extractPagination(req.query);
 
     const scope = req.dataScope?.filter as DataScopeFilter | undefined;
-    const result = await contactService.getContacts(filters, pagination, scope);
+    const result = await contactService.getContacts(filters, pagination, scope, req.user?.role);
     res.json(result);
   } catch (error) {
     next(error);
@@ -193,8 +193,8 @@ export const getContactById = async (
   try {
     const scope = req.dataScope?.filter as DataScopeFilter | undefined;
     const contact = scope
-      ? await contactService.getContactByIdWithScope(req.params.id, scope)
-      : await contactService.getContactById(req.params.id);
+      ? await contactService.getContactByIdWithScope(req.params.id, scope, req.user?.role)
+      : await contactService.getContactById(req.params.id, req.user?.role);
 
     if (!contact) {
       notFound(res, 'Contact');
@@ -220,7 +220,7 @@ export const createContact = async (
   try {
     const userId = req.user!.id;
     const { roles = [], ...contactData } = req.body;
-    const contact = await contactService.createContact(contactData, userId);
+    const contact = await contactService.createContact(contactData, userId, req.user?.role);
 
     let assignedRoles: string[] = [];
     let staffInvitation: { inviteUrl?: string; role?: string } | null = null;
@@ -254,7 +254,11 @@ export const updateContact = async (
   try {
     const scope = req.dataScope?.filter as DataScopeFilter | undefined;
     if (scope) {
-      const scopedContact = await contactService.getContactByIdWithScope(req.params.id, scope);
+      const scopedContact = await contactService.getContactByIdWithScope(
+        req.params.id,
+        scope,
+        req.user?.role
+      );
       if (!scopedContact) {
         notFound(res, 'Contact');
         return;
@@ -263,7 +267,7 @@ export const updateContact = async (
 
     const userId = req.user!.id;
     const { roles, ...contactData } = req.body;
-    const contact = await contactService.updateContact(req.params.id, contactData, userId);
+    const contact = await contactService.updateContact(req.params.id, contactData, userId, req.user?.role);
 
     if (!contact) {
       notFound(res, 'Contact');

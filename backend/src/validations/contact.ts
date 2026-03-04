@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { emailSchema, phoneSchema, uuidSchema } from './shared';
+import { emailSchema, optionalNullablePhnSchema, optionalPhnSchema, phoneSchema, uuidSchema } from './shared';
 
 const booleanQuerySchema = z.preprocess((value) => {
   if (value === undefined) {
@@ -68,6 +68,7 @@ export const createContactSchema = z.object({
   birth_date: z.coerce.date().optional(),
   gender: z.string().max(50).optional(),
   pronouns: z.string().max(50).optional(),
+  phn: optionalPhnSchema,
   email: emailSchema.optional(),
   phone: phoneSchema.optional(),
   mobile_phone: phoneSchema.optional(),
@@ -104,6 +105,7 @@ export const updateContactSchema = z.object({
   birth_date: z.coerce.date().optional().nullable(),
   gender: z.string().max(50).optional().nullable(),
   pronouns: z.string().max(50).optional().nullable(),
+  phn: optionalNullablePhnSchema,
   email: emailSchema.optional(),
   phone: phoneSchema.optional(),
   mobile_phone: phoneSchema.optional(),

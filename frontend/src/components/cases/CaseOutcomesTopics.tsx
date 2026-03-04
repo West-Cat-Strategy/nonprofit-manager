@@ -4,12 +4,14 @@ import { useToast } from '../../contexts/useToast';
 import ConfirmDialog from '../ConfirmDialog';
 import useConfirmDialog from '../../hooks/useConfirmDialog';
 import type {
+  CaseOutcomeEntrySource,
   CaseOutcomeEvent,
   CaseTopicDefinition,
   CaseTopicEvent,
   CreateCaseOutcomeDTO,
   CreateCaseTopicEventDTO,
 } from '../../types/case';
+import type { OutcomeDefinition } from '../../types/outcomes';
 
 interface CaseOutcomesTopicsProps {
   caseId: string;
@@ -17,6 +19,7 @@ interface CaseOutcomesTopicsProps {
 }
 
 const emptyOutcomeDraft = (): CreateCaseOutcomeDTO => ({
+  outcome_definition_id: '',
   outcome_type: '',
   outcome_date: new Date().toISOString().slice(0, 10),
   notes: '',
@@ -30,12 +33,37 @@ const emptyTopicDraft = (): CreateCaseTopicEventDTO => ({
   notes: '',
 });
 
+const getSourceBadge = (entrySource?: CaseOutcomeEntrySource | null) => {
+  const normalized: CaseOutcomeEntrySource =
+    entrySource === 'interaction_sync' || entrySource === 'legacy' ? entrySource : 'manual';
+
+  if (normalized === 'interaction_sync') {
+    return {
+      label: 'Synced from interaction',
+      className: 'bg-app-accent-soft text-app-accent-text',
+    };
+  }
+
+  if (normalized === 'legacy') {
+    return {
+      label: 'Legacy',
+      className: 'bg-app-surface-muted text-app-text-muted',
+    };
+  }
+
+  return {
+    label: 'Manual',
+    className: 'bg-app-surface-muted text-app-text-muted',
+  };
+};
+
 const CaseOutcomesTopics = ({ caseId, onChanged }: CaseOutcomesTopicsProps) => {
   const { showSuccess, showError } = useToast();
   const { dialogState, confirm, handleCancel, handleConfirm } = useConfirmDialog();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [outcomes, setOutcomes] = useState<CaseOutcomeEvent[]>([]);
+  const [outcomeDefinitions, setOutcomeDefinitions] = useState<OutcomeDefinition[]>([]);
   const [topicDefinitions, setTopicDefinitions] = useState<CaseTopicDefinition[]>([]);
   const [topicEvents, setTopicEvents] = useState<CaseTopicEvent[]>([]);
   const [outcomeDraft, setOutcomeDraft] = useState<CreateCaseOutcomeDTO>(emptyOutcomeDraft);
@@ -47,12 +75,14 @@ const CaseOutcomesTopics = ({ caseId, onChanged }: CaseOutcomesTopicsProps) => {
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const [outcomeRows, topicDefinitionRows, topicEventRows] = await Promise.all([
+      const [outcomeRows, definitionRows, topicDefinitionRows, topicEventRows] = await Promise.all([
         casesApiClient.listCaseOutcomes(caseId),
+        casesApiClient.listOutcomeDefinitions(false),
         casesApiClient.listCaseTopicDefinitions(caseId),
         casesApiClient.listCaseTopicEvents(caseId),
       ]);
       setOutcomes(outcomeRows || []);
+      setOutcomeDefinitions((definitionRows || []).filter((definition) => definition.is_active));
       setTopicDefinitions(topicDefinitionRows || []);
       setTopicEvents(topicEventRows || []);
     } catch {
@@ -90,15 +120,20 @@ const CaseOutcomesTopics = ({ caseId, onChanged }: CaseOutcomesTopicsProps) => {
 
   const createOutcome = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!outcomeDraft.outcome_type?.trim() && !outcomeDraft.notes?.trim()) {
-      showError('Provide an outcome type or notes');
+
+    const normalizedDefinitionId = outcomeDraft.outcome_definition_id?.trim();
+    const normalizedLegacyType = outcomeDraft.outcome_type?.trim();
+
+    if (!normalizedDefinitionId && !normalizedLegacyType) {
+      showError('Select an outcome definition or provide legacy text fallback');
       return;
     }
 
     try {
       setSaving(true);
       await casesApiClient.createCaseOutcome(caseId, {
-        outcome_type: outcomeDraft.outcome_type?.trim() || undefined,
+        outcome_definition_id: normalizedDefinitionId || undefined,
+        outcome_type: normalizedLegacyType || undefined,
         outcome_date: outcomeDraft.outcome_date || undefined,
         notes: outcomeDraft.notes?.trim() || undefined,
         visible_to_client: Boolean(outcomeDraft.visible_to_client),
@@ -230,13 +265,33 @@ const CaseOutcomesTopics = ({ caseId, onChanged }: CaseOutcomesTopicsProps) => {
         <form onSubmit={createOutcome} className="rounded-lg border border-app-border bg-app-surface p-4">
           <h3 className="mb-3 text-base font-semibold text-app-text">Record Outcome</h3>
           <label className="mb-2 block text-sm">
-            <span className="mb-1 block text-app-text-muted">Outcome Type</span>
+            <span className="mb-1 block text-app-text-muted">Outcome Definition</span>
+            <select
+              value={outcomeDraft.outcome_definition_id || ''}
+              onChange={(event) =>
+                setOutcomeDraft((current) => ({
+                  ...current,
+                  outcome_definition_id: event.target.value,
+                }))
+              }
+              className="w-full rounded border border-app-input-border px-3 py-2 text-sm"
+            >
+              <option value="">Select outcome definition</option>
+              {outcomeDefinitions.map((definition) => (
+                <option key={definition.id} value={definition.id}>
+                  {definition.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="mb-2 block text-sm">
+            <span className="mb-1 block text-app-text-muted">Legacy Outcome Text (optional fallback)</span>
             <input
               value={outcomeDraft.outcome_type || ''}
               onChange={(event) =>
                 setOutcomeDraft((current) => ({ ...current, outcome_type: event.target.value }))
               }
-              placeholder="e.g. housing_stabilized"
+              placeholder="Use only when no definition applies"
               className="w-full rounded border border-app-input-border px-3 py-2 text-sm"
             />
           </label>
@@ -390,42 +445,53 @@ const CaseOutcomesTopics = ({ caseId, onChanged }: CaseOutcomesTopicsProps) => {
           <p className="text-sm text-app-text-muted">No outcomes recorded yet.</p>
         ) : (
           <div className="space-y-2">
-            {filteredOutcomes.map((outcome) => (
-              <div key={outcome.id} className="flex items-start justify-between rounded border border-app-border p-3">
-                <div>
-                  <p className="text-sm font-semibold text-app-text">
-                    {outcome.outcome_type || 'Outcome'} ·{' '}
-                    {new Date(outcome.outcome_date || outcome.created_at).toLocaleDateString()}
-                  </p>
-                  {outcome.notes && <p className="mt-1 text-sm text-app-text">{outcome.notes}</p>}
-                  <span
-                    className={`mt-1 inline-flex rounded px-2 py-0.5 text-xs ${
-                      outcome.visible_to_client
-                        ? 'bg-app-accent-soft text-app-accent-text'
-                        : 'bg-app-surface-muted text-app-text-muted'
-                    }`}
-                  >
-                    {outcome.visible_to_client ? 'Client visible' : 'Internal'}
-                  </span>
+            {filteredOutcomes.map((outcome) => {
+              const sourceBadge = getSourceBadge(outcome.entry_source);
+              return (
+                <div key={outcome.id} className="flex items-start justify-between rounded border border-app-border p-3">
+                  <div>
+                    <p className="text-sm font-semibold text-app-text">
+                      {outcome.outcome_definition_name || outcome.outcome_type || 'Outcome'} ·{' '}
+                      {new Date(outcome.outcome_date || outcome.created_at).toLocaleDateString()}
+                    </p>
+                    {outcome.outcome_definition_key && (
+                      <p className="text-xs text-app-text-muted">{outcome.outcome_definition_key}</p>
+                    )}
+                    {outcome.notes && <p className="mt-1 text-sm text-app-text">{outcome.notes}</p>}
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      <span
+                        className={`inline-flex rounded px-2 py-0.5 text-xs ${
+                          outcome.visible_to_client
+                            ? 'bg-app-accent-soft text-app-accent-text'
+                            : 'bg-app-surface-muted text-app-text-muted'
+                        }`}
+                      >
+                        {outcome.visible_to_client ? 'Client visible' : 'Internal'}
+                      </span>
+                      <span className={`inline-flex rounded px-2 py-0.5 text-xs ${sourceBadge.className}`}>
+                        {sourceBadge.label}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="rounded border border-app-input-border px-2 py-1 text-xs"
+                      onClick={() => void toggleOutcomeVisibility(outcome)}
+                    >
+                      Toggle visibility
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded border border-app-border px-2 py-1 text-xs text-app-accent-text"
+                      onClick={() => void deleteOutcome(outcome.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="rounded border border-app-input-border px-2 py-1 text-xs"
-                    onClick={() => void toggleOutcomeVisibility(outcome)}
-                  >
-                    Toggle visibility
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded border border-app-border px-2 py-1 text-xs text-app-accent-text"
-                    onClick={() => void deleteOutcome(outcome.id)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -465,6 +531,7 @@ const CaseOutcomesTopics = ({ caseId, onChanged }: CaseOutcomesTopicsProps) => {
           </div>
         )}
       </div>
+
       <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );

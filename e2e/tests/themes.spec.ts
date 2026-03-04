@@ -5,7 +5,7 @@
 
 import '../helpers/testEnv';
 import { test, expect, type Page } from '@playwright/test';
-import { login, ensureAdminLoginViaAPI } from '../helpers/auth';
+import { ensureEffectiveAdminLoginViaAPI } from '../helpers/auth';
 
 const getCreds = () => ({
     email: process.env.ADMIN_USER_EMAIL?.trim() || 'admin@example.com',
@@ -75,7 +75,7 @@ async function applyThemeAndMode(
 
 test.describe('Theming and Design System', () => {
     test.beforeEach(async ({ page }) => {
-        await ensureAdminLoginViaAPI(page, {
+        await ensureEffectiveAdminLoginViaAPI(page, {
             firstName: 'Admin',
             lastName: 'User',
         });

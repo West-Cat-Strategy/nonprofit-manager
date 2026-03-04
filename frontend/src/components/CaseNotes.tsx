@@ -4,6 +4,7 @@ import { useToast } from '../contexts/useToast';
 import ConfirmDialog from './ConfirmDialog';
 import useConfirmDialog, { confirmPresets } from '../hooks/useConfirmDialog';
 import type { CaseNote, CreateCaseNoteDTO, NoteType, UpdateCaseNoteDTO } from '../types/case';
+import type { OutcomeDefinition } from '../types/outcomes';
 import { formatNoteDate, getNoteIcon, getNoteTypeLabel } from '../utils/notes';
 
 interface CaseNotesProps {
@@ -27,6 +28,7 @@ type NoteDraft = {
   content: string;
   visible_to_client: boolean;
   is_important: boolean;
+  outcome_definition_ids: string[];
 };
 
 const emptyDraft = (): NoteDraft => ({
@@ -36,7 +38,15 @@ const emptyDraft = (): NoteDraft => ({
   content: '',
   visible_to_client: false,
   is_important: false,
+  outcome_definition_ids: [],
 });
+
+const buildOutcomeImpactPayload = (outcomeDefinitionIds: string[]) =>
+  outcomeDefinitionIds.map((outcomeDefinitionId) => ({
+    outcomeDefinitionId,
+    impact: true,
+    attribution: 'DIRECT' as const,
+  }));
 
 const normalizeDraftForCreate = (caseId: string, draft: NoteDraft): CreateCaseNoteDTO => ({
   case_id: caseId,
@@ -47,6 +57,8 @@ const normalizeDraftForCreate = (caseId: string, draft: NoteDraft): CreateCaseNo
   visible_to_client: draft.visible_to_client,
   is_internal: !draft.visible_to_client,
   is_important: draft.is_important,
+  outcome_impacts: buildOutcomeImpactPayload(draft.outcome_definition_ids),
+  outcomes_mode: 'replace',
 });
 
 const normalizeDraftForUpdate = (draft: NoteDraft): UpdateCaseNoteDTO => ({
@@ -57,6 +69,8 @@ const normalizeDraftForUpdate = (draft: NoteDraft): UpdateCaseNoteDTO => ({
   visible_to_client: draft.visible_to_client,
   is_internal: !draft.visible_to_client,
   is_important: draft.is_important,
+  outcome_impacts: buildOutcomeImpactPayload(draft.outcome_definition_ids),
+  outcomes_mode: 'replace',
 });
 
 const noteToDraft = (note: CaseNote): NoteDraft => ({
@@ -66,7 +80,47 @@ const noteToDraft = (note: CaseNote): NoteDraft => ({
   content: note.content,
   visible_to_client: Boolean(note.visible_to_client),
   is_important: Boolean(note.is_important),
+  outcome_definition_ids: (note.outcome_impacts || []).map((impact) => impact.outcome_definition_id),
 });
+
+const OutcomeTagSelector = ({
+  outcomeDefinitions,
+  selectedOutcomeDefinitionIds,
+  onToggle,
+}: {
+  outcomeDefinitions: OutcomeDefinition[];
+  selectedOutcomeDefinitionIds: string[];
+  onToggle: (outcomeDefinitionId: string) => void;
+}) => {
+  if (outcomeDefinitions.length === 0) {
+    return <p className="text-xs text-app-text-muted">No active outcome definitions available.</p>;
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      {outcomeDefinitions.map((definition) => {
+        const checked = selectedOutcomeDefinitionIds.includes(definition.id);
+        return (
+          <label
+            key={definition.id}
+            className="inline-flex cursor-pointer items-start gap-2 rounded border border-app-input-border px-2 py-1 text-xs"
+          >
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={() => onToggle(definition.id)}
+              className="mt-0.5 rounded border-app-input-border"
+            />
+            <span>
+              <span className="block text-app-text">{definition.name}</span>
+              <span className="block text-app-text-muted">{definition.key}</span>
+            </span>
+          </label>
+        );
+      })}
+    </div>
+  );
+};
 
 const CaseNotes = ({ caseId, onChanged }: CaseNotesProps) => {
   const { showSuccess, showError } = useToast();
@@ -75,6 +129,7 @@ const CaseNotes = ({ caseId, onChanged }: CaseNotesProps) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notes, setNotes] = useState<CaseNote[]>([]);
+  const [outcomeDefinitions, setOutcomeDefinitions] = useState<OutcomeDefinition[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [draft, setDraft] = useState<NoteDraft>(emptyDraft);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -83,8 +138,15 @@ const CaseNotes = ({ caseId, onChanged }: CaseNotesProps) => {
   const loadNotes = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await casesApiClient.listCaseNotes(caseId);
-      setNotes(response.notes || []);
+      const notesResponse = await casesApiClient.listCaseNotes(caseId);
+      setNotes(notesResponse.notes || []);
+
+      try {
+        const definitionsResponse = await casesApiClient.listOutcomeDefinitions(false);
+        setOutcomeDefinitions((definitionsResponse || []).filter((definition) => definition.is_active));
+      } catch {
+        setOutcomeDefinitions([]);
+      }
     } catch {
       showError('Failed to load case notes');
     } finally {
@@ -97,6 +159,24 @@ const CaseNotes = ({ caseId, onChanged }: CaseNotesProps) => {
   }, [loadNotes]);
 
   const hasNotes = useMemo(() => notes.length > 0, [notes]);
+
+  const toggleDraftOutcome = (outcomeDefinitionId: string) => {
+    setDraft((current) => ({
+      ...current,
+      outcome_definition_ids: current.outcome_definition_ids.includes(outcomeDefinitionId)
+        ? current.outcome_definition_ids.filter((id) => id !== outcomeDefinitionId)
+        : [...current.outcome_definition_ids, outcomeDefinitionId],
+    }));
+  };
+
+  const toggleEditingOutcome = (outcomeDefinitionId: string) => {
+    setEditingDraft((current) => ({
+      ...current,
+      outcome_definition_ids: current.outcome_definition_ids.includes(outcomeDefinitionId)
+        ? current.outcome_definition_ids.filter((id) => id !== outcomeDefinitionId)
+        : [...current.outcome_definition_ids, outcomeDefinitionId],
+    }));
+  };
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -226,6 +306,16 @@ const CaseNotes = ({ caseId, onChanged }: CaseNotesProps) => {
               placeholder="Write note details (plain text or markdown)"
             />
           </label>
+          <div className="mt-3 rounded border border-app-border p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-app-text-muted">
+              Outcome Tags
+            </p>
+            <OutcomeTagSelector
+              outcomeDefinitions={outcomeDefinitions}
+              selectedOutcomeDefinitionIds={draft.outcome_definition_ids}
+              onToggle={toggleDraftOutcome}
+            />
+          </div>
           <div className="mt-3 flex flex-wrap items-center gap-4">
             <label className="inline-flex items-center gap-2 text-sm text-app-text-muted">
               <input
@@ -385,6 +475,16 @@ const CaseNotes = ({ caseId, onChanged }: CaseNotesProps) => {
                       rows={4}
                     />
                   </label>
+                  <div className="rounded border border-app-border p-3">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-app-text-muted">
+                      Outcome Tags
+                    </p>
+                    <OutcomeTagSelector
+                      outcomeDefinitions={outcomeDefinitions}
+                      selectedOutcomeDefinitionIds={editingDraft.outcome_definition_ids}
+                      onToggle={toggleEditingOutcome}
+                    />
+                  </div>
                   <div className="flex flex-wrap items-center gap-4">
                     <label className="inline-flex items-center gap-2 text-sm text-app-text-muted">
                       <input
@@ -438,6 +538,18 @@ const CaseNotes = ({ caseId, onChanged }: CaseNotesProps) => {
                   {note.subject && <p className="mb-1 text-sm font-medium text-app-text">{note.subject}</p>}
                   {note.category && <p className="mb-2 text-xs text-app-text-muted">Category: {note.category}</p>}
                   <p className="whitespace-pre-wrap text-sm text-app-text">{note.content}</p>
+                  {(note.outcome_impacts || []).length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {(note.outcome_impacts || []).map((impact) => (
+                        <span
+                          key={impact.id}
+                          className="rounded bg-app-accent-soft px-2 py-0.5 text-xs text-app-accent-text"
+                        >
+                          {impact.outcome_definition?.name || impact.outcome_definition_id}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
             </div>

@@ -2,12 +2,20 @@ import type {
   CreateEventDTO,
   CreateEventReminderAutomationDTO,
   Event,
+  EventCheckInSettings,
   EventReminderAutomation,
   EventRegistration,
   EventReminderSummary,
+  EventWalkInCheckInDTO,
+  EventWalkInCheckInResult,
   PaginatedEvents,
+  PublicEventCheckInDTO,
+  PublicEventCheckInInfo,
+  PublicEventCheckInResult,
   RegistrationFilters,
+  RotateEventCheckInPinResult,
   SyncEventReminderAutomationsDTO,
+  UpdateEventCheckInSettingsDTO,
   UpdateEventDTO,
 } from '../../../types/event';
 
@@ -35,6 +43,16 @@ export interface EventRegistrationPort {
   registerContact(eventId: string, contactId: string): Promise<void>;
   checkInRegistration(registrationId: string): Promise<EventRegistration>;
   scanCheckIn(eventId: string, token: string): Promise<EventRegistration>;
+  scanCheckInGlobal(token: string): Promise<EventRegistration>;
+  getCheckInSettings(eventId: string): Promise<EventCheckInSettings>;
+  updateCheckInSettings(
+    eventId: string,
+    payload: UpdateEventCheckInSettingsDTO
+  ): Promise<EventCheckInSettings>;
+  rotateCheckInPin(eventId: string): Promise<RotateEventCheckInPinResult>;
+  walkInCheckIn(eventId: string, payload: EventWalkInCheckInDTO): Promise<EventWalkInCheckInResult>;
+  getPublicCheckInInfo(eventId: string): Promise<PublicEventCheckInInfo>;
+  submitPublicCheckIn(eventId: string, payload: PublicEventCheckInDTO): Promise<PublicEventCheckInResult>;
   cancelRegistration(registrationId: string): Promise<void>;
 }
 

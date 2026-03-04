@@ -155,6 +155,25 @@ export const countAllUsers = async (): Promise<number> => {
   return parseInt(result.rows[0].count, 10);
 };
 
+export const getSetupUserCounts = async (): Promise<{ adminCount: number; userCount: number }> => {
+  const result = await pool.query<{
+    admin_count: string;
+    user_count: string;
+  }>(
+    `
+      SELECT
+        COUNT(*) FILTER (WHERE role = 'admin') as admin_count,
+        COUNT(*) as user_count
+      FROM users
+    `
+  );
+
+  return {
+    adminCount: parseInt(result.rows[0]?.admin_count ?? '0', 10),
+    userCount: parseInt(result.rows[0]?.user_count ?? '0', 10),
+  };
+};
+
 export const createInitialAdminUser = async (input: {
   email: string;
   passwordHash: string;
