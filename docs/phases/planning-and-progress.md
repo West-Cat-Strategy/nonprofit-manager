@@ -134,7 +134,7 @@ All active work must be **signed out** in the Workboard below before code change
 | P4-T7D | Portal + auth/public pages migration | Phase 4 | Ready | — | — | TBD | codex/p4-t9b-efficiency-wave2 (paused by single-stream governance; parent: P4-T7; resume after `P4-T7C-ADMIN-UX`) |
 | P4-T7G | Appointments/reminders/check-in infrastructure upgrade (admin-first; links: P3-T1, P3-T2C, P3-T2E) | Phase 4 | Ready | — | — | TBD | codex/p4-t9b-efficiency-wave2 (paused by strict-scope governance while `P4-T9B` remains unresolved; parent: P4-T7) |
 | P4-T7E | Accessibility + interaction hardening | Phase 4 | Ready | — | — | TBD | — (parent: P4-T7) |
-| P4-T7F | Regression tests + docs update | Phase 4 | Ready | — | — | TBD | — (parent: P4-T7) |
+| P4-T7F | Regression tests + docs update | Phase 4 | Review | Codex | Mar 4, 2026 | Mar 4, 2026 | codex/p4-t7f-link-health (parent: P4-T7) — evidence: `make lint`, `make typecheck`, `node scripts/ui-audit.ts`, `cd frontend && npm test -- --run`, `cd e2e && npm run test:smoke`, `make check-links` pass; strict-mode runs fail-fast on admin credential/MFA drift as designed (`E2E_REQUIRE_STRICT_ADMIN_AUTH=true`). |
 | P4-T1R5 | Full remaining `/api/v2` modularization sweep (backend-first, contract-stable) | Phase 4 | Ready | — | — | TBD | codex/p4-t1r5-full-v2-modular-sweep (parent: P4-T1; paused by single-stream governance) |
 | P4-T1R5A | Backend all-legacy-v2 module cutover (22 remaining domains) | Phase 4 | Review | Codex | Mar 3, 2026 | TBD | codex/p4-t1r5-full-v2-modular-sweep (parent: P4-T1R5) |
 | P4-T1R5B | Frontend admin/portal feature ownership cutover (`alerts/webhooks/mailchimp/portalAuth/adminOps`) | Phase 4 | Review | Codex | Mar 3, 2026 | TBD | codex/p4-t1r5-full-v2-modular-sweep (parent: P4-T1R5) |
@@ -196,7 +196,7 @@ This tracker is now a bounded active-gaps snapshot (updated: March 1, 2026).
 
 ### 🧾 Compatibility Deprecation Tracker (Deferred)
 
-- Auth alias retirement checklist: [docs/phases/auth-alias-deprecation-checklist.md](docs/phases/auth-alias-deprecation-checklist.md)
+- Auth alias retirement checklist: [docs/phases/auth-alias-deprecation-checklist.md](auth-alias-deprecation-checklist.md)
 - Canonical-only auth field enforcement target: **July 1, 2026** (no earlier in this phase)
 - Required gate before removal: **30 consecutive days** of zero alias usage telemetry across `register`, `setup`, and `change-password`
 - Current phase policy: compatibility aliases stay enabled; no alias removals

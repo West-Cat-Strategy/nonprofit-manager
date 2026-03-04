@@ -127,6 +127,16 @@ const INVALID_CREDENTIAL_PATTERNS = [
   'auth failed',
 ];
 
+const TRUE_ENV_VALUES = new Set(['1', 'true', 'yes', 'on']);
+
+const isStrictAdminAuthRequired = (): boolean => {
+  const rawValue = process.env.E2E_REQUIRE_STRICT_ADMIN_AUTH;
+  if (typeof rawValue !== 'string') {
+    return false;
+  }
+  return TRUE_ENV_VALUES.has(rawValue.trim().toLowerCase());
+};
+
 const messageIndicatesInvalidCredentials = (message: string): boolean => {
   const lowerMessage = message.toLowerCase();
   return INVALID_CREDENTIAL_PATTERNS.some((pattern) => lowerMessage.includes(pattern));
@@ -692,6 +702,7 @@ export async function ensureAdminLoginViaAPI(
 ): Promise<AuthSession> {
   const adminEmail = process.env.ADMIN_USER_EMAIL?.trim() || 'admin@example.com';
   const adminPassword = process.env.ADMIN_USER_PASSWORD?.trim() || 'Admin123!@#';
+  const strictAdminAuth = isStrictAdminAuthRequired();
 
   const toSession = (
     result: { token: string; user: any },
@@ -725,6 +736,17 @@ export async function ensureAdminLoginViaAPI(
     }
     return session;
   };
+
+  if (strictAdminAuth) {
+    try {
+      return await loginAndValidateAdminSession(adminEmail, adminPassword);
+    } catch (error) {
+      const details = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Strict admin auth is enabled (E2E_REQUIRE_STRICT_ADMIN_AUTH=true). Failed admin login for ${adminEmail}: ${details}`
+      );
+    }
+  }
 
   const sharedUser = getSharedTestUser();
   if (
@@ -781,12 +803,19 @@ export async function ensureEffectiveAdminLoginViaAPI(
   page: Page,
   profile?: { firstName?: string; lastName?: string; organizationName?: string }
 ): Promise<AuthSession> {
+  const strictAdminAuth = isStrictAdminAuthRequired();
   let session: AuthSession;
   let strictAdminError: unknown;
 
   try {
     session = await ensureAdminLoginViaAPI(page, profile);
   } catch (error) {
+    if (strictAdminAuth) {
+      const details = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Strict admin auth is enabled (E2E_REQUIRE_STRICT_ADMIN_AUTH=true). Admin bootstrap failed without fallback: ${details}`
+      );
+    }
     strictAdminError = error;
     const setupStatus = await waitForSetupStatus(page);
     if (setupStatus.setupRequired) {
@@ -805,6 +834,12 @@ export async function ensureEffectiveAdminLoginViaAPI(
       password: sharedUser.password,
       isAdmin: isAdminRole(fallbackSession.user?.role),
     };
+  }
+
+  if (strictAdminAuth && !session.isAdmin) {
+    throw new Error(
+      'Strict admin auth is enabled (E2E_REQUIRE_STRICT_ADMIN_AUTH=true) and authenticated user is not an admin.'
+    );
   }
 
   if (session.isAdmin) {

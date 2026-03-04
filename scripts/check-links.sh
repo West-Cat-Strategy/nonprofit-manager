@@ -53,5 +53,5 @@ fi
 
 log_success "Markdown links look good"
 
-log_info "To validate frontend routes, run: cd e2e && npm test -- tests/link-health.spec.ts"
+log_info "To validate full application route health, run: cd e2e && ADMIN_USER_EMAIL=<admin-email> ADMIN_USER_PASSWORD=<admin-password> E2E_REQUIRE_STRICT_ADMIN_AUTH=true npm test -- tests/link-health.spec.ts --project=chromium"
 print_footer "Link checks complete"
