@@ -1,6 +1,6 @@
 import '../helpers/testEnv';
-import { test, expect, APIRequestContext } from '@playwright/test';
-import { getSharedTestUser } from '../helpers/testUser';
+import { test, expect, APIRequestContext, Page } from '@playwright/test';
+import { ensureEffectiveAdminLoginViaAPI } from '../helpers/auth';
 
 const API_URL = process.env.API_URL || 'http://127.0.0.1:3001';
 const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:5173';
@@ -101,71 +101,26 @@ async function withRequestRetry<T>(
   throw lastError instanceof Error ? lastError : new Error('Request failed');
 }
 
-const loginViaApi = async (
-  request: APIRequestContext,
-  email: string,
-  password: string
-): Promise<AuthSession | null> => {
-  const response = await withRequestRetry(() =>
-    request.post(`${API_URL}/api/v2/auth/login`, {
-      data: { email, password },
-      headers: { 'Content-Type': 'application/json' },
-    })
-  );
-  if (!response.ok()) {
-    return null;
-  }
+const ensureAuthenticatedSession = async (page: Page): Promise<AuthSession> => {
+  const elevatedSession = await ensureEffectiveAdminLoginViaAPI(page, {
+    firstName: 'Admin',
+    lastName: 'User',
+    organizationName: 'E2E Organization',
+  });
 
-  const body = unwrapApiData<LoginPayload>(await response.json());
   const organizationId =
-    normalizeOrganizationId(body.organizationId) ||
-    normalizeOrganizationId(body.organization_id) ||
-    normalizeOrganizationId(body.user?.organizationId) ||
-    normalizeOrganizationId(body.user?.organization_id) ||
-    getTokenOrganizationId(body.token);
+    normalizeOrganizationId(elevatedSession.user?.organizationId) ||
+    normalizeOrganizationId(elevatedSession.user?.organization_id) ||
+    getTokenOrganizationId(elevatedSession.token);
+
+  const userRole =
+    typeof elevatedSession.user?.role === 'string' ? elevatedSession.user.role : undefined;
 
   return {
-    token: body.token,
+    token: elevatedSession.token,
     organizationId,
-    userRole: body.user?.role,
+    userRole,
   };
-};
-
-const ensureAuthenticatedSession = async (request: APIRequestContext): Promise<AuthSession> => {
-  const adminEmail = process.env.ADMIN_USER_EMAIL?.trim() || 'admin@example.com';
-  const adminPassword = process.env.ADMIN_USER_PASSWORD?.trim() || 'Admin123!@#';
-
-  const adminSession = await loginViaApi(request, adminEmail, adminPassword);
-  if (adminSession) {
-    return adminSession;
-  }
-
-  const sharedUser = getSharedTestUser();
-  const sharedLogin = await loginViaApi(request, sharedUser.email, sharedUser.password);
-  if (sharedLogin) {
-    return sharedLogin;
-  }
-
-  // If the shared user does not exist yet, bootstrap it once.
-  await withRequestRetry(() =>
-    request.post(`${API_URL}/api/v2/auth/register`, {
-      data: {
-        email: sharedUser.email,
-        password: sharedUser.password,
-        password_confirm: sharedUser.password,
-        first_name: 'Test',
-        last_name: 'User',
-      },
-      headers: { 'Content-Type': 'application/json' },
-    })
-  ).catch(() => undefined);
-
-  const loginAfterBootstrap = await loginViaApi(request, sharedUser.email, sharedUser.password);
-  if (loginAfterBootstrap) {
-    return loginAfterBootstrap;
-  }
-
-  throw new Error('Unable to establish authenticated session for admin E2E suite');
 };
 
 const getAuthHeaders = (session: AuthSession): Record<string, string> => {
@@ -210,35 +165,35 @@ const assertSettingsRouteShell = async (request: APIRequestContext, route: strin
 };
 
 test.describe('Admin & Settings Module', () => {
-  test('should load user settings', async ({ request }) => {
-    const session = await ensureAuthenticatedSession(request);
+  test('should load user settings', async ({ request, page }) => {
+    const session = await ensureAuthenticatedSession(page);
     const meResponse = await request.get(`${API_URL}/api/v2/auth/me`, { headers: getAuthHeaders(session) });
     expect(meResponse.ok(), `Auth check failed (${meResponse.status()}): ${await getErrorText(meResponse)}`).toBeTruthy();
     await assertSettingsRouteShell(request, '/settings/user');
   });
 
-  test('should load API settings', async ({ request }) => {
-    await ensureAuthenticatedSession(request);
+  test('should load API settings', async ({ request, page }) => {
+    await ensureAuthenticatedSession(page);
     await assertSettingsRouteShell(request, '/settings/api');
   });
 
-  test('should load navigation settings', async ({ request }) => {
-    await ensureAuthenticatedSession(request);
+  test('should load navigation settings', async ({ request, page }) => {
+    await ensureAuthenticatedSession(page);
     await assertSettingsRouteShell(request, '/settings/navigation');
   });
 
-  test('should load email marketing settings', async ({ request }) => {
-    await ensureAuthenticatedSession(request);
+  test('should load email marketing settings', async ({ request, page }) => {
+    await ensureAuthenticatedSession(page);
     await assertSettingsRouteShell(request, '/settings/email-marketing');
   });
 
-  test('should load admin settings hub shell', async ({ request }) => {
-    await ensureAuthenticatedSession(request);
+  test('should load admin settings hub shell', async ({ request, page }) => {
+    await ensureAuthenticatedSession(page);
     await assertSettingsRouteShell(request, '/settings/admin');
   });
 
-  test('should load portal admin settings route shells', async ({ request }) => {
-    await ensureAuthenticatedSession(request);
+  test('should load portal admin settings route shells', async ({ request, page }) => {
+    await ensureAuthenticatedSession(page);
     const portalRoutes = [
       '/settings/admin/portal',
       '/settings/admin/portal/access',
@@ -252,8 +207,8 @@ test.describe('Admin & Settings Module', () => {
     }
   });
 
-  test('should load compatibility redirect entry-point shells', async ({ request }) => {
-    await ensureAuthenticatedSession(request);
+  test('should load compatibility redirect entry-point shells', async ({ request, page }) => {
+    await ensureAuthenticatedSession(page);
     const compatibilityRoutes = [
       '/email-marketing',
       '/admin/audit-logs',
@@ -264,8 +219,8 @@ test.describe('Admin & Settings Module', () => {
     }
   });
 
-  test('admin can create and disable an outcome definition', async ({ request }) => {
-    const session = await ensureAuthenticatedSession(request);
+  test('admin can create and disable an outcome definition', async ({ request, page }) => {
+    const session = await ensureAuthenticatedSession(page);
     const role = session.userRole?.toLowerCase();
 
     const headers = await getCsrfHeaders(request, session);
