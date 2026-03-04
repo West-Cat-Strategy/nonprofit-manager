@@ -57,6 +57,26 @@ npm run test:debug
 npx playwright test tests/auth.spec.ts
 ```
 
+### Full Application Link Health
+
+Run the expanded staff + portal route-health matrix with strict admin auth:
+
+```bash
+cd e2e
+export ADMIN_USER_EMAIL="admin@example.com"
+export ADMIN_USER_PASSWORD="Admin123!@#"
+export E2E_REQUIRE_STRICT_ADMIN_AUTH=true
+npx playwright test tests/link-health.spec.ts --project=chromium
+```
+
+Strict mode fails fast by design if admin bootstrap cannot complete (invalid credentials, MFA-only login, or other auth drift).
+
+Optional escalation (if the Chromium gate fails or risk is high):
+
+```bash
+npx playwright test tests/link-health.spec.ts --project=firefox --project=webkit
+```
+
 ### Run Tests for Specific Browser
 
 ```bash
@@ -345,7 +365,7 @@ Tests are configured to run in CI with:
 ## Resources
 
 - [Playwright Documentation](https://playwright.dev/)
-- [Playwright API Reference](https://playwright.dev/docs/api/v2/class-playwright)
+- [Playwright API Reference](https://playwright.dev/docs/api/class-playwright)
 - [Playwright Best Practices](https://playwright.dev/docs/best-practices)
 - [Test Retry](https://playwright.dev/docs/test-retries)
 - [Debugging](https://playwright.dev/docs/debug)

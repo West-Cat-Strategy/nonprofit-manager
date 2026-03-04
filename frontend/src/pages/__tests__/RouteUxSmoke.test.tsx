@@ -7,6 +7,7 @@ import EventList from '../engagement/events/EventList';
 import TaskList from '../engagement/tasks/TaskList';
 import DonationList from '../finance/donations/DonationList';
 import CaseList from '../engagement/cases/CaseList';
+import CaseCreate from '../engagement/cases/CaseCreate';
 import FollowUpsPage from '../engagement/followUps/FollowUpsPage';
 import OpportunitiesPage from '../engagement/opportunities/OpportunitiesPage';
 import AnalyticsPage from '../analytics/Analytics';
@@ -87,6 +88,13 @@ const smokeCases: SmokeCase[] = [
     page: <CaseList />,
     heading: 'Cases',
     primaryActionPattern: /new case/i,
+  },
+  {
+    name: 'cases-new',
+    route: '/cases/new',
+    page: <CaseCreate />,
+    heading: /create new case/i,
+    primaryActionPattern: /save case/i,
   },
   {
     name: 'tasks',
@@ -223,6 +231,21 @@ describe('Route UX smoke', () => {
             tasks: [],
             summary: null,
             pagination: { total: 0, page: 1, limit: 20, pages: 0 },
+          },
+        });
+      }
+      if (url.startsWith('/users?is_active=true') || url.startsWith('/v2/users?is_active=true')) {
+        return Promise.resolve({
+          data: {
+            users: [
+              {
+                id: 'user-1',
+                firstName: 'Test',
+                lastName: 'Assignee',
+                email: 'assignee@example.com',
+                isActive: true,
+              },
+            ],
           },
         });
       }
