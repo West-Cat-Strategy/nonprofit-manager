@@ -67,21 +67,9 @@ describe('admin route redirects', () => {
     expectCurrentLocation(route);
   });
 
-  it('redirects /email-marketing to /settings/email-marketing', async () => {
-    renderAdminRoutes('/email-marketing');
+  it('renders canonical email marketing route directly', async () => {
+    renderAdminRoutes('/settings/email-marketing');
     expect(await screen.findByRole('heading', { name: /email marketing page/i })).toBeInTheDocument();
     expectCurrentLocation('/settings/email-marketing');
-  });
-
-  it('redirects /admin/audit-logs to admin hub audit logs section', async () => {
-    renderAdminRoutes('/admin/audit-logs');
-    expect(await screen.findByRole('heading', { name: /admin settings page/i })).toBeInTheDocument();
-    expectCurrentLocation('/settings/admin?section=audit_logs');
-  });
-
-  it('redirects /settings/organization to admin hub organization section', async () => {
-    renderAdminRoutes('/settings/organization');
-    expect(await screen.findByRole('heading', { name: /admin settings page/i })).toBeInTheDocument();
-    expectCurrentLocation('/settings/admin?section=organization');
   });
 });

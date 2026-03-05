@@ -136,10 +136,10 @@ Backend:
 - `backend/src/services/scheduledReportSchedulerService.ts`
 
 Frontend:
-- `frontend/src/pages/analytics/ReportBuilder.tsx`
-- `frontend/src/pages/analytics/SavedReports.tsx`
-- `frontend/src/pages/analytics/ScheduledReports.tsx`
-- `frontend/src/store/slices/scheduledReportsSlice.ts`
+- `frontend/src/features/reports/pages/ReportBuilderPage.tsx`
+- `frontend/src/features/savedReports/pages/SavedReportsPage.tsx`
+- `frontend/src/features/scheduledReports/pages/ScheduledReportsPage.tsx`
+- `frontend/src/features/scheduledReports/state/index.ts`
 
 Data model:
 - `scheduled_reports`

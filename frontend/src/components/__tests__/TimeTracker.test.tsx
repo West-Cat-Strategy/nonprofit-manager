@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import TimeTracker from '../TimeTracker';
-import type { VolunteerAssignment } from '../../store/slices/volunteersSlice';
+import type { VolunteerAssignment } from '../../features/volunteers/state';
 import { renderWithProviders } from '../../test/testUtils';
 
 describe('TimeTracker', () => {

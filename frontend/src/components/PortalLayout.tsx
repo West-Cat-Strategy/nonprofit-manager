@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { portalLogoutAsync } from '../store/slices/portalAuthSlice';
+import { portalLogoutAsync } from '../features/portalAuth/state';
 import { AppShell, SideNav, TopNav, SecondaryButton } from './ui';
 
 interface PortalLayoutProps {

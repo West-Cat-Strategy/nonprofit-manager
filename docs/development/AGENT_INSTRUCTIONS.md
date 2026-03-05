@@ -68,15 +68,23 @@ backend/src/
 #### Frontend Structure
 ```
 frontend/src/
-├── components/     # Reusable UI components
-├── pages/          # Page-level components
-├── services/       # API client services
-├── store/          # Redux store, slices, hooks
-├── types/          # TypeScript type definitions
-├── utils/          # Helper functions
+├── features/       # Canonical feature ownership (pages, state, api, types)
+├── components/     # Shared UI components
+├── pages/          # Legacy compatibility wrappers only
+├── routes/         # Route composition + lazy route components
+├── store/          # Redux store root + non-migrated legacy slices
+├── types/          # Shared TypeScript type definitions
+├── utils/          # Shared helper functions
 ├── App.tsx         # Root component
 └── main.tsx        # Application entry point
 ```
+
+#### Modularity Guardrails
+- Backend module code under `backend/src/modules/**` must not import `@controllers/*` legacy handlers.
+- `backend/src/routes/v2/index.ts` is module-owned and must import from `@modules/*` only.
+- Module route files under `backend/src/modules/**/routes/index.ts` must not proxy through `@routes/*`.
+- Frontend migrated domains under `frontend/src/features/**` must import state from `features/*/state`, not `frontend/src/store/slices/*`.
+- Feature page files should be feature-owned implementations; `frontend/src/pages/**` is compatibility surface only.
 
 ### Code Standards
 
@@ -218,19 +226,17 @@ Example: `feat: add volunteer skill matching algorithm`
    - Run migration and test
 
 2. **Backend**
-   - Create type definitions in `types/entityName.ts`
-   - Create service in `services/entityNameService.ts` (business logic)
-   - Create controller in `controllers/entityNameController.ts`
-   - Create routes in `routes/entityName.ts`
-   - Add routes to main app in `index.ts`
+   - Create module package under `backend/src/modules/<entity>/` (`controllers`, `routes`, `repositories`, `usecases`, `types` as needed)
+   - Implement `/api/v2` route registration via module export in `backend/src/routes/v2/index.ts`
+   - Keep legacy `backend/src/routes/*.ts` wrappers thin (or omit when endpoint is v2-only)
+   - Keep controller logic module-owned; use legacy controllers only as compatibility wrappers
    - Write tests
 
 3. **Frontend**
-   - Create Redux slice in `store/slices/entityNameSlice.ts`
-   - Create API service in `services/entityNameService.ts`
-   - Create page components in `pages/EntityName/`
-   - Add routes to `App.tsx`
-   - Create reusable components if needed
+   - Create feature package under `frontend/src/features/<entity>/` (`pages`, `state`, `api`, `types` as needed)
+   - Wire reducer from `features/<entity>/state` into `frontend/src/store/index.ts`
+   - Add route wiring through `frontend/src/routes/*RouteComponents.tsx` and route composers
+   - Keep `frontend/src/pages/**` paths as compatibility wrappers only when required
    - Write tests
 
 ### Adding Authentication to Endpoint

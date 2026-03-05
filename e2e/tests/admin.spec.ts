@@ -45,6 +45,15 @@ const normalizeOrganizationId = (value: unknown): string | undefined => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
+const getPathWithQuery = (rawUrl: string): string => {
+  try {
+    const url = new URL(rawUrl);
+    return `${url.pathname}${url.search}`;
+  } catch {
+    return rawUrl;
+  }
+};
+
 const decodeJwtPayload = (token: string): Record<string, unknown> | null => {
   const segments = token.split('.');
   if (segments.length < 2) {
@@ -207,15 +216,24 @@ test.describe('Admin & Settings Module', () => {
     }
   });
 
-  test('should load compatibility redirect entry-point shells', async ({ request, page }) => {
+  test('legacy settings compatibility routes are not supported', async ({ page }) => {
     await ensureAuthenticatedSession(page);
-    const compatibilityRoutes = [
-      '/email-marketing',
-      '/admin/audit-logs',
-      '/settings/organization',
+    const legacyRoutes = [
+      { route: '/email-marketing', canonical: '/settings/email-marketing' },
+      { route: '/admin/audit-logs', canonical: '/settings/admin?section=audit_logs' },
+      { route: '/settings/organization', canonical: '/settings/admin?section=organization' },
     ];
-    for (const route of compatibilityRoutes) {
-      await assertSettingsRouteShell(request, route);
+
+    for (const { route, canonical } of legacyRoutes) {
+      await page.goto(route, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('networkidle');
+
+      const currentPath = getPathWithQuery(page.url());
+      expect(
+        currentPath,
+        `Legacy route ${route} should not resolve to canonical ${canonical}`
+      ).not.toBe(canonical);
+      expect(['/dashboard', '/login']).toContain(new URL(page.url()).pathname);
     }
   });
 

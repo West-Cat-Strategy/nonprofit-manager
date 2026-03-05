@@ -10,7 +10,7 @@ import reducer, {
   updateAccount,
   deleteAccount,
   type AccountsState,
-} from '../accountsSlice';
+} from '../../../features/accounts/state';
 
 const mockAccount = {
   account_id: 'acc-1',

@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { portalFetchMe } from '../store/slices/portalAuthSlice';
+import { portalFetchMe } from '../features/portalAuth/state';
 import PortalLayout from './PortalLayout';
 
 interface PortalProtectedRouteProps {

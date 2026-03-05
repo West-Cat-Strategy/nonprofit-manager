@@ -4,7 +4,7 @@
 # This replaces GitHub Actions with local commands.
 # All CI/CD operations can be run locally or via git hooks.
 
-.PHONY: help install lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-auth-guards lint-duplicate-tests lint-doc-api-versioning lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-frontend-feature-boundary typecheck test test-coverage quality-baseline check-links build \
+.PHONY: help install lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-auth-guards lint-duplicate-tests lint-doc-api-versioning lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-frontend-feature-boundary lint-frontend-legacy-slice-imports lint-frontend-legacy-page-paths lint-backend-legacy-controller-wrappers typecheck test test-coverage quality-baseline check-links build \
 	security-audit security-scan ci ci-fast ci-full ci-unit \
         deploy deploy-staging deploy-local \
         docker-build docker-up docker-up-dev docker-up-tools docker-up-caddy docker-down docker-logs docker-rebuild docker-validate \
@@ -58,6 +58,9 @@ help:
 	@echo "  make lint-module-boundary Enforce migrated modules do not import legacy controllers"
 	@echo "  make lint-module-route-proxy Enforce migrated module routes do not proxy @routes/*"
 	@echo "  make lint-frontend-feature-boundary Enforce feature-page boundary ratchet"
+	@echo "  make lint-frontend-legacy-slice-imports Enforce migrated features do not import store/slices"
+	@echo "  make lint-frontend-legacy-page-paths Enforce deleted legacy page implementations stay removed"
+	@echo "  make lint-backend-legacy-controller-wrappers Enforce deleted legacy controller wrappers stay removed"
 	@echo "  make lint-fix       Run linters and auto-fix issues"
 	@echo "  make typecheck      Run TypeScript type checking"
 	@echo "  make test           Run all unit tests"
@@ -187,6 +190,12 @@ lint:
 	node scripts/check-module-route-proxy-policy.ts
 	@echo "$(BLUE)Checking frontend feature boundary policy...$(RESET)"
 	node scripts/check-frontend-feature-boundary-policy.ts
+	@echo "$(BLUE)Checking frontend legacy slice import policy...$(RESET)"
+	node scripts/check-frontend-legacy-slice-import-policy.ts
+	@echo "$(BLUE)Checking frontend legacy page path policy...$(RESET)"
+	node scripts/check-frontend-legacy-page-path-policy.ts
+	@echo "$(BLUE)Checking backend legacy controller wrapper policy...$(RESET)"
+	node scripts/check-backend-legacy-controller-wrapper-policy.ts
 	@echo "$(BLUE)Linting frontend...$(RESET)"
 	cd frontend && npm run lint
 	@echo "$(GREEN)Linting complete!$(RESET)"
@@ -255,6 +264,21 @@ lint-frontend-feature-boundary:
 	@echo "$(BLUE)Checking frontend feature boundary policy...$(RESET)"
 	node scripts/check-frontend-feature-boundary-policy.ts
 	@echo "$(GREEN)Frontend feature boundary check complete!$(RESET)"
+
+lint-frontend-legacy-slice-imports:
+	@echo "$(BLUE)Checking frontend legacy slice import policy...$(RESET)"
+	node scripts/check-frontend-legacy-slice-import-policy.ts
+	@echo "$(GREEN)Frontend legacy slice import check complete!$(RESET)"
+
+lint-frontend-legacy-page-paths:
+	@echo "$(BLUE)Checking frontend legacy page path policy...$(RESET)"
+	node scripts/check-frontend-legacy-page-path-policy.ts
+	@echo "$(GREEN)Frontend legacy page path check complete!$(RESET)"
+
+lint-backend-legacy-controller-wrappers:
+	@echo "$(BLUE)Checking backend legacy controller wrapper policy...$(RESET)"
+	node scripts/check-backend-legacy-controller-wrapper-policy.ts
+	@echo "$(GREEN)Backend legacy controller wrapper check complete!$(RESET)"
 
 lint-fix:
 	@echo "$(BLUE)Fixing lint issues in backend...$(RESET)"

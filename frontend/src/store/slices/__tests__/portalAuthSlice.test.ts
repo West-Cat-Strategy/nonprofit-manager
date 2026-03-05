@@ -5,7 +5,7 @@ import reducer, {
   portalLogin,
   portalSignup,
   portalFetchMe,
-} from '../portalAuthSlice';
+} from '../../../features/portalAuth/state';
 
 // ─── localStorage mock ────────────────────────────────────────────────────────
 

@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAppDispatch } from '../../store/hooks';
-import { createAlertConfig, updateAlertConfig, testAlertConfig } from '../../store/slices/alertsSlice';
+import { createAlertConfig, updateAlertConfig, testAlertConfig } from '../../features/alerts/state';
 import type {
   AlertConfig,
   CreateAlertDTO,

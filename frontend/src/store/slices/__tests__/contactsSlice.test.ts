@@ -10,7 +10,7 @@ import reducer, {
   updateContact,
   deleteContact,
   type ContactsState,
-} from '../contactsSlice';
+} from '../../../features/contacts/state';
 
 const mockContact = {
   contact_id: 'contact-1',
