@@ -20,7 +20,7 @@ vi.mock('../../store/hooks', () => ({
   useAppSelector: (selector: (state: typeof mockState) => unknown) => selector(mockState),
 }));
 
-vi.mock('../../store/slices/analyticsSlice', () => ({
+vi.mock('../../features/analytics/state', () => ({
   default: (state = { summary: null, summaryLoading: false, error: null }) => state,
   fetchAnalyticsSummary: () => ({ type: 'analytics/fetchSummary' }),
 }));

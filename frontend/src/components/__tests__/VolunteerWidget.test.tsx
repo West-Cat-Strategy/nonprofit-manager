@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
 import VolunteerWidget from '../VolunteerWidget';
-import type { Volunteer } from '../../store/slices/volunteersSlice';
+import type { Volunteer } from '../../features/volunteers/state';
 import { renderWithProviders, createTestStore } from '../../test/testUtils';
 
 vi.mock('react-router-dom', async () => {

@@ -17,7 +17,7 @@ import {
   sendCampaign,
   clearSyncResult,
   setSelectedList,
-} from '../../../store/slices/mailchimpSlice';
+} from '../../mailchimp/state';
 import { fetchContacts } from '../../../features/contacts/state';
 import type {
   MailchimpList,

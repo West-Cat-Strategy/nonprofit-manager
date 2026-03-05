@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import type { NavigateFunction } from 'react-router-dom';
 import type * as ReactRouterDom from 'react-router-dom';
 import { vi } from 'vitest';
@@ -56,9 +56,14 @@ describe('AdminSettings page', () => {
       expect(screen.getByRole('heading', { name: /admin settings/i })).toBeInTheDocument();
     });
     expect(screen.getByRole('heading', { name: /portal operations/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /access/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /^access$/i })).toHaveAttribute(
       'href',
       '/settings/admin/portal/access'
+    );
+    expect(screen.getByRole('heading', { name: /quick actions/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /invite users/i })).toHaveAttribute(
+      'href',
+      '/settings/admin?section=users'
     );
     expect(screen.queryByText(/portal section/i)).not.toBeInTheDocument();
   });
@@ -88,6 +93,22 @@ describe('AdminSettings page', () => {
     renderWithProviders(<AdminSettings />, { route: '/settings/admin?section=portal' });
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/settings/admin/portal/access', { replace: true });
+    });
+  });
+
+  it('supports keyboard tab navigation semantics for section tabs', async () => {
+    renderWithProviders(<AdminSettings />);
+    await waitFor(() => {
+      expect(screen.getByRole('tablist', { name: /admin settings sections/i })).toBeInTheDocument();
+    });
+
+    const dashboardTab = screen.getByRole('tab', { name: /dashboard/i });
+    expect(dashboardTab).toHaveAttribute('aria-selected', 'true');
+
+    fireEvent.keyDown(dashboardTab, { key: 'ArrowRight' });
+    await waitFor(() => {
+      const organizationTab = screen.getByRole('tab', { name: /organization/i });
+      expect(organizationTab).toHaveAttribute('aria-selected', 'true');
     });
   });
 });

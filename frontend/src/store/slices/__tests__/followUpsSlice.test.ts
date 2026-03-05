@@ -20,7 +20,7 @@ import reducer, {
   selectScheduledFollowUps,
   selectOverdueFollowUps,
   selectCompletedFollowUps,
-} from '../followUpsSlice';
+} from '../../../features/followUps/state';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

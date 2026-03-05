@@ -4,31 +4,18 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const repoRoot = path.resolve(__dirname, '..');
+const modulesRoot = path.join(repoRoot, 'backend/src/modules');
 
-const migratedModules = [
-  'activities',
-  'admin',
-  'alerts',
-  'auth',
-  'backup',
-  'donations',
-  'export',
-  'externalServiceProviders',
-  'ingest',
-  'invitations',
-  'mailchimp',
-  'meetings',
-  'payments',
-  'plausibleProxy',
-  'portalAdmin',
-  'portalAuth',
-  'publicReports',
-  'publishing',
-  'reconciliation',
-  'templates',
-  'users',
-  'webhooks',
-];
+const excludedModules = new Set([
+  'shared',
+]);
+
+const migratedModules = fs
+  .readdirSync(modulesRoot, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .filter((moduleName) => !excludedModules.has(moduleName))
+  .sort();
 
 const violations = [];
 
@@ -46,11 +33,11 @@ for (const moduleName of migratedModules) {
 }
 
 if (violations.length > 0) {
-  console.error('Module route proxy policy violations found. Migrated module routes must not import @routes/*.');
+  console.error('Module route proxy policy violations found. Module routes must not import @routes/*.');
   for (const violation of violations) {
     console.error(`- ${violation}`);
   }
   process.exit(1);
 }
 
-console.log('Module route proxy policy check passed for migrated modules.');
+console.log('Module route proxy policy check passed for module domains.');

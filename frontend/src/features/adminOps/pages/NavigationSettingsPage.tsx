@@ -1,7 +1,7 @@
 /**
  * Navigation Settings Page
  * Allows users to enable or disable navigation menu items
- * Supports drag-and-drop reordering
+ * Supports drag-and-drop reordering and pinned shortcuts
  */
 
 import { useState } from 'react';
@@ -13,7 +13,18 @@ import AdminPanelNav from '../components/AdminPanelNav';
 
 export default function NavigationSettings() {
   const location = useLocation();
-  const { allItems, toggleItem, resetToDefaults, reorderItems, moveItemUp, moveItemDown } = useNavigationPreferences();
+  const {
+    allItems,
+    toggleItem,
+    togglePinned,
+    resetToDefaults,
+    reorderItems,
+    moveItemUp,
+    moveItemDown,
+    isSaving,
+    syncStatus,
+    maxPinnedItems,
+  } = useNavigationPreferences();
   const { user } = useAppSelector((state) => state.auth);
   const isAdmin = user?.role === 'admin';
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -59,24 +70,39 @@ export default function NavigationSettings() {
   };
 
   const enabledCount = allItems.filter((item) => item.enabled).length;
+  const pinnedCount = allItems.filter((item) => item.enabled && item.pinned).length;
+
+  const syncStatusLabel = (() => {
+    if (syncStatus === 'saving' || isSaving) return 'Saving...';
+    if (syncStatus === 'synced') return 'Synced';
+    return 'Offline fallback';
+  })();
+
+  const syncStatusClass = (() => {
+    if (syncStatus === 'saving' || isSaving) return 'bg-app-accent-soft text-app-accent-text border-app-accent';
+    if (syncStatus === 'synced') return 'bg-app-accent-soft text-app-accent-text border-app-border';
+    return 'bg-app-surface-muted text-app-text-muted border-app-border';
+  })();
 
   return (
     <AdminPanelLayout
       title="Navigation Settings"
-      description="Choose which modules appear in your navigation menu. Disabled modules are still accessible via direct URL."
+      description="Choose which modules appear in your navigation. Disabled modules remain accessible by direct URL."
       sidebar={<AdminPanelNav currentPath={location.pathname} />}
     >
-        {/* Settings Card */}
-        <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
-          {/* Card Header */}
-          <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-app-text-heading">Navigation Menu Items</h2>
-                <p className="text-sm text-app-text-muted mt-1">
-                  {enabledCount} of {allItems.length} modules enabled
-                </p>
-              </div>
+      <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
+        <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-app-text-heading">Navigation Menu Items</h2>
+              <p className="text-sm text-app-text-muted mt-1">
+                {enabledCount} of {allItems.length} modules enabled · Pinned {pinnedCount}/{maxPinnedItems}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${syncStatusClass}`}>
+                {syncStatusLabel}
+              </span>
               <button
                 type="button"
                 onClick={resetToDefaults}
@@ -86,14 +112,16 @@ export default function NavigationSettings() {
               </button>
             </div>
           </div>
+        </div>
 
-          {/* Items List */}
-          <ul className="divide-y divide-app-border">
-            {allItems.map((item, index) => {
-              const isDashboard = item.id === 'dashboard';
-              const canReorder = !isDashboard;
+        <ul className="divide-y divide-app-border">
+          {allItems.map((item, index) => {
+            const isDashboard = item.id === 'dashboard';
+            const canReorder = !isDashboard;
+            const pinEligible = item.enabled && !isDashboard && !item.isCore;
+            const pinLimitReached = !item.pinned && pinnedCount >= maxPinnedItems;
 
-              return (
+            return (
               <li
                 key={item.id}
                 draggable={canReorder}
@@ -108,7 +136,6 @@ export default function NavigationSettings() {
                   dragOverIndex === index && draggedIndex !== index ? 'border-t-2 border-app-accent' : ''
                 }`}
               >
-                {/* Drag Handle or Lock Icon */}
                 <div className="flex items-center space-x-3">
                   {isDashboard ? (
                     <div className="text-app-text-subtle" title="Dashboard position is locked">
@@ -124,7 +151,6 @@ export default function NavigationSettings() {
                     </div>
                   )}
 
-                  {/* Up/Down Buttons */}
                   <div className="flex flex-col">
                     <button
                       type="button"
@@ -150,7 +176,7 @@ export default function NavigationSettings() {
                     </button>
                   </div>
 
-                  <span className="text-2xl">{item.icon}</span>
+                  <span className="text-2xl" aria-hidden="true">{item.icon}</span>
                   <div>
                     <div className="flex items-center space-x-2">
                       <span className="font-medium text-app-text">{item.name}</span>
@@ -164,12 +190,35 @@ export default function NavigationSettings() {
                           Required
                         </span>
                       )}
+                      {item.pinned && item.enabled && (
+                        <span className="px-2 py-0.5 text-xs font-medium bg-app-accent-soft text-app-accent-text rounded">
+                          Pinned
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-app-text-muted">{item.path}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    disabled={!pinEligible || pinLimitReached}
+                    onClick={() => togglePinned(item.id)}
+                    className="rounded-md border border-app-border px-2.5 py-1.5 text-xs font-semibold text-app-text hover:bg-app-hover disabled:opacity-40 disabled:cursor-not-allowed"
+                    title={
+                      !item.enabled
+                        ? 'Enable this module before pinning'
+                        : pinLimitReached
+                          ? `Maximum of ${maxPinnedItems} pinned items reached`
+                          : item.pinned
+                            ? 'Unpin from quick access'
+                            : 'Pin for quick access'
+                    }
+                  >
+                    {item.pinned ? 'Unpin' : 'Pin'}
+                  </button>
+
                   {item.isCore ? (
                     <span className="text-sm text-app-text-subtle">Always visible</span>
                   ) : (
@@ -180,7 +229,7 @@ export default function NavigationSettings() {
                         onChange={() => toggleItem(item.id)}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-app-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-app-accent-soft rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-0.5 after:bg-app-surface after:border-app-input-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-app-accent"></div>
+                      <div className="w-11 h-6 bg-app-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-app-accent-soft rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-0.5 after:bg-app-surface after:border-app-input-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-app-accent" />
                       <span className="ms-3 text-sm font-medium text-app-text-label">
                         {item.enabled ? 'Enabled' : 'Disabled'}
                       </span>
@@ -188,146 +237,84 @@ export default function NavigationSettings() {
                   )}
                 </div>
               </li>
-              );
-            })}
-          </ul>
+            );
+          })}
+        </ul>
 
-          {/* Card Footer */}
-          <div className="px-6 py-4 border-t border-app-border bg-app-surface-muted">
-            <div className="flex items-start space-x-3">
-              <svg
-                className="h-5 w-5 text-app-accent mt-0.5 shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <div className="text-sm text-app-text-muted">
-                <p className="font-medium text-app-text-label">How navigation works:</p>
-                <ul className="mt-1 list-disc list-inside space-y-1">
-                  <li>
-                    Dashboard is always first and cannot be moved
-                  </li>
-                  <li>
-                    Drag other items or use the arrow buttons to reorder
-                  </li>
-                  <li>
-                    The first 4 enabled items appear in the main navigation bar
-                  </li>
-                  <li>Additional items appear under the &quot;More&quot; dropdown menu</li>
-                  <li>Disabled modules can still be accessed via their direct URL</li>
-                  <li>Changes sync across devices when logged in</li>
-                </ul>
-              </div>
+        <div className="px-6 py-4 border-t border-app-border bg-app-surface-muted">
+          <div className="flex items-start space-x-3">
+            <svg
+              className="h-5 w-5 text-app-accent mt-0.5 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <div className="text-sm text-app-text-muted">
+              <p className="font-medium text-app-text-label">How navigation works:</p>
+              <ul className="mt-1 list-disc list-inside space-y-1">
+                <li>Dashboard is always first and cannot be moved</li>
+                <li>Pin up to {maxPinnedItems} enabled modules for instant access in desktop and mobile menus</li>
+                <li>Drag items or use arrows to reorder non-dashboard modules</li>
+                <li>The first 4 enabled, unpinned items appear in the main navigation bar</li>
+                <li>Additional enabled, unpinned items appear under the &quot;More&quot; menu</li>
+                <li>Disabled modules can still be accessed by direct URL</li>
+              </ul>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Other Settings Links */}
-        <div className="mt-6 bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
-          <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
-            <h2 className="text-lg font-semibold text-app-text-heading">Other Settings</h2>
-          </div>
-          <ul className="divide-y divide-app-border">
-            {isAdmin && (
-              <li>
-                <Link
-                  to="/settings/admin?section=organization"
-                  className="flex items-center justify-between px-6 py-4 hover:bg-app-surface-muted"
-                >
-                  <div className="flex items-center space-x-4">
-                    <svg
-                      className="h-6 w-6 text-app-text-subtle"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                      />
-                    </svg>
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium text-app-text">Organization</span>
-                        <span className="px-2 py-0.5 text-xs font-medium bg-app-accent-soft text-app-accent-text rounded">
-                          Admin
-                        </span>
-                      </div>
-                      <p className="text-sm text-app-text-muted">Organization profile and preferences</p>
-                    </div>
-                  </div>
-                  <svg
-                    className="h-5 w-5 text-app-text-subtle"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </Link>
-              </li>
-            )}
+      <div className="mt-6 bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
+        <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
+          <h2 className="text-lg font-semibold text-app-text-heading">Other Settings</h2>
+        </div>
+        <ul className="divide-y divide-app-border">
+          {isAdmin && (
             <li>
               <Link
-                to="/settings/api"
+                to="/settings/admin?section=organization"
                 className="flex items-center justify-between px-6 py-4 hover:bg-app-surface-muted"
               >
                 <div className="flex items-center space-x-4">
-                  <svg
-                    className="h-6 w-6 text-app-text-subtle"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
                   <div>
-                    <span className="font-medium text-app-text">API & Integrations</span>
-                    <p className="text-sm text-app-text-muted">Manage webhooks and API keys</p>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium text-app-text">Organization</span>
+                      <span className="px-2 py-0.5 text-xs font-medium bg-app-accent-soft text-app-accent-text rounded">
+                        Admin
+                      </span>
+                    </div>
+                    <p className="text-sm text-app-text-muted">Organization profile and preferences</p>
                   </div>
                 </div>
-                <svg
-                  className="h-5 w-5 text-app-text-subtle"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
+                <svg className="h-5 w-5 text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </Link>
             </li>
-          </ul>
-        </div>
+          )}
+          <li>
+            <Link
+              to="/settings/api"
+              className="flex items-center justify-between px-6 py-4 hover:bg-app-surface-muted"
+            >
+              <div>
+                <span className="font-medium text-app-text">API & Integrations</span>
+                <p className="text-sm text-app-text-muted">Manage webhooks and API keys</p>
+              </div>
+              <svg className="h-5 w-5 text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </li>
+        </ul>
+      </div>
     </AdminPanelLayout>
   );
 }
