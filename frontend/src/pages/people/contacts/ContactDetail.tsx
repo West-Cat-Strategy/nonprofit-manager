@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchContactById, clearCurrentContact, fetchContactNotes } from '../../../features/contacts/state';
-import { fetchCases, selectCasesByContact } from '../../../features/cases/state';
+import { fetchCasesByContact, selectCasesByContact } from '../../../features/cases/state';
 import { BrutalBadge, BrutalButton, BrutalCard } from '../../../components/neo-brutalist';
 import PaymentHistory from '../../../components/PaymentHistory';
 import ContactPhoneNumbers from '../../../components/ContactPhoneNumbers';
@@ -37,7 +37,7 @@ const ContactDetail = () => {
   useEffect(() => {
     if (id) {
       dispatch(fetchContactById(id));
-      dispatch(fetchCases({}));
+      dispatch(fetchCasesByContact(id));
       dispatch(fetchContactNotes(id));
     }
     return () => {

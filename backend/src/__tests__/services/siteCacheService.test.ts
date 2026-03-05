@@ -8,6 +8,7 @@ import {
   SiteCacheService,
   siteCacheService,
 } from '@services';
+import * as redisConfig from '@config/redis';
 
 describe('SiteCacheService', () => {
   let service: SiteCacheService;
@@ -139,6 +140,39 @@ describe('SiteCacheService', () => {
 
       expect(count).toBe(2);
     });
+
+    it('uses scan-based redis deletion when redis is available', async () => {
+      jest.spyOn(redisConfig, 'isRedisAvailable').mockReturnValue(true);
+      jest.spyOn(redisConfig, 'getRedisClient').mockReturnValue({ isReady: true } as any);
+      const scanSpy = jest
+        .spyOn(redisConfig, 'scanAndDeleteByPattern')
+        .mockResolvedValue(3);
+
+      const count = await service.invalidateSite('site-123');
+
+      expect(count).toBe(3);
+      expect(scanSpy).toHaveBeenCalledWith('site_cache:site:site-123:*');
+    });
+
+    it('falls back to in-memory invalidation when redis scan deletion fails', async () => {
+      const siteId = 'site-123';
+      const homeKey = service.generateCacheKey(siteId, 'home');
+      const aboutKey = service.generateCacheKey(siteId, 'about');
+      await service.set(homeKey, { page: 'home' }, 'v1');
+      await service.set(aboutKey, { page: 'about' }, 'v1');
+
+      jest.spyOn(redisConfig, 'isRedisAvailable').mockReturnValue(true);
+      jest.spyOn(redisConfig, 'getRedisClient').mockReturnValue({ isReady: true } as any);
+      jest
+        .spyOn(redisConfig, 'scanAndDeleteByPattern')
+        .mockRejectedValue(new Error('redis down'));
+
+      const count = await service.invalidateSite(siteId);
+
+      expect(count).toBe(2);
+      await expect(service.get(homeKey)).resolves.toBeNull();
+      await expect(service.get(aboutKey)).resolves.toBeNull();
+    });
   });
 
   describe('clear', () => {
@@ -150,6 +184,19 @@ describe('SiteCacheService', () => {
 
       expect(await service.get('key1')).toBeNull();
       expect(await service.get('key2')).toBeNull();
+    });
+
+    it('uses scan-based redis deletion when clearing redis cache', async () => {
+      jest.spyOn(redisConfig, 'isRedisAvailable').mockReturnValue(true);
+      jest.spyOn(redisConfig, 'getRedisClient').mockReturnValue({ isReady: true } as any);
+      const scanSpy = jest
+        .spyOn(redisConfig, 'scanAndDeleteByPattern')
+        .mockResolvedValue(0);
+
+      await service.clear();
+
+      expect(scanSpy).toHaveBeenNthCalledWith(1, 'site_cache:*');
+      expect(scanSpy).toHaveBeenNthCalledWith(2, 'site_cache_tag:*');
     });
   });
 

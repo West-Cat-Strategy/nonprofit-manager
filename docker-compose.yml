@@ -2,7 +2,6 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:14-alpine
-    container_name: nonprofit-db
     restart: unless-stopped
     env_file:
       - .env.production
@@ -34,7 +33,6 @@ services:
   # Redis Cache (for future use)
   redis:
     image: redis:7-alpine
-    container_name: nonprofit-redis
     restart: unless-stopped
     volumes:
       - redis_data:/data
@@ -53,7 +51,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: nonprofit-backend
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -99,7 +96,6 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: /api
-    container_name: nonprofit-frontend
     restart: unless-stopped
     ports:
       - "8001:8001"

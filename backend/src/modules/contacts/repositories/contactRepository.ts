@@ -2,6 +2,7 @@ import { services } from '@container/services';
 import type {
   Contact,
   ContactFilters,
+  ContactLookupItem,
   ContactRole,
   CreateContactDTO,
   PaginationParams,
@@ -19,6 +20,13 @@ export class ContactRepository implements ContactDirectoryPort {
     viewerRole?: string
   ): Promise<PaginatedContacts> {
     return services.contact.getContacts(filters, pagination, scope, viewerRole);
+  }
+
+  async lookupContacts(
+    query: { q: string; limit?: number; is_active?: boolean },
+    scope?: DataScopeFilter
+  ): Promise<ContactLookupItem[]> {
+    return services.contact.lookupContacts(query, scope);
   }
 
   async getContactTags(scope?: DataScopeFilter): Promise<string[]> {

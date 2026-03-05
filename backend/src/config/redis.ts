@@ -2,6 +2,8 @@ import { createClient, RedisClientType } from 'redis';
 import { logger } from './logger';
 
 let redisClient: RedisClientType | null = null;
+const DEFAULT_SCAN_COUNT = 200;
+const DEFAULT_DELETE_BATCH_SIZE = 200;
 
 /**
  * Initialize Redis client connection
@@ -157,19 +159,49 @@ export async function deleteCached(key: string): Promise<boolean> {
  * Delete multiple cached values by pattern
  */
 export async function deleteCachedPattern(pattern: string): Promise<number> {
+  return scanAndDeleteByPattern(pattern);
+}
+
+/**
+ * Scan and delete keys by pattern without using KEYS (safe for production workloads)
+ */
+export async function scanAndDeleteByPattern(
+  pattern: string,
+  options: { scanCount?: number; deleteBatchSize?: number } = {}
+): Promise<number> {
   if (!redisClient?.isReady) {
     return 0;
   }
 
+  const scanCount = options.scanCount ?? DEFAULT_SCAN_COUNT;
+  const deleteBatchSize = options.deleteBatchSize ?? DEFAULT_DELETE_BATCH_SIZE;
+
   try {
-    const keys = await redisClient.keys(pattern);
-    if (keys.length > 0) {
-      await redisClient.del(keys);
-      return keys.length;
+    let deleted = 0;
+    const pendingDeletes: string[] = [];
+
+    for await (const keys of redisClient.scanIterator({
+      MATCH: pattern,
+      COUNT: scanCount,
+    })) {
+      if (!keys.length) {
+        continue;
+      }
+
+      pendingDeletes.push(...keys);
+      while (pendingDeletes.length >= deleteBatchSize) {
+        const chunk = pendingDeletes.splice(0, deleteBatchSize);
+        deleted += await redisClient.del(chunk);
+      }
     }
-    return 0;
+
+    if (pendingDeletes.length > 0) {
+      deleted += await redisClient.del(pendingDeletes);
+    }
+
+    return deleted;
   } catch (error) {
-    logger.error(`Error deleting cached values for pattern ${pattern}:`, error);
+    logger.error(`Error scanning/deleting cached values for pattern ${pattern}:`, error);
     return 0;
   }
 }

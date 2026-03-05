@@ -5,7 +5,7 @@
  */
 
 import crypto from 'crypto';
-import { getRedisClient, isRedisAvailable } from '../config/redis';
+import { getRedisClient, isRedisAvailable, scanAndDeleteByPattern } from '../config/redis';
 import { logger } from '../config/logger';
 
 // Cache entry structure
@@ -308,13 +308,8 @@ export class SiteCacheService {
       try {
         const client = getRedisClient();
         if (client) {
-          const pattern = `${CACHE_KEY_PREFIX}site:${siteId}:*`;
-          const keys = await client.keys(pattern);
-          let count = 0;
-          if (keys.length > 0) {
-            count = await client.del(keys);
-            cacheStats.size = Math.max(0, cacheStats.size - count);
-          }
+          const count = await scanAndDeleteByPattern(`${CACHE_KEY_PREFIX}site:${siteId}:*`);
+          cacheStats.size = Math.max(0, cacheStats.size - count);
           return count;
         }
       } catch (error) {
@@ -340,12 +335,8 @@ export class SiteCacheService {
       try {
         const client = getRedisClient();
         if (client) {
-          const keys = await client.keys(`${CACHE_KEY_PREFIX}*`);
-          const tagKeys = await client.keys(`${TAG_KEY_PREFIX}*`);
-          const allKeys = [...keys, ...tagKeys];
-          if (allKeys.length > 0) {
-            await client.del(allKeys);
-          }
+          await scanAndDeleteByPattern(`${CACHE_KEY_PREFIX}*`);
+          await scanAndDeleteByPattern(`${TAG_KEY_PREFIX}*`);
         }
       } catch (error) {
         logger.error('Redis cache clear error', { error });

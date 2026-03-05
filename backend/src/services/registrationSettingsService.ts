@@ -40,6 +40,14 @@ const SETTINGS_COLUMNS = `
   created_at,
   updated_at
 `;
+const REGISTRATION_MODE_CACHE_TTL_MS = 30_000;
+
+type RegistrationModeCacheEntry = {
+  mode: RegistrationMode;
+  expiresAt: number;
+};
+
+let registrationModeCache: RegistrationModeCacheEntry | null = null;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -53,6 +61,30 @@ function toModel(row: SettingsRow): RegistrationSettings {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+function readRegistrationModeCache(): RegistrationMode | null {
+  if (!registrationModeCache) {
+    return null;
+  }
+
+  if (Date.now() >= registrationModeCache.expiresAt) {
+    registrationModeCache = null;
+    return null;
+  }
+
+  return registrationModeCache.mode;
+}
+
+function setRegistrationModeCache(mode: RegistrationMode): void {
+  registrationModeCache = {
+    mode,
+    expiresAt: Date.now() + REGISTRATION_MODE_CACHE_TTL_MS,
+  };
+}
+
+function clearRegistrationModeCache(): void {
+  registrationModeCache = null;
 }
 
 // ---------------------------------------------------------------------------
@@ -106,6 +138,7 @@ export async function updateRegistrationSettings(
   );
 
   logger.info(`Registration settings updated: mode=${mode}, defaultRole=${role}`);
+  clearRegistrationModeCache();
   return toModel(result.rows[0]);
 }
 
@@ -114,6 +147,16 @@ export async function updateRegistrationSettings(
  * Returns just the mode string for fast checks.
  */
 export async function getRegistrationMode(): Promise<RegistrationMode> {
+  const cachedMode = readRegistrationModeCache();
+  if (cachedMode) {
+    return cachedMode;
+  }
+
   const settings = await getRegistrationSettings();
+  setRegistrationModeCache(settings.registrationMode);
   return settings.registrationMode;
+}
+
+export function __resetRegistrationModeCacheForTests(): void {
+  clearRegistrationModeCache();
 }

@@ -1,18 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { contactsApiClient } from '../../features/contacts/api/contactsApiClient';
+import type { ContactLookupItem } from '../../features/contacts/types/contracts';
 
-export interface SearchResult {
-  contact_id: string;
-  first_name: string;
-  preferred_name?: string | null;
-  last_name: string;
-  email: string | null;
-  phone: string | null;
-  mobile_phone: string | null;
-  account_name?: string;
-  is_active: boolean;
-}
+export type SearchResult = ContactLookupItem;
 
 export interface UseQuickLookupOptions {
   /** Max results to return (default: 8) */
@@ -42,29 +33,52 @@ export function useQuickLookup(options: UseQuickLookupOptions = {}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const activeSearchController = useRef<AbortController | null>(null);
+  const latestSearchRequestId = useRef(0);
 
   const performSearch = useCallback(async (term: string) => {
-    if (term.length < 2) {
+    const normalizedTerm = term.trim();
+    if (normalizedTerm.length < 2) {
+      activeSearchController.current?.abort();
       setResults([]);
       setIsOpen(false);
       return;
     }
 
+    latestSearchRequestId.current += 1;
+    const requestId = latestSearchRequestId.current;
+    activeSearchController.current?.abort();
+    const controller = new AbortController();
+    activeSearchController.current = controller;
+
     setIsLoading(true);
     try {
-      const response = await contactsApiClient.listContacts({
-        search: term,
+      const response = await contactsApiClient.lookupContacts({
+        q: normalizedTerm,
         limit,
         isActive: activeOnly ? true : undefined,
+      }, {
+        signal: controller.signal,
       });
-      setResults(Array.isArray(response.data) ? (response.data as SearchResult[]) : []);
+      if (requestId !== latestSearchRequestId.current || controller.signal.aborted) {
+        return;
+      }
+      setResults(Array.isArray(response.items) ? response.items : []);
       setIsOpen(true);
       setSelectedIndex(-1);
     } catch {
+      if (controller.signal.aborted) {
+        return;
+      }
       setResults([]);
       setIsOpen(false);
     } finally {
-      setIsLoading(false);
+      if (requestId === latestSearchRequestId.current) {
+        setIsLoading(false);
+      }
+      if (activeSearchController.current === controller) {
+        activeSearchController.current = null;
+      }
     }
   }, [limit, activeOnly]);
 
@@ -159,6 +173,7 @@ export function useQuickLookup(options: UseQuickLookupOptions = {}) {
       if (debounceTimer.current) {
         clearTimeout(debounceTimer.current);
       }
+      activeSearchController.current?.abort();
     };
   }, []);
 

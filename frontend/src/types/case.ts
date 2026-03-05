@@ -607,6 +607,15 @@ export interface CasesState {
   outcomesError?: string | null;
   filters: CaseFilter;
   selectedCaseIds: string[];
+  contactCasesByContactId?: Record<
+    string,
+    {
+      cases: CaseWithDetails[];
+      loading: boolean;
+      error: string | null;
+      fetchedAt: number | null;
+    }
+  >;
 }
 
 /**
