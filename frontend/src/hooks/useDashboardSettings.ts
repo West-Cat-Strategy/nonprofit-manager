@@ -7,20 +7,77 @@ import { useAppSelector } from '../store/hooks';
 const DASHBOARD_SETTINGS_KEY = 'dashboardSettings';
 const DASHBOARD_SETTINGS_PREF_KEY = 'dashboard_settings';
 const SAVE_DEBOUNCE_MS = 400;
+const SETTINGS_CACHE_TTL_MS = 5 * 60 * 1000;
+
+type DashboardSettingsSnapshot = {
+  settings: DashboardSettings;
+  fetchedAt: number;
+};
+
+let dashboardSettingsSnapshot: DashboardSettingsSnapshot | null = null;
+let dashboardSettingsInFlight: Promise<DashboardSettings | null> | null = null;
+
+const normalizeDashboardSettings = (settings: Partial<DashboardSettings> | null | undefined): DashboardSettings => ({
+  ...defaultDashboardSettings,
+  ...(settings || {}),
+  kpis: {
+    ...defaultDashboardSettings.kpis,
+    ...(settings?.kpis || {}),
+  },
+});
+
+const getFreshDashboardSettingsSnapshot = (): DashboardSettings | null => {
+  if (!dashboardSettingsSnapshot) {
+    return null;
+  }
+  if (Date.now() - dashboardSettingsSnapshot.fetchedAt >= SETTINGS_CACHE_TTL_MS) {
+    dashboardSettingsSnapshot = null;
+    return null;
+  }
+  return dashboardSettingsSnapshot.settings;
+};
+
+const setDashboardSettingsSnapshot = (settings: DashboardSettings): void => {
+  dashboardSettingsSnapshot = {
+    settings,
+    fetchedAt: Date.now(),
+  };
+};
+
+const fetchServerDashboardSettings = async (): Promise<DashboardSettings | null> => {
+  const freshSnapshot = getFreshDashboardSettingsSnapshot();
+  if (freshSnapshot) {
+    return freshSnapshot;
+  }
+
+  if (dashboardSettingsInFlight) {
+    return dashboardSettingsInFlight;
+  }
+
+  dashboardSettingsInFlight = api
+    .get<{ preferences?: Record<string, Partial<DashboardSettings> | undefined> }>('/auth/preferences')
+    .then((response) => {
+      const serverSettings = response.data?.preferences?.[DASHBOARD_SETTINGS_PREF_KEY];
+      if (!serverSettings) {
+        return null;
+      }
+      const normalizedSettings = normalizeDashboardSettings(serverSettings);
+      setDashboardSettingsSnapshot(normalizedSettings);
+      return normalizedSettings;
+    })
+    .finally(() => {
+      dashboardSettingsInFlight = null;
+    });
+
+  return dashboardSettingsInFlight;
+};
 
 const loadDashboardSettings = (): DashboardSettings => {
   try {
     const raw = localStorage.getItem(DASHBOARD_SETTINGS_KEY);
     if (!raw) return defaultDashboardSettings;
-    const parsed = JSON.parse(raw) as DashboardSettings;
-    return {
-      ...defaultDashboardSettings,
-      ...parsed,
-      kpis: {
-        ...defaultDashboardSettings.kpis,
-        ...(parsed.kpis || {}),
-      },
-    };
+    const parsed = JSON.parse(raw) as Partial<DashboardSettings>;
+    return normalizeDashboardSettings(parsed);
   } catch {
     return defaultDashboardSettings;
   }
@@ -60,19 +117,10 @@ export function useDashboardSettings(): UseDashboardSettingsResult {
           setIsLoading(false);
           return;
         }
-        const response = await api.get<{ preferences: Record<string, DashboardSettings> }>('/auth/preferences');
-        const serverPrefs = response.data?.preferences || {};
-        if (serverPrefs[DASHBOARD_SETTINGS_PREF_KEY] && isMountedRef.current) {
-          const merged: DashboardSettings = {
-            ...defaultDashboardSettings,
-            ...serverPrefs[DASHBOARD_SETTINGS_PREF_KEY],
-            kpis: {
-              ...defaultDashboardSettings.kpis,
-              ...(serverPrefs[DASHBOARD_SETTINGS_PREF_KEY].kpis || {}),
-            },
-          };
-          setSettingsState(merged);
-          saveDashboardSettings(merged);
+        const serverSettings = await fetchServerDashboardSettings();
+        if (serverSettings && isMountedRef.current) {
+          setSettingsState(serverSettings);
+          saveDashboardSettings(serverSettings);
         }
       } catch {
         // Keep local settings if server fetch fails
@@ -106,6 +154,7 @@ export function useDashboardSettings(): UseDashboardSettingsResult {
         await api.patch(`/auth/preferences/${DASHBOARD_SETTINGS_PREF_KEY}`, {
           value: settings,
         });
+        setDashboardSettingsSnapshot(settings);
       } catch {
         // Ignore save errors (local cache still updated)
       }
@@ -133,3 +182,8 @@ export function useDashboardSettings(): UseDashboardSettingsResult {
     isLoading,
   };
 }
+
+export const __resetDashboardSettingsServerCacheForTests = (): void => {
+  dashboardSettingsSnapshot = null;
+  dashboardSettingsInFlight = null;
+};

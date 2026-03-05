@@ -2,69 +2,46 @@
 # Database Backup Script
 # Creates timestamped backups of the PostgreSQL database
 
-set -e
+set -euo pipefail
 
 # Load common utilities and configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 source "$SCRIPT_DIR/lib/config.sh"
 
-# Configuration overrides
-BACKUP_DIR="${BACKUP_DIR:-$BACKUP_DIR}"
-DB_CONTAINER="${DB_CONTAINER:-$DB_CONTAINER}"
-DB_USER="${DB_USER:-$DB_USER}"
-DB_NAME="${DB_NAME:-$DB_NAME}"
+COMPOSE_MODE="$(normalize_compose_mode "${COMPOSE_MODE:-prod}")"
+DB_SERVICE="${DB_SERVICE:-postgres}"
+DB_USER="${DB_USER:-postgres}"
+DB_NAME="${DB_NAME:-nonprofit_manager}"
+BACKUP_DIR="${BACKUP_DIR:-database/backups}"
+
+if [[ "$BACKUP_DIR" != /* ]]; then
+    BACKUP_DIR="$PROJECT_ROOT/$BACKUP_DIR"
+fi
 
 print_header "Database Backup"
 
-# Configuration
-BACKUP_DIR="${BACKUP_DIR:-$PROJECT_ROOT/database/backups}"
-DB_CONTAINER="${DB_CONTAINER:-nonprofit-db}"
-DB_USER="${DB_USER:-postgres}"
-DB_NAME="${DB_NAME:-nonprofit_manager}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="$BACKUP_DIR/backup_$TIMESTAMP.sql"
-
-echo ""
-echo "========================================"
-echo "  Database Backup"
-echo "========================================"
-echo ""
 
 # Create backup directory if it doesn't exist
 mkdir -p "$BACKUP_DIR"
 
-# Check if database container is running
-if ! docker ps --format '{{.Names}}' | grep -q "^${DB_CONTAINER}$"; then
-    log_error "Database container '$DB_CONTAINER' is not running"
-    compose_cmd="$(docker_compose_cmd 2>/dev/null || echo "docker compose")"
-    log_info "Start it with: $compose_cmd up -d postgres"
-    exit 1
-fi
+# Check if database service is running
+check_compose_service_running "$DB_SERVICE" "$COMPOSE_MODE" || exit 1
 
 # Wait for database to be ready
-log_info "Checking database connection..."
-for i in {1..10}; do
-    if docker exec "$DB_CONTAINER" pg_isready -U "$DB_USER" -d "$DB_NAME" > /dev/null 2>&1; then
-        break
-    fi
-    if [ $i -eq 10 ]; then
-        log_error "Database not ready after 10 attempts"
-        exit 1
-    fi
-    sleep 1
-done
-log_success "Database is ready"
+wait_for_db_service "$DB_SERVICE" "$DB_USER" "$DB_NAME" 10 "$COMPOSE_MODE" || exit 1
 
 # Get database size for logging
-DB_SIZE=$(docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -A -c \
+DB_SIZE=$(compose_exec "$COMPOSE_MODE" "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" -t -A -c \
     "SELECT pg_size_pretty(pg_database_size('$DB_NAME'));" 2>/dev/null || echo "unknown")
 
 log_info "Starting backup of database '$DB_NAME' (size: $DB_SIZE)"
 log_info "Backup file: $BACKUP_FILE"
 
 # Create the backup
-if docker exec "$DB_CONTAINER" pg_dump -U "$DB_USER" -d "$DB_NAME" --no-owner --no-privileges --clean --if-exists > "$BACKUP_FILE" 2>&1; then
+if compose_exec "$COMPOSE_MODE" "$DB_SERVICE" pg_dump -U "$DB_USER" -d "$DB_NAME" --no-owner --no-privileges --clean --if-exists > "$BACKUP_FILE"; then
     # Get backup file size
     BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
     log_success "Backup completed successfully"

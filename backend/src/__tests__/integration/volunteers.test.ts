@@ -121,11 +121,12 @@ describe('Volunteer API Integration Tests', () => {
       // Finally delete account
       await pool.query('DELETE FROM accounts WHERE id = $1', [testAccountId]);
     }
+    if (organizationId) {
+      // `accounts.created_by` references `users.id`, so remove test-created org rows before user rows.
+      await pool.query('DELETE FROM accounts WHERE id = $1 AND created_by = $2', [organizationId, userId]);
+    }
     if (userId) {
       await pool.query('DELETE FROM users WHERE id = $1', [userId]);
-    }
-    if (organizationId) {
-      await pool.query('DELETE FROM accounts WHERE id = $1 AND created_by = $2', [organizationId, userId]);
     }
   });
 

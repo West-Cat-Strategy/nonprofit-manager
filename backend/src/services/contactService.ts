@@ -9,6 +9,7 @@ import {
   CreateContactDTO,
   UpdateContactDTO,
   ContactFilters,
+  ContactLookupItem,
   PaginationParams,
   PaginatedContacts,
 } from '@app-types/contact';
@@ -281,6 +282,100 @@ export class ContactService {
     } catch (error) {
       logger.error('Error getting contacts:', error);
       throw Object.assign(new Error('Failed to retrieve contacts'), { cause: error });
+    }
+  }
+
+  /**
+   * Lightweight contact lookup for navigation/search surfaces.
+   */
+  async lookupContacts(
+    query: { q: string; limit?: number; is_active?: boolean },
+    scope?: DataScopeFilter
+  ): Promise<ContactLookupItem[]> {
+    try {
+      const searchTerm = query.q.trim();
+      if (searchTerm.length < 2) {
+        return [];
+      }
+
+      const limit = Math.min(Math.max(query.limit ?? 8, 1), 20);
+      const conditions: string[] = [];
+      const values: QueryValue[] = [];
+      let paramCounter = 1;
+
+      conditions.push(`(
+        c.first_name ILIKE $${paramCounter} OR
+        c.preferred_name ILIKE $${paramCounter} OR
+        c.last_name ILIKE $${paramCounter} OR
+        c.email ILIKE $${paramCounter} OR
+        c.phone ILIKE $${paramCounter} OR
+        c.mobile_phone ILIKE $${paramCounter} OR
+        CONCAT(c.first_name, ' ', c.last_name) ILIKE $${paramCounter} OR
+        CONCAT(COALESCE(c.preferred_name, ''), ' ', c.last_name) ILIKE $${paramCounter}
+      )`);
+      values.push(`%${searchTerm}%`);
+      paramCounter++;
+
+      const isActive = query.is_active ?? true;
+      conditions.push(`c.is_active = $${paramCounter}`);
+      values.push(isActive);
+      paramCounter++;
+
+      if (scope?.accountIds && scope.accountIds.length > 0) {
+        conditions.push(`c.account_id = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.accountIds);
+        paramCounter++;
+      }
+
+      if (scope?.contactIds && scope.contactIds.length > 0) {
+        conditions.push(`c.id = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.contactIds);
+        paramCounter++;
+      }
+
+      if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
+        conditions.push(`c.created_by = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.createdByUserIds);
+        paramCounter++;
+      }
+
+      const whereClause = `WHERE ${conditions.join(' AND ')}`;
+
+      const result = await this.pool.query(
+        `
+          SELECT
+            c.id AS contact_id,
+            c.first_name,
+            c.preferred_name,
+            c.last_name,
+            c.email,
+            c.phone,
+            c.mobile_phone,
+            c.is_active,
+            a.account_name
+          FROM contacts c
+          LEFT JOIN accounts a ON a.id = c.account_id
+          ${whereClause}
+          ORDER BY c.updated_at DESC
+          LIMIT $${paramCounter}
+        `,
+        [...values, limit]
+      );
+
+      return result.rows.map((row) => ({
+        contact_id: row.contact_id,
+        first_name: row.first_name,
+        preferred_name: row.preferred_name,
+        last_name: row.last_name,
+        email: row.email,
+        phone: row.phone,
+        mobile_phone: row.mobile_phone,
+        is_active: row.is_active,
+        account_name: row.account_name ?? null,
+      }));
+    } catch (error) {
+      logger.error('Error looking up contacts:', error);
+      throw Object.assign(new Error('Failed to lookup contacts'), { cause: error });
     }
   }
 

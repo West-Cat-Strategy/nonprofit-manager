@@ -7,7 +7,7 @@ import {
   deleteContactNote,
   updateContactNote,
 } from '../features/contacts/state';
-import { fetchCases, selectCasesByContact } from '../features/cases/state';
+import { selectCasesByContact } from '../features/cases/state';
 import { useToast } from '../contexts/useToast';
 import type { CreateContactNoteDTO, UpdateContactNoteDTO, ContactNoteType } from '../types/contact';
 import { NOTE_TYPES } from '../types/contact';
@@ -46,8 +46,6 @@ const ContactNotes = ({ contactId, openOnMount = false, onOpenHandled }: Contact
 
   useEffect(() => {
     dispatch(fetchContactNotes(contactId));
-    // Fetch cases for the case selector dropdown
-    dispatch(fetchCases({}));
   }, [dispatch, contactId]);
 
   useEffect(() => {

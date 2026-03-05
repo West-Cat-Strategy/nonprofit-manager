@@ -1,11 +1,17 @@
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
+import { getJwtSecret } from '../../config/jwt';
 
 describe('Case API Integration Tests', () => {
   let authToken: string;
   let testEmail: string;
+  let userId = '';
+  let organizationId = '';
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const unwrap = <T>(body: { data?: T } | T): T =>
+    (body && typeof body === 'object' && 'data' in body ? (body as { data: T }).data : body) as T;
 
   beforeAll(async () => {
     testEmail = `cases-test-${unique()}@example.com`;
@@ -19,10 +25,57 @@ describe('Case API Integration Tests', () => {
         last_name: 'Tester',
       });
 
-    authToken = registerResponse.body.token;
+    const registerPayload = unwrap<{
+      user?: {
+        id: string;
+        email: string;
+        role: string;
+      };
+    }>(registerResponse.body);
+    const registeredUser = registerPayload.user;
+    if (!registeredUser?.id) {
+      throw new Error('Failed to register case integration test user');
+    }
+    userId = registeredUser.id;
+
+    const orgResult = await pool.query<{ id: string }>(
+      `SELECT id
+       FROM accounts
+       WHERE account_type = 'organization'
+         AND COALESCE(is_active, true) = true
+       ORDER BY created_at ASC
+       LIMIT 1`
+    );
+
+    if (orgResult.rows[0]?.id) {
+      organizationId = orgResult.rows[0].id;
+    } else {
+      const createdOrg = await pool.query<{ id: string }>(
+        `INSERT INTO accounts (account_name, account_type, created_by, modified_by, created_at, updated_at)
+         VALUES ($1, 'organization', $2, $2, NOW(), NOW())
+         RETURNING id`,
+        [`Case Test Organization ${unique()}`, userId]
+      );
+      organizationId = createdOrg.rows[0].id;
+    }
+
+    authToken = jwt.sign(
+      {
+        id: userId,
+        email: registeredUser.email ?? testEmail,
+        role: registeredUser.role ?? 'user',
+        organizationId,
+      },
+      getJwtSecret(),
+      { expiresIn: '1h' }
+    );
   });
 
   afterAll(async () => {
+    if (organizationId && userId) {
+      // `accounts.created_by` references `users.id`, so remove test-created org rows first.
+      await pool.query('DELETE FROM accounts WHERE id = $1 AND created_by = $2', [organizationId, userId]);
+    }
     if (testEmail) {
       await pool.query('DELETE FROM users WHERE email = $1', [testEmail.toLowerCase()]);
     }

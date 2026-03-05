@@ -5,6 +5,7 @@ import { useSetupCheck } from '../hooks/useSetupCheck';
 import AdminRoute from '../components/AdminRoute';
 import PortalProtectedRoute from '../components/PortalProtectedRoute';
 import { ProtectedRoute, NeoBrutalistRoute } from '../components/auth';
+import AuthenticatedShellRoute from '../components/auth/AuthenticatedShellRoute';
 import PageLoader from '../components/PageLoader';
 import { logout } from '../store/slices/authSlice';
 import { portalLogout } from '../store/slices/portalAuthSlice';
@@ -121,76 +122,78 @@ const AppRoutes = () => {
       {/* Portal Routes */}
       {createPortalRoutes(PortalProtectedRoute)}
 
-      {/* Neo-Brutalist Dashboard (Primary) */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <NeoBrutalistDashboard />
-          </ProtectedRoute>
-        }
-      />
+      <Route element={<AuthenticatedShellRoute />}>
+        {/* Neo-Brutalist Dashboard (Primary) */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <NeoBrutalistDashboard />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* People Routes (Accounts, Contacts, Volunteers) */}
-      {createPeopleRoutes(ProtectedRoute)}
+        {/* People Routes (Accounts, Contacts, Volunteers) */}
+        {createPeopleRoutes(ProtectedRoute)}
 
-      {/* LOOP Module: People Directory */}
-      <Route
-        path="/people"
-        element={
-          <NeoBrutalistRoute>
-            <PeopleDirectory />
-          </NeoBrutalistRoute>
-        }
-      />
+        {/* LOOP Module: People Directory */}
+        <Route
+          path="/people"
+          element={
+            <NeoBrutalistRoute>
+              <PeopleDirectory />
+            </NeoBrutalistRoute>
+          }
+        />
 
-      {/* LOOP Module: Linking */}
-      <Route
-        path="/linking"
-        element={
-          <NeoBrutalistRoute>
-            <LinkingModule />
-          </NeoBrutalistRoute>
-        }
-      />
+        {/* LOOP Module: Linking */}
+        <Route
+          path="/linking"
+          element={
+            <NeoBrutalistRoute>
+              <LinkingModule />
+            </NeoBrutalistRoute>
+          }
+        />
 
-      {/* LOOP Module: Operations */}
-      <Route
-        path="/operations"
-        element={
-          <NeoBrutalistRoute>
-            <OperationsBoard />
-          </NeoBrutalistRoute>
-        }
-      />
+        {/* LOOP Module: Operations */}
+        <Route
+          path="/operations"
+          element={
+            <NeoBrutalistRoute>
+              <OperationsBoard />
+            </NeoBrutalistRoute>
+          }
+        />
 
-      {/* Neo-Brutalist Outreach Center */}
-      <Route
-        path="/outreach"
-        element={
-          <NeoBrutalistRoute>
-            <OutreachCenter />
-          </NeoBrutalistRoute>
-        }
-      />
+        {/* Neo-Brutalist Outreach Center */}
+        <Route
+          path="/outreach"
+          element={
+            <NeoBrutalistRoute>
+              <OutreachCenter />
+            </NeoBrutalistRoute>
+          }
+        />
 
-      {/* Engagement Routes (Events, Tasks, Cases) */}
-      {createEngagementRoutes(NeoBrutalistRoute)}
+        {/* Engagement Routes (Events, Tasks, Cases) */}
+        {createEngagementRoutes(NeoBrutalistRoute)}
 
-      {/* Finance Routes (Donations, Reconciliation) */}
-      {createFinanceRoutes(ProtectedRoute)}
+        {/* Finance Routes (Donations, Reconciliation) */}
+        {createFinanceRoutes(ProtectedRoute)}
 
-      {/* Analytics Routes */}
-      {createAnalyticsRoutes(ProtectedRoute)}
+        {/* Analytics Routes */}
+        {createAnalyticsRoutes(ProtectedRoute)}
 
-      {/* Workflow Routes */}
-      {createWorkflowRoutes(ProtectedRoute)}
+        {/* Workflow Routes */}
+        {createWorkflowRoutes(ProtectedRoute)}
 
-      {/* Admin Routes */}
-      {createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRoute })}
+        {/* Admin Routes */}
+        {createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRoute })}
 
-      {/* Builder Routes */}
-      {createBuilderRoutes(ProtectedRoute)}
+        {/* Builder Routes */}
+        {createBuilderRoutes(ProtectedRoute)}
+      </Route>
 
       {/* Neo-Brutalist Demo Routes (No Auth Required) */}
       <Route path="/demo/dashboard" element={<NeoBrutalistDashboard />} />

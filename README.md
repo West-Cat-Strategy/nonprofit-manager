@@ -109,7 +109,7 @@ See [Features Documentation](docs/README.md) for detailed guides.
 ### Quick Start
 ```bash
 # Start all services
-docker compose --env-file .env.production up --build -d
+docker compose -p nonprofit-prod --env-file .env.production -f docker-compose.yml up --build -d
 
 # Access the application
 # - Frontend: http://localhost:8001
@@ -119,7 +119,7 @@ docker compose --env-file .env.production up --build -d
 ### Development Mode
 ```bash
 # Start with hot reload
-docker compose -f docker-compose.dev.yml up --build -d
+docker compose -p nonprofit-dev -f docker-compose.dev.yml up --build -d
 
 # Access
 # - Frontend: http://localhost:8005
@@ -132,13 +132,13 @@ docker compose -f docker-compose.dev.yml up --build -d
 
 ```bash
 # Dev stack + tools profile (pgAdmin, Redis Commander, MailHog)
-docker compose -f docker-compose.dev.yml -f docker-compose.tools.yml --profile tools up -d
+docker compose -p nonprofit-dev -f docker-compose.dev.yml -f docker-compose.tools.yml --profile tools up -d
 
 # Dev stack + Caddy overlay
-docker compose -f docker-compose.dev.yml -f docker-compose.caddy.yml up -d
+docker compose -p nonprofit-dev -f docker-compose.dev.yml -f docker-compose.caddy.yml up -d
 
 # Production-like stack + optional DB/Redis host-port access
-docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.host-access.yml up -d
+docker compose -p nonprofit-prod --env-file .env.production -f docker-compose.yml -f docker-compose.host-access.yml up -d
 ```
 
 ### First Setup vs Seeded Data

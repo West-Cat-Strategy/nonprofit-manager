@@ -171,6 +171,33 @@ test.describe('Contacts Module', () => {
     await expect(authenticatedPage.getByLabel('Search contacts')).toBeVisible();
   });
 
+  test('contact detail only requests contact-scoped case list', async ({ authenticatedPage, authToken }) => {
+    const suffix = uniqueSuffix();
+    const { id: contactId } = await createTestContact(authenticatedPage, authToken, {
+      firstName: `Scoped${suffix}`,
+      lastName: 'Cases',
+      email: `scoped.cases.${suffix}@example.com`,
+      phone: '5550101234',
+    });
+
+    const caseListRequests: string[] = [];
+    authenticatedPage.on('request', (request) => {
+      const url = request.url();
+      if (request.method() === 'GET' && /\/api\/v2\/cases\?/.test(url)) {
+        caseListRequests.push(url);
+      }
+    });
+
+    await authenticatedPage.goto(`/contacts/${contactId}`);
+    await waitForContactDetailReady(authenticatedPage);
+    await authenticatedPage.waitForTimeout(800);
+
+    const unscopedCaseRequests = caseListRequests.filter(
+      (url) => !url.includes(`contact_id=${contactId}`)
+    );
+    expect(unscopedCaseRequests).toEqual([]);
+  });
+
   test('should validate create form required and format errors', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/contacts/new');
 

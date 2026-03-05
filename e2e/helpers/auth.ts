@@ -700,8 +700,12 @@ export async function ensureAdminLoginViaAPI(
   page: Page,
   profile?: { firstName?: string; lastName?: string; organizationName?: string }
 ): Promise<AuthSession> {
-  const adminEmail = process.env.ADMIN_USER_EMAIL?.trim() || 'admin@example.com';
-  const adminPassword = process.env.ADMIN_USER_PASSWORD?.trim() || 'Admin123!@#';
+  const adminEmailFromEnv = process.env.ADMIN_USER_EMAIL?.trim();
+  const adminPasswordFromEnv = process.env.ADMIN_USER_PASSWORD?.trim();
+  const adminEmail = adminEmailFromEnv || 'admin@example.com';
+  const adminPassword = adminPasswordFromEnv || 'Admin123!@#';
+  const adminEmailSource = adminEmailFromEnv ? 'env:ADMIN_USER_EMAIL' : 'default(admin@example.com)';
+  const adminPasswordSource = adminPasswordFromEnv ? 'env:ADMIN_USER_PASSWORD' : 'default(Admin123!@#)';
   const strictAdminAuth = isStrictAdminAuthRequired();
 
   const toSession = (
@@ -742,8 +746,17 @@ export async function ensureAdminLoginViaAPI(
       return await loginAndValidateAdminSession(adminEmail, adminPassword);
     } catch (error) {
       const details = error instanceof Error ? error.message : String(error);
+      const setupStatus = await waitForSetupStatus(page, { attempts: 3, delayMs: 200 }).catch(() => null);
+      if (setupStatus && !setupStatus.setupRequired && isInvalidCredentialError(error)) {
+        throw new Error(
+          `Strict admin auth is enabled (E2E_REQUIRE_STRICT_ADMIN_AUTH=true). Invalid admin credentials for ${adminEmail} (${adminEmailSource}, ${adminPasswordSource}) while setup is already complete (userCount=${setupStatus.userCount}). Set ADMIN_USER_EMAIL/ADMIN_USER_PASSWORD for a valid admin in this test DB snapshot.`
+        );
+      }
+      const setupStatusDetails = setupStatus
+        ? ` setupRequired=${setupStatus.setupRequired}, userCount=${setupStatus.userCount}.`
+        : '';
       throw new Error(
-        `Strict admin auth is enabled (E2E_REQUIRE_STRICT_ADMIN_AUTH=true). Failed admin login for ${adminEmail}: ${details}`
+        `Strict admin auth is enabled (E2E_REQUIRE_STRICT_ADMIN_AUTH=true). Failed admin login for ${adminEmail} (${adminEmailSource}, ${adminPasswordSource}): ${details}.${setupStatusDetails}`
       );
     }
   }

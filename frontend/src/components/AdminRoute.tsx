@@ -2,12 +2,12 @@
  * AdminRoute Component
  * Wraps routes that should only be accessible to admin users
  * Redirects non-admin users to the dashboard with an error message
+ * Layout is provided by the authenticated shell route.
  */
 
 import { Navigate } from 'react-router-dom';
 import { Suspense } from 'react';
 import { useAppSelector } from '../store/hooks';
-import Layout from './Layout';
 
 interface AdminRouteProps {
   children: React.ReactNode;
@@ -30,8 +30,6 @@ export default function AdminRoute({ children }: AdminRouteProps) {
   }
 
   return (
-    <Layout>
-      <Suspense fallback={<AdminRouteFallback />}>{children}</Suspense>
-    </Layout>
+    <Suspense fallback={<AdminRouteFallback />}>{children}</Suspense>
   );
 }

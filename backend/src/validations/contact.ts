@@ -159,6 +159,15 @@ export const contactFilterSchema = z.object({
 
 export type ContactFilterInput = z.infer<typeof contactFilterSchema>;
 
+// Contact lookup query for lightweight navigation search
+export const contactLookupQuerySchema = z.object({
+  q: z.string().trim().min(2).max(100),
+  limit: z.coerce.number().int().min(1).max(20).default(8),
+  is_active: booleanQuerySchema.transform((value) => value ?? true),
+});
+
+export type ContactLookupQueryInput = z.infer<typeof contactLookupQuerySchema>;
+
 // Contact note
 export const contactNoteSchema = z.object({
   case_id: uuidSchema.optional(),
