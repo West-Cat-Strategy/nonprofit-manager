@@ -1,27 +1,27 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
-import accountsReducer from './slices/accountsSlice';
-import volunteersReducer from './slices/volunteersSlice';
 import donationsReducer from './slices/donationsSlice';
-import tasksReducer from './slices/tasksSlice';
-import analyticsReducer from './slices/analyticsSlice';
-import reportsReducer from './slices/reportsSlice';
-import savedReportsReducer from './slices/savedReportsSlice';
 import paymentsReducer from './slices/paymentsSlice';
 import reconciliationReducer from './slices/reconciliationSlice';
 import templatesReducer from './slices/templateSlice';
-import dashboardReducer from './slices/dashboardSlice';
-import followUpsReducer from './slices/followUpsSlice';
 import outcomesAdminReducer from './slices/outcomesAdminSlice';
 import outcomesReportsReducer from './slices/outcomesReportsSlice';
-import scheduledReportsReducer from './slices/scheduledReportsSlice';
 import opportunitiesReducer from './slices/opportunitiesSlice';
-import { mailchimpReducer } from '../features/mailchimp/state';
-import { webhooksReducer } from '../features/webhooks/state';
-import { alertsReducer } from '../features/alerts/state';
-import { portalAuthReducer } from '../features/portalAuth/state';
-import casesV2Reducer from '../features/cases/state/casesCore';
-import contactsV2Reducer from '../features/contacts/state/contactsCore';
+import accountsV2Reducer from '../features/accounts/state';
+import volunteersV2Reducer from '../features/volunteers/state';
+import tasksV2Reducer from '../features/tasks/state';
+import analyticsV2Reducer from '../features/analytics/state';
+import reportsV2Reducer from '../features/reports/state';
+import savedReportsV2Reducer from '../features/savedReports/state';
+import scheduledReportsV2Reducer from '../features/scheduledReports/state';
+import dashboardV2Reducer from '../features/dashboard/state';
+import followUpsV2Reducer from '../features/followUps/state';
+import mailchimpReducer from '../features/mailchimp/state';
+import webhooksReducer from '../features/webhooks/state';
+import alertsReducer from '../features/alerts/state';
+import portalAuthReducer from '../features/portalAuth/state';
+import casesV2Reducer from '../features/cases/state';
+import contactsV2Reducer from '../features/contacts/state';
 import {
   eventAutomationV2Reducer,
   eventDetailV2Reducer,
@@ -33,25 +33,25 @@ import {
 
 export const rootReducer = combineReducers({
   auth: authReducer,
-  accounts: accountsReducer,
+  accounts: accountsV2Reducer,
   contactsV2: contactsV2Reducer,
-  volunteers: volunteersReducer,
+  volunteers: volunteersV2Reducer,
   donations: donationsReducer,
-  tasks: tasksReducer,
-  analytics: analyticsReducer,
-  reports: reportsReducer,
-  savedReports: savedReportsReducer,
+  tasks: tasksV2Reducer,
+  analytics: analyticsV2Reducer,
+  reports: reportsV2Reducer,
+  savedReports: savedReportsV2Reducer,
   payments: paymentsReducer,
   reconciliation: reconciliationReducer,
   mailchimp: mailchimpReducer,
   webhooks: webhooksReducer,
   templates: templatesReducer,
   casesV2: casesV2Reducer,
-  dashboard: dashboardReducer,
+  dashboard: dashboardV2Reducer,
   alerts: alertsReducer,
   portalAuth: portalAuthReducer,
-  followUps: followUpsReducer,
-  scheduledReports: scheduledReportsReducer,
+  followUps: followUpsV2Reducer,
+  scheduledReports: scheduledReportsV2Reducer,
   opportunities: opportunitiesReducer,
   outcomesAdmin: outcomesAdminReducer,
   outcomesReports: outcomesReportsReducer,

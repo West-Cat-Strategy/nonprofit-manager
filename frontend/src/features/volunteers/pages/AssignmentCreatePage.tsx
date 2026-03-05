@@ -1,3 +1,45 @@
-import { AssignmentCreate } from '../../../pages/people/volunteers/AssignmentCreate';
+import React from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { AssignmentForm } from '../../../components/AssignmentForm';
+
+export const AssignmentCreate: React.FC = () => {
+  const { volunteerId } = useParams<{ volunteerId: string }>();
+  const navigate = useNavigate();
+
+  if (!volunteerId) {
+    return (
+      <div className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="bg-app-accent-soft border border-app-border text-app-accent-text px-4 py-3 rounded">
+          Volunteer ID is required to create an assignment.
+        </div>
+        <button
+          onClick={() => navigate('/volunteers')}
+          className="mt-4 text-app-accent hover:text-app-accent-text"
+        >
+          ← Back to Volunteers
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
+      <div className="mb-6">
+        <button
+          onClick={() => navigate(`/volunteers/${volunteerId}`)}
+          className="text-app-accent hover:text-app-accent-text mb-2"
+        >
+          ← Back to Volunteer
+        </button>
+        <h1 className="text-2xl font-bold text-app-text">Create Assignment</h1>
+        <p className="mt-1 text-sm text-app-text-muted">
+          Create a new assignment for this volunteer. Required fields are marked with an asterisk
+          (*).
+        </p>
+      </div>
+      <AssignmentForm volunteerId={volunteerId} mode="create" />
+    </div>
+  );
+};
 
 export default AssignmentCreate;

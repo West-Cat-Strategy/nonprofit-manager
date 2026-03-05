@@ -60,7 +60,7 @@ Routes:
 - Case/task nested widgets keep using `FollowUpList` and `FollowUpForm` contracts.
 
 Key files:
-- `frontend/src/store/slices/followUpsSlice.ts`
-- `frontend/src/pages/engagement/followUps/FollowUpsPage.tsx`
+- `frontend/src/features/followUps/state/index.ts`
+- `frontend/src/features/followUps/pages/FollowUpsPage.tsx`
 - `frontend/src/components/FollowUpForm.tsx`
 - `frontend/src/components/FollowUpList.tsx`

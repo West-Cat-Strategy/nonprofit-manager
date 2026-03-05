@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import reportsReducer, { fetchAvailableFields } from '../reportsSlice';
+import reportsReducer, { fetchAvailableFields } from '../../../features/reports/state';
 
 describe('reportsSlice', () => {
   it('includes opportunities in available fields cache on initial state', () => {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { fetchVolunteers } from '../store/slices/volunteersSlice';
+import { fetchVolunteers } from '../features/volunteers/state';
 
 interface VolunteerStats {
   total: number;

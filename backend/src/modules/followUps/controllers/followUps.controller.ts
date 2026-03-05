@@ -1,4 +1,4 @@
-import { followUpController } from '@controllers/followUpController';
+import { followUpController } from './followUps.handlers';
 import { FollowUpsUseCase } from '../usecases/followUps.usecase';
 import type { ResponseMode } from '../mappers/responseMode';
 

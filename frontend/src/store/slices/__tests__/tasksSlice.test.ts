@@ -9,7 +9,7 @@ import reducer, {
   deleteTask,
   completeTask,
   fetchTaskSummary,
-} from '../tasksSlice';
+} from '../../../features/tasks/state';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

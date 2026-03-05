@@ -18,6 +18,23 @@ const isRetryableNetworkError = (error: unknown): boolean => {
   return RETRYABLE_NETWORK_ERROR.test(error.message);
 };
 
+const isRetryableSetupStatusError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+  if (RETRYABLE_NETWORK_ERROR.test(message)) {
+    return true;
+  }
+
+  if (!message.includes('setup-status failed')) {
+    return false;
+  }
+
+  return /\(5\d{2}\)/.test(message);
+};
+
 async function withNetworkRetry<T>(
   fn: () => Promise<T>,
   options: { attempts?: number; baseDelayMs?: number } = {}
@@ -430,14 +447,20 @@ const waitForSetupStatus = async (
   page: Page,
   options: { attempts?: number; delayMs?: number } = {}
 ): Promise<SetupStatusResult> => {
-  const attempts = options.attempts ?? 5;
-  const delayMs = options.delayMs ?? 250;
+  const attempts = options.attempts ?? 20;
+  const delayMs = options.delayMs ?? 500;
 
   let latestStatus: SetupStatusResult | null = null;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    latestStatus = await fetchSetupStatus(page);
-    if (!latestStatus.setupRequired) {
-      return latestStatus;
+    try {
+      latestStatus = await fetchSetupStatus(page);
+      if (!latestStatus.setupRequired) {
+        return latestStatus;
+      }
+    } catch (error) {
+      if (!isRetryableSetupStatusError(error) || attempt === attempts) {
+        throw error;
+      }
     }
 
     if (attempt < attempts) {

@@ -12,7 +12,7 @@ import {
   deleteFollowUp,
   clearEntityFollowUps,
   rescheduleFollowUp,
-} from '../store/slices/followUpsSlice';
+} from '../features/followUps/state';
 import { useToast } from '../contexts/useToast';
 import FollowUpForm from './FollowUpForm';
 import type { FollowUp, FollowUpEntityType } from '../types/followup';

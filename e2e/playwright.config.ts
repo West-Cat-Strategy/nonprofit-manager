@@ -46,6 +46,7 @@ const E2E_DB_PASSWORD = process.env.E2E_DB_PASSWORD || process.env.DB_PASSWORD |
 const clearFrontendPortCommand =
   `for p in $(lsof -ti tcp:${E2E_FRONTEND_PORT} 2>/dev/null); do kill -9 "$p" 2>/dev/null || true; done`;
 const useCompiledCiRuntime = FORCE_COMPILED_RUNTIME || (RUNNING_IN_CI && !USE_DEV_RUNTIME);
+const WEB_SERVER_TIMEOUT_MS = RUNNING_IN_CI ? 300 * 1000 : 120 * 1000;
 
 const backendRuntimeCommand = useCompiledCiRuntime
   ? 'npm run build && node dist/index.js'
@@ -138,7 +139,7 @@ export default defineConfig({
       {
         command: backendStartCommand,
         url: `${HTTP_SCHEME}${E2E_BACKEND_HOST}:${E2E_BACKEND_PORT}/health/live`,
-        timeout: 120 * 1000,
+        timeout: WEB_SERVER_TIMEOUT_MS,
         reuseExistingServer: REUSE_EXISTING_SERVER,
         env: {
           NODE_ENV: 'test',
@@ -153,6 +154,7 @@ export default defineConfig({
           DB_NAME: E2E_DB_NAME,
           DB_USER: E2E_DB_USER,
           DB_PASSWORD: E2E_DB_PASSWORD,
+          DB_AUTO_START: 'true',
           RATE_LIMIT_WINDOW_MS: '900000',
           RATE_LIMIT_MAX_REQUESTS: '100000',
           AUTH_RATE_LIMIT_WINDOW_MS: '900000',
@@ -164,7 +166,7 @@ export default defineConfig({
       {
         command: frontendStartCommand,
         url: `${HTTP_SCHEME}${E2E_FRONTEND_HOST}:${E2E_FRONTEND_PORT}`,
-        timeout: 120 * 1000,
+        timeout: WEB_SERVER_TIMEOUT_MS,
         reuseExistingServer: REUSE_EXISTING_SERVER,
         env: {
           VITE_API_URL: `${HTTP_SCHEME}${E2E_BACKEND_HOST}:${E2E_BACKEND_PORT}/api`,

@@ -12,7 +12,7 @@ import {
   deleteAlertConfig,
   toggleAlertConfig,
   setCurrentConfig,
-} from '../../../store/slices/alertsSlice';
+} from '../state';
 import type { AlertConfig } from '../../../types/alert';
 import { AlertConfigModal } from '../../../components/alerts';
 import ConfirmDialog from '../../../components/ConfirmDialog';

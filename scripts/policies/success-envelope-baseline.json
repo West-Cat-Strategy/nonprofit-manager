@@ -46,6 +46,7 @@
   "backend/src/modules/alerts/controllers/alertController.ts": 10,
   "backend/src/modules/auth/controllers/passkeyController.ts": 5,
   "backend/src/modules/auth/controllers/passwordResetController.ts": 3,
+  "backend/src/modules/cases/controllers/portalConversations.controller.ts": 2,
   "backend/src/modules/cases/controllers/lifecycle.controller.ts": 1,
   "backend/src/modules/cases/controllers/milestones.controller.ts": 1,
   "backend/src/modules/cases/controllers/relationships.controller.ts": 1,
@@ -53,7 +54,13 @@
   "backend/src/modules/donations/controllers/donationController.ts": 6,
   "backend/src/modules/ingest/controllers/ingestController.ts": 2,
   "backend/src/modules/invitations/controllers/invitationController.ts": 7,
+  "backend/src/modules/analytics/controllers/analytics.handlers.ts": 14,
+  "backend/src/modules/dashboard/controllers/dashboard.handlers.ts": 6,
   "backend/src/modules/mailchimp/controllers/mailchimpController.ts": 13,
   "backend/src/modules/meetings/controllers/meetingController.ts": 10,
+  "backend/src/modules/reports/controllers/report.handlers.ts": 2,
+  "backend/src/modules/reports/controllers/reportTemplate.handlers.ts": 5,
+  "backend/src/modules/savedReports/controllers/reportSharing.handlers.ts": 5,
+  "backend/src/modules/savedReports/controllers/savedReport.handlers.ts": 4,
   "backend/src/modules/publicReports/controllers/reportSharingController.ts": 5
 }
