@@ -4,14 +4,14 @@ import {
   getSavedReportById,
   getSavedReports,
   updateSavedReport,
-} from '@controllers/savedReportController';
+} from './savedReport.handlers';
 import {
   getSharePrincipals,
   generatePublicLink,
   removeShare,
   revokePublicLink,
   shareReport,
-} from '@controllers/reportSharingController';
+} from './reportSharing.handlers';
 import { SavedReportsUseCase } from '../usecases/savedReports.usecase';
 import type { ResponseMode } from '../mappers/responseMode';
 

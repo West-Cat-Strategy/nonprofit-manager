@@ -69,6 +69,8 @@ const staffAuthenticatedRoutes = [
   '/settings/navigation',
   '/settings/user',
   '/settings/admin',
+  '/settings/admin?section=audit_logs',
+  '/settings/admin?section=organization',
   '/settings/admin/portal/access',
   '/settings/admin/portal/users',
   '/settings/admin/portal/conversations',
@@ -76,6 +78,12 @@ const staffAuthenticatedRoutes = [
   '/settings/admin/portal/slots',
   '/settings/backup',
   '/website-builder',
+];
+
+const removedCompatibilityRoutes = [
+  { route: '/email-marketing', canonical: '/settings/email-marketing' },
+  { route: '/admin/audit-logs', canonical: '/settings/admin?section=audit_logs' },
+  { route: '/settings/organization', canonical: '/settings/admin?section=organization' },
 ];
 
 const portalAuthenticatedRoutes = [
@@ -189,6 +197,17 @@ authTest.describe('Authenticated staff route health', () => {
     await expect(saveCaseButton).toBeVisible();
     await expect(saveCaseButton).toHaveText(/save case/i);
   });
+
+  for (const { route, canonical } of removedCompatibilityRoutes) {
+    authTest(`legacy route ${route} no longer resolves to ${canonical}`, async ({ authenticatedPage }) => {
+      await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
+      await authenticatedPage.waitForLoadState('networkidle');
+
+      const currentUrl = new URL(authenticatedPage.url(), 'http://localhost');
+      expect(`${currentUrl.pathname}${currentUrl.search}`).not.toBe(canonical);
+      expect(['/dashboard', '/login']).toContain(currentUrl.pathname);
+    });
+  }
 });
 
 base.describe('Authenticated portal route health', () => {

@@ -7,7 +7,7 @@ import reducer, {
   fetchScheduledReports,
   runScheduledReportNow,
   toggleScheduledReport,
-} from '../scheduledReportsSlice';
+} from '../../../features/scheduledReports/state';
 
 const makeReport = (overrides: Record<string, unknown> = {}) => ({
   id: 'sr-1',

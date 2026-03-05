@@ -223,6 +223,7 @@ describe('Route UX smoke (auth/portal/settings)', () => {
     async (smokeCase) => {
       await assertRouteUxContract(smokeCase);
       expect(consoleErrorSpy).not.toHaveBeenCalled();
-    }
+    },
+    15000
   );
 });

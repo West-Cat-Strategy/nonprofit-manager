@@ -13,8 +13,8 @@ import reducer, {
   fetchVolunteerAssignments,
   createAssignment,
   updateAssignment,
-} from '../volunteersSlice';
-import type { VolunteersState, Volunteer, VolunteerAssignment } from '../volunteersSlice';
+} from '../../../features/volunteers/state';
+import type { VolunteersState, Volunteer, VolunteerAssignment } from '../../../features/volunteers/state';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

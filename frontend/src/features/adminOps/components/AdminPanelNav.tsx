@@ -90,5 +90,13 @@ export default function AdminPanelNav({
       }));
   }, [currentPath, isAdmin, mode]);
 
-  return <SideNav title={title} items={items} />;
+  return (
+    <SideNav
+      title={title}
+      items={items}
+      searchable
+      searchPlaceholder="Find admin section"
+      emptyMessage="No admin sections match your search."
+    />
+  );
 }

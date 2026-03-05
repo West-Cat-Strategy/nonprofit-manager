@@ -24,7 +24,7 @@ import reducer, {
   selectUnassignedCases,
   selectActiveCases,
   selectCasesByPriority,
-} from '../casesSlice';
+} from '../../../features/cases/state';
 import type { CasesState } from '../../../types/case';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

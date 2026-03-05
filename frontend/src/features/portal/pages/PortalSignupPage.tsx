@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { portalSignup } from '../../../store/slices/portalAuthSlice';
+import { portalSignup } from '../../portalAuth/state';
 import { AuthHeroShell, FormField, PrimaryButton } from '../../../components/ui';
 
 export default function PortalSignup() {

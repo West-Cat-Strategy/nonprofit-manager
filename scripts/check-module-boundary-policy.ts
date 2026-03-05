@@ -6,30 +6,16 @@ const path = require('node:path');
 const repoRoot = path.resolve(__dirname, '..');
 const modulesRoot = path.join(repoRoot, 'backend/src/modules');
 
-const migratedModules = [
-  'activities',
-  'admin',
-  'alerts',
-  'auth',
-  'backup',
-  'donations',
-  'export',
-  'externalServiceProviders',
-  'ingest',
-  'invitations',
-  'mailchimp',
-  'meetings',
-  'payments',
-  'plausibleProxy',
-  'portalAdmin',
-  'portalAuth',
-  'publicReports',
-  'publishing',
-  'reconciliation',
-  'templates',
-  'users',
-  'webhooks',
-];
+const excludedModules = new Set([
+  'shared',
+]);
+
+const migratedModules = fs
+  .readdirSync(modulesRoot, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .filter((moduleName) => !excludedModules.has(moduleName))
+  .sort();
 
 const legacyControllerPatterns = [
   /from\s+['"]@controllers\//g,
@@ -64,11 +50,11 @@ for (const moduleName of migratedModules) {
 }
 
 if (violations.length > 0) {
-  console.error('Module boundary policy violations found. Migrated modules must not import legacy controllers.');
+  console.error('Module boundary policy violations found. Module domains must not import legacy controllers.');
   for (const violation of [...new Set(violations)].sort()) {
     console.error(`- ${violation}`);
   }
   process.exit(1);
 }
 
-console.log('Module boundary policy check passed for migrated modules.');
+console.log('Module boundary policy check passed for module domains.');

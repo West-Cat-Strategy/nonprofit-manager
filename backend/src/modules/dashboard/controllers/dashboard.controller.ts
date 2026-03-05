@@ -6,7 +6,7 @@ import {
   getDefaultDashboard,
   updateDashboard,
   updateDashboardLayout,
-} from '@controllers/dashboardController';
+} from './dashboard.handlers';
 import { DashboardUseCase } from '../usecases/dashboard.usecase';
 import type { ResponseMode } from '../mappers/responseMode';
 

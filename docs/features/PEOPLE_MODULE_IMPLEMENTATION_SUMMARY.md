@@ -251,9 +251,9 @@ Through `ImportExportModal`:
 
 ## Phase 4: Example Implementation
 
-### Enhanced Volunteer List Page
+### Canonical Volunteer List Page
 
-Created `VolunteerListEnhanced.tsx` as a reference implementation showing:
+The feature-owned `VolunteerListPage.tsx` is the canonical implementation and shows:
 - Integration of `PeopleListContainer`
 - Use of `FilterPanel` for advanced filtering
 - Integration of `useBulkSelect` hook
@@ -269,7 +269,7 @@ Created `VolunteerListEnhanced.tsx` as a reference implementation showing:
 - Error handling
 - Loading states
 
-**Path**: `frontend/src/pages/people/volunteers/VolunteerListEnhanced.tsx`
+**Path**: `frontend/src/features/volunteers/pages/VolunteerListPage.tsx`
 
 ---
 
@@ -364,8 +364,8 @@ frontend/src/hooks/
 ├── useFiltering.ts ✨ NEW
 └── index.ts ✨ NEW
 
-frontend/src/pages/people/volunteers/
-└── VolunteerListEnhanced.tsx ✨ NEW
+frontend/src/features/volunteers/pages/
+└── VolunteerListPage.tsx ✅ CANONICAL
 ```
 
 ---
@@ -524,7 +524,7 @@ All new components include:
 
 For questions about implementation, refer to:
 1. Component source files (well-commented)
-2. Example implementation in `VolunteerListEnhanced.tsx`
+2. Canonical implementation in `VolunteerListPage.tsx`
 3. `PEOPLE_MODULE_ENHANCEMENTS.md` for architectural decisions
 4. `BACKEND_SERVICE_REFACTORING_GUIDE.md` for backend changes
 

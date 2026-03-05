@@ -8,7 +8,7 @@ import { ProtectedRoute, NeoBrutalistRoute } from '../components/auth';
 import AuthenticatedShellRoute from '../components/auth/AuthenticatedShellRoute';
 import PageLoader from '../components/PageLoader';
 import { logout } from '../store/slices/authSlice';
-import { portalLogout } from '../store/slices/portalAuthSlice';
+import { portalLogout } from '../features/portalAuth/state';
 
 // Import route creators
 import { createPeopleRoutes } from './peopleRoutes';

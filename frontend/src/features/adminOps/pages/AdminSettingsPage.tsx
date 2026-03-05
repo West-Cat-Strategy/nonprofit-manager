@@ -4,7 +4,7 @@
  * user management, roles, and security settings
  */
 
-import { lazy, Suspense, useState, useEffect, useRef } from 'react';
+import { lazy, Suspense, useState, useEffect, useRef, type KeyboardEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useToast } from '../../../contexts/useToast';
 import { useApiError } from '../../../hooks/useApiError';
@@ -15,6 +15,7 @@ import ConfirmDialog from '../../../components/ConfirmDialog';
 import useConfirmDialog from '../../../hooks/useConfirmDialog';
 import AdminPanelLayout from '../components/AdminPanelLayout';
 import AdminPanelNav from '../components/AdminPanelNav';
+import AdminQuickActionsBar from '../components/AdminQuickActionsBar';
 import { adminSettingsTabs, defaultPermissions } from './adminSettings/constants';
 import UserSecurityModal from './adminSettings/components/UserSecurityModal';
 import { useOrganizationSettings } from './adminSettings/hooks/useOrganizationSettings';
@@ -23,6 +24,20 @@ import { useRolesSettings } from './adminSettings/hooks/useRolesSettings';
 
 const ADMIN_SETTINGS_MODE_KEY = 'admin_settings_mode_v1';
 const ADMIN_SETTINGS_SECTION_KEY = 'admin_settings_section_v1';
+type AdminSettingsSection = (typeof adminSettingsTabs)[number]['id'];
+const adminSettingsSectionSet = new Set<AdminSettingsSection>(adminSettingsTabs.map((tab) => tab.id));
+
+const parseAdminSettingsSection = (
+  value: string | null | undefined
+): AdminSettingsSection | null => {
+  if (!value) {
+    return null;
+  }
+
+  return adminSettingsSectionSet.has(value as AdminSettingsSection)
+    ? (value as AdminSettingsSection)
+    : null;
+};
 
 const OrganizationSection = lazy(() => import('./adminSettings/sections/OrganizationSection'));
 const BrandingSection = lazy(() => import('./adminSettings/sections/BrandingSection'));
@@ -62,17 +77,13 @@ export default function AdminSettings() {
     typeof window !== 'undefined'
       ? new URLSearchParams(window.location.search).get('section')
       : null;
-  const querySectionIsValid =
-    sectionFromQuery !== null && adminSettingsTabs.some((tab) => tab.id === sectionFromQuery);
-  const persistedSectionIsValid = adminSettingsTabs.some((tab) => tab.id === persistedSection);
-  const initialSection = querySectionIsValid
-    ? sectionFromQuery
-    : persistedSectionIsValid
-      ? persistedSection
-      : 'dashboard';
+  const initialSection =
+    parseAdminSettingsSection(sectionFromQuery) ??
+    parseAdminSettingsSection(persistedSection) ??
+    'dashboard';
 
   // State
-  const [activeSection, setActiveSection] = useState<string>(initialSection);
+  const [activeSection, setActiveSection] = useState<AdminSettingsSection>(initialSection);
   const [isLoading, setIsLoading] = useState(true);
   const {
     showAdvancedSettings,
@@ -206,15 +217,15 @@ export default function AdminSettings() {
       return;
     }
 
-    const isKnownSection = adminSettingsTabs.some((tab) => tab.id === section);
-    if (!isKnownSection) {
+    const parsedSection = parseAdminSettingsSection(section);
+    if (!parsedSection) {
       params.set('section', 'dashboard');
       navigate({ pathname: '/settings/admin', search: `?${params.toString()}` }, { replace: true });
       return;
     }
 
-    if (section !== activeSection) {
-      setActiveSection(section);
+    if (parsedSection !== activeSection) {
+      setActiveSection(parsedSection);
     }
   }, [activeSection, location.pathname, location.search, navigate]);
 
@@ -270,6 +281,38 @@ export default function AdminSettings() {
     : adminSettingsTabs.filter((tab) => tab.level === 'basic');
   const activeTabLabel =
     adminSettingsTabs.find((tab) => tab.id === activeSection)?.label || 'Dashboard';
+  const visibleTabIds = visibleTabs.map((tab) => tab.id);
+  const focusTab = (tabId: AdminSettingsSection) => {
+    const tabNode = document.getElementById(`admin-settings-tab-${tabId}`);
+    if (tabNode instanceof HTMLElement) {
+      tabNode.focus();
+    }
+  };
+  const handleTabKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    tabId: AdminSettingsSection
+  ) => {
+    const currentIndex = visibleTabIds.indexOf(tabId);
+    if (currentIndex < 0) return;
+
+    let targetIndex = currentIndex;
+    if (event.key === 'ArrowRight') {
+      targetIndex = (currentIndex + 1) % visibleTabIds.length;
+    } else if (event.key === 'ArrowLeft') {
+      targetIndex = (currentIndex - 1 + visibleTabIds.length) % visibleTabIds.length;
+    } else if (event.key === 'Home') {
+      targetIndex = 0;
+    } else if (event.key === 'End') {
+      targetIndex = visibleTabIds.length - 1;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    const targetTabId = visibleTabIds[targetIndex];
+    setActiveSection(targetTabId);
+    focusTab(targetTabId);
+  };
 
   return (
     <AdminPanelLayout
@@ -297,12 +340,18 @@ export default function AdminSettings() {
             {showAdvancedSettings ? 'Hide Advanced' : 'Show Advanced'}
           </button>
         </div>
-        <nav className="-mb-px flex space-x-4 overflow-x-auto">
+        <nav className="-mb-px flex space-x-4 overflow-x-auto" role="tablist" aria-label="Admin settings sections">
           {visibleTabs.map((tab) => (
             <button
               key={tab.id}
+              id={`admin-settings-tab-${tab.id}`}
               type="button"
               onClick={() => setActiveSection(tab.id)}
+              onKeyDown={(event) => handleTabKeyDown(event, tab.id)}
+              role="tab"
+              aria-selected={activeSection === tab.id}
+              aria-controls={`admin-settings-panel-${tab.id}`}
+              tabIndex={activeSection === tab.id ? 0 : -1}
               className={`py-3 px-4 border-b-4 font-bold text-sm uppercase whitespace-nowrap transition-colors ${activeSection === tab.id
                 ? 'border-[var(--loop-yellow)] text-[var(--app-text)] bg-[var(--loop-yellow)]'
                 : 'border-transparent text-[var(--app-text-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-muted)]'
@@ -313,6 +362,8 @@ export default function AdminSettings() {
           ))}
         </nav>
       </div>
+
+      <AdminQuickActionsBar role="admin" />
 
       <div className="rounded-lg border border-app-border bg-app-surface p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -332,6 +383,11 @@ export default function AdminSettings() {
         </div>
       </div>
 
+      <section
+        id={`admin-settings-panel-${activeSection}`}
+        role="tabpanel"
+        aria-labelledby={`admin-settings-tab-${activeSection}`}
+      >
       <Suspense fallback={<div className="rounded-md border-2 border-[var(--app-border)] bg-[var(--app-surface)] p-4 text-sm font-bold text-[var(--app-text-muted)]">Loading section...</div>}>
             {/* Dashboard Section */}
             {activeSection === 'dashboard' && <DashboardSection onShowInvite={() => setShowInviteModal(true)} />}
@@ -429,6 +485,7 @@ export default function AdminSettings() {
             {/* Other Settings Section */}
             {activeSection === 'other' && <OtherSettingsSection />}
           </Suspense>
+      </section>
 
         <UserSecurityModal
           open={showSecurityModal}

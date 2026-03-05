@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { fetchAvailableFields } from '../store/slices/reportsSlice';
+import { fetchAvailableFields } from '../features/reports/state';
 import type { ReportEntity } from '../types/report';
 
 interface FieldSelectorProps {

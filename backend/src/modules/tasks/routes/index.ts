@@ -4,7 +4,7 @@ import { authenticate } from '@middleware/domains/auth';
 import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import { uuidSchema } from '@validations/shared';
-import { followUpController } from '@controllers/followUpController';
+import { followUpController as followUpsController } from '@modules/followUps/controllers/followUps.handlers';
 import { createTasksController } from '../controllers/tasks.controller';
 import { type ResponseMode } from '../mappers/responseMode';
 import { TaskRepository } from '../repositories/taskRepository';
@@ -85,7 +85,7 @@ export const createTasksRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/:id/follow-ups',
     requireActiveOrganizationContext,
     validateParams(taskIdParamsSchema),
-    followUpController.getTaskFollowUps
+    followUpsController.getTaskFollowUps
   );
   router.get('/:id', validateParams(taskIdParamsSchema), controller.getTaskById);
   router.post('/', validateBody(createTaskSchema), controller.createTask);
