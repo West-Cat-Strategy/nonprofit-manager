@@ -2,32 +2,24 @@
 # Database Restore Script
 # Restores a PostgreSQL database from a backup file
 
-set -e
+set -euo pipefail
 
 # Load common utilities and configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 source "$SCRIPT_DIR/lib/config.sh"
 
-# Configuration overrides
-BACKUP_DIR="${BACKUP_DIR:-$BACKUP_DIR}"
-DB_CONTAINER="${DB_CONTAINER:-$DB_CONTAINER}"
-DB_USER="${DB_USER:-$DB_USER}"
-DB_NAME="${DB_NAME:-$DB_NAME}"
-
-print_header "Database Restore"
-
-# Configuration
-BACKUP_DIR="${BACKUP_DIR:-$PROJECT_ROOT/database/backups}"
-DB_CONTAINER="${DB_CONTAINER:-nonprofit-db}"
+COMPOSE_MODE="$(normalize_compose_mode "${COMPOSE_MODE:-prod}")"
+DB_SERVICE="${DB_SERVICE:-postgres}"
 DB_USER="${DB_USER:-postgres}"
 DB_NAME="${DB_NAME:-nonprofit_manager}"
+BACKUP_DIR="${BACKUP_DIR:-database/backups}"
 
-echo ""
-echo "========================================"
-echo "  Database Restore"
-echo "========================================"
-echo ""
+if [[ "$BACKUP_DIR" != /* ]]; then
+    BACKUP_DIR="$PROJECT_ROOT/$BACKUP_DIR"
+fi
+
+print_header "Database Restore"
 
 # Check if backup file is provided
 if [ $# -eq 0 ]; then
@@ -81,33 +73,21 @@ if [ "$CONFIRM_DESTRUCTIVE" != "--confirm-destructive" ]; then
     exit 1
 fi
 
-# Check if database container is running
-if ! docker ps --format '{{.Names}}' | grep -q "^${DB_CONTAINER}$"; then
-    log_error "Database container '$DB_CONTAINER' is not running"
-    compose_cmd="$(docker_compose_cmd 2>/dev/null || echo "docker compose")"
-    log_info "Start it with: $compose_cmd up -d postgres"
+# Check if database service is running
+check_compose_service_running "$DB_SERVICE" "$COMPOSE_MODE" || {
     if [ "$CLEANUP_TEMP" = true ]; then
         rm -f "$TEMP_FILE"
     fi
     exit 1
-fi
+}
 
 # Wait for database to be ready
-log_info "Checking database connection..."
-for i in {1..10}; do
-    if docker exec "$DB_CONTAINER" pg_isready -U "$DB_USER" > /dev/null 2>&1; then
-        break
+wait_for_db_service "$DB_SERVICE" "$DB_USER" "$DB_NAME" 10 "$COMPOSE_MODE" || {
+    if [ "$CLEANUP_TEMP" = true ]; then
+        rm -f "$TEMP_FILE"
     fi
-    if [ $i -eq 10 ]; then
-        log_error "Database not ready after 10 attempts"
-        if [ "$CLEANUP_TEMP" = true ]; then
-            rm -f "$TEMP_FILE"
-        fi
-        exit 1
-    fi
-    sleep 1
-done
-log_success "Database is ready"
+    exit 1
+}
 
 # Get backup file size
 BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
@@ -115,7 +95,7 @@ log_info "Restoring from: $(basename "$BACKUP_FILE") ($BACKUP_SIZE)"
 
 # Terminate active connections to the database
 log_info "Terminating active connections to '$DB_NAME'..."
-docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -c "
+compose_exec "$COMPOSE_MODE" "$DB_SERVICE" psql -U "$DB_USER" -d postgres -c "
     SELECT pg_terminate_backend(pid)
     FROM pg_stat_activity
     WHERE datname = '$DB_NAME' AND pid <> pg_backend_pid();
@@ -123,17 +103,17 @@ docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -c "
 
 # Drop and recreate the database
 log_info "Dropping and recreating database '$DB_NAME'..."
-docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -c "DROP DATABASE IF EXISTS $DB_NAME;" > /dev/null
-docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -c "CREATE DATABASE $DB_NAME;" > /dev/null
+compose_exec "$COMPOSE_MODE" "$DB_SERVICE" psql -U "$DB_USER" -d postgres -c "DROP DATABASE IF EXISTS $DB_NAME;" > /dev/null
+compose_exec "$COMPOSE_MODE" "$DB_SERVICE" psql -U "$DB_USER" -d postgres -c "CREATE DATABASE $DB_NAME;" > /dev/null
 
 # Restore from backup
 log_info "Restoring database from backup..."
-if docker exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" < "$BACKUP_FILE" 2>&1; then
+if compose_exec "$COMPOSE_MODE" "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" < "$BACKUP_FILE"; then
     log_success "Database restore completed successfully"
 
     # Run any post-restore operations (recreate extensions, etc.)
     log_info "Running post-restore operations..."
-    docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "
+    compose_exec "$COMPOSE_MODE" "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" -c "
         -- Ensure UUID extension is available
         CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";
 

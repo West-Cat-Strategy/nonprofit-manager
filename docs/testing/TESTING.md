@@ -160,18 +160,18 @@ npm run dev
 
 - Check if port 3000 is already in use: `lsof -i :3000`
 - Check database connection in `.env` file
-- Verify PostgreSQL is running: `docker ps | grep nonprofit-db`
+- Verify PostgreSQL is running: `docker compose -p nonprofit-prod -f docker-compose.yml ps postgres`
 
 #### Database connection errors
 
 - Ensure `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` are set in `backend/.env`
 - For Docker: DB_HOST should be `postgres` if backend is in Docker, `localhost` if running locally
-- Verify database exists: `docker exec nonprofit-db psql -U postgres -l`
+- Verify database exists: `docker compose -p nonprofit-prod -f docker-compose.yml exec -T postgres psql -U postgres -l`
 
 #### Tests fail
 
 - Check backend logs for errors
-- Verify database tables exist: `docker exec nonprofit-db psql -U postgres -d nonprofit_manager -c "\dt"`
+- Verify database tables exist: `docker compose -p nonprofit-prod -f docker-compose.yml exec -T postgres psql -U postgres -d nonprofit_manager -c "\dt"`
 - Run migrations if tables don't exist: See `docs/DB_SETUP.md`
 
 ## Known Issues

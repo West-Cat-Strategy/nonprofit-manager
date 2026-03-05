@@ -74,7 +74,7 @@ This automatically:
 ### 2. Verify Connection
 
 ```bash
-docker exec nonprofit-db-dev psql -U postgres -d nonprofit_manager -c "\dt"
+docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager -c "\dt"
 ```
 
 **Expected Output:**
@@ -98,13 +98,13 @@ docker exec nonprofit-db-dev psql -U postgres -d nonprofit_manager -c "\dt"
 ### 3. Load Seed Data (Optional)
 
 ```bash
-docker exec -i nonprofit-db-dev psql -U postgres -d nonprofit_manager < database/seeds/003_mock_data.sql
+docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager < database/seeds/003_mock_data.sql
 ```
 
 For a no-user seed set (to preserve first-time setup flow), use:
 
 ```bash
-docker exec -i nonprofit-db-dev psql -U postgres -d nonprofit_manager < database/seeds/004_mock_data_no_users.sql
+docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager < database/seeds/004_mock_data_no_users.sql
 ```
 
 ### 4. Stop Database
@@ -181,8 +181,8 @@ Migrations run automatically on first startup via `docker-entrypoint-initdb.d`.
 **To manually re-run migrations:**
 ```bash
 # Connect to running container
-docker exec -i nonprofit-db-dev psql -U postgres -d nonprofit_manager < database/migrations/001_initial_schema.sql
-docker exec -i nonprofit-db-dev psql -U postgres -d nonprofit_manager < database/migrations/002_audit_logs.sql
+docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager < database/migrations/001_initial_schema.sql
+docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager < database/migrations/002_audit_logs.sql
 ```
 
 ### Native PostgreSQL
@@ -218,7 +218,7 @@ Seed behavior differs by file:
 ### Docker Environment
 
 ```bash
-docker exec -i nonprofit-db-dev psql -U postgres -d nonprofit_manager < database/seeds/003_mock_data.sql
+docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager < database/seeds/003_mock_data.sql
 ```
 
 ### Native PostgreSQL
@@ -231,7 +231,7 @@ psql -U postgres -d nonprofit_manager -f database/seeds/003_mock_data.sql
 
 ```bash
 # Docker
-docker exec nonprofit-db-dev psql -U postgres -d nonprofit_manager -c "SELECT id, email, role FROM users;"
+docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager -c "SELECT id, email, role FROM users;"
 
 # Native
 psql -U postgres -d nonprofit_manager -c "SELECT id, email, role FROM users;"
@@ -252,7 +252,7 @@ psql -U postgres -d nonprofit_manager -c "SELECT id, email, role FROM users;"
 
 ```bash
 # Docker
-docker exec nonprofit-db-dev psql -U postgres -c "\l nonprofit_manager"
+docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -c "\l nonprofit_manager"
 
 # Native
 psql -U postgres -c "\l nonprofit_manager"
@@ -262,7 +262,7 @@ psql -U postgres -c "\l nonprofit_manager"
 
 ```bash
 # Docker
-docker exec nonprofit-db-dev psql -U postgres -d nonprofit_manager -c "\dt"
+docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager -c "\dt"
 
 # Native
 psql -U postgres -d nonprofit_manager -c "\dt"
@@ -320,7 +320,7 @@ Migration verification completed successfully!
 **Using Docker:**
 ```bash
 docker compose -f docker-compose.dev.yml up postgres -d
-docker exec -i nonprofit-db-dev psql -U postgres -d nonprofit_manager < database/seeds/003_mock_data.sql
+docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager < database/seeds/003_mock_data.sql
 ```
 
 **Using Native PostgreSQL:**
@@ -359,7 +359,7 @@ psql -U postgres -d nonprofit_manager -f database/migrations/002_audit_logs.sql
 
 **Docker:**
 ```bash
-docker exec -i nonprofit-db-dev psql -U postgres -d nonprofit_manager < database/migrations/003_new_migration.sql
+docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager < database/migrations/003_new_migration.sql
 ```
 
 **Native:**
@@ -372,7 +372,7 @@ psql -U postgres -d nonprofit_manager -f database/migrations/003_new_migration.s
 **Backup:**
 ```bash
 # Docker
-docker exec nonprofit-db-dev pg_dump -U postgres nonprofit_manager > backup_$(date +%Y%m%d).sql
+docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres pg_dump -U postgres nonprofit_manager > backup_$(date +%Y%m%d).sql
 
 # Native
 pg_dump -U postgres nonprofit_manager > backup_$(date +%Y%m%d).sql
@@ -381,7 +381,7 @@ pg_dump -U postgres nonprofit_manager > backup_$(date +%Y%m%d).sql
 **Restore:**
 ```bash
 # Docker
-docker exec -i nonprofit-db-dev psql -U postgres -d nonprofit_manager < backup_20260201.sql
+docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager < backup_20260201.sql
 
 # Native
 psql -U postgres -d nonprofit_manager < backup_20260201.sql
@@ -414,17 +414,17 @@ DB_PASSWORD=postgres
 
 **Docker:**
 ```bash
-# Check if container is running
-docker ps | grep nonprofit-db-dev
+# Check if service is running
+docker compose -p nonprofit-dev -f docker-compose.dev.yml ps postgres
 
-# Check container logs
-docker logs nonprofit-db-dev
+# Check service logs
+docker compose -p nonprofit-dev -f docker-compose.dev.yml logs postgres
 
 # Check health status
-docker inspect nonprofit-db-dev | grep -A 10 "Health"
+docker compose -p nonprofit-dev -f docker-compose.dev.yml ps postgres
 
-# Restart container
-docker compose -f docker-compose.dev.yml restart postgres
+# Restart service
+docker compose -p nonprofit-dev -f docker-compose.dev.yml restart postgres
 ```
 
 **Native:**

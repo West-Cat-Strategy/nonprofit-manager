@@ -1,28 +1,31 @@
-# P4-T9A Startup Request Map (`/login` -> `/dashboard` -> `/events/:id`)
+# P4-T9 Startup Request Map (`/login` -> `/dashboard` -> `/contacts/:id`)
 
-Date: 2026-03-04
-Sources: frontend route/hook code paths, existing frontend/E2E tests, and CI run logs.
+Date: 2026-03-05  
+Task: `P4-T9D` (load-time acceleration refactor)
 
-## Before (baseline)
-
-| Route | Startup requests observed/required |
-|---|---|
-| `/login` | `GET /api/v2/auth/setup-status` (global setup check), plus auth flow calls (`POST /api/v2/auth/login`) on submit |
-| `/dashboard` | `GET /api/analytics/summary` + `GET /api/tasks/summary` via dashboard startup stats call path (data unused in render) |
-| `/events/:id` | `GET /api/v2/events/:id` on detail load (and follow-up registrations/check-in requests when operator actions are taken) |
-
-## After (this continuation)
+## Before (P4-T9D baseline)
 
 | Route | Startup requests observed/required |
 |---|---|
-| `/login` | `GET /api/v2/auth/setup-status` only when setup-gate routes are active (`enabled: true`); remains required for setup redirect semantics |
-| `/dashboard` | No mandatory startup dependency on `/api/analytics/summary` or `/api/tasks/summary` (explicitly asserted in unit+E2E auth tests) |
-| `/events/:id` | Unchanged core detail dependency: `GET /api/v2/events/:id` on route load |
+| `/login` | `GET /api/v2/auth/setup-status`, `GET /api/v2/auth/me`, `POST /api/v2/auth/login` |
+| `/dashboard` | `GET /api/v2/auth/me`, `GET /api/v2/auth/preferences`, `GET /api/v2/admin/branding` |
+| `/contacts/:id` | `GET /api/v2/contacts/:id`, `GET /api/v2/contacts/:id/notes`, `GET /api/v2/cases` (unscoped global case list fetch) |
+
+## After (P4-T9D)
+
+| Route | Startup/transition requests observed/expected |
+|---|---|
+| `/login` | Setup gating behavior preserved (`/auth/setup-status` still route-gated only where required). |
+| `/dashboard` | Layout/nav shell is persistent across authenticated route transitions; repeated preference/branding fetch churn is guarded (`/auth/preferences` and `/admin/branding` expected at most once per session path). |
+| `/contacts/:id` | Contact case data now uses scoped fetch (`GET /api/v2/cases?contact_id=<id>`) instead of unscoped `GET /api/v2/cases`. |
+| Dashboard quick lookup | Search now hits `GET /api/v2/contacts/lookup` (minimal payload) instead of broad contacts list search path. |
 
 ## Evidence pointers
 
-- Setup-check gating implementation: `frontend/src/hooks/useSetupCheck.ts`, `frontend/src/routes/index.tsx`
-- Dashboard startup fetch removal: `frontend/src/pages/neo-brutalist/NeoBrutalistDashboard.tsx`, `frontend/src/services/LoopApiService.ts`
+- Persistent auth shell: `frontend/src/components/auth/AuthenticatedShellRoute.tsx`, `frontend/src/routes/index.tsx`
+- Preference fetch dedupe/cache: `frontend/src/hooks/useNavigationPreferences.ts`
+- Contact scoped case fetch: `frontend/src/features/cases/state/casesCore.ts`, `frontend/src/pages/people/contacts/ContactDetail.tsx`
+- Quick lookup endpoint usage: `frontend/src/components/dashboard/useQuickLookup.tsx`, `frontend/src/features/contacts/api/contactsApiClient.ts`
 - Assertions:
-  - `frontend/src/pages/__tests__/NeoBrutalistDashboard.test.tsx`
-  - `e2e/tests/auth.spec.ts` (`dashboard startup does not request analytics/task summary endpoints`)
+  - `e2e/tests/auth.spec.ts` (`authenticated route transitions do not repeatedly refetch preferences/branding`, `quick lookup uses lookup endpoint instead of full contacts list search`)
+  - `e2e/tests/contacts.spec.ts` (`contact detail uses contact scoped case fetch`)

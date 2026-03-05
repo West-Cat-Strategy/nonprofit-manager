@@ -3,6 +3,7 @@ import type {
   ContactDocument,
   ContactEmailAddress,
   ContactFilters,
+  ContactLookupItem,
   ContactNote,
   ContactRelationship,
   ContactRole,
@@ -31,6 +32,10 @@ export interface ContactDirectoryPort {
     scope?: DataScopeFilter,
     viewerRole?: string
   ): Promise<PaginatedContacts>;
+  lookupContacts(
+    query: { q: string; limit?: number; is_active?: boolean },
+    scope?: DataScopeFilter
+  ): Promise<ContactLookupItem[]>;
   getContactTags(scope?: DataScopeFilter): Promise<string[]>;
   getContactRoles(): Promise<ContactRole[]>;
   getRolesForContact(contactId: string): Promise<ContactRole[]>;

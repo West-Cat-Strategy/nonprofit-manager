@@ -1,6 +1,7 @@
 import type {
   Contact,
   ContactFilters,
+  ContactLookupItem,
   ContactRole,
   CreateContactDTO,
   PaginationParams,
@@ -83,6 +84,13 @@ export class ContactDirectoryUseCase {
     viewerRole?: string
   ): Promise<PaginatedContacts> {
     return this.repository.getContacts(filters, pagination, scope, viewerRole);
+  }
+
+  async lookup(
+    query: { q: string; limit?: number; is_active?: boolean },
+    scope?: DataScopeFilter
+  ): Promise<ContactLookupItem[]> {
+    return this.repository.lookupContacts(query, scope);
   }
 
   async listTags(scope?: DataScopeFilter): Promise<string[]> {

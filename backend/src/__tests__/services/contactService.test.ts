@@ -130,6 +130,61 @@ describe('ContactService', () => {
     });
   });
 
+  describe('lookupContacts', () => {
+    it('should return lightweight contact rows and apply defaults', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          {
+            contact_id: '1',
+            first_name: 'Alex',
+            preferred_name: null,
+            last_name: 'Rivera',
+            email: 'alex@example.com',
+            phone: '5551231234',
+            mobile_phone: null,
+            is_active: true,
+            account_name: 'Account A',
+          },
+        ],
+      });
+
+      const result = await contactService.lookupContacts({ q: 'alex' });
+
+      expect(result).toEqual([
+        {
+          contact_id: '1',
+          first_name: 'Alex',
+          preferred_name: null,
+          last_name: 'Rivera',
+          email: 'alex@example.com',
+          phone: '5551231234',
+          mobile_phone: null,
+          is_active: true,
+          account_name: 'Account A',
+        },
+      ]);
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+      expect(mockQuery.mock.calls[0][1]).toContain('%alex%');
+      expect(mockQuery.mock.calls[0][1]).toContain(true);
+      expect(mockQuery.mock.calls[0][1]).toContain(8);
+    });
+
+    it('should short-circuit when search term is too short', async () => {
+      const result = await contactService.lookupContacts({ q: 'a' });
+      expect(result).toEqual([]);
+      expect(mockQuery).not.toHaveBeenCalled();
+    });
+
+    it('should clamp limit to max 20', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      await contactService.lookupContacts({ q: 'john', limit: 100 });
+
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+      expect(mockQuery.mock.calls[0][1]).toContain(20);
+    });
+  });
+
   describe('getContactById', () => {
     it('should return contact when found', async () => {
       const mockContact = {

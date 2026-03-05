@@ -136,6 +136,98 @@ test.describe('Authentication Flow', () => {
     expect(startupRequests).toEqual([]);
   });
 
+  test('authenticated route transitions do not repeatedly refetch preferences/branding', async ({ page }) => {
+    const preferencesRequests: string[] = [];
+    const brandingRequests: string[] = [];
+    const clickNavLink = async (link: ReturnType<Page['locator']>): Promise<void> => {
+      try {
+        await link.click({ timeout: 5000 });
+      } catch {
+        // Chromium occasionally reports pointer interception on top-nav links; dispatch click directly.
+        await link.evaluate((node) => {
+          if (node instanceof HTMLElement) {
+            node.click();
+          }
+        });
+      }
+    };
+
+    const clickVisibleNavLink = async (href: string, fallbackName: RegExp) => {
+      const hrefLinks = page.locator(`a[href="${href}"]`);
+      const count = await hrefLinks.count();
+      for (let i = 0; i < count; i += 1) {
+        const link = hrefLinks.nth(i);
+        if (await link.isVisible()) {
+          await clickNavLink(link);
+          return;
+        }
+      }
+
+      const fallbackLink = page.getByRole('link', { name: fallbackName }).first();
+      await expect(fallbackLink).toBeVisible();
+      await clickNavLink(fallbackLink);
+    };
+
+    page.on('request', (request) => {
+      const url = request.url();
+      if (/\/api\/(?:v2\/)?auth\/preferences(?:\?|$)/.test(url)) {
+        preferencesRequests.push(url);
+      }
+      if (/\/api\/(?:v2\/)?admin\/branding(?:\?|$)/.test(url)) {
+        brandingRequests.push(url);
+      }
+    });
+
+    const { email, password } = getCreds();
+    await login(page, email, password);
+    await expect(page).toHaveURL('/dashboard');
+    await page.waitForTimeout(800);
+
+    const baselinePreferencesCount = preferencesRequests.length;
+    const baselineBrandingCount = brandingRequests.length;
+
+    await clickVisibleNavLink('/contacts', /people|contacts/i);
+    await expect(page).toHaveURL('/contacts');
+    await page.waitForTimeout(500);
+    await clickVisibleNavLink('/dashboard', /dashboard|home/i);
+    await expect(page).toHaveURL('/dashboard');
+
+    await page.waitForTimeout(800);
+    const transitionPreferencesCount = preferencesRequests.length - baselinePreferencesCount;
+    const transitionBrandingCount = brandingRequests.length - baselineBrandingCount;
+
+    expect(transitionPreferencesCount).toBeLessThanOrEqual(1);
+    expect(transitionBrandingCount).toBeLessThanOrEqual(1);
+  });
+
+  test('quick lookup uses lookup endpoint instead of full contacts list search', async ({ page }) => {
+    const lookupRequests: string[] = [];
+    const legacySearchRequests: string[] = [];
+
+    page.on('request', (request) => {
+      const url = request.url();
+      if (/\/api\/(?:v2\/)?contacts\/lookup(?:\?|$)/.test(url)) {
+        lookupRequests.push(url);
+      }
+      if (/\/api\/(?:v2\/)?contacts\?/.test(url) && url.includes('search=')) {
+        legacySearchRequests.push(url);
+      }
+    });
+
+    const { email, password } = getCreds();
+    await login(page, email, password);
+    await expect(page).toHaveURL('/dashboard');
+
+    await page.getByRole('button', { name: /search/i }).first().click();
+    const searchInput = page.getByPlaceholder('Search by name, email, or phone...');
+    await expect(searchInput).toBeVisible();
+    await searchInput.fill('zz');
+    await page.waitForTimeout(800);
+
+    expect(lookupRequests.length).toBeGreaterThan(0);
+    expect(legacySearchRequests).toEqual([]);
+  });
+
   test('should logout successfully', async ({ page }) => {
     // Login first
     const { email, password } = getCreds();

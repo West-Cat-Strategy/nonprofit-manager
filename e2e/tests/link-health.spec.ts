@@ -9,20 +9,6 @@ import { loginPortalUserUI, provisionApprovedPortalUser, type ProvisionedPortalU
 
 const HTTP_SCHEME = ['http', '://'].join('');
 const apiURL = process.env.API_URL || `${HTTP_SCHEME}127.0.0.1:3001`;
-const STRICT_ADMIN_ENV = 'E2E_REQUIRE_STRICT_ADMIN_AUTH';
-const originalStrictAdminEnv = process.env[STRICT_ADMIN_ENV];
-
-const setStrictAdminMode = (): void => {
-  process.env[STRICT_ADMIN_ENV] = 'true';
-};
-
-const restoreStrictAdminMode = (): void => {
-  if (typeof originalStrictAdminEnv === 'string') {
-    process.env[STRICT_ADMIN_ENV] = originalStrictAdminEnv;
-    return;
-  }
-  delete process.env[STRICT_ADMIN_ENV];
-};
 
 const publicRoutes = [
   '/',
@@ -125,7 +111,6 @@ type ProvisionedPortalCase = {
 };
 
 const provisionPortalCaseFixture = async (page: Page): Promise<ProvisionedPortalCase> => {
-  setStrictAdminMode();
   const uniqueSuffix = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
   const portalUser = await provisionApprovedPortalUser(page, {
     firstName: 'Link',
@@ -183,22 +168,6 @@ const provisionPortalCaseFixture = async (page: Page): Promise<ProvisionedPortal
   };
 };
 
-base.beforeEach(() => {
-  setStrictAdminMode();
-});
-
-authTest.beforeEach(() => {
-  setStrictAdminMode();
-});
-
-base.afterAll(() => {
-  restoreStrictAdminMode();
-});
-
-authTest.afterAll(() => {
-  restoreStrictAdminMode();
-});
-
 base.describe('Public route health', () => {
   for (const route of publicRoutes) {
     base(`loads ${route}`, async ({ page }) => {
@@ -226,7 +195,6 @@ base.describe('Authenticated portal route health', () => {
   let portalFixture: ProvisionedPortalCase;
 
   base.beforeAll(async ({ browser }) => {
-    setStrictAdminMode();
     const context = await browser.newContext();
     const page = await context.newPage();
     portalFixture = await provisionPortalCaseFixture(page);
@@ -246,6 +214,6 @@ base.describe('Authenticated portal route health', () => {
   base('loads /portal/cases/:id using a fixture-linked portal user', async ({ page }) => {
     await assertRouteLoads(page, `/portal/cases/${portalFixture.caseId}`);
     await expect(page).toHaveURL(new RegExp(`/portal/cases/${portalFixture.caseId}(?:\\?|$)`));
-    await expect(page.getByText(portalFixture.caseTitle)).toBeVisible();
+    await expect(page.getByRole('heading', { name: portalFixture.caseTitle, exact: true })).toBeVisible();
   });
 });
