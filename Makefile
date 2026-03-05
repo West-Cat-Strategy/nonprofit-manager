@@ -22,6 +22,15 @@ RESET := \033[0m
 
 DOCKER_COMPOSE ?= $(shell if docker compose version >/dev/null 2>&1; then echo "docker compose"; elif docker-compose version >/dev/null 2>&1; then echo "docker-compose"; else echo "docker compose"; fi)
 PROD_ENV_FILE ?= .env.production
+COMPOSE_PROJECT_PROD ?= nonprofit-prod
+COMPOSE_PROJECT_DEV ?= nonprofit-dev
+COMPOSE_PROJECT_CI ?= nonprofit-ci
+
+COMPOSE_PROD_ARGS := -p $(COMPOSE_PROJECT_PROD) --env-file $(PROD_ENV_FILE) -f docker-compose.yml
+COMPOSE_DEV_ARGS := -p $(COMPOSE_PROJECT_DEV) -f docker-compose.dev.yml
+COMPOSE_DEV_TOOLS_ARGS := $(COMPOSE_DEV_ARGS) -f docker-compose.tools.yml --profile tools
+COMPOSE_DEV_CADDY_ARGS := $(COMPOSE_DEV_ARGS) -f docker-compose.caddy.yml
+COMPOSE_CI_INFRA_ARGS := -p $(COMPOSE_PROJECT_CI) -f docker-compose.yml -f docker-compose.host-access.yml -f docker-compose.ci.yml
 
 #------------------------------------------------------------------------------
 # Help
@@ -109,37 +118,41 @@ dev: docker-up-dev
 	@echo ""
 
 docker-up:
-	$(DOCKER_COMPOSE) --env-file $(PROD_ENV_FILE) up -d
+	$(DOCKER_COMPOSE) $(COMPOSE_PROD_ARGS) up -d
 
 docker-up-dev:
-	$(DOCKER_COMPOSE) -f docker-compose.dev.yml up -d
+	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) up -d
 
 docker-up-tools:
-	$(DOCKER_COMPOSE) -f docker-compose.dev.yml -f docker-compose.tools.yml --profile tools up -d
+	$(DOCKER_COMPOSE) $(COMPOSE_DEV_TOOLS_ARGS) up -d
 
 docker-up-caddy:
-	$(DOCKER_COMPOSE) -f docker-compose.dev.yml -f docker-compose.caddy.yml up -d
+	$(DOCKER_COMPOSE) $(COMPOSE_DEV_CADDY_ARGS) up -d
 
 docker-down:
-	$(DOCKER_COMPOSE) --env-file $(PROD_ENV_FILE) down
-	$(DOCKER_COMPOSE) -f docker-compose.dev.yml down
+	$(DOCKER_COMPOSE) $(COMPOSE_PROD_ARGS) down --remove-orphans
+	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) down --remove-orphans
+	$(DOCKER_COMPOSE) $(COMPOSE_DEV_TOOLS_ARGS) down --remove-orphans
+	$(DOCKER_COMPOSE) $(COMPOSE_DEV_CADDY_ARGS) down --remove-orphans
+	$(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) down -v --remove-orphans
 
 docker-logs:
-	$(DOCKER_COMPOSE) --env-file $(PROD_ENV_FILE) logs -f
+	$(DOCKER_COMPOSE) $(COMPOSE_PROD_ARGS) logs -f
 
 docker-build:
-	$(DOCKER_COMPOSE) --env-file $(PROD_ENV_FILE) build
+	$(DOCKER_COMPOSE) $(COMPOSE_PROD_ARGS) build
 
 docker-rebuild:
-	$(DOCKER_COMPOSE) --env-file $(PROD_ENV_FILE) build --no-cache
+	$(DOCKER_COMPOSE) $(COMPOSE_PROD_ARGS) build --no-cache
 
 docker-validate:
-	$(DOCKER_COMPOSE) --env-file $(PROD_ENV_FILE) -f docker-compose.yml config > /tmp/nonprofit-compose-config.txt
-	$(DOCKER_COMPOSE) -f docker-compose.dev.yml config > /tmp/nonprofit-compose-dev-config.txt
-	$(DOCKER_COMPOSE) -f docker-compose.dev.yml -f docker-compose.tools.yml --profile tools config > /tmp/nonprofit-compose-dev-tools-config.txt
-	$(DOCKER_COMPOSE) -f docker-compose.dev.yml -f docker-compose.caddy.yml config > /tmp/nonprofit-compose-dev-caddy-config.txt
-	$(DOCKER_COMPOSE) -f docker-compose.plausible.yml config > /tmp/nonprofit-compose-plausible-config.txt
-	$(DOCKER_COMPOSE) -f docker-compose.elk.yml config > /tmp/nonprofit-compose-elk-config.txt
+	DB_PASSWORD=$${DB_PASSWORD:-postgres} $(DOCKER_COMPOSE) $(COMPOSE_PROD_ARGS) config > /tmp/nonprofit-compose-config.txt
+	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) config > /tmp/nonprofit-compose-dev-config.txt
+	$(DOCKER_COMPOSE) $(COMPOSE_DEV_TOOLS_ARGS) config > /tmp/nonprofit-compose-dev-tools-config.txt
+	$(DOCKER_COMPOSE) $(COMPOSE_DEV_CADDY_ARGS) config > /tmp/nonprofit-compose-dev-caddy-config.txt
+	DB_PASSWORD=$${DB_PASSWORD:-postgres} $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) config > /tmp/nonprofit-compose-ci-config.txt
+	$(DOCKER_COMPOSE) -p nonprofit-plausible -f docker-compose.plausible.yml config > /tmp/nonprofit-compose-plausible-config.txt
+	$(DOCKER_COMPOSE) -p nonprofit-elk -f docker-compose.elk.yml config > /tmp/nonprofit-compose-elk-config.txt
 	@echo "$(GREEN)Compose validation complete!$(RESET)"
 
 #------------------------------------------------------------------------------
@@ -259,9 +272,9 @@ typecheck:
 
 test:
 	@echo "$(BLUE)Ensuring test infrastructure is running (Postgres/Redis)...$(RESET)"
-	DB_PASSWORD=postgres $(DOCKER_COMPOSE) up -d postgres redis
+	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d postgres redis
 	@echo "$(BLUE)Applying pending database migrations...$(RESET)"
-	@./scripts/db-migrate.sh
+	@COMPOSE_MODE=ci COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
 	@echo "$(BLUE)Running backend tests...$(RESET)"
 	cd backend && npm test -- --runInBand
 	@echo "$(BLUE)Running frontend tests...$(RESET)"
@@ -272,9 +285,9 @@ test:
 
 test-coverage:
 	@echo "$(BLUE)Ensuring test infrastructure is running (Postgres/Redis)...$(RESET)"
-	DB_PASSWORD=postgres $(DOCKER_COMPOSE) up -d postgres redis
+	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d postgres redis
 	@echo "$(BLUE)Applying pending database migrations...$(RESET)"
-	@./scripts/db-migrate.sh
+	@COMPOSE_MODE=ci COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
 	@echo "$(BLUE)Running backend tests with coverage...$(RESET)"
 	cd backend && npm test -- --coverage --runInBand
 	@echo "$(BLUE)Running frontend tests with coverage...$(RESET)"
@@ -284,16 +297,16 @@ test-coverage:
 	@echo "$(GREEN)Coverage reports generated!$(RESET)"
 
 test-backend:
-	DB_PASSWORD=postgres $(DOCKER_COMPOSE) up -d postgres redis
-	@./scripts/db-migrate.sh
+	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d postgres redis
+	@COMPOSE_MODE=ci COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
 	cd backend && npm test -- --runInBand
 
 test-frontend:
 	cd frontend && npm test -- --run
 
 test-e2e:
-	DB_PASSWORD=postgres $(DOCKER_COMPOSE) up -d postgres redis
-	@./scripts/db-migrate.sh
+	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d postgres redis
+	@COMPOSE_MODE=ci COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
 	cd e2e && npm run test:ci
 
 quality-baseline:

@@ -36,6 +36,7 @@ import type {
 } from '../../../types/outcomes';
 
 const getErrorMessage = (error: unknown, fallbackMessage: string) => formatApiErrorMessageWith(fallbackMessage)(error);
+const CONTACT_CASE_CACHE_TTL_MS = 2 * 60 * 1000;
 
 const initialState: CasesState = {
   cases: [],
@@ -62,6 +63,7 @@ const initialState: CasesState = {
     sort_order: 'desc',
   },
   selectedCaseIds: [],
+  contactCasesByContactId: {},
 };
 
 // Async Thunks
@@ -81,6 +83,48 @@ export const fetchCases = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to fetch cases'));
     }
+  }
+);
+
+export const fetchCasesByContact = createAsyncThunk(
+  'cases/fetchCasesByContact',
+  async (contactId: string, { rejectWithValue }) => {
+    try {
+      const response = await api.get<ApiEnvelope<CasesResponse>>('/v2/cases', {
+        params: {
+          contact_id: contactId,
+          page: 1,
+          limit: 50,
+        },
+      });
+      const payload = unwrapApiData(response.data);
+      return {
+        contactId,
+        cases: Array.isArray(payload.cases) ? payload.cases : [],
+        fetchedAt: Date.now(),
+      };
+    } catch (error) {
+      return rejectWithValue({
+        contactId,
+        message: getErrorMessage(error, 'Failed to fetch contact cases'),
+      });
+    }
+  },
+  {
+    condition: (contactId, { getState }) => {
+      const state = getState() as { casesV2?: CasesState };
+      const cachedEntry = state.casesV2?.contactCasesByContactId?.[contactId];
+      if (!cachedEntry) {
+        return true;
+      }
+      if (cachedEntry.loading) {
+        return false;
+      }
+      if (!cachedEntry.fetchedAt) {
+        return true;
+      }
+      return Date.now() - cachedEntry.fetchedAt > CONTACT_CASE_CACHE_TTL_MS;
+    },
   }
 );
 
@@ -525,6 +569,39 @@ const casesSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
+      // Fetch Cases By Contact (scoped cache for contact detail surfaces)
+      .addCase(fetchCasesByContact.pending, (state, action) => {
+        const contactId = action.meta.arg;
+        const existing = state.contactCasesByContactId?.[contactId];
+        state.contactCasesByContactId = state.contactCasesByContactId ?? {};
+        state.contactCasesByContactId[contactId] = {
+          cases: existing?.cases ?? [],
+          loading: true,
+          error: null,
+          fetchedAt: existing?.fetchedAt ?? null,
+        };
+      })
+      .addCase(fetchCasesByContact.fulfilled, (state, action) => {
+        state.contactCasesByContactId = state.contactCasesByContactId ?? {};
+        state.contactCasesByContactId[action.payload.contactId] = {
+          cases: action.payload.cases,
+          loading: false,
+          error: null,
+          fetchedAt: action.payload.fetchedAt,
+        };
+      })
+      .addCase(fetchCasesByContact.rejected, (state, action) => {
+        const rejectedPayload = action.payload as { contactId?: string; message?: string } | undefined;
+        const contactId = rejectedPayload?.contactId ?? action.meta.arg;
+        const existing = state.contactCasesByContactId?.[contactId];
+        state.contactCasesByContactId = state.contactCasesByContactId ?? {};
+        state.contactCasesByContactId[contactId] = {
+          cases: existing?.cases ?? [],
+          loading: false,
+          error: rejectedPayload?.message ?? 'Failed to fetch contact cases',
+          fetchedAt: existing?.fetchedAt ?? null,
+        };
+      })
       // Fetch Case By ID
       .addCase(fetchCaseById.pending, (state) => {
         state.loading = true;
@@ -804,6 +881,10 @@ const incrementPriorityCount = (
 // Base selector
 const selectCasesState = (state: { casesV2: CasesState }) => state.casesV2;
 const selectCasesList = createSelector([selectCasesState], (state) => state['cases']);
+const selectContactCasesByContactId = createSelector(
+  [selectCasesState],
+  (state) => state.contactCasesByContactId ?? {}
+);
 
 /**
  * Select cases assigned to a specific user
@@ -817,8 +898,14 @@ export const selectCasesByAssignee = createSelector(
  * Select cases for a specific contact
  */
 export const selectCasesByContact = createSelector(
-  [selectCasesList, (_, contactId: string) => contactId],
-  (cases, contactId) => cases.filter((case_) => case_.contact_id === contactId)
+  [selectCasesList, selectContactCasesByContactId, (_, contactId: string) => contactId],
+  (cases, scopedCasesByContactId, contactId) => {
+    const scopedCases = scopedCasesByContactId[contactId];
+    if (scopedCases?.fetchedAt !== null && scopedCases?.fetchedAt !== undefined) {
+      return scopedCases.cases;
+    }
+    return cases.filter((case_) => case_.contact_id === contactId);
+  }
 );
 
 /**

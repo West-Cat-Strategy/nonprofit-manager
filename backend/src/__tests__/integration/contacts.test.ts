@@ -225,6 +225,53 @@ describe('Contact API Integration Tests', () => {
     });
   });
 
+  describe('GET /api/v2/contacts/lookup', () => {
+    it('should return lightweight lookup results', async () => {
+      await withAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: 'Lookup',
+          last_name: 'Person',
+          email: 'lookup.person@example.com',
+        }))
+        .expect(201);
+
+      const response = await withStaffAuth(request(app)
+        .get('/api/v2/contacts/lookup?q=lookup&limit=5')
+      )
+        .expect(200);
+
+      const payload = payloadFromResponse<{ items: Array<Record<string, unknown>> }>(response.body);
+      expect(Array.isArray(payload.items)).toBe(true);
+      expect(payload.items.length).toBeGreaterThan(0);
+      const item = payload.items[0];
+      expect(item).toEqual(
+        expect.objectContaining({
+          contact_id: expect.any(String),
+          first_name: expect.any(String),
+          last_name: expect.any(String),
+          is_active: expect.any(Boolean),
+        })
+      );
+      expect(item).toHaveProperty('email');
+      expect(item).toHaveProperty('phone');
+      expect(item).toHaveProperty('mobile_phone');
+      expect(item.email === null || typeof item.email === 'string').toBe(true);
+      expect(item.phone === null || typeof item.phone === 'string').toBe(true);
+      expect(item.mobile_phone === null || typeof item.mobile_phone === 'string').toBe(true);
+      expect(item).not.toHaveProperty('note_count');
+      expect(item).not.toHaveProperty('relationship_count');
+    });
+
+    it('should enforce query validation', async () => {
+      await withStaffAuth(request(app)
+        .get('/api/v2/contacts/lookup?q=a')
+      )
+        .expect(400);
+    });
+  });
+
   describe('GET /api/v2/contacts/:id', () => {
     it('should return a single contact by ID', async () => {
       const createResponse = await withAuth(request(app)

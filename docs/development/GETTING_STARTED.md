@@ -445,14 +445,14 @@ PORT=3001 npm run dev
 **If using Docker**:
 
 ```bash
-# Check if container is running
-docker ps | grep nonprofit-db-dev
+# Check if service is running
+docker compose -p nonprofit-dev -f docker-compose.dev.yml ps postgres
 
 # If not running, start it
-docker compose -f docker-compose.dev.yml up -d postgres
+docker compose -p nonprofit-dev -f docker-compose.dev.yml up -d postgres
 
 # Check logs
-docker logs nonprofit-db-dev
+docker compose -p nonprofit-dev -f docker-compose.dev.yml logs postgres
 ```
 
 ### "I expected first-time setup, but I only see login"

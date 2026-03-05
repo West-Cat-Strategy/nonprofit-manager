@@ -30,12 +30,34 @@ export interface ContactsListQuery {
   sortOrder?: 'asc' | 'desc';
 }
 
+export interface ContactLookupItem {
+  contact_id: string;
+  first_name: string;
+  preferred_name?: string | null;
+  last_name: string;
+  email: string | null;
+  phone: string | null;
+  mobile_phone: string | null;
+  account_name?: string | null;
+  is_active: boolean;
+}
+
+export interface ContactsLookupQuery {
+  q: string;
+  limit?: number;
+  isActive?: boolean;
+}
+
 export interface ContactMutationPayload {
   [key: string]: unknown;
 }
 
 export interface ContactsApiClientPort {
   listContacts(query?: ContactsListQuery): Promise<{ data: Contact[]; pagination: { total: number; page: number; limit: number; total_pages: number } }>;
+  lookupContacts(
+    query: ContactsLookupQuery,
+    options?: { signal?: AbortSignal }
+  ): Promise<{ items: ContactLookupItem[] }>;
   getContact(contactId: string): Promise<Contact>;
   createContact(payload: ContactMutationPayload): Promise<Contact>;
   updateContact(contactId: string, payload: ContactMutationPayload): Promise<Contact>;

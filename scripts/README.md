@@ -277,7 +277,10 @@ All scripts follow these consistent patterns:
 
 Scripts respect these environment variables:
 
-- `DB_CONTAINER` - Database container name
+- `COMPOSE_MODE` - Compose target mode (`prod`, `dev`, `ci`)
+- `COMPOSE_PROJECT_NAME` - Optional compose project override
+- `COMPOSE_FILES` - Optional compose file list override (space or comma separated)
+- `DB_SERVICE` - Database compose service name (default: `postgres`)
 - `DB_USER` - Database username
 - `DB_NAME` - Database name
 - `BACKUP_DIR` - Backup directory path
@@ -317,7 +320,7 @@ docker compose up -d
 **Database connection failed**
 ```bash
 # Check if database is ready
-docker exec nonprofit-db pg_isready -U postgres -d nonprofit_manager
+docker compose -p nonprofit-prod -f docker-compose.yml exec -T postgres pg_isready -U postgres -d nonprofit_manager
 ```
 
 **Script not found**

@@ -7,7 +7,7 @@ import {
   updateContactDocument,
   deleteContactDocument,
 } from '../features/contacts/state';
-import { fetchCases, selectCasesByContact } from '../features/cases/state';
+import { selectCasesByContact } from '../features/cases/state';
 import type { CreateContactDocumentDTO, DocumentType, ContactDocument } from '../types/contact';
 import { DOCUMENT_TYPES } from '../types/contact';
 import api from '../services/api';
@@ -42,7 +42,6 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
 
   useEffect(() => {
     dispatch(fetchContactDocuments(contactId));
-    dispatch(fetchCases({}));
   }, [dispatch, contactId]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

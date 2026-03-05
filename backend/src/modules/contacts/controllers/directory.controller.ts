@@ -69,6 +69,28 @@ export const createContactDirectoryController = (
     }
   };
 
+  const lookupContacts = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const query = (req.validatedQuery ?? req.query) as {
+        q: string;
+        limit?: number;
+        is_active?: boolean;
+      };
+      const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+      const items = await useCase.lookup(
+        {
+          q: query.q,
+          limit: query.limit,
+          is_active: query.is_active ?? true,
+        },
+        scope
+      );
+      sendData(res, mode, { items });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   const getContactTags = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
@@ -204,6 +226,7 @@ export const createContactDirectoryController = (
 
   return {
     getContacts,
+    lookupContacts,
     getContactTags,
     getContactRoles,
     bulkUpdateContacts,
