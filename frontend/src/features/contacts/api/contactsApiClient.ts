@@ -20,7 +20,13 @@ import type {
   UpdateContactRelationshipDTO,
   UpdateContactPhoneDTO,
 } from '../../../types/contact';
-import type { ContactMutationPayload, ContactsApiClientPort, ContactsListQuery } from '../types/contracts';
+import type {
+  ContactLookupItem,
+  ContactMutationPayload,
+  ContactsApiClientPort,
+  ContactsListQuery,
+  ContactsLookupQuery,
+} from '../types/contracts';
 
 export class ContactsApiClient implements ContactsApiClientPort {
   private buildListParams(query: ContactsListQuery = {}): Record<string, string | number | boolean | undefined> {
@@ -47,6 +53,21 @@ export class ContactsApiClient implements ContactsApiClientPort {
       }>
     >('/v2/contacts', {
       params: this.buildListParams(query),
+    });
+    return unwrapApiData(response.data);
+  }
+
+  async lookupContacts(
+    query: ContactsLookupQuery,
+    options?: { signal?: AbortSignal }
+  ): Promise<{ items: ContactLookupItem[] }> {
+    const response = await api.get<ApiEnvelope<{ items: ContactLookupItem[] }>>('/v2/contacts/lookup', {
+      params: {
+        q: query.q,
+        limit: query.limit,
+        is_active: query.isActive,
+      },
+      signal: options?.signal,
     });
     return unwrapApiData(response.data);
   }

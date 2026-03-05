@@ -7,7 +7,6 @@ services:
   # pgAdmin - Database Administration Tool
   pgadmin:
     image: dpage/pgadmin4:8
-    container_name: nonprofit-pgadmin
     restart: unless-stopped
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@example.com
@@ -28,7 +27,6 @@ services:
   # Redis Commander - Redis Web UI
   redis-commander:
     image: rediscommander/redis-commander:latest
-    container_name: nonprofit-redis-commander
     restart: unless-stopped
     environment:
       REDIS_HOSTS: local:redis:6379
@@ -45,7 +43,6 @@ services:
   # MailHog - Email Testing Tool
   mailhog:
     image: mailhog/mailhog:latest
-    container_name: nonprofit-mailhog
     restart: unless-stopped
     ports:
       - "8025:8025"  # Web UI

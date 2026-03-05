@@ -6,7 +6,6 @@
 services:
   caddy:
     image: nonprofit-caddy-local:latest
-    container_name: nonprofit-caddy-dev
     restart: unless-stopped
     ports:
       - "8088:80"

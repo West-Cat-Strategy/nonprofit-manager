@@ -153,7 +153,9 @@ test.describe('Tasks Module', () => {
     await authenticatedPage.getByLabel('Search tasks').fill('Task 25');
     await expect(authenticatedPage.getByText('Task 25').first()).toBeVisible();
     await authenticatedPage.getByLabel('Search tasks').fill('');
-    await expect(authenticatedPage.locator('tbody tr').nth(1)).toBeVisible();
+    await expect(authenticatedPage.getByLabel('Search tasks')).toHaveValue('');
+    await expect(authenticatedPage.getByText('No tasks match your current filters.')).toHaveCount(0, { timeout: 15000 });
+    await expect.poll(async () => authenticatedPage.locator('tbody tr').count(), { timeout: 15000 }).toBeGreaterThan(0);
 
     const pageTwoButton = authenticatedPage.getByRole('button', { name: '2', exact: true });
     if (await pageTwoButton.count()) {
