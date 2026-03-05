@@ -5,6 +5,7 @@ import { useSetupCheck } from '../hooks/useSetupCheck';
 import AdminRoute from '../components/AdminRoute';
 import PortalProtectedRoute from '../components/PortalProtectedRoute';
 import { ProtectedRoute, NeoBrutalistRoute } from '../components/auth';
+import AuthenticatedShellRoute from '../components/auth/AuthenticatedShellRoute';
 import PageLoader from '../components/PageLoader';
 import { logout } from '../store/slices/authSlice';
 import { portalLogout } from '../store/slices/portalAuthSlice';
@@ -40,13 +41,31 @@ const OutreachCenter = lazy(() => import('../pages/neo-brutalist/OutreachCenter'
 const PeopleDirectory = lazy(() => import('../pages/neo-brutalist/PeopleDirectory'));
 const ThemeAudit = lazy(() => import('../pages/neo-brutalist/ThemeAudit'));
 
+const isSetupGateRoute = (pathname: string): boolean =>
+  pathname === '/' ||
+  pathname === '/setup' ||
+  pathname === '/login' ||
+  pathname === '/register' ||
+  pathname === '/forgot-password' ||
+  pathname.startsWith('/accept-invitation/') ||
+  pathname.startsWith('/reset-password/');
+
+const shouldEnableSetupCheck = (pathname: string): boolean => {
+  if (pathname.startsWith('/portal') || pathname.startsWith('/public') || pathname.startsWith('/event-check-in/')) {
+    return false;
+  }
+
+  return isSetupGateRoute(pathname);
+};
+
 // AppRoutes component with setup check logic
 const AppRoutes = () => {
   const dispatch = useAppDispatch();
   const { isAuthenticated, authLoading } = useAppSelector((state) => state.auth);
-  const { setupRequired, loading } = useSetupCheck();
   const location = useLocation();
   const navigate = useNavigate();
+  const setupCheckEnabled = shouldEnableSetupCheck(location.pathname);
+  const { setupRequired, loading } = useSetupCheck({ enabled: setupCheckEnabled });
 
   useEffect(() => {
     const handleUnauthorized = () => {
@@ -71,20 +90,19 @@ const AppRoutes = () => {
   }, [dispatch, navigate]);
 
   // Show loader while verifying auth cookie or checking setup status
-  if (authLoading || loading) {
+  if (authLoading || (setupCheckEnabled && loading)) {
     return <PageLoader />;
   }
 
-  const setupStatusResolved = setupRequired !== null;
-  const isPortalRoute = location.pathname.startsWith('/portal');
+  const setupStatusResolved = setupCheckEnabled && setupRequired !== null;
 
   // Redirect to setup if required and not already on setup page
-  if (setupStatusResolved && !isPortalRoute && setupRequired === true && location.pathname !== '/setup') {
+  if (setupStatusResolved && setupRequired === true && location.pathname !== '/setup') {
     return <Navigate to="/setup" replace />;
   }
 
   // Redirect to login if setup is complete but user tries to access setup page
-  if (setupStatusResolved && !isPortalRoute && setupRequired === false && location.pathname === '/setup') {
+  if (setupStatusResolved && setupRequired === false && location.pathname === '/setup') {
     return <Navigate to="/login" replace />;
   }
 
@@ -104,76 +122,78 @@ const AppRoutes = () => {
       {/* Portal Routes */}
       {createPortalRoutes(PortalProtectedRoute)}
 
-      {/* Neo-Brutalist Dashboard (Primary) */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <NeoBrutalistDashboard />
-          </ProtectedRoute>
-        }
-      />
+      <Route element={<AuthenticatedShellRoute />}>
+        {/* Neo-Brutalist Dashboard (Primary) */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <NeoBrutalistDashboard />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* People Routes (Accounts, Contacts, Volunteers) */}
-      {createPeopleRoutes(ProtectedRoute)}
+        {/* People Routes (Accounts, Contacts, Volunteers) */}
+        {createPeopleRoutes(ProtectedRoute)}
 
-      {/* LOOP Module: People Directory */}
-      <Route
-        path="/people"
-        element={
-          <NeoBrutalistRoute>
-            <PeopleDirectory />
-          </NeoBrutalistRoute>
-        }
-      />
+        {/* LOOP Module: People Directory */}
+        <Route
+          path="/people"
+          element={
+            <NeoBrutalistRoute>
+              <PeopleDirectory />
+            </NeoBrutalistRoute>
+          }
+        />
 
-      {/* LOOP Module: Linking */}
-      <Route
-        path="/linking"
-        element={
-          <NeoBrutalistRoute>
-            <LinkingModule />
-          </NeoBrutalistRoute>
-        }
-      />
+        {/* LOOP Module: Linking */}
+        <Route
+          path="/linking"
+          element={
+            <NeoBrutalistRoute>
+              <LinkingModule />
+            </NeoBrutalistRoute>
+          }
+        />
 
-      {/* LOOP Module: Operations */}
-      <Route
-        path="/operations"
-        element={
-          <NeoBrutalistRoute>
-            <OperationsBoard />
-          </NeoBrutalistRoute>
-        }
-      />
+        {/* LOOP Module: Operations */}
+        <Route
+          path="/operations"
+          element={
+            <NeoBrutalistRoute>
+              <OperationsBoard />
+            </NeoBrutalistRoute>
+          }
+        />
 
-      {/* Neo-Brutalist Outreach Center */}
-      <Route
-        path="/outreach"
-        element={
-          <NeoBrutalistRoute>
-            <OutreachCenter />
-          </NeoBrutalistRoute>
-        }
-      />
+        {/* Neo-Brutalist Outreach Center */}
+        <Route
+          path="/outreach"
+          element={
+            <NeoBrutalistRoute>
+              <OutreachCenter />
+            </NeoBrutalistRoute>
+          }
+        />
 
-      {/* Engagement Routes (Events, Tasks, Cases) */}
-      {createEngagementRoutes(NeoBrutalistRoute)}
+        {/* Engagement Routes (Events, Tasks, Cases) */}
+        {createEngagementRoutes(NeoBrutalistRoute)}
 
-      {/* Finance Routes (Donations, Reconciliation) */}
-      {createFinanceRoutes(ProtectedRoute)}
+        {/* Finance Routes (Donations, Reconciliation) */}
+        {createFinanceRoutes(ProtectedRoute)}
 
-      {/* Analytics Routes */}
-      {createAnalyticsRoutes(ProtectedRoute)}
+        {/* Analytics Routes */}
+        {createAnalyticsRoutes(ProtectedRoute)}
 
-      {/* Workflow Routes */}
-      {createWorkflowRoutes(ProtectedRoute)}
+        {/* Workflow Routes */}
+        {createWorkflowRoutes(ProtectedRoute)}
 
-      {/* Admin Routes */}
-      {createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRoute })}
+        {/* Admin Routes */}
+        {createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRoute })}
 
-      {/* Builder Routes */}
-      {createBuilderRoutes(ProtectedRoute)}
+        {/* Builder Routes */}
+        {createBuilderRoutes(ProtectedRoute)}
+      </Route>
 
       {/* Neo-Brutalist Demo Routes (No Auth Required) */}
       <Route path="/demo/dashboard" element={<NeoBrutalistDashboard />} />

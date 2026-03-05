@@ -7,6 +7,7 @@ import { renderWithProviders, createTestStore } from '../../test/testUtils';
 import api from '../../services/api';
 import { vi } from 'vitest';
 import type { AnalyticsSummary, DonationTrendPoint, VolunteerHoursTrendPoint } from '../../types/analytics';
+import * as exportUtils from '../../utils/exportUtils';
 
 const mockNavigate = vi.fn();
 
@@ -19,6 +20,14 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('../../services/api');
+vi.mock('../../utils/exportUtils', () => ({
+  exportAnalyticsSummaryToCSV: vi.fn(),
+  exportAnalyticsSummaryToPDF: vi.fn(),
+  exportConstituentOverviewToCSV: vi.fn(),
+  exportEngagementToCSV: vi.fn(),
+  exportDonationTrendsToPDF: vi.fn(),
+  exportVolunteerTrendsToPDF: vi.fn(),
+}));
 
 vi.mock('recharts', () => {
   const Wrapper = ({ children }: { children?: ReactNode }) => <div>{children}</div>;
@@ -84,6 +93,18 @@ const renderAnalytics = () => {
   return store;
 };
 
+const createDeferred = () => {
+  let resolve: (() => void) | null = null;
+  const promise = new Promise<void>((innerResolve) => {
+    resolve = innerResolve;
+  });
+
+  return {
+    promise,
+    resolve: () => resolve?.(),
+  };
+};
+
 const setupMocks = (options: {
   summary?: AnalyticsSummary | null;
   donationTrends?: DonationTrendPoint[];
@@ -118,6 +139,10 @@ const setupMocks = (options: {
 };
 
 describe('Analytics page', () => {
+  const mockExportAnalyticsSummaryToPDF = vi.mocked(exportUtils.exportAnalyticsSummaryToPDF);
+  const mockExportDonationTrendsToPDF = vi.mocked(exportUtils.exportDonationTrendsToPDF);
+  const mockExportVolunteerTrendsToPDF = vi.mocked(exportUtils.exportVolunteerTrendsToPDF);
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -345,6 +370,74 @@ describe('Analytics page', () => {
     });
 
     expect(screen.getByText('PDF')).toBeInTheDocument();
+  });
+
+  it('shows summary PDF button loading state while export is generating', async () => {
+    const user = userEvent.setup();
+    const deferred = createDeferred();
+    mockExportAnalyticsSummaryToPDF.mockReturnValueOnce(deferred.promise);
+
+    setupMocks();
+    renderAnalytics();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'PDF' })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'PDF' }));
+    expect(screen.getByRole('button', { name: 'Generating PDF...' })).toBeDisabled();
+
+    deferred.resolve();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'PDF' })).toBeEnabled()
+    );
+    expect(mockExportAnalyticsSummaryToPDF).toHaveBeenCalled();
+  });
+
+  it('shows donation trend PDF loading state while export is generating', async () => {
+    const user = userEvent.setup();
+    const deferred = createDeferred();
+    mockExportDonationTrendsToPDF.mockReturnValueOnce(deferred.promise);
+
+    setupMocks();
+    renderAnalytics();
+
+    await waitFor(() => {
+      expect(screen.getByText('Donation Trends (12 Months)')).toBeInTheDocument();
+    });
+
+    const exportButtons = screen.getAllByTitle('Export to PDF');
+    await user.click(exportButtons[0]);
+
+    expect(screen.getByText('Generating...')).toBeInTheDocument();
+    expect(exportButtons[0]).toBeDisabled();
+
+    deferred.resolve();
+    await waitFor(() => expect(exportButtons[0]).toBeEnabled());
+    expect(mockExportDonationTrendsToPDF).toHaveBeenCalled();
+  });
+
+  it('shows volunteer trend PDF loading state while export is generating', async () => {
+    const user = userEvent.setup();
+    const deferred = createDeferred();
+    mockExportVolunteerTrendsToPDF.mockReturnValueOnce(deferred.promise);
+
+    setupMocks();
+    renderAnalytics();
+
+    await waitFor(() => {
+      expect(screen.getByText('Volunteer Hours Trends (12 Months)')).toBeInTheDocument();
+    });
+
+    const exportButtons = screen.getAllByTitle('Export to PDF');
+    await user.click(exportButtons[1]);
+
+    expect(screen.getByText('Generating...')).toBeInTheDocument();
+    expect(exportButtons[1]).toBeDisabled();
+
+    deferred.resolve();
+    await waitFor(() => expect(exportButtons[1]).toBeEnabled());
+    expect(mockExportVolunteerTrendsToPDF).toHaveBeenCalled();
   });
 
   it('navigates back when back button is clicked', async () => {

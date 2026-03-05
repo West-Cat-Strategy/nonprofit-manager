@@ -28,6 +28,15 @@ export interface NavigationPreferences {
 const STORAGE_KEY = 'navigation_preferences';
 const PREFERENCE_KEY = 'navigation';
 const teamChatEnabled = import.meta.env.VITE_TEAM_CHAT_ENABLED !== 'false';
+const PREFERENCES_CACHE_TTL_MS = 5 * 60 * 1000;
+
+type PreferencesSnapshot = {
+  preferences: NavigationPreferences;
+  fetchedAt: number;
+};
+
+let preferencesSnapshot: PreferencesSnapshot | null = null;
+let preferencesInFlightPromise: Promise<NavigationPreferences | null> | null = null;
 
 // Default navigation items with their default state
 const defaultNavigationItems: NavigationItem[] = [
@@ -105,41 +114,103 @@ function saveToLocalStorage(preferences: NavigationPreferences): void {
   }
 }
 
+const cachePreferencesSnapshot = (preferences: NavigationPreferences): void => {
+  preferencesSnapshot = {
+    preferences,
+    fetchedAt: Date.now(),
+  };
+};
+
+const isPreferencesSnapshotFresh = (snapshot: PreferencesSnapshot): boolean =>
+  Date.now() - snapshot.fetchedAt < PREFERENCES_CACHE_TTL_MS;
+
+const fetchServerPreferences = async (): Promise<NavigationPreferences | null> => {
+  const response = await api.get('/auth/preferences');
+  const serverPrefs = response.data.preferences as Record<string, unknown> | undefined;
+
+  if (!serverPrefs?.[PREFERENCE_KEY] || typeof serverPrefs[PREFERENCE_KEY] !== 'object') {
+    return null;
+  }
+
+  const value = serverPrefs[PREFERENCE_KEY] as { items?: NavigationItem[] };
+  if (!Array.isArray(value.items)) {
+    return null;
+  }
+
+  const preferences = { items: mergeWithDefaults(value.items) };
+  cachePreferencesSnapshot(preferences);
+  return preferences;
+};
+
+const getServerPreferences = async (): Promise<NavigationPreferences | null> => {
+  if (preferencesSnapshot && isPreferencesSnapshotFresh(preferencesSnapshot)) {
+    return preferencesSnapshot.preferences;
+  }
+
+  if (preferencesInFlightPromise) {
+    return preferencesInFlightPromise;
+  }
+
+  const request = fetchServerPreferences();
+  preferencesInFlightPromise = request;
+
+  try {
+    return await request;
+  } finally {
+    if (preferencesInFlightPromise === request) {
+      preferencesInFlightPromise = null;
+    }
+  }
+};
+
 export function useNavigationPreferences() {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
-  const [preferences, setPreferences] = useState<NavigationPreferences>(loadFromLocalStorage);
+  const [preferences, setPreferences] = useState<NavigationPreferences>(() => {
+    const localPreferences = loadFromLocalStorage();
+    cachePreferencesSnapshot(localPreferences);
+    return localPreferences;
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [isSynced, setIsSynced] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch preferences from API on mount
   useEffect(() => {
+    if (!isAuthenticated) {
+      setIsLoading(false);
+      setIsSynced(false);
+      return;
+    }
+
+    let isMounted = true;
     const fetchPreferences = async () => {
       try {
-        const response = await api.get('/auth/preferences');
-        const serverPrefs = response.data.preferences;
+        const serverPreferences = await getServerPreferences();
+        if (!isMounted) return;
 
-        if (serverPrefs?.[PREFERENCE_KEY]) {
-          const mergedItems = mergeWithDefaults(serverPrefs[PREFERENCE_KEY].items);
-          const newPrefs = { items: mergedItems };
-          setPreferences(newPrefs);
-          saveToLocalStorage(newPrefs);
+        if (serverPreferences) {
+          setPreferences(serverPreferences);
+          saveToLocalStorage(serverPreferences);
+          setIsSynced(true);
+        } else {
+          setIsSynced(false);
         }
-        setIsSynced(true);
       } catch {
+        if (!isMounted) return;
         // If API fails, use localStorage (offline support)
         setIsSynced(false);
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    // Only fetch if user is authenticated
-    if (isAuthenticated) {
-      fetchPreferences();
-    } else {
-      setIsLoading(false);
-    }
+    void fetchPreferences();
+
+    return () => {
+      isMounted = false;
+    };
   }, [isAuthenticated]);
 
   // Save to API with debounce
@@ -176,7 +247,9 @@ export function useNavigationPreferences() {
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) {
-        setPreferences(loadFromLocalStorage());
+        const nextPreferences = loadFromLocalStorage();
+        cachePreferencesSnapshot(nextPreferences);
+        setPreferences(nextPreferences);
       }
     };
     window.addEventListener('storage', handleStorageChange);
@@ -186,6 +259,7 @@ export function useNavigationPreferences() {
   const updatePreferences = useCallback((newPrefs: NavigationPreferences) => {
     setPreferences(newPrefs);
     saveToLocalStorage(newPrefs);
+    cachePreferencesSnapshot(newPrefs);
 
     // Save to API if authenticated
     if (isAuthenticated) {
@@ -203,6 +277,7 @@ export function useNavigationPreferences() {
       });
       const newPrefs = { items: newItems };
       saveToLocalStorage(newPrefs);
+      cachePreferencesSnapshot(newPrefs);
 
       if (isAuthenticated) {
         saveToApi(newPrefs);

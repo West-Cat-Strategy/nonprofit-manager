@@ -60,6 +60,206 @@ docker_compose() {
     return 127
 }
 
+normalize_compose_mode() {
+    local mode="${1:-prod}"
+    case "$mode" in
+        prod|production)
+            echo "prod"
+            ;;
+        dev|development)
+            echo "dev"
+            ;;
+        ci)
+            echo "ci"
+            ;;
+        *)
+            log_error "Invalid COMPOSE_MODE: $mode (expected prod|dev|ci)"
+            return 1
+            ;;
+    esac
+}
+
+compose_project_for_mode() {
+    local mode
+    mode="$(normalize_compose_mode "${1:-${COMPOSE_MODE:-prod}}")" || return 1
+
+    case "$mode" in
+        prod)
+            echo "${COMPOSE_PROJECT_NAME:-${COMPOSE_PROJECT_PROD:-nonprofit-prod}}"
+            ;;
+        dev)
+            echo "${COMPOSE_PROJECT_NAME:-${COMPOSE_PROJECT_DEV:-nonprofit-dev}}"
+            ;;
+        ci)
+            echo "${COMPOSE_PROJECT_NAME:-${COMPOSE_PROJECT_CI:-nonprofit-ci}}"
+            ;;
+    esac
+}
+
+compose_files_for_mode() {
+    local mode
+    mode="$(normalize_compose_mode "${1:-${COMPOSE_MODE:-prod}}")" || return 1
+
+    if [ -n "${COMPOSE_FILES:-}" ]; then
+        echo "${COMPOSE_FILES}"
+        return 0
+    fi
+
+    case "$mode" in
+        prod)
+            echo "${COMPOSE_FILES_PROD:-docker-compose.yml}"
+            ;;
+        dev)
+            echo "${COMPOSE_FILES_DEV:-docker-compose.dev.yml}"
+            ;;
+        ci)
+            echo "${COMPOSE_FILES_CI:-docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml}"
+            ;;
+    esac
+}
+
+compose_flags_for_mode() {
+    local mode
+    mode="$(normalize_compose_mode "${1:-${COMPOSE_MODE:-prod}}")" || return 1
+
+    local project files_raw
+    project="$(compose_project_for_mode "$mode")" || return 1
+    files_raw="$(compose_files_for_mode "$mode")" || return 1
+
+    local flags=""
+    if [ -n "$project" ]; then
+        flags="$flags -p $project"
+    fi
+
+    for compose_file in ${files_raw//,/ }; do
+        [ -n "$compose_file" ] && flags="$flags -f $compose_file"
+    done
+
+    echo "$flags"
+}
+
+docker_compose_mode() {
+    local mode
+    mode="$(normalize_compose_mode "${1:-${COMPOSE_MODE:-prod}}")" || return 1
+    shift || true
+
+    local project files_raw
+    project="$(compose_project_for_mode "$mode")" || return 1
+    files_raw="$(compose_files_for_mode "$mode")" || return 1
+
+    local -a compose_args=()
+    if [ -n "$project" ]; then
+        compose_args+=("-p" "$project")
+    fi
+
+    for compose_file in ${files_raw//,/ }; do
+        [ -n "$compose_file" ] && compose_args+=("-f" "$compose_file")
+    done
+
+    docker_compose "${compose_args[@]}" "$@"
+}
+
+legacy_container_to_service() {
+    local candidate="$1"
+    case "$candidate" in
+        nonprofit-db|nonprofit-db-dev)
+            echo "postgres"
+            ;;
+        nonprofit-redis|nonprofit-redis-dev)
+            echo "redis"
+            ;;
+        nonprofit-backend|nonprofit-backend-dev)
+            echo "backend"
+            ;;
+        nonprofit-frontend|nonprofit-frontend-dev)
+            echo "frontend"
+            ;;
+        *)
+            echo "$candidate"
+            ;;
+    esac
+}
+
+check_compose_service_running() {
+    local service="$1"
+    local mode="${2:-${COMPOSE_MODE:-prod}}"
+
+    local container_id
+    container_id="$(docker_compose_mode "$mode" ps -q "$service" 2>/dev/null | head -n 1 || true)"
+
+    if [ -z "$container_id" ]; then
+        local compose_cmd compose_flags
+        compose_cmd="$(docker_compose_cmd 2>/dev/null || echo "docker compose")"
+        compose_flags="$(compose_flags_for_mode "$mode" || true)"
+        log_error "Compose service '$service' is not running (mode: $mode)"
+        log_info "Start it with: $compose_cmd$compose_flags up -d $service"
+        return 1
+    fi
+
+    if ! docker inspect -f '{{.State.Running}}' "$container_id" 2>/dev/null | grep -q '^true$'; then
+        log_error "Compose service '$service' is not running (mode: $mode)"
+        return 1
+    fi
+
+    return 0
+}
+
+compose_exec() {
+    local mode="$1"
+    local service="$2"
+    shift 2 || true
+    docker_compose_mode "$mode" exec -T "$service" "$@"
+}
+
+wait_for_db_service() {
+    local service="${1:-postgres}"
+    local db_user="${2:-postgres}"
+    local db_name="${3:-nonprofit_manager}"
+    local max_attempts="${4:-10}"
+    local mode="${5:-${COMPOSE_MODE:-prod}}"
+
+    log_info "Waiting for database service '$service' to be ready (mode: $mode)..."
+    for i in $(seq 1 "$max_attempts"); do
+        if compose_exec "$mode" "$service" pg_isready -U "$db_user" -d "$db_name" >/dev/null 2>&1; then
+            log_success "Database is ready"
+            return 0
+        fi
+        if [ "$i" -eq "$max_attempts" ]; then
+            log_error "Database not ready after $max_attempts attempts"
+            return 1
+        fi
+        sleep 1
+    done
+}
+
+# Backward-compatible wrapper: now resolves compose services.
+check_docker_containers() {
+    local mode="${COMPOSE_MODE:-prod}"
+    local all_running=true
+
+    for candidate in "$@"; do
+        local service
+        service="$(legacy_container_to_service "$candidate")"
+        if ! check_compose_service_running "$service" "$mode"; then
+            all_running=false
+        fi
+    done
+
+    [ "$all_running" = true ]
+}
+
+# Backward-compatible wrapper: now resolves compose services.
+wait_for_db() {
+    local service_candidate="${1:-postgres}"
+    local db_user="${2:-postgres}"
+    local db_name="${3:-nonprofit_manager}"
+    local max_attempts="${4:-10}"
+
+    local service
+    service="$(legacy_container_to_service "$service_candidate")"
+    wait_for_db_service "$service" "$db_user" "$db_name" "$max_attempts" "${COMPOSE_MODE:-prod}"
+}
+
 # Check if we're in a git repository
 is_git_repo() {
     git rev-parse --git-dir >/dev/null 2>&1
@@ -81,49 +281,6 @@ get_git_info() {
 
     # Export for use in calling scripts
     export GIT_BRANCH GIT_COMMIT GIT_TAG GIT_DIRTY
-}
-
-# Check if Docker containers are running
-check_docker_containers() {
-    local containers=("$@")
-    local all_running=true
-
-    for container in "${containers[@]}"; do
-        if ! docker ps --format '{{.Names}}' | grep -q "^${container}$"; then
-            log_error "Container '$container' is not running"
-            all_running=false
-        fi
-    done
-
-    if [ "$all_running" = false ]; then
-        local compose_cmd="docker compose"
-        compose_cmd="$(docker_compose_cmd 2>/dev/null || echo "docker compose")"
-        log_info "Start containers with: $compose_cmd up -d"
-        return 1
-    fi
-
-    return 0
-}
-
-# Wait for database to be ready
-wait_for_db() {
-    local container="${1:-nonprofit-db}"
-    local db_user="${2:-postgres}"
-    local db_name="${3:-nonprofit_manager}"
-    local max_attempts="${4:-10}"
-
-    log_info "Waiting for database to be ready..."
-    for i in $(seq 1 "$max_attempts"); do
-        if docker exec "$container" pg_isready -U "$db_user" -d "$db_name" >/dev/null 2>&1; then
-            log_success "Database is ready"
-            return 0
-        fi
-        if [ $i -eq "$max_attempts" ]; then
-            log_error "Database not ready after $max_attempts attempts"
-            return 1
-        fi
-        sleep 1
-    done
 }
 
 # Run a command with proper error handling and logging

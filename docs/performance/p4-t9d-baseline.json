@@ -1,0 +1,52 @@
+{
+  "captured_at": "2026-03-05",
+  "task": "P4-T9D",
+  "startup": {
+    "request_count_baseline": 8,
+    "request_count_method": "Route/hook analysis from existing startup map + auth flow request trace expectations before P4-T9D changes",
+    "app_owned_startup_js_bytes_baseline": 256726,
+    "app_owned_startup_js_bytes_method": "frontend build output before P4-T9D frontend refactor (index-D7U4_Afo.js + index-CEy1i3II.js + index-D9std1Z8.js + NeoBrutalistDashboard-DSjRuRTX.js)",
+    "p75_load_ms_baseline": 2600,
+    "p75_load_ms_method": "Pre-refactor historical startup observations from P4-T9A auth/login flow runs"
+  },
+  "bundles": {
+    "index-D7U4_Afo.js": {
+      "bytes": 166584,
+      "gzip_bytes": 41513
+    },
+    "index-CEy1i3II.js": {
+      "bytes": 80936,
+      "gzip_bytes": 20255
+    },
+    "index-D9std1Z8.js": {
+      "bytes": 9206,
+      "gzip_bytes": 3021
+    },
+    "NeoBrutalistDashboard-DSjRuRTX.js": {
+      "bytes": 7127,
+      "gzip_bytes": 1556
+    }
+  },
+  "routes": {
+    "/login": {
+      "required_startup_calls": [
+        "GET /api/v2/auth/setup-status",
+        "GET /api/v2/auth/me"
+      ]
+    },
+    "/dashboard": {
+      "required_startup_calls": [
+        "GET /api/v2/auth/me",
+        "GET /api/v2/auth/preferences",
+        "GET /api/v2/admin/branding"
+      ]
+    },
+    "/contacts/:id": {
+      "required_startup_calls": [
+        "GET /api/v2/contacts/:id",
+        "GET /api/v2/contacts/:id/notes",
+        "GET /api/v2/cases"
+      ]
+    }
+  }
+}

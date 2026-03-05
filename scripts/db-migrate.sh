@@ -2,18 +2,22 @@
 # Database Migration Script
 # Runs all pending SQL migrations in order
 
-set -e
+set -euo pipefail
 
 # Load common utilities and configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 source "$SCRIPT_DIR/lib/config.sh"
 
-# Configuration overrides
-DB_CONTAINER="${DB_CONTAINER:-$DB_CONTAINER}"
-DB_USER="${DB_USER:-$DB_USER}"
-DB_NAME="${DB_NAME:-$DB_NAME}"
-MIGRATIONS_DIR="${MIGRATIONS_DIR:-$MIGRATIONS_DIR}"
+COMPOSE_MODE="$(normalize_compose_mode "${COMPOSE_MODE:-prod}")"
+DB_SERVICE="${DB_SERVICE:-postgres}"
+DB_USER="${DB_USER:-postgres}"
+DB_NAME="${DB_NAME:-nonprofit_manager}"
+MIGRATIONS_DIR="${MIGRATIONS_DIR:-database/migrations}"
+
+if [[ "$MIGRATIONS_DIR" != /* ]]; then
+    MIGRATIONS_DIR="$PROJECT_ROOT/$MIGRATIONS_DIR"
+fi
 
 print_header "Database Migrations"
 
@@ -23,26 +27,26 @@ if [ ! -d "$MIGRATIONS_DIR" ]; then
     exit 1
 fi
 
-# Check if database container is running
-check_docker_containers "$DB_CONTAINER" || exit 1
+# Check if database service is running
+check_compose_service_running "$DB_SERVICE" "$COMPOSE_MODE" || exit 1
 
 # Wait for database to be ready
-wait_for_db "$DB_CONTAINER" "$DB_USER" "$DB_NAME" || exit 1
+wait_for_db_service "$DB_SERVICE" "$DB_USER" "$DB_NAME" 10 "$COMPOSE_MODE" || exit 1
 
 # Create migrations tracking table if not exists
 log_info "Ensuring migrations table exists..."
-docker exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" << 'EOF'
+compose_exec "$COMPOSE_MODE" "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" << 'EOF_SQL'
 CREATE TABLE IF NOT EXISTS schema_migrations (
     id SERIAL PRIMARY KEY,
     filename VARCHAR(255) NOT NULL UNIQUE,
     applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     checksum VARCHAR(64)
 );
-EOF
+EOF_SQL
 
 # Get list of already applied migrations
-APPLIED=$(docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -A -c \
-    "SELECT filename FROM schema_migrations ORDER BY filename;" 2>/dev/null || echo "")
+APPLIED="$(compose_exec "$COMPOSE_MODE" "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" -t -A -c \
+    "SELECT filename FROM schema_migrations ORDER BY filename;" 2>/dev/null || echo "")"
 
 # Count pending migrations
 PENDING_COUNT=0
@@ -54,7 +58,7 @@ for migration in "$MIGRATIONS_DIR"/*.sql; do
     fi
 done
 
-if [ $PENDING_COUNT -eq 0 ]; then
+if [ "$PENDING_COUNT" -eq 0 ]; then
     log_success "No pending migrations"
     print_footer "Migration check complete"
     exit 0
@@ -82,9 +86,9 @@ for migration in $(ls "$MIGRATIONS_DIR"/*.sql 2>/dev/null | sort); do
     checksum=$(md5sum "$migration" 2>/dev/null | cut -d' ' -f1 || md5 -q "$migration" 2>/dev/null || echo "")
 
     # Run migration in a transaction
-    if docker exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 < "$migration" 2>&1; then
+    if compose_exec "$COMPOSE_MODE" "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 < "$migration"; then
         # Record successful migration
-        docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c \
+        compose_exec "$COMPOSE_MODE" "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" -c \
             "INSERT INTO schema_migrations (filename, checksum) VALUES ('$filename', '$checksum');" > /dev/null
 
         log_success "Applied: $filename"

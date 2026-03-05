@@ -4,6 +4,8 @@ import react from '@vitejs/plugin-react'
 const hasPackage = (id: string, packageName: string): boolean =>
   id.includes(`/node_modules/${packageName}/`)
 
+const normalizeId = (id: string): string => id.replace(/\\/g, '/')
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -13,43 +15,110 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          const normalizedId = normalizeId(id)
+
           if (
-            id.includes('\0vite/preload-helper') ||
-            id.includes('\0commonjsHelpers') ||
-            id.includes('/vite/dist/client/')
+            normalizedId.includes('/src/routes/index.tsx') ||
+            normalizedId.includes('/src/routes/authRoutes.tsx') ||
+            normalizedId.includes('/src/routes/authRouteComponents.tsx') ||
+            normalizedId.includes('/src/routes/routeMeta.ts')
+          ) {
+            return 'routes-core'
+          }
+
+          if (
+            normalizedId.includes('/src/routes/peopleRoutes.tsx') ||
+            normalizedId.includes('/src/routes/peopleRouteComponents.tsx')
+          ) {
+            return 'routes-people'
+          }
+
+          if (
+            normalizedId.includes('/src/routes/engagementRoutes.tsx') ||
+            normalizedId.includes('/src/routes/engagementRouteComponents.tsx')
+          ) {
+            return 'routes-engagement'
+          }
+
+          if (
+            normalizedId.includes('/src/routes/financeRoutes.tsx') ||
+            normalizedId.includes('/src/routes/financeRouteComponents.tsx')
+          ) {
+            return 'routes-finance'
+          }
+
+          if (
+            normalizedId.includes('/src/routes/analyticsRoutes.tsx') ||
+            normalizedId.includes('/src/routes/analyticsRouteComponents.tsx')
+          ) {
+            return 'routes-analytics'
+          }
+
+          if (
+            normalizedId.includes('/src/routes/adminRoutes.tsx') ||
+            normalizedId.includes('/src/routes/adminRouteComponents.tsx')
+          ) {
+            return 'routes-admin'
+          }
+
+          if (
+            normalizedId.includes('/src/routes/builderRoutes.tsx') ||
+            normalizedId.includes('/src/routes/builderRouteComponents.tsx')
+          ) {
+            return 'routes-builder'
+          }
+
+          if (
+            normalizedId.includes('/src/routes/workflowRoutes.tsx') ||
+            normalizedId.includes('/src/routes/workflowRouteComponents.tsx')
+          ) {
+            return 'routes-workflow'
+          }
+
+          if (
+            normalizedId.includes('/src/routes/portalRoutes.tsx') ||
+            normalizedId.includes('/src/routes/portalRouteComponents.tsx')
+          ) {
+            return 'routes-portal'
+          }
+
+          if (
+            normalizedId.includes('\0vite/preload-helper') ||
+            normalizedId.includes('\0commonjsHelpers') ||
+            normalizedId.includes('/vite/dist/client/')
           ) {
             return 'vendor-runtime'
           }
 
-          if (hasPackage(id, 'react') || hasPackage(id, 'react-dom') || hasPackage(id, 'react-router-dom')) {
+          if (hasPackage(normalizedId, 'react') || hasPackage(normalizedId, 'react-dom') || hasPackage(normalizedId, 'react-router-dom')) {
             return 'vendor-react'
           }
 
-          if (hasPackage(id, '@reduxjs/toolkit') || hasPackage(id, 'react-redux')) {
+          if (hasPackage(normalizedId, '@reduxjs/toolkit') || hasPackage(normalizedId, 'react-redux')) {
             return 'vendor-redux'
           }
 
-          if (hasPackage(id, 'recharts')) {
+          if (hasPackage(normalizedId, 'recharts')) {
             return 'vendor-recharts'
           }
 
-          if (hasPackage(id, '@headlessui/react') || hasPackage(id, '@heroicons/react')) {
+          if (hasPackage(normalizedId, '@headlessui/react') || hasPackage(normalizedId, '@heroicons/react')) {
             return 'vendor-ui'
           }
 
-          if (hasPackage(id, 'date-fns')) {
+          if (hasPackage(normalizedId, 'date-fns')) {
             return 'vendor-date'
           }
 
-          if (hasPackage(id, '@dnd-kit/core') || hasPackage(id, '@dnd-kit/sortable') || hasPackage(id, '@dnd-kit/utilities')) {
+          if (hasPackage(normalizedId, '@dnd-kit/core') || hasPackage(normalizedId, '@dnd-kit/sortable') || hasPackage(normalizedId, '@dnd-kit/utilities')) {
             return 'vendor-dnd'
           }
 
-          if (hasPackage(id, 'jspdf') || hasPackage(id, 'jspdf-autotable')) {
+          if (hasPackage(normalizedId, 'jspdf') || hasPackage(normalizedId, 'jspdf-autotable')) {
             return 'vendor-pdf'
           }
 
-          if (hasPackage(id, '@stripe/react-stripe-js') || hasPackage(id, '@stripe/stripe-js')) {
+          if (hasPackage(normalizedId, '@stripe/react-stripe-js') || hasPackage(normalizedId, '@stripe/stripe-js')) {
             return 'vendor-stripe'
           }
         },
@@ -62,7 +131,6 @@ export default defineConfig({
     strictPort: true,
     allowedHosts: [
       'frontend-dev',
-      'nonprofit-frontend-dev',
       'cbis-playground.westcat.ca',
       'localhost',
       '127.0.0.1'

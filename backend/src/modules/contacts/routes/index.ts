@@ -9,6 +9,7 @@ import {
   bulkUpdateContactsSchema,
   contactEmailSchema,
   contactFilterSchema,
+  contactLookupQuerySchema,
   contactNoteSchema,
   contactRelationshipSchema,
   contactPhoneSchema,
@@ -72,6 +73,7 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
   router.use(loadDataScope('contacts'));
 
   router.get('/', validateQuery(contactFilterSchema), directoryController.getContacts);
+  router.get('/lookup', validateQuery(contactLookupQuerySchema), directoryController.lookupContacts);
   router.get('/tags', directoryController.getContactTags);
   router.get('/roles', directoryController.getContactRoles);
   router.post('/bulk', validateBody(bulkUpdateContactsSchema), directoryController.bulkUpdateContacts);

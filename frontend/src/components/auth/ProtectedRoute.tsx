@@ -2,7 +2,6 @@ import { Suspense } from 'react';
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAppSelector } from '../../store/hooks';
-import Layout from '../Layout';
 
 // Protected Route wrapper component
 interface ProtectedRouteProps {
@@ -18,9 +17,7 @@ const ProtectedRouteWrapper = ({ children, isAuthenticated }: ProtectedRouteProp
     return <Navigate to="/login" replace />;
   }
   return (
-    <Layout>
-      <Suspense fallback={<RouteContentFallback />}>{children}</Suspense>
-    </Layout>
+    <Suspense fallback={<RouteContentFallback />}>{children}</Suspense>
   );
 };
 
@@ -30,9 +27,7 @@ const NeoBrutalistRouteWrapper = ({ children, isAuthenticated }: ProtectedRouteP
     return <Navigate to="/login" replace />;
   }
   return (
-    <Layout>
-      <Suspense fallback={<RouteContentFallback />}>{children}</Suspense>
-    </Layout>
+    <Suspense fallback={<RouteContentFallback />}>{children}</Suspense>
   );
 };
 

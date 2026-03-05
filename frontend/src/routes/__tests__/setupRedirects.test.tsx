@@ -53,6 +53,9 @@ describe('AppRoutes setup startup redirects', () => {
     expect(
       await screen.findByRole('heading', { name: /build your nonprofit workspace in minutes/i })
     ).toBeInTheDocument();
+    expect(
+      mockUseSetupCheck.mock.calls.some((call) => call[0]?.enabled === true)
+    ).toBe(true);
   });
 
   it('redirects /setup to /login when setup is resolved as complete', async () => {
@@ -83,6 +86,9 @@ describe('AppRoutes setup startup redirects', () => {
     expect(
       await screen.findByRole('heading', { name: /build your nonprofit workspace in minutes/i })
     ).toBeInTheDocument();
+    expect(
+      mockUseSetupCheck.mock.calls.some((call) => call[0]?.enabled === true)
+    ).toBe(true);
   });
 
   it('keeps /login usable when setup status fetch failed', async () => {
@@ -91,5 +97,16 @@ describe('AppRoutes setup startup redirects', () => {
     expect(
       await screen.findByRole('heading', { name: /welcome back to nonprofit manager/i })
     ).toBeInTheDocument();
+  });
+
+  it('disables setup check on protected routes before auth redirect', async () => {
+    renderAppRoutes('/dashboard');
+
+    expect(
+      await screen.findByRole('heading', { name: /welcome back to nonprofit manager/i })
+    ).toBeInTheDocument();
+    expect(
+      mockUseSetupCheck.mock.calls.some((call) => call[0]?.enabled === false)
+    ).toBe(true);
   });
 });

@@ -252,6 +252,18 @@ export interface ContactWithRelated extends Contact {
   relationships: ContactRelationship[];
 }
 
+export interface ContactLookupItem {
+  contact_id: string;
+  first_name: string;
+  preferred_name?: string | null;
+  last_name: string;
+  email: string | null;
+  phone: string | null;
+  mobile_phone: string | null;
+  account_name?: string | null;
+  is_active: boolean;
+}
+
 export interface CreateContactDTO {
   account_id?: string;
   first_name: string;

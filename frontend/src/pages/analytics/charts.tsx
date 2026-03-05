@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import {
   PieChart,
   Pie,
@@ -159,6 +159,19 @@ interface DonationTrendsChartProps {
 }
 
 export function DonationTrendsChartComponent({ data, loading }: DonationTrendsChartProps) {
+  const [exportingPdf, setExportingPdf] = useState(false);
+
+  const handleExportPdf = async () => {
+    if (exportingPdf) return;
+
+    setExportingPdf(true);
+    try {
+      await exportDonationTrendsToPDF(data);
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="bg-app-surface rounded-lg shadow p-6">
@@ -187,13 +200,24 @@ export function DonationTrendsChartComponent({ data, loading }: DonationTrendsCh
         <h3 className="text-lg font-medium text-app-text">Donation Trends (12 Months)</h3>
         <button
           type="button"
-          onClick={() => exportDonationTrendsToPDF(data)}
-          className="p-2 text-app-text-subtle hover:text-app-accent hover:bg-app-surface-muted rounded"
-          title="Export to PDF"
+          onClick={() => void handleExportPdf()}
+          disabled={exportingPdf}
+          aria-label={exportingPdf ? 'Generating donation trends PDF' : 'Export donation trends PDF'}
+          className="rounded px-2 py-1 text-app-text-subtle hover:text-app-accent hover:bg-app-surface-muted disabled:cursor-not-allowed disabled:opacity-70"
+          title={exportingPdf ? 'Generating PDF...' : 'Export to PDF'}
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-          </svg>
+          {exportingPdf ? (
+            <span className="text-xs font-medium">Generating...</span>
+          ) : (
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+              />
+            </svg>
+          )}
         </button>
       </div>
       <div className="h-64">
@@ -243,6 +267,19 @@ interface VolunteerTrendsChartProps {
 }
 
 export function VolunteerTrendsChartComponent({ data, loading }: VolunteerTrendsChartProps) {
+  const [exportingPdf, setExportingPdf] = useState(false);
+
+  const handleExportPdf = async () => {
+    if (exportingPdf) return;
+
+    setExportingPdf(true);
+    try {
+      await exportVolunteerTrendsToPDF(data);
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="bg-app-surface rounded-lg shadow p-6">
@@ -271,13 +308,24 @@ export function VolunteerTrendsChartComponent({ data, loading }: VolunteerTrends
         <h3 className="text-lg font-medium text-app-text">Volunteer Hours Trends (12 Months)</h3>
         <button
           type="button"
-          onClick={() => exportVolunteerTrendsToPDF(data)}
-          className="p-2 text-app-text-subtle hover:text-app-accent hover:bg-app-surface-muted rounded"
-          title="Export to PDF"
+          onClick={() => void handleExportPdf()}
+          disabled={exportingPdf}
+          aria-label={exportingPdf ? 'Generating volunteer trends PDF' : 'Export volunteer trends PDF'}
+          className="rounded px-2 py-1 text-app-text-subtle hover:text-app-accent hover:bg-app-surface-muted disabled:cursor-not-allowed disabled:opacity-70"
+          title={exportingPdf ? 'Generating PDF...' : 'Export to PDF'}
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-          </svg>
+          {exportingPdf ? (
+            <span className="text-xs font-medium">Generating...</span>
+          ) : (
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+              />
+            </svg>
+          )}
         </button>
       </div>
       <div className="h-64">

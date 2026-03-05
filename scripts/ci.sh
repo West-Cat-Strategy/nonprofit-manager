@@ -67,6 +67,14 @@ validate_environment "$ENVIRONMENT" || exit 1
 FAILURES=()
 STEP_COUNT=0
 START_TIME=$(date +%s)
+CI_INFRA_COMPOSE_ARGS=""
+CI_INFRA_STARTED=false
+
+cleanup_ci_infra() {
+    if [ "$CI_INFRA_STARTED" = true ] && [ -n "$CI_INFRA_COMPOSE_ARGS" ]; then
+        docker_compose $CI_INFRA_COMPOSE_ARGS down -v --remove-orphans >/dev/null 2>&1 || true
+    fi
+}
 
 # Function to run a step with timing and error tracking
 run_step() {
@@ -110,22 +118,33 @@ run_ci() {
     print_header "CI Pipeline" "$ENVIRONMENT environment"
 
     # Keep backend/.env.test DB host/port defaults reachable during local CI.
-    local infra_compose_args="-f docker-compose.yml"
+    local ci_project_base="${COMPOSE_PROJECT_CI:-nonprofit-ci}"
+    local ci_project_name="${CI_COMPOSE_PROJECT_NAME:-${ci_project_base}-${USER:-local}-$$}"
+    local ci_compose_files="docker-compose.yml"
+    local infra_compose_args="-p $ci_project_name -f docker-compose.yml"
     if [ -f "docker-compose.host-access.yml" ]; then
         infra_compose_args="$infra_compose_args -f docker-compose.host-access.yml"
+        ci_compose_files="$ci_compose_files docker-compose.host-access.yml"
     fi
+    if [ -f "docker-compose.ci.yml" ]; then
+        infra_compose_args="$infra_compose_args -f docker-compose.ci.yml"
+        ci_compose_files="$ci_compose_files docker-compose.ci.yml"
+    fi
+    CI_INFRA_COMPOSE_ARGS="$infra_compose_args"
     local ci_e2e_lock_file="${E2E_CI_LOCK_FILE:-/tmp/nonprofit-manager-e2e-ci.lock}"
 
     # Bring up infra before tests so backend integration tests do not race DB availability.
     if [ "$RUN_TESTS" = true ] && [ "$SKIP_TESTS" = false ] && { [ "$RUN_BACKEND" = true ] || [ "$RUN_E2E" = true ]; }; then
+        CI_INFRA_STARTED=true
+        trap cleanup_ci_infra EXIT
         run_step "Test Infra" "DB_PASSWORD=postgres docker_compose $infra_compose_args up -d postgres redis"
-        run_step "DB Migrations" "\"$SCRIPT_DIR/db-migrate.sh\""
+        run_step "DB Migrations" "COMPOSE_MODE=ci COMPOSE_PROJECT_NAME=$ci_project_name COMPOSE_FILES='$ci_compose_files' \"$SCRIPT_DIR/db-migrate.sh\""
         run_step "Test Runner Cleanup" "E2E_LOCK_FILE=$ci_e2e_lock_file \"$SCRIPT_DIR/e2e-lock-cleanup.sh\""
     fi
 
     # Pin test DB connectivity to CI infra ports to avoid host-specific overrides in backend/.env.test.
     local ci_db_host="${DB_HOST:-localhost}"
-    local ci_db_port="${DB_PORT:-5432}"
+    local ci_db_port="${DB_PORT:-8012}"
     local ci_db_name="${DB_NAME:-nonprofit_manager}"
     local ci_db_user="${DB_USER:-postgres}"
     local ci_db_password="${DB_PASSWORD:-postgres}"
@@ -187,7 +206,8 @@ run_ci() {
     if [ "$RUN_E2E" = true ] && [ "$RUN_TESTS" = true ] && [ "$SKIP_TESTS" = false ]; then
         log_info "Running Playwright E2E checks..."
         run_step "E2E Port Preflight" "E2E_PORT_ACTION=kill \"$SCRIPT_DIR/e2e-port-preflight.sh\""
-        run_step "Playwright E2E" "cd e2e && E2E_LOCK_FILE=$ci_e2e_lock_file E2E_RUNNER_ACTION=kill E2E_DB_HOST=$ci_db_host E2E_DB_PORT=$ci_db_port E2E_DB_NAME=$ci_db_name E2E_DB_USER=$ci_db_user E2E_DB_PASSWORD=$ci_db_password npm run test:ci"
+        run_step "E2E Auth Cache Cleanup" "rm -rf e2e/.cache"
+        run_step "Playwright E2E" "cd e2e && E2E_LOCK_FILE=$ci_e2e_lock_file E2E_RUNNER_ACTION=kill PW_REUSE_EXISTING_SERVER=0 E2E_COMPOSE_MODE=ci E2E_COMPOSE_PROJECT_NAME=$ci_project_name E2E_COMPOSE_FILES='$ci_compose_files' E2E_DB_HOST=$ci_db_host E2E_DB_PORT=$ci_db_port E2E_DB_NAME=$ci_db_name E2E_DB_USER=$ci_db_user E2E_DB_PASSWORD=$ci_db_password ADMIN_USER_EMAIL=${ADMIN_USER_EMAIL:-admin@example.com} ADMIN_USER_PASSWORD=${ADMIN_USER_PASSWORD:-Admin123!@#} npm run test:ci"
     else
         [ "$VERBOSE" = true ] && log_info "Playwright tests skipped"
     fi
