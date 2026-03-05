@@ -23,7 +23,7 @@ import {
   clearWebhookError,
   clearTestResult,
   clearNewApiKey,
-} from '../../../store/slices/webhookSlice';
+} from '../../webhooks/state';
 import type {
   WebhookEndpoint,
   WebhookEventType,

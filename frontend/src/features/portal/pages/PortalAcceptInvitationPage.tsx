@@ -4,7 +4,7 @@ import portalApi from '../../../services/portalApi';
 import { useApiError } from '../../../hooks/useApiError';
 import ErrorBanner from '../../../components/ErrorBanner';
 import { useAppDispatch } from '../../../store/hooks';
-import { portalLogin } from '../../../store/slices/portalAuthSlice';
+import { portalLogin } from '../../portalAuth/state';
 import { AuthHeroShell, FormField, PrimaryButton } from '../../../components/ui';
 
 interface InvitationInfo {

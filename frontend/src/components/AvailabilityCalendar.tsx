@@ -4,7 +4,7 @@
  */
 
 import { useState, useMemo } from 'react';
-import type { VolunteerAssignment } from '../store/slices/volunteersSlice';
+import type { VolunteerAssignment } from '../features/volunteers/state';
 
 interface AvailabilityCalendarProps {
   assignments: VolunteerAssignment[];

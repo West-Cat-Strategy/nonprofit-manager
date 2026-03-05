@@ -6,7 +6,7 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { fetchUpcomingFollowUps } from '../../store/slices/followUpsSlice';
+import { fetchUpcomingFollowUps } from '../../features/followUps/state';
 import type { FollowUpWithEntity } from '../../types/followup';
 import { formatDateSmart, formatTimeString } from '../../utils/format';
 

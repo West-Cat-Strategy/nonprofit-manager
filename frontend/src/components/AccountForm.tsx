@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../store/hooks';
-import { createAccount, updateAccount } from '../store/slices/accountsSlice';
-import type { Account } from '../store/slices/accountsSlice';
+import { createAccount, updateAccount } from '../features/accounts/state';
+import type { Account } from '../features/accounts/state';
 import { useForm, formValidators, type ValidationRules } from '../hooks/useForm';
 import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
 import { validateEmail, validatePhoneNumber, validateUrl } from '../utils/validation';

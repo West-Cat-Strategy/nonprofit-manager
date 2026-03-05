@@ -78,9 +78,6 @@ export function createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRout
         path="/settings/backup"
         element={<AdminRoute><DataBackup /></AdminRoute>}
       />
-      <Route path="/email-marketing" element={<Navigate to="/settings/email-marketing" replace />} />
-      <Route path="/admin/audit-logs" element={<Navigate to="/settings/admin?section=audit_logs" replace />} />
-      <Route path="/settings/organization" element={<Navigate to="/settings/admin?section=organization" replace />} />
     </>
   );
 }

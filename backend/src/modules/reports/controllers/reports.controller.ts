@@ -2,15 +2,15 @@ import {
   exportReport,
   generateReport,
   getAvailableFields,
-} from '@controllers/reportController';
-import { getOutcomesReport } from '@controllers/outcomeReportController';
+} from './report.handlers';
+import { getOutcomesReport } from './outcomeReport.handlers';
 import {
   createTemplate,
   deleteTemplate,
   getTemplateById,
   getTemplates,
   instantiateTemplate,
-} from '@controllers/reportTemplateController';
+} from './reportTemplate.handlers';
 import { ReportsUseCase } from '../usecases/reports.usecase';
 import type { ResponseMode } from '../mappers/responseMode';
 

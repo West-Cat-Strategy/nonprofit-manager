@@ -14,6 +14,18 @@ DB_SERVICE="${DB_SERVICE:-postgres}"
 DB_USER="${DB_USER:-postgres}"
 DB_NAME="${DB_NAME:-nonprofit_manager}"
 MIGRATIONS_DIR="${MIGRATIONS_DIR:-database/migrations}"
+DB_PASSWORD="${DB_PASSWORD:-postgres}"
+export DB_PASSWORD
+DB_AUTO_START_RAW="$(printf '%s' "${DB_AUTO_START:-false}" | tr '[:upper:]' '[:lower:]')"
+
+case "$DB_AUTO_START_RAW" in
+    1|true|yes|on)
+        DB_AUTO_START=true
+        ;;
+    *)
+        DB_AUTO_START=false
+        ;;
+esac
 
 if [[ "$MIGRATIONS_DIR" != /* ]]; then
     MIGRATIONS_DIR="$PROJECT_ROOT/$MIGRATIONS_DIR"
@@ -28,7 +40,14 @@ if [ ! -d "$MIGRATIONS_DIR" ]; then
 fi
 
 # Check if database service is running
-check_compose_service_running "$DB_SERVICE" "$COMPOSE_MODE" || exit 1
+if ! check_compose_service_running "$DB_SERVICE" "$COMPOSE_MODE"; then
+    if [ "$DB_AUTO_START" = true ]; then
+        log_info "Starting database service '$DB_SERVICE' (mode: $COMPOSE_MODE)..."
+        docker_compose_mode "$COMPOSE_MODE" up -d "$DB_SERVICE"
+    else
+        exit 1
+    fi
+fi
 
 # Wait for database to be ready
 wait_for_db_service "$DB_SERVICE" "$DB_USER" "$DB_NAME" 10 "$COMPOSE_MODE" || exit 1
@@ -45,15 +64,16 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 EOF_SQL
 
 # Get list of already applied migrations
-APPLIED="$(compose_exec "$COMPOSE_MODE" "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" -t -A -c \
+APPLIED_RAW="$(compose_exec "$COMPOSE_MODE" "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" -t -A -c \
     "SELECT filename FROM schema_migrations ORDER BY filename;" 2>/dev/null || echo "")"
+APPLIED="$(printf '%s' "$APPLIED_RAW" | tr -d '\r')"
 
 # Count pending migrations
 PENDING_COUNT=0
 for migration in "$MIGRATIONS_DIR"/*.sql; do
     [ -f "$migration" ] || continue
     filename=$(basename "$migration")
-    if ! echo "$APPLIED" | grep -q "^${filename}$"; then
+    if ! printf '%s\n' "$APPLIED" | grep -Fqx "$filename"; then
         PENDING_COUNT=$((PENDING_COUNT + 1))
     fi
 done
@@ -76,7 +96,7 @@ for migration in $(ls "$MIGRATIONS_DIR"/*.sql 2>/dev/null | sort); do
     filename=$(basename "$migration")
 
     # Skip if already applied
-    if echo "$APPLIED" | grep -q "^${filename}$"; then
+    if printf '%s\n' "$APPLIED" | grep -Fqx "$filename"; then
         continue
     fi
 
