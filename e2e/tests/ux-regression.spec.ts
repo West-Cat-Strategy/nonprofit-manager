@@ -115,6 +115,15 @@ const normalizePathname = (value: string): string => {
   }
 };
 
+const normalizePathWithQuery = (value: string): string => {
+  try {
+    const url = new URL(value, 'http://localhost');
+    return `${url.pathname}${url.search}`;
+  } catch {
+    return value;
+  }
+};
+
 const ADMIN_ROUTE_REDIRECT_PATHS = new Set(['/dashboard', '/login', '/settings/user', '/settings/admin']);
 
 const resolveAdminRouteState = async (
@@ -231,6 +240,26 @@ test.describe('UI/UX regression flows', () => {
       test.skip(true, 'Admin routes are not accessible with the current seeded account.');
     }
     await expect(page.getByRole('heading', { name: /admin settings/i }).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: /quick actions/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /invite users/i }).first()).toBeVisible();
+
+    const topNav = page.locator('nav').first();
+    const topNavAdminMenuButton = topNav.getByRole('button', { name: /admin quick actions/i });
+    const topNavAdminButtonVisible = await topNavAdminMenuButton.isVisible().catch(() => false);
+    if (topNavAdminButtonVisible) {
+      await topNavAdminMenuButton.click();
+      await expect(
+        page.getByTestId('admin-quick-actions-compact').getByRole('link', { name: /invite users/i }).first()
+      ).toBeVisible();
+      await page.keyboard.press('Escape');
+    } else {
+      const mobileMenuButton = topNav.getByRole('button', { name: /main menu/i });
+      await expect(mobileMenuButton).toBeVisible();
+      await mobileMenuButton.click();
+      await expect(page.getByTestId('admin-quick-actions-compact').getByRole('link', { name: /invite users/i }).first()).toBeVisible();
+      await page.keyboard.press('Escape');
+    }
+
     {
       const adminHubButtons = page.getByRole('button', { name: /show advanced|hide advanced/i });
       const adminHubLinks = page.getByRole('link', { name: /show advanced|hide advanced/i });
@@ -274,17 +303,23 @@ test.describe('UI/UX regression flows', () => {
       ).toBeGreaterThan(0);
     }
 
-    await page.goto('/email-marketing');
-    await expect(page).toHaveURL(/\/settings\/email-marketing$/);
-    await expect(page.getByRole('heading', { name: /email marketing/i }).first()).toBeVisible();
+    const removedCompatibilityRoutes = [
+      { legacy: '/email-marketing', canonical: '/settings/email-marketing' },
+      { legacy: '/admin/audit-logs', canonical: '/settings/admin?section=audit_logs' },
+      { legacy: '/settings/organization', canonical: '/settings/admin?section=organization' },
+    ];
 
-    await page.goto('/admin/audit-logs');
-    await expect(page).toHaveURL(/\/settings\/admin\?section=audit_logs$/);
-    await expect(page.getByRole('heading', { name: /admin settings/i }).first()).toBeVisible();
+    for (const { legacy, canonical } of removedCompatibilityRoutes) {
+      await page.goto(legacy);
+      await page.waitForLoadState('domcontentloaded');
 
-    await page.goto('/settings/organization');
-    await expect(page).toHaveURL(/\/settings\/admin\?section=organization$/);
-    await expect(page.getByRole('heading', { name: /admin settings/i }).first()).toBeVisible();
+      const currentPath = normalizePathWithQuery(page.url());
+      expect(
+        currentPath,
+        `Legacy route ${legacy} should no longer resolve to ${canonical}`
+      ).not.toBe(canonical);
+      expect(['/dashboard', '/login']).toContain(normalizePathname(page.url()));
+    }
 
     expectNoRuntimeIssues('admin settings and portal routes', runtimeIssues);
     runtimeIssues.detach();

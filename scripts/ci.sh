@@ -3,6 +3,7 @@
 # Runs lint, typecheck, tests, and build with consistent interface
 
 set -e
+set +H
 
 # Load common utilities and configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -69,8 +70,23 @@ STEP_COUNT=0
 START_TIME=$(date +%s)
 CI_INFRA_COMPOSE_ARGS=""
 CI_INFRA_STARTED=false
+CI_KEEP_INFRA_RAW="${CI_KEEP_INFRA:-false}"
+CI_KEEP_INFRA_NORMALIZED="$(printf '%s' "$CI_KEEP_INFRA_RAW" | tr '[:upper:]' '[:lower:]')"
+
+case "$CI_KEEP_INFRA_NORMALIZED" in
+    1|true|yes|on)
+        CI_KEEP_INFRA=true
+        ;;
+    *)
+        CI_KEEP_INFRA=false
+        ;;
+esac
 
 cleanup_ci_infra() {
+    if [ "$CI_KEEP_INFRA" = true ]; then
+        return 0
+    fi
+
     if [ "$CI_INFRA_STARTED" = true ] && [ -n "$CI_INFRA_COMPOSE_ARGS" ]; then
         docker_compose $CI_INFRA_COMPOSE_ARGS down -v --remove-orphans >/dev/null 2>&1 || true
     fi
@@ -119,7 +135,7 @@ run_ci() {
 
     # Keep backend/.env.test DB host/port defaults reachable during local CI.
     local ci_project_base="${COMPOSE_PROJECT_CI:-nonprofit-ci}"
-    local ci_project_name="${CI_COMPOSE_PROJECT_NAME:-${ci_project_base}-${USER:-local}-$$}"
+    local ci_project_name="${CI_COMPOSE_PROJECT_NAME:-${COMPOSE_PROJECT_NAME:-${ci_project_base}-${USER:-local}-$$}}"
     local ci_compose_files="docker-compose.yml"
     local infra_compose_args="-p $ci_project_name -f docker-compose.yml"
     if [ -f "docker-compose.host-access.yml" ]; then
@@ -132,11 +148,19 @@ run_ci() {
     fi
     CI_INFRA_COMPOSE_ARGS="$infra_compose_args"
     local ci_e2e_lock_file="${E2E_CI_LOCK_FILE:-/tmp/nonprofit-manager-e2e-ci.lock}"
+    local admin_user_email="${ADMIN_USER_EMAIL:-admin@example.com}"
+    local admin_user_password="${ADMIN_USER_PASSWORD:-Admin123!@#}"
+    local admin_user_email_escaped
+    local admin_user_password_escaped
+    printf -v admin_user_email_escaped '%q' "$admin_user_email"
+    printf -v admin_user_password_escaped '%q' "$admin_user_password"
 
     # Bring up infra before tests so backend integration tests do not race DB availability.
     if [ "$RUN_TESTS" = true ] && [ "$SKIP_TESTS" = false ] && { [ "$RUN_BACKEND" = true ] || [ "$RUN_E2E" = true ]; }; then
         CI_INFRA_STARTED=true
-        trap cleanup_ci_infra EXIT
+        if [ "$CI_KEEP_INFRA" != true ]; then
+            trap cleanup_ci_infra EXIT
+        fi
         run_step "Test Infra" "DB_PASSWORD=postgres docker_compose $infra_compose_args up -d postgres redis"
         run_step "DB Migrations" "COMPOSE_MODE=ci COMPOSE_PROJECT_NAME=$ci_project_name COMPOSE_FILES='$ci_compose_files' \"$SCRIPT_DIR/db-migrate.sh\""
         run_step "Test Runner Cleanup" "E2E_LOCK_FILE=$ci_e2e_lock_file \"$SCRIPT_DIR/e2e-lock-cleanup.sh\""
@@ -162,6 +186,14 @@ run_ci() {
         run_step "Controller SQL Boundary Policy" "node scripts/check-controller-sql-policy.ts" "[ \$RUN_LINT = false ]"
         run_step "Legacy Auth Guard Policy" "node scripts/check-auth-guard-policy.ts" "[ \$RUN_LINT = false ]"
         run_step "Duplicate Test Tree Policy" "node scripts/check-duplicate-test-tree.ts" "[ \$RUN_LINT = false ]"
+        run_step "Docs API Versioning Policy" "node scripts/check-doc-api-versioning.ts" "[ \$RUN_LINT = false ]"
+        run_step "V2 Module Ownership Policy" "node scripts/check-v2-module-ownership-policy.ts" "[ \$RUN_LINT = false ]"
+        run_step "Module Boundary Policy" "node scripts/check-module-boundary-policy.ts" "[ \$RUN_LINT = false ]"
+        run_step "Module Route Proxy Policy" "node scripts/check-module-route-proxy-policy.ts" "[ \$RUN_LINT = false ]"
+        run_step "Frontend Feature Boundary Policy" "node scripts/check-frontend-feature-boundary-policy.ts" "[ \$RUN_LINT = false ]"
+        run_step "Frontend Legacy Slice Import Policy" "node scripts/check-frontend-legacy-slice-import-policy.ts" "[ \$RUN_LINT = false ]"
+        run_step "Frontend Legacy Page Path Policy" "node scripts/check-frontend-legacy-page-path-policy.ts" "[ \$RUN_LINT = false ]"
+        run_step "Backend Legacy Controller Wrapper Policy" "node scripts/check-backend-legacy-controller-wrapper-policy.ts" "[ \$RUN_LINT = false ]"
         run_step "Backend TypeCheck" "cd backend && npm run type-check" "[ \$RUN_TYPECHECK = false ]"
 
         if [ "$RUN_TESTS" = true ] && [ "$SKIP_TESTS" = false ]; then
@@ -207,7 +239,7 @@ run_ci() {
         log_info "Running Playwright E2E checks..."
         run_step "E2E Port Preflight" "E2E_PORT_ACTION=kill \"$SCRIPT_DIR/e2e-port-preflight.sh\""
         run_step "E2E Auth Cache Cleanup" "rm -rf e2e/.cache"
-        run_step "Playwright E2E" "cd e2e && E2E_LOCK_FILE=$ci_e2e_lock_file E2E_RUNNER_ACTION=kill PW_REUSE_EXISTING_SERVER=0 E2E_COMPOSE_MODE=ci E2E_COMPOSE_PROJECT_NAME=$ci_project_name E2E_COMPOSE_FILES='$ci_compose_files' E2E_DB_HOST=$ci_db_host E2E_DB_PORT=$ci_db_port E2E_DB_NAME=$ci_db_name E2E_DB_USER=$ci_db_user E2E_DB_PASSWORD=$ci_db_password ADMIN_USER_EMAIL=${ADMIN_USER_EMAIL:-admin@example.com} ADMIN_USER_PASSWORD=${ADMIN_USER_PASSWORD:-Admin123!@#} npm run test:ci"
+        run_step "Playwright E2E" "cd e2e && E2E_LOCK_FILE=$ci_e2e_lock_file E2E_RUNNER_ACTION=kill PW_REUSE_EXISTING_SERVER=0 E2E_COMPOSE_MODE=ci E2E_COMPOSE_PROJECT_NAME=$ci_project_name E2E_COMPOSE_FILES='$ci_compose_files' E2E_DB_HOST=$ci_db_host E2E_DB_PORT=$ci_db_port E2E_DB_NAME=$ci_db_name E2E_DB_USER=$ci_db_user E2E_DB_PASSWORD=$ci_db_password ADMIN_USER_EMAIL=$admin_user_email_escaped ADMIN_USER_PASSWORD=$admin_user_password_escaped npm run test:ci"
     else
         [ "$VERBOSE" = true ] && log_info "Playwright tests skipped"
     fi

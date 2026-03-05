@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { createFollowUp, updateFollowUp } from '../store/slices/followUpsSlice';
+import { createFollowUp, updateFollowUp } from '../features/followUps/state';
 import { useToast } from '../contexts/useToast';
 import type {
   FollowUp,

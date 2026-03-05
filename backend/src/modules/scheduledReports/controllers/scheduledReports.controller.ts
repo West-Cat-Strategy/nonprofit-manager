@@ -1,4 +1,4 @@
-import { scheduledReportController } from '@controllers/scheduledReportController';
+import { scheduledReportController } from './scheduledReport.handlers';
 import { ScheduledReportsUseCase } from '../usecases/scheduledReports.usecase';
 import type { ResponseMode } from '../mappers/responseMode';
 

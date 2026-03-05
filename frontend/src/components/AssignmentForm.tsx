@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../store/hooks';
-import { createAssignment, updateAssignment } from '../store/slices/volunteersSlice';
-import type { VolunteerAssignment } from '../store/slices/volunteersSlice';
+import { createAssignment, updateAssignment } from '../features/volunteers/state';
+import type { VolunteerAssignment } from '../features/volunteers/state';
 import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
 
 interface Assignment {

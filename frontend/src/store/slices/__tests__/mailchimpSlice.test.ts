@@ -12,7 +12,7 @@ import mailchimpReducer, {
   clearMailchimpError,
   clearSyncResult,
   setSelectedList,
-} from '../mailchimpSlice';
+} from '../../../features/mailchimp/state';
 import api from '../../../services/api';
 import type { MailchimpState, MailchimpList } from '../../../types/mailchimp';
 

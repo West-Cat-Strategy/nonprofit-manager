@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { createVolunteer, updateVolunteer } from '../store/slices/volunteersSlice';
+import { createVolunteer, updateVolunteer } from '../features/volunteers/state';
 import { fetchContacts } from '../features/contacts/state';
-import type { Volunteer as StoreVolunteer } from '../store/slices/volunteersSlice';
+import type { Volunteer as StoreVolunteer } from '../features/volunteers/state';
 import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
 
 type Volunteer = Partial<StoreVolunteer> & Pick<StoreVolunteer, 'contact_id' | 'skills' | 'availability_status' | 'background_check_status'>;

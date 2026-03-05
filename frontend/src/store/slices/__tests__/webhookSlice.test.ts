@@ -14,7 +14,7 @@ import webhooksReducer, {
   clearWebhookError,
   clearTestResult,
   clearNewApiKey,
-} from '../webhookSlice';
+} from '../../../features/webhooks/state';
 import api from '../../../services/api';
 import type { WebhookState } from '../../../types/webhook';
 

@@ -1,3 +1,6 @@
 export * from '../../portalAdminController';
 export * from '../../portalAuthController';
-export * from './casePortalConversationsController';
+export {
+  getCasePortalConversations,
+  replyCasePortalConversation,
+} from '@modules/cases/controllers/portalConversations.controller';

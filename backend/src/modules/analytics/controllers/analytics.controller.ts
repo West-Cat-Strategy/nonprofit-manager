@@ -13,7 +13,7 @@ import {
   getEventAttendanceTrends,
   getTrendAnalysis,
   getVolunteerHoursTrends,
-} from '@controllers/analyticsController';
+} from './analytics.handlers';
 import { AnalyticsQueryUseCase } from '../usecases/analyticsQuery.usecase';
 import type { ResponseMode } from '../mappers/responseMode';
 

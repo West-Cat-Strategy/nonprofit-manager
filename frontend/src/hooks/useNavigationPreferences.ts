@@ -15,6 +15,7 @@ export interface NavigationItem {
   path: string;
   icon: string;
   enabled: boolean;
+  pinned?: boolean;
   isCore: boolean; // Core items cannot be disabled (e.g., Dashboard)
   group?: 'primary' | 'secondary' | 'utility';
   shortLabel?: string;
@@ -24,6 +25,8 @@ export interface NavigationItem {
 export interface NavigationPreferences {
   items: NavigationItem[];
 }
+
+export const MAX_PINNED_ITEMS = 3;
 
 const STORAGE_KEY = 'navigation_preferences';
 const PREFERENCE_KEY = 'navigation';
@@ -38,23 +41,61 @@ type PreferencesSnapshot = {
 let preferencesSnapshot: PreferencesSnapshot | null = null;
 let preferencesInFlightPromise: Promise<NavigationPreferences | null> | null = null;
 
+const isPinnedEligible = (item: Pick<NavigationItem, 'id' | 'isCore' | 'enabled'>): boolean =>
+  !item.isCore && item.id !== 'dashboard' && item.enabled;
+
+const normalizeNavigationItem = (
+  defaultItem: NavigationItem,
+  savedItem?: Partial<NavigationItem>
+): NavigationItem => {
+  const enabled = savedItem?.enabled ?? defaultItem.enabled;
+  const seeded = {
+    ...defaultItem,
+    enabled,
+    pinned: Boolean(savedItem?.pinned),
+  };
+
+  if (!isPinnedEligible(seeded)) {
+    seeded.pinned = false;
+  }
+
+  return seeded;
+};
+
+const clampPinnedItems = (items: NavigationItem[]): NavigationItem[] => {
+  let count = 0;
+  return items.map((item) => {
+    if (!item.pinned) {
+      return item;
+    }
+    if (!isPinnedEligible(item)) {
+      return { ...item, pinned: false };
+    }
+    count += 1;
+    if (count > MAX_PINNED_ITEMS) {
+      return { ...item, pinned: false };
+    }
+    return item;
+  });
+};
+
 // Default navigation items with their default state
 const defaultNavigationItems: NavigationItem[] = [
-  { id: 'dashboard', name: 'Dashboard', path: '/dashboard', icon: '📊', enabled: true, isCore: true, group: 'primary', shortLabel: 'Home', ariaLabel: 'Go to dashboard' },
-  { id: 'cases', name: 'Cases', path: '/cases', icon: '📋', enabled: true, isCore: false, group: 'primary' },
-  { id: 'external-service-providers', name: 'Providers', path: '/external-service-providers', icon: '🩺', enabled: true, isCore: false, group: 'secondary', shortLabel: 'Providers' },
-  { id: 'people', name: 'People', path: '/contacts', icon: '👤', enabled: true, isCore: false, group: 'primary', ariaLabel: 'Go to contacts' },
-  { id: 'accounts', name: 'Accounts', path: '/accounts', icon: '🏢', enabled: true, isCore: false, group: 'secondary' },
-  { id: 'volunteers', name: 'Volunteers', path: '/volunteers', icon: '🤝', enabled: true, isCore: false, group: 'secondary' },
-  { id: 'events', name: 'Events', path: '/events', icon: '📅', enabled: true, isCore: false, group: 'primary' },
-  { id: 'donations', name: 'Donations', path: '/donations', icon: '💰', enabled: true, isCore: false, group: 'secondary' },
-  { id: 'tasks', name: 'Tasks', path: '/tasks', icon: '✓', enabled: true, isCore: false, group: 'primary' },
-  { id: 'follow-ups', name: 'Follow-ups', path: '/follow-ups', icon: '🔔', enabled: true, isCore: false, group: 'secondary' },
-  { id: 'opportunities', name: 'Opportunities', path: '/opportunities', icon: '📈', enabled: true, isCore: false, group: 'secondary' },
+  { id: 'dashboard', name: 'Dashboard', path: '/dashboard', icon: '📊', enabled: true, pinned: false, isCore: true, group: 'primary', shortLabel: 'Home', ariaLabel: 'Go to dashboard' },
+  { id: 'cases', name: 'Cases', path: '/cases', icon: '📋', enabled: true, pinned: false, isCore: false, group: 'primary' },
+  { id: 'external-service-providers', name: 'Providers', path: '/external-service-providers', icon: '🩺', enabled: true, pinned: false, isCore: false, group: 'secondary', shortLabel: 'Providers' },
+  { id: 'people', name: 'People', path: '/contacts', icon: '👤', enabled: true, pinned: false, isCore: false, group: 'primary', ariaLabel: 'Go to contacts' },
+  { id: 'accounts', name: 'Accounts', path: '/accounts', icon: '🏢', enabled: true, pinned: false, isCore: false, group: 'secondary' },
+  { id: 'volunteers', name: 'Volunteers', path: '/volunteers', icon: '🤝', enabled: true, pinned: false, isCore: false, group: 'secondary' },
+  { id: 'events', name: 'Events', path: '/events', icon: '📅', enabled: true, pinned: false, isCore: false, group: 'primary' },
+  { id: 'donations', name: 'Donations', path: '/donations', icon: '💰', enabled: true, pinned: false, isCore: false, group: 'secondary' },
+  { id: 'tasks', name: 'Tasks', path: '/tasks', icon: '✓', enabled: true, pinned: false, isCore: false, group: 'primary' },
+  { id: 'follow-ups', name: 'Follow-ups', path: '/follow-ups', icon: '🔔', enabled: true, pinned: false, isCore: false, group: 'secondary' },
+  { id: 'opportunities', name: 'Opportunities', path: '/opportunities', icon: '📈', enabled: true, pinned: false, isCore: false, group: 'secondary' },
   ...(teamChatEnabled
-    ? [{ id: 'team-chat', name: 'Team Chat', path: '/team-chat', icon: '💬', enabled: true, isCore: false, group: 'secondary' as const }]
+    ? [{ id: 'team-chat', name: 'Team Chat', path: '/team-chat', icon: '💬', enabled: true, pinned: false, isCore: false, group: 'secondary' as const }]
     : []),
-  { id: 'scheduled-reports', name: 'Scheduled Reports', path: '/reports/scheduled', icon: '🗓️', enabled: true, isCore: false, group: 'utility', shortLabel: 'Schedules' },
+  { id: 'scheduled-reports', name: 'Scheduled Reports', path: '/reports/scheduled', icon: '🗓️', enabled: true, pinned: false, isCore: false, group: 'utility', shortLabel: 'Schedules' },
 ];
 
 function mergeWithDefaults(savedItems: NavigationItem[] | undefined): NavigationItem[] {
@@ -65,32 +106,29 @@ function mergeWithDefaults(savedItems: NavigationItem[] | undefined): Navigation
   const savedIds = new Set(savedItems.map((item) => item.id));
   const mergedItems: NavigationItem[] = [];
 
-  // First, add items in their saved order with updated properties
+  // First, add items in their saved order with updated properties.
   for (const savedItem of savedItems) {
     const defaultItem = defaultNavigationItems.find((d) => d.id === savedItem.id);
     if (defaultItem) {
-      mergedItems.push({
-        ...defaultItem,
-        enabled: savedItem.enabled,
-      });
+      mergedItems.push(normalizeNavigationItem(defaultItem, savedItem));
     }
   }
 
-  // Then, add any new default items that weren't in saved preferences
+  // Then, add any new default items that weren't in saved preferences.
   for (const defaultItem of defaultNavigationItems) {
     if (!savedIds.has(defaultItem.id)) {
       mergedItems.push(defaultItem);
     }
   }
 
-  // Ensure Dashboard is always first
+  // Ensure Dashboard is always first.
   const dashboardIndex = mergedItems.findIndex((item) => item.id === 'dashboard');
   if (dashboardIndex > 0) {
     const [dashboard] = mergedItems.splice(dashboardIndex, 1);
-    mergedItems.unshift(dashboard);
+    mergedItems.unshift({ ...dashboard, pinned: false });
   }
 
-  return mergedItems;
+  return clampPinnedItems(mergedItems);
 }
 
 function loadFromLocalStorage(): NavigationPreferences {
@@ -172,6 +210,7 @@ export function useNavigationPreferences() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSynced, setIsSynced] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch preferences from API on mount
@@ -179,6 +218,7 @@ export function useNavigationPreferences() {
     if (!isAuthenticated) {
       setIsLoading(false);
       setIsSynced(false);
+      setIsSaving(false);
       return;
     }
 
@@ -215,12 +255,15 @@ export function useNavigationPreferences() {
 
   // Save to API with debounce
   const saveToApi = useCallback((newPrefs: NavigationPreferences) => {
-    // Clear any pending save
+    // Clear any pending save.
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
-    // Debounce API save by 500ms
+    setIsSaving(true);
+    setIsSynced(false);
+
+    // Debounce API save by 500ms.
     saveTimeoutRef.current = setTimeout(async () => {
       try {
         await api.patch(`/auth/preferences/${PREFERENCE_KEY}`, {
@@ -229,7 +272,9 @@ export function useNavigationPreferences() {
         setIsSynced(true);
       } catch {
         setIsSynced(false);
-        // API save failed, but localStorage is already updated
+        // API save failed, but localStorage is already updated.
+      } finally {
+        setIsSaving(false);
       }
     }, 500);
   }, []);
@@ -257,43 +302,71 @@ export function useNavigationPreferences() {
   }, []);
 
   const updatePreferences = useCallback((newPrefs: NavigationPreferences) => {
-    setPreferences(newPrefs);
-    saveToLocalStorage(newPrefs);
-    cachePreferencesSnapshot(newPrefs);
+    const normalizedPrefs = { items: clampPinnedItems(mergeWithDefaults(newPrefs.items)) };
 
-    // Save to API if authenticated
+    setPreferences(normalizedPrefs);
+    saveToLocalStorage(normalizedPrefs);
+    cachePreferencesSnapshot(normalizedPrefs);
+
+    // Save to API if authenticated.
     if (isAuthenticated) {
-      saveToApi(newPrefs);
+      saveToApi(normalizedPrefs);
+      return;
     }
+
+    setIsSaving(false);
+    setIsSynced(false);
   }, [isAuthenticated, saveToApi]);
 
   const toggleItem = useCallback((itemId: string) => {
     setPreferences((prev) => {
       const newItems = prev.items.map((item) => {
         if (item.id === itemId && !item.isCore) {
-          return { ...item, enabled: !item.enabled };
+          const enabled = !item.enabled;
+          return {
+            ...item,
+            enabled,
+            pinned: enabled ? item.pinned : false,
+          };
         }
         return item;
       });
       const newPrefs = { items: newItems };
-      saveToLocalStorage(newPrefs);
-      cachePreferencesSnapshot(newPrefs);
-
-      if (isAuthenticated) {
-        saveToApi(newPrefs);
-      }
-
+      updatePreferences(newPrefs);
       return newPrefs;
     });
-  }, [isAuthenticated, saveToApi]);
+  }, [updatePreferences]);
 
   const setItemEnabled = useCallback((itemId: string, enabled: boolean) => {
     setPreferences((prev) => {
       const newItems = prev.items.map((item) => {
         if (item.id === itemId && !item.isCore) {
-          return { ...item, enabled };
+          return { ...item, enabled, pinned: enabled ? item.pinned : false };
         }
         return item;
+      });
+      const newPrefs = { items: newItems };
+      updatePreferences(newPrefs);
+      return newPrefs;
+    });
+  }, [updatePreferences]);
+
+  const togglePinned = useCallback((itemId: string) => {
+    setPreferences((prev) => {
+      const target = prev.items.find((item) => item.id === itemId);
+      if (!target || !isPinnedEligible(target)) {
+        return prev;
+      }
+
+      const currentlyPinnedCount = prev.items.filter((item) => item.pinned).length;
+      const tryingToPin = !target.pinned;
+      if (tryingToPin && currentlyPinnedCount >= MAX_PINNED_ITEMS) {
+        return prev;
+      }
+
+      const newItems = prev.items.map((item) => {
+        if (item.id !== itemId) return item;
+        return { ...item, pinned: !item.pinned };
       });
       const newPrefs = { items: newItems };
       updatePreferences(newPrefs);
@@ -363,24 +436,43 @@ export function useNavigationPreferences() {
   }, [updatePreferences]);
 
   const enabledItems = preferences.items.filter((item) => item.enabled);
-  const primaryItems = enabledItems.slice(0, 4); // First 4 items are primary
-  const secondaryItems = enabledItems.slice(4); // Rest go under "More" menu
+  const pinnedItems = enabledItems.filter((item) => item.pinned).slice(0, MAX_PINNED_ITEMS);
+  const unpinnedEnabledItems = enabledItems.filter((item) => !item.pinned);
+  const primaryItems = unpinnedEnabledItems.slice(0, 4); // First 4 unpinned items are primary.
+  const secondaryItems = unpinnedEnabledItems.slice(4); // Rest go under "More" menu.
+
+  let syncStatus: 'saving' | 'synced' | 'offline' = 'offline';
+  if (isSaving) {
+    syncStatus = 'saving';
+  } else if (isSynced) {
+    syncStatus = 'synced';
+  }
 
   return {
     preferences,
     allItems: preferences.items,
     enabledItems,
+    pinnedItems,
     primaryItems,
     secondaryItems,
     toggleItem,
     setItemEnabled,
+    togglePinned,
     reorderItems,
     moveItemUp,
     moveItemDown,
     resetToDefaults,
     isLoading,
     isSynced,
+    isSaving,
+    syncStatus,
+    maxPinnedItems: MAX_PINNED_ITEMS,
   };
 }
+
+export const __resetNavigationPreferencesCacheForTests = (): void => {
+  preferencesSnapshot = null;
+  preferencesInFlightPromise = null;
+};
 
 export default useNavigationPreferences;

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { fetchAnalyticsSummary } from '../store/slices/analyticsSlice';
+import { fetchAnalyticsSummary } from '../features/analytics/state';
 import { fetchCases, selectActiveCases, selectUrgentCases, selectCasesDueThisWeek } from '../features/cases/state';
 import { useDashboardSettings } from '../hooks/useDashboardSettings';
 import VolunteerWidget from '../components/VolunteerWidget';

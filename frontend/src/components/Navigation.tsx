@@ -4,7 +4,7 @@
  * Fully responsive with mobile, tablet, and desktop optimizations
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, type RefObject } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logoutAsync } from '../store/slices/authSlice';
@@ -15,6 +15,9 @@ import Avatar from './Avatar';
 import { useQuickLookup } from './dashboard';
 import { getRouteMeta } from '../routes/routeMeta';
 import type { ThemeId } from '../theme/themeRegistry';
+import NavPopover from './navigation/NavPopover';
+import PinnedNavStrip from './navigation/PinnedNavStrip';
+import AdminQuickActionsBar from '../features/adminOps/components/AdminQuickActionsBar';
 
 const Navigation = () => {
   const navigate = useNavigate();
@@ -28,6 +31,7 @@ const Navigation = () => {
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
@@ -35,6 +39,7 @@ const Navigation = () => {
   const searchDialogRef = useRef<HTMLDivElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const themeMenuRef = useRef<HTMLDivElement>(null);
+  const adminMenuRef = useRef<HTMLDivElement>(null);
   const routeMeta = getRouteMeta(location.pathname);
 
   const themeLabels: Record<ThemeId, string> = {
@@ -46,38 +51,45 @@ const Navigation = () => {
     'high-contrast': 'HC',
   };
 
+  const lookup = useQuickLookup({ debounceMs: 250 });
+
+  const closeAllMenus = useCallback(() => {
+    setMobileMenuOpen(false);
+    setUserMenuOpen(false);
+    setMoreMenuOpen(false);
+    setThemeMenuOpen(false);
+    setAdminMenuOpen(false);
+  }, []);
+
+  const focusFirstItem = (ref: RefObject<HTMLDivElement | null>) => {
+    const item = ref.current?.querySelector<HTMLElement>('a,button,input,[tabindex]:not([tabindex="-1"])');
+    item?.focus();
+  };
+
   const handleQuickThemeCycle = useCallback(() => {
     const idx = availableThemes.indexOf(theme);
     const nextIdx = (idx + 1) % availableThemes.length;
     setTheme(availableThemes[nextIdx]);
   }, [theme, availableThemes, setTheme]);
 
-  const lookup = useQuickLookup({ debounceMs: 250 });
-
   // Close menus on ESC key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setMobileMenuOpen(false);
-        setUserMenuOpen(false);
-        setMoreMenuOpen(false);
+        closeAllMenus();
         setSearchOpen(false);
-        setThemeMenuOpen(false);
       }
     };
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, []);
+  }, [closeAllMenus]);
 
   // Close menus when route changes
   useEffect(() => {
-    setMobileMenuOpen(false);
-    setUserMenuOpen(false);
-    setMoreMenuOpen(false);
-    setThemeMenuOpen(false);
-  }, [location.pathname]);
+    closeAllMenus();
+  }, [closeAllMenus, location.pathname]);
 
-  // Prevent body scroll when mobile menu is open
+  // Prevent body scroll when mobile menu or search is open
   useEffect(() => {
     if (mobileMenuOpen || searchOpen) {
       document.body.style.overflow = 'hidden';
@@ -89,6 +101,22 @@ const Navigation = () => {
     };
   }, [mobileMenuOpen, searchOpen]);
 
+  useEffect(() => {
+    if (moreMenuOpen) focusFirstItem(moreMenuRef);
+  }, [moreMenuOpen]);
+
+  useEffect(() => {
+    if (userMenuOpen) focusFirstItem(userMenuRef);
+  }, [userMenuOpen]);
+
+  useEffect(() => {
+    if (themeMenuOpen) focusFirstItem(themeMenuRef);
+  }, [themeMenuOpen]);
+
+  useEffect(() => {
+    if (adminMenuOpen) focusFirstItem(adminMenuRef);
+  }, [adminMenuOpen]);
+
   const handleLogout = () => {
     dispatch(logoutAsync()).finally(() => navigate('/login'));
   };
@@ -99,36 +127,44 @@ const Navigation = () => {
   };
 
   const isActive = (path: string) => {
-    return location.pathname.startsWith(path);
+    if (path === '/dashboard') {
+      return location.pathname === path;
+    }
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
-  // Get navigation items from user preferences
-  const { primaryItems, secondaryItems, enabledItems } = useNavigationPreferences();
+  const {
+    pinnedItems,
+    primaryItems,
+    secondaryItems,
+    enabledItems,
+    togglePinned,
+  } = useNavigationPreferences();
 
-  // Map preference items to nav link format
   const primaryNavLinks = primaryItems.map((item) => ({
-    name: item.name,
+    ...item,
     shortLabel: item.shortLabel ?? item.name,
-    path: item.path,
-    icon: item.icon,
     ariaLabel: item.ariaLabel ?? item.name,
   }));
 
   const secondaryNavLinks = secondaryItems.map((item) => ({
-    name: item.name,
+    ...item,
     shortLabel: item.shortLabel ?? item.name,
-    path: item.path,
-    icon: item.icon,
     ariaLabel: item.ariaLabel ?? item.name,
   }));
 
   const allNavLinks = enabledItems.map((item) => ({
-    name: item.name,
+    ...item,
     shortLabel: item.shortLabel ?? item.name,
-    path: item.path,
-    icon: item.icon,
     ariaLabel: item.ariaLabel ?? item.name,
   }));
+
+  const openMenu = (menu: 'user' | 'more' | 'theme' | 'admin') => {
+    setUserMenuOpen(menu === 'user' ? (prev) => !prev : false);
+    setMoreMenuOpen(menu === 'more' ? (prev) => !prev : false);
+    setThemeMenuOpen(menu === 'theme' ? (prev) => !prev : false);
+    setAdminMenuOpen(menu === 'admin' ? (prev) => !prev : false);
+  };
 
   useEffect(() => {
     if (searchOpen) {
@@ -170,9 +206,7 @@ const Navigation = () => {
     <nav className="bg-app-surface shadow-md border-b border-app-border sticky top-0 z-50">
       <div className="mx-auto px-3 sm:px-4 lg:px-6 max-w-[1920px]">
         <div className="flex justify-between h-14 sm:h-16">
-          {/* Logo and primary navigation */}
           <div className="flex items-center min-w-0">
-            {/* Logo */}
             <Link to="/dashboard" className="flex items-center space-x-2 mr-3 sm:mr-6 lg:mr-8 flex-shrink-0">
               <div className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg shadow-sm overflow-hidden bg-app-accent">
                 {branding.appIcon ? (
@@ -187,12 +221,14 @@ const Navigation = () => {
                 {branding.appName || 'Nonprofit Manager'}
               </span>
             </Link>
+
             <span className="hidden md:inline-flex items-center rounded-full border border-app-border px-2 py-1 text-xs font-semibold text-app-text-muted">
               You are here: {routeMeta.section}
             </span>
 
-            {/* Desktop navigation - Primary links */}
-            <div className="hidden lg:flex lg:space-x-1">
+            <PinnedNavStrip items={pinnedItems} isActive={isActive} onUnpin={togglePinned} className="ml-3" />
+
+            <div className="hidden lg:flex lg:space-x-1 lg:ml-3">
               {primaryNavLinks.map((link) => (
                 <Link
                   key={link.path}
@@ -204,20 +240,22 @@ const Navigation = () => {
                       : 'text-app-text-muted hover:bg-app-hover hover:text-app-text'
                   }`}
                 >
-                  <span className="mr-1.5">{link.icon}</span>
+                  <span className="mr-1.5" aria-hidden="true">{link.icon}</span>
                   {link.shortLabel}
                 </Link>
               ))}
 
-              {/* More dropdown for secondary links */}
               <div className="relative">
                 <button
-                  onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+                  onClick={() => openMenu('more')}
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
-                    secondaryNavLinks.some(link => isActive(link.path))
+                    secondaryNavLinks.some((link) => isActive(link.path))
                       ? 'bg-app-accent-soft text-app-accent-text'
                       : 'text-app-text-muted hover:bg-app-hover hover:text-app-text'
                   }`}
+                  aria-haspopup="menu"
+                  aria-expanded={moreMenuOpen}
+                  aria-controls="topnav-more-menu"
                 >
                   More
                   <svg className="inline-block w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -225,52 +263,45 @@ const Navigation = () => {
                   </svg>
                 </button>
 
-                {/* More dropdown menu */}
-                {moreMenuOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setMoreMenuOpen(false)}
-                    />
-                    <div
-                      ref={moreMenuRef}
-                      className="menu-surface-opaque absolute left-0 mt-2 w-48 rounded-lg shadow-lg border border-app-border py-1 z-20 animate-fadeIn"
-                    >
-                      {secondaryNavLinks.map((link) => (
-                        <Link
-                          key={link.path}
-                          to={link.path}
-                          aria-label={link.ariaLabel}
-                          onClick={() => setMoreMenuOpen(false)}
-                          className={`block px-4 py-2 text-sm ${
-                            isActive(link.path)
-                              ? 'bg-app-accent-soft text-app-accent-text font-medium'
-                              : 'text-app-text-muted hover:bg-app-hover'
-                          }`}
-                        >
-                          <span className="mr-2">{link.icon}</span>
-                          {link.shortLabel}
-                        </Link>
-                      ))}
-                    </div>
-                  </>
-                )}
+                <NavPopover
+                  open={moreMenuOpen}
+                  onClose={() => setMoreMenuOpen(false)}
+                  panelClassName="w-52"
+                  panelRef={moreMenuRef}
+                >
+                  <div id="topnav-more-menu" role="menu" aria-label="More navigation links">
+                    {secondaryNavLinks.map((link) => (
+                      <Link
+                        key={link.path}
+                        to={link.path}
+                        role="menuitem"
+                        aria-label={link.ariaLabel}
+                        onClick={() => setMoreMenuOpen(false)}
+                        className={`block px-4 py-2 text-sm ${
+                          isActive(link.path)
+                            ? 'bg-app-accent-soft text-app-accent-text font-medium'
+                            : 'text-app-text-muted hover:bg-app-hover'
+                        }`}
+                      >
+                        <span className="mr-2" aria-hidden="true">{link.icon}</span>
+                        {link.shortLabel}
+                      </Link>
+                    ))}
+                  </div>
+                </NavPopover>
               </div>
             </div>
           </div>
 
-          {/* Right side - Search, Reports, Settings, User menu */}
           <div className="flex items-center space-x-2 sm:space-x-3 lg:space-x-4">
-            {/* Search button - hidden on mobile and tablet */}
             <button
               type="button"
               ref={searchButtonRef}
               className="hidden xl:flex items-center px-3 py-1.5 text-sm text-app-text-subtle bg-app-surface-muted rounded-md hover:bg-app-hover transition-colors"
-              onClick={() => {
-                handleSearch();
-              }}
+              onClick={handleSearch}
+              aria-label="Search"
             >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -281,12 +312,11 @@ const Navigation = () => {
               <span className="hidden xl:inline">Search</span>
             </button>
 
-            {/* Reports link - hidden on mobile */}
             <Link
               to="/reports/builder"
               className="hidden lg:flex items-center px-3 py-2 text-sm font-medium text-app-text-muted rounded-md hover:bg-app-hover transition-colors whitespace-nowrap"
             >
-              <svg className="w-4 h-4 lg:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 lg:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -297,12 +327,11 @@ const Navigation = () => {
               <span className="hidden xl:inline">Reports</span>
             </Link>
 
-            {/* User Settings link - hidden on mobile */}
             <Link
               to="/settings/user"
               className="hidden lg:flex items-center px-3 py-2 text-sm font-medium text-app-text-muted rounded-md hover:bg-app-hover transition-colors whitespace-nowrap"
             >
-              <svg className="w-4 h-4 lg:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 lg:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -313,72 +342,110 @@ const Navigation = () => {
               <span className="hidden xl:inline">My Profile</span>
             </Link>
 
-            {/* Theme quick-access */}
+            {user?.role === 'admin' && (
+              <div className="relative hidden lg:block">
+                <button
+                  type="button"
+                  onClick={() => openMenu('admin')}
+                  className="flex items-center gap-1.5 px-2.5 py-2 text-sm rounded-md hover:bg-app-hover transition-colors"
+                  aria-label="Admin quick actions"
+                  aria-expanded={adminMenuOpen}
+                  aria-haspopup="menu"
+                  aria-controls="topnav-admin-actions"
+                >
+                  <span className="text-xs font-semibold tracking-wide">Admin</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                <NavPopover
+                  open={adminMenuOpen}
+                  onClose={() => setAdminMenuOpen(false)}
+                  align="right"
+                  panelClassName="w-80 p-2"
+                  panelRef={adminMenuRef}
+                >
+                  <div id="topnav-admin-actions" role="menu" aria-label="Admin quick actions">
+                    <AdminQuickActionsBar
+                      role={user.role}
+                      compact
+                      maxItems={5}
+                      onActionClick={() => setAdminMenuOpen(false)}
+                    />
+                  </div>
+                </NavPopover>
+              </div>
+            )}
+
             <div className="relative hidden lg:block">
               <button
                 type="button"
-                onClick={() => setThemeMenuOpen(!themeMenuOpen)}
+                onClick={() => openMenu('theme')}
                 onDoubleClick={handleQuickThemeCycle}
                 className="flex items-center px-2 py-2 text-sm rounded-md hover:bg-app-hover transition-colors"
                 aria-label="Theme settings"
                 aria-expanded={themeMenuOpen}
+                aria-haspopup="menu"
+                aria-controls="topnav-theme-menu"
                 title="Click to pick theme, double-click to cycle"
               >
                 <span className="text-xs font-semibold tracking-wide">{themeLabels[theme]}</span>
-                {isDarkMode && <span className="ml-0.5 text-xs">🌙</span>}
+                {isDarkMode && <span className="ml-0.5 text-xs" aria-hidden="true">🌙</span>}
               </button>
 
-              {themeMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setThemeMenuOpen(false)}
-                    aria-hidden="true"
-                  />
-                  <div
-                    ref={themeMenuRef}
-                    className="menu-surface-opaque absolute right-0 mt-2 w-52 rounded-lg shadow-lg border border-app-border py-2 z-20 animate-fadeIn"
-                  >
-                    <div className="px-3 pb-2 mb-1 border-b border-app-border-muted">
-                      <p className="text-xs font-semibold text-app-text-muted uppercase tracking-wider">Theme</p>
-                    </div>
-                    {availableThemes.map(t => (
-                      <button
-                        key={t}
-                        onClick={() => { setTheme(t); setThemeMenuOpen(false); }}
-                        className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 transition-colors ${
-                          theme === t
-                            ? 'bg-app-accent-soft text-app-accent-text font-medium'
-                            : 'text-app-text hover:bg-app-hover'
-                        }`}
-                      >
-                        <span className="text-[11px] font-semibold tracking-wide">{themeLabels[t]}</span>
-                        <span className="capitalize">{t.replace(/-/g, ' ')}</span>
-                        {theme === t && <span className="ml-auto text-app-accent">✓</span>}
-                      </button>
-                    ))}
-                    <div className="px-3 pt-2 mt-1 border-t border-app-border-muted">
-                      <button
-                        onClick={() => { toggleDarkMode(); }}
-                        className="w-full text-left text-sm flex items-center gap-2 py-1.5 text-app-text hover:bg-app-hover rounded px-1 transition-colors"
-                      >
-                        <span>{isDarkMode ? '☀️' : '🌙'}</span>
-                        <span>{isDarkMode ? 'Switch to Light' : 'Switch to Dark'}</span>
-                      </button>
-                    </div>
+              <NavPopover
+                open={themeMenuOpen}
+                onClose={() => setThemeMenuOpen(false)}
+                align="right"
+                panelClassName="w-52 py-2"
+                panelRef={themeMenuRef}
+              >
+                <div id="topnav-theme-menu" role="menu" aria-label="Theme settings">
+                  <div className="px-3 pb-2 mb-1 border-b border-app-border-muted">
+                    <p className="text-xs font-semibold text-app-text-muted uppercase tracking-wider">Theme</p>
                   </div>
-                </>
-              )}
+                  {availableThemes.map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => {
+                        setTheme(t);
+                        setThemeMenuOpen(false);
+                      }}
+                      role="menuitem"
+                      className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 transition-colors ${
+                        theme === t
+                          ? 'bg-app-accent-soft text-app-accent-text font-medium'
+                          : 'text-app-text hover:bg-app-hover'
+                      }`}
+                    >
+                      <span className="text-[11px] font-semibold tracking-wide">{themeLabels[t]}</span>
+                      <span className="capitalize">{t.replace(/-/g, ' ')}</span>
+                      {theme === t && <span className="ml-auto text-app-accent">✓</span>}
+                    </button>
+                  ))}
+                  <div className="px-3 pt-2 mt-1 border-t border-app-border-muted">
+                    <button
+                      onClick={toggleDarkMode}
+                      role="menuitem"
+                      className="w-full text-left text-sm flex items-center gap-2 py-1.5 text-app-text hover:bg-app-hover rounded px-1 transition-colors"
+                    >
+                      <span>{isDarkMode ? '☀️' : '🌙'}</span>
+                      <span>{isDarkMode ? 'Switch to Light' : 'Switch to Dark'}</span>
+                    </button>
+                  </div>
+                </div>
+              </NavPopover>
             </div>
 
-            {/* User menu */}
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                onClick={() => openMenu('user')}
                 className="flex items-center space-x-1.5 sm:space-x-2 px-2 sm:px-3 py-2 text-sm font-medium text-app-text-muted rounded-md hover:bg-app-hover transition-colors"
                 aria-label="User menu"
-                aria-expanded={userMenuOpen ? "true" : "false"}
+                aria-expanded={userMenuOpen}
+                aria-haspopup="menu"
+                aria-controls="topnav-user-menu"
               >
                 <Avatar
                   src={user?.profilePicture}
@@ -389,112 +456,89 @@ const Navigation = () => {
                 <span className="hidden md:block truncate max-w-[120px] lg:max-w-[150px]">
                   {user?.firstName} {user?.lastName}
                 </span>
-                <svg className="w-4 h-4 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
 
-              {/* User dropdown menu */}
-              {userMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
+              <NavPopover
+                open={userMenuOpen}
+                onClose={() => setUserMenuOpen(false)}
+                align="right"
+                panelClassName="w-72"
+                panelRef={userMenuRef}
+              >
+                <div id="topnav-user-menu" role="menu" aria-label="User menu links">
+                  <div className="px-4 py-3 border-b border-app-border">
+                    <p className="text-sm font-medium text-app-text truncate">
+                      {user?.firstName} {user?.lastName}
+                    </p>
+                    <p className="text-xs text-app-text-muted truncate">{user?.email}</p>
+                    <p className="text-xs text-app-text-subtle mt-1 capitalize">{user?.role}</p>
+                  </div>
+                  <Link
+                    to="/dashboard"
+                    role="menuitem"
+                    className="block px-4 py-2 text-sm text-app-text hover:bg-app-hover transition-colors"
                     onClick={() => setUserMenuOpen(false)}
-                    aria-hidden="true"
-                  />
-                  <div
-                    ref={userMenuRef}
-                    className="menu-surface-opaque absolute right-0 mt-2 w-56 rounded-lg shadow-lg border border-app-border py-1 z-20 animate-fadeIn"
                   >
-                    <div className="px-4 py-3 border-b border-app-border">
-                      <p className="text-sm font-medium text-app-text truncate">
-                        {user?.firstName} {user?.lastName}
-                      </p>
-                      <p className="text-xs text-app-text-muted truncate">{user?.email}</p>
-                      <p className="text-xs text-app-text-subtle mt-1 capitalize">{user?.role}</p>
-                    </div>
-                    <Link
-                      to="/dashboard"
-                      className="block px-4 py-2 text-sm text-app-text hover:bg-app-hover transition-colors"
-                      onClick={() => setUserMenuOpen(false)}
-                    >
-                      <svg className="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                      </svg>
-                      Dashboard
-                    </Link>
-                    <Link
-                      to="/settings/user"
-                      className="block px-4 py-2 text-sm text-app-text hover:bg-app-hover transition-colors"
-                      onClick={() => setUserMenuOpen(false)}
-                    >
-                      <svg className="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      User Settings
-                    </Link>
-                    {user?.role === 'admin' && (
+                    Dashboard
+                  </Link>
+                  <Link
+                    to="/settings/user"
+                    role="menuitem"
+                    className="block px-4 py-2 text-sm text-app-text hover:bg-app-hover transition-colors"
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    User Settings
+                  </Link>
+                  {user?.role === 'admin' && (
+                    <>
                       <Link
                         to="/settings/admin"
+                        role="menuitem"
                         className="block px-4 py-2 text-sm text-app-text hover:bg-app-hover transition-colors"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        <svg className="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
                         Admin Settings
-                        <span className="ml-2 px-1.5 py-0.5 text-xs font-medium bg-app-accent-soft text-app-accent-text rounded">
-                          Admin
-                        </span>
                       </Link>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setUserMenuOpen(false);
-                        handleLogout();
-                      }}
-                      className="block w-full text-left px-4 py-2 text-sm text-app-accent hover:bg-app-accent-soft transition-colors"
-                    >
-                      <svg className="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                      </svg>
-                      Logout
-                    </button>
-                  </div>
-                </>
-              )}
+                      <div className="border-t border-app-border px-2 py-2">
+                        <AdminQuickActionsBar
+                          role={user.role}
+                          compact
+                          maxItems={4}
+                          onActionClick={() => setUserMenuOpen(false)}
+                        />
+                      </div>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      handleLogout();
+                    }}
+                    role="menuitem"
+                    className="block w-full text-left px-4 py-2 text-sm text-app-accent hover:bg-app-accent-soft transition-colors"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </NavPopover>
             </div>
 
-            {/* Mobile menu button */}
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="lg:hidden inline-flex items-center justify-center p-2 rounded-md text-app-text-muted hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-inset focus:ring-app-accent transition-colors"
               aria-label="Main menu"
-              aria-expanded={mobileMenuOpen ? "true" : "false"}
+              aria-expanded={mobileMenuOpen}
             >
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 {mobileMenuOpen ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 )}
               </svg>
             </button>
@@ -502,22 +546,18 @@ const Navigation = () => {
         </div>
       </div>
 
-      {/* Mobile/Tablet menu with backdrop and smooth animation */}
       {mobileMenuOpen && (
         <>
-          {/* Backdrop overlay */}
           <div
             className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
             onClick={() => setMobileMenuOpen(false)}
             aria-hidden="true"
           />
 
-          {/* Slide-in menu panel */}
           <div
             ref={mobileMenuRef}
             className="fixed inset-y-0 right-0 max-w-xs w-full bg-app-surface shadow-xl z-50 lg:hidden overflow-y-auto transform transition-transform duration-300 ease-in-out"
           >
-            {/* Mobile menu header */}
             <div className="flex items-center justify-between px-4 py-4 border-b border-app-border">
               <div className="flex items-center space-x-2">
                 <div className="flex items-center justify-center w-8 h-8 rounded-lg shadow-sm overflow-hidden bg-app-accent">
@@ -539,42 +579,48 @@ const Navigation = () => {
                 className="p-2 rounded-md text-app-text-muted hover:bg-app-hover transition-colors"
                 aria-label="Close menu"
               >
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            {/* Navigation links */}
-            <div className="px-3 py-4 space-y-1">
-              <div className="text-xs font-semibold text-app-text-subtle uppercase tracking-wider px-3 mb-2">
-                Main Navigation
+            <div className="px-3 py-4 space-y-4">
+              <PinnedNavStrip
+                items={pinnedItems}
+                isActive={isActive}
+                compact
+                onUnpin={togglePinned}
+              />
+
+              <div className="space-y-1">
+                <div className="text-xs font-semibold text-app-text-subtle uppercase tracking-wider px-3 mb-2">
+                  Main Navigation
+                </div>
+                {allNavLinks.map((link) => (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    aria-label={link.ariaLabel}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
+                      isActive(link.path)
+                        ? 'bg-app-accent-soft text-app-accent-text'
+                        : 'text-app-text-muted hover:bg-app-hover'
+                    }`}
+                  >
+                    <span className="text-xl mr-3" aria-hidden="true">{link.icon}</span>
+                    <span>{link.name}</span>
+                    {isActive(link.path) && (
+                      <svg className="ml-auto w-5 h-5 text-app-accent-text" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </Link>
+                ))}
               </div>
-              {allNavLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  aria-label={link.ariaLabel}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
-                    isActive(link.path)
-                      ? 'bg-app-accent-soft text-app-accent-text'
-                      : 'text-app-text-muted hover:bg-app-hover'
-                  }`}
-                >
-                  <span className="text-xl mr-3">{link.icon}</span>
-                  <span>{link.name}</span>
-                  <span className="sr-only">{link.ariaLabel}</span>
-                  {isActive(link.path) && (
-                    <svg className="ml-auto w-5 h-5 text-app-accent-text" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                </Link>
-              ))}
             </div>
 
-            {/* Utilities section */}
             <div className="px-3 py-4 border-t border-app-border space-y-1">
               <div className="text-xs font-semibold text-app-text-subtle uppercase tracking-wider px-3 mb-2">
                 Utilities
@@ -584,9 +630,6 @@ const Navigation = () => {
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center px-3 py-3 rounded-lg text-base font-medium text-app-text-muted hover:bg-app-hover transition-colors"
               >
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
                 Reports
               </Link>
               <Link
@@ -594,26 +637,26 @@ const Navigation = () => {
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center px-3 py-3 rounded-lg text-base font-medium text-app-text-muted hover:bg-app-hover transition-colors"
               >
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
                 User Settings
               </Link>
               {user?.role === 'admin' && (
-                <Link
-                  to="/settings/admin"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center px-3 py-3 rounded-lg text-base font-medium text-app-text-muted hover:bg-app-hover transition-colors"
-                >
-                  <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  Admin Settings
-                  <span className="ml-2 px-1.5 py-0.5 text-xs font-medium bg-app-accent-soft text-app-accent-text rounded">
-                    Admin
-                  </span>
-                </Link>
+                <>
+                  <Link
+                    to="/settings/admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center px-3 py-3 rounded-lg text-base font-medium text-app-text-muted hover:bg-app-hover transition-colors"
+                  >
+                    Admin Settings
+                  </Link>
+                  <div className="rounded-lg border border-app-border bg-app-surface-muted p-2">
+                    <AdminQuickActionsBar
+                      role={user.role}
+                      compact
+                      maxItems={4}
+                      onActionClick={() => setMobileMenuOpen(false)}
+                    />
+                  </div>
+                </>
               )}
               <button
                 type="button"
@@ -623,14 +666,10 @@ const Navigation = () => {
                 }}
                 className="flex items-center w-full px-3 py-3 rounded-lg text-base font-medium text-app-text-muted hover:bg-app-hover transition-colors"
               >
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
                 Search
               </button>
             </div>
 
-            {/* User section at bottom */}
             <div className="px-3 py-4 border-t border-app-border mt-auto">
               <div className="flex items-center space-x-3 px-3 py-3 bg-app-surface-muted rounded-lg">
                 <Avatar
@@ -654,18 +693,22 @@ const Navigation = () => {
                 }}
                 className="flex items-center w-full px-3 py-3 mt-2 rounded-lg text-base font-medium text-app-accent hover:bg-app-accent-soft transition-colors"
               >
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
                 Logout
               </button>
             </div>
           </div>
         </>
       )}
+
       {searchOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-40 p-4">
-          <div ref={searchDialogRef} className="bg-app-surface rounded-lg shadow-xl w-full max-w-2xl mt-16" role="dialog" aria-modal="true" aria-label="Search people">
+          <div
+            ref={searchDialogRef}
+            className="bg-app-surface rounded-lg shadow-xl w-full max-w-2xl mt-16"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Search people"
+          >
             <div className="p-4 border-b border-app-border flex items-center justify-between">
               <h2 className="text-lg font-semibold text-app-text-heading">Search People</h2>
               <button
@@ -674,7 +717,7 @@ const Navigation = () => {
                 type="button"
                 aria-label="Close search dialog"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -699,9 +742,7 @@ const Navigation = () => {
 
               <div className="mt-4 max-h-80 overflow-auto border border-app-border rounded-lg">
                 {lookup.searchTerm.trim().length < 2 ? (
-                  <div className="p-4 text-sm text-app-text-muted">
-                    Type at least 2 characters to search.
-                  </div>
+                  <div className="p-4 text-sm text-app-text-muted">Type at least 2 characters to search.</div>
                 ) : lookup.results.length === 0 ? (
                   <div className="p-4 text-sm text-app-text-muted">
                     No matches for &quot;{lookup.searchTerm}&quot;.

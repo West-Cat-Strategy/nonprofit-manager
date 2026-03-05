@@ -458,7 +458,7 @@ import { BrutalMultiSelect } from '@/components/neo-brutalist';
 
 ## Complete Example: Refactored Volunteer List
 
-See: `frontend/src/pages/people/volunteers/VolunteerListEnhanced.tsx`
+See: `frontend/src/features/volunteers/pages/VolunteerListPage.tsx`
 
 This file demonstrates:
 - ✅ Using PeopleListContainer
@@ -644,7 +644,7 @@ it('renders data in table', () => {
 - **Hooks Source**: `frontend/src/hooks/`
 - **Form Components**: `frontend/src/components/neo-brutalist/`
 - **Types**: `frontend/src/types/people.ts`
-- **Example**: `frontend/src/pages/people/volunteers/VolunteerListEnhanced.tsx`
+- **Example**: `frontend/src/features/volunteers/pages/VolunteerListPage.tsx`
 
 ---
 
