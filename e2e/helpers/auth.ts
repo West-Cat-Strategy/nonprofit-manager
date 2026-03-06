@@ -520,6 +520,69 @@ const fetchCsrfTokenForSession = async (
   return payload.csrfToken;
 };
 
+const promoteUserToAdminViaApi = async (
+  page: Page,
+  token: string,
+  userId: string,
+  organizationId: string
+): Promise<void> => {
+  const apiURL = process.env.API_URL || `${HTTP_SCHEME}127.0.0.1:3001`;
+  const csrfToken = await fetchCsrfTokenForSession(page, token, organizationId);
+  const response = await withNetworkRetry(() =>
+    page.request.put(`${apiURL}/api/v2/users/${userId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken,
+        'X-Organization-Id': organizationId,
+        // Force the backend to honor the Authorization header instead of any stale cookie.
+        Cookie: '',
+      },
+      data: {
+        role: 'admin',
+      },
+    })
+  );
+
+  if (!response.ok()) {
+    throw new Error(
+      `Failed to promote fallback user ${userId} to admin (${response.status()}): ${await response.text()}`
+    );
+  }
+
+  const payload = unwrapApiData<{ role?: unknown }>(await response.json());
+  if (!isAdminRole(payload?.role)) {
+    throw new Error(
+      `Fallback user ${userId} promotion returned unexpected role payload: ${JSON.stringify(payload)}`
+    );
+  }
+};
+
+const getCurrentUserForSession = async (
+  page: Page,
+  token: string,
+  organizationId: string
+): Promise<Record<string, unknown>> => {
+  const apiURL = process.env.API_URL || `${HTTP_SCHEME}127.0.0.1:3001`;
+  const response = await withNetworkRetry(() =>
+    page.request.get(`${apiURL}/api/v2/auth/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'X-Organization-Id': organizationId,
+        Cookie: '',
+      },
+    })
+  );
+
+  if (!response.ok()) {
+    throw new Error(
+      `Failed to refresh current user after admin promotion (${response.status()}): ${await response.text()}`
+    );
+  }
+
+  return unwrapApiData<Record<string, unknown>>(await response.json());
+};
+
 const createDefaultOrganizationForSession = async (
   page: Page,
   token: string,
@@ -927,6 +990,8 @@ export async function ensureEffectiveAdminLoginViaAPI(
   };
   const elevatedToken = signJwtHs256(elevatedPayload, jwtSecret);
   await setSessionStorageAuthState(page, elevatedToken, organizationId);
+  await promoteUserToAdminViaApi(page, elevatedToken, userId, organizationId);
+  const refreshedUser = await getCurrentUserForSession(page, elevatedToken, organizationId);
 
   const baseUser =
     session.user && typeof session.user === 'object' ? (session.user as Record<string, unknown>) : {};
@@ -935,6 +1000,7 @@ export async function ensureEffectiveAdminLoginViaAPI(
     token: elevatedToken,
     user: {
       ...baseUser,
+      ...refreshedUser,
       id: userId,
       email,
       role: 'admin',
@@ -943,6 +1009,19 @@ export async function ensureEffectiveAdminLoginViaAPI(
     },
     isAdmin: true,
   };
+
+  if (!isAdminRole(refreshedUser.role)) {
+    throw new Error(
+      `Fallback user ${session.email} was promoted in DB, but /auth/me still returned role=${String(refreshedUser.role ?? 'unknown')}`
+    );
+  }
+
+  // Keep the current admin-capable session, but rotate the shared-user cache so
+  // later login-based helpers do not reuse an admin account that now requires MFA.
+  setSharedTestUser({
+    email: `e2e+${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`,
+    password: session.password,
+  });
 
   if (strictAdminError) {
     const strictErrorMessage =

@@ -190,9 +190,9 @@ describe('VolunteerWidget', () => {
     expect(screen.getByText('Add Volunteer')).toBeInTheDocument();
   });
 
-  it('should render New Assignment button', () => {
+  it('should render Manage Assignments button', () => {
     renderWidget(<VolunteerWidget />);
-    expect(screen.getByText('New Assignment')).toBeInTheDocument();
+    expect(screen.getByText('Manage Assignments')).toBeInTheDocument();
   });
 
   it('should navigate to volunteer creation when Add Volunteer is clicked', () => {
@@ -202,11 +202,11 @@ describe('VolunteerWidget', () => {
     expect(addButton.closest('a')).toHaveAttribute('href', '/volunteers/new');
   });
 
-  it('should navigate to assignment creation when New Assignment is clicked', () => {
+  it('should navigate to volunteers workspace when Manage Assignments is clicked', () => {
     renderWidget(<VolunteerWidget />);
 
-    const assignButton = screen.getByText('New Assignment');
-    expect(assignButton.closest('a')).toHaveAttribute('href', '/volunteers/assignments/new');
+    const assignButton = screen.getByText('Manage Assignments');
+    expect(assignButton.closest('a')).toHaveAttribute('href', '/volunteers');
   });
 
   it('should display Availability Breakdown heading', () => {

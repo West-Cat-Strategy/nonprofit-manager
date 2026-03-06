@@ -478,6 +478,7 @@ export default function EmailMarketing() {
   const { status, lists, selectedList, campaigns, segments, syncResult, isLoading, isSyncing, error } =
     useAppSelector((state) => state.mailchimp);
   const { contacts } = useAppSelector((state) => state.contactsV2);
+  const isMailchimpConfigured = status?.configured === true;
 
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -485,17 +486,20 @@ export default function EmailMarketing() {
   const [showCampaignModal, setShowCampaignModal] = useState(false);
   const [campaignListId, setCampaignListId] = useState<string>('');
 
-  // Fetch Mailchimp status and lists on mount
+  // Fetch Mailchimp status on mount, then load dependent data only when configured.
   useEffect(() => {
     dispatch(fetchMailchimpStatus());
-    dispatch(fetchMailchimpLists());
-    dispatch(fetchCampaigns());
   }, [dispatch]);
 
-  // Fetch contacts for sync
   useEffect(() => {
+    if (!isMailchimpConfigured) {
+      return;
+    }
+
+    dispatch(fetchMailchimpLists());
+    dispatch(fetchCampaigns());
     dispatch(fetchContacts({ page: 1, limit: 100 }));
-  }, [dispatch]);
+  }, [dispatch, isMailchimpConfigured]);
 
   // Fetch tags when a list is selected
   useEffect(() => {

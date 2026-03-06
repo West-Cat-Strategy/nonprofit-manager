@@ -75,6 +75,14 @@ describe('AdminSettings page', () => {
     });
   });
 
+  it('auto-enables advanced mode for direct advanced-section links', async () => {
+    renderWithProviders(<AdminSettings />, { route: '/settings/admin?section=audit_logs' });
+    await waitFor(() => {
+      expect(screen.getByText('Audit Section')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: /hide advanced/i })).toBeInTheDocument();
+  });
+
   it('falls back to dashboard when section query is invalid', async () => {
     renderWithProviders(<AdminSettings />, { route: '/settings/admin?section=not-a-real-section' });
     await waitFor(() => {

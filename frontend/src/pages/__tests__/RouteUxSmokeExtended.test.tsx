@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import { screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import Login from '../auth/Login';
 import Register from '../auth/Register';
@@ -14,6 +15,7 @@ import DataBackup from '../admin/DataBackup';
 import EmailMarketing from '../admin/EmailMarketing';
 import AdminSettings from '../admin/AdminSettings';
 import api from '../../services/api';
+import { renderWithProviders } from '../../test/testUtils';
 import { assertRouteUxContract, createConsoleErrorSpy } from '../../test/uxRouteContract';
 
 vi.mock('../../services/api');
@@ -216,6 +218,52 @@ describe('Route UX smoke (auth/portal/settings)', () => {
 
   afterEach(() => {
     consoleErrorSpy.mockRestore();
+  });
+
+  it('avoids Mailchimp list and campaign requests when the integration is not configured', async () => {
+    renderWithProviders(<EmailMarketing />, { route: '/settings/email-marketing' });
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /mailchimp not configured/i, level: 2 })).toBeInTheDocument();
+    });
+
+    expect(mockApi.get).toHaveBeenCalledWith('/mailchimp/status');
+    expect(mockApi.get).not.toHaveBeenCalledWith('/mailchimp/lists');
+    expect(mockApi.get).not.toHaveBeenCalledWith('/mailchimp/campaigns');
+  });
+
+  it('loads Mailchimp list and campaign data when the integration is configured', async () => {
+    mockApi.get.mockImplementation((url: string) => {
+      if (url === '/mailchimp/status') {
+        return Promise.resolve({ data: { configured: true, accountName: 'Test Org', listCount: 1 } });
+      }
+      if (url === '/mailchimp/lists') {
+        return Promise.resolve({ data: [] });
+      }
+      if (url === '/mailchimp/campaigns') {
+        return Promise.resolve({ data: [] });
+      }
+      if (url.startsWith('/v2/contacts')) {
+        return Promise.resolve({
+          data: {
+            data: [],
+            pagination: { total: 0, page: 1, limit: 100, total_pages: 0 },
+          },
+        });
+      }
+
+      return Promise.resolve({ data: {} });
+    });
+
+    renderWithProviders(<EmailMarketing />, { route: '/settings/email-marketing' });
+
+    await waitFor(() => {
+      expect(screen.getByText(/connected to mailchimp/i)).toBeInTheDocument();
+    });
+
+    expect(mockApi.get).toHaveBeenCalledWith('/mailchimp/status');
+    expect(mockApi.get).toHaveBeenCalledWith('/mailchimp/lists');
+    expect(mockApi.get).toHaveBeenCalledWith('/mailchimp/campaigns');
   });
 
   it.each(smokeCases)(

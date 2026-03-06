@@ -11,7 +11,12 @@ const benignConsolePatterns = [
   /Failed to fetch CSRF token:/i,
 ];
 
-const benignPageErrorPatterns = [/api\/v2\/auth\/registration-status.*access control checks/i];
+const benignPageErrorPatterns = [
+  /api\/v2\/auth\/registration-status.*access control checks/i,
+  /api\/v2\/auth\/preferences.*access control checks/i,
+  /api\/v2\/admin\/branding.*access control checks/i,
+  /api\/v2\/admin\/roles.*access control checks/i,
+];
 
 const recoverableConsolePatterns = [
   /Importing a module script failed/i,

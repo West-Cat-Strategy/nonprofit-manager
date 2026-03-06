@@ -196,9 +196,9 @@ export default function AdminSettings() {
   useEffect(() => {
     const activeTab = adminSettingsTabs.find((tab) => tab.id === activeSection);
     if (activeTab?.level === 'advanced' && !showAdvancedSettings) {
-      setActiveSection('dashboard');
+      setShowAdvancedSettings(true);
     }
-  }, [activeSection, showAdvancedSettings]);
+  }, [activeSection, setShowAdvancedSettings, showAdvancedSettings]);
 
   useEffect(() => {
     if (location.pathname !== '/settings/admin') {
@@ -281,7 +281,16 @@ export default function AdminSettings() {
     : adminSettingsTabs.filter((tab) => tab.level === 'basic');
   const activeTabLabel =
     adminSettingsTabs.find((tab) => tab.id === activeSection)?.label || 'Dashboard';
+  const activeTabLevel =
+    adminSettingsTabs.find((tab) => tab.id === activeSection)?.level ?? 'basic';
   const visibleTabIds = visibleTabs.map((tab) => tab.id);
+  const handleToggleAdvancedSettings = () => {
+    if (showAdvancedSettings && activeTabLevel === 'advanced') {
+      setActiveSection('dashboard');
+    }
+
+    setShowAdvancedSettings((prev) => !prev);
+  };
   const focusTab = (tabId: AdminSettingsSection) => {
     const tabNode = document.getElementById(`admin-settings-tab-${tabId}`);
     if (tabNode instanceof HTMLElement) {
@@ -334,7 +343,7 @@ export default function AdminSettings() {
           </p>
           <button
             type="button"
-            onClick={() => setShowAdvancedSettings((prev) => !prev)}
+            onClick={handleToggleAdvancedSettings}
             className="px-3 py-2 text-xs font-bold uppercase border-2 border-[var(--app-border)] bg-[var(--app-surface)] hover:bg-[var(--app-surface-muted)]"
           >
             {showAdvancedSettings ? 'Hide Advanced' : 'Show Advanced'}
