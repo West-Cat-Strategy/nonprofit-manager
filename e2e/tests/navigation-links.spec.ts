@@ -28,10 +28,12 @@ authTest.describe('Staff navigation click-through audit', () => {
   }) => {
     await authenticatedPage.goto('/settings/navigation', { waitUntil: 'domcontentloaded' });
 
-    await authenticatedPage.getByRole('link', { name: /users & security/i }).click();
+    const adminPanelNav = authenticatedPage.getByLabel(/admin panels/i);
+
+    await adminPanelNav.getByRole('link', { name: /^users & security$/i }).click();
     await expect(authenticatedPage).toHaveURL(/\/settings\/admin\?section=users$/);
 
-    await authenticatedPage.getByRole('link', { name: /audit logs/i }).click();
+    await adminPanelNav.getByRole('link', { name: /^audit logs$/i }).click();
     await expect(authenticatedPage).toHaveURL(/\/settings\/admin\?section=audit_logs$/);
   });
 });

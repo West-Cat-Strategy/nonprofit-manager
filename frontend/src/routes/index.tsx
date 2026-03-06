@@ -58,14 +58,21 @@ const shouldEnableSetupCheck = (pathname: string): boolean => {
   return isSetupGateRoute(pathname);
 };
 
+const removedLegacyRedirectPaths = new Set([
+  '/email-marketing',
+  '/admin/audit-logs',
+  '/settings/organization',
+]);
+
 // AppRoutes component with setup check logic
 const AppRoutes = () => {
   const dispatch = useAppDispatch();
-  const { isAuthenticated, authLoading } = useAppSelector((state) => state.auth);
+  const { user, isAuthenticated, authLoading } = useAppSelector((state) => state.auth);
   const location = useLocation();
   const navigate = useNavigate();
   const setupCheckEnabled = shouldEnableSetupCheck(location.pathname);
   const { setupRequired, loading } = useSetupCheck({ enabled: setupCheckEnabled });
+  const legacyFallbackPath = isAuthenticated || Boolean(user) ? '/dashboard' : '/login';
 
   useEffect(() => {
     const handleUnauthorized = () => {
@@ -88,6 +95,11 @@ const AppRoutes = () => {
       window.removeEventListener('portal:unauthorized', handlePortalUnauthorized);
     };
   }, [dispatch, navigate]);
+
+  // Explicitly retire old deep links instead of leaving them on the auth-loading shell.
+  if (removedLegacyRedirectPaths.has(location.pathname)) {
+    return <Navigate to={legacyFallbackPath} replace />;
+  }
 
   // Show loader while verifying auth cookie or checking setup status
   if (authLoading || (setupCheckEnabled && loading)) {

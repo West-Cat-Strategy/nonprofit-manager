@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
+import { useLocation } from 'react-router-dom';
 import AppRoutes from '../index';
 import { createTestStore, renderWithProviders } from '../../test/testUtils';
 import { useSetupCheck } from '../../hooks/useSetupCheck';
@@ -18,19 +19,36 @@ vi.mock('../../services/api', () => ({
 
 const mockUseSetupCheck = vi.mocked(useSetupCheck);
 
-const renderAppRoutes = (route: string) => {
+const LocationProbe = () => {
+  const location = useLocation();
+  return <div data-testid="location">{location.pathname}</div>;
+};
+
+const renderAppRoutes = (
+  route: string,
+  authOverride: Partial<{
+    user: { id: string; email: string; firstName: string; lastName: string; role: string };
+    isAuthenticated: boolean;
+    authLoading: boolean;
+    loading: boolean;
+  }> = {}
+) => {
   const store = createTestStore({
     auth: {
       user: null,
       isAuthenticated: false,
       authLoading: false,
       loading: false,
+      ...authOverride,
     },
   });
 
   renderWithProviders(
     <Suspense fallback={<div>Loading...</div>}>
-      <AppRoutes />
+      <>
+        <AppRoutes />
+        <LocationProbe />
+      </>
     </Suspense>,
     { store, route }
   );
@@ -108,5 +126,30 @@ describe('AppRoutes setup startup redirects', () => {
     expect(
       mockUseSetupCheck.mock.calls.some((call) => call[0]?.enabled === false)
     ).toBe(true);
+  });
+
+  it.each([
+    '/email-marketing',
+    '/admin/audit-logs',
+    '/settings/organization',
+  ])('redirects removed legacy route %s to login before auth init completes', async (route) => {
+    renderAppRoutes(route, { authLoading: true });
+
+    expect(await screen.findByTestId('location')).toHaveTextContent('/login');
+  });
+
+  it('redirects removed legacy routes to dashboard when a cached user is present', async () => {
+    renderAppRoutes('/email-marketing', {
+      user: {
+        id: 'user-1',
+        email: 'cached@example.com',
+        firstName: 'Cached',
+        lastName: 'User',
+        role: 'admin',
+      },
+      authLoading: true,
+    });
+
+    expect(await screen.findByTestId('location')).toHaveTextContent('/dashboard');
   });
 });

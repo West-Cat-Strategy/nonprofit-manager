@@ -6,7 +6,8 @@
 import '../helpers/testEnv';
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { login, logout, clearAuth, ensureEffectiveAdminLoginViaAPI } from '../helpers/auth';
+import { login, logout, clearAuth, ensureLoginViaAPI } from '../helpers/auth';
+import { getSharedTestUser } from '../helpers/testUser';
 
 const defaultCreds = {
   email: process.env.ADMIN_USER_EMAIL?.trim() || 'admin@example.com',
@@ -26,13 +27,14 @@ const gotoLogin = async (page: Page) => {
 
 test.describe('Authentication Flow', () => {
   test.beforeEach(async ({ page }) => {
-    const session = await ensureEffectiveAdminLoginViaAPI(page, {
+    const sharedUser = getSharedTestUser();
+    const session = await ensureLoginViaAPI(page, sharedUser.email, sharedUser.password, {
       firstName: 'Test',
       lastName: 'User',
     });
     currentCreds = {
-      email: typeof session.user?.email === 'string' ? session.user.email : session.email,
-      password: session.password,
+      email: typeof session.user?.email === 'string' ? session.user.email : sharedUser.email,
+      password: sharedUser.password,
     };
     await clearAuth(page);
   });
@@ -333,13 +335,14 @@ test.describe('Authentication Flow', () => {
 
 test.describe('Session Management', () => {
   test.beforeEach(async ({ page }) => {
-    const session = await ensureEffectiveAdminLoginViaAPI(page, {
+    const sharedUser = getSharedTestUser();
+    const session = await ensureLoginViaAPI(page, sharedUser.email, sharedUser.password, {
       firstName: 'Test',
       lastName: 'User',
     });
     currentCreds = {
-      email: typeof session.user?.email === 'string' ? session.user.email : session.email,
-      password: session.password,
+      email: typeof session.user?.email === 'string' ? session.user.email : sharedUser.email,
+      password: sharedUser.password,
     };
     await clearAuth(page);
   });
