@@ -45,11 +45,52 @@ import type {
   PageComponent,
   PageSection,
   ComponentType,
+  PageCollectionType,
   TemplateStatus,
   TemplatePage,
+  TemplatePageType,
+  UpdatePageRequest,
 } from '../../types/websiteBuilder';
 
 type ViewMode = 'desktop' | 'tablet' | 'mobile';
+
+const normalizePageSlug = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-');
+
+const normalizeRoutePattern = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return '/';
+  }
+
+  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+};
+
+const getDefaultRoutePattern = (
+  pageType: TemplatePageType,
+  collection: PageCollectionType | undefined,
+  slug: string,
+  isHomepage: boolean
+): string => {
+  if (pageType === 'collectionIndex') {
+    return collection === 'newsletters' ? '/newsletters' : '/events';
+  }
+
+  if (pageType === 'collectionDetail') {
+    return collection === 'newsletters' ? '/newsletters/:slug' : '/events/:slug';
+  }
+
+  if (isHomepage) {
+    return '/';
+  }
+
+  return `/${slug || 'page'}`;
+};
 
 const PageEditor: React.FC = () => {
   const { templateId } = useParams<{ templateId: string }>();
@@ -230,7 +271,40 @@ const PageEditor: React.FC = () => {
         layout: 'grid',
         emptyMessage: 'No public events are available right now.',
       },
+      'event-calendar': {
+        type: 'event-calendar',
+        maxEvents: 8,
+        showPastEvents: false,
+        initialView: 'month',
+        emptyMessage: 'No public events are available right now.',
+      },
+      'event-detail': {
+        type: 'event-detail',
+        showDescription: true,
+        showLocation: true,
+        showCapacity: true,
+        showRegistrationStatus: true,
+      },
+      'event-registration': {
+        type: 'event-registration',
+        submitText: 'Register',
+        successMessage: 'Registration received.',
+        includePhone: true,
+        defaultStatus: 'registered',
+      },
       'newsletter-signup': { type: 'newsletter-signup', buttonText: 'Subscribe', successMessage: 'Thanks for subscribing!' },
+      'newsletter-archive': {
+        type: 'newsletter-archive',
+        maxItems: 10,
+        sourceFilter: 'all',
+        emptyMessage: 'No newsletters are available right now.',
+      },
+      'volunteer-interest-form': {
+        type: 'volunteer-interest-form',
+        submitText: 'Share Interest',
+        successMessage: 'Volunteer interest received.',
+        includePhone: true,
+      },
       countdown: { type: 'countdown', targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), showDays: true, showHours: true, showMinutes: true, showSeconds: true },
       stats: { type: 'stats', items: [], columns: 4 },
       team: { type: 'team', members: [], columns: 3, showBio: true, showSocial: true },
@@ -439,6 +513,8 @@ const PageEditor: React.FC = () => {
           data: {
             name: baseName,
             slug,
+            pageType: 'static',
+            routePattern: getDefaultRoutePattern('static', undefined, slug, false),
             sections: [],
           },
         })
@@ -448,6 +524,75 @@ const PageEditor: React.FC = () => {
       console.error('Failed to create page:', err);
     }
   }, [dispatch, templateId, currentTemplate]);
+
+  const handleUpdatePage = useCallback(
+    async (updates: UpdatePageRequest) => {
+      if (!templateId || !currentPage) return;
+
+      const nextSlug =
+        updates.slug !== undefined
+          ? normalizePageSlug(updates.slug) || currentPage.slug
+          : currentPage.slug;
+      const nextPageType = updates.pageType || currentPage.pageType || 'static';
+      const nextCollection =
+        nextPageType === 'static'
+          ? undefined
+          : updates.collection || currentPage.collection || 'events';
+      const nextIsHomepage = updates.isHomepage ?? currentPage.isHomepage;
+      const previousDefaultRoute = getDefaultRoutePattern(
+        currentPage.pageType || 'static',
+        currentPage.collection,
+        currentPage.slug,
+        currentPage.isHomepage
+      );
+      const nextDefaultRoute = getDefaultRoutePattern(
+        nextPageType,
+        nextCollection,
+        nextSlug,
+        nextIsHomepage
+      );
+
+      const payload: UpdatePageRequest = {
+        ...updates,
+        pageType: nextPageType,
+        collection: nextCollection,
+      };
+
+      if (updates.name !== undefined) {
+        payload.name = updates.name.trim() || currentPage.name;
+      }
+
+      if (updates.slug !== undefined) {
+        payload.slug = nextSlug;
+      }
+
+      if (updates.routePattern !== undefined) {
+        payload.routePattern = normalizeRoutePattern(updates.routePattern);
+      } else if (
+        updates.slug !== undefined ||
+        updates.pageType !== undefined ||
+        updates.collection !== undefined ||
+        updates.isHomepage !== undefined
+      ) {
+        if (!currentPage.routePattern || currentPage.routePattern === previousDefaultRoute) {
+          payload.routePattern = nextDefaultRoute;
+        }
+      }
+
+      try {
+        await dispatch(
+          updateTemplatePage({
+            templateId,
+            pageId: currentPage.id,
+            data: payload,
+          })
+        ).unwrap();
+      } catch (err) {
+        console.error('Failed to update page settings:', err);
+      }
+    },
+    [dispatch, templateId, currentPage]
+  );
 
   const handleSaveTemplateSettings = useCallback(async () => {
     if (!currentTemplate) return;
@@ -544,8 +689,10 @@ const PageEditor: React.FC = () => {
 
           {/* Right Sidebar - Property Panel */}
           <PropertyPanel
+            currentPage={currentPage}
             selectedComponent={selectedComponent}
             selectedSection={selectedSection}
+            onUpdatePage={handleUpdatePage}
             onUpdateComponent={handleUpdateComponent}
             onUpdateSection={handleUpdateSection}
             onDeleteComponent={handleDeleteComponent}

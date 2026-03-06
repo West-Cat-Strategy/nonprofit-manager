@@ -10,11 +10,12 @@ import { getTemplate } from './templateCrud';
 export async function createTemplateVersion(
   templateId: string,
   userId: string,
-  changes?: string
+  changes?: string,
+  organizationId?: string
 ): Promise<TemplateVersion | null> {
-  const template = await getTemplate(templateId, userId);
+  const template = await getTemplate(templateId, userId, organizationId);
 
-  if (!template || template.userId !== userId) {
+  if (!template || (!template.isSystemTemplate && template.ownerUserId !== userId && template.userId !== userId)) {
     return null;
   }
 
@@ -74,15 +75,25 @@ export async function createTemplateVersion(
  */
 export async function getTemplateVersions(
   templateId: string,
-  userId: string
+  userId: string,
+  organizationId?: string
 ): Promise<TemplateVersion[]> {
-  const result = await pool.query(
-    `SELECT tv.* FROM template_versions tv
-     JOIN templates t ON tv.template_id = t.id
-     WHERE tv.template_id = $1 AND (t.user_id = $2 OR t.is_system_template = true)
-     ORDER BY tv.created_at DESC`,
-    [templateId, userId]
-  );
+  const result = organizationId
+    ? await pool.query(
+        `SELECT tv.* FROM template_versions tv
+         JOIN templates t ON tv.template_id = t.id
+         WHERE tv.template_id = $1
+           AND (t.organization_id = $2 OR t.owner_user_id = $3 OR t.user_id = $3 OR t.is_system_template = true)
+         ORDER BY tv.created_at DESC`,
+        [templateId, organizationId, userId]
+      )
+    : await pool.query(
+        `SELECT tv.* FROM template_versions tv
+         JOIN templates t ON tv.template_id = t.id
+         WHERE tv.template_id = $1 AND (t.owner_user_id = $2 OR t.user_id = $2 OR t.is_system_template = true)
+         ORDER BY tv.created_at DESC`,
+        [templateId, userId]
+      );
 
   return result.rows.map((row) => ({
     id: row.id,
@@ -101,14 +112,24 @@ export async function getTemplateVersions(
 export async function restoreTemplateVersion(
   templateId: string,
   versionId: string,
-  userId: string
+  userId: string,
+  organizationId?: string
 ): Promise<ReturnType<typeof getTemplate>> {
-  const versionResult = await pool.query(
-    `SELECT tv.* FROM template_versions tv
-     JOIN templates t ON tv.template_id = t.id
-     WHERE tv.id = $1 AND tv.template_id = $2 AND t.user_id = $3`,
-    [versionId, templateId, userId]
-  );
+  const versionResult = organizationId
+    ? await pool.query(
+        `SELECT tv.* FROM template_versions tv
+         JOIN templates t ON tv.template_id = t.id
+         WHERE tv.id = $1
+           AND tv.template_id = $2
+           AND (t.organization_id = $3 OR t.owner_user_id = $4 OR t.user_id = $4)`,
+        [versionId, templateId, organizationId, userId]
+      )
+    : await pool.query(
+        `SELECT tv.* FROM template_versions tv
+         JOIN templates t ON tv.template_id = t.id
+         WHERE tv.id = $1 AND tv.template_id = $2 AND (t.owner_user_id = $3 OR t.user_id = $3)`,
+        [versionId, templateId, userId]
+      );
 
   if (versionResult.rows.length === 0) {
     return null;
@@ -132,13 +153,18 @@ export async function restoreTemplateVersion(
     for (let i = 0; i < snapshot.pages.length; i++) {
       const page = snapshot.pages[i];
       await client.query(
-        `INSERT INTO template_pages (template_id, name, slug, is_homepage, seo, sections, sort_order)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        `INSERT INTO template_pages (
+           template_id, name, slug, is_homepage, page_type, collection, route_pattern, seo, sections, sort_order
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [
           templateId,
           page.name,
           page.slug,
           page.isHomepage,
+          page.pageType || 'static',
+          page.collection || null,
+          page.routePattern || (page.isHomepage ? '/' : `/${page.slug}`),
           JSON.stringify(page.seo),
           JSON.stringify(page.sections),
           i,
@@ -149,7 +175,7 @@ export async function restoreTemplateVersion(
     await client.query('COMMIT');
 
     logger.info('Template version restored', { templateId, versionId, version: version.version });
-    return getTemplate(templateId, userId);
+    return getTemplate(templateId, userId, organizationId);
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;

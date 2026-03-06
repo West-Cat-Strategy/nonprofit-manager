@@ -174,6 +174,15 @@ export const eventIdParamsSchema = z.object({
   id: uuidSchema,
 });
 
+export const publicEventSlugParamsSchema = z.object({
+  slug: z
+    .string()
+    .trim()
+    .min(1)
+    .max(255)
+    .regex(/^[a-z0-9-]+$/i, 'slug must be a valid path segment'),
+});
+
 export const eventAutomationParamsSchema = z.object({
   id: uuidSchema,
   automationId: uuidSchema,
@@ -329,6 +338,17 @@ export const publicEventCheckInSchema = z
     message: 'Either email or phone is required',
     path: ['email'],
   });
+
+export const publicEventRegistrationSchema = z
+  .object({
+    first_name: z.string().trim().min(1).max(100),
+    last_name: z.string().trim().min(1).max(100),
+    email: emailSchema,
+    phone: phoneSchema.optional(),
+    notes: z.string().max(1000).optional(),
+    registration_status: registrationStatusSchema.optional(),
+  })
+  .strict();
 
 // Re-export shared schemas
 export { uuidSchema } from './shared';

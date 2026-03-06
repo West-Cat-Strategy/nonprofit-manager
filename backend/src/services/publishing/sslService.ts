@@ -24,8 +24,12 @@ export class SslService {
   /**
    * Get SSL certificate info for a site
    */
-  async getSslInfo(siteId: string, userId: string): Promise<SslCertificateInfo | null> {
-    const site = await this.siteManagement.getSite(siteId, userId);
+  async getSslInfo(
+    siteId: string,
+    userId: string,
+    organizationId?: string
+  ): Promise<SslCertificateInfo | null> {
+    const site = await this.siteManagement.getSite(siteId, userId, organizationId);
     if (!site) {
       return null;
     }
@@ -52,7 +56,7 @@ export class SslService {
       }
     } else if (site.customDomain) {
       // Check domain config for verification status
-      const domainConfig = await this.customDomain.getCustomDomainConfig(siteId, userId);
+      const domainConfig = await this.customDomain.getCustomDomainConfig(siteId, userId, organizationId);
       if (domainConfig?.verificationStatus === 'verified') {
         status = 'pending';
       }
@@ -73,8 +77,12 @@ export class SslService {
    * Provision SSL certificate for a site
    * In production, this would integrate with Let's Encrypt or similar
    */
-  async provisionSsl(siteId: string, userId: string): Promise<SslProvisionResult> {
-    const site = await this.siteManagement.getSite(siteId, userId);
+  async provisionSsl(
+    siteId: string,
+    userId: string,
+    organizationId?: string
+  ): Promise<SslProvisionResult> {
+    const site = await this.siteManagement.getSite(siteId, userId, organizationId);
     if (!site) {
       return {
         success: false,
@@ -85,7 +93,7 @@ export class SslService {
 
     // Check domain verification
     if (site.customDomain) {
-      const domainConfig = await this.customDomain.getCustomDomainConfig(siteId, userId);
+      const domainConfig = await this.customDomain.getCustomDomainConfig(siteId, userId, organizationId);
       if (!domainConfig || domainConfig.verificationStatus !== 'verified') {
         return {
           success: false,
@@ -105,8 +113,8 @@ export class SslService {
        SET ssl_enabled = TRUE,
            ssl_certificate_expires_at = $1,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $2 AND user_id = $3`,
-      [expiresAt, siteId, userId]
+       WHERE id = $2`,
+      [expiresAt, siteId]
     );
 
     return {
@@ -124,7 +132,7 @@ export class SslService {
   async checkAndRenewSslCertificates(): Promise<{ renewed: number; failed: number }> {
     // Find certificates expiring within 30 days
     const expiringResult = await this.pool.query(
-      `SELECT id, user_id, custom_domain FROM published_sites
+      `SELECT id, user_id, owner_user_id, custom_domain FROM published_sites
        WHERE ssl_enabled = TRUE
        AND ssl_certificate_expires_at IS NOT NULL
        AND ssl_certificate_expires_at < NOW() + INTERVAL '30 days'`
@@ -135,7 +143,7 @@ export class SslService {
 
     for (const row of expiringResult.rows) {
       try {
-        const result = await this.provisionSsl(row.id, row.user_id);
+        const result = await this.provisionSsl(row.id, row.owner_user_id || row.user_id);
         if (result.success) {
           renewed++;
         } else {

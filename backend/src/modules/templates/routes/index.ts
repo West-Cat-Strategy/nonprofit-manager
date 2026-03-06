@@ -86,6 +86,9 @@ const createTemplatePageSchema = z.object({
   name: z.string().min(1).max(255),
   slug: slugSchema,
   isHomepage: z.coerce.boolean().optional(),
+  pageType: z.enum(['static', 'collectionIndex', 'collectionDetail']).optional(),
+  collection: z.enum(['events', 'newsletters']).optional(),
+  routePattern: z.string().min(1).max(255).optional(),
   cloneFromId: uuidSchema.optional(),
 });
 
@@ -93,6 +96,9 @@ const updateTemplatePageSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   slug: slugSchema.optional(),
   isHomepage: z.coerce.boolean().optional(),
+  pageType: z.enum(['static', 'collectionIndex', 'collectionDetail']).optional(),
+  collection: z.enum(['events', 'newsletters']).optional(),
+  routePattern: z.string().min(1).max(255).optional(),
 });
 
 const reorderTemplatePagesSchema = z.object({

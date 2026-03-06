@@ -272,6 +272,7 @@ export interface PublicEventsQuery {
 
 export interface PublicEventListItem {
   event_id: string;
+  slug: string;
   event_name: string;
   description: string | null;
   event_type: EventType;
@@ -284,6 +285,30 @@ export interface PublicEventListItem {
   country: string | null;
   capacity: number | null;
   registered_count: number;
+}
+
+export interface PublicEventDetail extends PublicEventListItem {
+  address_line1: string | null;
+  address_line2: string | null;
+  postal_code: string | null;
+  is_registration_open: boolean;
+}
+
+export interface PublicEventRegistrationDTO {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  notes?: string;
+  registration_status?: RegistrationStatus;
+}
+
+export interface PublicEventRegistrationResult {
+  status: 'registered' | 'already_registered';
+  contact_id: string;
+  registration: EventRegistration;
+  created_contact: boolean;
+  created_registration: boolean;
 }
 
 export interface PublicEventsPageInfo {

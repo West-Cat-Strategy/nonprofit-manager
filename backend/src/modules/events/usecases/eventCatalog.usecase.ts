@@ -4,6 +4,7 @@ import type {
   CreateEventDTO,
   PublicEventsListData,
   PublicEventsQuery,
+  PublicEventDetail,
   UpdateEventDTO,
 } from '@app-types/event';
 import type { DataScopeFilter } from '@app-types/dataScope';
@@ -22,6 +23,10 @@ export class EventCatalogUseCase {
 
   listPublicByOwner(ownerUserId: string, query: PublicEventsQuery): Promise<PublicEventsListData> {
     return this.repository.listPublicEventsByOwner(ownerUserId, query);
+  }
+
+  getPublicBySlug(ownerUserId: string, slug: string): Promise<PublicEventDetail | null> {
+    return this.repository.getPublicEventBySlug(ownerUserId, slug);
   }
 
   create(data: CreateEventDTO, userId: string): Promise<unknown> {

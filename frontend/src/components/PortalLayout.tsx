@@ -3,24 +3,11 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { portalLogoutAsync } from '../features/portalAuth/state';
 import { AppShell, SideNav, TopNav, SecondaryButton } from './ui';
+import { getPortalNavigationEntries, getRouteHref } from '../routes/routeCatalog';
 
 interface PortalLayoutProps {
   children: React.ReactNode;
 }
-
-const navItems = [
-  { key: 'dashboard', label: 'Dashboard', path: '/portal' },
-  { key: 'profile', label: 'Profile', path: '/portal/profile' },
-  { key: 'people', label: 'People', path: '/portal/people' },
-  { key: 'events', label: 'Events', path: '/portal/events' },
-  { key: 'messages', label: 'Messages', path: '/portal/messages' },
-  { key: 'cases', label: 'Cases', path: '/portal/cases' },
-  { key: 'appointments', label: 'Appointments', path: '/portal/appointments' },
-  { key: 'documents', label: 'Documents', path: '/portal/documents' },
-  { key: 'notes', label: 'Notes', path: '/portal/notes' },
-  { key: 'forms', label: 'Forms', path: '/portal/forms' },
-  { key: 'reminders', label: 'Reminders', path: '/portal/reminders' },
-];
 
 export default function PortalLayout({ children }: PortalLayoutProps) {
   const location = useLocation();
@@ -38,12 +25,15 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
-  const sideItems = navItems.map((item) => ({
-    key: item.key,
-    label: item.label,
-    to: item.path,
-    isActive: isActive(item.path),
-  }));
+  const sideItems = getPortalNavigationEntries().map((entry) => {
+    const path = getRouteHref(entry);
+    return {
+      key: entry.id,
+      label: entry.portalNav?.label || entry.title,
+      to: path,
+      isActive: isActive(path),
+    };
+  });
 
   const topNav = (
     <TopNav

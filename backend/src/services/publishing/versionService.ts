@@ -22,8 +22,13 @@ export class VersionService {
   /**
    * Get version history for a site
    */
-  async getVersionHistory(siteId: string, userId: string, limit: number = 10): Promise<SiteVersionHistory> {
-    const site = await this.siteManagement.getSite(siteId, userId);
+  async getVersionHistory(
+    siteId: string,
+    userId: string,
+    limit: number = 10,
+    organizationId?: string
+  ): Promise<SiteVersionHistory> {
+    const site = await this.siteManagement.getSite(siteId, userId, organizationId);
     if (!site) {
       throw new Error('Site not found or access denied');
     }
@@ -94,8 +99,13 @@ export class VersionService {
   /**
    * Rollback to a previous version
    */
-  async rollback(siteId: string, userId: string, targetVersion: string): Promise<RollbackResult> {
-    const site = await this.siteManagement.getSite(siteId, userId);
+  async rollback(
+    siteId: string,
+    userId: string,
+    targetVersion: string,
+    organizationId?: string
+  ): Promise<RollbackResult> {
+    const site = await this.siteManagement.getSite(siteId, userId, organizationId);
     if (!site) {
       throw new Error('Site not found or access denied');
     }
@@ -129,8 +139,8 @@ export class VersionService {
            published_version = $2,
            published_at = CURRENT_TIMESTAMP,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $3 AND user_id = $4`,
-      [JSON.stringify(publishedContent), targetVersion, siteId, userId]
+       WHERE id = $3`,
+      [JSON.stringify(publishedContent), targetVersion, siteId]
     );
 
     // Save rollback as a new version entry for audit
@@ -155,8 +165,13 @@ export class VersionService {
   /**
    * Get a specific version
    */
-  async getVersion(siteId: string, userId: string, version: string): Promise<SiteVersion | null> {
-    const site = await this.siteManagement.getSite(siteId, userId);
+  async getVersion(
+    siteId: string,
+    userId: string,
+    version: string,
+    organizationId?: string
+  ): Promise<SiteVersion | null> {
+    const site = await this.siteManagement.getSite(siteId, userId, organizationId);
     if (!site) {
       return null;
     }
@@ -186,8 +201,13 @@ export class VersionService {
   /**
    * Delete old versions (keep latest N versions)
    */
-  async pruneVersions(siteId: string, userId: string, keepCount: number = 10): Promise<number> {
-    const site = await this.siteManagement.getSite(siteId, userId);
+  async pruneVersions(
+    siteId: string,
+    userId: string,
+    keepCount: number = 10,
+    organizationId?: string
+  ): Promise<number> {
+    const site = await this.siteManagement.getSite(siteId, userId, organizationId);
     if (!site) {
       throw new Error('Site not found or access denied');
     }

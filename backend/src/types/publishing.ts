@@ -3,6 +3,13 @@
  * Types for the website publishing and hosting system
  */
 
+import type {
+  MigrationStatus,
+  PageCollectionType,
+  SiteKind,
+  TemplatePageType,
+} from '@app-types/websiteBuilder';
+
 // Published Site Status
 export type SiteStatus = 'draft' | 'published' | 'maintenance' | 'suspended';
 
@@ -10,6 +17,11 @@ export type SiteStatus = 'draft' | 'published' | 'maintenance' | 'suspended';
 export interface PublishedSite {
   id: string;
   userId: string;
+  ownerUserId: string;
+  organizationId: string | null;
+  siteKind: SiteKind;
+  parentSiteId: string | null;
+  migrationStatus: MigrationStatus;
   templateId: string;
   name: string;
   subdomain: string | null;
@@ -82,6 +94,9 @@ export interface PublishedPage {
   slug: string;
   name: string;
   isHomepage: boolean;
+  pageType?: TemplatePageType;
+  collection?: PageCollectionType;
+  routePattern?: string;
   sections: PublishedSection[];
   seo: PublishedPageSEO;
 }
@@ -202,6 +217,8 @@ export interface CreatePublishedSiteDTO {
   name: string;
   subdomain?: string;
   customDomain?: string;
+  siteKind?: SiteKind;
+  parentSiteId?: string;
 }
 
 // Update Published Site DTO
@@ -211,6 +228,8 @@ export interface UpdatePublishedSiteDTO {
   customDomain?: string;
   analyticsEnabled?: boolean;
   status?: SiteStatus;
+  siteKind?: SiteKind;
+  parentSiteId?: string | null;
 }
 
 // Publish Site DTO (trigger publishing)

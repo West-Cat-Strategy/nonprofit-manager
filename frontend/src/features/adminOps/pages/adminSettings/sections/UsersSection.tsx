@@ -128,7 +128,7 @@ export default function UsersSection({
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link
-              to="/users"
+              to="/settings/admin?section=users"
               className="flex items-center p-4 border border-app-border rounded-lg hover:bg-app-surface-muted transition-colors"
             >
               <div className="w-10 h-10 bg-app-accent-soft rounded-lg flex items-center justify-center">

@@ -70,10 +70,11 @@ export class SiteAnalyticsService {
   async getAnalyticsSummary(
     siteId: string,
     userId: string,
-    periodDays: number = 30
+    periodDays: number = 30,
+    organizationId?: string
   ): Promise<SiteAnalyticsSummary> {
     // Verify site ownership
-    const site = await this.siteManagement.getSite(siteId, userId);
+    const site = await this.siteManagement.getSite(siteId, userId, organizationId);
     if (!site) {
       throw new Error('Site not found or access denied');
     }

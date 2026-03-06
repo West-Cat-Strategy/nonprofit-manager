@@ -27,7 +27,8 @@ export async function getTemplatePages(templateId: string): Promise<TemplatePage
 export async function getTemplatePage(
   templateId: string,
   pageId: string,
-  userId?: string
+  userId?: string,
+  organizationId?: string
 ): Promise<TemplatePage | null> {
   let query = `
     SELECT tp.* FROM template_pages tp
@@ -37,8 +38,13 @@ export async function getTemplatePage(
   const params: string[] = [pageId, templateId];
 
   if (userId) {
-    query += ' AND (t.user_id = $3 OR t.is_system_template = true)';
-    params.push(userId);
+    if (organizationId) {
+      query += ' AND (t.organization_id = $3 OR t.owner_user_id = $4 OR t.user_id = $4 OR t.is_system_template = true)';
+      params.push(organizationId, userId);
+    } else {
+      query += ' AND (t.owner_user_id = $3 OR t.user_id = $3 OR t.is_system_template = true)';
+      params.push(userId);
+    }
   }
 
   const result = await pool.query(query, params);
@@ -56,12 +62,18 @@ export async function getTemplatePage(
 export async function createTemplatePage(
   templateId: string,
   userId: string,
-  data: CreatePageRequest
+  data: CreatePageRequest,
+  organizationId?: string
 ): Promise<TemplatePage | null> {
-  const checkResult = await pool.query(
-    'SELECT id FROM templates WHERE id = $1 AND user_id = $2',
-    [templateId, userId]
-  );
+  const checkResult = organizationId
+    ? await pool.query(
+        'SELECT id FROM templates WHERE id = $1 AND (organization_id = $2 OR owner_user_id = $3 OR user_id = $3)',
+        [templateId, organizationId, userId]
+      )
+    : await pool.query(
+        'SELECT id FROM templates WHERE id = $1 AND (owner_user_id = $2 OR user_id = $2)',
+        [templateId, userId]
+      );
 
   if (checkResult.rows.length === 0) {
     return null;
@@ -74,6 +86,9 @@ export async function createTemplatePage(
   const sortOrder = orderResult.rows[0].next_order;
 
   let sections: PageSection[] = data.sections || [];
+  const pageType = data.pageType || 'static';
+  const collection = data.collection;
+  const routePattern = data.routePattern || (data.isHomepage ? '/' : `/${data.slug}`);
   let seo: PageSEO = {
     title: data.name,
     description: '',
@@ -94,14 +109,19 @@ export async function createTemplatePage(
   }
 
   const result = await pool.query(
-    `INSERT INTO template_pages (template_id, name, slug, is_homepage, seo, sections, sort_order)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `INSERT INTO template_pages (
+       template_id, name, slug, is_homepage, page_type, collection, route_pattern, seo, sections, sort_order
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      RETURNING *`,
     [
       templateId,
       data.name,
       data.slug,
       data.isHomepage || false,
+      pageType,
+      collection || null,
+      routePattern,
       JSON.stringify(seo),
       JSON.stringify(sections),
       sortOrder,
@@ -119,14 +139,24 @@ export async function updateTemplatePage(
   templateId: string,
   pageId: string,
   userId: string,
-  data: UpdatePageRequest
+  data: UpdatePageRequest,
+  organizationId?: string
 ): Promise<TemplatePage | null> {
-  const checkResult = await pool.query(
-    `SELECT tp.* FROM template_pages tp
-     JOIN templates t ON tp.template_id = t.id
-     WHERE tp.id = $1 AND tp.template_id = $2 AND t.user_id = $3`,
-    [pageId, templateId, userId]
-  );
+  const checkResult = organizationId
+    ? await pool.query(
+        `SELECT tp.* FROM template_pages tp
+         JOIN templates t ON tp.template_id = t.id
+         WHERE tp.id = $1
+           AND tp.template_id = $2
+           AND (t.organization_id = $3 OR t.owner_user_id = $4 OR t.user_id = $4)`,
+        [pageId, templateId, organizationId, userId]
+      )
+    : await pool.query(
+        `SELECT tp.* FROM template_pages tp
+         JOIN templates t ON tp.template_id = t.id
+         WHERE tp.id = $1 AND tp.template_id = $2 AND (t.owner_user_id = $3 OR t.user_id = $3)`,
+        [pageId, templateId, userId]
+      );
 
   if (checkResult.rows.length === 0) {
     return null;
@@ -150,6 +180,21 @@ export async function updateTemplatePage(
   if (data.isHomepage !== undefined) {
     updates.push(`is_homepage = $${paramIndex++}`);
     values.push(data.isHomepage);
+  }
+
+  if (data.pageType !== undefined) {
+    updates.push(`page_type = $${paramIndex++}`);
+    values.push(data.pageType);
+  }
+
+  if (data.collection !== undefined) {
+    updates.push(`collection = $${paramIndex++}`);
+    values.push(data.collection || null);
+  }
+
+  if (data.routePattern !== undefined) {
+    updates.push(`route_pattern = $${paramIndex++}`);
+    values.push(data.routePattern);
   }
 
   if (data.seo !== undefined) {
@@ -184,18 +229,30 @@ export async function updateTemplatePage(
 export async function deleteTemplatePage(
   templateId: string,
   pageId: string,
-  userId: string
+  userId: string,
+  organizationId?: string
 ): Promise<boolean> {
-  const result = await pool.query(
-    `DELETE FROM template_pages tp
-     USING templates t
-     WHERE tp.id = $1
-       AND tp.template_id = $2
-       AND t.id = tp.template_id
-       AND t.user_id = $3
-       AND tp.is_homepage = false`,
-    [pageId, templateId, userId]
-  );
+  const result = organizationId
+    ? await pool.query(
+        `DELETE FROM template_pages tp
+         USING templates t
+         WHERE tp.id = $1
+           AND tp.template_id = $2
+           AND t.id = tp.template_id
+           AND (t.organization_id = $3 OR t.owner_user_id = $4 OR t.user_id = $4)
+           AND tp.is_homepage = false`,
+        [pageId, templateId, organizationId, userId]
+      )
+    : await pool.query(
+        `DELETE FROM template_pages tp
+         USING templates t
+         WHERE tp.id = $1
+           AND tp.template_id = $2
+           AND t.id = tp.template_id
+           AND (t.owner_user_id = $3 OR t.user_id = $3)
+           AND tp.is_homepage = false`,
+        [pageId, templateId, userId]
+      );
 
   if (result.rowCount && result.rowCount > 0) {
     logger.info('Template page deleted', { templateId, pageId });
@@ -211,12 +268,18 @@ export async function deleteTemplatePage(
 export async function reorderTemplatePages(
   templateId: string,
   userId: string,
-  pageIds: string[]
+  pageIds: string[],
+  organizationId?: string
 ): Promise<boolean> {
-  const checkResult = await pool.query(
-    'SELECT id FROM templates WHERE id = $1 AND user_id = $2',
-    [templateId, userId]
-  );
+  const checkResult = organizationId
+    ? await pool.query(
+        'SELECT id FROM templates WHERE id = $1 AND (organization_id = $2 OR owner_user_id = $3 OR user_id = $3)',
+        [templateId, organizationId, userId]
+      )
+    : await pool.query(
+        'SELECT id FROM templates WHERE id = $1 AND (owner_user_id = $2 OR user_id = $2)',
+        [templateId, userId]
+      );
 
   if (checkResult.rows.length === 0) {
     return false;

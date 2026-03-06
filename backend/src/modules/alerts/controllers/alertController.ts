@@ -6,7 +6,11 @@
 import { Response, NextFunction } from 'express';
 import { services } from '@container/services';
 import { AuthRequest } from '@middleware/auth';
-import type { CreateAlertDTO, UpdateAlertDTO } from '@app-types/alert';
+import type {
+  AlertInstanceFiltersInput,
+  CreateAlertDTO,
+  UpdateAlertDTO,
+} from '../types';
 import { notFoundMessage } from '@utils/responseHelpers';
 
 const alertService = services.alert;
@@ -180,22 +184,9 @@ export const getAlertInstances = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const query = (req.validatedQuery ?? req.query) as {
-      status?: string;
-      severity?: string;
-      limit?: number | string;
-    };
-    const parsedLimit =
-      typeof query.limit === 'number'
-        ? query.limit
-        : parseInt(String(query.limit ?? ''), 10);
-    const filters = {
-      status: query.status,
-      severity: query.severity,
-      limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
-    };
-
-    const instances = await alertService.getAlertInstances(filters);
+    const instances = await alertService.getAlertInstances(
+      (req.validatedQuery ?? req.query) as AlertInstanceFiltersInput
+    );
     res.json(instances);
   } catch (error) {
     next(error);

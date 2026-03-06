@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../services/api';
 import { useAppSelector } from '../store/hooks';
+import { getStaffNavigationEntries } from '../routes/routeCatalog';
 
 export interface NavigationItem {
   id: string;
@@ -30,8 +31,10 @@ export const MAX_PINNED_ITEMS = 3;
 
 const STORAGE_KEY = 'navigation_preferences';
 const PREFERENCE_KEY = 'navigation';
-const teamChatEnabled = import.meta.env.VITE_TEAM_CHAT_ENABLED !== 'false';
 const PREFERENCES_CACHE_TTL_MS = 5 * 60 * 1000;
+const routeFlags = {
+  VITE_TEAM_CHAT_ENABLED: import.meta.env.VITE_TEAM_CHAT_ENABLED,
+};
 
 type PreferencesSnapshot = {
   preferences: NavigationPreferences;
@@ -79,24 +82,20 @@ const clampPinnedItems = (items: NavigationItem[]): NavigationItem[] => {
   });
 };
 
-// Default navigation items with their default state
-const defaultNavigationItems: NavigationItem[] = [
-  { id: 'dashboard', name: 'Dashboard', path: '/dashboard', icon: '📊', enabled: true, pinned: false, isCore: true, group: 'primary', shortLabel: 'Home', ariaLabel: 'Go to dashboard' },
-  { id: 'cases', name: 'Cases', path: '/cases', icon: '📋', enabled: true, pinned: false, isCore: false, group: 'primary' },
-  { id: 'external-service-providers', name: 'Providers', path: '/external-service-providers', icon: '🩺', enabled: true, pinned: false, isCore: false, group: 'secondary', shortLabel: 'Providers' },
-  { id: 'people', name: 'People', path: '/contacts', icon: '👤', enabled: true, pinned: false, isCore: false, group: 'primary', ariaLabel: 'Go to contacts' },
-  { id: 'accounts', name: 'Accounts', path: '/accounts', icon: '🏢', enabled: true, pinned: false, isCore: false, group: 'secondary' },
-  { id: 'volunteers', name: 'Volunteers', path: '/volunteers', icon: '🤝', enabled: true, pinned: false, isCore: false, group: 'secondary' },
-  { id: 'events', name: 'Events', path: '/events', icon: '📅', enabled: true, pinned: false, isCore: false, group: 'primary' },
-  { id: 'donations', name: 'Donations', path: '/donations', icon: '💰', enabled: true, pinned: false, isCore: false, group: 'secondary' },
-  { id: 'tasks', name: 'Tasks', path: '/tasks', icon: '✓', enabled: true, pinned: false, isCore: false, group: 'primary' },
-  { id: 'follow-ups', name: 'Follow-ups', path: '/follow-ups', icon: '🔔', enabled: true, pinned: false, isCore: false, group: 'secondary' },
-  { id: 'opportunities', name: 'Opportunities', path: '/opportunities', icon: '📈', enabled: true, pinned: false, isCore: false, group: 'secondary' },
-  ...(teamChatEnabled
-    ? [{ id: 'team-chat', name: 'Team Chat', path: '/team-chat', icon: '💬', enabled: true, pinned: false, isCore: false, group: 'secondary' as const }]
-    : []),
-  { id: 'scheduled-reports', name: 'Scheduled Reports', path: '/reports/scheduled', icon: '🗓️', enabled: true, pinned: false, isCore: false, group: 'utility', shortLabel: 'Schedules' },
-];
+const defaultNavigationItems: NavigationItem[] = getStaffNavigationEntries(routeFlags)
+  .filter((entry) => entry.staffNav?.group !== 'utility')
+  .map((entry) => ({
+    id: entry.id,
+    name: entry.staffNav?.label || entry.title,
+    path: entry.href || entry.path,
+    icon: entry.staffNav?.icon || '•',
+    enabled: true,
+    pinned: false,
+    isCore: entry.id === 'dashboard',
+    group: entry.staffNav?.group,
+    shortLabel: entry.staffNav?.shortLabel,
+    ariaLabel: entry.staffNav?.ariaLabel,
+  }));
 
 function mergeWithDefaults(savedItems: NavigationItem[] | undefined): NavigationItem[] {
   if (!savedItems || savedItems.length === 0) {

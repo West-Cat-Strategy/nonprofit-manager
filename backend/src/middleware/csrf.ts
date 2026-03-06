@@ -79,6 +79,8 @@ const CSRF_SKIP_PATHS = [
   '/api/v2/portal/auth/signup',
   '/api/v2/portal/auth/register',
   '/api/v2/payments/webhook',
+  '/api/v2/public/events',
+  '/api/v2/public/forms',
   '/health',
   '/metrics',
 ];

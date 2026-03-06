@@ -39,6 +39,8 @@ const createSiteSchema = z.object({
   name: z.string().trim().min(1).max(255),
   subdomain: subdomainSchema.optional(),
   customDomain: domainSchema.optional(),
+  siteKind: z.enum(['organization', 'campaign']).optional(),
+  parentSiteId: uuidSchema.optional(),
 });
 
 const updateSiteSchema = z.object({
@@ -47,6 +49,8 @@ const updateSiteSchema = z.object({
   customDomain: z.union([z.string().trim(), z.null()]).optional(),
   analyticsEnabled: z.coerce.boolean().optional(),
   status: publishingStatusSchema.optional(),
+  siteKind: z.enum(['organization', 'campaign']).optional(),
+  parentSiteId: z.union([uuidSchema, z.null()]).optional(),
 });
 
 const publishSchema = z.object({
@@ -99,6 +103,72 @@ const pruneVersionsQuerySchema = z.object({
   keep: z.coerce.number().int().min(1).max(100).optional(),
 }).strict();
 
+const entryIdParamsSchema = z.object({
+  siteId: uuidSchema,
+  entryId: uuidSchema,
+});
+
+const websiteEntryStatusSchema = z.enum(['draft', 'published', 'archived']);
+const websiteEntrySourceSchema = z.enum(['native', 'mailchimp']);
+const websiteEntryKindSchema = z.enum(['newsletter']);
+const websiteEntrySlugSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(255)
+  .regex(/^[a-z0-9-]+$/i, 'Invalid entry slug');
+const websiteEntrySeoSchema = z
+  .object({
+    title: z.string().trim().min(1).max(255).optional(),
+    description: z.string().trim().min(1).max(500).optional(),
+    ogImage: z.string().trim().url().optional(),
+    canonicalUrl: z.string().trim().url().optional(),
+  })
+  .strict();
+
+const websiteEntriesQuerySchema = z
+  .object({
+    status: websiteEntryStatusSchema.optional(),
+    source: websiteEntrySourceSchema.optional(),
+  })
+  .strict();
+
+const createWebsiteEntrySchema = z
+  .object({
+    kind: websiteEntryKindSchema,
+    source: websiteEntrySourceSchema.optional(),
+    status: websiteEntryStatusSchema.optional(),
+    slug: websiteEntrySlugSchema.optional(),
+    title: z.string().trim().min(1).max(255),
+    excerpt: z.string().trim().max(5000).optional(),
+    body: z.string().optional(),
+    bodyHtml: z.string().optional(),
+    seo: websiteEntrySeoSchema.optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+    publishedAt: z.string().datetime().optional(),
+  })
+  .strict();
+
+const updateWebsiteEntrySchema = z
+  .object({
+    status: websiteEntryStatusSchema.optional(),
+    slug: websiteEntrySlugSchema.optional(),
+    title: z.string().trim().min(1).max(255).optional(),
+    excerpt: z.string().trim().max(5000).optional(),
+    body: z.string().optional(),
+    bodyHtml: z.string().optional(),
+    seo: websiteEntrySeoSchema.optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+    publishedAt: z.string().datetime().optional(),
+  })
+  .strict();
+
+const syncMailchimpEntriesSchema = z
+  .object({
+    listId: z.string().trim().min(1).max(255).optional(),
+  })
+  .strict();
+
 // ==================== Protected Routes (require auth) ====================
 
 // Search sites
@@ -118,6 +188,52 @@ router.put('/:siteId', authenticate, validateParams(siteIdParamsSchema), validat
 
 // Delete a site
 router.delete('/:siteId', authenticate, validateParams(siteIdParamsSchema), publishingController.deleteSite);
+
+router.get(
+  '/:siteId/entries',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  validateQuery(websiteEntriesQuerySchema),
+  publishingController.listWebsiteEntries
+);
+
+router.post(
+  '/:siteId/entries',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  validateBody(createWebsiteEntrySchema),
+  publishingController.createWebsiteEntry
+);
+
+router.get(
+  '/:siteId/entries/:entryId',
+  authenticate,
+  validateParams(entryIdParamsSchema),
+  publishingController.getWebsiteEntry
+);
+
+router.put(
+  '/:siteId/entries/:entryId',
+  authenticate,
+  validateParams(entryIdParamsSchema),
+  validateBody(updateWebsiteEntrySchema),
+  publishingController.updateWebsiteEntry
+);
+
+router.delete(
+  '/:siteId/entries/:entryId',
+  authenticate,
+  validateParams(entryIdParamsSchema),
+  publishingController.deleteWebsiteEntry
+);
+
+router.post(
+  '/:siteId/entries/sync-mailchimp',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  validateBody(syncMailchimpEntriesSchema),
+  publishingController.syncMailchimpEntries
+);
 
 // Unpublish a site
 router.post('/:siteId/unpublish', authenticate, validateParams(siteIdParamsSchema), publishingController.unpublishSite);
@@ -232,3 +348,4 @@ export type ResponseMode = 'v2' | 'legacy';
 export const createPublishingRoutes = (_mode: ResponseMode = 'v2') => router;
 
 export const publishingV2Routes = createPublishingRoutes('v2');
+export * from './public';

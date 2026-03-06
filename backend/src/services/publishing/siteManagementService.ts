@@ -20,6 +20,11 @@ const SITE_BASE_URL = process.env.SITE_BASE_URL || 'https://sites.nonprofitmanag
 const PUBLISHED_SITE_SELECT_COLUMNS = `
   id,
   user_id,
+  owner_user_id,
+  organization_id,
+  site_kind,
+  parent_site_id,
+  migration_status,
   template_id,
   name,
   subdomain,
@@ -35,23 +40,110 @@ const PUBLISHED_SITE_SELECT_COLUMNS = `
   updated_at
 `;
 
+const buildSiteScope = (
+  userId: string,
+  organizationId?: string,
+  startParamIndex: number = 2
+) => {
+  const orgParam = startParamIndex;
+  const userParam = organizationId ? startParamIndex + 1 : startParamIndex;
+
+  if (organizationId) {
+    return {
+      clause: `(organization_id = $${orgParam} OR owner_user_id = $${userParam} OR user_id = $${userParam})`,
+      params: [organizationId, userId] as const,
+      nextParamIndex: userParam + 1,
+    };
+  }
+
+  return {
+    clause: `(owner_user_id = $${userParam} OR user_id = $${userParam})`,
+    params: [userId] as const,
+    nextParamIndex: userParam + 1,
+  };
+};
+
+const buildTemplateScope = (
+  userId: string,
+  organizationId?: string,
+  startParamIndex: number = 2
+) => {
+  const orgParam = startParamIndex;
+  const userParam = organizationId ? startParamIndex + 1 : startParamIndex;
+
+  if (organizationId) {
+    return {
+      clause: `(organization_id = $${orgParam} OR owner_user_id = $${userParam} OR user_id = $${userParam} OR is_system_template = TRUE)`,
+      params: [organizationId, userId] as const,
+      nextParamIndex: userParam + 1,
+    };
+  }
+
+  return {
+    clause: `(owner_user_id = $${userParam} OR user_id = $${userParam} OR is_system_template = TRUE)`,
+    params: [userId] as const,
+    nextParamIndex: userParam + 1,
+  };
+};
+
 export class SiteManagementService {
   constructor(private pool: Pool) {}
+
+  private assertSiteMutable(site: PublishedSite): void {
+    if (site.migrationStatus === 'needs_assignment') {
+      throw new Error('Site needs organization assignment before publishing or domain changes');
+    }
+  }
 
   /**
    * Create a new published site entry
    */
-  async createSite(userId: string, data: CreatePublishedSiteDTO): Promise<PublishedSite> {
-    const { templateId, name, subdomain, customDomain } = data;
+  async createSite(
+    userId: string,
+    data: CreatePublishedSiteDTO,
+    organizationId?: string
+  ): Promise<PublishedSite> {
+    const { templateId, name, subdomain, customDomain, siteKind = 'organization', parentSiteId } = data;
 
-    // Verify template exists and belongs to user
+    const templateScope = buildTemplateScope(userId, organizationId);
     const templateResult = await this.pool.query(
-      'SELECT id FROM templates WHERE id = $1 AND (user_id = $2 OR is_system_template = TRUE)',
-      [templateId, userId]
+      `SELECT id, owner_user_id, organization_id, migration_status
+       FROM templates
+       WHERE id = $1 AND ${templateScope.clause}`,
+      [templateId, ...templateScope.params]
     );
 
     if (templateResult.rows.length === 0) {
       throw new Error('Template not found or access denied');
+    }
+
+    const template = templateResult.rows[0] as {
+      owner_user_id: string | null;
+      organization_id: string | null;
+      migration_status: string;
+    };
+    if (template.migration_status === 'needs_assignment') {
+      throw new Error('Template needs organization assignment before publishing');
+    }
+
+    const resolvedOrganizationId = organizationId || template.organization_id || null;
+    const ownerUserId = userId;
+
+    if (siteKind === 'campaign' && !resolvedOrganizationId) {
+      throw new Error('Campaign sites require an organization');
+    }
+
+    if (parentSiteId) {
+      const parentScope = buildSiteScope(userId, resolvedOrganizationId || undefined);
+      const parentResult = await this.pool.query(
+        `SELECT id, organization_id
+         FROM published_sites
+         WHERE id = $1 AND ${parentScope.clause}`,
+        [parentSiteId, ...parentScope.params]
+      );
+      if (parentResult.rows.length === 0) {
+        throw new Error('Parent site not found or access denied');
+      }
     }
 
     // Check subdomain availability if provided
@@ -78,11 +170,17 @@ export class SiteManagementService {
 
     const result = await this.pool.query(
       `INSERT INTO published_sites (
-        user_id, template_id, name, subdomain, custom_domain, status
-      ) VALUES ($1, $2, $3, $4, $5, 'draft')
+        user_id, owner_user_id, organization_id, site_kind, parent_site_id, migration_status,
+        template_id, name, subdomain, custom_domain, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'draft')
       RETURNING ${PUBLISHED_SITE_SELECT_COLUMNS}`,
       [
         userId,
+        ownerUserId,
+        resolvedOrganizationId,
+        siteKind,
+        parentSiteId || null,
+        resolvedOrganizationId ? 'complete' : 'needs_assignment',
         templateId,
         name,
         subdomain?.toLowerCase() || null,
@@ -96,12 +194,17 @@ export class SiteManagementService {
   /**
    * Get a published site by ID
    */
-  async getSite(siteId: string, userId: string): Promise<PublishedSite | null> {
+  async getSite(
+    siteId: string,
+    userId: string,
+    organizationId?: string
+  ): Promise<PublishedSite | null> {
+    const scope = buildSiteScope(userId, organizationId);
     const result = await this.pool.query(
       `SELECT ${PUBLISHED_SITE_SELECT_COLUMNS}
        FROM published_sites
-       WHERE id = $1 AND user_id = $2`,
-      [siteId, userId]
+       WHERE id = $1 AND ${scope.clause}`,
+      [siteId, ...scope.params]
     );
 
     if (result.rows.length === 0) {
@@ -147,13 +250,41 @@ export class SiteManagementService {
     return this.mapRowToSite(result.rows[0]);
   }
 
+  async getPublicSiteById(siteId: string): Promise<PublishedSite | null> {
+    const result = await this.pool.query(
+      `SELECT ${PUBLISHED_SITE_SELECT_COLUMNS}
+       FROM published_sites
+       WHERE id = $1 AND status = $2`,
+      [siteId, 'published']
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return this.mapRowToSite(result.rows[0]);
+  }
+
   /**
    * Update a published site
    */
-  async updateSite(siteId: string, userId: string, data: UpdatePublishedSiteDTO): Promise<PublishedSite | null> {
-    const site = await this.getSite(siteId, userId);
+  async updateSite(
+    siteId: string,
+    userId: string,
+    data: UpdatePublishedSiteDTO,
+    organizationId?: string
+  ): Promise<PublishedSite | null> {
+    const site = await this.getSite(siteId, userId, organizationId);
     if (!site) {
       return null;
+    }
+
+    if (
+      data.subdomain !== undefined ||
+      data.customDomain !== undefined ||
+      data.status !== undefined
+    ) {
+      this.assertSiteMutable(site);
     }
 
     const updates: string[] = [];
@@ -200,6 +331,16 @@ export class SiteManagementService {
       values.push(data.analyticsEnabled);
     }
 
+    if (data.siteKind !== undefined) {
+      updates.push(`site_kind = $${paramIndex++}`);
+      values.push(data.siteKind);
+    }
+
+    if (data.parentSiteId !== undefined) {
+      updates.push(`parent_site_id = $${paramIndex++}`);
+      values.push(data.parentSiteId || null);
+    }
+
     if (data.status !== undefined) {
       updates.push(`status = $${paramIndex++}`);
       values.push(data.status);
@@ -210,11 +351,10 @@ export class SiteManagementService {
     }
 
     values.push(siteId);
-    values.push(userId);
 
     const result = await this.pool.query(
       `UPDATE published_sites SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $${paramIndex++} AND user_id = $${paramIndex}
+       WHERE id = $${paramIndex}
        RETURNING ${PUBLISHED_SITE_SELECT_COLUMNS}`,
       values
     );
@@ -225,10 +365,17 @@ export class SiteManagementService {
   /**
    * Delete a published site
    */
-  async deleteSite(siteId: string, userId: string): Promise<boolean> {
+  async deleteSite(siteId: string, userId: string, organizationId?: string): Promise<boolean> {
+    const site = await this.getSite(siteId, userId, organizationId);
+    if (!site) {
+      return false;
+    }
+
     const result = await this.pool.query(
-      'DELETE FROM published_sites WHERE id = $1 AND user_id = $2 RETURNING id',
-      [siteId, userId]
+      `DELETE FROM published_sites
+       WHERE id = $1
+       RETURNING id`,
+      [siteId]
     );
 
     return result.rows.length > 0;
@@ -237,7 +384,11 @@ export class SiteManagementService {
   /**
    * Search published sites for a user
    */
-  async searchSites(userId: string, params: PublishedSiteSearchParams): Promise<PublishedSiteSearchResult> {
+  async searchSites(
+    userId: string,
+    params: PublishedSiteSearchParams,
+    organizationId?: string
+  ): Promise<PublishedSiteSearchResult> {
     const {
       status,
       search,
@@ -247,9 +398,10 @@ export class SiteManagementService {
       sortOrder = 'desc',
     } = params;
 
-    const conditions: string[] = ['user_id = $1'];
-    const values: unknown[] = [userId];
-    let paramIndex = 2;
+    const scope = buildSiteScope(userId, organizationId, 1);
+    const conditions: string[] = [scope.clause];
+    const values: unknown[] = [...scope.params];
+    let paramIndex = scope.nextParamIndex;
 
     if (status) {
       conditions.push(`status = $${paramIndex++}`);
@@ -340,9 +492,17 @@ export class SiteManagementService {
    * Map database row to PublishedSite
    */
   mapRowToSite(row: Record<string, unknown>): PublishedSite {
+    const userId = row.user_id as string;
+
     return {
       id: row.id as string,
-      userId: row.user_id as string,
+      userId,
+      ownerUserId: (row.owner_user_id as string | null) ?? userId,
+      organizationId: (row.organization_id as string | null) ?? null,
+      siteKind: (row.site_kind as PublishedSite['siteKind'] | null) ?? 'organization',
+      parentSiteId: (row.parent_site_id as string | null) ?? null,
+      migrationStatus:
+        (row.migration_status as PublishedSite['migrationStatus'] | null) ?? 'complete',
       templateId: row.template_id as string,
       name: row.name as string,
       subdomain: row.subdomain as string | null,
