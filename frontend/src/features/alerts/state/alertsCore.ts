@@ -3,23 +3,21 @@
  * State management for analytics alert configuration
  */
 
-import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
-import api from '../../../services/api';
+import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { alertsApiClient } from '../api/alertsApiClient';
 import type {
   AlertConfig,
   AlertInstance,
   AlertStats,
-  AlertHistory,
   CreateAlertDTO,
   UpdateAlertDTO,
-  AlertTestResult,
-} from '../../../types/alert';
+  AlertInstanceFilters,
+} from '../types';
 
 interface AlertsState {
   configs: AlertConfig[];
   currentConfig: AlertConfig | null;
   instances: AlertInstance[];
-  history: AlertHistory[];
   stats: AlertStats | null;
   loading: boolean;
   saving: boolean;
@@ -30,7 +28,6 @@ const initialState: AlertsState = {
   configs: [],
   currentConfig: null,
   instances: [],
-  history: [],
   stats: null,
   loading: false,
   saving: false,
@@ -40,28 +37,25 @@ const initialState: AlertsState = {
 /**
  * Fetch all alert configurations
  */
-export const fetchAlertConfigs = createAsyncThunk('alerts/fetchConfigs', async () => {
-  const response = await api.get<AlertConfig[]>('/alerts/configs');
-  return response.data;
-});
+export const fetchAlertConfigs = createAsyncThunk(
+  'alerts/fetchConfigs',
+  async () => alertsApiClient.fetchAlertConfigs()
+);
 
 /**
  * Fetch a specific alert configuration
  */
-export const fetchAlertConfig = createAsyncThunk('alerts/fetchConfig', async (id: string) => {
-  const response = await api.get<AlertConfig>(`/alerts/configs/${id}`);
-  return response.data;
-});
+export const fetchAlertConfig = createAsyncThunk(
+  'alerts/fetchConfig',
+  async (id: string) => alertsApiClient.fetchAlertConfig(id)
+);
 
 /**
  * Create new alert configuration
  */
 export const createAlertConfig = createAsyncThunk(
   'alerts/createConfig',
-  async (config: CreateAlertDTO) => {
-    const response = await api.post<AlertConfig>('/alerts/configs', config);
-    return response.data;
-  }
+  async (config: CreateAlertDTO) => alertsApiClient.createAlertConfig(config)
 );
 
 /**
@@ -69,37 +63,35 @@ export const createAlertConfig = createAsyncThunk(
  */
 export const updateAlertConfig = createAsyncThunk(
   'alerts/updateConfig',
-  async ({ id, config }: { id: string; config: UpdateAlertDTO }) => {
-    const response = await api.put<AlertConfig>(`/alerts/configs/${id}`, config);
-    return response.data;
-  }
+  async ({ id, config }: { id: string; config: UpdateAlertDTO }) =>
+    alertsApiClient.updateAlertConfig(id, config)
 );
 
 /**
  * Delete alert configuration
  */
-export const deleteAlertConfig = createAsyncThunk('alerts/deleteConfig', async (id: string) => {
-  await api.delete(`/alerts/configs/${id}`);
-  return id;
-});
+export const deleteAlertConfig = createAsyncThunk(
+  'alerts/deleteConfig',
+  async (id: string) => {
+    await alertsApiClient.deleteAlertConfig(id);
+    return id;
+  }
+);
 
 /**
  * Toggle alert enabled status
  */
-export const toggleAlertConfig = createAsyncThunk('alerts/toggleConfig', async (id: string) => {
-  const response = await api.patch<AlertConfig>(`/alerts/configs/${id}/toggle`);
-  return response.data;
-});
+export const toggleAlertConfig = createAsyncThunk(
+  'alerts/toggleConfig',
+  async (id: string) => alertsApiClient.toggleAlertConfig(id)
+);
 
 /**
  * Test alert configuration
  */
 export const testAlertConfig = createAsyncThunk(
   'alerts/testConfig',
-  async (config: CreateAlertDTO) => {
-    const response = await api.post<AlertTestResult>('/alerts/test', config);
-    return response.data;
-  }
+  async (config: CreateAlertDTO) => alertsApiClient.testAlertConfig(config)
 );
 
 /**
@@ -107,53 +99,31 @@ export const testAlertConfig = createAsyncThunk(
  */
 export const fetchAlertInstances = createAsyncThunk(
   'alerts/fetchInstances',
-  async (filters?: { status?: string; severity?: string; limit?: number }) => {
-    const params = new URLSearchParams();
-    if (filters?.status) params.append('status', filters.status);
-    if (filters?.severity) params.append('severity', filters.severity);
-    if (filters?.limit) params.append('limit', filters.limit.toString());
-
-    const response = await api.get<AlertInstance[]>(`/alerts/instances?${params.toString()}`);
-    return response.data;
-  }
+  async (filters?: AlertInstanceFilters) => alertsApiClient.fetchAlertInstances(filters)
 );
 
 /**
  * Acknowledge alert instance
  */
-export const acknowledgeAlert = createAsyncThunk('alerts/acknowledge', async (id: string) => {
-  const response = await api.patch<AlertInstance>(`/alerts/instances/${id}/acknowledge`);
-  return response.data;
-});
+export const acknowledgeAlert = createAsyncThunk(
+  'alerts/acknowledge',
+  async (id: string) => alertsApiClient.acknowledgeAlert(id)
+);
 
 /**
  * Resolve alert instance
  */
-export const resolveAlert = createAsyncThunk('alerts/resolve', async (id: string) => {
-  const response = await api.patch<AlertInstance>(`/alerts/instances/${id}/resolve`);
-  return response.data;
-});
+export const resolveAlert = createAsyncThunk(
+  'alerts/resolve',
+  async (id: string) => alertsApiClient.resolveAlert(id)
+);
 
 /**
  * Fetch alert statistics
  */
-export const fetchAlertStats = createAsyncThunk('alerts/fetchStats', async () => {
-  const response = await api.get<AlertStats>('/alerts/stats');
-  return response.data;
-});
-
-/**
- * Fetch alert history
- */
-export const fetchAlertHistory = createAsyncThunk(
-  'alerts/fetchHistory',
-  async (params?: { days?: number }) => {
-    const queryParams = new URLSearchParams();
-    if (params?.days) queryParams.append('days', params.days.toString());
-
-    const response = await api.get<AlertHistory[]>(`/alerts/history?${queryParams.toString()}`);
-    return response.data;
-  }
+export const fetchAlertStats = createAsyncThunk(
+  'alerts/fetchStats',
+  async () => alertsApiClient.fetchAlertStats()
 );
 
 const alertsSlice = createSlice({
@@ -293,20 +263,6 @@ const alertsSlice = createSlice({
       // Fetch stats
       .addCase(fetchAlertStats.fulfilled, (state, action) => {
         state.stats = action.payload;
-      })
-
-      // Fetch history
-      .addCase(fetchAlertHistory.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(fetchAlertHistory.fulfilled, (state, action) => {
-        state.loading = false;
-        state.history = action.payload;
-      })
-      .addCase(fetchAlertHistory.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message || 'Failed to fetch alert history';
       });
   },
 });

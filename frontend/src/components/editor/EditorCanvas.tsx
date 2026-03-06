@@ -469,101 +469,311 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
       );
 
     case 'contact-form':
+      return (
+        <div style={baseStyle} className="rounded-lg border border-app-border bg-app-surface-muted p-5">
+          <div className="mb-4">
+            <p className="text-xs uppercase tracking-wide text-app-text-muted">
+              {component.formMode === 'supporter' ? 'Supporter signup' : 'Contact form'}
+            </p>
+            <h4 className="font-semibold text-app-text">
+              {component.heading || (component.formMode === 'supporter' ? 'Add your name' : 'Get in touch')}
+            </h4>
+            {component.description ? (
+              <p className="mt-1 text-sm text-app-text-muted">{component.description}</p>
+            ) : null}
+          </div>
+
+          <div className="space-y-3">
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">First name</div>
+              <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">Last name</div>
+            </div>
+            <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">Email</div>
+            {component.includePhone !== false ? (
+              <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">Phone</div>
+            ) : null}
+            {component.includeMessage !== false ? (
+              <div className="rounded-md border border-app-border bg-app-surface px-3 py-4 text-sm text-app-text-muted">Message</div>
+            ) : null}
+            <button
+              style={{ backgroundColor: theme.colors.primary, color: '#fff' }}
+              className="rounded-md px-4 py-2 text-sm font-medium"
+            >
+              {component.submitText || 'Send Message'}
+            </button>
+          </div>
+        </div>
+      );
+
     case 'newsletter-signup':
+      return (
+        <div style={baseStyle} className="rounded-lg border border-app-border bg-app-surface-muted p-5">
+          <div className="mb-4">
+            <p className="text-xs uppercase tracking-wide text-app-text-muted">Newsletter signup</p>
+            <h4 className="font-semibold text-app-text">{component.heading || 'Stay in the loop'}</h4>
+            <p className="mt-1 text-sm text-app-text-muted">
+              {component.description || 'Collect CRM and Mailchimp subscribers directly from the public site.'}
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 md:flex-row">
+            <div className="flex-1 rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">Email address</div>
+            <button
+              style={{ backgroundColor: theme.colors.primary, color: '#fff' }}
+              className="rounded-md px-4 py-2 text-sm font-medium"
+            >
+              {component.buttonText || 'Subscribe'}
+            </button>
+          </div>
+          <p className="mt-3 text-xs text-app-text-muted">
+            Audience: {component.audienceMode || 'crm'}
+            {component.mailchimpListId ? ` · List ${component.mailchimpListId}` : ''}
+          </p>
+        </div>
+      );
+
     case 'donation-form':
       return (
-        <div style={baseStyle} className="p-6 bg-app-surface-muted rounded-lg">
-          <div className="text-center text-app-text-muted">
-            <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <p className="font-medium">{component.type.replace('-', ' ')}</p>
-            <p className="text-sm">Configure in property panel</p>
+        <div style={baseStyle} className="rounded-lg border border-app-border bg-app-surface-muted p-5">
+          <div className="mb-4">
+            <p className="text-xs uppercase tracking-wide text-app-text-muted">Donation checkout</p>
+            <h4 className="font-semibold text-app-text">{component.heading || 'Support this work'}</h4>
+            {component.description ? (
+              <p className="mt-1 text-sm text-app-text-muted">{component.description}</p>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(component.suggestedAmounts && component.suggestedAmounts.length > 0
+              ? component.suggestedAmounts
+              : [25, 50, 100, 250]
+            ).map((amount) => (
+              <span key={amount} className="rounded-full border border-app-border bg-app-surface px-3 py-1 text-sm text-app-text">
+                ${amount}
+              </span>
+            ))}
+          </div>
+          {component.allowCustomAmount !== false ? (
+            <div className="mt-3 rounded-md border border-dashed border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">
+              Custom amount enabled
+            </div>
+          ) : null}
+          {component.recurringOption ? (
+            <p className="mt-3 text-xs text-app-text-muted">Monthly recurring option enabled</p>
+          ) : null}
+        </div>
+      );
+
+    case 'volunteer-interest-form':
+      return (
+        <div style={baseStyle} className="rounded-lg border border-app-border bg-app-surface-muted p-5">
+          <div className="mb-4">
+            <p className="text-xs uppercase tracking-wide text-app-text-muted">Volunteer intake</p>
+            <h4 className="font-semibold text-app-text">{component.heading || 'Volunteer with us'}</h4>
+            {component.description ? (
+              <p className="mt-1 text-sm text-app-text-muted">{component.description}</p>
+            ) : null}
+          </div>
+          <div className="space-y-3">
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">First name</div>
+              <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">Last name</div>
+            </div>
+            <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">Email</div>
+            {component.includePhone !== false ? (
+              <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">Phone</div>
+            ) : null}
+            <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">Availability</div>
+            <button
+              style={{ backgroundColor: theme.colors.primary, color: '#fff' }}
+              className="rounded-md px-4 py-2 text-sm font-medium"
+            >
+              {component.submitText || 'Share Interest'}
+            </button>
           </div>
         </div>
       );
 
     case 'event-list':
-      {
-        const filterType = component.eventType || component.filterByTag || '';
-        const maxEvents = Math.max(1, component.maxEvents || 6);
-        const layout = component.layout || 'grid';
-        const previewEvents = [
-          {
-            id: 'preview-1',
-            title: 'Community Dinner',
-            eventType: 'community',
-            date: 'Apr 2, 2026 · 6:00 PM',
-            location: 'Main Hall, Vancouver',
-            description: 'Join volunteers and neighbors for an evening meal and program updates.',
-          },
-          {
-            id: 'preview-2',
-            title: 'Fundraising Breakfast',
-            eventType: 'fundraiser',
-            date: 'Apr 9, 2026 · 8:00 AM',
-            location: 'Harbor Center, Vancouver',
-            description: 'Sponsor breakfast with a short impact presentation and donor Q&A.',
-          },
-          {
-            id: 'preview-3',
-            title: 'Volunteer Orientation',
-            eventType: 'volunteer',
-            date: 'Apr 12, 2026 · 10:00 AM',
-            location: 'Outreach Hub, Burnaby',
-            description: 'Onboarding session for new volunteers supporting spring campaigns.',
-          },
-        ]
-          .filter((event) => !filterType || event.eventType === filterType)
-          .slice(0, maxEvents);
+    case 'event-calendar': {
+      const filterType =
+        component.type === 'event-list'
+          ? component.eventType || component.filterByTag || ''
+          : component.eventType || '';
+      const maxEvents = Math.max(1, component.maxEvents || (component.type === 'event-calendar' ? 8 : 6));
+      const layout = component.type === 'event-list' ? component.layout || 'grid' : 'list';
+      const previewEvents = [
+        {
+          id: 'preview-1',
+          title: 'Community Dinner',
+          eventType: 'community',
+          date: 'Apr 2, 2026 · 6:00 PM',
+          location: 'Main Hall, Vancouver',
+          description: 'Join volunteers and neighbors for an evening meal and program updates.',
+        },
+        {
+          id: 'preview-2',
+          title: 'Fundraising Breakfast',
+          eventType: 'fundraiser',
+          date: 'Apr 9, 2026 · 8:00 AM',
+          location: 'Harbor Center, Vancouver',
+          description: 'Sponsor breakfast with a short impact presentation and donor Q&A.',
+        },
+        {
+          id: 'preview-3',
+          title: 'Volunteer Orientation',
+          eventType: 'volunteer',
+          date: 'Apr 12, 2026 · 10:00 AM',
+          location: 'Outreach Hub, Burnaby',
+          description: 'Onboarding session for new volunteers supporting spring campaigns.',
+        },
+      ]
+        .filter((event) => !filterType || event.eventType === filterType)
+        .slice(0, maxEvents);
 
-        const resolvedLayout = layout === 'calendar' ? 'list' : layout;
+      const resolvedLayout = layout === 'calendar' ? 'list' : layout;
 
-        return (
-          <div style={baseStyle} className="space-y-3 rounded-lg border border-app-border p-4 bg-app-surface-muted">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-app-text-muted">
-              <span className="rounded-full bg-app-surface px-2 py-1">
-                Layout: {layout}
-              </span>
-              <span className="rounded-full bg-app-surface px-2 py-1">
-                Max: {maxEvents}
-              </span>
-              {filterType ? (
-                <span className="rounded-full bg-app-surface px-2 py-1">
-                  Type: {filterType}
-                </span>
-              ) : null}
-              {component.showPastEvents ? (
-                <span className="rounded-full bg-app-surface px-2 py-1">Includes past events</span>
-              ) : null}
-            </div>
-
-            {layout === 'calendar' ? (
-              <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-xs text-app-text-muted">
-                Calendar mode is a fallback preview in this release. Published pages render list layout.
-              </div>
+      return (
+        <div style={baseStyle} className="space-y-3 rounded-lg border border-app-border p-4 bg-app-surface-muted">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-app-text-muted">
+            <span className="rounded-full bg-app-surface px-2 py-1">
+              {component.type === 'event-calendar'
+                ? `View: ${component.initialView || 'month'}`
+                : `Layout: ${layout}`}
+            </span>
+            <span className="rounded-full bg-app-surface px-2 py-1">
+              Max: {maxEvents}
+            </span>
+            {filterType ? (
+              <span className="rounded-full bg-app-surface px-2 py-1">Type: {filterType}</span>
             ) : null}
-
-            {previewEvents.length === 0 ? (
-              <div className="rounded-md border border-dashed border-app-border bg-app-surface px-3 py-6 text-center text-sm text-app-text-muted">
-                {component.emptyMessage || 'No public events are available right now.'}
-              </div>
-            ) : (
-              <div className={resolvedLayout === 'grid' ? 'grid gap-3 md:grid-cols-2' : 'space-y-3'}>
-                {previewEvents.map((event) => (
-                  <article key={event.id} className="rounded-md border border-app-border bg-app-surface p-3">
-                    <h4 className="font-medium text-app-text">{event.title}</h4>
-                    <p className="mt-1 text-xs uppercase tracking-wide text-app-text-muted">{event.eventType}</p>
-                    <p className="mt-2 text-sm text-app-text-muted">{event.date}</p>
-                    <p className="text-sm text-app-text-muted">{event.location}</p>
-                    <p className="mt-2 text-sm text-app-text">{event.description}</p>
-                  </article>
-                ))}
-              </div>
-            )}
+            {component.showPastEvents ? (
+              <span className="rounded-full bg-app-surface px-2 py-1">Includes past events</span>
+            ) : null}
           </div>
-        );
-      }
+
+          {component.type === 'event-calendar' ? (
+            <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-xs text-app-text-muted">
+              Calendar pages publish as live event feeds inside the site layout.
+            </div>
+          ) : null}
+
+          {previewEvents.length === 0 ? (
+            <div className="rounded-md border border-dashed border-app-border bg-app-surface px-3 py-6 text-center text-sm text-app-text-muted">
+              {component.emptyMessage || 'No public events are available right now.'}
+            </div>
+          ) : (
+            <div className={resolvedLayout === 'grid' ? 'grid gap-3 md:grid-cols-2' : 'space-y-3'}>
+              {previewEvents.map((event) => (
+                <article key={event.id} className="rounded-md border border-app-border bg-app-surface p-3">
+                  <h4 className="font-medium text-app-text">{event.title}</h4>
+                  <p className="mt-1 text-xs uppercase tracking-wide text-app-text-muted">{event.eventType}</p>
+                  <p className="mt-2 text-sm text-app-text-muted">{event.date}</p>
+                  <p className="text-sm text-app-text-muted">{event.location}</p>
+                  <p className="mt-2 text-sm text-app-text">{event.description}</p>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    case 'event-detail':
+      return (
+        <article style={baseStyle} className="rounded-lg border border-app-border bg-app-surface-muted p-5">
+          <p className="text-xs uppercase tracking-wide text-app-text-muted">Event detail page</p>
+          <h3 className="mt-1 text-xl font-semibold text-app-text">Spring Community Dinner</h3>
+          <p className="mt-2 text-sm text-app-text-muted">April 2, 2026 · 6:00 PM</p>
+          {component.showLocation !== false ? (
+            <p className="text-sm text-app-text-muted">Main Hall, 123 Harbor St, Vancouver, BC</p>
+          ) : null}
+          {component.showCapacity !== false ? (
+            <p className="mt-2 text-sm text-app-text-muted">Capacity: 86 / 120 registered</p>
+          ) : null}
+          {component.showDescription !== false ? (
+            <p className="mt-3 text-sm text-app-text">
+              Published pages render the live event title, schedule, location, and registration state here.
+            </p>
+          ) : null}
+        </article>
+      );
+
+    case 'event-registration':
+      return (
+        <div style={baseStyle} className="rounded-lg border border-app-border bg-app-surface-muted p-5">
+          <p className="text-xs uppercase tracking-wide text-app-text-muted">Event registration</p>
+          <div className="mt-4 space-y-3">
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">First name</div>
+              <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">Last name</div>
+            </div>
+            <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">Email</div>
+            {component.includePhone !== false ? (
+              <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">Phone</div>
+            ) : null}
+            <button
+              style={{ backgroundColor: theme.colors.primary, color: '#fff' }}
+              className="rounded-md px-4 py-2 text-sm font-medium"
+            >
+              {component.submitText || 'Register'}
+            </button>
+          </div>
+        </div>
+      );
+
+    case 'newsletter-archive': {
+      const previewNewsletters = [
+        {
+          id: 'newsletter-1',
+          title: 'March Program Update',
+          source: 'native',
+          date: 'Mar 1, 2026',
+          excerpt: 'Highlights from winter outreach, upcoming events, and volunteer needs.',
+        },
+        {
+          id: 'newsletter-2',
+          title: 'February Donor Bulletin',
+          source: 'mailchimp',
+          date: 'Feb 14, 2026',
+          excerpt: 'A recap of campaign milestones and stewardship notes for the month.',
+        },
+      ]
+        .filter((item) =>
+          !component.sourceFilter || component.sourceFilter === 'all'
+            ? true
+            : item.source === component.sourceFilter
+        )
+        .slice(0, component.maxItems || 10);
+
+      return (
+        <div style={baseStyle} className="space-y-3 rounded-lg border border-app-border p-4 bg-app-surface-muted">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-app-text-muted">
+            <span className="rounded-full bg-app-surface px-2 py-1">
+              Source: {component.sourceFilter || 'all'}
+            </span>
+            <span className="rounded-full bg-app-surface px-2 py-1">
+              Max: {component.maxItems || 10}
+            </span>
+          </div>
+
+          {previewNewsletters.length === 0 ? (
+            <div className="rounded-md border border-dashed border-app-border bg-app-surface px-3 py-6 text-center text-sm text-app-text-muted">
+              {component.emptyMessage || 'No newsletters are available right now.'}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {previewNewsletters.map((item) => (
+                <article key={item.id} className="rounded-md border border-app-border bg-app-surface p-3">
+                  <p className="text-xs uppercase tracking-wide text-app-text-muted">{item.source}</p>
+                  <h4 className="mt-1 font-medium text-app-text">{item.title}</h4>
+                  <p className="mt-1 text-sm text-app-text-muted">{item.date}</p>
+                  <p className="mt-2 text-sm text-app-text">{item.excerpt}</p>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
 
     case 'gallery':
       return (

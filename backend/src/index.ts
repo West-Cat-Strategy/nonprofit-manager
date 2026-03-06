@@ -25,6 +25,7 @@ import { appointmentReminderSchedulerService } from '@services/appointmentRemind
 import { publicReportSnapshotCleanupSchedulerService } from '@services/publicReportSnapshotCleanupSchedulerService';
 import { scheduledReportSchedulerService } from '@services/scheduledReportSchedulerService';
 import { webhookRetrySchedulerService } from '@services/webhookRetrySchedulerService';
+import { renderPublishedWebsite } from '@modules/publishing/controllers';
 import pool from './config/database';
 
 if (process.env.JEST_WORKER_ID && !process.env.NODE_ENV) {
@@ -288,6 +289,21 @@ registerApiRoutes(app);
 
 // Hard cutover: all legacy `/api/*` (non-v2) endpoints are tombstoned with migration guidance.
 app.use('/api', legacyApiTombstoneMiddleware);
+
+// Serve published websites by host/path after API routes are mounted.
+app.get(/.*/, (req, res, next) => {
+  if (
+    req.path === '/health' ||
+    req.path === '/metrics' ||
+    req.path === '/favicon.ico' ||
+    req.path.startsWith('/api/')
+  ) {
+    next();
+    return;
+  }
+
+  void renderPublishedWebsite(req, res, next);
+});
 
 // Sentry error handler (must be after all controllers, before other error handlers)
 sentryErrorHandler(app);

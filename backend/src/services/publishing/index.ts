@@ -84,6 +84,10 @@ export class PublishingService {
     return this.siteManagement.getSiteByDomain(...args);
   }
 
+  async getPublicSiteById(...args: Parameters<SiteManagementService['getPublicSiteById']>) {
+    return this.siteManagement.getPublicSiteById(...args);
+  }
+
   async updateSite(...args: Parameters<SiteManagementService['updateSite']>) {
     return this.siteManagement.updateSite(...args);
   }

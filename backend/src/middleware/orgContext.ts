@@ -142,10 +142,10 @@ export const orgContextMiddleware = async (
 
       // Admins always have access
       if (userRole !== 'admin') {
-        // Check user_organization_access table for explicit access
+        // Check user_account_access table for explicit access
         const accessResult = await pool.query(
-          `SELECT id FROM user_organization_access
-           WHERE user_id = $1 AND organization_id = $2 AND is_active = true`,
+          `SELECT id FROM user_account_access
+           WHERE user_id = $1 AND account_id = $2 AND is_active = true`,
           [userId, id]
         );
 

@@ -147,11 +147,7 @@ export default function CaseTable({ cases }: CaseTableProps) {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
-                    className="inline-block border-2 border-black px-3 py-1 text-xs font-black uppercase"
-                    style={{
-                      backgroundColor: caseItem.case_type_color || '#e5e7eb',
-                      color: '#000000',
-                    }}
+                    className="inline-block border-2 border-black bg-app-surface-muted px-3 py-1 text-xs font-black uppercase text-black"
                   >
                     {caseItem.case_type_name || 'General'}
                   </span>

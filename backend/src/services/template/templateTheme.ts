@@ -37,9 +37,10 @@ export async function getSystemTemplates(): Promise<TemplateListItem[]> {
 export async function duplicateTemplate(
   templateId: string,
   userId: string,
-  newName?: string
+  newName?: string,
+  organizationId?: string
 ): Promise<Template | null> {
-  const source = await getTemplate(templateId, userId);
+  const source = await getTemplate(templateId, userId, organizationId);
 
   if (!source) {
     return null;
@@ -53,7 +54,7 @@ export async function duplicateTemplate(
     theme: source.theme,
     globalSettings: source.globalSettings,
     cloneFromId: templateId,
-  });
+  }, organizationId);
 }
 
 /**
@@ -62,10 +63,11 @@ export async function duplicateTemplate(
 export async function generateTemplatePreview(
   templateId: string,
   userId: string,
-  pageSlug: string = 'home'
+  pageSlug: string = 'home',
+  organizationId?: string
 ): Promise<GeneratedPage | null> {
   try {
-    const template = await getTemplate(templateId, userId);
+    const template = await getTemplate(templateId, userId, organizationId);
     if (!template) {
       return null;
     }
@@ -149,9 +151,10 @@ export async function generateTemplatePreview(
 
 export async function getTemplateCssVariables(
   templateId: string,
-  userId: string
+  userId: string,
+  organizationId?: string
 ): Promise<string | null> {
-  const template = await getTemplate(templateId, userId);
+  const template = await getTemplate(templateId, userId, organizationId);
   if (!template) return null;
   return generateThemeCssVariables(template.theme);
 }
@@ -159,20 +162,22 @@ export async function getTemplateCssVariables(
 export async function applyPaletteToTemplate(
   templateId: string,
   userId: string,
-  palette: ColorPalette
+  palette: ColorPalette,
+  organizationId?: string
 ): Promise<Template | null> {
-  const template = await getTemplate(templateId, userId);
+  const template = await getTemplate(templateId, userId, organizationId);
   if (!template) return null;
   const theme = { ...template.theme, colors: { ...template.theme.colors, ...palette } };
-  return updateTemplate(templateId, userId, { theme });
+  return updateTemplate(templateId, userId, { theme }, organizationId);
 }
 
 export async function applyFontPairingToTemplate(
   templateId: string,
   userId: string,
-  pairing: { headingFont: string; bodyFont: string }
+  pairing: { headingFont: string; bodyFont: string },
+  organizationId?: string
 ): Promise<Template | null> {
-  const template = await getTemplate(templateId, userId);
+  const template = await getTemplate(templateId, userId, organizationId);
   if (!template) return null;
   const theme = {
     ...template.theme,
@@ -182,5 +187,5 @@ export async function applyFontPairingToTemplate(
       fontFamily: pairing.bodyFont,
     },
   };
-  return updateTemplate(templateId, userId, { theme });
+  return updateTemplate(templateId, userId, { theme }, organizationId);
 }

@@ -78,9 +78,10 @@ export const createSite = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const organizationId = req.organizationId;
     const data: CreatePublishedSiteDTO = req.body;
 
-    const site = await publishingService.createSite(userId, data);
+    const site = await publishingService.createSite(userId, data, organizationId);
     sendSuccess(res, site, 201);
   } catch (error) {
     if (handleKnownPublishingError(error, res, { conflict: true, notFound: true })) return;
@@ -98,9 +99,10 @@ export const getSite = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const organizationId = req.organizationId;
     const { siteId } = req.params;
 
-    const site = await publishingService.getSite(siteId, userId);
+    const site = await publishingService.getSite(siteId, userId, organizationId);
     if (!site) {
       notFoundMessage(res, 'Site not found');
       return;
@@ -122,10 +124,11 @@ export const updateSite = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const organizationId = req.organizationId;
     const { siteId } = req.params;
     const data: UpdatePublishedSiteDTO = req.body;
 
-    const site = await publishingService.updateSite(siteId, userId, data);
+    const site = await publishingService.updateSite(siteId, userId, data, organizationId);
     if (!site) {
       notFoundMessage(res, 'Site not found');
       return;
@@ -148,9 +151,10 @@ export const deleteSite = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const organizationId = req.organizationId;
     const { siteId } = req.params;
 
-    const deleted = await publishingService.deleteSite(siteId, userId);
+    const deleted = await publishingService.deleteSite(siteId, userId, organizationId);
     if (!deleted) {
       notFoundMessage(res, 'Site not found');
       return;
@@ -172,6 +176,7 @@ export const searchSites = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const organizationId = req.organizationId;
     const query = (req.validatedQuery ?? req.query) as Record<string, unknown>;
     const { page, limit } = extractPagination(query, { defaultLimit: 10 });
     const params: PublishedSiteSearchParams = {
@@ -183,7 +188,7 @@ export const searchSites = async (
       sortOrder: query.sortOrder as PublishedSiteSearchParams['sortOrder'],
     };
 
-    const result = await publishingService.searchSites(userId, params);
+    const result = await publishingService.searchSites(userId, params, organizationId);
     sendSuccess(res, result);
   } catch (error) {
     next(error);
@@ -200,10 +205,11 @@ export const publishSite = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const organizationId = req.organizationId;
     const { templateId } = req.body;
     const siteId = req.body.siteId as string | undefined;
 
-    const result = await publishingService.publish(userId, templateId, siteId);
+    const result = await publishingService.publish(userId, templateId, siteId, organizationId);
     sendSuccess(res, result);
   } catch (error) {
     if (handleKnownPublishingError(error, res, { notFound: true })) return;
@@ -221,9 +227,10 @@ export const unpublishSite = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const organizationId = req.organizationId;
     const { siteId } = req.params;
 
-    const site = await publishingService.unpublish(siteId, userId);
+    const site = await publishingService.unpublish(siteId, userId, organizationId);
     if (!site) {
       notFoundMessage(res, 'Site not found');
       return;
@@ -245,9 +252,10 @@ export const getDeploymentInfo = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const organizationId = req.organizationId;
     const { siteId } = req.params;
 
-    const info = await publishingService.getDeploymentInfo(siteId, userId);
+    const info = await publishingService.getDeploymentInfo(siteId, userId, organizationId);
     if (!info) {
       notFoundMessage(res, 'Site not found');
       return;
@@ -308,6 +316,7 @@ export const getAnalyticsSummary = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const organizationId = req.organizationId;
     const { siteId } = req.params;
     const query = (req.validatedQuery ?? req.query) as {
       period?: number | string;
@@ -317,7 +326,8 @@ export const getAnalyticsSummary = async (
     const summary = await publishingService.getAnalyticsSummary(
       siteId,
       userId,
-      periodDays
+      periodDays,
+      organizationId
     );
     sendSuccess(res, summary);
   } catch (error) {
@@ -364,6 +374,7 @@ export const addCustomDomain = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const organizationId = req.organizationId;
     const { siteId } = req.params;
     const { domain, verificationMethod } = req.body;
 
@@ -371,7 +382,8 @@ export const addCustomDomain = async (
       siteId,
       userId,
       domain,
-      verificationMethod
+      verificationMethod,
+      organizationId
     );
     sendSuccess(res, config, 201);
   } catch (error) {
@@ -390,9 +402,10 @@ export const verifyCustomDomain = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const organizationId = req.organizationId;
     const { siteId } = req.params;
 
-    const result = await publishingService.verifyCustomDomain(siteId, userId);
+    const result = await publishingService.verifyCustomDomain(siteId, userId, organizationId);
     sendSuccess(res, result);
   } catch (error) {
     if (handleKnownPublishingError(error, res, { notFound: true, badRequest: true })) return;
@@ -410,9 +423,10 @@ export const removeCustomDomain = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const organizationId = req.organizationId;
     const { siteId } = req.params;
 
-    const removed = await publishingService.removeCustomDomain(siteId, userId);
+    const removed = await publishingService.removeCustomDomain(siteId, userId, organizationId);
     if (!removed) {
       notFoundMessage(res, 'Site not found');
       return;
@@ -434,9 +448,10 @@ export const getCustomDomainConfig = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const organizationId = req.organizationId;
     const { siteId } = req.params;
 
-    const config = await publishingService.getCustomDomainConfig(siteId, userId);
+    const config = await publishingService.getCustomDomainConfig(siteId, userId, organizationId);
     if (!config) {
       notFoundMessage(res, 'No custom domain configured');
       return;
@@ -460,9 +475,10 @@ export const getSslInfo = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const organizationId = req.organizationId;
     const { siteId } = req.params;
 
-    const info = await publishingService.getSslInfo(siteId, userId);
+    const info = await publishingService.getSslInfo(siteId, userId, organizationId);
     if (!info) {
       notFoundMessage(res, 'Site not found or no domain configured');
       return;
@@ -484,9 +500,10 @@ export const provisionSsl = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const organizationId = req.organizationId;
     const { siteId } = req.params;
 
-    const result = await publishingService.provisionSsl(siteId, userId);
+    const result = await publishingService.provisionSsl(siteId, userId, organizationId);
     if (!result.success) {
       badRequest(res, result.message);
       return;
@@ -510,13 +527,14 @@ export const getVersionHistory = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const organizationId = req.organizationId;
     const { siteId } = req.params;
     const query = (req.validatedQuery ?? req.query) as {
       limit?: number | string;
     };
     const limit = parseIntQuery(query.limit, 10);
 
-    const history = await publishingService.getVersionHistory(siteId, userId, limit);
+    const history = await publishingService.getVersionHistory(siteId, userId, limit, organizationId);
     sendSuccess(res, history);
   } catch (error) {
     if (handleKnownPublishingError(error, res, { notFound: true })) return;
@@ -534,9 +552,10 @@ export const getVersion = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const organizationId = req.organizationId;
     const { siteId, version } = req.params;
 
-    const versionData = await publishingService.getVersion(siteId, userId, version);
+    const versionData = await publishingService.getVersion(siteId, userId, version, organizationId);
     if (!versionData) {
       notFoundMessage(res, 'Version not found');
       return;
@@ -558,10 +577,11 @@ export const rollbackVersion = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const organizationId = req.organizationId;
     const { siteId } = req.params;
     const { version } = req.body;
 
-    const result = await publishingService.rollback(siteId, userId, version);
+    const result = await publishingService.rollback(siteId, userId, version, organizationId);
     sendSuccess(res, result);
   } catch (error) {
     if (handleKnownPublishingError(error, res, { notFound: true, badRequest: true })) return;
@@ -579,13 +599,14 @@ export const pruneVersions = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const organizationId = req.organizationId;
     const { siteId } = req.params;
     const query = (req.validatedQuery ?? req.query) as {
       keep?: number | string;
     };
     const keepCount = parseIntQuery(query.keep, 10);
 
-    const deletedCount = await publishingService.pruneVersions(siteId, userId, keepCount);
+    const deletedCount = await publishingService.pruneVersions(siteId, userId, keepCount, organizationId);
     sendSuccess(res, { deleted: deletedCount });
   } catch (error) {
     if (handleKnownPublishingError(error, res, { notFound: true })) return;
@@ -617,10 +638,11 @@ export const invalidateSiteCache = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const organizationId = req.organizationId;
     const { siteId } = req.params;
 
     // Verify site ownership
-    const site = await publishingService.getSite(siteId, userId);
+    const site = await publishingService.getSite(siteId, userId, organizationId);
     if (!site) {
       notFoundMessage(res, 'Site not found');
       return;

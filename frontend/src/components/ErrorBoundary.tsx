@@ -27,34 +27,22 @@ class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div
-          style={{
-            padding: '20px',
-            margin: '20px',
-            border: '2px solid #ef4444',
-            borderRadius: '8px',
-            backgroundColor: '#fef2f2',
-          }}
+          className="m-5 rounded-lg border-2 border-app-accent bg-app-accent-soft p-5"
           role="alert"
         >
-          <h1 style={{ color: '#b91c1c', marginBottom: '8px' }}>Something went wrong</h1>
-          <p style={{ marginTop: 0, marginBottom: '12px', color: '#374151' }}>
+          <h1 className="mb-2 text-2xl font-semibold text-app-accent">Something went wrong</h1>
+          <p className="mb-3 mt-0 text-app-text-muted">
             Please refresh the page. If the problem persists, contact support.
           </p>
           <button
             type="button"
             onClick={() => window.location.reload()}
-            style={{
-              padding: '8px 12px',
-              borderRadius: '6px',
-              border: '1px solid #d1d5db',
-              background: '#fff',
-              cursor: 'pointer',
-            }}
+            className="rounded-md border border-app-input-border bg-app-surface px-3 py-2 text-sm font-semibold text-app-text transition-colors hover:bg-app-hover"
           >
             Refresh
           </button>
           {import.meta.env.DEV && (
-            <details style={{ whiteSpace: 'pre-wrap', marginTop: '12px' }}>
+            <details className="mt-3 whitespace-pre-wrap text-sm text-app-text-muted">
               <summary>Error Details</summary>
               {this.state.error?.toString()}
               <br />

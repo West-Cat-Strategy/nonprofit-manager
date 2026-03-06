@@ -38,7 +38,7 @@ export function generateSectionHtml(section: PublishedSection, theme: PublishedT
     </section>`;
 }
 
-function generateComponentHtml(component: PublishedComponent, theme: PublishedTheme): string {
+export function generateComponentHtml(component: PublishedComponent, theme: PublishedTheme): string {
   switch (component.type) {
     case 'heading':
       return generateHeading(component, theme);

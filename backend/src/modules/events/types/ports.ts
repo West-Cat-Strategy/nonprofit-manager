@@ -9,9 +9,12 @@ import type {
   PaginationParams,
   PublicEventsListData,
   PublicEventsQuery,
+  PublicEventDetail,
   PublicEventCheckInDTO,
   PublicEventCheckInInfo,
   PublicEventCheckInResult,
+  PublicEventRegistrationDTO,
+  PublicEventRegistrationResult,
   RegistrationFilters,
   RotateEventCheckInPinResult,
   SendEventRemindersDTO,
@@ -25,6 +28,7 @@ export interface EventCatalogPort {
   getEvents(filters: EventFilters, pagination: PaginationParams, scope?: DataScopeFilter): Promise<unknown>;
   getEventById(eventId: string, scope?: DataScopeFilter): Promise<unknown | null>;
   listPublicEventsByOwner(ownerUserId: string, query: PublicEventsQuery): Promise<PublicEventsListData>;
+  getPublicEventBySlug(ownerUserId: string, slug: string): Promise<PublicEventDetail | null>;
   createEvent(data: CreateEventDTO, userId: string): Promise<unknown>;
   updateEvent(eventId: string, data: UpdateEventDTO, userId: string): Promise<unknown | null>;
   deleteEvent(eventId: string, userId: string): Promise<void>;
@@ -54,6 +58,10 @@ export interface EventRegistrationPort {
     data: EventWalkInCheckInDTO,
     checkedInBy: string
   ): Promise<EventWalkInCheckInResult>;
+  submitPublicRegistration(
+    eventId: string,
+    data: PublicEventRegistrationDTO
+  ): Promise<PublicEventRegistrationResult>;
   getPublicCheckInInfo(eventId: string): Promise<PublicEventCheckInInfo | null>;
   submitPublicCheckIn(eventId: string, data: PublicEventCheckInDTO): Promise<PublicEventCheckInResult>;
 }

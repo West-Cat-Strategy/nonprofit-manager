@@ -30,7 +30,11 @@ import { paymentsV2Routes } from '@modules/payments';
 import { plausibleProxyV2Routes } from '@modules/plausibleProxy';
 import { publicReportsV2Routes } from '@modules/publicReports';
 import { reconciliationV2Routes } from '@modules/reconciliation';
-import { publishingV2Routes } from '@modules/publishing';
+import {
+  publishingV2Routes,
+  publicPublishingV2Routes,
+  publicWebsiteFormsV2Routes,
+} from '@modules/publishing';
 import { templatesV2Routes } from '@modules/templates';
 import { usersV2Routes } from '@modules/users';
 import { webhooksV2Routes } from '@modules/webhooks';
@@ -55,6 +59,8 @@ apiV2Routes.use('/mailchimp', mailchimpV2Routes);
 apiV2Routes.use('/meetings', meetingsV2Routes);
 apiV2Routes.use('/payments', paymentsV2Routes);
 apiV2Routes.use('/public/events', publicEventsV2Routes);
+apiV2Routes.use('/public/newsletters', publicPublishingV2Routes);
+apiV2Routes.use('/public/forms', publicWebsiteFormsV2Routes);
 apiV2Routes.use('/public/reports', publicReportsV2Routes);
 apiV2Routes.use('/reconciliation', reconciliationV2Routes);
 apiV2Routes.use('/sites', publishingV2Routes);

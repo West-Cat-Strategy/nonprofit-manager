@@ -233,4 +233,27 @@ describe('Navigation', () => {
       expect(searchButton).toHaveFocus();
     });
   });
+
+  it('renders catalog-driven utility links including alerts', async () => {
+    renderWithProviders(<Navigation />, {
+      route: '/dashboard',
+      preloadedState: {
+        auth: {
+          user: {
+            id: 'user-1',
+            email: 'admin@example.com',
+            firstName: 'Admin',
+            lastName: 'User',
+            role: 'admin',
+          },
+          isAuthenticated: true,
+          authLoading: false,
+          loading: false,
+        },
+      },
+    });
+
+    const alertLinks = await screen.findAllByRole('link', { name: /alerts/i });
+    expect(alertLinks.some((link) => link.getAttribute('href') === '/alerts')).toBe(true);
+  });
 });

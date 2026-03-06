@@ -193,7 +193,7 @@ export default function BrandingSection({
                 {branding.appIcon ? (
                   <img src={branding.appIcon} alt="Preview" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-lg font-bold" style={{ color: branding.primaryColour }}>
+                  <span className="text-lg font-bold text-app-accent">
                     {branding.appName[0] || 'N'}
                   </span>
                 )}

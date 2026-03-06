@@ -76,4 +76,28 @@ describe('AdminPanelNav', () => {
     );
     expect(screen.getByRole('link', { name: /appointments/i })).toHaveClass('bg-app-accent-soft');
   });
+
+  it('highlights query-based admin sections from the canonical route catalog', () => {
+    renderWithProviders(<AdminPanelNav currentPath="/settings/admin?section=users" />, {
+      route: '/settings/admin?section=users',
+      preloadedState: {
+        auth: {
+          user: {
+            id: 'user-1',
+            email: 'admin@example.com',
+            firstName: 'Admin',
+            lastName: 'User',
+            role: 'admin',
+          },
+          isAuthenticated: true,
+          authLoading: false,
+          loading: false,
+        },
+      },
+    });
+
+    expect(screen.getByRole('link', { name: /users & security/i })).toHaveClass(
+      'bg-app-accent-soft'
+    );
+  });
 });

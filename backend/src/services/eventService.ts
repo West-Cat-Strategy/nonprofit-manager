@@ -12,13 +12,18 @@ import { PASSWORD } from '@config/constants';
 import {
   Event,
   EventCheckInSettings,
+  EventStatus,
+  EventType,
   EventWalkInCheckInDTO,
   EventWalkInCheckInResult,
   CreateEventDTO,
   PublicEventCheckInDTO,
   PublicEventCheckInInfo,
   PublicEventCheckInResult,
+  PublicEventDetail,
   PublicEventListItem,
+  PublicEventRegistrationDTO,
+  PublicEventRegistrationResult,
   PublicEventsListData,
   PublicEventsQuery,
   RegistrationStatus,
@@ -102,6 +107,14 @@ const normalizePhone = (value: string | null | undefined): string | null => {
   const digits = value.replace(/\D/g, '');
   return digits.length > 0 ? digits : null;
 };
+
+const slugifyPublicEvent = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-');
 
 const buildCheckInWindowMessage = (windowBefore: number, windowAfter: number): string =>
   `Check-in is available ${windowBefore} minutes before start until ${windowAfter} minutes after end`;
@@ -1769,7 +1782,7 @@ export class EventService {
     );
     const total = Number.parseInt(countResult.rows[0]?.count ?? '0', 10);
 
-    const rowsResult = await this.pool.query<PublicEventListItem>(
+    const rowsResult = await this.pool.query<Omit<PublicEventListItem, 'slug'>>(
       `SELECT
          id as event_id,
          name as event_name,
@@ -1793,7 +1806,10 @@ export class EventService {
     );
 
     return {
-      items: rowsResult.rows,
+      items: rowsResult.rows.map((row) => ({
+        ...row,
+        slug: slugifyPublicEvent(row.event_name),
+      })),
       page: {
         limit,
         offset,
@@ -1801,6 +1817,165 @@ export class EventService {
         has_more: offset + rowsResult.rows.length < total,
       },
     };
+  }
+
+  async getPublicEventBySlug(
+    ownerUserId: string,
+    slug: string
+  ): Promise<PublicEventDetail | null> {
+    const normalizedSlug = slugifyPublicEvent(slug);
+    const result = await this.pool.query<{
+      event_id: string;
+      event_name: string;
+      description: string | null;
+      event_type: EventType;
+      status: EventStatus;
+      start_date: Date;
+      end_date: Date;
+      location_name: string | null;
+      city: string | null;
+      state_province: string | null;
+      country: string | null;
+      address_line1: string | null;
+      address_line2: string | null;
+      postal_code: string | null;
+      capacity: number | null;
+      registered_count: number;
+    }>(
+      `SELECT
+         id as event_id,
+         name as event_name,
+         description,
+         event_type,
+         status,
+         start_date,
+         end_date,
+         location_name,
+         city,
+         state_province,
+         country,
+         address_line1,
+         address_line2,
+         postal_code,
+         capacity,
+         registered_count
+       FROM events
+       WHERE created_by = $1
+         AND is_public = TRUE
+         AND status != 'cancelled'
+       ORDER BY start_date ASC`,
+      [ownerUserId]
+    );
+
+    const match = result.rows.find((row) => slugifyPublicEvent(row.event_name) === normalizedSlug);
+    if (!match) {
+      return null;
+    }
+
+    const isRegistrationOpen =
+      match.status !== EventStatus.CANCELLED &&
+      match.status !== EventStatus.COMPLETED &&
+      (!match.capacity || match.registered_count < match.capacity);
+
+    return {
+      ...match,
+      slug: normalizedSlug,
+      is_registration_open: isRegistrationOpen,
+    };
+  }
+
+  async submitPublicRegistration(
+    eventId: string,
+    data: PublicEventRegistrationDTO
+  ): Promise<PublicEventRegistrationResult> {
+    const eventResult = await this.pool.query<{
+      id: string;
+      name: string;
+      is_public: boolean;
+      status: EventStatus;
+      created_by: string | null;
+    }>(
+      `SELECT id, name, is_public, status, created_by
+       FROM events
+       WHERE id = $1`,
+      [eventId]
+    );
+
+    const event = eventResult.rows[0];
+    if (!event || !event.is_public) {
+      throw new Error('Event not found');
+    }
+
+    if (event.status === EventStatus.CANCELLED || event.status === EventStatus.COMPLETED) {
+      throw new Error('Event registration is unavailable');
+    }
+
+    let contactId = await this.resolveContactIdByIdentity(this.pool, {
+      email: data.email,
+      phone: data.phone,
+    });
+    let createdContact = false;
+
+    if (!contactId) {
+      contactId = await this.createWalkInContact(this.pool, {
+        firstName: data.first_name,
+        lastName: data.last_name,
+        email: data.email,
+        phone: data.phone,
+        createdBy: event.created_by,
+      });
+      createdContact = true;
+    }
+
+    try {
+      const registration = await this.registerContact({
+        event_id: eventId,
+        contact_id: contactId,
+        registration_status: data.registration_status,
+        notes: data.notes,
+      });
+
+      return {
+        status: 'registered',
+        contact_id: contactId,
+        registration: registration as EventRegistration,
+        created_contact: createdContact,
+        created_registration: true,
+      };
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Contact is already registered for this event') {
+        const existingResult = await this.pool.query<EventRegistration>(
+          `SELECT
+             id as registration_id,
+             event_id,
+             contact_id,
+             registration_status,
+             checked_in,
+             check_in_time,
+             checked_in_by,
+             check_in_method,
+             check_in_token,
+             notes,
+             created_at,
+             updated_at
+           FROM event_registrations
+           WHERE event_id = $1 AND contact_id = $2`,
+          [eventId, contactId]
+        );
+
+        if (existingResult.rows[0]) {
+          return {
+            status: 'already_registered',
+            contact_id: contactId,
+            registration: existingResult.rows[0],
+            created_contact: createdContact,
+            created_registration: false,
+          };
+        }
+      }
+
+      throw error;
+    }
   }
 
   private async recordReminderDelivery(args: {

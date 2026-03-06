@@ -14,6 +14,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import Avatar from './Avatar';
 import { useQuickLookup } from './dashboard';
 import { getRouteMeta } from '../routes/routeMeta';
+import { getStaffUtilityEntries } from '../routes/routeCatalog';
 import type { ThemeId } from '../theme/themeRegistry';
 import NavPopover from './navigation/NavPopover';
 import PinnedNavStrip from './navigation/PinnedNavStrip';
@@ -40,7 +41,7 @@ const Navigation = () => {
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const themeMenuRef = useRef<HTMLDivElement>(null);
   const adminMenuRef = useRef<HTMLDivElement>(null);
-  const routeMeta = getRouteMeta(location.pathname);
+  const routeMeta = getRouteMeta(`${location.pathname}${location.search}`);
 
   const themeLabels: Record<ThemeId, string> = {
     neobrutalist: 'NB',
@@ -157,6 +158,13 @@ const Navigation = () => {
     ...item,
     shortLabel: item.shortLabel ?? item.name,
     ariaLabel: item.ariaLabel ?? item.name,
+  }));
+  const utilityNavLinks = getStaffUtilityEntries({
+    VITE_TEAM_CHAT_ENABLED: import.meta.env.VITE_TEAM_CHAT_ENABLED,
+  }).map((entry) => ({
+    path: entry.href || entry.path,
+    label: entry.staffNav?.label || entry.title,
+    icon: entry.staffNav?.icon || '•',
   }));
 
   const openMenu = (menu: 'user' | 'more' | 'theme' | 'admin') => {
@@ -312,20 +320,16 @@ const Navigation = () => {
               <span className="hidden xl:inline">Search</span>
             </button>
 
-            <Link
-              to="/reports/builder"
-              className="hidden lg:flex items-center px-3 py-2 text-sm font-medium text-app-text-muted rounded-md hover:bg-app-hover transition-colors whitespace-nowrap"
-            >
-              <svg className="w-4 h-4 lg:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-              <span className="hidden xl:inline">Reports</span>
-            </Link>
+            {utilityNavLinks.map((link) => (
+              <Link
+                key={link.path}
+                to={link.path}
+                className="hidden lg:flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-app-text-muted rounded-md hover:bg-app-hover transition-colors whitespace-nowrap"
+              >
+                <span aria-hidden="true">{link.icon}</span>
+                <span className="hidden xl:inline">{link.label}</span>
+              </Link>
+            ))}
 
             <Link
               to="/settings/user"
@@ -625,13 +629,17 @@ const Navigation = () => {
               <div className="text-xs font-semibold text-app-text-subtle uppercase tracking-wider px-3 mb-2">
                 Utilities
               </div>
-              <Link
-                to="/reports/builder"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center px-3 py-3 rounded-lg text-base font-medium text-app-text-muted hover:bg-app-hover transition-colors"
-              >
-                Reports
-              </Link>
+              {utilityNavLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 px-3 py-3 rounded-lg text-base font-medium text-app-text-muted hover:bg-app-hover transition-colors"
+                >
+                  <span aria-hidden="true">{link.icon}</span>
+                  <span>{link.label}</span>
+                </Link>
+              ))}
               <Link
                 to="/settings/user"
                 onClick={() => setMobileMenuOpen(false)}
