@@ -4,26 +4,181 @@
  */
 
 import React from 'react';
-import type { PageComponent, PageSection, TextAlign, ButtonVariant, ButtonSize } from '../../types/websiteBuilder';
+import type {
+  ButtonSize,
+  ButtonVariant,
+  PageCollectionType,
+  PageComponent,
+  PageSection,
+  TemplatePage,
+  TemplatePageType,
+  TextAlign,
+  UpdatePageRequest,
+} from '../../types/websiteBuilder';
 
 interface PropertyPanelProps {
+  currentPage: TemplatePage | null;
   selectedComponent: PageComponent | null;
   selectedSection: PageSection | null;
+  onUpdatePage: (updates: UpdatePageRequest) => void;
   onUpdateComponent: (id: string, updates: Partial<PageComponent>) => void;
   onUpdateSection: (id: string, updates: Partial<PageSection>) => void;
   onDeleteComponent: (id: string) => void;
   onDeleteSection: (id: string) => void;
 }
 
+const pageTypeOptions: Array<{ value: TemplatePageType; label: string }> = [
+  { value: 'static', label: 'Static page' },
+  { value: 'collectionIndex', label: 'Collection index' },
+  { value: 'collectionDetail', label: 'Collection detail' },
+];
+
+const collectionOptions: Array<{ value: PageCollectionType; label: string }> = [
+  { value: 'events', label: 'Events' },
+  { value: 'newsletters', label: 'Newsletters' },
+];
+
+const eventTypeOptions = [
+  { value: '', label: 'All public events' },
+  { value: 'fundraiser', label: 'Fundraiser' },
+  { value: 'community', label: 'Community' },
+  { value: 'training', label: 'Training' },
+  { value: 'meeting', label: 'Meeting' },
+  { value: 'workshop', label: 'Workshop' },
+  { value: 'webinar', label: 'Webinar' },
+  { value: 'conference', label: 'Conference' },
+  { value: 'outreach', label: 'Outreach' },
+  { value: 'volunteer', label: 'Volunteer' },
+  { value: 'social', label: 'Social' },
+  { value: 'other', label: 'Other' },
+] as const;
+
 const PropertyPanel: React.FC<PropertyPanelProps> = ({
+  currentPage,
   selectedComponent,
   selectedSection,
+  onUpdatePage,
   onUpdateComponent,
   onUpdateSection,
   onDeleteComponent,
   onDeleteSection,
 }) => {
   if (!selectedComponent && !selectedSection) {
+    if (currentPage) {
+      return (
+        <div className="w-72 bg-app-surface border-l border-app-border overflow-y-auto">
+          <div className="p-4 border-b border-app-border">
+            <h3 className="font-semibold text-app-text">Page Settings</h3>
+            <p className="text-xs text-app-text-muted">{currentPage.name}</p>
+          </div>
+
+          <div key={currentPage.id} className="p-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Page Name
+              </label>
+              <input
+                type="text"
+                defaultValue={currentPage.name}
+                onBlur={(e) => onUpdatePage({ name: e.target.value })}
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Slug
+              </label>
+              <input
+                type="text"
+                defaultValue={currentPage.slug}
+                onBlur={(e) => onUpdatePage({ slug: e.target.value })}
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Page Type
+              </label>
+              <select
+                value={currentPage.pageType || 'static'}
+                onChange={(e) => {
+                  const pageType = e.target.value as TemplatePageType;
+                  onUpdatePage({
+                    pageType,
+                    collection:
+                      pageType === 'static'
+                        ? undefined
+                        : currentPage.collection || 'events',
+                    isHomepage: pageType === 'static' ? currentPage.isHomepage : false,
+                  });
+                }}
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              >
+                {pageTypeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {currentPage.pageType !== 'static' ? (
+              <div>
+                <label className="block text-sm font-medium text-app-text-muted mb-1">
+                  Collection
+                </label>
+                <select
+                  value={currentPage.collection || 'events'}
+                  onChange={(e) =>
+                    onUpdatePage({ collection: e.target.value as PageCollectionType })
+                  }
+                  className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+                >
+                  {collectionOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Route Pattern
+              </label>
+              <input
+                type="text"
+                defaultValue={currentPage.routePattern || ''}
+                onBlur={(e) => onUpdatePage({ routePattern: e.target.value })}
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+                placeholder={currentPage.pageType === 'static' ? '/about' : '/events/:slug'}
+              />
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={currentPage.isHomepage}
+                  disabled={currentPage.pageType !== 'static'}
+                  onChange={(e) => onUpdatePage({ isHomepage: e.target.checked })}
+                  className="rounded border-app-input-border"
+                />
+                Set as homepage
+              </label>
+            </div>
+
+            <div className="rounded-lg border border-app-border bg-app-surface-muted p-3 text-xs text-app-text-muted">
+              Collection pages reuse the builder layout and render live events or newsletters at publish time.
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="w-72 bg-app-surface border-l border-app-border p-4">
         <div className="text-center text-app-text-muted py-8">
@@ -562,6 +717,288 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({
           </>
         );
 
+      case 'contact-form':
+        return (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Heading
+              </label>
+              <input
+                type="text"
+                value={selectedComponent.heading || ''}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, { heading: e.target.value || undefined })
+                }
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Description
+              </label>
+              <textarea
+                value={selectedComponent.description || ''}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    description: e.target.value || undefined,
+                  })
+                }
+                rows={3}
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Submit Text
+              </label>
+              <input
+                type="text"
+                value={selectedComponent.submitText || 'Send Message'}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, { submitText: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Form Mode
+              </label>
+              <select
+                value={selectedComponent.formMode || 'contact'}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    formMode: e.target.value as 'contact' | 'supporter',
+                  })
+                }
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              >
+                <option value="contact">Contact / inquiry</option>
+                <option value="supporter">Add your name / supporter</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={selectedComponent.includePhone !== false}
+                  onChange={(e) =>
+                    onUpdateComponent(selectedComponent.id, {
+                      includePhone: e.target.checked,
+                    })
+                  }
+                  className="rounded border-app-input-border"
+                />
+                Include phone field
+              </label>
+
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={selectedComponent.includeMessage !== false}
+                  onChange={(e) =>
+                    onUpdateComponent(selectedComponent.id, {
+                      includeMessage: e.target.checked,
+                    })
+                  }
+                  className="rounded border-app-input-border"
+                />
+                Include message field
+              </label>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Success Message
+              </label>
+              <input
+                type="text"
+                value={selectedComponent.successMessage || ''}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    successMessage: e.target.value || undefined,
+                  })
+                }
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+          </>
+        );
+
+      case 'newsletter-signup':
+        return (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Heading
+              </label>
+              <input
+                type="text"
+                value={selectedComponent.heading || ''}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, { heading: e.target.value || undefined })
+                }
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Description
+              </label>
+              <textarea
+                value={selectedComponent.description || ''}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    description: e.target.value || undefined,
+                  })
+                }
+                rows={3}
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Button Text
+              </label>
+              <input
+                type="text"
+                value={selectedComponent.buttonText || 'Subscribe'}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, { buttonText: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Audience Mode
+              </label>
+              <select
+                value={selectedComponent.audienceMode || 'crm'}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    audienceMode: e.target.value as 'crm' | 'mailchimp' | 'both',
+                  })
+                }
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              >
+                <option value="crm">CRM only</option>
+                <option value="mailchimp">Mailchimp only</option>
+                <option value="both">CRM + Mailchimp</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Mailchimp List ID
+              </label>
+              <input
+                type="text"
+                value={selectedComponent.mailchimpListId || ''}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    mailchimpListId: e.target.value.trim() || undefined,
+                  })
+                }
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+          </>
+        );
+
+      case 'donation-form':
+        return (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Heading
+              </label>
+              <input
+                type="text"
+                value={selectedComponent.heading || ''}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, { heading: e.target.value || undefined })
+                }
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Description
+              </label>
+              <textarea
+                value={selectedComponent.description || ''}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    description: e.target.value || undefined,
+                  })
+                }
+                rows={3}
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Suggested Amounts
+              </label>
+              <input
+                type="text"
+                value={(selectedComponent.suggestedAmounts || []).join(', ')}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    suggestedAmounts: e.target.value
+                      .split(',')
+                      .map((value) => Number.parseFloat(value.trim()))
+                      .filter((value) => Number.isFinite(value) && value > 0),
+                  })
+                }
+                placeholder="25, 50, 100, 250"
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={selectedComponent.allowCustomAmount !== false}
+                  onChange={(e) =>
+                    onUpdateComponent(selectedComponent.id, {
+                      allowCustomAmount: e.target.checked,
+                    })
+                  }
+                  className="rounded border-app-input-border"
+                />
+                Allow custom amount
+              </label>
+
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={selectedComponent.recurringOption === true}
+                  onChange={(e) =>
+                    onUpdateComponent(selectedComponent.id, {
+                      recurringOption: e.target.checked,
+                    })
+                  }
+                  className="rounded border-app-input-border"
+                />
+                Offer monthly recurring option
+              </label>
+            </div>
+          </>
+        );
+
       case 'event-list': {
         const selectedEventType = selectedComponent.eventType || selectedComponent.filterByTag || '';
 
@@ -619,18 +1056,11 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({
                 }}
                 className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
               >
-                <option value="">All public events</option>
-                <option value="fundraiser">Fundraiser</option>
-                <option value="community">Community</option>
-                <option value="training">Training</option>
-                <option value="meeting">Meeting</option>
-                <option value="workshop">Workshop</option>
-                <option value="webinar">Webinar</option>
-                <option value="conference">Conference</option>
-                <option value="outreach">Outreach</option>
-                <option value="volunteer">Volunteer</option>
-                <option value="social">Social</option>
-                <option value="other">Other</option>
+                {eventTypeOptions.map((option) => (
+                  <option key={option.value || 'all'} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -686,6 +1116,293 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({
           </>
         );
       }
+
+      case 'event-calendar':
+        return (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Max Events
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={50}
+                value={selectedComponent.maxEvents || 8}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    maxEvents: Math.max(1, Math.min(50, Number.parseInt(e.target.value || '8', 10) || 8)),
+                  })
+                }
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Initial View
+              </label>
+              <select
+                value={selectedComponent.initialView || 'month'}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    initialView: e.target.value as 'month' | 'agenda',
+                  })
+                }
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              >
+                <option value="month">Month</option>
+                <option value="agenda">Agenda</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Event Type
+              </label>
+              <select
+                value={selectedComponent.eventType || ''}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    eventType: e.target.value || undefined,
+                  })
+                }
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              >
+                {eventTypeOptions.map((option) => (
+                  <option key={option.value || 'all'} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={selectedComponent.showPastEvents || false}
+                  onChange={(e) =>
+                    onUpdateComponent(selectedComponent.id, {
+                      showPastEvents: e.target.checked,
+                    })
+                  }
+                  className="rounded border-app-input-border"
+                />
+                Show past events
+              </label>
+            </div>
+          </>
+        );
+
+      case 'event-detail':
+        return (
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={selectedComponent.showDescription !== false}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    showDescription: e.target.checked,
+                  })
+                }
+                className="rounded border-app-input-border"
+              />
+              Show description
+            </label>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={selectedComponent.showLocation !== false}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    showLocation: e.target.checked,
+                  })
+                }
+                className="rounded border-app-input-border"
+              />
+              Show location
+            </label>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={selectedComponent.showCapacity !== false}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    showCapacity: e.target.checked,
+                  })
+                }
+                className="rounded border-app-input-border"
+              />
+              Show capacity
+            </label>
+          </div>
+        );
+
+      case 'event-registration':
+        return (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Submit Text
+              </label>
+              <input
+                type="text"
+                value={selectedComponent.submitText || 'Register'}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, { submitText: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Default Registration Status
+              </label>
+              <select
+                value={selectedComponent.defaultStatus || 'registered'}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    defaultStatus: e.target.value as
+                      | 'registered'
+                      | 'waitlisted'
+                      | 'cancelled'
+                      | 'confirmed'
+                      | 'no_show',
+                  })
+                }
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              >
+                <option value="registered">Registered</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="waitlisted">Waitlisted</option>
+              </select>
+            </div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={selectedComponent.includePhone !== false}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    includePhone: e.target.checked,
+                  })
+                }
+                className="rounded border-app-input-border"
+              />
+              Include phone field
+            </label>
+          </>
+        );
+
+      case 'newsletter-archive':
+        return (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Max Items
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={30}
+                value={selectedComponent.maxItems || 10}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    maxItems: Math.max(1, Math.min(30, Number.parseInt(e.target.value || '10', 10) || 10)),
+                  })
+                }
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Source Filter
+              </label>
+              <select
+                value={selectedComponent.sourceFilter || 'all'}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    sourceFilter: e.target.value as 'native' | 'mailchimp' | 'all',
+                  })
+                }
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              >
+                <option value="all">Native + Mailchimp</option>
+                <option value="native">Native only</option>
+                <option value="mailchimp">Mailchimp only</option>
+              </select>
+            </div>
+          </>
+        );
+
+      case 'volunteer-interest-form':
+        return (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Heading
+              </label>
+              <input
+                type="text"
+                value={selectedComponent.heading || ''}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, { heading: e.target.value || undefined })
+                }
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Description
+              </label>
+              <textarea
+                value={selectedComponent.description || ''}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    description: e.target.value || undefined,
+                  })
+                }
+                rows={3}
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-app-text-muted mb-1">
+                Submit Text
+              </label>
+              <input
+                type="text"
+                value={selectedComponent.submitText || 'Share Interest'}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, { submitText: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-app-input-border rounded-md text-sm"
+              />
+            </div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={selectedComponent.includePhone !== false}
+                onChange={(e) =>
+                  onUpdateComponent(selectedComponent.id, {
+                    includePhone: e.target.checked,
+                  })
+                }
+                className="rounded border-app-input-border"
+              />
+              Include phone field
+            </label>
+          </>
+        );
 
       default:
         return (

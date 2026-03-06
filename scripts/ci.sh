@@ -193,6 +193,8 @@ run_ci() {
         run_step "Frontend Feature Boundary Policy" "node scripts/check-frontend-feature-boundary-policy.ts" "[ \$RUN_LINT = false ]"
         run_step "Frontend Legacy Slice Import Policy" "node scripts/check-frontend-legacy-slice-import-policy.ts" "[ \$RUN_LINT = false ]"
         run_step "Frontend Legacy Page Path Policy" "node scripts/check-frontend-legacy-page-path-policy.ts" "[ \$RUN_LINT = false ]"
+        run_step "Route Integrity Policy" "node scripts/check-route-integrity.ts" "[ \$RUN_LINT = false ]"
+        run_step "Route Catalog Drift Policy" "node scripts/check-route-catalog-drift.ts" "[ \$RUN_LINT = false ]"
         run_step "Backend Legacy Controller Wrapper Policy" "node scripts/check-backend-legacy-controller-wrapper-policy.ts" "[ \$RUN_LINT = false ]"
         run_step "Backend TypeCheck" "cd backend && npm run type-check" "[ \$RUN_TYPECHECK = false ]"
 

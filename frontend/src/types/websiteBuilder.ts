@@ -15,6 +15,19 @@ export type TemplateCategory =
   | 'contact';
 
 export type TemplateStatus = 'draft' | 'published' | 'archived';
+export type SiteKind = 'organization' | 'campaign';
+export type MigrationStatus = 'complete' | 'needs_assignment';
+export type TemplatePageType = 'static' | 'collectionIndex' | 'collectionDetail';
+export type PageCollectionType = 'events' | 'newsletters';
+export type WebsiteEntryKind = 'newsletter';
+export type WebsiteEntrySource = 'native' | 'mailchimp';
+export type WebsiteEntryStatus = 'draft' | 'published' | 'archived';
+export type RegistrationStatusValue =
+  | 'registered'
+  | 'waitlisted'
+  | 'cancelled'
+  | 'confirmed'
+  | 'no_show';
 
 export type ComponentType =
   | 'text'
@@ -37,7 +50,12 @@ export type ComponentType =
   | 'contact-form'
   | 'donation-form'
   | 'event-list'
+  | 'event-calendar'
+  | 'event-detail'
+  | 'event-registration'
   | 'newsletter-signup'
+  | 'newsletter-archive'
+  | 'volunteer-interest-form'
   | 'countdown'
   | 'stats'
   | 'team'
@@ -346,6 +364,9 @@ export interface ContactFormComponent extends BaseComponentProps {
   includePhone?: boolean;
   includeMessage?: boolean;
   successMessage?: string;
+  formMode?: 'contact' | 'supporter';
+  accountId?: string;
+  defaultTags?: string[];
 }
 
 export interface DonationFormComponent extends BaseComponentProps {
@@ -356,6 +377,8 @@ export interface DonationFormComponent extends BaseComponentProps {
   allowCustomAmount?: boolean;
   recurringOption?: boolean;
   campaignId?: string;
+  accountId?: string;
+  successMessage?: string;
 }
 
 export interface EventListComponent extends BaseComponentProps {
@@ -369,6 +392,32 @@ export interface EventListComponent extends BaseComponentProps {
   filterByTag?: string; // Deprecated compatibility alias; use eventType.
 }
 
+export interface EventCalendarComponent extends BaseComponentProps {
+  type: 'event-calendar';
+  maxEvents?: number;
+  showPastEvents?: boolean;
+  eventType?: string;
+  siteKey?: string;
+  initialView?: 'month' | 'agenda';
+  emptyMessage?: string;
+}
+
+export interface EventDetailComponent extends BaseComponentProps {
+  type: 'event-detail';
+  showDescription?: boolean;
+  showLocation?: boolean;
+  showCapacity?: boolean;
+  showRegistrationStatus?: boolean;
+}
+
+export interface EventRegistrationComponent extends BaseComponentProps {
+  type: 'event-registration';
+  submitText?: string;
+  successMessage?: string;
+  includePhone?: boolean;
+  defaultStatus?: RegistrationStatusValue;
+}
+
 export interface NewsletterSignupComponent extends BaseComponentProps {
   type: 'newsletter-signup';
   heading?: string;
@@ -376,6 +425,27 @@ export interface NewsletterSignupComponent extends BaseComponentProps {
   buttonText?: string;
   mailchimpListId?: string;
   successMessage?: string;
+  accountId?: string;
+  audienceMode?: 'crm' | 'mailchimp' | 'both';
+  defaultTags?: string[];
+}
+
+export interface NewsletterArchiveComponent extends BaseComponentProps {
+  type: 'newsletter-archive';
+  maxItems?: number;
+  sourceFilter?: 'native' | 'mailchimp' | 'all';
+  emptyMessage?: string;
+}
+
+export interface VolunteerInterestFormComponent extends BaseComponentProps {
+  type: 'volunteer-interest-form';
+  heading?: string;
+  description?: string;
+  submitText?: string;
+  successMessage?: string;
+  includePhone?: boolean;
+  accountId?: string;
+  defaultTags?: string[];
 }
 
 export interface CountdownComponent extends BaseComponentProps {
@@ -455,7 +525,12 @@ export type PageComponent =
   | ContactFormComponent
   | DonationFormComponent
   | EventListComponent
+  | EventCalendarComponent
+  | EventDetailComponent
+  | EventRegistrationComponent
   | NewsletterSignupComponent
+  | NewsletterArchiveComponent
+  | VolunteerInterestFormComponent
   | CountdownComponent
   | StatsComponent
   | TeamComponent
@@ -498,6 +573,9 @@ export interface TemplatePage {
   name: string;
   slug: string;
   isHomepage: boolean;
+  pageType: TemplatePageType;
+  collection?: PageCollectionType;
+  routePattern: string;
   seo: PageSEO;
   sections: PageSection[];
   createdAt: string;
@@ -578,6 +656,9 @@ export interface TemplateVersion {
 export interface Template {
   id: string;
   userId?: string;
+  ownerUserId?: string;
+  organizationId?: string;
+  migrationStatus?: MigrationStatus;
   name: string;
   description: string;
   category: TemplateCategory;
@@ -618,6 +699,9 @@ export interface CreatePageRequest {
   name: string;
   slug: string;
   isHomepage?: boolean;
+  pageType?: TemplatePageType;
+  collection?: PageCollectionType;
+  routePattern?: string;
   seo?: Partial<PageSEO>;
   sections?: PageSection[];
   cloneFromId?: string;
@@ -627,6 +711,9 @@ export interface UpdatePageRequest {
   name?: string;
   slug?: string;
   isHomepage?: boolean;
+  pageType?: TemplatePageType;
+  collection?: PageCollectionType;
+  routePattern?: string;
   seo?: Partial<PageSEO>;
   sections?: PageSection[];
 }
@@ -639,6 +726,9 @@ export interface TemplateListItem {
   tags: string[];
   status: TemplateStatus;
   isSystemTemplate: boolean;
+  organizationId?: string;
+  ownerUserId?: string;
+  migrationStatus?: MigrationStatus;
   thumbnailImage?: string;
   pageCount: number;
   createdAt: string;
@@ -663,6 +753,67 @@ export interface TemplateSearchResponse {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+export interface WebsiteEntrySEO {
+  title?: string;
+  description?: string;
+  ogImage?: string;
+  canonicalUrl?: string;
+}
+
+export interface WebsiteEntry {
+  id: string;
+  organizationId: string;
+  siteId: string;
+  kind: WebsiteEntryKind;
+  source: WebsiteEntrySource;
+  status: WebsiteEntryStatus;
+  slug: string;
+  title: string;
+  excerpt?: string;
+  body?: string;
+  bodyHtml?: string;
+  seo: WebsiteEntrySEO;
+  metadata?: Record<string, unknown>;
+  externalSourceId?: string;
+  publishedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WebsiteEntryListResult {
+  items: WebsiteEntry[];
+  total: number;
+}
+
+export interface CreateWebsiteEntryRequest {
+  siteId: string;
+  kind: WebsiteEntryKind;
+  source?: WebsiteEntrySource;
+  status?: WebsiteEntryStatus;
+  slug: string;
+  title: string;
+  excerpt?: string;
+  body?: string;
+  bodyHtml?: string;
+  seo?: WebsiteEntrySEO;
+  metadata?: Record<string, unknown>;
+  publishedAt?: string;
+}
+
+export interface UpdateWebsiteEntryRequest {
+  status?: WebsiteEntryStatus;
+  slug?: string;
+  title?: string;
+  excerpt?: string;
+  body?: string;
+  bodyHtml?: string;
+  seo?: WebsiteEntrySEO;
+  metadata?: Record<string, unknown>;
+  publishedAt?: string;
 }
 
 // ==================== Redux State ====================

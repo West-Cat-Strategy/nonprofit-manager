@@ -71,7 +71,14 @@ const PageList: React.FC<PageListProps> = ({
               {/* Page info */}
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">{page.name}</div>
-                <div className="text-sm text-app-text-muted truncate">/{page.slug}</div>
+                <div className="text-sm text-app-text-muted truncate">
+                  {page.routePattern || `/${page.slug}`}
+                </div>
+                <div className="mt-1 text-xs uppercase tracking-wide text-app-text-subtle">
+                  {page.pageType === 'static'
+                    ? 'Static page'
+                    : `${page.collection || 'collection'} ${page.pageType === 'collectionIndex' ? 'index' : 'detail'}`}
+                </div>
               </div>
 
               {/* Homepage badge */}

@@ -6,6 +6,9 @@
 import type { ReactNode } from 'react';
 import { Route, Navigate } from 'react-router-dom';
 import {
+  AlertHistory,
+  AlertInstances,
+  AlertsOverview,
   Analytics,
   CustomDashboard,
   OutcomesReport,
@@ -31,6 +34,18 @@ export function createAnalyticsRoutes(ProtectedRoute: React.ComponentType<RouteW
       <Route
         path="/dashboard/custom"
         element={<ProtectedRoute><CustomDashboard /></ProtectedRoute>}
+      />
+      <Route
+        path="/alerts"
+        element={<ProtectedRoute><AlertsOverview /></ProtectedRoute>}
+      />
+      <Route
+        path="/alerts/instances"
+        element={<ProtectedRoute><AlertInstances /></ProtectedRoute>}
+      />
+      <Route
+        path="/alerts/history"
+        element={<ProtectedRoute><AlertHistory /></ProtectedRoute>}
       />
       <Route
         path="/reports/builder"

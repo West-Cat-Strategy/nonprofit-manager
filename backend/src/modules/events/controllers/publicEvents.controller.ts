@@ -1,5 +1,9 @@
 import { NextFunction, Request, Response } from 'express';
-import type { PublicEventCheckInDTO, PublicEventsQuery } from '@app-types/event';
+import type {
+  PublicEventCheckInDTO,
+  PublicEventRegistrationDTO,
+  PublicEventsQuery,
+} from '@app-types/event';
 import type { PublishedSite } from '@app-types/publishing';
 import { logger } from '@config/logger';
 import { sendError, sendSuccess } from '../../shared/http/envelope';
@@ -7,9 +11,13 @@ import { EventCatalogUseCase } from '../usecases/eventCatalog.usecase';
 import { EventRegistrationUseCase } from '../usecases/registration.usecase';
 
 interface PublicSiteResolverPort {
+  getPublicSiteById(siteId: string): Promise<PublishedSite | null>;
   getSiteBySubdomain(subdomain: string): Promise<PublishedSite | null>;
   getSiteByDomain(domain: string): Promise<PublishedSite | null>;
 }
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 interface PublicEventsControllerDeps {
   catalogUseCase: EventCatalogUseCase;
@@ -84,11 +92,37 @@ const mapCheckInError = (res: Response, error: Error): boolean => {
   return false;
 };
 
+const mapRegistrationError = (res: Response, error: Error): boolean => {
+  if (error.message === 'Event not found') {
+    sendError(res, 'EVENT_NOT_FOUND', 'Event is unavailable', 404);
+    return true;
+  }
+
+  if (error.message === 'Event registration is unavailable') {
+    sendError(res, 'REGISTRATION_CLOSED', error.message, 400);
+    return true;
+  }
+
+  if (error.message === 'Event is at full capacity') {
+    sendError(res, 'EVENT_FULL', error.message, 400);
+    return true;
+  }
+
+  return false;
+};
+
 const resolveSiteByKey = async (
   siteKey: string,
   siteResolver: PublicSiteResolverPort
 ): Promise<PublishedSite | null> => {
   const normalized = siteKey.trim().toLowerCase();
+  if (UUID_PATTERN.test(normalized)) {
+    const siteById = await siteResolver.getPublicSiteById(normalized);
+    if (siteById) {
+      return siteById;
+    }
+  }
+
   const siteBySubdomain = await siteResolver.getSiteBySubdomain(normalized);
   if (siteBySubdomain) {
     return siteBySubdomain;
@@ -149,7 +183,7 @@ export const createPublicEventsController = ({
         return;
       }
 
-      const data = await catalogUseCase.listPublicByOwner(site.userId, query);
+      const data = await catalogUseCase.listPublicByOwner(site.ownerUserId || site.userId, query);
       logger.info('Public events catalog request', {
         route: '/api/v2/public/events',
         siteId: site.id,
@@ -184,7 +218,7 @@ export const createPublicEventsController = ({
         return;
       }
 
-      const data = await catalogUseCase.listPublicByOwner(site.userId, query);
+      const data = await catalogUseCase.listPublicByOwner(site.ownerUserId || site.userId, query);
       logger.info('Public events catalog request', {
         route: '/api/v2/public/events/sites/:siteKey',
         siteId: site.id,
@@ -229,9 +263,58 @@ export const createPublicEventsController = ({
     }
   };
 
+  const getPublicEventBySlug = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const params = getValidatedParams(req);
+      const query = normalizeQuery(req);
+      const site = await resolveSiteFromRequest(req, query.site, siteResolver);
+
+      if (!isPublishedSite(site)) {
+        sendError(res, 'SITE_NOT_FOUND', 'Published site not found', 404);
+        return;
+      }
+
+      const event = await catalogUseCase.getPublicBySlug(site.ownerUserId || site.userId, params.slug);
+      if (!event) {
+        sendError(res, 'EVENT_NOT_FOUND', 'Event is unavailable', 404);
+        return;
+      }
+
+      sendSuccess(res, { event, site: toSiteSummary(site) });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const submitRegistration = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const params = getValidatedParams(req);
+      const result = await registrationUseCase.submitPublicRegistration(
+        params.id,
+        req.body as PublicEventRegistrationDTO
+      );
+      sendSuccess(res, result, result.created_registration ? 201 : 200);
+    } catch (error) {
+      if (error instanceof Error && mapRegistrationError(res, error)) {
+        return;
+      }
+      next(error);
+    }
+  };
+
   return {
     listPublicEvents,
     listPublicEventsBySiteKey,
+    getPublicEventBySlug,
+    submitRegistration,
     getCheckInInfo,
     submitCheckIn,
   };

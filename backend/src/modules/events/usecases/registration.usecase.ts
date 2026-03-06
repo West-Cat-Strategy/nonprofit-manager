@@ -8,6 +8,8 @@ import type {
   PublicEventCheckInDTO,
   PublicEventCheckInInfo,
   PublicEventCheckInResult,
+  PublicEventRegistrationDTO,
+  PublicEventRegistrationResult,
   RegistrationFilters,
   RotateEventCheckInPinResult,
   UpdateEventCheckInSettingsDTO,
@@ -80,6 +82,13 @@ export class EventRegistrationUseCase {
     checkedInBy: string
   ): Promise<EventWalkInCheckInResult> {
     return this.repository.walkInCheckIn(eventId, data, checkedInBy);
+  }
+
+  submitPublicRegistration(
+    eventId: string,
+    data: PublicEventRegistrationDTO
+  ): Promise<PublicEventRegistrationResult> {
+    return this.repository.submitPublicRegistration(eventId, data);
   }
 
   getPublicCheckInInfo(eventId: string): Promise<PublicEventCheckInInfo | null> {

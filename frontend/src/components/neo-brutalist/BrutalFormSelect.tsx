@@ -32,17 +32,11 @@ export const BrutalFormSelect = React.forwardRef<
         )}
         <select
           ref={ref}
-          className={`w-full px-3 py-2 border-2 border-app-text bg-app-surface text-app-text font-mono
+          className={`brutal-form-select w-full px-3 py-2 border-2 border-app-text bg-app-surface text-app-text font-mono
             focus:outline-none focus:border-app-accent focus:ring-0 appearance-none cursor-pointer
             disabled:bg-app-surface-muted disabled:cursor-not-allowed
             ${error ? 'border-app-accent' : 'border-app-text'}
             ${className}`}
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'right 8px center',
-            paddingRight: '28px',
-          }}
           {...props}
         >
           {children}

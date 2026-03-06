@@ -19,7 +19,8 @@ describe('PublishingService', () => {
 
   beforeEach(() => {
     service = new PublishingService(mockPool);
-    jest.clearAllMocks();
+    (mockPool.query as jest.Mock).mockReset();
+    (mockPool.connect as jest.Mock).mockReset();
   });
 
   describe('createSite', () => {
@@ -185,16 +186,45 @@ describe('PublishingService', () => {
 
   describe('deleteSite', () => {
     it('should delete site and return true', async () => {
-      (mockPool.query as jest.Mock).mockResolvedValueOnce({
-        rows: [{ id: mockSiteId }],
-      });
+      (mockPool.query as jest.Mock)
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: mockSiteId,
+              user_id: mockUserId,
+              owner_user_id: mockUserId,
+              organization_id: null,
+              site_kind: 'organization',
+              parent_site_id: null,
+              migration_status: 'complete',
+              template_id: mockTemplateId,
+              name: 'Test Site',
+              subdomain: 'test-site',
+              custom_domain: null,
+              ssl_enabled: false,
+              ssl_certificate_expires_at: null,
+              status: 'draft',
+              published_version: null,
+              published_at: null,
+              published_content: null,
+              analytics_enabled: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          rows: [{ id: mockSiteId }],
+        });
 
       const result = await service.deleteSite(mockSiteId, mockUserId);
 
       expect(result).toBe(true);
       expect(mockPool.query).toHaveBeenCalledWith(
-        'DELETE FROM published_sites WHERE id = $1 AND user_id = $2 RETURNING id',
-        [mockSiteId, mockUserId]
+        `DELETE FROM published_sites
+       WHERE id = $1
+       RETURNING id`,
+        [mockSiteId]
       );
     });
 

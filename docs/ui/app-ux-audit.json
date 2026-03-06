@@ -1,0 +1,2299 @@
+{
+  "generatedAt": "2026-03-06T00:12:19.788Z",
+  "baseline": {
+    "auditedAt": "2026-03-05T00:00:00.000Z",
+    "staticAudit": {
+      "routeIntegrityPassed": false,
+      "routeCatalogDriftPassed": null,
+      "brokenTargets": [
+        "/alerts/history",
+        "/alerts/instances",
+        "/users",
+        "/volunteers/assignments/new"
+      ],
+      "disallowedInlineStylePaths": [
+        "frontend/src/components/ErrorBoundary.tsx",
+        "frontend/src/components/cases/CaseCards.tsx",
+        "frontend/src/components/cases/CaseTable.tsx",
+        "frontend/src/components/neo-brutalist/BrutalCard.tsx",
+        "frontend/src/components/neo-brutalist/BrutalFormSelect.tsx",
+        "frontend/src/features/adminOps/pages/adminSettings/sections/BrandingSection.tsx"
+      ]
+    },
+    "workflowSurfaces": [
+      {
+        "id": "staff-navigation",
+        "title": "Staff Navigation",
+        "featureStatus": "broken",
+        "auditScore": {
+          "readability": 3,
+          "accessibility": 3,
+          "efficiency": 2,
+          "workflowClarity": 2
+        },
+        "note": "Alerts destinations were not exposed and literal drift was present in staff shortcuts."
+      },
+      {
+        "id": "admin-user-management",
+        "title": "Admin User Management",
+        "featureStatus": "broken",
+        "auditScore": {
+          "readability": 3,
+          "accessibility": 3,
+          "efficiency": 1,
+          "workflowClarity": 1
+        },
+        "note": "The primary user-management card linked to `/users`, which had no canonical route."
+      },
+      {
+        "id": "alerts-workspace",
+        "title": "Alerts Workspace",
+        "featureStatus": "missing-ui",
+        "auditScore": {
+          "readability": 2,
+          "accessibility": 2,
+          "efficiency": 1,
+          "workflowClarity": 1
+        },
+        "note": "Alerts state existed, but routed overview/history/instances surfaces were not exposed."
+      },
+      {
+        "id": "dashboard-volunteer-widget",
+        "title": "Dashboard Volunteer Widget",
+        "featureStatus": "broken",
+        "auditScore": {
+          "readability": 3,
+          "accessibility": 3,
+          "efficiency": 1,
+          "workflowClarity": 1
+        },
+        "note": "The quick action pointed to `/volunteers/assignments/new`, which required missing context."
+      },
+      {
+        "id": "portal-navigation",
+        "title": "Portal Navigation",
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 3,
+          "accessibility": 3,
+          "efficiency": 3,
+          "workflowClarity": 3
+        },
+        "note": "Portal links worked but were maintained separately from canonical route metadata."
+      }
+    ]
+  },
+  "postFix": {
+    "auditedAt": "2026-03-06T00:12:19.788Z",
+    "staticAudit": {
+      "routeIntegrityPassed": true,
+      "routeCatalogDriftPassed": true,
+      "brokenTargets": [],
+      "styleAudit": {
+        "hardcodedColorUtilities": 0,
+        "semanticTokenUtilities": 6338,
+        "inlineStyleUsages": 28,
+        "ratioSemanticToHardcoded": null
+      },
+      "disallowedInlineStylePaths": []
+    },
+    "runtimeAudit": {
+      "status": "blocked",
+      "reason": "Docker-backed Playwright audit could not run in this execution environment because the Docker daemon/socket was unavailable on March 6, 2026.",
+      "requiredCommands": [
+        "npx playwright test tests/link-health.spec.ts --project=chromium",
+        "npx playwright test tests/navigation-links.spec.ts --project=chromium"
+      ]
+    },
+    "workflowSurfaces": [
+      {
+        "id": "staff-navigation",
+        "title": "Staff Navigation",
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        },
+        "note": "Navigation and utility links are catalog-driven and validated by route-integrity checks."
+      },
+      {
+        "id": "admin-user-management",
+        "title": "Admin User Management",
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        },
+        "note": "The card now routes to `/settings/admin?section=users` and the admin side-nav uses the route catalog."
+      },
+      {
+        "id": "alerts-workspace",
+        "title": "Alerts Workspace",
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        },
+        "note": "Configuration, triggered alerts, and history routes now share a consistent shell with cross-links."
+      },
+      {
+        "id": "dashboard-volunteer-widget",
+        "title": "Dashboard Volunteer Widget",
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        },
+        "note": "The shortcut now routes to the volunteer management surface instead of a dead-end create page."
+      },
+      {
+        "id": "portal-navigation",
+        "title": "Portal Navigation",
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        },
+        "note": "Portal navigation now consumes the shared route catalog and aligns with the shared shell."
+      }
+    ]
+  },
+  "highTrafficRoutes": [
+    {
+      "id": "login",
+      "title": "Sign In",
+      "href": "/login",
+      "surface": "public",
+      "authScope": "public",
+      "baseline": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      },
+      "postFix": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      }
+    },
+    {
+      "id": "portal-dashboard",
+      "title": "Portal Dashboard",
+      "href": "/portal",
+      "surface": "portal",
+      "authScope": "portal",
+      "baseline": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      },
+      "postFix": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      }
+    },
+    {
+      "id": "dashboard",
+      "title": "Dashboard",
+      "href": "/dashboard",
+      "surface": "staff",
+      "authScope": "staff",
+      "baseline": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      },
+      "postFix": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      }
+    },
+    {
+      "id": "contacts",
+      "title": "People",
+      "href": "/contacts",
+      "surface": "staff",
+      "authScope": "staff",
+      "baseline": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      },
+      "postFix": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      }
+    },
+    {
+      "id": "events",
+      "title": "Events",
+      "href": "/events",
+      "surface": "staff",
+      "authScope": "staff",
+      "baseline": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      },
+      "postFix": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      }
+    },
+    {
+      "id": "tasks",
+      "title": "Tasks",
+      "href": "/tasks",
+      "surface": "staff",
+      "authScope": "staff",
+      "baseline": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      },
+      "postFix": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      }
+    },
+    {
+      "id": "cases",
+      "title": "Cases",
+      "href": "/cases",
+      "surface": "staff",
+      "authScope": "staff",
+      "baseline": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      },
+      "postFix": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      }
+    },
+    {
+      "id": "donations",
+      "title": "Donations",
+      "href": "/donations",
+      "surface": "staff",
+      "authScope": "staff",
+      "baseline": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      },
+      "postFix": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      }
+    },
+    {
+      "id": "analytics",
+      "title": "Analytics",
+      "href": "/analytics",
+      "surface": "staff",
+      "authScope": "staff",
+      "baseline": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      },
+      "postFix": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      }
+    },
+    {
+      "id": "reports",
+      "title": "Reports",
+      "href": "/reports/builder",
+      "surface": "staff",
+      "authScope": "staff",
+      "baseline": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      },
+      "postFix": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      }
+    },
+    {
+      "id": "alerts-overview",
+      "title": "Alerts",
+      "href": "/alerts",
+      "surface": "staff",
+      "authScope": "staff",
+      "baseline": {
+        "featureStatus": "missing-ui",
+        "auditScore": {
+          "readability": 2,
+          "accessibility": 2,
+          "efficiency": 1,
+          "workflowClarity": 1
+        }
+      },
+      "postFix": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      }
+    },
+    {
+      "id": "admin-settings",
+      "title": "Admin Settings",
+      "href": "/settings/admin?section=dashboard",
+      "surface": "staff",
+      "authScope": "admin",
+      "baseline": {
+        "featureStatus": "available",
+        "auditScore": {
+          "readability": 3,
+          "accessibility": 3,
+          "efficiency": 2,
+          "workflowClarity": 2
+        }
+      },
+      "postFix": {
+        "featureStatus": "role-gated",
+        "auditScore": {
+          "readability": 4,
+          "accessibility": 4,
+          "efficiency": 4,
+          "workflowClarity": 4
+        }
+      }
+    }
+  ],
+  "routeCatalog": [
+    {
+      "id": "root",
+      "title": "Workspace Redirect",
+      "href": "/",
+      "path": "/",
+      "surface": "public",
+      "section": "Core",
+      "authScope": "public",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "setup",
+      "title": "Workspace Setup",
+      "href": "/setup",
+      "path": "/setup",
+      "surface": "public",
+      "section": "Auth",
+      "authScope": "public",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "login",
+      "title": "Sign In",
+      "href": "/login",
+      "path": "/login",
+      "surface": "public",
+      "section": "Auth",
+      "authScope": "public",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "register",
+      "title": "Register",
+      "href": "/register",
+      "path": "/register",
+      "surface": "public",
+      "section": "Auth",
+      "authScope": "public",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "accept-invitation",
+      "title": "Accept Invitation",
+      "href": "/accept-invitation/:token",
+      "path": "/accept-invitation/:token",
+      "surface": "public",
+      "section": "Auth",
+      "authScope": "public",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "forgot-password",
+      "title": "Forgot Password",
+      "href": "/forgot-password",
+      "path": "/forgot-password",
+      "surface": "public",
+      "section": "Auth",
+      "authScope": "public",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "reset-password",
+      "title": "Reset Password",
+      "href": "/reset-password/:token",
+      "path": "/reset-password/:token",
+      "surface": "public",
+      "section": "Auth",
+      "authScope": "public",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "public-report-snapshot",
+      "title": "Public Report Snapshot",
+      "href": "/public/reports/:token",
+      "path": "/public/reports/:token",
+      "surface": "public",
+      "section": "Auth",
+      "authScope": "public",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "public-events",
+      "title": "Public Events",
+      "href": "/public/events/:site",
+      "path": "/public/events/:site",
+      "surface": "public",
+      "section": "Builder",
+      "authScope": "public",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "public-event-check-in",
+      "title": "Public Event Check-In",
+      "href": "/event-check-in/:id",
+      "path": "/event-check-in/:id",
+      "surface": "public",
+      "section": "Builder",
+      "authScope": "public",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-login",
+      "title": "Portal Login",
+      "href": "/portal/login",
+      "path": "/portal/login",
+      "surface": "public",
+      "section": "Portal",
+      "authScope": "public",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-signup",
+      "title": "Portal Signup",
+      "href": "/portal/signup",
+      "path": "/portal/signup",
+      "surface": "public",
+      "section": "Portal",
+      "authScope": "public",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-accept-invitation",
+      "title": "Portal Invitation",
+      "href": "/portal/accept-invitation/:token",
+      "path": "/portal/accept-invitation/:token",
+      "surface": "public",
+      "section": "Portal",
+      "authScope": "public",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-dashboard",
+      "title": "Portal Dashboard",
+      "href": "/portal",
+      "path": "/portal",
+      "surface": "portal",
+      "section": "Portal",
+      "authScope": "portal",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-profile",
+      "title": "Your Profile",
+      "href": "/portal/profile",
+      "path": "/portal/profile",
+      "surface": "portal",
+      "section": "Portal",
+      "authScope": "portal",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-people",
+      "title": "People",
+      "href": "/portal/people",
+      "path": "/portal/people",
+      "surface": "portal",
+      "section": "Portal",
+      "authScope": "portal",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-events",
+      "title": "Events",
+      "href": "/portal/events",
+      "path": "/portal/events",
+      "surface": "portal",
+      "section": "Portal",
+      "authScope": "portal",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-messages",
+      "title": "Messages",
+      "href": "/portal/messages",
+      "path": "/portal/messages",
+      "surface": "portal",
+      "section": "Portal",
+      "authScope": "portal",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-cases",
+      "title": "Cases",
+      "href": "/portal/cases",
+      "path": "/portal/cases",
+      "surface": "portal",
+      "section": "Portal",
+      "authScope": "portal",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-case-detail",
+      "title": "Case Detail",
+      "href": "/portal/cases/:id",
+      "path": "/portal/cases/:id",
+      "surface": "portal",
+      "section": "Portal",
+      "authScope": "portal",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-appointments",
+      "title": "Appointments",
+      "href": "/portal/appointments",
+      "path": "/portal/appointments",
+      "surface": "portal",
+      "section": "Portal",
+      "authScope": "portal",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-documents",
+      "title": "Documents",
+      "href": "/portal/documents",
+      "path": "/portal/documents",
+      "surface": "portal",
+      "section": "Portal",
+      "authScope": "portal",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-notes",
+      "title": "Notes",
+      "href": "/portal/notes",
+      "path": "/portal/notes",
+      "surface": "portal",
+      "section": "Portal",
+      "authScope": "portal",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-forms",
+      "title": "Forms",
+      "href": "/portal/forms",
+      "path": "/portal/forms",
+      "surface": "portal",
+      "section": "Portal",
+      "authScope": "portal",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-reminders",
+      "title": "Reminders",
+      "href": "/portal/reminders",
+      "path": "/portal/reminders",
+      "surface": "portal",
+      "section": "Portal",
+      "authScope": "portal",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "dashboard",
+      "title": "Dashboard",
+      "href": "/dashboard",
+      "path": "/dashboard",
+      "surface": "staff",
+      "section": "Core",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "contacts",
+      "title": "People",
+      "href": "/contacts",
+      "path": "/contacts",
+      "surface": "staff",
+      "section": "People",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "contact-create",
+      "title": "Create Person",
+      "href": "/contacts/new",
+      "path": "/contacts/new",
+      "surface": "staff",
+      "section": "People",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "contact-detail",
+      "title": "Person Detail",
+      "href": "/contacts/:id",
+      "path": "/contacts/:id",
+      "surface": "staff",
+      "section": "People",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "contact-edit",
+      "title": "Edit Person",
+      "href": "/contacts/:id/edit",
+      "path": "/contacts/:id/edit",
+      "surface": "staff",
+      "section": "People",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "accounts",
+      "title": "Accounts",
+      "href": "/accounts",
+      "path": "/accounts",
+      "surface": "staff",
+      "section": "People",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "account-create",
+      "title": "Create Account",
+      "href": "/accounts/new",
+      "path": "/accounts/new",
+      "surface": "staff",
+      "section": "People",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "account-detail",
+      "title": "Account Detail",
+      "href": "/accounts/:id",
+      "path": "/accounts/:id",
+      "surface": "staff",
+      "section": "People",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "account-edit",
+      "title": "Edit Account",
+      "href": "/accounts/:id/edit",
+      "path": "/accounts/:id/edit",
+      "surface": "staff",
+      "section": "People",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "volunteers",
+      "title": "Volunteers",
+      "href": "/volunteers",
+      "path": "/volunteers",
+      "surface": "staff",
+      "section": "People",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "volunteer-create",
+      "title": "Create Volunteer",
+      "href": "/volunteers/new",
+      "path": "/volunteers/new",
+      "surface": "staff",
+      "section": "People",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "volunteer-detail",
+      "title": "Volunteer Detail",
+      "href": "/volunteers/:id",
+      "path": "/volunteers/:id",
+      "surface": "staff",
+      "section": "People",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "volunteer-edit",
+      "title": "Edit Volunteer",
+      "href": "/volunteers/:id/edit",
+      "path": "/volunteers/:id/edit",
+      "surface": "staff",
+      "section": "People",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "volunteer-assignment-create",
+      "title": "Create Assignment",
+      "href": "/volunteers/:volunteerId/assignments/new",
+      "path": "/volunteers/:volunteerId/assignments/new",
+      "surface": "staff",
+      "section": "People",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "volunteer-assignment-edit",
+      "title": "Edit Assignment",
+      "href": "/volunteers/:volunteerId/assignments/:assignmentId/edit",
+      "path": "/volunteers/:volunteerId/assignments/:assignmentId/edit",
+      "surface": "staff",
+      "section": "People",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "events",
+      "title": "Events",
+      "href": "/events",
+      "path": "/events",
+      "surface": "staff",
+      "section": "Engagement",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "events-calendar",
+      "title": "Event Calendar",
+      "href": "/events/calendar",
+      "path": "/events/calendar",
+      "surface": "staff",
+      "section": "Engagement",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "events-check-in",
+      "title": "Event Check-In",
+      "href": "/events/check-in",
+      "path": "/events/check-in",
+      "surface": "staff",
+      "section": "Engagement",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "event-create",
+      "title": "Create Event",
+      "href": "/events/new",
+      "path": "/events/new",
+      "surface": "staff",
+      "section": "Engagement",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "event-detail",
+      "title": "Event Detail",
+      "href": "/events/:id",
+      "path": "/events/:id",
+      "surface": "staff",
+      "section": "Engagement",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "event-edit",
+      "title": "Edit Event",
+      "href": "/events/:id/edit",
+      "path": "/events/:id/edit",
+      "surface": "staff",
+      "section": "Engagement",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "tasks",
+      "title": "Tasks",
+      "href": "/tasks",
+      "path": "/tasks",
+      "surface": "staff",
+      "section": "Engagement",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "task-create",
+      "title": "Create Task",
+      "href": "/tasks/new",
+      "path": "/tasks/new",
+      "surface": "staff",
+      "section": "Engagement",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "task-detail",
+      "title": "Task Detail",
+      "href": "/tasks/:id",
+      "path": "/tasks/:id",
+      "surface": "staff",
+      "section": "Engagement",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "task-edit",
+      "title": "Edit Task",
+      "href": "/tasks/:id/edit",
+      "path": "/tasks/:id/edit",
+      "surface": "staff",
+      "section": "Engagement",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "cases",
+      "title": "Cases",
+      "href": "/cases",
+      "path": "/cases",
+      "surface": "staff",
+      "section": "Engagement",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "case-create",
+      "title": "Create Case",
+      "href": "/cases/new",
+      "path": "/cases/new",
+      "surface": "staff",
+      "section": "Engagement",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "case-detail",
+      "title": "Case Detail",
+      "href": "/cases/:id",
+      "path": "/cases/:id",
+      "surface": "staff",
+      "section": "Engagement",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "case-edit",
+      "title": "Edit Case",
+      "href": "/cases/:id/edit",
+      "path": "/cases/:id/edit",
+      "surface": "staff",
+      "section": "Engagement",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "follow-ups",
+      "title": "Follow-Ups",
+      "href": "/follow-ups",
+      "path": "/follow-ups",
+      "surface": "staff",
+      "section": "Engagement",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "opportunities",
+      "title": "Opportunities",
+      "href": "/opportunities",
+      "path": "/opportunities",
+      "surface": "staff",
+      "section": "Engagement",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "external-service-providers",
+      "title": "External Service Providers",
+      "href": "/external-service-providers",
+      "path": "/external-service-providers",
+      "surface": "staff",
+      "section": "Engagement",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "team-chat",
+      "title": "Team Chat",
+      "href": "/team-chat",
+      "path": "/team-chat",
+      "surface": "staff",
+      "section": "Engagement",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "donations",
+      "title": "Donations",
+      "href": "/donations",
+      "path": "/donations",
+      "surface": "staff",
+      "section": "Finance",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "donation-create",
+      "title": "Record Donation",
+      "href": "/donations/new",
+      "path": "/donations/new",
+      "surface": "staff",
+      "section": "Finance",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "donation-detail",
+      "title": "Donation Detail",
+      "href": "/donations/:id",
+      "path": "/donations/:id",
+      "surface": "staff",
+      "section": "Finance",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "donation-edit",
+      "title": "Edit Donation",
+      "href": "/donations/:id/edit",
+      "path": "/donations/:id/edit",
+      "surface": "staff",
+      "section": "Finance",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "donation-payment",
+      "title": "Donation Payment",
+      "href": "/donations/payment",
+      "path": "/donations/payment",
+      "surface": "staff",
+      "section": "Finance",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "donation-payment-result",
+      "title": "Donation Payment Result",
+      "href": "/donations/payment-result",
+      "path": "/donations/payment-result",
+      "surface": "staff",
+      "section": "Finance",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "reconciliation",
+      "title": "Reconciliation",
+      "href": "/reconciliation",
+      "path": "/reconciliation",
+      "surface": "staff",
+      "section": "Finance",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "analytics",
+      "title": "Analytics",
+      "href": "/analytics",
+      "path": "/analytics",
+      "surface": "staff",
+      "section": "Analytics",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "dashboard-custom",
+      "title": "Custom Dashboard",
+      "href": "/dashboard/custom",
+      "path": "/dashboard/custom",
+      "surface": "staff",
+      "section": "Analytics",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "reports",
+      "title": "Reports",
+      "href": "/reports/builder",
+      "path": "/reports",
+      "surface": "staff",
+      "section": "Analytics",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "reports-builder",
+      "title": "Report Builder",
+      "href": "/reports/builder",
+      "path": "/reports/builder",
+      "surface": "staff",
+      "section": "Analytics",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "reports-templates",
+      "title": "Report Templates",
+      "href": "/reports/templates",
+      "path": "/reports/templates",
+      "surface": "staff",
+      "section": "Analytics",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "reports-saved",
+      "title": "Saved Reports",
+      "href": "/reports/saved",
+      "path": "/reports/saved",
+      "surface": "staff",
+      "section": "Analytics",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "reports-scheduled",
+      "title": "Scheduled Reports",
+      "href": "/reports/scheduled",
+      "path": "/reports/scheduled",
+      "surface": "staff",
+      "section": "Analytics",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "reports-outcomes",
+      "title": "Outcomes Report",
+      "href": "/reports/outcomes",
+      "path": "/reports/outcomes",
+      "surface": "staff",
+      "section": "Analytics",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "alerts-overview",
+      "title": "Alerts",
+      "href": "/alerts",
+      "path": "/alerts",
+      "surface": "staff",
+      "section": "Analytics",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "alerts-instances",
+      "title": "Triggered Alerts",
+      "href": "/alerts/instances",
+      "path": "/alerts/instances",
+      "surface": "staff",
+      "section": "Analytics",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "alerts-history",
+      "title": "Alert History",
+      "href": "/alerts/history",
+      "path": "/alerts/history",
+      "surface": "staff",
+      "section": "Analytics",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "intake-create",
+      "title": "New Intake",
+      "href": "/intake/new",
+      "path": "/intake/new",
+      "surface": "staff",
+      "section": "Core",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "interaction-create",
+      "title": "Note an Interaction",
+      "href": "/interactions/new",
+      "path": "/interactions/new",
+      "surface": "staff",
+      "section": "Core",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "people-directory",
+      "title": "People Directory",
+      "href": "/people",
+      "path": "/people",
+      "surface": "staff",
+      "section": "Core",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "linking",
+      "title": "Linking",
+      "href": "/linking",
+      "path": "/linking",
+      "surface": "staff",
+      "section": "Core",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "operations",
+      "title": "Operations",
+      "href": "/operations",
+      "path": "/operations",
+      "surface": "staff",
+      "section": "Core",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "outreach",
+      "title": "Outreach",
+      "href": "/outreach",
+      "path": "/outreach",
+      "surface": "staff",
+      "section": "Core",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "user-settings",
+      "title": "User Settings",
+      "href": "/settings/user",
+      "path": "/settings/user",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "admin-settings",
+      "title": "Admin Settings",
+      "href": "/settings/admin?section=dashboard",
+      "path": "/settings/admin",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "admin",
+      "featureStatus": "role-gated",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "admin-settings-organization",
+      "title": "Organization",
+      "href": "/settings/admin?section=organization",
+      "path": "/settings/admin",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "admin",
+      "featureStatus": "role-gated",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "admin-settings-branding",
+      "title": "Branding",
+      "href": "/settings/admin?section=branding",
+      "path": "/settings/admin",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "admin",
+      "featureStatus": "role-gated",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "admin-settings-users",
+      "title": "Users & Security",
+      "href": "/settings/admin?section=users",
+      "path": "/settings/admin",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "admin",
+      "featureStatus": "role-gated",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "admin-settings-email",
+      "title": "Email Settings",
+      "href": "/settings/admin?section=email",
+      "path": "/settings/admin",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "admin",
+      "featureStatus": "role-gated",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "admin-settings-messaging",
+      "title": "Messaging Settings",
+      "href": "/settings/admin?section=messaging",
+      "path": "/settings/admin",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "admin",
+      "featureStatus": "role-gated",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "admin-settings-outcomes",
+      "title": "Outcome Definitions",
+      "href": "/settings/admin?section=outcomes",
+      "path": "/settings/admin",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "admin",
+      "featureStatus": "role-gated",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "admin-settings-roles",
+      "title": "Roles & Permissions",
+      "href": "/settings/admin?section=roles",
+      "path": "/settings/admin",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "admin",
+      "featureStatus": "role-gated",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "admin-settings-audit-logs",
+      "title": "Audit Logs",
+      "href": "/settings/admin?section=audit_logs",
+      "path": "/settings/admin",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "admin",
+      "featureStatus": "role-gated",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "admin-settings-other",
+      "title": "Other Settings",
+      "href": "/settings/admin?section=other",
+      "path": "/settings/admin",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "admin",
+      "featureStatus": "role-gated",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-admin-access-link",
+      "title": "Portal Ops",
+      "href": "/settings/admin/portal/access",
+      "path": "/settings/admin/portal/access",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "admin",
+      "featureStatus": "role-gated",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "api-settings",
+      "title": "API Settings",
+      "href": "/settings/api",
+      "path": "/settings/api",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "navigation-settings",
+      "title": "Navigation Settings",
+      "href": "/settings/navigation",
+      "path": "/settings/navigation",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "backup-settings",
+      "title": "Data Backup",
+      "href": "/settings/backup",
+      "path": "/settings/backup",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "admin",
+      "featureStatus": "role-gated",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "email-marketing",
+      "title": "Email Marketing",
+      "href": "/settings/email-marketing",
+      "path": "/settings/email-marketing",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-admin-root",
+      "title": "Portal Ops",
+      "href": "/settings/admin/portal",
+      "path": "/settings/admin/portal",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "admin",
+      "featureStatus": "role-gated",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-admin-hub",
+      "title": "Admin Hub",
+      "href": "/settings/admin?section=dashboard",
+      "path": "/settings/admin",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "admin",
+      "featureStatus": "role-gated",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-admin-access",
+      "title": "Portal Access",
+      "href": "/settings/admin/portal/access",
+      "path": "/settings/admin/portal/access",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "admin",
+      "featureStatus": "role-gated",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-admin-users",
+      "title": "Portal Users",
+      "href": "/settings/admin/portal/users",
+      "path": "/settings/admin/portal/users",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "admin",
+      "featureStatus": "role-gated",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-admin-conversations",
+      "title": "Portal Conversations",
+      "href": "/settings/admin/portal/conversations",
+      "path": "/settings/admin/portal/conversations",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "admin",
+      "featureStatus": "role-gated",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-admin-appointments",
+      "title": "Portal Appointments",
+      "href": "/settings/admin/portal/appointments",
+      "path": "/settings/admin/portal/appointments",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "admin",
+      "featureStatus": "role-gated",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "portal-admin-slots",
+      "title": "Portal Slots",
+      "href": "/settings/admin/portal/slots",
+      "path": "/settings/admin/portal/slots",
+      "surface": "staff",
+      "section": "Settings",
+      "authScope": "admin",
+      "featureStatus": "role-gated",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "website-builder",
+      "title": "Website Builder",
+      "href": "/website-builder",
+      "path": "/website-builder",
+      "surface": "staff",
+      "section": "Builder",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "website-builder-preview",
+      "title": "Website Preview",
+      "href": "/website-builder/:templateId/preview",
+      "path": "/website-builder/:templateId/preview",
+      "surface": "staff",
+      "section": "Builder",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "website-builder-editor",
+      "title": "Website Editor",
+      "href": "/website-builder/:templateId",
+      "path": "/website-builder/:templateId",
+      "surface": "staff",
+      "section": "Builder",
+      "authScope": "staff",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 4,
+        "accessibility": 4,
+        "efficiency": 4,
+        "workflowClarity": 4
+      }
+    },
+    {
+      "id": "demo-dashboard",
+      "title": "Demo Dashboard",
+      "href": "/demo/dashboard",
+      "path": "/demo/dashboard",
+      "surface": "demo",
+      "section": "Demo",
+      "authScope": "public",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 3,
+        "accessibility": 3,
+        "efficiency": 3,
+        "workflowClarity": 3
+      }
+    },
+    {
+      "id": "demo-linking",
+      "title": "Demo Linking",
+      "href": "/demo/linking",
+      "path": "/demo/linking",
+      "surface": "demo",
+      "section": "Demo",
+      "authScope": "public",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 3,
+        "accessibility": 3,
+        "efficiency": 3,
+        "workflowClarity": 3
+      }
+    },
+    {
+      "id": "demo-operations",
+      "title": "Demo Operations",
+      "href": "/demo/operations",
+      "path": "/demo/operations",
+      "surface": "demo",
+      "section": "Demo",
+      "authScope": "public",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 3,
+        "accessibility": 3,
+        "efficiency": 3,
+        "workflowClarity": 3
+      }
+    },
+    {
+      "id": "demo-outreach",
+      "title": "Demo Outreach",
+      "href": "/demo/outreach",
+      "path": "/demo/outreach",
+      "surface": "demo",
+      "section": "Demo",
+      "authScope": "public",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 3,
+        "accessibility": 3,
+        "efficiency": 3,
+        "workflowClarity": 3
+      }
+    },
+    {
+      "id": "demo-people",
+      "title": "Demo People",
+      "href": "/demo/people",
+      "path": "/demo/people",
+      "surface": "demo",
+      "section": "Demo",
+      "authScope": "public",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 3,
+        "accessibility": 3,
+        "efficiency": 3,
+        "workflowClarity": 3
+      }
+    },
+    {
+      "id": "demo-audit",
+      "title": "Demo Theme Audit",
+      "href": "/demo/audit",
+      "path": "/demo/audit",
+      "surface": "demo",
+      "section": "Demo",
+      "authScope": "public",
+      "featureStatus": "available",
+      "auditScore": {
+        "readability": 3,
+        "accessibility": 3,
+        "efficiency": 3,
+        "workflowClarity": 3
+      }
+    }
+  ]
+}

@@ -32,11 +32,15 @@ export class CustomDomainService {
     siteId: string,
     userId: string,
     domain: string,
-    verificationMethod: 'cname' | 'txt' = 'cname'
+    verificationMethod: 'cname' | 'txt' = 'cname',
+    organizationId?: string
   ): Promise<CustomDomainConfig> {
-    const site = await this.siteManagement.getSite(siteId, userId);
+    const site = await this.siteManagement.getSite(siteId, userId, organizationId);
     if (!site) {
       throw new Error('Site not found or access denied');
+    }
+    if (site.migrationStatus === 'needs_assignment') {
+      throw new Error('Site needs organization assignment before publishing or domain changes');
     }
 
     // Check if domain is already in use
@@ -93,8 +97,8 @@ export class CustomDomainService {
        SET custom_domain = $1,
            domain_config = $2,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $3 AND user_id = $4`,
-      [domain.toLowerCase(), JSON.stringify(domainConfig), siteId, userId]
+       WHERE id = $3`,
+      [domain.toLowerCase(), JSON.stringify(domainConfig), siteId]
     );
 
     return domainConfig;
@@ -103,18 +107,25 @@ export class CustomDomainService {
   /**
    * Verify a custom domain's DNS configuration
    */
-  async verifyCustomDomain(siteId: string, userId: string): Promise<DomainVerificationResult> {
-    const result = await this.pool.query(
-      'SELECT custom_domain, domain_config FROM published_sites WHERE id = $1 AND user_id = $2',
-      [siteId, userId]
-    );
-
-    if (result.rows.length === 0) {
+  async verifyCustomDomain(
+    siteId: string,
+    userId: string,
+    organizationId?: string
+  ): Promise<DomainVerificationResult> {
+    const site = await this.siteManagement.getSite(siteId, userId, organizationId);
+    if (!site) {
       throw new Error('Site not found or access denied');
     }
+    if (site.migrationStatus === 'needs_assignment') {
+      throw new Error('Site needs organization assignment before publishing or domain changes');
+    }
 
-    const row = result.rows[0];
-    if (!row.custom_domain || !row.domain_config) {
+    const configResult = await this.pool.query(
+      'SELECT custom_domain, domain_config FROM published_sites WHERE id = $1',
+      [siteId]
+    );
+    const row = configResult.rows[0];
+    if (!row?.custom_domain || !row.domain_config) {
       throw new Error('No custom domain configured');
     }
 
@@ -189,7 +200,15 @@ export class CustomDomainService {
   /**
    * Remove custom domain from a site
    */
-  async removeCustomDomain(siteId: string, userId: string): Promise<boolean> {
+  async removeCustomDomain(siteId: string, userId: string, organizationId?: string): Promise<boolean> {
+    const site = await this.siteManagement.getSite(siteId, userId, organizationId);
+    if (!site) {
+      return false;
+    }
+    if (site.migrationStatus === 'needs_assignment') {
+      throw new Error('Site needs organization assignment before publishing or domain changes');
+    }
+
     const result = await this.pool.query(
       `UPDATE published_sites
        SET custom_domain = NULL,
@@ -197,9 +216,9 @@ export class CustomDomainService {
            ssl_enabled = FALSE,
            ssl_certificate_expires_at = NULL,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1 AND user_id = $2
+       WHERE id = $1
        RETURNING id`,
-      [siteId, userId]
+      [siteId]
     );
 
     return result.rows.length > 0;
@@ -208,10 +227,19 @@ export class CustomDomainService {
   /**
    * Get custom domain configuration
    */
-  async getCustomDomainConfig(siteId: string, userId: string): Promise<CustomDomainConfig | null> {
+  async getCustomDomainConfig(
+    siteId: string,
+    userId: string,
+    organizationId?: string
+  ): Promise<CustomDomainConfig | null> {
+    const site = await this.siteManagement.getSite(siteId, userId, organizationId);
+    if (!site) {
+      return null;
+    }
+
     const result = await this.pool.query(
-      'SELECT domain_config FROM published_sites WHERE id = $1 AND user_id = $2',
-      [siteId, userId]
+      'SELECT domain_config FROM published_sites WHERE id = $1',
+      [siteId]
     );
 
     if (result.rows.length === 0 || !result.rows[0].domain_config) {

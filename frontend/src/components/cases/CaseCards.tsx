@@ -92,11 +92,7 @@ export default function CaseCards({ cases }: CaseCardsProps) {
 
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold text-black/70">
             <span
-              className="inline-block border-2 border-black px-2 py-1 text-xs font-black uppercase"
-              style={{
-                backgroundColor: caseItem.case_type_color || '#e5e7eb',
-                color: '#000000',
-              }}
+              className="inline-block border-2 border-black bg-app-surface-muted px-2 py-1 text-xs font-black uppercase text-black"
             >
               {caseItem.case_type_name || 'General'}
             </span>

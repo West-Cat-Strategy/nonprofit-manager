@@ -28,6 +28,7 @@ import { sendSuccess } from '@modules/shared/http/envelope';
 export const searchTemplates = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = req.organizationId;
     if (!userId) {
       unauthorized(res, 'User not authenticated');
       return;
@@ -60,7 +61,7 @@ export const searchTemplates = async (req: AuthRequest, res: Response): Promise<
       sortOrder: query.sortOrder || 'desc',
     };
 
-    const result = await templateService.searchTemplates(userId, params);
+    const result = await templateService.searchTemplates(userId, params, organizationId);
     sendSuccess(res, result);
   } catch (error) {
     logger.error('Error searching templates', { error });
@@ -74,13 +75,14 @@ export const searchTemplates = async (req: AuthRequest, res: Response): Promise<
 export const getTemplate = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = req.organizationId;
     if (!userId) {
       unauthorized(res, 'User not authenticated');
       return;
     }
 
     const { templateId } = req.params;
-    const template = await templateService.getTemplate(templateId, userId);
+    const template = await templateService.getTemplate(templateId, userId, organizationId);
 
     if (!template) {
       notFoundMessage(res, 'Template not found');
@@ -100,13 +102,14 @@ export const getTemplate = async (req: AuthRequest, res: Response): Promise<void
 export const getTemplateCss = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = req.organizationId;
     if (!userId) {
       unauthorized(res, 'User not authenticated');
       return;
     }
 
     const { templateId } = req.params;
-    const cssVariables = await templateService.getTemplateCssVariables(templateId, userId);
+    const cssVariables = await templateService.getTemplateCssVariables(templateId, userId, organizationId);
     if (!cssVariables) {
       notFoundMessage(res, 'Template not found');
       return;
@@ -151,6 +154,7 @@ export const listFontPairings = async (_req: AuthRequest, res: Response): Promis
 export const applyTemplatePalette = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = req.organizationId;
     if (!userId) {
       unauthorized(res, 'User not authenticated');
       return;
@@ -172,7 +176,8 @@ export const applyTemplatePalette = async (req: AuthRequest, res: Response): Pro
     const updated = await templateService.applyPaletteToTemplate(
       templateId,
       userId,
-      palette.colors
+      palette.colors,
+      organizationId
     );
 
     if (!updated) {
@@ -193,6 +198,7 @@ export const applyTemplatePalette = async (req: AuthRequest, res: Response): Pro
 export const applyTemplateFontPairing = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = req.organizationId;
     if (!userId) {
       unauthorized(res, 'User not authenticated');
       return;
@@ -211,10 +217,15 @@ export const applyTemplateFontPairing = async (req: AuthRequest, res: Response):
       return;
     }
 
-    const updated = await templateService.applyFontPairingToTemplate(templateId, userId, {
-      headingFont: pairing.headingFont,
-      bodyFont: pairing.bodyFont,
-    });
+    const updated = await templateService.applyFontPairingToTemplate(
+      templateId,
+      userId,
+      {
+        headingFont: pairing.headingFont,
+        bodyFont: pairing.bodyFont,
+      },
+      organizationId
+    );
 
     if (!updated) {
       notFoundMessage(res, 'Template not found');
@@ -234,6 +245,7 @@ export const applyTemplateFontPairing = async (req: AuthRequest, res: Response):
 export const createTemplate = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = req.organizationId;
     if (!userId) {
       unauthorized(res, 'User not authenticated');
       return;
@@ -257,15 +269,19 @@ export const createTemplate = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    const template = await templateService.createTemplate(userId, {
-      name: name.trim(),
-      description,
-      category,
-      tags,
-      theme,
-      globalSettings,
-      cloneFromId,
-    });
+    const template = await templateService.createTemplate(
+      userId,
+      {
+        name: name.trim(),
+        description,
+        category,
+        tags,
+        theme,
+        globalSettings,
+        cloneFromId,
+      },
+      organizationId
+    );
 
     sendSuccess(res, template, 201);
   } catch (error) {
@@ -280,6 +296,7 @@ export const createTemplate = async (req: AuthRequest, res: Response): Promise<v
 export const updateTemplate = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = req.organizationId;
     if (!userId) {
       unauthorized(res, 'User not authenticated');
       return;
@@ -304,7 +321,7 @@ export const updateTemplate = async (req: AuthRequest, res: Response): Promise<v
       }
     }
 
-    const template = await templateService.updateTemplate(templateId, userId, data);
+    const template = await templateService.updateTemplate(templateId, userId, data, organizationId);
 
     if (!template) {
       notFoundMessage(res, 'Template not found or access denied');
@@ -324,13 +341,14 @@ export const updateTemplate = async (req: AuthRequest, res: Response): Promise<v
 export const deleteTemplate = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = req.organizationId;
     if (!userId) {
       unauthorized(res, 'User not authenticated');
       return;
     }
 
     const { templateId } = req.params;
-    const success = await templateService.deleteTemplate(templateId, userId);
+    const success = await templateService.deleteTemplate(templateId, userId, organizationId);
 
     if (!success) {
       notFoundMessage(res, 'Template not found or cannot be deleted');
@@ -350,6 +368,7 @@ export const deleteTemplate = async (req: AuthRequest, res: Response): Promise<v
 export const duplicateTemplate = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = req.organizationId;
     if (!userId) {
       unauthorized(res, 'User not authenticated');
       return;
@@ -358,7 +377,7 @@ export const duplicateTemplate = async (req: AuthRequest, res: Response): Promis
     const { templateId } = req.params;
     const { name } = req.body;
 
-    const template = await templateService.duplicateTemplate(templateId, userId, name);
+    const template = await templateService.duplicateTemplate(templateId, userId, name, organizationId);
 
     if (!template) {
       notFoundMessage(res, 'Template not found');
@@ -393,6 +412,7 @@ export const getSystemTemplates = async (_req: AuthRequest, res: Response): Prom
 export const getTemplatePages = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = req.organizationId;
     if (!userId) {
       unauthorized(res, 'User not authenticated');
       return;
@@ -401,7 +421,7 @@ export const getTemplatePages = async (req: AuthRequest, res: Response): Promise
     const { templateId } = req.params;
 
     // Verify template access
-    const template = await templateService.getTemplate(templateId, userId);
+    const template = await templateService.getTemplate(templateId, userId, organizationId);
     if (!template) {
       notFoundMessage(res, 'Template not found');
       return;
@@ -421,13 +441,14 @@ export const getTemplatePages = async (req: AuthRequest, res: Response): Promise
 export const getTemplatePage = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = req.organizationId;
     if (!userId) {
       unauthorized(res, 'User not authenticated');
       return;
     }
 
     const { templateId, pageId } = req.params;
-    const page = await templateService.getTemplatePage(templateId, pageId, userId);
+    const page = await templateService.getTemplatePage(templateId, pageId, userId, organizationId);
 
     if (!page) {
       notFoundMessage(res, 'Page not found');
@@ -447,13 +468,15 @@ export const getTemplatePage = async (req: AuthRequest, res: Response): Promise<
 export const createTemplatePage = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = req.organizationId;
     if (!userId) {
       unauthorized(res, 'User not authenticated');
       return;
     }
 
     const { templateId } = req.params;
-    const { name, slug, isHomepage, seo, sections, cloneFromId } = req.body as CreatePageRequest;
+    const { name, slug, isHomepage, seo, sections, cloneFromId, pageType, collection, routePattern } =
+      req.body as CreatePageRequest;
 
     if (!name || !name.trim()) {
       badRequest(res, 'Page name is required');
@@ -471,14 +494,22 @@ export const createTemplatePage = async (req: AuthRequest, res: Response): Promi
       return;
     }
 
-    const page = await templateService.createTemplatePage(templateId, userId, {
-      name: name.trim(),
-      slug: slug.trim().toLowerCase(),
-      isHomepage,
-      seo,
-      sections,
-      cloneFromId,
-    });
+    const page = await templateService.createTemplatePage(
+      templateId,
+      userId,
+      {
+        name: name.trim(),
+        slug: slug.trim().toLowerCase(),
+        isHomepage,
+        seo,
+        sections,
+        cloneFromId,
+        pageType,
+        collection,
+        routePattern,
+      },
+      organizationId
+    );
 
     if (!page) {
       notFoundMessage(res, 'Template not found or access denied');
@@ -505,6 +536,7 @@ export const createTemplatePage = async (req: AuthRequest, res: Response): Promi
 export const updateTemplatePage = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = req.organizationId;
     if (!userId) {
       unauthorized(res, 'User not authenticated');
       return;
@@ -519,7 +551,13 @@ export const updateTemplatePage = async (req: AuthRequest, res: Response): Promi
       return;
     }
 
-    const page = await templateService.updateTemplatePage(templateId, pageId, userId, data);
+    const page = await templateService.updateTemplatePage(
+      templateId,
+      pageId,
+      userId,
+      data,
+      organizationId
+    );
 
     if (!page) {
       notFoundMessage(res, 'Page not found or access denied');
@@ -546,13 +584,19 @@ export const updateTemplatePage = async (req: AuthRequest, res: Response): Promi
 export const deleteTemplatePage = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = req.organizationId;
     if (!userId) {
       unauthorized(res, 'User not authenticated');
       return;
     }
 
     const { templateId, pageId } = req.params;
-    const success = await templateService.deleteTemplatePage(templateId, pageId, userId);
+    const success = await templateService.deleteTemplatePage(
+      templateId,
+      pageId,
+      userId,
+      organizationId
+    );
 
     if (!success) {
       badRequest(res, 'Page not found, access denied, or cannot delete homepage');
@@ -572,6 +616,7 @@ export const deleteTemplatePage = async (req: AuthRequest, res: Response): Promi
 export const reorderTemplatePages = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = req.organizationId;
     if (!userId) {
       unauthorized(res, 'User not authenticated');
       return;
@@ -585,7 +630,12 @@ export const reorderTemplatePages = async (req: AuthRequest, res: Response): Pro
       return;
     }
 
-    const success = await templateService.reorderTemplatePages(templateId, userId, pageIds);
+    const success = await templateService.reorderTemplatePages(
+      templateId,
+      userId,
+      pageIds,
+      organizationId
+    );
 
     if (!success) {
       notFoundMessage(res, 'Template not found or access denied');
@@ -607,13 +657,14 @@ export const reorderTemplatePages = async (req: AuthRequest, res: Response): Pro
 export const getTemplateVersions = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = req.organizationId;
     if (!userId) {
       unauthorized(res, 'User not authenticated');
       return;
     }
 
     const { templateId } = req.params;
-    const versions = await templateService.getTemplateVersions(templateId, userId);
+    const versions = await templateService.getTemplateVersions(templateId, userId, organizationId);
     sendSuccess(res, versions);
   } catch (error) {
     logger.error('Error getting template versions', { error });
@@ -627,6 +678,7 @@ export const getTemplateVersions = async (req: AuthRequest, res: Response): Prom
 export const createTemplateVersion = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = req.organizationId;
     if (!userId) {
       unauthorized(res, 'User not authenticated');
       return;
@@ -635,7 +687,12 @@ export const createTemplateVersion = async (req: AuthRequest, res: Response): Pr
     const { templateId } = req.params;
     const { changes } = req.body;
 
-    const version = await templateService.createTemplateVersion(templateId, userId, changes);
+    const version = await templateService.createTemplateVersion(
+      templateId,
+      userId,
+      changes,
+      organizationId
+    );
 
     if (!version) {
       notFoundMessage(res, 'Template not found or access denied');
@@ -655,13 +712,19 @@ export const createTemplateVersion = async (req: AuthRequest, res: Response): Pr
 export const restoreTemplateVersion = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = req.organizationId;
     if (!userId) {
       unauthorized(res, 'User not authenticated');
       return;
     }
 
     const { templateId, versionId } = req.params;
-    const template = await templateService.restoreTemplateVersion(templateId, versionId, userId);
+    const template = await templateService.restoreTemplateVersion(
+      templateId,
+      versionId,
+      userId,
+      organizationId
+    );
 
     if (!template) {
       notFoundMessage(res, 'Template or version not found');
@@ -683,6 +746,7 @@ export const restoreTemplateVersion = async (req: AuthRequest, res: Response): P
 export const previewTemplate = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = req.organizationId;
     if (!userId) {
       unauthorized(res, 'User not authenticated');
       return;
@@ -694,7 +758,12 @@ export const previewTemplate = async (req: AuthRequest, res: Response): Promise<
     };
     const pageSlug = query.page || 'home';
 
-    const preview = await templateService.generateTemplatePreview(templateId, userId, pageSlug);
+    const preview = await templateService.generateTemplatePreview(
+      templateId,
+      userId,
+      pageSlug,
+      organizationId
+    );
 
     if (!preview) {
       notFoundMessage(res, 'Template or page not found');

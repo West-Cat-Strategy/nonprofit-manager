@@ -17,6 +17,9 @@ export function mapRowToTemplate(row: Record<string, unknown>): Template {
   return {
     id: row.id as string,
     userId: row.user_id as string | undefined,
+    ownerUserId: (row.owner_user_id as string | undefined) ?? (row.user_id as string | undefined),
+    organizationId: row.organization_id as string | undefined,
+    migrationStatus: (row.migration_status as Template['migrationStatus']) ?? 'complete',
     name: row.name as string,
     description: row.description as string || '',
     category: row.category as TemplateCategory,
@@ -45,6 +48,9 @@ export function mapRowToListItem(row: Record<string, unknown>): TemplateListItem
     tags: (row.tags as string[]) || [],
     status: row.status as TemplateStatus,
     isSystemTemplate: row.is_system_template as boolean,
+    organizationId: row.organization_id as string | undefined,
+    ownerUserId: (row.owner_user_id as string | undefined) ?? (row.user_id as string | undefined),
+    migrationStatus: (row.migration_status as Template['migrationStatus']) ?? 'complete',
     thumbnailImage: metadata.thumbnailImage,
     pageCount: parseInt(row.page_count as string) || 0,
     createdAt: (row.created_at as Date).toISOString(),
@@ -61,6 +67,11 @@ export function mapRowToPage(row: Record<string, unknown>): TemplatePage {
     name: row.name as string,
     slug: row.slug as string,
     isHomepage: row.is_homepage as boolean,
+    pageType: (row.page_type as TemplatePage['pageType']) || 'static',
+    collection: row.collection as TemplatePage['collection'],
+    routePattern:
+      (row.route_pattern as string | undefined) ??
+      ((row.is_homepage as boolean) ? '/' : `/${String(row.slug || '')}`),
     seo: row.seo as PageSEO,
     sections: (row.sections as PageSection[]) || [],
     createdAt: (row.created_at as Date).toISOString(),
@@ -151,6 +162,9 @@ export function convertToPublishedPage(page: TemplatePage): PublishedPage {
     slug: page.slug,
     name: page.name,
     isHomepage: page.isHomepage,
+    pageType: page.pageType,
+    collection: page.collection,
+    routePattern: page.routePattern,
     sections: (page.sections || []) as unknown as PublishedSection[],
     seo: page.seo || {
       title: page.name,
@@ -172,6 +186,9 @@ export function ensureEventsPage(pages: TemplatePage[], templateId: string): Tem
     name: 'Events',
     slug: 'events',
     isHomepage: false,
+    pageType: 'collectionIndex',
+    collection: 'events',
+    routePattern: '/events',
     seo: {
       title: 'Events',
       description: 'Browse upcoming public events.',

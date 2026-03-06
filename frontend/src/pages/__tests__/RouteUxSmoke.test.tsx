@@ -11,6 +11,9 @@ import CaseCreate from '../../features/cases/pages/CaseCreatePage';
 import FollowUpsPage from '../../features/followUps/pages/FollowUpsPage';
 import OpportunitiesPage from '../engagement/opportunities/OpportunitiesPage';
 import AnalyticsPage from '../../features/analytics/pages/AnalyticsPage';
+import AlertsConfigPage from '../../features/alerts/pages/AlertsConfigPage';
+import AlertHistoryPage from '../../features/alerts/pages/AlertHistoryPage';
+import AlertInstancesPage from '../../features/alerts/pages/AlertInstancesPage';
 import OutcomesReportPage from '../../features/reports/pages/OutcomesReportPage';
 import ReportBuilderPage from '../../features/reports/pages/ReportBuilderPage';
 import SavedReportsPage from '../../features/savedReports/pages/SavedReportsPage';
@@ -51,6 +54,7 @@ type SmokeCase = {
   page: ReactElement;
   heading: string | RegExp;
   primaryActionPattern: RegExp;
+  primaryActionRole?: 'button' | 'link';
 };
 
 const smokeCases: SmokeCase[] = [
@@ -160,6 +164,29 @@ const smokeCases: SmokeCase[] = [
     primaryActionPattern: /apply filters/i,
   },
   {
+    name: 'alerts-overview',
+    route: '/alerts',
+    page: <AlertsConfigPage />,
+    heading: 'Alerts',
+    primaryActionPattern: /create alert/i,
+  },
+  {
+    name: 'alerts-instances',
+    route: '/alerts/instances',
+    page: <AlertInstancesPage />,
+    heading: /triggered alerts/i,
+    primaryActionPattern: /configure alerts/i,
+    primaryActionRole: 'link',
+  },
+  {
+    name: 'alerts-history',
+    route: '/alerts/history',
+    page: <AlertHistoryPage />,
+    heading: /alert history/i,
+    primaryActionPattern: /edit alert rules/i,
+    primaryActionRole: 'link',
+  },
+  {
     name: 'outcomes-report',
     route: '/reports/outcomes',
     page: <OutcomesReportPage />,
@@ -231,6 +258,63 @@ describe('Route UX smoke', () => {
             tasks: [],
             summary: null,
             pagination: { total: 0, page: 1, limit: 20, pages: 0 },
+          },
+        });
+      }
+      if (url === '/alerts/configs') {
+        return Promise.resolve({
+          data: [
+            {
+              id: 'alert-1',
+              name: 'Donation threshold',
+              metric_type: 'donation_amount',
+              condition: 'drops_below',
+              threshold: 100,
+              frequency: 'daily',
+              channels: ['email'],
+              severity: 'high',
+              enabled: true,
+              last_triggered: '2026-03-05T18:00:00.000Z',
+            },
+          ],
+        });
+      }
+      if (url === '/alerts/instances' || url === '/alerts/instances?limit=100') {
+        return Promise.resolve({
+          data: [
+            {
+              id: 'instance-1',
+              alert_config_id: 'alert-1',
+              alert_name: 'Donation threshold',
+              metric_type: 'donation_amount',
+              condition: 'drops_below',
+              severity: 'high',
+              status: 'triggered',
+              triggered_at: '2026-03-05T18:00:00.000Z',
+              current_value: 84,
+              threshold_value: 100,
+              message: 'Donation volume dropped below threshold',
+            },
+          ],
+        });
+      }
+      if (url === '/alerts/stats') {
+        return Promise.resolve({
+          data: {
+            total_alerts: 1,
+            active_alerts: 1,
+            triggered_today: 1,
+            triggered_this_week: 2,
+            triggered_this_month: 3,
+            by_severity: {
+              low: 0,
+              medium: 0,
+              high: 1,
+              critical: 0,
+            },
+            by_metric: {
+              donation_amount: 1,
+            },
           },
         });
       }

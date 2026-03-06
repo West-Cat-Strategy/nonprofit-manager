@@ -6,6 +6,8 @@ import { validateBody, validateParams, validateQuery } from '@middleware/zodVali
 import {
   eventIdParamsSchema,
   publicEventCheckInSchema,
+  publicEventRegistrationSchema,
+  publicEventSlugParamsSchema,
   publicEventsQuerySchema,
   publicEventsSiteParamsSchema,
 } from '@validations/event';
@@ -32,6 +34,13 @@ export const createPublicEventsV2Routes = (): Router => {
     controller.listPublicEventsBySiteKey
   );
 
+  publicEventsV2Routes.post(
+    '/:id/registrations',
+    validateParams(eventIdParamsSchema),
+    validateBody(publicEventRegistrationSchema),
+    controller.submitRegistration
+  );
+
   publicEventsV2Routes.get(
     '/:id/check-in',
     validateParams(eventIdParamsSchema),
@@ -44,6 +53,13 @@ export const createPublicEventsV2Routes = (): Router => {
     validateParams(eventIdParamsSchema),
     validateBody(publicEventCheckInSchema),
     controller.submitCheckIn
+  );
+
+  publicEventsV2Routes.get(
+    '/:slug',
+    validateParams(publicEventSlugParamsSchema),
+    validateQuery(publicEventsQuerySchema.partial()),
+    controller.getPublicEventBySlug
   );
 
   return publicEventsV2Routes;

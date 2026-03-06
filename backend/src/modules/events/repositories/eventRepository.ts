@@ -14,9 +14,12 @@ import type {
   PaginationParams,
   PublicEventsListData,
   PublicEventsQuery,
+  PublicEventDetail,
   PublicEventCheckInDTO,
   PublicEventCheckInInfo,
   PublicEventCheckInResult,
+  PublicEventRegistrationDTO,
+  PublicEventRegistrationResult,
   RegistrationFilters,
   RotateEventCheckInPinResult,
   SendEventRemindersDTO,
@@ -50,6 +53,8 @@ type EventServicePort = Pick<
   | 'rotateEventCheckInPin'
   | 'walkInCheckIn'
   | 'listPublicEventsByOwner'
+  | 'getPublicEventBySlug'
+  | 'submitPublicRegistration'
   | 'getPublicCheckInInfo'
   | 'submitPublicCheckIn'
   | 'sendEventReminders'
@@ -147,6 +152,17 @@ export class EventRepository {
 
   listPublicEventsByOwner(ownerUserId: string, query: PublicEventsQuery): Promise<PublicEventsListData> {
     return this.eventService.listPublicEventsByOwner(ownerUserId, query);
+  }
+
+  getPublicEventBySlug(ownerUserId: string, slug: string): Promise<PublicEventDetail | null> {
+    return this.eventService.getPublicEventBySlug(ownerUserId, slug);
+  }
+
+  submitPublicRegistration(
+    eventId: string,
+    data: PublicEventRegistrationDTO
+  ): Promise<PublicEventRegistrationResult> {
+    return this.eventService.submitPublicRegistration(eventId, data);
   }
 
   getPublicCheckInInfo(eventId: string): Promise<PublicEventCheckInInfo | null> {

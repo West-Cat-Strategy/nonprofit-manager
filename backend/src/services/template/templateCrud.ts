@@ -11,12 +11,45 @@ import { defaultTheme, defaultGlobalSettings } from './constants';
 import { mapRowToTemplate, mapRowToListItem, mapRowToPage } from './helpers';
 import { getTemplatePages } from './templatePages';
 
+const buildTemplateAccessScope = (userId: string, organizationId?: string) => {
+  if (organizationId) {
+    return {
+      clause: '(t.organization_id = $1 OR t.owner_user_id = $2 OR t.user_id = $2 OR t.is_system_template = true)',
+      params: [organizationId, userId] as Array<string>,
+      nextParamIndex: 3,
+    };
+  }
+
+  return {
+    clause: '(t.owner_user_id = $1 OR t.user_id = $1 OR t.is_system_template = true)',
+    params: [userId] as Array<string>,
+    nextParamIndex: 2,
+  };
+};
+
+const buildOwnedTemplateScope = (userId: string, organizationId?: string) => {
+  if (organizationId) {
+    return {
+      clause: '(organization_id = $2 OR owner_user_id = $3 OR user_id = $3)',
+      params: [organizationId, userId] as Array<string>,
+      nextParamIndex: 4,
+    };
+  }
+
+  return {
+    clause: '(owner_user_id = $2 OR user_id = $2)',
+    params: [userId] as Array<string>,
+    nextParamIndex: 3,
+  };
+};
+
 /**
  * Create a new template
  */
 export async function createTemplate(
   userId: string,
-  data: CreateTemplateRequest
+  data: CreateTemplateRequest,
+  organizationId?: string
 ): Promise<Template> {
   const client = await pool.connect();
 
@@ -50,11 +83,16 @@ export async function createTemplate(
 
     // Create template
     const templateResult = await client.query(
-      `INSERT INTO templates (user_id, name, description, category, tags, theme, global_settings, metadata)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO templates (
+         user_id, owner_user_id, organization_id, migration_status,
+         name, description, category, tags, theme, global_settings, metadata
+       )
+       VALUES ($1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
       [
         userId,
+        organizationId || null,
+        organizationId ? 'complete' : 'needs_assignment',
         data.name,
         data.description || '',
         data.category,
@@ -74,13 +112,18 @@ export async function createTemplate(
       for (let i = 0; i < pages.length; i++) {
         const page = pages[i];
         await client.query(
-          `INSERT INTO template_pages (template_id, name, slug, is_homepage, seo, sections, sort_order)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          `INSERT INTO template_pages (
+             template_id, name, slug, is_homepage, page_type, collection, route_pattern, seo, sections, sort_order
+           )
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           [
             template.id,
             page.name,
             page.slug,
             page.isHomepage,
+            page.pageType || 'static',
+            page.collection || null,
+            page.routePattern || (page.isHomepage ? '/' : `/${page.slug}`),
             JSON.stringify(page.seo),
             JSON.stringify(page.sections),
             i,
@@ -90,8 +133,10 @@ export async function createTemplate(
     } else {
       // Create default homepage
       await client.query(
-        `INSERT INTO template_pages (template_id, name, slug, is_homepage, seo, sections, sort_order)
-         VALUES ($1, 'Home', 'home', true, $2, '[]', 0)`,
+        `INSERT INTO template_pages (
+           template_id, name, slug, is_homepage, page_type, route_pattern, seo, sections, sort_order
+         )
+         VALUES ($1, 'Home', 'home', true, 'static', '/', $2, '[]', 0)`,
         [
           template.id,
           JSON.stringify({ title: data.name, description: data.description || '' }),
@@ -120,14 +165,20 @@ export async function createTemplate(
  */
 export async function getTemplate(
   templateId: string,
-  userId?: string
+  userId?: string,
+  organizationId?: string
 ): Promise<Template | null> {
-  let query = 'SELECT * FROM templates WHERE id = $1';
+  let query = 'SELECT * FROM templates t WHERE t.id = $1';
   const params: string[] = [templateId];
 
   if (userId) {
-    query += ' AND (user_id = $2 OR is_system_template = true)';
-    params.push(userId);
+    if (organizationId) {
+      query += ' AND (t.organization_id = $2 OR t.owner_user_id = $3 OR t.user_id = $3 OR t.is_system_template = true)';
+      params.push(organizationId, userId);
+    } else {
+      query += ' AND (t.owner_user_id = $2 OR t.user_id = $2 OR t.is_system_template = true)';
+      params.push(userId);
+    }
   }
 
   const result = await pool.query(query, params);
@@ -147,7 +198,8 @@ export async function getTemplate(
  */
 export async function searchTemplates(
   userId: string,
-  params: TemplateSearchParams
+  params: TemplateSearchParams,
+  organizationId?: string
 ): Promise<TemplateSearchResponse> {
   const {
     search,
@@ -161,9 +213,10 @@ export async function searchTemplates(
     sortOrder = 'desc',
   } = params;
 
-  const conditions: string[] = ['(t.user_id = $1 OR t.is_system_template = true)'];
-  const queryParams: (string | string[] | boolean | number)[] = [userId];
-  let paramIndex = 2;
+  const scope = buildTemplateAccessScope(userId, organizationId);
+  const conditions: string[] = [scope.clause];
+  const queryParams: (string | string[] | boolean | number)[] = [...scope.params];
+  let paramIndex = scope.nextParamIndex;
 
   if (search) {
     conditions.push(`(t.name ILIKE $${paramIndex} OR t.description ILIKE $${paramIndex})`);
@@ -236,11 +289,14 @@ export async function searchTemplates(
 export async function updateTemplate(
   templateId: string,
   userId: string,
-  data: UpdateTemplateRequest
+  data: UpdateTemplateRequest,
+  organizationId?: string
 ): Promise<Template | null> {
+  const scope = buildOwnedTemplateScope(userId, organizationId);
   const checkResult = await pool.query(
-    'SELECT * FROM templates WHERE id = $1 AND user_id = $2',
-    [templateId, userId]
+    `SELECT * FROM templates
+     WHERE id = $1 AND ${scope.clause}`,
+    [templateId, ...scope.params]
   );
 
   if (checkResult.rows.length === 0) {
@@ -290,7 +346,7 @@ export async function updateTemplate(
   }
 
   if (updates.length === 0) {
-    return getTemplate(templateId, userId);
+    return getTemplate(templateId, userId, organizationId);
   }
 
   values.push(templateId);
@@ -301,7 +357,7 @@ export async function updateTemplate(
   );
 
   logger.info('Template updated', { templateId, userId });
-  return getTemplate(templateId, userId);
+  return getTemplate(templateId, userId, organizationId);
 }
 
 /**
@@ -309,11 +365,16 @@ export async function updateTemplate(
  */
 export async function deleteTemplate(
   templateId: string,
-  userId: string
+  userId: string,
+  organizationId?: string
 ): Promise<boolean> {
+  const scope = buildOwnedTemplateScope(userId, organizationId);
   const result = await pool.query(
-    'DELETE FROM templates WHERE id = $1 AND user_id = $2 AND is_system_template = false',
-    [templateId, userId]
+    `DELETE FROM templates
+     WHERE id = $1
+       AND ${scope.clause}
+       AND is_system_template = false`,
+    [templateId, ...scope.params]
   );
 
   if (result.rowCount && result.rowCount > 0) {
