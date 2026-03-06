@@ -78,7 +78,7 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
             className="block text-xs font-medium text-app-accent hover:text-app-accent-text"
             onClick={() => setMobileMenuOpen(false)}
           >
-            Manage your profile
+            Account settings
           </Link>
         }
         onNavigate={() => setMobileMenuOpen(false)}

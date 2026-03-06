@@ -24,6 +24,36 @@
     <!-- Additional SEO -->
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
+    <script>
+      (function () {
+        var removedLegacyPaths = {
+          '/email-marketing': true,
+          '/admin/audit-logs': true,
+          '/settings/organization': true,
+        };
+        var pathname = window.location.pathname;
+
+        if (!removedLegacyPaths[pathname]) {
+          return;
+        }
+
+        var nextPath = '/login';
+
+        try {
+          if (window.localStorage.getItem('user')) {
+            nextPath = '/dashboard';
+          }
+        } catch (error) {
+          console.warn('Unable to read cached auth state for legacy path redirect', error);
+        }
+
+        window.history.replaceState(
+          null,
+          '',
+          nextPath + window.location.search + window.location.hash
+        );
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
