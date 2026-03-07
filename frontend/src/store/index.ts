@@ -1,5 +1,5 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
-import authReducer from './slices/authSlice';
+import authReducer from '../features/auth/state';
 import donationsReducer from './slices/donationsSlice';
 import paymentsReducer from './slices/paymentsSlice';
 import reconciliationReducer from './slices/reconciliationSlice';
@@ -22,6 +22,7 @@ import alertsReducer from '../features/alerts/state';
 import portalAuthReducer from '../features/portalAuth/state';
 import casesV2Reducer from '../features/cases/state';
 import contactsV2Reducer from '../features/contacts/state';
+import websitesReducer from '../features/websites/state';
 import {
   eventAutomationV2Reducer,
   eventDetailV2Reducer,
@@ -50,6 +51,7 @@ export const rootReducer = combineReducers({
   dashboard: dashboardV2Reducer,
   alerts: alertsReducer,
   portalAuth: portalAuthReducer,
+  websites: websitesReducer,
   followUps: followUpsV2Reducer,
   scheduledReports: scheduledReportsV2Reducer,
   opportunities: opportunitiesReducer,

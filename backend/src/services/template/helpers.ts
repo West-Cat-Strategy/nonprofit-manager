@@ -10,6 +10,17 @@ import type {
 } from '@app-types/websiteBuilder';
 import type { PublishedPage, PublishedTheme, PublishedSection } from '@app-types/publishing';
 
+const toIsoTimestamp = (value: unknown): string => {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    return new Date(value).toISOString();
+  }
+
+  return new Date().toISOString();
+};
+
 /**
  * Map database row to Template object
  */
@@ -30,8 +41,8 @@ export function mapRowToTemplate(row: Record<string, unknown>): Template {
     globalSettings: row.global_settings as Template['globalSettings'],
     pages: [],
     metadata: row.metadata as Template['metadata'],
-    createdAt: (row.created_at as Date).toISOString(),
-    updatedAt: (row.updated_at as Date).toISOString(),
+    createdAt: toIsoTimestamp(row.created_at),
+    updatedAt: toIsoTimestamp(row.updated_at),
   };
 }
 
@@ -53,8 +64,8 @@ export function mapRowToListItem(row: Record<string, unknown>): TemplateListItem
     migrationStatus: (row.migration_status as Template['migrationStatus']) ?? 'complete',
     thumbnailImage: metadata.thumbnailImage,
     pageCount: parseInt(row.page_count as string) || 0,
-    createdAt: (row.created_at as Date).toISOString(),
-    updatedAt: (row.updated_at as Date).toISOString(),
+    createdAt: toIsoTimestamp(row.created_at),
+    updatedAt: toIsoTimestamp(row.updated_at),
   };
 }
 
@@ -74,8 +85,8 @@ export function mapRowToPage(row: Record<string, unknown>): TemplatePage {
       ((row.is_homepage as boolean) ? '/' : `/${String(row.slug || '')}`),
     seo: row.seo as PageSEO,
     sections: (row.sections as PageSection[]) || [],
-    createdAt: (row.created_at as Date).toISOString(),
-    updatedAt: (row.updated_at as Date).toISOString(),
+    createdAt: toIsoTimestamp(row.created_at),
+    updatedAt: toIsoTimestamp(row.updated_at),
   };
 }
 

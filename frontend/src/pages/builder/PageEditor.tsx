@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   DndContext,
@@ -41,6 +41,15 @@ import {
 } from '../../components/editor';
 import { useEditorHistory } from '../../hooks/useEditorHistory';
 import { useAutoSave } from '../../hooks/useAutoSave';
+import { websitesApiClient } from '../../features/websites/api/websitesApiClient';
+import type { WebsiteOverviewSummary } from '../../features/websites/types';
+import {
+  getBuilderBackLabel,
+  getBuilderBackTarget,
+  getBuilderContextLabel,
+  getBuilderStatusLabel,
+  resolveBuilderSiteId,
+} from './siteAwareEditor';
 import type {
   PageComponent,
   PageSection,
@@ -61,6 +70,9 @@ const normalizePageSlug = (value: string): string =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .replace(/-{2,}/g, '-');
+
+const getSectionsSignature = (sections: PageSection[] | undefined): string =>
+  JSON.stringify(sections ?? []);
 
 const normalizeRoutePattern = (value: string): string => {
   const trimmed = value.trim();
@@ -93,13 +105,31 @@ const getDefaultRoutePattern = (
 };
 
 const PageEditor: React.FC = () => {
-  const { templateId } = useParams<{ templateId: string }>();
+  const { templateId: templateIdParam, siteId: routeSiteId } = useParams<{
+    templateId?: string;
+    siteId?: string;
+  }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const dispatch = useDispatch<AppDispatch>();
+  const siteId = resolveBuilderSiteId(routeSiteId, searchParams.get('siteId'));
 
   const { currentTemplate, currentPage, isSaving, error } = useSelector(
     (state: RootState) => state.templates
   );
+
+  const [siteContext, setSiteContext] = useState<{
+    siteId: string;
+    siteName: string;
+    siteStatus: WebsiteOverviewSummary['site']['status'];
+    blocked: boolean;
+    primaryUrl: string;
+    previewUrl: string | null;
+    templateId: string;
+  } | null>(null);
+  const [siteContextLoading, setSiteContextLoading] = useState(false);
+  const [siteContextError, setSiteContextError] = useState<string | null>(null);
+  const resolvedTemplateId = templateIdParam || siteContext?.templateId || null;
 
   const [viewMode, setViewMode] = useState<ViewMode>('desktop');
   const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
@@ -120,6 +150,10 @@ const PageEditor: React.FC = () => {
     () => currentPage?.sections || [],
     [currentPage?.sections]
   );
+  const currentPageSectionsSignature = useMemo(
+    () => getSectionsSignature(currentPage?.sections),
+    [currentPage?.sections]
+  );
 
   // Editor history for undo/redo
   const {
@@ -130,21 +164,25 @@ const PageEditor: React.FC = () => {
     canUndo,
     canRedo,
   } = useEditorHistory(initialSections, { maxHistoryLength: 50 });
+  const historySectionsSignature = useMemo(
+    () => getSectionsSignature(historySections),
+    [historySections]
+  );
 
   // Auto-save callback
   const handleAutoSave = useCallback(
     async (sections: PageSection[]) => {
-      if (!templateId || !currentPage) return;
+      if (!resolvedTemplateId || !currentPage) return;
 
       await dispatch(
         updateTemplatePage({
-          templateId,
+          templateId: resolvedTemplateId,
           pageId: currentPage.id,
           data: { sections },
         })
       ).unwrap();
     },
-    [dispatch, templateId, currentPage]
+    [dispatch, resolvedTemplateId, currentPage]
   );
 
   // Auto-save hook
@@ -157,15 +195,15 @@ const PageEditor: React.FC = () => {
     data: historySections,
     onSave: handleAutoSave,
     debounceMs: 3000,
-    enabled: autoSaveEnabled && !!templateId && !!currentPage,
+    enabled: autoSaveEnabled && !!resolvedTemplateId && !!currentPage,
   });
 
   // Sync history sections to Redux store
   useEffect(() => {
-    if (currentPage && historySections !== currentPage.sections) {
+    if (currentPage && historySectionsSignature !== currentPageSectionsSignature) {
       dispatch(updateCurrentPageSections(historySections));
     }
-  }, [historySections, dispatch, currentPage]);
+  }, [historySections, historySectionsSignature, currentPage, currentPageSectionsSignature, dispatch]);
 
   useEffect(() => {
     if (currentTemplate) {
@@ -218,10 +256,57 @@ const PageEditor: React.FC = () => {
 
   // Fetch template on mount
   useEffect(() => {
-    if (templateId) {
-      dispatch(fetchTemplate(templateId));
+    if (!siteId) {
+      setSiteContext(null);
+      setSiteContextLoading(false);
+      setSiteContextError(null);
+      return;
     }
-  }, [dispatch, templateId]);
+
+    let cancelled = false;
+    setSiteContextLoading(true);
+    setSiteContextError(null);
+    void websitesApiClient
+      .getOverview(siteId, 30)
+      .then((overview) => {
+        if (cancelled) return;
+        const nextTemplateId = overview.template.id || overview.site.templateId;
+        if (!nextTemplateId) {
+          setSiteContextError('This site does not have a linked template.');
+          setSiteContext(null);
+          return;
+        }
+
+        setSiteContext({
+          siteId,
+          siteName: overview.site.name,
+          siteStatus: overview.site.status,
+          blocked: overview.site.blocked,
+          primaryUrl: overview.deployment.primaryUrl,
+          previewUrl: overview.deployment.previewUrl,
+          templateId: nextTemplateId,
+        });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setSiteContextError(err instanceof Error ? err.message : 'Failed to load website context');
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setSiteContextLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [siteId]);
+
+  useEffect(() => {
+    if (resolvedTemplateId) {
+      dispatch(fetchTemplate(resolvedTemplateId));
+    }
+  }, [dispatch, resolvedTemplateId]);
 
   // Get selected component
   const selectedComponent = useMemo(() => {
@@ -461,22 +546,22 @@ const PageEditor: React.FC = () => {
 
   // Save changes
   const handleSave = useCallback(async () => {
-    if (!templateId || !currentTemplate || !currentPage) return;
+    if (!resolvedTemplateId || !currentTemplate || !currentPage) return;
 
     try {
       await saveNow();
     } catch (err) {
       console.error('Failed to save:', err);
     }
-  }, [templateId, currentTemplate, currentPage, saveNow]);
+  }, [resolvedTemplateId, currentTemplate, currentPage, saveNow]);
 
   // Save version
   const handleSaveVersion = useCallback(async () => {
-    if (!templateId) return;
+    if (!resolvedTemplateId) return;
 
     await handleSave();
-    await dispatch(createTemplateVersion({ templateId, changes: 'Manual save' }));
-  }, [dispatch, templateId, handleSave]);
+    await dispatch(createTemplateVersion({ templateId: resolvedTemplateId, changes: 'Manual save' }));
+  }, [dispatch, resolvedTemplateId, handleSave]);
 
   // Handle page change
   const handlePageChange = useCallback(
@@ -494,7 +579,7 @@ const PageEditor: React.FC = () => {
   );
 
   const handleAddPage = useCallback(async () => {
-    if (!templateId || !currentTemplate) return;
+    if (!resolvedTemplateId || !currentTemplate) return;
 
     const baseIndex = currentTemplate.pages.length + 1;
     const baseName = `New Page ${baseIndex}`;
@@ -509,7 +594,7 @@ const PageEditor: React.FC = () => {
     try {
       await dispatch(
         createTemplatePage({
-          templateId,
+          templateId: resolvedTemplateId,
           data: {
             name: baseName,
             slug,
@@ -523,11 +608,11 @@ const PageEditor: React.FC = () => {
     } catch (err) {
       console.error('Failed to create page:', err);
     }
-  }, [dispatch, templateId, currentTemplate]);
+  }, [dispatch, resolvedTemplateId, currentTemplate]);
 
   const handleUpdatePage = useCallback(
     async (updates: UpdatePageRequest) => {
-      if (!templateId || !currentPage) return;
+      if (!resolvedTemplateId || !currentPage) return;
 
       const nextSlug =
         updates.slug !== undefined
@@ -582,7 +667,7 @@ const PageEditor: React.FC = () => {
       try {
         await dispatch(
           updateTemplatePage({
-            templateId,
+            templateId: resolvedTemplateId,
             pageId: currentPage.id,
             data: payload,
           })
@@ -591,7 +676,7 @@ const PageEditor: React.FC = () => {
         console.error('Failed to update page settings:', err);
       }
     },
-    [dispatch, templateId, currentPage]
+    [dispatch, resolvedTemplateId, currentPage]
   );
 
   const handleSaveTemplateSettings = useCallback(async () => {
@@ -613,6 +698,32 @@ const PageEditor: React.FC = () => {
       setTemplateSettingsError(err instanceof Error ? err.message : 'Failed to update template');
     }
   }, [dispatch, currentTemplate, templateSettings]);
+
+  if (siteContextLoading && !resolvedTemplateId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-app-surface-muted">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-app-accent"></div>
+      </div>
+    );
+  }
+
+  if (siteContextError && !resolvedTemplateId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-app-surface-muted px-4">
+        <div className="w-full max-w-lg rounded-3xl border border-rose-200 bg-app-surface p-6 text-center">
+          <h1 className="text-lg font-semibold text-app-text">Website builder unavailable</h1>
+          <p className="mt-2 text-sm text-app-text-muted">{siteContextError}</p>
+          <button
+            type="button"
+            onClick={() => navigate(siteId ? `/websites/${siteId}/overview` : '/website-builder')}
+            className="mt-4 rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-white"
+          >
+            Return
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!currentTemplate || !currentPage) {
     return (
@@ -640,7 +751,7 @@ const PageEditor: React.FC = () => {
           onViewModeChange={setViewMode}
           onSave={handleSave}
           onSaveVersion={handleSaveVersion}
-          onBack={() => navigate('/website-builder')}
+          onBack={() => navigate(getBuilderBackTarget(siteContext))}
           onShowPages={() => setShowPageList(true)}
           onOpenSettings={() => setShowTemplateSettings(true)}
           canUndo={canUndo}
@@ -648,6 +759,10 @@ const PageEditor: React.FC = () => {
           onUndo={undo}
           onRedo={redo}
           lastSaved={lastSaved}
+          backLabel={getBuilderBackLabel(siteContext)}
+          contextLabel={getBuilderContextLabel(siteContext)}
+          statusLabel={getBuilderStatusLabel(siteContext)}
+          previewHref={siteContext?.previewUrl || siteContext?.primaryUrl}
         />
 
         {/* Main Editor Area */}

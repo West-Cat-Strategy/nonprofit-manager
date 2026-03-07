@@ -37,6 +37,7 @@ export const createPublicEventsV2Routes = (): Router => {
   publicEventsV2Routes.post(
     '/:id/registrations',
     validateParams(eventIdParamsSchema),
+    validateQuery(publicEventsQuerySchema.partial()),
     validateBody(publicEventRegistrationSchema),
     controller.submitRegistration
   );

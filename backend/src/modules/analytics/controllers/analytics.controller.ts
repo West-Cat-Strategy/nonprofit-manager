@@ -14,16 +14,8 @@ import {
   getTrendAnalysis,
   getVolunteerHoursTrends,
 } from './analytics.handlers';
-import { AnalyticsQueryUseCase } from '../usecases/analyticsQuery.usecase';
-import type { ResponseMode } from '../mappers/responseMode';
 
-export const createAnalyticsController = (
-  useCase: AnalyticsQueryUseCase,
-  mode: ResponseMode
-) => {
-  void mode;
-  useCase.getDomain();
-
+export const createAnalyticsController = () => {
   return {
     getAccountAnalytics,
     getContactAnalytics,

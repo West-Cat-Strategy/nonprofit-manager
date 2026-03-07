@@ -238,7 +238,7 @@ describe('PublicWebsiteFormService', () => {
   let service: PublicWebsiteFormService;
 
   beforeEach(() => {
-    mockQuery = jest.fn();
+    mockQuery = jest.fn().mockResolvedValue({ rows: [] });
     pool = { query: mockQuery } as unknown as Pool;
     service = new PublicWebsiteFormService(pool);
 
@@ -311,7 +311,6 @@ describe('PublicWebsiteFormService', () => {
         ],
       },
     };
-    mockQuery.mockResolvedValueOnce({ rows: [] });
     servicesModule.__mocks.createContact.mockResolvedValue({ contact_id: 'contact-1' });
 
     const result = await service.submitForm(site as never, 'contact-form-1', {

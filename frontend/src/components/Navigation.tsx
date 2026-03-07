@@ -4,21 +4,22 @@
  * Fully responsive with mobile, tablet, and desktop optimizations
  */
 
-import { useState, useEffect, useRef, useCallback, type RefObject } from 'react';
+import { lazy, Suspense, useState, useEffect, useRef, useCallback, type RefObject } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { logoutAsync } from '../store/slices/authSlice';
+import { logoutAsync } from '../features/auth/state';
 import { useNavigationPreferences } from '../hooks/useNavigationPreferences';
 import { useBranding } from '../contexts/BrandingContext';
 import { useTheme } from '../contexts/ThemeContext';
 import Avatar from './Avatar';
-import { useQuickLookup } from './dashboard';
 import { getRouteMeta } from '../routes/routeMeta';
-import { getStaffUtilityEntries } from '../routes/routeCatalog';
+import { getStartupStaffUtilityEntries } from '../routes/startupRouteCatalog';
 import type { ThemeId } from '../theme/themeRegistry';
 import NavPopover from './navigation/NavPopover';
 import PinnedNavStrip from './navigation/PinnedNavStrip';
 import AdminQuickActionsBar from '../features/adminOps/components/AdminQuickActionsBar';
+
+const NavigationQuickLookupDialog = lazy(() => import('./navigation/NavigationQuickLookupDialog'));
 
 const Navigation = () => {
   const navigate = useNavigate();
@@ -36,8 +37,6 @@ const Navigation = () => {
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const searchDialogRef = useRef<HTMLDivElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const themeMenuRef = useRef<HTMLDivElement>(null);
   const adminMenuRef = useRef<HTMLDivElement>(null);
@@ -51,8 +50,6 @@ const Navigation = () => {
     glass: 'GL',
     'high-contrast': 'HC',
   };
-
-  const lookup = useQuickLookup({ debounceMs: 250 });
 
   const closeAllMenus = useCallback(() => {
     setMobileMenuOpen(false);
@@ -124,7 +121,6 @@ const Navigation = () => {
 
   const handleSearch = () => {
     setSearchOpen(true);
-    lookup.clearSearch();
   };
 
   const isActive = (path: string) => {
@@ -159,7 +155,7 @@ const Navigation = () => {
     shortLabel: item.shortLabel ?? item.name,
     ariaLabel: item.ariaLabel ?? item.name,
   }));
-  const utilityNavLinks = getStaffUtilityEntries({
+  const utilityNavLinks = getStartupStaffUtilityEntries({
     VITE_TEAM_CHAT_ENABLED: import.meta.env.VITE_TEAM_CHAT_ENABLED,
   }).map((entry) => ({
     path: entry.href || entry.path,
@@ -175,39 +171,9 @@ const Navigation = () => {
   };
 
   useEffect(() => {
-    if (searchOpen) {
-      searchInputRef.current?.focus();
-      return;
+    if (!searchOpen) {
+      searchButtonRef.current?.focus();
     }
-    searchButtonRef.current?.focus();
-  }, [searchOpen]);
-
-  // Keyboard focus trap for search modal.
-  useEffect(() => {
-    if (!searchOpen) return;
-
-    const handleTabTrap = (event: KeyboardEvent) => {
-      if (event.key !== 'Tab' || !searchDialogRef.current) return;
-      const focusables = searchDialogRef.current.querySelectorAll<HTMLElement>(
-        'a[href], button, textarea, input, select, [tabindex]:not([tabindex="-1"])'
-      );
-      if (focusables.length === 0) return;
-
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      const active = document.activeElement;
-
-      if (event.shiftKey && active === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && active === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener('keydown', handleTabTrap);
-    return () => document.removeEventListener('keydown', handleTabTrap);
   }, [searchOpen]);
 
   return (
@@ -709,89 +675,9 @@ const Navigation = () => {
       )}
 
       {searchOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-40 p-4">
-          <div
-            ref={searchDialogRef}
-            className="bg-app-surface rounded-lg shadow-xl w-full max-w-2xl mt-16"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Search people"
-          >
-            <div className="p-4 border-b border-app-border flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-app-text-heading">Search People</h2>
-              <button
-                onClick={() => setSearchOpen(false)}
-                className="p-1 text-app-text-subtle hover:text-app-text-muted rounded"
-                type="button"
-                aria-label="Close search dialog"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-4">
-              <div className="relative">
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={lookup.searchTerm}
-                  onChange={lookup.handleSearchChange}
-                  placeholder="Search by name, email, or phone..."
-                  className="w-full px-4 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent bg-app-input-bg text-app-text"
-                />
-                {lookup.isLoading && (
-                  <div className="absolute right-3 top-2.5 text-app-text-subtle text-sm">
-                    Searching...
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-4 max-h-80 overflow-auto border border-app-border rounded-lg">
-                {lookup.searchTerm.trim().length < 2 ? (
-                  <div className="p-4 text-sm text-app-text-muted">Type at least 2 characters to search.</div>
-                ) : lookup.results.length === 0 ? (
-                  <div className="p-4 text-sm text-app-text-muted">
-                    No matches for &quot;{lookup.searchTerm}&quot;.
-                  </div>
-                ) : (
-                  <ul className="divide-y divide-app-border">
-                    {lookup.results.map((result) => (
-                      <li key={result.contact_id}>
-                        <Link
-                          to={`/contacts/${result.contact_id}`}
-                          onClick={() => setSearchOpen(false)}
-                          className="block px-4 py-3 hover:bg-app-hover"
-                        >
-                          <div className="font-medium text-app-text">
-                            {result.first_name} {result.last_name}
-                          </div>
-                          <div className="text-sm text-app-text-muted">
-                            {result.email || result.mobile_phone || result.phone || 'No contact info'}
-                          </div>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              <div className="mt-4 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchOpen(false);
-                    navigate('/contacts');
-                  }}
-                  className="px-4 py-2 border border-app-border rounded-lg text-sm text-app-text hover:bg-app-hover"
-                >
-                  View All People
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <Suspense fallback={null}>
+          <NavigationQuickLookupDialog onClose={() => setSearchOpen(false)} />
+        </Suspense>
       )}
     </nav>
   );

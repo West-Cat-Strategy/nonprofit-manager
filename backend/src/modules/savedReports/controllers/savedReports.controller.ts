@@ -12,16 +12,8 @@ import {
   revokePublicLink,
   shareReport,
 } from './reportSharing.handlers';
-import { SavedReportsUseCase } from '../usecases/savedReports.usecase';
-import type { ResponseMode } from '../mappers/responseMode';
 
-export const createSavedReportsController = (
-  useCase: SavedReportsUseCase,
-  mode: ResponseMode
-) => {
-  void mode;
-  useCase.getDomain();
-
+export const createSavedReportsController = () => {
   return {
     getSavedReports,
     getSavedReportById,

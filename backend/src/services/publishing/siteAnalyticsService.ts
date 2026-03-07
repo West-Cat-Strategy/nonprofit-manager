@@ -8,6 +8,7 @@ import type {
   SiteAnalyticsSummary,
   SiteAnalyticsRecord,
   AnalyticsEventType,
+  WebsiteConversionMetrics,
 } from '@app-types/publishing';
 import { SiteManagementService } from './siteManagementService';
 
@@ -162,6 +163,71 @@ export class SiteAnalyticsService {
       recentEvents,
       periodStart,
       periodEnd,
+    };
+  }
+
+  async getConversionMetrics(
+    siteId: string,
+    userId: string,
+    periodDays: number = 30,
+    organizationId?: string
+  ): Promise<WebsiteConversionMetrics> {
+    const site = await this.siteManagement.getSite(siteId, userId, organizationId);
+    if (!site) {
+      throw new Error('Site not found or access denied');
+    }
+
+    const periodStart = new Date();
+    periodStart.setDate(periodStart.getDate() - periodDays);
+    const periodEnd = new Date();
+
+    const totalsResult = await this.pool.query<{
+      total_pageviews: string;
+      unique_visitors: string;
+      form_submissions: string;
+      event_registrations: string;
+      donations: string;
+    }>(
+      `SELECT
+         COUNT(*) FILTER (WHERE event_type = 'pageview')::text AS total_pageviews,
+         COUNT(DISTINCT visitor_id)::text AS unique_visitors,
+         COUNT(*) FILTER (WHERE event_type = 'form_submit')::text AS form_submissions,
+         COUNT(*) FILTER (WHERE event_type = 'event_register')::text AS event_registrations,
+         COUNT(*) FILTER (WHERE event_type = 'donation')::text AS donations
+       FROM site_analytics
+       WHERE site_id = $1
+         AND created_at >= $2`,
+      [siteId, periodStart]
+    );
+
+    const recentConversionsResult = await this.pool.query(
+      `SELECT *
+       FROM site_analytics
+       WHERE site_id = $1
+         AND created_at >= $2
+         AND event_type IN ('form_submit', 'event_register', 'donation')
+       ORDER BY created_at DESC
+       LIMIT 20`,
+      [siteId, periodStart]
+    );
+
+    const totals = totalsResult.rows[0];
+    const formSubmissions = Number.parseInt(totals?.form_submissions ?? '0', 10);
+    const eventRegistrations = Number.parseInt(totals?.event_registrations ?? '0', 10);
+    const donations = Number.parseInt(totals?.donations ?? '0', 10);
+
+    return {
+      totalPageviews: Number.parseInt(totals?.total_pageviews ?? '0', 10),
+      uniqueVisitors: Number.parseInt(totals?.unique_visitors ?? '0', 10),
+      formSubmissions,
+      eventRegistrations,
+      donations,
+      totalConversions: formSubmissions + eventRegistrations + donations,
+      periodStart,
+      periodEnd,
+      recentConversions: recentConversionsResult.rows.map((row) =>
+        this.siteManagement.mapRowToAnalytics(row)
+      ),
     };
   }
 }

@@ -1,7 +1,12 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import portalApi from '../../../services/portalApi';
+import {
+  clearPortalBootstrapSnapshot,
+  getPortalBootstrapSnapshot,
+  setPortalBootstrapSnapshot,
+} from '../../../services/bootstrap/portalBootstrap';
 
-interface PortalUser {
+export interface PortalUser {
   id: string;
   email: string;
   contactId: string | null;
@@ -40,8 +45,15 @@ export const portalSignup = createAsyncThunk(
 );
 
 export const portalFetchMe = createAsyncThunk('portalAuth/me', async () => {
-  const response = await portalApi.get('/portal/auth/me');
-  return response.data;
+  const snapshot = await getPortalBootstrapSnapshot();
+  if (!snapshot.user) {
+    throw new Error('Unauthenticated portal session');
+  }
+  return {
+    id: snapshot.user.id,
+    email: snapshot.user.email,
+    contact_id: snapshot.user.contactId,
+  };
 });
 
 export const portalLogoutAsync = createAsyncThunk('portalAuth/logout', async (_, { dispatch }) => {
@@ -61,6 +73,7 @@ const portalAuthSlice = createSlice({
       state.token = null;
       state.user = null;
       state.error = null;
+      clearPortalBootstrapSnapshot();
       // Token is now in HTTP-only cookie; no need to remove from localStorage
     },
     clearPortalError: (state) => {
@@ -78,6 +91,11 @@ const portalAuthSlice = createSlice({
         // Token is now stored in HTTP-only cookie; don't store in Redux state
         state.token = null;
         state.user = action.payload.user;
+        setPortalBootstrapSnapshot({
+          id: action.payload.user.id,
+          email: action.payload.user.email,
+          contactId: action.payload.user.contact_id,
+        });
         // Don't store token in localStorage anymore
       })
       .addCase(portalLogin.rejected, (state, action) => {
@@ -108,11 +126,13 @@ const portalAuthSlice = createSlice({
           email: action.payload.email,
           contactId: action.payload.contact_id,
         };
+        setPortalBootstrapSnapshot(state.user);
         state.error = null;
       })
       .addCase(portalFetchMe.rejected, (state) => {
         state.loading = false;
         state.user = null;
+        clearPortalBootstrapSnapshot();
       })
       .addCase(portalLogoutAsync.pending, (state) => {
         state.loading = true;

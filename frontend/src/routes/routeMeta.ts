@@ -1,8 +1,8 @@
-import { matchRouteCatalogEntry } from './routeCatalog';
+import { matchStartupRouteMeta, type StartupRouteSection } from './startupRouteCatalog';
 
 export interface RouteMeta {
   title: string;
-  section: 'Auth' | 'Portal' | 'People' | 'Engagement' | 'Finance' | 'Analytics' | 'Settings' | 'Builder' | 'Core' | 'Demo';
+  section: StartupRouteSection;
   requiresAuth: boolean;
   primaryAction?: {
     label: string;
@@ -11,7 +11,7 @@ export interface RouteMeta {
 }
 
 export function getRouteMeta(pathname: string): RouteMeta {
-  const matched = matchRouteCatalogEntry(pathname);
+  const matched = matchStartupRouteMeta(pathname);
   if (matched) {
     return {
       title: matched.title,

@@ -3,7 +3,7 @@ import dbPool from '@config/database';
 import type { PublishedComponent, PublishedPage, PublishedSection, PublishedSite, PublishedTheme } from '@app-types/publishing';
 import type { PublicEventDetail, PublicEventListItem } from '@app-types/event';
 import type { WebsiteEntry } from '@app-types/websiteBuilder';
-import { EventService } from '@services/eventService';
+import { EventService } from '@modules/events/services/eventService';
 import {
   buildSeoMeta,
   generateFooterHtml,
@@ -14,6 +14,10 @@ import {
 import { escapeHtml } from '@services/site-generator/escapeHtml';
 import { generateComponentHtml } from '@services/site-generator/componentRenderer';
 import { WebsiteEntryService, websiteEntryService } from './websiteEntryService';
+import {
+  mergeManagedComponentConfig,
+  WebsiteSiteSettingsService,
+} from './siteSettingsService';
 
 type ResolvedRoute =
   | { kind: 'static'; page: PublishedPage }
@@ -121,9 +125,17 @@ const buildPublicFormRuntimeScript = (): string => `
       async function submitForm(form) {
         var statusNode = form.querySelector('[data-form-status]');
         var payload = {};
+        var visitorId = localStorage.getItem('npm_visitor_id');
+        var sessionId = sessionStorage.getItem('npm_session_id');
         Array.prototype.forEach.call(new FormData(form).entries(), function(entry) {
           payload[entry[0]] = entry[1];
         });
+        if (visitorId) {
+          payload.visitorId = visitorId;
+        }
+        if (sessionId) {
+          payload.sessionId = sessionId;
+        }
 
         if (statusNode) {
           statusNode.textContent = 'Submitting...';
@@ -177,10 +189,64 @@ const buildPublicFormRuntimeScript = (): string => `
 export class PublicSiteRuntimeService {
   private readonly events: EventService;
   private readonly entries: WebsiteEntryService;
+  private readonly siteSettings: WebsiteSiteSettingsService;
 
   constructor(pool: Pool) {
     this.events = new EventService(pool);
     this.entries = websiteEntryService;
+    this.siteSettings = new WebsiteSiteSettingsService(pool);
+  }
+
+  private mergeComponentSettings(
+    component: PublishedComponent,
+    settings: Awaited<ReturnType<WebsiteSiteSettingsService['getPublicSettings']>>
+  ): PublishedComponent {
+    const withSettings = mergeManagedComponentConfig(component, settings);
+    const componentRecord = withSettings as PublishedComponent & {
+      components?: PublishedComponent[];
+      columns?: Array<{ components?: PublishedComponent[] }>;
+    };
+
+    if (Array.isArray(componentRecord.components)) {
+      componentRecord.components = componentRecord.components.map((nested) =>
+        this.mergeComponentSettings(nested, settings)
+      );
+    }
+
+    if (Array.isArray(componentRecord.columns)) {
+      componentRecord.columns = componentRecord.columns.map((column) => ({
+        ...column,
+        components: Array.isArray(column.components)
+          ? column.components.map((nested) => this.mergeComponentSettings(nested, settings))
+          : [],
+      }));
+    }
+
+    return componentRecord;
+  }
+
+  private async buildRenderableSite(site: PublishedSite): Promise<PublishedSite> {
+    if (!site.publishedContent) {
+      return site;
+    }
+
+    const settings = await this.siteSettings.getPublicSettings(site.id);
+
+    return {
+      ...site,
+      publishedContent: {
+        ...site.publishedContent,
+        pages: site.publishedContent.pages.map((page) => ({
+          ...page,
+          sections: page.sections.map((section) => ({
+            ...section,
+            components: section.components.map((component) =>
+              this.mergeComponentSettings(component, settings)
+            ),
+          })),
+        })),
+      },
+    };
   }
 
   private resolveRoute(site: PublishedSite, requestPath: string): ResolvedRoute | null {
@@ -435,7 +501,7 @@ export class PublicSiteRuntimeService {
             <input name="amount" type="number" min="1" step="0.01" placeholder="Amount" required />
             ${component.recurringOption === true ? '<label class="npm-checkbox"><input type="checkbox" name="recurring" value="true" /> Monthly recurring donation</label>' : ''}
           `,
-          'Donate',
+          String(component.submitText || component.buttonText || 'Donate'),
           typeof component.description === 'string' ? component.description : undefined
         );
       case 'event-list':
@@ -478,7 +544,7 @@ export class PublicSiteRuntimeService {
         return `
           <form
             data-public-site-form="true"
-            action="/api/v2/public/events/${encodeURIComponent(context.event.event_id)}/registrations"
+            action="/api/v2/public/events/${encodeURIComponent(context.event.event_id)}/registrations?site=${encodeURIComponent(site.id)}"
             method="post"
             style="display: grid; gap: 0.75rem; padding: 1.25rem; border: 1px solid var(--npm-border); border-radius: 16px; background: var(--npm-surface);"
           >
@@ -642,11 +708,13 @@ export class PublicSiteRuntimeService {
   }
 
   async renderSitePage(site: PublishedSite, requestPath: string): Promise<string | null> {
-    if (!site.publishedContent) {
+    const renderableSite = await this.buildRenderableSite(site);
+
+    if (!renderableSite.publishedContent) {
       return null;
     }
 
-    const resolved = this.resolveRoute(site, requestPath);
+    const resolved = this.resolveRoute(renderableSite, requestPath);
     if (!resolved) {
       return null;
     }
@@ -658,46 +726,55 @@ export class PublicSiteRuntimeService {
       runtimeContext = {
         kind: 'eventsIndex',
         items: (
-          await this.events.listPublicEventsByOwner(site.ownerUserId || site.userId, {
+          await this.events.listPublicEventsByOwner(renderableSite.ownerUserId || renderableSite.userId, {
             limit: 50,
             offset: 0,
             sort_by: 'start_date',
             sort_order: 'asc',
           })
         ).items,
-        detailPathPattern: this.getDetailPathPattern(site, 'events'),
+        detailPathPattern: this.getDetailPathPattern(renderableSite, 'events'),
       };
     } else if (resolved.kind === 'eventDetail') {
-      const event = await this.events.getPublicEventBySlug(site.ownerUserId || site.userId, resolved.slug);
+      const event = await this.events.getPublicEventBySlug(
+        renderableSite.ownerUserId || renderableSite.userId,
+        resolved.slug
+      );
       if (!event) {
         return null;
       }
       runtimeContext = {
         kind: 'eventDetail',
         event,
-        detailPathPattern: this.getDetailPathPattern(site, 'events'),
+        detailPathPattern: this.getDetailPathPattern(renderableSite, 'events'),
       };
     } else if (resolved.kind === 'newslettersIndex') {
       runtimeContext = {
         kind: 'newslettersIndex',
-        items: (await this.entries.listPublicNewsletters(site, { limit: 50, offset: 0, sourceFilter: 'all' })).items,
-        detailPathPattern: this.getDetailPathPattern(site, 'newsletters'),
+        items: (
+          await this.entries.listPublicNewsletters(renderableSite, {
+            limit: 50,
+            offset: 0,
+            sourceFilter: 'all',
+          })
+        ).items,
+        detailPathPattern: this.getDetailPathPattern(renderableSite, 'newsletters'),
       };
     } else if (resolved.kind === 'newsletterDetail') {
-      const entry = await this.entries.getPublicNewsletterBySlug(site, resolved.slug);
+      const entry = await this.entries.getPublicNewsletterBySlug(renderableSite, resolved.slug);
       if (!entry) {
         return null;
       }
       runtimeContext = {
         kind: 'newsletterDetail',
         entry,
-        detailPathPattern: this.getDetailPathPattern(site, 'newsletters'),
+        detailPathPattern: this.getDetailPathPattern(renderableSite, 'newsletters'),
       };
     }
 
     const sectionsHtml = await Promise.all(
       page.sections.map((section) =>
-        this.renderSection(site, section, site.publishedContent!.theme, runtimeContext)
+        this.renderSection(renderableSite, section, renderableSite.publishedContent!.theme, runtimeContext)
       )
     );
 
@@ -710,9 +787,9 @@ export class PublicSiteRuntimeService {
       }
       if (!this.hasComponentType(page, ['event-registration'])) {
         fallbackHtml += await this.renderComponent(
-          site,
+          renderableSite,
           { id: 'event-registration-default', type: 'event-registration', submitText: 'Register' },
-          site.publishedContent.theme,
+          renderableSite.publishedContent.theme,
           runtimeContext
         );
       }
@@ -727,34 +804,36 @@ export class PublicSiteRuntimeService {
         ? runtimeContext.event.event_name
         : runtimeContext.kind === 'newsletterDetail'
           ? runtimeContext.entry.title
-          : page.seo?.title || page.name || site.publishedContent.seoDefaults.title;
+          : page.seo?.title || page.name || renderableSite.publishedContent.seoDefaults.title;
     const description =
       runtimeContext.kind === 'eventDetail'
-        ? runtimeContext.event.description || site.publishedContent.seoDefaults.description
+        ? runtimeContext.event.description || renderableSite.publishedContent.seoDefaults.description
         : runtimeContext.kind === 'newsletterDetail'
-          ? runtimeContext.entry.excerpt || runtimeContext.entry.seo.description || site.publishedContent.seoDefaults.description
-          : page.seo?.description || site.publishedContent.seoDefaults.description;
-    const analyticsScript = site.publishedContent.seoDefaults.googleAnalyticsId
-      ? generateGoogleAnalyticsScript(site.publishedContent.seoDefaults.googleAnalyticsId)
+          ? runtimeContext.entry.excerpt ||
+            runtimeContext.entry.seo.description ||
+            renderableSite.publishedContent.seoDefaults.description
+          : page.seo?.description || renderableSite.publishedContent.seoDefaults.description;
+    const analyticsScript = renderableSite.publishedContent.seoDefaults.googleAnalyticsId
+      ? generateGoogleAnalyticsScript(renderableSite.publishedContent.seoDefaults.googleAnalyticsId)
       : '';
 
     const bodyHtml = `
-      ${generateNavigationHtml(site.publishedContent)}
+      ${generateNavigationHtml(renderableSite.publishedContent)}
       <main>
         ${sectionsHtml.join('\n')}
         ${fallbackHtml}
       </main>
-      ${generateFooterHtml(site.publishedContent)}
-      ${buildAnalyticsScript(site.id)}
+      ${generateFooterHtml(renderableSite.publishedContent)}
+      ${buildAnalyticsScript(renderableSite.id)}
       ${buildPublicFormRuntimeScript()}
     `;
 
     return buildSeoMeta(
       pageTitle,
       description,
-      site.publishedContent.seoDefaults,
+      renderableSite.publishedContent.seoDefaults,
       page.seo,
-      `${generateThemeCSS(site.publishedContent.theme)}\n${this.getRuntimeCss()}`,
+      `${generateThemeCSS(renderableSite.publishedContent.theme)}\n${this.getRuntimeCss()}`,
       bodyHtml,
       analyticsScript
     );

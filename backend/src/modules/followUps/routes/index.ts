@@ -5,9 +5,6 @@ import { requireActiveOrganizationContext } from '@middleware/requireActiveOrgan
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import { uuidSchema } from '@validations/shared';
 import { createFollowUpsController } from '../controllers/followUps.controller';
-import { type ResponseMode } from '../mappers/responseMode';
-import { FollowUpsRepository } from '../repositories/followUps.repository';
-import { FollowUpsUseCase } from '../usecases/followUps.usecase';
 
 const followUpStatusSchema = z.enum(['scheduled', 'completed', 'cancelled', 'overdue']);
 const followUpFrequencySchema = z.enum(['once', 'daily', 'weekly', 'biweekly', 'monthly']);
@@ -74,12 +71,9 @@ const upcomingQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).optional(),
 }).strict();
 
-export const createFollowUpsRoutes = (mode: ResponseMode = 'v2'): Router => {
+export const createFollowUpsRoutes = (): Router => {
   const router = Router();
-  const controller = createFollowUpsController(
-    new FollowUpsUseCase(new FollowUpsRepository()),
-    mode
-  );
+  const controller = createFollowUpsController();
 
   router.use(authenticate);
   router.use(requireActiveOrganizationContext);
@@ -98,4 +92,4 @@ export const createFollowUpsRoutes = (mode: ResponseMode = 'v2'): Router => {
   return router;
 };
 
-export const followUpsV2Routes = createFollowUpsRoutes('v2');
+export const followUpsV2Routes = createFollowUpsRoutes();

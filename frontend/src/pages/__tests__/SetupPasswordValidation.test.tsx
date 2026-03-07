@@ -2,7 +2,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type * as ReactRouterDom from 'react-router-dom';
 import { vi } from 'vitest';
-import Setup from '../auth/Setup';
+import Setup from '../../features/auth/pages/SetupPage';
 import api from '../../services/api';
 import { createTestStore, renderWithProviders } from '../../test/testUtils';
 

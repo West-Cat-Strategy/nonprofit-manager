@@ -24,7 +24,7 @@ This system is meant to feel credible and operational rather than playful or orn
 1. Readability first. Headings, labels, row states, and actions must be immediately distinguishable.
 2. Workflow over decoration. A user should always know the next safe action from the current page.
 3. Shared primitives before bespoke layouts. Use the common shell, page header, section card, state, table, and button components unless a page has a strong product reason not to.
-4. Navigation must be canonical. Literal links and redirects must resolve through `frontend/src/routes/routeCatalog.ts`.
+4. Navigation must be canonical. Runtime links and redirects must resolve through the route manifests under `frontend/src/routes/startupRouteCatalog.ts` and feature-owned manifests such as `frontend/src/features/adminOps/adminRouteManifest.ts`.
 5. Accessibility is part of the design system, not a QA afterthought.
 
 ## Shell Rules
@@ -37,7 +37,7 @@ This system is meant to feel credible and operational rather than playful or orn
 
 ### Admin Shell
 
-- Admin side navigation must be driven by the route catalog, including query-based sections such as `/settings/admin?section=users`.
+- Admin side navigation must be driven by the admin feature manifest, including query-based sections such as `/settings/admin?section=users`.
 - Only show admin-only destinations to admins.
 - Query-based sections are canonical and should not be replaced with legacy aliases.
 
@@ -87,7 +87,9 @@ This system is meant to feel credible and operational rather than playful or orn
 
 ## Route and Audit Guardrails
 
-- `frontend/src/routes/routeCatalog.ts` is the canonical manifest for route metadata, navigation, and link auditing.
+- `frontend/src/routes/startupRouteCatalog.ts` is the canonical shared manifest for startup, shell, and runtime navigation metadata.
+- Feature-specific navigation metadata belongs with the owning feature, for example `frontend/src/features/adminOps/adminRouteManifest.ts`.
+- `frontend/src/routes/routeCatalog.ts` remains the audit projection consumed by route-integrity and UI-audit scripts until that tooling is cut over.
 - `node scripts/check-route-integrity.ts` validates literal route targets against the catalog.
 - `node scripts/check-route-catalog-drift.ts` validates route registration drift.
 - `node scripts/ui-audit.ts` tracks semantic-token use and inline-style debt.
@@ -112,13 +114,13 @@ This system is meant to feel credible and operational rather than playful or orn
 Do:
 
 - Reuse shared shell primitives.
-- Prefer route-catalog-backed navigation.
+- Prefer manifest-backed navigation.
 - Improve workflow clarity when replacing broken shortcuts or dead-end routes.
 - Keep cards, tables, and forms visually consistent across staff and portal experiences.
 
 Do not:
 
 - Reintroduce hard black borders and heavy shadows as the default visual language.
-- Add new literal internal routes that bypass the route catalog.
+- Add new literal internal routes that bypass the route manifests.
 - Use inline styles for ordinary spacing, colors, or text wrapping.
 - Ship route surfaces without H1, primary action, and empty/error/loading treatment.

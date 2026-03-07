@@ -59,7 +59,8 @@ const handleKnownPublishingError = (
     opts.badRequest &&
     (error.message.includes('No custom domain') ||
       error.message.includes('no published version') ||
-      error.message.includes('Already on this version'))
+      error.message.includes('Already on this version') ||
+      error.message.includes('organization assignment'))
   ) {
     badRequest(res, error.message);
     return true;
@@ -136,7 +137,7 @@ export const updateSite = async (
 
     sendSuccess(res, site);
   } catch (error) {
-    if (handleKnownPublishingError(error, res, { conflict: true })) return;
+    if (handleKnownPublishingError(error, res, { conflict: true, badRequest: true })) return;
     next(error);
   }
 };
@@ -212,7 +213,7 @@ export const publishSite = async (
     const result = await publishingService.publish(userId, templateId, siteId, organizationId);
     sendSuccess(res, result);
   } catch (error) {
-    if (handleKnownPublishingError(error, res, { notFound: true })) return;
+    if (handleKnownPublishingError(error, res, { notFound: true, badRequest: true })) return;
     next(error);
   }
 };
@@ -238,6 +239,7 @@ export const unpublishSite = async (
 
     sendSuccess(res, site);
   } catch (error) {
+    if (handleKnownPublishingError(error, res, { badRequest: true })) return;
     next(error);
   }
 };

@@ -6,6 +6,10 @@ import { AvailabilityStatus } from '@app-types/volunteer';
 import { stripeService } from '@services/domains/operations';
 import { addOrUpdateMember, isMailchimpConfigured } from '@services/mailchimpService';
 import { SiteManagementService } from './siteManagementService';
+import {
+  mergeManagedComponentConfig,
+  WebsiteSiteSettingsService,
+} from './siteSettingsService';
 
 export interface PublicWebsiteFormResult {
   formType: string;
@@ -87,9 +91,11 @@ const appendUniqueTags = (existing: string[] | null | undefined, incoming: strin
 
 export class PublicWebsiteFormService {
   private readonly siteManagement: SiteManagementService;
+  private readonly siteSettings: WebsiteSiteSettingsService;
 
   constructor(private readonly pool: Pool) {
     this.siteManagement = new SiteManagementService(pool);
+    this.siteSettings = new WebsiteSiteSettingsService(pool);
   }
 
   private findComponentById(
@@ -235,10 +241,12 @@ export class PublicWebsiteFormService {
       throw new Error('Published site content is unavailable');
     }
 
-    const component = this.findComponentById(site, formKey);
-    if (!component) {
+    const sourceComponent = this.findComponentById(site, formKey);
+    if (!sourceComponent) {
       throw new Error('Website form not found');
     }
+    const settings = await this.siteSettings.getPublicSettings(site.id);
+    const component = mergeManagedComponentConfig(sourceComponent, settings);
 
     const identity = toIdentity(payload);
 
@@ -347,20 +355,28 @@ export class PublicWebsiteFormService {
           throw new Error('Donation amount is required');
         }
 
+        const currency =
+          typeof component.currency === 'string' && component.currency.trim().length > 0
+            ? component.currency.trim().toUpperCase()
+            : 'USD';
+        const recurringDefault =
+          payload.recurring === true ||
+          (payload.recurring === undefined && component.recurringDefault === true);
+
         const donation = await services.donation.createDonation(
           {
             account_id: (component.accountId as string | undefined) || site.organizationId || undefined,
             contact_id: contactId,
             amount: Number(amountValue.toFixed(2)),
-            currency: 'USD',
+            currency,
             donation_date: new Date().toISOString(),
             payment_method: 'credit_card',
             payment_status: 'pending',
             notes: identity.message,
             campaign_name:
               typeof component.campaignId === 'string' ? component.campaignId : undefined,
-            is_recurring: payload.recurring === true,
-            recurring_frequency: payload.recurring === true ? 'monthly' : 'one_time',
+            is_recurring: recurringDefault,
+            recurring_frequency: recurringDefault ? 'monthly' : 'one_time',
           },
           site.ownerUserId || site.userId
         );
@@ -369,7 +385,7 @@ export class PublicWebsiteFormService {
         if (identity.email && stripeService.isStripeConfigured()) {
           paymentIntent = await stripeService.createPaymentIntent({
             amount: Math.round(amountValue * 100),
-            currency: 'usd',
+            currency: currency.toLowerCase(),
             description: `Donation via ${site.name}`,
             donationId: donation.donation_id,
             receiptEmail: identity.email,

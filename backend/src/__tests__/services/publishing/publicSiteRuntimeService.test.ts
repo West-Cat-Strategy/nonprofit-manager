@@ -1,13 +1,13 @@
 import type { Pool } from 'pg';
 import { PublicSiteRuntimeService } from '@services/publishing/publicSiteRuntimeService';
 
-jest.mock('@services/eventService', () => ({
+jest.mock('@modules/events/services/eventService', () => ({
   __mocks: {
     listPublicEventsByOwner: jest.fn(),
     getPublicEventBySlug: jest.fn(),
   },
   EventService: jest.fn().mockImplementation(function EventServiceMock() {
-    const module = jest.requireMock('@services/eventService') as {
+    const module = jest.requireMock('@modules/events/services/eventService') as {
       __mocks: {
         listPublicEventsByOwner: jest.Mock;
         getPublicEventBySlug: jest.Mock;
@@ -49,7 +49,7 @@ jest.mock('@services/publishing/websiteEntryService', () => ({
   },
 }));
 
-const eventServiceModule = jest.requireMock('@services/eventService') as {
+const eventServiceModule = jest.requireMock('@modules/events/services/eventService') as {
   __mocks: {
     listPublicEventsByOwner: jest.Mock;
     getPublicEventBySlug: jest.Mock;
@@ -64,6 +64,7 @@ const websiteEntryModule = jest.requireMock('@services/publishing/websiteEntrySe
 };
 
 describe('PublicSiteRuntimeService', () => {
+  let mockQuery: jest.Mock;
   let service: PublicSiteRuntimeService;
 
   const baseSite = {
@@ -136,7 +137,8 @@ describe('PublicSiteRuntimeService', () => {
   };
 
   beforeEach(() => {
-    service = new PublicSiteRuntimeService({ query: jest.fn() } as unknown as Pool);
+    mockQuery = jest.fn().mockResolvedValue({ rows: [] });
+    service = new PublicSiteRuntimeService({ query: mockQuery } as unknown as Pool);
     eventServiceModule.__mocks.listPublicEventsByOwner.mockReset();
     eventServiceModule.__mocks.getPublicEventBySlug.mockReset();
     websiteEntryModule.__mocks.listPublicNewsletters.mockReset();

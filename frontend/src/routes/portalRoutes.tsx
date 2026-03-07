@@ -3,7 +3,6 @@
  * Handles client portal pages
  */
 
-import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
 import {
   PortalLogin,
@@ -23,67 +22,32 @@ import {
   PortalCaseDetail,
 } from './portalRouteComponents';
 
-interface RouteWrapperProps {
-  children: ReactNode;
-}
-
-export function createPortalRoutes(PortalProtectedRoute: React.ComponentType<RouteWrapperProps>) {
+export function createPortalPublicRoutes() {
   return (
     <>
       {/* Public portal routes */}
       <Route path="/portal/login" element={<PortalLogin />} />
       <Route path="/portal/signup" element={<PortalSignup />} />
       <Route path="/portal/accept-invitation/:token" element={<PortalAcceptInvitation />} />
+    </>
+  );
+}
 
-      {/* Protected portal routes */}
-      <Route
-        path="/portal"
-        element={<PortalProtectedRoute><PortalDashboard /></PortalProtectedRoute>}
-      />
-      <Route
-        path="/portal/profile"
-        element={<PortalProtectedRoute><PortalProfile /></PortalProtectedRoute>}
-      />
-      <Route
-        path="/portal/people"
-        element={<PortalProtectedRoute><PortalPeople /></PortalProtectedRoute>}
-      />
-      <Route
-        path="/portal/events"
-        element={<PortalProtectedRoute><PortalEvents /></PortalProtectedRoute>}
-      />
-      <Route
-        path="/portal/messages"
-        element={<PortalProtectedRoute><PortalMessages /></PortalProtectedRoute>}
-      />
-      <Route
-        path="/portal/cases"
-        element={<PortalProtectedRoute><PortalCases /></PortalProtectedRoute>}
-      />
-      <Route
-        path="/portal/cases/:id"
-        element={<PortalProtectedRoute><PortalCaseDetail /></PortalProtectedRoute>}
-      />
-      <Route
-        path="/portal/appointments"
-        element={<PortalProtectedRoute><PortalAppointments /></PortalProtectedRoute>}
-      />
-      <Route
-        path="/portal/documents"
-        element={<PortalProtectedRoute><PortalDocuments /></PortalProtectedRoute>}
-      />
-      <Route
-        path="/portal/notes"
-        element={<PortalProtectedRoute><PortalNotes /></PortalProtectedRoute>}
-      />
-      <Route
-        path="/portal/forms"
-        element={<PortalProtectedRoute><PortalForms /></PortalProtectedRoute>}
-      />
-      <Route
-        path="/portal/reminders"
-        element={<PortalProtectedRoute><PortalReminders /></PortalProtectedRoute>}
-      />
+export function createPortalProtectedRoutes() {
+  return (
+    <>
+      <Route path="/portal" element={<PortalDashboard />} />
+      <Route path="/portal/profile" element={<PortalProfile />} />
+      <Route path="/portal/people" element={<PortalPeople />} />
+      <Route path="/portal/events" element={<PortalEvents />} />
+      <Route path="/portal/messages" element={<PortalMessages />} />
+      <Route path="/portal/cases" element={<PortalCases />} />
+      <Route path="/portal/cases/:id" element={<PortalCaseDetail />} />
+      <Route path="/portal/appointments" element={<PortalAppointments />} />
+      <Route path="/portal/documents" element={<PortalDocuments />} />
+      <Route path="/portal/notes" element={<PortalNotes />} />
+      <Route path="/portal/forms" element={<PortalForms />} />
+      <Route path="/portal/reminders" element={<PortalReminders />} />
     </>
   );
 }

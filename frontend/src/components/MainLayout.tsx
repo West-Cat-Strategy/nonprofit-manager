@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { logoutAsync } from '../store/slices/authSlice';
+import { logoutAsync } from '../features/auth/state';
 
 interface MainLayoutProps {
   children: ReactNode;
