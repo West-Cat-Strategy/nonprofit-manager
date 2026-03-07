@@ -42,7 +42,9 @@ services:
   backend-dev:
     build:
       context: ./backend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
+      target: dev
+    init: true
     restart: unless-stopped
     ports:
       - "8004:3000"
@@ -73,13 +75,20 @@ services:
       - backend_logs_dev:/app/logs
     networks:
       - nonprofit-dev-network
-    command: npm run dev
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health >/dev/null 2>&1 || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   # Development frontend with hot reload
   frontend-dev:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
+      target: dev
+    init: true
     restart: unless-stopped
     ports:
       - "8005:8005"
@@ -87,13 +96,19 @@ services:
       # Use relative path so Vite proxy handles requests (enabling LAN/Tailnet access)
       VITE_API_URL: /api
     depends_on:
-      - backend-dev
+      backend-dev:
+        condition: service_healthy
     volumes:
       - ./frontend:/app
       - frontend_node_modules:/app/node_modules
     networks:
       - nonprofit-dev-network
-    command: npm run dev
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:8005 >/dev/null 2>&1 || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
 volumes:
   postgres_data_dev:

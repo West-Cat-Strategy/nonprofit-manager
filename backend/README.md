@@ -26,7 +26,7 @@ The backend provides:
 
 - **REST API** (`/api/*`) — All frontend requests go here
 - **Authentication** — User login, token management, permission checks
-- **Data Persistence** — PostgreSQL database with Prisma ORM
+- **Data Persistence** — PostgreSQL database with raw SQL migrations and `pg`-backed services
 - **Business Logic** — CRM, volunteers, events, donations, reporting
 - **Integrations** — Stripe (payments), Mailchimp (email), external webhooks
 - **Validation** — Zod schemas for all input validation
@@ -61,8 +61,9 @@ Set values for:
 ### Database Setup
 
 ```bash
-# Run migrations
-npm run migrate
+# From the repo root, apply canonical migrations
+cd ..
+make db-migrate
 
 # Seed sample data (optional)
 # npm run seed
@@ -153,7 +154,7 @@ Controller (handles request, calls service)
   ↓
 Service (business logic)
   ↓
-Database (Prisma ORM)
+Database (PostgreSQL)
   ↓
 Response
 ```
@@ -264,15 +265,15 @@ backend/
 │   ├── utils/                # Utilities (helpers, validators)
 │   ├── container/            # Dependency injection
 │   └── __tests__/            # Unit tests
-├── prisma/
-│   ├── schema.prisma         # Database schema
-│   └── migrations/           # Database migrations
+├── scripts/                  # Backend test helpers
 ├── jest.config.ts            # Jest configuration
 ├── tsconfig.json             # TypeScript configuration
 ├── eslint.config.mjs         # ESLint configuration
 ├── package.json
 └── README.md                 # This file
 ```
+
+Canonical database migrations live under `../database/migrations/`.
 
 ---
 
@@ -307,15 +308,15 @@ If not, check:
 
 ## Database
 
-Backend uses **PostgreSQL** with **Prisma** ORM.
+Backend uses **PostgreSQL** with canonical raw SQL migrations in `../database/migrations/`.
 
 **Key commands**:
 
 ```bash
-npm run migrate              # Apply pending migrations
-npm run migrate:status       # Check migration status
-npx prisma studio          # Open Prisma Studio (visual DB browser)
-npx prisma db push         # (Dev only) Sync schema with DB
+cd ..
+make db-migrate                   # Apply pending migrations
+./scripts/db-migrate.sh --status  # Check canonical migration status
+make db-verify                    # Replay migrations on a *_test database
 ```
 
 See [docs/deployment/DB_SETUP.md](../docs/deployment/DB_SETUP.md) for setup details.
@@ -361,7 +362,7 @@ Print executed SQL:
 
 ```bash
 # In .env, set:
-DEBUG=prisma:client
+LOG_LEVEL=debug
 npm run dev
 ```
 
@@ -384,7 +385,7 @@ For optimization tips:
 cat .env | grep DATABASE_URL
 
 # Test connection
-npm run migrate:status
+./scripts/db-migrate.sh --status
 
 # If still failing, verify PostgreSQL is running
 # macOS: brew services list | grep postgres

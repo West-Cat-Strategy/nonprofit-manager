@@ -232,10 +232,10 @@ This script creates a full set of interconnected test data for integration testi
 1. **Setup Environment**:
    ```bash
    # Ensure database is migrated
-   cd backend
-   npm run migrate
+   make db-migrate
 
    # Start backend server
+   cd backend
    npm run dev
    ```
 

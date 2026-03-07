@@ -21,7 +21,7 @@ Phase 3 database infrastructure (RLS + Audit Logging) has been successfully depl
 ### ✅ Migration 032: Row-Level Security (Fixed)
 
 **Original File**: `database/migrations/032_row_level_security.sql`  
-**Applied File**: `database/migrations/032_row_level_security_fixed.sql`  
+**Applied File**: `database/migrations/032_row_level_security.sql`  
 **Status**: ✅ Applied successfully
 
 **Reason for Fix**:
@@ -287,7 +287,7 @@ ALTER TABLE contacts ENABLE ROW LEVEL SECURITY;
 ## Files Modified/Created
 
 **Database**:
-- ✅ `database/migrations/032_row_level_security_fixed.sql` - Created (400+ lines)
+- ✅ `database/migrations/032_row_level_security.sql` - Created (400+ lines; legacy alias `032_row_level_security_fixed.sql` remains recognized)
 - ✅ `database/migrations/033_audit_logging.sql` - Applied (366 lines)
 
 **No application code changes yet** - Backend integration required in next step

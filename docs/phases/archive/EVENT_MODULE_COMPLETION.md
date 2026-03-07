@@ -343,7 +343,7 @@ docs/EVENT_MODULE_COMPLETION.md
 ## Next Steps
 
 ### Immediate
-1. ✅ Run migration: `npm run migrate`
+1. ✅ Run migration: `make db-migrate`
 2. ✅ Test API endpoints with provided scripts
 3. ✅ Verify frontend calendar view
 4. ✅ Review API documentation

@@ -187,7 +187,7 @@ Verify `DATABASE_URL` in `.env` matches Docker container (default is correct).
 ### Step 5: Run Database Migrations
 
 ```bash
-npm run migrate
+make db-migrate
 ```
 
 This creates tables in the database.
@@ -270,7 +270,8 @@ npm install
 cp .env.example .env
 
 # Run migrations
-npm run migrate
+cd ..
+make db-migrate
 
 # Start backend
 npm run dev

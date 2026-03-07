@@ -21,7 +21,8 @@ These tests verify:
 
 2. **Database Migrated**:
    ```bash
-   npm run migrate
+   # From the repo root
+   make db-migrate
    ```
 
 3. **Authentication Token**:
