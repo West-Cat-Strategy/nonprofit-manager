@@ -19,6 +19,13 @@ Configuration constants and defaults:
 - API endpoints
 - File paths and directories
 
+### `lib/migration-manifest.sh`
+Canonical migration manifest helpers:
+- Loads `database/migrations/manifest.tsv`
+- Validates canonical filenames and legacy aliases
+- Emits `schema_migrations` bootstrap/backfill SQL
+- Provides shared checksum and timing helpers for migration scripts
+
 ## Available Scripts
 
 ### CI and Quality Assurance
@@ -50,10 +57,12 @@ Generates a comprehensive report on code quality metrics.
 ### Database Management
 
 #### `db-migrate.sh` - Database Migrations
-Applies pending database migrations in order.
+Applies pending canonical database migrations in manifest order.
 
 ```bash
 ./scripts/db-migrate.sh
+./scripts/db-migrate.sh --status
+./scripts/db-migrate.sh --timing
 ```
 
 #### `db-backup.sh` - Database Backup
@@ -75,6 +84,7 @@ Verifies that migrations can be applied without errors.
 
 ```bash
 ./scripts/verify-migrations.sh
+./scripts/verify-migrations.sh --timing
 ```
 
 ### Deployment
@@ -107,6 +117,8 @@ docker compose -f docker-compose.dev.yml -f docker-compose.caddy.yml up -d
 # Production-like stack + optional DB/Redis host access
 docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.host-access.yml up -d
 ```
+
+The app dev services now build from the shared `backend/Dockerfile` and `frontend/Dockerfile` `dev` targets, and the Caddy overlay uses the stock `caddy:2-alpine` image directly.
 
 ### Security
 
@@ -192,6 +204,13 @@ Blocks reintroduction of legacy `require*OrError` auth-guard helpers in controll
 
 ```bash
 node scripts/check-auth-guard-policy.ts
+```
+
+#### `check-migration-manifest-policy.ts` - Canonical Migration Guardrail
+Blocks manifest/file drift, duplicate migration surfaces, and initdb ordering mismatches.
+
+```bash
+node scripts/check-migration-manifest-policy.ts
 ```
 
 #### `check-duplicate-test-tree.ts` - Duplicate Test Path Guardrail

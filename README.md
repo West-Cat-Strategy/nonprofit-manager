@@ -128,6 +128,8 @@ docker compose -p nonprofit-dev -f docker-compose.dev.yml up --build -d
 # - Redis: localhost:8003
 ```
 
+The dev stack now builds `backend` and `frontend` from the shared app Dockerfiles using their `dev` targets, so there is no separate `Dockerfile.dev` maintenance surface.
+
 ### Optional Docker Overlays
 
 ```bash
@@ -140,6 +142,8 @@ docker compose -p nonprofit-dev -f docker-compose.dev.yml -f docker-compose.cadd
 # Production-like stack + optional DB/Redis host-port access
 docker compose -p nonprofit-prod --env-file .env.production -f docker-compose.yml -f docker-compose.host-access.yml up -d
 ```
+
+The Caddy overlay now uses the stock `caddy:2-alpine` image directly, so `docker-up-caddy` and the raw compose command work without a local image prebuild step.
 
 ### First Setup vs Seeded Data
 

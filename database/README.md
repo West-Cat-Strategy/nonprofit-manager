@@ -44,7 +44,7 @@ The schema uses CDM-standard field names where applicable:
 ## Database Structure
 
 ### Migrations
-Database migrations are stored in `database/migrations/` and should be run in numerical order. Each migration file follows the naming convention: `NNN_descriptive_name.sql`.
+Database migrations are stored in `database/migrations/` and are ordered by `database/migrations/manifest.tsv`. Canonical migration filenames follow `NNN_descriptive_name.sql`, with letter suffixes allowed when a sequence split must remain backward compatible (for example, `060a_*`, `060b_*`).
 
 **Migration Best Practices:**
 - Never modify existing migration files
@@ -75,7 +75,10 @@ The `database/initdb/000_init.sql` script runs all migrations and seeds in the c
 ```bash
 # Using Docker Compose (recommended)
 make docker-up
-./scripts/db-migrate.sh
+make db-migrate
+
+# Show canonical migration status
+./scripts/db-migrate.sh --status
 
 # Or directly with psql
 psql -U postgres -d nonprofit_manager -f database/migrations/001_initial_schema.sql
@@ -83,20 +86,22 @@ psql -U postgres -d nonprofit_manager -f database/migrations/001_initial_schema.
 
 **Production Environment:**
 ```bash
-# Use the migration script with production container name
-DB_CONTAINER=nonprofit-db-prod ./scripts/db-migrate.sh
+# Use the canonical migration runner
+COMPOSE_MODE=prod ./scripts/db-migrate.sh
 ```
 
 ### Migration Scripts
 
-- `scripts/db-migrate.sh` - Applies all pending migrations in order
-- `scripts/verify-migrations.sh` - Verifies migrations can be applied without errors
+- `scripts/db-migrate.sh` - Applies all pending canonical migrations in manifest order
+- `scripts/verify-migrations.sh` - Replays canonical migrations against a `*_test` database
 
 ### Migration Tracking
 
 The system uses a `schema_migrations` table to track applied migrations:
 - `id` - Auto-incrementing primary key
 - `filename` - Migration filename
+- `migration_id` - Stable canonical migration identifier
+- `canonical_filename` - Canonical filename for the applied migration
 - `applied_at` - Timestamp when applied
 - `checksum` - MD5 hash of the migration file for integrity checking
 

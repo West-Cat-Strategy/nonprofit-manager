@@ -1,6 +1,7 @@
 node_modules
 npm-debug.log
 dist
+dist.bak
 .env
 .env.*
 .git
@@ -13,6 +14,16 @@ coverage
 __tests__
 *.test.*
 *.spec.*
+test
+tests
+exports
+logs
+uploads
+migrations
+prisma
+schema-bundle.json
+scripts
+.prettierrc
 jest.config.*
 Dockerfile*
 docker-compose*
