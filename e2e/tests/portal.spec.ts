@@ -45,4 +45,27 @@ test.describe('Donor Portal', () => {
             }
         );
     });
+
+    test('portal route transitions do not repeatedly refetch session bootstrap', async ({ page }) => {
+        const portalUser = await provisionApprovedPortalUser(page);
+        const portalMeRequests: string[] = [];
+
+        page.on('request', (request) => {
+            const url = request.url();
+            if (/\/api\/portal\/auth\/me(?:\?|$)/.test(url)) {
+                portalMeRequests.push(url);
+            }
+        });
+
+        await loginPortalUserUI(page, portalUser);
+        await page.goto('/portal');
+        await expect(page).toHaveURL(/\/portal(?:\?|$)/);
+        await page.goto('/portal/profile');
+        await expect(page).toHaveURL(/\/portal\/profile(?:\?|$)/);
+        await page.goto('/portal/events');
+        await expect(page).toHaveURL(/\/portal\/events(?:\?|$)/);
+        await page.waitForTimeout(600);
+
+        expect(portalMeRequests.length).toBeLessThanOrEqual(1);
+    });
 });

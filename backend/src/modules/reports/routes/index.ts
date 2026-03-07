@@ -7,9 +7,6 @@ import { outcomesReportQuerySchema } from '@validations/outcomeImpact';
 import { REPORT_ENTITIES } from '@app-types/report';
 import { uuidSchema } from '@validations/shared';
 import { createReportsController } from '../controllers/reports.controller';
-import { type ResponseMode } from '../mappers/responseMode';
-import { ReportsRepository } from '../repositories/reports.repository';
-import { ReportsUseCase } from '../usecases/reports.usecase';
 
 const entitySchema = z.enum(REPORT_ENTITIES);
 
@@ -90,12 +87,9 @@ const instantiateTemplateSchema = z.object({
   save_as_name: z.string().trim().min(1).max(255).optional(),
 });
 
-export const createReportsRoutes = (mode: ResponseMode = 'v2'): Router => {
+export const createReportsRoutes = (): Router => {
   const router = Router();
-  const controller = createReportsController(
-    new ReportsUseCase(new ReportsRepository()),
-    mode
-  );
+  const controller = createReportsController();
 
   router.use(authenticate);
   router.use(requireActiveOrganizationContext);
@@ -126,4 +120,4 @@ export const createReportsRoutes = (mode: ResponseMode = 'v2'): Router => {
   return router;
 };
 
-export const reportsV2Routes = createReportsRoutes('v2');
+export const reportsV2Routes = createReportsRoutes();

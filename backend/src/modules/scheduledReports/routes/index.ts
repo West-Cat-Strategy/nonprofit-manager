@@ -5,9 +5,6 @@ import { requireActiveOrganizationContext } from '@middleware/requireActiveOrgan
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import { uuidSchema } from '@validations/shared';
 import { createScheduledReportsController } from '../controllers/scheduledReports.controller';
-import { type ResponseMode } from '../mappers/responseMode';
-import { ScheduledReportsRepository } from '../repositories/scheduledReports.repository';
-import { ScheduledReportsUseCase } from '../usecases/scheduledReports.usecase';
 
 const frequencySchema = z.enum(['daily', 'weekly', 'monthly']);
 const formatSchema = z.enum(['csv', 'xlsx']);
@@ -63,12 +60,9 @@ const runsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
 }).strict();
 
-export const createScheduledReportsRoutes = (mode: ResponseMode = 'v2'): Router => {
+export const createScheduledReportsRoutes = (): Router => {
   const router = Router();
-  const controller = createScheduledReportsController(
-    new ScheduledReportsUseCase(new ScheduledReportsRepository()),
-    mode
-  );
+  const controller = createScheduledReportsController();
 
   router.use(authenticate);
   router.use(requireActiveOrganizationContext);
@@ -100,4 +94,4 @@ export const createScheduledReportsRoutes = (mode: ResponseMode = 'v2'): Router 
   return router;
 };
 
-export const scheduledReportsV2Routes = createScheduledReportsRoutes('v2');
+export const scheduledReportsV2Routes = createScheduledReportsRoutes();

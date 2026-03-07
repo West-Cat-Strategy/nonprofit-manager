@@ -226,7 +226,7 @@ describe('Navigation', () => {
 
     const searchButton = await screen.findByRole('button', { name: /^search$/i });
     fireEvent.click(searchButton);
-    expect(screen.getByRole('dialog', { name: /search people/i })).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: /search people/i })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /close search dialog/i }));
     await waitFor(() => {

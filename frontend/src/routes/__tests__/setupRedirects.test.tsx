@@ -117,11 +117,11 @@ describe('AppRoutes setup startup redirects', () => {
     ).toBeInTheDocument();
   });
 
-  it('disables setup check on protected routes before auth redirect', async () => {
-    renderAppRoutes('/dashboard');
+  it('disables setup check on portal public routes', async () => {
+    renderAppRoutes('/portal/login');
 
     expect(
-      await screen.findByRole('heading', { name: /welcome back to nonprofit manager/i })
+      await screen.findByRole('heading', { name: /client portal login/i })
     ).toBeInTheDocument();
     expect(
       mockUseSetupCheck.mock.calls.some((call) => call[0]?.enabled === false)

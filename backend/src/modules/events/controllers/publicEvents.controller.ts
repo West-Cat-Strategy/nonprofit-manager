@@ -14,6 +14,18 @@ interface PublicSiteResolverPort {
   getPublicSiteById(siteId: string): Promise<PublishedSite | null>;
   getSiteBySubdomain(subdomain: string): Promise<PublishedSite | null>;
   getSiteByDomain(domain: string): Promise<PublishedSite | null>;
+  recordAnalyticsEvent(
+    siteId: string,
+    eventType: 'event_register',
+    data: {
+      pagePath: string;
+      visitorId?: string;
+      sessionId?: string;
+      userAgent?: string;
+      referrer?: string;
+      eventData?: Record<string, unknown>;
+    }
+  ): Promise<unknown>;
 }
 
 const UUID_PATTERN =
@@ -153,6 +165,26 @@ const resolveSiteFromRequest = async (
 
 const isPublishedSite = (site: PublishedSite | null): site is PublishedSite =>
   Boolean(site && site.status === 'published');
+
+const getRequestUserAgent = (req: Request): string | undefined => {
+  const userAgent = req.headers['user-agent'];
+  if (Array.isArray(userAgent)) {
+    return userAgent[0] || undefined;
+  }
+  return userAgent || undefined;
+};
+
+const getRequestPagePath = (req: Request): string => {
+  const referrer = req.headers.referer;
+  if (typeof referrer === 'string' && referrer.trim().length > 0) {
+    try {
+      return new URL(referrer).pathname || '/';
+    } catch {
+      return '/';
+    }
+  }
+  return '/';
+};
 
 const toSiteSummary = (site: PublishedSite) => ({
   id: site.id,
@@ -297,10 +329,29 @@ export const createPublicEventsController = ({
   ): Promise<void> => {
     try {
       const params = getValidatedParams(req);
+      const query = normalizeQuery(req);
       const result = await registrationUseCase.submitPublicRegistration(
         params.id,
         req.body as PublicEventRegistrationDTO
       );
+
+      const site = await resolveSiteFromRequest(req, query.site, siteResolver);
+      if (isPublishedSite(site)) {
+        await siteResolver.recordAnalyticsEvent(site.id, 'event_register', {
+          pagePath: getRequestPagePath(req),
+          visitorId:
+            typeof req.body?.visitorId === 'string' ? (req.body.visitorId as string) : undefined,
+          sessionId:
+            typeof req.body?.sessionId === 'string' ? (req.body.sessionId as string) : undefined,
+          userAgent: getRequestUserAgent(req),
+          referrer: typeof req.headers.referer === 'string' ? req.headers.referer : undefined,
+          eventData: {
+            eventId: params.id,
+            registrationId: result.registration?.registration_id ?? null,
+          },
+        });
+      }
+
       sendSuccess(res, result, result.created_registration ? 201 : 200);
     } catch (error) {
       if (error instanceof Error && mapRegistrationError(res, error)) {

@@ -1,5 +1,5 @@
 import { RegistrationStatus } from '@app-types/event';
-import eventService, { EventService } from '@services/eventService';
+import eventService, { EventService } from '@modules/events/services/eventService';
 import { logPortalActivity } from '@services/domains/integration';
 import { PortalRepository } from '../repositories/portalRepository';
 

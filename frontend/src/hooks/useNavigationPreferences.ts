@@ -8,7 +8,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../services/api';
 import { useAppSelector } from '../store/hooks';
-import { getStaffNavigationEntries } from '../routes/routeCatalog';
+import { getStartupStaffNavigationEntries } from '../routes/startupRouteCatalog';
+import { getUserPreferencesCached, mergeUserPreferencesCached } from '../services/userPreferencesService';
 
 export interface NavigationItem {
   id: string;
@@ -82,7 +83,7 @@ const clampPinnedItems = (items: NavigationItem[]): NavigationItem[] => {
   });
 };
 
-const defaultNavigationItems: NavigationItem[] = getStaffNavigationEntries(routeFlags)
+const defaultNavigationItems: NavigationItem[] = getStartupStaffNavigationEntries(routeFlags)
   .filter((entry) => entry.staffNav?.group !== 'utility')
   .map((entry) => ({
     id: entry.id,
@@ -162,8 +163,7 @@ const isPreferencesSnapshotFresh = (snapshot: PreferencesSnapshot): boolean =>
   Date.now() - snapshot.fetchedAt < PREFERENCES_CACHE_TTL_MS;
 
 const fetchServerPreferences = async (): Promise<NavigationPreferences | null> => {
-  const response = await api.get('/auth/preferences');
-  const serverPrefs = response.data.preferences as Record<string, unknown> | undefined;
+  const serverPrefs = await getUserPreferencesCached();
 
   if (!serverPrefs?.[PREFERENCE_KEY] || typeof serverPrefs[PREFERENCE_KEY] !== 'object') {
     return null;
@@ -268,6 +268,7 @@ export function useNavigationPreferences() {
         await api.patch(`/auth/preferences/${PREFERENCE_KEY}`, {
           value: newPrefs,
         });
+        mergeUserPreferencesCached(PREFERENCE_KEY, newPrefs);
         setIsSynced(true);
       } catch {
         setIsSynced(false);

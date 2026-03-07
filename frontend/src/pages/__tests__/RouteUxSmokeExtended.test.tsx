@@ -1,12 +1,12 @@
 import type { ReactElement } from 'react';
 import { screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
-import Login from '../auth/Login';
-import Register from '../auth/Register';
-import Setup from '../auth/Setup';
-import AcceptInvitation from '../auth/AcceptInvitation';
-import ForgotPassword from '../auth/ForgotPassword';
-import ResetPassword from '../auth/ResetPassword';
+import Login from '../../features/auth/pages/LoginPage';
+import Register from '../../features/auth/pages/RegisterPage';
+import Setup from '../../features/auth/pages/SetupPage';
+import AcceptInvitation from '../../features/auth/pages/AcceptInvitationPage';
+import ForgotPassword from '../../features/auth/pages/ForgotPasswordPage';
+import ResetPassword from '../../features/auth/pages/ResetPasswordPage';
 import PortalLogin from '../PortalLogin';
 import PortalSignup from '../PortalSignup';
 import NavigationSettings from '../admin/NavigationSettings';

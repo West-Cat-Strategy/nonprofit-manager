@@ -13,6 +13,9 @@ export { CustomDomainService } from './customDomainService';
 export { SslService } from './sslService';
 export { SiteAnalyticsService } from './siteAnalyticsService';
 export { VersionService } from './versionService';
+export { WebsiteSiteSettingsService } from './siteSettingsService';
+export { FormRegistryService } from './formRegistryService';
+export { SiteOperationsService } from './siteOperationsService';
 
 // Import service classes for facade
 import { SiteManagementService } from './siteManagementService';
@@ -21,6 +24,7 @@ import { CustomDomainService } from './customDomainService';
 import { SslService } from './sslService';
 import { SiteAnalyticsService } from './siteAnalyticsService';
 import { VersionService } from './versionService';
+import { SiteOperationsService } from './siteOperationsService';
 
 // Re-export types for convenience
 export type {
@@ -35,6 +39,13 @@ export type {
   SiteAnalyticsSummary,
   SiteAnalyticsRecord,
   AnalyticsEventType,
+  WebsiteFormDefinition,
+  WebsiteIntegrationStatus,
+  WebsiteOverviewSummary,
+  WebsiteRouteSummary,
+  WebsiteSiteSettings,
+  WebsiteSiteSummary,
+  WebsiteConversionMetrics,
   CustomDomainConfig,
   DomainVerificationResult,
   DnsRecord,
@@ -57,6 +68,7 @@ export class PublishingService {
   private sslService: SslService;
   private siteAnalytics: SiteAnalyticsService;
   private versionService: VersionService;
+  private siteOperations: SiteOperationsService;
 
   constructor(pool: Pool) {
     this.siteManagement = new SiteManagementService(pool);
@@ -65,6 +77,7 @@ export class PublishingService {
     this.sslService = new SslService(pool);
     this.siteAnalytics = new SiteAnalyticsService(pool);
     this.versionService = new VersionService(pool);
+    this.siteOperations = new SiteOperationsService(pool);
   }
 
   // Site Management Methods
@@ -156,6 +169,10 @@ export class PublishingService {
     return this.siteAnalytics.getAnalyticsSummary(...args);
   }
 
+  async getConversionMetrics(...args: Parameters<SiteOperationsService['getConversionMetrics']>) {
+    return this.siteOperations.getConversionMetrics(...args);
+  }
+
   // Version Methods
   async getVersionHistory(...args: Parameters<VersionService['getVersionHistory']>) {
     return this.versionService.getVersionHistory(...args);
@@ -175,6 +192,26 @@ export class PublishingService {
 
   async pruneVersions(...args: Parameters<VersionService['pruneVersions']>) {
     return this.versionService.pruneVersions(...args);
+  }
+
+  async listSitesForConsole(...args: Parameters<SiteOperationsService['listSites']>) {
+    return this.siteOperations.listSites(...args);
+  }
+
+  async getSiteOverview(...args: Parameters<SiteOperationsService['getOverview']>) {
+    return this.siteOperations.getOverview(...args);
+  }
+
+  async getSiteForms(...args: Parameters<SiteOperationsService['getForms']>) {
+    return this.siteOperations.getForms(...args);
+  }
+
+  async updateSiteForm(...args: Parameters<SiteOperationsService['updateForm']>) {
+    return this.siteOperations.updateForm(...args);
+  }
+
+  async getSiteIntegrationStatus(...args: Parameters<SiteOperationsService['getIntegrationStatus']>) {
+    return this.siteOperations.getIntegrationStatus(...args);
   }
 }
 

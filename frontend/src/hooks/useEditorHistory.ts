@@ -28,11 +28,14 @@ interface UseEditorHistoryReturn {
   clearHistory: () => void;
 }
 
+const getSectionsSignature = (sections: PageSection[]): string => JSON.stringify(sections ?? []);
+
 export function useEditorHistory(
   initialSections: PageSection[],
   options: UseEditorHistoryOptions = {}
 ): UseEditorHistoryReturn {
   const { maxHistoryLength = 50, debounceMs = 300 } = options;
+  const initialSectionsSignature = getSectionsSignature(initialSections);
 
   // History stack - immutable entries
   const [history, setHistory] = useState<HistoryState[]>([
@@ -153,7 +156,7 @@ export function useEditorHistory(
     setHistory([{ sections: initialSections, timestamp: Date.now() }]);
     setCurrentIndex(0);
     setPendingState(null);
-  }, [initialSections]);
+  }, [initialSections, initialSectionsSignature]);
 
   return {
     sections,

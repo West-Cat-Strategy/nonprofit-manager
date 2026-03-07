@@ -1,14 +1,6 @@
 import { scheduledReportController } from './scheduledReport.handlers';
-import { ScheduledReportsUseCase } from '../usecases/scheduledReports.usecase';
-import type { ResponseMode } from '../mappers/responseMode';
 
-export const createScheduledReportsController = (
-  useCase: ScheduledReportsUseCase,
-  mode: ResponseMode
-) => {
-  void mode;
-  useCase.getDomain();
-
+export const createScheduledReportsController = () => {
   return {
     listScheduledReports: scheduledReportController.listScheduledReports,
     getScheduledReport: scheduledReportController.getScheduledReport,

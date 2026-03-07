@@ -78,6 +78,30 @@ export async function deleteTemplate(page: Page, token: string, id: string) {
   await deleteWithAuth(page, token, `/api/v2/templates/${id}`);
 }
 
+export async function createWebsiteSite(
+  page: Page,
+  token: string,
+  templateId: string
+): Promise<string> {
+  const response = await postJSON(page, token, '/api/v2/sites', {
+    templateId,
+    name: `E2E Website ${Date.now()}`,
+  });
+  if (!response.ok()) {
+    throw new Error(`Failed to create website site (${response.status()}): ${await response.text()}`);
+  }
+  const body = await response.json();
+  const id = body.id || body.site_id || body.siteId || body.data?.id || body.data?.site_id;
+  if (!id) {
+    throw new Error(`Website site created but id missing in response: ${JSON.stringify(body)}`);
+  }
+  return id;
+}
+
+export async function deleteWebsiteSite(page: Page, token: string, id: string) {
+  await deleteWithAuth(page, token, `/api/v2/sites/${id}`);
+}
+
 export async function createWebhookEndpoint(page: Page, token: string): Promise<string> {
   const response = await postJSON(page, token, '/api/v2/webhooks/endpoints', {
     // Use a public IP literal to avoid DNS resolution flakes in restricted environments.

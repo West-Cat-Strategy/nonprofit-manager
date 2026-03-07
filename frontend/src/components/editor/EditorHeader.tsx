@@ -25,6 +25,10 @@ interface EditorHeaderProps {
   onUndo?: () => void;
   onRedo?: () => void;
   lastSaved?: Date | null;
+  backLabel?: string;
+  contextLabel?: string;
+  statusLabel?: string;
+  previewHref?: string;
 }
 
 const EditorHeader: React.FC<EditorHeaderProps> = ({
@@ -44,6 +48,10 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
   onUndo,
   onRedo,
   lastSaved,
+  backLabel = 'Back',
+  contextLabel,
+  statusLabel,
+  previewHref,
 }) => {
   // Format last saved time
   const formatLastSaved = (date: Date | null | undefined) => {
@@ -62,7 +70,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
         <button
           onClick={onBack}
           className="p-2 text-app-text-muted hover:text-app-text-muted hover:bg-app-surface-muted rounded-lg"
-          title="Back to templates"
+          title={backLabel}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -81,6 +89,18 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
             </svg>
           </button>
         </div>
+
+        {contextLabel ? (
+          <span className="rounded-full bg-app-surface-muted px-3 py-1 text-xs font-medium text-app-text-muted">
+            {contextLabel}
+          </span>
+        ) : null}
+
+        {statusLabel ? (
+          <span className="rounded-full bg-app-accent-soft px-3 py-1 text-xs font-medium text-app-accent-text">
+            {statusLabel}
+          </span>
+        ) : null}
 
         {hasUnsavedChanges ? (
           <span className="text-xs text-app-accent bg-app-accent-soft px-2 py-1 rounded">
@@ -216,7 +236,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
               Save Version
             </button>
             <button
-              onClick={() => window.open(`/website-builder/${template.id}/preview`, '_blank')}
+              onClick={() => window.open(previewHref || `/website-builder/${template.id}/preview`, '_blank')}
               className="w-full px-4 py-2 text-left text-sm text-app-text-muted hover:bg-app-surface-muted flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -7,6 +7,7 @@ import type {
   MigrationStatus,
   PageCollectionType,
   SiteKind,
+  TemplateStatus,
   TemplatePageType,
 } from '@app-types/websiteBuilder';
 
@@ -305,6 +306,190 @@ export interface PublishedSiteSearchResult {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+export type WebsiteManagedFormType =
+  | 'contact-form'
+  | 'newsletter-signup'
+  | 'donation-form'
+  | 'volunteer-interest-form'
+  | 'event-registration';
+
+export interface WebsiteSiteSummary {
+  id: string;
+  templateId: string;
+  templateName: string;
+  templateStatus: TemplateStatus | null;
+  organizationId: string | null;
+  organizationName: string | null;
+  siteKind: SiteKind;
+  migrationStatus: MigrationStatus;
+  name: string;
+  status: SiteStatus;
+  subdomain: string | null;
+  customDomain: string | null;
+  sslEnabled: boolean;
+  sslCertificateExpiresAt: Date | null;
+  publishedVersion: string | null;
+  publishedAt: Date | null;
+  primaryUrl: string;
+  previewUrl: string | null;
+  analyticsEnabled: boolean;
+  blocked: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface WebsiteRouteSummary {
+  pageId: string;
+  pageName: string;
+  pageSlug: string;
+  pageType: TemplatePageType;
+  collection?: PageCollectionType;
+  routePattern: string;
+  path: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  noIndex?: boolean;
+  live: boolean;
+}
+
+export interface WebsiteConversionMetrics {
+  totalPageviews: number;
+  uniqueVisitors: number;
+  formSubmissions: number;
+  eventRegistrations: number;
+  donations: number;
+  totalConversions: number;
+  periodStart: Date;
+  periodEnd: Date;
+  recentConversions: SiteAnalyticsRecord[];
+}
+
+export interface WebsiteFormOperationalConfig {
+  heading?: string;
+  description?: string;
+  submitText?: string;
+  buttonText?: string;
+  successMessage?: string;
+  accountId?: string | null;
+  campaignId?: string | null;
+  mailchimpListId?: string | null;
+  audienceMode?: 'crm' | 'mailchimp' | 'both';
+  defaultTags?: string[];
+  includePhone?: boolean;
+  includeMessage?: boolean;
+  formMode?: 'contact' | 'supporter';
+  defaultStatus?: string;
+  suggestedAmounts?: number[];
+  allowCustomAmount?: boolean;
+  recurringOption?: boolean;
+  recurringDefault?: boolean;
+  currency?: string;
+  conversionGoal?: string;
+  trackingEnabled?: boolean;
+}
+
+export interface WebsiteFormDefinition {
+  formKey: string;
+  componentId: string;
+  formType: WebsiteManagedFormType;
+  title: string;
+  description?: string;
+  pageId: string;
+  pageName: string;
+  pageSlug: string;
+  pageType: TemplatePageType;
+  collection?: PageCollectionType;
+  routePattern: string;
+  path: string;
+  live: boolean;
+  blocked: boolean;
+  sourceConfig: Record<string, unknown>;
+  operationalSettings: WebsiteFormOperationalConfig;
+}
+
+export interface WebsiteMailchimpSettings {
+  audienceId?: string | null;
+  audienceMode?: 'crm' | 'mailchimp' | 'both';
+  defaultTags?: string[];
+  syncEnabled?: boolean;
+}
+
+export interface WebsiteStripeSettings {
+  accountId?: string | null;
+  currency?: string;
+  suggestedAmounts?: number[];
+  recurringDefault?: boolean;
+  campaignId?: string | null;
+}
+
+export interface WebsiteConversionTrackingSettings {
+  enabled: boolean;
+  events: {
+    formSubmit: boolean;
+    donation: boolean;
+    eventRegister: boolean;
+  };
+}
+
+export interface WebsiteSiteSettings {
+  siteId: string;
+  organizationId: string | null;
+  mailchimp: WebsiteMailchimpSettings;
+  stripe: WebsiteStripeSettings;
+  formDefaults: WebsiteFormOperationalConfig;
+  formOverrides: Record<string, WebsiteFormOperationalConfig>;
+  conversionTracking: WebsiteConversionTrackingSettings;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
+export interface WebsiteIntegrationStatus {
+  blocked: boolean;
+  publishStatus: SiteStatus;
+  mailchimp: WebsiteMailchimpSettings & {
+    configured: boolean;
+    accountName?: string;
+    listCount?: number;
+    availableAudiences: Array<{
+      id: string;
+      name: string;
+      memberCount?: number;
+    }>;
+    lastSyncAt: Date | null;
+  };
+  stripe: WebsiteStripeSettings & {
+    configured: boolean;
+    publishableKeyConfigured: boolean;
+  };
+}
+
+export interface WebsiteOverviewSummary {
+  site: WebsiteSiteSummary;
+  template: {
+    id: string | null;
+    name: string;
+    status: TemplateStatus | null;
+    updatedAt: Date | null;
+  };
+  deployment: {
+    primaryUrl: string;
+    previewUrl: string | null;
+    domainStatus: 'none' | 'configured';
+    sslStatus: 'unconfigured' | 'active' | 'expiring';
+  };
+  liveRoutes: WebsiteRouteSummary[];
+  draftRoutes: WebsiteRouteSummary[];
+  contentSummary: {
+    nativeNewsletters: number;
+    syncedNewsletters: number;
+    publishedNewsletters: number;
+  };
+  forms: WebsiteFormDefinition[];
+  conversionMetrics: WebsiteConversionMetrics;
+  integrations: WebsiteIntegrationStatus;
+  settings: WebsiteSiteSettings;
 }
 
 // ==================== Custom Domain Types ====================

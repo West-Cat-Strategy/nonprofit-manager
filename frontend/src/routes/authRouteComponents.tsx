@@ -1,7 +1,7 @@
 import { lazy } from 'react';
 
-export const Setup = lazy(() => import('../pages/auth/Setup'));
-export const Login = lazy(() => import('../pages/auth/Login'));
-export const AcceptInvitation = lazy(() => import('../pages/auth/AcceptInvitation'));
-export const ForgotPassword = lazy(() => import('../pages/auth/ForgotPassword'));
-export const ResetPassword = lazy(() => import('../pages/auth/ResetPassword'));
+export const Setup = lazy(() => import('../features/auth/pages/SetupPage'));
+export const Login = lazy(() => import('../features/auth/pages/LoginPage'));
+export const AcceptInvitation = lazy(() => import('../features/auth/pages/AcceptInvitationPage'));
+export const ForgotPassword = lazy(() => import('../features/auth/pages/ForgotPasswordPage'));
+export const ResetPassword = lazy(() => import('../features/auth/pages/ResetPasswordPage'));

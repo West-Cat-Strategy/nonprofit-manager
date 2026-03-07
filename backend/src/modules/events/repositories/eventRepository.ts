@@ -1,6 +1,6 @@
 import { services } from '@container/services';
 import * as eventReminderAutomationService from '@services/eventReminderAutomationService';
-import type { EventService } from '@services/eventService';
+import type { EventService } from '../services/eventService';
 import type {
   CheckInOptions,
   CreateEventDTO,

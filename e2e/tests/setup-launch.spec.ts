@@ -19,6 +19,23 @@ const waitForAppRoute = async (page: Page): Promise<void> => {
   await page.waitForLoadState('domcontentloaded');
 };
 
+const waitForPublicAuthRoute = async (
+  page: Page,
+  expectedUrl: RegExp,
+  readyLocator: ReturnType<Page['locator']>
+): Promise<void> => {
+  await page.waitForLoadState('domcontentloaded');
+  await expect(page).toHaveURL(expectedUrl);
+  await expect(readyLocator).toBeVisible({ timeout: 30_000 });
+};
+
+const navigateWithinSpa = async (page: Page, pathname: string): Promise<void> => {
+  await page.evaluate((nextPathname) => {
+    window.history.pushState({}, '', nextPathname);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  }, pathname);
+};
+
 const assertPrimaryAuthForm = async (page: Page): Promise<void> => {
   if (page.url().includes('/setup')) {
     await expect(page.getByRole('heading', { name: /build your nonprofit workspace in minutes/i })).toBeVisible();
@@ -142,6 +159,44 @@ base.describe('Setup and launch stability (public)', () => {
       expectNoRuntimeErrors(route, runtimeErrors);
       runtimeErrors.detach();
     }
+  });
+
+  base('public auth transitions do not repeatedly refetch setup status within cache ttl', async ({ page }) => {
+    const setupStatusResponses: string[] = [];
+
+    page.on('response', (response) => {
+      const url = response.url();
+      if (/\/api\/(?:v2\/)?auth\/setup-status(?:\?|$)/.test(url)) {
+        setupStatusResponses.push(`${response.status()}:${url}`);
+      }
+    });
+
+    await page.goto('/login');
+    await waitForPublicAuthRoute(
+      page,
+      /\/login$/,
+      page.getByRole('heading', { name: /welcome back to nonprofit manager/i })
+    );
+
+    await page.getByRole('link', { name: /forgot password/i }).click();
+    await waitForPublicAuthRoute(
+      page,
+      /\/forgot-password$/,
+      page.getByRole('heading', { name: /forgot your password/i })
+    );
+
+    await page.getByRole('link', { name: /back to sign in/i }).click();
+    await waitForPublicAuthRoute(
+      page,
+      /\/login$/,
+      page.getByRole('heading', { name: /welcome back to nonprofit manager/i })
+    );
+
+    await navigateWithinSpa(page, '/reset-password/test-token');
+    await waitForPublicAuthRoute(page, /\/reset-password\/test-token$/, page.getByText(/this password reset link is invalid or has expired/i));
+    await page.waitForTimeout(600);
+
+    expect(setupStatusResponses.length).toBeLessThanOrEqual(1);
   });
 });
 

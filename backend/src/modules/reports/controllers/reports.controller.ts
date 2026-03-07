@@ -11,16 +11,8 @@ import {
   getTemplates,
   instantiateTemplate,
 } from './reportTemplate.handlers';
-import { ReportsUseCase } from '../usecases/reports.usecase';
-import type { ResponseMode } from '../mappers/responseMode';
 
-export const createReportsController = (
-  useCase: ReportsUseCase,
-  mode: ResponseMode
-) => {
-  void mode;
-  useCase.getDomain();
-
+export const createReportsController = () => {
   return {
     generateReport,
     getOutcomesReport,

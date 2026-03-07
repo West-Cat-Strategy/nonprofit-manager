@@ -12,9 +12,6 @@ import { loadDataScope } from '@middleware/domains/data';
 import { validateParams, validateQuery } from '@middleware/zodValidation';
 import { uuidSchema } from '@validations/shared';
 import { createAnalyticsController } from '../controllers/analytics.controller';
-import { type ResponseMode } from '../mappers/responseMode';
-import { AnalyticsRepository } from '../repositories/analytics.repository';
-import { AnalyticsQueryUseCase } from '../usecases/analyticsQuery.usecase';
 
 const accountTypeSchema = z.enum(['organization', 'individual']);
 const categorySchema = z.enum(['donor', 'volunteer', 'partner', 'vendor', 'beneficiary', 'other']);
@@ -56,12 +53,9 @@ const anomalyMetricQuerySchema = z.object({
   sensitivity: z.coerce.number().min(1).max(4).optional(),
 }).strict();
 
-export const createAnalyticsRoutes = (mode: ResponseMode = 'v2'): Router => {
+export const createAnalyticsRoutes = (): Router => {
   const router = Router();
-  const controller = createAnalyticsController(
-    new AnalyticsQueryUseCase(new AnalyticsRepository()),
-    mode
-  );
+  const controller = createAnalyticsController();
 
   router.use(authenticate);
   router.use(loadDataScope('analytics'));
@@ -183,4 +177,4 @@ export const createAnalyticsRoutes = (mode: ResponseMode = 'v2'): Router => {
   return router;
 };
 
-export const analyticsV2Routes = createAnalyticsRoutes('v2');
+export const analyticsV2Routes = createAnalyticsRoutes();

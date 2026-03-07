@@ -11,6 +11,7 @@ The Website Builder Template System allows nonprofits to create, customize, and 
 - [Using the Template Gallery](#using-the-template-gallery)
 - [Template Preview System](#template-preview-system)
 - [Page Editor](#page-editor)
+- [Website Console](#website-console)
 - [Publishing Websites](#publishing-websites)
 - [API Reference](#api-reference)
 - [Component Library](#component-library)
@@ -278,6 +279,28 @@ The drag-and-drop page editor allows visual customization of templates.
 ### Component Categories
 
 1. **Layout**: Columns, divider, spacer
+
+---
+
+## Website Console
+
+Published sites now have a staff-facing workspace separate from the template gallery.
+
+### Route Structure
+
+- `/websites`: Organization site list with publish status, template, domain, and quick actions
+- `/websites/:siteId/overview`: Site health, live routes, conversions, and builder launch
+- `/websites/:siteId/content`: Native newsletter CRUD plus Mailchimp archive sync
+- `/websites/:siteId/forms`: Connected public form registry with operational overrides
+- `/websites/:siteId/integrations`: Mailchimp audience defaults and Stripe donation defaults
+- `/websites/:siteId/publishing`: Domain settings, publish/unpublish, and cache refresh
+- `/websites/:siteId/builder`: Site-aware launch into the existing visual builder
+
+### Builder vs. Site Console
+
+- `/website-builder` remains the template design entrypoint for browsing templates and editing standalone templates.
+- `/websites/:siteId/builder` opens the same editor against the site's linked template, adds a back-link to the site console, and shows the current site publish status.
+- Live events and newsletter collection routes still render from backend runtime data and do not require republish when the underlying nonprofit-manager records change.
 2. **Content**: Text, heading, image, video
 3. **Interactive**: Button, form, contact form
 4. **Media**: Gallery, map, video embed
