@@ -2,6 +2,7 @@ import type { Response, NextFunction, Request } from 'express';
 import type { AuthRequest } from '@middleware/auth';
 import { badRequest, noContent, notFoundMessage } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
+import { publishingService } from '@services/domains/content';
 import { websiteEntryService } from '@services/publishing/websiteEntryService';
 import { publicWebsiteFormService } from '@services/publishing/publicWebsiteFormService';
 import { publicSiteRuntimeService } from '@services/publishing/publicSiteRuntimeService';
@@ -40,6 +41,27 @@ const mapKnownError = (error: unknown, res: Response): boolean => {
   }
 
   return false;
+};
+
+const getRequestUserAgent = (req: Request): string | undefined => {
+  const userAgent = req.headers['user-agent'];
+  if (Array.isArray(userAgent)) {
+    return userAgent[0] || undefined;
+  }
+  return userAgent || undefined;
+};
+
+const getRequestPagePath = (req: Request): string => {
+  const referrer = req.headers.referer;
+  if (typeof referrer === 'string' && referrer.trim().length > 0) {
+    try {
+      return new URL(referrer).pathname || '/';
+    } catch {
+      return '/';
+    }
+  }
+
+  return '/';
 };
 
 const renderHtmlNotFound = (res: Response, siteName: string, pagePath: string): void => {
@@ -167,6 +189,7 @@ export const createWebsiteEntry = async (
       req.body,
       req.organizationId
     );
+    await siteCacheService.invalidateSite(siteId);
     sendSuccess(res, entry, 201);
   } catch (error) {
     if (mapKnownError(error, res)) return;
@@ -194,6 +217,7 @@ export const updateWebsiteEntry = async (
       return;
     }
 
+    await siteCacheService.invalidateSite(siteId);
     sendSuccess(res, entry);
   } catch (error) {
     if (mapKnownError(error, res)) return;
@@ -220,6 +244,7 @@ export const deleteWebsiteEntry = async (
       return;
     }
 
+    await siteCacheService.invalidateSite(siteId);
     noContent(res);
   } catch (error) {
     if (mapKnownError(error, res)) return;
@@ -244,6 +269,7 @@ export const syncMailchimpEntries = async (
       listId,
       req.organizationId
     );
+    await siteCacheService.invalidateSite(siteId);
     sendSuccess(res, result);
   } catch (error) {
     if (mapKnownError(error, res)) return;
@@ -364,6 +390,25 @@ export const submitPublicWebsiteForm = async (
       formKey,
       (req.body ?? {}) as Record<string, unknown>
     );
+
+    await publishingService.recordAnalyticsEvent(
+      site.id,
+      result.formType === 'donation-form' ? 'donation' : 'form_submit',
+      {
+        pagePath: getRequestPagePath(req),
+        visitorId:
+          typeof req.body?.visitorId === 'string' ? (req.body.visitorId as string) : undefined,
+        sessionId:
+          typeof req.body?.sessionId === 'string' ? (req.body.sessionId as string) : undefined,
+        userAgent: getRequestUserAgent(req),
+        referrer: typeof req.headers.referer === 'string' ? req.headers.referer : undefined,
+        eventData: {
+          formKey,
+          formType: result.formType,
+        },
+      }
+    );
+
     sendSuccess(res, result, 201);
   } catch (error) {
     if (mapKnownError(error, res)) return;

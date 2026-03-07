@@ -1,7 +1,7 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type * as ReactRouterDom from 'react-router-dom';
-import Login from '../auth/Login';
+import Login from '../../features/auth/pages/LoginPage';
 import { authService } from '../../services/authService';
 import { renderWithProviders, createTestStore } from '../../test/testUtils';
 import { vi } from 'vitest';

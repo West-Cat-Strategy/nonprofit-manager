@@ -4,9 +4,6 @@ import { authenticate } from '@middleware/domains/auth';
 import { validateBody, validateParams } from '@middleware/zodValidation';
 import { uuidSchema } from '@validations/shared';
 import { createDashboardController } from '../controllers/dashboard.controller';
-import { type ResponseMode } from '../mappers/responseMode';
-import { DashboardRepository } from '../repositories/dashboard.repository';
-import { DashboardUseCase } from '../usecases/dashboard.usecase';
 
 const dashboardIdParamsSchema = z.object({
   id: uuidSchema,
@@ -34,12 +31,9 @@ const dashboardLayoutSchema = z.object({
   layout: z.array(z.unknown()),
 });
 
-export const createDashboardRoutes = (mode: ResponseMode = 'v2'): Router => {
+export const createDashboardRoutes = (): Router => {
   const router = Router();
-  const controller = createDashboardController(
-    new DashboardUseCase(new DashboardRepository()),
-    mode
-  );
+  const controller = createDashboardController();
 
   router.use(authenticate);
 
@@ -64,4 +58,4 @@ export const createDashboardRoutes = (mode: ResponseMode = 'v2'): Router => {
   return router;
 };
 
-export const dashboardV2Routes = createDashboardRoutes('v2');
+export const dashboardV2Routes = createDashboardRoutes();

@@ -86,6 +86,14 @@ const siteAnalyticsQuerySchema = z.object({
   period: z.coerce.number().int().min(1).max(365).optional(),
 }).strict();
 
+const siteConsoleQuerySchema = siteSearchQuerySchema;
+
+const siteConsoleOverviewQuerySchema = z
+  .object({
+    period: z.coerce.number().int().min(1).max(365).optional(),
+  })
+  .strict();
+
 const addCustomDomainSchema = z.object({
   domain: domainSchema,
   verificationMethod: verificationMethodSchema.optional(),
@@ -107,6 +115,56 @@ const entryIdParamsSchema = z.object({
   siteId: uuidSchema,
   entryId: uuidSchema,
 });
+
+const siteFormParamsSchema = z.object({
+  siteId: uuidSchema,
+  formKey: z.string().trim().min(1).max(255),
+});
+
+const formOperationalSettingsSchema = z
+  .object({
+    heading: z.string().trim().max(255).optional(),
+    description: z.string().trim().max(5000).optional(),
+    submitText: z.string().trim().max(255).optional(),
+    buttonText: z.string().trim().max(255).optional(),
+    successMessage: z.string().trim().max(500).optional(),
+    accountId: z.union([uuidSchema, z.null()]).optional(),
+    campaignId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
+    mailchimpListId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
+    audienceMode: z.enum(['crm', 'mailchimp', 'both']).optional(),
+    defaultTags: z.array(z.string().trim().min(1).max(100)).max(50).optional(),
+    includePhone: z.coerce.boolean().optional(),
+    includeMessage: z.coerce.boolean().optional(),
+    formMode: z.enum(['contact', 'supporter']).optional(),
+    defaultStatus: z.string().trim().max(100).optional(),
+    suggestedAmounts: z.array(z.coerce.number().positive()).max(12).optional(),
+    allowCustomAmount: z.coerce.boolean().optional(),
+    recurringOption: z.coerce.boolean().optional(),
+    recurringDefault: z.coerce.boolean().optional(),
+    currency: z.string().trim().min(3).max(10).optional(),
+    conversionGoal: z.string().trim().max(120).optional(),
+    trackingEnabled: z.coerce.boolean().optional(),
+  })
+  .strict();
+
+const updateSiteMailchimpSettingsSchema = z
+  .object({
+    audienceId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
+    audienceMode: z.enum(['crm', 'mailchimp', 'both']).optional(),
+    defaultTags: z.array(z.string().trim().min(1).max(100)).max(50).optional(),
+    syncEnabled: z.coerce.boolean().optional(),
+  })
+  .strict();
+
+const updateSiteStripeSettingsSchema = z
+  .object({
+    accountId: z.union([uuidSchema, z.null()]).optional(),
+    currency: z.string().trim().min(3).max(10).optional(),
+    suggestedAmounts: z.array(z.coerce.number().positive()).max(12).optional(),
+    recurringDefault: z.coerce.boolean().optional(),
+    campaignId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
+  })
+  .strict();
 
 const websiteEntryStatusSchema = z.enum(['draft', 'published', 'archived']);
 const websiteEntrySourceSchema = z.enum(['native', 'mailchimp']);
@@ -172,7 +230,7 @@ const syncMailchimpEntriesSchema = z
 // ==================== Protected Routes (require auth) ====================
 
 // Search sites
-router.get('/', authenticate, validateQuery(siteSearchQuerySchema), publishingController.searchSites);
+router.get('/', authenticate, validateQuery(siteConsoleQuerySchema), publishingController.listSitesForConsole);
 
 // Create a new site entry
 router.post('/', authenticate, validateBody(createSiteSchema), publishingController.createSite);
@@ -182,6 +240,60 @@ router.post('/publish', authenticate, validateBody(publishSchema), publishingCon
 
 // Get a specific site
 router.get('/:siteId', authenticate, validateParams(siteIdParamsSchema), publishingController.getSite);
+
+router.get(
+  '/:siteId/overview',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  validateQuery(siteConsoleOverviewQuerySchema),
+  publishingController.getSiteOverview
+);
+
+router.get(
+  '/:siteId/forms',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  publishingController.getSiteForms
+);
+
+router.put(
+  '/:siteId/forms/:formKey',
+  authenticate,
+  validateParams(siteFormParamsSchema),
+  validateBody(formOperationalSettingsSchema),
+  publishingController.updateSiteForm
+);
+
+router.get(
+  '/:siteId/integrations',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  publishingController.getSiteIntegrations
+);
+
+router.put(
+  '/:siteId/integrations/mailchimp',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  validateBody(updateSiteMailchimpSettingsSchema),
+  publishingController.updateSiteMailchimpIntegration
+);
+
+router.put(
+  '/:siteId/integrations/stripe',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  validateBody(updateSiteStripeSettingsSchema),
+  publishingController.updateSiteStripeIntegration
+);
+
+router.get(
+  '/:siteId/analytics/summary',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  validateQuery(siteAnalyticsQuerySchema),
+  publishingController.getSiteAnalyticsSummary
+);
 
 // Update a site
 router.put('/:siteId', authenticate, validateParams(siteIdParamsSchema), validateBody(updateSiteSchema), publishingController.updateSite);

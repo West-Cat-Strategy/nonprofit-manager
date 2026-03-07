@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { normalizeRouteLocation } from '../../../routes/routeCatalog';
+import { normalizeStartupRouteLocation } from '../../../routes/startupRouteCatalog';
 import { classNames } from '../../../components/ui/classNames';
 
 const alertTabs = [
@@ -10,7 +10,7 @@ const alertTabs = [
 
 export default function AlertsSectionTabs() {
   const location = useLocation();
-  const currentLocation = normalizeRouteLocation(`${location.pathname}${location.search}`);
+  const currentLocation = normalizeStartupRouteLocation(`${location.pathname}${location.search}`);
 
   return (
     <nav
@@ -19,7 +19,7 @@ export default function AlertsSectionTabs() {
     >
       <div className="flex flex-wrap gap-2">
         {alertTabs.map((tab) => {
-          const isActive = currentLocation === normalizeRouteLocation(tab.href);
+          const isActive = currentLocation === normalizeStartupRouteLocation(tab.href);
           return (
             <Link
               key={tab.href}

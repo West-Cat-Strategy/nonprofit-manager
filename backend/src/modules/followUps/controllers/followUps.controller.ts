@@ -1,14 +1,6 @@
 import { followUpController } from './followUps.handlers';
-import { FollowUpsUseCase } from '../usecases/followUps.usecase';
-import type { ResponseMode } from '../mappers/responseMode';
 
-export const createFollowUpsController = (
-  useCase: FollowUpsUseCase,
-  mode: ResponseMode
-) => {
-  void mode;
-  useCase.getDomain();
-
+export const createFollowUpsController = () => {
   return {
     getFollowUps: followUpController.getFollowUps,
     getFollowUpSummary: followUpController.getFollowUpSummary,

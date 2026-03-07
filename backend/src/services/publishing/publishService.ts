@@ -208,6 +208,14 @@ export class PublishService {
     userId: string,
     organizationId?: string
   ): Promise<PublishedSite | null> {
+    const site = await this.siteManagement.getSite(siteId, userId, organizationId);
+    if (!site) {
+      return null;
+    }
+    if (site.migrationStatus === 'needs_assignment') {
+      throw new Error('Site needs organization assignment before publishing or domain changes');
+    }
+
     const siteScopeClause = organizationId
       ? '(organization_id = $2 OR owner_user_id = $3 OR user_id = $3)'
       : '(owner_user_id = $2 OR user_id = $2)';

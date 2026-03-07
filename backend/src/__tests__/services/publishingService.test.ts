@@ -303,6 +303,11 @@ describe('PublishingService', () => {
       const mockSiteRow = {
         id: mockSiteId,
         user_id: mockUserId,
+        owner_user_id: mockUserId,
+        organization_id: null,
+        site_kind: 'organization',
+        parent_site_id: null,
+        migration_status: 'complete',
         template_id: mockTemplateId,
         name: 'Test Site',
         subdomain: 'test-site',
@@ -318,7 +323,9 @@ describe('PublishingService', () => {
         updated_at: new Date().toISOString(),
       };
 
-      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [mockSiteRow] });
+      (mockPool.query as jest.Mock)
+        .mockResolvedValueOnce({ rows: [mockSiteRow] })
+        .mockResolvedValueOnce({ rows: [mockSiteRow] });
 
       const result = await service.unpublish(mockSiteId, mockUserId);
 
@@ -330,6 +337,39 @@ describe('PublishingService', () => {
 
     it('should return null when site not found', async () => {
       (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+
+      const result = await service.unpublish(mockSiteId, mockUserId);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when update affects no rows after a successful pre-read', async () => {
+      const mockSiteRow = {
+        id: mockSiteId,
+        user_id: mockUserId,
+        owner_user_id: mockUserId,
+        organization_id: null,
+        site_kind: 'organization',
+        parent_site_id: null,
+        migration_status: 'complete',
+        template_id: mockTemplateId,
+        name: 'Test Site',
+        subdomain: 'test-site',
+        custom_domain: null,
+        ssl_enabled: false,
+        ssl_certificate_expires_at: null,
+        status: 'published',
+        published_version: 'v123',
+        published_at: new Date().toISOString(),
+        published_content: {},
+        analytics_enabled: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      (mockPool.query as jest.Mock)
+        .mockResolvedValueOnce({ rows: [mockSiteRow] })
+        .mockResolvedValueOnce({ rows: [] });
 
       const result = await service.unpublish(mockSiteId, mockUserId);
 

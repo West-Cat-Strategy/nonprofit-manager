@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { portalLogoutAsync } from '../features/portalAuth/state';
 import { AppShell, SideNav, TopNav, SecondaryButton } from './ui';
-import { getPortalNavigationEntries, getRouteHref } from '../routes/routeCatalog';
+import { getStartupPortalNavigationEntries } from '../routes/startupRouteCatalog';
 
 interface PortalLayoutProps {
   children: React.ReactNode;
@@ -25,8 +25,8 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
-  const sideItems = getPortalNavigationEntries().map((entry) => {
-    const path = getRouteHref(entry);
+  const sideItems = getStartupPortalNavigationEntries().map((entry) => {
+    const path = entry.href ?? entry.path;
     return {
       key: entry.id,
       label: entry.portalNav?.label || entry.title,

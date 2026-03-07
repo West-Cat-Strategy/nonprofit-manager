@@ -1,11 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import api from '../services/api';
 import type { BrandingConfig } from '../types/branding';
 import { defaultBranding } from '../types/branding';
 import { applyBrandingToDocument } from '../utils/branding';
 import { useAppSelector } from '../store/hooks';
+import { getBrandingCached, setBrandingCached } from '../services/brandingService';
 
 type BrandingContextValue = {
   branding: BrandingConfig;
@@ -20,24 +20,20 @@ export const BrandingProvider = ({ children }: { children: ReactNode }) => {
   const [branding, setBrandingState] = useState<BrandingConfig>(defaultBranding);
 
   const setBranding = useCallback((next: BrandingConfig) => {
-    setBrandingState(next);
-    applyBrandingToDocument(next);
+    const cached = setBrandingCached(next);
+    setBrandingState(cached);
+    applyBrandingToDocument(cached);
   }, []);
 
   const refreshBranding = useCallback(async () => {
     if (!isAuthenticated) return;
-    try {
-      const response = await api.get('/admin/branding');
-      const next = { ...defaultBranding, ...(response.data || {}) } as BrandingConfig;
-      setBranding(next);
-    } catch {
-      // Keep defaults if the endpoint isn't reachable or returns an error
-      setBranding(defaultBranding);
-    }
+    const next = await getBrandingCached();
+    setBranding(next);
   }, [isAuthenticated, setBranding]);
 
   useEffect(() => {
     if (!isAuthenticated) {
+      setBrandingCached(defaultBranding);
       setBrandingState(defaultBranding);
       applyBrandingToDocument(defaultBranding, { setTitle: false });
       return;

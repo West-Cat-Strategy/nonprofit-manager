@@ -1,4 +1,4 @@
-import reducer, { setCredentials, logout, setLoading } from '../authSlice';
+import reducer, { setCredentials, logout, setLoading } from '../../../features/auth/state';
 
 const baseState = {
   user: null,

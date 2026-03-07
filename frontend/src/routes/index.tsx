@@ -1,13 +1,13 @@
 import { lazy, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { useSetupCheck } from '../hooks/useSetupCheck';
 import AdminRoute from '../components/AdminRoute';
-import PortalProtectedRoute from '../components/PortalProtectedRoute';
+import PortalShellRoute from '../components/PortalShellRoute';
+import PublicShellRoute from '../components/PublicShellRoute';
 import { ProtectedRoute, NeoBrutalistRoute } from '../components/auth';
 import AuthenticatedShellRoute from '../components/auth/AuthenticatedShellRoute';
 import PageLoader from '../components/PageLoader';
-import { logout } from '../store/slices/authSlice';
+import { logout } from '../features/auth/state';
 import { portalLogout } from '../features/portalAuth/state';
 
 // Import route creators
@@ -17,16 +17,17 @@ import { createFinanceRoutes } from './financeRoutes';
 import { createAnalyticsRoutes } from './analyticsRoutes';
 import { createAdminRoutes } from './adminRoutes';
 import { createBuilderRoutes } from './builderRoutes';
-import { createPortalRoutes } from './portalRoutes';
+import { createWebsiteRoutes } from './websiteRoutes';
+import { createPortalProtectedRoutes, createPortalPublicRoutes } from './portalRoutes';
 import { createWorkflowRoutes } from './workflowRoutes';
 
 // Lazy load auth pages
-const Setup = lazy(() => import('../pages/auth/Setup'));
-const Login = lazy(() => import('../pages/auth/Login'));
-const Register = lazy(() => import('../pages/auth/Register'));
-const AcceptInvitation = lazy(() => import('../pages/auth/AcceptInvitation'));
-const ForgotPassword = lazy(() => import('../pages/auth/ForgotPassword'));
-const ResetPassword = lazy(() => import('../pages/auth/ResetPassword'));
+const Setup = lazy(() => import('../features/auth/pages/SetupPage'));
+const Login = lazy(() => import('../features/auth/pages/LoginPage'));
+const Register = lazy(() => import('../features/auth/pages/RegisterPage'));
+const AcceptInvitation = lazy(() => import('../features/auth/pages/AcceptInvitationPage'));
+const ForgotPassword = lazy(() => import('../features/auth/pages/ForgotPasswordPage'));
+const ResetPassword = lazy(() => import('../features/auth/pages/ResetPasswordPage'));
 const PublicReportSnapshot = lazy(() => import('../pages/public/PublicReportSnapshot'));
 const PublicEventCheckInPage = lazy(
   () => import('../features/events/pages/PublicEventCheckInPage')
@@ -41,23 +42,6 @@ const OutreachCenter = lazy(() => import('../pages/neo-brutalist/OutreachCenter'
 const PeopleDirectory = lazy(() => import('../pages/neo-brutalist/PeopleDirectory'));
 const ThemeAudit = lazy(() => import('../pages/neo-brutalist/ThemeAudit'));
 
-const isSetupGateRoute = (pathname: string): boolean =>
-  pathname === '/' ||
-  pathname === '/setup' ||
-  pathname === '/login' ||
-  pathname === '/register' ||
-  pathname === '/forgot-password' ||
-  pathname.startsWith('/accept-invitation/') ||
-  pathname.startsWith('/reset-password/');
-
-const shouldEnableSetupCheck = (pathname: string): boolean => {
-  if (pathname.startsWith('/portal') || pathname.startsWith('/public') || pathname.startsWith('/event-check-in/')) {
-    return false;
-  }
-
-  return isSetupGateRoute(pathname);
-};
-
 const removedLegacyRedirectPaths = new Set([
   '/email-marketing',
   '/admin/audit-logs',
@@ -70,8 +54,6 @@ const AppRoutes = () => {
   const { user, isAuthenticated, authLoading } = useAppSelector((state) => state.auth);
   const location = useLocation();
   const navigate = useNavigate();
-  const setupCheckEnabled = shouldEnableSetupCheck(location.pathname);
-  const { setupRequired, loading } = useSetupCheck({ enabled: setupCheckEnabled });
   const legacyFallbackPath = isAuthenticated || Boolean(user) ? '/dashboard' : '/login';
 
   useEffect(() => {
@@ -101,38 +83,28 @@ const AppRoutes = () => {
     return <Navigate to={legacyFallbackPath} replace />;
   }
 
-  // Show loader while verifying auth cookie or checking setup status
-  if (authLoading || (setupCheckEnabled && loading)) {
+  if (authLoading && location.pathname === '/') {
     return <PageLoader />;
-  }
-
-  const setupStatusResolved = setupCheckEnabled && setupRequired !== null;
-
-  // Redirect to setup if required and not already on setup page
-  if (setupStatusResolved && setupRequired === true && location.pathname !== '/setup') {
-    return <Navigate to="/setup" replace />;
-  }
-
-  // Redirect to login if setup is complete but user tries to access setup page
-  if (setupStatusResolved && setupRequired === false && location.pathname === '/setup') {
-    return <Navigate to="/login" replace />;
   }
 
   return (
     <Routes>
-      {/* Auth Routes */}
-      <Route path="/setup" element={<Setup />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/accept-invitation/:token" element={<AcceptInvitation />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password/:token" element={<ResetPassword />} />
-      <Route path="/public/reports/:token" element={<PublicReportSnapshot />} />
-      <Route path="/public/events/:site" element={<PublicEventsPage />} />
-      <Route path="/event-check-in/:id" element={<PublicEventCheckInPage />} />
+      <Route element={<PublicShellRoute />}>
+        <Route path="/setup" element={<Setup />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/accept-invitation/:token" element={<AcceptInvitation />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/public/reports/:token" element={<PublicReportSnapshot />} />
+        <Route path="/public/events/:site" element={<PublicEventsPage />} />
+        <Route path="/event-check-in/:id" element={<PublicEventCheckInPage />} />
+        {createPortalPublicRoutes()}
+      </Route>
 
-      {/* Portal Routes */}
-      {createPortalRoutes(PortalProtectedRoute)}
+      <Route element={<PortalShellRoute />}>
+        {createPortalProtectedRoutes()}
+      </Route>
 
       <Route element={<AuthenticatedShellRoute />}>
         {/* Neo-Brutalist Dashboard (Primary) */}
@@ -204,6 +176,7 @@ const AppRoutes = () => {
         {createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRoute })}
 
         {/* Builder Routes */}
+        {createWebsiteRoutes(ProtectedRoute)}
         {createBuilderRoutes(ProtectedRoute)}
       </Route>
 

@@ -9,7 +9,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
 import { EyeIcon, EyeSlashIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
-import { updateUser } from '../../../store/slices/authSlice';
+import { updateUser } from '../../auth/state';
 import api from '../../../services/api';
 import LoopApiService from '../../../services/LoopApiService';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';

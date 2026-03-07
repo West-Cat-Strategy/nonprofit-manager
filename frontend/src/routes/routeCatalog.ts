@@ -23,7 +23,8 @@ export type RouteSection =
   | 'Settings'
   | 'Builder'
   | 'Core'
-  | 'Demo';
+  | 'Demo'
+  | 'Websites';
 
 export type RouteSurface = 'public' | 'staff' | 'portal' | 'demo';
 export type RouteAuthScope = 'public' | 'staff' | 'portal' | 'admin';
@@ -982,6 +983,54 @@ export const routeCatalog: readonly RouteCatalogEntry[] = [
     title: 'Website Builder',
     section: 'Builder',
     path: '/website-builder',
+  }),
+  staffRoute({
+    id: 'websites',
+    title: 'Websites',
+    section: 'Websites',
+    path: '/websites',
+  }),
+  staffRoute({
+    id: 'website-console-redirect',
+    title: 'Website Console',
+    section: 'Websites',
+    path: '/websites/:siteId',
+  }),
+  staffRoute({
+    id: 'website-console-overview',
+    title: 'Website Overview',
+    section: 'Websites',
+    path: '/websites/:siteId/overview',
+  }),
+  staffRoute({
+    id: 'website-console-content',
+    title: 'Website Content',
+    section: 'Websites',
+    path: '/websites/:siteId/content',
+  }),
+  staffRoute({
+    id: 'website-console-forms',
+    title: 'Website Forms',
+    section: 'Websites',
+    path: '/websites/:siteId/forms',
+  }),
+  staffRoute({
+    id: 'website-console-integrations',
+    title: 'Website Integrations',
+    section: 'Websites',
+    path: '/websites/:siteId/integrations',
+  }),
+  staffRoute({
+    id: 'website-console-publishing',
+    title: 'Website Publishing',
+    section: 'Websites',
+    path: '/websites/:siteId/publishing',
+  }),
+  staffRoute({
+    id: 'website-console-builder',
+    title: 'Website Builder (Site)',
+    section: 'Websites',
+    path: '/websites/:siteId/builder',
   }),
   staffRoute({
     id: 'website-builder-preview',

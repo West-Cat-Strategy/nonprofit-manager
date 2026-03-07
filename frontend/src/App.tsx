@@ -4,7 +4,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import ToastHost from './components/ToastHost';
 import PageLoader from './components/PageLoader';
 import { useAppDispatch } from './store/hooks';
-import { initializeAuth } from './store/slices/authSlice';
+import { initializeAuth } from './features/auth/state';
 import './App.css';
 
 const AppRoutes = lazy(() => import('./routes'));

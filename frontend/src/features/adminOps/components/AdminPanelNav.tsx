@@ -5,57 +5,32 @@ import { SideNav } from '../../../components/ui';
 import type { SideNavItem } from '../../../components/ui/SideNav';
 import {
   getAdminNavigationEntries,
-  getRouteHref,
-  matchRouteCatalogEntry,
-  normalizeRouteLocation,
-  type AdminNavigationMode,
-  type RouteCatalogEntry,
-} from '../../../routes/routeCatalog';
+  getAdminRouteHref,
+  matchAdminRouteEntry,
+  normalizeAdminRouteLocation,
+  type AdminRouteMode,
+  type AdminRouteEntry,
+} from '../adminRouteManifest';
 
-export type AdminPanelNavMode = AdminNavigationMode;
+export type AdminPanelNavMode = AdminRouteMode;
 
-const adminOnlyRouteIds = new Set([
-  'admin-settings',
-  'admin-settings-organization',
-  'admin-settings-branding',
-  'admin-settings-users',
-  'admin-settings-email',
-  'admin-settings-messaging',
-  'admin-settings-outcomes',
-  'admin-settings-roles',
-  'admin-settings-audit-logs',
-  'admin-settings-other',
-  'portal-admin-access-link',
-  'portal-admin-hub',
-  'portal-admin-access',
-  'portal-admin-users',
-  'portal-admin-conversations',
-  'portal-admin-appointments',
-  'portal-admin-slots',
-  'backup-settings',
-]);
-
-const isActiveRoute = (route: RouteCatalogEntry, currentPath: string): boolean => {
-  const normalizedCurrentPath = normalizeRouteLocation(currentPath);
-  const matchedRoute = matchRouteCatalogEntry(normalizedCurrentPath);
+const isActiveRoute = (route: AdminRouteEntry, currentPath: string): boolean => {
+  const normalizedCurrentPath = normalizeAdminRouteLocation(currentPath);
+  const matchedRoute = matchAdminRouteEntry(normalizedCurrentPath);
 
   if (matchedRoute?.id === route.id) {
     return true;
   }
 
   if (
-    route.adminNav?.matchPrefixes?.some((prefix) =>
-      normalizedCurrentPath.startsWith(normalizeRouteLocation(prefix))
+    route.matchPrefixes?.some((prefix) =>
+      normalizedCurrentPath.startsWith(normalizeAdminRouteLocation(prefix))
     )
   ) {
     return true;
   }
 
-  if (route.id === 'admin-settings' && normalizedCurrentPath === normalizeRouteLocation(route.path)) {
-    return true;
-  }
-
-  return normalizeRouteLocation(getRouteHref(route)) === normalizedCurrentPath;
+  return normalizeAdminRouteLocation(getAdminRouteHref(route)) === normalizedCurrentPath;
 };
 
 interface AdminPanelNavProps {
@@ -79,11 +54,11 @@ export default function AdminPanelNav({
 
   const items = useMemo<SideNavItem[]>(() => {
     return getAdminNavigationEntries(mode)
-      .filter((route) => isAdmin || !adminOnlyRouteIds.has(route.id))
+      .filter((route) => isAdmin || !route.adminOnly)
       .map((route) => ({
         key: route.id,
-        label: route.adminNav?.label || route.title,
-        to: getRouteHref(route),
+        label: route.label || route.title,
+        to: getAdminRouteHref(route),
         isActive: isActiveRoute(route, effectiveCurrentPath),
       }));
   }, [effectiveCurrentPath, isAdmin, mode]);

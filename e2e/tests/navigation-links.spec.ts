@@ -23,17 +23,15 @@ authTest.describe('Staff navigation click-through audit', () => {
     await expect(authenticatedPage).toHaveURL(/\/alerts$/);
   });
 
-  authTest('admin panel links preserve query-based canonical sections', async ({
+  authTest('admin settings tabs preserve query-based canonical sections', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/settings/navigation', { waitUntil: 'domcontentloaded' });
+    await authenticatedPage.goto('/settings/admin', { waitUntil: 'domcontentloaded' });
 
-    const adminPanelNav = authenticatedPage.getByLabel(/admin panels/i);
-
-    await adminPanelNav.getByRole('link', { name: /^users & security$/i }).click();
+    await authenticatedPage.getByRole('tab', { name: /^users & security$/i }).click();
     await expect(authenticatedPage).toHaveURL(/\/settings\/admin\?section=users$/);
 
-    await adminPanelNav.getByRole('link', { name: /^audit logs$/i }).click();
+    await authenticatedPage.getByRole('link', { name: /^audit logs$/i }).click();
     await expect(authenticatedPage).toHaveURL(/\/settings\/admin\?section=audit_logs$/);
   });
 });

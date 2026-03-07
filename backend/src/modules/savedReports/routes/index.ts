@@ -5,9 +5,6 @@ import { validateBody, validateParams, validateQuery } from '@middleware/zodVali
 import { uuidSchema } from '@validations/shared';
 import { REPORT_ENTITIES } from '@app-types/report';
 import { createSavedReportsController } from '../controllers/savedReports.controller';
-import { type ResponseMode } from '../mappers/responseMode';
-import { SavedReportsRepository } from '../repositories/savedReports.repository';
-import { SavedReportsUseCase } from '../usecases/savedReports.usecase';
 
 const reportEntitySchema = z.enum(REPORT_ENTITIES);
 const reportIdParamsSchema = z.object({
@@ -59,12 +56,9 @@ const reportPublicLinkSchema = z.object({
   expires_at: dateStringSchema.optional(),
 });
 
-export const createSavedReportsRoutes = (mode: ResponseMode = 'v2'): Router => {
+export const createSavedReportsRoutes = (): Router => {
   const router = Router();
-  const controller = createSavedReportsController(
-    new SavedReportsUseCase(new SavedReportsRepository()),
-    mode
-  );
+  const controller = createSavedReportsController();
 
   router.use(authenticate);
 
@@ -115,4 +109,4 @@ export const createSavedReportsRoutes = (mode: ResponseMode = 'v2'): Router => {
   return router;
 };
 
-export const savedReportsV2Routes = createSavedReportsRoutes('v2');
+export const savedReportsV2Routes = createSavedReportsRoutes();

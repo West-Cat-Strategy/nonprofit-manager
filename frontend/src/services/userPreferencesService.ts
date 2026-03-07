@@ -1,7 +1,10 @@
 import api from './api';
 
-interface UserPreferences {
+export interface UserPreferences {
   timezone?: string;
+  navigation?: {
+    items?: unknown[];
+  };
   organization?: {
     timezone?: string;
   };
@@ -33,6 +36,24 @@ export const __resetUserPreferencesCacheForTests = (): void => {
   inFlightRequest = null;
 };
 
+export const setUserPreferencesCached = (preferences: UserPreferences | null): UserPreferences | null => {
+  cachedPreferences = preferences;
+  cachedAtMs = Date.now();
+  return cachedPreferences;
+};
+
+export const mergeUserPreferencesCached = (
+  key: string,
+  value: unknown
+): UserPreferences | null => {
+  const nextPreferences = {
+    ...(cachedPreferences || {}),
+    [key]: value,
+  } as UserPreferences;
+
+  return setUserPreferencesCached(nextPreferences);
+};
+
 export const getUserPreferencesCached = async (options?: {
   forceRefresh?: boolean;
 }): Promise<UserPreferences | null> => {
@@ -51,9 +72,7 @@ export const getUserPreferencesCached = async (options?: {
     try {
       const response = await api.get<UserPreferencesResponse>('/auth/preferences');
       const nextPreferences = response.data?.preferences || null;
-      cachedPreferences = nextPreferences;
-      cachedAtMs = Date.now();
-      return nextPreferences;
+      return setUserPreferencesCached(nextPreferences);
     } catch {
       return null;
     } finally {

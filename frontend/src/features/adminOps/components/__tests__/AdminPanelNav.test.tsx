@@ -70,7 +70,7 @@ describe('AdminPanelNav', () => {
       }
     );
 
-    expect(screen.getByRole('link', { name: /portal access/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /^access$/i })).toHaveAttribute(
       'href',
       '/settings/admin/portal/access'
     );
@@ -96,7 +96,7 @@ describe('AdminPanelNav', () => {
       },
     });
 
-    expect(screen.getByRole('link', { name: /users & security/i })).toHaveClass(
+    expect(screen.getByRole('link', { name: /admin settings/i })).toHaveClass(
       'bg-app-accent-soft'
     );
   });

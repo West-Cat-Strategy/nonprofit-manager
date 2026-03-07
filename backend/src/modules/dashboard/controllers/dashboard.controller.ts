@@ -7,16 +7,8 @@ import {
   updateDashboard,
   updateDashboardLayout,
 } from './dashboard.handlers';
-import { DashboardUseCase } from '../usecases/dashboard.usecase';
-import type { ResponseMode } from '../mappers/responseMode';
 
-export const createDashboardController = (
-  useCase: DashboardUseCase,
-  mode: ResponseMode
-) => {
-  void mode;
-  useCase.getDomain();
-
+export const createDashboardController = () => {
   return {
     getDashboards,
     getDashboard,
