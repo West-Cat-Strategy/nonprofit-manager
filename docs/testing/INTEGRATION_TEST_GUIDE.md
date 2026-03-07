@@ -42,8 +42,8 @@ Before running tests, ensure:
 
 1. **Database is migrated**
    ```bash
-   cd backend
-   npm run migrate
+   # From the repo root
+   make db-migrate
    ```
 
 2. **You have admin credentials**
@@ -240,7 +240,7 @@ Tests fail with database errors
 **Solution:**
 1. Check PostgreSQL is running
 2. Verify database credentials in `.env`
-3. Run migrations: `npm run migrate`
+3. Run migrations: `make db-migrate`
 4. Check database exists
 
 ### Issue: Module Not Found Errors
@@ -403,7 +403,7 @@ jobs:
         run: cd backend && npm install
 
       - name: Run migrations
-        run: cd backend && npm run migrate
+        run: make db-migrate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nonprofit_manager_test
 

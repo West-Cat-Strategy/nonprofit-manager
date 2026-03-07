@@ -185,6 +185,7 @@ run_ci() {
         run_step "Express Validator Migration Policy" "node scripts/check-express-validator-policy.ts" "[ \$RUN_LINT = false ]"
         run_step "Controller SQL Boundary Policy" "node scripts/check-controller-sql-policy.ts" "[ \$RUN_LINT = false ]"
         run_step "Legacy Auth Guard Policy" "node scripts/check-auth-guard-policy.ts" "[ \$RUN_LINT = false ]"
+        run_step "Migration Manifest Policy" "node scripts/check-migration-manifest-policy.ts" "[ \$RUN_LINT = false ]"
         run_step "Duplicate Test Tree Policy" "node scripts/check-duplicate-test-tree.ts" "[ \$RUN_LINT = false ]"
         run_step "Docs API Versioning Policy" "node scripts/check-doc-api-versioning.ts" "[ \$RUN_LINT = false ]"
         run_step "V2 Module Ownership Policy" "node scripts/check-v2-module-ownership-policy.ts" "[ \$RUN_LINT = false ]"

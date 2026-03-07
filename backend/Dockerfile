@@ -1,21 +1,32 @@
-# Multi-stage production build for backend
 # syntax=docker/dockerfile:1
 
-# ── Stage 1: Build ────────────────────────────────────────────────────────────
-FROM node:20-alpine3.20 AS builder
+FROM node:20-alpine3.20 AS deps
 
 WORKDIR /app
 
-# Install deps before copying source for better layer caching
+# Shared dependency layer for build + dev targets.
+RUN apk add --no-cache python3 make g++
+
 COPY package*.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --no-audit --no-fund
 
-# Copy source and compile
-COPY . .
+FROM deps AS build
+
+COPY tsconfig.json ./
+COPY src ./src
 RUN npm run build && npm prune --omit=dev
 
-# ── Stage 2: Production ───────────────────────────────────────────────────────
+FROM deps AS dev
+
+ENV NODE_ENV=development \
+    PORT=3000 \
+    HOST=0.0.0.0
+
+EXPOSE 3000 8009
+
+CMD ["npm", "run", "dev"]
+
 FROM node:20-alpine3.20 AS production
 
 WORKDIR /app
@@ -23,24 +34,15 @@ WORKDIR /app
 ENV NODE_ENV=production \
     PORT=8000
 
-# dumb-init for proper PID-1 signal handling + non-root user
-RUN apk add --no-cache dumb-init curl && \
-    addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001 && \
-    mkdir -p /app/exports /app/logs && \
-    chown -R nodejs:nodejs /app
+RUN mkdir -p /app/exports /app/logs /app/uploads && \
+    chown -R node:node /app
 
-# Copy runtime dependencies and compiled output from builder
-COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
+COPY --from=build --chown=node:node /app/package*.json ./
+COPY --from=build --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/dist ./dist
 
-USER nodejs
+USER node
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
-
-ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "dist/index.js"]

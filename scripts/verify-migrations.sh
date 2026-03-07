@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Load common utilities and configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Preserve caller-provided DB env vars before config defaults are sourced.
 has_db_name=false
 has_db_host=false
 has_db_port=false
@@ -38,8 +36,8 @@ fi
 
 source "$SCRIPT_DIR/lib/common.sh"
 source "$SCRIPT_DIR/lib/config.sh"
+source "$SCRIPT_DIR/lib/migration-manifest.sh"
 
-# Reapply caller-provided DB env vars so explicit overrides win over defaults.
 if [[ "$has_db_name" == "true" ]]; then
   DB_NAME="$inbound_db_name"
 fi
@@ -60,6 +58,36 @@ if [[ "$has_db_password" == "true" ]]; then
   DB_PASSWORD="$inbound_db_password"
 fi
 
+usage() {
+  cat <<'USAGE'
+Usage: ./scripts/verify-migrations.sh [--timing]
+
+Options:
+  --timing   Print per-migration timing during verification replay
+  --help     Show this help message
+USAGE
+}
+
+TIMING_ENABLED=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --timing)
+      TIMING_ENABLED=true
+      shift
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      log_error "Unknown argument: $1"
+      usage
+      exit 1
+      ;;
+  esac
+done
+
 if ! command -v psql >/dev/null 2>&1; then
   log_error "psql is required for migration verification"
   exit 1
@@ -67,12 +95,16 @@ fi
 
 : "${DB_NAME:?DB_NAME is required}"
 
-shopt -s nullglob
-
 if [[ "${DB_NAME}" != *_test ]]; then
   log_error "Refusing to run migrations unless DB_NAME ends with _test"
   exit 1
 fi
+
+if [[ "$MIGRATIONS_DIR" != /* ]]; then
+  MIGRATIONS_DIR="$PROJECT_ROOT/$MIGRATIONS_DIR"
+fi
+
+load_migration_manifest "$MIGRATIONS_DIR"
 
 export PGHOST="${DB_HOST:-localhost}"
 export PGPORT="${DB_PORT:-5432}"
@@ -80,16 +112,8 @@ export PGDATABASE="${DB_NAME}"
 export PGUSER="${DB_USER:-postgres}"
 export PGPASSWORD="${DB_PASSWORD:-}"
 
-migrations=("${SCRIPT_DIR}/../database/migrations"/*.sql)
-
-if [[ ${#migrations[@]} -eq 0 ]]; then
-  log_error "No migration files found in database/migrations"
-  exit 1
-fi
-
 log_info "Verifying migrations against ${PGDATABASE}"
 
-# Ensure deterministic verification by replaying into a clean schema.
 psql -v ON_ERROR_STOP=1 <<'SQL' >/dev/null
 DROP SCHEMA IF EXISTS public CASCADE;
 CREATE SCHEMA public;
@@ -97,20 +121,42 @@ GRANT ALL ON SCHEMA public TO CURRENT_USER;
 GRANT ALL ON SCHEMA public TO PUBLIC;
 SQL
 
-# Some migrations reference schema_migrations for bookkeeping.
-# Ensure it exists for verification runs on fresh *_test databases.
-psql -v ON_ERROR_STOP=1 <<'SQL' >/dev/null
-CREATE TABLE IF NOT EXISTS schema_migrations (
-  id SERIAL PRIMARY KEY,
-  filename VARCHAR(255) NOT NULL UNIQUE,
-  applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  checksum VARCHAR(64)
-);
+psql -v ON_ERROR_STOP=1 <<SQL >/dev/null
+$(emit_schema_migrations_bootstrap_sql)
 SQL
 
-for file in "${migrations[@]}"; do
-  log_info "Applying ${file##*/}"
-  psql -v ON_ERROR_STOP=1 -f "$file" >/dev/null
+TOTAL_START_MS="$(current_time_millis)"
+TIMING_LINES=()
+
+for ((i = 0; i < ${#MIGRATION_IDS[@]}; i++)); do
+  migration_id="${MIGRATION_IDS[$i]}"
+  canonical_filename="${MIGRATION_CANONICAL_FILES[$i]}"
+  migration_path="$MIGRATIONS_DIR/$canonical_filename"
+  checksum="$(calculate_file_checksum "$migration_path")"
+
+  log_info "Applying ${migration_id} (${canonical_filename})"
+  start_ms="$(current_time_millis)"
+
+  psql -v ON_ERROR_STOP=1 -f "$migration_path" >/dev/null
+
+  psql -v ON_ERROR_STOP=1 <<SQL >/dev/null
+$(emit_schema_migration_record_sql "$migration_id" "$canonical_filename" "$checksum")
+SQL
+
+  if [[ "$TIMING_ENABLED" == true ]]; then
+    end_ms="$(current_time_millis)"
+    duration="$(format_duration_millis "$start_ms" "$end_ms")"
+    TIMING_LINES+=("${migration_id} ${canonical_filename} ${duration}")
+    log_info "Timing: ${migration_id} ${duration}"
+  fi
 done
+
+if [[ "$TIMING_ENABLED" == true ]]; then
+  TOTAL_END_MS="$(current_time_millis)"
+  for timing_line in "${TIMING_LINES[@]}"; do
+    echo "$timing_line"
+  done
+  log_info "Total duration: $(format_duration_millis "$TOTAL_START_MS" "$TOTAL_END_MS")"
+fi
 
 log_success "Migration verification complete"

@@ -98,7 +98,7 @@ for raw in "${CHANGED_FILES[@]}"; do
     frontend/src/routes/*|frontend/src/features/*|frontend/src/store/*|frontend/src/services/*)
       needs_frontend=true
       ;;
-    database/migrations/*)
+    database/migrations/*|database/initdb/*|scripts/db-migrate.sh|scripts/verify-migrations.sh|scripts/check-migration-manifest-policy.ts)
       needs_db_verify=true
       ;;
     docs/security/*|backend/src/middleware/*rate*|backend/src/middleware/*auth*|backend/src/routes/auth.ts)

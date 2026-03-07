@@ -180,6 +180,8 @@ lint:
 	node scripts/check-controller-sql-policy.ts
 	@echo "$(BLUE)Checking legacy auth guard policy...$(RESET)"
 	node scripts/check-auth-guard-policy.ts
+	@echo "$(BLUE)Checking migration manifest policy...$(RESET)"
+	node scripts/check-migration-manifest-policy.ts
 	@echo "$(BLUE)Checking duplicate backend test paths...$(RESET)"
 	node scripts/check-duplicate-test-tree.ts
 	@echo "$(BLUE)Checking docs API versioning policy...$(RESET)"
@@ -240,6 +242,11 @@ lint-auth-guards:
 	@echo "$(BLUE)Checking legacy auth guard policy...$(RESET)"
 	node scripts/check-auth-guard-policy.ts
 	@echo "$(GREEN)Legacy auth guard policy check complete!$(RESET)"
+
+lint-migration-manifest:
+	@echo "$(BLUE)Checking migration manifest policy...$(RESET)"
+	node scripts/check-migration-manifest-policy.ts
+	@echo "$(GREEN)Migration manifest policy check complete!$(RESET)"
 
 lint-duplicate-tests:
 	@echo "$(BLUE)Checking duplicate backend test paths...$(RESET)"

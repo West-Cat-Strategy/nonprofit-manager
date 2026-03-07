@@ -13,6 +13,8 @@ coverage
 __tests__
 *.test.*
 *.spec.*
+src/test
+debug.html
 vitest.config.*
 Dockerfile*
 docker-compose*
