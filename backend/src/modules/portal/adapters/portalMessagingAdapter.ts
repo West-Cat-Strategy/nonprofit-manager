@@ -5,7 +5,7 @@ import {
   listPortalThreads,
   markPortalThreadRead,
   updateThread,
-} from '@services/portalMessagingService';
+} from '../services/portalMessagingService';
 import type { PortalMessagingPort } from '../types/ports';
 
 export const createPortalMessagingAdapter = (): PortalMessagingPort => ({

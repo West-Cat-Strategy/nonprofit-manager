@@ -24,6 +24,7 @@ export const schemaRegistry: SchemaTable[] = [
       { field: 'postal_code', type: 'string', aliases: ['zip', 'zipcode', 'postal', 'post_code'] },
       { field: 'country', type: 'string' },
       { field: 'tax_id', type: 'string', aliases: ['ein', 'tin', 'ssn'] },
+      { field: 'is_active', type: 'boolean', aliases: ['active', 'enabled'] },
     ],
   },
   {
@@ -33,6 +34,7 @@ export const schemaRegistry: SchemaTable[] = [
     fields: [
       { field: 'contact_id', type: 'uuid', aliases: ['id', 'contactid'] },
       { field: 'account_id', type: 'uuid', aliases: ['account', 'accountid', 'organization_id'] },
+      { field: 'account_number', type: 'string', aliases: ['account_no', 'acct_no', 'accountnumber'] },
       { field: 'first_name', type: 'string', required: true, aliases: ['firstname', 'given_name', 'forename'] },
       { field: 'last_name', type: 'string', required: true, aliases: ['lastname', 'surname', 'family_name'] },
       { field: 'middle_name', type: 'string', aliases: ['middlename', 'mi'] },
@@ -61,6 +63,9 @@ export const schemaRegistry: SchemaTable[] = [
       { field: 'postal_code', type: 'string', aliases: ['zip', 'zipcode', 'postal', 'post_code'] },
       { field: 'country', type: 'string' },
       { field: 'notes', type: 'string', aliases: ['note', 'memo', 'comment', 'comments'] },
+      { field: 'tags', type: 'string', aliases: ['labels', 'segments'] },
+      { field: 'roles', type: 'string', aliases: ['role', 'contact_roles'] },
+      { field: 'is_active', type: 'boolean', aliases: ['active', 'enabled'] },
     ],
   },
   {
@@ -116,6 +121,15 @@ export const schemaRegistry: SchemaTable[] = [
     fields: [
       { field: 'volunteer_id', type: 'uuid', aliases: ['id', 'volunteerid'] },
       { field: 'contact_id', type: 'uuid', aliases: ['contact', 'contactid', 'person_id'] },
+      { field: 'account_id', type: 'uuid', aliases: ['account', 'accountid', 'organization_id'] },
+      { field: 'account_number', type: 'string', aliases: ['account_no', 'acct_no', 'accountnumber'] },
+      { field: 'first_name', type: 'string', aliases: ['firstname', 'given_name', 'forename'] },
+      { field: 'last_name', type: 'string', aliases: ['lastname', 'surname', 'family_name'] },
+      { field: 'email', type: 'string', aliases: ['email_address', 'e-mail'] },
+      { field: 'phone', type: 'string', aliases: ['telephone', 'tel', 'home_phone', 'work_phone'] },
+      { field: 'mobile_phone', type: 'string', aliases: ['mobile', 'cell', 'cell_phone', 'cellphone'] },
+      { field: 'tags', type: 'string', aliases: ['labels', 'segments'] },
+      { field: 'roles', type: 'string', aliases: ['role', 'contact_roles'] },
       { field: 'skills', type: 'string', aliases: ['skill', 'abilities', 'interests'] },
       { field: 'availability_status', type: 'enum', aliases: ['availability', 'status', 'state'] },
       { field: 'availability_notes', type: 'string', aliases: ['availability_note', 'availability_details', 'notes'] },
@@ -123,6 +137,7 @@ export const schemaRegistry: SchemaTable[] = [
       { field: 'background_check_date', type: 'date', aliases: ['bg_check_date', 'background_date'] },
       { field: 'background_check_expiry', type: 'date', aliases: ['bg_check_expiry', 'background_expiry'] },
       { field: 'preferred_roles', type: 'string', aliases: ['roles', 'volunteer_roles'] },
+      { field: 'certifications', type: 'string', aliases: ['certs', 'credentials'] },
       { field: 'max_hours_per_week', type: 'number', aliases: ['max_hours', 'hours_per_week'] },
       { field: 'emergency_contact_name', type: 'string', aliases: ['emergency_name', 'ice_name'] },
       { field: 'emergency_contact_phone', type: 'string', aliases: ['emergency_phone', 'ice_phone'] },
@@ -131,6 +146,7 @@ export const schemaRegistry: SchemaTable[] = [
         type: 'string',
         aliases: ['emergency_relationship', 'ice_relationship'],
       },
+      { field: 'is_active', type: 'boolean', aliases: ['active', 'enabled'] },
     ],
   },
 ];

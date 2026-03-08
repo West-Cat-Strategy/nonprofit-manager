@@ -18,6 +18,25 @@ import reducer, {
 } from './dashboardCore';
 import type { DashboardConfig, DashboardWidget, WidgetLayout } from '../types/contracts';
 
+type ReducerAction = Parameters<typeof reducer>[1];
+
+const rejectedAction = (type: string, message?: string): ReducerAction =>
+  ({
+    type,
+    error: message ? { message } : {},
+  }) as ReducerAction;
+
+const createDashboardRequest = (
+  overrides: Partial<Omit<DashboardConfig, 'id' | 'created_at' | 'updated_at'>> = {}
+): Omit<DashboardConfig, 'id' | 'created_at' | 'updated_at'> => ({
+  user_id: 'user-1',
+  name: 'New',
+  is_default: false,
+  widgets: [],
+  layout: [],
+  ...overrides,
+});
+
 const createWidget = (id: string, enabled = true): DashboardWidget => ({
   id,
   type: 'donation_summary',
@@ -189,24 +208,16 @@ describe('dashboardCore reducer', () => {
       undefined)
     );
 
-    const pendingCreate = reducer(base, createDashboard.pending('req-8', {
-      user_id: 'user-1',
-      name: 'New',
-      is_default: false,
-      widgets: [],
-      layout: [],
-    } as any));
+    const createPayload = createDashboardRequest();
+    const pendingCreate = reducer(base, createDashboard.pending('req-8', createPayload));
     expect(pendingCreate.saving).toBe(true);
     expect(pendingCreate.error).toBeNull();
 
     const createdDash = createDashboardConfig({ id: 'dash-3', name: 'Created', is_default: false });
-    const created = reducer(pendingCreate, createDashboard.fulfilled(createdDash, 'req-8', {
-      user_id: 'user-1',
-      name: 'New',
-      is_default: false,
-      widgets: [],
-      layout: [],
-    } as any));
+    const created = reducer(
+      pendingCreate,
+      createDashboard.fulfilled(createdDash, 'req-8', createPayload)
+    );
     expect(created.currentDashboard?.id).toBe('dash-3');
     expect(created.dashboards.find((d) => d.id === 'dash-3')).toBeTruthy();
 
@@ -266,32 +277,20 @@ describe('dashboardCore reducer', () => {
 
     const fetchRejected = reducer(
       reducer(base, fetchDashboards.pending('req-14', undefined)),
-      fetchDashboards.rejected(new Error('fetch boom') as any, 'req-14', undefined)
+      rejectedAction(fetchDashboards.rejected.type, 'fetch boom')
     );
     expect(fetchRejected.loading).toBe(false);
     expect(fetchRejected.error).toBe('fetch boom');
 
     const defaultRejectedFallback = reducer(
       reducer(base, fetchDefaultDashboard.pending('req-15', undefined)),
-      {
-        type: fetchDefaultDashboard.rejected.type,
-        error: {},
-      } as any
+      rejectedAction(fetchDefaultDashboard.rejected.type)
     );
     expect(defaultRejectedFallback.error).toBe('Failed to fetch default dashboard');
 
     const createRejectedFallback = reducer(
-      reducer(base, createDashboard.pending('req-16', {
-        user_id: 'user-1',
-        name: 'x',
-        is_default: false,
-        widgets: [],
-        layout: [],
-      } as any)),
-      {
-        type: createDashboard.rejected.type,
-        error: {},
-      } as any
+      reducer(base, createDashboard.pending('req-16', createDashboardRequest({ name: 'x' }))),
+      rejectedAction(createDashboard.rejected.type)
     );
     expect(createRejectedFallback.error).toBe('Failed to create dashboard');
     expect(createRejectedFallback.saving).toBe(false);

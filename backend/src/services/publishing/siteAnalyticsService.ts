@@ -8,15 +8,19 @@ import type {
   SiteAnalyticsSummary,
   SiteAnalyticsRecord,
   AnalyticsEventType,
+  WebsiteConversionFunnel,
   WebsiteConversionMetrics,
 } from '@app-types/publishing';
 import { SiteManagementService } from './siteManagementService';
+import { conversionEventService, ConversionEventService } from './conversionEventService';
 
 export class SiteAnalyticsService {
   private siteManagement: SiteManagementService;
+  private conversionEvents: ConversionEventService;
 
   constructor(private pool: Pool) {
     this.siteManagement = new SiteManagementService(pool);
+    this.conversionEvents = new ConversionEventService(pool);
   }
 
   /**
@@ -61,6 +65,8 @@ export class SiteAnalyticsService {
         data.eventData ? JSON.stringify(data.eventData) : null,
       ]
     );
+
+    await this.conversionEvents.recordAnalyticsEvent(siteId, eventType, data);
 
     return this.siteManagement.mapRowToAnalytics(result.rows[0]);
   }
@@ -229,5 +235,19 @@ export class SiteAnalyticsService {
         this.siteManagement.mapRowToAnalytics(row)
       ),
     };
+  }
+
+  async getConversionFunnel(
+    siteId: string,
+    userId: string,
+    windowDays: number = 30,
+    organizationId?: string
+  ): Promise<WebsiteConversionFunnel> {
+    const site = await this.siteManagement.getSite(siteId, userId, organizationId);
+    if (!site) {
+      throw new Error('Site not found or access denied');
+    }
+
+    return this.conversionEvents.getFunnel(siteId, windowDays);
   }
 }

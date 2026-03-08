@@ -1,7 +1,10 @@
 import type {
   EventFilters,
   PaginationParams,
+  Event,
+  EventAttendanceSummary,
   CreateEventDTO,
+  PaginatedEvents,
   PublicEventsListData,
   PublicEventsQuery,
   PublicEventDetail,
@@ -13,11 +16,11 @@ import { EventRepository } from '../repositories/eventRepository';
 export class EventCatalogUseCase {
   constructor(private readonly repository: EventRepository) {}
 
-  list(filters: EventFilters, pagination: PaginationParams, scope?: DataScopeFilter): Promise<unknown> {
+  list(filters: EventFilters, pagination: PaginationParams, scope?: DataScopeFilter): Promise<PaginatedEvents> {
     return this.repository.getEvents(filters, pagination, scope);
   }
 
-  getById(eventId: string, scope?: DataScopeFilter): Promise<unknown | null> {
+  getById(eventId: string, scope?: DataScopeFilter): Promise<Event | null> {
     return this.repository.getEventById(eventId, scope);
   }
 
@@ -29,11 +32,11 @@ export class EventCatalogUseCase {
     return this.repository.getPublicEventBySlug(ownerUserId, slug);
   }
 
-  create(data: CreateEventDTO, userId: string): Promise<unknown> {
+  create(data: CreateEventDTO, userId: string): Promise<Event> {
     return this.repository.createEvent(data, userId);
   }
 
-  update(eventId: string, data: UpdateEventDTO, userId: string): Promise<unknown | null> {
+  update(eventId: string, data: UpdateEventDTO, userId: string): Promise<Event> {
     return this.repository.updateEvent(eventId, data, userId);
   }
 
@@ -41,7 +44,7 @@ export class EventCatalogUseCase {
     return this.repository.deleteEvent(eventId, userId);
   }
 
-  attendanceSummary(scope?: DataScopeFilter): Promise<unknown> {
+  attendanceSummary(scope?: DataScopeFilter): Promise<EventAttendanceSummary> {
     return this.repository.getEventAttendanceSummary(new Date(), scope);
   }
 }

@@ -214,3 +214,27 @@ export const getSiteAnalyticsSummary = async (
     next(error);
   }
 };
+
+export const getSiteAnalyticsFunnel = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const windowDays =
+      typeof (req.validatedQuery ?? req.query).windowDays === 'number'
+        ? ((req.validatedQuery ?? req.query).windowDays as number)
+        : 30;
+
+    const result = await publishingService.getConversionFunnel(
+      req.params.siteId,
+      req.user!.id,
+      windowDays,
+      req.organizationId
+    );
+    sendSuccess(res, result);
+  } catch (error) {
+    if (handleKnownError(res, error)) return;
+    next(error);
+  }
+};

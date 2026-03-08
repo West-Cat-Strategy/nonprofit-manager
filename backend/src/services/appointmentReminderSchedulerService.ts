@@ -5,7 +5,7 @@ import {
   markJobResult,
   sendAppointmentReminders,
   type AppointmentReminderSendSummary,
-} from '@services/appointmentReminderService';
+} from '@modules/portalAdmin/services/appointmentReminderService';
 import { IntervalBatchRunner } from '@services/queue/intervalBatchRunner';
 
 const DEFAULT_INTERVAL_MS = 60_000;

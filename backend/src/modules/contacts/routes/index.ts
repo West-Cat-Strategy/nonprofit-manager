@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import pool from '@config/database';
 import { authenticate } from '@middleware/domains/auth';
 import { loadDataScope } from '@middleware/domains/data';
 import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
@@ -36,11 +37,32 @@ import { ContactEmailsRepository } from '../repositories/contactEmailsRepository
 import { ContactRelationshipsRepository } from '../repositories/contactRelationshipsRepository';
 import { ContactDocumentsRepository } from '../repositories/contactDocumentsRepository';
 import { ContactDirectoryUseCase } from '../usecases/contactDirectory.usecase';
+import { ContactImportExportUseCase } from '../usecases/contactImportExport.usecase';
 import { ContactNotesUseCase } from '../usecases/contactNotes.usecase';
 import { ContactPhonesUseCase } from '../usecases/contactPhones.usecase';
 import { ContactEmailsUseCase } from '../usecases/contactEmails.usecase';
 import { ContactRelationshipsUseCase } from '../usecases/contactRelationships.usecase';
 import { ContactDocumentsUseCase } from '../usecases/contactDocuments.usecase';
+
+const contactExportSchema = z.object({
+  format: z.enum(['csv', 'xlsx']),
+  ids: z.array(uuidSchema).optional(),
+  columns: z.array(z.string().trim().min(1)).optional(),
+  sort_by: z.string().optional(),
+  sort_order: z.enum(['asc', 'desc']).optional(),
+  search: z.string().optional(),
+  role: z.enum(['staff', 'volunteer', 'board']).optional(),
+  account_id: uuidSchema.optional(),
+  is_active: z.coerce.boolean().optional(),
+  tags: z.array(z.string().trim().min(1)).optional(),
+}).strict();
+
+const importTemplateQuerySchema = z.object({
+  format: z
+    .enum(['csv', 'xlsx', 'xslx'])
+    .transform((value) => (value === 'xslx' ? 'xlsx' : value))
+    .optional(),
+}).strict();
 
 export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
   const router = Router();
@@ -54,7 +76,11 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
 
   const directoryUseCase = new ContactDirectoryUseCase(directoryRepository);
 
-  const directoryController = createContactDirectoryController(directoryUseCase, mode);
+  const directoryController = createContactDirectoryController(
+    directoryUseCase,
+    new ContactImportExportUseCase(pool),
+    mode
+  );
   const notesController = createContactNotesController(new ContactNotesUseCase(notesRepository), mode);
   const phonesController = createContactPhonesController(new ContactPhonesUseCase(phonesRepository), mode);
   const emailsController = createContactEmailsController(new ContactEmailsUseCase(emailsRepository), mode);
@@ -77,6 +103,20 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
   router.get('/tags', directoryController.getContactTags);
   router.get('/roles', directoryController.getContactRoles);
   router.post('/bulk', validateBody(bulkUpdateContactsSchema), directoryController.bulkUpdateContacts);
+  router.post('/export', validateBody(contactExportSchema), directoryController.exportContacts);
+  router.get('/import/template', validateQuery(importTemplateQuerySchema), directoryController.downloadImportTemplate);
+  router.post(
+    '/import/preview',
+    documentUpload.single('file'),
+    handleMulterError,
+    directoryController.previewImport
+  );
+  router.post(
+    '/import/commit',
+    documentUpload.single('file'),
+    handleMulterError,
+    directoryController.commitImport
+  );
 
   router.get('/:id', validateParams(z.object({ id: uuidSchema })), directoryController.getContactById);
   router.post('/', validateBody(createContactSchema), directoryController.createContact);

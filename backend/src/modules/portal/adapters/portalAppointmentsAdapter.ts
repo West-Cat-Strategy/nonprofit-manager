@@ -4,7 +4,7 @@ import {
   bookPortalAppointmentSlot,
   createPortalManualAppointmentRequest,
   cancelPortalAppointment,
-} from '@services/portalAppointmentSlotService';
+} from '@modules/portalAdmin/services/portalAppointmentSlotService';
 import type { PortalAppointmentsPort } from '../types/ports';
 
 export const createPortalAppointmentsAdapter = (): PortalAppointmentsPort => ({

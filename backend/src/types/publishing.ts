@@ -366,6 +366,35 @@ export interface WebsiteConversionMetrics {
   recentConversions: SiteAnalyticsRecord[];
 }
 
+export interface WebsiteConversionFunnelStep {
+  step: 'view' | 'submit' | 'confirm';
+  count: number;
+  uniqueVisitors: number;
+}
+
+export interface WebsiteConversionEventRecord {
+  id: string;
+  conversionType: 'pageview' | 'form_submit' | 'donation' | 'event_register';
+  step: 'view' | 'submit' | 'confirm';
+  pagePath: string;
+  visitorId: string | null;
+  sessionId: string | null;
+  referrer: string | null;
+  userAgent: string | null;
+  sourceEntityType: string | null;
+  sourceEntityId: string | null;
+  eventData: Record<string, unknown>;
+  occurredAt: string;
+}
+
+export interface WebsiteConversionFunnel {
+  siteId: string;
+  periodStart: Date;
+  periodEnd: Date;
+  steps: WebsiteConversionFunnelStep[];
+  recentEvents: WebsiteConversionEventRecord[];
+}
+
 export interface WebsiteFormOperationalConfig {
   heading?: string;
   description?: string;

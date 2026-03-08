@@ -140,6 +140,12 @@ export interface PaginatedEvents {
   };
 }
 
+export interface EventAttendanceSummary {
+  upcoming_events: number;
+  total_this_month: number;
+  avg_attendance: number;
+}
+
 // Event Registration Types
 export interface EventRegistration {
   registration_id: string;

@@ -6,7 +6,10 @@
 import { Response, NextFunction } from 'express';
 import { services } from '@container/services';
 import { AuthRequest } from '@middleware/auth';
+import { setTabularDownloadHeaders } from '@modules/shared/export/tabularExport';
+import { sendSuccess } from '@modules/shared/http/envelope';
 import { REPORT_ENTITIES, type ReportDefinition, type ReportEntity } from '@app-types/report';
+import { reportExportJobService } from '@services/reportExportJobService';
 import { badRequest, unauthorized } from '@utils/responseHelpers';
 import {
   requirePermissionSafe,
@@ -135,16 +138,111 @@ export const exportReport = async (
     }
 
     const result = await reportService.generateReport(definition, { organizationId });
-    const buffer = await reportService.exportReport(result, format as 'csv' | 'xlsx');
+    const file = await reportService.exportReport(result, format as 'csv' | 'xlsx');
+    setTabularDownloadHeaders(res, file);
+    res.send(file.buffer);
+  } catch (error) {
+    next(error);
+  }
+};
 
-    const fileName = `${definition.entity}_report_${new Date().toISOString().split('T')[0]}.${format}`;
-    const contentType = format === 'xlsx'
-      ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      : 'text/csv';
+export const createExportJob = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!ensurePermission(req, res, Permission.REPORT_EXPORT)) return;
 
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-    res.send(buffer);
+    const { definition, format, savedReportId, scheduledReportId, idempotencyKey } = req.body as {
+      definition: ReportDefinition;
+      format: 'csv' | 'xlsx';
+      savedReportId?: string;
+      scheduledReportId?: string;
+      idempotencyKey?: string;
+    };
+
+    if (!definition || !format) {
+      badRequest(res, 'Definition and format are required');
+      return;
+    }
+
+    const organizationId = getOrgId(req);
+    if (!organizationId) {
+      unauthorized(res, 'Organization context required');
+      return;
+    }
+
+    const effectiveIdempotencyKey =
+      (typeof req.headers['idempotency-key'] === 'string' && req.headers['idempotency-key']) ||
+      idempotencyKey ||
+      undefined;
+
+    const job = await reportExportJobService.createAndProcessJob({
+      organizationId,
+      requestedBy: req.user?.id || null,
+      savedReportId,
+      scheduledReportId,
+      definition,
+      format,
+      idempotencyKey: effectiveIdempotencyKey,
+      metadata: {
+        source: 'api',
+      },
+    });
+
+    sendSuccess(res, job, 201);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const listExportJobs = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!ensurePermission(req, res, Permission.REPORT_VIEW)) return;
+
+    const organizationId = getOrgId(req);
+    if (!organizationId) {
+      unauthorized(res, 'Organization context required');
+      return;
+    }
+
+    const query = (req.validatedQuery ?? req.query) as { limit?: number };
+    const jobs = await reportExportJobService.listJobs(
+      organizationId,
+      typeof query.limit === 'number' ? query.limit : 25
+    );
+    sendSuccess(res, jobs);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getExportJob = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!ensurePermission(req, res, Permission.REPORT_VIEW)) return;
+
+    const organizationId = getOrgId(req);
+    if (!organizationId) {
+      unauthorized(res, 'Organization context required');
+      return;
+    }
+
+    const job = await reportExportJobService.getJob(organizationId, req.params.id);
+    if (!job) {
+      badRequest(res, 'Report export job not found');
+      return;
+    }
+
+    sendSuccess(res, job);
   } catch (error) {
     next(error);
   }
@@ -154,4 +252,7 @@ export default {
   generateReport,
   getAvailableFields,
   exportReport,
+  createExportJob,
+  listExportJobs,
+  getExportJob,
 };

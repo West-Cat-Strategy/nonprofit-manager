@@ -24,7 +24,7 @@ const dateStringSchema = z
   .string()
   .refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid ISO8601 date');
 
-const formatSchema = z.enum(['csv', 'excel']);
+const formatSchema = z.enum(['csv', 'xlsx', 'excel']);
 
 const analyticsSummaryExportSchema = z.object({
   format: formatSchema.optional(),

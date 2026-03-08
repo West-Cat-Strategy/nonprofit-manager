@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import pool from '@config/database';
 import { authenticate } from '@middleware/domains/auth';
 import { loadDataScope } from '@middleware/domains/data';
+import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
+import { documentUpload, handleMulterError } from '@middleware/domains/platform';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import {
   createVolunteerSchema,
@@ -14,6 +17,7 @@ import { createVolunteersController } from '../controllers/volunteers.controller
 import { type ResponseMode } from '../mappers/responseMode';
 import { VolunteerRepository } from '../repositories/volunteerRepository';
 import { VolunteerCatalogUseCase } from '../usecases/volunteerCatalog.usecase';
+import { VolunteerImportExportUseCase } from '../usecases/volunteerImportExport.usecase';
 import { VolunteerLifecycleUseCase } from '../usecases/volunteerLifecycle.usecase';
 
 const volunteerSkillsQuerySchema = z
@@ -38,6 +42,32 @@ const volunteerListQuerySchema = z
   })
   .strict();
 
+const volunteerExportSchema = z
+  .object({
+    format: z.enum(['csv', 'xlsx']),
+    ids: z.array(uuidSchema).optional(),
+    columns: z.array(z.string().trim().min(1)).optional(),
+    sort_by: z.string().optional(),
+    sort_order: z.enum(['asc', 'desc']).optional(),
+    search: z.string().optional(),
+    skills: z.array(z.string().trim().min(1)).optional(),
+    availability_status: z.enum(['available', 'unavailable', 'limited']).optional(),
+    background_check_status: z
+      .enum(['not_required', 'pending', 'in_progress', 'approved', 'rejected', 'expired'])
+      .optional(),
+    is_active: z.coerce.boolean().optional(),
+  })
+  .strict();
+
+const importTemplateQuerySchema = z
+  .object({
+    format: z
+      .enum(['csv', 'xlsx', 'xslx'])
+      .transform((value) => (value === 'xslx' ? 'xlsx' : value))
+      .optional(),
+  })
+  .strict();
+
 export const createVolunteersRoutes = (mode: ResponseMode = 'v2'): Router => {
   const router = Router();
 
@@ -45,6 +75,7 @@ export const createVolunteersRoutes = (mode: ResponseMode = 'v2'): Router => {
   const controller = createVolunteersController(
     new VolunteerCatalogUseCase(repository),
     new VolunteerLifecycleUseCase(repository),
+    new VolunteerImportExportUseCase(pool),
     mode
   );
 
@@ -54,6 +85,32 @@ export const createVolunteersRoutes = (mode: ResponseMode = 'v2'): Router => {
   router.get('/search/skills', validateQuery(volunteerSkillsQuerySchema), controller.findVolunteersBySkills);
 
   router.get('/', validateQuery(volunteerListQuerySchema), controller.getVolunteers);
+  router.post(
+    '/export',
+    requireActiveOrganizationContext,
+    validateBody(volunteerExportSchema),
+    controller.exportVolunteers
+  );
+  router.get(
+    '/import/template',
+    requireActiveOrganizationContext,
+    validateQuery(importTemplateQuerySchema),
+    controller.downloadImportTemplate
+  );
+  router.post(
+    '/import/preview',
+    requireActiveOrganizationContext,
+    documentUpload.single('file'),
+    handleMulterError,
+    controller.previewImport
+  );
+  router.post(
+    '/import/commit',
+    requireActiveOrganizationContext,
+    documentUpload.single('file'),
+    handleMulterError,
+    controller.commitImport
+  );
 
   router.get('/:id', validateParams(z.object({ id: uuidSchema })), controller.getVolunteerById);
   router.get(

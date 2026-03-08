@@ -7,14 +7,18 @@ import type {
   PaginationParams,
 } from '@app-types/account';
 import type { DataScopeFilter } from '@app-types/dataScope';
+import { setTabularDownloadHeaders } from '@modules/shared/export/tabularExport';
+import { parseMultipartJsonField } from '@modules/shared/import/peopleImportParser';
 import { extractPagination, getBoolean, getString } from '@utils/queryHelpers';
 import { AccountCatalogUseCase } from '../usecases/accountCatalog.usecase';
+import { AccountImportExportUseCase } from '../usecases/accountImportExport.usecase';
 import { AccountLifecycleUseCase } from '../usecases/accountLifecycle.usecase';
 import { type ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
 
 export const createAccountsController = (
   catalogUseCase: AccountCatalogUseCase,
   lifecycleUseCase: AccountLifecycleUseCase,
+  importExportUseCase: AccountImportExportUseCase,
   mode: ResponseMode
 ) => {
   const getAccounts = async (
@@ -160,6 +164,82 @@ export const createAccountsController = (
     }
   };
 
+  const exportAccounts = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+      const file = await importExportUseCase.exportAccounts(req.body, scope);
+      setTabularDownloadHeaders(res, file);
+      res.send(file.buffer);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const downloadImportTemplate = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const query = (req.validatedQuery ?? req.query) as { format?: 'csv' | 'xlsx' };
+      const file = await importExportUseCase.getImportTemplate(query.format || 'csv');
+      setTabularDownloadHeaders(res, file);
+      res.send(file.buffer);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const previewImport = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      if (!req.file) {
+        sendFailure(res, mode, 'validation_error', 'Import file is required', 400);
+        return;
+      }
+
+      const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+      const mapping = parseMultipartJsonField<Record<string, unknown>>(req.body.mapping);
+      const preview = await importExportUseCase.previewImport(req.file, mapping, scope);
+      sendData(res, mode, preview);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const commitImport = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        sendFailure(res, mode, 'unauthorized', 'User not authenticated', 401);
+        return;
+      }
+
+      if (!req.file) {
+        sendFailure(res, mode, 'validation_error', 'Import file is required', 400);
+        return;
+      }
+
+      const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+      const mapping = parseMultipartJsonField<Record<string, unknown>>(req.body.mapping);
+      const result = await importExportUseCase.commitImport(req.file, mapping, userId, scope);
+      sendData(res, mode, result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   return {
     getAccounts,
     getAccountById,
@@ -167,5 +247,9 @@ export const createAccountsController = (
     createAccount,
     updateAccount,
     deleteAccount,
+    exportAccounts,
+    downloadImportTemplate,
+    previewImport,
+    commitImport,
   };
 };

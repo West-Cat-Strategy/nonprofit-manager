@@ -1,7 +1,10 @@
 import {
+  createExportJob,
   exportReport,
   generateReport,
+  getExportJob,
   getAvailableFields,
+  listExportJobs,
 } from './report.handlers';
 import { getOutcomesReport } from './outcomeReport.handlers';
 import {
@@ -18,6 +21,9 @@ export const createReportsController = () => {
     getOutcomesReport,
     getAvailableFields,
     exportReport,
+    createExportJob,
+    listExportJobs,
+    getExportJob,
     getTemplates,
     getTemplateById,
     createTemplate,

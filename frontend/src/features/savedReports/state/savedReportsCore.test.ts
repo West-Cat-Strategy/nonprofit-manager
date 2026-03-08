@@ -8,28 +8,41 @@ import reducer, {
   fetchSavedReports,
   updateSavedReport,
 } from './savedReportsCore';
+import type { SavedReport, SavedReportsListPage } from '../types/contracts';
 
-const reportA = {
+type ReducerAction = Parameters<typeof reducer>[1];
+
+const rejectedAction = (type: string, message?: string): ReducerAction =>
+  ({
+    type,
+    error: message ? { message } : {},
+  }) as ReducerAction;
+
+const reportA: SavedReport = {
   id: 'report-a',
   name: 'Report A',
   description: 'A',
   entity: 'accounts',
-  report_definition: { fields: ['name'] },
+  report_definition: {
+    name: 'Report A',
+    entity: 'accounts',
+    fields: ['name'],
+  },
   is_public: false,
   created_at: '2026-03-01T00:00:00.000Z',
   updated_at: '2026-03-01T00:00:00.000Z',
-} as any;
+};
 
 const reportB = {
   ...reportA,
   id: 'report-b',
   name: 'Report B',
-} as any;
+};
 
-const pageWithA = {
+const pageWithA: SavedReportsListPage = {
   items: [reportA],
   pagination: { page: 1, limit: 20, total: 1, total_pages: 1 },
-} as any;
+};
 
 describe('savedReportsCore reducer', () => {
   it('handles fetch lifecycles with explicit and fallback errors', () => {
@@ -42,32 +55,17 @@ describe('savedReportsCore reducer', () => {
     expect(state.reports).toHaveLength(1);
     expect(state.pagination.total).toBe(1);
 
-    state = reducer(
-      state,
-      fetchSavedReports.rejected(new Error('fetch all failed') as any, 'r2', undefined)
-    );
+    state = reducer(state, rejectedAction(fetchSavedReports.rejected.type, 'fetch all failed'));
     expect(state.error).toBe('fetch all failed');
 
-    state = reducer(
-      state,
-      {
-        type: fetchSavedReports.rejected.type,
-        error: {},
-      } as any
-    );
+    state = reducer(state, rejectedAction(fetchSavedReports.rejected.type));
     expect(state.error).toBe('Failed to fetch saved reports');
 
     state = reducer(state, fetchSavedReportById.pending('r3', 'report-a'));
     state = reducer(state, fetchSavedReportById.fulfilled(reportA, 'r3', 'report-a'));
     expect(state.currentSavedReport?.id).toBe('report-a');
 
-    state = reducer(
-      state,
-      {
-        type: fetchSavedReportById.rejected.type,
-        error: {},
-      } as any
-    );
+    state = reducer(state, rejectedAction(fetchSavedReportById.rejected.type));
     expect(state.error).toBe('Failed to fetch saved report');
   });
 
@@ -104,31 +102,13 @@ describe('savedReportsCore reducer', () => {
     state = reducer(state, deleteSavedReport.fulfilled('missing-report', 'r8', 'missing-report'));
     expect(state.currentSavedReport).toBeNull();
 
-    state = reducer(
-      state,
-      {
-        type: createSavedReport.rejected.type,
-        error: {},
-      } as any
-    );
+    state = reducer(state, rejectedAction(createSavedReport.rejected.type));
     expect(state.error).toBe('Failed to create saved report');
 
-    state = reducer(
-      state,
-      {
-        type: updateSavedReport.rejected.type,
-        error: {},
-      } as any
-    );
+    state = reducer(state, rejectedAction(updateSavedReport.rejected.type));
     expect(state.error).toBe('Failed to update saved report');
 
-    state = reducer(
-      state,
-      {
-        type: deleteSavedReport.rejected.type,
-        error: {},
-      } as any
-    );
+    state = reducer(state, rejectedAction(deleteSavedReport.rejected.type));
     expect(state.error).toBe('Failed to delete saved report');
   });
 
