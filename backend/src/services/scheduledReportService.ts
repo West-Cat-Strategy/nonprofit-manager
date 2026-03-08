@@ -648,8 +648,8 @@ export class ScheduledReportService {
       const generated = await this.reportService.generateReport(definition, {
         organizationId: report.organization_id,
       });
-      const fileBuffer = await this.reportService.exportReport(generated, report.format);
-      const fileName = `${savedReport.entity}_report_${new Date().toISOString().slice(0, 10)}.${report.format}`;
+      const file = await this.reportService.exportReport(generated, report.format);
+      const fileName = file.filename;
 
       let deliveryStatus: 'success' | 'failed' | 'skipped' = 'success';
       let deliveryError: string | undefined;
@@ -665,7 +665,7 @@ export class ScheduledReportService {
           attachments: [
             {
               filename: fileName,
-              content: fileBuffer,
+              content: file.buffer,
             },
           ],
         });

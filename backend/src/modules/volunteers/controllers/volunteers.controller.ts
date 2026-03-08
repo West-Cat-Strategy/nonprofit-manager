@@ -7,14 +7,18 @@ import type {
 } from '@app-types/volunteer';
 import type { DataScopeFilter } from '@app-types/dataScope';
 import type { AuthRequest } from '@middleware/auth';
+import { setTabularDownloadHeaders } from '@modules/shared/export/tabularExport';
+import { parseMultipartJsonField } from '@modules/shared/import/peopleImportParser';
 import { extractPagination, getBoolean, getString } from '@utils/queryHelpers';
 import { VolunteerCatalogUseCase } from '../usecases/volunteerCatalog.usecase';
+import { VolunteerImportExportUseCase } from '../usecases/volunteerImportExport.usecase';
 import { VolunteerLifecycleUseCase } from '../usecases/volunteerLifecycle.usecase';
 import { type ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
 
 export const createVolunteersController = (
   catalogUseCase: VolunteerCatalogUseCase,
   lifecycleUseCase: VolunteerLifecycleUseCase,
+  importExportUseCase: VolunteerImportExportUseCase,
   mode: ResponseMode
 ) => {
   const getVolunteers = async (
@@ -209,6 +213,106 @@ export const createVolunteersController = (
     }
   };
 
+  const exportVolunteers = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const organizationId = req.organizationId;
+      if (!organizationId) {
+        sendFailure(res, mode, 'bad_request', 'Organization context required', 400);
+        return;
+      }
+
+      const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+      const file = await importExportUseCase.exportVolunteers(req.body, organizationId, scope);
+      setTabularDownloadHeaders(res, file);
+      res.send(file.buffer);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const downloadImportTemplate = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const query = (req.validatedQuery ?? req.query) as { format?: 'csv' | 'xlsx' };
+      const file = await importExportUseCase.getImportTemplate(query.format || 'csv');
+      setTabularDownloadHeaders(res, file);
+      res.send(file.buffer);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const previewImport = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const organizationId = req.organizationId;
+      if (!organizationId) {
+        sendFailure(res, mode, 'bad_request', 'Organization context required', 400);
+        return;
+      }
+
+      if (!req.file) {
+        sendFailure(res, mode, 'validation_error', 'Import file is required', 400);
+        return;
+      }
+
+      const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+      const mapping = parseMultipartJsonField<Record<string, unknown>>(req.body.mapping);
+      const preview = await importExportUseCase.previewImport(req.file, mapping, organizationId, scope);
+      sendData(res, mode, preview);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const commitImport = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const organizationId = req.organizationId;
+      const userId = req.user?.id;
+      if (!organizationId) {
+        sendFailure(res, mode, 'bad_request', 'Organization context required', 400);
+        return;
+      }
+
+      if (!userId) {
+        sendFailure(res, mode, 'unauthorized', 'User not authenticated', 401);
+        return;
+      }
+
+      if (!req.file) {
+        sendFailure(res, mode, 'validation_error', 'Import file is required', 400);
+        return;
+      }
+
+      const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+      const mapping = parseMultipartJsonField<Record<string, unknown>>(req.body.mapping);
+      const result = await importExportUseCase.commitImport(
+        req.file,
+        mapping,
+        userId,
+        organizationId,
+        scope
+      );
+      sendData(res, mode, result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   return {
     getVolunteers,
     getVolunteerById,
@@ -219,5 +323,9 @@ export const createVolunteersController = (
     getVolunteerAssignments,
     createAssignment,
     updateAssignment,
+    exportVolunteers,
+    downloadImportTemplate,
+    previewImport,
+    commitImport,
   };
 };

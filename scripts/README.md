@@ -199,6 +199,20 @@ Enforces a no-regression baseline for direct SQL in controllers, with strict-zer
 node scripts/check-controller-sql-policy.ts
 ```
 
+#### `check-canonical-module-import-policy.ts` - Canonical Module Import Guardrail
+Blocks application code from importing module-owned publishing, reconciliation, and portal surfaces through legacy controller/service shim paths.
+
+```bash
+node scripts/check-canonical-module-import-policy.ts
+```
+
+#### `check-implementation-size-policy.ts` - Implementation Size Guardrail
+Uses `scripts/policies/implementation-size-baseline.json` to block new implementation files over 900 lines and prevent existing oversized files from growing.
+
+```bash
+node scripts/check-implementation-size-policy.ts
+```
+
 #### `check-auth-guard-policy.ts` - Auth Guard Usage Guardrail
 Blocks reintroduction of legacy `require*OrError` auth-guard helpers in controllers/modules.
 

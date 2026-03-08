@@ -65,6 +65,22 @@ const reportExportSchema = z.object({
   format: z.enum(['csv', 'xlsx']),
 });
 
+const reportExportJobCreateSchema = z.object({
+  definition: reportGenerateSchema,
+  format: z.enum(['csv', 'xlsx']),
+  savedReportId: uuidSchema.optional(),
+  scheduledReportId: uuidSchema.optional(),
+  idempotencyKey: z.string().trim().min(1).max(255).optional(),
+});
+
+const reportExportJobIdParamsSchema = z.object({
+  id: uuidSchema,
+});
+
+const reportExportJobListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+}).strict();
+
 const reportTemplateCreateSchema = z.object({
   name: z.string().min(1, 'Template name is required'),
   entity: entitySchema,
@@ -101,6 +117,12 @@ export const createReportsRoutes = (): Router => {
   router.get('/fields/:entity', validateParams(reportFieldsParamsSchema), controller.getAvailableFields);
 
   router.post('/export', validateBody(reportExportSchema), controller.exportReport);
+
+  router.post('/exports', validateBody(reportExportJobCreateSchema), controller.createExportJob);
+
+  router.get('/exports', validateQuery(reportExportJobListQuerySchema), controller.listExportJobs);
+
+  router.get('/exports/:id', validateParams(reportExportJobIdParamsSchema), controller.getExportJob);
 
   router.get('/templates', validateQuery(reportTemplateListQuerySchema), controller.getTemplates);
 

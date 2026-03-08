@@ -86,6 +86,10 @@ const siteAnalyticsQuerySchema = z.object({
   period: z.coerce.number().int().min(1).max(365).optional(),
 }).strict();
 
+const siteAnalyticsFunnelQuerySchema = z.object({
+  windowDays: z.coerce.number().int().min(1).max(365).optional(),
+}).strict();
+
 const siteConsoleQuerySchema = siteSearchQuerySchema;
 
 const siteConsoleOverviewQuerySchema = z
@@ -293,6 +297,14 @@ router.get(
   validateParams(siteIdParamsSchema),
   validateQuery(siteAnalyticsQuerySchema),
   publishingController.getSiteAnalyticsSummary
+);
+
+router.get(
+  '/:siteId/analytics/funnel',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  validateQuery(siteAnalyticsFunnelQuerySchema),
+  publishingController.getSiteAnalyticsFunnel
 );
 
 // Update a site

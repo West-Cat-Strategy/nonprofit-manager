@@ -1,5 +1,6 @@
 import type {
   CheckInOptions,
+  CheckInResult,
   EventCheckInSettings,
   CreateRegistrationDTO,
   EventRegistration,
@@ -21,11 +22,11 @@ import { EventRepository } from '../repositories/eventRepository';
 export class EventRegistrationUseCase {
   constructor(private readonly repository: EventRepository) {}
 
-  listByEvent(eventId: string, filters?: RegistrationFilters): Promise<unknown[]> {
+  listByEvent(eventId: string, filters?: RegistrationFilters): Promise<EventRegistration[]> {
     return this.repository.getEventRegistrations(eventId, filters);
   }
 
-  listByContact(contactId: string, scope?: DataScopeFilter): Promise<unknown[]> {
+  listByContact(contactId: string, scope?: DataScopeFilter): Promise<EventRegistration[]> {
     return this.repository.getContactRegistrations(contactId, scope);
   }
 
@@ -41,18 +42,15 @@ export class EventRegistrationUseCase {
     return this.repository.getRegistrationByTokenGlobal(token, scope);
   }
 
-  register(data: CreateRegistrationDTO): Promise<unknown> {
+  register(data: CreateRegistrationDTO): Promise<EventRegistration> {
     return this.repository.registerContact(data);
   }
 
-  update(registrationId: string, data: UpdateRegistrationDTO): Promise<unknown | null> {
+  update(registrationId: string, data: UpdateRegistrationDTO): Promise<EventRegistration> {
     return this.repository.updateRegistration(registrationId, data);
   }
 
-  checkIn(
-    registrationId: string,
-    options?: CheckInOptions
-  ): Promise<{ success: boolean; message: string; registration?: unknown }> {
+  checkIn(registrationId: string, options?: CheckInOptions): Promise<CheckInResult> {
     return this.repository.checkInAttendee(registrationId, options);
   }
 

@@ -6,7 +6,7 @@ import {
   getStaffThread,
   listCaseThreads,
   markStaffThreadRead,
-} from '@services/portalMessagingService';
+} from '@modules/portal/services/portalMessagingService';
 
 const tryHandlePortalRequestError = (error: unknown, res: Response): boolean => {
   const message = error instanceof Error ? error.message : '';

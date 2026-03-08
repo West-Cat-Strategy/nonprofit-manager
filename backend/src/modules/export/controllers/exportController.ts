@@ -7,8 +7,8 @@ import { Response, NextFunction } from 'express';
 import { services } from '@container/services';
 import { AuthRequest } from '@middleware/auth';
 import type { ExportFormat } from '@services/domains/operations';
-import { logger } from '@config/logger';
 import type { DataScopeFilter } from '@app-types/dataScope';
+import { setTabularDownloadHeaders } from '@modules/shared/export/tabularExport';
 import { forbidden } from '@utils/responseHelpers';
 
 const exportService = services.export;
@@ -52,21 +52,13 @@ export const exportAnalyticsSummary = async (
     // Get analytics data
     const summary = await analyticsService.getAnalyticsSummary(filters);
 
-    // Export to file
-    const filepath = await exportService.exportAnalyticsSummary(summary, {
+    const file = await exportService.exportAnalyticsSummary(summary, {
       format,
       filename: req.body.filename,
       sheetName: 'Analytics Summary',
     });
-
-    // Send file
-    res.download(filepath, (err) => {
-      if (err) {
-        logger.error('Error sending export file', { error: err, filepath });
-      }
-      // Clean up file after sending
-      setTimeout(() => exportService.deleteExport(filepath), 5000);
-    });
+    setTabularDownloadHeaders(res, file);
+    res.send(file.buffer);
   } catch (error) {
     next(error);
   }
@@ -148,20 +140,13 @@ export const exportDonations = async (
 
     const result = await services.pool.query(query, params);
 
-    // Export to file
-    const filepath = await exportService.exportDonationAnalytics(result.rows, {
+    const file = await exportService.exportDonationAnalytics(result.rows, {
       format,
       filename: req.body.filename,
       sheetName: 'Donations',
     });
-
-    // Send file
-    res.download(filepath, (err) => {
-      if (err) {
-        logger.error('Error sending export file', { error: err, filepath });
-      }
-      setTimeout(() => exportService.deleteExport(filepath), 5000);
-    });
+    setTabularDownloadHeaders(res, file);
+    res.send(file.buffer);
   } catch (error) {
     next(error);
   }
@@ -230,20 +215,13 @@ export const exportVolunteerHours = async (
 
     const result = await services.pool.query(query, params);
 
-    // Export to file
-    const filepath = await exportService.exportVolunteerHours(result.rows, {
+    const file = await exportService.exportVolunteerHours(result.rows, {
       format,
       filename: req.body.filename,
       sheetName: 'Volunteer Hours',
     });
-
-    // Send file
-    res.download(filepath, (err) => {
-      if (err) {
-        logger.error('Error sending export file', { error: err, filepath });
-      }
-      setTimeout(() => exportService.deleteExport(filepath), 5000);
-    });
+    setTabularDownloadHeaders(res, file);
+    res.send(file.buffer);
   } catch (error) {
     next(error);
   }
@@ -314,20 +292,13 @@ export const exportEvents = async (
 
     const result = await services.pool.query(query, params);
 
-    // Export to file
-    const filepath = await exportService.exportEventAttendance(result.rows, {
+    const file = await exportService.exportEventAttendance(result.rows, {
       format,
       filename: req.body.filename,
       sheetName: 'Events',
     });
-
-    // Send file
-    res.download(filepath, (err) => {
-      if (err) {
-        logger.error('Error sending export file', { error: err, filepath });
-      }
-      setTimeout(() => exportService.deleteExport(filepath), 5000);
-    });
+    setTabularDownloadHeaders(res, file);
+    res.send(file.buffer);
   } catch (error) {
     next(error);
   }
@@ -455,18 +426,12 @@ export const exportComprehensive = async (
       { name: 'Events', data: events.rows },
     ];
 
-    const filepath = await exportService.exportMultiSheet(sheets, {
+    const file = await exportService.exportMultiSheet(sheets, {
       format,
       filename: req.body.filename || `comprehensive-report-${Date.now()}`,
     });
-
-    // Send file
-    res.download(filepath, (err) => {
-      if (err) {
-        logger.error('Error sending export file', { error: err, filepath });
-      }
-      setTimeout(() => exportService.deleteExport(filepath), 5000);
-    });
+    setTabularDownloadHeaders(res, file);
+    res.send(file.buffer);
   } catch (error) {
     next(error);
   }

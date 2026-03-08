@@ -2,8 +2,11 @@ import { NextFunction, Response } from 'express';
 import { AuthRequest } from '@middleware/auth';
 import type { ContactFilters, ContactRole, CreateContactDTO, PaginationParams, UpdateContactDTO } from '@app-types/contact';
 import type { DataScopeFilter } from '@app-types/dataScope';
+import { setTabularDownloadHeaders } from '@modules/shared/export/tabularExport';
+import { parseMultipartJsonField } from '@modules/shared/import/peopleImportParser';
 import { extractPagination, getBoolean, getString } from '@utils/queryHelpers';
 import { ContactDirectoryUseCase } from '../usecases/contactDirectory.usecase';
+import { ContactImportExportUseCase } from '../usecases/contactImportExport.usecase';
 import { ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
 
 const hiddenRoleNames = new Set(['Executive Director', 'Committee Member']);
@@ -47,6 +50,7 @@ const getTagsFilter = (value: unknown): string[] | undefined => {
 
 export const createContactDirectoryController = (
   useCase: ContactDirectoryUseCase,
+  importExportUseCase: ContactImportExportUseCase,
   mode: ResponseMode
 ) => {
   const getContacts = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
@@ -224,6 +228,91 @@ export const createContactDirectoryController = (
     }
   };
 
+  const exportContacts = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const organizationId = req.organizationId;
+      if (!organizationId) {
+        sendFailure(res, mode, 'BAD_REQUEST', 'Organization context required', 400);
+        return;
+      }
+
+      const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+      const file = await importExportUseCase.exportContacts(req.body, organizationId, scope);
+      setTabularDownloadHeaders(res, file);
+      res.send(file.buffer);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const downloadImportTemplate = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const query = (req.validatedQuery ?? req.query) as { format?: 'csv' | 'xlsx' };
+      const file = await importExportUseCase.getImportTemplate(query.format || 'csv');
+      setTabularDownloadHeaders(res, file);
+      res.send(file.buffer);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const previewImport = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const organizationId = req.organizationId;
+      if (!organizationId) {
+        sendFailure(res, mode, 'BAD_REQUEST', 'Organization context required', 400);
+        return;
+      }
+
+      if (!req.file) {
+        sendFailure(res, mode, 'VALIDATION_ERROR', 'Import file is required', 400);
+        return;
+      }
+
+      const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+      const mapping = parseMultipartJsonField<Record<string, unknown>>(req.body.mapping);
+      const preview = await importExportUseCase.previewImport(req.file, mapping, organizationId, scope);
+      sendData(res, mode, preview);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const commitImport = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const organizationId = req.organizationId;
+      const userId = req.user?.id;
+
+      if (!organizationId) {
+        sendFailure(res, mode, 'BAD_REQUEST', 'Organization context required', 400);
+        return;
+      }
+
+      if (!userId) {
+        sendFailure(res, mode, 'AUTH_ERROR', 'Authentication required', 401);
+        return;
+      }
+
+      if (!req.file) {
+        sendFailure(res, mode, 'VALIDATION_ERROR', 'Import file is required', 400);
+        return;
+      }
+
+      const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+      const mapping = parseMultipartJsonField<Record<string, unknown>>(req.body.mapping);
+      const result = await importExportUseCase.commitImport(
+        req.file,
+        mapping,
+        userId,
+        organizationId,
+        scope
+      );
+      sendData(res, mode, result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   return {
     getContacts,
     lookupContacts,
@@ -234,5 +323,9 @@ export const createContactDirectoryController = (
     createContact,
     updateContact,
     deleteContact,
+    exportContacts,
+    downloadImportTemplate,
+    previewImport,
+    commitImport,
   };
 };

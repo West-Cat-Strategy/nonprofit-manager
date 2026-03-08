@@ -1,13 +1,16 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import pool from '@config/database';
 import { authenticate } from '@middleware/domains/auth';
 import { loadDataScope } from '@middleware/domains/data';
+import { documentUpload, handleMulterError } from '@middleware/domains/platform';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import { uuidSchema } from '@validations/shared';
 import { createAccountsController } from '../controllers/accounts.controller';
 import { type ResponseMode } from '../mappers/responseMode';
 import { AccountRepository } from '../repositories/accountRepository';
 import { AccountCatalogUseCase } from '../usecases/accountCatalog.usecase';
+import { AccountImportExportUseCase } from '../usecases/accountImportExport.usecase';
 import { AccountLifecycleUseCase } from '../usecases/accountLifecycle.usecase';
 
 const accountTypeSchema = z.enum(['organization', 'individual']);
@@ -71,6 +74,25 @@ const updateAccountSchema = z.object({
   is_active: z.coerce.boolean().optional(),
 });
 
+const accountExportSchema = z.object({
+  format: z.enum(['csv', 'xlsx']),
+  ids: z.array(uuidSchema).optional(),
+  columns: z.array(z.string().trim().min(1)).optional(),
+  sort_by: z.string().optional(),
+  sort_order: sortOrderSchema.optional(),
+  search: z.string().optional(),
+  account_type: accountTypeSchema.optional(),
+  category: accountCategorySchema.optional(),
+  is_active: z.coerce.boolean().optional(),
+}).strict();
+
+const accountImportTemplateQuerySchema = z.object({
+  format: z
+    .enum(['csv', 'xlsx', 'xslx'])
+    .transform((value) => (value === 'xslx' ? 'xlsx' : value))
+    .optional(),
+}).strict();
+
 export const createAccountsRoutes = (mode: ResponseMode = 'v2'): Router => {
   const router = Router();
 
@@ -78,6 +100,7 @@ export const createAccountsRoutes = (mode: ResponseMode = 'v2'): Router => {
   const controller = createAccountsController(
     new AccountCatalogUseCase(repository),
     new AccountLifecycleUseCase(repository),
+    new AccountImportExportUseCase(pool),
     mode
   );
 
@@ -85,6 +108,24 @@ export const createAccountsRoutes = (mode: ResponseMode = 'v2'): Router => {
   router.use(loadDataScope('accounts'));
 
   router.get('/', validateQuery(accountQuerySchema), controller.getAccounts);
+  router.post('/export', validateBody(accountExportSchema), controller.exportAccounts);
+  router.get(
+    '/import/template',
+    validateQuery(accountImportTemplateQuerySchema),
+    controller.downloadImportTemplate
+  );
+  router.post(
+    '/import/preview',
+    documentUpload.single('file'),
+    handleMulterError,
+    controller.previewImport
+  );
+  router.post(
+    '/import/commit',
+    documentUpload.single('file'),
+    handleMulterError,
+    controller.commitImport
+  );
   router.get('/:id', validateParams(accountIdParamsSchema), controller.getAccountById);
   router.get('/:id/contacts', validateParams(accountIdParamsSchema), controller.getAccountContacts);
   router.post('/', validateBody(createAccountSchema), controller.createAccount);

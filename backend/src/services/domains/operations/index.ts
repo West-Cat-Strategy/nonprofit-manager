@@ -6,5 +6,5 @@ export type { ExportFormat } from '@services/exportService';
 export { ExportService } from '@services/exportService';
 export { ReportService } from '@services/reportService';
 export { SavedReportService } from '@services/savedReportService';
-export * as reconciliationService from '@services/reconciliationService';
+export * as reconciliationService from '@modules/reconciliation/services/reconciliationService';
 export * as stripeService from '@services/stripeService';

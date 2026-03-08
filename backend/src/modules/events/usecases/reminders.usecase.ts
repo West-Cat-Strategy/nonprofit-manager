@@ -1,5 +1,6 @@
 import type {
   CreateEventReminderAutomationDTO,
+  EventReminderSummary,
   SendEventRemindersDTO,
   SyncEventReminderAutomationsDTO,
   UpdateEventReminderAutomationDTO,
@@ -9,7 +10,7 @@ import { EventRepository } from '../repositories/eventRepository';
 export class EventRemindersUseCase {
   constructor(private readonly repository: EventRepository) {}
 
-  send(eventId: string, data: SendEventRemindersDTO, sentBy: string | null): Promise<unknown> {
+  send(eventId: string, data: SendEventRemindersDTO, sentBy: string | null): Promise<EventReminderSummary> {
     return this.repository.sendEventReminders(eventId, data, {
       triggerType: 'manual',
       sentBy,

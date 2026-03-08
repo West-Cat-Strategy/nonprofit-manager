@@ -86,6 +86,7 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/065_event_public_checkin_settings.sql
 \i /migrations/066_website_builder_v2_org_scope.sql
 \i /migrations/067_website_site_console_settings.sql
+\i /migrations/069_public_submission_export_jobs_activity_conversion_events.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',
@@ -176,7 +177,8 @@ VALUES
     ('064_contacts_phn_encrypted.sql', '064', '064_contacts_phn_encrypted.sql'),
     ('065_event_public_checkin_settings.sql', '065', '065_event_public_checkin_settings.sql'),
     ('066_website_builder_v2_org_scope.sql', '066', '066_website_builder_v2_org_scope.sql'),
-    ('067_website_site_console_settings.sql', '067', '067_website_site_console_settings.sql')
+    ('067_website_site_console_settings.sql', '067', '067_website_site_console_settings.sql'),
+    ('069_public_submission_export_jobs_activity_conversion_events.sql', '069', '069_public_submission_export_jobs_activity_conversion_events.sql')
 ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;

@@ -273,7 +273,11 @@ export class PublicReportSnapshotService {
     const token = this.generateToken();
     const csv = await this.reportService.exportReport(generated, 'csv');
     const xlsx = await this.reportService.exportReport(generated, 'xlsx');
-    const files = await this.writeSnapshotFiles({ snapshotId, csv, xlsx });
+    const files = await this.writeSnapshotFiles({
+      snapshotId,
+      csv: csv.buffer,
+      xlsx: xlsx.buffer,
+    });
 
     const expiresDate = getExpiryFromInput(args.expiresAt);
     const expiresIso = expiresDate?.toISOString() ?? null;

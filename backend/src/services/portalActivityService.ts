@@ -1,5 +1,6 @@
 import pool from '@config/database';
 import { logger } from '@config/logger';
+import { activityEventService } from '@services/activityEventService';
 
 export interface PortalActivityEntry {
   id: string;
@@ -32,6 +33,37 @@ export const logPortalActivity = async (input: LogPortalActivityInput): Promise<
         input.userAgent || null,
       ]
     );
+
+    const portalUser = await pool.query<{
+      contact_id: string | null;
+      display_name: string | null;
+    }>(
+      `SELECT
+         pu.contact_id,
+         NULLIF(TRIM(CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, ''))), '') AS display_name
+       FROM portal_users pu
+       LEFT JOIN contacts c ON c.id = pu.contact_id
+       WHERE pu.id = $1
+       LIMIT 1`,
+      [input.portalUserId]
+    );
+
+    const contactId = portalUser.rows[0]?.contact_id;
+    if (contactId) {
+      await activityEventService.recordEvent({
+        type: 'portal_action',
+        title: 'Portal activity',
+        description: input.details || input.action,
+        userName: portalUser.rows[0]?.display_name || null,
+        entityType: 'contact',
+        entityId: contactId,
+        metadata: {
+          action: input.action,
+          portalUserId: input.portalUserId,
+          userAgent: input.userAgent || null,
+        },
+      });
+    }
   } catch (error) {
     logger.warn('Failed to log portal activity', { error, portalUserId: input.portalUserId, action: input.action });
   }

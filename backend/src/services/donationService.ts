@@ -6,6 +6,7 @@
 import { Pool } from 'pg';
 import { randomInt } from 'crypto';
 import pool from '@config/database';
+import { logger } from '@config/logger';
 import {
   Donation,
   CreateDonationDTO,
@@ -17,6 +18,7 @@ import {
 } from '@app-types/donation';
 import { resolveSort } from '@utils/queryHelpers';
 import type { DataScopeFilter } from '@app-types/dataScope';
+import { activityEventService } from '@services/activityEventService';
 
 type QueryValue = string | number | boolean | Date | null | string[];
 
@@ -399,7 +401,35 @@ export class DonationService {
           userId,
         ]);
 
-        return result.rows[0];
+        const donation = result.rows[0];
+
+        try {
+          await activityEventService.recordEvent({
+            organizationId: account_id || null,
+            type: 'donation_received',
+            title: 'Donation received',
+            description: `Donation of $${Number(amount).toFixed(2)}`,
+            userId,
+            entityType: 'donation',
+            entityId: donation.donation_id,
+            relatedEntityType: contact_id ? 'contact' : undefined,
+            relatedEntityId: contact_id || undefined,
+            metadata: {
+              amount,
+              currency,
+              paymentStatus: payment_status,
+              paymentMethod: payment_method || null,
+              campaignName: campaign_name || null,
+            },
+          });
+        } catch (activityError) {
+          logger.warn('Failed to record donation activity event', {
+            activityError,
+            donationId: donation.donation_id,
+          });
+        }
+
+        return donation;
       } catch (error) {
         if (!this.isDonationNumberCollision(error) || attempt === maxAttempts) {
           throw error;

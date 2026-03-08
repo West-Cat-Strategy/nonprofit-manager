@@ -46,6 +46,7 @@ export type {
   WebsiteSiteSettings,
   WebsiteSiteSummary,
   WebsiteConversionMetrics,
+  WebsiteConversionFunnel,
   CustomDomainConfig,
   DomainVerificationResult,
   DnsRecord,
@@ -171,6 +172,10 @@ export class PublishingService {
 
   async getConversionMetrics(...args: Parameters<SiteOperationsService['getConversionMetrics']>) {
     return this.siteOperations.getConversionMetrics(...args);
+  }
+
+  async getConversionFunnel(...args: Parameters<SiteOperationsService['getConversionFunnel']>) {
+    return this.siteOperations.getConversionFunnel(...args);
   }
 
   // Version Methods

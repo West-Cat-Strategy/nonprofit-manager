@@ -12,7 +12,7 @@ import {
   listStaffThreads,
   markStaffThreadRead,
   updateThread,
-} from '@services/portalMessagingService';
+} from '@modules/portal/services/portalMessagingService';
 import {
   checkInAppointmentByStaff,
   createAppointmentSlot,
@@ -22,11 +22,11 @@ import {
   listAdminAppointmentSlots,
   updateAppointmentSlot,
   updateAppointmentStatusByStaff,
-} from '@services/portalAppointmentSlotService';
+} from '../services/portalAppointmentSlotService';
 import {
   listAppointmentReminders,
   sendAppointmentReminders,
-} from '@services/appointmentReminderService';
+} from '../services/appointmentReminderService';
 import {
   isPortalRealtimeEnabled,
   openPortalRealtimeStream,
