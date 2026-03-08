@@ -127,6 +127,10 @@ compose_flags_for_mode() {
     files_raw="$(compose_files_for_mode "$mode")" || return 1
 
     local flags=""
+    if [ -n "${COMPOSE_ENV_FILE:-}" ]; then
+        flags="$flags --env-file $COMPOSE_ENV_FILE"
+    fi
+
     if [ -n "$project" ]; then
         flags="$flags -p $project"
     fi
@@ -148,6 +152,10 @@ docker_compose_mode() {
     files_raw="$(compose_files_for_mode "$mode")" || return 1
 
     local -a compose_args=()
+    if [ -n "${COMPOSE_ENV_FILE:-}" ]; then
+        compose_args+=("--env-file" "$COMPOSE_ENV_FILE")
+    fi
+
     if [ -n "$project" ]; then
         compose_args+=("-p" "$project")
     fi
