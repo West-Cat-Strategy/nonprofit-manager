@@ -5,7 +5,7 @@
  */
 
 import { lazy, Suspense, useState, useEffect, useRef, type KeyboardEvent } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '../../../contexts/useToast';
 import { useApiError } from '../../../hooks/useApiError';
 import { useUnsavedChangesGuard } from '../../../hooks/useUnsavedChangesGuard';
@@ -16,6 +16,12 @@ import useConfirmDialog from '../../../hooks/useConfirmDialog';
 import AdminPanelLayout from '../components/AdminPanelLayout';
 import AdminPanelNav from '../components/AdminPanelNav';
 import AdminQuickActionsBar from '../components/AdminQuickActionsBar';
+import {
+  getAdminSettingsPath,
+  getPortalAdminPath,
+  parseAdminSettingsSection,
+  type AdminSettingsSection,
+} from '../adminRoutePaths';
 import { adminSettingsTabs, defaultPermissions } from './adminSettings/constants';
 import UserSecurityModal from './adminSettings/components/UserSecurityModal';
 import { useOrganizationSettings } from './adminSettings/hooks/useOrganizationSettings';
@@ -23,21 +29,6 @@ import { useUsersSettings } from './adminSettings/hooks/useUsersSettings';
 import { useRolesSettings } from './adminSettings/hooks/useRolesSettings';
 
 const ADMIN_SETTINGS_MODE_KEY = 'admin_settings_mode_v1';
-const ADMIN_SETTINGS_SECTION_KEY = 'admin_settings_section_v1';
-type AdminSettingsSection = (typeof adminSettingsTabs)[number]['id'];
-const adminSettingsSectionSet = new Set<AdminSettingsSection>(adminSettingsTabs.map((tab) => tab.id));
-
-const parseAdminSettingsSection = (
-  value: string | null | undefined
-): AdminSettingsSection | null => {
-  if (!value) {
-    return null;
-  }
-
-  return adminSettingsSectionSet.has(value as AdminSettingsSection)
-    ? (value as AdminSettingsSection)
-    : null;
-};
 
 const OrganizationSection = lazy(() => import('./adminSettings/sections/OrganizationSection'));
 const BrandingSection = lazy(() => import('./adminSettings/sections/BrandingSection'));
@@ -62,6 +53,7 @@ const OutcomeDefinitionsSection = lazy(
 export default function AdminSettings() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { section: sectionParam } = useParams<{ section?: string }>();
   const { showSuccess } = useToast();
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const { error: formError, setFromError: setFormErrorFromError, clear: clearFormError } = useApiError();
@@ -70,20 +62,21 @@ export default function AdminSettings() {
     (typeof window !== 'undefined'
       ? (window.localStorage.getItem(ADMIN_SETTINGS_MODE_KEY) as 'basic' | 'advanced' | null)
       : null) || 'basic';
-  const persistedSection =
-    (typeof window !== 'undefined' ? window.localStorage.getItem(ADMIN_SETTINGS_SECTION_KEY) : null) ||
-    'dashboard';
-  const sectionFromQuery =
-    typeof window !== 'undefined'
-      ? new URLSearchParams(window.location.search).get('section')
-      : null;
-  const initialSection =
-    parseAdminSettingsSection(sectionFromQuery) ??
-    parseAdminSettingsSection(persistedSection) ??
-    'dashboard';
+  const activeSection = parseAdminSettingsSection(sectionParam) ?? 'dashboard';
+  const setActiveSection = (
+    nextSection: AdminSettingsSection,
+    options?: { replace?: boolean }
+  ) => {
+    navigate(
+      {
+        pathname: getAdminSettingsPath(nextSection),
+        search: location.search,
+      },
+      options
+    );
+  };
 
   // State
-  const [activeSection, setActiveSection] = useState<AdminSettingsSection>(initialSection);
   const [isLoading, setIsLoading] = useState(true);
   const {
     showAdvancedSettings,
@@ -201,58 +194,11 @@ export default function AdminSettings() {
   }, [activeSection, setShowAdvancedSettings, showAdvancedSettings]);
 
   useEffect(() => {
-    if (location.pathname !== '/settings/admin') {
-      return;
-    }
-
-    const params = new URLSearchParams(location.search);
-    const section = params.get('section');
-
-    if (section === 'portal') {
-      navigate('/settings/admin/portal/access', { replace: true });
-      return;
-    }
-
-    if (!section) {
-      return;
-    }
-
-    const parsedSection = parseAdminSettingsSection(section);
-    if (!parsedSection) {
-      params.set('section', 'dashboard');
-      navigate({ pathname: '/settings/admin', search: `?${params.toString()}` }, { replace: true });
-      return;
-    }
-
-    if (parsedSection !== activeSection) {
-      setActiveSection(parsedSection);
-    }
-  }, [activeSection, location.pathname, location.search, navigate]);
-
-  useEffect(() => {
     window.localStorage.setItem(
       ADMIN_SETTINGS_MODE_KEY,
       showAdvancedSettings ? 'advanced' : 'basic'
     );
   }, [showAdvancedSettings]);
-
-  useEffect(() => {
-    window.localStorage.setItem(ADMIN_SETTINGS_SECTION_KEY, activeSection);
-  }, [activeSection]);
-
-  useEffect(() => {
-    if (location.pathname !== '/settings/admin') {
-      return;
-    }
-
-    const params = new URLSearchParams(location.search);
-    if (params.get('section') === activeSection) {
-      return;
-    }
-
-    params.set('section', activeSection);
-    navigate({ pathname: '/settings/admin', search: `?${params.toString()}` }, { replace: true });
-  }, [activeSection, location.pathname, location.search, navigate]);
 
   // ============================================================================
   // Loading State
@@ -382,12 +328,12 @@ export default function AdminSettings() {
               Portal tooling now runs in dedicated pages for access, users, conversations, appointments, and slots.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Link to="/settings/admin/portal/access" className="px-3 py-2 text-sm bg-app-surface-muted rounded hover:bg-app-hover">Access</Link>
-            <Link to="/settings/admin/portal/users" className="px-3 py-2 text-sm bg-app-surface-muted rounded hover:bg-app-hover">Users</Link>
-            <Link to="/settings/admin/portal/conversations" className="px-3 py-2 text-sm bg-app-surface-muted rounded hover:bg-app-hover">Conversations</Link>
-            <Link to="/settings/admin/portal/appointments" className="px-3 py-2 text-sm bg-app-surface-muted rounded hover:bg-app-hover">Appointments</Link>
-            <Link to="/settings/admin/portal/slots" className="px-3 py-2 text-sm bg-app-surface-muted rounded hover:bg-app-hover">Slots</Link>
+        <div className="flex flex-wrap gap-2">
+            <Link to={getPortalAdminPath('access')} className="px-3 py-2 text-sm bg-app-surface-muted rounded hover:bg-app-hover">Access</Link>
+            <Link to={getPortalAdminPath('users')} className="px-3 py-2 text-sm bg-app-surface-muted rounded hover:bg-app-hover">Users</Link>
+            <Link to={getPortalAdminPath('conversations')} className="px-3 py-2 text-sm bg-app-surface-muted rounded hover:bg-app-hover">Conversations</Link>
+            <Link to={getPortalAdminPath('appointments')} className="px-3 py-2 text-sm bg-app-surface-muted rounded hover:bg-app-hover">Appointments</Link>
+            <Link to={getPortalAdminPath('slots')} className="px-3 py-2 text-sm bg-app-surface-muted rounded hover:bg-app-hover">Slots</Link>
           </div>
         </div>
       </div>

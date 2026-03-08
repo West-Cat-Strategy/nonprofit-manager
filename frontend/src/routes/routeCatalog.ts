@@ -32,6 +32,19 @@ export type StaffNavGroup = 'primary' | 'secondary' | 'utility';
 export type AdminNavigationMode = 'settings' | 'portal';
 export type FeatureFlagValues = Partial<Record<string, string | boolean | undefined>>;
 
+export interface RouteCatalogAlias {
+  path: string;
+  query?: Record<string, string>;
+  exactQuery?: boolean;
+}
+
+export interface RouteCatalogAdminNavConfig {
+  mode: AdminNavigationMode;
+  order: number;
+  label?: string;
+  matchPrefixes?: string[];
+}
+
 export interface RouteCatalogEntry {
   id: string;
   title: string;
@@ -44,6 +57,7 @@ export interface RouteCatalogEntry {
   featureStatus?: FeatureAccessStatus;
   featureFlagEnv?: string;
   auditScore?: UiAuditScore;
+  aliases?: readonly (string | RouteCatalogAlias)[];
   primaryAction?: {
     label: string;
     href: string;
@@ -61,12 +75,7 @@ export interface RouteCatalogEntry {
     order: number;
     label?: string;
   };
-  adminNav?: {
-    mode: AdminNavigationMode;
-    order: number;
-    label?: string;
-    matchPrefixes?: string[];
-  };
+  adminNav?: RouteCatalogAdminNavConfig | readonly RouteCatalogAdminNavConfig[];
 }
 
 type RouteCatalogSeed = Omit<RouteCatalogEntry, 'href' | 'featureStatus' | 'auditScore'> &
@@ -835,78 +844,75 @@ export const routeCatalog: readonly RouteCatalogEntry[] = [
   adminRoute({
     id: 'admin-settings',
     title: 'Admin Settings',
-    path: '/settings/admin',
-    href: '/settings/admin?section=dashboard',
-    adminNav: { mode: 'settings', order: 10, label: 'Admin Hub' },
+    path: '/settings/admin/dashboard',
+    aliases: [
+      { path: '/settings/admin', exactQuery: true },
+      { path: '/settings/admin', query: { section: 'dashboard' } },
+    ],
+    adminNav: [
+      { mode: 'settings', order: 10, label: 'Admin Settings' },
+      { mode: 'portal', order: 10, label: 'Admin Settings' },
+    ],
   }),
   adminRoute({
     id: 'admin-settings-organization',
     title: 'Organization',
-    path: '/settings/admin',
-    href: '/settings/admin?section=organization',
-    adminNav: { mode: 'settings', order: 20, label: 'Organization' },
+    path: '/settings/admin/organization',
+    aliases: [
+      '/settings/organization',
+      { path: '/settings/admin', query: { section: 'organization' } },
+    ],
   }),
   adminRoute({
     id: 'admin-settings-branding',
     title: 'Branding',
-    path: '/settings/admin',
-    href: '/settings/admin?section=branding',
-    adminNav: { mode: 'settings', order: 30, label: 'Branding' },
+    path: '/settings/admin/branding',
+    aliases: [{ path: '/settings/admin', query: { section: 'branding' } }],
   }),
   adminRoute({
     id: 'admin-settings-users',
     title: 'Users & Security',
-    path: '/settings/admin',
-    href: '/settings/admin?section=users',
-    adminNav: { mode: 'settings', order: 40, label: 'Users & Security' },
+    path: '/settings/admin/users',
+    aliases: [{ path: '/settings/admin', query: { section: 'users' } }],
   }),
   adminRoute({
     id: 'admin-settings-email',
     title: 'Email Settings',
-    path: '/settings/admin',
-    href: '/settings/admin?section=email',
-    adminNav: { mode: 'settings', order: 50, label: 'Email Settings' },
+    path: '/settings/admin/email',
+    aliases: [{ path: '/settings/admin', query: { section: 'email' } }],
   }),
   adminRoute({
     id: 'admin-settings-messaging',
     title: 'Messaging Settings',
-    path: '/settings/admin',
-    href: '/settings/admin?section=messaging',
-    adminNav: { mode: 'settings', order: 60, label: 'Messaging' },
+    path: '/settings/admin/messaging',
+    aliases: [{ path: '/settings/admin', query: { section: 'messaging' } }],
   }),
   adminRoute({
     id: 'admin-settings-outcomes',
     title: 'Outcome Definitions',
-    path: '/settings/admin',
-    href: '/settings/admin?section=outcomes',
-    adminNav: { mode: 'settings', order: 70, label: 'Outcomes' },
+    path: '/settings/admin/outcomes',
+    aliases: [{ path: '/settings/admin', query: { section: 'outcomes' } }],
   }),
   adminRoute({
     id: 'admin-settings-roles',
     title: 'Roles & Permissions',
-    path: '/settings/admin',
-    href: '/settings/admin?section=roles',
-    adminNav: { mode: 'settings', order: 80, label: 'Roles & Permissions' },
+    path: '/settings/admin/roles',
+    aliases: [{ path: '/settings/admin', query: { section: 'roles' } }],
   }),
   adminRoute({
     id: 'admin-settings-audit-logs',
     title: 'Audit Logs',
-    path: '/settings/admin',
-    href: '/settings/admin?section=audit_logs',
-    adminNav: { mode: 'settings', order: 90, label: 'Audit Logs' },
+    path: '/settings/admin/audit_logs',
+    aliases: [
+      '/admin/audit-logs',
+      { path: '/settings/admin', query: { section: 'audit_logs' } },
+    ],
   }),
   adminRoute({
     id: 'admin-settings-other',
     title: 'Other Settings',
-    path: '/settings/admin',
-    href: '/settings/admin?section=other',
-    adminNav: { mode: 'settings', order: 100, label: 'Other Settings' },
-  }),
-  adminRoute({
-    id: 'portal-admin-access-link',
-    title: 'Portal Ops',
-    path: '/settings/admin/portal/access',
-    adminNav: { mode: 'settings', order: 110, label: 'Portal Ops', matchPrefixes: ['/settings/admin/portal'] },
+    path: '/settings/admin/other',
+    aliases: [{ path: '/settings/admin', query: { section: 'other' } }],
   }),
   settingsRoute({
     id: 'api-settings',
@@ -932,26 +938,28 @@ export const routeCatalog: readonly RouteCatalogEntry[] = [
     id: 'email-marketing',
     title: 'Email Marketing',
     path: '/settings/email-marketing',
+    aliases: ['/email-marketing'],
     adminNav: { mode: 'settings', order: 150, label: 'Email Marketing' },
     featureStatus: 'available',
-  }),
-  adminRoute({
-    id: 'portal-admin-root',
-    title: 'Portal Ops',
-    path: '/settings/admin/portal',
-  }),
-  adminRoute({
-    id: 'portal-admin-hub',
-    title: 'Admin Hub',
-    path: '/settings/admin',
-    href: '/settings/admin?section=dashboard',
-    adminNav: { mode: 'portal', order: 10, label: 'Admin Hub' },
   }),
   adminRoute({
     id: 'portal-admin-access',
     title: 'Portal Access',
     path: '/settings/admin/portal/access',
-    adminNav: { mode: 'portal', order: 20, label: 'Portal Access' },
+    aliases: ['/settings/admin/portal'],
+    adminNav: [
+      {
+        mode: 'settings',
+        order: 110,
+        label: 'Portal Ops',
+        matchPrefixes: ['/settings/admin/portal'],
+      },
+      {
+        mode: 'portal',
+        order: 20,
+        label: 'Access',
+      },
+    ],
   }),
   adminRoute({
     id: 'portal-admin-users',
@@ -1074,8 +1082,112 @@ export function normalizeRouteLocation(value: string): string {
   }
 }
 
+type ParsedRouteLocation = {
+  normalized: string;
+  pathname: string;
+  searchParams: URLSearchParams;
+};
+
+type NormalizedRouteAlias = {
+  path: string;
+  query: Record<string, string>;
+  exactQuery: boolean;
+};
+
+export type ResolvedAdminNavigationEntry = RouteCatalogEntry & {
+  adminNav: RouteCatalogAdminNavConfig;
+};
+
+const isAdminNavigationConfigArray = (
+  adminNav: RouteCatalogEntry['adminNav']
+): adminNav is readonly RouteCatalogAdminNavConfig[] => Array.isArray(adminNav);
+
+const parseRouteLocation = (value: string): ParsedRouteLocation => {
+  const normalized = normalizeRouteLocation(value);
+  const parsed = new URL(normalized, 'http://localhost');
+  return {
+    normalized,
+    pathname: parsed.pathname,
+    searchParams: parsed.searchParams,
+  };
+};
+
+const normalizeRouteAlias = (alias: string | RouteCatalogAlias): NormalizedRouteAlias => {
+  if (typeof alias === 'string') {
+    const parsed = new URL(normalizeRouteLocation(alias), 'http://localhost');
+    return {
+      path: parsed.pathname,
+      query: Object.fromEntries(parsed.searchParams.entries()),
+      exactQuery: parsed.search.length > 0,
+    };
+  }
+
+  return {
+    path: normalizeRouteLocation(alias.path).split('?')[0] || '/',
+    query: alias.query ?? {},
+    exactQuery: alias.exactQuery === true,
+  };
+};
+
+const routeAliasMatches = (
+  alias: string | RouteCatalogAlias,
+  currentLocation: ParsedRouteLocation
+): boolean => {
+  const normalizedAlias = normalizeRouteAlias(alias);
+  if (currentLocation.pathname !== normalizedAlias.path) {
+    return false;
+  }
+
+  const aliasQueryEntries = Object.entries(normalizedAlias.query);
+  if (normalizedAlias.exactQuery && currentLocation.searchParams.size !== aliasQueryEntries.length) {
+    return false;
+  }
+
+  return aliasQueryEntries.every(
+    ([key, value]) => currentLocation.searchParams.get(key) === value
+  );
+};
+
+const buildAliasRedirectTarget = (
+  entry: RouteCatalogEntry,
+  currentLocation: ParsedRouteLocation,
+  alias: string | RouteCatalogAlias
+): string => {
+  const normalizedAlias = normalizeRouteAlias(alias);
+  const canonicalUrl = new URL(normalizeRouteLocation(getRouteHref(entry)), 'http://localhost');
+  const canonicalParams = new URLSearchParams(canonicalUrl.search);
+  const remainingParams = new URLSearchParams(currentLocation.searchParams);
+
+  for (const key of Object.keys(normalizedAlias.query)) {
+    remainingParams.delete(key);
+  }
+
+  for (const [key, value] of canonicalParams.entries()) {
+    remainingParams.set(key, value);
+  }
+
+  return remainingParams.size > 0
+    ? `${canonicalUrl.pathname}?${remainingParams.toString()}`
+    : canonicalUrl.pathname;
+};
+
+const getAdminNavConfigs = (
+  entry: RouteCatalogEntry
+): readonly RouteCatalogAdminNavConfig[] => {
+  const { adminNav } = entry;
+  if (!adminNav) {
+    return [];
+  }
+
+  return isAdminNavigationConfigArray(adminNav) ? [...adminNav] : [adminNav];
+};
+
 export function getRouteHref(entry: RouteCatalogEntry): string {
   return entry.href ?? entry.path;
+}
+
+export function getRouteCatalogEntryById(id: string): RouteCatalogEntry | null {
+  return routeCatalog.find((entry) => entry.id === id) ?? null;
 }
 
 export function isRouteCatalogEntryEnabled(
@@ -1090,22 +1202,47 @@ export function isRouteCatalogEntryEnabled(
   return flagValue !== false && flagValue !== 'false' && flagValue !== '0';
 }
 
+export function resolveRouteCatalogAlias(value: string): string | null {
+  const currentLocation = parseRouteLocation(value);
+
+  for (const entry of routeCatalog) {
+    for (const alias of entry.aliases ?? []) {
+      if (!routeAliasMatches(alias, currentLocation)) {
+        continue;
+      }
+
+      const target = buildAliasRedirectTarget(entry, currentLocation, alias);
+      return target === currentLocation.normalized ? null : target;
+    }
+  }
+
+  return null;
+}
+
 export function matchRouteCatalogEntry(value: string): RouteCatalogEntry | null {
-  const normalized = normalizeRouteLocation(value);
-  const pathname = normalized.split('?')[0] || '/';
+  const currentLocation = parseRouteLocation(value);
 
   const hrefMatch = routeCatalog.find(
-    (entry) => normalizeRouteLocation(getRouteHref(entry)) === normalized
+    (entry) => normalizeRouteLocation(getRouteHref(entry)) === currentLocation.normalized
   );
   if (hrefMatch) {
     return hrefMatch;
   }
 
   const exactPathMatch = routeCatalog.find(
-    (entry) => !entry.path.includes(':') && normalizeRouteLocation(entry.path) === pathname
+    (entry) =>
+      !entry.path.includes(':') &&
+      normalizeRouteLocation(entry.path) === currentLocation.pathname
   );
   if (exactPathMatch) {
     return exactPathMatch;
+  }
+
+  const aliasMatch = routeCatalog.find((entry) =>
+    (entry.aliases ?? []).some((alias) => routeAliasMatches(alias, currentLocation))
+  );
+  if (aliasMatch) {
+    return aliasMatch;
   }
 
   return (
@@ -1115,7 +1252,7 @@ export function matchRouteCatalogEntry(value: string): RouteCatalogEntry | null 
       }
 
       const pattern = `^${escapeRegex(entry.path).replace(/:[^/]+/g, '[^/]+')}$`;
-      return new RegExp(pattern).test(pathname);
+      return new RegExp(pattern).test(currentLocation.pathname);
     }) ?? null
   );
 }
@@ -1144,12 +1281,19 @@ export function getPortalNavigationEntries(): RouteCatalogEntry[] {
     });
 }
 
-export function getAdminNavigationEntries(mode: AdminNavigationMode): RouteCatalogEntry[] {
+export function getAdminNavigationEntries(mode: AdminNavigationMode): ResolvedAdminNavigationEntry[] {
   return routeCatalog
-    .filter((entry) => entry.adminNav?.mode === mode)
+    .flatMap((entry) =>
+      getAdminNavConfigs(entry)
+        .filter((config) => config.mode === mode)
+        .map((config) => ({
+          ...entry,
+          adminNav: config,
+        }))
+    )
     .sort((left, right) => {
-      const leftOrder = left.adminNav?.order ?? Number.MAX_SAFE_INTEGER;
-      const rightOrder = right.adminNav?.order ?? Number.MAX_SAFE_INTEGER;
+      const leftOrder = left.adminNav.order ?? Number.MAX_SAFE_INTEGER;
+      const rightOrder = right.adminNav.order ?? Number.MAX_SAFE_INTEGER;
       return leftOrder - rightOrder;
     });
 }

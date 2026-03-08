@@ -19,6 +19,28 @@ const routeFiles = walkFiles(
 const pathPattern = /\bpath\s*=\s*["']([^"']+)["']/g;
 const registeredPaths = [];
 
+const stripSearch = (value) => normalizeRouteLocation(value).split('?')[0] || '/';
+
+const routePatternMatchesPath = (routePattern, targetPath) => {
+  const normalizedPattern = stripSearch(routePattern);
+  const normalizedTarget = stripSearch(targetPath);
+
+  if (normalizedPattern === normalizedTarget) {
+    return true;
+  }
+
+  const patternSegments = normalizedPattern.split('/').filter(Boolean);
+  const targetSegments = normalizedTarget.split('/').filter(Boolean);
+
+  if (patternSegments.length !== targetSegments.length) {
+    return false;
+  }
+
+  return patternSegments.every(
+    (segment, index) => segment.startsWith(':') || segment === targetSegments[index]
+  );
+};
+
 for (const file of routeFiles) {
   const source = fs.readFileSync(file, 'utf8');
   let match;
@@ -48,13 +70,36 @@ for (const entry of routeCatalog) {
   catalogIds.add(entry.id);
 }
 
-const catalogPaths = new Set(routeCatalog.map((entry) => normalizeRouteLocation(entry.path)));
-const missingFromCatalog = registeredPaths.filter((entry) => !catalogPaths.has(entry.path));
+const canonicalCatalogPaths = routeCatalog.map((entry) => normalizeRouteLocation(entry.path));
+const aliasCatalogPaths = Array.from(
+  new Set(
+    routeCatalog.flatMap((entry) =>
+      (entry.aliases ?? []).map((alias) =>
+        stripSearch(typeof alias === 'string' ? alias : alias.path)
+      )
+    )
+  )
+);
 
 const registeredPathSet = new Set(registeredPaths.map((entry) => entry.path));
-const missingFromRoutes = Array.from(catalogPaths).filter((catalogPath) => !registeredPathSet.has(catalogPath));
+const missingFromCatalog = registeredPaths.filter((entry) => {
+  const catalogBackedPaths = canonicalCatalogPaths.concat(aliasCatalogPaths);
+  return !catalogBackedPaths.some((catalogPath) => routePatternMatchesPath(entry.path, catalogPath));
+});
 
-if (duplicateIds.length > 0 || missingFromCatalog.length > 0 || missingFromRoutes.length > 0) {
+const missingCanonicalFromRoutes = canonicalCatalogPaths.filter(
+  (catalogPath) => !registeredPaths.some((entry) => routePatternMatchesPath(entry.path, catalogPath))
+);
+const missingAliasesFromRoutes = aliasCatalogPaths.filter(
+  (aliasPath) => !registeredPaths.some((entry) => routePatternMatchesPath(entry.path, aliasPath))
+);
+
+if (
+  duplicateIds.length > 0 ||
+  missingFromCatalog.length > 0 ||
+  missingCanonicalFromRoutes.length > 0 ||
+  missingAliasesFromRoutes.length > 0
+) {
   console.error('Route catalog drift check failed.');
 
   if (duplicateIds.length > 0) {
@@ -68,10 +113,17 @@ if (duplicateIds.length > 0 || missingFromCatalog.length > 0 || missingFromRoute
     }
   }
 
-  if (missingFromRoutes.length > 0) {
-    console.error('- Catalog paths missing from registered routes:');
-    for (const catalogPath of missingFromRoutes) {
+  if (missingCanonicalFromRoutes.length > 0) {
+    console.error('- Canonical catalog paths missing from registered routes:');
+    for (const catalogPath of missingCanonicalFromRoutes) {
       console.error(`  - ${catalogPath}`);
+    }
+  }
+
+  if (missingAliasesFromRoutes.length > 0) {
+    console.error('- Alias catalog paths missing from registered routes:');
+    for (const aliasPath of missingAliasesFromRoutes) {
+      console.error(`  - ${aliasPath}`);
     }
   }
 
@@ -79,5 +131,5 @@ if (duplicateIds.length > 0 || missingFromCatalog.length > 0 || missingFromRoute
 }
 
 console.log(
-  `Route catalog drift check passed. ${catalogIds.size} catalog entries align with ${registeredPathSet.size} registered route path(s).`
+  `Route catalog drift check passed. ${catalogIds.size} catalog entries align with ${registeredPathSet.size} registered route path(s), ${canonicalCatalogPaths.length} canonical path(s), and ${aliasCatalogPaths.length} alias path(s).`
 );

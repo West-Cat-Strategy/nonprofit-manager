@@ -42,19 +42,12 @@ const OutreachCenter = lazy(() => import('../pages/neo-brutalist/OutreachCenter'
 const PeopleDirectory = lazy(() => import('../pages/neo-brutalist/PeopleDirectory'));
 const ThemeAudit = lazy(() => import('../pages/neo-brutalist/ThemeAudit'));
 
-const removedLegacyRedirectPaths = new Set([
-  '/email-marketing',
-  '/admin/audit-logs',
-  '/settings/organization',
-]);
-
 // AppRoutes component with setup check logic
 const AppRoutes = () => {
   const dispatch = useAppDispatch();
-  const { user, isAuthenticated, authLoading } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, authLoading } = useAppSelector((state) => state.auth);
   const location = useLocation();
   const navigate = useNavigate();
-  const legacyFallbackPath = isAuthenticated || Boolean(user) ? '/dashboard' : '/login';
 
   useEffect(() => {
     const handleUnauthorized = () => {
@@ -77,11 +70,6 @@ const AppRoutes = () => {
       window.removeEventListener('portal:unauthorized', handlePortalUnauthorized);
     };
   }, [dispatch, navigate]);
-
-  // Explicitly retire old deep links instead of leaving them on the auth-loading shell.
-  if (removedLegacyRedirectPaths.has(location.pathname)) {
-    return <Navigate to={legacyFallbackPath} replace />;
-  }
 
   if (authLoading && location.pathname === '/') {
     return <PageLoader />;

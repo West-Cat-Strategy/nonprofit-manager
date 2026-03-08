@@ -18,6 +18,7 @@ import type { ThemeId } from '../theme/themeRegistry';
 import NavPopover from './navigation/NavPopover';
 import PinnedNavStrip from './navigation/PinnedNavStrip';
 import AdminQuickActionsBar from '../features/adminOps/components/AdminQuickActionsBar';
+import { getAdminSettingsPath } from '../features/adminOps/adminRoutePaths';
 
 const NavigationQuickLookupDialog = lazy(() => import('./navigation/NavigationQuickLookupDialog'));
 
@@ -162,6 +163,7 @@ const Navigation = () => {
     label: entry.staffNav?.label || entry.title,
     icon: entry.staffNav?.icon || '•',
   }));
+  const adminSettingsPath = getAdminSettingsPath('dashboard');
 
   const openMenu = (menu: 'user' | 'more' | 'theme' | 'admin') => {
     setUserMenuOpen(menu === 'user' ? (prev) => !prev : false);
@@ -465,7 +467,7 @@ const Navigation = () => {
                   {user?.role === 'admin' && (
                     <>
                       <Link
-                        to="/settings/admin"
+                        to={adminSettingsPath}
                         role="menuitem"
                         className="block px-4 py-2 text-sm text-app-text hover:bg-app-hover transition-colors"
                         onClick={() => setUserMenuOpen(false)}
@@ -616,7 +618,7 @@ const Navigation = () => {
               {user?.role === 'admin' && (
                 <>
                   <Link
-                    to="/settings/admin"
+                    to={adminSettingsPath}
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center px-3 py-3 rounded-lg text-base font-medium text-app-text-muted hover:bg-app-hover transition-colors"
                   >

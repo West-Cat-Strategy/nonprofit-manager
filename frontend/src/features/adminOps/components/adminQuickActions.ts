@@ -1,3 +1,8 @@
+import {
+  getAdminSettingsPath,
+  getPortalAdminPath,
+} from '../adminRoutePaths';
+
 export type AdminQuickActionId =
   | 'admin-hub'
   | 'invite-users'
@@ -21,35 +26,35 @@ const actionMap: Record<AdminQuickActionId, AdminQuickAction> = {
     id: 'admin-hub',
     label: 'Admin Hub',
     description: 'Open the main admin command center',
-    to: '/settings/admin',
+    to: getAdminSettingsPath('dashboard'),
     icon: '🏛️',
   },
   'invite-users': {
     id: 'invite-users',
     label: 'Invite Users',
     description: 'Jump to users and security controls',
-    to: '/settings/admin?section=users',
+    to: getAdminSettingsPath('users'),
     icon: '➕',
   },
   organization: {
     id: 'organization',
     label: 'Organization',
     description: 'Edit organization profile and preferences',
-    to: '/settings/admin?section=organization',
+    to: getAdminSettingsPath('organization'),
     icon: '🏢',
   },
   'audit-logs': {
     id: 'audit-logs',
     label: 'Audit Logs',
     description: 'Inspect recent administrative activity',
-    to: '/settings/admin?section=audit_logs',
+    to: getAdminSettingsPath('audit_logs'),
     icon: '📜',
   },
   'portal-access': {
     id: 'portal-access',
     label: 'Portal Access',
     description: 'Review and approve portal access requests',
-    to: '/settings/admin/portal/access',
+    to: getPortalAdminPath('access'),
     icon: '🔐',
   },
   'api-settings': {

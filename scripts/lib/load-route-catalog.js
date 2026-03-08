@@ -42,6 +42,8 @@ function loadRouteCatalogModule() {
     __filename: routeCatalogPath,
     console,
     process,
+    URL,
+    URLSearchParams,
   };
 
   vm.runInNewContext(transpiled.outputText, sandbox, { filename: routeCatalogPath });

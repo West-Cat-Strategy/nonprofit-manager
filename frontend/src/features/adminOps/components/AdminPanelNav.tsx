@@ -5,32 +5,39 @@ import { SideNav } from '../../../components/ui';
 import type { SideNavItem } from '../../../components/ui/SideNav';
 import {
   getAdminNavigationEntries,
-  getAdminRouteHref,
-  matchAdminRouteEntry,
-  normalizeAdminRouteLocation,
-  type AdminRouteMode,
-  type AdminRouteEntry,
-} from '../adminRouteManifest';
+  getRouteHref,
+  matchRouteCatalogEntry,
+  normalizeRouteLocation,
+  type AdminNavigationMode,
+  type ResolvedAdminNavigationEntry,
+} from '../../../routes/routeCatalog';
 
-export type AdminPanelNavMode = AdminRouteMode;
+export type AdminPanelNavMode = AdminNavigationMode;
 
-const isActiveRoute = (route: AdminRouteEntry, currentPath: string): boolean => {
-  const normalizedCurrentPath = normalizeAdminRouteLocation(currentPath);
-  const matchedRoute = matchAdminRouteEntry(normalizedCurrentPath);
+const isActiveRoute = (
+  route: ResolvedAdminNavigationEntry,
+  currentPath: string
+): boolean => {
+  const normalizedCurrentPath = normalizeRouteLocation(currentPath);
+  const matchedRoute = matchRouteCatalogEntry(normalizedCurrentPath);
 
   if (matchedRoute?.id === route.id) {
     return true;
   }
 
+  if (route.id === 'admin-settings' && matchedRoute?.id.startsWith('admin-settings')) {
+    return true;
+  }
+
   if (
-    route.matchPrefixes?.some((prefix) =>
-      normalizedCurrentPath.startsWith(normalizeAdminRouteLocation(prefix))
+    route.adminNav.matchPrefixes?.some((prefix) =>
+      normalizedCurrentPath.startsWith(normalizeRouteLocation(prefix))
     )
   ) {
     return true;
   }
 
-  return normalizeAdminRouteLocation(getAdminRouteHref(route)) === normalizedCurrentPath;
+  return normalizeRouteLocation(getRouteHref(route)) === normalizedCurrentPath;
 };
 
 interface AdminPanelNavProps {
@@ -54,11 +61,11 @@ export default function AdminPanelNav({
 
   const items = useMemo<SideNavItem[]>(() => {
     return getAdminNavigationEntries(mode)
-      .filter((route) => isAdmin || !route.adminOnly)
+      .filter((route) => isAdmin || route.authScope !== 'admin')
       .map((route) => ({
         key: route.id,
-        label: route.label || route.title,
-        to: getAdminRouteHref(route),
+        label: route.adminNav.label || route.title,
+        to: getRouteHref(route),
         isActive: isActiveRoute(route, effectiveCurrentPath),
       }));
   }, [effectiveCurrentPath, isAdmin, mode]);
