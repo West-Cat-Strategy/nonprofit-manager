@@ -4,9 +4,8 @@
  */
 
 import type { ReactNode } from 'react';
-import { Navigate, Route } from 'react-router-dom';
+import { Route } from 'react-router-dom';
 import {
-  AdminSettings,
   UserSettings,
   ApiSettings,
   NavigationSettings,
@@ -14,6 +13,11 @@ import {
   EmailMarketing,
   PortalAdminPage,
 } from './adminRouteComponents';
+import {
+  AdminSettingsLegacyRedirect,
+  AdminSettingsSectionRoute,
+  RouteCatalogAliasRedirect,
+} from './adminRedirectRouteComponents';
 
 // Lazy load admin pages
 
@@ -35,6 +39,10 @@ export function createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRout
         element={<ProtectedRoute><EmailMarketing /></ProtectedRoute>}
       />
       <Route
+        path="/email-marketing"
+        element={<ProtectedRoute><RouteCatalogAliasRedirect /></ProtectedRoute>}
+      />
+      <Route
         path="/settings/api"
         element={<ProtectedRoute><ApiSettings /></ProtectedRoute>}
       />
@@ -48,11 +56,11 @@ export function createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRout
       />
       <Route
         path="/settings/admin"
-        element={<AdminRoute><AdminSettings /></AdminRoute>}
+        element={<AdminRoute><AdminSettingsLegacyRedirect /></AdminRoute>}
       />
       <Route
         path="/settings/admin/portal"
-        element={<AdminRoute><Navigate to="/settings/admin/portal/access" replace /></AdminRoute>}
+        element={<AdminRoute><RouteCatalogAliasRedirect /></AdminRoute>}
       />
       <Route
         path="/settings/admin/portal/access"
@@ -73,6 +81,18 @@ export function createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRout
       <Route
         path="/settings/admin/portal/slots"
         element={<AdminRoute><PortalAdminPage panel="slots" /></AdminRoute>}
+      />
+      <Route
+        path="/settings/admin/:section"
+        element={<AdminRoute><AdminSettingsSectionRoute /></AdminRoute>}
+      />
+      <Route
+        path="/settings/organization"
+        element={<AdminRoute><RouteCatalogAliasRedirect /></AdminRoute>}
+      />
+      <Route
+        path="/admin/audit-logs"
+        element={<AdminRoute><RouteCatalogAliasRedirect /></AdminRoute>}
       />
       <Route
         path="/settings/backup"

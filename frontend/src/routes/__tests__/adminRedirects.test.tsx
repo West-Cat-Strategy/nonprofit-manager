@@ -47,6 +47,41 @@ const expectCurrentLocation = (expected: string) => {
 };
 
 describe('admin route redirects', () => {
+  it('redirects /settings/admin to the dashboard section', async () => {
+    renderAdminRoutes('/settings/admin');
+    expect(await screen.findByRole('heading', { name: /admin settings page/i })).toBeInTheDocument();
+    expectCurrentLocation('/settings/admin/dashboard');
+  });
+
+  it.each([
+    ['/settings/admin?section=dashboard', '/settings/admin/dashboard'],
+    ['/settings/admin?section=organization', '/settings/admin/organization'],
+    ['/settings/admin?section=branding', '/settings/admin/branding'],
+    ['/settings/admin?section=users', '/settings/admin/users'],
+    ['/settings/admin?section=email', '/settings/admin/email'],
+    ['/settings/admin?section=messaging', '/settings/admin/messaging'],
+    ['/settings/admin?section=outcomes', '/settings/admin/outcomes'],
+    ['/settings/admin?section=roles', '/settings/admin/roles'],
+    ['/settings/admin?section=audit_logs', '/settings/admin/audit_logs'],
+    ['/settings/admin?section=other', '/settings/admin/other'],
+  ])('canonicalizes legacy admin section url %s', async (legacyRoute, canonicalRoute) => {
+    renderAdminRoutes(legacyRoute);
+    expect(await screen.findByRole('heading', { name: /admin settings page/i })).toBeInTheDocument();
+    expectCurrentLocation(canonicalRoute);
+  });
+
+  it('redirects invalid legacy admin section queries to dashboard', async () => {
+    renderAdminRoutes('/settings/admin?section=not-a-real-section&foo=1');
+    expect(await screen.findByRole('heading', { name: /admin settings page/i })).toBeInTheDocument();
+    expectCurrentLocation('/settings/admin/dashboard?foo=1');
+  });
+
+  it('redirects section=portal to portal access panel', async () => {
+    renderAdminRoutes('/settings/admin?section=portal');
+    expect(await screen.findByRole('heading', { name: /portal panel: access/i })).toBeInTheDocument();
+    expectCurrentLocation('/settings/admin/portal/access');
+  });
+
   it('redirects /settings/admin/portal to portal access panel', async () => {
     renderAdminRoutes('/settings/admin/portal');
     expect(await screen.findByRole('heading', { name: /portal panel: access/i })).toBeInTheDocument();
@@ -71,5 +106,15 @@ describe('admin route redirects', () => {
     renderAdminRoutes('/settings/email-marketing');
     expect(await screen.findByRole('heading', { name: /email marketing page/i })).toBeInTheDocument();
     expectCurrentLocation('/settings/email-marketing');
+  });
+
+  it.each([
+    ['/email-marketing', '/settings/email-marketing', /email marketing page/i],
+    ['/settings/organization', '/settings/admin/organization', /admin settings page/i],
+    ['/admin/audit-logs', '/settings/admin/audit_logs', /admin settings page/i],
+  ])('redirects legacy route %s to %s', async (legacyRoute, canonicalRoute, heading) => {
+    renderAdminRoutes(legacyRoute);
+    expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument();
+    expectCurrentLocation(canonicalRoute);
   });
 });

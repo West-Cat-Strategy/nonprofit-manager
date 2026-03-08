@@ -174,6 +174,34 @@ describe('Navigation', () => {
     expect(screen.queryByRole('button', { name: /admin quick actions/i })).not.toBeInTheDocument();
   });
 
+  it('uses the canonical dashboard route for generic admin settings links', async () => {
+    renderWithProviders(<Navigation />, {
+      route: '/dashboard',
+      preloadedState: {
+        auth: {
+          user: {
+            id: 'admin-1',
+            email: 'admin@example.com',
+            firstName: 'Admin',
+            lastName: 'User',
+            role: 'admin',
+          },
+          isAuthenticated: true,
+          authLoading: false,
+          loading: false,
+        },
+      },
+    });
+
+    const userMenuButton = await screen.findByRole('button', { name: /user menu/i });
+    fireEvent.click(userMenuButton);
+
+    expect(screen.getByRole('menuitem', { name: /admin settings/i })).toHaveAttribute(
+      'href',
+      '/settings/admin/dashboard'
+    );
+  });
+
   it('maintains user menu aria-expanded and closes on escape', async () => {
     renderWithProviders(<Navigation />, {
       route: '/dashboard',

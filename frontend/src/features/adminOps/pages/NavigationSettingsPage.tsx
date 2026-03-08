@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useNavigationPreferences } from '../../../hooks/useNavigationPreferences';
 import { useAppSelector } from '../../../store/hooks';
+import { getAdminSettingsPath } from '../adminRoutePaths';
 import AdminPanelLayout from '../components/AdminPanelLayout';
 import AdminPanelNav from '../components/AdminPanelNav';
 
@@ -279,7 +280,7 @@ export default function NavigationSettings() {
           {isAdmin && (
             <li>
               <Link
-                to="/settings/admin?section=organization"
+                to={getAdminSettingsPath('organization')}
                 className="flex items-center justify-between px-6 py-4 hover:bg-app-surface-muted"
               >
                 <div className="flex items-center space-x-4">

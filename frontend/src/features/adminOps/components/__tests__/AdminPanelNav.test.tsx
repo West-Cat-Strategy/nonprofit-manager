@@ -77,7 +77,7 @@ describe('AdminPanelNav', () => {
     expect(screen.getByRole('link', { name: /appointments/i })).toHaveClass('bg-app-accent-soft');
   });
 
-  it('highlights query-based admin sections from the canonical route catalog', () => {
+  it('highlights the canonical admin settings entry for legacy query locations', () => {
     renderWithProviders(<AdminPanelNav currentPath="/settings/admin?section=users" />, {
       route: '/settings/admin?section=users',
       preloadedState: {
@@ -96,8 +96,10 @@ describe('AdminPanelNav', () => {
       },
     });
 
-    expect(screen.getByRole('link', { name: /admin settings/i })).toHaveClass(
-      'bg-app-accent-soft'
+    expect(screen.getByRole('link', { name: /admin settings/i })).toHaveAttribute(
+      'href',
+      '/settings/admin/dashboard'
     );
+    expect(screen.getByRole('link', { name: /admin settings/i })).toHaveClass('bg-app-accent-soft');
   });
 });

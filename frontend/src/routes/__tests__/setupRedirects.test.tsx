@@ -1,13 +1,18 @@
 import { Suspense } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { useLocation } from 'react-router-dom';
 import AppRoutes from '../index';
 import { createTestStore, renderWithProviders } from '../../test/testUtils';
 import { useSetupCheck } from '../../hooks/useSetupCheck';
+import { preloadAuthenticatedShellBootstrap } from '../../services/bootstrap/authenticatedShellBootstrap';
 
 vi.mock('../../hooks/useSetupCheck', () => ({
   useSetupCheck: vi.fn(),
+}));
+
+vi.mock('../../services/bootstrap/authenticatedShellBootstrap', () => ({
+  preloadAuthenticatedShellBootstrap: vi.fn(),
 }));
 
 vi.mock('../../services/api', () => ({
@@ -17,7 +22,42 @@ vi.mock('../../services/api', () => ({
   },
 }));
 
+vi.mock('../../contexts/BrandingContext', () => ({
+  useBranding: () => ({
+    branding: {
+      appName: 'Nonprofit Manager',
+      appIcon: null,
+      favicon: null,
+      logoUrl: null,
+      colorScheme: 'default',
+      customColors: {},
+    },
+  }),
+}));
+
+vi.mock('../../hooks/useNavigationPreferences', () => ({
+  useNavigationPreferences: () => ({
+    pinnedItems: [],
+    primaryItems: [],
+    secondaryItems: [],
+    enabledItems: [],
+    togglePinned: vi.fn(),
+    allItems: [],
+    toggleItem: vi.fn(),
+    resetToDefaults: vi.fn(),
+    reorderItems: vi.fn(),
+    moveItemUp: vi.fn(),
+    moveItemDown: vi.fn(),
+    isLoading: false,
+    isSynced: true,
+    isSaving: false,
+    syncStatus: 'synced',
+    maxPinnedItems: 3,
+  }),
+}));
+
 const mockUseSetupCheck = vi.mocked(useSetupCheck);
+const mockPreloadAuthenticatedShellBootstrap = vi.mocked(preloadAuthenticatedShellBootstrap);
 
 const LocationProbe = () => {
   const location = useLocation();
@@ -57,6 +97,17 @@ const renderAppRoutes = (
 describe('AppRoutes setup startup redirects', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPreloadAuthenticatedShellBootstrap.mockResolvedValue({
+      preferences: null,
+      branding: {
+        appName: 'Nonprofit Manager',
+        appIcon: null,
+        favicon: null,
+        logoUrl: null,
+        colorScheme: 'default',
+        customColors: {},
+      },
+    });
     mockUseSetupCheck.mockReturnValue({
       setupRequired: null,
       loading: false,
@@ -128,18 +179,21 @@ describe('AppRoutes setup startup redirects', () => {
     ).toBe(true);
   });
 
-  it.each([
-    '/email-marketing',
-    '/admin/audit-logs',
-    '/settings/organization',
-  ])('redirects removed legacy route %s to login before auth init completes', async (route) => {
-    renderAppRoutes(route, { authLoading: true });
+  it('sends unauthenticated legacy settings aliases through the destination auth guard', async () => {
+    renderAppRoutes('/email-marketing', {
+      authLoading: false,
+      isAuthenticated: false,
+    });
 
     expect(await screen.findByTestId('location')).toHaveTextContent('/login');
   });
 
-  it('redirects removed legacy routes to dashboard when a cached user is present', async () => {
-    renderAppRoutes('/email-marketing', {
+  it.each([
+    ['/email-marketing', '/settings/email-marketing'],
+    ['/settings/organization', '/settings/admin/organization'],
+    ['/admin/audit-logs', '/settings/admin/audit_logs'],
+  ])('redirects authenticated legacy route %s to %s', async (route, expectedLocation) => {
+    renderAppRoutes(route, {
       user: {
         id: 'user-1',
         email: 'cached@example.com',
@@ -147,9 +201,12 @@ describe('AppRoutes setup startup redirects', () => {
         lastName: 'User',
         role: 'admin',
       },
-      authLoading: true,
+      isAuthenticated: true,
+      authLoading: false,
     });
 
-    expect(await screen.findByTestId('location')).toHaveTextContent('/dashboard');
+    await waitFor(() => {
+      expect(screen.getByTestId('location')).toHaveTextContent(expectedLocation);
+    });
   });
 });
