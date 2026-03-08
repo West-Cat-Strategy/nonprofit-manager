@@ -141,9 +141,16 @@ docker compose -p nonprofit-dev -f docker-compose.dev.yml -f docker-compose.cadd
 
 # Production-like stack + optional DB/Redis host-port access
 docker compose -p nonprofit-prod --env-file .env.production -f docker-compose.yml -f docker-compose.host-access.yml up -d
+
+# Production stack + VPS Caddy public edge
+docker compose -p nonprofit-prod --env-file .env.production -f docker-compose.yml -f docker-compose.vps.yml up -d
 ```
 
 The Caddy overlay now uses the stock `caddy:2-alpine` image directly, so `docker-up-caddy` and the raw compose command work without a local image prebuild step.
+
+When using `docker-compose.vps.yml`, public traffic enters through Caddy on `80/443`, backend and frontend ports `8000`/`8001` stay bound to `127.0.0.1` for host-local diagnostics, the public API base is `https://example.com/api`, and `https://example.com/health` reaches the backend health route.
+
+For the live production VPS, use [`scripts/deploy.sh`](scripts/deploy.sh) and [`scripts/verify.sh`](scripts/verify.sh) instead of [`scripts/deploy.sh`](scripts/deploy.sh). The production host runs from `/srv/nonprofit-manager` as a promoted snapshot, not a remote git checkout. See [`docs/deployment/production.md`](docs/deployment/production.md).
 
 ### First Setup vs Seeded Data
 
@@ -161,7 +168,7 @@ The Caddy overlay now uses the stock `caddy:2-alpine` image directly, so `docker
 - Auth/bootstrap routes (`/api/v2/auth/*`, `/api/v2/admin/*`, `/api/v2/invitations/*`, `/api/v2/payments/webhook`) should bypass org-context enforcement.
 - If setup-status cannot be fetched (network/500), keep `/setup` usable and avoid forcing `/setup -> /login` until setup state resolves.
 
-For manual setup and advanced Docker commands, see [Deployment Guide](docs/deployment/DEPLOYMENT.md).
+For manual setup and advanced Docker commands, see [Deployment Guide](docs/deployment/DEPLOYMENT.md) and the [production production runbook](docs/deployment/production.md).
 
 ## Development
 
