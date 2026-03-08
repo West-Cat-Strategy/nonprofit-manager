@@ -224,8 +224,10 @@ Backend should start at `localhost:3000`.
 **Check connection**:
 
 ```bash
-curl localhost:3000/api/health
+curl localhost:3000/health
 ```
+
+Compatibility aliases remain available at `/api/health` and `/api/v2/health`.
 
 If failing, see [backend/README.md](../backend/README.md) troubleshooting.
 
