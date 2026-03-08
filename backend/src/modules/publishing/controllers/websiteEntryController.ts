@@ -5,7 +5,11 @@ import { sendSuccess } from '@modules/shared/http/envelope';
 import { publishingService } from '@services/domains/content';
 import { websiteEntryService } from '@services/publishing/websiteEntryService';
 import { publicWebsiteFormService } from '@services/publishing/publicWebsiteFormService';
-import { publicSiteRuntimeService } from '@services/publishing/publicSiteRuntimeService';
+import {
+  PublicSubmissionConflictError,
+  PublicSubmissionReplayError,
+} from '@services/publishing/publicSubmissionService';
+import { publicSiteRuntimeService } from '../services/publicSiteRuntimeService';
 import { siteCacheService } from '@services/siteCacheService';
 import { escapeHtml } from '@services/site-generator/escapeHtml';
 
@@ -34,7 +38,8 @@ const mapKnownError = (error: unknown, res: Response): boolean => {
     error.message.includes('read-only') ||
     error.message.includes('organization assignment') ||
     error.message.includes('Only native') ||
-    error.message.includes('Unsupported')
+    error.message.includes('Unsupported') ||
+    error.message.includes('Idempotency-Key')
   ) {
     badRequest(res, error.message);
     return true;
@@ -62,6 +67,13 @@ const getRequestPagePath = (req: Request): string => {
   }
 
   return '/';
+};
+
+const getRequestIpAddress = (req: Request): string | undefined => {
+  if (typeof req.ip === 'string' && req.ip.trim().length > 0) {
+    return req.ip;
+  }
+  return undefined;
 };
 
 const renderHtmlNotFound = (res: Response, siteName: string, pagePath: string): void => {
@@ -388,29 +400,54 @@ export const submitPublicWebsiteForm = async (
     const result = await publicWebsiteFormService.submitForm(
       site,
       formKey,
-      (req.body ?? {}) as Record<string, unknown>
-    );
-
-    await publishingService.recordAnalyticsEvent(
-      site.id,
-      result.formType === 'donation-form' ? 'donation' : 'form_submit',
+      (req.body ?? {}) as Record<string, unknown>,
       {
+        idempotencyKey:
+          typeof req.headers['idempotency-key'] === 'string'
+            ? req.headers['idempotency-key']
+            : undefined,
+        ipAddress: getRequestIpAddress(req),
+        userAgent: getRequestUserAgent(req),
         pagePath: getRequestPagePath(req),
         visitorId:
           typeof req.body?.visitorId === 'string' ? (req.body.visitorId as string) : undefined,
         sessionId:
           typeof req.body?.sessionId === 'string' ? (req.body.sessionId as string) : undefined,
-        userAgent: getRequestUserAgent(req),
         referrer: typeof req.headers.referer === 'string' ? req.headers.referer : undefined,
-        eventData: {
-          formKey,
-          formType: result.formType,
-        },
       }
     );
 
-    sendSuccess(res, result, 201);
+    if (!result.idempotentReplay) {
+      await publishingService.recordAnalyticsEvent(
+        site.id,
+        result.formType === 'donation-form' ? 'donation' : 'form_submit',
+        {
+          pagePath: getRequestPagePath(req),
+          visitorId:
+            typeof req.body?.visitorId === 'string' ? (req.body.visitorId as string) : undefined,
+          sessionId:
+            typeof req.body?.sessionId === 'string' ? (req.body.sessionId as string) : undefined,
+          userAgent: getRequestUserAgent(req),
+          referrer: typeof req.headers.referer === 'string' ? req.headers.referer : undefined,
+          eventData: {
+            formKey,
+            formType: result.formType,
+            sourceEntityType: result.donationId ? 'donation' : result.contactId ? 'contact' : null,
+            sourceEntityId: result.donationId || result.contactId || null,
+          },
+        }
+      );
+    }
+
+    sendSuccess(res, result, result.idempotentReplay ? 200 : 201);
   } catch (error) {
+    if (
+      error instanceof PublicSubmissionConflictError ||
+      error instanceof PublicSubmissionReplayError
+    ) {
+      badRequest(res, error.message);
+      return;
+    }
     if (mapKnownError(error, res)) return;
     next(error);
   }

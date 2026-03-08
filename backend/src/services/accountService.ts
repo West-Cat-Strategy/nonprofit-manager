@@ -93,12 +93,11 @@ export class AccountService {
         paramCounter++;
       }
 
-      // Note: category column will be added in migration 003
-      // if (filters.category) {
-      //   conditions.push(`category = $${paramCounter}`);
-      //   values.push(filters.category);
-      //   paramCounter++;
-      // }
+      if (filters.category) {
+        conditions.push(`category = $${paramCounter}`);
+        values.push(filters.category);
+        paramCounter++;
+      }
 
       if (filters.is_active !== undefined) {
         conditions.push(`is_active = $${paramCounter}`);
@@ -138,6 +137,7 @@ export class AccountService {
           account_number,
           account_name,
           account_type,
+          category,
           email,
           phone,
           website,
@@ -148,6 +148,7 @@ export class AccountService {
           state_province,
           postal_code,
           country,
+          tax_id,
           is_active,
           created_at,
           updated_at,
@@ -186,6 +187,7 @@ export class AccountService {
           account_number,
           account_name,
           account_type,
+          category,
           email,
           phone,
           website,
@@ -196,6 +198,7 @@ export class AccountService {
           state_province,
           postal_code,
           country,
+          tax_id,
           is_active,
           created_at,
           updated_at,
@@ -245,6 +248,7 @@ export class AccountService {
           account_number,
           account_name,
           account_type,
+          category,
           email,
           phone,
           website,
@@ -255,6 +259,7 @@ export class AccountService {
           state_province,
           postal_code,
           country,
+          tax_id,
           is_active,
           created_at,
           updated_at,
@@ -288,18 +293,21 @@ export class AccountService {
       const result = await client.query(
         `INSERT INTO accounts (
            account_number, account_name, account_type,
+           category,
            email, phone, website, description,
            address_line1, address_line2, city, state_province, postal_code, country,
+           tax_id,
            created_by, modified_by
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14)
-         RETURNING id as account_id, account_number, account_name, account_type,
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $16)
+         RETURNING id as account_id, account_number, account_name, account_type, category,
            email, phone, website, description,
            address_line1, address_line2, city, state_province, postal_code, country,
-           is_active, created_at, updated_at, created_by, modified_by`,
+           tax_id, is_active, created_at, updated_at, created_by, modified_by`,
         [
           accountNumber,
           data.account_name,
           data.account_type,
+          data.category || null,
           data.email || null,
           data.phone || null,
           data.website || null,
@@ -310,6 +318,7 @@ export class AccountService {
           data.state_province || null,
           data.postal_code || null,
           data.country || null,
+          data.tax_id || null,
           userId,
         ]
       );
@@ -347,6 +356,7 @@ export class AccountService {
       const allowedFields = new Set([
         'account_name',
         'account_type',
+        'category',
         'email',
         'phone',
         'website',
@@ -390,9 +400,9 @@ export class AccountService {
         UPDATE accounts
         SET ${fields.join(', ')}
         WHERE id = $${paramCounter}
-        RETURNING id as account_id, account_number, account_name, account_type,
+        RETURNING id as account_id, account_number, account_name, account_type, category,
           email, phone, website, description,
-          address_line1, address_line2, city, state_province, postal_code, country,
+          address_line1, address_line2, city, state_province, postal_code, country, tax_id,
           is_active, created_at, updated_at, created_by, modified_by
       `;
 

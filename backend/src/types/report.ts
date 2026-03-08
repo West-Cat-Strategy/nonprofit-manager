@@ -66,6 +66,39 @@ export interface ReportResult {
   generated_at: string;
 }
 
+export type ReportExportJobStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type ReportExportJobSource = 'manual' | 'scheduled' | 'snapshot';
+
+export interface ReportExportJob {
+  id: string;
+  organizationId: string;
+  savedReportId: string | null;
+  scheduledReportId: string | null;
+  requestedBy: string | null;
+  source: ReportExportJobSource;
+  name: string;
+  entity: ReportEntity;
+  format: 'csv' | 'xlsx';
+  status: ReportExportJobStatus;
+  definition: ReportDefinition;
+  filterHash: string;
+  idempotencyKey: string | null;
+  rowsCount: number | null;
+  runtimeMs: number | null;
+  failureMessage: string | null;
+  artifactPath: string | null;
+  artifactContentType: string | null;
+  artifactFileName: string | null;
+  artifactSizeBytes: number | null;
+  artifactExpiresAt: string | null;
+  retentionUntil: string | null;
+  metadata: Record<string, unknown>;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Available fields for each entity type
 export const AVAILABLE_FIELDS: Record<ReportEntity, ReportField[]> = {
   accounts: [

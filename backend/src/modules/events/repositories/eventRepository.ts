@@ -3,7 +3,10 @@ import * as eventReminderAutomationService from '@services/eventReminderAutomati
 import type { EventService } from '../services/eventService';
 import type {
   CheckInOptions,
+  CheckInResult,
   CreateEventDTO,
+  Event,
+  EventAttendanceSummary,
   CreateEventReminderAutomationDTO,
   CreateRegistrationDTO,
   EventCheckInSettings,
@@ -11,7 +14,9 @@ import type {
   EventFilters,
   EventWalkInCheckInDTO,
   EventWalkInCheckInResult,
+  EventReminderSummary,
   PaginationParams,
+  PaginatedEvents,
   PublicEventsListData,
   PublicEventsQuery,
   PublicEventDetail,
@@ -63,19 +68,19 @@ type EventServicePort = Pick<
 export class EventRepository {
   constructor(private readonly eventService: EventServicePort = services.event) {}
 
-  getEvents(filters: EventFilters, pagination: PaginationParams, scope?: DataScopeFilter): Promise<unknown> {
+  getEvents(filters: EventFilters, pagination: PaginationParams, scope?: DataScopeFilter): Promise<PaginatedEvents> {
     return this.eventService.getEvents(filters, pagination, scope);
   }
 
-  getEventById(eventId: string, scope?: DataScopeFilter): Promise<unknown | null> {
+  getEventById(eventId: string, scope?: DataScopeFilter): Promise<Event | null> {
     return this.eventService.getEventById(eventId, scope);
   }
 
-  createEvent(data: CreateEventDTO, userId: string): Promise<unknown> {
+  createEvent(data: CreateEventDTO, userId: string): Promise<Event> {
     return this.eventService.createEvent(data, userId);
   }
 
-  updateEvent(eventId: string, data: UpdateEventDTO, userId: string): Promise<unknown | null> {
+  updateEvent(eventId: string, data: UpdateEventDTO, userId: string): Promise<Event> {
     return this.eventService.updateEvent(eventId, data, userId);
   }
 
@@ -83,15 +88,15 @@ export class EventRepository {
     return this.eventService.deleteEvent(eventId, userId);
   }
 
-  getEventAttendanceSummary(referenceDate: Date, scope?: DataScopeFilter): Promise<unknown> {
+  getEventAttendanceSummary(referenceDate: Date, scope?: DataScopeFilter): Promise<EventAttendanceSummary> {
     return this.eventService.getEventAttendanceSummary(referenceDate, scope);
   }
 
-  getEventRegistrations(eventId: string, filters?: RegistrationFilters): Promise<unknown[]> {
+  getEventRegistrations(eventId: string, filters?: RegistrationFilters): Promise<EventRegistration[]> {
     return this.eventService.getEventRegistrations(eventId, filters);
   }
 
-  getContactRegistrations(contactId: string, scope?: DataScopeFilter): Promise<unknown[]> {
+  getContactRegistrations(contactId: string, scope?: DataScopeFilter): Promise<EventRegistration[]> {
     return this.eventService.getContactRegistrations(contactId, scope);
   }
 
@@ -107,18 +112,15 @@ export class EventRepository {
     return this.eventService.getRegistrationByToken(eventId, token);
   }
 
-  registerContact(data: CreateRegistrationDTO): Promise<unknown> {
+  registerContact(data: CreateRegistrationDTO): Promise<EventRegistration> {
     return this.eventService.registerContact(data);
   }
 
-  updateRegistration(registrationId: string, data: UpdateRegistrationDTO): Promise<unknown | null> {
+  updateRegistration(registrationId: string, data: UpdateRegistrationDTO): Promise<EventRegistration> {
     return this.eventService.updateRegistration(registrationId, data);
   }
 
-  checkInAttendee(
-    registrationId: string,
-    options?: CheckInOptions
-  ): Promise<{ success: boolean; message: string; registration?: unknown }> {
+  checkInAttendee(registrationId: string, options?: CheckInOptions): Promise<CheckInResult> {
     return this.eventService.checkInAttendee(registrationId, options);
   }
 
@@ -177,7 +179,7 @@ export class EventRepository {
     eventId: string,
     data: SendEventRemindersDTO,
     context: { triggerType: 'manual'; sentBy: string | null }
-  ): Promise<unknown> {
+  ): Promise<EventReminderSummary> {
     return this.eventService.sendEventReminders(eventId, data, context);
   }
 

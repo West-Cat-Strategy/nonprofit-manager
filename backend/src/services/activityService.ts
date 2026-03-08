@@ -5,12 +5,18 @@
 
 import pool from '@config/database';
 import type { Activity } from '@app-types/activity';
+import { activityEventService } from '@services/activityEventService';
 
 export class ActivityService {
   /**
    * Get recent activities across all modules
    */
-  async getRecentActivities(limit: number = 10): Promise<Activity[]> {
+  async getRecentActivities(limit: number = 10, organizationId?: string): Promise<Activity[]> {
+    const recordedActivities = await activityEventService.listRecentActivities(limit, organizationId);
+    if (recordedActivities.length > 0) {
+      return recordedActivities;
+    }
+
     const activities: Activity[] = [];
 
     // Fetch recent cases (created in last 30 days)
@@ -167,8 +173,18 @@ export class ActivityService {
    */
   async getActivitiesForEntity(
     entityType: 'case' | 'donation' | 'volunteer' | 'event' | 'contact',
-    entityId: string
+    entityId: string,
+    organizationId?: string
   ): Promise<Activity[]> {
+    const recordedActivities = await activityEventService.listActivitiesForEntity(
+      entityType,
+      entityId,
+      organizationId
+    );
+    if (recordedActivities.length > 0) {
+      return recordedActivities;
+    }
+
     if (entityType !== 'contact') {
       return [];
     }

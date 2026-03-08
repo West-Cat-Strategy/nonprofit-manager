@@ -4,7 +4,7 @@
 # This replaces GitHub Actions with local commands.
 # All CI/CD operations can be run locally or via git hooks.
 
-.PHONY: help install lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-auth-guards lint-duplicate-tests lint-doc-api-versioning lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-frontend-feature-boundary lint-frontend-legacy-slice-imports lint-frontend-legacy-page-paths lint-backend-legacy-controller-wrappers lint-route-integrity lint-route-catalog-drift typecheck test test-coverage quality-baseline check-links build \
+.PHONY: help install lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-auth-guards lint-duplicate-tests lint-doc-api-versioning lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-canonical-module-imports lint-implementation-size lint-frontend-feature-boundary lint-frontend-legacy-slice-imports lint-frontend-legacy-page-paths lint-backend-legacy-controller-wrappers lint-route-integrity lint-route-catalog-drift typecheck test test-coverage quality-baseline check-links build \
 	security-audit security-scan ci ci-fast ci-full ci-unit \
         deploy deploy-staging deploy-local \
         docker-build docker-up docker-up-dev docker-up-tools docker-up-caddy docker-down docker-logs docker-rebuild docker-validate \
@@ -57,6 +57,8 @@ help:
 	@echo "  make lint-v2-module-ownership Enforce module-only imports in v2 registrar"
 	@echo "  make lint-module-boundary Enforce migrated modules do not import legacy controllers"
 	@echo "  make lint-module-route-proxy Enforce migrated module routes do not proxy @routes/*"
+	@echo "  make lint-canonical-module-imports Enforce canonical module paths over legacy controller/service shims"
+	@echo "  make lint-implementation-size Enforce implementation file size ratchet against baseline"
 	@echo "  make lint-frontend-feature-boundary Enforce feature-page boundary ratchet"
 	@echo "  make lint-frontend-legacy-slice-imports Enforce migrated features do not import store/slices"
 	@echo "  make lint-frontend-legacy-page-paths Enforce deleted legacy page implementations stay removed"
@@ -192,6 +194,10 @@ lint:
 	node scripts/check-module-boundary-policy.ts
 	@echo "$(BLUE)Checking module route proxy policy...$(RESET)"
 	node scripts/check-module-route-proxy-policy.ts
+	@echo "$(BLUE)Checking canonical module import policy...$(RESET)"
+	node scripts/check-canonical-module-import-policy.ts
+	@echo "$(BLUE)Checking implementation size policy...$(RESET)"
+	node scripts/check-implementation-size-policy.ts
 	@echo "$(BLUE)Checking frontend feature boundary policy...$(RESET)"
 	node scripts/check-frontend-feature-boundary-policy.ts
 	@echo "$(BLUE)Checking frontend legacy slice import policy...$(RESET)"
@@ -272,6 +278,16 @@ lint-module-route-proxy:
 	@echo "$(BLUE)Checking module route proxy policy...$(RESET)"
 	node scripts/check-module-route-proxy-policy.ts
 	@echo "$(GREEN)Module route proxy check complete!$(RESET)"
+
+lint-canonical-module-imports:
+	@echo "$(BLUE)Checking canonical module import policy...$(RESET)"
+	node scripts/check-canonical-module-import-policy.ts
+	@echo "$(GREEN)Canonical module import policy check complete!$(RESET)"
+
+lint-implementation-size:
+	@echo "$(BLUE)Checking implementation size policy...$(RESET)"
+	node scripts/check-implementation-size-policy.ts
+	@echo "$(GREEN)Implementation size policy check complete!$(RESET)"
 
 lint-route-integrity:
 	@echo "$(BLUE)Checking route integrity...$(RESET)"

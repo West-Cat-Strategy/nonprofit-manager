@@ -3,6 +3,7 @@ import dbPool from '@config/database';
 import type {
   PublishedSite,
   PublishedSiteSearchParams,
+  WebsiteConversionFunnel,
   WebsiteConversionMetrics,
   WebsiteFormDefinition,
   WebsiteFormOperationalConfig,
@@ -459,6 +460,15 @@ export class SiteOperationsService {
     organizationId?: string
   ): Promise<WebsiteConversionMetrics> {
     return this.siteAnalytics.getConversionMetrics(siteId, userId, periodDays, organizationId);
+  }
+
+  async getConversionFunnel(
+    siteId: string,
+    userId: string,
+    windowDays: number = 30,
+    organizationId?: string
+  ): Promise<WebsiteConversionFunnel> {
+    return this.siteAnalytics.getConversionFunnel(siteId, userId, windowDays, organizationId);
   }
 
   async getOverview(

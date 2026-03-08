@@ -5,6 +5,10 @@
 
 import { Pool } from 'pg';
 import { logger } from '@config/logger';
+import {
+  buildTabularExport,
+  type GeneratedTabularFile,
+} from '@modules/shared/export/tabularExport';
 import type {
   ReportDefinition,
   ReportResult,
@@ -600,54 +604,36 @@ export class ReportService {
   /**
    * Export report to a specific format
    */
-  async exportReport(result: ReportResult, format: 'csv' | 'xlsx'): Promise<Buffer> {
+  async exportReport(result: ReportResult, format: 'csv' | 'xlsx'): Promise<GeneratedTabularFile> {
     try {
       const { definition, data } = result;
       const fieldSpecs = this.getFieldSpecs(definition.entity);
-      const escapeCsv = (value: unknown): string => {
-        if (value === null || value === undefined) return '';
-        const text = String(value);
-        const escaped = text.replace(/"/g, '""');
-        return /[",\n\r]/.test(escaped) ? `"${escaped}"` : escaped;
-      };
 
       // Determine columns to include
       const columns = (definition.groupBy || []).concat(definition.fields || []);
       const aggs = (definition.aggregations || []).map((a) => a.alias || `${a.function}_${a.field}`);
       const allColumns = Array.from(new Set(columns.concat(aggs)));
 
-      if (format === 'xlsx') {
-        const Workbook = (await import('exceljs')).default.Workbook;
-        const workbook = new Workbook();
-        const worksheet = workbook.addWorksheet(definition.name || 'Report');
-
-        // Add headers
-        worksheet.columns = allColumns.map((col) => {
-          let label = col;
-          if (fieldSpecs[col]) {
-            label = fieldSpecs[col].label;
-          } else if (col.includes('_')) {
-            // Likely an aggregation
-            label = col.replace(/_/g, ' ').toUpperCase();
-          }
-          return { header: label, key: col, width: 20 };
-        });
-
-        // Add rows
-        worksheet.addRows(data);
-
-        // Styling
-        worksheet.getRow(1).font = { bold: true };
-
-        return (await workbook.xlsx.writeBuffer()) as unknown as Buffer;
-      } else {
-        const headers = allColumns.map((column) => escapeCsv(column)).join(',');
-        const rows = data.map((row) =>
-          allColumns.map((column) => escapeCsv(row[column])).join(',')
-        );
-        const csvContent = [headers, ...rows].join('\n');
-        return Buffer.from(csvContent);
-      }
+      return buildTabularExport({
+        format,
+        fallbackBaseName: `${definition.entity}_report_${new Date().toISOString().split('T')[0]}`,
+        filename: definition.name,
+        sheets: [
+          {
+            name: definition.name || 'Report',
+            columns: allColumns.map((column) => ({
+              key: column,
+              header: fieldSpecs[column]
+                ? fieldSpecs[column].label
+                : column.includes('_')
+                  ? column.replace(/_/g, ' ').toUpperCase()
+                  : column,
+              width: 20,
+            })),
+            rows: data,
+          },
+        ],
+      });
     } catch (error) {
       logger.error('Error exporting report', { error, format });
       throw Object.assign(new Error('Failed to export report'), { cause: error });

@@ -1,0 +1,16 @@
+{
+  "frontend/src/components/editor/PropertyPanel.tsx": 1559,
+  "frontend/src/routes/routeCatalog.ts": 1302,
+  "frontend/src/features/adminOps/pages/UserSettingsPage.tsx": 1301,
+  "frontend/src/features/cases/pages/CaseListPage.tsx": 1296,
+  "frontend/src/features/adminOps/pages/adminSettings/sections/PortalSection.tsx": 1241,
+  "frontend/src/components/EventForm.tsx": 1099,
+  "backend/src/modules/portalAdmin/services/portalAppointmentSlotService.ts": 1082,
+  "frontend/src/components/editor/EditorCanvas.tsx": 1047,
+  "backend/src/modules/reconciliation/services/reconciliationService.ts": 1044,
+  "frontend/src/features/cases/state/casesCore.ts": 1009,
+  "frontend/src/pages/builder/PageEditor.tsx": 939,
+  "frontend/src/features/cases/pages/CaseDetailPage.tsx": 939,
+  "frontend/src/features/adminOps/pages/ApiSettingsPage.tsx": 914,
+  "frontend/src/features/events/components/EventRegistrationsPanel.tsx": 911
+}

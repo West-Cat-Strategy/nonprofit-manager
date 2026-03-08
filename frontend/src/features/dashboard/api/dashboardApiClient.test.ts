@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import api from '../../../services/api';
 import { DashboardApiClient } from './dashboardApiClient';
+import type { DashboardConfig, WidgetLayout } from '../types/contracts';
 
 vi.mock('../../../services/api', () => ({
   default: {
@@ -13,13 +14,19 @@ vi.mock('../../../services/api', () => ({
 
 describe('DashboardApiClient', () => {
   const client = new DashboardApiClient();
+  const mockedApi = api as unknown as {
+    get: ReturnType<typeof vi.fn>;
+    post: ReturnType<typeof vi.fn>;
+    put: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('fetches dashboards list', async () => {
-    (api.get as any).mockResolvedValueOnce({ data: [{ id: 'dash-1' }] });
+    mockedApi.get.mockResolvedValueOnce({ data: [{ id: 'dash-1' }] });
 
     const result = await client.fetchDashboards();
 
@@ -28,7 +35,7 @@ describe('DashboardApiClient', () => {
   });
 
   it('fetches a single dashboard by id', async () => {
-    (api.get as any).mockResolvedValueOnce({ data: { id: 'dash-2' } });
+    mockedApi.get.mockResolvedValueOnce({ data: { id: 'dash-2' } });
 
     const result = await client.fetchDashboard('dash-2');
 
@@ -37,7 +44,7 @@ describe('DashboardApiClient', () => {
   });
 
   it('fetches default dashboard', async () => {
-    (api.get as any).mockResolvedValueOnce({ data: { id: 'default' } });
+    mockedApi.get.mockResolvedValueOnce({ data: { id: 'default' } });
 
     const result = await client.fetchDefaultDashboard();
 
@@ -46,17 +53,23 @@ describe('DashboardApiClient', () => {
   });
 
   it('creates a dashboard', async () => {
-    const payload = { user_id: 'user-1', name: 'My Board', is_default: false, widgets: [], layout: [] };
-    (api.post as any).mockResolvedValueOnce({ data: { id: 'dash-created', ...payload } });
+    const payload: Omit<DashboardConfig, 'id' | 'created_at' | 'updated_at'> = {
+      user_id: 'user-1',
+      name: 'My Board',
+      is_default: false,
+      widgets: [],
+      layout: [],
+    };
+    mockedApi.post.mockResolvedValueOnce({ data: { id: 'dash-created', ...payload } });
 
-    const result = await client.createDashboard(payload as any);
+    const result = await client.createDashboard(payload);
 
     expect(api.post).toHaveBeenCalledWith('/v2/dashboard/configs', payload);
     expect(result).toMatchObject({ id: 'dash-created', name: 'My Board' });
   });
 
   it('updates dashboard config', async () => {
-    (api.put as any).mockResolvedValueOnce({ data: { id: 'dash-updated', name: 'Updated' } });
+    mockedApi.put.mockResolvedValueOnce({ data: { id: 'dash-updated', name: 'Updated' } });
 
     const result = await client.updateDashboard('dash-updated', { name: 'Updated' });
 
@@ -65,7 +78,7 @@ describe('DashboardApiClient', () => {
   });
 
   it('deletes dashboard config', async () => {
-    (api.delete as any).mockResolvedValueOnce(undefined);
+    mockedApi.delete.mockResolvedValueOnce(undefined);
 
     await client.deleteDashboard('dash-delete');
 
@@ -73,8 +86,8 @@ describe('DashboardApiClient', () => {
   });
 
   it('saves dashboard layout', async () => {
-    const layout = [{ i: 'widget-1', x: 0, y: 0, w: 2, h: 2 }];
-    (api.put as any).mockResolvedValueOnce({ data: { id: 'dash-1', layout } });
+    const layout: WidgetLayout[] = [{ i: 'widget-1', x: 0, y: 0, w: 2, h: 2 }];
+    mockedApi.put.mockResolvedValueOnce({ data: { id: 'dash-1', layout } });
 
     const result = await client.saveDashboardLayout('dash-1', layout);
 
