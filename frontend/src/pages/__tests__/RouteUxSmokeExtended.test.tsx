@@ -123,7 +123,7 @@ const smokeCases: SmokeCase[] = [
   },
   {
     name: 'admin-settings',
-    route: '/settings/admin',
+    route: '/settings/admin/dashboard',
     page: <AdminSettings />,
     heading: /admin settings/i,
     primaryActionPattern: /show advanced|hide advanced/i,
