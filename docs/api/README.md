@@ -406,9 +406,12 @@ Endpoint URL might be wrong:
 
 Server error. Check:
 
-1. Backend is running: `curl localhost:3000/api/v2/health`
+1. Backend is running: `curl localhost:3000/health`
 2. Database is connected
 3. Check backend logs for error details
+
+Canonical health endpoint: `curl localhost:3000/health`
+Compatibility aliases remain available at `localhost:3000/api/health` and `localhost:3000/api/v2/health`.
 
 ### "CORS Error"
 

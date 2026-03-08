@@ -263,6 +263,12 @@ app.use(correlationIdMiddleware);
 // Metrics middleware (before routes)
 app.use(metricsMiddleware);
 
+// Mount health routes before any /api middleware so compatibility aliases
+// bypass org-context, envelopes, and legacy tombstoning.
+app.use('/health', healthRoutes);
+app.use('/api/health', healthRoutes);
+app.use('/api/v2/health', healthRoutes);
+
 // Organization/tenant context middleware (optional)
 app.use('/api', orgContextMiddleware);
 
@@ -277,9 +283,6 @@ app.use(
 // Rate limiting for all API routes
 app.use('/api', apiLimiterMiddleware);
 app.use('/api', successEnvelopeMiddleware);
-
-// Health check routes
-app.use('/health', healthRoutes);
 
 // Metrics endpoint
 app.use('/metrics', metricsRouter);
