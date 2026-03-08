@@ -2,6 +2,8 @@
 
 This guide covers deploying the Nonprofit Manager platform to production.
 
+For the live `cbis.westcat.ca` VPS, use the dedicated runbook in [`docs/deployment/cbis-production.md`](cbis-production.md) and the committed helpers `./scripts/deploy-cbis.sh` / `./scripts/verify-cbis.sh`. That host runs from `/srv/nonprofit-manager` as a promoted snapshot and does not use `./scripts/deploy.sh production`.
+
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
@@ -49,7 +51,7 @@ JWT_EXPIRES_IN=24h
 JWT_REFRESH_EXPIRES_IN=7d
 
 # CORS
-CORS_ORIGIN=https://your-domain.com
+CORS_ORIGIN=https://cbis.westcat.ca
 
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000
@@ -68,10 +70,15 @@ ENABLE_MONITORING=true
 
 **Frontend `.env`:**
 ```bash
-VITE_API_URL=https://api.your-domain.com/api
+VITE_API_URL=/api
 VITE_ENABLE_ANALYTICS=true
 VITE_ANALYTICS_ID=your_analytics_id
 ```
+
+Public production endpoints:
+- App + API origin: `https://cbis.westcat.ca`
+- Public API base: `https://cbis.westcat.ca/api`
+- Canonical public health check: `https://cbis.westcat.ca/health`
 
 ## Security: TLS/HTTPS & Encryption
 
@@ -81,26 +88,31 @@ VITE_ANALYTICS_ID=your_analytics_id
 
 The Nonprofit Manager application **must be served over HTTPS** in production. We recommend using a reverse proxy (nginx, AWS ALB, or Cloudflare) to handle TLS termination.
 
-#### Option 1: Docker with Nginx Reverse Proxy (Recommended)
+#### Option 1: Docker with Caddy Reverse Proxy (Recommended)
 
-Set up Nginx as a reverse proxy in front of the Nonprofit Manager backend:
+Serve the frontend and backend from the same public origin (`cbis.westcat.ca`) and let the reverse proxy route `/api` and `/health` to the backend while all other paths go to the frontend:
 
 1. **Get SSL Certificate** (using Let's Encrypt):
 ```bash
 # Install certbot
-sudo apt-get install certbot python3-certbot-nginx
+sudo apt-get install certbot
 
-# Get certificate (replace with your domain)
-sudo certbot certonly --standalone -d your-domain.com -d api.your-domain.com
+# Get certificate
+sudo certbot certonly --standalone -d cbis.westcat.ca
 ```
 
-2. **Configure Nginx** (see full config below in "Nginx Configuration" section)
+2. **Run the VPS overlay** so Caddy is the only public ingress:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.vps.yml up -d
+```
 
 3. **Key Points:**
    - Enable HTTP/2 for better performance
    - Set `Strict-Transport-Security` (HSTS) header with `max-age=31536000` (1 year) to force HTTPS
    - Redirect all HTTP traffic to HTTPS
-   - Configure security headers (X-Frame-Options, X-Content-Type-Options, etc.)
+   - Route `/api` and `/health` to the backend and all other paths to the frontend
+   - Keep backend/frontend host ports (`8000`/`8001`) bound to `127.0.0.1` for host-local diagnostics only
 
 #### Option 2: Application Load Balancer (AWS, Azure, GCP)
 
@@ -118,9 +130,9 @@ If using a managed load balancer:
 
 3. **Update Environment:**
    ```bash
-   # Use HTTPS URLs in CORS and frontend config
-   CORS_ORIGIN=https://your-domain.com
-   VITE_API_URL=https://api.your-domain.com/api
+   # Use the public site origin in CORS and keep the frontend same-origin
+   CORS_ORIGIN=https://cbis.westcat.ca
+   VITE_API_URL=/api
    # Don't expose HTTP ports directly
    ```
 
@@ -295,7 +307,7 @@ JWT_EXPIRES_IN=24h
 JWT_REFRESH_EXPIRES_IN=7d
 
 # CORS (must be HTTPS in production)
-CORS_ORIGIN=https://your-domain.com
+CORS_ORIGIN=https://cbis.westcat.ca
 
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000
@@ -315,7 +327,7 @@ ENABLE_MONITORING=true
 
 **Frontend `.env`:**
 ```bash
-VITE_API_URL=https://api.your-domain.com/api
+VITE_API_URL=/api
 VITE_ENABLE_ANALYTICS=true
 VITE_ANALYTICS_ID=your_analytics_id
 ```
@@ -350,10 +362,23 @@ docker compose --env-file .env.production build
 ### 4. Start Services
 
 ```bash
+# Local production-like stack (backend/frontend ports remain localhost-only)
 docker compose --env-file .env.production up -d
+
+# VPS public edge with single-origin Caddy routing
+docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.vps.yml up -d
 
 # Optional: expose postgres/redis to host for local admin/debug access
 docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.host-access.yml up -d
+```
+
+When using the VPS overlay, public traffic enters through Caddy on `80/443`. The backend and frontend stay reachable on `127.0.0.1:8000` and `127.0.0.1:8001` for host-local diagnostics, and the public `/health` endpoint reflects backend health.
+
+For the live CBIS host, prefer the dedicated deploy helper instead of the generic remote deploy flow:
+
+```bash
+./scripts/deploy-cbis.sh --ref origin/main
+./scripts/verify-cbis.sh
 ```
 
 ### 5. Run Database Migrations
@@ -376,6 +401,8 @@ docker compose --env-file .env.production logs -f
 ```
 
 ## Manual Deployment
+
+The rest of this section describes generic manual/self-managed production deployment. The live CBIS VPS uses the snapshot promotion flow in [`cbis-production.md`](cbis-production.md).
 
 ### Backend Deployment
 
@@ -549,7 +576,10 @@ Before release, review the checklist in `docs/RELEASE_CHECKLIST.md`.
 
 ```bash
 # Backend health endpoint
-curl https://api.your-domain.com/health
+curl https://cbis.westcat.ca/health
+
+# Compatibility aliases remain available
+curl https://cbis.westcat.ca/api/health
 
 # Expected response
 {"status":"ok","timestamp":"2026-02-01T..."}
