@@ -54,8 +54,9 @@ services:
       target: production
     init: true
     restart: unless-stopped
+    # Bind app ports to loopback by default; public exposure should go through a reverse proxy.
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT_BINDING:-127.0.0.1:8000:8000}"
     env_file:
       - .env.production
     environment:
@@ -100,8 +101,9 @@ services:
       args:
         VITE_API_URL: /api
     restart: unless-stopped
+    # Bind app ports to loopback by default; public exposure should go through a reverse proxy.
     ports:
-      - "8001:8001"
+      - "${FRONTEND_PORT_BINDING:-127.0.0.1:8001:8001}"
     environment:
       VITE_API_URL: /api
       VITE_DEFAULT_ORGANIZATION_ID: 82c6f7af-7d6f-4527-a5ae-60db86c5c619

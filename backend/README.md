@@ -194,8 +194,10 @@ API endpoints are documented in:
 **Test an endpoint**:
 
 ```bash
-curl -X GET localhost:3000/api/health
+curl -X GET localhost:3000/health
 ```
+
+Compatibility aliases remain available at `/api/health` and `/api/v2/health`.
 
 ### Outcomes Tracking Endpoints
 
@@ -290,10 +292,12 @@ VITE_API_URL=localhost:3000
 ### Check Connection
 
 ```bash
-curl localhost:3000/api/health
+curl localhost:3000/health
 ```
 
-Should return:
+Compatibility aliases remain available at `/api/health` and `/api/v2/health`.
+
+Should return JSON that includes:
 ```json
 {"status": "ok"}
 ```

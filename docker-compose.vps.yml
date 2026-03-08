@@ -1,0 +1,38 @@
+services:
+  postgres:
+    platform: linux/amd64
+
+  redis:
+    platform: linux/amd64
+
+  backend:
+    platform: linux/amd64
+    environment:
+      TRUST_PROXY: "2"
+
+  frontend:
+    platform: linux/amd64
+
+  caddy:
+    image: caddy:2-alpine
+    platform: linux/amd64
+    restart: unless-stopped
+    depends_on:
+      frontend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    networks:
+      - nonprofit-network
+    volumes:
+      - ./Caddyfile.vps:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
