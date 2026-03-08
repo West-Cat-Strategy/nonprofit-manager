@@ -1,223 +1,112 @@
 # Nonprofit Manager
 
-A project by **West Cat Strategy Ltd.**
+Nonprofit Manager is an all-in-one platform for nonprofit organizations to manage people, programs, fundraising, communications, and public-facing web experiences.
 
-An all-in-one platform for nonprofit organizations to manage volunteers, events, donors, supporters, tasks, and communications.
+Built by **West Cat Strategy Ltd.**
 
-**Contact**: [info@westcat.ca](mailto:info@westcat.ca)
+**Last updated:** March 8, 2026
 
-## Project Overview
+## Overview
 
-Last updated: February 14, 2026.
+Nonprofit Manager brings core nonprofit operations into a single product:
 
-Nonprofit Manager is a comprehensive platform for nonprofit organizations to manage:
-- **Volunteer Management**: Track skills, assignments, and hours
-- **Event Management**: Schedule events with registration and check-in
-- **Donation Tracking**: Record donations and generate receipts
-- **Constituent Management**: Maintain supporter profiles and interactions
-- **Task Management**: Organize assignments and deadlines
-- **Analytics & Reporting**: Custom dashboards, alerts, and data export
-- **Website Builder**: Create and manage nonprofit websites
+- **People and case management** for contacts, supporters, donors, volunteers, and case workflows
+- **Events and volunteer coordination** with registrations, reminders, check-in, and staffing
+- **Fundraising and payments** with donation tracking, receipts, and payment integrations
+- **Portal and communication flows** for client access, messages, documents, forms, and appointments
+- **Reporting and analytics** for dashboards, exports, alerts, and operational visibility
+- **Website publishing tools** for managing nonprofit web content alongside operational data
 
-Built with modern web technologies for performance, security, and scalability.
+The repository contains the full stack that powers those experiences: API, frontend, database assets, end-to-end tests, deployment tooling, and project documentation.
 
-## Tech Stack
+## Stack and Architecture
 
-### Backend
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Language**: TypeScript
-- **Database**: PostgreSQL
-- **Authentication**: JWT with bcrypt
+### Core stack
 
-### Frontend
-- **Framework**: React.js with TypeScript
-- **State Management**: Redux Toolkit
-- **Routing**: React Router
-- **Styling**: Tailwind CSS
-- **Build Tool**: Vite
-- **UI Components**: Headless UI, Heroicons
+- **Backend:** Node.js, Express, TypeScript, PostgreSQL, Redis, Zod
+- **Frontend:** React, TypeScript, Vite, Tailwind CSS, Redux Toolkit
+- **Testing:** Jest, Vitest, Playwright
+- **Operations:** Docker Compose, Makefile-based local CI, deployment scripts
 
-### Data Model
-- Aligned with Microsoft Common Data Model (CDM) for interoperability
+### Current application shape
 
-## Project Structure
+- [`backend/`](backend/) contains the Express API, organized around feature modules in [`backend/src/modules`](backend/src/modules) with shared middleware, validations, services, and route registrars.
+- [`frontend/`](frontend/) contains the React application, with feature-owned code in [`frontend/src/features`](frontend/src/features), shared routes in [`frontend/src/routes`](frontend/src/routes), and app-wide state in [`frontend/src/store`](frontend/src/store).
+- [`database/`](database/) contains schema, migration, initialization, and seed assets.
+- [`docs/`](docs/) contains architecture notes, API references, deployment runbooks, testing guides, and the active project workboard.
 
-```
-nonprofit-manager/
-├── backend/              # Express.js TypeScript API
-│   ├── src/
-│   │   ├── config/      # Database, logger, etc.
-│   │   ├── controllers/ # Request handlers
-│   │   ├── middleware/  # Auth, error handling
-│   │   ├── models/      # Data models
-│   │   ├── routes/      # API routes
-│   │   ├── services/    # Business logic
-│   │   ├── types/       # TypeScript types
-│   │   └── utils/       # Helper functions
-│   ├── package.json
-│   └── tsconfig.json
-├── frontend/            # React TypeScript app
-│   ├── src/
-│   │   ├── pages/       # Page components
-│   │   ├── services/    # API client
-│   │   ├── store/       # Redux store & slices
-│   │   └── App.tsx
-│   ├── package.json
-│   └── tsconfig.json
-├── database/            # Database schema & migrations
-│   ├── migrations/      # SQL migration files
-│   ├── seeds/          # Seed data
-│   └── README.md
-├── docs/                # Documentation
-│   ├── api/            # API references and specs
-│   ├── backend/        # Backend development guides
-│   ├── deployment/     # Deployment and setup guides
-│   ├── development/    # Development conventions and architecture
-│   ├── features/       # Feature-specific documentation
-│   ├── performance/    # Performance optimization guides
-│   ├── phases/         # Project phase completion summaries
-│   ├── product/        # Product specifications and research
-│   ├── quick-reference/ # Quick reference guides
-│   ├── security/       # Security audits and monitoring
-│   ├── testing/        # Testing guides and procedures
-│   ├── ui/             # UI/UX design and theming
-│   └── validation/     # Validation schemas reference
-├── e2e/                 # End-to-end tests
-├── plausible/           # Plausible analytics setup
-├── scripts/             # Utility scripts
-└── README.md
-```
+### Backend pattern
 
-## Key Features
+The backend follows a route-to-controller-to-service flow with validation and auth guardrails around each request:
 
-- **Customizable Dashboards**: Drag-and-drop widgets with 11+ widget types
-- **Analytics Alerts**: Real-time monitoring with multi-channel notifications
-- **Privacy-First Analytics**: Self-hosted Plausible integration
-- **Performance Optimized**: Database indexing and intelligent caching
-- **Data Export**: CSV/Excel export with flexible filtering
-- **Role-Based Security**: Granular permissions and data masking
+`Route -> Controller -> Service -> Database`
 
-See [Features Documentation](docs/README.md) for detailed guides.
+This keeps HTTP concerns, authorization, business logic, and data access separated while the Phase 4 modularity refactor continues to consolidate legacy and v2 surfaces.
 
-## Getting Started
+## Quick Start
 
 ### Prerequisites
-- Docker Desktop (or Docker Engine + Docker Compose)
-- Node.js 20.19+ and npm 10+ (for manual local development outside Docker)
 
-### Quick Start
-```bash
-# Start all services
-docker compose -p nonprofit-prod --env-file .env.production -f docker-compose.yml up --build -d
+- Docker Desktop, or Docker Engine with Compose support
+- Node.js `20.19+`
+- npm `10+`
 
-# Access the application
-# - Frontend: http://localhost:8001
-# - Backend API: http://localhost:8000
-```
-
-### Development Mode
-```bash
-# Start with hot reload
-docker compose -p nonprofit-dev -f docker-compose.dev.yml up --build -d
-
-# Access
-# - Frontend: http://localhost:8005
-# - Backend API: http://localhost:8004
-# - PostgreSQL: localhost:8002
-# - Redis: localhost:8003
-```
-
-The dev stack now builds `backend` and `frontend` from the shared app Dockerfiles using their `dev` targets, so there is no separate `Dockerfile.dev` maintenance surface.
-
-### Optional Docker Overlays
+### Local development
 
 ```bash
-# Dev stack + tools profile (pgAdmin, Redis Commander, MailHog)
-docker compose -p nonprofit-dev -f docker-compose.dev.yml -f docker-compose.tools.yml --profile tools up -d
-
-# Dev stack + Caddy overlay
-docker compose -p nonprofit-dev -f docker-compose.dev.yml -f docker-compose.caddy.yml up -d
-
-# Production-like stack + optional DB/Redis host-port access
-docker compose -p nonprofit-prod --env-file .env.production -f docker-compose.yml -f docker-compose.host-access.yml up -d
-
-# Production stack + VPS Caddy public edge
-docker compose -p nonprofit-prod --env-file .env.production -f docker-compose.yml -f docker-compose.vps.yml up -d
-```
-
-The Caddy overlay now uses the stock `caddy:2-alpine` image directly, so `docker-up-caddy` and the raw compose command work without a local image prebuild step.
-
-When using `docker-compose.vps.yml`, public traffic enters through Caddy on `80/443`, backend and frontend ports `8000`/`8001` stay bound to `127.0.0.1` for host-local diagnostics, the public API base is `https://cbis.westcat.ca/api`, and `https://cbis.westcat.ca/health` reaches the backend health route.
-
-For the live CBIS VPS, use [`scripts/deploy-cbis.sh`](scripts/deploy-cbis.sh) and [`scripts/verify-cbis.sh`](scripts/verify-cbis.sh) instead of [`scripts/deploy.sh`](scripts/deploy.sh). The production host runs from `/srv/nonprofit-manager` as a promoted snapshot, not a remote git checkout. See [`docs/deployment/cbis-production.md`](docs/deployment/cbis-production.md).
-
-### First Setup vs Seeded Data
-
-- `docker-compose.dev.yml` runs `database/initdb/000_init.sql` on first DB initialization.
-- That init script currently loads `database/seeds/003_mock_data.sql`, which includes an admin user.
-- Seeded login credentials: `admin@example.com` / `password123`.
-- If you want to exercise true first-time setup (`/setup`), use a database that does not load user seeds (or clear users/admins before launch).
-
-### Setup/Launch Troubleshooting
-
-- Symptom: app bounces between `/setup` and `/login`, or auth/setup endpoints return org-context errors.
-- Check org-context flags in backend env:
-  - `ORG_CONTEXT_REQUIRE=true`
-  - `ORG_CONTEXT_VALIDATE=true`
-- Auth/bootstrap routes (`/api/v2/auth/*`, `/api/v2/admin/*`, `/api/v2/invitations/*`, `/api/v2/payments/webhook`) should bypass org-context enforcement.
-- If setup-status cannot be fetched (network/500), keep `/setup` usable and avoid forcing `/setup -> /login` until setup state resolves.
-
-For manual setup and advanced Docker commands, see [Deployment Guide](docs/deployment/DEPLOYMENT.md) and the [CBIS production runbook](docs/deployment/cbis-production.md).
-
-## Development
-
-### Commands
-```bash
-# Full local CI
-make ci
-
-# Start development environment
 make dev
-
-# Run tests
-make test
-
-# Lint and typecheck
-make lint && make typecheck
 ```
 
-See [Development Guide](docs/development/CONVENTIONS.md) for coding standards and [Testing Guide](docs/testing/TESTING.md) for testing procedures.
+This starts the local development stack with hot reload.
 
-## Contributing
+Local endpoints:
 
-Want to contribute? Start here:
-1. **[Getting Started Guide](docs/development/GETTING_STARTED.md)** — Set up your development environment (~2 hours)
-2. **[Contributing Guide](CONTRIBUTING.md)** — Git workflow, commit messages, pull requests
-3. **[Code Conventions](docs/development/CONVENTIONS.md)** — Code style and standards
-4. **[Architecture Decisions](docs/development/ARCHITECTURE.md)** — System design
+- Frontend: `http://localhost:8005`
+- Backend API: `http://localhost:8004`
+- PostgreSQL: `localhost:8002`
+- Redis: `localhost:8003`
 
-For detailed contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
+### Common commands
+
+```bash
+make ci
+make test
+make lint
+make typecheck
+```
+
+For deeper setup details, environment notes, and deployment workflows, use the docs linked below instead of relying on the root README.
 
 ## Documentation
 
-**Start here**: [docs/INDEX.md](docs/INDEX.md) — Complete documentation index and navigation
+Start with [`docs/INDEX.md`](docs/INDEX.md) for the full documentation map.
 
-**Quick links**:
-- **Setup**: [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) (new developers)
-- **API Docs**: [docs/api/README.md](docs/api/README.md) (endpoints and integrations)
-- **Features**: [docs/features/FEATURE_MATRIX.md](docs/features/FEATURE_MATRIX.md) (what's available)
-- **Testing**: [docs/testing/TESTING.md](docs/testing/TESTING.md) (how to test)
-- **Deployment**: [docs/deployment/DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md) (production setup)
-- **Security**: [docs/security/SECURITY_MONITORING_GUIDE.md](docs/security/SECURITY_MONITORING_GUIDE.md) (monitoring and incidents)
+Useful entry points:
 
-See [docs/INDEX.md](docs/INDEX.md) for comprehensive documentation including:
-- Development guides (architecture, conventions, troubleshooting)
-- API references and integration guides
-- Feature documentation
-- Deployment and DevOps guides
-- Testing strategies
-- Security and monitoring
+- [`docs/development/GETTING_STARTED.md`](docs/development/GETTING_STARTED.md) for local setup
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution workflow
+- [`docs/development/ARCHITECTURE.md`](docs/development/ARCHITECTURE.md) for system design
+- [`docs/api/README.md`](docs/api/README.md) for API references and integration docs
+- [`docs/testing/TESTING.md`](docs/testing/TESTING.md) for test strategy and commands
+- [`docs/deployment/DEPLOYMENT.md`](docs/deployment/DEPLOYMENT.md) for deployment guidance
+- [`docs/deployment/cbis-production.md`](docs/deployment/cbis-production.md) for the CBIS production runbook
+- [`docs/phases/planning-and-progress.md`](docs/phases/planning-and-progress.md) for the active workboard and current execution status
+- [`backend/README.md`](backend/README.md) and [`frontend/README.md`](frontend/README.md) for service-specific details
+
+## Contributing
+
+Contributors should start with the setup and workflow docs:
+
+1. [`docs/development/GETTING_STARTED.md`](docs/development/GETTING_STARTED.md)
+2. [`CONTRIBUTING.md`](CONTRIBUTING.md)
+3. [`docs/development/CONVENTIONS.md`](docs/development/CONVENTIONS.md)
+4. [`docs/development/ARCHITECTURE.md`](docs/development/ARCHITECTURE.md)
+
+## Current Status
+
+The project is currently in **Phase 4: Modularity Refactor**, with active closure and follow-on work tracked in [`docs/phases/planning-and-progress.md`](docs/phases/planning-and-progress.md).
+
+That work is focused on consolidating backend and frontend ownership boundaries, preserving route and UI contracts during migration, and tightening policy and verification guardrails across the stack.
 
 ## License
 
@@ -225,46 +114,6 @@ MIT
 
 Copyright (c) 2026 West Cat Strategy Ltd.
 
-## Team
-
-**Lead Developer**: Bryan Crockett (@bcroc)  
-President and CEO, West Cat Strategy Ltd.  
-Email: [bryan.crockett@westcat.ca](mailto:bryan.crockett@westcat.ca)
-
 ## Contact
 
-For inquiries, please contact: [info@westcat.ca](mailto:info@westcat.ca)
-
-## Status
-
-**Current Phase:** Phase 3 - Feature Integration & Optimization (In Progress)  
-**Last Updated:** February 15, 2026
-
-### Feature Highlights
-
-- **Theming System**: 6 multi-tone themes with light/dark mode and system preference detection.
-- **Advanced Task Management**: Gantt charts, task dependencies, and subtasks for complex workflows.
-- **Enhanced CRM**: Automated lead scoring, follow-up reminders, and contact relationship mapping.
-- **Report Generator 2.0**: Advanced aggregations, grouping, and export support for Excel/PDF.
-- **Self-Hosted Telemetry**: Built-in Prometheus metrics and localized performance monitoring.
-- **Secure by Design**: Role-Based Access Control (RBAC), PII encryption, and Zod validation.
-
-### Completed Features
-
-- ✅ Full-stack TypeScript architecture (React 19 + Express)
-- ✅ PostgreSQL database with CDM-aligned schema
-- ✅ Neobrutalist & Modern UI themes with semantic tokens
-- ✅ Advanced Dashboard with 11+ widget types
-- ✅ Stripe Integration (Optional) for payment processing
-- ✅ Comprehensive End-to-End Test Suite (Playwright)
-- ✅ Performance-optimized API with Redis caching
-- ✅ Multi-format Data Export (CSV/Excel/PDF)
-- ✅ Enhanced CRM with automated workflows
-- ✅ Customizable Site Generator for nonprofit portals
-
-### In Progress
-- 🚧 External Security Audit & Hardening
-- 🚧 Advanced Workflow Automation Engine
-- 🚧 Mobile App (React Native) foundations
-
-See [Planning & Progress](docs/phases/planning-and-progress.md) for detailed roadmap.
+For project or product inquiries, contact [info@westcat.ca](mailto:info@westcat.ca).
