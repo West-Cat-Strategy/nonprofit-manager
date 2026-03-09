@@ -22,11 +22,20 @@ type SetupStatusSnapshot = {
 const SETUP_STATUS_CACHE_TTL_MS = 60_000;
 let setupStatusSnapshot: SetupStatusSnapshot | null = null;
 let setupStatusInFlightPromise: Promise<SetupStatusSnapshot> | null = null;
+const setupPreviewMode = import.meta.env.VITE_UI_SETUP_REQUIRED;
 
 const isSnapshotFresh = (snapshot: SetupStatusSnapshot): boolean =>
   Date.now() - snapshot.fetchedAt < SETUP_STATUS_CACHE_TTL_MS;
 
 const fetchSetupStatusSnapshot = async (): Promise<SetupStatusSnapshot> => {
+  if (setupPreviewMode === 'true' || setupPreviewMode === 'false') {
+    return {
+      setupRequired: setupPreviewMode === 'true',
+      error: null,
+      fetchedAt: Date.now(),
+    };
+  }
+
   try {
     const response = await api.get<SetupStatus>('/auth/setup-status');
     const nextSetupRequired =

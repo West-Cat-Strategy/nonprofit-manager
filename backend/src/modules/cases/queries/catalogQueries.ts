@@ -264,7 +264,10 @@ export const getCaseTimelineQuery = async (
         COALESCE(co.outcome_type, 'Outcome') AS title,
         co.notes AS content,
         jsonb_build_object(
-          'outcome_date', co.outcome_date
+          'outcome_date', co.outcome_date,
+          'workflow_stage', co.workflow_stage,
+          'source_entity_type', co.source_entity_type,
+          'source_entity_id', co.source_entity_id
         ) AS metadata,
         co.created_by,
         u.first_name,
@@ -317,6 +320,170 @@ export const getCaseTimelineQuery = async (
       LEFT JOIN users u ON u.id = cd.uploaded_by
       WHERE cd.case_id = $1
         AND COALESCE(cd.is_active, true) = true
+
+      UNION ALL
+
+      SELECT
+        a.id,
+        'appointment'::text AS type,
+        a.case_id,
+        COALESCE(a.checked_in_at, a.updated_at, a.created_at) AS created_at,
+        true AS visible_to_client,
+        COALESCE(a.title, 'Appointment') AS title,
+        a.description AS content,
+        jsonb_build_object(
+          'status', a.status,
+          'start_time', a.start_time,
+          'end_time', a.end_time,
+          'location', a.location,
+          'attendance_state', CASE
+            WHEN a.status = 'cancelled' THEN 'cancelled'
+            WHEN a.checked_in_at IS NOT NULL OR a.status = 'completed' THEN 'attended'
+            WHEN a.status IN ('requested', 'confirmed') AND COALESCE(a.end_time, a.start_time) < NOW() THEN 'no_show'
+            ELSE 'scheduled'
+          END,
+          'pending_reminder_jobs', (
+            SELECT COUNT(*)::int
+            FROM appointment_reminder_jobs arj
+            WHERE arj.appointment_id = a.id
+              AND arj.status IN ('pending', 'processing')
+          ),
+          'last_reminder_sent_at', (
+            SELECT MAX(ard.sent_at)
+            FROM appointment_reminder_deliveries ard
+            WHERE ard.appointment_id = a.id
+          ),
+          'missing_note', CASE
+            WHEN a.status IN ('completed', 'cancelled') AND NOT EXISTS (
+              SELECT 1
+              FROM case_notes cn
+              WHERE cn.case_id = a.case_id
+                AND cn.source_entity_type = 'appointment'
+                AND cn.source_entity_id = a.id
+            ) THEN true
+            ELSE false
+          END,
+          'missing_outcome', CASE
+            WHEN a.status IN ('completed', 'cancelled') AND NOT EXISTS (
+              SELECT 1
+              FROM case_outcomes co
+              WHERE co.case_id = a.case_id
+                AND co.source_entity_type = 'appointment'
+                AND co.source_entity_id = a.id
+            ) THEN true
+            ELSE false
+          END
+        ) AS metadata,
+        a.pointperson_user_id AS created_by,
+        pointperson.first_name,
+        pointperson.last_name
+      FROM appointments a
+      LEFT JOIN users pointperson ON pointperson.id = a.pointperson_user_id
+      WHERE a.case_id = $1
+
+      UNION ALL
+
+      SELECT
+        t.id,
+        'conversation'::text AS type,
+        t.case_id,
+        COALESCE(t.closed_at, t.last_message_at, t.created_at) AS created_at,
+        true AS visible_to_client,
+        COALESCE(t.subject, 'Portal conversation') AS title,
+        t.last_message_preview AS content,
+        jsonb_build_object(
+          'status', t.status,
+          'portal_email', pu.email,
+          'last_message_at', t.last_message_at,
+          'linked_note_count', (
+            SELECT COUNT(*)::int
+            FROM case_notes cn
+            WHERE cn.case_id = t.case_id
+              AND cn.source_entity_type = 'portal_thread'
+              AND cn.source_entity_id = t.id
+          ),
+          'linked_outcome_count', (
+            SELECT COUNT(*)::int
+            FROM case_outcomes co
+            WHERE co.case_id = t.case_id
+              AND co.source_entity_type = 'portal_thread'
+              AND co.source_entity_id = t.id
+          ),
+          'resolution_complete', CASE
+            WHEN EXISTS (
+              SELECT 1
+              FROM case_notes cn
+              WHERE cn.case_id = t.case_id
+                AND cn.source_entity_type = 'portal_thread'
+                AND cn.source_entity_id = t.id
+            )
+            AND EXISTS (
+              SELECT 1
+              FROM case_outcomes co
+              WHERE co.case_id = t.case_id
+                AND co.source_entity_type = 'portal_thread'
+                AND co.source_entity_id = t.id
+            ) THEN true
+            ELSE false
+          END
+        ) AS metadata,
+        t.closed_by AS created_by,
+        closed_by_user.first_name,
+        closed_by_user.last_name
+      FROM portal_threads t
+      LEFT JOIN portal_users pu ON pu.id = t.portal_user_id
+      LEFT JOIN users closed_by_user ON closed_by_user.id = t.closed_by
+      WHERE t.case_id = $1
+
+      UNION ALL
+
+      SELECT
+        fu.id,
+        'follow_up'::text AS type,
+        fu.entity_id AS case_id,
+        COALESCE(fu.completed_date, fu.updated_at, fu.created_at) AS created_at,
+        false AS visible_to_client,
+        fu.title,
+        COALESCE(fu.completed_notes, fu.description) AS content,
+        jsonb_build_object(
+          'status', fu.status,
+          'scheduled_date', fu.scheduled_date,
+          'scheduled_time', fu.scheduled_time,
+          'method', fu.method,
+          'frequency', fu.frequency,
+          'reminder_minutes_before', fu.reminder_minutes_before
+        ) AS metadata,
+        fu.assigned_to AS created_by,
+        assignee.first_name,
+        assignee.last_name
+      FROM follow_ups fu
+      LEFT JOIN users assignee ON assignee.id = fu.assigned_to
+      WHERE fu.entity_type = 'case'
+        AND fu.entity_id = $1
+
+      UNION ALL
+
+      SELECT
+        er.id,
+        'attendance'::text AS type,
+        er.case_id,
+        COALESCE(er.check_in_time, er.created_at) AS created_at,
+        false AS visible_to_client,
+        COALESCE(e.name, 'Attendance') AS title,
+        er.notes AS content,
+        jsonb_build_object(
+          'event_id', er.event_id,
+          'registration_status', er.registration_status,
+          'checked_in', er.checked_in,
+          'check_in_method', er.check_in_method
+        ) AS metadata,
+        er.checked_in_by AS created_by,
+        checked_in_user.first_name,
+        checked_in_user.last_name
+      FROM event_registrations er
+      LEFT JOIN events e ON e.id = er.event_id
+      LEFT JOIN users checked_in_user ON checked_in_user.id = er.checked_in_by
+      WHERE er.case_id = $1
     ) timeline
     WHERE (
       $2::timestamptz IS NULL

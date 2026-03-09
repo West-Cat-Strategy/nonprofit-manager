@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../services/api';
 import { useAppSelector } from '../store/hooks';
 import { getStartupStaffNavigationEntries } from '../routes/startupRouteCatalog';
+import type { RouteArea, RouteNavKind, RouteSection } from '../routes/routeCatalog';
 import { getUserPreferencesCached, mergeUserPreferencesCached } from '../services/userPreferencesService';
 
 export interface NavigationItem {
@@ -16,6 +17,11 @@ export interface NavigationItem {
   name: string;
   path: string;
   icon: string;
+  area: RouteArea;
+  section: RouteSection;
+  navKind: RouteNavKind;
+  parentId?: string;
+  breadcrumbLabel: string;
   enabled: boolean;
   pinned?: boolean;
   isCore: boolean; // Core items cannot be disabled (e.g., Dashboard)
@@ -90,6 +96,11 @@ const defaultNavigationItems: NavigationItem[] = getStartupStaffNavigationEntrie
     name: entry.staffNav?.label || entry.title,
     path: entry.href || entry.path,
     icon: entry.staffNav?.icon || '•',
+    area: entry.area,
+    section: entry.section,
+    navKind: entry.navKind,
+    parentId: entry.parentId,
+    breadcrumbLabel: entry.breadcrumbLabel,
     enabled: true,
     pinned: false,
     isCore: entry.id === 'dashboard',
@@ -453,6 +464,8 @@ export function useNavigationPreferences() {
     allItems: preferences.items,
     enabledItems,
     pinnedItems,
+    favoriteItems: pinnedItems,
+    enabledRouteIds: enabledItems.map((item) => item.id),
     primaryItems,
     secondaryItems,
     toggleItem,

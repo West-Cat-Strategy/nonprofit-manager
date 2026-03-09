@@ -97,7 +97,9 @@ vi.mock('../../../../components/cases/CaseServices', () => ({ default: () => <di
 vi.mock('../../../../components/cases/CasePortalConversations', () => ({ default: () => <div>Portal panel</div> }));
 vi.mock('../../../../components/cases/CaseTimeline', () => ({ default: () => <div>Timeline panel</div> }));
 vi.mock('../../../../components/cases/CaseOutcomesTopics', () => ({ default: () => <div>Outcomes panel</div> }));
+vi.mock('../../../../components/cases/CaseAppointments', () => ({ default: () => <div>Appointments panel</div> }));
 vi.mock('../../../../features/teamChat/components/CaseTeamChatPanel', () => ({ default: () => <div>Team chat</div> }));
+vi.mock('../../../../features/cases/components/CaseStatusChangeModal', () => ({ default: () => null }));
 
 vi.mock('../../../../features/cases/state', () => ({
   default: (
@@ -117,6 +119,10 @@ vi.mock('../../../../features/cases/state', () => ({
   clearCurrentCase: () => ({ type: 'case/clearCurrent' }),
   fetchCaseStatuses: () => ({ type: 'case/fetchStatuses' }),
   fetchCaseMilestones: (id: string) => ({ type: 'case/fetchMilestones', payload: id }),
+  fetchCaseOutcomeDefinitions: (includeInactive?: boolean) => ({
+    type: 'case/fetchOutcomeDefinitions',
+    payload: includeInactive,
+  }),
   createCaseMilestone: (payload: unknown) => ({ type: 'case/createMilestone', payload }),
   updateCaseMilestone: (payload: unknown) => ({ type: 'case/updateMilestone', payload }),
   deleteCaseMilestone: (id: string) => ({ type: 'case/deleteMilestone', payload: id }),

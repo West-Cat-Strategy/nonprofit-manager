@@ -17,11 +17,11 @@ import {
 } from '@app-types/event';
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { PASSWORD } from '@config/constants';
-import { activityEventService } from '@services/activityEventService';
 import {
   EventCheckInWindowEventRow,
   EventParticipantSupport,
   QueryValue,
+  recordActivityEventSafely,
 } from './shared';
 
 export class EventRegistrationService {
@@ -54,10 +54,11 @@ export class EventRegistrationService {
     }
 
     const result = await this.pool.query(
-      `SELECT
+       `SELECT
          er.id as registration_id,
          er.event_id,
          er.contact_id,
+         er.case_id,
          er.registration_status,
          er.checked_in,
          er.check_in_time,
@@ -94,10 +95,11 @@ export class EventRegistrationService {
     }
 
     const result = await this.pool.query(
-      `SELECT
+       `SELECT
          er.id as registration_id,
          er.event_id,
          er.contact_id,
+         er.case_id,
          er.registration_status,
          er.checked_in,
          er.check_in_time,
@@ -123,10 +125,11 @@ export class EventRegistrationService {
 
   async getRegistrationById(registrationId: string): Promise<EventRegistration | null> {
     const result = await this.pool.query(
-      `SELECT
+       `SELECT
          er.id as registration_id,
          er.event_id,
          er.contact_id,
+         er.case_id,
          er.registration_status,
          er.checked_in,
          er.check_in_time,
@@ -152,10 +155,11 @@ export class EventRegistrationService {
 
   async getRegistrationByToken(eventId: string, token: string): Promise<EventRegistration | null> {
     const result = await this.pool.query(
-      `SELECT
+       `SELECT
          er.id as registration_id,
          er.event_id,
          er.contact_id,
+         er.case_id,
          er.registration_status,
          er.checked_in,
          er.check_in_time,
@@ -221,7 +225,7 @@ export class EventRegistrationService {
   }
 
   async registerContact(registrationData: CreateRegistrationDTO): Promise<EventRegistration> {
-    const { event_id, contact_id, registration_status = 'registered', notes } = registrationData;
+    const { event_id, contact_id, case_id, registration_status = 'registered', notes } = registrationData;
     const client = await this.pool.connect();
 
     try {
@@ -261,12 +265,13 @@ export class EventRegistrationService {
       }
 
       const result = await client.query(
-        `INSERT INTO event_registrations (event_id, contact_id, registration_status, notes)
-         VALUES ($1, $2, $3, $4)
+        `INSERT INTO event_registrations (event_id, contact_id, case_id, registration_status, notes)
+         VALUES ($1, $2, $3, $4, $5)
          RETURNING
            id as registration_id,
            event_id,
            contact_id,
+           case_id,
            registration_status,
            checked_in,
            check_in_time,
@@ -276,7 +281,7 @@ export class EventRegistrationService {
            notes,
            created_at,
            updated_at`,
-        [event_id, contact_id, registration_status, notes || null]
+        [event_id, contact_id, case_id || null, registration_status, notes || null]
       );
 
       await client.query(
@@ -287,7 +292,7 @@ export class EventRegistrationService {
         [event_id]
       );
 
-      await activityEventService.recordEvent(
+      await recordActivityEventSafely(
         {
           type: 'event_registration',
           title: 'Event registration',
@@ -297,12 +302,19 @@ export class EventRegistrationService {
           entityId: event_id,
           relatedEntityType: 'contact',
           relatedEntityId: contact_id,
+          sourceTable: 'event_registrations',
+          sourceRecordId: result.rows[0].registration_id,
           metadata: {
             registrationId: result.rows[0].registration_id,
             registrationStatus: registration_status,
           },
         },
-        client
+        client,
+        {
+          eventId: event_id,
+          contactId: contact_id,
+          source: 'staff-registration',
+        }
       );
 
       await client.query('COMMIT');
@@ -339,13 +351,14 @@ export class EventRegistrationService {
     values.push(registrationId);
 
     const result = await this.pool.query(
-      `UPDATE event_registrations
+       `UPDATE event_registrations
        SET ${fields.join(', ')}
        WHERE id = $${paramCount}
        RETURNING
          id as registration_id,
          event_id,
          contact_id,
+         case_id,
          registration_status,
          checked_in,
          check_in_time,
@@ -437,6 +450,7 @@ export class EventRegistrationService {
            id as registration_id,
            event_id,
            contact_id,
+           case_id,
            registration_status,
            checked_in,
            check_in_time,
@@ -457,7 +471,7 @@ export class EventRegistrationService {
         [registrationRow.event_id]
       );
 
-      await activityEventService.recordEvent(
+      await recordActivityEventSafely(
         {
           type: 'event_check_in',
           title: 'Event attendee checked in',
@@ -467,12 +481,19 @@ export class EventRegistrationService {
           entityId: registrationRow.event_id,
           relatedEntityType: 'contact',
           relatedEntityId: result.rows[0].contact_id,
+          sourceTable: 'event_registrations',
+          sourceRecordId: registrationId,
           metadata: {
             registrationId,
             method,
           },
         },
-        client
+        client,
+        {
+          eventId: registrationRow.event_id,
+          contactId: result.rows[0].contact_id,
+          source: 'staff-check-in',
+        }
       );
 
       await client.query('COMMIT');
@@ -662,6 +683,7 @@ export class EventRegistrationService {
            id as registration_id,
            event_id,
            contact_id,
+           case_id,
            registration_status,
            checked_in,
            check_in_time,
@@ -697,6 +719,7 @@ export class EventRegistrationService {
              id as registration_id,
              event_id,
              contact_id,
+             case_id,
              registration_status,
              checked_in,
              check_in_time,
@@ -723,7 +746,7 @@ export class EventRegistrationService {
           [eventId]
         );
 
-        await activityEventService.recordEvent(
+        await recordActivityEventSafely(
           {
             type: 'event_registration',
             title: 'Event registration',
@@ -733,12 +756,19 @@ export class EventRegistrationService {
             entityId: eventId,
             relatedEntityType: 'contact',
             relatedEntityId: contactId,
+            sourceTable: 'event_registrations',
+            sourceRecordId: createdRegistrationResult.rows[0].registration_id,
             metadata: {
               registrationId: createdRegistrationResult.rows[0].registration_id,
               walkIn: true,
             },
           },
-          client
+          client,
+          {
+            eventId,
+            contactId,
+            source: 'walk-in-registration',
+          }
         );
 
         registration = createdRegistrationResult.rows[0];
@@ -776,6 +806,7 @@ export class EventRegistrationService {
            id as registration_id,
            event_id,
            contact_id,
+           case_id,
            registration_status,
            checked_in,
            check_in_time,
@@ -796,7 +827,7 @@ export class EventRegistrationService {
         [eventId]
       );
 
-      await activityEventService.recordEvent(
+      await recordActivityEventSafely(
         {
           type: 'event_check_in',
           title: 'Event attendee checked in',
@@ -806,13 +837,20 @@ export class EventRegistrationService {
           entityId: eventId,
           relatedEntityType: 'contact',
           relatedEntityId: contactId,
+          sourceTable: 'event_registrations',
+          sourceRecordId: checkedInResult.rows[0].registration_id,
           metadata: {
             registrationId: checkedInResult.rows[0].registration_id,
             walkIn: true,
             createdRegistration,
           },
         },
-        client
+        client,
+        {
+          eventId,
+          contactId,
+          source: 'walk-in-check-in',
+        }
       );
 
       await client.query('COMMIT');

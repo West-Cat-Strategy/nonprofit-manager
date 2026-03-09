@@ -7,6 +7,7 @@ import { validateBody, validateParams, validateQuery } from '@middleware/zodVali
 import {
   getCasePortalConversations,
   replyCasePortalConversation,
+  resolvePortalConversation,
 } from '../controllers/portalConversations.controller';
 import {
   caseOutcomeDefinitionsQuerySchema,
@@ -173,7 +174,9 @@ const updateCaseSchema = z.object({
 const updateCaseStatusSchema = z.object({
   new_status_id: uuidSchema,
   reason: z.string().optional(),
-  notes: z.string().optional(),
+  notes: z.string().trim().min(1),
+  outcome_definition_ids: z.array(uuidSchema).optional(),
+  outcome_visibility: z.coerce.boolean().optional(),
 });
 
 const updateCaseClientViewableSchema = z.object({
@@ -188,7 +191,7 @@ const reassignCaseSchema = z.object({
 const bulkStatusUpdateSchema = z.object({
   case_ids: z.array(uuidSchema).min(1),
   new_status_id: uuidSchema,
-  notes: z.string().optional(),
+  notes: z.string().trim().min(1),
 });
 
 const createCaseNoteSchema = z.object({
@@ -300,6 +303,13 @@ const createCaseServiceSchema = z.object({
 });
 
 const updateCaseServiceSchema = createCaseServiceSchema.partial();
+
+const resolveCasePortalConversationSchema = z.object({
+  resolution_note: z.string().trim().min(1),
+  outcome_definition_ids: z.array(uuidSchema).min(1),
+  close_status: z.enum(['closed', 'archived']).default('closed'),
+  visible_to_client: z.coerce.boolean().optional(),
+});
 
 export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
   const router = Router();
@@ -438,6 +448,13 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
     validateParams(casePortalConversationMessageParamsSchema),
     validateBody(casePortalConversationMessageSchema),
     replyCasePortalConversation
+  );
+
+  router.post(
+    '/:id/portal/conversations/:threadId/resolve',
+    validateParams(casePortalConversationMessageParamsSchema),
+    validateBody(resolveCasePortalConversationSchema),
+    resolvePortalConversation
   );
 
   router.get(

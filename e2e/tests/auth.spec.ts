@@ -25,6 +25,16 @@ const gotoLogin = async (page: Page) => {
   await expect(page).toHaveURL(/\/login/);
 };
 
+const gotoDashboardWithApiAuth = async (page: Page) => {
+  const { email, password } = getCreds();
+  await ensureLoginViaAPI(page, email, password, {
+    firstName: 'Test',
+    lastName: 'User',
+  });
+  await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveURL('/dashboard');
+};
+
 test.describe('Authentication Flow', () => {
   test.beforeEach(async ({ page }) => {
     const sharedUser = getSharedTestUser();
@@ -115,9 +125,7 @@ test.describe('Authentication Flow', () => {
       }
     });
 
-    const { email, password } = getCreds();
-    await login(page, email, password);
-    await expect(page).toHaveURL('/dashboard');
+    await gotoDashboardWithApiAuth(page);
     await expect
       .poll(
         async () => {
@@ -133,6 +141,10 @@ test.describe('Authentication Flow', () => {
         { timeout: 10000 }
       )
       .toBe(true);
+
+    await expect(page.getByText(/today at a glance/i).first()).toBeVisible();
+    await expect(page.getByText(/pinned shortcuts/i).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /create intake/i }).first()).toBeVisible();
 
     await page.waitForTimeout(800);
     expect(startupRequests).toEqual([]);
@@ -216,9 +228,7 @@ test.describe('Authentication Flow', () => {
       }
     });
 
-    const { email, password } = getCreds();
-    await login(page, email, password);
-    await expect(page).toHaveURL('/dashboard');
+    await gotoDashboardWithApiAuth(page);
 
     await page.getByRole('button', { name: /search/i }).first().click();
     const searchInput = page.getByPlaceholder('Search by name, email, or phone...');

@@ -26,11 +26,33 @@ export type RouteSection =
   | 'Demo'
   | 'Websites';
 
+export type RouteArea =
+  | 'Home'
+  | 'People'
+  | 'Service'
+  | 'Engagement'
+  | 'Finance'
+  | 'Insights'
+  | 'Publishing'
+  | 'Admin'
+  | 'Access'
+  | 'Events'
+  | 'Check-In'
+  | 'Reports'
+  | 'Cases'
+  | 'Messages'
+  | 'Documents'
+  | 'Forms'
+  | 'Appointments'
+  | 'Account'
+  | 'Demo';
+
 export type RouteSurface = 'public' | 'staff' | 'portal' | 'demo';
 export type RouteAuthScope = 'public' | 'staff' | 'portal' | 'admin';
 export type StaffNavGroup = 'primary' | 'secondary' | 'utility';
 export type AdminNavigationMode = 'settings' | 'portal';
 export type FeatureFlagValues = Partial<Record<string, string | boolean | undefined>>;
+export type RouteNavKind = 'hub' | 'leaf' | 'utility';
 
 export interface RouteCatalogAlias {
   path: string;
@@ -49,11 +71,15 @@ export interface RouteCatalogEntry {
   id: string;
   title: string;
   section: RouteSection;
+  area: RouteArea;
   surface: RouteSurface;
   path: string;
   href?: string;
   requiresAuth: boolean;
   authScope: RouteAuthScope;
+  navKind: RouteNavKind;
+  parentId?: string;
+  breadcrumbLabel: string;
   featureStatus?: FeatureAccessStatus;
   featureFlagEnv?: string;
   auditScore?: UiAuditScore;

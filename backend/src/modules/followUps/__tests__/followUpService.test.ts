@@ -206,7 +206,9 @@ describe('FollowUpService', () => {
     };
     db.connect.mockResolvedValueOnce(client);
 
-    const result = await service.completeFollowUp('org-1', 'missing', 'user-1', {});
+    const result = await service.completeFollowUp('org-1', 'missing', 'user-1', {
+      completed_notes: 'Done',
+    });
 
     expect(result).toBeNull();
     expect(client.query).toHaveBeenCalledWith('ROLLBACK');
@@ -273,6 +275,7 @@ describe('FollowUpService', () => {
       .mockResolvedValue(undefined);
 
     await service.completeFollowUp('org-1', 'fu-complete-2', 'user-1', {
+      completed_notes: 'Done',
       schedule_next: false,
     });
 
@@ -307,6 +310,7 @@ describe('FollowUpService', () => {
       .mockResolvedValue(undefined);
 
     await service.completeFollowUp('org-1', 'fu-complete-3', 'user-1', {
+      completed_notes: 'Done',
       next_scheduled_date: '2026-03-10',
     });
 
@@ -328,7 +332,9 @@ describe('FollowUpService', () => {
     db.connect.mockResolvedValueOnce(client);
 
     await expect(
-      service.completeFollowUp('org-1', 'fu-complete-4', 'user-1', {})
+      service.completeFollowUp('org-1', 'fu-complete-4', 'user-1', {
+        completed_notes: 'Done',
+      })
     ).rejects.toThrow('Failed to complete follow-up');
 
     expect(client.query).toHaveBeenCalledWith('ROLLBACK');

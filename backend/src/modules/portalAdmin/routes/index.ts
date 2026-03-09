@@ -47,6 +47,7 @@ import {
   portalUuidParamsSchema,
   portalSlotParamsSchema,
   portalAppointmentParamsSchema,
+  portalAdminAppointmentCheckInSchema,
 } from '@validations/portal';
 
 const router = Router();
@@ -109,7 +110,12 @@ router.post(
   validateBody(portalAdminReminderSendSchema),
   sendPortalAdminAppointmentReminders
 );
-router.post('/appointments/:id/check-in', validateParams(portalAppointmentParamsSchema), checkInPortalAdminAppointment);
+router.post(
+  '/appointments/:id/check-in',
+  validateParams(portalAppointmentParamsSchema),
+  validateBody(portalAdminAppointmentCheckInSchema),
+  checkInPortalAdminAppointment
+);
 router.patch(
   '/appointments/:id/status',
   validateParams(portalAppointmentParamsSchema),

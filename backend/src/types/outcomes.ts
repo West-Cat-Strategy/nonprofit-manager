@@ -2,6 +2,14 @@ export type OutcomeAttribution = 'DIRECT' | 'LIKELY' | 'POSSIBLE';
 export type OutcomeUpdateMode = 'replace' | 'merge';
 export type OutcomeReportSource = 'interaction' | 'event';
 export type OutcomeReportSourceFilter = 'all' | OutcomeReportSource;
+export type OutcomeWorkflowStage =
+  | 'interaction'
+  | 'conversation'
+  | 'appointment'
+  | 'follow_up'
+  | 'case_status'
+  | 'manual'
+  | 'legacy';
 
 export interface OutcomeDefinition {
   id: string;
@@ -89,6 +97,16 @@ export interface OutcomeReportSourceBreakdown {
   };
 }
 
+export interface OutcomeReportWorkflowStageBreakdown {
+  interaction: number;
+  conversation: number;
+  appointment: number;
+  follow_up: number;
+  case_status: number;
+  manual: number;
+  legacy: number;
+}
+
 export interface OutcomeReportTotal {
   outcomeDefinitionId: string;
   key: string;
@@ -96,12 +114,14 @@ export interface OutcomeReportTotal {
   countImpacts: number;
   uniqueClientsImpacted: number;
   sourceBreakdown: OutcomeReportSourceBreakdown;
+  workflowStageBreakdown: OutcomeReportWorkflowStageBreakdown;
 }
 
 export interface OutcomeReportTimeseriesPoint {
   bucketStart: string;
   outcomeDefinitionId: string;
   source: OutcomeReportSource;
+  workflowStage: OutcomeWorkflowStage;
   countImpacts: number;
 }
 

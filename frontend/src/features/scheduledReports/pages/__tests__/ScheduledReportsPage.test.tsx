@@ -9,6 +9,8 @@ import ScheduledReportsPage from '../ScheduledReportsPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
 const dispatchMock = vi.fn(() => Promise.resolve());
+const downloadExportJobMock = vi.fn();
+const triggerFileDownloadMock = vi.fn();
 
 const makeScheduledReport = (
   overrides: Partial<ScheduledReport> = {}
@@ -61,6 +63,17 @@ vi.mock('../../../../store/hooks', () => ({
   useAppSelector: (selector: (state: typeof mockState) => unknown) => selector(mockState),
 }));
 
+vi.mock('../../../reports/api/reportsApiClient', () => ({
+  reportsApiClient: {
+    downloadExportJob: (jobId: string, fallbackFilename: string) =>
+      downloadExportJobMock(jobId, fallbackFilename),
+  },
+}));
+
+vi.mock('../../../../services/fileDownload', () => ({
+  triggerFileDownload: (file: unknown) => triggerFileDownloadMock(file),
+}));
+
 vi.mock('../../state', async () => {
   const actual = await vi.importActual<typeof ScheduledReportsSliceModule>(
     '../../state'
@@ -93,6 +106,7 @@ vi.mock('../../../savedReports/state', async () => {
 describe('ScheduledReports page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(window, 'alert').mockImplementation(() => {});
     mockState.scheduledReports.reports = [makeScheduledReport()];
     mockState.scheduledReports.runsByReportId = {};
     mockState.scheduledReports.loading = false;
@@ -245,5 +259,47 @@ describe('ScheduledReports page', () => {
     mockState.scheduledReports.loading = false;
     rerender(<ScheduledReportsPage />);
     expect(screen.getByText(/no schedules created yet/i)).toBeInTheDocument();
+  });
+
+  it('downloads successful run artifacts through the shared export endpoint', async () => {
+    const user = userEvent.setup();
+    mockState.scheduledReports.reports = [makeScheduledReport()];
+    mockState.scheduledReports.runsByReportId = {
+      'schedule-1': [
+        {
+          id: 'run-success',
+          scheduled_report_id: 'schedule-1',
+          status: 'success',
+          started_at: '2026-03-01T12:00:00.000Z',
+          completed_at: '2026-03-01T12:03:00.000Z',
+          rows_count: 25,
+          file_format: 'csv',
+          file_name: 'weekly-donor-summary.csv',
+          reportExportJobId: 'job-99',
+          recipients: ['ops@example.org'],
+          error_message: null,
+          metadata: null,
+          created_at: '2026-03-01T12:00:00.000Z',
+        },
+      ],
+    };
+    downloadExportJobMock.mockResolvedValue({
+      blob: new Blob(['email\nops@example.org'], { type: 'text/csv' }),
+      filename: 'weekly-donor-summary.csv',
+      contentType: 'text/csv',
+    });
+
+    renderWithProviders(<ScheduledReportsPage />);
+
+    await user.click(screen.getByRole('button', { name: /view runs/i }));
+    await user.click(screen.getByRole('button', { name: /download artifact/i }));
+
+    expect(downloadExportJobMock).toHaveBeenCalledWith(
+      'job-99',
+      'weekly-donor-summary.csv'
+    );
+    expect(triggerFileDownloadMock).toHaveBeenCalledWith(
+      expect.objectContaining({ filename: 'weekly-donor-summary.csv' })
+    );
   });
 });

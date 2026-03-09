@@ -85,8 +85,8 @@ const staffAuthenticatedRoutes = [
 
 const removedCompatibilityRoutes = [
   { route: '/email-marketing', canonical: '/settings/email-marketing' },
-  { route: '/admin/audit-logs', canonical: '/settings/admin?section=audit_logs' },
-  { route: '/settings/organization', canonical: '/settings/admin?section=organization' },
+  { route: '/admin/audit-logs', canonical: '/settings/admin/audit_logs' },
+  { route: '/settings/organization', canonical: '/settings/admin/organization' },
 ];
 
 const portalAuthenticatedRoutes = [

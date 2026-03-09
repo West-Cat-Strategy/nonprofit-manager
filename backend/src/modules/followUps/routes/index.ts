@@ -8,7 +8,7 @@ import { createFollowUpsController } from '../controllers/followUps.controller';
 
 const followUpStatusSchema = z.enum(['scheduled', 'completed', 'cancelled', 'overdue']);
 const followUpFrequencySchema = z.enum(['once', 'daily', 'weekly', 'biweekly', 'monthly']);
-const followUpEntityTypeSchema = z.enum(['case', 'task']);
+const followUpEntityTypeSchema = z.enum(['case', 'task', 'contact']);
 const followUpMethodSchema = z.enum(['phone', 'email', 'in_person', 'video_call', 'other']);
 
 const dateSchema = z.string().refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid date');
@@ -57,9 +57,17 @@ const updateFollowUpSchema = z.object({
 });
 
 const completeFollowUpSchema = z.object({
-  completed_notes: z.string().trim().optional(),
+  completed_notes: z.string().trim().min(1),
   schedule_next: z.coerce.boolean().optional(),
   next_scheduled_date: dateSchema.optional(),
+  outcome_definition_ids: z.array(uuidSchema).optional(),
+  outcome_visibility: z.coerce.boolean().optional(),
+});
+
+const cancelFollowUpSchema = z.object({
+  completed_notes: z.string().trim().min(1),
+  outcome_definition_ids: z.array(uuidSchema).optional(),
+  outcome_visibility: z.coerce.boolean().optional(),
 });
 
 const rescheduleFollowUpSchema = z.object({
@@ -85,7 +93,12 @@ export const createFollowUpsRoutes = (): Router => {
   router.post('/', validateBody(createFollowUpSchema), controller.createFollowUp);
   router.put('/:id', validateParams(followUpIdParamSchema), validateBody(updateFollowUpSchema), controller.updateFollowUp);
   router.post('/:id/complete', validateParams(followUpIdParamSchema), validateBody(completeFollowUpSchema), controller.completeFollowUp);
-  router.post('/:id/cancel', validateParams(followUpIdParamSchema), controller.cancelFollowUp);
+  router.post(
+    '/:id/cancel',
+    validateParams(followUpIdParamSchema),
+    validateBody(cancelFollowUpSchema),
+    controller.cancelFollowUp
+  );
   router.post('/:id/reschedule', validateParams(followUpIdParamSchema), validateBody(rescheduleFollowUpSchema), controller.rescheduleFollowUp);
   router.delete('/:id', validateParams(followUpIdParamSchema), controller.deleteFollowUp);
 

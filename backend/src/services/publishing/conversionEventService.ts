@@ -38,6 +38,8 @@ export interface RecordConversionEventInput {
   userAgent?: string;
   sourceEntityType?: string | null;
   sourceEntityId?: string | null;
+  sourceTable?: string | null;
+  sourceRecordId?: string | null;
   eventData?: Record<string, unknown>;
   occurredAt?: string | Date;
 }
@@ -81,6 +83,8 @@ export class ConversionEventService {
          user_agent,
          source_entity_type,
          source_entity_id,
+         source_table,
+         source_record_id,
          event_data,
          occurred_at
        )
@@ -96,9 +100,12 @@ export class ConversionEventService {
          $8,
          $9,
          $10::uuid,
-         $11::jsonb,
-         $12
-       )`,
+         $11,
+         $12::uuid,
+         $13::jsonb,
+         $14
+       )
+       ON CONFLICT DO NOTHING`,
       [
         input.siteId,
         input.eventType,
@@ -110,6 +117,8 @@ export class ConversionEventService {
         input.userAgent || null,
         input.sourceEntityType || null,
         input.sourceEntityId || null,
+        input.sourceTable || null,
+        input.sourceRecordId || null,
         JSON.stringify(input.eventData || {}),
         input.occurredAt ? new Date(input.occurredAt) : new Date(),
       ]
@@ -126,7 +135,8 @@ export class ConversionEventService {
       userAgent?: string;
       referrer?: string;
       eventData?: Record<string, unknown>;
-    }
+    },
+    sourceRecordId?: string
   ): Promise<void> {
     if (eventType === 'click') {
       return;
@@ -142,6 +152,8 @@ export class ConversionEventService {
         sessionId: data.sessionId,
         userAgent: data.userAgent,
         referrer: data.referrer,
+        sourceTable: sourceRecordId ? 'site_analytics' : null,
+        sourceRecordId: sourceRecordId || null,
         eventData: data.eventData,
       });
       return;
@@ -167,6 +179,8 @@ export class ConversionEventService {
       referrer: data.referrer,
       sourceEntityType,
       sourceEntityId,
+      sourceTable: sourceRecordId ? 'site_analytics' : null,
+      sourceRecordId: sourceRecordId || null,
       eventData: data.eventData,
     });
 
@@ -181,6 +195,8 @@ export class ConversionEventService {
       referrer: data.referrer,
       sourceEntityType,
       sourceEntityId,
+      sourceTable: sourceRecordId ? 'site_analytics' : null,
+      sourceRecordId: sourceRecordId || null,
       eventData: data.eventData,
     });
   }

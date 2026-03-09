@@ -7,16 +7,29 @@ import pool from '@config/database';
 import type { Activity } from '@app-types/activity';
 import { activityEventService } from '@services/activityEventService';
 
+const mergeActivities = (primary: Activity[], secondary: Activity[], limit?: number): Activity[] => {
+  const seen = new Set<string>();
+  const merged = [...primary, ...secondary].filter((activity) => {
+    if (seen.has(activity.id)) {
+      return false;
+    }
+    seen.add(activity.id);
+    return true;
+  });
+
+  merged.sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
+
+  return typeof limit === 'number' ? merged.slice(0, limit) : merged;
+};
+
 export class ActivityService {
   /**
    * Get recent activities across all modules
    */
   async getRecentActivities(limit: number = 10, organizationId?: string): Promise<Activity[]> {
     const recordedActivities = await activityEventService.listRecentActivities(limit, organizationId);
-    if (recordedActivities.length > 0) {
-      return recordedActivities;
-    }
-
     const activities: Activity[] = [];
 
     // Fetch recent cases (created in last 30 days)
@@ -161,11 +174,7 @@ export class ActivityService {
     });
 
     // Sort all activities by timestamp (newest first) and limit
-    activities.sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
-
-    return activities.slice(0, limit);
+    return mergeActivities(recordedActivities, activities, limit);
   }
 
   /**
@@ -181,12 +190,9 @@ export class ActivityService {
       entityId,
       organizationId
     );
-    if (recordedActivities.length > 0) {
-      return recordedActivities;
-    }
 
     if (entityType !== 'contact') {
-      return [];
+      return recordedActivities;
     }
 
     const activities: Activity[] = [];
@@ -330,11 +336,185 @@ export class ActivityService {
       });
     });
 
-    activities.sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    const appointmentsResult = await pool.query(
+      `SELECT
+         a.id,
+         a.title,
+         a.status,
+         a.start_time,
+         a.end_time,
+         a.location,
+         a.checked_in_at,
+         a.created_at,
+         a.updated_at,
+         c.case_number,
+         c.title AS case_title
+       FROM appointments a
+       LEFT JOIN cases c ON c.id = a.case_id
+       WHERE a.contact_id = $1
+       ORDER BY COALESCE(a.checked_in_at, a.updated_at, a.created_at) DESC
+       LIMIT 50`,
+      [entityId]
     );
 
-    return activities.slice(0, 200);
+    appointmentsResult.rows.forEach((row) => {
+      const activityType =
+        row.status === 'cancelled'
+          ? 'appointment_cancelled'
+          : row.status === 'completed'
+            ? 'appointment_completed'
+            : 'appointment_scheduled';
+      activities.push({
+        id: `appointment-${row.id}`,
+        type: activityType as Activity['type'],
+        title:
+          row.status === 'cancelled'
+            ? 'Appointment cancelled'
+            : row.status === 'completed'
+              ? 'Appointment completed'
+              : 'Appointment scheduled',
+        description: [
+          row.title || 'Appointment',
+          row.case_number ? `(${row.case_number})` : '',
+          row.location ? `at ${row.location}` : '',
+        ]
+          .filter(Boolean)
+          .join(' '),
+        timestamp: row.checked_in_at || row.updated_at || row.created_at,
+        user_id: null,
+        user_name: null,
+        entity_type: 'appointment',
+        entity_id: row.id,
+        metadata: {
+          status: row.status,
+          start_time: row.start_time,
+          end_time: row.end_time,
+          case_number: row.case_number,
+          case_title: row.case_title,
+        },
+      });
+    });
+
+    const conversationsResult = await pool.query(
+      `SELECT
+         t.id,
+         t.subject,
+         t.status,
+         t.last_message_preview,
+         COALESCE(t.closed_at, t.updated_at) AS resolved_at
+       FROM portal_threads t
+       WHERE t.contact_id = $1
+         AND t.status IN ('closed', 'archived')
+       ORDER BY COALESCE(t.closed_at, t.updated_at) DESC
+       LIMIT 50`,
+      [entityId]
+    );
+
+    conversationsResult.rows.forEach((row) => {
+      activities.push({
+        id: `conversation-${row.id}`,
+        type: 'conversation_resolved',
+        title: 'Conversation resolved',
+        description: row.subject || row.last_message_preview || 'Portal conversation closed',
+        timestamp: row.resolved_at,
+        user_id: null,
+        user_name: null,
+        entity_type: 'conversation',
+        entity_id: row.id,
+        metadata: {
+          status: row.status,
+        },
+      });
+    });
+
+    const followUpsResult = await pool.query(
+      `SELECT
+         fu.id,
+         fu.title,
+         fu.status,
+         fu.completed_date,
+          fu.completed_notes,
+         fu.updated_at,
+         fu.created_at,
+         fu.entity_type,
+         fu.entity_id,
+         c.case_number
+       FROM follow_ups fu
+       LEFT JOIN cases c ON fu.entity_type = 'case' AND fu.entity_id = c.id
+       WHERE (
+         (fu.entity_type = 'contact' AND fu.entity_id = $1)
+         OR (fu.entity_type = 'case' AND c.contact_id = $1)
+       )
+       AND fu.status IN ('completed', 'cancelled')
+       ORDER BY COALESCE(fu.completed_date, fu.updated_at, fu.created_at) DESC
+       LIMIT 50`,
+      [entityId]
+    );
+
+    followUpsResult.rows.forEach((row) => {
+      activities.push({
+        id: `follow-up-${row.id}`,
+        type: 'follow_up_completed',
+        title: row.status === 'cancelled' ? 'Follow-up cancelled' : 'Follow-up completed',
+        description: [row.title, row.case_number ? `(${row.case_number})` : ''].filter(Boolean).join(' '),
+        timestamp: row.completed_date || row.updated_at || row.created_at,
+        user_id: null,
+        user_name: null,
+        entity_type: 'follow_up',
+        entity_id: row.id,
+        metadata: {
+          status: row.status,
+          entity_type: row.entity_type,
+          entity_id: row.entity_id,
+          completed_notes: row.completed_notes,
+        },
+      });
+    });
+
+    const attendanceResult = await pool.query(
+      `SELECT
+         er.id,
+         er.event_id,
+         er.case_id,
+         er.registration_status,
+         er.check_in_time,
+         er.check_in_method,
+         er.created_at,
+         e.name AS event_name,
+         c.case_number
+       FROM event_registrations er
+       LEFT JOIN events e ON e.id = er.event_id
+       LEFT JOIN cases c ON c.id = er.case_id
+       WHERE er.contact_id = $1
+         AND er.checked_in = true
+       ORDER BY COALESCE(er.check_in_time, er.created_at) DESC
+       LIMIT 50`,
+      [entityId]
+    );
+
+    attendanceResult.rows.forEach((row) => {
+      activities.push({
+        id: `attendance-${row.id}`,
+        type: 'attendance_recorded',
+        title: 'Attendance recorded',
+        description: [row.event_name || 'Event', row.case_number ? `(${row.case_number})` : '']
+          .filter(Boolean)
+          .join(' '),
+        timestamp: row.check_in_time || row.created_at,
+        user_id: null,
+        user_name: null,
+        entity_type: 'attendance',
+        entity_id: row.id,
+        metadata: {
+          event_id: row.event_id,
+          case_id: row.case_id,
+          registration_status: row.registration_status,
+          check_in_method: row.check_in_method,
+        },
+      });
+    });
+
+    return mergeActivities(recordedActivities, activities, 200);
   }
 }
 

@@ -5,6 +5,7 @@ import type { WebsiteEntry } from '../../../types/websiteBuilder';
 import { websitesApiClient } from '../api/websitesApiClient';
 import type {
   PublishWebsiteSiteRequest,
+  WebsiteConversionFunnel,
   UpdateWebsiteSiteRequest,
   WebsiteConversionMetrics,
   WebsiteDeploymentInfo,
@@ -39,6 +40,7 @@ const initialState: WebsiteState = {
     sortOrder: 'desc',
   },
   overview: null,
+  funnel: null,
   forms: [],
   integrations: null,
   analytics: null,
@@ -48,6 +50,8 @@ const initialState: WebsiteState = {
   isLoading: false,
   isSaving: false,
   error: null,
+  funnelLoading: false,
+  funnelError: null,
 };
 
 export const fetchWebsiteSites = createAsyncThunk<
@@ -136,6 +140,17 @@ export const fetchWebsiteAnalytics = createAsyncThunk<
     return await websitesApiClient.getAnalytics(siteId, period);
   } catch (error) {
     return rejectWithValue(getErrorMessage(error, 'Failed to load analytics summary'));
+  }
+});
+
+export const fetchWebsiteConversionFunnel = createAsyncThunk<
+  WebsiteConversionFunnel,
+  { siteId: string; windowDays?: number }
+>('websites/fetchConversionFunnel', async ({ siteId, windowDays }, { rejectWithValue }) => {
+  try {
+    return await websitesApiClient.getConversionFunnel(siteId, windowDays);
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error, 'Failed to load conversion funnel'));
   }
 });
 
@@ -370,6 +385,20 @@ const websitesSlice = createSlice({
         state.overview.conversionMetrics = action.payload;
       }
     });
+
+    builder
+      .addCase(fetchWebsiteConversionFunnel.pending, (state) => {
+        state.funnelLoading = true;
+        state.funnelError = null;
+      })
+      .addCase(fetchWebsiteConversionFunnel.fulfilled, (state, action) => {
+        state.funnelLoading = false;
+        state.funnel = action.payload;
+      })
+      .addCase(fetchWebsiteConversionFunnel.rejected, (state, action) => {
+        state.funnelLoading = false;
+        state.funnelError = action.payload as string;
+      });
 
     builder
       .addCase(fetchWebsiteEntries.pending, (state) => {

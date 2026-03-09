@@ -18,6 +18,6 @@ test.describe('Payments Workflows', () => {
     await authenticatedPage.goto('/donations');
     await authenticatedPage.goto('/dashboard');
     await expect(authenticatedPage).toHaveURL('/dashboard');
-    await expect(authenticatedPage.getByRole('heading', { name: /quick tools/i })).toBeVisible();
+    await expect(authenticatedPage.getByRole('heading', { name: /quick actions/i })).toBeVisible();
   });
 });

@@ -1,10 +1,13 @@
-/**
- * People List Container
- * Reusable container for list pages with consistent layout and functionality
- */
-
 import React, { useEffect, useRef } from 'react';
-import { BrutalCard, BrutalButton } from '../neo-brutalist';
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PageHeader,
+  PrimaryButton,
+  SectionCard,
+  SecondaryButton,
+} from '../ui';
 
 export interface TableColumn<T> {
   key: keyof T | string;
@@ -16,6 +19,7 @@ export interface TableColumn<T> {
 interface PeopleListContainerProps<T> {
   title: string;
   description?: string;
+  headerActions?: React.ReactNode;
   onCreateNew?: () => void;
   createButtonLabel?: string;
   filters?: React.ReactNode;
@@ -50,6 +54,7 @@ interface PeopleListContainerProps<T> {
 export const PeopleListContainer = <T,>({
   title,
   description,
+  headerActions,
   onCreateNew,
   createButtonLabel = 'New',
   filters,
@@ -79,185 +84,159 @@ export const PeopleListContainer = <T,>({
     }
   }, [someSelected]);
 
+  const headerActionRow = (
+    <>
+      {headerActions}
+      {onCreateNew ? <PrimaryButton onClick={onCreateNew}>{createButtonLabel}</PrimaryButton> : null}
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-[var(--app-bg)] p-6 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-4xl font-black uppercase text-[var(--app-text)] tracking-tight">{title}</h1>
-            {description && (
-              <p className="text-[var(--app-text-muted)] mt-2 font-medium text-lg">{description}</p>
-            )}
-          </div>
-          {onCreateNew && (
-            <BrutalButton onClick={onCreateNew} className="text-xl shadow-[6px_6px_0px_0px_var(--shadow-color)]">
-              + {createButtonLabel}
-            </BrutalButton>
-          )}
-        </div>
+    <div className="space-y-6">
+      <PageHeader title={title} description={description} actions={headerActionRow} />
 
-        {/* Filters */}
-        {filters && (
-          <div className="mb-8">
-            {filters}
-          </div>
-        )}
+      {filters ? (
+        <SectionCard
+          title="Refine results"
+          subtitle="Use filters and search to narrow the list before bulk actions or exports."
+        >
+          {filters}
+        </SectionCard>
+      ) : null}
 
-        {/* Bulk Actions Bar */}
-        {selectedRows.size > 0 && (
-          <div className="bg-[var(--app-accent-soft)] border-4 border-[var(--app-accent)] p-6 mb-8 shadow-[6px_6px_0px_0px_var(--shadow-color)] flex items-center justify-between">
-            <p className="font-black uppercase text-[var(--app-accent-text)] text-lg">
-              {selectedRows.size} selected
-            </p>
-            {bulkActions && <div>{bulkActions}</div>}
+      {selectedRows.size > 0 ? (
+        <section className="rounded-[var(--ui-radius-md)] border border-app-accent bg-app-accent-soft p-4 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-accent-text">
+                Selection active
+              </p>
+              <p className="mt-1 text-sm font-medium text-app-accent-text">
+                {selectedRows.size} {selectedRows.size === 1 ? 'record' : 'records'} selected.
+              </p>
+            </div>
+            {bulkActions ? <div className="flex flex-wrap items-center gap-2">{bulkActions}</div> : null}
           </div>
-        )}
+        </section>
+      ) : null}
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-app-accent border-4 border-black text-white px-6 py-4 mb-8 font-black uppercase tracking-wider shadow-[6px_6px_0px_0px_var(--shadow-color)]">
-            {error}
-          </div>
-        )}
+      {error ? <ErrorState message={error} /> : null}
 
-        {/* Loading State */}
-        {loading ? (
-          <BrutalCard className="p-12 text-center border-4 border-[var(--app-border)] bg-[var(--app-surface)] shadow-[8px_8px_0px_0px_var(--shadow-color)]">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-[var(--app-border)] border-b-[var(--app-accent)] mx-auto"></div>
-            <p className="mt-6 font-black uppercase tracking-widest text-[var(--app-text)] animate-pulse text-xl">Loading...</p>
-          </BrutalCard>
-        ) : data.length === 0 ? (
-          // Empty State
-          <BrutalCard className="p-12 text-center border-4 border-[var(--app-border)] bg-[var(--app-surface)] shadow-[8px_8px_0px_0px_var(--shadow-color)]">
-            <h3 className="text-3xl font-black uppercase text-[var(--app-text)] mb-4">
-              {emptyStateTitle || 'No records found'}
-            </h3>
-            {emptyStateDescription && (
-              <p className="text-[var(--app-text-muted)] mb-8 font-medium text-lg italic">{emptyStateDescription}</p>
-            )}
-            {emptyStateAction && (
-              <div className="flex items-center justify-center gap-3 flex-wrap">
-                <BrutalButton onClick={emptyStateAction.onClick} className="text-lg">
-                  {emptyStateAction.label}
-                </BrutalButton>
-                {emptyStateSecondaryAction && (
-                  <BrutalButton
-                    variant="secondary"
-                    onClick={emptyStateSecondaryAction.onClick}
-                    className="text-lg"
-                  >
+      {loading ? (
+        <LoadingState label={`Loading ${title.toLowerCase()}...`} />
+      ) : data.length === 0 ? (
+        <EmptyState
+          title={emptyStateTitle || 'No records found'}
+          description={emptyStateDescription}
+          action={
+            emptyStateAction || emptyStateSecondaryAction ? (
+              <div className="flex flex-wrap items-center gap-2">
+                {emptyStateAction ? (
+                  <PrimaryButton onClick={emptyStateAction.onClick}>{emptyStateAction.label}</PrimaryButton>
+                ) : null}
+                {emptyStateSecondaryAction ? (
+                  <SecondaryButton onClick={emptyStateSecondaryAction.onClick}>
                     {emptyStateSecondaryAction.label}
-                  </BrutalButton>
-                )}
+                  </SecondaryButton>
+                ) : null}
               </div>
-            )}
-          </BrutalCard>
-        ) : (
-          // Table
-          <BrutalCard className="border-4 border-[var(--app-border)] bg-[var(--app-surface)] shadow-[10px_10px_0px_0px_var(--shadow-color)] overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b-4 border-[var(--app-border)] bg-[var(--app-surface-muted)]">
-                    {onSelectRow && (
-                      <th className="px-6 py-4 text-left w-16">
-                        <input
-                          type="checkbox"
-                          ref={selectAllRef}
-                          checked={allSelected}
-                          onChange={(e) => onSelectAll?.(e.target.checked)}
-                          className="w-6 h-6 border-4 border-[var(--app-border)] bg-[var(--app-bg)] accent-[var(--app-accent)] cursor-pointer"
-                        />
-                      </th>
-                    )}
-                    {columns.map((col) => (
-                      <th
-                        key={String(col.key)}
-                        className="px-6 py-4 text-left text-sm font-black text-[var(--app-text)] uppercase tracking-widest"
-                        style={{ width: col.width }}
-                      >
-                        {col.label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y-2 divide-[var(--app-border)]">
-                  {data.map((row) => {
-                    // Use consumer-provided ID to support entities keyed as *_id.
-                    const rowId = getRowId(row);
-                    return (
+            ) : null
+          }
+        />
+      ) : (
+        <section className="overflow-hidden rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-app-border-muted text-sm">
+              <thead className="bg-app-surface-muted">
+                <tr>
+                  {onSelectRow ? (
+                    <th className="w-14 px-4 py-3 text-left">
+                      <input
+                        type="checkbox"
+                        ref={selectAllRef}
+                        checked={allSelected}
+                        onChange={(event) => onSelectAll?.(event.target.checked)}
+                        className="h-4 w-4 rounded border-app-input-border text-app-accent focus:ring-app-accent"
+                      />
+                    </th>
+                  ) : null}
+                  {columns.map((column) => (
+                    <th
+                      key={String(column.key)}
+                      className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-app-text-muted"
+                      style={{ width: column.width }}
+                    >
+                      {column.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-app-border-muted">
+                {data.map((row) => {
+                  const rowId = getRowId(row);
+                  return (
                     <tr
                       key={rowId}
-                      className={`hover:bg-[var(--app-surface-hover)] transition-colors ${selectedRows.has(rowId) ? 'bg-[var(--app-accent-soft)]' : ''
-                        }`}
+                      className={`transition hover:bg-app-hover/40 ${
+                        selectedRows.has(rowId) ? 'bg-app-accent-soft/60' : 'bg-app-surface'
+                      }`}
                     >
-                      {onSelectRow && (
-                        <td className="px-6 py-4">
+                      {onSelectRow ? (
+                        <td className="px-4 py-3 align-top">
                           <input
                             type="checkbox"
                             checked={selectedRows.has(rowId)}
-                            onChange={(e) =>
-                              onSelectRow(rowId, e.target.checked)
-                            }
-                            className="w-6 h-6 border-[3px] border-[var(--app-border)] bg-[var(--app-bg)] accent-[var(--app-accent)] cursor-pointer"
+                            onChange={(event) => onSelectRow(rowId, event.target.checked)}
+                            className="h-4 w-4 rounded border-app-input-border text-app-accent focus:ring-app-accent"
                           />
                         </td>
-                      )}
-                      {columns.map((col) => (
-                        <td key={`${rowId}-${String(col.key)}`} className="px-6 py-4 text-[var(--app-text)] font-medium">
-                          {col.render
-                            ? col.render(
-                              typeof col.key === 'string' ? (row as Record<string, unknown>)[col.key] : row[col.key],
-                              row
-                            )
-                            : (typeof col.key === 'string'
-                              ? (row as Record<string, unknown>)[col.key]
-                              : row[col.key]) as React.ReactNode}
+                      ) : null}
+                      {columns.map((column) => (
+                        <td key={`${rowId}-${String(column.key)}`} className="px-4 py-3 align-top text-app-text">
+                          {column.render
+                            ? column.render(
+                                typeof column.key === 'string'
+                                  ? (row as Record<string, unknown>)[column.key]
+                                  : row[column.key],
+                                row
+                              )
+                            : ((typeof column.key === 'string'
+                                ? (row as Record<string, unknown>)[column.key]
+                                : row[column.key]) as React.ReactNode)}
                         </td>
                       ))}
                     </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
 
-            {/* Pagination */}
-            {pagination && pagination.totalPages > 1 && (
-              <div className="border-t-4 border-[var(--app-border)] bg-[var(--app-surface-muted)] p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <p className="text-sm font-black uppercase tracking-wider text-[var(--app-text)]">
-                  Page <span className="text-[var(--app-accent)]">{pagination.page}</span> of{' '}
-                  <span className="text-[var(--app-accent)]">{pagination.totalPages}</span> ({pagination.total}{' '}
-                  total)
-                </p>
-                <div className="flex gap-4">
-                  <BrutalButton
-                    variant="secondary"
-                    disabled={pagination.page <= 1}
-                    onClick={() =>
-                      onPageChange?.(pagination.page - 1)
-                    }
-                    className="px-4 py-2"
-                  >
-                    ← Previous
-                  </BrutalButton>
-                  <BrutalButton
-                    variant="secondary"
-                    disabled={pagination.page >= pagination.totalPages}
-                    onClick={() =>
-                      onPageChange?.(pagination.page + 1)
-                    }
-                    className="px-4 py-2"
-                  >
-                    Next →
-                  </BrutalButton>
-                </div>
+          {pagination && pagination.totalPages > 1 ? (
+            <div className="flex flex-col gap-3 border-t border-app-border-muted bg-app-surface-muted px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-app-text-muted">
+                Page <span className="font-semibold text-app-text">{pagination.page}</span> of{' '}
+                <span className="font-semibold text-app-text">{pagination.totalPages}</span> ({pagination.total}{' '}
+                total)
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <SecondaryButton
+                  disabled={pagination.page <= 1}
+                  onClick={() => onPageChange?.(pagination.page - 1)}
+                >
+                  Previous
+                </SecondaryButton>
+                <SecondaryButton
+                  disabled={pagination.page >= pagination.totalPages}
+                  onClick={() => onPageChange?.(pagination.page + 1)}
+                >
+                  Next
+                </SecondaryButton>
               </div>
-            )}
-          </BrutalCard>
-        )}
-      </div>
+            </div>
+          ) : null}
+        </section>
+      )}
     </div>
   );
 };

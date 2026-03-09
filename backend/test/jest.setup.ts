@@ -150,6 +150,34 @@ beforeAll(async () => {
       ALTER TABLE case_documents
       ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     `);
+
+    await dbClient.query(`
+      ALTER TABLE volunteers
+      ADD COLUMN IF NOT EXISTS availability_status VARCHAR(32) NOT NULL DEFAULT 'available',
+      ADD COLUMN IF NOT EXISTS availability_notes TEXT,
+      ADD COLUMN IF NOT EXISTS background_check_expiry DATE,
+      ADD COLUMN IF NOT EXISTS preferred_roles TEXT[] NOT NULL DEFAULT ARRAY[]::text[],
+      ADD COLUMN IF NOT EXISTS certifications TEXT[] NOT NULL DEFAULT ARRAY[]::text[],
+      ADD COLUMN IF NOT EXISTS max_hours_per_week INTEGER,
+      ADD COLUMN IF NOT EXISTS emergency_contact_relationship VARCHAR(120),
+      ADD COLUMN IF NOT EXISTS volunteer_since DATE,
+      ADD COLUMN IF NOT EXISTS total_hours_logged NUMERIC(10,2) NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE
+    `);
+
+    await dbClient.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM pg_constraint
+          WHERE conname = 'uq_volunteers_contact_id'
+        ) THEN
+          ALTER TABLE volunteers
+          ADD CONSTRAINT uq_volunteers_contact_id UNIQUE (contact_id);
+        END IF;
+      END $$;
+    `);
   } catch {
     // Allow pure unit tests to run without a live DB.
   } finally {

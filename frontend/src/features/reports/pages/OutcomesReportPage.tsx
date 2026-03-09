@@ -22,7 +22,11 @@ import {
 } from '../../../components/ui';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchOutcomesReport } from '../../outcomes/state';
-import type { OutcomesReportFilters } from '../../../types/outcomes';
+import type {
+  OutcomeReportSource,
+  OutcomeWorkflowStage,
+  OutcomesReportFilters,
+} from '../../../types/outcomes';
 
 const getDateString = (date: Date): string => date.toISOString().split('T')[0];
 
@@ -52,8 +56,33 @@ const formatBucket = (value: string): string => {
   });
 };
 
-const formatSeriesKey = (outcomeName: string, source: 'interaction' | 'event'): string =>
-  `${outcomeName} (${source === 'interaction' ? 'Interaction' : 'Event'})`;
+const workflowStageOrder: OutcomeWorkflowStage[] = [
+  'interaction',
+  'conversation',
+  'appointment',
+  'follow_up',
+  'case_status',
+  'manual',
+  'legacy',
+];
+
+const workflowStageLabels: Record<OutcomeWorkflowStage, string> = {
+  interaction: 'Interaction',
+  conversation: 'Conversation',
+  appointment: 'Appointment',
+  follow_up: 'Follow-up',
+  case_status: 'Case status',
+  manual: 'Manual',
+  legacy: 'Legacy',
+};
+
+const formatSeriesKey = (outcomeName: string, workflowStage: OutcomeWorkflowStage): string =>
+  `${outcomeName} (${workflowStageLabels[workflowStage]})`;
+
+const matchesSourceFilter = (
+  source: OutcomeReportSource,
+  filter: OutcomesReportFilters['source']
+): boolean => filter === undefined || filter === 'all' || source === filter;
 
 const seriesColors = [
   'var(--loop-blue)',
@@ -94,7 +123,7 @@ const OutcomesReport = () => {
     for (const point of report.timeseries) {
       const key = point.bucketStart;
       const outcomeName = outcomeNameById.get(point.outcomeDefinitionId) || point.outcomeDefinitionId;
-      const seriesKey = formatSeriesKey(outcomeName, point.source);
+      const seriesKey = formatSeriesKey(outcomeName, point.workflowStage);
 
       if (!grouped.has(key)) {
         grouped.set(key, { bucketStart: key });
@@ -120,25 +149,19 @@ const OutcomesReport = () => {
       return [];
     }
 
-    const sourceScope =
-      filters.source === 'interaction'
-        ? (['interaction'] as const)
-        : filters.source === 'event'
-          ? (['event'] as const)
-          : (['interaction', 'event'] as const);
-
-    const series: string[] = [];
-
-    for (const row of report.totalsByOutcome) {
-      for (const source of sourceScope) {
-        const sourceCount = row.sourceBreakdown[source].countImpacts;
-        if (sourceCount > 0) {
-          series.push(formatSeriesKey(row.name, source));
-        }
-      }
-    }
-
-    return Array.from(new Set(series));
+    return Array.from(
+      new Set(
+        report.timeseries
+          .filter((point) => matchesSourceFilter(point.source, filters.source))
+          .map((point) => {
+            const outcomeName =
+              report.totalsByOutcome.find(
+                (row) => row.outcomeDefinitionId === point.outcomeDefinitionId
+              )?.name || point.outcomeDefinitionId;
+            return formatSeriesKey(outcomeName, point.workflowStage);
+          })
+      )
+    );
   }, [filters.source, report]);
 
   const handleFilterChange = <K extends keyof OutcomesReportFilters>(
@@ -165,6 +188,7 @@ const OutcomesReport = () => {
       'Interaction Unique Clients',
       'Event Impacts',
       'Event Unique Clients',
+      ...workflowStageOrder.map((stage) => `${workflowStageLabels[stage]} Impacts`),
     ];
     const rows = report.totalsByOutcome.map((row) => [
       row.name,
@@ -175,6 +199,7 @@ const OutcomesReport = () => {
       String(row.sourceBreakdown.interaction.uniqueClientsImpacted),
       String(row.sourceBreakdown.event.countImpacts),
       String(row.sourceBreakdown.event.uniqueClientsImpacted),
+      ...workflowStageOrder.map((stage) => String(row.workflowStageBreakdown[stage] || 0)),
     ]);
 
     const csvContent = [headers, ...rows]
@@ -316,6 +341,9 @@ const OutcomesReport = () => {
                         <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-app-text-muted">
                           Event Impacts
                         </th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-app-text-muted">
+                          Workflow Stages
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-app-border-muted">
@@ -333,6 +361,25 @@ const OutcomesReport = () => {
                           <td className="px-3 py-2 text-sm text-app-text">
                             {row.sourceBreakdown.event.countImpacts}
                           </td>
+                          <td className="px-3 py-2 text-sm text-app-text">
+                            <div className="flex flex-wrap gap-1">
+                              {workflowStageOrder
+                                .filter((stage) => row.workflowStageBreakdown[stage] > 0)
+                                .map((stage) => (
+                                  <span
+                                    key={stage}
+                                    className="inline-flex items-center rounded-full border border-app-border px-2 py-1 text-xs text-app-text-muted"
+                                  >
+                                    {workflowStageLabels[stage]}: {row.workflowStageBreakdown[stage]}
+                                  </span>
+                                ))}
+                              {workflowStageOrder.every(
+                                (stage) => row.workflowStageBreakdown[stage] === 0
+                              ) && (
+                                <span className="text-xs text-app-text-muted">No staged outcomes</span>
+                              )}
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -341,7 +388,10 @@ const OutcomesReport = () => {
               )}
             </SectionCard>
 
-            <SectionCard title="Time Series">
+            <SectionCard
+              title="Time Series"
+              subtitle="Trend lines are grouped by workflow stage so conversation, appointment, follow-up, and case-status outcomes remain visible."
+            >
               {timeseriesChartData.length === 0 ? (
                 <EmptyState
                   title="No time-series data"

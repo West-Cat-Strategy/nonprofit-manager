@@ -131,23 +131,33 @@ const normalizePathWithQuery = (value: string): string => {
 
 const ADMIN_ROUTE_REDIRECT_PATHS = new Set(['/dashboard', '/login', '/settings/user', '/settings/admin']);
 
+const resolveExpectedAdminPathnames = (expectedPath: string): Set<string> => {
+  const expectedPathname = normalizePathname(expectedPath);
+
+  if (expectedPathname === '/settings/admin') {
+    return new Set(['/settings/admin', '/settings/admin/dashboard']);
+  }
+
+  return new Set([expectedPathname]);
+};
+
 const resolveAdminRouteState = async (
   page: Page,
   expectedPath: string,
   heading: RegExp
 ): Promise<'accessible' | 'redirected'> => {
-  const expectedPathname = normalizePathname(expectedPath);
+  const expectedPathnames = resolveExpectedAdminPathnames(expectedPath);
   const headingLocator = page.getByRole('heading', { name: heading }).first();
 
   for (let attempt = 0; attempt < 60; attempt += 1) {
     const currentPathname = normalizePathname(page.url());
     const headingVisible = await headingLocator.isVisible().catch(() => false);
 
-    if (currentPathname === expectedPathname && headingVisible) {
+    if (expectedPathnames.has(currentPathname) && headingVisible) {
       return 'accessible';
     }
 
-    if (currentPathname !== expectedPathname && ADMIN_ROUTE_REDIRECT_PATHS.has(currentPathname)) {
+    if (!expectedPathnames.has(currentPathname) && ADMIN_ROUTE_REDIRECT_PATHS.has(currentPathname)) {
       return 'redirected';
     }
 
@@ -165,12 +175,14 @@ const gotoAdminRouteWithFallback = async (
   await page.goto(expectedPath);
   await page.waitForLoadState('domcontentloaded');
 
+  const expectedPathnames = resolveExpectedAdminPathnames(expectedPath);
   const routeState = await resolveAdminRouteState(page, expectedPath, heading);
   if (routeState === 'redirected') {
     const currentPathname = normalizePathname(page.url());
     expect(
       ADMIN_ROUTE_REDIRECT_PATHS.has(currentPathname),
       `Expected admin route ${expectedPath} to stay on route or redirect to one of ${[
+        ...expectedPathnames,
         ...ADMIN_ROUTE_REDIRECT_PATHS,
       ].join(', ')}, got ${currentPathname}`
     ).toBe(true);
@@ -187,6 +199,9 @@ test.describe('UI/UX regression flows', () => {
     await authenticatedPage.goto('/dashboard');
     const nav = authenticatedPage.locator('nav').first();
     await expect(nav.getByRole('button', { name: /user menu/i })).toBeVisible();
+    await expect(authenticatedPage.getByText(/today at a glance/i).first()).toBeVisible();
+    await expect(authenticatedPage.getByText(/pinned shortcuts/i).first()).toBeVisible();
+    await expect(authenticatedPage.getByRole('button', { name: /create intake/i }).first()).toBeVisible();
 
     await nav.getByRole('button', { name: /theme settings/i }).click();
     await expect(authenticatedPage.getByText(/switch to (light|dark)/i)).toBeVisible();
@@ -310,8 +325,8 @@ test.describe('UI/UX regression flows', () => {
 
     const removedCompatibilityRoutes = [
       { legacy: '/email-marketing', canonical: '/settings/email-marketing' },
-      { legacy: '/admin/audit-logs', canonical: '/settings/admin?section=audit_logs' },
-      { legacy: '/settings/organization', canonical: '/settings/admin?section=organization' },
+      { legacy: '/admin/audit-logs', canonical: '/settings/admin/audit_logs' },
+      { legacy: '/settings/organization', canonical: '/settings/admin/organization' },
     ];
 
     for (const { legacy, canonical } of removedCompatibilityRoutes) {

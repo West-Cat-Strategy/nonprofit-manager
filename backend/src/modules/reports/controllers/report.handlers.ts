@@ -7,10 +7,14 @@ import { Response, NextFunction } from 'express';
 import { services } from '@container/services';
 import { AuthRequest } from '@middleware/auth';
 import { setTabularDownloadHeaders } from '@modules/shared/export/tabularExport';
-import { sendSuccess } from '@modules/shared/http/envelope';
+import { sendError, sendSuccess } from '@modules/shared/http/envelope';
 import { REPORT_ENTITIES, type ReportDefinition, type ReportEntity } from '@app-types/report';
-import { reportExportJobService } from '@services/reportExportJobService';
-import { badRequest, unauthorized } from '@utils/responseHelpers';
+import {
+  reportExportJobService,
+  ReportExportJobArtifactGoneError,
+  ReportExportJobArtifactNotReadyError,
+} from '@services/reportExportJobService';
+import { badRequest, conflict, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import {
   requirePermissionSafe,
   sendForbidden,
@@ -173,8 +177,12 @@ export const createExportJob = async (
       return;
     }
 
+    const headerIdempotencyKey =
+      req.headers && typeof req.headers['idempotency-key'] === 'string'
+        ? req.headers['idempotency-key']
+        : undefined;
     const effectiveIdempotencyKey =
-      (typeof req.headers['idempotency-key'] === 'string' && req.headers['idempotency-key']) ||
+      headerIdempotencyKey ||
       idempotencyKey ||
       undefined;
 
@@ -238,12 +246,53 @@ export const getExportJob = async (
 
     const job = await reportExportJobService.getJob(organizationId, req.params.id);
     if (!job) {
-      badRequest(res, 'Report export job not found');
+      notFoundMessage(res, 'Report export job not found');
       return;
     }
 
     sendSuccess(res, job);
   } catch (error) {
+    next(error);
+  }
+};
+
+export const downloadExportJob = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!ensurePermission(req, res, Permission.REPORT_EXPORT)) return;
+
+    const organizationId = getOrgId(req);
+    if (!organizationId) {
+      unauthorized(res, 'Organization context required');
+      return;
+    }
+
+    const job = await reportExportJobService.getJob(organizationId, req.params.id);
+    if (!job) {
+      notFoundMessage(res, 'Report export job not found');
+      return;
+    }
+
+    if (job.status !== 'completed') {
+      conflict(res, 'Report export job is not complete');
+      return;
+    }
+
+    const file = await reportExportJobService.readArtifactFile(job);
+    setTabularDownloadHeaders(res, file);
+    res.send(file.buffer);
+  } catch (error) {
+    if (error instanceof ReportExportJobArtifactNotReadyError) {
+      conflict(res, error.message);
+      return;
+    }
+    if (error instanceof ReportExportJobArtifactGoneError) {
+      sendError(res, 'gone', error.message, 410);
+      return;
+    }
     next(error);
   }
 };
@@ -255,4 +304,5 @@ export default {
   createExportJob,
   listExportJobs,
   getExportJob,
+  downloadExportJob,
 };

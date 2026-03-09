@@ -74,7 +74,7 @@ describe('PublicEventsPage', () => {
 
     await screen.findByText('Community Dinner');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Load more events' }));
 
     await waitFor(() => {
       expect(listPublicEventsBySiteMock).toHaveBeenCalledWith(

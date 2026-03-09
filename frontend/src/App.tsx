@@ -17,7 +17,7 @@ const AppRouteFallback = () => (
 
 function App() {
   const dispatch = useAppDispatch();
-  const uiRedesignEnabled = import.meta.env.VITE_UI_REDESIGN_ENABLED === 'true';
+  const uiRedesignEnabled = import.meta.env.VITE_UI_REDESIGN_ENABLED !== 'false';
 
   useEffect(() => {
     dispatch(initializeAuth());

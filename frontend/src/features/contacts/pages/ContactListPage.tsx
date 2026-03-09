@@ -21,8 +21,9 @@ import {
   ImportExportModal,
   type TableColumn,
 } from '../../../components/people';
+import { SecondaryButton } from '../../../components/ui';
 import ConfirmDialog from '../../../components/ConfirmDialog';
-import { useBulkSelect, useImportExport } from '../../../hooks';
+import { useBulkSelect } from '../../../hooks';
 import { BrutalBadge } from '../../../components/neo-brutalist';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 
@@ -42,7 +43,6 @@ const ContactList = () => {
     deselectAll,
   } = useBulkSelect();
 
-  const { exportToCSV } = useImportExport();
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || filters.search || '');
   const [roleFilter, setRoleFilter] = useState(searchParams.get('type') || filters.role || '');
@@ -152,42 +152,6 @@ const ContactList = () => {
 
     deselectAll();
     loadContacts();
-  };
-
-  const handleBulkExport = () => {
-    const ids = Array.from(selectedIds);
-    const selectedContacts = contacts.filter((c) =>
-      ids.includes(c.contact_id)
-    );
-
-    const columns = [
-      'first_name',
-      'last_name',
-      'email',
-      'phone',
-      'job_title',
-      'department',
-      'account_name',
-      'role',
-    ] as const;
-
-    exportToCSV(
-      selectedContacts.map((c) => ({
-        first_name: c.first_name,
-        last_name: c.last_name,
-        email: c.email,
-        phone: c.phone,
-        job_title: c.job_title,
-        department: c.department,
-        account_name: c.account_name,
-        role: c.roles?.join(', ') || '',
-      })),
-      columns,
-      {
-        filename: 'contacts-export',
-        includeHeaders: true,
-      }
-    );
   };
 
   const columns: TableColumn<Contact>[] = [
@@ -300,6 +264,11 @@ const ContactList = () => {
         title="People"
         description="Manage all organizational contacts and relationships"
         getRowId={(row) => row.contact_id}
+        headerActions={
+          <SecondaryButton onClick={() => setShowImportExport(true)}>
+            Import / Export
+          </SecondaryButton>
+        }
         onCreateNew={() => navigate('/contacts/new')}
         createButtonLabel="New Person"
         filters={
@@ -366,11 +335,6 @@ const ContactList = () => {
                 {
                   id: 'export',
                   label: 'Export',
-                  onClick: handleBulkExport,
-                },
-                {
-                  id: 'import',
-                  label: 'Import',
                   onClick: () => setShowImportExport(true),
                 },
                 {
@@ -409,7 +373,18 @@ const ContactList = () => {
         isOpen={showImportExport}
         onClose={() => setShowImportExport(false)}
         entityType="contacts"
-        sampleData={contacts}
+        selectedIds={Array.from(selectedIds)}
+        exportRequest={{
+          search: searchInput || undefined,
+          role: roleFilter || undefined,
+          is_active: resolvedIsActive,
+          sort_by: sortBy,
+          sort_order: sortOrder,
+        }}
+        onImportComplete={() => {
+          deselectAll();
+          loadContacts();
+        }}
       />
       <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </>

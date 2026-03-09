@@ -19,6 +19,21 @@ export type CaseOutcome =
   | 'additional_related_case'
   | 'other';
 export type CaseStatusType = 'intake' | 'active' | 'review' | 'closed' | 'cancelled';
+export type CaseSourceEntityType =
+  | 'case_note'
+  | 'appointment'
+  | 'follow_up'
+  | 'portal_thread'
+  | 'case_status'
+  | 'manual';
+export type CaseOutcomeWorkflowStage =
+  | 'interaction'
+  | 'conversation'
+  | 'appointment'
+  | 'follow_up'
+  | 'case_status'
+  | 'manual'
+  | 'legacy';
 export type NoteType =
   | 'note'
   | 'email'
@@ -144,6 +159,8 @@ export interface CaseNote {
   updated_at?: string | null;
   created_by?: string | null;
   updated_by?: string | null;
+  source_entity_type?: CaseSourceEntityType | null;
+  source_entity_id?: string | null;
   first_name?: string;
   last_name?: string;
   outcome_impacts?: InteractionOutcomeImpact[];
@@ -159,6 +176,9 @@ export interface CaseOutcomeEvent {
   outcome_definition_name?: string | null;
   source_interaction_id?: string | null;
   entry_source?: CaseOutcomeEntrySource | null;
+  workflow_stage?: CaseOutcomeWorkflowStage | null;
+  source_entity_type?: CaseSourceEntityType | null;
+  source_entity_id?: string | null;
   outcome_date: string;
   notes?: string | null;
   visible_to_client: boolean;
@@ -219,7 +239,15 @@ export interface CaseDocument {
   last_name?: string | null;
 }
 
-export type CaseTimelineEventType = 'note' | 'outcome' | 'topic' | 'document';
+export type CaseTimelineEventType =
+  | 'note'
+  | 'outcome'
+  | 'topic'
+  | 'document'
+  | 'appointment'
+  | 'conversation'
+  | 'follow_up'
+  | 'attendance';
 
 export interface CaseTimelineEvent {
   id: string;
@@ -249,6 +277,72 @@ export type ServiceType = 'counseling' | 'legal' | 'financial' | 'housing' | 'he
 export type ServiceStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show';
 export type ServiceOutcome = 'attended_event' | 'additional_related_case' | 'completed' | 'follow_up_needed' | 'other';
 export type CaseOutcomeEntrySource = 'manual' | 'interaction_sync' | 'legacy';
+
+export interface CasePortalMessage {
+  id: string;
+  sender_type: 'portal' | 'staff' | 'system';
+  message_text: string;
+  created_at: string;
+  sender_display_name: string | null;
+  is_internal: boolean;
+}
+
+export interface CasePortalThread {
+  id: string;
+  subject: string | null;
+  status: 'open' | 'closed' | 'archived';
+  case_id?: string | null;
+  case_number?: string | null;
+  case_title?: string | null;
+  contact_id?: string | null;
+  last_message_at: string;
+  unread_count: number;
+  portal_email: string | null;
+}
+
+export interface CasePortalConversation {
+  thread: CasePortalThread;
+  messages: CasePortalMessage[];
+}
+
+export type CaseAppointmentAttendanceState = 'scheduled' | 'attended' | 'cancelled' | 'no_show';
+
+export interface CaseAppointment {
+  id: string;
+  contact_id: string;
+  case_id: string | null;
+  pointperson_user_id: string | null;
+  slot_id: string | null;
+  request_type: 'manual_request' | 'slot_booking';
+  title: string;
+  description: string | null;
+  start_time: string;
+  end_time: string | null;
+  status: 'requested' | 'confirmed' | 'cancelled' | 'completed';
+  checked_in_at?: string | null;
+  checked_in_by?: string | null;
+  location: string | null;
+  created_at: string;
+  updated_at: string;
+  case_number?: string | null;
+  case_title?: string | null;
+  pointperson_first_name?: string | null;
+  pointperson_last_name?: string | null;
+  pointperson_email?: string | null;
+  portal_user_id?: string | null;
+  portal_email?: string | null;
+  contact_name?: string | null;
+  next_reminder_at?: string | null;
+  pending_reminder_jobs?: number;
+  last_reminder_sent_at?: string | null;
+  reminder_offered?: boolean;
+  attendance_state?: CaseAppointmentAttendanceState;
+  linked_note_count?: number;
+  linked_outcome_count?: number;
+  missing_note?: boolean;
+  missing_outcome?: boolean;
+  missing_reminder?: boolean;
+}
 
 export interface ExternalServiceProvider {
   id: string;
@@ -413,6 +507,8 @@ export interface CreateCaseNoteDTO {
   is_portal_visible?: boolean;
   is_important?: boolean;
   attachments?: unknown[];
+  source_entity_type?: CaseSourceEntityType | null;
+  source_entity_id?: string | null;
   outcome_impacts?: InteractionOutcomeImpactInput[];
   outcomes_mode?: OutcomeUpdateMode;
 }
@@ -427,6 +523,8 @@ export interface UpdateCaseNoteDTO {
   is_portal_visible?: boolean;
   is_important?: boolean;
   attachments?: unknown[] | null;
+  source_entity_type?: CaseSourceEntityType | null;
+  source_entity_id?: string | null;
   outcome_impacts?: InteractionOutcomeImpactInput[];
   outcomes_mode?: OutcomeUpdateMode;
 }
@@ -438,6 +536,9 @@ export interface CreateCaseOutcomeDTO {
   notes?: string;
   visible_to_client?: boolean;
   is_portal_visible?: boolean;
+  source_entity_type?: CaseSourceEntityType | null;
+  source_entity_id?: string | null;
+  workflow_stage?: CaseOutcomeWorkflowStage;
 }
 
 export interface UpdateCaseOutcomeDTO {
@@ -447,6 +548,9 @@ export interface UpdateCaseOutcomeDTO {
   notes?: string | null;
   visible_to_client?: boolean;
   is_portal_visible?: boolean;
+  source_entity_type?: CaseSourceEntityType | null;
+  source_entity_id?: string | null;
+  workflow_stage?: CaseOutcomeWorkflowStage | null;
 }
 
 export interface CreateCaseTopicDefinitionDTO {
@@ -475,7 +579,9 @@ export interface UpdateCaseDocumentDTO {
 export interface UpdateCaseStatusDTO {
   new_status_id: string;
   reason?: string;
-  notes?: string;
+  notes: string;
+  outcome_definition_ids?: string[];
+  outcome_visibility?: boolean;
 }
 
 /**

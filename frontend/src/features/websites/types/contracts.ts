@@ -71,6 +71,35 @@ export interface WebsiteConversionMetrics {
   }>;
 }
 
+export interface WebsiteConversionFunnelStep {
+  step: 'view' | 'submit' | 'confirm';
+  count: number;
+  uniqueVisitors: number;
+}
+
+export interface WebsiteConversionFunnelEvent {
+  id: string;
+  conversionType: 'pageview' | 'form_submit' | 'donation' | 'event_register';
+  step: 'view' | 'submit' | 'confirm';
+  pagePath: string;
+  visitorId: string | null;
+  sessionId: string | null;
+  referrer: string | null;
+  userAgent: string | null;
+  sourceEntityType: string | null;
+  sourceEntityId: string | null;
+  eventData: Record<string, unknown>;
+  occurredAt: string;
+}
+
+export interface WebsiteConversionFunnel {
+  siteId: string;
+  periodStart: string;
+  periodEnd: string;
+  steps: WebsiteConversionFunnelStep[];
+  recentEvents: WebsiteConversionFunnelEvent[];
+}
+
 export interface WebsiteFormOperationalConfig {
   heading?: string;
   description?: string;
@@ -247,6 +276,7 @@ export interface WebsiteState {
   };
   searchParams: WebsiteSearchParams;
   overview: WebsiteOverviewSummary | null;
+  funnel: WebsiteConversionFunnel | null;
   forms: WebsiteFormDefinition[];
   integrations: WebsiteIntegrationStatus | null;
   analytics: WebsiteConversionMetrics | null;
@@ -256,6 +286,8 @@ export interface WebsiteState {
   isLoading: boolean;
   isSaving: boolean;
   error: string | null;
+  funnelLoading: boolean;
+  funnelError: string | null;
 }
 
 export type WebsiteEntryCreateRequest = Omit<CreateWebsiteEntryRequest, 'siteId'>;

@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 import pool from '@config/database';
 import { logger } from '@config/logger';
+import { createCaseWorkflowArtifacts } from '@services/caseWorkflowService';
 import type {
   CompleteFollowUpDTO,
   CreateFollowUpDTO,
@@ -14,6 +15,7 @@ import type {
 type FollowUpRow = FollowUpWithEntity & {
   reminder_minutes_before?: number | null;
   assigned_email?: string | null;
+  direct_contact_name?: string | null;
 };
 
 const STALE_PROCESSING_MINUTES = 10;
@@ -215,13 +217,18 @@ export class FollowUpService {
               c.case_number,
               c.title AS case_title,
               c.priority AS case_priority,
-              con.first_name || ' ' || con.last_name AS contact_name,
+              CASE
+                WHEN fu.entity_type = 'contact' THEN direct_contact.first_name || ' ' || direct_contact.last_name
+                ELSE con.first_name || ' ' || con.last_name
+              END AS contact_name,
+              direct_contact.first_name || ' ' || direct_contact.last_name AS direct_contact_name,
               t.subject AS task_subject,
               t.priority AS task_priority
        FROM follow_ups fu
        LEFT JOIN users assignee ON assignee.id = fu.assigned_to
        LEFT JOIN cases c ON fu.entity_type = 'case' AND fu.entity_id = c.id
        LEFT JOIN contacts con ON c.contact_id = con.id
+       LEFT JOIN contacts direct_contact ON fu.entity_type = 'contact' AND fu.entity_id = direct_contact.id
        LEFT JOIN tasks t ON fu.entity_type = 'task' AND fu.entity_id = t.id
        ${whereClause}
        ORDER BY fu.scheduled_date ASC, fu.scheduled_time ASC NULLS LAST, fu.created_at DESC
@@ -315,13 +322,18 @@ export class FollowUpService {
               c.case_number,
               c.title AS case_title,
               c.priority AS case_priority,
-              con.first_name || ' ' || con.last_name AS contact_name,
+              CASE
+                WHEN fu.entity_type = 'contact' THEN direct_contact.first_name || ' ' || direct_contact.last_name
+                ELSE con.first_name || ' ' || con.last_name
+              END AS contact_name,
+              direct_contact.first_name || ' ' || direct_contact.last_name AS direct_contact_name,
               t.subject AS task_subject,
               t.priority AS task_priority
        FROM follow_ups fu
        LEFT JOIN users assignee ON assignee.id = fu.assigned_to
        LEFT JOIN cases c ON fu.entity_type = 'case' AND fu.entity_id = c.id
        LEFT JOIN contacts con ON c.contact_id = con.id
+       LEFT JOIN contacts direct_contact ON fu.entity_type = 'contact' AND fu.entity_id = direct_contact.id
        LEFT JOIN tasks t ON fu.entity_type = 'task' AND fu.entity_id = t.id
        WHERE fu.organization_id = $1
          AND fu.status = 'scheduled'
@@ -470,6 +482,14 @@ export class FollowUpService {
     userId: string,
     data: CompleteFollowUpDTO
   ): Promise<FollowUp | null> {
+    const completionNotes = data.completed_notes?.trim() || '';
+    if (!completionNotes) {
+      throw Object.assign(new Error('Completion notes are required'), {
+        statusCode: 400,
+        code: 'validation_error',
+      });
+    }
+
     const client = await this.db.connect();
     try {
       await client.query('BEGIN');
@@ -489,6 +509,13 @@ export class FollowUpService {
       }
 
       const current = currentResult.rows[0];
+      const outcomeDefinitionIds = data.outcome_definition_ids || [];
+      if (current.entity_type === 'case' && outcomeDefinitionIds.length === 0) {
+        throw Object.assign(new Error('Case follow-ups require at least one outcome definition'), {
+          statusCode: 400,
+          code: 'validation_error',
+        });
+      }
 
       const updateResult = await client.query<FollowUpRow>(
         `UPDATE follow_ups
@@ -500,7 +527,7 @@ export class FollowUpService {
          WHERE organization_id = $1
            AND id = $2
          RETURNING *`,
-        [organizationId, followUpId, data.completed_notes || null, userId]
+        [organizationId, followUpId, completionNotes, userId]
       );
 
       await client.query(
@@ -509,6 +536,28 @@ export class FollowUpService {
            AND status IN ('pending', 'processing')`,
         [followUpId]
       );
+
+      if (current.entity_type === 'case') {
+        await createCaseWorkflowArtifacts(client, {
+          caseId: current.entity_id,
+          userId,
+          note: {
+            noteType: 'update',
+            subject: 'Follow-up completed',
+            content: completionNotes,
+            sourceEntityType: 'follow_up',
+            sourceEntityId: followUpId,
+          },
+          outcomes: {
+            outcomeDefinitionIds,
+            notes: completionNotes,
+            visibleToClient: Boolean(data.outcome_visibility),
+            workflowStage: 'follow_up',
+            sourceEntityType: 'follow_up',
+            sourceEntityId: followUpId,
+          },
+        });
+      }
 
       const shouldScheduleNext =
         (data.schedule_next !== false && current.frequency !== 'once') ||
@@ -586,29 +635,98 @@ export class FollowUpService {
   async cancelFollowUp(
     organizationId: string,
     followUpId: string,
-    userId: string
+    userId: string,
+    data: CompleteFollowUpDTO
   ): Promise<FollowUp | null> {
-    const result = await this.db.query<FollowUpRow>(
-      `UPDATE follow_ups
-       SET status = 'cancelled',
-           modified_by = $3,
-           updated_at = NOW()
-       WHERE organization_id = $1
-         AND id = $2
-       RETURNING *`,
-      [organizationId, followUpId, userId]
-    );
+    const cancellationNotes = data.completed_notes?.trim() || '';
+    if (!cancellationNotes) {
+      throw Object.assign(new Error('Cancellation notes are required'), {
+        statusCode: 400,
+        code: 'validation_error',
+      });
+    }
 
-    if (result.rows.length === 0) return null;
+    const client = await this.db.connect();
+    try {
+      await client.query('BEGIN');
 
-    await this.db.query(
-      `DELETE FROM follow_up_notifications
-       WHERE follow_up_id = $1
-         AND status IN ('pending', 'processing')`,
-      [followUpId]
-    );
+      const currentResult = await client.query<FollowUpRow>(
+        `SELECT *
+         FROM follow_ups
+         WHERE organization_id = $1
+           AND id = $2
+         FOR UPDATE`,
+        [organizationId, followUpId]
+      );
 
-    return mapRow(result.rows[0]);
+      const current = currentResult.rows[0];
+      if (!current) {
+        await client.query('ROLLBACK');
+        return null;
+      }
+
+      const outcomeDefinitionIds = data.outcome_definition_ids || [];
+      if (current.entity_type === 'case' && outcomeDefinitionIds.length === 0) {
+        throw Object.assign(new Error('Case follow-ups require at least one outcome definition'), {
+          statusCode: 400,
+          code: 'validation_error',
+        });
+      }
+
+      const result = await client.query<FollowUpRow>(
+        `UPDATE follow_ups
+         SET status = 'cancelled',
+             completed_notes = $4,
+             modified_by = $3,
+             updated_at = NOW()
+         WHERE organization_id = $1
+           AND id = $2
+         RETURNING *`,
+        [organizationId, followUpId, userId, cancellationNotes]
+      );
+
+      await client.query(
+        `DELETE FROM follow_up_notifications
+         WHERE follow_up_id = $1
+           AND status IN ('pending', 'processing')`,
+        [followUpId]
+      );
+
+      if (current.entity_type === 'case') {
+        await createCaseWorkflowArtifacts(client, {
+          caseId: current.entity_id,
+          userId,
+          note: {
+            noteType: 'update',
+            subject: 'Follow-up cancelled',
+            content: cancellationNotes,
+            sourceEntityType: 'follow_up',
+            sourceEntityId: followUpId,
+          },
+          outcomes: {
+            outcomeDefinitionIds,
+            notes: cancellationNotes,
+            visibleToClient: Boolean(data.outcome_visibility),
+            workflowStage: 'follow_up',
+            sourceEntityType: 'follow_up',
+            sourceEntityId: followUpId,
+          },
+        });
+      }
+
+      await client.query('COMMIT');
+      return mapRow(result.rows[0]);
+    } catch (error) {
+      await client.query('ROLLBACK');
+      logger.error('Failed to cancel follow-up', {
+        error,
+        organizationId,
+        followUpId,
+      });
+      throw Object.assign(new Error('Failed to cancel follow-up'), { cause: error });
+    } finally {
+      client.release();
+    }
   }
 
   async rescheduleFollowUp(

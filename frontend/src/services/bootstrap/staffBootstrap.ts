@@ -11,6 +11,18 @@ export interface StaffBootstrapSnapshot {
 }
 
 const STAFF_BOOTSTRAP_TTL_MS = 60_000;
+const staffBootstrapMode = import.meta.env.VITE_UI_STAFF_BOOTSTRAP_MODE as
+  | 'anonymous'
+  | 'authenticated'
+  | undefined;
+const mockStaffUser: User = {
+  id: 'ui-preview-staff',
+  email: 'preview.staff@example.org',
+  firstName: 'Preview',
+  lastName: 'Staff',
+  role: 'admin',
+  profilePicture: null,
+};
 
 let cachedSnapshot: StaffBootstrapSnapshot | null = null;
 let inFlightSnapshot: Promise<StaffBootstrapSnapshot> | null = null;
@@ -19,6 +31,22 @@ const isFresh = (snapshot: StaffBootstrapSnapshot): boolean =>
   Date.now() - snapshot.fetchedAt < STAFF_BOOTSTRAP_TTL_MS;
 
 const fetchStaffBootstrapSnapshot = async (): Promise<StaffBootstrapSnapshot> => {
+  if (staffBootstrapMode === 'anonymous') {
+    return {
+      status: 'anonymous',
+      user: null,
+      fetchedAt: Date.now(),
+    };
+  }
+
+  if (staffBootstrapMode === 'authenticated') {
+    return {
+      status: 'authenticated',
+      user: mockStaffUser,
+      fetchedAt: Date.now(),
+    };
+  }
+
   try {
     const response = await api.get<ApiEnvelope<User>>('/auth/me');
     return {

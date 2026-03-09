@@ -86,7 +86,10 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/065_event_public_checkin_settings.sql
 \i /migrations/066_website_builder_v2_org_scope.sql
 \i /migrations/067_website_site_console_settings.sql
+\i /migrations/068_people_import_export_support.sql
 \i /migrations/069_public_submission_export_jobs_activity_conversion_events.sql
+\i /migrations/070_activity_conversion_event_provenance_backfill.sql
+\i /migrations/071_case_workflow_coverage_recovery.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',
@@ -178,7 +181,10 @@ VALUES
     ('065_event_public_checkin_settings.sql', '065', '065_event_public_checkin_settings.sql'),
     ('066_website_builder_v2_org_scope.sql', '066', '066_website_builder_v2_org_scope.sql'),
     ('067_website_site_console_settings.sql', '067', '067_website_site_console_settings.sql'),
-    ('069_public_submission_export_jobs_activity_conversion_events.sql', '069', '069_public_submission_export_jobs_activity_conversion_events.sql')
+    ('068_people_import_export_support.sql', '068', '068_people_import_export_support.sql'),
+    ('069_public_submission_export_jobs_activity_conversion_events.sql', '069', '069_public_submission_export_jobs_activity_conversion_events.sql'),
+    ('070_activity_conversion_event_provenance_backfill.sql', '070', '070_activity_conversion_event_provenance_backfill.sql'),
+    ('071_case_workflow_coverage_recovery.sql', '071', '071_case_workflow_coverage_recovery.sql')
 ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;

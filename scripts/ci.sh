@@ -5,6 +5,43 @@
 set -e
 set +H
 
+HAS_DB_HOST=false
+HAS_DB_PORT=false
+HAS_DB_NAME=false
+HAS_DB_USER=false
+HAS_DB_PASSWORD=false
+HAS_REDIS_PORT=false
+
+if [[ "${DB_HOST+x}" == "x" ]]; then
+    HAS_DB_HOST=true
+    INBOUND_DB_HOST="$DB_HOST"
+fi
+
+if [[ "${DB_PORT+x}" == "x" ]]; then
+    HAS_DB_PORT=true
+    INBOUND_DB_PORT="$DB_PORT"
+fi
+
+if [[ "${DB_NAME+x}" == "x" ]]; then
+    HAS_DB_NAME=true
+    INBOUND_DB_NAME="$DB_NAME"
+fi
+
+if [[ "${DB_USER+x}" == "x" ]]; then
+    HAS_DB_USER=true
+    INBOUND_DB_USER="$DB_USER"
+fi
+
+if [[ "${DB_PASSWORD+x}" == "x" ]]; then
+    HAS_DB_PASSWORD=true
+    INBOUND_DB_PASSWORD="$DB_PASSWORD"
+fi
+
+if [[ "${REDIS_PORT+x}" == "x" ]]; then
+    HAS_REDIS_PORT=true
+    INBOUND_REDIS_PORT="$REDIS_PORT"
+fi
+
 # Load common utilities and configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
@@ -134,8 +171,40 @@ run_ci() {
     print_header "CI Pipeline" "$ENVIRONMENT environment"
 
     # Keep backend/.env.test DB host/port defaults reachable during local CI.
+    local ci_db_host="localhost"
+    local ci_db_port="8012"
+    local ci_db_name="nonprofit_manager"
+    local ci_db_user="postgres"
+    local ci_db_password="postgres"
+    local ci_redis_port="8013"
+
+    if [ "$HAS_DB_HOST" = true ]; then
+        ci_db_host="$INBOUND_DB_HOST"
+    fi
+
+    if [ "$HAS_DB_PORT" = true ]; then
+        ci_db_port="$INBOUND_DB_PORT"
+    fi
+
+    if [ "$HAS_DB_NAME" = true ]; then
+        ci_db_name="$INBOUND_DB_NAME"
+    fi
+
+    if [ "$HAS_DB_USER" = true ]; then
+        ci_db_user="$INBOUND_DB_USER"
+    fi
+
+    if [ "$HAS_DB_PASSWORD" = true ]; then
+        ci_db_password="$INBOUND_DB_PASSWORD"
+    fi
+
+    if [ "$HAS_REDIS_PORT" = true ]; then
+        ci_redis_port="$INBOUND_REDIS_PORT"
+    fi
+
     local ci_project_base="${COMPOSE_PROJECT_CI:-nonprofit-ci}"
     local ci_project_name="${CI_COMPOSE_PROJECT_NAME:-${COMPOSE_PROJECT_NAME:-${ci_project_base}-${USER:-local}-$$}}"
+    local reuse_existing_ci_infra=false
     local ci_compose_files="docker-compose.yml"
     local infra_compose_args="-p $ci_project_name -f docker-compose.yml"
     if [ -f "docker-compose.host-access.yml" ]; then
@@ -146,6 +215,58 @@ run_ci() {
         infra_compose_args="$infra_compose_args -f docker-compose.ci.yml"
         ci_compose_files="$ci_compose_files docker-compose.ci.yml"
     fi
+
+    if command -v docker >/dev/null 2>&1 && [[ "$ci_db_host" =~ ^(localhost|127\.0\.0\.1|::1)$ ]]; then
+        local existing_postgres_container=""
+        local existing_redis_container=""
+        local detected_project=""
+        local detected_postgres_service=""
+        local detected_redis_service=""
+        local detected_redis_project=""
+
+        existing_postgres_container="$(
+            docker ps --filter "publish=${ci_db_port}" --format '{{.ID}}' | head -n 1
+        )"
+        existing_redis_container="$(
+            docker ps --filter "publish=${ci_redis_port}" --format '{{.ID}}' | head -n 1
+        )"
+
+        if [ -n "$existing_postgres_container" ]; then
+            detected_postgres_service="$(
+                docker inspect -f '{{ index .Config.Labels "com.docker.compose.service" }}' "$existing_postgres_container" 2>/dev/null || true
+            )"
+            detected_project="$(
+                docker inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' "$existing_postgres_container" 2>/dev/null || true
+            )"
+        fi
+
+        if [ -n "$existing_redis_container" ]; then
+            detected_redis_service="$(
+                docker inspect -f '{{ index .Config.Labels "com.docker.compose.service" }}' "$existing_redis_container" 2>/dev/null || true
+            )"
+            detected_redis_project="$(
+                docker inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' "$existing_redis_container" 2>/dev/null || true
+            )"
+        fi
+
+        if [ "$detected_postgres_service" = "postgres" ] && [ -n "$detected_project" ]; then
+            if [ -z "$existing_redis_container" ] || {
+                [ "$detected_redis_service" = "redis" ] && [ "$detected_redis_project" = "$detected_project" ];
+            }; then
+                ci_project_name="$detected_project"
+                reuse_existing_ci_infra=true
+                infra_compose_args="-p $ci_project_name -f docker-compose.yml"
+                if [ -f "docker-compose.host-access.yml" ]; then
+                    infra_compose_args="$infra_compose_args -f docker-compose.host-access.yml"
+                fi
+                if [ -f "docker-compose.ci.yml" ]; then
+                    infra_compose_args="$infra_compose_args -f docker-compose.ci.yml"
+                fi
+                log_info "Reusing existing CI infra project '$ci_project_name' on ports ${ci_db_port}/${ci_redis_port}"
+            fi
+        fi
+    fi
+
     CI_INFRA_COMPOSE_ARGS="$infra_compose_args"
     local ci_e2e_lock_file="${E2E_CI_LOCK_FILE:-/tmp/nonprofit-manager-e2e-ci.lock}"
     local admin_user_email="${ADMIN_USER_EMAIL:-admin@example.com}"
@@ -157,22 +278,18 @@ run_ci() {
 
     # Bring up infra before tests so backend integration tests do not race DB availability.
     if [ "$RUN_TESTS" = true ] && [ "$SKIP_TESTS" = false ] && { [ "$RUN_BACKEND" = true ] || [ "$RUN_E2E" = true ]; }; then
-        CI_INFRA_STARTED=true
-        if [ "$CI_KEEP_INFRA" != true ]; then
+        if [ "$reuse_existing_ci_infra" != true ]; then
+            CI_INFRA_STARTED=true
+        fi
+        if [ "$CI_KEEP_INFRA" != true ] && [ "$reuse_existing_ci_infra" != true ]; then
             trap cleanup_ci_infra EXIT
         fi
         run_step "Test Infra" "DB_PASSWORD=postgres docker_compose $infra_compose_args up -d postgres redis"
-        run_step "DB Migrations" "COMPOSE_MODE=ci COMPOSE_PROJECT_NAME=$ci_project_name COMPOSE_FILES='$ci_compose_files' \"$SCRIPT_DIR/db-migrate.sh\""
+        run_step "DB Migrations" "DB_HOST=$ci_db_host DB_PORT=$ci_db_port DB_NAME=$ci_db_name DB_USER=$ci_db_user DB_PASSWORD=$ci_db_password COMPOSE_MODE=ci COMPOSE_PROJECT_NAME=$ci_project_name COMPOSE_FILES='$ci_compose_files' \"$SCRIPT_DIR/db-migrate.sh\""
         run_step "Test Runner Cleanup" "E2E_LOCK_FILE=$ci_e2e_lock_file \"$SCRIPT_DIR/e2e-lock-cleanup.sh\""
     fi
 
     # Pin test DB connectivity to CI infra ports to avoid host-specific overrides in backend/.env.test.
-    local ci_db_host="${DB_HOST:-localhost}"
-    local ci_db_port="${DB_PORT:-8012}"
-    local ci_db_name="${DB_NAME:-nonprofit_manager}"
-    local ci_db_user="${DB_USER:-postgres}"
-    local ci_db_password="${DB_PASSWORD:-postgres}"
-
     # Backend checks
     if [ "$RUN_BACKEND" = true ]; then
         log_info "Running backend checks..."

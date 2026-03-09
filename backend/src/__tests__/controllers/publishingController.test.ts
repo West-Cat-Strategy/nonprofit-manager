@@ -96,7 +96,12 @@ describe('publishingController', () => {
 
     await getAnalyticsSummary(req as any, res, next);
 
-    expect(mockPublishingService.getAnalyticsSummary).toHaveBeenCalledWith('site-1', 'user-1', 30);
+    expect(mockPublishingService.getAnalyticsSummary).toHaveBeenCalledWith(
+      'site-1',
+      'user-1',
+      30,
+      undefined
+    );
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         success: true,

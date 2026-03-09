@@ -33,6 +33,7 @@ export interface ScheduledReportRun {
   rows_count?: number | null;
   file_format?: ScheduledReportFormat | null;
   file_name?: string | null;
+  reportExportJobId?: string | null;
   recipients: string[];
   error_message?: string | null;
   metadata?: Record<string, unknown> | null;

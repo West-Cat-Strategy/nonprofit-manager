@@ -23,16 +23,19 @@ authTest.describe('Staff navigation click-through audit', () => {
     await expect(authenticatedPage).toHaveURL(/\/alerts$/);
   });
 
-  authTest('admin settings tabs preserve query-based canonical sections', async ({
+  authTest('admin settings tabs preserve path-based canonical sections', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto('/settings/admin', { waitUntil: 'domcontentloaded' });
 
     await authenticatedPage.getByRole('tab', { name: /^users & security$/i }).click();
-    await expect(authenticatedPage).toHaveURL(/\/settings\/admin\?section=users$/);
+    await expect(authenticatedPage).toHaveURL(/\/settings\/admin\/users$/);
 
-    await authenticatedPage.getByRole('link', { name: /^audit logs$/i }).click();
-    await expect(authenticatedPage).toHaveURL(/\/settings\/admin\?section=audit_logs$/);
+    await authenticatedPage
+      .getByRole('region', { name: /admin quick actions/i })
+      .getByRole('link', { name: /^audit logs\b/i })
+      .click();
+    await expect(authenticatedPage).toHaveURL(/\/settings\/admin\/audit_logs$/);
   });
 });
 
@@ -56,13 +59,15 @@ base.describe('Portal navigation click-through audit', () => {
   });
 
   base('sidebar links stay within the portal shell', async ({ page }) => {
-    await page.getByRole('link', { name: /appointments/i }).click();
+    const portalNav = page.getByRole('navigation', { name: /browse portal/i });
+
+    await portalNav.getByRole('link', { name: /^appointments$/i }).click();
     await expect(page).toHaveURL(/\/portal\/appointments$/);
 
-    await page.getByRole('link', { name: /documents/i }).click();
+    await portalNav.getByRole('link', { name: /^documents$/i }).click();
     await expect(page).toHaveURL(/\/portal\/documents$/);
 
-    await page.getByRole('link', { name: /profile/i }).click();
+    await portalNav.getByRole('link', { name: /^account$/i }).click();
     await expect(page).toHaveURL(/\/portal\/profile$/);
   });
 });

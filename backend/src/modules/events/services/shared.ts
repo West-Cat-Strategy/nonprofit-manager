@@ -1,5 +1,10 @@
-import { Pool } from 'pg';
+import { Pool, type PoolClient } from 'pg';
+import { logger } from '@config/logger';
 import type { ReminderChannelSummary } from '@app-types/event';
+import {
+  activityEventService,
+  type CreateActivityEventInput,
+} from '@services/activityEventService';
 
 export type QueryValue = string | number | boolean | Date | null | string[];
 
@@ -33,6 +38,13 @@ export interface EventCheckInWindowEventRow {
 interface EventContactRow {
   id: string;
 }
+
+type ActivityEventQueryable = Pick<Pool, 'query'> | Pick<PoolClient, 'query'>;
+
+const isTransactionalClient = (
+  queryable: ActivityEventQueryable
+): queryable is Pick<PoolClient, 'query'> & { release: PoolClient['release'] } =>
+  typeof (queryable as { release?: unknown }).release === 'function';
 
 const parsePositiveMinutes = (value: string | undefined, fallback: number): number => {
   const parsed = Number.parseInt(value ?? '', 10);
@@ -90,6 +102,46 @@ export const formatReminderDate = (date: Date): string =>
     hour: 'numeric',
     minute: '2-digit',
   });
+
+export const recordActivityEventSafely = async (
+  input: CreateActivityEventInput,
+  queryable: ActivityEventQueryable,
+  context: Record<string, unknown>
+): Promise<void> => {
+  const savepointName = `activity_event_${Date.now()}_${Math.random().toString(16).slice(2, 10)}`;
+
+  try {
+    if (isTransactionalClient(queryable)) {
+      await queryable.query(`SAVEPOINT ${savepointName}`);
+    }
+
+    await activityEventService.recordEvent(input, queryable);
+
+    if (isTransactionalClient(queryable)) {
+      await queryable.query(`RELEASE SAVEPOINT ${savepointName}`);
+    }
+  } catch (error) {
+    if (isTransactionalClient(queryable)) {
+      try {
+        await queryable.query(`ROLLBACK TO SAVEPOINT ${savepointName}`);
+        await queryable.query(`RELEASE SAVEPOINT ${savepointName}`);
+      } catch (rollbackError) {
+        logger.warn('Failed to unwind activity event savepoint', {
+          ...context,
+          activityType: input.type,
+          rollbackError:
+            rollbackError instanceof Error ? rollbackError.message : String(rollbackError),
+        });
+      }
+    }
+
+    logger.warn('Failed to record event activity', {
+      ...context,
+      activityType: input.type,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+};
 
 export class EventParticipantSupport {
   constructor(_pool: Pool) {}

@@ -20,8 +20,9 @@ import {
   ImportExportModal,
   type TableColumn,
 } from '../../../components/people';
+import { SecondaryButton } from '../../../components/ui';
 import ConfirmDialog from '../../../components/ConfirmDialog';
-import { useBulkSelect, useImportExport } from '../../../hooks';
+import { useBulkSelect } from '../../../hooks';
 import { BrutalBadge } from '../../../components/neo-brutalist';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 
@@ -41,7 +42,6 @@ const VolunteerList = () => {
     deselectAll,
   } = useBulkSelect();
 
-  const { exportToCSV } = useImportExport();
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || filters.search || '');
   const [availabilityFilter, setAvailabilityFilter] = useState(searchParams.get('status') || filters.availability_status || '');
@@ -135,42 +135,6 @@ const VolunteerList = () => {
 
     deselectAll();
     loadVolunteers();
-  };
-
-  const handleBulkExport = () => {
-    const ids = Array.from(selectedIds);
-    const selectedVolunteers = volunteers.filter((v) =>
-      ids.includes(v.volunteer_id)
-    );
-
-    const columns = [
-      'first_name',
-      'last_name',
-      'email',
-      'phone',
-      'skills',
-      'availability_status',
-      'background_check_status',
-      'total_hours_logged',
-    ] as const;
-
-    exportToCSV(
-      selectedVolunteers.map((v) => ({
-        first_name: v.first_name,
-        last_name: v.last_name,
-        email: v.email,
-        phone: v.phone,
-        skills: v.skills?.join('; ') || '',
-        availability_status: v.availability_status,
-        background_check_status: v.background_check_status,
-        total_hours_logged: v.total_hours_logged,
-      })),
-      columns,
-      {
-        filename: 'volunteers-export',
-        includeHeaders: true,
-      }
-    );
   };
 
   const getStatusBadge = (status: string) => {
@@ -313,6 +277,11 @@ const VolunteerList = () => {
         title="Volunteers"
         description="Manage volunteer profiles and assignments"
         getRowId={(row) => row.volunteer_id}
+        headerActions={
+          <SecondaryButton onClick={() => setShowImportExport(true)}>
+            Import / Export
+          </SecondaryButton>
+        }
         onCreateNew={() => navigate('/volunteers/new')}
         createButtonLabel="New Volunteer"
         filters={
@@ -382,11 +351,6 @@ const VolunteerList = () => {
                 {
                   id: 'export',
                   label: 'Export',
-                  onClick: handleBulkExport,
-                },
-                {
-                  id: 'import',
-                  label: 'Import',
                   onClick: () => setShowImportExport(true),
                 },
                 {
@@ -425,7 +389,18 @@ const VolunteerList = () => {
         isOpen={showImportExport}
         onClose={() => setShowImportExport(false)}
         entityType="volunteers"
-        sampleData={volunteers}
+        selectedIds={Array.from(selectedIds)}
+        exportRequest={{
+          search: searchInput || undefined,
+          availability_status: availabilityFilter || undefined,
+          background_check_status: backgroundCheckFilter || undefined,
+          sort_by: sortBy,
+          sort_order: sortOrder,
+        }}
+        onImportComplete={() => {
+          deselectAll();
+          loadVolunteers();
+        }}
       />
       <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </>

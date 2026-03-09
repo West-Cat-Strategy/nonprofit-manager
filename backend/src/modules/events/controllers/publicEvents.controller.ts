@@ -348,6 +348,8 @@ export const createPublicEventsController = ({
           eventData: {
             eventId: params.id,
             registrationId: result.registration?.registration_id ?? null,
+            sourceEntityType: 'event',
+            sourceEntityId: params.id,
           },
         });
       }

@@ -1,5 +1,6 @@
 // Mock database pool and logger before imports
 const mockQuery = jest.fn();
+const mockCreateCaseWorkflowArtifacts = jest.fn();
 
 jest.mock('../../config/database', () => ({
   __esModule: true,
@@ -15,16 +16,24 @@ jest.mock('../../config/logger', () => ({
   },
 }));
 
+jest.mock('../../services/caseWorkflowService', () => ({
+  createCaseWorkflowArtifacts: (...args: unknown[]) => mockCreateCaseWorkflowArtifacts(...args),
+}));
+
 import { Pool } from 'pg';
 import { CaseService } from '../../services/caseService';
 
 describe('CaseService', () => {
   let service: CaseService;
-  let mockPool: jest.Mocked<Pick<Pool, 'query'>>;
+  let mockPool: jest.Mocked<Pick<Pool, 'query' | 'connect'>>;
 
   beforeEach(() => {
     mockQuery.mockReset();
-    mockPool = { query: mockQuery } as jest.Mocked<Pick<Pool, 'query'>>;
+    mockCreateCaseWorkflowArtifacts.mockReset();
+    mockPool = {
+      query: mockQuery,
+      connect: jest.fn(),
+    } as jest.Mocked<Pick<Pool, 'query' | 'connect'>>;
     service = new CaseService(mockPool as unknown as Pool);
   });
 
@@ -228,11 +237,19 @@ describe('CaseService', () => {
   describe('updateCaseStatus', () => {
     it('fetches current status, updates it, and inserts a status_change note', async () => {
       const updatedCase = { id: 'case-1', status_id: 'status-new' };
-
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ status_id: 'status-old' }] }) // current status fetch
-        .mockResolvedValueOnce({ rows: [updatedCase] })                   // UPDATE cases
-        .mockResolvedValueOnce({ rows: [] });                             // INSERT note
+      const client = {
+        query: jest
+          .fn()
+          .mockResolvedValueOnce({}) // BEGIN
+          .mockResolvedValueOnce({ rows: [{ status_id: 'status-old' }] }) // current status fetch
+          .mockResolvedValueOnce({
+            rows: [{ id: 'status-new', name: 'Active', status_type: 'active' }],
+          }) // next status lookup
+          .mockResolvedValueOnce({ rows: [updatedCase] }) // UPDATE cases
+          .mockResolvedValueOnce({}), // COMMIT
+        release: jest.fn(),
+      };
+      mockPool.connect.mockResolvedValueOnce(client as never);
 
       const result = await service.updateCaseStatus(
         'case-1',
@@ -241,15 +258,22 @@ describe('CaseService', () => {
       );
 
       expect(result).toEqual(updatedCase);
-      expect(mockQuery).toHaveBeenCalledTimes(3);
-
-      // Note insert
-      const noteSql = mockQuery.mock.calls[2][0] as string;
-      const noteParams = mockQuery.mock.calls[2][1] as unknown[];
-      expect(noteSql).toMatch(/status_change/);
-      expect(noteParams).toContain('Escalated');
-      expect(noteParams).toContain('status-old');
-      expect(noteParams).toContain('status-new');
+      expect(client.query).toHaveBeenCalledWith('COMMIT');
+      expect(client.release).toHaveBeenCalled();
+      expect(mockCreateCaseWorkflowArtifacts).toHaveBeenCalledWith(
+        client,
+        expect.objectContaining({
+          caseId: 'case-1',
+          userId: 'user-1',
+          note: expect.objectContaining({
+            noteType: 'status_change',
+            content: 'Escalated',
+            previousStatusId: 'status-old',
+            newStatusId: 'status-new',
+          }),
+          outcomes: undefined,
+        })
+      );
     });
   });
 

@@ -454,6 +454,12 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     path: '/reports/outcomes',
   }),
   staffRoute({
+    id: 'reports-workflow-coverage',
+    title: 'Workflow Coverage Report',
+    section: 'Analytics',
+    path: '/reports/workflow-coverage',
+  }),
+  staffRoute({
     id: 'alerts-overview',
     title: 'Alerts',
     section: 'Analytics',
@@ -586,10 +592,7 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     id: 'admin-settings-audit-logs',
     title: 'Audit Logs',
     path: '/settings/admin/audit_logs',
-    aliases: [
-      '/admin/audit-logs',
-      { path: '/settings/admin', query: { section: 'audit_logs' } },
-    ],
+    aliases: ['/admin/audit-logs', { path: '/settings/admin', query: { section: 'audit_logs' } }],
   }),
   adminRoute({
     id: 'admin-settings-other',

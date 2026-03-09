@@ -1,5 +1,4 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import PageLoader from './PageLoader';
 import { useSetupCheck } from '../hooks/useSetupCheck';
 
 const isSetupGateRoute = (pathname: string): boolean =>
@@ -17,10 +16,6 @@ export default function PublicShellRoute() {
   const setupCheckEnabled = shouldEnableSetupCheck(location.pathname);
   const { setupRequired, loading } = useSetupCheck({ enabled: setupCheckEnabled });
 
-  if (setupCheckEnabled && loading) {
-    return <PageLoader />;
-  }
-
   const setupStatusResolved = setupCheckEnabled && setupRequired !== null;
 
   if (setupStatusResolved && setupRequired === true && location.pathname !== '/setup') {
@@ -29,6 +24,10 @@ export default function PublicShellRoute() {
 
   if (setupStatusResolved && setupRequired === false && location.pathname === '/setup') {
     return <Navigate to="/login" replace />;
+  }
+
+  if (setupCheckEnabled && loading) {
+    return <Outlet />;
   }
 
   return <Outlet />;
