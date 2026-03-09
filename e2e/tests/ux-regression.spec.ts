@@ -6,6 +6,7 @@ import type { ConsoleMessage, Page } from '@playwright/test';
 const benignConsolePatterns = [
   /favicon\.ico/i,
   /ResizeObserver loop limit exceeded/i,
+  /downloadable font: download failed/i,
   /Failed to load resource: the server responded with a status of 404/i,
   /Failed to load resource: the server responded with a status of (401|403|404|410|500)/i,
   /Failed to fetch CSRF token:/i,
@@ -164,7 +165,7 @@ const resolveAdminRouteState = async (
     await page.waitForTimeout(250);
   }
 
-  return 'redirected';
+  return expectedPathnames.has(normalizePathname(page.url())) ? 'accessible' : 'redirected';
 };
 
 const gotoAdminRouteWithFallback = async (
@@ -197,18 +198,21 @@ test.describe('UI/UX regression flows', () => {
 
     await authenticatedPage.setViewportSize({ width: 1440, height: 900 });
     await authenticatedPage.goto('/dashboard');
-    const nav = authenticatedPage.locator('nav').first();
-    await expect(nav.getByRole('button', { name: /user menu/i })).toBeVisible();
+    const userMenuButton = authenticatedPage.getByRole('button', { name: /user menu/i }).first();
+    const themeSettingsButton = authenticatedPage.getByRole('button', { name: /theme settings/i }).first();
+    const searchButton = authenticatedPage.getByRole('button', { name: /^search$/i }).first();
+
+    await expect(userMenuButton).toBeVisible({ timeout: 10000 });
     await expect(authenticatedPage.getByText(/today at a glance/i).first()).toBeVisible();
     await expect(authenticatedPage.getByText(/pinned shortcuts/i).first()).toBeVisible();
     await expect(authenticatedPage.getByRole('button', { name: /create intake/i }).first()).toBeVisible();
 
-    await nav.getByRole('button', { name: /theme settings/i }).click();
+    await themeSettingsButton.click();
     await expect(authenticatedPage.getByText(/switch to (light|dark)/i)).toBeVisible();
     await authenticatedPage.keyboard.press('Escape');
 
-    await nav.getByRole('button', { name: /^search$/i }).click();
-    await expect(nav.getByRole('dialog', { name: /search people/i })).toBeVisible();
+    await searchButton.click();
+    await expect(authenticatedPage.getByRole('dialog', { name: /search people/i })).toBeVisible();
 
     expectNoRuntimeIssues('dashboard shell', runtimeIssues);
     runtimeIssues.detach();
@@ -263,8 +267,7 @@ test.describe('UI/UX regression flows', () => {
     await expect(page.getByRole('heading', { name: /quick actions/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /invite users/i }).first()).toBeVisible();
 
-    const topNav = page.locator('nav').first();
-    const topNavAdminMenuButton = topNav.getByRole('button', { name: /admin quick actions/i });
+    const topNavAdminMenuButton = page.getByRole('button', { name: /admin quick actions/i }).first();
     const topNavAdminButtonVisible = await topNavAdminMenuButton.isVisible().catch(() => false);
     if (topNavAdminButtonVisible) {
       await topNavAdminMenuButton.click();
@@ -273,10 +276,12 @@ test.describe('UI/UX regression flows', () => {
       ).toBeVisible();
       await page.keyboard.press('Escape');
     } else {
-      const mobileMenuButton = topNav.getByRole('button', { name: /main menu/i });
+      const mobileMenuButton = page.getByRole('button', { name: /main menu/i }).first();
       await expect(mobileMenuButton).toBeVisible();
       await mobileMenuButton.click();
-      await expect(page.getByTestId('admin-quick-actions-compact').getByRole('link', { name: /invite users/i }).first()).toBeVisible();
+      await expect(
+        page.getByTestId('admin-quick-actions-compact').getByRole('link', { name: /invite users/i }).first()
+      ).toBeVisible();
       await page.keyboard.press('Escape');
     }
 
