@@ -1,34 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
-import api from '../../services/api';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useToast } from '../../contexts/useToast';
-
-interface PortalMessage {
-  id: string;
-  sender_type: 'portal' | 'staff' | 'system';
-  message_text: string;
-  created_at: string;
-  sender_display_name: string | null;
-  is_internal: boolean;
-}
-
-interface PortalThread {
-  id: string;
-  subject: string | null;
-  status: 'open' | 'closed' | 'archived';
-  case_number: string | null;
-  case_title: string | null;
-  last_message_at: string;
-  unread_count: number;
-  portal_email: string | null;
-}
-
-interface CaseConversation {
-  thread: PortalThread;
-  messages: PortalMessage[];
-}
+import { casesApiClient } from '../../features/cases/api/casesApiClient';
+import type { CasePortalConversation } from '../../types/case';
+import type { OutcomeDefinition } from '../../types/outcomes';
 
 interface CasePortalConversationsProps {
   caseId: string;
+  outcomeDefinitions: OutcomeDefinition[];
+  onChanged?: () => void;
 }
 
 const formatTimestamp = (value: string): string => {
@@ -36,27 +15,33 @@ const formatTimestamp = (value: string): string => {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 };
 
-export default function CasePortalConversations({ caseId }: CasePortalConversationsProps) {
+export default function CasePortalConversations({
+  caseId,
+  outcomeDefinitions,
+  onChanged,
+}: CasePortalConversationsProps) {
   const { showError, showSuccess } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [conversations, setConversations] = useState<CaseConversation[]>([]);
+  const [conversations, setConversations] = useState<CasePortalConversation[]>([]);
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [replyMessage, setReplyMessage] = useState('');
   const [replyInternal, setReplyInternal] = useState(false);
+  const [showResolveForm, setShowResolveForm] = useState(false);
+  const [resolutionNote, setResolutionNote] = useState('');
+  const [resolutionOutcomeIds, setResolutionOutcomeIds] = useState<string[]>([]);
+  const [resolutionVisibleToClient, setResolutionVisibleToClient] = useState(false);
+  const [closeStatus, setCloseStatus] = useState<'closed' | 'archived'>('closed');
 
   const selectedConversation = useMemo(
     () => conversations.find((entry) => entry.thread.id === selectedThreadId) || null,
     [conversations, selectedThreadId]
   );
 
-  const loadConversations = async () => {
+  const loadConversations = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get<{ conversations: CaseConversation[] }>(
-        `/cases/${caseId}/portal/conversations`
-      );
-      const nextConversations = response.data.conversations || [];
+      const nextConversations = await casesApiClient.getCasePortalConversations(caseId);
       setConversations(nextConversations);
 
       if (!selectedThreadId && nextConversations.length > 0) {
@@ -73,15 +58,22 @@ export default function CasePortalConversations({ caseId }: CasePortalConversati
     } finally {
       setLoading(false);
     }
-  };
+  }, [caseId, selectedThreadId, showError]);
 
   useEffect(() => {
     void loadConversations();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [caseId]);
+  }, [loadConversations]);
 
-  const handleReply = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const resetResolutionForm = () => {
+    setShowResolveForm(false);
+    setResolutionNote('');
+    setResolutionOutcomeIds([]);
+    setResolutionVisibleToClient(false);
+    setCloseStatus('closed');
+  };
+
+  const handleReply = async (event: React.FormEvent) => {
+    event.preventDefault();
 
     if (!selectedConversation || !replyMessage.trim()) {
       return;
@@ -89,7 +81,7 @@ export default function CasePortalConversations({ caseId }: CasePortalConversati
 
     setSaving(true);
     try {
-      await api.post(`/cases/${caseId}/portal/conversations/${selectedConversation.thread.id}/messages`, {
+      await casesApiClient.replyCasePortalConversation(caseId, selectedConversation.thread.id, {
         message: replyMessage.trim(),
         is_internal: replyInternal,
       });
@@ -97,9 +89,47 @@ export default function CasePortalConversations({ caseId }: CasePortalConversati
       setReplyInternal(false);
       showSuccess('Reply sent.');
       await loadConversations();
+      onChanged?.();
     } catch (error) {
       console.error('Failed to send portal conversation reply', error);
       showError('Could not send reply.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResolve = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!selectedConversation) {
+      return;
+    }
+
+    if (!resolutionNote.trim()) {
+      showError('Resolution note is required.');
+      return;
+    }
+
+    if (resolutionOutcomeIds.length === 0) {
+      showError('Select at least one outcome.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await casesApiClient.resolveCasePortalConversation(caseId, selectedConversation.thread.id, {
+        resolution_note: resolutionNote.trim(),
+        outcome_definition_ids: resolutionOutcomeIds,
+        close_status: closeStatus,
+        visible_to_client: resolutionVisibleToClient,
+      });
+      showSuccess('Conversation resolved.');
+      resetResolutionForm();
+      await loadConversations();
+      onChanged?.();
+    } catch (error) {
+      console.error('Failed to resolve portal conversation', error);
+      showError('Could not resolve conversation.');
     } finally {
       setSaving(false);
     }
@@ -164,11 +194,25 @@ export default function CasePortalConversations({ caseId }: CasePortalConversati
         ) : (
           <div className="flex h-full flex-col">
             <div className="border-b border-app-border px-4 py-3">
-              <div className="text-sm font-semibold text-app-text">
-                {selectedConversation.thread.subject || 'Conversation'}
-              </div>
-              <div className="text-xs text-app-text-muted">
-                {selectedConversation.thread.portal_email || 'Portal user'} • {selectedConversation.thread.status}
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-app-text">
+                    {selectedConversation.thread.subject || 'Conversation'}
+                  </div>
+                  <div className="text-xs text-app-text-muted">
+                    {selectedConversation.thread.portal_email || 'Portal user'} •{' '}
+                    {selectedConversation.thread.status}
+                  </div>
+                </div>
+                {selectedConversation.thread.status === 'open' && (
+                  <button
+                    type="button"
+                    onClick={() => setShowResolveForm((current) => !current)}
+                    className="rounded-md border border-app-input-border bg-app-surface px-3 py-2 text-xs text-app-text"
+                  >
+                    {showResolveForm ? 'Close Resolve' : 'Resolve Thread'}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -183,8 +227,9 @@ export default function CasePortalConversations({ caseId }: CasePortalConversati
                   }`}
                 >
                   <div className="text-[11px] opacity-80">
-                    {message.sender_display_name || (message.sender_type === 'staff' ? 'Staff' : 'Client')} •{' '}
-                    {formatTimestamp(message.created_at)}
+                    {message.sender_display_name ||
+                      (message.sender_type === 'staff' ? 'Staff' : 'Client')}{' '}
+                    • {formatTimestamp(message.created_at)}
                     {message.is_internal && ' • Internal'}
                   </div>
                   <div className="mt-1 whitespace-pre-wrap">{message.message_text}</div>
@@ -192,10 +237,86 @@ export default function CasePortalConversations({ caseId }: CasePortalConversati
               ))}
             </div>
 
+            {showResolveForm && selectedConversation.thread.status === 'open' && (
+              <form onSubmit={handleResolve} className="border-t border-app-border p-4 space-y-3">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="text-sm text-app-text-muted">
+                    Close as
+                    <select
+                      value={closeStatus}
+                      onChange={(event) =>
+                        setCloseStatus(event.target.value as 'closed' | 'archived')
+                      }
+                      className="mt-1 w-full rounded-md border border-app-input-border px-3 py-2"
+                    >
+                      <option value="closed">Closed</option>
+                      <option value="archived">Archived</option>
+                    </select>
+                  </label>
+                  <label className="inline-flex items-center gap-2 self-end text-sm text-app-text-muted">
+                    <input
+                      type="checkbox"
+                      checked={resolutionVisibleToClient}
+                      onChange={(event) => setResolutionVisibleToClient(event.target.checked)}
+                    />
+                    Visible to client
+                  </label>
+                </div>
+                <textarea
+                  value={resolutionNote}
+                  onChange={(event) => setResolutionNote(event.target.value)}
+                  rows={3}
+                  placeholder="Summarize how this conversation was resolved."
+                  className="w-full rounded-md border border-app-input-border px-3 py-2"
+                />
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {outcomeDefinitions.map((definition) => {
+                    const checked = resolutionOutcomeIds.includes(definition.id);
+                    return (
+                      <label
+                        key={definition.id}
+                        className="flex items-start gap-2 rounded border border-app-border bg-app-surface-muted px-3 py-2 text-sm text-app-text"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(event) => {
+                            setResolutionOutcomeIds((current) =>
+                              event.target.checked
+                                ? [...current, definition.id]
+                                : current.filter((id) => id !== definition.id)
+                            );
+                          }}
+                          className="mt-0.5"
+                        />
+                        <span>{definition.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={resetResolutionForm}
+                    className="rounded-md border border-app-input-border bg-app-surface px-4 py-2 text-sm text-app-text"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="rounded-md bg-app-accent px-4 py-2 text-sm text-white disabled:opacity-50"
+                  >
+                    {saving ? 'Saving...' : 'Resolve'}
+                  </button>
+                </div>
+              </form>
+            )}
+
             <form onSubmit={handleReply} className="border-t border-app-border p-4 space-y-3">
               <textarea
                 value={replyMessage}
-                onChange={(e) => setReplyMessage(e.target.value)}
+                onChange={(event) => setReplyMessage(event.target.value)}
                 rows={3}
                 placeholder="Reply to this conversation"
                 className="w-full rounded-md border border-app-input-border px-3 py-2"
@@ -205,7 +326,7 @@ export default function CasePortalConversations({ caseId }: CasePortalConversati
                 <input
                   type="checkbox"
                   checked={replyInternal}
-                  onChange={(e) => setReplyInternal(e.target.checked)}
+                  onChange={(event) => setReplyInternal(event.target.checked)}
                   className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
                 />
                 Internal note (not visible to client)
@@ -213,7 +334,11 @@ export default function CasePortalConversations({ caseId }: CasePortalConversati
               <div className="flex justify-end">
                 <button
                   type="submit"
-                  disabled={saving || selectedConversation.thread.status !== 'open' || !replyMessage.trim()}
+                  disabled={
+                    saving ||
+                    selectedConversation.thread.status !== 'open' ||
+                    !replyMessage.trim()
+                  }
                   className="rounded-md bg-app-accent px-4 py-2 text-white disabled:opacity-50"
                 >
                   {saving ? 'Sending...' : 'Send Reply'}

@@ -125,8 +125,10 @@ export const organizationIdStorage = createStorage({
 });
 
 const dashboardSettingsSchema = z.object({
+  showWorkspaceSummary: z.boolean(),
   showQuickLookup: z.boolean(),
   showQuickActions: z.boolean(),
+  showPinnedWorkstreams: z.boolean(),
   showModules: z.boolean(),
   showEngagementChart: z.boolean(),
   showVolunteerWidget: z.boolean(),
@@ -140,8 +142,10 @@ export const dashboardSettingsStorage = createStorage<DashboardSettings>({
   version: 1,
   schema: dashboardSettingsSchema,
   defaultValue: {
+    showWorkspaceSummary: true,
     showQuickLookup: true,
     showQuickActions: true,
+    showPinnedWorkstreams: true,
     showModules: true,
     showEngagementChart: true,
     showVolunteerWidget: true,

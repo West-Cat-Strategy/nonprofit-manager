@@ -162,6 +162,108 @@ export class ReportService {
           end_date: { label: 'End Date', type: 'date', column: 'e.end_date' },
           created_at: { label: 'Created Date', type: 'date', column: 'e.created_at' },
         };
+      case 'appointments':
+        return {
+          id: { label: 'Appointment ID', type: 'string', column: 'a.id' },
+          title: { label: 'Title', type: 'string', column: 'a.title' },
+          request_type: { label: 'Request Type', type: 'string', column: 'a.request_type' },
+          status: { label: 'Status', type: 'string', column: 'a.status' },
+          attendance_state: {
+            label: 'Attendance State',
+            type: 'string',
+            column: `
+              CASE
+                WHEN a.checked_in_at IS NOT NULL THEN 'checked_in'
+                WHEN a.status = 'completed' THEN 'completed'
+                WHEN a.status = 'cancelled' THEN 'cancelled'
+                ELSE 'pending'
+              END
+            `.trim().replace(/\s+/g, ' '),
+          },
+          case_number: { label: 'Case Number', type: 'string', column: 'c.case_number' },
+          case_title: { label: 'Case Title', type: 'string', column: 'c.title' },
+          contact_name: {
+            label: 'Contact',
+            type: 'string',
+            column: "TRIM(CONCAT(COALESCE(con.first_name, ''), ' ', COALESCE(con.last_name, '')))",
+          },
+          pointperson_name: {
+            label: 'Point Person',
+            type: 'string',
+            column: "TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')))",
+          },
+          location: { label: 'Location', type: 'string', column: 'a.location' },
+          start_time: { label: 'Start Time', type: 'date', column: 'a.start_time' },
+          end_time: { label: 'End Time', type: 'date', column: 'a.end_time' },
+          reminder_offered: {
+            label: 'Reminder Offered',
+            type: 'boolean',
+            column: 'EXISTS (SELECT 1 FROM appointment_reminder_jobs arj WHERE arj.appointment_id = a.id)',
+          },
+          created_at: { label: 'Created Date', type: 'date', column: 'a.created_at' },
+          updated_at: { label: 'Updated Date', type: 'date', column: 'a.updated_at' },
+        };
+      case 'follow_ups':
+        return {
+          id: { label: 'Follow-up ID', type: 'string', column: 'fu.id' },
+          entity_type: { label: 'Entity Type', type: 'string', column: 'fu.entity_type' },
+          title: { label: 'Title', type: 'string', column: 'fu.title' },
+          status: { label: 'Status', type: 'string', column: 'fu.status' },
+          method: { label: 'Method', type: 'string', column: 'fu.method' },
+          frequency: { label: 'Frequency', type: 'string', column: 'fu.frequency' },
+          case_number: { label: 'Case Number', type: 'string', column: 'c.case_number' },
+          contact_name: {
+            label: 'Contact',
+            type: 'string',
+            column: `
+              COALESCE(
+                NULLIF(TRIM(CONCAT(COALESCE(direct_con.first_name, ''), ' ', COALESCE(direct_con.last_name, ''))), ''),
+                NULLIF(TRIM(CONCAT(COALESCE(case_con.first_name, ''), ' ', COALESCE(case_con.last_name, ''))), '')
+              )
+            `.trim().replace(/\s+/g, ' '),
+          },
+          assigned_to_name: {
+            label: 'Assigned To',
+            type: 'string',
+            column:
+              "TRIM(CONCAT(COALESCE(assignee.first_name, ''), ' ', COALESCE(assignee.last_name, '')))",
+          },
+          scheduled_date: { label: 'Scheduled Date', type: 'date', column: 'fu.scheduled_date' },
+          completed_date: { label: 'Completed Date', type: 'date', column: 'fu.completed_date' },
+          reminder_minutes_before: {
+            label: 'Reminder Minutes',
+            type: 'number',
+            column: 'fu.reminder_minutes_before',
+          },
+          has_reminder: {
+            label: 'Reminder Offered',
+            type: 'boolean',
+            column: 'CASE WHEN fu.reminder_minutes_before IS NOT NULL THEN true ELSE false END',
+          },
+          created_at: { label: 'Created Date', type: 'date', column: 'fu.created_at' },
+        };
+      case 'attendance':
+        return {
+          registration_id: { label: 'Attendance ID', type: 'string', column: 'er.id' },
+          event_id: { label: 'Event ID', type: 'string', column: 'er.event_id' },
+          event_name: { label: 'Event Name', type: 'string', column: 'e.name' },
+          case_id: { label: 'Case ID', type: 'string', column: 'er.case_id' },
+          case_number: { label: 'Case Number', type: 'string', column: 'c.case_number' },
+          contact_name: {
+            label: 'Contact',
+            type: 'string',
+            column: "TRIM(CONCAT(COALESCE(con.first_name, ''), ' ', COALESCE(con.last_name, '')))",
+          },
+          registration_status: {
+            label: 'Registration Status',
+            type: 'string',
+            column: 'er.registration_status',
+          },
+          checked_in: { label: 'Checked In', type: 'boolean', column: 'er.checked_in' },
+          check_in_time: { label: 'Check-in Time', type: 'date', column: 'er.check_in_time' },
+          check_in_method: { label: 'Check-in Method', type: 'string', column: 'er.check_in_method' },
+          created_at: { label: 'Created Date', type: 'date', column: 'er.created_at' },
+        };
       case 'volunteers':
         return {
           id: { label: 'Volunteer ID', type: 'string', column: 'v.id' },
@@ -411,6 +513,36 @@ export class ReportService {
       };
     }
 
+    if (entity === 'appointments') {
+      if (!scope?.organizationId) {
+        throw new Error('Organization scope is required for appointments reports');
+      }
+      return {
+        condition: 'COALESCE(c.account_id, con.account_id) = $1',
+        values: [scope.organizationId],
+      };
+    }
+
+    if (entity === 'follow_ups') {
+      if (!scope?.organizationId) {
+        throw new Error('Organization scope is required for follow-up reports');
+      }
+      return {
+        condition: 'fu.organization_id = $1',
+        values: [scope.organizationId],
+      };
+    }
+
+    if (entity === 'attendance') {
+      if (!scope?.organizationId) {
+        throw new Error('Organization scope is required for attendance reports');
+      }
+      return {
+        condition: 'COALESCE(c.account_id, con.account_id) = $1',
+        values: [scope.organizationId],
+      };
+    }
+
     return { condition: null, values: [] };
   }
 
@@ -457,6 +589,12 @@ export class ReportService {
       contacts: 'contacts c LEFT JOIN accounts a ON c.account_id = a.id',
       donations: 'donations d LEFT JOIN contacts dc ON d.contact_id = dc.id LEFT JOIN accounts da ON d.account_id = da.id',
       events: 'events e',
+      appointments:
+        'appointments a LEFT JOIN cases c ON c.id = a.case_id LEFT JOIN contacts con ON con.id = a.contact_id LEFT JOIN users u ON u.id = a.pointperson_user_id',
+      follow_ups:
+        "follow_ups fu LEFT JOIN cases c ON fu.entity_type = 'case' AND fu.entity_id = c.id LEFT JOIN contacts case_con ON case_con.id = c.contact_id LEFT JOIN contacts direct_con ON fu.entity_type = 'contact' AND fu.entity_id = direct_con.id LEFT JOIN users assignee ON assignee.id = fu.assigned_to",
+      attendance:
+        'event_registrations er INNER JOIN events e ON e.id = er.event_id LEFT JOIN cases c ON c.id = er.case_id LEFT JOIN contacts con ON con.id = er.contact_id',
       volunteers: 'volunteers v INNER JOIN contacts c ON v.contact_id = c.id',
       tasks: 'tasks t',
       opportunities:

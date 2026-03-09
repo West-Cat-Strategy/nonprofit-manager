@@ -158,17 +158,15 @@ describe('Volunteer API Integration Tests', () => {
     });
 
     it('should require contact_id field', async () => {
-      // The API validates that contact_id is required
       const response = await request(app)
         .post('/api/v2/volunteers')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          contact_id: testContactId,
           skills: ['Teaching'],
         })
-        .expect(201);
+        .expect(400);
 
-      expect(response.body).toHaveProperty('id');
+      expect(JSON.stringify(response.body)).toContain('contact_id');
     });
 
     it('should create volunteer with background check info', async () => {

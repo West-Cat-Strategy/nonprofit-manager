@@ -113,8 +113,8 @@ export const completeFollowUp = createAsyncThunk(
 // Cancel a follow-up
 export const cancelFollowUp = createAsyncThunk(
   'followUps/cancelFollowUp',
-  async (followUpId: string) => {
-    return followUpsApiClient.cancelFollowUp(followUpId);
+  async ({ followUpId, data }: { followUpId: string; data?: CompleteFollowUpDTO }) => {
+    return followUpsApiClient.cancelFollowUp(followUpId, data);
   }
 );
 

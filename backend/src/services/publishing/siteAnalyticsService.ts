@@ -4,6 +4,7 @@
  */
 
 import { Pool } from 'pg';
+import { logger } from '@config/logger';
 import type {
   SiteAnalyticsSummary,
   SiteAnalyticsRecord,
@@ -12,7 +13,7 @@ import type {
   WebsiteConversionMetrics,
 } from '@app-types/publishing';
 import { SiteManagementService } from './siteManagementService';
-import { conversionEventService, ConversionEventService } from './conversionEventService';
+import { ConversionEventService } from './conversionEventService';
 
 export class SiteAnalyticsService {
   private siteManagement: SiteManagementService;
@@ -43,7 +44,7 @@ export class SiteAnalyticsService {
       eventData?: Record<string, unknown>;
     }
   ): Promise<SiteAnalyticsRecord> {
-    const result = await this.pool.query(
+    const result = await this.pool.query<{ id: string } & Record<string, unknown>>(
       `INSERT INTO site_analytics (
         site_id, page_path, visitor_id, session_id, user_agent, referrer,
         country, city, device_type, browser, os, event_type, event_data
@@ -66,7 +67,20 @@ export class SiteAnalyticsService {
       ]
     );
 
-    await this.conversionEvents.recordAnalyticsEvent(siteId, eventType, data);
+    try {
+      await this.conversionEvents.recordAnalyticsEvent(
+        siteId,
+        eventType,
+        data,
+        result.rows[0]?.id
+      );
+    } catch (error) {
+      logger.warn('Failed to record conversion event alongside site analytics', {
+        error,
+        siteId,
+        eventType,
+      });
+    }
 
     return this.siteManagement.mapRowToAnalytics(result.rows[0]);
   }

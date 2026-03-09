@@ -36,8 +36,10 @@ vi.mock('../../features/cases/state', () => ({
 vi.mock('../../hooks/useDashboardSettings', () => ({
   useDashboardSettings: () => ({
     settings: {
+      showWorkspaceSummary: true,
       showQuickLookup: true,
       showQuickActions: true,
+      showPinnedWorkstreams: true,
       showModules: true,
       showEngagementChart: true,
       showVolunteerWidget: true,

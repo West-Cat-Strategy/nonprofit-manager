@@ -47,6 +47,8 @@ export type {
   WebsiteSiteSummary,
   WebsiteConversionMetrics,
   WebsiteConversionFunnel,
+  WebsiteConversionFunnelStep,
+  WebsiteConversionEventRecord,
   CustomDomainConfig,
   DomainVerificationResult,
   DnsRecord,

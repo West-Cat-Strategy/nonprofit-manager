@@ -8,6 +8,7 @@ import type {
   UpdateCaseDTO,
   UpdateCaseStatusDTO,
 } from '@app-types/case';
+import { createCaseWorkflowArtifacts } from '@services/caseWorkflowService';
 import { generateCaseNumber, normalizeCasePriority } from './shared';
 
 export const createCaseQuery = async (
@@ -168,25 +169,97 @@ export const updateCaseStatusQuery = async (
   data: UpdateCaseStatusDTO,
   userId?: string
 ): Promise<Case> => {
-  const currentCase = await db.query(`SELECT status_id FROM cases WHERE id = $1`, [caseId]);
-  const previousStatusId = currentCase.rows[0]?.status_id;
+  const noteText = data.notes?.trim() || '';
+  if (!noteText) {
+    throw Object.assign(new Error('Status change notes are required'), {
+      statusCode: 400,
+      code: 'validation_error',
+    });
+  }
 
-  const result = await db.query(
-    `UPDATE cases SET status_id = $1, modified_by = $2, updated_at = NOW() WHERE id = $3 RETURNING *`,
-    [data.new_status_id, userId, caseId]
-  );
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
 
-  await db.query(
-    `
-    INSERT INTO case_notes (
-      case_id, note_type, content, previous_status_id, new_status_id, created_by
-    ) VALUES ($1, 'status_change', $2, $3, $4, $5)
-  `,
-    [caseId, data.notes || 'Status updated', previousStatusId, data.new_status_id, userId]
-  );
+    const currentCase = await client.query(`SELECT status_id FROM cases WHERE id = $1 FOR UPDATE`, [caseId]);
+    const previousStatusId = currentCase.rows[0]?.status_id as string | undefined;
+    if (!previousStatusId) {
+      throw Object.assign(new Error('Case not found'), {
+        statusCode: 404,
+        code: 'not_found',
+      });
+    }
 
-  logger.info(`Case status updated`, { caseId, newStatus: data.new_status_id });
-  return result.rows[0];
+    const nextStatusResult = await client.query<{
+      id: string;
+      name: string;
+      status_type: 'intake' | 'active' | 'review' | 'closed' | 'cancelled';
+    }>(
+      `
+      SELECT id, name, status_type
+      FROM case_statuses
+      WHERE id = $1
+      LIMIT 1
+    `,
+      [data.new_status_id]
+    );
+
+    const nextStatus = nextStatusResult.rows[0];
+    if (!nextStatus) {
+      throw Object.assign(new Error('Case status not found'), {
+        statusCode: 404,
+        code: 'not_found',
+      });
+    }
+
+    const requiresOutcome = ['review', 'closed', 'cancelled'].includes(nextStatus.status_type);
+    const outcomeDefinitionIds = data.outcome_definition_ids || [];
+    if (requiresOutcome && outcomeDefinitionIds.length === 0) {
+      throw Object.assign(new Error('Outcome definitions are required for this status transition'), {
+        statusCode: 400,
+        code: 'validation_error',
+      });
+    }
+
+    const result = await client.query(
+      `UPDATE cases SET status_id = $1, modified_by = $2, updated_at = NOW() WHERE id = $3 RETURNING *`,
+      [data.new_status_id, userId, caseId]
+    );
+
+    await createCaseWorkflowArtifacts(client, {
+      caseId,
+      userId: userId || null,
+      note: {
+        noteType: 'status_change',
+        subject: `Status updated to ${nextStatus.name}`,
+        content: noteText,
+        previousStatusId,
+        newStatusId: data.new_status_id,
+        sourceEntityType: 'case_status',
+        sourceEntityId: data.new_status_id,
+      },
+      outcomes: requiresOutcome
+        ? {
+            outcomeDefinitionIds,
+            notes: noteText,
+            visibleToClient: Boolean(data.outcome_visibility),
+            workflowStage: 'case_status',
+            sourceEntityType: 'case_status',
+            sourceEntityId: data.new_status_id,
+          }
+        : undefined,
+    });
+
+    await client.query('COMMIT');
+
+    logger.info(`Case status updated`, { caseId, newStatus: data.new_status_id });
+    return result.rows[0];
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
 export const reassignCaseQuery = async (
@@ -242,6 +315,37 @@ export const bulkUpdateStatusQuery = async (
   const caseIds = data.case_ids;
   if (caseIds.length === 0) return { updated: 0 };
 
+  const noteText = data.notes?.trim() || '';
+  if (!noteText) {
+    throw Object.assign(new Error('Bulk status updates require notes'), {
+      statusCode: 400,
+      code: 'validation_error',
+    });
+  }
+
+  const nextStatusResult = await db.query<{ status_type: string }>(
+    `
+    SELECT status_type
+    FROM case_statuses
+    WHERE id = $1
+    LIMIT 1
+  `,
+    [data.new_status_id]
+  );
+
+  const nextStatusType = nextStatusResult.rows[0]?.status_type;
+  if (['review', 'closed', 'cancelled'].includes(nextStatusType || '')) {
+    throw Object.assign(
+      new Error(
+        'Bulk status updates are not allowed for review, closed, or cancelled states because outcomes are required per case'
+      ),
+      {
+        statusCode: 400,
+        code: 'validation_error',
+      }
+    );
+  }
+
   await db.query(
     `
     INSERT INTO case_notes (case_id, note_type, content, previous_status_id, new_status_id, created_by)
@@ -255,7 +359,7 @@ export const bulkUpdateStatusQuery = async (
     FROM cases c
     WHERE c.id = ANY($4::uuid[])
   `,
-    [data.notes || 'Bulk status update', data.new_status_id, userId, caseIds]
+    [noteText, data.new_status_id, userId, caseIds]
   );
 
   const updateResult = await db.query(

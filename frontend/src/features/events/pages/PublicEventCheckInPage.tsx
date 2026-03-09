@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { eventsApiClient } from '../api/eventsApiClient';
 import type { PublicEventCheckInInfo, PublicEventCheckInResult } from '../../../types/event';
+import { PrimaryButton, PublicPageShell, SectionCard } from '../../../components/ui';
 import { parseApiError } from '../../../utils/apiError';
 
 interface CheckInFormState {
@@ -103,64 +104,82 @@ export default function PublicEventCheckInPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-app-bg p-6 text-app-text">
-        <div className="mx-auto max-w-xl rounded-lg border border-app-border bg-app-surface p-6">
-          Loading event check-in...
-        </div>
-      </main>
+      <PublicPageShell
+        badge="Event check-in"
+        title="Check in to your event"
+        description="Confirm your attendance with the event details and staff-issued PIN."
+      >
+        <SectionCard>
+          <div className="text-sm text-app-text-muted">Loading event check-in...</div>
+        </SectionCard>
+      </PublicPageShell>
     );
   }
 
   return (
-    <main className="min-h-screen bg-app-bg p-6 text-app-text">
-      <div className="mx-auto max-w-xl space-y-4">
-        <section className="rounded-lg border border-app-border bg-app-surface p-6">
-          <h1 className="text-2xl font-semibold text-app-text">Event Check-In</h1>
+    <PublicPageShell
+      badge="Event check-in"
+      title={eventInfo?.event_name || 'Check in to your event'}
+      description="Confirm your attendance with attendee details and the current staff-issued PIN."
+    >
+      <div className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <SectionCard title="Event details" subtitle="Review the event timing before you sign in.">
           {eventInfo ? (
-            <div className="mt-2 space-y-1 text-sm text-app-text-muted">
-              <p className="text-base font-medium text-app-text">{eventInfo.event_name}</p>
-              <p>{formatDateRange(eventInfo.start_date, eventInfo.end_date)}</p>
-              {eventInfo.location_name && <p>{eventInfo.location_name}</p>}
-              <p>
-                Check-in window: {eventInfo.checkin_window_before_minutes} min before start to{' '}
-                {eventInfo.checkin_window_after_minutes} min after end
-              </p>
+            <div className="space-y-3 text-sm text-app-text-muted">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+                  Date and time
+                </p>
+                <p className="mt-1 text-sm text-app-text">{formatDateRange(eventInfo.start_date, eventInfo.end_date)}</p>
+              </div>
+              {eventInfo.location_name ? (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+                    Location
+                  </p>
+                  <p className="mt-1 text-sm text-app-text">{eventInfo.location_name}</p>
+                </div>
+              ) : null}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+                  Check-in window
+                </p>
+                <p className="mt-1 text-sm text-app-text">
+                  Opens {eventInfo.checkin_window_before_minutes} minutes before start and closes{' '}
+                  {eventInfo.checkin_window_after_minutes} minutes after end.
+                </p>
+              </div>
             </div>
           ) : (
-            <p className="mt-2 text-sm text-app-text-muted">Event details unavailable.</p>
+            <p className="text-sm text-app-text-muted">Event details are unavailable for this link.</p>
           )}
-        </section>
+        </SectionCard>
 
-        <section className="rounded-lg border border-app-border bg-app-surface p-6">
-          <h2 className="text-lg font-medium text-app-text">Sign In</h2>
-          <p className="mt-1 text-sm text-app-text-muted">
-            Enter attendee details and staff-issued PIN.
-          </p>
-
-          {checkInDisabledReason && (
-            <div className="mt-3 rounded-md border border-app-border bg-app-surface-muted p-3 text-sm text-app-text-muted">
+        <SectionCard title="Attendee sign-in" subtitle="Enter attendee details and the staff PIN to check in.">
+          {checkInDisabledReason ? (
+            <div className="mb-4 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-muted p-3 text-sm text-app-text-muted">
               {checkInDisabledReason}
             </div>
-          )}
+          ) : null}
 
-          {error && (
-            <div className="mt-3 rounded-md bg-app-accent-soft p-3 text-sm text-app-accent-text">
+          {error ? (
+            <div className="mb-4 rounded-[var(--ui-radius-sm)] border border-app-accent bg-app-accent-soft p-3 text-sm text-app-accent-text">
               {error}
             </div>
-          )}
+          ) : null}
 
-          {result && (
-            <div className="mt-3 rounded-md bg-app-accent-soft p-3 text-sm text-app-accent-text">
+          {result ? (
+            <div className="mb-4 rounded-[var(--ui-radius-sm)] border border-app-accent bg-app-accent-soft p-3 text-sm text-app-accent-text">
               {result.status === 'already_checked_in'
                 ? 'This attendee is already checked in.'
                 : 'Check-in complete. Welcome!'}
             </div>
-          )}
+          ) : null}
 
-          <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
-            <div className="grid gap-3 sm:grid-cols-2">
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <div className="grid gap-4 sm:grid-cols-2">
               <label className="text-sm">
-                <span className="mb-1 block text-app-text-muted">First name</span>
+                <span className="mb-1 block font-medium text-app-text-label">First name</span>
                 <input
                   type="text"
                   required
@@ -168,11 +187,11 @@ export default function PublicEventCheckInPage() {
                   onChange={(event) =>
                     setFormState((current) => ({ ...current, first_name: event.target.value }))
                   }
-                  className="w-full rounded-md border border-app-input-border bg-app-surface px-3 py-2"
+                  className="w-full rounded-[var(--ui-radius-sm)] border border-app-input-border bg-app-surface px-3 py-2"
                 />
               </label>
               <label className="text-sm">
-                <span className="mb-1 block text-app-text-muted">Last name</span>
+                <span className="mb-1 block font-medium text-app-text-label">Last name</span>
                 <input
                   type="text"
                   required
@@ -180,38 +199,38 @@ export default function PublicEventCheckInPage() {
                   onChange={(event) =>
                     setFormState((current) => ({ ...current, last_name: event.target.value }))
                   }
-                  className="w-full rounded-md border border-app-input-border bg-app-surface px-3 py-2"
+                  className="w-full rounded-[var(--ui-radius-sm)] border border-app-input-border bg-app-surface px-3 py-2"
                 />
               </label>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <label className="text-sm">
-                <span className="mb-1 block text-app-text-muted">Email (or phone)</span>
+                <span className="mb-1 block font-medium text-app-text-label">Email</span>
                 <input
                   type="email"
                   value={formState.email}
                   onChange={(event) =>
                     setFormState((current) => ({ ...current, email: event.target.value }))
                   }
-                  className="w-full rounded-md border border-app-input-border bg-app-surface px-3 py-2"
+                  className="w-full rounded-[var(--ui-radius-sm)] border border-app-input-border bg-app-surface px-3 py-2"
                 />
               </label>
               <label className="text-sm">
-                <span className="mb-1 block text-app-text-muted">Phone (or email)</span>
+                <span className="mb-1 block font-medium text-app-text-label">Phone</span>
                 <input
                   type="tel"
                   value={formState.phone}
                   onChange={(event) =>
                     setFormState((current) => ({ ...current, phone: event.target.value }))
                   }
-                  className="w-full rounded-md border border-app-input-border bg-app-surface px-3 py-2"
+                  className="w-full rounded-[var(--ui-radius-sm)] border border-app-input-border bg-app-surface px-3 py-2"
                 />
               </label>
             </div>
 
             <label className="text-sm">
-              <span className="mb-1 block text-app-text-muted">Staff PIN</span>
+              <span className="mb-1 block font-medium text-app-text-label">Staff PIN</span>
               <input
                 type="password"
                 required
@@ -221,20 +240,20 @@ export default function PublicEventCheckInPage() {
                 onChange={(event) =>
                   setFormState((current) => ({ ...current, pin: event.target.value }))
                 }
-                className="w-full rounded-md border border-app-input-border bg-app-surface px-3 py-2"
+                className="w-full rounded-[var(--ui-radius-sm)] border border-app-input-border bg-app-surface px-3 py-2"
               />
             </label>
 
-            <button
+            <PrimaryButton
               type="submit"
               disabled={submitting || Boolean(checkInDisabledReason)}
-              className="w-full rounded-md bg-app-accent px-4 py-2 text-white disabled:opacity-60"
+              className="w-full justify-center"
             >
-              {submitting ? 'Checking in...' : 'Check In'}
-            </button>
+              {submitting ? 'Checking in...' : 'Complete check-in'}
+            </PrimaryButton>
           </form>
-        </section>
+        </SectionCard>
       </div>
-    </main>
+    </PublicPageShell>
   );
 }

@@ -5,7 +5,9 @@ import type {
   BulkStatusUpdateDTO,
   CasePriority,
   CaseDocument,
+  CaseAppointment,
   CaseOutcomeEvent,
+  CasePortalConversation,
   CaseTimelinePage,
   CaseTopicDefinition,
   CaseTopicEvent,
@@ -109,6 +111,85 @@ export class CasesApiClient implements CasesApiClientPort {
       },
     });
     return unwrapApiData(response.data);
+  }
+
+  async getCasePortalConversations(caseId: string): Promise<CasePortalConversation[]> {
+    const response = await api.get<{ conversations: CasePortalConversation[] }>(
+      `/v2/cases/${caseId}/portal/conversations`
+    );
+    return response.data.conversations || [];
+  }
+
+  async replyCasePortalConversation(
+    caseId: string,
+    threadId: string,
+    payload: { message: string; is_internal?: boolean }
+  ): Promise<void> {
+    await api.post(`/v2/cases/${caseId}/portal/conversations/${threadId}/messages`, payload);
+  }
+
+  async resolveCasePortalConversation(
+    caseId: string,
+    threadId: string,
+    payload: {
+      resolution_note: string;
+      outcome_definition_ids: string[];
+      close_status: 'closed' | 'archived';
+      visible_to_client?: boolean;
+    }
+  ): Promise<void> {
+    await api.post(`/v2/cases/${caseId}/portal/conversations/${threadId}/resolve`, payload);
+  }
+
+  async listCaseAppointments(caseId: string): Promise<CaseAppointment[]> {
+    const response = await api.get<{
+      data: CaseAppointment[];
+      pagination: { page: number; limit: number; total: number; total_pages: number };
+    }>('/v2/portal/admin/appointments', {
+      params: {
+        case_id: caseId,
+        limit: 100,
+      },
+    });
+    return response.data.data || [];
+  }
+
+  async updateCaseAppointmentStatus(
+    appointmentId: string,
+    payload: {
+      status: 'requested' | 'confirmed' | 'cancelled' | 'completed';
+      resolution_note?: string;
+      outcome_definition_ids?: string[];
+      outcome_visibility?: boolean;
+    }
+  ): Promise<CaseAppointment> {
+    const response = await api.patch<{ appointment: CaseAppointment }>(
+      `/v2/portal/admin/appointments/${appointmentId}/status`,
+      payload
+    );
+    return response.data.appointment;
+  }
+
+  async checkInCaseAppointment(
+    appointmentId: string,
+    payload?: {
+      resolution_note?: string;
+      outcome_definition_ids?: string[];
+      outcome_visibility?: boolean;
+    }
+  ): Promise<CaseAppointment> {
+    const response = await api.post<{ appointment: CaseAppointment }>(
+      `/v2/portal/admin/appointments/${appointmentId}/check-in`,
+      payload || {}
+    );
+    return response.data.appointment;
+  }
+
+  async sendCaseAppointmentReminder(
+    appointmentId: string,
+    options: { sendEmail?: boolean; sendSms?: boolean; customMessage?: string }
+  ): Promise<void> {
+    await api.post(`/v2/portal/admin/appointments/${appointmentId}/reminders/send`, options);
   }
 
   async createCase(payload: CreateCaseDTO): Promise<CaseWithDetails> {

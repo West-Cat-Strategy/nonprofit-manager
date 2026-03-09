@@ -18,9 +18,9 @@ test.describe('Publishing Workflows', () => {
     });
     expect(createSite.status()).toBe(400);
 
-    await authenticatedPage.goto('/builder/templates');
-    await expect(authenticatedPage.getByRole('navigation')).toBeVisible();
-    await expect(authenticatedPage).toHaveURL(/\/builder\/templates|\/dashboard/);
+    await authenticatedPage.goto('/website-builder');
+    await expect(authenticatedPage).toHaveURL(/\/website-builder$/);
+    await expect(authenticatedPage.getByRole('heading', { name: 'Website Builder' })).toBeVisible();
   });
 
   test('website console routes load and builder launch returns to the site overview', async ({

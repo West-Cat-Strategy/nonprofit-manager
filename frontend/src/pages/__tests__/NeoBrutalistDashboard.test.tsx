@@ -1,4 +1,3 @@
-import type { ChangeEventHandler, KeyboardEventHandler, ReactNode } from 'react';
 import type * as ReactRouterDom from 'react-router-dom';
 import { screen } from '@testing-library/react';
 import { vi } from 'vitest';
@@ -17,50 +16,100 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('../../services/api');
-
-vi.mock('../../components/neo-brutalist/NeoBrutalistLayout', () => ({
-  default: ({
-    pageTitle,
-    children,
-  }: {
-    pageTitle: string;
-    children: ReactNode;
-  }) => (
-    <main>
-      <h1>{pageTitle}</h1>
-      {children}
-    </main>
-  ),
+vi.mock('../../hooks/useDashboardSettings', () => ({
+  useDashboardSettings: () => ({
+    settings: {
+      showWorkspaceSummary: true,
+      showQuickLookup: true,
+      showQuickActions: true,
+      showPinnedWorkstreams: true,
+      showModules: true,
+      showEngagementChart: true,
+      showVolunteerWidget: true,
+      kpis: {
+        totalDonations: true,
+        avgDonation: true,
+        activeAccounts: true,
+        activeContacts: true,
+        activeCases: true,
+        volunteers: true,
+        volunteerHours: true,
+        events: true,
+        engagement: true,
+      },
+    },
+    setSettings: vi.fn(),
+    resetSettings: vi.fn(),
+    isLoading: false,
+  }),
 }));
-
-vi.mock('../../components/neo-brutalist/BrutalInput', () => ({
-  default: ({
-    value,
-    onChange,
-    placeholder,
-    type,
-    className,
-    'aria-label': ariaLabel,
-    onKeyDown,
-  }: {
-    value: string;
-    onChange: ChangeEventHandler<HTMLInputElement>;
-    placeholder?: string;
-    type?: string;
-    className?: string;
-    'aria-label'?: string;
-    onKeyDown?: KeyboardEventHandler<HTMLInputElement>;
-  }) => (
-    <input
-      aria-label={ariaLabel}
-      className={className}
-      onChange={onChange}
-      onKeyDown={onKeyDown}
-      placeholder={placeholder}
-      type={type}
-      value={value}
-    />
-  ),
+vi.mock('../../hooks/useNavigationPreferences', () => ({
+  useNavigationPreferences: () => ({
+    pinnedItems: [
+      {
+        id: 'cases',
+        name: 'Cases',
+        path: '/cases',
+        icon: '📋',
+        enabled: true,
+        pinned: true,
+        isCore: false,
+        shortLabel: 'Cases',
+        ariaLabel: 'Cases',
+      },
+    ],
+    enabledItems: [
+      {
+        id: 'dashboard',
+        name: 'Dashboard',
+        path: '/dashboard',
+        icon: '📊',
+        enabled: true,
+        pinned: false,
+        isCore: true,
+        shortLabel: 'Home',
+        ariaLabel: 'Dashboard',
+      },
+      {
+        id: 'cases',
+        name: 'Cases',
+        path: '/cases',
+        icon: '📋',
+        enabled: true,
+        pinned: true,
+        isCore: false,
+        shortLabel: 'Cases',
+        ariaLabel: 'Cases',
+      },
+      {
+        id: 'contacts',
+        name: 'People',
+        path: '/contacts',
+        icon: '👤',
+        enabled: true,
+        pinned: false,
+        isCore: false,
+        shortLabel: 'People',
+        ariaLabel: 'People',
+      },
+      {
+        id: 'events',
+        name: 'Events',
+        path: '/events',
+        icon: '📅',
+        enabled: true,
+        pinned: false,
+        isCore: false,
+        shortLabel: 'Events',
+        ariaLabel: 'Events',
+      },
+    ],
+  }),
+}));
+vi.mock('../../components/dashboard', () => ({
+  DashboardCustomizer: () => <div>Dashboard Customizer</div>,
+  QuickActionsWidget: () => <section>Quick Actions Widget</section>,
+  QuickLookupWidget: () => <section>Quick Lookup Widget</section>,
 }));
 
 describe('NeoBrutalistDashboard', () => {
@@ -86,7 +135,11 @@ describe('NeoBrutalistDashboard', () => {
 
     renderWithProviders(<NeoBrutalistDashboard />, { store, route: '/dashboard' });
 
-    expect(screen.getByRole('heading', { name: 'WORKBENCH OVERVIEW' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /workbench overview/i })).toBeInTheDocument();
+    expect(screen.getByText('Today at a Glance')).toBeInTheDocument();
+    expect(screen.getByText('Pinned Shortcuts')).toBeInTheDocument();
+    expect(screen.getByText('Enabled Workstreams')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /create intake/i })).toBeInTheDocument();
     expect(api.get).not.toHaveBeenCalled();
   });
 });

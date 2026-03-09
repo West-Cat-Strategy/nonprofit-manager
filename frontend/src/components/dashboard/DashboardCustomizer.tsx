@@ -67,6 +67,12 @@ function DashboardCustomizer({ settings, onSettingsChange, onReset }: DashboardC
           <legend className="text-sm font-semibold text-app-text-muted mb-3">Sections</legend>
           <div className="space-y-2">
             <CheckboxItem
+              id="section-workspace-summary"
+              label="Workspace summary"
+              checked={settings.showWorkspaceSummary}
+              onChange={(v) => updateSection('showWorkspaceSummary', v)}
+            />
+            <CheckboxItem
               id="section-quick-lookup"
               label="Quick lookup"
               checked={settings.showQuickLookup}
@@ -79,8 +85,14 @@ function DashboardCustomizer({ settings, onSettingsChange, onReset }: DashboardC
               onChange={(v) => updateSection('showQuickActions', v)}
             />
             <CheckboxItem
+              id="section-pinned-workstreams"
+              label="Pinned workstreams"
+              checked={settings.showPinnedWorkstreams}
+              onChange={(v) => updateSection('showPinnedWorkstreams', v)}
+            />
+            <CheckboxItem
               id="section-modules"
-              label="Modules"
+              label="Enabled workstreams"
               checked={settings.showModules}
               onChange={(v) => updateSection('showModules', v)}
             />

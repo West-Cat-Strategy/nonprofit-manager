@@ -1,8 +1,8 @@
 import { Pool } from 'pg';
 import pool from '@config/database';
 import { logger } from '@config/logger';
-import { ReportService } from '@services/reportService';
 import { sendMail } from '@services/emailService';
+import { ReportExportJobService } from '@services/reportExportJobService';
 import type {
   CreateScheduledReportDTO,
   ScheduledReport,
@@ -23,6 +23,21 @@ interface ScheduledReportRunRow extends Omit<ScheduledReportRun, 'recipients'> {
   recipients: string[] | null;
 }
 
+const parseMetadata = (value: unknown): Record<string, unknown> | null => {
+  if (!value) return null;
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return null;
+};
+
 const toIsoDateTime = (value: string | Date | null | undefined): string | null => {
   if (!value) return null;
   if (typeof value === 'string') {
@@ -42,13 +57,20 @@ const mapScheduledReport = (row: ScheduledReportRow): ScheduledReport => ({
   updated_at: toIsoDateTime(row.updated_at) || new Date(row.updated_at).toISOString(),
 });
 
-const mapRun = (row: ScheduledReportRunRow): ScheduledReportRun => ({
-  ...row,
-  recipients: row.recipients || [],
-  started_at: toIsoDateTime(row.started_at) || new Date(row.started_at).toISOString(),
-  completed_at: toIsoDateTime(row.completed_at),
-  created_at: toIsoDateTime(row.created_at) || new Date(row.created_at).toISOString(),
-});
+const mapRun = (row: ScheduledReportRunRow): ScheduledReportRun => {
+  const metadata = parseMetadata(row.metadata);
+
+  return {
+    ...row,
+    metadata,
+    reportExportJobId:
+      typeof metadata?.reportExportJobId === 'string' ? metadata.reportExportJobId : null,
+    recipients: row.recipients || [],
+    started_at: toIsoDateTime(row.started_at) || new Date(row.started_at).toISOString(),
+    completed_at: toIsoDateTime(row.completed_at),
+    created_at: toIsoDateTime(row.created_at) || new Date(row.created_at).toISOString(),
+  };
+};
 
 interface TimeParts {
   year: number;
@@ -237,10 +259,10 @@ const validateScheduleFields = (
 };
 
 export class ScheduledReportService {
-  private readonly reportService: ReportService;
+  private readonly reportExportJobs: ReportExportJobService;
 
   constructor(private readonly db: Pool) {
-    this.reportService = new ReportService(db);
+    this.reportExportJobs = new ReportExportJobService(db);
   }
 
   async listScheduledReports(organizationId: string): Promise<ScheduledReport[]> {
@@ -645,11 +667,29 @@ export class ScheduledReportService {
           ? (JSON.parse(savedReport.report_definition) as ReportDefinition)
           : (savedReport.report_definition as ReportDefinition);
 
-      const generated = await this.reportService.generateReport(definition, {
+      const exportJob = await this.reportExportJobs.createAndProcessJob({
         organizationId: report.organization_id,
+        requestedBy: report.created_by || null,
+        savedReportId: report.saved_report_id,
+        scheduledReportId: report.id,
+        source: 'scheduled',
+        definition,
+        format: report.format,
+        idempotencyKey: `scheduled-run:${run.id}`,
+        metadata: {
+          scheduledReportId: report.id,
+          manual: isManualRun,
+        },
       });
-      const file = await this.reportService.exportReport(generated, report.format);
-      const fileName = file.filename;
+
+      if (exportJob.status !== 'completed') {
+        throw new Error(exportJob.failureMessage || 'Report export job failed');
+      }
+
+      const fileBuffer = await this.reportExportJobs.readArtifact(exportJob);
+      const fileName =
+        exportJob.artifactFileName ||
+        `${savedReport.entity}_report_${new Date().toISOString().slice(0, 10)}.${report.format}`;
 
       let deliveryStatus: 'success' | 'failed' | 'skipped' = 'success';
       let deliveryError: string | undefined;
@@ -660,12 +700,12 @@ export class ScheduledReportService {
         const delivered = await sendMail({
           to: report.recipients,
           subject: `Scheduled Report: ${report.name}`,
-          text: `Your scheduled report "${report.name}" is attached.\n\nRows: ${generated.data.length}`,
-          html: `<p>Your scheduled report <strong>${report.name}</strong> is attached.</p><p>Rows: ${generated.data.length}</p>`,
+          text: `Your scheduled report "${report.name}" is attached.\n\nRows: ${exportJob.rowsCount ?? 0}`,
+          html: `<p>Your scheduled report <strong>${report.name}</strong> is attached.</p><p>Rows: ${exportJob.rowsCount ?? 0}</p>`,
           attachments: [
             {
               filename: fileName,
-              content: file.buffer,
+              content: fileBuffer,
             },
           ],
         });
@@ -678,13 +718,14 @@ export class ScheduledReportService {
 
       const finalizedRun = await this.markRunResult(run.id, {
         status: deliveryStatus,
-        rowsCount: generated.data.length,
+        rowsCount: exportJob.rowsCount ?? 0,
         fileFormat: report.format,
         fileName,
         errorMessage: deliveryError,
         metadata: {
           recipientsCount: report.recipients.length,
           manual: isManualRun,
+          reportExportJobId: exportJob.id,
         },
       });
 

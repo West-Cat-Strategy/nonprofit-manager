@@ -119,6 +119,54 @@ jest.mock('@services/mailchimpService', () => ({
   },
 }));
 
+jest.mock('@services/publishing/publicSubmissionService', () => ({
+  __mocks: {
+    beginSubmission: jest.fn(),
+    markAccepted: jest.fn(),
+    markRejected: jest.fn(),
+  },
+  PublicSubmissionConflictError: class PublicSubmissionConflictError extends Error { },
+  PublicSubmissionReplayError: class PublicSubmissionReplayError extends Error {
+    constructor(message: string, public readonly idempotentReplay: boolean = false) {
+      super(message);
+    }
+  },
+  publicSubmissionService: {
+    beginSubmission: (...args: unknown[]) => {
+      const module = jest.requireMock('@services/publishing/publicSubmissionService') as {
+        __mocks: { beginSubmission: jest.Mock };
+      };
+      return module.__mocks.beginSubmission(...args);
+    },
+    markAccepted: (...args: unknown[]) => {
+      const module = jest.requireMock('@services/publishing/publicSubmissionService') as {
+        __mocks: { markAccepted: jest.Mock };
+      };
+      return module.__mocks.markAccepted(...args);
+    },
+    markRejected: (...args: unknown[]) => {
+      const module = jest.requireMock('@services/publishing/publicSubmissionService') as {
+        __mocks: { markRejected: jest.Mock };
+      };
+      return module.__mocks.markRejected(...args);
+    },
+  },
+}));
+
+jest.mock('@services/activityEventService', () => ({
+  __mocks: {
+    recordEvent: jest.fn(),
+  },
+  activityEventService: {
+    recordEvent: (...args: unknown[]) => {
+      const module = jest.requireMock('@services/activityEventService') as {
+        __mocks: { recordEvent: jest.Mock };
+      };
+      return module.__mocks.recordEvent(...args);
+    },
+  },
+}));
+
 const siteManagementModule = jest.requireMock('@services/publishing/siteManagementService') as {
   __mocks: {
     getPublicSiteById: jest.Mock;
@@ -146,6 +194,20 @@ const mailchimpModule = jest.requireMock('@services/mailchimpService') as {
   __mocks: {
     addOrUpdateMember: jest.Mock;
     isMailchimpConfigured: jest.Mock;
+  };
+};
+
+const publicSubmissionModule = jest.requireMock('@services/publishing/publicSubmissionService') as {
+  __mocks: {
+    beginSubmission: jest.Mock;
+    markAccepted: jest.Mock;
+    markRejected: jest.Mock;
+  };
+};
+
+const activityEventsModule = jest.requireMock('@services/activityEventService') as {
+  __mocks: {
+    recordEvent: jest.Mock;
   };
 };
 
@@ -252,8 +314,16 @@ describe('PublicWebsiteFormService', () => {
     operationsModule.__mocks.createPaymentIntent.mockReset();
     mailchimpModule.__mocks.addOrUpdateMember.mockReset();
     mailchimpModule.__mocks.isMailchimpConfigured.mockReset();
+    publicSubmissionModule.__mocks.beginSubmission.mockReset();
+    publicSubmissionModule.__mocks.markAccepted.mockReset();
+    publicSubmissionModule.__mocks.markRejected.mockReset();
+    activityEventsModule.__mocks.recordEvent.mockReset();
     operationsModule.__mocks.isStripeConfigured.mockReturnValue(false);
     mailchimpModule.__mocks.isMailchimpConfigured.mockReturnValue(false);
+    publicSubmissionModule.__mocks.beginSubmission.mockResolvedValue({ submissionId: 'submission-1' });
+    publicSubmissionModule.__mocks.markAccepted.mockResolvedValue(undefined);
+    publicSubmissionModule.__mocks.markRejected.mockResolvedValue(undefined);
+    activityEventsModule.__mocks.recordEvent.mockResolvedValue(undefined);
   });
 
   it('resolves site keys by UUID before falling back to host keys', async () => {
@@ -338,6 +408,14 @@ describe('PublicWebsiteFormService', () => {
       message: 'We have your note.',
       contactId: 'contact-1',
     });
+    expect(publicSubmissionModule.__mocks.markAccepted).toHaveBeenCalledWith(
+      expect.objectContaining({
+        submissionId: 'submission-1',
+        resultEntityType: 'contact',
+        resultEntityId: 'contact-1',
+      })
+    );
+    expect(activityEventsModule.__mocks.recordEvent).toHaveBeenCalled();
   });
 
   it('rejects components that are not supported form blocks', async () => {
@@ -368,5 +446,61 @@ describe('PublicWebsiteFormService', () => {
     await expect(service.submitForm(site as never, 'hero-1', {})).rejects.toThrow(
       'Unsupported website form type'
     );
+  });
+
+  it('returns stored response payloads on idempotent replay', async () => {
+    const site = {
+      ...baseSite,
+      publishedContent: {
+        ...baseSite.publishedContent,
+        pages: [
+          {
+            ...baseSite.publishedContent.pages[0],
+            sections: [
+              {
+                id: 'section-1',
+                name: 'Forms',
+                components: [
+                  {
+                    id: 'contact-form-1',
+                    type: 'contact-form',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    publicSubmissionModule.__mocks.beginSubmission.mockResolvedValue({
+      submissionId: null,
+      replayedResponse: {
+        formType: 'contact-form',
+        message: 'Stored response',
+        contactId: 'contact-9',
+      },
+    });
+
+    const result = await service.submitForm(
+      site as never,
+      'contact-form-1',
+      {
+        email: 'ada@example.com',
+      },
+      {
+        idempotencyKey: 'form-1',
+      }
+    );
+
+    expect(result).toEqual({
+      formType: 'contact-form',
+      message: 'Stored response',
+      contactId: 'contact-9',
+      idempotentReplay: true,
+    });
+    expect(servicesModule.__mocks.createContact).not.toHaveBeenCalled();
+    expect(publicSubmissionModule.__mocks.markAccepted).not.toHaveBeenCalled();
+    expect(activityEventsModule.__mocks.recordEvent).not.toHaveBeenCalled();
   });
 });

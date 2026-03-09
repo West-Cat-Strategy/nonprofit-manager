@@ -1,9 +1,9 @@
 import type { Response } from 'express';
 import type { AuthRequest } from '@middleware/auth';
 import { deletePortalAdminAppointmentSlot } from '@controllers/portalAdminController';
-import { deleteAppointmentSlot } from '@services/portalAppointmentSlotService';
+import { deleteAppointmentSlot } from '@modules/portalAdmin/services/portalAppointmentSlotService';
 
-jest.mock('@services/portalAppointmentSlotService', () => ({
+jest.mock('@modules/portalAdmin/services/portalAppointmentSlotService', () => ({
   __esModule: true,
   deleteAppointmentSlot: jest.fn(),
   checkInAppointmentByStaff: jest.fn(),

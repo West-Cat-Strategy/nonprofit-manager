@@ -5,6 +5,7 @@ import {
   __resetDashboardSettingsServerCacheForTests,
   useDashboardSettings,
 } from '../useDashboardSettings';
+import { __resetUserPreferencesCacheForTests } from '../../services/userPreferencesService';
 
 vi.mock('../../services/api', () => ({
   default: {
@@ -32,6 +33,7 @@ describe('useDashboardSettings cache behavior', () => {
     authState = { isAuthenticated: true };
     localStorage.clear();
     __resetDashboardSettingsServerCacheForTests();
+    __resetUserPreferencesCacheForTests();
     vi.clearAllMocks();
     vi.spyOn(Date, 'now').mockImplementation(() => nowMs);
     mockedApi.get.mockResolvedValue({
@@ -63,6 +65,8 @@ describe('useDashboardSettings cache behavior', () => {
     await waitFor(() => expect(secondMount.result.current.isLoading).toBe(false));
     expect(mockedApi.get).toHaveBeenCalledTimes(1);
     expect(secondMount.result.current.settings.showQuickLookup).toBe(false);
+    expect(secondMount.result.current.settings.showWorkspaceSummary).toBe(true);
+    expect(secondMount.result.current.settings.showPinnedWorkstreams).toBe(true);
     secondMount.unmount();
   });
 

@@ -11,17 +11,89 @@ interface CaseTimelineProps {
 const TIMELINE_PAGE_LIMIT = 50;
 
 const eventTypeLabel: Record<CaseTimelineEvent['type'], string> = {
+  appointment: 'Appointment',
+  attendance: 'Attendance',
+  conversation: 'Conversation',
+  document: 'Document',
+  follow_up: 'Follow-up',
   note: 'Note',
   outcome: 'Outcome',
   topic: 'Topic',
-  document: 'Document',
 };
 
 const eventTypeBadgeClass: Record<CaseTimelineEvent['type'], string> = {
+  appointment: 'bg-app-accent-soft text-app-accent-text',
+  attendance: 'bg-app-accent-soft text-app-accent-text',
+  conversation: 'bg-app-accent-soft text-app-accent-text',
+  document: 'bg-app-accent-soft text-app-accent-text',
+  follow_up: 'bg-app-accent-soft text-app-accent-text',
   note: 'bg-app-accent-soft text-app-accent-text',
   outcome: 'bg-app-accent-soft text-app-accent-text',
   topic: 'bg-app-accent-soft text-app-accent-text',
-  document: 'bg-app-accent-soft text-app-accent-text',
+};
+
+const formatMetadataDate = (value: unknown): string | null => {
+  if (typeof value !== 'string' || !value) {
+    return null;
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+};
+
+const getTimelineMeta = (event: CaseTimelineEvent): string[] => {
+  const metadata = event.metadata || {};
+
+  switch (event.type) {
+    case 'appointment':
+      return [
+        typeof metadata.status === 'string' ? `Status: ${metadata.status}` : '',
+        typeof metadata.attendance_state === 'string'
+          ? `Attendance: ${metadata.attendance_state}`
+          : '',
+        formatMetadataDate(metadata.start_time)
+          ? `Starts: ${formatMetadataDate(metadata.start_time)}`
+          : '',
+        metadata.missing_note ? 'Missing note' : '',
+        metadata.missing_outcome ? 'Missing outcome' : '',
+        metadata.last_reminder_sent_at
+          ? `Reminder sent: ${formatMetadataDate(metadata.last_reminder_sent_at)}`
+          : '',
+      ].filter(Boolean);
+    case 'conversation':
+      return [
+        typeof metadata.status === 'string' ? `Status: ${metadata.status}` : '',
+        metadata.portal_email ? `Portal: ${String(metadata.portal_email)}` : '',
+        metadata.resolution_complete ? 'Resolution complete' : 'Resolution missing',
+      ].filter(Boolean);
+    case 'follow_up':
+      return [
+        typeof metadata.status === 'string' ? `Status: ${metadata.status}` : '',
+        metadata.scheduled_date ? `Scheduled: ${String(metadata.scheduled_date)}` : '',
+        typeof metadata.method === 'string' ? `Method: ${metadata.method}` : '',
+      ].filter(Boolean);
+    case 'attendance':
+      return [
+        typeof metadata.registration_status === 'string'
+          ? `Registration: ${metadata.registration_status}`
+          : '',
+        typeof metadata.checked_in === 'boolean'
+          ? metadata.checked_in
+            ? 'Checked in'
+            : 'Not checked in'
+          : '',
+        typeof metadata.check_in_method === 'string'
+          ? `Method: ${metadata.check_in_method}`
+          : '',
+      ].filter(Boolean);
+    case 'outcome':
+      return [
+        typeof metadata.workflow_stage === 'string'
+          ? `Stage: ${metadata.workflow_stage}`
+          : '',
+      ].filter(Boolean);
+    default:
+      return [];
+  }
 };
 
 const CaseTimeline = ({ caseId, refreshKey }: CaseTimelineProps) => {
@@ -115,6 +187,18 @@ const CaseTimeline = ({ caseId, refreshKey }: CaseTimelineProps) => {
           </div>
           <p className="text-sm font-semibold text-app-text">{event.title}</p>
           {event.content && <p className="mt-1 whitespace-pre-wrap text-sm text-app-text">{event.content}</p>}
+          {getTimelineMeta(event).length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {getTimelineMeta(event).map((detail) => (
+                <span
+                  key={detail}
+                  className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted"
+                >
+                  {detail}
+                </span>
+              ))}
+            </div>
+          )}
           {(event.first_name || event.last_name) && (
             <p className="mt-2 text-xs text-app-text-muted">
               {event.first_name || 'Staff'} {event.last_name || ''}

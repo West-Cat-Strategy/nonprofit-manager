@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { eventsApiClient } from '../api/eventsApiClient';
 import type { PublicEventListItem, PublicEventsListResult, PublicEventsPageInfo } from '../../../types/event';
+import { PrimaryButton, PublicPageShell, SecondaryButton, SectionCard } from '../../../components/ui';
 import { parseApiError } from '../../../utils/apiError';
 
 const PAGE_SIZE = 12;
@@ -137,93 +138,134 @@ export default function PublicEventsPage() {
   }, [site, siteInfo]);
 
   return (
-    <main className="min-h-screen bg-app-bg px-4 py-8 text-app-text sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <header className="rounded-lg border border-app-border bg-app-surface p-6">
-          <h1 className="text-2xl font-semibold text-app-text">Public Events</h1>
-          <p className="mt-2 text-sm text-app-text-muted">{subtitle}</p>
-        </header>
+    <PublicPageShell
+      badge="Public events"
+      title="Find upcoming events"
+      description={`Browse upcoming public programs, fundraisers, and community gatherings for ${subtitle}.`}
+      actions={
+        searchInput || eventType || includePast ? (
+          <SecondaryButton
+            onClick={() => {
+              setSearchInput('');
+              setSearchQuery('');
+              setEventType('');
+              setIncludePast(false);
+            }}
+          >
+            Clear filters
+          </SecondaryButton>
+        ) : undefined
+      }
+    >
+      <SectionCard
+        title="Filter events"
+        subtitle="Search by keyword, narrow by event type, or include past events."
+      >
+        <div className="grid gap-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.8fr)]">
+          <label className="text-sm">
+            <span className="mb-1 block font-medium text-app-text-label">Search</span>
+            <input
+              type="search"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="Search by title, location, or description"
+              className="w-full rounded-[var(--ui-radius-sm)] border border-app-input-border bg-app-surface px-3 py-2"
+            />
+          </label>
 
-        <section className="rounded-lg border border-app-border bg-app-surface p-6">
-          <div className="grid gap-3 md:grid-cols-3">
-            <label className="text-sm">
-              <span className="mb-1 block text-app-text-muted">Search</span>
-              <input
-                type="search"
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Search events"
-                className="w-full rounded-md border border-app-input-border bg-app-surface px-3 py-2"
-              />
-            </label>
+          <label className="text-sm">
+            <span className="mb-1 block font-medium text-app-text-label">Event type</span>
+            <select
+              value={eventType}
+              onChange={(event) => setEventType(event.target.value)}
+              className="w-full rounded-[var(--ui-radius-sm)] border border-app-input-border bg-app-surface px-3 py-2"
+            >
+              {EVENT_TYPE_OPTIONS.map((option) => (
+                <option key={option.value || 'all'} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
 
-            <label className="text-sm">
-              <span className="mb-1 block text-app-text-muted">Event type</span>
-              <select
-                value={eventType}
-                onChange={(event) => setEventType(event.target.value)}
-                className="w-full rounded-md border border-app-input-border bg-app-surface px-3 py-2"
-              >
-                {EVENT_TYPE_OPTIONS.map((option) => (
-                  <option key={option.value || 'all'} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+          <label className="flex items-center gap-3 rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-muted px-3 py-2 text-sm text-app-text md:self-end">
+            <input
+              type="checkbox"
+              checked={includePast}
+              onChange={(event) => setIncludePast(event.target.checked)}
+              className="rounded border-app-input-border"
+            />
+            <span>Include past events</span>
+          </label>
+        </div>
+      </SectionCard>
 
-            <label className="flex items-center gap-2 text-sm text-app-text-muted md:self-end">
-              <input
-                type="checkbox"
-                checked={includePast}
-                onChange={(event) => setIncludePast(event.target.checked)}
-                className="rounded border-app-input-border"
-              />
-              Include past events
-            </label>
+      <SectionCard
+        title="Available events"
+        subtitle={`Showing ${items.length} of ${pageInfo.total} matching events.`}
+      >
+        {loading ? (
+          <div className="rounded-[var(--ui-radius-sm)] bg-app-surface-muted p-4 text-sm text-app-text-muted">
+            Loading public events...
           </div>
-        </section>
-
-        <section className="rounded-lg border border-app-border bg-app-surface p-6">
-          {loading ? (
-            <p className="text-sm text-app-text-muted">Loading public events...</p>
-          ) : error ? (
-            <p className="text-sm text-app-accent">{error}</p>
-          ) : items.length === 0 ? (
-            <p className="text-sm text-app-text-muted">No public events match your filters.</p>
-          ) : (
-            <>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {items.map((event) => (
-                  <article key={event.event_id} className="rounded-lg border border-app-border bg-app-surface-muted p-4">
-                    <h2 className="text-base font-semibold text-app-text">{event.event_name}</h2>
-                    <p className="mt-1 text-xs uppercase tracking-wide text-app-text-muted">{event.event_type}</p>
-                    <p className="mt-2 text-sm text-app-text-muted">{formatDateRange(event.start_date, event.end_date)}</p>
-                    <p className="mt-1 text-sm text-app-text-muted">{formatLocation(event)}</p>
-                    {event.description ? (
-                      <p className="mt-3 text-sm text-app-text">{truncate(event.description, 180)}</p>
-                    ) : null}
-                  </article>
-                ))}
-              </div>
-
-              <div className="mt-6 flex items-center justify-between">
-                <p className="text-sm text-app-text-muted">
-                  Showing {items.length} of {pageInfo.total}
-                </p>
-                <button
-                  type="button"
-                  onClick={handleLoadMore}
-                  disabled={!pageInfo.has_more || loadingMore}
-                  className="rounded-md border border-app-border bg-app-surface px-4 py-2 text-sm text-app-text disabled:opacity-60"
+        ) : error ? (
+          <div className="rounded-[var(--ui-radius-sm)] border border-app-accent bg-app-accent-soft p-4 text-sm text-app-accent-text">
+            {error}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="rounded-[var(--ui-radius-sm)] bg-app-surface-muted p-6 text-sm text-app-text-muted">
+            No public events match your filters.
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {items.map((event) => (
+                <article
+                  key={event.event_id}
+                  className="rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface-muted/70 p-5 shadow-sm"
                 >
-                  {loadingMore ? 'Loading...' : pageInfo.has_more ? 'Load more' : 'No more events'}
-                </button>
-              </div>
-            </>
-          )}
-        </section>
-      </div>
-    </main>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+                        {event.event_type}
+                      </p>
+                      <h2 className="mt-2 text-lg font-semibold text-app-text-heading">
+                        {event.event_name}
+                      </h2>
+                    </div>
+                    <span className="rounded-full bg-app-surface px-3 py-1 text-xs font-medium text-app-text-muted">
+                      {new Date(event.start_date).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm text-app-text-muted">
+                    {formatDateRange(event.start_date, event.end_date)}
+                  </p>
+                  <p className="mt-1 text-sm text-app-text-muted">{formatLocation(event)}</p>
+                  {event.description ? (
+                    <p className="mt-4 text-sm leading-6 text-app-text">
+                      {truncate(event.description, 180)}
+                    </p>
+                  ) : null}
+                </article>
+              ))}
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-app-text-muted">
+                {pageInfo.has_more
+                  ? 'More events are available below.'
+                  : 'You have reached the end of the available events.'}
+              </p>
+              <PrimaryButton
+                onClick={handleLoadMore}
+                disabled={!pageInfo.has_more || loadingMore}
+              >
+                {loadingMore ? 'Loading...' : pageInfo.has_more ? 'Load more events' : 'No more events'}
+              </PrimaryButton>
+            </div>
+          </>
+        )}
+      </SectionCard>
+    </PublicPageShell>
   );
 }

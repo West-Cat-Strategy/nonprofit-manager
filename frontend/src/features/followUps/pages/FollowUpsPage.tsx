@@ -110,7 +110,7 @@ export default function FollowUpsPage() {
   };
 
   const handleCancelFollowUp = async (followUpId: string) => {
-    await dispatch(cancelFollowUp(followUpId));
+    await dispatch(cancelFollowUp({ followUpId, data: {} }));
     await refresh();
   };
 

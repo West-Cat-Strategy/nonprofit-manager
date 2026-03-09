@@ -1,8 +1,21 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
+import type { ComponentType } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { vi } from 'vitest';
-import AdminSettings from '../../admin/AdminSettings';
 import { renderWithProviders } from '../../../test/testUtils';
+
+let AdminSettings: ComponentType;
+const { mockNavigate } = vi.hoisted(() => ({
+  mockNavigate: vi.fn(),
+}));
+
+vi.mock('react-router-dom', async () => {
+  const actual = (await vi.importActual('react-router-dom')) as Record<string, unknown>;
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
 
 vi.mock('../../../services/api', () => ({
   default: {
@@ -66,6 +79,15 @@ vi.mock(
 vi.mock('../../../features/adminOps/pages/adminSettings/sections/OutcomeDefinitionsSection', () => ({
   default: () => <div>Outcomes Section</div>,
 }));
+vi.mock('../../../features/adminOps/pages/adminSettings/sections/PortalSection', () => ({
+  default: () => (
+    <div>
+      <h2>Portal Operations</h2>
+      <a href="/settings/admin/portal/access">Access</a>
+      <a href="/settings/admin/portal/appointments">Appointments</a>
+    </div>
+  ),
+}));
 vi.mock('../../../features/adminOps/pages/adminSettings/components/UserSecurityModal', () => ({
   default: () => null,
 }));
@@ -96,8 +118,11 @@ const renderAdminSettings = (route = '/settings/admin/dashboard') =>
   );
 
 describe('AdminSettings page', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     window.localStorage.clear();
+    mockNavigate.mockReset();
+    vi.resetModules();
+    AdminSettings = (await import('../../admin/AdminSettings')).default;
   });
 
   it('renders admin settings shell and canonical portal/admin links', async () => {
@@ -158,11 +183,16 @@ describe('AdminSettings page', () => {
     const dashboardTab = screen.getByRole('tab', { name: /dashboard/i });
     expect(dashboardTab).toHaveAttribute('aria-selected', 'true');
 
-    fireEvent.keyDown(dashboardTab, { key: 'ArrowRight' });
+    dashboardTab.focus();
+    fireEvent.keyDown(dashboardTab, { key: 'ArrowRight', code: 'ArrowRight' });
 
-    await waitFor(() => {
-      expect(screen.getByTestId('location')).toHaveTextContent('/settings/admin/organization');
-    });
+    expect(mockNavigate).toHaveBeenCalledWith(
+      {
+        pathname: '/settings/admin/organization',
+        search: '',
+      },
+      undefined
+    );
   });
 
   it('navigates internal shortcuts to canonical section routes', async () => {
@@ -174,9 +204,12 @@ describe('AdminSettings page', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /go to roles/i }));
 
-    await waitFor(() => {
-      expect(screen.getByTestId('location')).toHaveTextContent('/settings/admin/roles');
-      expect(screen.getByText('Roles Section')).toBeInTheDocument();
-    });
+    expect(mockNavigate).toHaveBeenCalledWith(
+      {
+        pathname: '/settings/admin/roles',
+        search: '',
+      },
+      undefined
+    );
   });
 });

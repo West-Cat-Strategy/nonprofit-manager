@@ -17,7 +17,7 @@ interface PublicSubmissionRow extends QueryResultRow {
   form_key: string;
   idempotency_key: string | null;
   payload_hash: string;
-  response_payload: Record<string, unknown> | string | null;
+  response_payload: unknown;
   status: SubmissionStatus;
   error_message: string | null;
 }
@@ -46,7 +46,7 @@ export interface BeginPublicSubmissionInput {
 
 export interface BeginPublicSubmissionResult {
   submissionId: string | null;
-  replayedResponse?: Record<string, unknown>;
+  replayedResponse?: unknown;
 }
 
 const stableSerialize = (value: unknown): string => {
@@ -78,11 +78,11 @@ const hashPayload = (payload: Record<string, unknown>): string =>
 
 const parseReplayPayload = (
   value: PublicSubmissionRow['response_payload']
-): Record<string, unknown> | undefined => {
+): unknown => {
   if (!value) return undefined;
   if (typeof value === 'string') {
     try {
-      return JSON.parse(value) as Record<string, unknown>;
+      return JSON.parse(value);
     } catch {
       return undefined;
     }
@@ -169,7 +169,7 @@ export class PublicSubmissionService {
 
   async markAccepted(input: {
     submissionId: string;
-    responsePayload: Record<string, unknown>;
+    responsePayload: unknown;
     resultEntityType?: string | null;
     resultEntityId?: string | null;
     auditMetadata?: Record<string, unknown>;

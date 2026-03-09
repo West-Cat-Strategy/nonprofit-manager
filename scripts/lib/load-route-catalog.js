@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const Module = require('node:module');
 const path = require('node:path');
 const vm = require('node:vm');
 
@@ -21,33 +22,68 @@ function loadTypeScript() {
   throw new Error('Unable to locate TypeScript runtime for route catalog loading.');
 }
 
-function loadRouteCatalogModule() {
-  const source = fs.readFileSync(routeCatalogPath, 'utf8');
-  const ts = loadTypeScript();
+function resolveLocalTypeScriptModule(baseFilePath, specifier) {
+  const resolvedBase = path.resolve(path.dirname(baseFilePath), specifier);
+  const candidates = [
+    resolvedBase,
+    `${resolvedBase}.ts`,
+    `${resolvedBase}.tsx`,
+    path.join(resolvedBase, 'index.ts'),
+    path.join(resolvedBase, 'index.tsx'),
+  ];
+
+  return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
+}
+
+function loadTranspiledTypeScriptModule(filePath, ts, cache) {
+  if (cache.has(filePath)) {
+    return cache.get(filePath).exports;
+  }
+
+  const source = fs.readFileSync(filePath, 'utf8');
   const transpiled = ts.transpileModule(source, {
     compilerOptions: {
       module: ts.ModuleKind.CommonJS,
       target: ts.ScriptTarget.ES2022,
       esModuleInterop: true,
     },
-    fileName: routeCatalogPath,
+    fileName: filePath,
   });
 
   const module = { exports: {} };
+  cache.set(filePath, module);
+
+  const nodeRequire = Module.createRequire(filePath);
+  const localRequire = (specifier) => {
+    if (specifier.startsWith('.')) {
+      const localModulePath = resolveLocalTypeScriptModule(filePath, specifier);
+      if (localModulePath) {
+        return loadTranspiledTypeScriptModule(localModulePath, ts, cache);
+      }
+    }
+
+    return nodeRequire(specifier);
+  };
+
   const sandbox = {
     module,
     exports: module.exports,
-    require,
-    __dirname: path.dirname(routeCatalogPath),
-    __filename: routeCatalogPath,
+    require: localRequire,
+    __dirname: path.dirname(filePath),
+    __filename: filePath,
     console,
     process,
     URL,
     URLSearchParams,
   };
 
-  vm.runInNewContext(transpiled.outputText, sandbox, { filename: routeCatalogPath });
+  vm.runInNewContext(transpiled.outputText, sandbox, { filename: filePath });
   return module.exports;
+}
+
+function loadRouteCatalogModule() {
+  const ts = loadTypeScript();
+  return loadTranspiledTypeScriptModule(routeCatalogPath, ts, new Map());
 }
 
 module.exports = {

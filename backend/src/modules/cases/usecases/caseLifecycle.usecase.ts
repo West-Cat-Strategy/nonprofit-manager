@@ -58,6 +58,7 @@ export class CaseLifecycleUseCase {
       new_status_id: data.new_status_id.trim(),
       reason: normalizeText(data.reason),
       notes: normalizeText(data.notes),
+      outcome_definition_ids: data.outcome_definition_ids?.map((id) => id.trim()).filter(Boolean),
     };
     return this.repository.updateCaseStatus(caseId.trim(), normalizedData, userId);
   }

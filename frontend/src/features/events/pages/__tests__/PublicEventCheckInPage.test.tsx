@@ -60,14 +60,14 @@ describe('PublicEventCheckInPage', () => {
     fireEvent.change(screen.getByLabelText('Last name'), {
       target: { value: 'Client' },
     });
-    fireEvent.change(screen.getByLabelText('Email (or phone)'), {
+    fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'avery@example.com' },
     });
     fireEvent.change(screen.getByLabelText('Staff PIN'), {
       target: { value: '123456' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Check In' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Complete check-in' }));
 
     await waitFor(() => {
       expect(submitPublicCheckInMock).toHaveBeenCalledWith('event-123', {
@@ -102,14 +102,14 @@ describe('PublicEventCheckInPage', () => {
     fireEvent.change(screen.getByLabelText('Last name'), {
       target: { value: 'Client' },
     });
-    fireEvent.change(screen.getByLabelText('Email (or phone)'), {
+    fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'avery@example.com' },
     });
     fireEvent.change(screen.getByLabelText('Staff PIN'), {
       target: { value: '000000' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Check In' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Complete check-in' }));
 
     await waitFor(() => {
       expect(
@@ -139,7 +139,7 @@ describe('PublicEventCheckInPage', () => {
 
     await screen.findByText('Community Dinner');
     expect(screen.getByText('Check-in is currently closed for this event.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Check In' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Complete check-in' })).toBeDisabled();
   });
 
   it('shows API error when submit returns CHECKIN_CLOSED', async () => {
@@ -164,14 +164,14 @@ describe('PublicEventCheckInPage', () => {
     fireEvent.change(screen.getByLabelText('Last name'), {
       target: { value: 'Client' },
     });
-    fireEvent.change(screen.getByLabelText('Email (or phone)'), {
+    fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'avery@example.com' },
     });
     fireEvent.change(screen.getByLabelText('Staff PIN'), {
       target: { value: '123456' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Check In' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Complete check-in' }));
 
     await waitFor(() => {
       expect(
@@ -197,6 +197,6 @@ describe('PublicEventCheckInPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Event check-in is unavailable.')).toBeInTheDocument();
     });
-    expect(screen.getByText('Event details unavailable.')).toBeInTheDocument();
+    expect(screen.getByText('Event details are unavailable for this link.')).toBeInTheDocument();
   });
 });

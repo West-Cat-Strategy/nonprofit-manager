@@ -33,6 +33,13 @@ describe('OutcomeReportService', () => {
             interaction_unique_clients_impacted: 2,
             event_count_impacts: 2,
             event_unique_clients_impacted: 1,
+            workflow_stage_interaction_count: 2,
+            workflow_stage_conversation_count: 0,
+            workflow_stage_appointment_count: 0,
+            workflow_stage_follow_up_count: 0,
+            workflow_stage_case_status_count: 0,
+            workflow_stage_manual_count: 1,
+            workflow_stage_legacy_count: 1,
             sort_order: 10,
           },
         ],
@@ -43,6 +50,7 @@ describe('OutcomeReportService', () => {
             bucket_start: '2026-01-01',
             outcome_definition_id: 'outcome-1',
             source: 'interaction',
+            workflow_stage: 'interaction',
             count_impacts: 2,
             sort_order: 10,
             name: 'Maintained employment',
@@ -75,11 +83,21 @@ describe('OutcomeReportService', () => {
           uniqueClientsImpacted: 1,
         },
       },
+      workflowStageBreakdown: {
+        interaction: 2,
+        conversation: 0,
+        appointment: 0,
+        follow_up: 0,
+        case_status: 0,
+        manual: 1,
+        legacy: 1,
+      },
     });
     expect(result.timeseries[0]).toEqual({
       bucketStart: '2026-01-01',
       outcomeDefinitionId: 'outcome-1',
       source: 'interaction',
+      workflowStage: 'interaction',
       countImpacts: 2,
     });
 

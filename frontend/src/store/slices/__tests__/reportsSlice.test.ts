@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import reportsReducer, { fetchAvailableFields } from '../../../features/reports/state';
+import reportsReducer, {
+  fetchAvailableFields,
+  fetchReportExportJobs,
+} from '../../../features/reports/state';
 
 describe('reportsSlice', () => {
   it('includes opportunities in available fields cache on initial state', () => {
@@ -27,5 +30,17 @@ describe('reportsSlice', () => {
     expect(next.availableFields.opportunities).toEqual([
       { field: 'stage_name', label: 'Stage', type: 'string' },
     ]);
+  });
+
+  it('treats malformed export job payloads as an empty list', () => {
+    const initial = reportsReducer(undefined, { type: 'unknown' });
+
+    const next = reportsReducer(initial, {
+      type: fetchReportExportJobs.fulfilled.type,
+      payload: {},
+    });
+
+    expect(next.exportJobs).toEqual([]);
+    expect(next.exportJobsLoading).toBe(false);
   });
 });
