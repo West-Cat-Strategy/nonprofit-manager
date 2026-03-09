@@ -1,5 +1,6 @@
 import {
   createExportJob,
+  downloadExportJob,
   exportReport,
   generateReport,
   getExportJob,
@@ -7,6 +8,7 @@ import {
   listExportJobs,
 } from './report.handlers';
 import { getOutcomesReport } from './outcomeReport.handlers';
+import { getWorkflowCoverageReport } from './workflowCoverageReport.handlers';
 import {
   createTemplate,
   deleteTemplate,
@@ -19,11 +21,13 @@ export const createReportsController = () => {
   return {
     generateReport,
     getOutcomesReport,
+    getWorkflowCoverageReport,
     getAvailableFields,
     exportReport,
     createExportJob,
     listExportJobs,
     getExportJob,
+    downloadExportJob,
     getTemplates,
     getTemplateById,
     createTemplate,

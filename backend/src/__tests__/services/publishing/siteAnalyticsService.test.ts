@@ -1,6 +1,26 @@
 import type { Pool } from 'pg';
 import { SiteAnalyticsService } from '@services/publishing/siteAnalyticsService';
 
+jest.mock('@services/publishing/conversionEventService', () => ({
+  __mocks: {
+    recordAnalyticsEvent: jest.fn(),
+    getFunnel: jest.fn(),
+  },
+  ConversionEventService: jest.fn().mockImplementation(function ConversionEventServiceMock() {
+    const module = jest.requireMock('@services/publishing/conversionEventService') as {
+      __mocks: {
+        recordAnalyticsEvent: jest.Mock;
+        getFunnel: jest.Mock;
+      };
+    };
+
+    return {
+      recordAnalyticsEvent: module.__mocks.recordAnalyticsEvent,
+      getFunnel: module.__mocks.getFunnel,
+    };
+  }),
+}));
+
 jest.mock('@services/publishing/siteManagementService', () => ({
   __mocks: {
     getSite: jest.fn(),
@@ -28,6 +48,13 @@ const siteManagementModule = jest.requireMock('@services/publishing/siteManageme
   };
 };
 
+const conversionEventsModule = jest.requireMock('@services/publishing/conversionEventService') as {
+  __mocks: {
+    recordAnalyticsEvent: jest.Mock;
+    getFunnel: jest.Mock;
+  };
+};
+
 describe('SiteAnalyticsService', () => {
   const baseSite = {
     id: 'site-1',
@@ -49,6 +76,8 @@ describe('SiteAnalyticsService', () => {
     service = new SiteAnalyticsService(pool);
     siteManagementModule.__mocks.getSite.mockReset();
     siteManagementModule.__mocks.mapRowToAnalytics.mockReset();
+    conversionEventsModule.__mocks.recordAnalyticsEvent.mockReset();
+    conversionEventsModule.__mocks.getFunnel.mockReset();
     siteManagementModule.__mocks.getSite.mockResolvedValue(baseSite);
     siteManagementModule.__mocks.mapRowToAnalytics.mockImplementation((row) => ({
       id: row.id,
@@ -126,6 +155,40 @@ describe('SiteAnalyticsService', () => {
     );
   });
 
+  it('passes the inserted site_analytics id into conversion event writes', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 'analytics-1',
+          site_id: 'site-1',
+          page_path: '/donate',
+          event_type: 'donation',
+          created_at: '2026-03-05T12:00:00.000Z',
+          event_data: { sourceEntityType: 'donation', sourceEntityId: 'donation-1' },
+        },
+      ],
+    });
+
+    await service.recordAnalyticsEvent('site-1', 'donation', {
+      pagePath: '/donate',
+      visitorId: 'visitor-1',
+      eventData: {
+        sourceEntityType: 'donation',
+        sourceEntityId: 'donation-1',
+      },
+    });
+
+    expect(conversionEventsModule.__mocks.recordAnalyticsEvent).toHaveBeenCalledWith(
+      'site-1',
+      'donation',
+      expect.objectContaining({
+        pagePath: '/donate',
+        visitorId: 'visitor-1',
+      }),
+      'analytics-1'
+    );
+  });
+
   it('rejects access when the site is outside the caller scope', async () => {
     siteManagementModule.__mocks.getSite.mockResolvedValue(null);
 
@@ -134,5 +197,25 @@ describe('SiteAnalyticsService', () => {
     ).rejects.toThrow('Site not found or access denied');
 
     expect(mockQuery).not.toHaveBeenCalled();
+  });
+
+  it('returns the conversion funnel from append-only conversion events', async () => {
+    const funnel = {
+      siteId: 'site-1',
+      periodStart: new Date('2026-02-01T00:00:00.000Z'),
+      periodEnd: new Date('2026-03-01T00:00:00.000Z'),
+      steps: [
+        { step: 'view', count: 100, uniqueVisitors: 40 },
+        { step: 'submit', count: 12, uniqueVisitors: 10 },
+        { step: 'confirm', count: 9, uniqueVisitors: 8 },
+      ],
+      recentEvents: [],
+    };
+    conversionEventsModule.__mocks.getFunnel.mockResolvedValue(funnel);
+
+    const result = await service.getConversionFunnel('site-1', 'user-1', 30, 'org-1');
+
+    expect(result).toBe(funnel);
+    expect(conversionEventsModule.__mocks.getFunnel).toHaveBeenCalledWith('site-1', 30);
   });
 });

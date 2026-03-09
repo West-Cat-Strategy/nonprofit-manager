@@ -6,7 +6,7 @@ test.describe('Template Workflows', () => {
   test('create and delete template via API + verify gallery route', async ({ authenticatedPage, authToken }) => {
     await authenticatedPage.goto('/dashboard');
     await expect(authenticatedPage).toHaveURL(/\/dashboard(?:\?|$)/);
-    await expect(authenticatedPage.getByRole('heading', { name: 'Quick Tools' })).toBeVisible();
+    await expect(authenticatedPage.getByRole('heading', { name: /quick actions/i })).toBeVisible();
 
     const id = await createTemplate(authenticatedPage, authToken);
     expect(id).toBeTruthy();

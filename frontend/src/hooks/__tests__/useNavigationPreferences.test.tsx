@@ -95,6 +95,35 @@ describe('useNavigationPreferences', () => {
     const updated = result.current.allItems.find((item) => item.id === 'cases');
     expect(updated?.enabled).toBe(false);
     expect(updated?.pinned).toBe(false);
+    expect(result.current.enabledRouteIds).not.toContain('cases');
+    expect(result.current.favoriteItems).toHaveLength(0);
+  });
+
+  it('seeds route hierarchy metadata for navigation items', async () => {
+    const { result } = renderNavigationPreferencesHook();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.current.favoriteItems).toEqual(result.current.pinnedItems);
+
+    const dashboard = result.current.allItems.find((item) => item.id === 'dashboard');
+    expect(dashboard).toMatchObject({
+      area: 'Home',
+      navKind: 'hub',
+      breadcrumbLabel: 'Dashboard',
+    });
+
+    const contacts = result.current.allItems.find((item) => item.id === 'contacts');
+    expect(contacts).toMatchObject({
+      area: 'People',
+      navKind: 'hub',
+      breadcrumbLabel: 'People',
+    });
+
+    expect(result.current.enabledRouteIds).toContain('dashboard');
+    expect(result.current.enabledRouteIds).toContain('contacts');
   });
 
   it('exposes saving and synced states while persisting preferences', async () => {

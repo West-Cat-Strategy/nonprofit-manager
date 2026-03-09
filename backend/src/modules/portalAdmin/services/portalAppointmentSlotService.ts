@@ -9,6 +9,12 @@ import {
   cancelPendingJobsForAppointment,
   syncJobsForAppointment,
 } from './appointmentReminderService';
+import {
+  applySlotTransition,
+  createCaseLinkedAppointmentResolution,
+  getCaseContactId,
+  getCaseLinkedAppointmentResolution,
+} from './portalAppointmentStatusWorkflow';
 
 export interface AppointmentSlot {
   id: string;
@@ -58,9 +64,17 @@ export interface PortalAppointment {
   pointperson_email?: string | null;
   portal_user_id?: string | null;
   portal_email?: string | null;
+  contact_name?: string | null;
   next_reminder_at?: string | null;
   pending_reminder_jobs?: number;
   last_reminder_sent_at?: string | null;
+  reminder_offered?: boolean;
+  attendance_state?: 'scheduled' | 'attended' | 'cancelled' | 'no_show';
+  linked_note_count?: number;
+  linked_outcome_count?: number;
+  missing_note?: boolean;
+  missing_outcome?: boolean;
+  missing_reminder?: boolean;
 }
 
 const APPOINTMENT_SELECT = `
@@ -83,15 +97,79 @@ const APPOINTMENT_SELECT = `
     a.updated_at,
     c.case_number,
     c.title AS case_title,
+    contact.first_name || ' ' || contact.last_name AS contact_name,
     u.first_name AS pointperson_first_name,
     u.last_name AS pointperson_last_name,
     u.email AS pointperson_email,
     pu.id AS portal_user_id,
-    pu.email AS portal_email
+    pu.email AS portal_email,
+    reminder_jobs.next_reminder_at,
+    reminder_jobs.pending_reminder_jobs,
+    reminder_jobs.total_reminder_jobs,
+    reminder_history.last_reminder_sent_at,
+    resolution_counts.linked_note_count,
+    resolution_counts.linked_outcome_count,
+    CASE
+      WHEN a.status = 'cancelled' THEN 'cancelled'
+      WHEN a.checked_in_at IS NOT NULL OR a.status = 'completed' THEN 'attended'
+      WHEN a.status IN ('requested', 'confirmed') AND COALESCE(a.end_time, a.start_time) < NOW() THEN 'no_show'
+      ELSE 'scheduled'
+    END AS attendance_state,
+    CASE
+      WHEN a.case_id IS NOT NULL AND a.status IN ('completed', 'cancelled') AND COALESCE(resolution_counts.linked_note_count, 0) = 0 THEN true
+      ELSE false
+    END AS missing_note,
+    CASE
+      WHEN a.case_id IS NOT NULL AND a.status IN ('completed', 'cancelled') AND COALESCE(resolution_counts.linked_outcome_count, 0) = 0 THEN true
+      ELSE false
+    END AS missing_outcome,
+    CASE
+      WHEN a.status = 'confirmed'
+        AND a.start_time > NOW()
+        AND COALESCE(reminder_jobs.total_reminder_jobs, 0) = 0
+        AND reminder_history.last_reminder_sent_at IS NULL THEN true
+      ELSE false
+    END AS missing_reminder,
+    CASE
+      WHEN COALESCE(reminder_jobs.total_reminder_jobs, 0) > 0
+        OR reminder_history.last_reminder_sent_at IS NOT NULL THEN true
+      ELSE false
+    END AS reminder_offered
   FROM appointments a
   LEFT JOIN cases c ON c.id = a.case_id
+  LEFT JOIN contacts contact ON contact.id = a.contact_id
   LEFT JOIN users u ON u.id = a.pointperson_user_id
   LEFT JOIN portal_users pu ON pu.id = a.requested_by_portal
+  LEFT JOIN LATERAL (
+    SELECT
+      MIN(j.scheduled_for) FILTER (WHERE j.status IN ('pending', 'processing')) AS next_reminder_at,
+      COUNT(*) FILTER (WHERE j.status IN ('pending', 'processing'))::int AS pending_reminder_jobs,
+      COUNT(*)::int AS total_reminder_jobs
+    FROM appointment_reminder_jobs j
+    WHERE j.appointment_id = a.id
+  ) reminder_jobs ON true
+  LEFT JOIN LATERAL (
+    SELECT MAX(d.sent_at) AS last_reminder_sent_at
+    FROM appointment_reminder_deliveries d
+    WHERE d.appointment_id = a.id
+  ) reminder_history ON true
+  LEFT JOIN LATERAL (
+    SELECT
+      (
+        SELECT COUNT(*)::int
+        FROM case_notes cn
+        WHERE cn.case_id = a.case_id
+          AND cn.source_entity_type = 'appointment'
+          AND cn.source_entity_id = a.id
+      ) AS linked_note_count,
+      (
+        SELECT COUNT(*)::int
+        FROM case_outcomes co
+        WHERE co.case_id = a.case_id
+          AND co.source_entity_type = 'appointment'
+          AND co.source_entity_id = a.id
+      ) AS linked_outcome_count
+  ) resolution_counts ON true
 `;
 
 const SLOT_SELECT = `
@@ -115,89 +193,6 @@ const normalizeSlot = (row: Record<string, unknown>): AppointmentSlot => {
     booked_count: Number(row.booked_count || 0),
     available_count: Number(row.available_count || 0),
   };
-};
-
-const getCaseContactId = async (caseId: string | null | undefined): Promise<string | null> => {
-  if (!caseId) {
-    return null;
-  }
-
-  const result = await pool.query<{ contact_id: string }>(
-    'SELECT contact_id FROM cases WHERE id = $1 LIMIT 1',
-    [caseId]
-  );
-
-  return result.rows[0]?.contact_id ?? null;
-};
-
-const statusConsumesSlotCapacity = (status: string): boolean => status !== 'cancelled';
-
-const applySlotTransition = async (
-  client: { query: <T = Record<string, unknown>>(text: string, params?: unknown[]) => Promise<{ rows: T[] }> },
-  args: {
-    slotId: string;
-    previousStatus: string;
-    nextStatus: string;
-  }
-): Promise<void> => {
-  const previousConsumes = statusConsumesSlotCapacity(args.previousStatus);
-  const nextConsumes = statusConsumesSlotCapacity(args.nextStatus);
-
-  if (previousConsumes === nextConsumes) {
-    return;
-  }
-
-  const slotResult = await client.query<{
-    id: string;
-    status: 'open' | 'closed' | 'cancelled';
-    capacity: number;
-    booked_count: number;
-  }>(
-    `SELECT id, status, capacity, booked_count
-     FROM appointment_availability_slots
-     WHERE id = $1
-     FOR UPDATE`,
-    [args.slotId]
-  );
-
-  const slot = slotResult.rows[0];
-  if (!slot) {
-    throw new Error('Appointment slot not found');
-  }
-
-  if (!previousConsumes && nextConsumes) {
-    if (slot.status === 'cancelled') {
-      throw new Error('Cannot confirm an appointment tied to a cancelled slot');
-    }
-    if (Number(slot.booked_count) >= Number(slot.capacity)) {
-      throw new Error('Slot is fully booked');
-    }
-
-    await client.query(
-      `UPDATE appointment_availability_slots
-       SET booked_count = booked_count + 1,
-           status = CASE
-             WHEN booked_count + 1 >= capacity THEN 'closed'
-             ELSE status
-           END,
-           updated_at = NOW()
-       WHERE id = $1`,
-      [args.slotId]
-    );
-    return;
-  }
-
-  await client.query(
-    `UPDATE appointment_availability_slots
-     SET booked_count = GREATEST(booked_count - 1, 0),
-         status = CASE
-           WHEN status = 'closed' AND booked_count - 1 < capacity THEN 'open'
-           ELSE status
-         END,
-         updated_at = NOW()
-     WHERE id = $1`,
-    [args.slotId]
-  );
 };
 
 export const listPortalAppointmentSlots = async (
@@ -346,49 +341,7 @@ export const listAdminAppointments = async (filters?: {
 
   const pagedValues = [...values, limit, offset];
   const rows = await pool.query<PortalAppointment>(
-    `SELECT
-       a.id,
-       a.contact_id,
-       a.case_id,
-       a.pointperson_user_id,
-       a.slot_id,
-       a.request_type,
-       a.title,
-       a.description,
-       a.start_time,
-       a.end_time,
-       a.status,
-       a.checked_in_at,
-       a.checked_in_by,
-       a.location,
-       a.created_at,
-       a.updated_at,
-       c.case_number,
-       c.title AS case_title,
-       u.first_name AS pointperson_first_name,
-       u.last_name AS pointperson_last_name,
-       u.email AS pointperson_email,
-       pu.id AS portal_user_id,
-       pu.email AS portal_email,
-       reminder_jobs.next_reminder_at,
-       reminder_jobs.pending_reminder_jobs,
-       reminder_history.last_reminder_sent_at
-     FROM appointments a
-     LEFT JOIN cases c ON c.id = a.case_id
-     LEFT JOIN users u ON u.id = a.pointperson_user_id
-     LEFT JOIN portal_users pu ON pu.id = a.requested_by_portal
-     LEFT JOIN LATERAL (
-       SELECT
-         MIN(j.scheduled_for) FILTER (WHERE j.status IN ('pending', 'processing')) AS next_reminder_at,
-         COUNT(*) FILTER (WHERE j.status IN ('pending', 'processing'))::int AS pending_reminder_jobs
-       FROM appointment_reminder_jobs j
-       WHERE j.appointment_id = a.id
-     ) reminder_jobs ON true
-     LEFT JOIN LATERAL (
-       SELECT MAX(d.sent_at) AS last_reminder_sent_at
-       FROM appointment_reminder_deliveries d
-       WHERE d.appointment_id = a.id
-     ) reminder_history ON true
+    `${APPOINTMENT_SELECT}
      ${whereClause}
      ORDER BY a.start_time ASC
      LIMIT $${pagedValues.length - 1}
@@ -450,7 +403,7 @@ export const createAppointmentSlot = async (input: {
     throw new Error('Failed to create slot');
   }
 
-  const contactId = await getCaseContactId(slot.case_id);
+  const contactId = await getCaseContactId(pool, slot.case_id);
   publishPortalSlotUpdated({
     entityId: slot.id,
     caseId: slot.case_id,
@@ -519,7 +472,7 @@ export const updateAppointmentSlot = async (input: {
     return null;
   }
 
-  const contactId = await getCaseContactId(updatedSlot.case_id);
+    const contactId = await getCaseContactId(pool, updatedSlot.case_id);
   publishPortalSlotUpdated({
     entityId: updatedSlot.id,
     caseId: updatedSlot.case_id,
@@ -555,7 +508,7 @@ export const deleteAppointmentSlot = async (slotId: string): Promise<boolean> =>
       [slotId]
     );
     const cancelledSlot = await getSlotById(slotId);
-    const contactId = await getCaseContactId(cancelledSlot?.case_id ?? existingSlot.case_id);
+    const contactId = await getCaseContactId(pool, cancelledSlot?.case_id ?? existingSlot.case_id);
     publishPortalSlotUpdated({
       entityId: slotId,
       caseId: cancelledSlot?.case_id ?? existingSlot.case_id,
@@ -573,7 +526,7 @@ export const deleteAppointmentSlot = async (slotId: string): Promise<boolean> =>
   );
   const deleted = Boolean(result.rows[0]);
   if (deleted) {
-    const contactId = await getCaseContactId(existingSlot.case_id);
+    const contactId = await getCaseContactId(pool, existingSlot.case_id);
     publishPortalSlotUpdated({
       entityId: slotId,
       caseId: existingSlot.case_id,
@@ -971,6 +924,9 @@ export const updateAppointmentStatusByStaff = async (input: {
   appointmentId: string;
   status: 'requested' | 'confirmed' | 'cancelled' | 'completed';
   checkedInBy?: string | null;
+  resolutionNote?: string;
+  outcomeDefinitionIds?: string[];
+  outcomeVisibility?: boolean;
 }): Promise<PortalAppointment | null> => {
   const client = await pool.connect();
 
@@ -978,18 +934,32 @@ export const updateAppointmentStatusByStaff = async (input: {
     await client.query('BEGIN');
 
     const currentResult = await client.query(
-      `SELECT id, status, slot_id
+      `SELECT id, status, slot_id, case_id
        FROM appointments
        WHERE id = $1
        FOR UPDATE`,
       [input.appointmentId]
     );
 
-    const current = currentResult.rows[0] as { id: string; status: string; slot_id: string | null } | undefined;
+    const current = currentResult.rows[0] as {
+      id: string;
+      status: string;
+      slot_id: string | null;
+      case_id: string | null;
+    } | undefined;
     if (!current) {
       await client.query('ROLLBACK');
       return null;
     }
+
+    const resolution = getCaseLinkedAppointmentResolution({
+      caseId: current.case_id,
+      appointmentId: input.appointmentId,
+      status: input.status,
+      checkedInBy: input.checkedInBy,
+      resolutionNote: input.resolutionNote,
+      outcomeDefinitionIds: input.outcomeDefinitionIds,
+    });
 
     await client.query(
       `UPDATE appointments
@@ -1014,6 +984,17 @@ export const updateAppointmentStatusByStaff = async (input: {
         nextStatus: input.status,
       });
     }
+
+    await createCaseLinkedAppointmentResolution(client, {
+      caseId: current.case_id,
+      appointmentId: input.appointmentId,
+      checkedInBy: input.checkedInBy,
+      status: input.status,
+      resolutionNote: resolution.resolutionNote,
+      outcomeDefinitionIds: resolution.outcomeDefinitionIds,
+      outcomeVisibility: input.outcomeVisibility,
+      needsResolution: resolution.needsResolution,
+    });
 
     await client.query('COMMIT');
     const updatedAppointment = await getAppointmentById(input.appointmentId);
@@ -1073,9 +1054,15 @@ export const updateAppointmentStatusByStaff = async (input: {
 export const checkInAppointmentByStaff = async (input: {
   appointmentId: string;
   checkedInBy: string;
+  resolutionNote?: string;
+  outcomeDefinitionIds?: string[];
+  outcomeVisibility?: boolean;
 }): Promise<PortalAppointment | null> =>
   updateAppointmentStatusByStaff({
     appointmentId: input.appointmentId,
     status: 'completed',
     checkedInBy: input.checkedInBy,
+    resolutionNote: input.resolutionNote,
+    outcomeDefinitionIds: input.outcomeDefinitionIds,
+    outcomeVisibility: input.outcomeVisibility,
   });

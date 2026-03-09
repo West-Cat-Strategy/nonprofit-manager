@@ -90,8 +90,20 @@ export const createCaseNoteQuery = async (
   const insertedResult = await db.query(
     `
     INSERT INTO case_notes (
-      case_id, note_type, subject, category, content, is_internal, visible_to_client, is_important, attachments, created_by, updated_by
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      case_id,
+      note_type,
+      subject,
+      category,
+      content,
+      is_internal,
+      visible_to_client,
+      is_important,
+      attachments,
+      source_entity_type,
+      source_entity_id,
+      created_by,
+      updated_by
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::uuid, $12, $13)
     RETURNING id
   `,
     [
@@ -104,6 +116,8 @@ export const createCaseNoteQuery = async (
       visibleToClient,
       data.is_important || false,
       JSON.stringify(data.attachments || null),
+      data.source_entity_type || null,
+      data.source_entity_id || null,
       userId,
       userId || null,
     ]
@@ -188,6 +202,16 @@ export const updateCaseNoteQuery = async (
   if (data.attachments !== undefined) {
     fields.push(`attachments = $${index++}`);
     values.push(JSON.stringify(data.attachments || null));
+  }
+
+  if (data.source_entity_type !== undefined) {
+    fields.push(`source_entity_type = $${index++}`);
+    values.push(data.source_entity_type || null);
+  }
+
+  if (data.source_entity_id !== undefined) {
+    fields.push(`source_entity_id = $${index++}`);
+    values.push(data.source_entity_id || null);
   }
 
   if (fields.length === 0) {

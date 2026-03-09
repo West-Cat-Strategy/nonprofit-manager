@@ -414,6 +414,8 @@ export class DonationService {
             entityId: donation.donation_id,
             relatedEntityType: contact_id ? 'contact' : undefined,
             relatedEntityId: contact_id || undefined,
+            sourceTable: 'donations',
+            sourceRecordId: donation.donation_id,
             metadata: {
               amount,
               currency,

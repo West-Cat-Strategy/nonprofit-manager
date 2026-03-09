@@ -40,22 +40,32 @@ source "$SCRIPT_DIR/lib/migration-manifest.sh"
 
 if [[ "$has_db_name" == "true" ]]; then
   DB_NAME="$inbound_db_name"
+else
+  DB_NAME="${DB_VERIFY_NAME:-nonprofit_manager_test}"
 fi
 
 if [[ "$has_db_host" == "true" ]]; then
   DB_HOST="$inbound_db_host"
+else
+  DB_HOST="${DB_VERIFY_HOST:-localhost}"
 fi
 
 if [[ "$has_db_port" == "true" ]]; then
   DB_PORT="$inbound_db_port"
+else
+  DB_PORT="${DB_VERIFY_PORT:-8012}"
 fi
 
 if [[ "$has_db_user" == "true" ]]; then
   DB_USER="$inbound_db_user"
+else
+  DB_USER="${DB_VERIFY_USER:-postgres}"
 fi
 
 if [[ "$has_db_password" == "true" ]]; then
   DB_PASSWORD="$inbound_db_password"
+else
+  DB_PASSWORD="${DB_VERIFY_PASSWORD:-postgres}"
 fi
 
 usage() {
@@ -108,9 +118,28 @@ load_migration_manifest "$MIGRATIONS_DIR"
 
 export PGHOST="${DB_HOST:-localhost}"
 export PGPORT="${DB_PORT:-5432}"
-export PGDATABASE="${DB_NAME}"
 export PGUSER="${DB_USER:-postgres}"
 export PGPASSWORD="${DB_PASSWORD:-}"
+
+ensure_verify_database() {
+  local target_db="$1"
+  local exists
+
+  exists="$(
+    PGDATABASE=postgres psql -v ON_ERROR_STOP=1 -tA -c \
+      "SELECT 1 FROM pg_database WHERE datname = '$target_db';" 2>/dev/null || true
+  )"
+
+  if [[ "$exists" == "1" ]]; then
+    return
+  fi
+
+  log_info "Creating verification database ${target_db}"
+  PGDATABASE=postgres psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE \"$target_db\";" >/dev/null
+}
+
+ensure_verify_database "$DB_NAME"
+export PGDATABASE="${DB_NAME}"
 
 log_info "Verifying migrations against ${PGDATABASE}"
 

@@ -20,8 +20,9 @@ import {
   ImportExportModal,
   type TableColumn,
 } from '../../../components/people';
+import { SecondaryButton } from '../../../components/ui';
 import ConfirmDialog from '../../../components/ConfirmDialog';
-import { useBulkSelect, useImportExport } from '../../../hooks';
+import { useBulkSelect } from '../../../hooks';
 import { BrutalBadge } from '../../../components/neo-brutalist';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 
@@ -41,7 +42,6 @@ const AccountList = () => {
     deselectAll,
   } = useBulkSelect();
 
-  const { exportToCSV } = useImportExport();
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || filters.search || '');
   const [accountTypeFilter, setAccountTypeFilter] = useState(searchParams.get('type') || filters.account_type || '');
@@ -148,34 +148,6 @@ const AccountList = () => {
     loadAccounts();
   };
 
-  const handleBulkExport = () => {
-    const ids = Array.from(selectedIds);
-    const selectedAccounts = accounts.filter((a) => ids.includes(a.account_id));
-
-    const columns = [
-      'account_number',
-      'account_name',
-      'account_type',
-      'category',
-      'email',
-    ] as const;
-
-    exportToCSV(
-      selectedAccounts.map((a) => ({
-        account_number: a.account_number,
-        account_name: a.account_name,
-        account_type: a.account_type,
-        category: a.category,
-        email: a.email,
-      })),
-      columns,
-      {
-        filename: 'accounts-export',
-        includeHeaders: true,
-      }
-    );
-  };
-
   const columns: TableColumn<Account>[] = [
     {
       key: 'account_number',
@@ -264,6 +236,11 @@ const AccountList = () => {
         title="Accounts"
         description="Manage organizational and individual accounts"
         getRowId={(row) => row.account_id}
+        headerActions={
+          <SecondaryButton onClick={() => setShowImportExport(true)}>
+            Import / Export
+          </SecondaryButton>
+        }
         onCreateNew={() => navigate('/accounts/new')}
         createButtonLabel="New Account"
         filters={
@@ -345,11 +322,6 @@ const AccountList = () => {
                 {
                   id: 'export',
                   label: 'Export',
-                  onClick: handleBulkExport,
-                },
-                {
-                  id: 'import',
-                  label: 'Import',
                   onClick: () => setShowImportExport(true),
                 },
                 {
@@ -388,7 +360,19 @@ const AccountList = () => {
         isOpen={showImportExport}
         onClose={() => setShowImportExport(false)}
         entityType="accounts"
-        sampleData={accounts}
+        selectedIds={Array.from(selectedIds)}
+        exportRequest={{
+          search: searchInput || undefined,
+          account_type: accountTypeFilter || undefined,
+          category: categoryFilter || undefined,
+          is_active: resolvedIsActive,
+          sort_by: sortBy,
+          sort_order: sortOrder,
+        }}
+        onImportComplete={() => {
+          deselectAll();
+          loadAccounts();
+        }}
       />
       <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </>

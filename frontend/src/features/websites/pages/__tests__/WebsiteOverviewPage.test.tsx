@@ -4,9 +4,39 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { vi } from 'vitest';
 import WebsiteOverviewPage from '../WebsiteOverviewPage';
 
+const dispatchMock = vi.fn(() => Promise.resolve());
+
 const mockState = {
   websites: {
     isLoading: false,
+    funnelLoading: false,
+    funnelError: null as string | null,
+    funnel: {
+      siteId: 'site-1',
+      periodStart: '2026-02-05T00:00:00.000Z',
+      periodEnd: '2026-03-06T00:00:00.000Z',
+      steps: [
+        { step: 'view', count: 240, uniqueVisitors: 120 },
+        { step: 'submit', count: 36, uniqueVisitors: 24 },
+        { step: 'confirm', count: 18, uniqueVisitors: 14 },
+      ],
+      recentEvents: [
+        {
+          id: 'funnel-1',
+          conversionType: 'form_submit',
+          step: 'submit',
+          pagePath: '/volunteer',
+          visitorId: 'visitor-1',
+          sessionId: 'session-1',
+          referrer: null,
+          userAgent: 'Mozilla/5.0',
+          sourceEntityType: 'volunteer',
+          sourceEntityId: 'volunteer-1',
+          eventData: {},
+          occurredAt: '2026-03-05T14:00:00.000Z',
+        },
+      ],
+    },
   },
 };
 
@@ -145,6 +175,7 @@ const overview = {
 };
 
 vi.mock('../../../../store/hooks', () => ({
+  useAppDispatch: () => dispatchMock,
   useAppSelector: (selector: (state: typeof mockState) => unknown) => selector(mockState),
 }));
 
@@ -153,14 +184,27 @@ vi.mock('../../hooks/useWebsiteOverviewLoader', () => ({
   default: () => overview,
 }));
 
+vi.mock('../../state', () => ({
+  fetchWebsiteConversionFunnel: (payload: unknown) => ({
+    type: 'websites/fetchConversionFunnel',
+    payload,
+  }),
+}));
+
 describe('WebsiteOverviewPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders site health, live routes, and site-aware builder actions', () => {
+  it('renders site health, live routes, and the additive funnel summary', () => {
     renderOverview();
 
+    expect(dispatchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'websites/fetchConversionFunnel',
+        payload: { siteId: 'site-1', windowDays: 30 },
+      })
+    );
     expect(screen.getByText('Neighborhood Mutual Aid')).toBeInTheDocument();
     expect(screen.getByText('Total conversions')).toBeInTheDocument();
     expect(screen.getByText('14')).toBeInTheDocument();
@@ -180,6 +224,14 @@ describe('WebsiteOverviewPage', () => {
     expect(screen.getByText('Home')).toBeInTheDocument();
     expect(screen.getAllByText('/events')).toHaveLength(2);
     expect(screen.getByText(/event register/i)).toBeInTheDocument();
+    expect(screen.getByText('Conversion funnel')).toBeInTheDocument();
+    expect(screen.getByText('240')).toBeInTheDocument();
+    expect(screen.getByText('36')).toBeInTheDocument();
+    expect(screen.getByText('18')).toBeInTheDocument();
+    expect(screen.getByText(/View to Submit: 15%/i)).toBeInTheDocument();
+    expect(screen.getByText(/Drop-off: 204/i)).toBeInTheDocument();
+    expect(screen.getByText(/Submit • form submit/i)).toBeInTheDocument();
+    expect(screen.getByText('/volunteer')).toBeInTheDocument();
   });
 });
 

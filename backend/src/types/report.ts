@@ -8,6 +8,9 @@ export const REPORT_ENTITIES = [
   'contacts',
   'donations',
   'events',
+  'appointments',
+  'follow_ups',
+  'attendance',
   'volunteers',
   'tasks',
   'cases',
@@ -64,6 +67,50 @@ export interface ReportResult {
   data: Record<string, unknown>[];
   total_count: number;
   generated_at: string;
+}
+
+export type WorkflowCoverageMissingFilter = 'note' | 'outcome' | 'reminder' | 'attendance';
+
+export interface WorkflowCoverageFilters {
+  ownerId?: string;
+  statusType?: 'intake' | 'active' | 'review' | 'closed' | 'cancelled';
+  missing?: WorkflowCoverageMissingFilter;
+}
+
+export interface WorkflowCoverageItem {
+  caseId: string;
+  caseNumber: string;
+  caseTitle: string;
+  contactName: string | null;
+  assignedToId: string | null;
+  assignedToName: string | null;
+  statusName: string | null;
+  statusType: 'intake' | 'active' | 'review' | 'closed' | 'cancelled' | null;
+  missingConversationResolutionCount: number;
+  missingAppointmentNoteCount: number;
+  missingAppointmentOutcomeCount: number;
+  missingFollowUpNoteCount: number;
+  missingFollowUpOutcomeCount: number;
+  missingReminderOfferCount: number;
+  missingAttendanceLinkageCount: number;
+  missingCaseStatusOutcomeCount: number;
+  totalGaps: number;
+}
+
+export interface WorkflowCoverageReportResult {
+  items: WorkflowCoverageItem[];
+  summary: {
+    casesWithGaps: number;
+    missingConversationResolutionCount: number;
+    missingAppointmentNoteCount: number;
+    missingAppointmentOutcomeCount: number;
+    missingFollowUpNoteCount: number;
+    missingFollowUpOutcomeCount: number;
+    missingReminderOfferCount: number;
+    missingAttendanceLinkageCount: number;
+    missingCaseStatusOutcomeCount: number;
+    totalGaps: number;
+  };
 }
 
 export type ReportExportJobStatus = 'pending' | 'processing' | 'completed' | 'failed';
@@ -150,6 +197,52 @@ export const AVAILABLE_FIELDS: Record<ReportEntity, ReportField[]> = {
     { field: 'capacity', label: 'Capacity', type: 'number' },
     { field: 'start_date', label: 'Start Date', type: 'date' },
     { field: 'end_date', label: 'End Date', type: 'date' },
+    { field: 'created_at', label: 'Created Date', type: 'date' },
+  ],
+  appointments: [
+    { field: 'id', label: 'Appointment ID', type: 'string' },
+    { field: 'title', label: 'Title', type: 'string' },
+    { field: 'request_type', label: 'Request Type', type: 'string' },
+    { field: 'status', label: 'Status', type: 'string' },
+    { field: 'attendance_state', label: 'Attendance State', type: 'string' },
+    { field: 'case_number', label: 'Case Number', type: 'string' },
+    { field: 'case_title', label: 'Case Title', type: 'string' },
+    { field: 'contact_name', label: 'Contact', type: 'string' },
+    { field: 'pointperson_name', label: 'Point Person', type: 'string' },
+    { field: 'location', label: 'Location', type: 'string' },
+    { field: 'start_time', label: 'Start Time', type: 'date' },
+    { field: 'end_time', label: 'End Time', type: 'date' },
+    { field: 'reminder_offered', label: 'Reminder Offered', type: 'boolean' },
+    { field: 'created_at', label: 'Created Date', type: 'date' },
+    { field: 'updated_at', label: 'Updated Date', type: 'date' },
+  ],
+  follow_ups: [
+    { field: 'id', label: 'Follow-up ID', type: 'string' },
+    { field: 'entity_type', label: 'Entity Type', type: 'string' },
+    { field: 'title', label: 'Title', type: 'string' },
+    { field: 'status', label: 'Status', type: 'string' },
+    { field: 'method', label: 'Method', type: 'string' },
+    { field: 'frequency', label: 'Frequency', type: 'string' },
+    { field: 'case_number', label: 'Case Number', type: 'string' },
+    { field: 'contact_name', label: 'Contact', type: 'string' },
+    { field: 'assigned_to_name', label: 'Assigned To', type: 'string' },
+    { field: 'scheduled_date', label: 'Scheduled Date', type: 'date' },
+    { field: 'completed_date', label: 'Completed Date', type: 'date' },
+    { field: 'reminder_minutes_before', label: 'Reminder Minutes', type: 'number' },
+    { field: 'has_reminder', label: 'Reminder Offered', type: 'boolean' },
+    { field: 'created_at', label: 'Created Date', type: 'date' },
+  ],
+  attendance: [
+    { field: 'registration_id', label: 'Attendance ID', type: 'string' },
+    { field: 'event_id', label: 'Event ID', type: 'string' },
+    { field: 'event_name', label: 'Event Name', type: 'string' },
+    { field: 'case_id', label: 'Case ID', type: 'string' },
+    { field: 'case_number', label: 'Case Number', type: 'string' },
+    { field: 'contact_name', label: 'Contact', type: 'string' },
+    { field: 'registration_status', label: 'Registration Status', type: 'string' },
+    { field: 'checked_in', label: 'Checked In', type: 'boolean' },
+    { field: 'check_in_time', label: 'Check-in Time', type: 'date' },
+    { field: 'check_in_method', label: 'Check-in Method', type: 'string' },
     { field: 'created_at', label: 'Created Date', type: 'date' },
   ],
   volunteers: [

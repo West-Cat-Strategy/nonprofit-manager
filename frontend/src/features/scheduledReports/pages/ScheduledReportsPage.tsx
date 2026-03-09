@@ -12,6 +12,7 @@ import {
   SectionCard,
   SelectField,
 } from '../../../components/ui';
+import { triggerFileDownload } from '../../../services/fileDownload';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   createScheduledReport,
@@ -22,11 +23,13 @@ import {
   toggleScheduledReport,
   updateScheduledReport,
 } from '../../scheduledReports/state';
+import { reportsApiClient } from '../../reports/api/reportsApiClient';
 import { fetchSavedReports } from '../../savedReports/state';
 import type {
   ScheduledReport,
   ScheduledReportFormat,
   ScheduledReportFrequency,
+  ScheduledReportRun,
 } from '../../../types/scheduledReport';
 
 const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
@@ -72,6 +75,7 @@ export default function ScheduledReportsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused'>('all');
   const [historyReportId, setHistoryReportId] = useState<string | null>(null);
+  const [downloadingExportJobId, setDownloadingExportJobId] = useState<string | null>(null);
 
   const loadAllScheduledData = useCallback(async () => {
     await Promise.all([
@@ -204,6 +208,29 @@ export default function ScheduledReportsPage() {
     );
     await dispatch(fetchScheduledReports());
     closeEditDialog();
+  };
+
+  const handleDownloadRunArtifact = async (run: ScheduledReportRun) => {
+    if (!run.reportExportJobId) {
+      return;
+    }
+
+    setDownloadingExportJobId(run.reportExportJobId);
+
+    try {
+      const file = await reportsApiClient.downloadExportJob(
+        run.reportExportJobId,
+        run.file_name || `scheduled-report.${run.file_format || 'csv'}`
+      );
+      triggerFileDownload(file);
+    } catch (error) {
+      console.error('Failed to download scheduled report artifact', error);
+      window.alert('Failed to download scheduled report artifact');
+    } finally {
+      setDownloadingExportJobId((current) =>
+        current === run.reportExportJobId ? null : current
+      );
+    }
   };
 
   const renderScheduleForm = (
@@ -529,6 +556,17 @@ export default function ScheduledReportsPage() {
                                     </p>
                                     {run.error_message && (
                                       <p className="mt-1 text-[11px] text-app-accent-text">Error: {run.error_message}</p>
+                                    )}
+                                    {run.status === 'success' && run.reportExportJobId && (
+                                      <SecondaryButton
+                                        className="mt-2 px-2 py-1 text-[11px]"
+                                        onClick={() => void handleDownloadRunArtifact(run)}
+                                        disabled={downloadingExportJobId === run.reportExportJobId}
+                                      >
+                                        {downloadingExportJobId === run.reportExportJobId
+                                          ? 'Downloading...'
+                                          : 'Download Artifact'}
+                                      </SecondaryButton>
                                     )}
                                     {run.status === 'failed' && (
                                       <SecondaryButton

@@ -594,7 +594,7 @@ export class PublicWebsiteFormService {
 
       if (submission.replayedResponse) {
         return {
-          ...(submission.replayedResponse as PublicWebsiteFormResult),
+          ...(submission.replayedResponse as unknown as PublicWebsiteFormResult),
           idempotentReplay: true,
         };
       }
@@ -630,7 +630,11 @@ export class PublicWebsiteFormService {
       }
 
       if (outcome.activity) {
-        await activityEventService.recordEvent(outcome.activity);
+        await activityEventService.recordEvent({
+          ...outcome.activity,
+          sourceTable: submissionId ? 'public_submissions' : null,
+          sourceRecordId: submissionId || null,
+        });
       }
 
       return outcome.result;

@@ -10,6 +10,15 @@ export interface PortalBootstrapSnapshot {
 }
 
 const PORTAL_BOOTSTRAP_TTL_MS = 60_000;
+const portalBootstrapMode = import.meta.env.VITE_UI_PORTAL_BOOTSTRAP_MODE as
+  | 'anonymous'
+  | 'authenticated'
+  | undefined;
+const mockPortalUser: PortalUser = {
+  id: 'ui-preview-portal',
+  email: 'preview.portal@example.org',
+  contactId: null,
+};
 
 let cachedSnapshot: PortalBootstrapSnapshot | null = null;
 let inFlightSnapshot: Promise<PortalBootstrapSnapshot> | null = null;
@@ -24,6 +33,22 @@ const normalizePortalUser = (payload: Record<string, unknown>): PortalUser => ({
 });
 
 const fetchPortalBootstrapSnapshot = async (): Promise<PortalBootstrapSnapshot> => {
+  if (portalBootstrapMode === 'anonymous') {
+    return {
+      status: 'anonymous',
+      user: null,
+      fetchedAt: Date.now(),
+    };
+  }
+
+  if (portalBootstrapMode === 'authenticated') {
+    return {
+      status: 'authenticated',
+      user: mockPortalUser,
+      fetchedAt: Date.now(),
+    };
+  }
+
   try {
     const response = await portalApi.get('/portal/auth/me');
     return {

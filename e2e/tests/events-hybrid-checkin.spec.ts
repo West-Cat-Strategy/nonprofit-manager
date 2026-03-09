@@ -171,18 +171,18 @@ test.describe('Events Hybrid Check-In', () => {
 
     await authenticatedPage.getByLabel('First name').fill('Public');
     await authenticatedPage.getByLabel('Last name').fill('Attendee');
-    await authenticatedPage.getByLabel('Email (or phone)').fill(kioskAttendeeEmail);
+    await authenticatedPage.getByLabel('Email').fill(kioskAttendeeEmail);
     await authenticatedPage.getByLabel('Staff PIN').fill(pin);
-    await authenticatedPage.getByRole('button', { name: 'Check In' }).click();
+    await authenticatedPage.getByRole('button', { name: 'Complete check-in' }).click();
     await expect(authenticatedPage.getByText('Check-in complete. Welcome!')).toBeVisible({
       timeout: 15000,
     });
 
     await authenticatedPage.getByLabel('First name').fill('Public');
     await authenticatedPage.getByLabel('Last name').fill('Attendee');
-    await authenticatedPage.getByLabel('Email (or phone)').fill(kioskAttendeeEmail);
+    await authenticatedPage.getByLabel('Email').fill(kioskAttendeeEmail);
     await authenticatedPage.getByLabel('Staff PIN').fill(pin);
-    await authenticatedPage.getByRole('button', { name: 'Check In' }).click();
+    await authenticatedPage.getByRole('button', { name: 'Complete check-in' }).click();
     await expect(authenticatedPage.getByText('This attendee is already checked in.')).toBeVisible({
       timeout: 15000,
     });

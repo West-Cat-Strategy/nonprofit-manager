@@ -93,6 +93,9 @@ describe('ScheduledReportService', () => {
               rows_count: 0,
               file_format: 'csv',
               file_name: 'opportunities_report_2026-03-02.csv',
+              metadata: {
+                reportExportJobId: 'job-1',
+              },
             },
           ],
         };
@@ -106,33 +109,67 @@ describe('ScheduledReportService', () => {
     });
 
     const service = new ScheduledReportService({ query: mockPoolQuery } as any);
-    const generateReport = jest.fn().mockResolvedValue({
+    const createAndProcessJob = jest.fn().mockResolvedValue({
+      id: 'job-1',
+      organizationId: 'org-1',
+      savedReportId: 'saved-1',
+      scheduledReportId: 'sched-1',
+      requestedBy: 'user-1',
+      source: 'scheduled',
+      name: 'Opportunity Pipeline Core KPI',
+      entity: 'opportunities',
+      format: 'csv',
+      status: 'completed',
       definition: {
         name: 'Opportunity Pipeline Core KPI',
         entity: 'opportunities',
         fields: ['name', 'weighted_amount'],
       },
-      data: [],
-      total_count: 0,
-      generated_at: nowIso,
+      filterHash: 'hash',
+      idempotencyKey: 'scheduled-run:run-1',
+      rowsCount: 0,
+      runtimeMs: 12,
+      failureMessage: null,
+      artifactPath: 'report-exports/job-1/opportunities.csv',
+      artifactContentType: 'text/csv',
+      artifactFileName: 'opportunities.csv',
+      artifactSizeBytes: 23,
+      artifactExpiresAt: nowIso,
+      retentionUntil: nowIso,
+      metadata: {},
+      startedAt: nowIso,
+      completedAt: nowIso,
+      createdAt: nowIso,
+      updatedAt: nowIso,
     });
-    const exportReport = jest.fn().mockResolvedValue(Buffer.from('name,weighted_amount'));
+    const readArtifact = jest.fn().mockResolvedValue(Buffer.from('name,weighted_amount'));
 
-    (service as any).reportService = {
-      generateReport,
-      exportReport,
+    (service as any).reportExportJobs = {
+      createAndProcessJob,
+      readArtifact,
     };
 
-    await service.runScheduledReportNow('org-1', 'sched-1');
+    const run = await service.runScheduledReportNow('org-1', 'sched-1');
 
-    expect(generateReport).toHaveBeenCalledWith(
-      {
+    expect(createAndProcessJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'org-1',
+        savedReportId: 'saved-1',
+        scheduledReportId: 'sched-1',
+        source: 'scheduled',
+        format: 'csv',
+        requestedBy: 'user-1',
+        definition: {
         name: 'Opportunity Pipeline Core KPI',
         entity: 'opportunities',
         fields: ['name', 'weighted_amount'],
-      },
-      { organizationId: 'org-1' }
+        },
+      })
     );
+    expect(readArtifact).toHaveBeenCalled();
     expect(sendMail).not.toHaveBeenCalled();
+    expect(run).toMatchObject({
+      reportExportJobId: 'job-1',
+    });
   });
 });

@@ -130,6 +130,9 @@ export const createCaseOutcomeQuery = async (
       notes,
       visible_to_client,
       entry_source,
+      workflow_stage,
+      source_entity_type,
+      source_entity_id,
       created_by,
       updated_by
     )
@@ -143,7 +146,10 @@ export const createCaseOutcomeQuery = async (
       $7,
       'manual',
       $8,
-      $8
+      $9,
+      $10::uuid,
+      $11,
+      $11
     )
     RETURNING *
   `,
@@ -155,6 +161,9 @@ export const createCaseOutcomeQuery = async (
       data.outcome_date || null,
       data.notes || null,
       visibleToClient,
+      data.workflow_stage || 'manual',
+      data.source_entity_type || null,
+      data.source_entity_id || null,
       userId || null,
     ]
   );
@@ -209,6 +218,21 @@ export const updateCaseOutcomeQuery = async (
         is_portal_visible: data.is_portal_visible,
       })
     );
+  }
+
+  if (data.source_entity_type !== undefined) {
+    fields.push(`source_entity_type = $${idx++}`);
+    values.push(data.source_entity_type || null);
+  }
+
+  if (data.source_entity_id !== undefined) {
+    fields.push(`source_entity_id = $${idx++}`);
+    values.push(data.source_entity_id || null);
+  }
+
+  if (data.workflow_stage !== undefined) {
+    fields.push(`workflow_stage = $${idx++}`);
+    values.push(data.workflow_stage || null);
   }
 
   if (fields.length === 0) {

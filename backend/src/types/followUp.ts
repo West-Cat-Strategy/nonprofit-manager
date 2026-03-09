@@ -1,6 +1,6 @@
 export type FollowUpStatus = 'scheduled' | 'completed' | 'cancelled' | 'overdue';
 export type FollowUpFrequency = 'once' | 'daily' | 'weekly' | 'biweekly' | 'monthly';
-export type FollowUpEntityType = 'case' | 'task';
+export type FollowUpEntityType = 'case' | 'task' | 'contact';
 export type FollowUpMethod = 'phone' | 'email' | 'in_person' | 'video_call' | 'other';
 
 export interface FollowUp {
@@ -31,6 +31,7 @@ export interface FollowUpWithEntity extends FollowUp {
   case_title?: string;
   case_priority?: string;
   contact_name?: string;
+  direct_contact_name?: string;
   task_subject?: string;
   task_priority?: string;
 }
@@ -66,6 +67,8 @@ export interface CompleteFollowUpDTO {
   completed_notes?: string;
   schedule_next?: boolean;
   next_scheduled_date?: string;
+  outcome_definition_ids?: string[];
+  outcome_visibility?: boolean;
 }
 
 export interface FollowUpFilters {

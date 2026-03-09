@@ -9,4 +9,7 @@ export const ReportBuilder = lazy(() => import('../features/reports/pages/Report
 export const ReportTemplates = lazy(() => import('../features/reports/pages/ReportTemplatesPage'));
 export const SavedReports = lazy(() => import('../features/savedReports/pages/SavedReportsPage'));
 export const OutcomesReport = lazy(() => import('../features/reports/pages/OutcomesReportPage'));
+export const WorkflowCoverageReport = lazy(
+  () => import('../features/reports/pages/WorkflowCoverageReportPage')
+);
 export const ScheduledReports = lazy(() => import('../features/scheduledReports/pages/ScheduledReportsPage'));

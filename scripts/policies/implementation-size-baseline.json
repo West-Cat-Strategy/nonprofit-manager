@@ -6,11 +6,13 @@
   "frontend/src/features/adminOps/pages/adminSettings/sections/PortalSection.tsx": 1241,
   "frontend/src/components/EventForm.tsx": 1099,
   "backend/src/modules/portalAdmin/services/portalAppointmentSlotService.ts": 1082,
+  "backend/src/modules/contacts/usecases/contactImportExport.usecase.ts": 1044,
   "frontend/src/components/editor/EditorCanvas.tsx": 1047,
   "backend/src/modules/reconciliation/services/reconciliationService.ts": 1044,
   "frontend/src/features/cases/state/casesCore.ts": 1009,
   "frontend/src/pages/builder/PageEditor.tsx": 939,
   "frontend/src/features/cases/pages/CaseDetailPage.tsx": 939,
   "frontend/src/features/adminOps/pages/ApiSettingsPage.tsx": 914,
-  "frontend/src/features/events/components/EventRegistrationsPanel.tsx": 911
+  "frontend/src/features/events/components/EventRegistrationsPanel.tsx": 911,
+  "backend/src/modules/volunteers/usecases/volunteerImportExport.usecase.ts": 1320
 }

@@ -151,6 +151,7 @@ export interface EventRegistration {
   registration_id: string;
   event_id: string;
   contact_id: string;
+  case_id?: string | null;
   registration_status: RegistrationStatus;
   checked_in: boolean;
   check_in_time: Date | null;
@@ -170,6 +171,7 @@ export interface EventRegistration {
 export interface CreateRegistrationDTO {
   event_id: string;
   contact_id: string;
+  case_id?: string;
   registration_status?: RegistrationStatus;
   notes?: string;
 }

@@ -60,6 +60,14 @@ const reportFieldsParamsSchema = z.object({
   entity: entitySchema,
 });
 
+const workflowCoverageQuerySchema = z
+  .object({
+    ownerId: uuidSchema.optional(),
+    statusType: z.enum(['intake', 'active', 'review', 'closed', 'cancelled']).optional(),
+    missing: z.enum(['note', 'outcome', 'reminder', 'attendance']).optional(),
+  })
+  .strict();
+
 const reportExportSchema = z.object({
   definition: z.record(z.string(), z.unknown()),
   format: z.enum(['csv', 'xlsx']),
@@ -114,6 +122,12 @@ export const createReportsRoutes = (): Router => {
 
   router.get('/outcomes', validateQuery(outcomesReportQuerySchema), controller.getOutcomesReport);
 
+  router.get(
+    '/workflow-coverage',
+    validateQuery(workflowCoverageQuerySchema),
+    controller.getWorkflowCoverageReport
+  );
+
   router.get('/fields/:entity', validateParams(reportFieldsParamsSchema), controller.getAvailableFields);
 
   router.post('/export', validateBody(reportExportSchema), controller.exportReport);
@@ -123,6 +137,12 @@ export const createReportsRoutes = (): Router => {
   router.get('/exports', validateQuery(reportExportJobListQuerySchema), controller.listExportJobs);
 
   router.get('/exports/:id', validateParams(reportExportJobIdParamsSchema), controller.getExportJob);
+
+  router.get(
+    '/exports/:id/download',
+    validateParams(reportExportJobIdParamsSchema),
+    controller.downloadExportJob
+  );
 
   router.get('/templates', validateQuery(reportTemplateListQuerySchema), controller.getTemplates);
 

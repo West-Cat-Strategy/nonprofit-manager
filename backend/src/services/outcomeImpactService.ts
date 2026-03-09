@@ -198,14 +198,17 @@ export class OutcomeImpactService {
           outcome_type,
           outcome_definition_id,
           source_interaction_id,
+          source_entity_type,
+          source_entity_id,
           entry_source,
+          workflow_stage,
           outcome_date,
           notes,
           visible_to_client,
           created_by,
           updated_by
         )
-        VALUES ($1, $2, $3, $4, $5, 'interaction_sync', $6::date, $7, $8, $9, $9)
+        VALUES ($1, $2, $3, $4, $5, 'case_note', $5, 'interaction_sync', 'interaction', $6::date, $7, $8, $9, $9)
         ON CONFLICT (source_interaction_id, outcome_definition_id)
         WHERE source_interaction_id IS NOT NULL
           AND outcome_definition_id IS NOT NULL
@@ -213,12 +216,15 @@ export class OutcomeImpactService {
           case_id = EXCLUDED.case_id,
           account_id = EXCLUDED.account_id,
           outcome_type = EXCLUDED.outcome_type,
+          source_entity_type = EXCLUDED.source_entity_type,
+          source_entity_id = EXCLUDED.source_entity_id,
           outcome_date = EXCLUDED.outcome_date,
           notes = EXCLUDED.notes,
           visible_to_client = EXCLUDED.visible_to_client,
           updated_at = CURRENT_TIMESTAMP,
           updated_by = EXCLUDED.updated_by,
-          entry_source = 'interaction_sync'
+          entry_source = 'interaction_sync',
+          workflow_stage = 'interaction'
       `,
         [
           context.caseId,

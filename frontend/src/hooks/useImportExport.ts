@@ -1,171 +1,114 @@
 /**
  * useImportExport Hook
- * Handles CSV import/export functionality
+ * Handles backend-driven people import/export flows.
  */
 
-import { useState, useCallback } from 'react';
-
-interface ImportExportOptions {
-  filename?: string;
-  includeHeaders?: boolean;
-}
+import { useCallback, useState } from 'react';
+import {
+  peopleImportExportApi,
+  type PeopleExportRequest,
+  type PeopleImportCommitResult,
+  type PeopleImportEntity,
+  type PeopleImportExportFormat,
+  type PeopleImportPreview,
+} from '../services/peopleImportExportApi';
+import { triggerFileDownload } from '../services/fileDownload';
 
 interface UseImportExportReturn {
-  exportToCSV: <T extends object>(
-    data: T[],
-    columns: readonly (keyof T)[],
-    options?: ImportExportOptions
-  ) => void;
-  importFromCSV: (file: File) => Promise<Record<string, string>[]>;
-  parseCSVContent: (content: string) => Record<string, string>[];
+  exportEntity: (
+    entity: PeopleImportEntity,
+    request: PeopleExportRequest
+  ) => Promise<void>;
+  downloadImportTemplate: (
+    entity: PeopleImportEntity,
+    format: PeopleImportExportFormat
+  ) => Promise<void>;
+  previewImport: (
+    entity: PeopleImportEntity,
+    file: File,
+    mapping?: Record<string, string>
+  ) => Promise<PeopleImportPreview>;
+  commitImport: (
+    entity: PeopleImportEntity,
+    file: File,
+    mapping?: Record<string, string>
+  ) => Promise<PeopleImportCommitResult>;
   isLoading: boolean;
   error: string | null;
+  clearError: () => void;
 }
+
+const getErrorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error ? error.message : fallback;
 
 export const useImportExport = (): UseImportExportReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const exportToCSV = useCallback(
-    <T extends object>(
-      data: T[],
-      columns: readonly (keyof T)[],
-      options: ImportExportOptions = {}
-    ) => {
-      try {
-        const { filename = 'export', includeHeaders = true } = options;
+  const run = useCallback(async <T,>(action: () => Promise<T>, fallback: string): Promise<T> => {
+    setIsLoading(true);
+    setError(null);
 
-        // Build CSV content
-        const csvContent: string[] = [];
-
-        // Add headers if requested
-        if (includeHeaders) {
-          csvContent.push(columns.map((col) => String(col)).join(','));
-        }
-
-        // Add data rows
-        data.forEach((row) => {
-          const values = columns.map((col) => {
-            const value = row[col];
-            // Escape quotes and wrap in quotes if contains comma or quote
-            if (
-              value === null ||
-              value === undefined
-            ) {
-              return '';
-            }
-            const stringValue = String(value);
-            if (stringValue.includes(',') || stringValue.includes('"')) {
-              return `"${stringValue.replace(/"/g, '""')}"`;
-            }
-            return stringValue;
-          });
-          csvContent.push(values.join(','));
-        });
-
-        // Create blob and download
-        const csv = csvContent.join('\n');
-        const blob = new Blob([csv], {
-          type: 'text/csv;charset=utf-8;',
-        });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-
-        link.setAttribute('href', url);
-        link.setAttribute(
-          'download',
-          `${filename}-${new Date().toISOString().split('T')[0]}.csv`
-        );
-        link.style.visibility = 'hidden';
-
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Export failed');
-      }
-    },
-    []
-  );
-
-  const parseCSVContent = useCallback((content: string): Record<string, string>[] => {
-    const lines = content.split('\n').filter((line) => line.trim());
-    if (lines.length === 0) return [];
-
-    // Parse headers from first line
-    const headers = parseCSVLine(lines[0]);
-
-    // Parse data rows
-    const rows: Record<string, string>[] = [];
-    for (let i = 1; i < lines.length; i++) {
-      const values = parseCSVLine(lines[i]);
-      const row: Record<string, string> = {};
-      headers.forEach((header, idx) => {
-        row[header] = values[idx] || '';
-      });
-      rows.push(row);
+    try {
+      return await action();
+    } catch (actionError) {
+      const message = getErrorMessage(actionError, fallback);
+      setError(message);
+      throw actionError;
+    } finally {
+      setIsLoading(false);
     }
-
-    return rows;
   }, []);
 
-  const importFromCSV = useCallback(
-    async (file: File): Promise<Record<string, string>[]> => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const text = await file.text();
-        const data = parseCSVContent(text);
-        return data;
-      } catch (err) {
-        const errorMsg =
-          err instanceof Error ? err.message : 'Failed to parse CSV';
-        setError(errorMsg);
-        throw err;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [parseCSVContent]
+  const exportEntity = useCallback(
+    async (entity: PeopleImportEntity, request: PeopleExportRequest): Promise<void> =>
+      run(async () => {
+        const file = await peopleImportExportApi.exportEntity(entity, request);
+        triggerFileDownload(file);
+      }, 'Export failed'),
+    [run]
   );
 
+  const downloadImportTemplate = useCallback(
+    async (entity: PeopleImportEntity, format: PeopleImportExportFormat): Promise<void> =>
+      run(async () => {
+        const file = await peopleImportExportApi.downloadImportTemplate(entity, format);
+        triggerFileDownload(file);
+      }, 'Template download failed'),
+    [run]
+  );
+
+  const previewImport = useCallback(
+    async (
+      entity: PeopleImportEntity,
+      file: File,
+      mapping?: Record<string, string>
+    ): Promise<PeopleImportPreview> =>
+      run(() => peopleImportExportApi.previewImport(entity, file, mapping), 'Import preview failed'),
+    [run]
+  );
+
+  const commitImport = useCallback(
+    async (
+      entity: PeopleImportEntity,
+      file: File,
+      mapping?: Record<string, string>
+    ): Promise<PeopleImportCommitResult> =>
+      run(() => peopleImportExportApi.commitImport(entity, file, mapping), 'Import commit failed'),
+    [run]
+  );
+
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
   return {
-    exportToCSV,
-    importFromCSV,
-    parseCSVContent,
+    exportEntity,
+    downloadImportTemplate,
+    previewImport,
+    commitImport,
     isLoading,
     error,
+    clearError,
   };
 };
-
-/**
- * Helper function to parse a CSV line handling quoted values
- */
-function parseCSVLine(line: string): string[] {
-  const result = [];
-  let current = '';
-  let isQuoted = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    const nextChar = line[i + 1];
-
-    if (char === '"') {
-      if (isQuoted && nextChar === '"') {
-        current += '"';
-        i++; // Skip next quote
-      } else {
-        isQuoted = !isQuoted;
-      }
-    } else if (char === ',' && !isQuoted) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-
-  result.push(current.trim());
-  return result;
-}

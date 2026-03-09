@@ -14,6 +14,7 @@ import {
   clearCurrentCase,
   fetchCaseStatuses,
   fetchCaseMilestones,
+  fetchCaseOutcomeDefinitions,
   createCaseMilestone,
   updateCaseMilestone,
   deleteCaseMilestone,
@@ -28,12 +29,14 @@ import CaseServices from '../../../components/cases/CaseServices';
 import CasePortalConversations from '../../../components/cases/CasePortalConversations';
 import CaseTimeline from '../../../components/cases/CaseTimeline';
 import CaseOutcomesTopics from '../../../components/cases/CaseOutcomesTopics';
+import CaseAppointments from '../../../components/cases/CaseAppointments';
 import type { CaseStatusType, CaseMilestone } from '../../../types/case';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 import { getCasePriorityBadgeColor } from '../utils/casePriority';
 import CaseTeamChatPanel from '../../teamChat/components/CaseTeamChatPanel';
 import CaseDetailTabs from '../components/CaseDetailTabs';
+import CaseStatusChangeModal from '../components/CaseStatusChangeModal';
 
 type TabType =
   | 'overview'
@@ -46,7 +49,8 @@ type TabType =
   | 'relationships'
   | 'services'
   | 'team_chat'
-  | 'portal';
+  | 'portal'
+  | 'appointments';
 
 const teamChatEnabled = import.meta.env.VITE_TEAM_CHAT_ENABLED !== 'false';
 const validTabs: TabType[] = [
@@ -61,6 +65,7 @@ const validTabs: TabType[] = [
   'services',
   'team_chat',
   'portal',
+  'appointments',
 ];
 
 const resolveTab = (requestedTab: string | null): TabType => {
@@ -88,7 +93,14 @@ const CaseDetail = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { showSuccess, showError } = useToast();
-  const { currentCase, caseStatuses, caseMilestones, loading, error } = useAppSelector((state) => state.casesV2);
+  const {
+    currentCase,
+    caseStatuses,
+    caseMilestones,
+    caseOutcomeDefinitions,
+    loading,
+    error,
+  } = useAppSelector((state) => state.casesV2);
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
 
   const requestedTab = searchParams.get('tab');
@@ -97,8 +109,9 @@ const CaseDetail = () => {
   const [isChangingStatus, setIsChangingStatus] = useState(false);
   const [newStatusId, setNewStatusId] = useState('');
   const [statusChangeNotes, setStatusChangeNotes] = useState('');
+  const [statusOutcomeDefinitionIds, setStatusOutcomeDefinitionIds] = useState<string[]>([]);
+  const [statusOutcomeVisibility, setStatusOutcomeVisibility] = useState(false);
 
-  // Milestone form state
   const [showMilestoneForm, setShowMilestoneForm] = useState(false);
   const [editingMilestone, setEditingMilestone] = useState<CaseMilestone | null>(null);
   const [milestoneName, setMilestoneName] = useState('');
@@ -112,6 +125,7 @@ const CaseDetail = () => {
       dispatch(fetchCaseById(id));
       dispatch(fetchCaseStatuses());
       dispatch(fetchCaseMilestones(id));
+      dispatch(fetchCaseOutcomeDefinitions(false));
     }
 
     return () => {
@@ -138,27 +152,51 @@ const CaseDetail = () => {
   const handleStatusChange = async () => {
     if (!id || !newStatusId) return;
 
+    const nextStatus = caseStatuses.find((status) => status.id === newStatusId);
+    const requiresOutcome =
+      nextStatus?.status_type === 'review' ||
+      nextStatus?.status_type === 'closed' ||
+      nextStatus?.status_type === 'cancelled';
+
+    if (!statusChangeNotes.trim()) {
+      showError('Status change notes are required');
+      return;
+    }
+
+    if (requiresOutcome && statusOutcomeDefinitionIds.length === 0) {
+      showError('Select at least one outcome for this status change');
+      return;
+    }
+
     try {
       await dispatch(
         updateCaseStatus({
           id,
           data: {
             new_status_id: newStatusId,
-            notes: statusChangeNotes,
+            notes: statusChangeNotes.trim(),
+            outcome_definition_ids: requiresOutcome ? statusOutcomeDefinitionIds : undefined,
+            outcome_visibility: requiresOutcome ? statusOutcomeVisibility : undefined,
           },
         })
       ).unwrap();
 
       showSuccess('Status updated successfully');
-      setIsChangingStatus(false);
-      setNewStatusId('');
-      setStatusChangeNotes('');
+      closeStatusChangeModal();
       dispatch(fetchCaseById(id));
       setTimelineRefreshKey((value) => value + 1);
     } catch (err) {
       console.error('Failed to update status:', err);
       showError('Failed to update status');
     }
+  };
+
+  const closeStatusChangeModal = () => {
+    setIsChangingStatus(false);
+    setNewStatusId('');
+    setStatusChangeNotes('');
+    setStatusOutcomeDefinitionIds([]);
+    setStatusOutcomeVisibility(false);
   };
 
   const resetMilestoneForm = () => {
@@ -250,6 +288,13 @@ const CaseDetail = () => {
     dispatch(fetchCaseById(id));
     setTimelineRefreshKey((value) => value + 1);
   };
+
+  const activeOutcomeDefinitions = (caseOutcomeDefinitions || []).filter((definition) => definition.is_active);
+  const selectedStatusDefinition = caseStatuses.find((status) => status.id === newStatusId);
+  const selectedStatusRequiresOutcome =
+    selectedStatusDefinition?.status_type === 'review' ||
+    selectedStatusDefinition?.status_type === 'closed' ||
+    selectedStatusDefinition?.status_type === 'cancelled';
 
   const handleToggleClientViewable = async () => {
     if (!id || !currentCase) return;
@@ -372,13 +417,13 @@ const CaseDetail = () => {
     { key: 'services', label: 'Services', count: currentCase.services_count || 0 },
     ...(teamChatEnabled ? [{ key: 'team_chat' as TabType, label: 'Team Chat' }] : []),
     { key: 'portal', label: 'Portal' },
+    { key: 'appointments', label: 'Appointments' },
     { key: 'followups', label: 'Follow-ups' },
   ];
 
   return (
     <NeoBrutalistLayout pageTitle="Case Details">
       <div className="p-6 space-y-6">
-        {/* Header */}
         <BrutalCard color="yellow" className="p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
@@ -431,7 +476,6 @@ const CaseDetail = () => {
           </div>
         </BrutalCard>
 
-        {/* Status Bar */}
         <BrutalCard color="white" className="p-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-6">
@@ -462,79 +506,27 @@ const CaseDetail = () => {
           </div>
         </BrutalCard>
 
-        {/* Status Change Modal */}
-        {isChangingStatus && (
-          <div
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="status-modal-title"
-          >
-            <BrutalCard color="white" className="p-6 max-w-md w-full mx-4">
-              <h3 id="status-modal-title" className="text-lg font-black uppercase mb-4 text-black">
-                Change Case Status
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-black uppercase text-black/70 mb-2">
-                    New Status
-                  </label>
-                  <select
-                    value={newStatusId}
-                    onChange={(e) => setNewStatusId(e.target.value)}
-                    className="w-full px-3 py-2 border-2 border-black bg-app-surface text-black focus:outline-none focus:ring-2 focus:ring-black"
-                    aria-label="Select new status"
-                  >
-                    <option value="">Select new status...</option>
-                    {caseStatuses.map((status) => (
-                      <option key={status.id} value={status.id}>
-                        {status.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-black uppercase text-black/70 mb-2">
-                    Notes
-                  </label>
-                  <textarea
-                    value={statusChangeNotes}
-                    onChange={(e) => setStatusChangeNotes(e.target.value)}
-                    rows={3}
-                    placeholder="Reason for status change..."
-                    className="w-full px-3 py-2 border-2 border-black bg-app-surface text-black focus:outline-none focus:ring-2 focus:ring-black"
-                  />
-                </div>
-                <div className="flex justify-end gap-3">
-                  <BrutalButton
-                    onClick={() => {
-                      setIsChangingStatus(false);
-                      setNewStatusId('');
-                      setStatusChangeNotes('');
-                    }}
-                    variant="secondary"
-                  >
-                    Cancel
-                  </BrutalButton>
-                  <BrutalButton
-                    onClick={handleStatusChange}
-                    disabled={!newStatusId || loading}
-                    variant="primary"
-                  >
-                    {loading ? 'Updating...' : 'Update Status'}
-                  </BrutalButton>
-                </div>
-              </div>
-            </BrutalCard>
-          </div>
-        )}
+        <CaseStatusChangeModal
+          open={isChangingStatus}
+          loading={loading}
+          caseStatuses={caseStatuses}
+          newStatusId={newStatusId}
+          notes={statusChangeNotes}
+          outcomeDefinitionIds={statusOutcomeDefinitionIds}
+          outcomeVisibility={statusOutcomeVisibility}
+          requiresOutcome={selectedStatusRequiresOutcome}
+          outcomeDefinitions={activeOutcomeDefinitions}
+          onNewStatusIdChange={setNewStatusId}
+          onNotesChange={setStatusChangeNotes}
+          onOutcomeDefinitionIdsChange={setStatusOutcomeDefinitionIds}
+          onOutcomeVisibilityChange={setStatusOutcomeVisibility}
+          onCancel={closeStatusChangeModal}
+          onSubmit={handleStatusChange}
+        />
 
-        {/* Tabs */}
         <CaseDetailTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTabWithUrl} />
 
-        {/* Tab Content */}
         <div>
-          {/* Overview Tab */}
           {activeTab === 'overview' && (
             <div
               id="panel-overview"
@@ -542,7 +534,6 @@ const CaseDetail = () => {
               aria-labelledby="tab-overview"
               className="grid grid-cols-1 lg:grid-cols-2 gap-6"
             >
-              {/* Case Information */}
               <BrutalCard color="white" className="p-6">
                 <h3 className="text-lg font-black uppercase mb-4 text-black dark:text-white">
                   Case Information
@@ -685,7 +676,6 @@ const CaseDetail = () => {
             </div>
           )}
 
-          {/* Timeline Tab */}
           {activeTab === 'timeline' && id && (
             <div id="panel-timeline" role="tabpanel" aria-labelledby="tab-timeline">
               <BrutalCard color="white" className="p-6">
@@ -694,7 +684,6 @@ const CaseDetail = () => {
             </div>
           )}
 
-          {/* Notes Tab */}
           {activeTab === 'notes' && id && (
             <div id="panel-notes" role="tabpanel" aria-labelledby="tab-notes">
               <BrutalCard color="white" className="p-6">
@@ -703,7 +692,6 @@ const CaseDetail = () => {
             </div>
           )}
 
-          {/* Outcomes + Topics Tab */}
           {activeTab === 'outcomes_topics' && id && (
             <div id="panel-outcomes-topics" role="tabpanel" aria-labelledby="tab-outcomes-topics">
               <BrutalCard color="white" className="p-6">
@@ -712,17 +700,14 @@ const CaseDetail = () => {
             </div>
           )}
 
-          {/* Documents Tab */}
           {activeTab === 'documents' && id && (
             <div id="panel-documents" role="tabpanel" aria-labelledby="tab-documents">
               <CaseDocuments caseId={id} contactId={currentCase.contact_id} onChanged={refreshCaseArtifacts} />
             </div>
           )}
 
-          {/* Milestones Tab */}
           {activeTab === 'milestones' && id && (
             <div id="panel-milestones" role="tabpanel" aria-labelledby="tab-milestones" className="space-y-4">
-              {/* Progress Bar */}
               <BrutalCard color="white" className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-black uppercase text-black dark:text-white">
@@ -743,7 +728,6 @@ const CaseDetail = () => {
                 </div>
               </BrutalCard>
 
-              {/* Milestone Form */}
               {showMilestoneForm && (
                 <BrutalCard color="white" className="p-6 border-2 border-black bg-[var(--loop-cyan)]">
                   <h3 className="text-lg font-black uppercase mb-4 text-black">
@@ -804,7 +788,6 @@ const CaseDetail = () => {
                 </BrutalCard>
               )}
 
-              {/* Milestone List */}
               {caseMilestones.length === 0 ? (
                 <BrutalCard color="white" className="p-8">
                   <div className="text-center">
@@ -824,7 +807,6 @@ const CaseDetail = () => {
                         className={`p-4 ${milestone.is_completed ? 'opacity-80' : ''}`}
                       >
                         <div className="flex items-start gap-4">
-                          {/* Completion checkbox */}
                           <button
                             onClick={() => handleToggleMilestoneComplete(milestone)}
                             className={`mt-1 w-6 h-6 border-2 border-black flex items-center justify-center flex-shrink-0 transition-colors ${milestone.is_completed ? 'bg-[var(--loop-green)]' : 'bg-app-surface hover:bg-app-surface-muted'
@@ -834,7 +816,6 @@ const CaseDetail = () => {
                             {milestone.is_completed && <span className="text-black font-black">✓</span>}
                           </button>
 
-                          {/* Content */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-1">
                               <span className="text-xs font-black text-black/50 dark:text-white/50">#{index + 1}</span>
@@ -862,7 +843,6 @@ const CaseDetail = () => {
                             </div>
                           </div>
 
-                          {/* Actions */}
                           <div className="flex gap-2 shrink-0">
                             <button
                               onClick={() => handleEditMilestone(milestone)}
@@ -886,23 +866,36 @@ const CaseDetail = () => {
             </div>
           )}
 
-          {/* Team Chat Tab */}
           {teamChatEnabled && activeTab === 'team_chat' && id && (
             <div id="panel-team-chat" role="tabpanel" aria-labelledby="tab-team-chat">
               <CaseTeamChatPanel caseId={id} />
             </div>
           )}
 
-          {/* Portal Tab */}
           {activeTab === 'portal' && id && (
             <div id="panel-portal" role="tabpanel" aria-labelledby="tab-portal">
               <BrutalCard color="white" className="p-6">
-                <CasePortalConversations caseId={id} />
+                <CasePortalConversations
+                  caseId={id}
+                  outcomeDefinitions={activeOutcomeDefinitions}
+                  onChanged={refreshCaseArtifacts}
+                />
               </BrutalCard>
             </div>
           )}
 
-          {/* Follow-ups Tab */}
+          {activeTab === 'appointments' && id && (
+            <div id="panel-appointments" role="tabpanel" aria-labelledby="tab-appointments">
+              <BrutalCard color="white" className="p-6">
+                <CaseAppointments
+                  caseId={id}
+                  outcomeDefinitions={activeOutcomeDefinitions}
+                  onChanged={refreshCaseArtifacts}
+                />
+              </BrutalCard>
+            </div>
+          )}
+
           {activeTab === 'followups' && id && (
             <div id="panel-followups" role="tabpanel" aria-labelledby="tab-followups">
               <BrutalCard color="white" className="p-6">
@@ -911,7 +904,6 @@ const CaseDetail = () => {
             </div>
           )}
 
-          {/* Relationships Tab */}
           {activeTab === 'relationships' && id && (
             <div id="panel-relationships" role="tabpanel" aria-labelledby="tab-relationships">
               <BrutalCard color="white" className="p-6">
@@ -920,7 +912,6 @@ const CaseDetail = () => {
             </div>
           )}
 
-          {/* Services Tab */}
           {activeTab === 'services' && id && (
             <div id="panel-services" role="tabpanel" aria-labelledby="tab-services">
               <BrutalCard color="white" className="p-6">

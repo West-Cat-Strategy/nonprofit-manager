@@ -286,7 +286,19 @@ export const portalAdminThreadMessageSchema = z.object({
 
 export const portalAdminAppointmentStatusSchema = z.object({
   status: z.enum(['requested', 'confirmed', 'cancelled', 'completed']),
+  resolution_note: z.string().trim().min(1).optional(),
+  outcome_definition_ids: z.array(uuidSchema).optional(),
+  outcome_visibility: z.coerce.boolean().optional(),
 });
+
+export const portalAdminAppointmentCheckInSchema = z
+  .object({
+    resolution_note: z.string().trim().min(1).optional(),
+    outcome_definition_ids: z.array(uuidSchema).optional(),
+    outcome_visibility: z.coerce.boolean().optional(),
+  })
+  .strict()
+  .default({});
 
 export const portalAdminAppointmentsQuerySchema = z
   .object({

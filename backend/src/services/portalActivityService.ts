@@ -22,9 +22,10 @@ interface LogPortalActivityInput {
 
 export const logPortalActivity = async (input: LogPortalActivityInput): Promise<void> => {
   try {
-    await pool.query(
+    const inserted = await pool.query<{ id: string }>(
       `INSERT INTO portal_activity_logs (portal_user_id, action, details, ip_address, user_agent)
-       VALUES ($1, $2, $3, $4, $5)`,
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id`,
       [
         input.portalUserId,
         input.action,
@@ -36,10 +37,12 @@ export const logPortalActivity = async (input: LogPortalActivityInput): Promise<
 
     const portalUser = await pool.query<{
       contact_id: string | null;
+      account_id: string | null;
       display_name: string | null;
     }>(
       `SELECT
          pu.contact_id,
+         c.account_id,
          NULLIF(TRIM(CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, ''))), '') AS display_name
        FROM portal_users pu
        LEFT JOIN contacts c ON c.id = pu.contact_id
@@ -51,12 +54,15 @@ export const logPortalActivity = async (input: LogPortalActivityInput): Promise<
     const contactId = portalUser.rows[0]?.contact_id;
     if (contactId) {
       await activityEventService.recordEvent({
+        organizationId: portalUser.rows[0]?.account_id || null,
         type: 'portal_action',
         title: 'Portal activity',
         description: input.details || input.action,
         userName: portalUser.rows[0]?.display_name || null,
         entityType: 'contact',
         entityId: contactId,
+        sourceTable: inserted.rows[0]?.id ? 'portal_activity_logs' : null,
+        sourceRecordId: inserted.rows[0]?.id || null,
         metadata: {
           action: input.action,
           portalUserId: input.portalUserId,

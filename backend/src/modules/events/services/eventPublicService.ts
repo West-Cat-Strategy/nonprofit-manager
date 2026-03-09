@@ -22,10 +22,10 @@ import {
   EventCheckInWindowEventRow,
   EventParticipantSupport,
   QueryValue,
+  recordActivityEventSafely,
   slugifyPublicEvent,
 } from './shared';
 import { EventRegistrationService } from './eventRegistrationService';
-import { activityEventService } from '@services/activityEventService';
 
 export class EventPublicService {
   private readonly support: EventParticipantSupport;
@@ -488,7 +488,7 @@ export class EventPublicService {
           [eventId]
         );
 
-        await activityEventService.recordEvent(
+        await recordActivityEventSafely(
           {
             type: 'event_registration',
             title: 'Event registration',
@@ -497,12 +497,19 @@ export class EventPublicService {
             entityId: eventId,
             relatedEntityType: 'contact',
             relatedEntityId: contactId,
+            sourceTable: 'event_registrations',
+            sourceRecordId: createdRegistrationResult.rows[0].registration_id,
             metadata: {
               registrationId: createdRegistrationResult.rows[0].registration_id,
               source: 'public',
             },
           },
-          client
+          client,
+          {
+            eventId,
+            contactId,
+            source: 'public-registration',
+          }
         );
 
         registration = createdRegistrationResult.rows[0];
@@ -560,7 +567,7 @@ export class EventPublicService {
         [eventId]
       );
 
-      await activityEventService.recordEvent(
+      await recordActivityEventSafely(
         {
           type: 'event_check_in',
           title: 'Event attendee checked in',
@@ -569,13 +576,20 @@ export class EventPublicService {
           entityId: eventId,
           relatedEntityType: 'contact',
           relatedEntityId: contactId,
+          sourceTable: 'event_registrations',
+          sourceRecordId: checkedInResult.rows[0].registration_id,
           metadata: {
             registrationId: checkedInResult.rows[0].registration_id,
             source: 'public',
             createdRegistration,
           },
         },
-        client
+        client,
+        {
+          eventId,
+          contactId,
+          source: 'public-check-in',
+        }
       );
 
       await client.query('COMMIT');

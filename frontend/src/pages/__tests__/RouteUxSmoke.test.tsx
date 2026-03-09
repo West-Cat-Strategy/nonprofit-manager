@@ -8,6 +8,7 @@ import TaskList from '../../features/tasks/pages/TaskListPage';
 import DonationList from '../finance/donations/DonationList';
 import CaseList from '../../features/cases/pages/CaseListPage';
 import CaseCreate from '../../features/cases/pages/CaseCreatePage';
+import NeoBrutalistDashboard from '../neo-brutalist/NeoBrutalistDashboard';
 import FollowUpsPage from '../../features/followUps/pages/FollowUpsPage';
 import OpportunitiesPage from '../engagement/opportunities/OpportunitiesPage';
 import AnalyticsPage from '../../features/analytics/pages/AnalyticsPage';
@@ -58,6 +59,13 @@ type SmokeCase = {
 };
 
 const smokeCases: SmokeCase[] = [
+  {
+    name: 'dashboard',
+    route: '/dashboard',
+    page: <NeoBrutalistDashboard />,
+    heading: /workbench overview/i,
+    primaryActionPattern: /create intake/i,
+  },
   {
     name: 'accounts',
     route: '/accounts',

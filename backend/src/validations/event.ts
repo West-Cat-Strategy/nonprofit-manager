@@ -236,6 +236,7 @@ export const listRegistrationsQuerySchema = z
 export const createRegistrationSchema = z
   .object({
     contact_id: uuidSchema,
+    case_id: uuidSchema.optional(),
     registration_status: registrationStatusSchema.optional(),
     notes: z.string().max(1000).optional(),
   })

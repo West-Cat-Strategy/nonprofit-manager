@@ -1,6 +1,7 @@
 import api from '../../../services/api';
 import type {
   PublishWebsiteSiteRequest,
+  WebsiteConversionFunnel,
   WebsiteConversionMetrics,
   WebsiteDeploymentInfo,
   WebsiteEntryCreateRequest,
@@ -81,6 +82,14 @@ export class WebsitesApiClient {
   getAnalytics(siteId: string, period?: number): Promise<WebsiteConversionMetrics> {
     return api
       .get<WebsiteConversionMetrics>(`/sites/${siteId}/analytics/summary${buildQuery({ period })}`)
+      .then((response) => response.data);
+  }
+
+  getConversionFunnel(siteId: string, windowDays?: number): Promise<WebsiteConversionFunnel> {
+    return api
+      .get<WebsiteConversionFunnel>(
+        `/sites/${siteId}/analytics/funnel${buildQuery({ windowDays })}`
+      )
       .then((response) => response.data);
   }
 

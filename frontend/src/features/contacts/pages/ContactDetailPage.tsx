@@ -18,9 +18,10 @@ import ContactDocuments from '../../../components/ContactDocuments';
 import ContactTags from '../../../components/ContactTags';
 import ContactTasks from '../../../components/ContactTasks';
 import ContactActivityTimeline from '../../../components/ContactActivityTimeline';
+import FollowUpList from '../../../components/FollowUpList';
 import { formatDate } from '../../../utils/format';
 
-type TabType = 'overview' | 'notes' | 'tasks' | 'activity' | 'documents' | 'payments';
+type TabType = 'overview' | 'notes' | 'tasks' | 'activity' | 'followups' | 'documents' | 'payments';
 
 const ContactDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -126,6 +127,7 @@ const ContactDetail = () => {
     { id: 'notes', label: 'Notes', count: currentContact.note_count || 0 },
     { id: 'tasks', label: 'Tasks' },
     { id: 'activity', label: 'Activity' },
+    { id: 'followups', label: 'Follow-ups' },
     { id: 'documents', label: 'Documents' },
     { id: 'payments', label: 'Payments' },
   ];
@@ -201,6 +203,9 @@ const ContactDetail = () => {
               variant="secondary"
             >
               Add Note
+            </BrutalButton>
+            <BrutalButton onClick={() => setActiveTab('followups')} variant="secondary">
+              Schedule Follow-up
             </BrutalButton>
             <BrutalButton onClick={() => navigate(`/contacts/${id}/edit`)} variant="primary">
               Edit Contact
@@ -506,6 +511,15 @@ const ContactDetail = () => {
               Activity Timeline
             </h2>
             {id && <ContactActivityTimeline contactId={id} />}
+          </BrutalCard>
+        )}
+
+        {activeTab === 'followups' && (
+          <BrutalCard color="white" className="p-6">
+            <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
+              Follow-ups
+            </h2>
+            {id && <FollowUpList entityType="contact" entityId={id} />}
           </BrutalCard>
         )}
 

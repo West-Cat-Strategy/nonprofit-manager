@@ -3,6 +3,7 @@ import api from '../services/api';
 import { defaultDashboardSettings } from '../components/dashboard';
 import type { DashboardSettings } from '../components/dashboard';
 import { useAppSelector } from '../store/hooks';
+import { getUserPreferencesCached, mergeUserPreferencesCached } from '../services/userPreferencesService';
 
 const DASHBOARD_SETTINGS_KEY = 'dashboardSettings';
 const DASHBOARD_SETTINGS_PREF_KEY = 'dashboard_settings';
@@ -54,10 +55,10 @@ const fetchServerDashboardSettings = async (): Promise<DashboardSettings | null>
     return dashboardSettingsInFlight;
   }
 
-  dashboardSettingsInFlight = api
-    .get<{ preferences?: Record<string, Partial<DashboardSettings> | undefined> }>('/auth/preferences')
-    .then((response) => {
-      const serverSettings = response.data?.preferences?.[DASHBOARD_SETTINGS_PREF_KEY];
+  dashboardSettingsInFlight = getUserPreferencesCached()
+    .then((preferences) => {
+      const record = preferences as Record<string, Partial<DashboardSettings> | undefined> | null;
+      const serverSettings = record?.[DASHBOARD_SETTINGS_PREF_KEY];
       if (!serverSettings) {
         return null;
       }
@@ -154,6 +155,7 @@ export function useDashboardSettings(): UseDashboardSettingsResult {
         await api.patch(`/auth/preferences/${DASHBOARD_SETTINGS_PREF_KEY}`, {
           value: settings,
         });
+        mergeUserPreferencesCached(DASHBOARD_SETTINGS_PREF_KEY, settings);
         setDashboardSettingsSnapshot(settings);
       } catch {
         // Ignore save errors (local cache still updated)

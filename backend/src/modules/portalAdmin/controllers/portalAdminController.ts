@@ -784,6 +784,9 @@ export const checkInPortalAdminAppointment = async (
     const appointment = await checkInAppointmentByStaff({
       appointmentId: id,
       checkedInBy: req.user!.id,
+      resolutionNote: req.body.resolution_note,
+      outcomeDefinitionIds: req.body.outcome_definition_ids,
+      outcomeVisibility: req.body.outcome_visibility,
     });
 
     if (!appointment) {
@@ -793,7 +796,7 @@ export const checkInPortalAdminAppointment = async (
 
     sendSuccess(res, { appointment });
   } catch (error) {
-    if (error instanceof Error && /slot/i.test(error.message)) {
+    if (error instanceof Error && (/slot/i.test(error.message) || /resolution_note|outcome definition/i.test(error.message))) {
       badRequest(res, error.message);
       return;
     }
@@ -812,12 +815,18 @@ export const updatePortalAdminAppointmentStatus = async (
     const { id } = req.params;
     const { status } = req.body as {
       status: 'requested' | 'confirmed' | 'cancelled' | 'completed';
+      resolution_note?: string;
+      outcome_definition_ids?: string[];
+      outcome_visibility?: boolean;
     };
 
     const appointment = await updateAppointmentStatusByStaff({
       appointmentId: id,
       status,
       checkedInBy: status === 'completed' ? req.user!.id : null,
+      resolutionNote: req.body.resolution_note,
+      outcomeDefinitionIds: req.body.outcome_definition_ids,
+      outcomeVisibility: req.body.outcome_visibility,
     });
 
     if (!appointment) {
@@ -845,7 +854,7 @@ export const updatePortalAdminAppointmentStatus = async (
 
     sendSuccess(res, { appointment: refreshed || appointment });
   } catch (error) {
-    if (error instanceof Error && /slot/i.test(error.message)) {
+    if (error instanceof Error && (/slot/i.test(error.message) || /resolution_note|outcome definition/i.test(error.message))) {
       badRequest(res, error.message);
       return;
     }

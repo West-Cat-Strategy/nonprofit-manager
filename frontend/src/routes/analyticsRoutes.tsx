@@ -16,6 +16,7 @@ import {
   ReportTemplates,
   ScheduledReports,
   SavedReports,
+  WorkflowCoverageReport,
 } from './analyticsRouteComponents';
 
 // Lazy load analytics pages
@@ -66,6 +67,10 @@ export function createAnalyticsRoutes(ProtectedRoute: React.ComponentType<RouteW
       <Route
         path="/reports/outcomes"
         element={<ProtectedRoute><OutcomesReport /></ProtectedRoute>}
+      />
+      <Route
+        path="/reports/workflow-coverage"
+        element={<ProtectedRoute><WorkflowCoverageReport /></ProtectedRoute>}
       />
       <Route
         path="/reports"

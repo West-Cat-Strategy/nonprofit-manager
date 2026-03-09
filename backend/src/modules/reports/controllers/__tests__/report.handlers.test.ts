@@ -11,6 +11,8 @@ import { Permission } from '@utils/permissions';
 
 jest.mock('@utils/responseHelpers', () => ({
   badRequest: jest.fn((res, message) => res.status(400).json({ error: message, code: 'bad_request' })),
+  conflict: jest.fn((res, message) => res.status(409).json({ error: message, code: 'conflict' })),
+  notFoundMessage: jest.fn((res, message) => res.status(404).json({ error: message, code: 'not_found' })),
   unauthorized: jest.fn((res, message) =>
     res.status(401).json({ error: message, code: 'unauthorized' })
   ),
@@ -32,10 +34,33 @@ jest.mock('@container/services', () => ({
   },
 }));
 
+jest.mock('@services/reportExportJobService', () => ({
+  ReportExportJobArtifactNotReadyError: class ReportExportJobArtifactNotReadyError extends Error {},
+  ReportExportJobArtifactGoneError: class ReportExportJobArtifactGoneError extends Error {},
+  reportExportJobService: {
+    createAndProcessJob: jest.fn(),
+    listJobs: jest.fn(),
+    getJob: jest.fn(),
+    readArtifactFile: jest.fn(),
+  },
+}));
+
 const mockReportService = services.report as jest.Mocked<typeof services.report>;
 const mockRequirePermissionSafe = requirePermissionSafe as jest.Mock;
 const mockSendForbidden = sendForbidden as jest.Mock;
 const mockSendUnauthorized = sendUnauthorized as jest.Mock;
+const {
+  ReportExportJobArtifactGoneError,
+  reportExportJobService,
+} = jest.requireMock('@services/reportExportJobService') as {
+  ReportExportJobArtifactGoneError: new (message: string) => Error;
+  reportExportJobService: {
+    createAndProcessJob: jest.Mock;
+    listJobs: jest.Mock;
+    getJob: jest.Mock;
+    readArtifactFile: jest.Mock;
+  };
+};
 
 describe('Report Controller', () => {
   let mockRequest: Partial<AuthRequest>;
@@ -45,6 +70,7 @@ describe('Report Controller', () => {
   let mockStatus: jest.Mock;
   let mockSend: jest.Mock;
   let mockSetHeader: jest.Mock;
+  let mockGetHeader: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -53,6 +79,7 @@ describe('Report Controller', () => {
     mockSend = jest.fn();
     mockStatus = jest.fn().mockReturnThis();
     mockSetHeader = jest.fn();
+    mockGetHeader = jest.fn().mockReturnValue(undefined);
     mockNext = jest.fn();
 
     mockRequirePermissionSafe.mockReturnValue({ ok: true, value: null });
@@ -74,6 +101,7 @@ describe('Report Controller', () => {
       status: mockStatus,
       send: mockSend,
       setHeader: mockSetHeader,
+      getHeader: mockGetHeader,
     };
   });
 
@@ -237,7 +265,12 @@ describe('Report Controller', () => {
       mockRequest.body = { definition, format: 'csv' };
 
       mockReportService.generateReport.mockResolvedValue(mockResult as never);
-      mockReportService.exportReport.mockResolvedValue(mockBuffer as never);
+      mockReportService.exportReport.mockResolvedValue({
+        buffer: mockBuffer,
+        contentType: 'text/csv; charset=utf-8',
+        extension: 'csv',
+        filename: 'contacts.csv',
+      } as never);
 
       await reportController.exportReport(
         mockRequest as AuthRequest,
@@ -252,7 +285,11 @@ describe('Report Controller', () => {
       expect(mockReportService.generateReport).toHaveBeenCalledWith(definition, {
         organizationId: 'org-1',
       });
-      expect(mockSetHeader).toHaveBeenCalledWith('Content-Type', 'text/csv');
+      expect(mockSetHeader).toHaveBeenCalledWith('Content-Type', 'text/csv; charset=utf-8');
+      expect(mockSetHeader).toHaveBeenCalledWith(
+        'Content-Disposition',
+        'attachment; filename="contacts.csv"'
+      );
       expect(mockSend).toHaveBeenCalledWith(mockBuffer);
     });
 
@@ -311,6 +348,161 @@ describe('Report Controller', () => {
         'Unauthorized: No authenticated user'
       );
       expect(mockReportService.generateReport).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('export jobs', () => {
+    it('creates a persisted export job with org scope', async () => {
+      const definition = {
+        name: 'Contacts export',
+        entity: 'contacts',
+        fields: ['first_name', 'email'],
+      };
+      mockRequest.body = { definition, format: 'csv', idempotencyKey: 'job-1' };
+      reportExportJobService.createAndProcessJob.mockResolvedValue({
+        id: 'job-1',
+        organizationId: 'org-1',
+        name: 'Contacts export',
+        entity: 'contacts',
+        format: 'csv',
+        status: 'completed',
+      });
+
+      await reportController.createExportJob(
+        mockRequest as AuthRequest,
+        mockResponse as Response,
+        mockNext
+      );
+
+      expect(reportExportJobService.createAndProcessJob).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizationId: 'org-1',
+          requestedBy: 'user-1',
+          definition,
+          format: 'csv',
+          idempotencyKey: 'job-1',
+        })
+      );
+      expect(mockStatus).toHaveBeenCalledWith(201);
+      expect(mockJson).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          data: expect.objectContaining({
+            id: 'job-1',
+            status: 'completed',
+          }),
+        })
+      );
+    });
+
+    it('lists export jobs', async () => {
+      reportExportJobService.listJobs.mockResolvedValue([{ id: 'job-1', status: 'completed' }]);
+      mockRequest.query = { limit: '10' };
+      mockRequest.validatedQuery = { limit: 10 } as never;
+
+      await reportController.listExportJobs(
+        mockRequest as AuthRequest,
+        mockResponse as Response,
+        mockNext
+      );
+
+      expect(reportExportJobService.listJobs).toHaveBeenCalledWith('org-1', 10);
+      expect(mockJson).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          data: [{ id: 'job-1', status: 'completed' }],
+        })
+      );
+    });
+
+    it('returns a single export job by id', async () => {
+      mockRequest.params = { id: 'job-1' };
+      reportExportJobService.getJob.mockResolvedValue({ id: 'job-1', status: 'completed' });
+
+      await reportController.getExportJob(
+        mockRequest as AuthRequest,
+        mockResponse as Response,
+        mockNext
+      );
+
+      expect(reportExportJobService.getJob).toHaveBeenCalledWith('org-1', 'job-1');
+      expect(mockJson).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          data: { id: 'job-1', status: 'completed' },
+        })
+      );
+    });
+
+    it('downloads a completed export artifact', async () => {
+      mockRequest.params = { id: 'job-1' };
+      reportExportJobService.getJob.mockResolvedValue({
+        id: 'job-1',
+        status: 'completed',
+        format: 'csv',
+        artifactFileName: 'contacts.csv',
+        artifactContentType: 'text/csv',
+      });
+      reportExportJobService.readArtifactFile.mockResolvedValue({
+        buffer: Buffer.from('email\nalice@example.com'),
+        filename: 'contacts.csv',
+        contentType: 'text/csv',
+        extension: 'csv',
+      });
+
+      await reportController.downloadExportJob(
+        mockRequest as AuthRequest,
+        mockResponse as Response,
+        mockNext
+      );
+
+      expect(reportExportJobService.getJob).toHaveBeenCalledWith('org-1', 'job-1');
+      expect(reportExportJobService.readArtifactFile).toHaveBeenCalled();
+      expect(mockSetHeader).toHaveBeenCalled();
+      expect(mockSend).toHaveBeenCalledWith(Buffer.from('email\nalice@example.com'));
+    });
+
+    it('returns 409 when downloading a non-terminal export job', async () => {
+      mockRequest.params = { id: 'job-1' };
+      reportExportJobService.getJob.mockResolvedValue({ id: 'job-1', status: 'processing' });
+
+      await reportController.downloadExportJob(
+        mockRequest as AuthRequest,
+        mockResponse as Response,
+        mockNext
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(409);
+      expect(reportExportJobService.readArtifactFile).not.toHaveBeenCalled();
+    });
+
+    it('returns 410 when a completed export artifact is unavailable', async () => {
+      mockRequest.params = { id: 'job-1' };
+      reportExportJobService.getJob.mockResolvedValue({
+        id: 'job-1',
+        status: 'completed',
+        format: 'csv',
+        artifactFileName: 'contacts.csv',
+      });
+      reportExportJobService.readArtifactFile.mockRejectedValue(
+        new ReportExportJobArtifactGoneError('gone')
+      );
+
+      await reportController.downloadExportJob(
+        mockRequest as AuthRequest,
+        mockResponse as Response,
+        mockNext
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(410);
+      expect(mockJson).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'gone',
+          }),
+        })
+      );
     });
   });
 });

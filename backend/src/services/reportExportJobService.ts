@@ -17,6 +17,9 @@ import type {
 const DEFAULT_RETENTION_DAYS = 30;
 const EXPORT_SUBDIR = 'report-exports';
 
+export class ReportExportJobArtifactNotReadyError extends Error {}
+export class ReportExportJobArtifactGoneError extends Error {}
+
 interface ReportExportJobRow extends QueryResultRow {
   id: string;
   organization_id: string;
@@ -191,6 +194,14 @@ export class ReportExportJobService {
     return relativePath;
   }
 
+  private isArtifactExpired(job: ReportExportJob): boolean {
+    const expiry = job.artifactExpiresAt || job.retentionUntil;
+    if (!expiry) return false;
+
+    const parsed = new Date(expiry);
+    return !Number.isNaN(parsed.getTime()) && parsed.getTime() <= Date.now();
+  }
+
   async createJob(input: CreateReportExportJobInput): Promise<ReportExportJob> {
     const idempotencyKey = input.idempotencyKey?.trim() || null;
 
@@ -299,6 +310,9 @@ export class ReportExportJobService {
     if (currentJob.status === 'completed') {
       return mapRowToJob(currentJob);
     }
+    if (currentJob.status === 'processing') {
+      return mapRowToJob(currentJob);
+    }
 
     const startedAt = Date.now();
 
@@ -368,12 +382,45 @@ export class ReportExportJobService {
   }
 
   async readArtifact(job: ReportExportJob): Promise<Buffer> {
+    if (job.status !== 'completed') {
+      throw new ReportExportJobArtifactNotReadyError('Report export job is not complete');
+    }
+
     if (!job.artifactPath) {
-      throw new Error('Report export artifact is unavailable');
+      throw new ReportExportJobArtifactGoneError('Report export artifact is unavailable');
+    }
+
+    if (this.isArtifactExpired(job)) {
+      throw new ReportExportJobArtifactGoneError('Report export artifact has expired');
     }
 
     const fullPath = ensureWithinUploadRoot(path.join(resolveUploadRoot(), job.artifactPath));
-    return fs.promises.readFile(fullPath);
+    try {
+      return await fs.promises.readFile(fullPath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException | undefined)?.code === 'ENOENT') {
+        throw new ReportExportJobArtifactGoneError('Report export artifact has been pruned');
+      }
+      throw error;
+    }
+  }
+
+  async readArtifactFile(job: ReportExportJob): Promise<GeneratedTabularFile> {
+    const buffer = await this.readArtifact(job);
+    const contentType =
+      job.artifactContentType ||
+      (job.format === 'xlsx'
+        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        : 'text/csv');
+    const filename =
+      job.artifactFileName || `${job.name.replace(/\s+/g, '_').toLowerCase()}.${job.format}`;
+
+    return {
+      buffer,
+      contentType,
+      extension: job.format,
+      filename,
+    };
   }
 }
 

@@ -439,8 +439,8 @@ describe('ReportService', () => {
         'csv'
       );
 
-      const text = csv.toString('utf8');
-      expect(text).toContain('first_name');
+      const text = csv.buffer.toString('utf8');
+      expect(text).toContain('First Name');
       expect(text).toContain('"He said ""Hi"",\nTeam"');
     });
   });

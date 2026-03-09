@@ -10,8 +10,10 @@ export type KpiKey =
   | 'engagement';
 
 export interface DashboardSettings {
+  showWorkspaceSummary: boolean;
   showQuickLookup: boolean;
   showQuickActions: boolean;
+  showPinnedWorkstreams: boolean;
   showModules: boolean;
   showEngagementChart: boolean;
   showVolunteerWidget: boolean;
@@ -31,8 +33,10 @@ export const KPI_LABELS: Record<KpiKey, string> = {
 };
 
 export const defaultDashboardSettings: DashboardSettings = {
+  showWorkspaceSummary: true,
   showQuickLookup: true,
   showQuickActions: true,
+  showPinnedWorkstreams: true,
   showModules: true,
   showEngagementChart: true,
   showVolunteerWidget: true,

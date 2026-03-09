@@ -12,6 +12,11 @@ const mockNavigationPreferences = {
       name: 'Cases',
       path: '/cases',
       icon: '📋',
+      area: 'Service',
+      section: 'Engagement',
+      navKind: 'hub',
+      parentId: undefined,
+      breadcrumbLabel: 'Cases',
       enabled: true,
       pinned: true,
       isCore: false,
@@ -25,6 +30,11 @@ const mockNavigationPreferences = {
       name: 'Dashboard',
       path: '/dashboard',
       icon: '📊',
+      area: 'Home',
+      section: 'Core',
+      navKind: 'hub',
+      parentId: undefined,
+      breadcrumbLabel: 'Dashboard',
       enabled: true,
       isCore: true,
       shortLabel: 'Home',
@@ -37,6 +47,11 @@ const mockNavigationPreferences = {
       name: 'People',
       path: '/contacts',
       icon: '👤',
+      area: 'People',
+      section: 'People',
+      navKind: 'hub',
+      parentId: undefined,
+      breadcrumbLabel: 'People',
       enabled: true,
       isCore: false,
       shortLabel: 'People',
@@ -49,6 +64,11 @@ const mockNavigationPreferences = {
       name: 'Dashboard',
       path: '/dashboard',
       icon: '📊',
+      area: 'Home',
+      section: 'Core',
+      navKind: 'hub',
+      parentId: undefined,
+      breadcrumbLabel: 'Dashboard',
       enabled: true,
       isCore: true,
       shortLabel: 'Home',
@@ -59,6 +79,11 @@ const mockNavigationPreferences = {
       name: 'Cases',
       path: '/cases',
       icon: '📋',
+      area: 'Service',
+      section: 'Engagement',
+      navKind: 'hub',
+      parentId: undefined,
+      breadcrumbLabel: 'Cases',
       enabled: true,
       pinned: true,
       isCore: false,
@@ -66,6 +91,25 @@ const mockNavigationPreferences = {
       ariaLabel: 'Cases',
     },
   ],
+  favoriteItems: [
+    {
+      id: 'cases',
+      name: 'Cases',
+      path: '/cases',
+      icon: '📋',
+      area: 'Service',
+      section: 'Engagement',
+      navKind: 'hub',
+      parentId: undefined,
+      breadcrumbLabel: 'Cases',
+      enabled: true,
+      pinned: true,
+      isCore: false,
+      shortLabel: 'Cases',
+      ariaLabel: 'Cases',
+    },
+  ],
+  enabledRouteIds: ['dashboard', 'cases', 'contacts'],
   togglePinned: mockTogglePinned,
   isLoading: false,
   isSynced: true,
@@ -106,7 +150,7 @@ describe('Navigation', () => {
     mockTogglePinned.mockClear();
   });
 
-  it('renders pinned items and exposes unpin action', async () => {
+  it('renders area navigation and the desktop search trigger', () => {
     renderWithProviders(<Navigation />, {
       route: '/dashboard',
       preloadedState: {
@@ -125,10 +169,9 @@ describe('Navigation', () => {
       },
     });
 
-    expect(await screen.findByTestId('desktop-pinned-nav')).toBeInTheDocument();
-    const unpinButton = screen.getByRole('button', { name: /unpin cases/i });
-    fireEvent.click(unpinButton);
-    expect(mockTogglePinned).toHaveBeenCalledWith('cases');
+    expect(screen.getByRole('link', { name: /^home$/i })).toHaveAttribute('href', '/dashboard');
+    expect(screen.getByRole('link', { name: /^people$/i })).toHaveAttribute('href', '/contacts');
+    expect(screen.getByRole('button', { name: /^search$/i })).toBeInTheDocument();
   });
 
   it('shows admin quick actions for admins and hides for non-admins', async () => {

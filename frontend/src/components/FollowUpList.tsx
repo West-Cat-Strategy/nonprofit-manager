@@ -19,6 +19,8 @@ import type { FollowUp, FollowUpEntityType } from '../types/followup';
 import { formatDate, formatTimeString } from '../utils/format';
 import ConfirmDialog from './ConfirmDialog';
 import useConfirmDialog, { confirmPresets } from '../hooks/useConfirmDialog';
+import { casesApiClient } from '../features/cases/api/casesApiClient';
+import type { OutcomeDefinition } from '../types/outcomes';
 
 interface FollowUpListProps {
   entityType: FollowUpEntityType;
@@ -61,9 +63,13 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
 
   const [showForm, setShowForm] = useState(false);
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUp | null>(null);
-  const [completingId, setCompletingId] = useState<string | null>(null);
-  const [completionNotes, setCompletionNotes] = useState('');
+  const [actionFollowUpId, setActionFollowUpId] = useState<string | null>(null);
+  const [actionMode, setActionMode] = useState<'complete' | 'cancel' | null>(null);
+  const [actionNotes, setActionNotes] = useState('');
+  const [actionOutcomeDefinitionIds, setActionOutcomeDefinitionIds] = useState<string[]>([]);
+  const [actionOutcomeVisibility, setActionOutcomeVisibility] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'scheduled' | 'completed' | 'cancelled' | 'overdue'>('all');
+  const [outcomeDefinitions, setOutcomeDefinitions] = useState<OutcomeDefinition[]>([]);
 
   useEffect(() => {
     dispatch(fetchEntityFollowUps({ entityType, entityId }));
@@ -72,40 +78,116 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
     };
   }, [dispatch, entityType, entityId]);
 
+  useEffect(() => {
+    if (entityType !== 'case') {
+      setOutcomeDefinitions([]);
+      return;
+    }
+
+    let active = true;
+    void casesApiClient
+      .listOutcomeDefinitions(false)
+      .then((definitions) => {
+        if (active) {
+          setOutcomeDefinitions(definitions.filter((definition) => definition.is_active));
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setOutcomeDefinitions([]);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [entityType]);
+
+  const beginAction = (followUpId: string, mode: 'complete' | 'cancel') => {
+    setActionFollowUpId(followUpId);
+    setActionMode(mode);
+    setActionNotes('');
+    setActionOutcomeDefinitionIds([]);
+    setActionOutcomeVisibility(false);
+  };
+
+  const resetActionDraft = () => {
+    setActionFollowUpId(null);
+    setActionMode(null);
+    setActionNotes('');
+    setActionOutcomeDefinitionIds([]);
+    setActionOutcomeVisibility(false);
+  };
+
   const handleComplete = async (followUp: FollowUp) => {
-    if (completingId === followUp.id) {
-      // Submit completion
-      try {
-        await dispatch(
-          completeFollowUp({
-            followUpId: followUp.id,
-            data: { completed_notes: completionNotes || undefined },
-          })
-        ).unwrap();
-        showSuccess('Follow-up marked as complete');
-        setCompletingId(null);
-        setCompletionNotes('');
-      } catch {
-        showError('Failed to complete follow-up');
-      }
-    } else {
-      // Show completion notes input
-      setCompletingId(followUp.id);
-      setCompletionNotes('');
+    const isActiveDraft = actionFollowUpId === followUp.id && actionMode === 'complete';
+    if (!isActiveDraft) {
+      beginAction(followUp.id, 'complete');
+      return;
+    }
+
+    if (!actionNotes.trim()) {
+      showError('Completion notes are required');
+      return;
+    }
+
+    if (entityType === 'case' && actionOutcomeDefinitionIds.length === 0) {
+      showError('Select at least one outcome for this case follow-up');
+      return;
+    }
+
+    try {
+      await dispatch(
+        completeFollowUp({
+          followUpId: followUp.id,
+          data: {
+            completed_notes: actionNotes.trim(),
+            outcome_definition_ids:
+              entityType === 'case' ? actionOutcomeDefinitionIds : undefined,
+            outcome_visibility:
+              entityType === 'case' ? actionOutcomeVisibility : undefined,
+          },
+        })
+      ).unwrap();
+      showSuccess('Follow-up marked as complete');
+      resetActionDraft();
+    } catch {
+      showError('Failed to complete follow-up');
     }
   };
 
-  const handleCancelFollowUp = async (followUpId: string) => {
-    const confirmed = await confirm({
-      title: 'Cancel Follow-up',
-      message: 'Are you sure you want to cancel this follow-up?',
-      confirmLabel: 'Cancel Follow-up',
-      variant: 'warning',
-    });
-    if (!confirmed) return;
+  const handleCancelFollowUp = async (followUp: FollowUp) => {
+    const isActiveDraft = actionFollowUpId === followUp.id && actionMode === 'cancel';
+    if (!isActiveDraft) {
+      beginAction(followUp.id, 'cancel');
+      return;
+    }
+
+    if (!actionNotes.trim()) {
+      showError('Cancellation notes are required');
+      return;
+    }
+
+    if (entityType === 'case' && actionOutcomeDefinitionIds.length === 0) {
+      showError('Select at least one outcome for this case follow-up');
+      return;
+    }
+
     try {
-      await dispatch(cancelFollowUp(followUpId)).unwrap();
+      await dispatch(
+        cancelFollowUp({
+          followUpId: followUp.id,
+          data: {
+            completed_notes: actionNotes.trim(),
+            outcome_definition_ids:
+              entityType === 'case' ? actionOutcomeDefinitionIds : undefined,
+            outcome_visibility:
+              entityType === 'case' ? actionOutcomeVisibility : undefined,
+          },
+        })
+      ).unwrap();
       showSuccess('Follow-up cancelled');
+      resetActionDraft();
     } catch {
       showError('Failed to cancel follow-up');
     }
@@ -282,15 +364,61 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                     )}
 
                     {/* Completion notes input */}
-                    {completingId === followUp.id && (
+                    {actionFollowUpId === followUp.id && actionMode && (
                       <div className="mt-3">
                         <textarea
-                          value={completionNotes}
-                          onChange={(e) => setCompletionNotes(e.target.value)}
-                          placeholder="Add completion notes (optional)..."
+                          value={actionNotes}
+                          onChange={(e) => setActionNotes(e.target.value)}
+                          placeholder={
+                            actionMode === 'complete'
+                              ? 'Add completion notes...'
+                              : 'Add cancellation notes...'
+                          }
                           rows={2}
                           className="w-full px-3 py-2 text-sm border-2 border-app-input-border rounded-lg bg-app-input-bg text-app-text-heading"
                         />
+                        {entityType === 'case' && (
+                          <div className="mt-3 space-y-3 rounded-lg border border-app-border bg-app-surface-muted p-3">
+                            <div>
+                              <div className="text-xs font-semibold uppercase text-app-text-muted">
+                                Outcomes
+                              </div>
+                              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                                {outcomeDefinitions.map((definition) => {
+                                  const checked = actionOutcomeDefinitionIds.includes(definition.id);
+                                  return (
+                                    <label
+                                      key={definition.id}
+                                      className="flex items-start gap-2 rounded border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={checked}
+                                        onChange={(event) => {
+                                          setActionOutcomeDefinitionIds((current) =>
+                                            event.target.checked
+                                              ? [...current, definition.id]
+                                              : current.filter((id) => id !== definition.id)
+                                          );
+                                        }}
+                                        className="mt-0.5"
+                                      />
+                                      <span>{definition.name}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            <label className="inline-flex items-center gap-2 text-sm text-app-text-muted">
+                              <input
+                                type="checkbox"
+                                checked={actionOutcomeVisibility}
+                                onChange={(event) => setActionOutcomeVisibility(event.target.checked)}
+                              />
+                              Visible to client
+                            </label>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -298,6 +426,11 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                     {followUp.status === 'completed' && followUp.completed_notes && (
                       <div className="mt-2 p-2 bg-app-accent-soft dark:bg-app-accent-hover/30 rounded text-sm text-app-accent-text dark:text-app-text-muted">
                         <span className="font-medium">Completion notes:</span> {followUp.completed_notes}
+                      </div>
+                    )}
+                    {followUp.status === 'cancelled' && followUp.completed_notes && (
+                      <div className="mt-2 p-2 bg-app-surface-muted rounded text-sm text-app-text-muted">
+                        <span className="font-medium">Cancellation notes:</span> {followUp.completed_notes}
                       </div>
                     )}
                   </div>
@@ -310,9 +443,11 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                           onClick={() => handleComplete(followUp)}
                           className="px-2 py-1 text-xs font-medium text-app-accent-text dark:text-app-text-muted hover:bg-app-accent-soft dark:hover:bg-app-accent-hover/50 rounded transition-colors"
                         >
-                          {completingId === followUp.id ? 'Save' : '✓ Complete'}
+                          {actionFollowUpId === followUp.id && actionMode === 'complete'
+                            ? 'Save Complete'
+                            : '✓ Complete'}
                         </button>
-                        {completingId !== followUp.id && (
+                        {!(actionFollowUpId === followUp.id && actionMode) && (
                           <button
                             onClick={() => handleQuickReschedule(followUp.id, 1)}
                             className="px-2 py-1 text-xs font-medium text-app-text-muted hover:bg-app-hover rounded transition-colors"
@@ -320,18 +455,15 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                             Reschedule +1d
                           </button>
                         )}
-                        {completingId === followUp.id && (
+                        {actionFollowUpId === followUp.id && actionMode && (
                           <button
-                            onClick={() => {
-                              setCompletingId(null);
-                              setCompletionNotes('');
-                            }}
+                            onClick={resetActionDraft}
                             className="px-2 py-1 text-xs font-medium text-app-text-muted hover:bg-app-hover rounded transition-colors"
                           >
                             Cancel
                           </button>
                         )}
-                        {completingId !== followUp.id && (
+                        {!(actionFollowUpId === followUp.id && actionMode) && (
                           <>
                             <button
                               onClick={() => handleEdit(followUp)}
@@ -340,7 +472,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                               Edit
                             </button>
                             <button
-                              onClick={() => handleCancelFollowUp(followUp.id)}
+                              onClick={() => handleCancelFollowUp(followUp)}
                               className="px-2 py-1 text-xs font-medium text-app-accent-text dark:text-app-text-muted hover:bg-app-accent-soft dark:hover:bg-app-accent-hover/50 rounded transition-colors"
                             >
                               Cancel

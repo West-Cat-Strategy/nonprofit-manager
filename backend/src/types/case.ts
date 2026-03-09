@@ -35,6 +35,21 @@ export type ServiceType = 'counseling' | 'legal' | 'financial' | 'housing' | 'he
 export type ServiceStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show';
 export type ServiceOutcome = 'attended_event' | 'additional_related_case' | 'completed' | 'follow_up_needed' | 'other';
 export type CaseOutcomeEntrySource = 'manual' | 'interaction_sync' | 'legacy';
+export type CaseSourceEntityType =
+  | 'case_note'
+  | 'case_status'
+  | 'portal_thread'
+  | 'appointment'
+  | 'follow_up'
+  | 'event_registration';
+export type CaseOutcomeWorkflowStage =
+  | 'interaction'
+  | 'conversation'
+  | 'appointment'
+  | 'follow_up'
+  | 'case_status'
+  | 'manual'
+  | 'legacy';
 
 export interface ExternalServiceProvider {
   id: string;
@@ -182,6 +197,8 @@ export interface CaseNote {
   is_important: boolean;
   previous_status_id?: string | null;
   new_status_id?: string | null;
+  source_entity_type?: CaseSourceEntityType | null;
+  source_entity_id?: string | null;
   attachments?: any[] | null;
   created_at: Date | string;
   updated_at?: Date | string | null;
@@ -246,7 +263,10 @@ export interface CaseOutcomeEvent {
   outcome_definition_key?: string | null;
   outcome_definition_name?: string | null;
   source_interaction_id?: string | null;
+  source_entity_type?: CaseSourceEntityType | null;
+  source_entity_id?: string | null;
   entry_source?: CaseOutcomeEntrySource | null;
+  workflow_stage?: CaseOutcomeWorkflowStage | null;
   outcome_date: Date | string;
   notes?: string | null;
   visible_to_client: boolean;
@@ -286,7 +306,15 @@ export interface CaseTopicEvent {
   last_name?: string | null;
 }
 
-export type CaseTimelineEventType = 'note' | 'outcome' | 'topic' | 'document';
+export type CaseTimelineEventType =
+  | 'note'
+  | 'outcome'
+  | 'topic'
+  | 'document'
+  | 'appointment'
+  | 'conversation'
+  | 'follow_up'
+  | 'attendance';
 
 export interface CaseTimelineEvent {
   id: string;
@@ -467,6 +495,8 @@ export interface CreateCaseNoteDTO {
   is_portal_visible?: boolean;
   is_important?: boolean;
   attachments?: any[];
+  source_entity_type?: CaseSourceEntityType | null;
+  source_entity_id?: string | null;
   outcome_impacts?: InteractionOutcomeImpactInput[];
   outcomes_mode?: OutcomeUpdateMode;
 }
@@ -481,6 +511,8 @@ export interface UpdateCaseNoteDTO {
   is_portal_visible?: boolean;
   is_important?: boolean;
   attachments?: any[] | null;
+  source_entity_type?: CaseSourceEntityType | null;
+  source_entity_id?: string | null;
   outcome_impacts?: InteractionOutcomeImpactInput[];
   outcomes_mode?: OutcomeUpdateMode;
 }
@@ -492,6 +524,9 @@ export interface CreateCaseOutcomeDTO {
   notes?: string;
   visible_to_client?: boolean;
   is_portal_visible?: boolean;
+  source_entity_type?: CaseSourceEntityType | null;
+  source_entity_id?: string | null;
+  workflow_stage?: CaseOutcomeWorkflowStage;
 }
 
 export interface UpdateCaseOutcomeDTO {
@@ -501,6 +536,9 @@ export interface UpdateCaseOutcomeDTO {
   notes?: string | null;
   visible_to_client?: boolean;
   is_portal_visible?: boolean;
+  source_entity_type?: CaseSourceEntityType | null;
+  source_entity_id?: string | null;
+  workflow_stage?: CaseOutcomeWorkflowStage | null;
 }
 
 export interface CreateCaseTopicDefinitionDTO {
@@ -530,6 +568,8 @@ export interface UpdateCaseStatusDTO {
   new_status_id: string;
   reason?: string;
   notes?: string;
+  outcome_definition_ids?: string[];
+  outcome_visibility?: boolean;
 }
 
 /**

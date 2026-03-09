@@ -8,6 +8,9 @@ export const REPORT_ENTITIES = [
   'contacts',
   'donations',
   'events',
+  'appointments',
+  'follow_ups',
+  'attendance',
   'volunteers',
   'tasks',
   'cases',
@@ -66,6 +69,91 @@ export interface ReportResult {
   data: Record<string, unknown>[];
   total_count: number;
   generated_at: string;
+}
+
+export type WorkflowCoverageMissingFilter = 'note' | 'outcome' | 'reminder' | 'attendance';
+
+export interface WorkflowCoverageFilters {
+  ownerId?: string;
+  statusType?: 'intake' | 'active' | 'review' | 'closed' | 'cancelled';
+  missing?: WorkflowCoverageMissingFilter;
+}
+
+export interface WorkflowCoverageItem {
+  caseId: string;
+  caseNumber: string;
+  caseTitle: string;
+  contactName: string | null;
+  assignedToId: string | null;
+  assignedToName: string | null;
+  statusName: string | null;
+  statusType: 'intake' | 'active' | 'review' | 'closed' | 'cancelled' | null;
+  missingConversationResolutionCount: number;
+  missingAppointmentNoteCount: number;
+  missingAppointmentOutcomeCount: number;
+  missingFollowUpNoteCount: number;
+  missingFollowUpOutcomeCount: number;
+  missingReminderOfferCount: number;
+  missingAttendanceLinkageCount: number;
+  missingCaseStatusOutcomeCount: number;
+  totalGaps: number;
+}
+
+export interface WorkflowCoverageReportResult {
+  items: WorkflowCoverageItem[];
+  summary: {
+    casesWithGaps: number;
+    missingConversationResolutionCount: number;
+    missingAppointmentNoteCount: number;
+    missingAppointmentOutcomeCount: number;
+    missingFollowUpNoteCount: number;
+    missingFollowUpOutcomeCount: number;
+    missingReminderOfferCount: number;
+    missingAttendanceLinkageCount: number;
+    missingCaseStatusOutcomeCount: number;
+    totalGaps: number;
+  };
+}
+
+export type ReportExportJobStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type ReportExportJobSource = 'manual' | 'scheduled' | 'snapshot';
+
+export interface ReportExportJob {
+  id: string;
+  organizationId: string;
+  savedReportId: string | null;
+  scheduledReportId: string | null;
+  requestedBy: string | null;
+  source: ReportExportJobSource;
+  name: string;
+  entity: ReportEntity;
+  format: 'csv' | 'xlsx';
+  status: ReportExportJobStatus;
+  definition: ReportDefinition;
+  filterHash: string;
+  idempotencyKey: string | null;
+  rowsCount: number | null;
+  runtimeMs: number | null;
+  failureMessage: string | null;
+  artifactPath: string | null;
+  artifactContentType: string | null;
+  artifactFileName: string | null;
+  artifactSizeBytes: number | null;
+  artifactExpiresAt: string | null;
+  retentionUntil: string | null;
+  metadata: Record<string, unknown>;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateReportExportJobRequest {
+  definition: ReportDefinition;
+  format: 'csv' | 'xlsx';
+  savedReportId?: string;
+  scheduledReportId?: string;
+  idempotencyKey?: string;
 }
 
 export interface AvailableFields {

@@ -24,6 +24,12 @@ const ACTIVITY_ICONS: Record<string, string> = {
   donation_received: '💵',
   task_created: '✅',
   document_uploaded: '📎',
+  conversation_resolved: '💬',
+  appointment_scheduled: '📆',
+  appointment_completed: '✅',
+  appointment_cancelled: '🚫',
+  follow_up_completed: '📌',
+  attendance_recorded: '🎟️',
 };
 
 export default function ContactActivityTimeline({ contactId }: ContactActivityTimelineProps) {

@@ -24,6 +24,7 @@ import {
   uuidSchema,
 } from '@validations/contact';
 import { createContactDirectoryController } from '../controllers/directory.controller';
+import { followUpController as followUpsController } from '@modules/followUps/controllers/followUps.handlers';
 import { createContactNotesController } from '../controllers/notes.controller';
 import { createContactPhonesController } from '../controllers/phones.controller';
 import { createContactEmailsController } from '../controllers/emails.controller';
@@ -127,6 +128,7 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
     directoryController.updateContact
   );
   router.delete('/:id', validateParams(z.object({ id: uuidSchema })), directoryController.deleteContact);
+  router.get('/:id/follow-ups', validateParams(z.object({ id: uuidSchema })), followUpsController.getContactFollowUps);
 
   router.get(
     '/:contactId/notes',

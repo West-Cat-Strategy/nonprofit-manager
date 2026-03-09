@@ -16,14 +16,21 @@ import {
   TextareaField,
 } from '../../../components/ui';
 import { reportsApiClient } from '../api/reportsApiClient';
+import { triggerFileDownload } from '../../../services/fileDownload';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { generateReport } from '../state';
+import {
+  createReportExportJob,
+  fetchReportExportJob,
+  fetchReportExportJobs,
+  generateReport,
+} from '../state';
 import { createSavedReport, fetchSavedReportById } from '../../savedReports/state';
 import type {
   AggregateFunction,
   ReportAggregation,
   ReportDefinition,
   ReportEntity,
+  ReportExportJob,
   ReportFilter,
   ReportSort,
 } from '../../../types/report';
@@ -33,6 +40,9 @@ const ENTITIES: { value: ReportEntity; label: string }[] = [
   { value: 'contacts', label: 'Contacts' },
   { value: 'donations', label: 'Donations' },
   { value: 'events', label: 'Events' },
+  { value: 'appointments', label: 'Appointments' },
+  { value: 'follow_ups', label: 'Follow-ups' },
+  { value: 'attendance', label: 'Attendance' },
   { value: 'volunteers', label: 'Volunteers' },
   { value: 'tasks', label: 'Tasks' },
   { value: 'cases', label: 'Cases' },
@@ -42,11 +52,38 @@ const ENTITIES: { value: ReportEntity; label: string }[] = [
   { value: 'programs', label: 'Programs' },
 ];
 
+const EXPORT_POLL_INTERVAL_MS = 2000;
+
+const createExportIdempotencyKey = (entity: ReportEntity, format: 'csv' | 'xlsx'): string => {
+  const suffix =
+    globalThis.crypto?.randomUUID?.() ||
+    `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  return `report-builder:${entity}:${format}:${suffix}`;
+};
+
+const getExportFallbackFilename = (job: ReportExportJob): string =>
+  job.artifactFileName || `${job.entity}_report_${new Date().toISOString().split('T')[0]}.${job.format}`;
+
+const statusStyles: Record<ReportExportJob['status'], string> = {
+  pending: 'bg-app-surface-muted text-app-text-muted',
+  processing: 'bg-app-accent-soft text-app-accent-text',
+  completed: 'bg-emerald-100 text-emerald-800',
+  failed: 'bg-rose-100 text-rose-800',
+};
+
 function ReportBuilder() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { currentReport, loading, availableFields } = useAppSelector((state) => state.reports);
+  const {
+    currentReport,
+    loading,
+    availableFields,
+    exportJobs,
+    exportJobsLoading,
+    activeExportJobId,
+    exportJobError,
+  } = useAppSelector((state) => state.reports);
   const reportRows = currentReport?.data ?? [];
   const { currentSavedReport } = useAppSelector((state) => state.savedReports);
 
@@ -65,6 +102,9 @@ function ReportBuilder() {
   const [chartType, setChartType] = useState<'bar' | 'pie' | 'line'>('bar');
   const [xAxisField, setXAxisField] = useState('');
   const [yAxisField, setYAxisField] = useState('');
+  const [downloadingJobId, setDownloadingJobId] = useState<string | null>(null);
+  const [autoDownloadedJobId, setAutoDownloadedJobId] = useState<string | null>(null);
+  const [failedJobAlertId, setFailedJobAlertId] = useState<string | null>(null);
 
   const allOutputFields = useMemo(
     () => [
@@ -74,6 +114,15 @@ function ReportBuilder() {
     ],
     [groupBy, selectedFields, aggregations]
   );
+
+  const manualExportJobs = useMemo(
+    () => exportJobs.filter((job) => job.source === 'manual'),
+    [exportJobs]
+  );
+
+  const activeExportJob = activeExportJobId
+    ? exportJobs.find((job) => job.id === activeExportJobId) || null
+    : null;
 
   useEffect(() => {
     const loadId = searchParams.get('load');
@@ -85,6 +134,40 @@ function ReportBuilder() {
       void loadTemplate(templateId);
     }
   }, [searchParams, dispatch]);
+
+  useEffect(() => {
+    void dispatch(fetchReportExportJobs({ limit: 10 }));
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!activeExportJobId) return;
+    if (!activeExportJob || ['pending', 'processing'].includes(activeExportJob.status)) {
+      const timer = window.setTimeout(() => {
+        void dispatch(fetchReportExportJob(activeExportJobId));
+      }, EXPORT_POLL_INTERVAL_MS);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, [activeExportJob, activeExportJobId, dispatch]);
+
+  useEffect(() => {
+    if (
+      activeExportJob?.status === 'completed' &&
+      activeExportJob.source === 'manual' &&
+      autoDownloadedJobId !== activeExportJob.id
+    ) {
+      setAutoDownloadedJobId(activeExportJob.id);
+      void handleDownloadExportJob(activeExportJob);
+    }
+  }, [activeExportJob, autoDownloadedJobId]);
+
+  useEffect(() => {
+    if (activeExportJob?.status !== 'failed') return;
+    if (failedJobAlertId === activeExportJob.id) return;
+
+    setFailedJobAlertId(activeExportJob.id);
+    alert(activeExportJob.failureMessage || 'Report export failed');
+  }, [activeExportJob, failedJobAlertId]);
 
   const loadTemplate = async (templateId: string) => {
     try {
@@ -144,42 +227,63 @@ function ReportBuilder() {
     await dispatch(generateReport(buildDefinition()));
   };
 
-  const handleExportCSV = async () => {
+  const handleStartExport = async (format: 'csv' | 'xlsx') => {
     if (!currentReport || currentReport.data.length === 0) {
       alert('No report data to export');
       return;
     }
 
-    try {
-      const blobPart = await reportsApiClient.exportReport(buildDefinition(), 'csv');
-      const url = window.URL.createObjectURL(new Blob([blobPart], { type: 'text/csv' }));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${entity}_report_${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('CSV export failed', error);
-      alert('Failed to export CSV');
+    const action = await dispatch(
+      createReportExportJob({
+        definition: buildDefinition(),
+        format,
+        savedReportId: currentSavedReport?.id,
+        idempotencyKey: createExportIdempotencyKey(entity, format),
+      })
+    );
+
+    if (
+      typeof action === 'object' &&
+      action !== null &&
+      'type' in action &&
+      String(action.type).endsWith('/rejected')
+    ) {
+      alert('Failed to start report export');
     }
   };
 
-  const handleExportXLSX = async () => {
+  const handleDownloadExportJob = async (job: ReportExportJob) => {
+    setDownloadingJobId(job.id);
+
     try {
-      const blob = await reportsApiClient.exportReport(buildDefinition(), 'xlsx');
-      const url = window.URL.createObjectURL(new Blob([blob]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${entity}_report_${new Date().toISOString().split('T')[0]}.xlsx`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      const file = await reportsApiClient.downloadExportJob(job.id, getExportFallbackFilename(job));
+      triggerFileDownload(file);
     } catch (error) {
-      console.error('Export failed', error);
-      alert('Failed to export to Excel');
+      console.error('Report export download failed', error);
+      alert('Failed to download export artifact');
+    } finally {
+      setDownloadingJobId((current) => (current === job.id ? null : current));
+    }
+  };
+
+  const handleRetryExportJob = async (job: ReportExportJob) => {
+    const action = await dispatch(
+      createReportExportJob({
+        definition: job.definition,
+        format: job.format,
+        savedReportId: job.savedReportId || undefined,
+        scheduledReportId: job.scheduledReportId || undefined,
+        idempotencyKey: createExportIdempotencyKey(job.entity, job.format),
+      })
+    );
+
+    if (
+      typeof action === 'object' &&
+      action !== null &&
+      'type' in action &&
+      String(action.type).endsWith('/rejected')
+    ) {
+      alert('Failed to retry report export');
     }
   };
 
@@ -260,6 +364,9 @@ function ReportBuilder() {
             <>
               <SecondaryButton onClick={() => navigate('/reports/templates')}>KPI Templates</SecondaryButton>
               <SecondaryButton onClick={() => navigate('/reports/outcomes')}>Outcomes Report</SecondaryButton>
+              <SecondaryButton onClick={() => navigate('/reports/workflow-coverage')}>
+                Workflow Coverage
+              </SecondaryButton>
             </>
           }
         />
@@ -406,8 +513,12 @@ function ReportBuilder() {
 
             {reportRows.length > 0 && (
               <>
-                <SecondaryButton onClick={() => void handleExportCSV()}>Export CSV</SecondaryButton>
-                <SecondaryButton onClick={() => void handleExportXLSX()}>Export Excel</SecondaryButton>
+                <SecondaryButton onClick={() => void handleStartExport('csv')}>
+                  Export CSV
+                </SecondaryButton>
+                <SecondaryButton onClick={() => void handleStartExport('xlsx')}>
+                  Export Excel
+                </SecondaryButton>
                 <SecondaryButton onClick={() => void handleExportPDF()}>Export PDF</SecondaryButton>
                 <SecondaryButton onClick={() => setShowChart((value) => !value)}>
                   {showChart ? 'Hide Chart' : 'Show Chart'}
@@ -415,6 +526,70 @@ function ReportBuilder() {
               </>
             )}
           </div>
+        </SectionCard>
+
+        <SectionCard
+          title="9. Recent Exports"
+          subtitle="Manual CSV and Excel exports now run through shared export jobs so they can be retried and downloaded later."
+        >
+          {exportJobError && (
+            <div className="rounded-[var(--ui-radius-sm)] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+              {exportJobError}
+            </div>
+          )}
+
+          {manualExportJobs.length === 0 ? (
+            <div className="rounded-[var(--ui-radius-sm)] border border-dashed border-app-border px-4 py-6 text-sm text-app-text-muted">
+              {exportJobsLoading ? 'Loading recent exports...' : 'No manual export jobs yet.'}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {manualExportJobs.map((job) => (
+                <div
+                  key={job.id}
+                  className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-4 py-4"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold text-app-text">{job.name}</p>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-wide ${statusStyles[job.status]}`}
+                        >
+                          {job.status}
+                        </span>
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-app-text-subtle">
+                          {job.format}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-app-text-muted">
+                        Created {new Date(job.createdAt).toLocaleString()}
+                        {job.rowsCount !== null ? ` • ${job.rowsCount} rows` : ''}
+                        {job.runtimeMs !== null ? ` • ${job.runtimeMs} ms` : ''}
+                      </p>
+                      {job.failureMessage && (
+                        <p className="mt-2 text-sm text-rose-700">{job.failureMessage}</p>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {job.status === 'completed' && (
+                        <SecondaryButton
+                          onClick={() => void handleDownloadExportJob(job)}
+                          disabled={downloadingJobId === job.id}
+                        >
+                          {downloadingJobId === job.id ? 'Downloading...' : 'Download'}
+                        </SecondaryButton>
+                      )}
+                      <SecondaryButton onClick={() => void handleRetryExportJob(job)}>
+                        Retry Export
+                      </SecondaryButton>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </SectionCard>
 
         {showChart && reportRows.length > 0 && (

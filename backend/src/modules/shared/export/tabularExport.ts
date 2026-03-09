@@ -41,7 +41,7 @@ const isDate = (value: unknown): value is Date =>
   value instanceof Date && !Number.isNaN(value.getTime());
 
 const normalizeSheetName = (name: string, fallback: string): string => {
-  const trimmed = name.trim().replace(/[:\\/?*\[\]]/g, ' ');
+  const trimmed = name.trim().replace(/[:\\/?*[\]]/g, ' ');
   const collapsed = trimmed.replace(/\s+/g, ' ').trim();
   const safe = collapsed.length > 0 ? collapsed : fallback;
   return safe.slice(0, 31);

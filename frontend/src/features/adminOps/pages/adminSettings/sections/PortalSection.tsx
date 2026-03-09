@@ -45,6 +45,8 @@ const getStreamStatusBadge = (
   };
 };
 
+const openCaseAppointments = (caseId: string) => window.location.assign(`/cases/${caseId}?tab=appointments`);
+
 export interface PortalSectionProps {
   portalInviteUrl: string | null;
   portalLoading: boolean;
@@ -894,10 +896,14 @@ export default function PortalSection({
                           appointment.status === 'completed' ||
                           appointment.status === 'cancelled'
                         }
-                        onClick={() => onPortalAppointmentCheckIn(appointment.id)}
+                        onClick={() =>
+                          appointment.case_id
+                            ? openCaseAppointments(appointment.case_id)
+                            : onPortalAppointmentCheckIn(appointment.id)
+                        }
                         className="px-3 py-1.5 text-xs bg-app-accent-soft text-app-accent-text rounded-lg hover:bg-app-accent-soft disabled:opacity-50"
                       >
-                        Check-In
+                        {appointment.case_id ? 'Resolve in Case' : 'Check-In'}
                       </button>
                       {appointment.status !== 'confirmed' && (
                         <button
@@ -916,11 +922,13 @@ export default function PortalSection({
                           type="button"
                           disabled={portalAppointmentActionLoading}
                           onClick={() =>
-                            onPortalAppointmentStatusChange(appointment.id, 'cancelled')
+                            appointment.case_id
+                              ? openCaseAppointments(appointment.case_id)
+                              : onPortalAppointmentStatusChange(appointment.id, 'cancelled')
                           }
                           className="px-3 py-1.5 text-xs bg-app-accent-soft text-app-accent-text rounded-lg hover:bg-app-accent-soft disabled:opacity-50"
                         >
-                          Cancel
+                          {appointment.case_id ? 'Resolve in Case' : 'Cancel'}
                         </button>
                       )}
                     </div>
@@ -932,30 +940,20 @@ export default function PortalSection({
 
           {portalAppointmentsPagination.total_pages > 1 && (
             <div className="flex items-center justify-between gap-3">
-              <span className="text-xs text-app-text-muted">
-                Page {portalAppointmentsPagination.page} of{' '}
-                {portalAppointmentsPagination.total_pages}
-              </span>
+              <span className="text-xs text-app-text-muted">Page {portalAppointmentsPagination.page} of {portalAppointmentsPagination.total_pages}</span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   disabled={portalAppointmentsPagination.page <= 1}
-                  onClick={() =>
-                    onPortalAppointmentPageChange(portalAppointmentsPagination.page - 1)
-                  }
+                  onClick={() => onPortalAppointmentPageChange(portalAppointmentsPagination.page - 1)}
                   className="px-3 py-1.5 text-xs bg-app-surface-muted rounded-lg hover:bg-app-surface-muted disabled:opacity-50"
                 >
                   Previous
                 </button>
                 <button
                   type="button"
-                  disabled={
-                    portalAppointmentsPagination.page >=
-                    portalAppointmentsPagination.total_pages
-                  }
-                  onClick={() =>
-                    onPortalAppointmentPageChange(portalAppointmentsPagination.page + 1)
-                  }
+                  disabled={portalAppointmentsPagination.page >= portalAppointmentsPagination.total_pages}
+                  onClick={() => onPortalAppointmentPageChange(portalAppointmentsPagination.page + 1)}
                   className="px-3 py-1.5 text-xs bg-app-surface-muted rounded-lg hover:bg-app-surface-muted disabled:opacity-50"
                 >
                   Next

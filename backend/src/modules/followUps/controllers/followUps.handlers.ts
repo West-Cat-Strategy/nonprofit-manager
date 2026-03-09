@@ -2,7 +2,7 @@ import { Response } from 'express';
 import type { AuthRequest } from '@middleware/auth';
 import { followUpService } from '@services/followUpService';
 import { sendSuccess } from '@modules/shared/http/envelope';
-import { notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
+import { badRequest, notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
 import { logger } from '@config/logger';
 import {
   requirePermissionSafe,
@@ -209,7 +209,12 @@ export const followUpController = {
       }
 
       sendSuccess(res, completed);
-    } catch {
+    } catch (error) {
+      const errorRecord = error as unknown as Record<string, unknown>;
+      if (error instanceof Error && 'statusCode' in errorRecord) {
+        badRequest(res, error.message);
+        return;
+      }
       serverError(res, 'Failed to complete follow-up');
     }
   },
@@ -226,7 +231,12 @@ export const followUpController = {
       }
 
       const params = (req.validatedParams ?? req.params) as { id: string };
-      const cancelled = await followUpService.cancelFollowUp(organizationId, params.id, userId);
+      const cancelled = await followUpService.cancelFollowUp(
+        organizationId,
+        params.id,
+        userId,
+        req.body || {}
+      );
 
       if (!cancelled) {
         notFoundMessage(res, 'Follow-up not found');
@@ -234,7 +244,12 @@ export const followUpController = {
       }
 
       sendSuccess(res, cancelled);
-    } catch {
+    } catch (error) {
+      const errorRecord = error as unknown as Record<string, unknown>;
+      if (error instanceof Error && 'statusCode' in errorRecord) {
+        badRequest(res, error.message);
+        return;
+      }
       serverError(res, 'Failed to cancel follow-up');
     }
   },
@@ -328,6 +343,24 @@ export const followUpController = {
       sendSuccess(res, rows);
     } catch {
       serverError(res, 'Failed to fetch task follow-ups');
+    }
+  },
+
+  async getContactFollowUps(req: AuthRequest, res: Response): Promise<void> {
+    if (!ensurePermission(req, res, Permission.FOLLOWUP_VIEW)) return;
+
+    try {
+      const organizationId = getOrgId(req);
+      if (!organizationId) {
+        unauthorized(res, 'Organization context required');
+        return;
+      }
+
+      const params = (req.validatedParams ?? req.params) as { id: string };
+      const rows = await followUpService.getEntityFollowUps(organizationId, 'contact', params.id);
+      sendSuccess(res, rows);
+    } catch {
+      serverError(res, 'Failed to fetch contact follow-ups');
     }
   },
 };

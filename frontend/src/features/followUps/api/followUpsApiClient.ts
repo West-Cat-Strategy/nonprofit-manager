@@ -59,8 +59,8 @@ export class FollowUpsApiClient {
     return response.data;
   }
 
-  async cancelFollowUp(followUpId: string): Promise<FollowUp> {
-    const response = await api.post<FollowUp>(`/v2/follow-ups/${followUpId}/cancel`);
+  async cancelFollowUp(followUpId: string, data?: CompleteFollowUpDTO): Promise<FollowUp> {
+    const response = await api.post<FollowUp>(`/v2/follow-ups/${followUpId}/cancel`, data || {});
     return response.data;
   }
 
