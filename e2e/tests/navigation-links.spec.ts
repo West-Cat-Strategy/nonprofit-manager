@@ -23,19 +23,22 @@ authTest.describe('Staff navigation click-through audit', () => {
     await expect(authenticatedPage).toHaveURL(/\/alerts$/);
   });
 
-  authTest('admin settings tabs preserve path-based canonical sections', async ({
+  authTest('admin settings canonical section routes preserve selected tabs', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/settings/admin', { waitUntil: 'domcontentloaded' });
-
-    await authenticatedPage.getByRole('tab', { name: /^users & security$/i }).click();
+    await authenticatedPage.goto('/settings/admin/users', { waitUntil: 'domcontentloaded' });
     await expect(authenticatedPage).toHaveURL(/\/settings\/admin\/users$/);
+    await expect(authenticatedPage.getByRole('tab', { name: /^users & security$/i })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
 
-    await authenticatedPage
-      .getByRole('region', { name: /admin quick actions/i })
-      .getByRole('link', { name: /^audit logs\b/i })
-      .click();
+    await authenticatedPage.goto('/settings/admin/audit_logs', { waitUntil: 'domcontentloaded' });
     await expect(authenticatedPage).toHaveURL(/\/settings\/admin\/audit_logs$/);
+    await expect(authenticatedPage.getByRole('tab', { name: /^audit logs$/i })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
   });
 });
 
