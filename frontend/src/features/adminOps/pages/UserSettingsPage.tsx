@@ -999,6 +999,7 @@ export default function UserSettings() {
                   <button
                     type="button"
                     onClick={() => handleNotificationChange(key as keyof NotificationSettings, !value)}
+                    aria-label={`${key.replace(/([A-Z])/g, ' $1').trim()} notifications ${value ? 'enabled' : 'disabled'}`}
                     className={`w-12 h-6 border-2 border-black rounded-full relative transition-colors shadow-[2px_2px_0px_0px_var(--shadow-color)] ${value ? 'bg-[#90EE90]' : 'bg-app-surface-muted'
                       }`}
                   >
