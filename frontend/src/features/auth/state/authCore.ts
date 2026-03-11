@@ -23,6 +23,11 @@ interface AuthState {
   loading: boolean;
 }
 
+interface AuthCredentialsPayload {
+  user: User;
+  organizationId?: string | null;
+}
+
 // Load user from localStorage (non-sensitive, used for UX during init loading)
 const storedUser = localStorage.getItem('user');
 let user: User | null = null;
@@ -35,6 +40,38 @@ if (storedUser) {
     localStorage.removeItem('user');
   }
 }
+
+const getStoredOrganizationId = (): string | null => {
+  const storedOrganizationId = localStorage.getItem('organizationId');
+  if (!storedOrganizationId) {
+    return null;
+  }
+
+  const trimmed = storedOrganizationId.trim();
+  if (!trimmed) {
+    localStorage.removeItem('organizationId');
+    return null;
+  }
+
+  return trimmed;
+};
+
+const syncOrganizationIdStorage = (organizationId?: string | null): string | null => {
+  if (organizationId === undefined) {
+    return getStoredOrganizationId();
+  }
+
+  if (typeof organizationId === 'string') {
+    const trimmed = organizationId.trim();
+    if (trimmed) {
+      localStorage.setItem('organizationId', trimmed);
+      return trimmed;
+    }
+  }
+
+  localStorage.removeItem('organizationId');
+  return null;
+};
 
 const initialState: AuthState = {
   user: user,
@@ -49,7 +86,10 @@ export const initializeAuth = createAsyncThunk('auth/initializeAuth', async () =
   if (!snapshot.user) {
     throw new Error('Unauthenticated');
   }
-  return snapshot.user;
+  return {
+    user: snapshot.user,
+    organizationId: snapshot.organizationId,
+  } satisfies AuthCredentialsPayload;
 });
 
 // Async thunk: server-side logout (clears httpOnly cookie), then clears client state
@@ -66,12 +106,13 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    setCredentials: (state, action: PayloadAction<{ user: User }>) => {
+    setCredentials: (state, action: PayloadAction<AuthCredentialsPayload>) => {
+      const organizationId = syncOrganizationIdStorage(action.payload.organizationId);
       state.user = action.payload.user;
       state.isAuthenticated = true;
       state.loading = false;
       state.authLoading = false;
-      setStaffBootstrapSnapshot(action.payload.user);
+      setStaffBootstrapSnapshot({ user: action.payload.user, organizationId });
       localStorage.setItem('user', JSON.stringify(action.payload.user));
     },
     logout: (state) => {
@@ -96,11 +137,12 @@ const authSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(initializeAuth.fulfilled, (state, action) => {
-        state.user = action.payload;
+        const organizationId = syncOrganizationIdStorage(action.payload.organizationId);
+        state.user = action.payload.user;
         state.isAuthenticated = true;
         state.authLoading = false;
-        setStaffBootstrapSnapshot(action.payload);
-        localStorage.setItem('user', JSON.stringify(action.payload));
+        setStaffBootstrapSnapshot({ user: action.payload.user, organizationId });
+        localStorage.setItem('user', JSON.stringify(action.payload.user));
       })
       .addCase(initializeAuth.rejected, (state) => {
         state.user = null;

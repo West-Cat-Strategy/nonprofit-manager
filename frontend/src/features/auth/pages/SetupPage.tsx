@@ -7,6 +7,7 @@ import { useApiError } from '../../../hooks/useApiError';
 import api from '../../../services/api';
 import type { ApiEnvelope } from '../../../services/apiEnvelope';
 import { unwrapApiData } from '../../../services/apiEnvelope';
+import type { CurrentUserResponse } from '../../../services/authService';
 import { useAppDispatch } from '../../../store/hooks';
 import { setCredentials } from '../state';
 import { validatePassword } from '../../../utils/validation';
@@ -168,25 +169,24 @@ const Setup: React.FC = () => {
       });
       const setupPayload = unwrapApiData(response.data);
 
-      if (setupPayload.organizationId) {
-        localStorage.setItem('organizationId', setupPayload.organizationId);
-      }
-
       const setupUser = normalizeSetupUser(setupPayload.user);
       if (setupUser) {
-        dispatch(setCredentials({ user: setupUser }));
+        dispatch(setCredentials({ user: setupUser, organizationId: setupPayload.organizationId }));
       } else {
         try {
-          const me = await api.get<ApiEnvelope<Record<string, unknown>>>('/auth/me');
-          const mePayload = unwrapApiData(me.data) as {
-            id: string;
-            email: string;
-            firstName: string;
-            lastName: string;
-            role: string;
-            profilePicture?: string | null;
-          };
-          dispatch(setCredentials({ user: mePayload }));
+          const me = await api.get<ApiEnvelope<CurrentUserResponse>>('/auth/me');
+          const mePayload = unwrapApiData(me.data) as CurrentUserResponse;
+          dispatch(setCredentials({
+            user: {
+              id: mePayload.id,
+              email: mePayload.email,
+              firstName: mePayload.firstName,
+              lastName: mePayload.lastName,
+              role: mePayload.role,
+              profilePicture: mePayload.profilePicture,
+            },
+            organizationId: mePayload.organizationId ?? setupPayload.organizationId,
+          }));
         } catch (sessionHydrationError) {
           setFromError(
             sessionHydrationError,
