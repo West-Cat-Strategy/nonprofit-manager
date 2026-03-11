@@ -9,19 +9,22 @@ if (process.env.JEST_WORKER_ID && !process.env.NODE_ENV) {
 
 if (process.env.NODE_ENV === 'test') {
   // Keep runtime env (e.g., PORT for Playwright webServer), but force DB settings from test env.
-  const testEnv = dotenv.config({ path: '.env.test' });
+  const testLocalEnv = dotenv.config({ path: '.env.test.local', quiet: true }).parsed ?? {};
+  const testEnv = dotenv.config({ path: '.env.test', quiet: true }).parsed ?? {};
+  const mergedTestEnv = {
+    ...testEnv,
+    ...testLocalEnv,
+  };
   const dbOverrideKeys = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'] as const;
-  if (testEnv.parsed) {
-    dbOverrideKeys.forEach((key) => {
-      const value = testEnv.parsed?.[key];
-      if (value) {
-        process.env[key] = value;
-      }
-    });
-  }
-  dotenv.config({ path: '.env' });
+  dbOverrideKeys.forEach((key) => {
+    const value = mergedTestEnv[key];
+    if (value) {
+      process.env[key] = value;
+    }
+  });
+  dotenv.config({ path: '.env', quiet: true });
 } else {
-  dotenv.config({ path: '.env' });
+  dotenv.config({ path: '.env', quiet: true });
 }
 
 const config: PoolConfig = {

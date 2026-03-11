@@ -169,6 +169,9 @@ describe('Navigation', () => {
       },
     });
 
+    expect(screen.getByRole('navigation', { name: /global navigation/i })).toHaveClass(
+      'bg-[var(--app-shell-surface)]'
+    );
     expect(screen.getByRole('link', { name: /^home$/i })).toHaveAttribute('href', '/dashboard');
     expect(screen.queryByRole('link', { name: /^people$/i })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /more navigation/i }));

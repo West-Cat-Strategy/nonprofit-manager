@@ -1,8 +1,9 @@
 import dotenv from 'dotenv';
 import pool from '../src/config/database';
 
-dotenv.config({ path: '.env.test' });
-dotenv.config({ path: '.env' });
+dotenv.config({ path: '.env.test.local', quiet: true });
+dotenv.config({ path: '.env.test', quiet: true });
+dotenv.config({ path: '.env', quiet: true });
 
 // Migration compatibility checks can exceed Jest's 5s default hook timeout on CI/local Docker.
 jest.setTimeout(60000);

@@ -54,10 +54,15 @@ This keeps HTTP concerns, authorization, business logic, and data access separat
 ### Local development
 
 ```bash
+cp .env.development.example .env.development
+# Optional legacy fallback for older repo-root tooling:
+# cp .env.example .env
 make dev
 ```
 
 This starts the local development stack with hot reload.
+
+For repo-root Docker Compose flows, prefer `.env.development`; `.env` remains a temporary compatibility fallback.
 
 Local endpoints:
 

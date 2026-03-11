@@ -12,6 +12,7 @@ import {
   EmptyState,
   ErrorState,
   SideNav,
+  TopNav,
 } from '../index';
 
 describe('ui primitives', () => {
@@ -30,7 +31,13 @@ describe('ui primitives', () => {
   });
 
   it('renders a page header with title and actions', () => {
-    render(<PageHeader title="Accounts" description="Manage organizations" actions={<PrimaryButton>New</PrimaryButton>} />);
+    render(
+      <PageHeader
+        title="Accounts"
+        description="Manage organizations"
+        actions={<PrimaryButton>New</PrimaryButton>}
+      />
+    );
 
     expect(screen.getByRole('heading', { level: 1, name: 'Accounts' })).toBeInTheDocument();
     expect(screen.getByText('Manage organizations')).toBeInTheDocument();
@@ -78,5 +85,13 @@ describe('ui primitives', () => {
     expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveFocus();
     await user.tab();
     expect(screen.getByRole('link', { name: 'Contacts' })).toHaveFocus();
+  });
+
+  it('renders top navigation with the opaque shell surface', () => {
+    render(<TopNav left={<span>Portal</span>} right={<button type="button">Account</button>} />);
+
+    expect(screen.getByText('Portal').closest('header')).toHaveClass(
+      'bg-[var(--app-shell-surface)]'
+    );
   });
 });
