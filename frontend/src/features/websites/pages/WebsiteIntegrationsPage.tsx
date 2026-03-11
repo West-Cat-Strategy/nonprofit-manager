@@ -154,6 +154,7 @@ const WebsiteIntegrationsPage: React.FC = () => {
 
           <div className="mt-4 grid gap-4">
             <select
+              aria-label="Mailchimp audience"
               value={mailchimpAudienceId}
               onChange={(event) => setMailchimpAudienceId(event.target.value)}
               className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
@@ -166,6 +167,7 @@ const WebsiteIntegrationsPage: React.FC = () => {
               ))}
             </select>
             <select
+              aria-label="Mailchimp audience mode"
               value={mailchimpMode}
               onChange={(event) =>
                 setMailchimpMode(event.target.value as 'crm' | 'mailchimp' | 'both')
@@ -178,6 +180,7 @@ const WebsiteIntegrationsPage: React.FC = () => {
             </select>
             <input
               type="text"
+              aria-label="Mailchimp default tags"
               value={mailchimpTags}
               onChange={(event) => setMailchimpTags(event.target.value)}
               placeholder="Default tags (comma separated)"
@@ -219,6 +222,7 @@ const WebsiteIntegrationsPage: React.FC = () => {
           <div className="mt-4 grid gap-4">
             <input
               type="text"
+              aria-label="Stripe destination account ID"
               value={stripeAccountId}
               onChange={(event) => setStripeAccountId(event.target.value)}
               placeholder="Destination account ID"
@@ -226,6 +230,7 @@ const WebsiteIntegrationsPage: React.FC = () => {
             />
             <input
               type="text"
+              aria-label="Stripe currency"
               value={stripeCurrency}
               onChange={(event) => setStripeCurrency(event.target.value)}
               placeholder="Currency"
@@ -233,6 +238,7 @@ const WebsiteIntegrationsPage: React.FC = () => {
             />
             <input
               type="text"
+              aria-label="Stripe suggested amounts"
               value={stripeSuggestedAmounts}
               onChange={(event) => setStripeSuggestedAmounts(event.target.value)}
               placeholder="Suggested amounts (comma separated)"
@@ -240,6 +246,7 @@ const WebsiteIntegrationsPage: React.FC = () => {
             />
             <input
               type="text"
+              aria-label="Stripe campaign identifier"
               value={stripeCampaignId}
               onChange={(event) => setStripeCampaignId(event.target.value)}
               placeholder="Campaign identifier"

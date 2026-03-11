@@ -96,7 +96,7 @@ export default function ResetPassword() {
           </div>
           <Link
             to="/login"
-            className="inline-flex w-full items-center justify-center rounded-xl bg-app-text px-4 py-3 text-sm font-semibold text-white"
+            className="inline-flex w-full items-center justify-center rounded-xl border border-app-border bg-app-surface px-4 py-3 text-sm font-semibold text-app-text transition hover:bg-app-hover"
           >
             Sign In
           </Link>

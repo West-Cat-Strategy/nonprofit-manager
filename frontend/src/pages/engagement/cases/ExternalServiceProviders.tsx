@@ -141,20 +141,22 @@ const ExternalServiceProviders = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-black uppercase mb-1">Provider Name *</label>
+              <label htmlFor="provider-name" className="block text-xs font-black uppercase mb-1">Provider Name *</label>
               <input
+                id="provider-name"
                 value={providerName}
                 onChange={(e) => setProviderName(e.target.value)}
-                className="w-full p-2 border-2 border-black font-bold focus:outline-none"
+                className="w-full p-2 border-2 border-app-border bg-app-input-bg text-app-text font-bold focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg)]"
                 placeholder="Organization or Individual"
               />
             </div>
             <div>
-              <label className="block text-xs font-black uppercase mb-1">Provider Type/Specialty</label>
+              <label htmlFor="provider-type" className="block text-xs font-black uppercase mb-1">Provider Type/Specialty</label>
               <select
+                id="provider-type"
                 value={providerType}
                 onChange={(e) => setProviderType(e.target.value)}
-                className="w-full p-2 border-2 border-black bg-white font-bold focus:outline-none"
+                className="w-full p-2 border-2 border-app-border bg-app-input-bg text-app-text font-bold focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg)]"
               >
                 {PROVIDER_TYPES.map((type) => (
                   <option key={type} value={type}>{type}</option>
@@ -163,17 +165,19 @@ const ExternalServiceProviders = () => {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-black uppercase mb-1">Notes</label>
+            <label htmlFor="provider-notes" className="block text-xs font-black uppercase mb-1">Notes</label>
             <textarea
+              id="provider-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              className="w-full p-2 border-2 border-black font-bold focus:outline-none"
+              className="w-full p-2 border-2 border-app-border bg-app-input-bg text-app-text font-bold focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg)]"
               placeholder="Optional notes about this provider"
             />
           </div>
-          <label className="inline-flex items-center gap-2 text-xs font-black uppercase">
+          <label htmlFor="provider-active" className="inline-flex items-center gap-2 text-xs font-black uppercase">
             <input
+              id="provider-active"
               type="checkbox"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
@@ -201,11 +205,12 @@ const ExternalServiceProviders = () => {
         <BrutalCard color="white" className="p-6 space-y-4">
           <div className="flex gap-2 items-end">
             <div className="flex-1">
-              <label className="block text-xs font-black uppercase mb-1">Search Providers</label>
+              <label htmlFor="provider-search" className="block text-xs font-black uppercase mb-1">Search Providers</label>
               <input
+                id="provider-search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full p-2 border-2 border-black font-bold focus:outline-none"
+                className="w-full p-2 border-2 border-app-border bg-app-input-bg text-app-text font-bold focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg)]"
                 placeholder="Search by provider name"
               />
             </div>

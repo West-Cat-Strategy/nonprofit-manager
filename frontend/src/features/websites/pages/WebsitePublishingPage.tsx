@@ -159,6 +159,7 @@ const WebsitePublishingPage: React.FC = () => {
                 <div className="mt-4 grid gap-4">
                   <input
                     type="text"
+                    aria-label="Website site name"
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     placeholder="Site name"
@@ -166,6 +167,7 @@ const WebsitePublishingPage: React.FC = () => {
                   />
                   <input
                     type="text"
+                    aria-label="Website subdomain"
                     value={subdomain}
                     onChange={(event) => setSubdomain(event.target.value)}
                     placeholder="Subdomain"
@@ -173,6 +175,7 @@ const WebsitePublishingPage: React.FC = () => {
                   />
                   <input
                     type="text"
+                    aria-label="Website custom domain"
                     value={customDomain}
                     onChange={(event) => setCustomDomain(event.target.value)}
                     placeholder="Custom domain"

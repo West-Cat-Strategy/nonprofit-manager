@@ -16,7 +16,7 @@ export default function PublicPageShell({
   children,
 }: PublicPageShellProps) {
   return (
-    <div className="auth-page-light relative min-h-screen overflow-hidden bg-gradient-to-br from-app-bg via-white to-app-accent-soft/60">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-app-bg via-app-shell-top to-app-accent-soft/30 text-app-text">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute left-[-8rem] top-[-6rem] h-64 w-64 rounded-full bg-app-accent-soft/60 blur-3xl"
@@ -27,11 +27,11 @@ export default function PublicPageShell({
       />
 
       <main className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-        <section className="rounded-[var(--ui-radius-lg)] border border-app-border-muted bg-app-surface/90 p-6 shadow-[var(--ui-elev-2)] backdrop-blur sm:p-8">
+        <section className="rounded-[var(--ui-radius-lg)] border border-app-border-muted bg-app-surface-elevated/92 p-6 shadow-[var(--ui-elev-2)] backdrop-blur sm:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               {badge ? (
-                <span className="inline-flex items-center rounded-full border border-app-border bg-app-surface px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-app-text-muted">
+                <span className="inline-flex items-center rounded-full border border-app-border-muted bg-app-surface px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-app-text-label">
                   {badge}
                 </span>
               ) : null}

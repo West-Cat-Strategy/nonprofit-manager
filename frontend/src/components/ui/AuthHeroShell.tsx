@@ -16,7 +16,7 @@ export default function AuthHeroShell({
   children,
 }: AuthHeroShellProps) {
   return (
-    <div className="auth-page-light relative min-h-screen overflow-hidden bg-gradient-to-br from-app-bg via-white to-app-accent-soft/70 font-body">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-app-bg via-app-shell-top to-app-accent-soft/35 font-body text-app-text">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -top-24 left-0 h-72 w-72 rounded-full bg-app-accent-soft/55 blur-3xl"
@@ -29,7 +29,7 @@ export default function AuthHeroShell({
         <div className="grid w-full gap-10 lg:grid-cols-[1fr_1.05fr]">
           <div className="flex flex-col justify-center">
             {badge && (
-              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-app-border bg-white/85 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-app-text shadow-sm">
+              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-app-border-muted bg-app-surface-elevated/90 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-app-text-label shadow-sm backdrop-blur">
                 {badge}
               </span>
             )}
@@ -42,7 +42,7 @@ export default function AuthHeroShell({
                 {highlights.map((copy) => (
                   <div
                     key={copy}
-                    className="flex items-start gap-3 rounded-[var(--ui-radius-md)] border border-app-border-muted bg-white/70 p-3 shadow-sm"
+                    className="flex items-start gap-3 rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface-elevated/80 p-3 shadow-sm backdrop-blur"
                   >
                     <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-app-accent-soft text-app-accent">
                       <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
@@ -59,7 +59,7 @@ export default function AuthHeroShell({
               </div>
             )}
           </div>
-          <div className="rounded-[var(--ui-radius-lg)] border border-app-border/80 bg-white/92 p-8 shadow-[var(--ui-elev-2)] backdrop-blur">
+          <div className="rounded-[var(--ui-radius-lg)] border border-app-border-muted bg-app-surface-elevated/92 p-8 shadow-[var(--ui-elev-2)] backdrop-blur">
             {children}
           </div>
         </div>

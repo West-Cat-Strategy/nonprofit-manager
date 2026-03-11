@@ -19,18 +19,18 @@ export default function BrutalCard({
     onClick
 }: BrutalCardProps) {
     const colorClasses = {
-        yellow: 'bg-loop-yellow',
-        green: 'bg-loop-green',
-        purple: 'bg-loop-purple',
-        pink: 'bg-loop-pink',
-        white: 'bg-white',
-        black: 'bg-black text-white',
+        yellow: 'bg-loop-yellow text-black',
+        green: 'bg-loop-green text-black',
+        purple: 'bg-loop-purple text-black',
+        pink: 'bg-loop-pink text-black',
+        white: 'bg-app-surface text-app-text',
+        black: 'bg-[var(--app-text-heading)] text-[var(--app-bg)]',
     };
 
     return (
         <div
             className={`
-        border-brutal border-black shadow-brutal relative break-words
+        border-brutal border-[var(--app-border)] shadow-brutal relative break-words
         ${colorClasses[color]}
         ${onClick ? 'cursor-pointer hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-brutal-sm transition-all z-10' : 'z-0'}
         ${className}

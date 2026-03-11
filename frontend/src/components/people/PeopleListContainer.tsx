@@ -77,6 +77,7 @@ export const PeopleListContainer = <T,>({
   const allSelected = data.length > 0 && data.every((row) => selectedRows.has(getRowId(row)));
   const someSelected = selectedRows.size > 0 && !allSelected;
   const selectAllRef = useRef<HTMLInputElement>(null);
+  const singularTitle = title.endsWith('s') ? title.slice(0, -1) : title;
 
   useEffect(() => {
     if (selectAllRef.current) {
@@ -157,6 +158,7 @@ export const PeopleListContainer = <T,>({
                         checked={allSelected}
                         onChange={(event) => onSelectAll?.(event.target.checked)}
                         className="h-4 w-4 rounded border-app-input-border text-app-accent focus:ring-app-accent"
+                        aria-label={`Select all ${title.toLowerCase()}`}
                       />
                     </th>
                   ) : null}
@@ -188,6 +190,7 @@ export const PeopleListContainer = <T,>({
                             checked={selectedRows.has(rowId)}
                             onChange={(event) => onSelectRow(rowId, event.target.checked)}
                             className="h-4 w-4 rounded border-app-input-border text-app-accent focus:ring-app-accent"
+                            aria-label={`Select ${singularTitle.toLowerCase()} ${rowId}`}
                           />
                         </td>
                       ) : null}

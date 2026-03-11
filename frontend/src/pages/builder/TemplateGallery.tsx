@@ -252,6 +252,7 @@ const TemplateGallery: React.FC = () => {
               </svg>
               <input
                 type="text"
+                aria-label="Search templates"
                 placeholder="Search templates..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
@@ -262,6 +263,7 @@ const TemplateGallery: React.FC = () => {
 
           {/* Category filter */}
           <select
+            aria-label="Filter templates by category"
             value={searchParams.category || ''}
             onChange={(e) => handleCategoryChange(e.target.value)}
             className="px-4 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
@@ -276,6 +278,7 @@ const TemplateGallery: React.FC = () => {
           {/* Status filter (only for My Templates) */}
           {activeTab === 'my-templates' && (
             <select
+              aria-label="Filter templates by status"
               value={searchParams.status || ''}
               onChange={(e) => handleStatusChange(e.target.value)}
               className="px-4 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"

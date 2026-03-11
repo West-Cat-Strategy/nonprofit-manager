@@ -13,21 +13,23 @@ interface PeopleCardProps {
 
 // Color mapping for Neo-Brutalist design system
 const CARD_COLORS: Record<CardColor, string> = {
-    pink: 'bg-[#FFB6C1]',
-    cyan: 'bg-[#4DD0E1]',
-    yellow: 'bg-[#FFD700]',
-    gray: 'bg-[#E0E0E0]',
+    pink: 'bg-loop-pink text-black',
+    cyan: 'bg-loop-cyan text-black',
+    yellow: 'bg-loop-yellow text-black',
+    gray: 'bg-app-surface text-app-text',
 };
 
 const STATUS_COLORS: Record<string, string> = {
-    active: 'bg-[#90EE90] text-black border-black',
-    away: 'bg-app-surface text-black border-black',
-    inactive: 'bg-app-surface text-black border-black',
+    active: 'bg-loop-green text-black border-app-border',
+    away: 'bg-app-surface text-app-text border-app-border',
+    inactive: 'bg-app-surface text-app-text border-app-border',
 };
 
 export default function PeopleCard({ person }: PeopleCardProps) {
     // Get card background color from data, fallback to white
-    const cardBg = person.cardColor ? CARD_COLORS[person.cardColor] : 'bg-app-surface';
+    const cardBg = person.cardColor ? CARD_COLORS[person.cardColor] : 'bg-app-surface text-app-text';
+    const usesLoopSurface = person.cardColor !== undefined && person.cardColor !== 'gray';
+    const secondaryTextClass = usesLoopSurface ? 'text-black/70' : 'text-app-text-muted';
 
     // Get status badge color
     const statusColor = STATUS_COLORS[person.status?.toLowerCase() || 'active'] || STATUS_COLORS.active;
@@ -39,10 +41,10 @@ export default function PeopleCard({ person }: PeopleCardProps) {
     const fullName = person.fullName?.trim() || `${firstName} ${lastName}`.trim();
 
     return (
-        <div className={`${cardBg} border-2 border-black shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 flex flex-col items-center`}>
+        <div className={`${cardBg} border-2 border-app-border shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 flex flex-col items-center`}>
             {/* Profile Photo Area - White circle with initials */}
-            <div className="w-20 h-20 bg-app-surface border-2 border-black rounded-full flex items-center justify-center mb-4 overflow-hidden">
-                <span className="text-2xl font-black text-black">
+            <div className="w-20 h-20 bg-app-surface-elevated border-2 border-app-border rounded-full flex items-center justify-center mb-4 overflow-hidden">
+                <span className="text-2xl font-black text-app-text">
                     {initials}
                 </span>
             </div>
@@ -51,7 +53,7 @@ export default function PeopleCard({ person }: PeopleCardProps) {
             <h3 className="font-black text-lg mb-1 text-center truncate w-full max-w-full px-2">{fullName}</h3>
 
             {/* Role/Title - Truncate to prevent overflow */}
-            <p className="text-xs text-app-text-muted dark:text-app-text-subtle mb-3 uppercase font-bold tracking-wide text-center truncate w-full max-w-full px-2">
+            <p className={`text-xs mb-3 uppercase font-bold tracking-wide text-center truncate w-full max-w-full px-2 ${secondaryTextClass}`}>
                 {person.title || person.role}
             </p>
 
@@ -64,10 +66,10 @@ export default function PeopleCard({ person }: PeopleCardProps) {
 
             {/* Contact Info */}
             {person.email && (
-                <div className="text-xs text-app-text-muted dark:text-app-text-subtle truncate mb-1 text-center w-full">{person.email}</div>
+                <div className={`text-xs truncate mb-1 text-center w-full ${secondaryTextClass}`}>{person.email}</div>
             )}
             {person.phone && (
-                <div className="text-xs text-app-text-muted dark:text-app-text-subtle text-center">{person.phone}</div>
+                <div className={`text-xs text-center ${secondaryTextClass}`}>{person.phone}</div>
             )}
         </div>
     );

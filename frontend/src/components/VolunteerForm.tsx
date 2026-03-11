@@ -322,6 +322,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
             </div>
             <input
               type="text"
+              id="preferred_roles"
               value={roleInput}
               onChange={(e) => setRoleInput(e.target.value)}
               onKeyDown={handleAddRole}

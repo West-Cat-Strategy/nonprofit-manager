@@ -360,8 +360,9 @@ export default function PortalSection({
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app-text-label mb-1">Client Email</label>
+              <label htmlFor="portal-invite-email" className="block text-sm font-medium text-app-text-label mb-1">Client Email</label>
               <input
+                id="portal-invite-email"
                 type="email"
                 value={portalInviteEmail}
                 onChange={(e) => onPortalInviteEmailChange(e.target.value)}
@@ -370,8 +371,9 @@ export default function PortalSection({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app-text-label mb-1">Link Existing Contact (optional)</label>
+              <label htmlFor="portal-contact-search" className="block text-sm font-medium text-app-text-label mb-1">Link Existing Contact (optional)</label>
               <input
+                id="portal-contact-search"
                 type="text"
                 value={portalContactSearch}
                 onChange={(e) => onPortalContactSearchChange(e.target.value)}
@@ -470,6 +472,7 @@ export default function PortalSection({
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <input
               type="text"
+              aria-label="Search portal users"
               value={portalUserSearch}
               onChange={(e) => onPortalUserSearchChange(e.target.value)}
               placeholder="Search portal users by name or email"
@@ -583,12 +586,14 @@ export default function PortalSection({
           <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
             <input
               type="text"
+              aria-label="Search portal conversations"
               value={portalConversationFilters.search}
               onChange={(e) => onPortalConversationFilterChange('search', e.target.value)}
               placeholder="Search conversations"
               className="px-3 py-2 border border-app-input-border rounded-lg"
             />
             <select
+              aria-label="Filter portal conversations by status"
               value={portalConversationFilters.status}
               onChange={(e) => onPortalConversationFilterChange('status', e.target.value)}
               className="px-3 py-2 border border-app-input-border rounded-lg"
@@ -600,6 +605,7 @@ export default function PortalSection({
             </select>
             <input
               type="text"
+              aria-label="Filter portal conversations by case ID"
               value={portalConversationFilters.caseId}
               onChange={(e) => onPortalConversationFilterChange('caseId', e.target.value)}
               placeholder="Case ID"
@@ -607,6 +613,7 @@ export default function PortalSection({
             />
             <input
               type="text"
+              aria-label="Filter portal conversations by pointperson user ID"
               value={portalConversationFilters.pointpersonUserId}
               onChange={(e) => onPortalConversationFilterChange('pointpersonUserId', e.target.value)}
               placeholder="Pointperson user ID"
@@ -724,6 +731,7 @@ export default function PortalSection({
 
                   <div className="space-y-2">
                     <textarea
+                      aria-label="Reply to portal conversation"
                       value={portalConversationReply}
                       onChange={(e) => onPortalConversationReplyChange(e.target.value)}
                       rows={3}
@@ -774,6 +782,7 @@ export default function PortalSection({
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-7 gap-2">
             <select
+              aria-label="Filter portal appointments by status"
               value={portalAppointmentFilters.status}
               onChange={(e) => onPortalAppointmentFilterChange('status', e.target.value)}
               className="px-3 py-2 border border-app-input-border rounded-lg"
@@ -785,6 +794,7 @@ export default function PortalSection({
               <option value="cancelled">Cancelled</option>
             </select>
             <select
+              aria-label="Filter portal appointments by request type"
               value={portalAppointmentFilters.requestType}
               onChange={(e) => onPortalAppointmentFilterChange('requestType', e.target.value)}
               className="px-3 py-2 border border-app-input-border rounded-lg"
@@ -795,6 +805,7 @@ export default function PortalSection({
             </select>
             <input
               type="text"
+              aria-label="Filter portal appointments by case ID"
               value={portalAppointmentFilters.caseId}
               onChange={(e) => onPortalAppointmentFilterChange('caseId', e.target.value)}
               placeholder="Case ID"
@@ -802,6 +813,7 @@ export default function PortalSection({
             />
             <input
               type="text"
+              aria-label="Filter portal appointments by pointperson user ID"
               value={portalAppointmentFilters.pointpersonUserId}
               onChange={(e) => onPortalAppointmentFilterChange('pointpersonUserId', e.target.value)}
               placeholder="Pointperson user ID"
@@ -809,12 +821,14 @@ export default function PortalSection({
             />
             <input
               type="datetime-local"
+              aria-label="Portal appointments from date"
               value={portalAppointmentFilters.dateFrom}
               onChange={(e) => onPortalAppointmentFilterChange('dateFrom', e.target.value)}
               className="px-3 py-2 border border-app-input-border rounded-lg"
             />
             <input
               type="datetime-local"
+              aria-label="Portal appointments to date"
               value={portalAppointmentFilters.dateTo}
               onChange={(e) => onPortalAppointmentFilterChange('dateTo', e.target.value)}
               className="px-3 py-2 border border-app-input-border rounded-lg"
@@ -829,6 +843,7 @@ export default function PortalSection({
           </div>
 
           <textarea
+            aria-label="Custom portal appointment reminder message"
             value={portalReminderCustomMessage}
             onChange={(e) => onPortalReminderCustomMessageChange(e.target.value)}
             rows={2}
@@ -1030,6 +1045,7 @@ export default function PortalSection({
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
             <select
+              aria-label="Filter appointment slots by status"
               value={portalSlotFilters.status}
               onChange={(e) => onPortalSlotFilterChange('status', e.target.value)}
               className="px-3 py-2 border border-app-input-border rounded-lg"
@@ -1041,6 +1057,7 @@ export default function PortalSection({
             </select>
             <input
               type="text"
+              aria-label="Filter appointment slots by case ID"
               value={portalSlotFilters.caseId}
               onChange={(e) => onPortalSlotFilterChange('caseId', e.target.value)}
               placeholder="Case ID"
@@ -1048,6 +1065,7 @@ export default function PortalSection({
             />
             <input
               type="text"
+              aria-label="Filter appointment slots by pointperson user ID"
               value={portalSlotFilters.pointpersonUserId}
               onChange={(e) => onPortalSlotFilterChange('pointpersonUserId', e.target.value)}
               placeholder="Pointperson user ID"
@@ -1055,12 +1073,14 @@ export default function PortalSection({
             />
             <input
               type="datetime-local"
+              aria-label="Appointment slots from date"
               value={portalSlotFilters.from}
               onChange={(e) => onPortalSlotFilterChange('from', e.target.value)}
               className="px-3 py-2 border border-app-input-border rounded-lg"
             />
             <input
               type="datetime-local"
+              aria-label="Appointment slots to date"
               value={portalSlotFilters.to}
               onChange={(e) => onPortalSlotFilterChange('to', e.target.value)}
               className="px-3 py-2 border border-app-input-border rounded-lg"
@@ -1076,6 +1096,7 @@ export default function PortalSection({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <input
               type="text"
+              aria-label="Slot pointperson user ID"
               placeholder="Pointperson user ID"
               value={portalSlotForm.pointperson_user_id}
               onChange={(e) => onPortalSlotFormChange('pointperson_user_id', e.target.value)}
@@ -1083,6 +1104,7 @@ export default function PortalSection({
             />
             <input
               type="text"
+              aria-label="Slot case ID"
               placeholder="Case ID (optional)"
               value={portalSlotForm.case_id}
               onChange={(e) => onPortalSlotFormChange('case_id', e.target.value)}
@@ -1090,6 +1112,7 @@ export default function PortalSection({
             />
             <input
               type="text"
+              aria-label="Slot title"
               placeholder="Title"
               value={portalSlotForm.title}
               onChange={(e) => onPortalSlotFormChange('title', e.target.value)}
@@ -1097,6 +1120,7 @@ export default function PortalSection({
             />
             <input
               type="text"
+              aria-label="Slot location"
               placeholder="Location"
               value={portalSlotForm.location}
               onChange={(e) => onPortalSlotFormChange('location', e.target.value)}
@@ -1104,18 +1128,21 @@ export default function PortalSection({
             />
             <input
               type="datetime-local"
+              aria-label="Slot start time"
               value={portalSlotForm.start_time}
               onChange={(e) => onPortalSlotFormChange('start_time', e.target.value)}
               className="px-3 py-2 border border-app-input-border rounded-lg"
             />
             <input
               type="datetime-local"
+              aria-label="Slot end time"
               value={portalSlotForm.end_time}
               onChange={(e) => onPortalSlotFormChange('end_time', e.target.value)}
               className="px-3 py-2 border border-app-input-border rounded-lg"
             />
             <input
               type="number"
+              aria-label="Slot capacity"
               min={1}
               max={200}
               value={portalSlotForm.capacity}
@@ -1123,6 +1150,7 @@ export default function PortalSection({
               className="px-3 py-2 border border-app-input-border rounded-lg"
             />
             <textarea
+              aria-label="Slot details"
               placeholder="Details"
               value={portalSlotForm.details}
               onChange={(e) => onPortalSlotFormChange('details', e.target.value)}

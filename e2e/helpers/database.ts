@@ -485,6 +485,7 @@ export async function createTestEvent(
     endDate?: string;
     location?: string;
     capacity?: number;
+    isPublic?: boolean;
   }
 ): Promise<{ id: string }> {
   const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
@@ -492,8 +493,11 @@ export async function createTestEvent(
 
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const startDate = data.startDate || tomorrow.toISOString();
-  const endDate = data.endDate || tomorrow.toISOString();
+  const defaultStart = new Date(tomorrow);
+  const defaultEnd = new Date(tomorrow);
+  defaultEnd.setHours(defaultEnd.getHours() + 1);
+  const startDate = data.startDate || defaultStart.toISOString();
+  const endDate = data.endDate || defaultEnd.toISOString();
 
   const response = await page.request.post(`${apiURL}/api/v2/events`, {
     headers,
@@ -504,6 +508,7 @@ export async function createTestEvent(
       end_date: endDate,
       location_name: data.location || 'Test Location',
       capacity: data.capacity ?? 100,
+      ...(typeof data.isPublic === 'boolean' ? { is_public: data.isPublic } : {}),
     },
   });
 

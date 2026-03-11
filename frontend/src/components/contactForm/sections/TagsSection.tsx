@@ -52,7 +52,11 @@ export default function TagsSection({
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
+        <label htmlFor="contact-tag-input" className="sr-only">
+          Add a tag
+        </label>
         <input
+          id="contact-tag-input"
           type="text"
           value={tagInput}
           onChange={(e) => setTagInput(e.target.value)}

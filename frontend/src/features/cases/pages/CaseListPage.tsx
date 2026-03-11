@@ -92,6 +92,7 @@ const MobileCaseCard = memo(
             }}
             onClick={(event) => event.stopPropagation()}
             className="mt-1 w-5 h-5 border-2 border-black accent-black"
+            aria-label={`Select case ${caseItem.case_number}`}
           />
           <div>
             <div className="flex items-center gap-2">
@@ -180,6 +181,7 @@ const DesktopCaseRow = memo(
           onChange={() => onToggleSelection(caseItem.id)}
           onClick={(event) => event.stopPropagation()}
           className="w-5 h-5 border-2 border-black accent-black"
+          aria-label={`Select case ${caseItem.case_number}`}
         />
       </td>
       <td className="px-4 py-4 whitespace-nowrap">
@@ -732,8 +734,7 @@ const CaseList = () => {
   return (
     <NeoBrutalistLayout pageTitle="Cases">
       <div className="p-6 space-y-6">
-      {/* Header */}
-      <BrutalCard color="yellow" className="p-6">
+ 	      <BrutalCard color="yellow" className="p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-3xl font-black uppercase tracking-tight text-black">Cases</h1>
@@ -771,15 +772,14 @@ const CaseList = () => {
         )}
       </BrutalCard>
 
-      {/* Filters */}
-      <BrutalCard color="white" className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          {/* Search */}
-          <div className="lg:col-span-2">
+ 	      <BrutalCard color="white" className="p-4">
+ 	        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+ 	          <div className="lg:col-span-2">
             <BrutalInput
               type="text"
               placeholder="Search by case number, title, or description..."
               value={searchTerm}
+              aria-label="Search cases"
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -790,12 +790,12 @@ const CaseList = () => {
             />
           </div>
 
-          {/* Case Type */}
-          <div>
+ 	          <div>
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
               className="w-full border-2 border-black dark:border-white bg-white dark:bg-[#000000] text-black dark:text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+              aria-label="Filter cases by type"
             >
               <option value="">All Types</option>
               {caseTypes.map((type) => (
@@ -806,12 +806,12 @@ const CaseList = () => {
             </select>
           </div>
 
-          {/* Status */}
-          <div>
+ 	          <div>
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
               className="w-full border-2 border-black dark:border-white bg-white dark:bg-[#000000] text-black dark:text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+              aria-label="Filter cases by status"
             >
               <option value="">All Statuses</option>
               {caseStatuses.map((status) => (
@@ -822,12 +822,12 @@ const CaseList = () => {
             </select>
           </div>
 
-          {/* Priority */}
-          <div>
+ 	          <div>
             <select
               value={selectedPriority}
               onChange={(e) => setSelectedPriority(e.target.value as CasePriority | '')}
               className="w-full border-2 border-black dark:border-white bg-white dark:bg-[#000000] text-black dark:text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+              aria-label="Filter cases by priority"
             >
               <option value="">All Priorities</option>
               {CASE_PRIORITY_OPTIONS.map(({ value, label }) => (
@@ -846,6 +846,7 @@ const CaseList = () => {
               value={selectedSort}
               onChange={(e) => setSelectedSort(e.target.value)}
               className="w-full border-2 border-black dark:border-white bg-white dark:bg-[#000000] text-black dark:text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+              aria-label="Sort cases by field"
             >
               <option value="created_at">Created date</option>
               <option value="due_date">Due date</option>
@@ -859,6 +860,7 @@ const CaseList = () => {
               value={selectedOrder}
               onChange={(e) => setSelectedOrder(e.target.value as 'asc' | 'desc')}
               className="w-full border-2 border-black dark:border-white bg-white dark:bg-[#000000] text-black dark:text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+              aria-label="Sort cases by order"
             >
               <option value="desc">Newest first</option>
               <option value="asc">Oldest first</option>
@@ -871,6 +873,7 @@ const CaseList = () => {
                 value={selectedViewId}
                 onChange={(e) => applySavedView(e.target.value)}
                 className="flex-1 border-2 border-black dark:border-white bg-white dark:bg-[#000000] text-black dark:text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+                aria-label="Saved case views"
               >
                 <option value="">Select view</option>
                 {savedViews.map((view) => (
@@ -936,19 +939,20 @@ const CaseList = () => {
                   });
                 }}
                 className="w-20 border-2 border-black bg-white text-black px-2 py-1 text-xs font-black uppercase focus:outline-none focus:ring-2 focus:ring-black"
+                aria-label="Days until cases are due soon"
               />
             </div>
           )}
         </div>
 
-        {/* Filter Actions */}
-        <div className="mt-4 flex flex-wrap items-center gap-4">
+ 	        <div className="mt-4 flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
               checked={showUrgentOnly}
               onChange={(e) => setShowUrgentOnly(e.target.checked)}
               className="w-5 h-5 border-2 border-black dark:border-white accent-black dark:accent-white"
+              aria-label="Show urgent cases only"
             />
             <span className="text-sm font-bold text-black dark:text-white uppercase">
               Urgent only
@@ -960,6 +964,7 @@ const CaseList = () => {
               type="text"
               placeholder="Save current view"
               value={savedViewName}
+              aria-label="Saved view name"
               onChange={(e) => setSavedViewName(e.target.value)}
             />
             <BrutalButton onClick={handleSaveView} variant="secondary" size="sm">
@@ -1010,29 +1015,19 @@ const CaseList = () => {
           </BrutalButton>
         </div>
 
-        <CaseListFiltersBar
-          chips={activeFilterChips}
-          onRemove={handleRemoveFilterChip}
-          onClearAll={handleClearFilters}
-        />
-      </BrutalCard>
-
-      {/* Error Message */}
-      {error && (
+	        <CaseListFiltersBar chips={activeFilterChips} onRemove={handleRemoveFilterChip} onClearAll={handleClearFilters} />
+ 	      </BrutalCard>
+ 	      {error && (
         <div className="border-2 border-black shadow-[6px_6px_0px_var(--shadow-color)] bg-app-accent-soft text-black p-4 font-bold">
           {error}
         </div>
       )}
-
-      {/* Loading State */}
-      {loading && (
+ 	      {loading && (
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin h-12 w-12 border-4 border-black dark:border-white border-t-transparent"></div>
         </div>
       )}
-
-      {/* Bulk Action Bar */}
-      {selectedCaseIds.length > 0 && (
+ 	      {selectedCaseIds.length > 0 && (
         <BrutalCard color="purple" className="p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -1051,9 +1046,7 @@ const CaseList = () => {
           </div>
         </BrutalCard>
       )}
-
-      {/* Bulk Status Modal */}
-      {showBulkModal && (
+ 	      {showBulkModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" role="dialog" aria-modal="true">
           <BrutalCard color="white" className="p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-black uppercase mb-4 text-black">
@@ -1066,6 +1059,7 @@ const CaseList = () => {
                   value={bulkStatusId}
                   onChange={(e) => setBulkStatusId(e.target.value)}
                   className="w-full px-3 py-2 border-2 border-black bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
+                  aria-label="Bulk status"
                 >
                   <option value="">Select status...</option>
                   {caseStatuses.map((status) => (
@@ -1081,6 +1075,7 @@ const CaseList = () => {
                   rows={3}
                   placeholder="Reason for bulk status change..."
                   className="w-full px-3 py-2 border-2 border-black bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
+                  aria-label="Bulk status notes"
                 />
               </div>
               <div className="flex justify-end gap-3">
@@ -1096,8 +1091,7 @@ const CaseList = () => {
         </div>
       )}
 
-      {/* Cases Table */}
-      {!loading && visibleCases.length > 0 && (
+ 	      {!loading && visibleCases.length > 0 && (
         <>
           <div className="grid grid-cols-1 gap-4 md:hidden">
             {visibleCases.map((caseItem) => {
@@ -1132,6 +1126,7 @@ const CaseList = () => {
                             : handleSelectAllCases()
                         }
                         className="w-5 h-5 border-2 border-black accent-black"
+                        aria-label="Select all visible cases"
                       />
                     </th>
                     <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
@@ -1189,8 +1184,7 @@ const CaseList = () => {
         </>
       )}
 
-      {/* Empty State */}
-      {!loading && visibleCases.length === 0 && (
+ 	      {!loading && visibleCases.length === 0 && (
         <BrutalCard color="white" className="p-12 text-center">
           <div className="text-6xl mb-4">📋</div>
           <h3 className="text-xl font-black uppercase mb-2 text-black">No cases found</h3>
@@ -1207,8 +1201,7 @@ const CaseList = () => {
         </BrutalCard>
       )}
 
-      {/* Pagination */}
-      {!loading && cases.length > 0 && totalPages > 1 && (
+ 	      {!loading && cases.length > 0 && totalPages > 1 && (
         <div className="mt-6 flex justify-between items-center">
           <div className="flex items-center gap-4 text-sm font-bold text-black">
             Showing {(currentPage - 1) * (filters.limit || 20) + 1} to{' '}
@@ -1223,7 +1216,8 @@ const CaseList = () => {
                   dispatch(setFilters({ limit: nextLimit, page: 1 }));
                   syncUrl({ limit: nextLimit, page: 1 });
                 }}
-                className="border-2 border-black bg-white px-2 py-1 text-xs font-black uppercase focus:outline-none focus:ring-2 focus:ring-black"
+                className="border-2 border-app-border bg-app-surface-elevated px-2 py-1 text-xs font-black uppercase text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent"
+                aria-label="Cases per page"
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>

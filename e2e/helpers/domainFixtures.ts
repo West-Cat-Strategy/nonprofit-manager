@@ -3,6 +3,10 @@ import { getAuthHeaders } from './database';
 
 const apiURL = () => process.env.API_URL || 'http://localhost:3001';
 
+type ApiBody = Record<string, unknown>;
+
+const unwrapBody = <T extends ApiBody>(body: ApiBody): T => ((body.data as T | undefined) ?? (body as T));
+
 async function postJSON(page: Page, token: string, path: string, data: unknown) {
   const headers = await getAuthHeaders(page, token);
   return page.request.post(`${apiURL()}${path}`, { headers, data });
@@ -49,12 +53,38 @@ export async function createSavedReport(page: Page, token: string): Promise<stri
       sort: [],
     },
   });
+  if (!response.ok()) {
+    throw new Error(`Failed to create saved report (${response.status()}): ${await response.text()}`);
+  }
   const body = await response.json();
   return body.id || body.saved_report_id || body.data?.id;
 }
 
 export async function deleteSavedReport(page: Page, token: string, id: string) {
   await deleteWithAuth(page, token, `/api/v2/saved-reports/${id}`);
+}
+
+export async function createPublicReportLink(page: Page, token: string): Promise<{
+  reportId: string;
+  publicToken: string;
+  url: string;
+}> {
+  const reportId = await createSavedReport(page, token);
+  const response = await postJSON(page, token, `/api/v2/saved-reports/${reportId}/public-link`, {});
+  if (!response.ok()) {
+    throw new Error(`Failed to create public report link (${response.status()}): ${await response.text()}`);
+  }
+
+  const body = unwrapBody<{ token?: string; url?: string }>(await response.json());
+  if (!body.token || !body.url) {
+    throw new Error(`Public report link created but token/url missing: ${JSON.stringify(body)}`);
+  }
+
+  return {
+    reportId,
+    publicToken: body.token,
+    url: body.url,
+  };
 }
 
 export async function createTemplate(page: Page, token: string): Promise<string> {
@@ -81,11 +111,16 @@ export async function deleteTemplate(page: Page, token: string, id: string) {
 export async function createWebsiteSite(
   page: Page,
   token: string,
-  templateId: string
+  templateId: string,
+  options: {
+    name?: string;
+    subdomain?: string;
+  } = {}
 ): Promise<string> {
   const response = await postJSON(page, token, '/api/v2/sites', {
     templateId,
-    name: `E2E Website ${Date.now()}`,
+    name: options.name || `E2E Website ${Date.now()}`,
+    ...(options.subdomain ? { subdomain: options.subdomain } : {}),
   });
   if (!response.ok()) {
     throw new Error(`Failed to create website site (${response.status()}): ${await response.text()}`);
@@ -100,6 +135,39 @@ export async function createWebsiteSite(
 
 export async function deleteWebsiteSite(page: Page, token: string, id: string) {
   await deleteWithAuth(page, token, `/api/v2/sites/${id}`);
+}
+
+export async function publishWebsiteSite(
+  page: Page,
+  token: string,
+  payload: {
+    siteId: string;
+    templateId: string;
+  }
+): Promise<{
+  siteId: string;
+  url: string;
+  previewUrl?: string;
+}> {
+  const response = await postJSON(page, token, '/api/v2/sites/publish', payload);
+  if (!response.ok()) {
+    throw new Error(`Failed to publish website site (${response.status()}): ${await response.text()}`);
+  }
+
+  const body = unwrapBody<{
+    siteId?: string;
+    url?: string;
+    previewUrl?: string;
+  }>(await response.json());
+  if (!body.siteId || !body.url) {
+    throw new Error(`Published website site is missing siteId/url: ${JSON.stringify(body)}`);
+  }
+
+  return {
+    siteId: body.siteId,
+    url: body.url,
+    previewUrl: body.previewUrl,
+  };
 }
 
 export async function createWebhookEndpoint(page: Page, token: string): Promise<string> {

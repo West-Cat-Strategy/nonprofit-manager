@@ -295,6 +295,139 @@ describe('Auth API Integration Tests', () => {
     });
   });
 
+  describe('PUT /api/v2/auth/profile', () => {
+    const profilePicture = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z0w8AAAAASUVORK5CYII=';
+
+    it('accepts camelCase profile updates and persists a base64 profile picture', async () => {
+      const response = await request(app)
+        .put('/api/v2/auth/profile')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          firstName: 'Profile',
+          lastName: 'Updated',
+          email: testEmail,
+          displayName: 'Profile Display',
+          alternativeName: 'Nickname',
+          pronouns: 'they/them',
+          title: 'Coordinator',
+          cellPhone: '555-123-4567',
+          contactNumber: '555-555-0000',
+          profilePicture,
+          emailSharedWithClients: true,
+          emailSharedWithUsers: false,
+          alternativeEmails: [
+            {
+              email: `alt-${unique()}@example.com`,
+              label: 'Work',
+              isVerified: true,
+            },
+          ],
+          notifications: {
+            emailNotifications: true,
+            taskReminders: false,
+            eventReminders: true,
+            donationAlerts: false,
+            caseUpdates: true,
+            weeklyDigest: false,
+            marketingEmails: false,
+          },
+        })
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        success: true,
+        data: {
+          firstName: 'Profile',
+          lastName: 'Updated',
+          displayName: 'Profile Display',
+          profilePicture,
+          emailSharedWithClients: true,
+          emailSharedWithUsers: false,
+        },
+      });
+      expect(response.body.data.alternativeEmails).toHaveLength(1);
+      expect(response.body.data.notifications.taskReminders).toBe(false);
+
+      const stored = await pool.query<{ profile_picture: string | null }>(
+        'SELECT profile_picture FROM users WHERE email = $1',
+        [testEmail]
+      );
+      expect(stored.rows[0]?.profile_picture).toBe(profilePicture);
+    });
+
+    it('clears the stored profile picture when profilePicture is null', async () => {
+      const response = await request(app)
+        .put('/api/v2/auth/profile')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          profilePicture: null,
+        })
+        .expect(200);
+
+      expect(response.body.data.profilePicture).toBeNull();
+
+      const stored = await pool.query<{ profile_picture: string | null }>(
+        'SELECT profile_picture FROM users WHERE email = $1',
+        [testEmail]
+      );
+      expect(stored.rows[0]?.profile_picture).toBeNull();
+    });
+
+    it('rejects malformed notification payloads', async () => {
+      const response = await request(app)
+        .put('/api/v2/auth/profile')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          notifications: {
+            emailNotifications: 'yes',
+          },
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('validation_error');
+      expect(response.body.error.details.validation.body['notifications.emailNotifications']).toBeDefined();
+    });
+
+    it('rejects unknown profile fields via strict validation', async () => {
+      const response = await request(app)
+        .put('/api/v2/auth/profile')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          unknownField: 'unexpected',
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('validation_error');
+    });
+
+    it('rejects email updates that would collide with another user', async () => {
+      const duplicateEmail = `duplicate-profile-${unique()}@example.com`;
+      await request(app)
+        .post('/api/v2/auth/register')
+        .send({
+          email: duplicateEmail,
+          password: testPassword,
+          password_confirm: testPassword,
+          first_name: 'Duplicate',
+          last_name: 'Profile',
+        })
+        .expect(201);
+
+      const response = await request(app)
+        .put('/api/v2/auth/profile')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          email: duplicateEmail,
+        })
+        .expect(409);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.message).toMatch(/already in use/i);
+    });
+  });
+
   describe('Account Lockout', () => {
     it('should lock account after multiple failed login attempts', async () => {
       const lockoutEmail = `lockout-${unique()}@example.com`;

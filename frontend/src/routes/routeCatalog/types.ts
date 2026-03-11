@@ -53,6 +53,10 @@ export type StaffNavGroup = 'primary' | 'secondary' | 'utility';
 export type AdminNavigationMode = 'settings' | 'portal';
 export type FeatureFlagValues = Partial<Record<string, string | boolean | undefined>>;
 export type RouteNavKind = 'hub' | 'leaf' | 'utility';
+export type RouteAuditFixtureKey =
+  | 'placeholder-token'
+  | 'public-report-snapshot'
+  | 'public-events';
 
 export interface RouteCatalogAlias {
   path: string;
@@ -82,6 +86,7 @@ export interface RouteCatalogEntry {
   breadcrumbLabel: string;
   featureStatus?: FeatureAccessStatus;
   featureFlagEnv?: string;
+  auditFixtureKey?: RouteAuditFixtureKey;
   auditScore?: UiAuditScore;
   aliases?: readonly (string | RouteCatalogAlias)[];
   primaryAction?: {

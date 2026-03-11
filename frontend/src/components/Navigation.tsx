@@ -11,6 +11,7 @@ import {
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logoutAsync } from '../features/auth/state';
+import { canAccessAdminSettings } from '../features/auth/state/adminAccess';
 import { useNavigationPreferences } from '../hooks/useNavigationPreferences';
 import { useBranding } from '../contexts/BrandingContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -96,6 +97,7 @@ export default function Navigation() {
   };
   const utilityNavLinks = utilityEntries.filter((entry) => entry.path !== alertsLink.path);
   const adminSettingsPath = getAdminSettingsPath('dashboard');
+  const canOpenAdminSettings = canAccessAdminSettings(user);
   const hasActiveSecondaryItem = secondaryItems.some(
     (item) =>
       activeRouteIds.has(item.id) || normalizeRouteLocation(item.path) === normalizedCurrentLocation
@@ -459,7 +461,7 @@ export default function Navigation() {
             </div>
           ) : null}
 
-          {user?.role === 'admin' ? (
+          {canOpenAdminSettings ? (
             <div className="relative hidden lg:block">
               <button
                 type="button"
@@ -660,7 +662,7 @@ export default function Navigation() {
                 >
                   User Settings
                 </Link>
-                {user?.role === 'admin' ? (
+                {canOpenAdminSettings ? (
                   <>
                     <Link
                       to={adminSettingsPath}

@@ -141,7 +141,7 @@ const register = async (data: RegisterInput) => {
 **CRUD**:
 - `createUserSchema` - Create new user with email, password, role
 - `updateUserSchema` - Update user role and status
-- `updateUserProfileSchema` - Update first/last name and profile picture
+- `updateUserProfileSchema` - Update the authenticated staff profile via camelCase fields, including `profilePicture`, notifications, and sharing preferences
 - `updateUserPreferencesSchema` - Save user UI preferences
 
 **Queries**:

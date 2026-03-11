@@ -267,8 +267,9 @@ export default function TwilioSettingsSection() {
 
         <div className="grid gap-4 p-6 sm:grid-cols-2">
           <div>
-            <label className={labelClass}>Account SID</label>
+            <label htmlFor="twilio-account-sid" className={labelClass}>Account SID</label>
             <input
+              id="twilio-account-sid"
               type="text"
               className={inputClass}
               placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -278,13 +279,14 @@ export default function TwilioSettingsSection() {
           </div>
 
           <div>
-            <label className={labelClass}>
+            <label htmlFor="twilio-auth-token" className={labelClass}>
               Auth Token
               {credentials.authToken && (
                 <span className="ml-2 text-xs text-app-accent dark:text-app-text-muted">(stored)</span>
               )}
             </label>
             <input
+              id="twilio-auth-token"
               type="password"
               className={inputClass}
               placeholder={credentials.authToken ? '••••••••' : 'Enter auth token'}
@@ -294,8 +296,9 @@ export default function TwilioSettingsSection() {
           </div>
 
           <div>
-            <label className={labelClass}>Messaging Service SID (Recommended)</label>
+            <label htmlFor="twilio-messaging-service-sid" className={labelClass}>Messaging Service SID (Recommended)</label>
             <input
+              id="twilio-messaging-service-sid"
               type="text"
               className={inputClass}
               placeholder="MGxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -305,8 +308,9 @@ export default function TwilioSettingsSection() {
           </div>
 
           <div>
-            <label className={labelClass}>From Phone Number (Fallback)</label>
+            <label htmlFor="twilio-from-phone-number" className={labelClass}>From Phone Number (Fallback)</label>
             <input
+              id="twilio-from-phone-number"
               type="text"
               className={inputClass}
               placeholder="+15551234567"

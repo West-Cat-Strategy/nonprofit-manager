@@ -25,11 +25,12 @@ export default function BrutalButton({
     disabled = false,
 }: BrutalButtonProps) {
     const variantClasses = {
-        primary: 'bg-black text-white hover:bg-app-text',
+        primary: 'bg-[var(--app-text-heading)] text-[var(--app-bg)] hover:opacity-90',
         secondary: 'bg-app-surface text-[var(--app-text)] hover:bg-app-surface-muted',
-        success: 'bg-[var(--loop-green)] text-black hover:bg-app-accent-soft',
-        danger: 'bg-app-accent text-white hover:bg-app-accent',
+        success: 'bg-[var(--loop-green)] text-black hover:opacity-90',
+        danger: 'bg-app-accent text-[var(--app-accent-foreground)] hover:bg-app-accent-hover',
     };
+    const disabledClasses = 'bg-app-surface-muted text-app-text-muted border-app-border-muted shadow-none';
 
     const sizeClasses = {
         sm: 'px-3 py-1.5 text-sm',
@@ -42,13 +43,15 @@ export default function BrutalButton({
             type={type}
             onClick={onClick}
             disabled={disabled}
+            aria-disabled={disabled}
             className={`
-        border-2 border-black dark:border-white shadow-[6px_6px_0px_var(--shadow-color)] font-bold uppercase
+        border-2 border-[var(--app-border)] shadow-[6px_6px_0px_var(--shadow-color)] font-bold uppercase
         hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_var(--shadow-color)]
-        focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2
+        focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg)]
         transition-all
-        disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0
+        disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0
         ${variantClasses[variant]}
+        ${disabled ? disabledClasses : ''}
         ${sizeClasses[size]}
         ${className}
       `}

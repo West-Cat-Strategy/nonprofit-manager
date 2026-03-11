@@ -230,6 +230,7 @@ const WebsiteContentPage: React.FC = () => {
           <div className="mt-4 space-y-4">
             <input
               type="text"
+              aria-label="Newsletter title"
               value={draft.title}
               onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
               placeholder="Newsletter title"
@@ -237,12 +238,14 @@ const WebsiteContentPage: React.FC = () => {
             />
             <input
               type="text"
+              aria-label="Newsletter slug"
               value={draft.slug}
               onChange={(event) => setDraft((current) => ({ ...current, slug: event.target.value }))}
               placeholder="Slug (optional)"
               className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
             />
             <textarea
+              aria-label="Newsletter excerpt"
               value={draft.excerpt}
               onChange={(event) => setDraft((current) => ({ ...current, excerpt: event.target.value }))}
               placeholder="Short excerpt"
@@ -250,6 +253,7 @@ const WebsiteContentPage: React.FC = () => {
               className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
             />
             <textarea
+              aria-label="Newsletter body"
               value={draft.bodyHtml}
               onChange={(event) => setDraft((current) => ({ ...current, bodyHtml: event.target.value }))}
               placeholder="Body HTML or rich-text markup"
@@ -257,6 +261,7 @@ const WebsiteContentPage: React.FC = () => {
               className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
             />
             <select
+              aria-label="Newsletter status"
               value={draft.status}
               onChange={(event) =>
                 setDraft((current) => ({

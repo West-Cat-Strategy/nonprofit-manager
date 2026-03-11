@@ -70,7 +70,7 @@ export default function SideNav({
           />
         </div>
       ) : null}
-      <nav>
+      <nav aria-label={title}>
         <ul className="space-y-1">
           {visibleItems.map((item) => (
             <li key={item.key}>
