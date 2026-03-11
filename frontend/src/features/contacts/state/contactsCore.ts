@@ -25,6 +25,7 @@ import type {
   CreateContactDocumentDTO,
   UpdateContactDocumentDTO,
 } from '../../../types/contact';
+import type { ContactRoleFilter } from '../types/contracts';
 export type { Contact };
 
 export interface ContactsState {
@@ -43,7 +44,7 @@ export interface ContactsState {
     account_id: string;
     is_active: boolean | null;
     tags: string[];
-    role: '' | 'staff' | 'volunteer' | 'board';
+    role: '' | ContactRoleFilter;
     sort_by: string;
     sort_order: 'asc' | 'desc';
   };
@@ -119,7 +120,7 @@ export const fetchContacts = createAsyncThunk(
     account_id?: string;
     is_active?: boolean;
     tags?: string[];
-    role?: 'staff' | 'volunteer' | 'board';
+    role?: ContactRoleFilter;
     sort_by?: string;
     sort_order?: 'asc' | 'desc';
   }) => {

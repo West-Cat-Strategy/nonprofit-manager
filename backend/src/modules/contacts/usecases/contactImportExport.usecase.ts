@@ -21,6 +21,7 @@ import {
 } from '@modules/shared/import/importUtils';
 import { encrypt } from '@utils/encryption';
 import { createContactSchema, updateContactSchema } from '@validations/contact';
+import { resolveContactRoleNames } from '../shared/contactRoleFilters';
 
 type ExportableContactRow = {
   contact_id: string;
@@ -262,12 +263,7 @@ const buildContactWhereClause = (
     }
 
     if (filters.role) {
-      const roleNames =
-        filters.role === 'staff'
-          ? ['Staff', 'Executive Director']
-          : filters.role === 'volunteer'
-            ? ['Volunteer']
-            : ['Board Member'];
+      const roleNames = resolveContactRoleNames(filters.role);
 
       conditions.push(`EXISTS (
         SELECT 1

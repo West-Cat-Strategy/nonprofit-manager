@@ -85,9 +85,10 @@ describe('contactsSlice', () => {
 
   describe('reducers', () => {
     it('sets filters correctly', () => {
-      const state = reducer(initialState, setFilters({ search: 'test', account_id: 'acc-1' }));
+      const state = reducer(initialState, setFilters({ search: 'test', account_id: 'acc-1', role: 'client' }));
       expect(state.filters.search).toBe('test');
       expect(state.filters.account_id).toBe('acc-1');
+      expect(state.filters.role).toBe('client');
       expect(state.filters.is_active).toBeNull();
     });
 

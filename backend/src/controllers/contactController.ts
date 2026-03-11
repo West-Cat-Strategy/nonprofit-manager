@@ -11,6 +11,7 @@ import { invitationService, syncUserRole } from '@services/domains/integration';
 import { extractPagination, getString, getBoolean } from '@utils/queryHelpers';
 import { notFound, badRequest } from '@utils/responseHelpers';
 import type { DataScopeFilter } from '@app-types/dataScope';
+import { normalizeContactRoleFilter } from '@modules/contacts/shared/contactRoleFilters';
 
 const contactService = services.contact;
 const contactRoleService = services.contactRole;
@@ -85,13 +86,6 @@ const ensureStaffUserAccount = async (
  * GET /api/contacts
  * Get all contacts with filtering and pagination
  */
-const getRoleFilter = (
-  value: unknown
-): 'staff' | 'volunteer' | 'board' | undefined => {
-  if (value === 'staff' || value === 'volunteer' || value === 'board') return value;
-  return undefined;
-};
-
 const getTagsFilter = (value: unknown): string[] | undefined => {
   if (typeof value !== 'string') return undefined;
   const tags = value
@@ -109,7 +103,7 @@ export const getContacts = async (
   try {
     const filters: ContactFilters = {
       search: getString(req.query.search),
-      role: getRoleFilter(req.query.role),
+      role: normalizeContactRoleFilter(req.query.role),
       account_id: getString(req.query.account_id),
       is_active: getBoolean(req.query.is_active),
       tags: getTagsFilter(req.query.tags),

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { CONTACT_ROLE_FILTER_VALUES } from '@app-types/contact';
 import pool from '@config/database';
 import { authenticate } from '@middleware/domains/auth';
 import { loadDataScope } from '@middleware/domains/data';
@@ -52,7 +53,7 @@ const contactExportSchema = z.object({
   sort_by: z.string().optional(),
   sort_order: z.enum(['asc', 'desc']).optional(),
   search: z.string().optional(),
-  role: z.enum(['staff', 'volunteer', 'board']).optional(),
+  role: z.enum(CONTACT_ROLE_FILTER_VALUES).optional(),
   account_id: uuidSchema.optional(),
   is_active: z.coerce.boolean().optional(),
   tags: z.array(z.string().trim().min(1)).optional(),

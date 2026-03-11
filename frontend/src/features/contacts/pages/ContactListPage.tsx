@@ -14,6 +14,7 @@ import {
   fetchContactTags,
 } from '../state';
 import type { Contact } from '../state';
+import type { ContactRoleFilter } from '../types/contracts';
 import {
   PeopleListContainer,
   FilterPanel,
@@ -27,6 +28,26 @@ import { useBulkSelect } from '../../../hooks';
 import { BrutalBadge } from '../../../components/neo-brutalist';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 
+const ROLE_FILTER_OPTIONS: Array<{ value: ContactRoleFilter; label: string }> = [
+  { value: 'client', label: 'Client' },
+  { value: 'donor', label: 'Donor' },
+  { value: 'support_person', label: 'Support Person' },
+  { value: 'staff', label: 'Staff' },
+  { value: 'volunteer', label: 'Volunteer' },
+  { value: 'board', label: 'Board' },
+];
+
+const isContactRoleFilter = (value: string): value is ContactRoleFilter =>
+  ROLE_FILTER_OPTIONS.some((option) => option.value === value);
+
+const normalizeRoleFilter = (value: string | null | undefined): ContactRoleFilter | '' => {
+  if (!value) {
+    return '';
+  }
+
+  return isContactRoleFilter(value) ? value : '';
+};
+
 const ContactList = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -34,6 +55,7 @@ const ContactList = () => {
   const { contacts, loading, error, pagination, filters } = useAppSelector(
     (state) => state.contactsV2
   );
+  const initialRoleFilter = normalizeRoleFilter(searchParams.get('type'));
 
   const {
     selectedIds,
@@ -45,7 +67,9 @@ const ContactList = () => {
 
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || filters.search || '');
-  const [roleFilter, setRoleFilter] = useState(searchParams.get('type') || filters.role || '');
+  const [roleFilter, setRoleFilter] = useState<ContactRoleFilter | ''>(
+    initialRoleFilter || filters.role || ''
+  );
   const [activeFilter, setActiveFilter] = useState(
     searchParams.get('status') ||
       (filters.is_active === true ? 'active' : filters.is_active === false ? 'inactive' : '')
@@ -70,7 +94,7 @@ const ContactList = () => {
         limit: currentLimit,
         search: searchInput || undefined,
         is_active: resolvedIsActive,
-        role: (roleFilter as 'staff' | 'volunteer' | 'board') || undefined,
+        role: roleFilter || undefined,
         sort_by: sortBy,
         sort_order: sortOrder,
       })
@@ -101,7 +125,7 @@ const ContactList = () => {
     if (filterId === 'search' && typeof value === 'string') {
       setSearchInput(value);
     } else if (filterId === 'role' && typeof value === 'string') {
-      setRoleFilter(value);
+      setRoleFilter(normalizeRoleFilter(value));
     } else if (filterId === 'is_active' && typeof value === 'string') {
       setActiveFilter(value);
     }
@@ -112,7 +136,7 @@ const ContactList = () => {
     dispatch(
       setFilters({
         search: searchInput,
-        role: roleFilter as '' | 'staff' | 'volunteer' | 'board',
+        role: roleFilter,
         is_active: activeFilter === 'active' ? true : activeFilter === 'inactive' ? false : null,
         sort_by: sortBy,
         sort_order: sortOrder,
@@ -287,11 +311,7 @@ const ContactList = () => {
                 label: 'Role',
                 type: 'select',
                 value: roleFilter,
-                options: [
-                  { value: 'staff', label: 'Staff' },
-                  { value: 'volunteer', label: 'Volunteer' },
-                  { value: 'board', label: 'Board' },
-                ],
+                options: ROLE_FILTER_OPTIONS,
               },
               {
                 id: 'is_active',

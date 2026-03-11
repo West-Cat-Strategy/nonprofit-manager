@@ -18,12 +18,20 @@ import type {
   UpdateContactPhoneDTO,
 } from '../../../types/contact';
 
+export type ContactRoleFilter =
+  | 'client'
+  | 'donor'
+  | 'support_person'
+  | 'staff'
+  | 'volunteer'
+  | 'board';
+
 export interface ContactsListQuery {
   search?: string;
   accountId?: string;
   isActive?: boolean;
   tags?: string[];
-  role?: 'staff' | 'volunteer' | 'board';
+  role?: ContactRoleFilter;
   page?: number;
   limit?: number;
   sortBy?: string;

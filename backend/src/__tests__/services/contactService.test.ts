@@ -111,6 +111,24 @@ describe('ContactService', () => {
       expect(countCall[1]).toContainEqual(['Staff', 'Executive Director']);
     });
 
+    it.each([
+      ['client', ['Client']],
+      ['donor', ['Donor']],
+      ['support_person', ['Support Person']],
+    ] as const)('should apply role filter correctly (%s)', async (role, expectedRoleNames) => {
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ count: '1' }] })
+        .mockResolvedValueOnce({ rows: [{ contact_id: '1', first_name: 'John' }] });
+
+      await contactService.getContacts({ role });
+
+      expect(mockQuery).toHaveBeenCalledTimes(2);
+      const countCall = mockQuery.mock.calls[0];
+      expect(countCall[0]).toContain('contact_role_assignments');
+      expect(countCall[0]).toContain('contact_roles');
+      expect(countCall[1]).toContainEqual(expectedRoleNames);
+    });
+
     it('should handle custom pagination', async () => {
       mockQuery
         .mockResolvedValueOnce({ rows: [{ count: '100' }] })
