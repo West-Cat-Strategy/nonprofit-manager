@@ -1,11 +1,13 @@
+import type { ReactNode } from 'react';
 import { screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import ContactList from '../ContactListPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
-const { dispatchMock, importExportModalMock } = vi.hoisted(() => ({
+const { dispatchMock, importExportModalMock, filterPanelMock } = vi.hoisted(() => ({
   dispatchMock: vi.fn(),
   importExportModalMock: vi.fn(),
+  filterPanelMock: vi.fn(),
 }));
 
 const state = {
@@ -33,8 +35,16 @@ vi.mock('../../../../features/contacts/state', () => ({
 }));
 
 vi.mock('../../../../components/people', () => ({
-  PeopleListContainer: () => <div>People List</div>,
-  FilterPanel: () => <div>Filter Panel</div>,
+  PeopleListContainer: ({ filters }: { filters?: ReactNode }) => (
+    <div>
+      <div>People List</div>
+      {filters}
+    </div>
+  ),
+  FilterPanel: (props: unknown) => {
+    filterPanelMock(props);
+    return <div>Filter Panel</div>;
+  },
   BulkActionBar: () => <div>Bulk Bar</div>,
   ImportExportModal: (props: unknown) => {
     importExportModalMock(props);
@@ -68,13 +78,30 @@ describe('ContactList page', () => {
   beforeEach(() => {
     dispatchMock.mockClear();
     importExportModalMock.mockClear();
+    filterPanelMock.mockClear();
   });
 
-  it('renders and wires backend import/export request props', () => {
+  it('renders role filter options in the expected order and wires default export props', () => {
     renderWithProviders(<ContactList />);
 
     expect(screen.getByText('People List')).toBeInTheDocument();
     expect(dispatchMock).toHaveBeenCalled();
+    const filterPanelProps = filterPanelMock.mock.calls[0]?.[0] as {
+      fields: Array<{
+        id: string;
+        options?: Array<{ value: string; label: string }>;
+      }>;
+    };
+    const roleField = filterPanelProps.fields.find((field) => field.id === 'role');
+
+    expect(roleField?.options).toEqual([
+      { value: 'client', label: 'Client' },
+      { value: 'donor', label: 'Donor' },
+      { value: 'support_person', label: 'Support Person' },
+      { value: 'staff', label: 'Staff' },
+      { value: 'volunteer', label: 'Volunteer' },
+      { value: 'board', label: 'Board' },
+    ]);
     expect(importExportModalMock).toHaveBeenCalledWith(
       expect.objectContaining({
         entityType: 'contacts',
@@ -86,6 +113,26 @@ describe('ContactList page', () => {
           sort_by: 'created_at',
           sort_order: 'desc',
         },
+      })
+    );
+  });
+
+  it('uses the selected role filter for list fetches and export payloads', () => {
+    renderWithProviders(<ContactList />, { route: '/contacts?type=client' });
+
+    expect(dispatchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'contacts/fetch',
+        payload: expect.objectContaining({
+          role: 'client',
+        }),
+      })
+    );
+    expect(importExportModalMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        exportRequest: expect.objectContaining({
+          role: 'client',
+        }),
       })
     );
   });

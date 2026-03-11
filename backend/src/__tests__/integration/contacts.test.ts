@@ -220,8 +220,46 @@ describe('Contact API Integration Tests', () => {
       expect(response.body).toHaveProperty('data');
     });
 
+    it('should filter by client role', async () => {
+      const uniqueSuffix = unique();
+      const createResponse = await withStaffAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: 'Role',
+          last_name: `Client-${uniqueSuffix}`,
+          email: `role-client-${uniqueSuffix}@example.com`,
+          roles: ['Client'],
+        }))
+        .expect(201);
+
+      const createdPayload = payloadFromResponse<{ contact_id: string }>(createResponse.body);
+      const response = await withStaffAuth(request(app)
+        .get(`/api/v2/contacts?role=client&search=Client-${uniqueSuffix}`)
+      )
+        .expect(200);
+
+      const payload = payloadFromResponse<{
+        data: Array<{ contact_id: string; last_name: string }>;
+      }>(response.body);
+      expect(payload.data).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            contact_id: createdPayload.contact_id,
+          }),
+        ])
+      );
+    });
+
     it('should require authentication', async () => {
       await request(app).get('/api/v2/contacts').expect(401);
+    });
+
+    it('should reject invalid role filter values', async () => {
+      await withStaffAuth(request(app)
+        .get('/api/v2/contacts?role=not-a-role')
+      )
+        .expect(400);
     });
   });
 

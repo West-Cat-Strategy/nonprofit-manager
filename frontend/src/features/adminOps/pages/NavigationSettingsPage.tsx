@@ -80,7 +80,8 @@ export default function NavigationSettings() {
   })();
 
   const syncStatusClass = (() => {
-    if (syncStatus === 'saving' || isSaving) return 'bg-app-accent-soft text-app-accent-text border-app-accent';
+    if (syncStatus === 'saving' || isSaving)
+      return 'bg-app-accent-soft text-app-accent-text border-app-accent';
     if (syncStatus === 'synced') return 'bg-app-accent-soft text-app-accent-text border-app-border';
     return 'bg-app-surface-muted text-app-text-muted border-app-border';
   })();
@@ -97,11 +98,14 @@ export default function NavigationSettings() {
             <div>
               <h2 className="text-lg font-semibold text-app-text-heading">Navigation Menu Items</h2>
               <p className="text-sm text-app-text-muted mt-1">
-                {enabledCount} of {allItems.length} modules enabled · Pinned {pinnedCount}/{maxPinnedItems}
+                {enabledCount} of {allItems.length} modules enabled · Pinned {pinnedCount}/
+                {maxPinnedItems}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${syncStatusClass}`}>
+              <span
+                className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${syncStatusClass}`}
+              >
                 {syncStatusLabel}
               </span>
               <button
@@ -134,20 +138,42 @@ export default function NavigationSettings() {
                 className={`px-6 py-4 flex items-center justify-between transition-colors ${
                   item.isCore ? 'bg-app-surface-muted' : 'hover:bg-app-surface-muted'
                 } ${draggedIndex === index ? 'opacity-50 bg-app-accent-soft' : ''} ${
-                  dragOverIndex === index && draggedIndex !== index ? 'border-t-2 border-app-accent' : ''
+                  dragOverIndex === index && draggedIndex !== index
+                    ? 'border-t-2 border-app-accent'
+                    : ''
                 }`}
               >
                 <div className="flex items-center space-x-3">
                   {isDashboard ? (
                     <div className="text-app-text-subtle" title="Dashboard position is locked">
-                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                        />
                       </svg>
                     </div>
                   ) : (
                     <div className="cursor-grab active:cursor-grabbing text-app-text-subtle hover:text-app-text-muted">
-                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 8h16M4 16h16"
+                        />
                       </svg>
                     </div>
                   )}
@@ -160,8 +186,18 @@ export default function NavigationSettings() {
                       className="p-0.5 text-app-text-subtle hover:text-app-text-muted disabled:opacity-30 disabled:cursor-not-allowed"
                       title={isDashboard ? 'Dashboard position is locked' : 'Move up'}
                     >
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 15l7-7 7 7"
+                        />
                       </svg>
                     </button>
                     <button
@@ -171,13 +207,25 @@ export default function NavigationSettings() {
                       className="p-0.5 text-app-text-subtle hover:text-app-text-muted disabled:opacity-30 disabled:cursor-not-allowed"
                       title={isDashboard ? 'Dashboard position is locked' : 'Move down'}
                     >
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
                       </svg>
                     </button>
                   </div>
 
-                  <span className="text-2xl" aria-hidden="true">{item.icon}</span>
+                  <span className="text-2xl" aria-hidden="true">
+                    {item.icon}
+                  </span>
                   <div>
                     <div className="flex items-center space-x-2">
                       <span className="font-medium text-app-text">{item.name}</span>
@@ -261,7 +309,10 @@ export default function NavigationSettings() {
               <p className="font-medium text-app-text-label">How navigation works:</p>
               <ul className="mt-1 list-disc list-inside space-y-1">
                 <li>Dashboard is always first and cannot be moved</li>
-                <li>Pin up to {maxPinnedItems} enabled modules for instant access in desktop and mobile menus</li>
+                <li>
+                  Pin up to {maxPinnedItems} enabled modules for instant access in the workspace
+                  header and mobile menu
+                </li>
                 <li>Drag items or use arrows to reorder non-dashboard modules</li>
                 <li>The first 4 enabled, unpinned items appear in the main navigation bar</li>
                 <li>Additional enabled, unpinned items appear under the &quot;More&quot; menu</li>
@@ -291,11 +342,23 @@ export default function NavigationSettings() {
                         Admin
                       </span>
                     </div>
-                    <p className="text-sm text-app-text-muted">Organization profile and preferences</p>
+                    <p className="text-sm text-app-text-muted">
+                      Organization profile and preferences
+                    </p>
                   </div>
                 </div>
-                <svg className="h-5 w-5 text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                <svg
+                  className="h-5 w-5 text-app-text-subtle"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
                 </svg>
               </Link>
             </li>
@@ -309,8 +372,18 @@ export default function NavigationSettings() {
                 <span className="font-medium text-app-text">API & Integrations</span>
                 <p className="text-sm text-app-text-muted">Manage webhooks and API keys</p>
               </div>
-              <svg className="h-5 w-5 text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <svg
+                className="h-5 w-5 text-app-text-subtle"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
             </Link>
           </li>

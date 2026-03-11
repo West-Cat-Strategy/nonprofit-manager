@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { CONTACT_ROLE_FILTER_VALUES } from '@app-types/contact';
 import { emailSchema, optionalNullablePhnSchema, optionalPhnSchema, phoneSchema, uuidSchema } from './shared';
 
 const booleanQuerySchema = z.preprocess((value) => {
@@ -20,7 +21,7 @@ const booleanQuerySchema = z.preprocess((value) => {
 }, z.boolean().optional());
 
 // Contact role enum
-export const contactRoleSchema = z.enum(['staff', 'volunteer', 'board']);
+export const contactRoleSchema = z.enum(CONTACT_ROLE_FILTER_VALUES);
 
 export type ContactRole = z.infer<typeof contactRoleSchema>;
 

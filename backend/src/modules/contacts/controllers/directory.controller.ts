@@ -8,6 +8,7 @@ import { extractPagination, getBoolean, getString } from '@utils/queryHelpers';
 import { ContactDirectoryUseCase } from '../usecases/contactDirectory.usecase';
 import { ContactImportExportUseCase } from '../usecases/contactImportExport.usecase';
 import { ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
+import { normalizeContactRoleFilter } from '../shared/contactRoleFilters';
 
 const hiddenRoleNames = new Set(['Executive Director', 'Committee Member']);
 const roleOrder = new Map<string, number>([
@@ -28,13 +29,6 @@ const normalizeRoles = (roles: ContactRole[]): ContactRole[] =>
       }
       return a.name.localeCompare(b.name);
     });
-
-const getRoleFilter = (value: unknown): 'staff' | 'volunteer' | 'board' | undefined => {
-  if (value === 'staff' || value === 'volunteer' || value === 'board') {
-    return value;
-  }
-  return undefined;
-};
 
 const getTagsFilter = (value: unknown): string[] | undefined => {
   if (typeof value !== 'string') {
@@ -58,7 +52,7 @@ export const createContactDirectoryController = (
       const query = (req.validatedQuery ?? req.query) as Record<string, unknown>;
       const filters: ContactFilters = {
         search: getString(query.search),
-        role: getRoleFilter(query.role),
+        role: normalizeContactRoleFilter(query.role),
         account_id: getString(query.account_id),
         is_active: getBoolean(query.is_active),
         tags: getTagsFilter(query.tags),

@@ -14,6 +14,7 @@ import {
   PaginatedContacts,
 } from '@app-types/contact';
 import { logger } from '@config/logger';
+import { resolveContactRoleNames } from '@modules/contacts/shared/contactRoleFilters';
 import { resolveSort } from '@utils/queryHelpers';
 import { decrypt, encrypt } from '@utils/encryption';
 import type { DataScopeFilter } from '@app-types/dataScope';
@@ -140,12 +141,7 @@ export class ContactService {
       }
 
       if (filters.role) {
-        const roleNames =
-          filters.role === 'staff'
-            ? ['Staff', 'Executive Director']
-            : filters.role === 'volunteer'
-              ? ['Volunteer']
-              : ['Board Member'];
+        const roleNames = resolveContactRoleNames(filters.role);
 
         conditions.push(`EXISTS (
           SELECT 1
