@@ -353,7 +353,7 @@ describe('Volunteer Schemas', () => {
 
       if (result.success) {
         expect(result.data.status).toBe('active');
-        expect(result.data.background_check_status).toBe('not_started');
+        expect(result.data.background_check_status).toBe('not_required');
       }
     });
   });

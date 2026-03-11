@@ -50,6 +50,7 @@ const alertIdParamsSchema = z.object({
 
 const createAlertConfigSchema = z.object({
   name: z.string().trim().min(1, 'Alert name is required'),
+  description: z.string().trim().optional(),
   metric_type: alertMetricTypeSchema,
   condition: alertConditionSchema,
   threshold: z.coerce.number().optional(),
@@ -65,6 +66,7 @@ const createAlertConfigSchema = z.object({
 
 const updateAlertConfigSchema = z.object({
   name: z.string().trim().min(1).optional(),
+  description: z.string().trim().optional(),
   metric_type: z.string().optional(),
   condition: z.string().optional(),
   threshold: z.coerce.number().optional(),
