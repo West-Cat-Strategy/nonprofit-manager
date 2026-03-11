@@ -227,7 +227,7 @@ All endpoint documentation includes `curl` command examples.
 Example:
 
 ```bash
-curl -X GET localhost:3000/api/v2/events \
+curl -X GET http://localhost:3000/api/v2/events \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -241,6 +241,8 @@ You can copy-paste these examples directly into your terminal.
 
 - **Versioning Mode**: v2-only (`/api/v2/*`)
 - **Primary Base URL**: `http://localhost:3000/api/v2`
+- **Docker Dev Alternative**: `http://localhost:8004/api/v2`
+- **Browser Proxy Alternative**: `/api/v2` when using the Docker dev frontend at `http://localhost:8005`
 - **Status**: Legacy `/api/*` endpoints are removed and return `410 Gone` with migration guidance.
 
 ### Authentication
@@ -329,7 +331,7 @@ Use Axios to call the API:
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'localhost:3000/api',
+  baseURL: 'http://localhost:3000/api/v2',
   headers: {
     Authorization: `Bearer ${token}`
   }
@@ -352,7 +354,7 @@ Using requests library:
 ```python
 import requests
 
-api_url = 'localhost:3000/api'
+api_url = 'http://localhost:3000/api/v2'
 headers = {'Authorization': f'Bearer {token}'}
 
 # GET request
@@ -399,19 +401,19 @@ curl -H "Authorization: Bearer YOUR_TOKEN" ...
 Endpoint URL might be wrong:
 
 1. Check endpoint path in documentation
-2. Verify base URL is correct (`localhost:3000/api`)
+2. Verify base URL is correct (`http://localhost:3000/api/v2`)
 3. Check spelling and HTTP method (GET vs POST, etc.)
 
 ### "500 Internal Server Error"
 
 Server error. Check:
 
-1. Backend is running: `curl localhost:3000/health`
+1. Backend is running: `curl http://localhost:3000/health`
 2. Database is connected
 3. Check backend logs for error details
 
-Canonical health endpoint: `curl localhost:3000/health`
-Compatibility aliases remain available at `localhost:3000/api/health` and `localhost:3000/api/v2/health`.
+Canonical health endpoint: `curl http://localhost:3000/health`
+Compatibility aliases remain available at `http://localhost:3000/api/health` and `http://localhost:3000/api/v2/health`.
 
 ### "CORS Error"
 
@@ -419,16 +421,16 @@ Cross-origin request blocked:
 
 1. Frontend and backend on same machine? Usually not an issue in dev
 2. Check `CORS_ORIGINS` environment variable in backend
-3. Ensure backend is at `localhost:3000`
+3. Ensure the backend base URL matches your runtime: direct backend `http://localhost:3000`, Docker dev backend `http://localhost:8004`, or browser proxy `/api`
 
 ---
 
 ## See Also
 
-- [https://github.com/example/nonprofit-manager](https://github.com/example/nonprofit-manager) — Backend setup
-- [https://github.com/example/nonprofit-manager](https://github.com/example/nonprofit-manager) — Testing API endpoints
-- [https://github.com/example/nonprofit-manager](https://github.com/example/nonprofit-manager) — Code standards
-- [https://github.com/example/nonprofit-manager](https://github.com/example/nonprofit-manager) — API security
+- [../development/GETTING_STARTED.md](../development/GETTING_STARTED.md) — Local runtime setup
+- [../testing/TESTING.md](../testing/TESTING.md) — Validation command map
+- [../development/CONVENTIONS.md](../development/CONVENTIONS.md) — Active conventions
+- [../security/SECURITY_MONITORING_GUIDE.md](../security/SECURITY_MONITORING_GUIDE.md) — Security guidance
 
 ---
 

@@ -1,241 +1,100 @@
 # Testing Guide
 
-## wc-manage Pattern Adoption Program Matrix (Mandatory)
+**Last Updated:** 2026-03-11
 
-For all change sets in the API guardrails adoption program, run the full matrix below without substitution:
+This file is the active test command map for nonprofit-manager. Use it with [../../README.md](../../README.md) and the service-specific READMEs.
+
+## Test Layers
+
+| Layer | Primary Command | Notes |
+|------|------------------|-------|
+| Repo-wide validation | `make test` | Runs backend, frontend, and Playwright on the CI-style local stack |
+| Backend unit/integration | `cd backend && npm test` / `cd backend && npm run test:integration` | Backend uses Jest |
+| Frontend unit/component | `cd frontend && npm test -- --run` | Frontend uses Vitest |
+| E2E | `cd e2e && npm test` | Playwright starts frontend/backend by default |
+| Docs validation | `make check-links` and `make lint-doc-api-versioning` | Use when docs changed |
+
+## Runtime Matrix
+
+| Context | Frontend | Backend | Notes |
+|---------|----------|---------|-------|
+| Docker development | `8005` | `8004` | Started with `make dev` |
+| Direct backend runtime | n/a | `3000` | `cd backend && npm run dev` |
+| E2E harness | `5173` | `3001` | Started by Playwright |
+
+## Default Commands
+
+Run from the repo root unless noted otherwise:
 
 ```bash
+make lint
+make typecheck
+make test
+```
+
+Broader release-facing commands:
+
+```bash
+make ci
 make ci-full
-cd /Users/bryan/projects/nonprofit-manager/backend && npm run test:integration
-cd /Users/bryan/projects/nonprofit-manager/e2e && npm run test:ci
 ```
 
-### Coverage Ratchet Policy (Program Gate)
+## Package-Level Commands
 
-- Backend coverage thresholds are ratcheted from current measured baseline and may only move upward.
-- Current enforced backend global thresholds:
-  - statements: `47`
-  - branches: `32`
-  - functions: `41`
-  - lines: `46`
-- If a program change set increases measured backend global coverage, that same change set must raise the corresponding threshold(s) in `backend/jest.config.ts`.
-- Frontend coverage thresholds are ratcheted from current measured baseline and may only move upward.
-- Current enforced frontend global thresholds:
-  - lines: `48`
-  - functions: `40`
-  - statements: `47`
-  - branches: `38`
-- If a program change set increases measured frontend global coverage, that same change set must raise the corresponding threshold(s) in `frontend/vite.config.ts`.
-- New CI policy checks required for this program:
-  - `node scripts/check-rate-limit-key-policy.ts`
-  - `node scripts/check-success-envelope-policy.ts`
-
-## Manual Authentication Flow Test
-
-### Prerequisites
-
-1. PostgreSQL database running (via Docker or locally)
-2. Backend server running on port 3000
-3. Database migrations applied
-
-### Quick Start Commands
-
-```bash
-# Terminal 1: Start PostgreSQL (if using Docker)
-docker-compose up -d postgres
-
-# Terminal 2: Start Backend Server
-cd backend
-npm run dev
-
-# Terminal 3: Run Tests
-node scripts/test-auth.js
-```
-
-### Using the Test Script
-
-The automated test script (`scripts/test-auth.js`) will:
-
-1. ✓ Check health endpoint
-2. ✓ Register a new user
-3. ✓ Login with the registered user
-4. ✓ Access a protected endpoint with authentication token
-5. ✓ Verify invalid login is rejected
-
-Run it with:
-```bash
-node scripts/test-auth.js
-```
-
-### Manual Testing with curl
-
-#### 1. Health Check
-```bash
-curl localhost:3000/health
-```
-
-Expected response:
-```json
-{"status":"ok","timestamp":"2026-02-01T..."}
-```
-
-#### 2. Register User
-```bash
-curl -X POST localhost:3000/api/v2/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "password": "SecurePassword123!",
-    "firstName": "John",
-    "lastName": "Doe"
-  }'
-```
-
-Expected response:
-```json
-{
-  "token": "eyJhbGc...",
-  "user": {
-    "id": 1,
-    "email": "user@example.com",
-    "firstName": "John",
-    "lastName": "Doe",
-    "role": "user"
-  }
-}
-```
-
-#### 3. Login
-```bash
-curl -X POST localhost:3000/api/v2/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "password": "SecurePassword123!"
-  }'
-```
-
-Expected response: Same format as registration
-
-#### 4. Access Protected Endpoint
-```bash
-# Replace YOUR_TOKEN with the token from login/register
-curl -X GET localhost:3000/api/v2/accounts \
-  -H "Authorization: Bearer YOUR_TOKEN"
-```
-
-Expected response:
-```json
-{
-  "accounts": [],
-  "pagination": {
-    "total": 0,
-    "page": 1,
-    "limit": 10,
-    "pages": 0
-  }
-}
-```
-
-### Frontend Testing
-
-1. Start frontend dev server:
-
-```bash
-cd frontend
-npm run dev
-```
-
-2. Open browser to localhost:5173
-
-3. Test login page:
-   - Verify form renders correctly
-   - Test validation (email format, password requirements)
-   - Submit valid credentials and verify redirect to dashboard
-   - Test invalid credentials show error message
-
-### Troubleshooting
-
-#### Backend won't start
-
-- Check if port 3000 is already in use: `lsof -i :3000`
-- Check database connection in `.env` file
-- Verify PostgreSQL is running: `docker compose -p nonprofit-prod -f docker-compose.yml ps postgres`
-
-#### Database connection errors
-
-- Ensure `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` are set in `backend/.env`
-- For Docker: DB_HOST should be `postgres` if backend is in Docker, `localhost` if running locally
-- Verify database exists: `docker compose -p nonprofit-prod -f docker-compose.yml exec -T postgres psql -U postgres -l`
-
-#### Tests fail
-
-- Check backend logs for errors
-- Verify database tables exist: `docker compose -p nonprofit-prod -f docker-compose.yml exec -T postgres psql -U postgres -d nonprofit_manager -c "\dt"`
-- Run migrations if tables don't exist: See `docs/DB_SETUP.md`
-
-## Known Issues
-
-- TTY/stream errors when running backend with `nohup` - use regular `npm run dev` in a dedicated terminal instead
-- Rate limiting may block rapid test runs - wait 15 minutes or adjust rate limits in `.env`
-
-## Automated Testing
-
-### Unit Tests
-Backend unit tests use Jest and are located in `backend/src/__tests__/`. Run with:
+### Backend
 
 ```bash
 cd backend
 npm test
+npm run test:unit
+npm run test:integration
+npm run test:coverage
+npm run type-check
 ```
 
-### Integration Tests
-Integration tests verify end-to-end API workflows. Run with:
+### Frontend
 
 ```bash
-cd backend
-npm run test:integration
+cd frontend
+npm test -- --run
+npm run test:coverage
+npm run type-check
 ```
 
-### E2E Tests (Playwright)
-✅ **Implemented** - See [e2e/README.md](../../e2e/README.md) for comprehensive guide.
+### E2E
 
 ```bash
 cd e2e
 npm test
+npm run test:smoke
+npm run test:headed
+npm run test:ui
+npm run test:ci
 ```
 
-Current coverage includes:
-- Authentication flows
-- Finance module (Donations, Invoices)
-- Engagement modules (Tasks, Wiki, Chat, Calendar, Events)
-- Theme system
-- Report generation
+## Docs And Contract Checks
 
-## CI/CD Integration
+Run these when documentation or API examples change:
 
-Tests run automatically in GitHub Actions on every pull request. E2E tests use Playwright with:
-- 2 retries on failure
-- Video recording on first failure
-- Screenshots on all failures
+```bash
+make check-links
+make lint-doc-api-versioning
+```
 
-## Automated Suite Taxonomy (Updated February 18, 2026)
+## Choosing A Smaller Check Set
 
-### Backend (Jest)
-- Unit/services/controllers: `cd backend && npm test -- --testPathIgnorePatterns=src/__tests__/integration/`
-- Integration/API routes: `cd backend && npm run test:integration`
-- Integration coverage: `cd backend && npm run test:integration:coverage`
+When the change set does not justify the full suite, use the repo selector:
 
-### Frontend (Vitest)
-- Unit/component/page tests: `cd frontend && npm test -- --run`
-- Coverage: `cd frontend && npm test -- --run --coverage`
+```bash
+scripts/select-checks.sh --base HEAD~1 --mode fast
+```
 
-### E2E (Playwright)
-- Full matrix: `cd e2e && npm run test:ci`
-- Smoke subset: `cd e2e && npm run test:smoke`
-- Interactive debugging: `cd e2e && npm run test:ui`
+Run the emitted commands in order.
 
-### Root/CI entry points
-- Full local test run (backend + frontend + Playwright): `make test`
-- Coverage-oriented run: `make test-coverage`
-- Scripted CI path: `./scripts/ci.sh`
+## Related References
+
+- [../../backend/README.md](../../backend/README.md)
+- [../../frontend/README.md](../../frontend/README.md)
+- [../../e2e/README.md](../../e2e/README.md)
+- [COMPONENT_TESTING.md](COMPONENT_TESTING.md)
+- [INTEGRATION_TEST_GUIDE.md](INTEGRATION_TEST_GUIDE.md)

@@ -1,6 +1,19 @@
 # Architecture Decision Records (ADRs)
 
+**Last Updated:** 2026-03-11
+
 This document records important architectural decisions made during the development of Nonprofit Manager.
+
+## Current System Snapshot
+
+The active repository shape as of 2026-03-11:
+
+- Backend runtime work is centered on `backend/src/modules/**` and `/api/v2/*`.
+- `backend/src/routes/v2/index.ts` is the active v2 registrar and imports module-owned route surfaces.
+- Frontend feature ownership is centered on `frontend/src/features/**`.
+- `frontend/src/pages/**` remains primarily a compatibility or route-surface layer where older paths still exist.
+- The frontend stack is React 19 + React Router 7 + Vite.
+- Repo-root development and validation flows are documented through the root `Makefile` and the active docs under `README.md`, `docs/development/*`, and `docs/testing/*`.
 
 ## ADR-001: TypeScript as Primary Language
 

@@ -1,341 +1,112 @@
 # Development Conventions
 
-## Toolchain Requirements
+**Last Updated:** 2026-03-11
 
-- Node.js 20.19+ and npm 10+ for local development
-- Keep backend and frontend dependencies in sync with lockfiles after upgrades
-- Run `npm run lint` after dependency updates to validate ESLint compatibility
+Use this file for active coding and workflow conventions. For setup, see [GETTING_STARTED.md](GETTING_STARTED.md).
 
-## File Naming
+## Toolchain
+
+- Node.js `20.19+`
+- npm `10+`
+- Docker Compose for the recommended local stack
+
+Repo-root commands:
+
+```bash
+make lint
+make typecheck
+make test
+```
+
+Package-level type checking uses `npm run type-check`, not `npm run typecheck`.
+
+## Runtime And Env Conventions
+
+- Docker development uses `make dev` and exposes frontend `8005`, backend `8004`, Postgres `8002`, and Redis `8003`.
+- Direct backend runtime defaults to `3000`.
+- The Playwright harness defaults to frontend `5173` and backend `3001`.
+- Root Docker flows prefer `.env.development`.
+- Backend local env files use `backend/.env` and optional `backend/.env.test.local`.
+- Frontend local env files use `frontend/.env.local`.
+- E2E local overrides use `e2e/.env.test.local`.
+
+## Backend Conventions
+
+- Active application endpoints live under `/api/v2/*`.
+- New backend feature work should prefer `backend/src/modules/<domain>/`.
+- Keep the request path thin: route -> controller -> service/usecase -> data access.
+- Controllers should not own direct SQL.
+- Validate request inputs with Zod middleware.
+- Use the current auth-guard helpers from `backend/src/services/authGuardService.ts`.
+- Do not reintroduce legacy `require*OrError` helpers in new work.
+
+## Frontend Conventions
+
+- Prefer feature-owned code under `frontend/src/features/<domain>/`.
+- Treat `frontend/src/pages/**` as compatibility or route-surface code unless the domain has not yet been migrated.
+- Keep migrated feature state out of `frontend/src/store/slices/*`.
+- Prefer existing API envelope helpers and shared clients over ad hoc response parsing.
+
+## Naming
 
 ### Backend
-- **Controllers**: `entityNameController.ts` (e.g., `volunteerController.ts`)
-- **Services**: `entityNameService.ts` (e.g., `volunteerService.ts`)
-- **Routes**: `entityName.ts` (e.g., `volunteer.ts`)
-- **Middleware**: `descriptiveName.ts` (e.g., `auth.ts`, `errorHandler.ts`)
-- **Types**: `entityName.ts` (e.g., `user.ts`, `volunteer.ts`)
-- **Utils**: `descriptiveName.ts` (e.g., `validators.ts`, `helpers.ts`)
+
+- Controllers: `entityNameController.ts`
+- Services: `entityNameService.ts`
+- Middleware: `descriptiveName.ts`
+- Types: `entityName.ts`
 
 ### Frontend
-- **Pages**: `PascalCase.tsx` (e.g., `VolunteerList.tsx`, `Dashboard.tsx`)
-- **Components**: `PascalCase.tsx` (e.g., `Button.tsx`, `Modal.tsx`)
-- **Services**: `entityNameService.ts` (e.g., `volunteerService.ts`)
-- **Redux Slices**: `entityNameSlice.ts` (e.g., `volunteerSlice.ts`)
-- **Hooks**: `useDescriptiveName.ts` (e.g., `useAuth.ts`, `useVolunteers.ts`)
-- **Utils**: `descriptiveName.ts` (e.g., `formatters.ts`, `validators.ts`)
+
+- Components: `PascalCase.tsx`
+- Hooks: `useDescriptiveName.ts`
+- Feature state files: follow the feature package pattern already in use
+- Utilities: `descriptiveName.ts`
 
 ### Database
-- **Migrations**: `NNN_descriptive_name.sql` (e.g., `001_initial_schema.sql`)
-- **Seeds**: `NNN_descriptive_name.sql` (e.g., `001_default_users.sql`)
 
-## Code Comments
+- Migrations: `NNN_descriptive_name.sql`
+- Snake case for tables and columns
+- Foreign keys: `{entity}_id`
 
-### When to Comment
-- Complex business logic that isn't immediately obvious
-- Workarounds for known issues
-- Public API functions (use JSDoc)
-- Non-obvious performance optimizations
-- Regulatory or compliance requirements
+## Response And API Rules
 
-### When NOT to Comment
-- Obvious code (let the code speak for itself)
-- Commented-out code (delete it - use git history)
-- Redundant comments that repeat what code does
+- Use `/api/v2/*` in active docs and new feature work.
+- Health aliases may still use `/api/health` and `/api/v2/health`.
+- Canonical success envelope:
 
-### JSDoc Format
-```typescript
-/**
- * Retrieves a volunteer by ID with their assignments
- * @param id - The UUID of the volunteer
- * @returns Promise resolving to volunteer with assignments, or null if not found
- * @throws {NotFoundError} If volunteer doesn't exist
- */
-async function getVolunteerById(id: string): Promise<VolunteerWithAssignments | null> {
-  // Implementation
-}
-```
-
-## Environment Variables
-
-### Required Variables
-
-#### Backend (.env)
-```bash
-# Server
-PORT=3000
-NODE_ENV=development|production|test
-
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=nonprofit_manager
-DB_USER=postgres
-DB_PASSWORD=
-
-# Authentication
-JWT_SECRET=
-JWT_EXPIRES_IN=24h
-
-# CORS
-CORS_ORIGIN=localhost:5173
-
-# Optional
-LOG_LEVEL=info|debug|warn|error
-```
-
-#### Frontend (.env)
-```bash
-# API
-VITE_API_URL=localhost:3000/api
-```
-
-### Environment Variable Naming
-- Prefix frontend vars with `VITE_`
-- Use UPPER_SNAKE_CASE
-- Group related vars together
-- Document purpose in .env.example
-
-### Optional Integrations
-Some integrations can be disabled via environment variables:
-
-- **Stripe**: Set `STRIPE_ENABLED=false` to disable payment processing features. The UI will hide payment-related components.
-- **Plausible Analytics**: Analytics tracking is optional and self-hosted. See [deployment/PLAUSIBLE_SETUP.md](../deployment/PLAUSIBLE_SETUP.md).
-
-## API Versioning
-
-Current deployment is **v2-only**:
-- Active routes are under `/api/v2/*`
-- Legacy `/api/*` endpoints are tombstoned (`410 Gone`)
-
-Conventions:
-- New backend API work must be implemented under `/api/v2/*`
-- Breaking changes must be introduced in a new versioned namespace (for example, `/api/v3/*`)
-
-## Error Codes
-
-### Backend Error Codes
-```typescript
-// Authentication & Authorization
-AUTH_001: 'Invalid credentials'
-AUTH_002: 'Token expired'
-AUTH_003: 'Insufficient permissions'
-AUTH_004: 'Account locked'
-
-// Validation
-VAL_001: 'Invalid input format'
-VAL_002: 'Required field missing'
-VAL_003: 'Value out of range'
-
-// Database
-DB_001: 'Record not found'
-DB_002: 'Duplicate entry'
-DB_003: 'Foreign key constraint violation'
-DB_004: 'Database connection error'
-
-// Business Logic
-BIZ_001: 'Event capacity exceeded'
-BIZ_002: 'Volunteer already assigned'
-BIZ_003: 'Donation amount below minimum'
-```
-
-## Database Conventions
-
-### Table Names
-- Plural, snake_case: `users`, `event_registrations`
-- Follow CDM naming where applicable
-
-### Column Names
-- snake_case: `first_name`, `created_at`
-- Boolean fields: prefix with `is_` or `has_`
-- Foreign keys: `{entity}_id` (e.g., `user_id`, `account_id`)
-
-### Standard Audit Fields
-```sql
-created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-created_by UUID REFERENCES users(id),
-modified_by UUID REFERENCES users(id),
-is_active BOOLEAN DEFAULT true
-```
-
-### Index Naming
-```sql
-idx_{table}_{column(s)} -- Regular index
-uk_{table}_{column(s)}  -- Unique constraint
-fk_{table}_{ref_table}  -- Foreign key
-```
-
-## Redux State Shape
-
-```typescript
+```json
 {
-  auth: {
-    user: User | null,
-    token: string | null,
-    isAuthenticated: boolean,
-    loading: boolean
-  },
-  volunteers: {
-    list: Volunteer[],
-    current: Volunteer | null,
-    loading: boolean,
-    error: string | null
-  },
-  // ... other slices
+  "success": true,
+  "data": {}
 }
 ```
 
-## Component Structure (Frontend)
+- Canonical error envelope:
 
-### Functional Component Template
-```typescript
-import { FC } from 'react';
-
-interface ComponentNameProps {
-  prop1: string;
-  prop2?: number;
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable error description"
+  }
 }
-
-const ComponentName: FC<ComponentNameProps> = ({ prop1, prop2 = 0 }) => {
-  // Hooks at the top
-  const [state, setState] = useState();
-  
-  // Event handlers
-  const handleAction = () => {
-    // Implementation
-  };
-  
-  // Render
-  return (
-    <div className="container">
-      {/* JSX */}
-    </div>
-  );
-};
-
-export default ComponentName;
 ```
 
 ## Testing Conventions
 
-### Test File Naming
-- Place test files next to source: `file.ts` → `file.test.ts`
-- Or in `__tests__` directory
+- Use repo-root commands by default.
+- Use narrower package commands when the change set is scoped.
+- For docs changes, run `make check-links`.
+- If API examples changed, also run `make lint-doc-api-versioning`.
+- Coverage thresholds are enforced by repo config; do not restate static percentages unless you verified them from the current config.
 
-### Test Structure
-```typescript
-describe('ComponentName', () => {
-  describe('functionName', () => {
-    it('should do expected behavior when condition', () => {
-      // Arrange
-      const input = setupInput();
-      
-      // Act
-      const result = functionName(input);
-      
-      // Assert
-      expect(result).toBe(expected);
-    });
-    
-    it('should throw error when invalid input', () => {
-      expect(() => functionName(invalid)).toThrow();
-    });
-  });
-});
-```
+## Documentation Conventions
 
-## Import Order
+- [../../README.md](../../README.md) is the contributor start page.
+- [../INDEX.md](../INDEX.md) is the catalog.
+- Use relative links in local docs.
+- Verify commands, ports, and env guidance against the repo before documenting them.
 
-```typescript
-// 1. External dependencies
-import { FC } from 'react';
-import { useDispatch } from 'react-redux';
-
-// 2. Internal absolute imports
-import { User } from '@/types/user';
-import { formatDate } from '@/utils/formatters';
-
-// 3. Relative imports
-import { Button } from '../components/Button';
-import styles from './Component.module.css';
-
-// 4. Type-only imports at the end
-import type { ComponentProps } from './types';
-```
-
-## CSS/Tailwind Conventions
-
-### Class Order (Tailwind)
-1. Layout: `flex`, `grid`, `block`
-2. Positioning: `relative`, `absolute`
-3. Sizing: `w-full`, `h-screen`
-4. Spacing: `p-4`, `m-2`
-5. Typography: `text-lg`, `font-bold`
-6. Visual: `bg-blue-500`, `border`
-7. Effects: `shadow`, `hover:`
-8. State: `focus:`, `disabled:`
-
-### Component-Specific Styles
-Use Tailwind utility classes. For complex/reusable styles, create components.
-
-## Performance Guidelines
-
-### Backend
-- Use database indexes for frequently queried fields
-- Implement pagination for list endpoints (default 20 items)
-- Use connection pooling (already configured)
-- Cache static data where appropriate
-- Avoid N+1 queries
-
-### Frontend
-- Lazy load routes with React.lazy()
-- Memoize expensive computations with useMemo
-- Optimize re-renders with React.memo and useCallback
-- Debounce search inputs
-- Use virtual scrolling for long lists
-
-## Security Checklist
-
-- [ ] Input validation on all endpoints
-- [ ] SQL injection prevention (parameterized queries)
-- [ ] XSS prevention (React handles this mostly)
-- [ ] CSRF protection (not needed for API-only backend with JWT)
-- [ ] Rate limiting on auth endpoints
-- [ ] Password strength requirements (min 8 chars, enforced)
-- [ ] Secure password storage (bcrypt with salt rounds ≥ 10)
-- [ ] HTTPS in production
-- [ ] Environment variables for secrets
-- [ ] Audit logging for sensitive operations
-- [ ] Session timeout (JWT expiration)
-- [ ] CORS properly configured
-
-## Accessibility Guidelines
-
-- Use semantic HTML elements
-- Include ARIA labels where needed
-- Ensure keyboard navigation works
-- Maintain sufficient color contrast
-- Provide alt text for images
-- Use proper heading hierarchy
-- Make forms accessible with labels
-- Test with screen readers
-
-## Documentation Requirements
-
-### Code Documentation
-- JSDoc for all public functions/methods
-- README.md in each major directory
-- Inline comments for complex logic
-- Type definitions serve as documentation
-
-### API Documentation
-- Document all endpoints (future: Swagger/OpenAPI)
-- Include request/response examples
-- Document error responses
-- Note authentication requirements
-
-### User Documentation
-- Setup instructions (README.md)
-- Deployment guide (future)
-- Admin guide (future)
-- User manual (future)
+See [../DOCUMENTATION_STYLE_GUIDE.md](../DOCUMENTATION_STYLE_GUIDE.md).

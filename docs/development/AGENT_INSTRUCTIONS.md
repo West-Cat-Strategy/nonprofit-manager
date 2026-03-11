@@ -1,319 +1,141 @@
-# Agent Instructions for Nonprofit Manager
+# Agent Instructions For Nonprofit Manager
 
-## Project Context
+**Last Updated:** 2026-03-11
 
-This is a full-stack TypeScript application for nonprofit management. The codebase follows industry best practices, uses the Common Data Model (CDM) for data schemas, and prioritizes security, scalability, and maintainability.
+This file is for coding agents and contributors making repository changes.
 
-## Core Principles
+## Core Rules
 
-1. **TypeScript First**: All code must be written in TypeScript with strict type checking
-2. **CDM Alignment**: Database schemas and entities must align with Microsoft Common Data Model conventions
-3. **Security**: Authentication, authorization, and data protection are paramount
-4. **Testing**: All features require comprehensive tests
-5. **Documentation**: Code must be well-documented and maintainable
+1. Update [../phases/planning-and-progress.md](../phases/planning-and-progress.md) before starting tracked work.
+2. Keep one active task per agent by default unless the workboard explicitly documents a coordinated parallel exception.
+3. Preserve existing user changes in the worktree unless the task requires touching them.
+4. Prefer repo-native validation commands and policies over ad hoc checks.
+5. Update active docs when commands, ports, workflows, or contracts change.
 
-## Multi-Agent Protocol (Required)
-
-This repository is optimized for **parallel agent work**. To prevent overlap:
-
-1. **Sign out a task** in `planning-and-progress.md` Workboard before coding.
-2. **One active task per agent** unless explicitly coordinated.
-3. **Use task IDs** in commits and PR titles (example: `P1-T1.6-CI`).
-4. **Update the Workboard** when status changes (Ready → In Progress → Review → Done).
-5. **Blocker handling**: move task to Blocked with a clear reason + next step.
-6. **No untracked work**: if a task isn’t in the Workboard, add it first.
-
-## Tech Stack
+## Current Stack
 
 ### Backend
-- **Runtime**: Node.js with TypeScript
-- **Framework**: Express.js
-- **Database**: PostgreSQL
-- **ORM/Query**: `pg` service-layer queries (no ORM in active backend runtime)
-- **Authentication**: JWT tokens with bcrypt password hashing
-- **Validation**: Zod via `@middleware/zodValidation`
-- **Logging**: Winston
+
+- Node.js + TypeScript
+- Express
+- PostgreSQL via `pg`
+- Redis
+- Zod validation middleware
 
 ### Frontend
-- **Framework**: React 18+ with TypeScript
-- **State Management**: Redux Toolkit
-- **Routing**: React Router v6
-- **Styling**: Tailwind CSS
-- **Build Tool**: Vite
-- **UI Components**: Headless UI, Heroicons
 
-### Database
-- **RDBMS**: PostgreSQL 14+
-- **Schema**: CDM-aligned entities
-- **Migrations**: Raw SQL files (consider moving to migration tool)
+- React 19
+- React Router 7
+- Redux Toolkit
+- Vite
+- Tailwind CSS
 
-## Development Guidelines
+### Testing
 
-### Code Organization
+- Jest for backend
+- Vitest for frontend
+- Playwright in `e2e/`
 
-#### Backend Structure
-```
-backend/src/
-├── config/         # Configuration files (database, logger, etc.)
-├── controllers/    # Request handlers (thin layer)
-├── middleware/     # Express middleware (auth, error handling, validation)
-├── models/         # Data models and database queries
-├── routes/         # API route definitions
-├── services/       # Business logic (thick layer)
-├── types/          # TypeScript type definitions
-├── utils/          # Helper functions
-└── index.ts        # Application entry point
-```
+## Active Architecture Boundaries
 
-#### Frontend Structure
-```
-frontend/src/
-├── features/       # Canonical feature ownership (pages, state, api, types)
-├── components/     # Shared UI components
-├── pages/          # Legacy compatibility wrappers only
-├── routes/         # Route composition + lazy route components
-├── store/          # Redux store root + non-migrated legacy slices
-├── types/          # Shared TypeScript type definitions
-├── utils/          # Shared helper functions
-├── App.tsx         # Root component
-└── main.tsx        # Application entry point
-```
+### Backend
 
-#### Modularity Guardrails
-- Backend module code under `backend/src/modules/**` must not import `@controllers/*` legacy handlers.
-- `backend/src/routes/v2/index.ts` is module-owned and must import from `@modules/*` only.
-- Module route files under `backend/src/modules/**/routes/index.ts` must not proxy through `@routes/*`.
-- Frontend migrated domains under `frontend/src/features/**` must import state from `features/*/state`, not `frontend/src/store/slices/*`.
-- Feature page files should be feature-owned implementations; `frontend/src/pages/**` is compatibility surface only.
+- Active runtime APIs are under `/api/v2/*`.
+- Health aliases remain available at `/health`, `/api/health`, and `/api/v2/health`.
+- Domain-owned backend code lives under `backend/src/modules/<domain>/`.
+- `backend/src/routes/v2/index.ts` must import from `@modules/*` only.
+- New request handling should preserve the route -> controller -> service/usecase -> data-access separation.
 
-### Code Standards
+### Frontend
 
-#### TypeScript
-- Use `strict` mode in tsconfig.json
-- Prefer interfaces over types for object shapes
-- Use explicit return types for functions
-- Avoid `any` - use `unknown` if type is truly unknown
-- Use utility types (Partial, Pick, Omit, etc.) where appropriate
+- Feature-owned frontend code lives under `frontend/src/features/<domain>/`.
+- `frontend/src/pages/**` is a compatibility surface unless the repo already treats a page as canonical.
+- Migrated features should read state from feature-owned state packages, not legacy `store/slices` imports.
 
-#### Naming Conventions
-- **Files**: camelCase for utilities, PascalCase for components/classes
-- **Variables/Functions**: camelCase
-- **Classes/Interfaces/Types**: PascalCase
-- **Constants**: UPPER_SNAKE_CASE
-- **Database**: snake_case for tables and columns (CDM convention)
+## Validation, Auth, And Responses
 
-#### API Design
-- RESTful endpoints
-- Versioning: all active API routes use `/api/v2/resource`; legacy `/api/*` routes are tombstoned
-- Plural nouns for collections: `/api/v2/volunteers`
-- Nested resources where appropriate: `/api/v2/events/:id/registrations`
-- Use proper HTTP methods: GET, POST, PUT, PATCH, DELETE
-- Standard HTTP status codes
+- Validate inputs with Zod schemas and repo validation middleware.
+- Use the current auth-guard helpers in `backend/src/services/authGuardService.ts`.
+- Do not reintroduce legacy `require*OrError` helpers in new controller or module work.
+- Preserve the canonical envelope shapes:
 
-#### Error Handling
-- Use custom error classes extending Error
-- Include statusCode property for HTTP errors
-- Centralized error handling middleware
-- Never expose sensitive information in error messages
-- Log errors with appropriate context
-
-#### Security
-- Never commit secrets or credentials
-- Use environment variables for configuration
-- Validate all user input
-- Sanitize data before database queries
-- Use parameterized queries (prevent SQL injection)
-- Implement rate limiting on authentication endpoints
-- Use HTTPS in production
-- Set secure HTTP headers with Helmet.js
-- Implement CORS appropriately
-
-### Testing Strategy
-
-#### Backend Tests
-- Unit tests for business logic in services
-- Integration tests for API endpoints
-- Database tests with test database
-- Use Jest as test runner
-- Aim for >80% code coverage
-
-#### Frontend Tests
-- Component tests with React Testing Library
-- Integration tests for user flows
-- E2E tests with Playwright (active in `e2e/`)
-- Test user interactions, not implementation details
-
-### Git Workflow
-
-#### Commit Messages
-Follow Conventional Commits:
-- `feat:` New feature
-- `fix:` Bug fix
-- `docs:` Documentation changes
-- `style:` Code style changes (formatting)
-- `refactor:` Code refactoring
-- `test:` Adding or updating tests
-- `chore:` Maintenance tasks
-
-Example: `feat: add volunteer skill matching algorithm`
-
-#### Pull Requests
-- Keep PRs focused and small
-- Include description of changes
-- Reference related issues
-- Ensure all tests pass
-- Update documentation as needed
-
-### Database Guidelines
-
-#### Schema Design
-- Follow CDM entity naming conventions
-- Use UUIDs for primary keys
-- Include audit fields: created_at, updated_at, created_by, modified_by
-- Use proper foreign key constraints
-- Add indexes for frequently queried columns
-- Use meaningful constraint names
-
-#### Migrations
-- Each migration in separate numbered file
-- Include both up and down migrations (future)
-- Test migrations on development database first
-- Never modify existing migration files
-- Document breaking changes
-
-### API Response Formats
-
-#### Success Response
-```typescript
+```json
 {
-  "data": { /* resource or array */ },
-  "message": "Optional success message"
+  "success": true,
+  "data": {}
 }
 ```
 
-#### Error Response
-```typescript
+```json
 {
+  "success": false,
   "error": {
-    "message": "Human-readable error message",
     "code": "ERROR_CODE",
-    "details": { /* optional additional context */ }
+    "message": "Human-readable error description"
   }
 }
 ```
 
-#### Paginated Response
-```typescript
-{
-  "data": [ /* array of resources */ ],
-  "pagination": {
-    "page": 1,
-    "perPage": 20,
-    "total": 150,
-    "totalPages": 8
-  }
-}
+## Repo Workflow
+
+- Default setup path: [GETTING_STARTED.md](GETTING_STARTED.md)
+- Contributor workflow: [../../CONTRIBUTING.md](../../CONTRIBUTING.md)
+- Service-specific guidance: [../../backend/README.md](../../backend/README.md) and [../../frontend/README.md](../../frontend/README.md)
+- Testing guidance: [../testing/TESTING.md](../testing/TESTING.md) and [../../e2e/README.md](../../e2e/README.md)
+
+## Validation Commands
+
+Prefer root commands:
+
+```bash
+make lint
+make typecheck
+make test
 ```
 
-## Common Tasks
+Useful narrower commands:
 
-### Adding a New Entity/Module
-
-1. **Database**
-   - Create migration file: `database/migrations/00X_add_entity_name.sql`
-   - Define table with CDM-aligned schema
-   - Add appropriate indexes and constraints
-   - Run migration and test
-
-2. **Backend**
-   - Create module package under `backend/src/modules/<entity>/` (`controllers`, `routes`, `repositories`, `usecases`, `types` as needed)
-   - Implement `/api/v2` route registration via module export in `backend/src/routes/v2/index.ts`
-   - Keep legacy `backend/src/routes/*.ts` wrappers thin (or omit when endpoint is v2-only)
-   - Keep controller logic module-owned; use legacy controllers only as compatibility wrappers
-   - Write tests
-
-3. **Frontend**
-   - Create feature package under `frontend/src/features/<entity>/` (`pages`, `state`, `api`, `types` as needed)
-   - Wire reducer from `features/<entity>/state` into `frontend/src/store/index.ts`
-   - Add route wiring through `frontend/src/routes/*RouteComponents.tsx` and route composers
-   - Keep `frontend/src/pages/**` paths as compatibility wrappers only when required
-   - Write tests
-
-### Adding Authentication to Endpoint
-
-```typescript
-import { authenticate, authorize } from '../middleware/auth';
-
-router.get('/protected-route', 
-  authenticate, 
-  authorize('admin', 'manager'),
-  controller.handler
-);
+```bash
+cd backend && npm run type-check
+cd frontend && npm run type-check
+make check-links
+make lint-doc-api-versioning
+scripts/select-checks.sh --base HEAD~1 --mode fast
 ```
 
-### Querying Database
+Coverage thresholds are enforced by repo config. Do not restate a blanket percentage unless you have verified it from the current config.
 
-```typescript
-// Use parameterized queries
-const result = await pool.query(
-  'SELECT * FROM users WHERE email = $1',
-  [email]
-);
+## Documentation Expectations
 
-// Type the result
-const users = result.rows as User[];
-```
+- Treat [../../README.md](../../README.md) as the contributor start page.
+- Treat [../INDEX.md](../INDEX.md) as the catalog, not the onboarding entry point.
+- Use relative links in docs.
+- Verify commands and ports from the repo before documenting them.
 
-### Making API Calls (Frontend)
+## Common Implementation Patterns
 
-```typescript
-// Use the centralized API client
-import api from '../services/api';
+### Backend Work
 
-const response = await api.get<EntityType>('/endpoint');
-const data = response.data;
-```
+- Add or update a module under `backend/src/modules/<domain>/`.
+- Register new `/api/v2` routes through the module export path.
+- Keep controllers thin and data access out of controllers.
+- Add or update backend tests near the affected behavior.
 
-## Current Status
+### Frontend Work
 
-See [docs/phases/planning-and-progress.md](../phases/planning-and-progress.md) for:
-- Current phase and progress
-- Completed features
-- Upcoming tasks
-- Timeline and milestones
+- Add or update a feature package under `frontend/src/features/<domain>/`.
+- Wire routes through the current route composition layer.
+- Keep state ownership in the feature package when the domain is already migrated.
+- Add or update frontend tests with the change.
 
-## Priorities
+### Docs Work
 
-### Immediate (Phase 1)
-1. Complete foundation setup
-2. Test authentication flow
-3. Set up local CI runner
-4. Begin core module APIs
+- Update entry docs when contributor navigation changes.
+- Run `make check-links`.
+- Run `make lint-doc-api-versioning` if API examples changed.
 
-### Short-term (Phase 2-3)
-1. Implement all core modules
-2. Build dashboard and reporting
-3. Comprehensive testing
+## Do Not Assume
 
-### Long-term (Phase 4-6)
-1. External integrations
-2. Website builder
-3. Production deployment
-
-## Questions or Issues?
-
-- Check existing documentation in project files
-- Review planning-and-progress.md for project status
-- Check product-spec.md for requirements
-- Refer to database/README.md for schema details
-
-## When Making Changes
-
-1. **Sign out a task** in the Workboard before starting work
-2. **Always update planning-and-progress.md** with status changes
-3. Document architectural decisions
-4. Update relevant README files
-5. Keep types and interfaces in sync across frontend/backend
-6. Run linters and formatters before committing
-7. Write or update tests for changed code
-8. Update API documentation if endpoints change
+- Do not assume Docker dev, direct runtime, and Playwright runtime use the same ports.
+- Do not assume a package-level `npm run typecheck` script exists; this repo uses `npm run type-check`.
+- Do not assume GitHub Actions is the required gate for active work; the repo uses local validation commands as the documented default path.

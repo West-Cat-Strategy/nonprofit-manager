@@ -1,509 +1,108 @@
 # Documentation Style Guide
 
-**Last Updated**: February 18, 2026
+**Last Updated:** 2026-03-11
 
-This guide ensures consistency across all documentation in the nonprofit-manager project. All contributors should follow these standards when creating or updating documentation.
+Use this guide when creating or updating documentation in nonprofit-manager.
 
----
+## Source Of Truth Model
 
-## Table of Contents
+- [../README.md](../README.md) is the contributor start page.
+- [INDEX.md](INDEX.md) is the full documentation catalog.
+- [README.md](README.md) inside `docs/` is a short directory landing page only.
+- [phases/planning-and-progress.md](phases/planning-and-progress.md) is the live workboard and status log.
+- Service READMEs such as [../backend/README.md](../backend/README.md) and [../frontend/README.md](../frontend/README.md) should explain their own surfaces, but should not replace the root README as the contributor start path.
 
-- [Purpose](#purpose)
-- [File Organization](#file-organization)
-- [Markdown Formatting](#markdown-formatting)
-- [Writing Style & Tone](#writing-style--tone)
-- [Code Examples](#code-examples)
-- [Links & References](#links--references)
-- [Dates & Timestamps](#dates--timestamps)
-- [Special Sections](#special-sections)
-- [Emoji Usage](#emoji-usage)
-- [Checklist for Documentation](#checklist-for-documentation)
+## Before You Write
 
----
+Check the live repo sources of truth instead of copying old prose:
 
-## Purpose
+- Commands: `Makefile`, `package.json` files, and `scripts/README.md`
+- Ports and env flows: `docker-compose*.yml`, `frontend/vite.config.ts`, `backend/.env.example`, `backend/.env.test.example`, `e2e/playwright.config.ts`
+- Runtime/API behavior: current code and active route docs
 
-Clear, consistent documentation:
-- Reduces onboarding time for new developers
-- Prevents confusion about roles/status/procedures
-- Improves searchability and navigation
-- Maintains professional quality standards
-- Supports knowledge transfer and compliance
+If a command, port, env var, or workflow cannot be verified from the repo, do not state it as fact.
 
----
+## File Structure
 
-## File Organization
+- Use exactly one `#` heading per file.
+- Add `**Last Updated:** YYYY-MM-DD` near the top for substantial changes.
+- Prefer short sections and scannable lists over long narrative blocks.
+- Keep the active docs focused on current behavior. Historical notes belong in `docs/phases/archive/`.
 
-### Directory Structure
+## Link Rules
 
-```
-docs/
-├── INDEX.md                      # Master navigation (replaces README.md)
-├── DOCUMENTATION_STYLE_GUIDE.md  # This file
-├── DOCUMENTATION_MAINTENANCE.md  # Maintenance checklist
-├── README.md                     # (legacy, kept for backwards compatibility)
-├── api/                          # API documentation
-│   ├── README.md                 # API index/master reference
-│   ├── API_REFERENCE_*.md        # Specific reference docs
-│   ├── openapi.yaml              # OpenAPI specification
-│   └── postman/                  # Postman collection docs
-├── backend/                      # Backend-specific docs
-│   └── BACKEND_SERVICE_REFACTORING_GUIDE.md
-├── deployment/                   # Infrastructure & deployment
-├── development/                  # Developer guides
-│   ├── GETTING_STARTED.md        # Onboarding entry point
-│   ├── AGENT_INSTRUCTIONS.md     # AI developer guidelines
-│   ├── ARCHITECTURE.md           # Architecture decisions (ADRs)
-│   ├── CONVENTIONS.md            # Code style & naming
-│   ├── RELEASE_CHECKLIST.md      # Release procedures
-│   └── TROUBLESHOOTING.md        # Common issues
-├── features/                     # Feature documentation
-│   ├── FEATURE_MATRIX.md         # Master feature status table
-│   ├── PEOPLE_MODULE_ENHANCEMENTS.md
-│   ├── TASK_MANAGEMENT.md
-│   └── [other feature docs]
-├── performance/                  # Performance & optimization
-├── phases/                       # Project planning & execution
-│   ├── planning-and-progress.md  # ACTIVE workboard (only current work)
-│   ├── PHASE_3_EXECUTION_REPORT.md
-│   └── archive/                  # Historical phase reports
-│       ├── README.md             # Archive explanation
-│       ├── PHASE_1_*.md
-│       ├── PHASE_2_*.md
-│       └── [older summaries]
-├── product/                      # Product specs & requirements
-├── quick-reference/              # Quick lookup guides
-├── security/                     # Security & incident response
-├── testing/                      # Testing guides & procedures
-├── ui/                          # UI/design documentation
-└── validation/                  # Validation schemas reference
-```
+- Use relative Markdown links for repo files.
+- Do not use GitHub blob links for local documentation navigation.
+- Use descriptive link text or the file path, but keep it short.
+- Verify links before handoff with `make check-links`.
 
-### File Naming Conventions
-
-- **Use UPPERCASE with underscores**: `FEATURE_MATRIX.md`, `GETTING_STARTED.md`
-- **Exception**: index files are lowercase: `README.md`, `INDEX.md`
-- **Use descriptive names**: `API_REFERENCE_DASHBOARD_ALERTS.md` (not `api_ref.md`)
-- **Archive old files** instead of deleting: Move to `docs/phases/archive/`
-
----
-
-## Markdown Formatting
-
-### Headers
-
-**Hierarchy**:
-```markdown
-# Page Title (h1 - exactly one per file)
-
-## Major Section (h2)
-
-### Subsection (h3)
-
-#### Minor Heading (h4)
-```
-
-**Rules**:
-- Every markdown file must have exactly **one h1** (the title)
-- Use h2 for major sections (Features, Installation, Troubleshooting, etc.)
-- Use h3 for subsections within major sections
-- Avoid h4/h5/h6 unless structure is deeply nested
-- Always add a space after `#`: `# Title` (not `#Title`)
-
-### Code Blocks
-
-**Always include language identifier**:
+Examples:
 
 ```markdown
-# Correct
-\`\`\`typescript
-const schema = z.object({ ... });
-\`\`\`
-
-# Incorrect
-\`\`\`
-const schema = z.object({ ... });
-\`\`\`
+[development/GETTING_STARTED.md](development/GETTING_STARTED.md)
+[../backend/README.md](../backend/README.md)
 ```
 
-**Supported languages** (for syntax highlighting):
-- `typescript`, `javascript`, `jsx`, `tsx` — Frontend/Backend code
-- `bash`, `shell`, `sh` — Terminal commands
-- `sql` — Database queries
-- `json` — Configuration/API responses
-- `yaml` — Docker, GitHub Actions
-- `markdown` — Documentation examples
+## Command And Runtime Guidance
 
-**Inline code**:
-- Use backticks for: variables, function names, class names, file paths in prose
-- Examples: `` `handleClick()` ``, `` `UserSchema` ``, `` `src/services/authService.ts` ``
-- Do NOT use backticks for file names in file references (see Links section)
+- Prefer repo-root commands when they exist, for example `make lint` over repeating many package commands.
+- When multiple runtimes exist, call them out explicitly instead of flattening them into one setup story.
+- For this repo, distinguish at least:
+  - Docker development
+  - Direct service runtime
+  - E2E harness runtime
+- Use the package script names exactly as implemented. For example, this repo uses `npm run type-check` in packages and `make typecheck` at the root.
 
-### Tables
+## Writing Style
 
-**Format** (use consistent spacing):
-
-```markdown
-| Column 1 | Column 2 | Status |
-|----------|----------|--------|
-| Item A   | Details  | ✅ Done |
-| Item B   | Details  | ⚠️ WIP |
-```
-
-**Guidelines**:
-- Always include separator row (dashes)
-- Align columns for readability
-- Use center alignment with colons: `|:---:|` for centered, `|---:|` for right-aligned
-- Keep tables < 6 columns (split into multiple tables if needed)
-- Use emoji status indicators consistently: ✅ ⚠️ ❌ 🟢 🟡 🔴
-
-### Lists
-
-**Bullet lists** (use `-` for consistency):
-```markdown
-- Item one
-- Item two
-  - Nested item
-  - Another nested
-- Item three
-```
-
-**Numbered lists** (use `1.`, `2.`, etc.):
-```markdown
-1. First step
-2. Second step
-   1. Substep A
-   2. Substep B
-3. Third step
-```
-
-**Definition lists** (use `Term: Description` format):
-```markdown
-**Feature**: Description of what it does
-**Status**: Production ready
-**Owner**: Team name
-```
-
-### Emphasis
-
-- **Bold** for important terms: `**required**`, `**critical**`
-- *Italic* for emphasis: `*do not skip this step*`
-- ~~Strikethrough~~ for deprecated items: `~~old endpoint~~`
-- `Inline code` for code references
-- `> Blockquote` for warnings/notes
-
----
-
-## Writing Style & Tone
-
-### Audience Adaptation
-
-Three primary audiences, three tone levels:
-
-| Audience | Tone | Files |
-|----------|------|-------|
-| **New developers** | Friendly, patient, verbose | GETTING_STARTED.md, frontend/SETUP.md, backend/README.md |
-| **Experienced developers** | Professional, concise, assumes knowledge | AGENT_INSTRUCTIONS.md, CONVENTIONS.md, ARCHITECTURE.md |
-| **Maintainers/Ops** | Formal, precise, procedural | DEPLOYMENT.md, INCIDENT_RESPONSE_RUNBOOK.md |
-
-### Writing Principles
-
-- **Be specific**: Not "install dependencies" but "run `npm install` in frontend/ and backend/"
-- **Be scannable**: Use headers, bullet lists, bold text to break up long paragraphs
-- **Be accurate**: If something is assumed knowledge, say so ("assumes Node.js 18+")
-- **Be brief**: 3-5 sentences per paragraph maximum
-- **Be objective**: Avoid "I think", "in my opinion"; use "the system", "the design decision"
-- **Be imperative for instructions**: "Install Node.js" not "You should install Node.js"
-- **Use active voice**: "The system validates input" not "Input is validated by the system"
-
-### Examples
-
-**Good**:
-> Install Node.js 18+ and npm 9+. Verify with `node --version` and `npm --version`.
-
-**Bad**:
-> You will need Node.js. Make sure to install a recent version. In my experience, version 18 works well. Check that everything is installed correctly.
-
----
+- Write in direct, factual language.
+- Prefer imperative instructions for setup steps.
+- Keep paragraphs short.
+- Avoid speculative statements, placeholder text, and “coming soon” notes in active docs.
+- Avoid duplicating the same setup or workflow explanation across multiple files unless the duplication is intentional and kept synchronized.
 
 ## Code Examples
 
-### Requirements
+- Include a language identifier on fenced blocks.
+- Keep examples current with the active stack and response shapes.
+- Mark simplified snippets when they are illustrative rather than copied from production code.
+- Do not leave stale references to removed workflows, deprecated scripts, or legacy API paths in active contributor docs.
 
-All code examples must:
-1. **Be valid and tested** — Compile/run without errors
-2. **Reflect current codebase** — Not outdated patterns
-3. **Be self-contained** — Can be understood without running full system
-4. **Include context** — Where in the codebase does this pattern appear?
+## API And Response Guidance
 
-### Example Format
+- Active API references should use `/api/v2/*` paths unless they are documenting health aliases or a deliberate compatibility exception.
+- Contributor-facing docs should use the canonical envelope shapes:
 
-```markdown
-## Example: Creating a Zod Schema
-
-Here's how to define a schema for user input validation:
-
-\`\`\`typescript
-import { z } from 'zod';
-
-const createUserSchema = z.object({
-  email: z.string().email(),
-  name: z.string().min(1),
-  role: z.enum(['admin', 'manager', 'volunteer']),
-});
-
-type CreateUserRequest = z.infer<typeof createUserSchema>;
-\`\`\`
-
-**Location in codebase**: [backend/src/services/userService.ts](backend/src/services/userService.ts#L45)
-
-**Testing**: This schema is tested in [backend/src/__tests__/userService.test.ts](backend/src/__tests__/userService.test.ts)
+```json
+{
+  "success": true,
+  "data": {}
+}
 ```
 
-### Real-World vs. Illustrative
-
-**Real-world examples** (copy from actual code):
-- Use when teaching patterns
-- Always provide file link and line number
-- Update when pattern changes
-
-**Illustrative examples** (simplified for clarity):
-- Use when showing simplified version
-- Mark as `// Simplified example` or `// Illustrative`
-- Consider providing link to full implementation
-
----
-
-## Links & References
-
-### File References
-
-**Never wrap file paths in backticks**. Use markdown links instead:
-
-```markdown
-# Correct
-See [backend/src/services/authService.ts](backend/src/services/authService.ts) for implementation.
-See [CONVENTIONS.md](docs/development/CONVENTIONS.md) for code style.
-
-# Incorrect
-See `backend/src/services/authService.ts` for implementation.
-See `CONVENTIONS.md` for code style.
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable error description"
+  }
+}
 ```
 
-### Link Format
+## Dates And Status
 
-```markdown
-[Display Text](relative/path/to/file.md)
-[Display Text](relative/path/to/file.md#L42)  # Specific line
-[Display Text](relative/path/to/file.md#L42-L50)  # Line range
-[Display Text](relative/path/to/file.md#section-anchor)  # Section anchor
-```
+- Use ISO dates in active docs when practical: `2026-03-11`.
+- Use exact dates instead of relative wording when status matters.
+- Keep workboard changes in [phases/planning-and-progress.md](phases/planning-and-progress.md), not in scattered status notes across active docs.
 
-### Link Rules
+## Maintenance Checklist
 
-- Use **relative paths** from workspace root (not absolute paths)
-- Display text should be: file path OR descriptive label (not both)
-- For files in same directory: `[SETUP.md](docs/development/SETUP.md)` (full path for clarity)
-- All links must be verified before committing
-- Update links when files are moved/renamed
+Before handoff:
 
-### External Links
-
-```markdown
-[GitHub Copilot](https://github.com/features/copilot) — Free/paid AI assistant
-[Zod Documentation](https://zod.dev) — Runtime validation library
-```
-
-### Cross-References Between Docs
-
-Use "See also" sections:
-
-```markdown
-## See Also
-
-- [TESTING.md](docs/testing/TESTING.md) — Testing strategies
-- [PERFORMANCE_OPTIMIZATION.md](docs/performance/PERFORMANCE_OPTIMIZATION.md) — Database optimization
-- [INCIDENT_RESPONSE_RUNBOOK.md](docs/security/INCIDENT_RESPONSE_RUNBOOK.md) — Security incidents
-```
-
----
-
-## Dates & Timestamps
-
-### Format Standard: YYYY-MM-DD
-
-```markdown
-# Incorrect
-- Last Updated: February 18, 2026
-- Updated: 2/18/26
-- Created: 18 Feb 2026
-
-# Correct
-- Last Updated: 2026-02-18
-- Date Range: 2026-02-10 to 2026-02-18
-```
-
-### "Last Updated" Section
-
-Every documentation file should include this at the top:
-
-```markdown
-# Documentation Title
-
-**Last Updated**: 2026-02-18
-
-Content follows below...
-```
-
-### Keeping Dates Current
-
-- Add `**Last Updated**: YYYY-MM-DD` to every doc
-- Update this timestamp when making substantial changes (not typo fixes)
-- Use ISO 8601 format consistently
-
----
-
-## Special Sections
-
-### Table of Contents (for long docs > 300 lines)
-
-Include at start of document:
-
-```markdown
-# Document Title
-
-**Last Updated**: 2026-02-18
-
-## Table of Contents
-
-- [Section One](#section-one)
-- [Section Two](#section-two)
-  - [Subsection](#subsection)
-- [See Also](#see-also)
-```
-
-Use anchor links (automatic with markdown headers).
-
-### Status Indicators
-
-Use consistent emoji/text for status:
-
-| Status | Indicator | Usage |
-|--------|-----------|-------|
-| Complete | ✅ | "✅ Phase 1 complete" |
-| In Progress | 🟡 or 🔄 | "🟡 Phase 2 in progress" |
-| Planned | 📋 | "📋 Phase 3 planned" |
-| Not Started | ⚠️ or ❌ | "❌ Not started" |
-| Good | 🟢 | "🟢 All tests passing" |
-| Needs Work | 🔴 | "🔴 Missing documentation" |
-| Warning | ⚠️ | "⚠️ Breaking change" |
-
-### Note/Warning Blocks
-
-```markdown
-> **Note**: This is important context for understanding the next section.
-
-> **Warning**: Do not attempt this without proper backup procedures.
-
-> **Deprecated**: This pattern is no longer recommended. Use [NEW_APPROACH.md](docs/development/NEW_APPROACH.md) instead.
-```
-
-### Author Attribution (optional, for major docs)
-
-```markdown
-# Document Title
-
-**Last Updated**: 2026-02-18  
-**Authors**: Alice Developer, Bot Agent  
-**Reviewers**: Team Lead, Security Team
-```
-
----
-
-## Emoji Usage
-
-### Where to Use Emoji
-
-**✅ Use emoji**:
-- Status indicators in planning documents and progress tables
-- Tables and status indicators (✅ 🟡 ❌ 🟢 🔴 🟠 etc.)
-- Headers for visual organization in planning/phase docs
-- Section markers in tables of contents
-
-**❌ Avoid emoji**:
-- Technical guides (AGENT_INSTRUCTIONS.md, ARCHITECTURE.md, etc.)
-- API reference documentation
-- Security/incident response documents
-- Long narrative text (reduces professionalism)
-
-### Standard Emoji Set
-
-Use this consistent set:
-- ✅ Complete / Green light / Pass
-- 🟡 In Progress / Yellow light / Caution  
-- ❌ Failed / Error / Do not proceed
-- 🟢 Good / Production ready
-- 🔴 Critical / Red alert / Blocked
-- 🟠 Medium priority / Needs attention
-- 📋 Planned / To-do / Backlog
-- 🔄 In Progress / Ongoing / Cycle
-- ⚠️ Warning / Important note
-- 📖 See documentation
-- 🔗 Link to related doc
-- 💡 Pro tip / Best practice
-
----
-
-## Checklist for Documentation
-
-Use this checklist before committing documentation changes:
-
-### Content
-- [ ] Content is accurate and tested
-- [ ] Examples are valid and reflect current codebase
-- [ ] All code examples have language identifiers
-- [ ] Instructions have been followed (walkthrough test)
-- [ ] Links are relative paths (not absolute or file://)
-- [ ] No personally identifiable information (PII) included
-- [ ] Appropriate for target audience (new dev vs. maintainer)
-
-### Format
-- [ ] Exactly one h1 (file title) at top
-- [ ] "Last Updated" date at top in YYYY-MM-DD format
-- [ ] Headers use consistent hierarchy (h1 > h2 > h3)
-- [ ] Code blocks have language identifiers
-- [ ] Tables are aligned and readable
-- [ ] Lists use consistent formatting (- for bullets, 1. for numbered)
-- [ ] Emoji use is minimal and consistent
-
-### Style
-- [ ] Tone matches audience (friendly for new devs, formal for maintainers)
-- [ ] No personal opinion language ("I think", "in my experience")
-- [ ] Written in active voice (not passive)
-- [ ] Sentences are ≤3 per paragraph
-- [ ] Instructions are imperative (commands, not suggestions)
-
-### Quality
-- [ ] No spelling/grammar errors
-- [ ] No formatting inconsistencies
-- [ ] Related documents are cross-linked
-- [ ] Document fits in logical place in docs/ structure
-- [ ] File name follows UPPERCASE_WITH_UNDERSCORES convention
-- [ ] Document doesn't duplicate content elsewhere
-
-### Before Committing
-- [ ] Tested: Followed setup guides, ran examples, verified links work
-- [ ] Reviewed: Read through as new developer (unfamiliar perspective)
-- [ ] Updated: Related docs that reference this doc are also updated
-- [ ] Linked: https://github.com/example/nonprofit-manager/blob/main/docs/INDEX.md or relevant index file is updated
-
----
-
-## Support & Questions
-
-Questions about documentation standards?
-- See [https://github.com/example/nonprofit-manager/blob/main/docs/INDEX.md](https://github.com/example/nonprofit-manager/blob/main/docs/INDEX.md) for navigation
-- See [https://github.com/example/nonprofit-manager/blob/main/CONTRIBUTING.md](https://github.com/example/nonprofit-manager/blob/main/CONTRIBUTING.md) for contribution guidelines
-- Refer to existing well-documented files as examples: [VALIDATION_SCHEMAS_REFERENCE.md](https://github.com/example/nonprofit-manager/blob/main/docs/validation/VALIDATION_SCHEMAS_REFERENCE.md), [SECURITY_MONITORING_GUIDE.md](https://github.com/example/nonprofit-manager/blob/main/docs/security/SECURITY_MONITORING_GUIDE.md)
-
-For issues or improvements to this guide, open an issue or PR with label `documentation`.
+- [ ] Verified commands against the repo
+- [ ] Verified ports/env guidance against compose or runtime config
+- [ ] Updated adjacent entry docs when navigation changed
+- [ ] Removed stale GitHub Actions or other deprecated workflow language if the doc is active
+- [ ] Ran `make check-links`
+- [ ] Ran `make lint-doc-api-versioning` when docs include API examples
