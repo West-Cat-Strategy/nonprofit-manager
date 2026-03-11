@@ -22,14 +22,16 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
           <Link to="/portal" className="text-base font-semibold text-app-text-heading">
             Client Portal
           </Link>
-          {portalUser?.email ? <p className="text-xs text-app-text-muted">{portalUser.email}</p> : null}
+          {portalUser?.email ? (
+            <p className="text-xs text-app-text-muted">{portalUser.email}</p>
+          ) : null}
         </div>
       }
       right={
         <>
           <Link
             to="/portal/profile"
-            className="hidden sm:inline-flex items-center rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover"
+            className="hidden sm:inline-flex items-center rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-4 py-2 text-sm font-semibold text-app-text-heading shadow-sm transition hover:bg-app-surface-muted"
           >
             Account
           </Link>
@@ -55,7 +57,9 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
   return (
     <AppShell
       topNav={topNav}
-      header={<SurfaceContextBar secondaryAction={{ label: 'Account Settings', to: '/portal/profile' }} />}
+      header={
+        <SurfaceContextBar secondaryAction={{ label: 'Account Settings', to: '/portal/profile' }} />
+      }
       contentClassName="space-y-6 rounded-[var(--ui-radius-md)] bg-app-surface p-4 shadow-sm sm:p-6"
     >
       {children}

@@ -50,12 +50,14 @@ export default function SideNav({
   return (
     <aside
       className={classNames(
-        'rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface p-3 shadow-sm',
+        'rounded-[var(--ui-radius-md)] border border-app-border bg-app-surface-elevated p-3 shadow-sm',
         className
       )}
       aria-label={title}
     >
-      <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-app-text-subtle">{title}</p>
+      <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-app-text-label">
+        {title}
+      </p>
       {searchable ? (
         <div className="mb-3 px-2">
           <input
@@ -76,10 +78,10 @@ export default function SideNav({
                 to={item.to}
                 onClick={onNavigate}
                 className={classNames(
-                  'flex items-center gap-2 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm font-medium transition-colors',
+                  'flex items-center gap-2 rounded-[var(--ui-radius-sm)] border px-3 py-2 text-sm font-semibold transition-colors',
                   item.isActive
-                    ? 'bg-app-accent-soft text-app-accent-text'
-                    : 'text-app-text-muted hover:bg-app-hover hover:text-app-text'
+                    ? 'border-app-accent bg-app-accent text-[var(--app-accent-foreground)] shadow-sm'
+                    : 'border-transparent text-app-text hover:border-app-border hover:bg-app-surface-muted hover:text-app-text-heading'
                 )}
               >
                 {item.icon && <span>{item.icon}</span>}
@@ -92,7 +94,7 @@ export default function SideNav({
       {searchable && visibleItems.length === 0 ? (
         <p className="px-2 pt-2 text-xs text-app-text-subtle">{emptyMessage}</p>
       ) : null}
-      {footer && <div className="mt-3 border-t border-app-border-muted pt-3">{footer}</div>}
+      {footer && <div className="mt-3 border-t border-app-border pt-3">{footer}</div>}
     </aside>
   );
 }

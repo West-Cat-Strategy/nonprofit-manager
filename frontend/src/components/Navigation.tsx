@@ -147,9 +147,11 @@ export default function Navigation() {
   );
 
   const desktopActionButtonClass =
-    'hidden items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-3 py-2 text-sm font-medium text-app-text-muted transition hover:bg-app-hover hover:text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 lg:inline-flex';
+    'hidden items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-3 py-2 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 lg:inline-flex';
   const desktopMenuButtonClass =
-    'inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-3 py-2 text-sm font-medium text-app-text-muted transition hover:bg-app-hover hover:text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2';
+    'inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-3 py-2 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2';
+  const activeDesktopButtonClass =
+    'border-app-accent bg-app-accent text-[var(--app-accent-foreground)] hover:bg-app-accent-hover hover:text-[var(--app-accent-foreground)]';
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -218,7 +220,7 @@ export default function Navigation() {
   return (
     <nav
       aria-label="Global navigation"
-      className="sticky top-0 z-50 border-b border-app-border/70 bg-app-surface-elevated/95 backdrop-blur"
+      className="sticky top-0 z-50 border-b border-app-border bg-app-surface-elevated shadow-sm"
     >
       <div className="mx-auto flex h-16 max-w-[1920px] items-center gap-3 px-3 sm:px-4 lg:px-6">
         <div className="flex min-w-0 shrink-0 items-center gap-3">
@@ -246,7 +248,7 @@ export default function Navigation() {
         </div>
 
         <div className="hidden min-w-0 flex-1 items-center justify-center lg:flex">
-          <div className="flex min-w-0 max-w-full items-center gap-1 rounded-full border border-app-border-muted bg-app-surface px-1.5 py-1 shadow-sm">
+          <div className="flex min-w-0 max-w-full items-center gap-1 rounded-full border border-app-border bg-app-surface-elevated px-1.5 py-1 shadow-sm">
             <div
               className="flex min-w-0 items-center gap-1 overflow-hidden"
               role="navigation"
@@ -258,10 +260,10 @@ export default function Navigation() {
                   to={item.path}
                   aria-current={isNavItemActive(item.id, item.path) ? 'page' : undefined}
                   className={classNames(
-                    'inline-flex min-w-0 max-w-[9rem] items-center rounded-full px-3 py-2 text-sm font-medium transition xl:max-w-[11rem]',
+                    'inline-flex min-w-0 max-w-[9rem] items-center rounded-full border px-3 py-2 text-sm font-semibold transition xl:max-w-[11rem]',
                     isNavItemActive(item.id, item.path)
-                      ? 'bg-app-accent-soft text-app-accent-text'
-                      : 'text-app-text-muted hover:bg-app-hover hover:text-app-text'
+                      ? 'border-app-accent bg-app-accent text-[var(--app-accent-foreground)] shadow-sm'
+                      : 'border-transparent text-app-text hover:border-app-border hover:bg-app-surface-muted hover:text-app-text-heading'
                   )}
                 >
                   <span className="truncate">{item.shortLabel ?? item.name}</span>
@@ -281,10 +283,10 @@ export default function Navigation() {
                     setAdminMenuOpen(false);
                   }}
                   className={classNames(
-                    'inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition',
+                    'inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition',
                     hasActiveSecondaryItem
-                      ? 'bg-app-accent-soft text-app-accent-text'
-                      : 'text-app-text-muted hover:bg-app-hover hover:text-app-text'
+                      ? 'border-app-accent bg-app-accent text-[var(--app-accent-foreground)] shadow-sm'
+                      : 'border-transparent text-app-text hover:border-app-border hover:bg-app-surface-muted hover:text-app-text-heading'
                   )}
                   aria-label="More navigation"
                   aria-expanded={moreMenuOpen}
@@ -327,8 +329,8 @@ export default function Navigation() {
                           className={classNames(
                             'flex items-center gap-3 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm transition',
                             isNavItemActive(item.id, item.path)
-                              ? 'bg-app-accent-soft text-app-accent-text'
-                              : 'text-app-text hover:bg-app-hover'
+                              ? 'bg-app-accent text-[var(--app-accent-foreground)]'
+                              : 'text-app-text-heading hover:bg-app-surface-muted'
                           )}
                         >
                           <span aria-hidden="true" className="text-base">
@@ -376,9 +378,7 @@ export default function Navigation() {
             aria-current={isNavItemActive(alertsLink.id, alertsLink.path) ? 'page' : undefined}
             className={classNames(
               desktopActionButtonClass,
-              isNavItemActive(alertsLink.id, alertsLink.path)
-                ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
-                : ''
+              isNavItemActive(alertsLink.id, alertsLink.path) ? activeDesktopButtonClass : ''
             )}
           >
             <span aria-hidden="true">{alertsLink.icon}</span>
@@ -398,9 +398,7 @@ export default function Navigation() {
                 }}
                 className={classNames(
                   desktopMenuButtonClass,
-                  hasActiveUtilityItem
-                    ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
-                    : ''
+                  hasActiveUtilityItem ? activeDesktopButtonClass : ''
                 )}
                 aria-label="Utilities"
                 aria-expanded={utilitiesMenuOpen}
@@ -445,8 +443,8 @@ export default function Navigation() {
                         className={classNames(
                           'flex items-center gap-3 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm transition',
                           isNavItemActive(link.id, link.path)
-                            ? 'bg-app-accent-soft text-app-accent-text'
-                            : 'text-app-text hover:bg-app-hover'
+                            ? 'bg-app-accent text-[var(--app-accent-foreground)]'
+                            : 'text-app-text-heading hover:bg-app-surface-muted'
                         )}
                       >
                         <span aria-hidden="true" className="text-base">
@@ -600,7 +598,7 @@ export default function Navigation() {
                 setThemeMenuOpen(false);
                 setAdminMenuOpen(false);
               }}
-              className="inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] px-2 py-1.5 text-sm font-medium text-app-text-muted transition hover:bg-app-hover hover:text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
+              className="inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-2.5 py-1.5 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
               aria-label="User menu"
               aria-expanded={userMenuOpen}
               aria-haspopup="menu"
@@ -700,7 +698,7 @@ export default function Navigation() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen((open) => !open)}
-            className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] p-2 text-app-text-muted transition hover:bg-app-hover hover:text-app-text lg:hidden"
+            className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated p-2 text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading lg:hidden"
             aria-label="Main menu"
             aria-expanded={mobileMenuOpen}
           >

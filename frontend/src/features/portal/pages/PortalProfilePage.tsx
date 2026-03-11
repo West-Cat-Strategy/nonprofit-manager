@@ -193,7 +193,8 @@ export default function PortalProfile() {
         'response' in passwordError &&
         typeof (passwordError as { response?: unknown }).response === 'object' &&
         (passwordError as { response?: { data?: { message?: string } } }).response?.data?.message
-          ? (passwordError as { response?: { data?: { message?: string } } }).response?.data?.message
+          ? (passwordError as { response?: { data?: { message?: string } } }).response?.data
+              ?.message
           : 'Failed to change password.';
       setSecurityStatusMessage(message ?? 'Failed to change password.');
       showError(message ?? 'Failed to change password.');
@@ -203,7 +204,10 @@ export default function PortalProfile() {
   };
 
   return (
-    <PortalPageShell title="Your Profile" description="Update your contact details and account security settings.">
+    <PortalPageShell
+      title="Your Profile"
+      description="Update your contact details and account security settings."
+    >
       <PortalPageState
         loading={loading}
         error={error}
@@ -216,24 +220,24 @@ export default function PortalProfile() {
 
       {!loading && !error && formData && (
         <div className="space-y-6">
-          <div className="border-b border-app-border">
-            <nav className="-mb-px flex gap-8">
+          <div className="rounded-full border border-app-border bg-app-surface-elevated p-1 shadow-sm">
+            <nav aria-label="Profile sections" className="flex flex-wrap gap-2">
               <button
                 onClick={() => setActiveTab('profile')}
-                className={`border-b-2 px-1 py-4 text-sm font-medium ${
+                className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
                   activeTab === 'profile'
-                    ? 'border-app-accent text-app-accent'
-                    : 'border-transparent text-app-text-muted hover:border-app-border hover:text-app-text'
+                    ? 'border-app-accent bg-app-accent text-[var(--app-accent-foreground)] shadow-sm'
+                    : 'border-transparent text-app-text hover:border-app-border hover:bg-app-surface-muted hover:text-app-text-heading'
                 }`}
               >
                 Profile Information
               </button>
               <button
                 onClick={() => setActiveTab('security')}
-                className={`border-b-2 px-1 py-4 text-sm font-medium ${
+                className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
                   activeTab === 'security'
-                    ? 'border-app-accent text-app-accent'
-                    : 'border-transparent text-app-text-muted hover:border-app-border hover:text-app-text'
+                    ? 'border-app-accent bg-app-accent text-[var(--app-accent-foreground)] shadow-sm'
+                    : 'border-transparent text-app-text hover:border-app-border hover:bg-app-surface-muted hover:text-app-text-heading'
                 }`}
               >
                 Security
@@ -252,7 +256,11 @@ export default function PortalProfile() {
                 <div className="mt-4 flex items-center gap-6">
                   <div className="h-24 w-24 overflow-hidden rounded-full border-2 border-app-border bg-app-surface-muted">
                     {formData.profile_picture ? (
-                      <img src={formData.profile_picture} alt="Profile" className="h-full w-full object-cover" />
+                      <img
+                        src={formData.profile_picture}
+                        alt="Profile"
+                        className="h-full w-full object-cover"
+                      />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-3xl font-bold text-app-text-muted">
                         {formData.first_name?.[0]}
@@ -294,7 +302,9 @@ export default function PortalProfile() {
                   <h3 className="text-base font-semibold text-app-text">Personal Information</h3>
                   <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-app-text">First Name</label>
+                      <label className="mb-1 block text-sm font-medium text-app-text">
+                        First Name
+                      </label>
                       <input
                         name="first_name"
                         value={formData.first_name || ''}
@@ -303,7 +313,9 @@ export default function PortalProfile() {
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-app-text">Last Name</label>
+                      <label className="mb-1 block text-sm font-medium text-app-text">
+                        Last Name
+                      </label>
                       <input
                         name="last_name"
                         value={formData.last_name || ''}
@@ -331,7 +343,9 @@ export default function PortalProfile() {
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-app-text">Mobile Phone</label>
+                      <label className="mb-1 block text-sm font-medium text-app-text">
+                        Mobile Phone
+                      </label>
                       <input
                         name="mobile_phone"
                         value={formData.mobile_phone || ''}
@@ -340,7 +354,9 @@ export default function PortalProfile() {
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-app-text">Personal Health Number (PHN)</label>
+                      <label className="mb-1 block text-sm font-medium text-app-text">
+                        Personal Health Number (PHN)
+                      </label>
                       <input
                         name="phn"
                         value={formData.phn || ''}
@@ -351,7 +367,9 @@ export default function PortalProfile() {
                       {phnError && <p className="mt-1 text-xs text-app-accent">{phnError}</p>}
                     </div>
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-app-text">Pronouns</label>
+                      <label className="mb-1 block text-sm font-medium text-app-text">
+                        Pronouns
+                      </label>
                       <input
                         name="pronouns"
                         value={formData.pronouns || ''}
@@ -424,11 +442,16 @@ export default function PortalProfile() {
           )}
 
           {activeTab === 'security' && (
-            <form onSubmit={handlePasswordChange} className="rounded-lg border border-app-border bg-app-surface p-6">
+            <form
+              onSubmit={handlePasswordChange}
+              className="rounded-lg border border-app-border bg-app-surface p-6"
+            >
               <h3 className="text-base font-semibold text-app-text">Change Password</h3>
               <div className="mt-4 max-w-md space-y-4">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-app-text">Current Password</label>
+                  <label className="mb-1 block text-sm font-medium text-app-text">
+                    Current Password
+                  </label>
                   <input
                     type="password"
                     value={currentPassword}
@@ -438,7 +461,9 @@ export default function PortalProfile() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-app-text">New Password</label>
+                  <label className="mb-1 block text-sm font-medium text-app-text">
+                    New Password
+                  </label>
                   <input
                     type="password"
                     value={newPassword}
@@ -451,7 +476,9 @@ export default function PortalProfile() {
                   </p>
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-app-text">Confirm New Password</label>
+                  <label className="mb-1 block text-sm font-medium text-app-text">
+                    Confirm New Password
+                  </label>
                   <input
                     type="password"
                     value={confirmPassword}
