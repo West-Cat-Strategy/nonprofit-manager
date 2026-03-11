@@ -108,6 +108,9 @@ Deploys the application locally, to staging, or production.
 Use these commands from the repo root when you need optional overlay stacks:
 
 ```bash
+# Preferred local dev env file:
+cp .env.development.example .env.development
+
 # Dev stack + tools profile
 docker compose -f docker-compose.dev.yml -f docker-compose.tools.yml --profile tools up -d
 

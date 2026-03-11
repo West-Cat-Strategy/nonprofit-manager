@@ -12,7 +12,7 @@ export default function TopNav({ left, center, right, className }: TopNavProps) 
   return (
     <header
       className={classNames(
-        'sticky top-0 z-50 border-b border-app-border bg-app-surface-elevated px-3 shadow-sm sm:px-4 lg:px-6',
+        'sticky top-0 z-50 border-b border-app-border bg-[var(--app-shell-surface)] px-3 shadow-sm sm:px-4 lg:px-6',
         className
       )}
     >

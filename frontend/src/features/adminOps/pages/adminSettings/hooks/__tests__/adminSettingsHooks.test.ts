@@ -41,6 +41,7 @@ describe('admin settings hooks', () => {
         setGlobalBranding: vi.fn(),
       })
     );
+    const initialLoadOrganizationData = result.current.loadOrganizationData;
 
     act(() => {
       result.current.handleChange('name', 'West Cat');
@@ -49,6 +50,7 @@ describe('admin settings hooks', () => {
     await waitFor(() => {
       expect(result.current.config.name).toBe('West Cat');
     });
+    expect(result.current.loadOrganizationData).toBe(initialLoadOrganizationData);
 
     await act(async () => {
       await result.current.handleSaveOrganization();
@@ -147,10 +149,13 @@ describe('admin settings hooks', () => {
   it('handles portal approve/invite/status/reminder actions', async () => {
     mockedApi.get.mockImplementation((url: string) => {
       if (url === '/portal/admin/requests') return Promise.resolve({ data: { requests: [] } });
-      if (url === '/portal/admin/invitations') return Promise.resolve({ data: { invitations: [] } });
+      if (url === '/portal/admin/invitations')
+        return Promise.resolve({ data: { invitations: [] } });
       if (url === '/portal/admin/users') return Promise.resolve({ data: { users: [] } });
       if (url === '/portal/admin/appointments') {
-        return Promise.resolve({ data: { data: [], pagination: { page: 1, limit: 20, total: 0, total_pages: 0 } } });
+        return Promise.resolve({
+          data: { data: [], pagination: { page: 1, limit: 20, total: 0, total_pages: 0 } },
+        });
       }
       if (url.startsWith('/portal/admin/appointments/') && url.endsWith('/reminders')) {
         return Promise.resolve({ data: { jobs: [], deliveries: [] } });

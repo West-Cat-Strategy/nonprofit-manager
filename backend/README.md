@@ -52,8 +52,14 @@ Create `.env` file (copy from `.env.example`):
 cp .env.example .env
 ```
 
+For local test overrides, copy the test template into an ignored file:
+
+```bash
+cp .env.test.example .env.test.local
+```
+
 Set values for:
-- `DATABASE_URL` — PostgreSQL connection string
+- `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` — PostgreSQL connection settings
 - `JWT_SECRET` — Secret for signing JWTs
 - `STRIPE_SECRET_KEY` — Stripe API key
 - (See `.env.example` for complete list)
@@ -109,7 +115,7 @@ Shows coverage report.
 npm run test:integration
 ```
 
-Tests API endpoints with real database (uses test database configured in `.env.test`).
+Tests API endpoints with real database (uses test database configured in `.env.test.local` or `.env.test`).
 
 ---
 

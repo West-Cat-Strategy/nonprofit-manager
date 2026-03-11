@@ -19,11 +19,13 @@ npx playwright install
 
 ### Configure Environment
 
-Copy `.env.test` and update values if needed:
+Copy `.env.test.example` into an ignored local file and update values if needed:
 
 ```bash
-cp .env.test .env.test.local
+cp .env.test.example .env.test.local
 ```
+
+`.env.test` still works temporarily, but `.env.test.local` is the preferred local override.
 
 ## Running Tests
 
@@ -358,7 +360,7 @@ Tests are configured to run in CI with:
 
 ### Authentication Issues
 
-- Check test user credentials in `.env.test`
+- Check test user credentials in `.env.test.local` or `.env.test`
 - Verify backend auth endpoints are working
 - Clear browser storage before tests
 

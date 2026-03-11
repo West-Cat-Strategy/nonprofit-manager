@@ -118,14 +118,15 @@ echo ""
 echo "======================================"
 echo "6. Environment File Check"
 echo "======================================"
-if git ls-files | grep -q "\.env$"; then
-    echo -e "${RED}✗ .env files found in git! This is a security risk.${NC}"
+TRACKED_ENV_FILES="$(git ls-files | rg '(^|/)\\.env($|\\.)' | rg -v '\\.example$' || true)"
+if [ -n "$TRACKED_ENV_FILES" ]; then
+    echo -e "${RED}✗ Tracked live .env files found in git! This is a security risk.${NC}"
     ENV_STATUS="Known blocked"
-    ENV_STATUS_DETAILS=".env files are tracked in git."
+    ENV_STATUS_DETAILS="Live .env or .env.* files are tracked in git."
 else
-    echo -e "${GREEN}✓ No .env files in git${NC}"
+    echo -e "${GREEN}✓ No live .env files are tracked in git${NC}"
     ENV_STATUS="Fixed"
-    ENV_STATUS_DETAILS="No .env files are tracked in git."
+    ENV_STATUS_DETAILS="No live .env or .env.* files are tracked in git."
 fi
 echo ""
 

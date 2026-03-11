@@ -33,12 +33,13 @@ if (process.env.JEST_WORKER_ID && !process.env.NODE_ENV) {
 }
 
 // Load env files without overriding explicit runtime env vars.
-// In test mode, prefer values from .env.test and use .env as fallback.
+// In test mode, prefer .env.test.local, then .env.test, and use .env as fallback.
 if (process.env.NODE_ENV === 'test') {
-  dotenv.config({ path: '.env.test' });
-  dotenv.config({ path: '.env' });
+  dotenv.config({ path: '.env.test.local', quiet: true });
+  dotenv.config({ path: '.env.test', quiet: true });
+  dotenv.config({ path: '.env', quiet: true });
 } else {
-  dotenv.config({ path: '.env' });
+  dotenv.config({ path: '.env', quiet: true });
 }
 
 // Production secrets validation

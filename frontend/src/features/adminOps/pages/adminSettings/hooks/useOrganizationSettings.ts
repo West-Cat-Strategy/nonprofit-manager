@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import api from '../../../../../services/api';
 import { defaultBranding, type BrandingConfig } from '../../../../../types/branding';
 import type { OrganizationConfig, SaveStatus } from '../types';
@@ -27,7 +27,7 @@ export const useOrganizationSettings = ({
   const [organizationLastSavedAt, setOrganizationLastSavedAt] = useState<Date | null>(null);
   const [brandingLastSavedAt, setBrandingLastSavedAt] = useState<Date | null>(null);
 
-  const loadOrganizationData = async (): Promise<void> => {
+  const loadOrganizationData = useCallback(async (): Promise<void> => {
     const [configResponse, brandingResponse] = await Promise.all([
       api.get('/auth/preferences').catch(() => ({ data: { preferences: {} } })),
       api.get('/admin/branding').catch(() => ({ data: defaultBranding })),
@@ -45,7 +45,7 @@ export const useOrganizationSettings = ({
     setSavedOrganizationSnapshot(serializeOrganizationConfig(resolvedConfig));
     setBranding(resolvedBranding);
     setSavedBrandingSnapshot(serializeBrandingConfig(resolvedBranding));
-  };
+  }, []);
 
   const handleChange = (field: string, value: string) => {
     setConfig((prev) => ({ ...prev, [field]: value }));
@@ -129,8 +129,7 @@ export const useOrganizationSettings = ({
     savedOrganizationSnapshot !== '' &&
     serializeOrganizationConfig(config) !== savedOrganizationSnapshot;
   const isBrandingDirty =
-    savedBrandingSnapshot !== '' &&
-    serializeBrandingConfig(branding) !== savedBrandingSnapshot;
+    savedBrandingSnapshot !== '' && serializeBrandingConfig(branding) !== savedBrandingSnapshot;
 
   return {
     loadOrganizationData,

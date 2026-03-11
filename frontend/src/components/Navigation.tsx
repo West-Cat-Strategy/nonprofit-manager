@@ -220,7 +220,7 @@ export default function Navigation() {
   return (
     <nav
       aria-label="Global navigation"
-      className="sticky top-0 z-50 border-b border-app-border bg-app-surface-elevated shadow-sm"
+      className="sticky top-0 z-50 border-b border-app-border bg-[var(--app-shell-surface)] shadow-sm"
     >
       <div className="mx-auto flex h-16 max-w-[1920px] items-center gap-3 px-3 sm:px-4 lg:px-6">
         <div className="flex min-w-0 shrink-0 items-center gap-3">

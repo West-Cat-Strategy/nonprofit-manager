@@ -1,7 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 import * as dotenv from 'dotenv';
 
-// Load environment variables from .env.test if it exists
+// Load environment variables from local overrides first, then the shared test template copy.
+dotenv.config({ path: '.env.test.local', quiet: true });
 dotenv.config({ path: '.env.test', quiet: true });
 
 /**
