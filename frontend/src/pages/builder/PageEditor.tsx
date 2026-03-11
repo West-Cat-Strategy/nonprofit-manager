@@ -55,6 +55,7 @@ import type {
   PageSection,
   ComponentType,
   PageCollectionType,
+  Template,
   TemplateStatus,
   TemplatePage,
   TemplatePageType,
@@ -104,6 +105,8 @@ const getDefaultRoutePattern = (
   return `/${slug || 'page'}`;
 };
 
+const toTemplateSettingsDraft = (template: Template | null) => ({ name: template?.name || '', description: template?.description || '', status: template?.status || ('draft' as TemplateStatus) });
+
 const PageEditor: React.FC = () => {
   const { templateId: templateIdParam, siteId: routeSiteId } = useParams<{
     templateId?: string;
@@ -138,18 +141,11 @@ const PageEditor: React.FC = () => {
   const [showPageList, setShowPageList] = useState(false);
   const [showTemplateSettings, setShowTemplateSettings] = useState(false);
   const [templateSettingsError, setTemplateSettingsError] = useState<string | null>(null);
-  const [templateSettings, setTemplateSettings] = useState({
-    name: currentTemplate?.name || '',
-    description: currentTemplate?.description || '',
-    status: currentTemplate?.status || 'draft',
-  });
+  const [templateSettings, setTemplateSettings] = useState(() => toTemplateSettingsDraft(currentTemplate));
   const [autoSaveEnabled] = useState(true);
 
   // Initialize sections from currentPage
-  const initialSections = useMemo(
-    () => currentPage?.sections || [],
-    [currentPage?.sections]
-  );
+  const initialSections = useMemo(() => currentPage?.sections || [], [currentPage?.sections]);
   const currentPageSectionsSignature = useMemo(
     () => getSectionsSignature(currentPage?.sections),
     [currentPage?.sections]
@@ -206,13 +202,15 @@ const PageEditor: React.FC = () => {
   }, [historySections, historySectionsSignature, currentPage, currentPageSectionsSignature, dispatch]);
 
   useEffect(() => {
-    if (currentTemplate) {
-      setTemplateSettings({
-        name: currentTemplate.name,
-        description: currentTemplate.description || '',
-        status: currentTemplate.status,
-      });
+    if (currentTemplate && !showTemplateSettings) {
+      setTemplateSettings(toTemplateSettingsDraft(currentTemplate));
     }
+  }, [currentTemplate, showTemplateSettings]);
+
+  const handleOpenTemplateSettings = useCallback(() => {
+    setTemplateSettingsError(null);
+    setTemplateSettings(toTemplateSettingsDraft(currentTemplate));
+    setShowTemplateSettings(true);
   }, [currentTemplate]);
 
   // Keyboard shortcuts for undo/redo
@@ -753,7 +751,7 @@ const PageEditor: React.FC = () => {
           onSaveVersion={handleSaveVersion}
           onBack={() => navigate(getBuilderBackTarget(siteContext))}
           onShowPages={() => setShowPageList(true)}
-          onOpenSettings={() => setShowTemplateSettings(true)}
+          onOpenSettings={handleOpenTemplateSettings}
           canUndo={canUndo}
           canRedo={canRedo}
           onUndo={undo}

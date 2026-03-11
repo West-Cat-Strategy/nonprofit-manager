@@ -4,7 +4,6 @@
  * 
  * Phase 1: Uses LoopApiService for profile management
  */
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
 import { EyeIcon, EyeSlashIcon, TrashIcon } from '@heroicons/react/24/outline';

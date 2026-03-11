@@ -3,7 +3,7 @@
  * Allows admins to configure Twilio credentials for SMS messaging.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../../../../../services/api';
 import { useToast } from '../../../../../contexts/useToast';
 import { useUnsavedChangesGuard } from '../../../../../hooks/useUnsavedChangesGuard';
@@ -45,6 +45,7 @@ export default function TwilioSettingsSection() {
   const [authToken, setAuthToken] = useState('');
   const [messagingServiceSid, setMessagingServiceSid] = useState('');
   const [fromPhoneNumber, setFromPhoneNumber] = useState('');
+  const hasBootstrappedRef = useRef(false);
 
   const buildSnapshot = useCallback(
     () =>
@@ -62,22 +63,41 @@ export default function TwilioSettingsSection() {
     hasUnsavedChanges: isDirty && !saving && !testing,
   });
 
-  const applySettings = useCallback((nextSettings: TwilioSettings, creds: Credentials) => {
-    setSettings(nextSettings);
-    setCredentials(creds);
-    setAccountSid(nextSettings.accountSid || '');
-    setMessagingServiceSid(nextSettings.messagingServiceSid || '');
-    setFromPhoneNumber(nextSettings.fromPhoneNumber || '');
-    setHasHydratedData(true);
-    setSavedSnapshot(
+  const buildSavedSnapshot = useCallback(
+    (nextSettings: TwilioSettings) =>
       JSON.stringify({
         accountSid: nextSettings.accountSid || '',
         messagingServiceSid: nextSettings.messagingServiceSid || '',
         fromPhoneNumber: nextSettings.fromPhoneNumber || '',
         authTokenPresent: false,
+      }),
+    []
+  );
+
+  const cacheSettings = useCallback((nextSettings: TwilioSettings, creds: Credentials) => {
+    sessionStorage.setItem(
+      TWILIO_SETTINGS_CACHE_KEY,
+      JSON.stringify({
+        settings: nextSettings,
+        credentials: creds,
+        cachedAt: Date.now(),
       })
     );
   }, []);
+
+  const syncServerMetadata = useCallback((nextSettings: TwilioSettings, creds: Credentials) => {
+    setSettings(nextSettings);
+    setCredentials(creds);
+  }, []);
+
+  const hydrateDraftFromServer = useCallback((nextSettings: TwilioSettings, creds: Credentials) => {
+    syncServerMetadata(nextSettings, creds);
+    setAccountSid(nextSettings.accountSid || '');
+    setMessagingServiceSid(nextSettings.messagingServiceSid || '');
+    setFromPhoneNumber(nextSettings.fromPhoneNumber || '');
+    setHasHydratedData(true);
+    setSavedSnapshot(buildSavedSnapshot(nextSettings));
+  }, [buildSavedSnapshot, syncServerMetadata]);
 
   const fetchSettings = useCallback(
     async (background = false) => {
@@ -88,15 +108,8 @@ export default function TwilioSettingsSection() {
         );
 
         if (data.data) {
-          applySettings(data.data, data.credentials);
-          sessionStorage.setItem(
-            TWILIO_SETTINGS_CACHE_KEY,
-            JSON.stringify({
-              settings: data.data,
-              credentials: data.credentials,
-              cachedAt: Date.now(),
-            })
-          );
+          hydrateDraftFromServer(data.data, data.credentials);
+          cacheSettings(data.data, data.credentials);
         }
       } catch {
         if (!hasHydratedData) {
@@ -106,10 +119,32 @@ export default function TwilioSettingsSection() {
         if (!background) setLoading(false);
       }
     },
-    [applySettings, hasHydratedData, showError]
+    [cacheSettings, hasHydratedData, hydrateDraftFromServer, showError]
   );
 
+  const refreshMetadata = useCallback(async () => {
+    try {
+      const { data } = await api.get<{ data: TwilioSettings; credentials: Credentials }>(
+        '/admin/twilio-settings'
+      );
+
+      if (data.data) {
+        syncServerMetadata(data.data, data.credentials);
+        cacheSettings(data.data, data.credentials);
+      }
+    } catch {
+      if (!hasHydratedData) {
+        showError('Failed to load Twilio settings');
+      }
+    }
+  }, [cacheSettings, hasHydratedData, showError, syncServerMetadata]);
+
   useEffect(() => {
+    if (hasBootstrappedRef.current) {
+      return;
+    }
+    hasBootstrappedRef.current = true;
+
     const cached = sessionStorage.getItem(TWILIO_SETTINGS_CACHE_KEY);
 
     if (cached) {
@@ -120,9 +155,9 @@ export default function TwilioSettingsSection() {
           cachedAt: number;
         };
         if (Date.now() - parsed.cachedAt < TWILIO_SETTINGS_CACHE_TTL_MS && parsed.settings) {
-          applySettings(parsed.settings, parsed.credentials);
+          hydrateDraftFromServer(parsed.settings, parsed.credentials);
           setLoading(false);
-          void fetchSettings(true);
+          void refreshMetadata();
           return;
         }
       } catch {
@@ -131,7 +166,7 @@ export default function TwilioSettingsSection() {
     }
 
     void fetchSettings();
-  }, [applySettings, fetchSettings]);
+  }, [fetchSettings, hydrateDraftFromServer, refreshMetadata]);
 
   const handleSave = async () => {
     setSaving(true);

@@ -3,7 +3,7 @@
  * Allows admins to configure SMTP and IMAP settings for transactional email.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../../../../../services/api';
 import { useToast } from '../../../../../contexts/useToast';
 import { useUnsavedChangesGuard } from '../../../../../hooks/useUnsavedChangesGuard';
@@ -64,6 +64,7 @@ export default function EmailSettingsSection() {
   const [imapSecure, setImapSecure] = useState(true);
   const [imapUser, setImapUser] = useState('');
   const [imapPass, setImapPass] = useState('');
+  const hasBootstrappedRef = useRef(false);
 
   const buildSnapshot = useCallback(
     () =>
@@ -103,21 +104,8 @@ export default function EmailSettingsSection() {
   });
 
   // ---- Fetch ----
-  const applySettings = useCallback((s: EmailSettings, creds: Credentials) => {
-    setSettings(s);
-    setCredentials(creds);
-    setSmtpHost(s.smtpHost || '');
-    setSmtpPort(s.smtpPort);
-    setSmtpSecure(s.smtpSecure);
-    setSmtpUser(s.smtpUser || '');
-    setSmtpFromAddress(s.smtpFromAddress || '');
-    setSmtpFromName(s.smtpFromName || '');
-    setImapHost(s.imapHost || '');
-    setImapPort(s.imapPort);
-    setImapSecure(s.imapSecure);
-    setImapUser(s.imapUser || '');
-    setHasHydratedData(true);
-    setSavedSnapshot(
+  const buildSavedSnapshot = useCallback(
+    (s: EmailSettings) =>
       JSON.stringify({
         smtpHost: s.smtpHost || '',
         smtpPort: s.smtpPort,
@@ -131,9 +119,41 @@ export default function EmailSettingsSection() {
         imapUser: s.imapUser || '',
         smtpPassPresent: false,
         imapPassPresent: false,
+      }),
+    []
+  );
+
+  const cacheSettings = useCallback((s: EmailSettings, creds: Credentials) => {
+    sessionStorage.setItem(
+      EMAIL_SETTINGS_CACHE_KEY,
+      JSON.stringify({
+        settings: s,
+        credentials: creds,
+        cachedAt: Date.now(),
       })
     );
   }, []);
+
+  const syncServerMetadata = useCallback((s: EmailSettings, creds: Credentials) => {
+    setSettings(s);
+    setCredentials(creds);
+  }, []);
+
+  const hydrateDraftFromServer = useCallback((s: EmailSettings, creds: Credentials) => {
+    syncServerMetadata(s, creds);
+    setSmtpHost(s.smtpHost || '');
+    setSmtpPort(s.smtpPort);
+    setSmtpSecure(s.smtpSecure);
+    setSmtpUser(s.smtpUser || '');
+    setSmtpFromAddress(s.smtpFromAddress || '');
+    setSmtpFromName(s.smtpFromName || '');
+    setImapHost(s.imapHost || '');
+    setImapPort(s.imapPort);
+    setImapSecure(s.imapSecure);
+    setImapUser(s.imapUser || '');
+    setHasHydratedData(true);
+    setSavedSnapshot(buildSavedSnapshot(s));
+  }, [buildSavedSnapshot, syncServerMetadata]);
 
   const fetchSettings = useCallback(async (background = false) => {
     try {
@@ -145,15 +165,8 @@ export default function EmailSettingsSection() {
       );
       const s = data.data;
       if (s) {
-        applySettings(s, data.credentials);
-        sessionStorage.setItem(
-          EMAIL_SETTINGS_CACHE_KEY,
-          JSON.stringify({
-            settings: s,
-            credentials: data.credentials,
-            cachedAt: Date.now(),
-          })
-        );
+        hydrateDraftFromServer(s, data.credentials);
+        cacheSettings(s, data.credentials);
       }
     } catch {
       if (!hasHydratedData) {
@@ -164,9 +177,31 @@ export default function EmailSettingsSection() {
         setLoading(false);
       }
     }
-  }, [applySettings, hasHydratedData, showError]);
+  }, [cacheSettings, hasHydratedData, hydrateDraftFromServer, showError]);
+
+  const refreshMetadata = useCallback(async () => {
+    try {
+      const { data } = await api.get<{ data: EmailSettings; credentials: Credentials }>(
+        '/admin/email-settings'
+      );
+      const s = data.data;
+      if (s) {
+        syncServerMetadata(s, data.credentials);
+        cacheSettings(s, data.credentials);
+      }
+    } catch {
+      if (!hasHydratedData) {
+        showError('Failed to load email settings');
+      }
+    }
+  }, [cacheSettings, hasHydratedData, showError, syncServerMetadata]);
 
   useEffect(() => {
+    if (hasBootstrappedRef.current) {
+      return;
+    }
+    hasBootstrappedRef.current = true;
+
     const cached = sessionStorage.getItem(EMAIL_SETTINGS_CACHE_KEY);
 
     if (cached) {
@@ -177,9 +212,9 @@ export default function EmailSettingsSection() {
           cachedAt: number;
         };
         if (Date.now() - parsed.cachedAt < EMAIL_SETTINGS_CACHE_TTL_MS && parsed.settings) {
-          applySettings(parsed.settings, parsed.credentials);
+          hydrateDraftFromServer(parsed.settings, parsed.credentials);
           setLoading(false);
-          void fetchSettings(true);
+          void refreshMetadata();
           return;
         }
       } catch {
@@ -188,7 +223,7 @@ export default function EmailSettingsSection() {
     }
 
     void fetchSettings();
-  }, [applySettings, fetchSettings]);
+  }, [fetchSettings, hydrateDraftFromServer, refreshMetadata]);
 
   // ---- Save ----
   const handleSave = async () => {
