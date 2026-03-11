@@ -252,7 +252,7 @@ const WebsiteFormsPage: React.FC = () => {
                           onChange={(event) =>
                             updateDraft(form.formKey, { currency: event.target.value })
                           }
-                          placeholder="Currency (USD, CAD)"
+                          placeholder="Currency (CAD, USD)"
                           className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
                         />
                         <input

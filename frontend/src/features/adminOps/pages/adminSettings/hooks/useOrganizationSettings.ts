@@ -28,24 +28,30 @@ export const useOrganizationSettings = ({
   const [brandingLastSavedAt, setBrandingLastSavedAt] = useState<Date | null>(null);
 
   const loadOrganizationData = useCallback(async (): Promise<void> => {
-    const [configResponse, brandingResponse] = await Promise.all([
+    const [configResponse, brandingResult] = await Promise.all([
       api.get('/auth/preferences').catch(() => ({ data: { preferences: {} } })),
-      api.get('/admin/branding').catch(() => ({ data: defaultBranding })),
+      api
+        .get('/admin/branding')
+        .then((response) => ({ ok: true as const, data: response.data }))
+        .catch(() => ({ ok: false as const, data: defaultBranding })),
     ]);
 
     const prefs = configResponse.data.preferences;
     const resolvedConfig = prefs?.organization
       ? ({ ...defaultConfig, ...prefs.organization } as OrganizationConfig)
       : defaultConfig;
-    const resolvedBranding = brandingResponse.data
-      ? ({ ...defaultBranding, ...brandingResponse.data } as BrandingConfig)
+    const resolvedBranding = brandingResult.data
+      ? ({ ...defaultBranding, ...brandingResult.data } as BrandingConfig)
       : defaultBranding;
 
     setConfig(resolvedConfig);
     setSavedOrganizationSnapshot(serializeOrganizationConfig(resolvedConfig));
     setBranding(resolvedBranding);
     setSavedBrandingSnapshot(serializeBrandingConfig(resolvedBranding));
-  }, []);
+    if (brandingResult.ok) {
+      setGlobalBranding(resolvedBranding);
+    }
+  }, [setGlobalBranding]);
 
   const handleChange = (field: string, value: string) => {
     setConfig((prev) => ({ ...prev, [field]: value }));

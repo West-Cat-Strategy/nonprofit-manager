@@ -231,9 +231,9 @@ export function exportConstituentOverviewToCSV(data: {
  * Format currency for PDF display
  */
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-CA', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'CAD',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);

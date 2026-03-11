@@ -418,7 +418,7 @@ export class OpportunityService {
          created_by,
          modified_by
        )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9, 'USD'), $10, COALESCE($11, 'open'), $12, $13, $14, $15, $15)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9, 'CAD'), $10, COALESCE($11, 'open'), $12, $13, $14, $15, $15)
        RETURNING *`,
       [
         organizationId,

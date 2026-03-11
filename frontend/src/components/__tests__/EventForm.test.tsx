@@ -167,12 +167,12 @@ describe('EventForm', () => {
       start_date: '2026-06-01T10:00:00Z',
       end_date: '2026-06-01T14:00:00Z',
       location_name: 'Community Center',
-      address_line1: '123 Main St',
+      address_line1: '400 West Georgia Street',
       address_line2: null,
-      city: 'Portland',
-      state_province: 'OR',
-      postal_code: '97201',
-      country: 'USA',
+      city: 'Vancouver',
+      state_province: 'BC',
+      postal_code: 'V6B 1A1',
+      country: 'Canada',
       capacity: 100,
       registered_count: 25,
       attended_count: 10,
@@ -341,8 +341,8 @@ describe('EventForm', () => {
       expect(addressInput.value).toBe('456 Oak Ave');
 
       const cityInput = screen.getByLabelText(/^city$/i) as HTMLInputElement;
-      fireEvent.change(cityInput, { target: { value: 'Seattle' } });
-      expect(cityInput.value).toBe('Seattle');
+      fireEvent.change(cityInput, { target: { value: 'Vancouver' } });
+      expect(cityInput.value).toBe('Vancouver');
     });
   });
 

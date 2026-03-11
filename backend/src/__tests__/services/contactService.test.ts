@@ -295,12 +295,12 @@ describe('ContactService', () => {
         mobile_phone: '555-5678',
         job_title: 'Developer',
         preferred_contact_method: 'email',
-        address_line1: '123 Main St',
+        address_line1: '400 West Georgia Street',
         address_line2: 'Apt 4',
-        city: 'Test City',
-        state_province: 'TS',
-        postal_code: '12345',
-        country: 'USA',
+        city: 'Vancouver',
+        state_province: 'BC',
+        postal_code: 'V6B 1A1',
+        country: 'Canada',
         notes: 'Test notes',
       };
 

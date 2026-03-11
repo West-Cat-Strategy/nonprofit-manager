@@ -153,7 +153,7 @@ actions:
   - "Send 2FA challenge"
   - "Log IP for historical tracking"
 
-# Example: User typically logs in from San Francisco (203.0.113.0/24)
+# Example: User typically logs in from Vancouver, BC (203.0.113.0/24)
 # Today logs in from Singapore (198.51.100.0/24)
 # → Alert, require additional 2FA
 ```

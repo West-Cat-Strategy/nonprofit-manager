@@ -1,12 +1,12 @@
 /**
- * Format currency values using US locale
+ * Format currency values using Canadian locale defaults
  */
-export function formatCurrency(amount: number, currency = 'USD', options?: Intl.NumberFormatOptions): string {
-  return new Intl.NumberFormat('en-US', {
+export function formatCurrency(amount: number, currency = 'CAD', options?: Intl.NumberFormatOptions): string {
+  return new Intl.NumberFormat('en-CA', {
     style: 'currency',
     currency,
-    minimumFractionDigits: currency === 'USD' ? 0 : 2,
-    maximumFractionDigits: currency === 'USD' ? 0 : 2,
+    minimumFractionDigits: currency === 'CAD' ? 0 : 2,
+    maximumFractionDigits: currency === 'CAD' ? 0 : 2,
     ...options,
   }).format(amount);
 }

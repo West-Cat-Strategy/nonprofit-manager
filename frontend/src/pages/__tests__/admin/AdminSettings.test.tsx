@@ -5,8 +5,9 @@ import { vi } from 'vitest';
 import { renderWithProviders } from '../../../test/testUtils';
 
 let AdminSettings: ComponentType;
-const { mockNavigate } = vi.hoisted(() => ({
+const { mockNavigate, mockSetBranding } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
+  mockSetBranding: vi.fn(),
 }));
 
 vi.mock('react-router-dom', async () => {
@@ -32,7 +33,7 @@ vi.mock('../../../contexts/useToast', () => ({
   useToast: () => ({ showSuccess: vi.fn(), showError: vi.fn() }),
 }));
 vi.mock('../../../contexts/BrandingContext', () => ({
-  useBranding: () => ({ setBranding: vi.fn() }),
+  useBranding: () => ({ setBranding: mockSetBranding }),
 }));
 vi.mock('../../../hooks/useUnsavedChangesGuard', () => ({
   useUnsavedChangesGuard: vi.fn(),

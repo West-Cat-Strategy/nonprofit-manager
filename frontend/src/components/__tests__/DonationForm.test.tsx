@@ -44,11 +44,11 @@ describe('DonationForm', () => {
       expect(screen.getByRole('button', { name: /record donation/i })).toBeInTheDocument();
     });
 
-    it('has default currency as USD', () => {
+    it('has default currency as CAD', () => {
       renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
       const currencyInput = screen.getByLabelText(/currency/i) as HTMLInputElement;
-      expect(currencyInput.value).toBe('USD');
+      expect(currencyInput.value).toBe('CAD');
     });
 
     it('allows user to fill out the form', () => {
@@ -134,7 +134,7 @@ describe('DonationForm', () => {
       account_id: 'acc-123',
       contact_id: 'contact-123',
       amount: 500,
-      currency: 'USD',
+      currency: 'CAD',
       donation_date: '2026-01-15T14:00:00Z',
       payment_method: 'credit_card',
       payment_status: 'completed',

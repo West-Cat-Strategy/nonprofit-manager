@@ -26,7 +26,7 @@ const defaultOpportunityForm: CreateOpportunityDTO = {
   name: '',
   description: '',
   amount: undefined,
-  currency: 'USD',
+  currency: 'CAD',
   status: 'open',
   source: '',
 };
@@ -47,9 +47,9 @@ const formatMoney = (value?: string | null): string => {
   if (!value) return '-';
   const numeric = Number(value);
   if (Number.isNaN(numeric)) return value;
-  return numeric.toLocaleString(undefined, {
+  return numeric.toLocaleString('en-CA', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'CAD',
     maximumFractionDigits: 2,
   });
 };
@@ -196,7 +196,7 @@ export default function OpportunitiesPage() {
             <div className="border-2 border-[var(--app-border)] bg-[var(--loop-green)] p-3"><p className="text-xs font-bold uppercase">Open</p><p className="text-2xl font-black">{summary.open}</p></div>
             <div className="border-2 border-[var(--app-border)] bg-[var(--loop-cyan)] p-3"><p className="text-xs font-bold uppercase">Won</p><p className="text-2xl font-black">{summary.won}</p></div>
             <div className="border-2 border-[var(--app-border)] bg-[var(--loop-pink)] p-3"><p className="text-xs font-bold uppercase">Lost</p><p className="text-2xl font-black">{summary.lost}</p></div>
-            <div className="border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] p-3"><p className="text-xs font-bold uppercase">Weighted</p><p className="text-xl font-black">{summary.weighted_amount.toLocaleString(undefined, { style: 'currency', currency: 'USD' })}</p></div>
+            <div className="border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] p-3"><p className="text-xs font-bold uppercase">Weighted</p><p className="text-xl font-black">{summary.weighted_amount.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' })}</p></div>
           </div>
         )}
 

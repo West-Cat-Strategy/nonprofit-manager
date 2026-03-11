@@ -483,7 +483,7 @@ export class PublicWebsiteFormService {
     const currency =
       typeof component.currency === 'string' && component.currency.trim().length > 0
         ? component.currency.trim().toUpperCase()
-        : 'USD';
+        : 'CAD';
     const recurringDefault =
       payload.recurring === true ||
       (payload.recurring === undefined && component.recurringDefault === true);

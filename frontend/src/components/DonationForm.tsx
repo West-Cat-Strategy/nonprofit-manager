@@ -22,7 +22,7 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
 
   const [formData, setFormData] = useState<CreateDonationDTO | UpdateDonationDTO>({
     amount: 0,
-    currency: 'USD',
+    currency: 'CAD',
     donation_date: new Date().toISOString().substring(0, 16),
     payment_method: 'cash' as const,
     payment_status: 'pending' as const,
@@ -138,7 +138,7 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
               onChange={handleChange}
               maxLength={3}
               className="w-full px-4 py-2 border rounded-md"
-              placeholder="USD"
+              placeholder="CAD"
             />
           </div>
 

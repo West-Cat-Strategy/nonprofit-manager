@@ -7,6 +7,10 @@ import { createTestStore, renderWithProviders } from '../../test/testUtils';
 import { useSetupCheck } from '../../hooks/useSetupCheck';
 import { preloadAuthenticatedShellBootstrap } from '../../services/bootstrap/authenticatedShellBootstrap';
 
+const { mockSetBranding } = vi.hoisted(() => ({
+  mockSetBranding: vi.fn(),
+}));
+
 vi.mock('../../hooks/useSetupCheck', () => ({
   useSetupCheck: vi.fn(),
 }));
@@ -32,6 +36,7 @@ vi.mock('../../contexts/BrandingContext', () => ({
       colorScheme: 'default',
       customColors: {},
     },
+    setBranding: mockSetBranding,
   }),
 }));
 
