@@ -89,13 +89,14 @@ JWT_EXPIRES_IN=24h
 CORS_ORIGIN=localhost:5173
 ```
 
-### Backend .env.test (example)
+### Backend .env.test.local (copy from backend/.env.test.example)
 ```bash
 NODE_ENV=test
-DB_NAME=nonprofit_manager_test
+DB_PORT=8012
+DB_NAME=nonprofit_manager
 DB_USER=postgres
-DB_PASSWORD=your_password
-JWT_SECRET=test_secret
+DB_PASSWORD=postgres
+JWT_SECRET=test_jwt_secret_local_only
 ```
 
 ### Frontend .env

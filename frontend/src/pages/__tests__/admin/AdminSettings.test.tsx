@@ -76,9 +76,12 @@ vi.mock(
   '../../../features/adminOps/pages/adminSettings/sections/RegistrationSettingsSection',
   () => ({ default: () => <div>Registration Section</div> })
 );
-vi.mock('../../../features/adminOps/pages/adminSettings/sections/OutcomeDefinitionsSection', () => ({
-  default: () => <div>Outcomes Section</div>,
-}));
+vi.mock(
+  '../../../features/adminOps/pages/adminSettings/sections/OutcomeDefinitionsSection',
+  () => ({
+    default: () => <div>Outcomes Section</div>,
+  })
+);
 vi.mock('../../../features/adminOps/pages/adminSettings/sections/PortalSection', () => ({
   default: () => (
     <div>
@@ -142,6 +145,9 @@ describe('AdminSettings page', () => {
       'href',
       '/settings/admin/users'
     );
+    expect(
+      screen.getByRole('tablist', { name: /admin settings sections/i }).parentElement
+    ).toHaveClass('bg-[var(--app-shell-surface)]');
   });
 
   it('renders the section directly from the canonical route path', async () => {
@@ -175,9 +181,7 @@ describe('AdminSettings page', () => {
     renderAdminSettings('/settings/admin/dashboard');
 
     await waitFor(() => {
-      expect(
-        screen.getByRole('tablist', { name: /admin settings sections/i })
-      ).toBeInTheDocument();
+      expect(screen.getByRole('tablist', { name: /admin settings sections/i })).toBeInTheDocument();
     });
 
     const dashboardTab = screen.getByRole('tab', { name: /dashboard/i });

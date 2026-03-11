@@ -254,22 +254,18 @@ const resolveJwtSecret = (): string | null => {
     return process.env.JWT_SECRET.trim();
   }
 
-  const envTestSecret = readEnvValueFromFile(
+  const envFiles = [
+    path.resolve(__dirname, '..', '..', 'backend', '.env.test.local'),
     path.resolve(__dirname, '..', '..', 'backend', '.env.test'),
-    'JWT_SECRET'
-  );
-  if (envTestSecret) {
-    process.env.JWT_SECRET = envTestSecret;
-    return envTestSecret;
-  }
-
-  const envSecret = readEnvValueFromFile(
     path.resolve(__dirname, '..', '..', 'backend', '.env'),
-    'JWT_SECRET'
-  );
-  if (envSecret) {
-    process.env.JWT_SECRET = envSecret;
-    return envSecret;
+  ];
+
+  for (const envFile of envFiles) {
+    const envSecret = readEnvValueFromFile(envFile, 'JWT_SECRET');
+    if (envSecret) {
+      process.env.JWT_SECRET = envSecret;
+      return envSecret;
+    }
   }
 
   return null;

@@ -1255,6 +1255,7 @@ body [class*='focus:border-blue-600']:focus {
 
   --shadow-color: rgba(16, 24, 34, 0.12);
   --focus-ring: #17365d;
+  --app-shell-surface: #ffffff;
   --app-shell-top: #faf8f4;
   --app-shell-glow: rgba(255, 255, 255, 0.72);
 }
@@ -1283,6 +1284,7 @@ body.theme-sea-breeze {
   --app-input-border: #4aa79f;
   --shadow-color: rgba(13, 79, 73, 0.28);
   --focus-ring: #0d8b80;
+  --app-shell-surface: #ffffff;
 }
 
 body.theme-corporate {
@@ -1309,6 +1311,7 @@ body.theme-corporate {
   --app-input-border: #9aa8bc;
   --shadow-color: rgba(15, 23, 40, 0.22);
   --focus-ring: #1d4ed8;
+  --app-shell-surface: #ffffff;
 }
 
 body.theme-clean-modern {
@@ -1335,6 +1338,7 @@ body.theme-clean-modern {
   --app-input-border: #9cb9ae;
   --shadow-color: rgba(15, 23, 33, 0.16);
   --focus-ring: #0f766e;
+  --app-shell-surface: #ffffff;
 }
 
 body.theme-glass {
@@ -1361,6 +1365,7 @@ body.theme-glass {
   --app-input-border: #8fa3bf;
   --shadow-color: rgba(12, 24, 41, 0.24);
   --focus-ring: #0099f2;
+  --app-shell-surface: #f7fbff;
 }
 
 body.theme-high-contrast {
@@ -1387,6 +1392,7 @@ body.theme-high-contrast {
   --app-input-border: #000000;
   --shadow-color: rgba(0, 0, 0, 0.45);
   --focus-ring: #0049d6;
+  --app-shell-surface: #ffffff;
 }
 
 body.dark:not([class*='theme-']),
@@ -1417,6 +1423,7 @@ body.dark.theme-high-contrast {
   --app-input-bg: #0f1420;
   --app-input-border: #d2d9e8;
   --shadow-color: rgba(255, 255, 255, 0.2);
+  --app-shell-surface: #1c2330;
   --app-shell-top: #11131a;
   --app-shell-glow: rgba(111, 178, 255, 0.12);
 }

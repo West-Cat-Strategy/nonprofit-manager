@@ -159,6 +159,11 @@ cd nonprofit-manager/backend
 The easiest way is to use Docker:
 
 ```bash
+# From the repo root, create the local compose env file once
+cd ..
+cp .env.development.example .env.development
+cd backend
+
 # Start database container
 docker compose -f ../docker-compose.dev.yml up -d postgres
 
@@ -182,12 +187,14 @@ Copy example environment file:
 cp .env.example .env
 ```
 
-Verify `DATABASE_URL` in `.env` matches Docker container (default is correct).
+Verify the `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD` values in `.env` match your local database.
 
 ### Step 5: Run Database Migrations
 
 ```bash
+cd ..
 make db-migrate
+cd backend
 ```
 
 This creates tables in the database.
@@ -255,7 +262,9 @@ Keep the dev server running. Open a **new terminal window** for backend setup.
 
 ```bash
 # From project root
-cd nonprofit-manager/backend
+cd nonprofit-manager
+cp .env.development.example .env.development
+cd backend
 
 # Start database with Docker
 docker compose -f ../docker-compose.dev.yml up -d postgres
@@ -272,6 +281,7 @@ cp .env.example .env
 # Run migrations
 cd ..
 make db-migrate
+cd backend
 
 # Start backend
 npm run dev

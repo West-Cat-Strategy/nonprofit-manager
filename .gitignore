@@ -53,6 +53,7 @@ coverage/
 .nyc_output/
 junit.xml
 test-results/
+test-results.json
 playwright-report/
 blob-report/
 playwright/.cache/
@@ -128,14 +129,11 @@ tests_found.txt
 tests.txt
 *.tmp
 *.temp
-*.bak
 
 # ==============================
 # Project-specific
 # ==============================
 backend/exports/
-backend/migrations/
-data-intake/
 security-reports/
 .deploy-history
 
