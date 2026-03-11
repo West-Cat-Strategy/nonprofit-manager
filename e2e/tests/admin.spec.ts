@@ -173,6 +173,12 @@ const assertSettingsRouteShell = async (request: APIRequestContext, route: strin
   expect(body).toMatch(/id=["']root["']/i);
 };
 
+const gotoAuthenticatedRoute = async (page: Page, route: string): Promise<void> => {
+  await ensureAuthenticatedSession(page);
+  await page.goto(`${BASE_URL}${route}`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle');
+};
+
 test.describe('Admin & Settings Module', () => {
   test('should load user settings', async ({ request, page }) => {
     const session = await ensureAuthenticatedSession(page);
@@ -214,6 +220,120 @@ test.describe('Admin & Settings Module', () => {
     for (const route of portalRoutes) {
       await assertSettingsRouteShell(request, route);
     }
+  });
+
+  test('admin settings toggles advanced mode and saves organization preferences', async ({ page }) => {
+    await gotoAuthenticatedRoute(page, '/settings/admin');
+
+    const advancedToggle = page.getByRole('button', { name: /show advanced|hide advanced/i });
+    const initialToggleLabel = (await advancedToggle.textContent()) || '';
+    await advancedToggle.click();
+    await expect(advancedToggle).toHaveText(
+      initialToggleLabel.match(/show/i) ? /hide advanced/i : /show advanced/i
+    );
+
+    await page.getByRole('tab', { name: /organization/i }).click();
+    const organizationName = `E2E Organization ${Date.now()}`;
+    await page.getByPlaceholder('Your Nonprofit Name').fill(organizationName);
+
+    const saveOrganizationResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'PATCH' &&
+        response.url().includes('/api/v2/auth/preferences/organization') &&
+        response.ok()
+    );
+    await page.getByRole('button', { name: /save changes/i }).click();
+    await saveOrganizationResponse;
+
+    await expect(page.getByText(/settings saved successfully/i)).toBeVisible({ timeout: 10000 });
+  });
+
+  test('api settings supports webhook create and delete from the UI', async ({ page }) => {
+    await gotoAuthenticatedRoute(page, '/settings/api');
+
+    const webhookUrl = `https://8.8.8.8/webhook/${Date.now()}`;
+    const webhookDescription = `UI webhook ${Date.now()}`;
+
+    await page.getByRole('button', { name: /add webhook/i }).click();
+
+    const createWebhookForm = page
+      .locator('div')
+      .filter({ has: page.getByRole('heading', { name: /create webhook endpoint/i }) })
+      .first();
+    await createWebhookForm.getByPlaceholder('https://your-server.com/webhook').fill(webhookUrl);
+    await createWebhookForm.getByPlaceholder('Optional description').fill(webhookDescription);
+    await createWebhookForm.getByRole('checkbox').first().check();
+
+    const createWebhookResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        response.url().includes('/api/v2/webhooks/endpoints') &&
+        response.ok()
+    );
+    await page.getByRole('button', { name: /create webhook/i }).click();
+    await createWebhookResponse;
+
+    const webhookCard = page
+      .locator('div')
+      .filter({ hasText: webhookUrl })
+      .filter({ has: page.getByRole('button', { name: /^delete$/i }) })
+      .first();
+    await expect(webhookCard).toBeVisible({ timeout: 15000 });
+    await expect(webhookCard).toContainText(webhookDescription);
+
+    const deleteWebhookResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'DELETE' &&
+        response.url().includes('/api/v2/webhooks/endpoints/') &&
+        response.ok()
+    );
+    await webhookCard.getByRole('button', { name: /^delete$/i }).click();
+    const confirmDeleteDialog = page
+      .locator('.fixed.inset-0')
+      .filter({ hasText: /delete webhook endpoint/i });
+    await expect(confirmDeleteDialog).toBeVisible({ timeout: 10000 });
+    await confirmDeleteDialog.getByRole('button', { name: /^delete$/i }).click();
+    await deleteWebhookResponse;
+
+    await expect(webhookCard).toHaveCount(0);
+  });
+
+  test('navigation settings toggles a module and resets defaults', async ({ page }) => {
+    await gotoAuthenticatedRoute(page, '/settings/navigation');
+
+    const accountsRow = page
+      .locator('li')
+      .filter({ hasText: /Accounts/i })
+      .filter({ has: page.getByRole('checkbox') })
+      .first();
+    const moduleToggle = accountsRow.getByRole('checkbox');
+    await expect(moduleToggle).toBeVisible();
+
+    const wasEnabled = await moduleToggle.isChecked();
+    if (wasEnabled) {
+      await moduleToggle.uncheck({ force: true });
+    } else {
+      await moduleToggle.check({ force: true });
+    }
+    if (wasEnabled) {
+      await expect(moduleToggle).not.toBeChecked();
+    } else {
+      await expect(moduleToggle).toBeChecked();
+    }
+
+    await page.getByRole('button', { name: /reset to defaults/i }).click();
+    await expect
+      .poll(
+        async () => {
+          const statusBadge = page
+            .locator('span')
+            .filter({ hasText: /saving\.\.\.|synced|offline fallback/i })
+            .first();
+          return (await statusBadge.textContent()) || '';
+        },
+        { timeout: 10000, intervals: [500, 1000, 1500] }
+      )
+      .toMatch(/synced|offline fallback/i);
   });
 
   test('legacy settings compatibility routes are not supported', async ({ page }) => {

@@ -533,8 +533,9 @@ export async function createTestVolunteer(
     contactId?: string;
     availabilityStatus?: 'available' | 'limited' | 'unavailable';
     backgroundCheckStatus?:
-      | 'not_started'
+      | 'not_required'
       | 'pending'
+      | 'in_progress'
       | 'approved'
       | 'rejected'
       | 'expired';
@@ -560,7 +561,7 @@ export async function createTestVolunteer(
     data: {
       contact_id: contactId,
       availability_status: data.availabilityStatus || 'available',
-      background_check_status: data.backgroundCheckStatus || 'not_started',
+      background_check_status: data.backgroundCheckStatus || 'not_required',
       skills: [],
     },
   });
@@ -578,4 +579,82 @@ export async function createTestVolunteer(
   }
 
   return { id: String(id), contactId };
+}
+
+/**
+ * Create test volunteer assignment via API.
+ */
+export async function createTestVolunteerAssignment(
+  page: Page,
+  token: string,
+  data: {
+    volunteerId: string;
+    eventId?: string;
+    taskId?: string;
+    assignmentType?: 'event' | 'task' | 'general';
+    role?: string;
+    startTime?: string;
+    endTime?: string;
+    notes?: string;
+    status?: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+    hoursLogged?: number;
+  }
+): Promise<{ id: string }> {
+  const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
+  const headers = await getAuthHeaders(page, token);
+
+  const createResponse = await page.request.post(`${apiURL}/api/v2/volunteers/assignments`, {
+    headers,
+    data: {
+      volunteer_id: data.volunteerId,
+      event_id: data.eventId,
+      task_id: data.taskId,
+      assignment_type:
+        data.assignmentType || (data.taskId ? 'task' : data.eventId ? 'event' : 'general'),
+      role: data.role || 'Support',
+      start_time: data.startTime || new Date().toISOString(),
+      end_time: data.endTime,
+      notes: data.notes,
+    },
+  });
+
+  if (!createResponse.ok()) {
+    throw new Error(
+      `Failed to create test volunteer assignment (${createResponse.status()}): ${await createResponse.text()}`
+    );
+  }
+
+  const result = unwrapApiData<Record<string, unknown>>(await createResponse.json());
+  const id =
+    result.assignment_id ||
+    result.id ||
+    (result.data as Record<string, unknown> | undefined)?.assignment_id ||
+    (result.data as Record<string, unknown> | undefined)?.id;
+
+  if (!id) {
+    throw new Error(
+      `Failed to parse assignment id from response: ${JSON.stringify(result)}`
+    );
+  }
+
+  if (data.status !== undefined || data.hoursLogged !== undefined) {
+    const updateResponse = await page.request.put(
+      `${apiURL}/api/v2/volunteers/assignments/${String(id)}`,
+      {
+        headers,
+        data: {
+          status: data.status,
+          hours_logged: data.hoursLogged,
+        },
+      }
+    );
+
+    if (!updateResponse.ok()) {
+      throw new Error(
+        `Failed to update test volunteer assignment (${updateResponse.status()}): ${await updateResponse.text()}`
+      );
+    }
+  }
+
+  return { id: String(id) };
 }

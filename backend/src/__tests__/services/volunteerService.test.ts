@@ -42,7 +42,13 @@ describe('VolunteerService', () => {
 
       const result = await volunteerService.getVolunteers();
 
-      expect(result.data).toEqual(mockVolunteers);
+      expect(result.data).toHaveLength(2);
+      expect(result.data).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: '1', volunteer_id: '1', first_name: 'John' }),
+          expect.objectContaining({ id: '2', volunteer_id: '2', first_name: 'Jane' }),
+        ])
+      );
       expect(result.pagination.total).toBe(2);
       expect(result.pagination.page).toBe(1);
       expect(result.pagination.limit).toBe(20);
@@ -114,7 +120,14 @@ describe('VolunteerService', () => {
 
       const result = await volunteerService.getVolunteerById('123');
 
-      expect(result).toEqual(mockVolunteer);
+      expect(result).toEqual(
+        expect.objectContaining({
+          ...mockVolunteer,
+          volunteer_id: '123',
+          availability_status: 'available',
+          is_active: true,
+        })
+      );
       expect(mockQuery).toHaveBeenCalledWith(expect.any(String), ['123']);
     });
 
@@ -152,7 +165,14 @@ describe('VolunteerService', () => {
         'user-123'
       );
 
-      expect(result).toEqual(mockCreatedVolunteer);
+      expect(result).toEqual(
+        expect.objectContaining({
+          ...mockCreatedVolunteer,
+          volunteer_id: 'new-uuid',
+          availability_status: 'available',
+          is_active: true,
+        })
+      );
     });
 
     it('should throw error when contact not found', async () => {
@@ -212,7 +232,13 @@ describe('VolunteerService', () => {
         'user-123'
       );
 
-      expect(result).toEqual(mockUpdatedVolunteer);
+      expect(result).toEqual(
+        expect.objectContaining({
+          ...mockUpdatedVolunteer,
+          volunteer_id: '123',
+          is_active: true,
+        })
+      );
     });
 
     it('should return null when volunteer not found', async () => {
@@ -275,7 +301,12 @@ describe('VolunteerService', () => {
 
       const result = await volunteerService.findVolunteersBySkills(['Teaching', 'Mentoring']);
 
-      expect(result).toEqual(mockVolunteers);
+      expect(result).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: '1', volunteer_id: '1', matching_skills_count: 2 }),
+          expect.objectContaining({ id: '2', volunteer_id: '2', matching_skills_count: 1 }),
+        ])
+      );
       expect((result[0] as unknown as { matching_skills_count: number }).matching_skills_count).toBe(2);
     });
 
@@ -305,7 +336,12 @@ describe('VolunteerService', () => {
 
       const result = await volunteerService.getVolunteerAssignments({ volunteer_id: '123' });
 
-      expect(result).toEqual(mockAssignments);
+      expect(result).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ assignment_id: '1', volunteer_id: '123', event_name: 'Summer Gala' }),
+          expect.objectContaining({ assignment_id: '2', volunteer_id: '123', task_name: 'Setup' }),
+        ])
+      );
     });
 
     it('should filter by event_id', async () => {
@@ -355,7 +391,13 @@ describe('VolunteerService', () => {
         'user-123'
       );
 
-      expect(result).toEqual(mockCreatedAssignment);
+      expect(result).toEqual(
+        expect.objectContaining({
+          ...mockCreatedAssignment,
+          hours_logged: 0,
+          status: 'scheduled',
+        })
+      );
     });
 
     it('should throw error on database failure', async () => {
@@ -378,7 +420,9 @@ describe('VolunteerService', () => {
         hours_logged: 4,
       };
 
-      mockQuery.mockResolvedValueOnce({ rows: [mockUpdatedAssignment] });
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ volunteer_id: 'vol-123', hours_logged: 1 }] })
+        .mockResolvedValueOnce({ rows: [mockUpdatedAssignment] });
 
       const result = await volunteerService.updateAssignment(
         '123',
@@ -386,7 +430,7 @@ describe('VolunteerService', () => {
         'user-123'
       );
 
-      expect(result).toEqual(mockUpdatedAssignment);
+      expect(result).toEqual(expect.objectContaining(mockUpdatedAssignment));
     });
 
     it('should update volunteer hours when hours_logged is provided', async () => {
@@ -395,8 +439,10 @@ describe('VolunteerService', () => {
         hours_logged: 4,
       };
 
-      mockQuery.mockResolvedValueOnce({ rows: [mockUpdatedAssignment] });
-      mockQuery.mockResolvedValueOnce({ rows: [] }); // hours update
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ volunteer_id: 'vol-123', hours_logged: 1 }] })
+        .mockResolvedValueOnce({ rows: [mockUpdatedAssignment] })
+        .mockResolvedValueOnce({ rows: [] }); // hours update
 
       await volunteerService.updateAssignment(
         '123',
@@ -404,9 +450,10 @@ describe('VolunteerService', () => {
         'user-123'
       );
 
-      expect(mockQuery).toHaveBeenCalledTimes(2);
-      const hoursCall = mockQuery.mock.calls[1];
+      expect(mockQuery).toHaveBeenCalledTimes(3);
+      const hoursCall = mockQuery.mock.calls[2];
       expect(hoursCall[0]).toContain('hours_contributed');
+      expect(hoursCall[0]).toContain('total_hours_logged');
     });
 
     it('should return null when assignment not found', async () => {

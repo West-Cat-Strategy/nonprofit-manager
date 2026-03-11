@@ -15,7 +15,14 @@ export const volunteerStatusSchema = z.enum(['active', 'inactive', 'on_leave', '
 export type VolunteerStatus = z.infer<typeof volunteerStatusSchema>;
 
 // Background check status
-export const backgroundCheckStatusSchema = z.enum(['not_started', 'pending', 'approved', 'rejected', 'expired']);
+export const backgroundCheckStatusSchema = z.enum([
+  'not_required',
+  'pending',
+  'in_progress',
+  'approved',
+  'rejected',
+  'expired',
+]);
 
 export type BackgroundCheckStatus = z.infer<typeof backgroundCheckStatusSchema>;
 
@@ -28,7 +35,7 @@ export type AvailabilityStatus = z.infer<typeof availabilityStatusSchema>;
 export const createVolunteerSchema = z.object({
   contact_id: uuidSchema,
   status: volunteerStatusSchema.default('active'),
-  background_check_status: backgroundCheckStatusSchema.default('not_started'),
+  background_check_status: backgroundCheckStatusSchema.default('not_required'),
   background_check_date: z.coerce.date().optional(),
   availability_status: availabilityStatusSchema.default('available'),
   bio: z.string().max(2000).optional(),
@@ -49,7 +56,7 @@ export const updateVolunteerSchema = z.object({
   availability_status: availabilityStatusSchema.optional(),
   bio: z.string().max(2000).optional(),
   skills: z.array(z.string()).optional(),
-  certifications: z.array(z.string()).optional(),
+  certifications: z.array(z.string()).nullable().optional(),
   emergency_contact_name: nameSchema.optional(),
   emergency_contact_phone: phoneSchema.optional(),
 });
@@ -91,14 +98,49 @@ export const updateVolunteerHoursSchema = z.object({
 
 export type UpdateVolunteerHoursInput = z.infer<typeof updateVolunteerHoursSchema>;
 
+const assignmentTypeSchema = z.enum(['event', 'task', 'general']);
+
 // Volunteer assignment
-export const volunteerAssignmentSchema = z.object({
-  volunteer_id: uuidSchema,
-  event_id: uuidSchema,
-  role: z.string().min(1, 'Role is required'),
-  assigned_date: z.coerce.date().default(() => new Date()),
-  notes: z.string().max(500).optional(),
-});
+export const volunteerAssignmentSchema = z
+  .object({
+    volunteer_id: uuidSchema,
+    event_id: uuidSchema.nullable().optional(),
+    task_id: uuidSchema.nullable().optional(),
+    assignment_type: assignmentTypeSchema.optional(),
+    role: z.string().trim().min(1, 'Role must not be empty').optional(),
+    start_time: z.coerce.date().optional(),
+    assigned_date: z.coerce.date().optional(),
+    end_time: z.coerce.date().optional(),
+    notes: z.string().max(500).optional(),
+  })
+  .superRefine((value, ctx) => {
+    const assignmentType =
+      value.assignment_type ?? (value.task_id ? 'task' : value.event_id ? 'event' : 'general');
+
+    if (assignmentType === 'event' && !value.event_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['event_id'],
+        message: 'Event is required when assignment type is "event"',
+      });
+    }
+
+    if (assignmentType === 'task' && !value.task_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['task_id'],
+        message: 'Task is required when assignment type is "task"',
+      });
+    }
+  })
+  .transform(({ assigned_date, assignment_type, event_id, task_id, ...value }) => ({
+    ...value,
+    event_id: event_id ?? undefined,
+    task_id: task_id ?? undefined,
+    assignment_type:
+      assignment_type ?? (task_id ? 'task' : event_id ? 'event' : 'general'),
+    start_time: value.start_time ?? assigned_date ?? new Date(),
+  }));
 
 export type VolunteerAssignmentInput = z.infer<typeof volunteerAssignmentSchema>;
 
