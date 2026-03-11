@@ -13,22 +13,12 @@ import { setAuthCookie, setRefreshCookie } from '@utils/cookieHelper';
 import { buildAuthTokenResponse } from '@utils/authResponse';
 import { authenticator } from '@otplib/preset-default';
 import { sendSuccess } from '@modules/shared/http/envelope';
+import { getDefaultOrganizationId } from '../lib/authQueries';
 
 const TOTP_PERIOD_SECONDS = 30;
 const TOTP_WINDOW = 1;
 const MFA_TOKEN_EXPIRY = Math.floor(TIME.FIVE_MINUTES / 1000);
 const TOTP_ISSUER = process.env.TOTP_ISSUER || 'Nonprofit Manager';
-
-const getDefaultOrganizationId = async (): Promise<string | null> => {
-  const result = await pool.query(
-    `SELECT id
-     FROM accounts
-     WHERE account_type = 'organization'
-     ORDER BY created_at ASC
-     LIMIT 1`
-  );
-  return result.rows[0]?.id || null;
-};
 
 interface TotpUserRow {
   id: string;
@@ -52,11 +42,19 @@ const loadOtplib = async () => {
   return authenticator;
 };
 
-const issueAuthTokens = (user: { id: string; email: string; role: string }) => {
+const issueAuthTokens = (
+  user: { id: string; email: string; role: string },
+  organizationId?: string | null
+) => {
   const jwtSecret = getJwtSecret();
   return {
     token: jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        ...(organizationId ? { organizationId } : {}),
+      },
       jwtSecret,
       { expiresIn: JWT.ACCESS_TOKEN_EXPIRY }
     ),
@@ -308,13 +306,13 @@ export const completeTotpLogin = async (
 
     await trackLoginAttempt(email, true, user.id, clientIp);
 
-    const { token, refreshToken } = issueAuthTokens(user);
+    const organizationId = await getDefaultOrganizationId();
+    const { token, refreshToken } = issueAuthTokens(user, organizationId);
     setAuthCookie(res, token);
     setRefreshCookie(res, refreshToken);
-    const organizationId = await getDefaultOrganizationId();
     return sendSuccess(res, {
       ...buildAuthTokenResponse(token, refreshToken),
-      organizationId,
+      organizationId: organizationId ?? null,
       user: {
         id: user.id,
         email: user.email,

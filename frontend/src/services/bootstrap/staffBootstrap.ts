@@ -1,12 +1,14 @@
 import api from '../api';
 import { unwrapApiData, type ApiEnvelope } from '../apiEnvelope';
 import type { User } from '../../features/auth/state';
+import type { CurrentUserResponse } from '../authService';
 
 export type BootstrapStatus = 'authenticated' | 'anonymous';
 
 export interface StaffBootstrapSnapshot {
   status: BootstrapStatus;
   user: User | null;
+  organizationId: string | null;
   fetchedAt: number;
 }
 
@@ -35,6 +37,7 @@ const fetchStaffBootstrapSnapshot = async (): Promise<StaffBootstrapSnapshot> =>
     return {
       status: 'anonymous',
       user: null,
+      organizationId: null,
       fetchedAt: Date.now(),
     };
   }
@@ -43,21 +46,25 @@ const fetchStaffBootstrapSnapshot = async (): Promise<StaffBootstrapSnapshot> =>
     return {
       status: 'authenticated',
       user: mockStaffUser,
+      organizationId: null,
       fetchedAt: Date.now(),
     };
   }
 
   try {
-    const response = await api.get<ApiEnvelope<User>>('/auth/me');
+    const response = await api.get<ApiEnvelope<CurrentUserResponse>>('/auth/me');
+    const payload = unwrapApiData(response.data) as CurrentUserResponse;
     return {
       status: 'authenticated',
-      user: unwrapApiData(response.data) as User,
+      user: payload,
+      organizationId: payload.organizationId ?? null,
       fetchedAt: Date.now(),
     };
   } catch {
     return {
       status: 'anonymous',
       user: null,
+      organizationId: null,
       fetchedAt: Date.now(),
     };
   }
@@ -90,10 +97,14 @@ export const getStaffBootstrapSnapshot = async (options?: {
   }
 };
 
-export const setStaffBootstrapSnapshot = (user: User | null): StaffBootstrapSnapshot => {
+export const setStaffBootstrapSnapshot = (input: {
+  user: User | null;
+  organizationId?: string | null;
+}): StaffBootstrapSnapshot => {
   cachedSnapshot = {
-    status: user ? 'authenticated' : 'anonymous',
-    user,
+    status: input.user ? 'authenticated' : 'anonymous',
+    user: input.user,
+    organizationId: input.organizationId ?? null,
     fetchedAt: Date.now(),
   };
   return cachedSnapshot;

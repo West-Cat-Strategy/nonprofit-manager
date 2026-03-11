@@ -155,6 +155,8 @@ export const getCurrentUser = async (
     }
 
     const user = result.rows[0];
+    const organizationId =
+      req.organizationId || req.accountId || req.tenantId || (await getDefaultOrganizationId());
 
     return sendSuccess(res, {
       id: user.id,
@@ -163,6 +165,7 @@ export const getCurrentUser = async (
       lastName: user.last_name,
       role: user.role,
       profilePicture: user.profile_picture || null,
+      organizationId: organizationId ?? null,
       createdAt: user.created_at,
     });
   } catch (error) {

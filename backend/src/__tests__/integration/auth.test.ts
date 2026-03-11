@@ -1,12 +1,47 @@
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
+import { getJwtSecret } from '../../config/jwt';
 
 describe('Auth API Integration Tests', () => {
   let authToken: string;
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const testEmail = `auth-test-${unique()}@example.com`;
   const testPassword = 'StrongPassword123!';
+  const ensureDefaultOrganizationId = async (): Promise<string> => {
+    const existing = await pool.query<{ id: string }>(
+      `SELECT id
+       FROM accounts
+       WHERE account_type = 'organization'
+         AND COALESCE(is_active, true) = true
+       ORDER BY created_at ASC
+       LIMIT 1`
+    );
+
+    if (existing.rows[0]?.id) {
+      return existing.rows[0].id;
+    }
+
+    const userResult = await pool.query<{ id: string }>(
+      'SELECT id FROM users WHERE email = $1',
+      [testEmail]
+    );
+
+    const userId = userResult.rows[0]?.id;
+    if (!userId) {
+      throw new Error('Test user must exist before creating a fallback organization');
+    }
+
+    const created = await pool.query<{ id: string }>(
+      `INSERT INTO accounts (account_name, account_type, created_by, modified_by)
+       VALUES ($1, 'organization', $2, $2)
+       RETURNING id`,
+      [`Auth Test Org ${unique()}`, userId]
+    );
+
+    return created.rows[0].id;
+  };
 
   afterAll(async () => {
     const safeDelete = async (query: string, params: unknown[]) => {
@@ -177,8 +212,36 @@ describe('Auth API Integration Tests', () => {
         .expect(200);
 
       expect(response.body).toHaveProperty('email');
+      expect(response.body).toHaveProperty('organizationId');
       expect(response.body.email).toBe(testEmail);
       expect(response.body).not.toHaveProperty('password_hash');
+    });
+
+    it('should backfill organizationId for legacy tokens without an org claim', async () => {
+      const expectedOrganizationId = await ensureDefaultOrganizationId();
+      const userResult = await pool.query<{ id: string; role: string }>(
+        'SELECT id, role FROM users WHERE email = $1',
+        [testEmail]
+      );
+
+      const user = userResult.rows[0];
+      const legacyToken = jwt.sign(
+        {
+          id: user.id,
+          email: testEmail,
+          role: user.role,
+        },
+        getJwtSecret(),
+        { expiresIn: '1h' }
+      );
+
+      const response = await request(app)
+        .get('/api/v2/auth/me')
+        .set('Authorization', `Bearer ${legacyToken}`)
+        .expect(200);
+
+      expect(response.body.organizationId).toBe(expectedOrganizationId);
+      expect(response.body.data.organizationId).toBe(expectedOrganizationId);
     });
 
     it('should reject request without token', async () => {

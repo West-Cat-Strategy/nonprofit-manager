@@ -36,6 +36,19 @@ export interface MfaRequiredResponse {
 }
 
 export type LoginResponse = AuthResponse | MfaRequiredResponse;
+export type AuthUser = AuthResponse['user'];
+
+export interface RegisterResponse {
+  message: string;
+  user?: AuthUser;
+  organizationId?: string | null;
+  pendingApproval?: boolean;
+}
+
+export type CurrentUserResponse = AuthUser & {
+  organizationId: string | null;
+  createdAt?: string;
+};
 
 export const authService = {
   login: async (credentials: LoginCredentials): Promise<LoginResponse> => {
@@ -74,16 +87,16 @@ export const authService = {
 
   register: async (
     data: RegisterData
-  ): Promise<{ message: string; user?: AuthResponse['user']; pendingApproval?: boolean }> => {
-    const response = await api.post<{ message: string; user?: AuthResponse['user']; pendingApproval?: boolean }>(
+  ): Promise<RegisterResponse> => {
+    const response = await api.post<RegisterResponse>(
       '/auth/register',
       data
     );
     return response.data;
   },
 
-  getCurrentUser: async () => {
-    const response = await api.get('/auth/me');
+  getCurrentUser: async (): Promise<CurrentUserResponse> => {
+    const response = await api.get<CurrentUserResponse>('/auth/me');
     return response.data;
   },
 
