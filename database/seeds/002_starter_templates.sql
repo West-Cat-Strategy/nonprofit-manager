@@ -838,8 +838,8 @@ VALUES (
       "paddingBottom": "4rem",
       "components": [
         {"id": "info1", "type": "heading", "content": "Visit Us", "level": 2, "align": "center"},
-        {"id": "info2", "type": "text", "content": "123 Main Street, Suite 100\nYour City, State 12345\n\nPhone: (555) 123-4567\nEmail: info@yournonprofit.org", "align": "center"},
-        {"id": "info3", "type": "map", "address": "123 Main Street, Your City, State 12345", "height": "300px", "zoom": 15}
+        {"id": "info2", "type": "text", "content": "400 West Georgia Street, Suite 1200\nVancouver, BC V6B 1A1\n\nPhone: (604) 555-1234\nEmail: info@yournonprofit.org", "align": "center"},
+        {"id": "info3", "type": "map", "address": "400 West Georgia Street, Vancouver, BC V6B 1A1", "height": "300px", "zoom": 15}
       ]
     }
   ]',

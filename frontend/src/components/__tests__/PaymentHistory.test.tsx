@@ -65,7 +65,7 @@ describe('PaymentHistory', () => {
         donation_id: 'don-1',
         donation_number: 'DON-240101-00001',
         amount: 100,
-        currency: 'USD',
+        currency: 'CAD',
         donation_date: '2024-01-15T10:00:00Z',
         payment_status: 'completed',
         payment_method: 'credit_card',
@@ -75,7 +75,7 @@ describe('PaymentHistory', () => {
         donation_id: 'don-2',
         donation_number: 'DON-240115-00002',
         amount: 250,
-        currency: 'USD',
+        currency: 'CAD',
         donation_date: '2024-01-20T10:00:00Z',
         payment_status: 'pending',
         payment_method: 'bank_transfer',
@@ -85,7 +85,7 @@ describe('PaymentHistory', () => {
         donation_id: 'don-3',
         donation_number: 'DON-240120-00003',
         amount: 50,
-        currency: 'USD',
+        currency: 'CAD',
         donation_date: '2024-01-25T10:00:00Z',
         payment_status: 'failed',
         payment_method: 'credit_card',
@@ -251,11 +251,11 @@ describe('PaymentHistory', () => {
   describe('Status Badge Styling', () => {
     it('applies correct styling for different payment statuses', async () => {
       const donationsWithAllStatuses = [
-        { donation_id: '1', amount: 100, currency: 'USD', donation_date: '2024-01-01', payment_status: 'completed', payment_method: null, is_recurring: false },
-        { donation_id: '2', amount: 100, currency: 'USD', donation_date: '2024-01-01', payment_status: 'pending', payment_method: null, is_recurring: false },
-        { donation_id: '3', amount: 100, currency: 'USD', donation_date: '2024-01-01', payment_status: 'failed', payment_method: null, is_recurring: false },
-        { donation_id: '4', amount: 100, currency: 'USD', donation_date: '2024-01-01', payment_status: 'refunded', payment_method: null, is_recurring: false },
-        { donation_id: '5', amount: 100, currency: 'USD', donation_date: '2024-01-01', payment_status: 'cancelled', payment_method: null, is_recurring: false },
+        { donation_id: '1', amount: 100, currency: 'CAD', donation_date: '2024-01-01', payment_status: 'completed', payment_method: null, is_recurring: false },
+        { donation_id: '2', amount: 100, currency: 'CAD', donation_date: '2024-01-01', payment_status: 'pending', payment_method: null, is_recurring: false },
+        { donation_id: '3', amount: 100, currency: 'CAD', donation_date: '2024-01-01', payment_status: 'failed', payment_method: null, is_recurring: false },
+        { donation_id: '4', amount: 100, currency: 'CAD', donation_date: '2024-01-01', payment_status: 'refunded', payment_method: null, is_recurring: false },
+        { donation_id: '5', amount: 100, currency: 'CAD', donation_date: '2024-01-01', payment_status: 'cancelled', payment_method: null, is_recurring: false },
       ];
 
       mockApi.get.mockResolvedValue({

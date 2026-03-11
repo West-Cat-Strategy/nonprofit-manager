@@ -86,9 +86,9 @@ ACCOUNT_DATA='{
   "phone": "555-1000",
   "email": "contact@testnonprofit.org",
   "address_line1": "123 Charity Lane",
-  "city": "Givingville",
-  "state_province": "CA",
-  "postal_code": "90001"
+  "city": "Vancouver",
+  "state_province": "BC",
+  "postal_code": "V6B 1A1"
 }'
 
 ACCOUNT_RESPONSE=$(api_call POST /accounts "$ACCOUNT_DATA")

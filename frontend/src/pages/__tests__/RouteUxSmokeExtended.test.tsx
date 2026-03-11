@@ -18,6 +18,10 @@ import api from '../../services/api';
 import { renderWithProviders } from '../../test/testUtils';
 import { assertRouteUxContract, createConsoleErrorSpy } from '../../test/uxRouteContract';
 
+const { mockSetBranding } = vi.hoisted(() => ({
+  mockSetBranding: vi.fn(),
+}));
+
 vi.mock('../../services/api');
 vi.mock('../../contexts/BrandingContext', () => ({
   useBranding: () => ({
@@ -30,7 +34,7 @@ vi.mock('../../contexts/BrandingContext', () => ({
       faviconUrl: null,
       customDomain: null,
     },
-    setBranding: vi.fn(),
+    setBranding: mockSetBranding,
     refreshBranding: vi.fn(),
   }),
 }));

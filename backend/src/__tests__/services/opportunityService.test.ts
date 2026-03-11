@@ -30,7 +30,7 @@ const buildOpportunityRow = (overrides: Record<string, unknown> = {}) => ({
   contact_name: null,
   donation_id: null,
   amount: '1000.00',
-  currency: 'USD',
+  currency: 'CAD',
   expected_close_date: null,
   actual_close_date: null,
   status: 'open',

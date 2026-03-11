@@ -105,7 +105,7 @@ export default function OrganizationSection({
               type="text"
               value={config.address.line1}
               onChange={(e) => onAddressChange('line1', e.target.value)}
-              placeholder="123 Main Street"
+              placeholder="400 West Georgia Street"
               className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent focus:border-transparent"
             />
           </div>

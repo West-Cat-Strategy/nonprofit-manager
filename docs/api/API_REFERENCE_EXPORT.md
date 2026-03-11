@@ -143,7 +143,7 @@ POST /api/v2/export/donations
 Downloads a file with columns:
 - Date
 - Donor Name
-- Amount (USD)
+- Amount
 - Payment Method
 - Campaign
 - Notes

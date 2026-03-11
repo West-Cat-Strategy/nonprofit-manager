@@ -3,7 +3,10 @@ import { vi } from 'vitest';
 import Navigation from '../Navigation';
 import { renderWithProviders } from '../../test/testUtils';
 
-const mockTogglePinned = vi.fn();
+const { mockSetBranding, mockTogglePinned } = vi.hoisted(() => ({
+  mockSetBranding: vi.fn(),
+  mockTogglePinned: vi.fn(),
+}));
 
 const mockNavigationPreferences = {
   pinnedItems: [
@@ -132,6 +135,7 @@ vi.mock('../../contexts/BrandingContext', () => ({
       colorScheme: 'default',
       customColors: {},
     },
+    setBranding: mockSetBranding,
   }),
 }));
 

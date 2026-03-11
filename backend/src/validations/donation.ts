@@ -24,7 +24,7 @@ export type RecurringFrequency = z.infer<typeof recurringFrequencySchema>;
 // Create donation
 export const createDonationSchema = z.object({
   amount: z.number().positive('Amount must be greater than 0'),
-  currency: z.string().length(3).default('USD'),
+  currency: z.string().length(3).default('CAD'),
   donation_date: z.coerce.date(),
   payment_method: paymentMethodSchema.optional(),
   payment_status: paymentStatusSchema.optional(),
