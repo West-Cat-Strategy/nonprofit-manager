@@ -13,6 +13,11 @@ import { formatDate } from '../../../utils/format';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
+import {
+  parseAllowedValueOrEmpty,
+  parsePositiveInteger,
+  safeParseStoredObject,
+} from '../../../utils/persistedFilters';
 
 type TaskListFilters = {
   search: string;
@@ -23,6 +28,8 @@ type TaskListFilters = {
 };
 
 const TASK_FILTERS_STORAGE_KEY = 'tasks_list_filters_v1';
+const TASK_STATUS_VALUES = Object.values(TaskStatus);
+const TASK_PRIORITY_VALUES = Object.values(TaskPriority);
 
 const TaskList: React.FC = () => {
   const navigate = useNavigate();
@@ -34,10 +41,10 @@ const TaskList: React.FC = () => {
   const [filters, setFilters] = useState<TaskListFilters>(() => {
     const urlFilters: TaskListFilters = {
       search: searchParams.get('search') || '',
-      status: (searchParams.get('status') as TaskStatus | '') || '',
-      priority: (searchParams.get('priority') as TaskPriority | '') || '',
+      status: parseAllowedValueOrEmpty(searchParams.get('status'), TASK_STATUS_VALUES),
+      priority: parseAllowedValueOrEmpty(searchParams.get('priority'), TASK_PRIORITY_VALUES),
       overdue: searchParams.get('overdue') === 'true',
-      page: Number(searchParams.get('page') || '1'),
+      page: parsePositiveInteger(searchParams.get('page'), 1),
     };
 
     const hasUrlFilters = Boolean(
@@ -49,14 +56,15 @@ const TaskList: React.FC = () => {
     }
 
     try {
-      const saved = localStorage.getItem(TASK_FILTERS_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as TaskListFilters;
+      const parsed = safeParseStoredObject<Record<string, unknown>>(
+        localStorage.getItem(TASK_FILTERS_STORAGE_KEY)
+      );
+      if (parsed) {
         return {
-          search: parsed.search || '',
-          status: parsed.status || '',
-          priority: parsed.priority || '',
-          overdue: Boolean(parsed.overdue),
+          search: typeof parsed.search === 'string' ? parsed.search : '',
+          status: parseAllowedValueOrEmpty(parsed.status, TASK_STATUS_VALUES),
+          priority: parseAllowedValueOrEmpty(parsed.priority, TASK_PRIORITY_VALUES),
+          overdue: parsed.overdue === true,
           page: 1,
         };
       }

@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
 import { validateBody, validateParams } from '@middleware/zodValidation';
 import * as paymentController from '../controllers';
-import { uuidSchema } from '@validations/shared';
+import { emailSchema, uuidSchema } from '@validations/shared';
 
 const router = Router();
 
@@ -32,7 +32,7 @@ const createPaymentIntentSchema = z.object({
   currency: z.enum(['usd', 'eur', 'gbp', 'cad', 'aud']).optional(),
   description: z.string().max(500, 'Description too long').optional(),
   donationId: uuidSchema.optional(),
-  receiptEmail: z.string().email('Invalid email').optional(),
+  receiptEmail: emailSchema.optional(),
 });
 
 const createRefundSchema = z.object({
@@ -42,7 +42,7 @@ const createRefundSchema = z.object({
 });
 
 const createCustomerSchema = z.object({
-  email: z.string().email('Valid email is required'),
+  email: emailSchema,
   name: z.string().max(200, 'Name too long').optional(),
   phone: z.string().max(20, 'Phone too long').optional(),
   contactId: uuidSchema.optional(),
@@ -58,37 +58,67 @@ router.get('/config', paymentController.getPaymentConfig);
  * POST /api/payments/intents
  * Create a payment intent
  */
-router.post('/intents', authenticate, validateBody(createPaymentIntentSchema), paymentController.createPaymentIntent);
+router.post(
+  '/intents',
+  authenticate,
+  validateBody(createPaymentIntentSchema),
+  paymentController.createPaymentIntent
+);
 
 /**
  * GET /api/payments/intents/:id
  * Get payment intent status
  */
-router.get('/intents/:id', authenticate, validateParams(paymentIntentIdParamsSchema), paymentController.getPaymentIntent);
+router.get(
+  '/intents/:id',
+  authenticate,
+  validateParams(paymentIntentIdParamsSchema),
+  paymentController.getPaymentIntent
+);
 
 /**
  * POST /api/payments/intents/:id/cancel
  * Cancel a payment intent
  */
-router.post('/intents/:id/cancel', authenticate, validateParams(paymentIntentIdParamsSchema), paymentController.cancelPaymentIntent);
+router.post(
+  '/intents/:id/cancel',
+  authenticate,
+  validateParams(paymentIntentIdParamsSchema),
+  paymentController.cancelPaymentIntent
+);
 
 /**
  * POST /api/payments/refunds
  * Create a refund
  */
-router.post('/refunds', authenticate, validateBody(createRefundSchema), paymentController.createRefund);
+router.post(
+  '/refunds',
+  authenticate,
+  validateBody(createRefundSchema),
+  paymentController.createRefund
+);
 
 /**
  * POST /api/payments/customers
  * Create a Stripe customer
  */
-router.post('/customers', authenticate, validateBody(createCustomerSchema), paymentController.createCustomer);
+router.post(
+  '/customers',
+  authenticate,
+  validateBody(createCustomerSchema),
+  paymentController.createCustomer
+);
 
 /**
  * GET /api/payments/customers/:id
  * Get Stripe customer
  */
-router.get('/customers/:id', authenticate, validateParams(customerIdParamsSchema), paymentController.getCustomer);
+router.get(
+  '/customers/:id',
+  authenticate,
+  validateParams(customerIdParamsSchema),
+  paymentController.getCustomer
+);
 
 /**
  * GET /api/payments/customers/:customerId/payment-methods

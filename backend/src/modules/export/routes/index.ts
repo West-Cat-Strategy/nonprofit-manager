@@ -16,13 +16,11 @@ import { authenticate } from '@middleware/domains/auth';
 import { requireExportPermission } from '@middleware/domains/security';
 import { loadDataScope } from '@middleware/domains/data';
 import { validateBody } from '@middleware/zodValidation';
-import { uuidSchema } from '@validations/shared';
+import { isoDateSchema, uuidSchema } from '@validations/shared';
 
 const router = Router();
 
-const dateStringSchema = z
-  .string()
-  .refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid ISO8601 date');
+const dateStringSchema = isoDateSchema;
 
 const formatSchema = z.enum(['csv', 'xlsx', 'excel']);
 
@@ -80,7 +78,11 @@ router.use(loadDataScope('exports'));
  * POST /api/export/analytics-summary
  * Export analytics summary
  */
-router.post('/analytics-summary', validateBody(analyticsSummaryExportSchema), exportAnalyticsSummary);
+router.post(
+  '/analytics-summary',
+  validateBody(analyticsSummaryExportSchema),
+  exportAnalyticsSummary
+);
 
 /**
  * POST /api/export/donations

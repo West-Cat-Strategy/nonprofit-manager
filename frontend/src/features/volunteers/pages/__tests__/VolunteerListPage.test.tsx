@@ -67,6 +67,7 @@ describe('VolunteerList page', () => {
   beforeEach(() => {
     dispatchMock.mockClear();
     importExportModalMock.mockClear();
+    localStorage.clear();
   });
 
   it('renders and wires backend import/export request props', () => {
@@ -87,5 +88,22 @@ describe('VolunteerList page', () => {
         },
       })
     );
+  });
+
+  it('sanitizes invalid URL filters before dispatching the initial load', () => {
+    renderWithProviders(<VolunteerList />, {
+      route: '/volunteers?status=busy&type=unknown&page=0&limit=-3&sort_order=sideways',
+    });
+
+    expect(dispatchMock).toHaveBeenCalledWith({
+      type: 'volunteers/fetch',
+      payload: {
+        page: 1,
+        limit: 20,
+        search: undefined,
+        availability_status: undefined,
+        background_check_status: undefined,
+      },
+    });
   });
 });

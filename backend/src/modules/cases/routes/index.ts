@@ -20,7 +20,13 @@ import {
   casePortalConversationMessageSchema,
   casePortalConversationParamsSchema,
 } from '@validations/portal';
-import { uuidSchema } from '@validations/shared';
+import {
+  isoDateSchema,
+  isoDateTimeSchema,
+  optionalStrictBooleanSchema,
+  strictBooleanSchema,
+  uuidSchema,
+} from '@validations/shared';
 import { followUpController as followUpsController } from '@modules/followUps/controllers/followUps.handlers';
 import { createCaseCatalogController } from '../controllers/catalog.controller';
 import { createCaseLifecycleController } from '../controllers/lifecycle.controller';
@@ -62,7 +68,8 @@ const noteTypeSchema = z.enum([
   'portal_message',
 ]);
 
-const dateStringSchema = z.string().refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid ISO8601 date');
+const dateStringSchema = isoDateSchema;
+const dateTimeStringSchema = isoDateTimeSchema;
 const outcomesModeSchema = z.enum(['replace', 'merge']);
 
 const caseIdParamsSchema = z.object({
@@ -111,28 +118,30 @@ const caseTimelineQuerySchema = z
   })
   .strict();
 
-const caseCatalogQuerySchema = z.object({
-  search: z.string().optional(),
-  contact_id: uuidSchema.optional(),
-  account_id: uuidSchema.optional(),
-  case_type_id: uuidSchema.optional(),
-  status_id: uuidSchema.optional(),
-  priority: casePrioritySchema.optional(),
-  assigned_to: uuidSchema.optional(),
-  assigned_team: z.string().optional(),
-  is_urgent: z.coerce.boolean().optional(),
-  requires_followup: z.coerce.boolean().optional(),
-  intake_start_date: dateStringSchema.optional(),
-  intake_end_date: dateStringSchema.optional(),
-  due_date_start: dateStringSchema.optional(),
-  due_date_end: dateStringSchema.optional(),
-  quick_filter: quickFilterSchema.optional(),
-  due_within_days: z.coerce.number().int().min(0).optional(),
-  page: z.coerce.number().int().min(1).optional(),
-  limit: z.coerce.number().int().min(1).max(100).optional(),
-  sort_by: z.string().optional(),
-  sort_order: z.enum(['asc', 'desc']).optional(),
-}).strict();
+const caseCatalogQuerySchema = z
+  .object({
+    search: z.string().optional(),
+    contact_id: uuidSchema.optional(),
+    account_id: uuidSchema.optional(),
+    case_type_id: uuidSchema.optional(),
+    status_id: uuidSchema.optional(),
+    priority: casePrioritySchema.optional(),
+    assigned_to: uuidSchema.optional(),
+    assigned_team: z.string().optional(),
+    is_urgent: optionalStrictBooleanSchema,
+    requires_followup: optionalStrictBooleanSchema,
+    intake_start_date: dateStringSchema.optional(),
+    intake_end_date: dateStringSchema.optional(),
+    due_date_start: dateStringSchema.optional(),
+    due_date_end: dateStringSchema.optional(),
+    quick_filter: quickFilterSchema.optional(),
+    due_within_days: z.coerce.number().int().min(0).optional(),
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    sort_by: z.string().optional(),
+    sort_order: z.enum(['asc', 'desc']).optional(),
+  })
+  .strict();
 
 const createCaseSchema = z.object({
   contact_id: uuidSchema,
@@ -149,8 +158,8 @@ const createCaseSchema = z.object({
   intake_data: z.record(z.string(), z.unknown()).optional(),
   custom_data: z.record(z.string(), z.unknown()).optional(),
   tags: z.array(z.string()).optional(),
-  is_urgent: z.coerce.boolean().optional(),
-  client_viewable: z.coerce.boolean().optional(),
+  is_urgent: optionalStrictBooleanSchema,
+  client_viewable: optionalStrictBooleanSchema,
 });
 
 const updateCaseSchema = z.object({
@@ -165,9 +174,9 @@ const updateCaseSchema = z.object({
   closure_reason: z.string().optional(),
   custom_data: z.record(z.string(), z.unknown()).optional(),
   tags: z.array(z.string()).optional(),
-  is_urgent: z.coerce.boolean().optional(),
-  client_viewable: z.coerce.boolean().optional(),
-  requires_followup: z.coerce.boolean().optional(),
+  is_urgent: optionalStrictBooleanSchema,
+  client_viewable: optionalStrictBooleanSchema,
+  requires_followup: optionalStrictBooleanSchema,
   followup_date: dateStringSchema.optional(),
 });
 
@@ -176,11 +185,11 @@ const updateCaseStatusSchema = z.object({
   reason: z.string().optional(),
   notes: z.string().trim().min(1),
   outcome_definition_ids: z.array(uuidSchema).optional(),
-  outcome_visibility: z.coerce.boolean().optional(),
+  outcome_visibility: optionalStrictBooleanSchema,
 });
 
 const updateCaseClientViewableSchema = z.object({
-  client_viewable: z.coerce.boolean(),
+  client_viewable: strictBooleanSchema,
 });
 
 const reassignCaseSchema = z.object({
@@ -200,10 +209,10 @@ const createCaseNoteSchema = z.object({
   subject: z.string().optional(),
   category: z.string().max(100).optional(),
   content: z.string().min(1),
-  is_internal: z.coerce.boolean().optional(),
-  visible_to_client: z.coerce.boolean().optional(),
-  is_portal_visible: z.coerce.boolean().optional(),
-  is_important: z.coerce.boolean().optional(),
+  is_internal: optionalStrictBooleanSchema,
+  visible_to_client: optionalStrictBooleanSchema,
+  is_portal_visible: optionalStrictBooleanSchema,
+  is_important: optionalStrictBooleanSchema,
   attachments: z.array(z.unknown()).optional(),
   outcome_impacts: z.array(interactionOutcomeImpactItemSchema).optional(),
   outcomes_mode: outcomesModeSchema.optional(),
@@ -214,10 +223,10 @@ const updateCaseNoteSchema = z.object({
   subject: z.string().optional(),
   category: z.string().max(100).optional().nullable(),
   content: z.string().min(1).optional(),
-  is_internal: z.coerce.boolean().optional(),
-  visible_to_client: z.coerce.boolean().optional(),
-  is_portal_visible: z.coerce.boolean().optional(),
-  is_important: z.coerce.boolean().optional(),
+  is_internal: optionalStrictBooleanSchema,
+  visible_to_client: optionalStrictBooleanSchema,
+  is_portal_visible: optionalStrictBooleanSchema,
+  is_important: optionalStrictBooleanSchema,
   attachments: z.array(z.unknown()).optional().nullable(),
   outcome_impacts: z.array(interactionOutcomeImpactItemSchema).optional(),
   outcomes_mode: outcomesModeSchema.optional(),
@@ -228,8 +237,8 @@ const createCaseOutcomeSchema = z.object({
   outcome_definition_id: uuidSchema.optional(),
   outcome_date: dateStringSchema.optional(),
   notes: z.string().optional(),
-  visible_to_client: z.coerce.boolean().optional(),
-  is_portal_visible: z.coerce.boolean().optional(),
+  visible_to_client: optionalStrictBooleanSchema,
+  is_portal_visible: optionalStrictBooleanSchema,
 });
 
 const updateCaseOutcomeSchema = z
@@ -238,8 +247,8 @@ const updateCaseOutcomeSchema = z
     outcome_definition_id: uuidSchema.optional(),
     outcome_date: dateStringSchema.optional(),
     notes: z.string().optional().nullable(),
-    visible_to_client: z.coerce.boolean().optional(),
-    is_portal_visible: z.coerce.boolean().optional(),
+    visible_to_client: optionalStrictBooleanSchema,
+    is_portal_visible: optionalStrictBooleanSchema,
   })
   .refine((payload) => Object.values(payload).some((value) => value !== undefined), {
     message: 'At least one field must be provided',
@@ -252,7 +261,7 @@ const createTopicDefinitionSchema = z.object({
 const createTopicEventSchema = z.object({
   topic_definition_id: uuidSchema.optional(),
   topic_name: z.string().min(1).max(120).optional(),
-  discussed_at: dateStringSchema.optional(),
+  discussed_at: dateTimeStringSchema.optional(),
   notes: z.string().optional(),
 });
 
@@ -260,9 +269,9 @@ const updateCaseDocumentSchema = z.object({
   document_name: z.string().max(255).optional(),
   document_type: z.string().max(100).optional().nullable(),
   description: z.string().optional().nullable(),
-  visible_to_client: z.coerce.boolean().optional(),
-  is_portal_visible: z.coerce.boolean().optional(),
-  is_active: z.coerce.boolean().optional(),
+  visible_to_client: optionalStrictBooleanSchema,
+  is_portal_visible: optionalStrictBooleanSchema,
+  is_active: optionalStrictBooleanSchema,
 });
 
 const createCaseMilestoneSchema = z.object({
@@ -276,7 +285,7 @@ const updateCaseMilestoneSchema = z.object({
   milestone_name: z.string().min(1).optional(),
   description: z.string().optional(),
   due_date: dateStringSchema.optional(),
-  is_completed: z.coerce.boolean().optional(),
+  is_completed: optionalStrictBooleanSchema,
   sort_order: z.coerce.number().int().optional(),
 });
 
@@ -308,7 +317,7 @@ const resolveCasePortalConversationSchema = z.object({
   resolution_note: z.string().trim().min(1),
   outcome_definition_ids: z.array(uuidSchema).min(1),
   close_status: z.enum(['closed', 'archived']).default('closed'),
-  visible_to_client: z.coerce.boolean().optional(),
+  visible_to_client: optionalStrictBooleanSchema,
 });
 
 export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
@@ -330,10 +339,7 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
     new CaseLifecycleUseCase(caseRepository),
     mode
   );
-  const notesController = createCaseNotesController(
-    new CaseNotesUseCase(notesRepository),
-    mode
-  );
+  const notesController = createCaseNotesController(new CaseNotesUseCase(notesRepository), mode);
   const milestonesController = createCaseMilestonesController(
     new CaseMilestonesUseCase(milestonesRepository),
     mode
@@ -368,18 +374,31 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
   router.get('/types', catalogController.getCaseTypes);
   router.get('/statuses', catalogController.getCaseStatuses);
 
-  router.post('/bulk-status', validateBody(bulkStatusUpdateSchema), lifecycleController.bulkUpdateCaseStatus);
+  router.post(
+    '/bulk-status',
+    validateBody(bulkStatusUpdateSchema),
+    lifecycleController.bulkUpdateCaseStatus
+  );
   router.post('/', validateBody(createCaseSchema), lifecycleController.createCase);
   router.get('/', validateQuery(caseCatalogQuerySchema), catalogController.getCases);
   router.get('/:id', validateParams(caseIdParamsSchema), catalogController.getCaseById);
-  router.get('/:id/follow-ups', validateParams(caseIdParamsSchema), followUpsController.getCaseFollowUps);
+  router.get(
+    '/:id/follow-ups',
+    validateParams(caseIdParamsSchema),
+    followUpsController.getCaseFollowUps
+  );
   router.get(
     '/:id/timeline',
     validateParams(caseIdParamsSchema),
     validateQuery(caseTimelineQuerySchema),
     catalogController.getCaseTimeline
   );
-  router.put('/:id', validateParams(caseIdParamsSchema), validateBody(updateCaseSchema), lifecycleController.updateCase);
+  router.put(
+    '/:id',
+    validateParams(caseIdParamsSchema),
+    validateBody(updateCaseSchema),
+    lifecycleController.updateCase
+  );
   router.put(
     '/:id/client-viewable',
     validateParams(caseIdParamsSchema),
@@ -387,26 +406,89 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
     lifecycleController.updateCase
   );
   router.delete('/:id', validateParams(caseIdParamsSchema), lifecycleController.deleteCase);
-  router.put('/:id/status', validateParams(caseIdParamsSchema), validateBody(updateCaseStatusSchema), lifecycleController.updateCaseStatus);
-  router.put('/:id/reassign', validateParams(caseIdParamsSchema), validateBody(reassignCaseSchema), lifecycleController.reassignCase);
+  router.put(
+    '/:id/status',
+    validateParams(caseIdParamsSchema),
+    validateBody(updateCaseStatusSchema),
+    lifecycleController.updateCaseStatus
+  );
+  router.put(
+    '/:id/reassign',
+    validateParams(caseIdParamsSchema),
+    validateBody(reassignCaseSchema),
+    lifecycleController.reassignCase
+  );
 
   router.get('/:id/notes', validateParams(caseIdParamsSchema), notesController.getCaseNotes);
   router.post('/notes', validateBody(createCaseNoteSchema), notesController.createCaseNote);
-  router.put('/notes/:noteId', validateParams(noteIdParamsSchema), validateBody(updateCaseNoteSchema), notesController.updateCaseNote);
-  router.delete('/notes/:noteId', validateParams(noteIdParamsSchema), notesController.deleteCaseNote);
+  router.put(
+    '/notes/:noteId',
+    validateParams(noteIdParamsSchema),
+    validateBody(updateCaseNoteSchema),
+    notesController.updateCaseNote
+  );
+  router.delete(
+    '/notes/:noteId',
+    validateParams(noteIdParamsSchema),
+    notesController.deleteCaseNote
+  );
 
-  router.get('/:id/outcomes', validateParams(caseIdParamsSchema), outcomesController.getCaseOutcomes);
-  router.post('/:id/outcomes', validateParams(caseIdParamsSchema), validateBody(createCaseOutcomeSchema), outcomesController.createCaseOutcome);
-  router.put('/outcomes/:outcomeId', validateParams(outcomeIdParamsSchema), validateBody(updateCaseOutcomeSchema), outcomesController.updateCaseOutcome);
-  router.delete('/outcomes/:outcomeId', validateParams(outcomeIdParamsSchema), outcomesController.deleteCaseOutcome);
+  router.get(
+    '/:id/outcomes',
+    validateParams(caseIdParamsSchema),
+    outcomesController.getCaseOutcomes
+  );
+  router.post(
+    '/:id/outcomes',
+    validateParams(caseIdParamsSchema),
+    validateBody(createCaseOutcomeSchema),
+    outcomesController.createCaseOutcome
+  );
+  router.put(
+    '/outcomes/:outcomeId',
+    validateParams(outcomeIdParamsSchema),
+    validateBody(updateCaseOutcomeSchema),
+    outcomesController.updateCaseOutcome
+  );
+  router.delete(
+    '/outcomes/:outcomeId',
+    validateParams(outcomeIdParamsSchema),
+    outcomesController.deleteCaseOutcome
+  );
 
-  router.get('/:id/topics/definitions', validateParams(caseIdParamsSchema), outcomesController.getCaseTopicDefinitions);
-  router.post('/:id/topics/definitions', validateParams(caseIdParamsSchema), validateBody(createTopicDefinitionSchema), outcomesController.createCaseTopicDefinition);
-  router.get('/:id/topics', validateParams(caseIdParamsSchema), outcomesController.getCaseTopicEvents);
-  router.post('/:id/topics', validateParams(caseIdParamsSchema), validateBody(createTopicEventSchema), outcomesController.createCaseTopicEvent);
-  router.delete('/topics/:topicEventId', validateParams(topicEventIdParamsSchema), outcomesController.deleteCaseTopicEvent);
+  router.get(
+    '/:id/topics/definitions',
+    validateParams(caseIdParamsSchema),
+    outcomesController.getCaseTopicDefinitions
+  );
+  router.post(
+    '/:id/topics/definitions',
+    validateParams(caseIdParamsSchema),
+    validateBody(createTopicDefinitionSchema),
+    outcomesController.createCaseTopicDefinition
+  );
+  router.get(
+    '/:id/topics',
+    validateParams(caseIdParamsSchema),
+    outcomesController.getCaseTopicEvents
+  );
+  router.post(
+    '/:id/topics',
+    validateParams(caseIdParamsSchema),
+    validateBody(createTopicEventSchema),
+    outcomesController.createCaseTopicEvent
+  );
+  router.delete(
+    '/topics/:topicEventId',
+    validateParams(topicEventIdParamsSchema),
+    outcomesController.deleteCaseTopicEvent
+  );
 
-  router.get('/:id/documents', validateParams(caseIdParamsSchema), documentsController.getCaseDocuments);
+  router.get(
+    '/:id/documents',
+    validateParams(caseIdParamsSchema),
+    documentsController.getCaseDocuments
+  );
   router.post(
     '/:id/documents',
     validateParams(caseIdParamsSchema),
@@ -420,22 +502,80 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
     validateQuery(caseDocumentDownloadQuerySchema),
     documentsController.downloadCaseDocument
   );
-  router.put('/:id/documents/:documentId', validateParams(documentIdParamsSchema), validateBody(updateCaseDocumentSchema), documentsController.updateCaseDocument);
-  router.delete('/:id/documents/:documentId', validateParams(documentIdParamsSchema), documentsController.deleteCaseDocument);
+  router.put(
+    '/:id/documents/:documentId',
+    validateParams(documentIdParamsSchema),
+    validateBody(updateCaseDocumentSchema),
+    documentsController.updateCaseDocument
+  );
+  router.delete(
+    '/:id/documents/:documentId',
+    validateParams(documentIdParamsSchema),
+    documentsController.deleteCaseDocument
+  );
 
-  router.get('/:id/milestones', validateParams(caseIdParamsSchema), milestonesController.getCaseMilestones);
-  router.post('/:id/milestones', validateParams(caseIdParamsSchema), validateBody(createCaseMilestoneSchema), milestonesController.createCaseMilestone);
-  router.put('/milestones/:milestoneId', validateParams(milestoneIdParamsSchema), validateBody(updateCaseMilestoneSchema), milestonesController.updateCaseMilestone);
-  router.delete('/milestones/:milestoneId', validateParams(milestoneIdParamsSchema), milestonesController.deleteCaseMilestone);
+  router.get(
+    '/:id/milestones',
+    validateParams(caseIdParamsSchema),
+    milestonesController.getCaseMilestones
+  );
+  router.post(
+    '/:id/milestones',
+    validateParams(caseIdParamsSchema),
+    validateBody(createCaseMilestoneSchema),
+    milestonesController.createCaseMilestone
+  );
+  router.put(
+    '/milestones/:milestoneId',
+    validateParams(milestoneIdParamsSchema),
+    validateBody(updateCaseMilestoneSchema),
+    milestonesController.updateCaseMilestone
+  );
+  router.delete(
+    '/milestones/:milestoneId',
+    validateParams(milestoneIdParamsSchema),
+    milestonesController.deleteCaseMilestone
+  );
 
-  router.get('/:id/relationships', validateParams(caseIdParamsSchema), relationshipsController.getCaseRelationships);
-  router.post('/:id/relationships', validateParams(caseIdParamsSchema), validateBody(createCaseRelationshipSchema), relationshipsController.createCaseRelationship);
-  router.delete('/relationships/:relationshipId', validateParams(relationshipIdParamsSchema), relationshipsController.deleteCaseRelationship);
+  router.get(
+    '/:id/relationships',
+    validateParams(caseIdParamsSchema),
+    relationshipsController.getCaseRelationships
+  );
+  router.post(
+    '/:id/relationships',
+    validateParams(caseIdParamsSchema),
+    validateBody(createCaseRelationshipSchema),
+    relationshipsController.createCaseRelationship
+  );
+  router.delete(
+    '/relationships/:relationshipId',
+    validateParams(relationshipIdParamsSchema),
+    relationshipsController.deleteCaseRelationship
+  );
 
-  router.get('/:id/services', validateParams(caseIdParamsSchema), servicesController.getCaseServices);
-  router.post('/:id/services', validateParams(caseIdParamsSchema), validateBody(createCaseServiceSchema), servicesController.createCaseService);
-  router.put('/services/:serviceId', validateParams(serviceIdParamsSchema), validateBody(updateCaseServiceSchema), servicesController.updateCaseService);
-  router.delete('/services/:serviceId', validateParams(serviceIdParamsSchema), servicesController.deleteCaseService);
+  router.get(
+    '/:id/services',
+    validateParams(caseIdParamsSchema),
+    servicesController.getCaseServices
+  );
+  router.post(
+    '/:id/services',
+    validateParams(caseIdParamsSchema),
+    validateBody(createCaseServiceSchema),
+    servicesController.createCaseService
+  );
+  router.put(
+    '/services/:serviceId',
+    validateParams(serviceIdParamsSchema),
+    validateBody(updateCaseServiceSchema),
+    servicesController.updateCaseService
+  );
+  router.delete(
+    '/services/:serviceId',
+    validateParams(serviceIdParamsSchema),
+    servicesController.deleteCaseService
+  );
 
   router.get(
     '/:id/portal/conversations',

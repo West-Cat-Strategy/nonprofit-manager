@@ -8,14 +8,22 @@ import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import * as templateController from '../controllers';
-import { uuidSchema } from '@validations/shared';
+import { uuidSchema, optionalStrictBooleanSchema } from '@validations/shared';
 
 const router = Router();
 
 // All routes require authentication
 router.use(authenticate);
 
-const validCategories = ['landing-page', 'event', 'donation', 'blog', 'multi-page', 'portfolio', 'contact'] as const;
+const validCategories = [
+  'landing-page',
+  'event',
+  'donation',
+  'blog',
+  'multi-page',
+  'portfolio',
+  'contact',
+] as const;
 const validStatuses = ['draft', 'published', 'archived'] as const;
 
 const slugSchema = z
@@ -38,21 +46,25 @@ const templateVersionParamsSchema = z.object({
   versionId: uuidSchema,
 });
 
-const searchTemplatesQuerySchema = z.object({
-  search: z.string().max(100).optional(),
-  category: z.enum(validCategories).optional(),
-  tags: z.string().max(500).optional(),
-  status: z.enum(validStatuses).optional(),
-  isSystemTemplate: z.coerce.boolean().optional(),
-  page: z.coerce.number().int().min(1).optional(),
-  limit: z.coerce.number().int().min(1).max(100).optional(),
-  sortBy: z.enum(['name', 'createdAt', 'updatedAt']).optional(),
-  sortOrder: z.enum(['asc', 'desc']).optional(),
-}).strict();
+const searchTemplatesQuerySchema = z
+  .object({
+    search: z.string().max(100).optional(),
+    category: z.enum(validCategories).optional(),
+    tags: z.string().max(500).optional(),
+    status: z.enum(validStatuses).optional(),
+    isSystemTemplate: optionalStrictBooleanSchema,
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    sortBy: z.enum(['name', 'createdAt', 'updatedAt']).optional(),
+    sortOrder: z.enum(['asc', 'desc']).optional(),
+  })
+  .strict();
 
-const previewTemplateQuerySchema = z.object({
-  page: z.string().optional(),
-}).strict();
+const previewTemplateQuerySchema = z
+  .object({
+    page: z.string().optional(),
+  })
+  .strict();
 
 const applyPaletteSchema = z.object({
   paletteId: uuidSchema,
@@ -85,7 +97,7 @@ const duplicateTemplateSchema = z.object({
 const createTemplatePageSchema = z.object({
   name: z.string().min(1).max(255),
   slug: slugSchema,
-  isHomepage: z.coerce.boolean().optional(),
+  isHomepage: optionalStrictBooleanSchema,
   pageType: z.enum(['static', 'collectionIndex', 'collectionDetail']).optional(),
   collection: z.enum(['events', 'newsletters']).optional(),
   routePattern: z.string().min(1).max(255).optional(),
@@ -95,7 +107,7 @@ const createTemplatePageSchema = z.object({
 const updateTemplatePageSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   slug: slugSchema.optional(),
-  isHomepage: z.coerce.boolean().optional(),
+  isHomepage: optionalStrictBooleanSchema,
   pageType: z.enum(['static', 'collectionIndex', 'collectionDetail']).optional(),
   collection: z.enum(['events', 'newsletters']).optional(),
   routePattern: z.string().min(1).max(255).optional(),
@@ -141,7 +153,11 @@ router.get('/', validateQuery(searchTemplatesQuerySchema), templateController.se
  * GET /api/templates/:templateId/css
  * Get CSS variables for a template theme
  */
-router.get('/:templateId/css', validateParams(templateIdParamsSchema), templateController.getTemplateCss);
+router.get(
+  '/:templateId/css',
+  validateParams(templateIdParamsSchema),
+  templateController.getTemplateCss
+);
 
 /**
  * GET /api/templates/:templateId
@@ -192,13 +208,22 @@ router.post('/', validateBody(createTemplateSchema), templateController.createTe
  * PUT /api/templates/:templateId
  * Update a template
  */
-router.put('/:templateId', validateParams(templateIdParamsSchema), validateBody(updateTemplateSchema), templateController.updateTemplate);
+router.put(
+  '/:templateId',
+  validateParams(templateIdParamsSchema),
+  validateBody(updateTemplateSchema),
+  templateController.updateTemplate
+);
 
 /**
  * DELETE /api/templates/:templateId
  * Delete a template
  */
-router.delete('/:templateId', validateParams(templateIdParamsSchema), templateController.deleteTemplate);
+router.delete(
+  '/:templateId',
+  validateParams(templateIdParamsSchema),
+  templateController.deleteTemplate
+);
 
 /**
  * POST /api/templates/:templateId/duplicate
@@ -217,13 +242,21 @@ router.post(
  * GET /api/templates/:templateId/pages
  * Get all pages for a template
  */
-router.get('/:templateId/pages', validateParams(templateIdParamsSchema), templateController.getTemplatePages);
+router.get(
+  '/:templateId/pages',
+  validateParams(templateIdParamsSchema),
+  templateController.getTemplatePages
+);
 
 /**
  * GET /api/templates/:templateId/pages/:pageId
  * Get a specific page
  */
-router.get('/:templateId/pages/:pageId', validateParams(templatePageParamsSchema), templateController.getTemplatePage);
+router.get(
+  '/:templateId/pages/:pageId',
+  validateParams(templatePageParamsSchema),
+  templateController.getTemplatePage
+);
 
 /**
  * POST /api/templates/:templateId/pages
@@ -251,7 +284,11 @@ router.put(
  * DELETE /api/templates/:templateId/pages/:pageId
  * Delete a page
  */
-router.delete('/:templateId/pages/:pageId', validateParams(templatePageParamsSchema), templateController.deleteTemplatePage);
+router.delete(
+  '/:templateId/pages/:pageId',
+  validateParams(templatePageParamsSchema),
+  templateController.deleteTemplatePage
+);
 
 /**
  * PUT /api/templates/:templateId/pages/reorder
@@ -270,7 +307,11 @@ router.put(
  * GET /api/templates/:templateId/versions
  * Get version history
  */
-router.get('/:templateId/versions', validateParams(templateIdParamsSchema), templateController.getTemplateVersions);
+router.get(
+  '/:templateId/versions',
+  validateParams(templateIdParamsSchema),
+  templateController.getTemplateVersions
+);
 
 /**
  * POST /api/templates/:templateId/versions

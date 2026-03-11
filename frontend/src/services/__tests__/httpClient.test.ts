@@ -178,4 +178,97 @@ describe('createApiClient', () => {
     await capturedRequestInterceptor({ method: 'post', headers: {} });
     expect(axios.get).toHaveBeenCalledWith('/api/v2/auth/csrf-token', { withCredentials: true });
   });
+
+  it('normalizes canonical API error messages before rejecting', async () => {
+    let capturedResponseErrorInterceptor: ((error: object) => Promise<never>) | null = null;
+
+    vi.mocked(axios.create).mockReturnValueOnce({
+      interceptors: {
+        request: { use: vi.fn() },
+        response: {
+          use: vi.fn((_, rejected) => {
+            capturedResponseErrorInterceptor = rejected as (error: object) => Promise<never>;
+          }),
+        },
+      },
+      defaults: { headers: {} },
+      request: vi.fn(),
+    } as ReturnType<typeof axios.create>);
+
+    createApiClient({ onUnauthorized: vi.fn() });
+
+    if (!capturedResponseErrorInterceptor) {
+      throw new Error('Response interceptor was not captured');
+    }
+
+    const error = {
+      message: 'Request failed with status code 400',
+      response: {
+        status: 400,
+        data: {
+          success: false,
+          error: {
+            code: 'bad_request',
+            message: 'Account type is invalid',
+          },
+        },
+      },
+    };
+
+    await expect(capturedResponseErrorInterceptor(error)).rejects.toMatchObject({
+      message: 'Account type is invalid',
+    });
+  });
+
+  it('normalizes validation errors using the first issue and correlation ID', async () => {
+    let capturedResponseErrorInterceptor: ((error: object) => Promise<never>) | null = null;
+
+    vi.mocked(axios.create).mockReturnValueOnce({
+      interceptors: {
+        request: { use: vi.fn() },
+        response: {
+          use: vi.fn((_, rejected) => {
+            capturedResponseErrorInterceptor = rejected as (error: object) => Promise<never>;
+          }),
+        },
+      },
+      defaults: { headers: {} },
+      request: vi.fn(),
+    } as ReturnType<typeof axios.create>);
+
+    createApiClient({ onUnauthorized: vi.fn() });
+
+    if (!capturedResponseErrorInterceptor) {
+      throw new Error('Response interceptor was not captured');
+    }
+
+    const error = {
+      message: 'Request failed with status code 400',
+      response: {
+        status: 400,
+        data: {
+          success: false,
+          error: {
+            code: 'validation_error',
+            message: 'Validation failed',
+            details: {
+              issues: [
+                {
+                  source: 'query',
+                  path: 'status',
+                  message: 'Invalid option',
+                  code: 'invalid_enum_value',
+                },
+              ],
+            },
+          },
+          correlationId: 'req-123',
+        },
+      },
+    };
+
+    await expect(capturedResponseErrorInterceptor(error)).rejects.toMatchObject({
+      message: 'status: Invalid option (Ref: req-123)',
+    });
+  });
 });

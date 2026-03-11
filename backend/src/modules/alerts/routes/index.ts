@@ -20,7 +20,7 @@ import {
 } from '../controllers';
 import { authenticate } from '@middleware/domains/auth';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
-import { uuidSchema } from '@validations/shared';
+import { uuidSchema, optionalStrictBooleanSchema } from '@validations/shared';
 
 const router = Router();
 
@@ -59,7 +59,7 @@ const createAlertConfigSchema = z.object({
   frequency: alertFrequencySchema,
   channels: z.array(z.unknown()),
   severity: alertSeveritySchema,
-  enabled: z.coerce.boolean().optional(),
+  enabled: optionalStrictBooleanSchema,
   recipients: z.array(z.unknown()).optional(),
   filters: z.record(z.string(), z.unknown()).optional(),
 });
@@ -75,7 +75,7 @@ const updateAlertConfigSchema = z.object({
   frequency: z.string().optional(),
   channels: z.array(z.unknown()).optional(),
   severity: z.string().optional(),
-  enabled: z.coerce.boolean().optional(),
+  enabled: optionalStrictBooleanSchema,
   recipients: z.array(z.unknown()).optional(),
   filters: z.record(z.string(), z.unknown()).optional(),
 });
@@ -88,11 +88,13 @@ const testAlertConfigSchema = z.object({
   sensitivity: z.coerce.number().min(1).max(4).optional(),
 });
 
-const alertInstancesQuerySchema = z.object({
-  status: z.string().optional(),
-  severity: z.string().optional(),
-  limit: z.coerce.number().int().min(1).max(100).optional(),
-}).strict();
+const alertInstancesQuerySchema = z
+  .object({
+    status: z.string().optional(),
+    severity: z.string().optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+  })
+  .strict();
 
 // All routes require authentication
 router.use(authenticate);
@@ -119,7 +121,12 @@ router.post('/configs', validateBody(createAlertConfigSchema), createAlertConfig
  * PUT /api/alerts/configs/:id
  * Update alert configuration
  */
-router.put('/configs/:id', validateParams(alertIdParamsSchema), validateBody(updateAlertConfigSchema), updateAlertConfig);
+router.put(
+  '/configs/:id',
+  validateParams(alertIdParamsSchema),
+  validateBody(updateAlertConfigSchema),
+  updateAlertConfig
+);
 
 /**
  * DELETE /api/alerts/configs/:id

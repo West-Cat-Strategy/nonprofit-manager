@@ -57,6 +57,8 @@ export interface SendMailOptions {
   }>;
 }
 
+const STARTTLS_SMTP_PORTS = new Set([25, 587, 2525]);
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -101,10 +103,7 @@ async function getSmtpConfig(): Promise<SmtpConfig | null> {
 /**
  * Build a nodemailer transporter from the current SMTP settings.
  */
-async function createTransporter(): Promise<Transporter | null> {
-  const config = await getSmtpConfig();
-  if (!config) return null;
-
+function createTransporter(config: SmtpConfig): Transporter {
   return nodemailer.createTransport({
     host: config.host,
     port: config.port,
@@ -114,6 +113,35 @@ async function createTransporter(): Promise<Transporter | null> {
       pass: config.pass,
     },
   });
+}
+
+function mapSmtpTestError(config: SmtpConfig, err: unknown): string {
+  const message = err instanceof Error ? err.message : 'Unknown error';
+  const normalizedMessage = message.toLowerCase();
+
+  if (
+    config.secure &&
+    STARTTLS_SMTP_PORTS.has(config.port) &&
+    (normalizedMessage.includes('wrong version number') ||
+      normalizedMessage.includes('ssl3_get_record') ||
+      normalizedMessage.includes('ssl routines'))
+  ) {
+    return `SMTP TLS handshake failed. Port ${config.port} usually requires STARTTLS with TLS/SSL unchecked.`;
+  }
+
+  if (
+    !config.secure &&
+    config.port === 465 &&
+    (normalizedMessage.includes('greeting never received') ||
+      normalizedMessage.includes('unexpected socket close') ||
+      normalizedMessage.includes('connection closed') ||
+      normalizedMessage.includes('econnreset') ||
+      normalizedMessage.includes('timeout'))
+  ) {
+    return 'SMTP TLS handshake failed. Port 465 usually requires TLS/SSL checked.';
+  }
+
+  return message;
 }
 
 // ---------------------------------------------------------------------------
@@ -130,8 +158,7 @@ export async function sendMail(options: SendMailOptions): Promise<boolean> {
     return false;
   }
 
-  const transporter = await createTransporter();
-  if (!transporter) return false;
+  const transporter = createTransporter(config);
 
   try {
     await transporter.sendMail({
@@ -155,10 +182,11 @@ export async function sendMail(options: SendMailOptions): Promise<boolean> {
  * Test the SMTP connection with the current settings. Returns true on success.
  */
 export async function testSmtpConnection(): Promise<{ success: boolean; error?: string }> {
-  const transporter = await createTransporter();
-  if (!transporter) {
+  const config = await getSmtpConfig();
+  if (!config) {
     return { success: false, error: 'SMTP is not configured' };
   }
+  const transporter = createTransporter(config);
 
   try {
     await transporter.verify();
@@ -173,8 +201,7 @@ export async function testSmtpConnection(): Promise<{ success: boolean; error?: 
       `UPDATE email_settings SET last_tested_at = NOW(), last_test_success = false, updated_at = NOW()
        WHERE is_configured = true`
     );
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return { success: false, error: message };
+    return { success: false, error: mapSmtpTestError(config, err) };
   }
 }
 

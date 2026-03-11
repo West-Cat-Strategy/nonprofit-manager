@@ -5,15 +5,48 @@
 
 import { z } from 'zod';
 
+const normalizeBooleanInput = (value: unknown): unknown => {
+  if (value === undefined || value === null) {
+    return value;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true' || normalized === '1') {
+      return true;
+    }
+    if (normalized === 'false' || normalized === '0') {
+      return false;
+    }
+  }
+
+  return value;
+};
+
 // UUID validation
 export const uuidSchema = z.string().uuid('Invalid UUID format');
 
 // Email validation
 export const emailSchema = z
   .string()
-  .email('Invalid email address')
+  .trim()
   .toLowerCase()
-  .trim();
+  .pipe(z.string().email('Invalid email address'));
+
+export const strictBooleanSchema = z.preprocess(normalizeBooleanInput, z.boolean());
+
+export const optionalStrictBooleanSchema = z.preprocess(
+  normalizeBooleanInput,
+  z.boolean().optional()
+);
+
+export const isoDateSchema = z.iso.date();
+
+export const isoDateTimeSchema = z.iso.datetime({ offset: true });
 
 // Password validation - strong password requirements
 export const passwordSchema = z
@@ -24,9 +57,7 @@ export const passwordSchema = z
   .regex(/[0-9]/, 'Password must contain at least one number');
 
 // Weak password for updates (optional validation)
-export const weakPasswordSchema = z
-  .string()
-  .min(8, 'Password must be at least 8 characters');
+export const weakPasswordSchema = z.string().min(8, 'Password must be at least 8 characters');
 
 // Phone number validation
 export const phoneSchema = z
@@ -36,9 +67,7 @@ export const phoneSchema = z
   .optional()
   .or(z.literal(''));
 
-const phnDigitsSchema = z
-  .string()
-  .regex(/^\d{10}$/, 'PHN must contain exactly 10 digits');
+const phnDigitsSchema = z.string().regex(/^\d{10}$/, 'PHN must contain exactly 10 digits');
 
 const normalizePhnDigits = (value: string): string => value.replace(/\D/g, '');
 
@@ -46,44 +75,34 @@ const normalizePhnDigits = (value: string): string => value.replace(/\D/g, '');
  * Optional PHN value for create flows.
  * Empty strings are treated as "not provided".
  */
-export const optionalPhnSchema = z.preprocess(
-  (value) => {
-    if (value === undefined) {
-      return undefined;
-    }
-    if (typeof value !== 'string') {
-      return value;
-    }
-    const normalized = normalizePhnDigits(value);
-    return normalized.length === 0 ? undefined : normalized;
-  },
-  phnDigitsSchema.optional()
-);
+export const optionalPhnSchema = z.preprocess((value) => {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== 'string') {
+    return value;
+  }
+  const normalized = normalizePhnDigits(value);
+  return normalized.length === 0 ? undefined : normalized;
+}, phnDigitsSchema.optional());
 
 /**
  * Optional + nullable PHN value for update flows.
  * Null clears the field; empty strings are normalized to null.
  */
-export const optionalNullablePhnSchema = z.preprocess(
-  (value) => {
-    if (value === undefined || value === null) {
-      return value;
-    }
-    if (typeof value !== 'string') {
-      return value;
-    }
-    const normalized = normalizePhnDigits(value);
-    return normalized.length === 0 ? null : normalized;
-  },
-  phnDigitsSchema.nullable().optional()
-);
+export const optionalNullablePhnSchema = z.preprocess((value) => {
+  if (value === undefined || value === null) {
+    return value;
+  }
+  if (typeof value !== 'string') {
+    return value;
+  }
+  const normalized = normalizePhnDigits(value);
+  return normalized.length === 0 ? null : normalized;
+}, phnDigitsSchema.nullable().optional());
 
 // URL validation
-export const urlSchema = z
-  .string()
-  .url('Invalid URL format')
-  .optional()
-  .or(z.literal(''));
+export const urlSchema = z.string().url('Invalid URL format').optional().or(z.literal(''));
 
 // Address validation
 export const addressSchema = z.object({
@@ -146,10 +165,7 @@ export const apiErrorResponseSchema = z.object({
 });
 
 // Combined API response type
-export const apiResponseSchema = z.union([
-  apiSuccessResponseSchema,
-  apiErrorResponseSchema,
-]);
+export const apiResponseSchema = z.union([apiSuccessResponseSchema, apiErrorResponseSchema]);
 
 export type ApiSuccessResponse<T = unknown> = z.infer<typeof apiSuccessResponseSchema> & {
   data?: T;
@@ -160,16 +176,15 @@ export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;
 export type ApiResponse<T = unknown> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 // Date range validation
-export const dateRangeSchema = z.object({
-  start_date: z.coerce.date(),
-  end_date: z.coerce.date(),
-}).refine(
-  (data) => data.start_date <= data.end_date,
-  {
+export const dateRangeSchema = z
+  .object({
+    start_date: z.coerce.date(),
+    end_date: z.coerce.date(),
+  })
+  .refine((data) => data.start_date <= data.end_date, {
     message: 'End date must be greater than or equal to start date',
     path: ['end_date'],
-  }
-);
+  });
 
 export type DateRange = z.infer<typeof dateRangeSchema>;
 

@@ -17,6 +17,7 @@ import {
   AssignmentFilters,
   AvailabilityStatus,
   BackgroundCheckStatus,
+  VolunteerLifecycleStatus,
 } from '@app-types/volunteer';
 import { logger } from '@config/logger';
 import { resolveSort } from '@utils/queryHelpers';
@@ -107,6 +108,20 @@ const normalizeAvailabilityStatus = (
   }
 };
 
+const isAvailabilityStatus = (value: unknown): value is AvailabilityStatus =>
+  value === AvailabilityStatus.AVAILABLE ||
+  value === AvailabilityStatus.UNAVAILABLE ||
+  value === AvailabilityStatus.LIMITED;
+
+const isVolunteerLifecycleStatus = (value: unknown): value is VolunteerLifecycleStatus =>
+  value === VolunteerLifecycleStatus.ACTIVE ||
+  value === VolunteerLifecycleStatus.INACTIVE ||
+  value === VolunteerLifecycleStatus.ON_LEAVE ||
+  value === VolunteerLifecycleStatus.RETIRED;
+
+const isLifecycleStatusActive = (value: VolunteerLifecycleStatus): boolean =>
+  value !== VolunteerLifecycleStatus.INACTIVE && value !== VolunteerLifecycleStatus.RETIRED;
+
 const normalizeIsActive = (isActive: unknown, volunteerStatus: unknown): boolean => {
   if (typeof isActive === 'boolean') {
     return isActive;
@@ -129,9 +144,7 @@ const normalizeVolunteerRow = (row: DatabaseRow): Volunteer => {
   );
   const backgroundCheckStatus = normalizeBackgroundCheckStatus(row.background_check_status);
   const totalHoursLogged =
-    parseNumericValue(row.total_hours_logged) ??
-    parseNumericValue(row.hours_contributed) ??
-    0;
+    parseNumericValue(row.total_hours_logged) ?? parseNumericValue(row.hours_contributed) ?? 0;
   const maxHoursPerWeek = parseNumericValue(row.max_hours_per_week);
 
   return {
@@ -146,12 +159,11 @@ const normalizeVolunteerRow = (row: DatabaseRow): Volunteer => {
         ? row.availability
         : null,
     background_check_status: backgroundCheckStatus,
-    background_check_date: (row.background_check_date as Volunteer['background_check_date']) ?? null,
+    background_check_date:
+      (row.background_check_date as Volunteer['background_check_date']) ?? null,
     background_check_expiry:
       (row.background_check_expiry as Volunteer['background_check_expiry']) ?? null,
-    preferred_roles: Array.isArray(row.preferred_roles)
-      ? (row.preferred_roles as string[])
-      : null,
+    preferred_roles: Array.isArray(row.preferred_roles) ? (row.preferred_roles as string[]) : null,
     max_hours_per_week: maxHoursPerWeek,
     emergency_contact_name:
       (row.emergency_contact_name as Volunteer['emergency_contact_name']) ?? null,
@@ -187,9 +199,7 @@ const normalizeAssignmentRow = (row: DatabaseRow): VolunteerAssignment => ({
   end_time: (row.end_time as VolunteerAssignment['end_time']) ?? null,
   hours_logged: parseNumericValue(row.hours_logged) ?? 0,
   status:
-    row.status === 'in_progress' ||
-    row.status === 'completed' ||
-    row.status === 'cancelled'
+    row.status === 'in_progress' || row.status === 'completed' || row.status === 'cancelled'
       ? row.status
       : 'scheduled',
   notes: isNonEmptyString(row.notes) ? row.notes : null,
@@ -340,10 +350,7 @@ export class VolunteerService {
   /**
    * Get volunteer by ID
    */
-  async getVolunteerById(
-    volunteerId: string,
-    scope?: DataScopeFilter
-  ): Promise<Volunteer | null> {
+  async getVolunteerById(volunteerId: string, scope?: DataScopeFilter): Promise<Volunteer | null> {
     try {
       const conditions: string[] = ['v.id = $1'];
       const values: QueryValue[] = [volunteerId];
@@ -394,14 +401,19 @@ export class VolunteerService {
   async createVolunteer(data: CreateVolunteerDTO, userId: string): Promise<Volunteer> {
     try {
       // Verify contact exists
-      const contactCheck = await this.pool.query(
-        'SELECT id FROM contacts WHERE id = $1',
-        [data.contact_id]
-      );
+      const contactCheck = await this.pool.query('SELECT id FROM contacts WHERE id = $1', [
+        data.contact_id,
+      ]);
 
       if (contactCheck.rows.length === 0) {
         throw new Error('Contact not found');
       }
+
+      const volunteerStatus =
+        data.status && isVolunteerLifecycleStatus(data.status)
+          ? data.status
+          : VolunteerLifecycleStatus.ACTIVE;
+      const isActive = isLifecycleStatusActive(volunteerStatus);
 
       const result = await this.pool.query(
         `INSERT INTO volunteers (
@@ -418,7 +430,7 @@ export class VolunteerService {
         [
           data.contact_id,
           data.skills || [],
-          'active',
+          volunteerStatus,
           data.availability_notes || null,
           data.availability_status || AvailabilityStatus.AVAILABLE,
           data.availability_notes || null,
@@ -430,7 +442,7 @@ export class VolunteerService {
           data.emergency_contact_name || null,
           data.emergency_contact_phone || null,
           data.emergency_contact_relationship || null,
-          true,
+          isActive,
           userId,
         ]
       );
@@ -459,6 +471,16 @@ export class VolunteerService {
 
       if (data.skills !== undefined) {
         updatePayload.skills = data.skills;
+      }
+      const statusAlias = data.volunteer_status ?? data.status;
+      if (statusAlias !== undefined) {
+        if (isAvailabilityStatus(statusAlias)) {
+          updatePayload.availability_status = statusAlias;
+          updatePayload.volunteer_status = statusAlias;
+        } else if (isVolunteerLifecycleStatus(statusAlias)) {
+          updatePayload.volunteer_status = statusAlias;
+          updatePayload.is_active = isLifecycleStatusActive(statusAlias);
+        }
       }
       if (data.availability_status !== undefined) {
         updatePayload.availability_status = data.availability_status;

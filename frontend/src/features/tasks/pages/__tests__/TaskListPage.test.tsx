@@ -36,11 +36,42 @@ vi.mock('../../../../hooks/useConfirmDialog', () => ({
 vi.mock('../../../../components/ConfirmDialog', () => ({ default: () => null }));
 
 describe('TaskList page', () => {
+  beforeEach(() => {
+    dispatchMock.mockClear();
+    localStorage.clear();
+  });
+
   it('renders tasks heading and quick filters', async () => {
     const user = userEvent.setup();
     renderWithProviders(<TaskList />);
     expect(screen.getByRole('heading', { name: 'Tasks' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Overdue' }));
     expect(dispatchMock).toHaveBeenCalled();
+  });
+
+  it('sanitizes stale local storage filters before dispatching the initial load', () => {
+    localStorage.setItem(
+      'tasks_list_filters_v1',
+      JSON.stringify({
+        search: 'follow up',
+        status: 'paused',
+        priority: 'critical',
+        overdue: 'yes',
+        page: 9,
+      })
+    );
+
+    renderWithProviders(<TaskList />, { route: '/tasks' });
+
+    expect(dispatchMock).toHaveBeenCalledWith({
+      type: 'tasks/fetch',
+      payload: {
+        search: 'follow up',
+        status: undefined,
+        priority: undefined,
+        overdue: false,
+        page: 1,
+      },
+    });
   });
 });

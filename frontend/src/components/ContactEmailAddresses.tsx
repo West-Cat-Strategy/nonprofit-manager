@@ -168,7 +168,7 @@ const ContactEmailAddresses = ({ contactId }: ContactEmailAddressesProps) => {
       {/* Add/Edit Form */}
       {isAdding ? (
         <form onSubmit={handleSubmit} className="bg-app-surface-muted rounded-lg p-4 border border-app-border">
-          <h4 className="font-medium mb-3">
+          <h4 className="font-medium text-app-text mb-3">
             {editingId ? 'Edit Email Address' : 'Add Email Address'}
           </h4>
 
@@ -218,15 +218,15 @@ const ContactEmailAddresses = ({ contactId }: ContactEmailAddressesProps) => {
             <button
               type="button"
               onClick={resetForm}
-              className="px-3 py-1.5 text-sm border border-app-input-border rounded-lg hover:bg-app-surface-muted transition"
+              className="px-3 py-1.5 text-sm text-app-text border border-app-input-border rounded-lg hover:bg-app-surface transition"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-3 py-1.5 text-sm bg-app-accent text-white rounded-lg hover:bg-app-accent-hover transition"
+              className="px-3 py-1.5 text-sm font-medium bg-app-accent text-app-accent-text rounded-lg hover:bg-app-accent-hover transition"
             >
-              {editingId ? 'Save' : 'Add'}
+              {editingId ? 'Save Email' : 'Add Email'}
             </button>
           </div>
         </form>
@@ -235,7 +235,7 @@ const ContactEmailAddresses = ({ contactId }: ContactEmailAddressesProps) => {
           onClick={() => setIsAdding(true)}
           className="w-full px-3 py-2 text-sm text-app-accent border border-dashed border-app-accent rounded-lg hover:bg-app-accent-soft transition"
         >
-          + Add Email Address
+          + Add Email
         </button>
       )}
       <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />

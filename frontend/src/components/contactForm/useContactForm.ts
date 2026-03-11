@@ -12,11 +12,12 @@ import {
 } from '../../features/contacts/state';
 import type { ContactRole, CreateContactRelationshipDTO, RelationshipType } from '../../types/contact';
 import { useToast } from '../../contexts/useToast';
-import api from '../../services/api';
 import { validatePostalCode } from '../../utils/validation';
+import { toDateInputValue } from '../../utils/format';
 import type { ContactFormValues, ContactRecord } from './types';
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 import useConfirmDialog, { confirmPresets } from '../../hooks/useConfirmDialog';
+import { contactsApiClient } from '../../features/contacts/api/contactsApiClient';
 
 interface UseContactFormProps {
   contact?: ContactRecord;
@@ -44,11 +45,12 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
   // Pre-fill from URL params when creating (e.g., from relationship "Create New Person")
   const urlFirstName = searchParams.get('first_name') || '';
   const urlLastName = searchParams.get('last_name') || '';
+  const urlAccountId = searchParams.get('account_id') || '';
   const returnToContactId = searchParams.get('return_to');
 
   const [formData, setFormData] = useState<ContactFormValues>({
     first_name: mode === 'create' ? urlFirstName : '',
-    account_id: '',
+    account_id: mode === 'create' ? urlAccountId : '',
     preferred_name: '',
     last_name: mode === 'create' ? urlLastName : '',
     middle_name: '',
@@ -109,6 +111,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
     if (contact && mode === 'edit') {
       setFormData({
         ...contact,
+        birth_date: toDateInputValue(contact.birth_date),
         roles: contact.roles || [],
       });
       setIsDirty(false);
@@ -123,8 +126,8 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
     const fetchRoles = async () => {
       try {
         setRolesLoading(true);
-        const response = await api.get('/contacts/roles');
-        setAvailableRoles(response.data.roles || []);
+        const roles = await contactsApiClient.listRoles();
+        setAvailableRoles(roles || []);
       } catch (error) {
         console.error('Failed to load contact roles:', error);
       } finally {
@@ -259,13 +262,13 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
     }
 
     if (formData.mobile_phone && !/^[\d\s+() -]+$/.test(formData.mobile_phone)) {
-      newErrors.mobile_phone = 'Invalid home phone number format';
+      newErrors.mobile_phone = 'Invalid mobile phone number format';
     }
 
     if (formData.mobile_phone) {
       const digitCount = formData.mobile_phone.replace(/\D/g, '').length;
       if (digitCount > 0 && digitCount < 10) {
-        newErrors.mobile_phone = 'Home phone number must be at least 10 digits';
+        newErrors.mobile_phone = 'Mobile phone number must be at least 10 digits';
       }
     }
 
@@ -309,6 +312,13 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
       } else {
         normalizedPhn = rawPhn.replace(/\D/g, '');
       }
+      const normalizeOptionalField = (value: string | null | undefined) => {
+        const trimmed = typeof value === 'string' ? value.trim() : value;
+        if (!trimmed) {
+          return mode === 'edit' ? null : undefined;
+        }
+        return trimmed;
+      };
 
       const cleanedData = {
         ...formData,
@@ -317,13 +327,13 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
         middle_name: formData.middle_name || undefined,
         salutation: formData.salutation || undefined,
         suffix: formData.suffix || undefined,
-        birth_date: formData.birth_date || undefined,
+        birth_date: formData.birth_date ? toDateInputValue(formData.birth_date) : (mode === 'edit' ? null : undefined),
         gender: formData.gender || undefined,
         pronouns: formData.pronouns || undefined,
         phn: normalizedPhn,
-        email: formData.email || undefined,
-        phone: formData.phone || undefined,
-        mobile_phone: formData.mobile_phone || undefined,
+        email: normalizeOptionalField(formData.email),
+        phone: normalizeOptionalField(formData.phone),
+        mobile_phone: normalizeOptionalField(formData.mobile_phone),
         job_title: formData.job_title || undefined,
         department: formData.department || undefined,
         address_line1: formData.no_fixed_address ? undefined : (formData.address_line1 || undefined),

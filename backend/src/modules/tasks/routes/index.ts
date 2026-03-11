@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
 import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
-import { uuidSchema } from '@validations/shared';
+import { isoDateTimeSchema, optionalStrictBooleanSchema, uuidSchema } from '@validations/shared';
 import { followUpController as followUpsController } from '@modules/followUps/controllers/followUps.handlers';
 import { createTasksController } from '../controllers/tasks.controller';
 import { type ResponseMode } from '../mappers/responseMode';
@@ -22,9 +22,7 @@ const taskStatusSchema = z.enum([
 const taskPrioritySchema = z.enum(['low', 'normal', 'high', 'urgent']);
 const relatedToTypeSchema = z.enum(['account', 'contact', 'event', 'donation', 'volunteer']);
 
-const dateStringSchema = z
-  .string()
-  .refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid date format');
+const dateStringSchema = isoDateTimeSchema;
 
 const taskIdParamsSchema = z.object({
   id: uuidSchema,
@@ -53,19 +51,21 @@ const updateTaskSchema = z.object({
   related_to_id: z.union([uuidSchema, z.null()]).optional(),
 });
 
-const taskQuerySchema = z.object({
-  search: z.string().trim().optional(),
-  status: taskStatusSchema.optional(),
-  priority: taskPrioritySchema.optional(),
-  assigned_to: uuidSchema.optional(),
-  related_to_type: relatedToTypeSchema.optional(),
-  related_to_id: uuidSchema.optional(),
-  due_before: dateStringSchema.optional(),
-  due_after: dateStringSchema.optional(),
-  overdue: z.coerce.boolean().optional(),
-  page: z.coerce.number().int().min(1).optional(),
-  limit: z.coerce.number().int().min(1).max(100).optional(),
-}).strict();
+const taskQuerySchema = z
+  .object({
+    search: z.string().trim().optional(),
+    status: taskStatusSchema.optional(),
+    priority: taskPrioritySchema.optional(),
+    assigned_to: uuidSchema.optional(),
+    related_to_type: relatedToTypeSchema.optional(),
+    related_to_id: uuidSchema.optional(),
+    due_before: dateStringSchema.optional(),
+    due_after: dateStringSchema.optional(),
+    overdue: optionalStrictBooleanSchema,
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+  })
+  .strict();
 
 export const createTasksRoutes = (mode: ResponseMode = 'v2'): Router => {
   const router = Router();

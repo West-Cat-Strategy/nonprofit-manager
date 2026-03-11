@@ -1,8 +1,3 @@
-/**
- * Contact Service
- * Handles business logic and database operations for contacts
- */
-
 import { Pool } from 'pg';
 import {
   Contact,
@@ -18,10 +13,18 @@ import { resolveContactRoleNames } from '@modules/contacts/shared/contactRoleFil
 import { resolveSort } from '@utils/queryHelpers';
 import { decrypt, encrypt } from '@utils/encryption';
 import type { DataScopeFilter } from '@app-types/dataScope';
+import {
+  syncContactMethodSummaries,
+  syncStructuredContactMethodsFromSummary,
+} from '@services/contactMethodSyncService';
 
 type QueryValue = string | number | boolean | null | string[] | Date;
 type ViewerRole = string | undefined;
-type ContactRecord = Omit<Contact, 'phn'> & { phn?: string | null; phn_encrypted?: string | null };
+type ContactRecord = Omit<Contact, 'birth_date' | 'phn'> & {
+  birth_date?: string | Date | null;
+  phn?: string | null;
+  phn_encrypted?: string | null;
+};
 const PHN_FULL_ACCESS_ROLES = new Set(['admin', 'manager', 'staff']);
 
 export class ContactService {
@@ -80,6 +83,52 @@ export class ContactService {
     return `******${phn.slice(-4)}`;
   }
 
+  private normalizeNullableText(value: unknown): string | null | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+    if (value === null) {
+      return null;
+    }
+    if (typeof value !== 'string') {
+      throw new Error('Expected string value');
+    }
+
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  private normalizeDateOnly(value: unknown): string | null {
+    if (value === undefined || value === null || value === '') {
+      return null;
+    }
+
+    if (value instanceof Date) {
+      const year = value.getUTCFullYear();
+      const month = `${value.getUTCMonth() + 1}`.padStart(2, '0');
+      const day = `${value.getUTCDate()}`.padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      const directMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2})/);
+      if (directMatch) {
+        return directMatch[1];
+      }
+
+      const parsed = new Date(trimmed);
+      if (!Number.isNaN(parsed.getTime())) {
+        const year = parsed.getUTCFullYear();
+        const month = `${parsed.getUTCMonth() + 1}`.padStart(2, '0');
+        const day = `${parsed.getUTCDate()}`.padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+    }
+
+    throw new Error('Birth date must be a valid YYYY-MM-DD value');
+  }
+
   private mapContactRow(row: ContactRecord, viewerRole?: ViewerRole): Contact {
     const decryptedPhn = this.decryptPhn(row.phn_encrypted, row.contact_id);
     const phn = this.formatPhnForViewer(decryptedPhn, viewerRole);
@@ -88,13 +137,10 @@ export class ContactService {
 
     return {
       ...rest,
+      birth_date: this.normalizeDateOnly(rest.birth_date),
       phn,
     };
   }
-
-  /**
-   * Get all contacts with filtering and pagination
-   */
   async getContacts(
     filters: ContactFilters = {},
     pagination: PaginationParams = {},
@@ -280,10 +326,6 @@ export class ContactService {
       throw Object.assign(new Error('Failed to retrieve contacts'), { cause: error });
     }
   }
-
-  /**
-   * Lightweight contact lookup for navigation/search surfaces.
-   */
   async lookupContacts(
     query: { q: string; limit?: number; is_active?: boolean },
     scope?: DataScopeFilter
@@ -374,10 +416,6 @@ export class ContactService {
       throw Object.assign(new Error('Failed to lookup contacts'), { cause: error });
     }
   }
-
-  /**
-   * Get distinct tags applied to contacts
-   */
   async getContactTags(scope?: DataScopeFilter): Promise<string[]> {
     try {
       const conditions: string[] = [];
@@ -420,10 +458,6 @@ export class ContactService {
       throw Object.assign(new Error('Failed to retrieve contact tags'), { cause: error });
     }
   }
-
-  /**
-   * Get contact by ID
-   */
   async getContactById(contactId: string, viewerRole?: ViewerRole): Promise<Contact | null> {
     try {
       const result = await this.pool.query(
@@ -575,14 +609,14 @@ export class ContactService {
       throw Object.assign(new Error('Failed to retrieve contact'), { cause: error });
     }
   }
-
-  /**
-   * Create new contact
-   */
   async createContact(data: CreateContactDTO, userId: string, viewerRole?: ViewerRole): Promise<Contact> {
     try {
       const normalizedPhn = this.normalizePhn(data.phn);
       const encryptedPhn = normalizedPhn ? encrypt(normalizedPhn) : null;
+      const normalizedBirthDate = this.normalizeDateOnly(data.birth_date);
+      const normalizedEmail = this.normalizeNullableText(data.email) ?? null;
+      const normalizedPhone = this.normalizeNullableText(data.phone) ?? null;
+      const normalizedMobilePhone = this.normalizeNullableText(data.mobile_phone) ?? null;
 
       const result = await this.pool.query(
         `INSERT INTO contacts (
@@ -611,13 +645,13 @@ export class ContactService {
           data.middle_name || null,
           data.salutation || null,
           data.suffix || null,
-          data.birth_date || null,
+          normalizedBirthDate,
           data.gender || null,
           data.pronouns || null,
           encryptedPhn,
-          data.email || null,
-          data.phone || null,
-          data.mobile_phone || null,
+          normalizedEmail,
+          normalizedPhone,
+          normalizedMobilePhone,
           data.address_line1 || null,
           data.address_line2 || null,
           data.city || null,
@@ -638,17 +672,31 @@ export class ContactService {
         ]
       );
 
-      logger.info(`Contact created: ${result.rows[0].contact_id}`);
-      return this.mapContactRow(result.rows[0] as ContactRecord, viewerRole);
+      const contactId = result.rows[0].contact_id as string;
+      await syncStructuredContactMethodsFromSummary(
+        contactId,
+        {
+          email: normalizedEmail,
+          phone: normalizedPhone,
+          mobile_phone: normalizedMobilePhone,
+        },
+        userId,
+        this.pool
+      );
+      await syncContactMethodSummaries(contactId, this.pool);
+
+      const createdContact = await this.getContactById(contactId, viewerRole);
+      if (!createdContact) {
+        throw new Error('Failed to reload created contact');
+      }
+
+      logger.info(`Contact created: ${contactId}`);
+      return createdContact;
     } catch (error) {
       logger.error('Error creating contact:', error);
       throw Object.assign(new Error('Failed to create contact'), { cause: error });
     }
   }
-
-  /**
-   * Update contact
-   */
   async updateContact(
     contactId: string,
     data: UpdateContactDTO,
@@ -657,6 +705,34 @@ export class ContactService {
   ): Promise<Contact | null> {
     try {
       const updateData: Record<string, unknown> = { ...data };
+      const summarySyncInput: {
+        email?: string | null;
+        phone?: string | null;
+        mobile_phone?: string | null;
+      } = {};
+
+      if (Object.prototype.hasOwnProperty.call(updateData, 'birth_date')) {
+        updateData.birth_date = this.normalizeDateOnly(updateData.birth_date);
+      }
+
+      if (Object.prototype.hasOwnProperty.call(updateData, 'email')) {
+        const normalizedEmail = this.normalizeNullableText(updateData.email);
+        updateData.email = normalizedEmail;
+        summarySyncInput.email = normalizedEmail ?? null;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(updateData, 'phone')) {
+        const normalizedPhone = this.normalizeNullableText(updateData.phone);
+        updateData.phone = normalizedPhone;
+        summarySyncInput.phone = normalizedPhone ?? null;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(updateData, 'mobile_phone')) {
+        const normalizedMobilePhone = this.normalizeNullableText(updateData.mobile_phone);
+        updateData.mobile_phone = normalizedMobilePhone;
+        summarySyncInput.mobile_phone = normalizedMobilePhone ?? null;
+      }
+
       if (Object.prototype.hasOwnProperty.call(updateData, 'phn')) {
         const normalizedPhn = this.normalizePhn(updateData.phn);
         updateData.phn_encrypted = normalizedPhn ? encrypt(normalizedPhn) : null;
@@ -708,6 +784,16 @@ export class ContactService {
         return null;
       }
 
+      if (
+        summarySyncInput.email !== undefined ||
+        summarySyncInput.phone !== undefined ||
+        summarySyncInput.mobile_phone !== undefined
+      ) {
+        await syncStructuredContactMethodsFromSummary(contactId, summarySyncInput, userId, this.pool);
+        await syncContactMethodSummaries(contactId, this.pool);
+        return this.getContactById(contactId, viewerRole);
+      }
+
       logger.info(`Contact updated: ${contactId}`);
       return this.mapContactRow(result.rows[0] as ContactRecord, viewerRole);
     } catch (error) {
@@ -715,10 +801,6 @@ export class ContactService {
       throw Object.assign(new Error('Failed to update contact'), { cause: error });
     }
   }
-
-  /**
-   * Bulk update contacts (tags and/or active status)
-   */
   async bulkUpdateContacts(
     contactIds: string[],
     options: {
@@ -784,10 +866,6 @@ export class ContactService {
       throw Object.assign(new Error('Failed to bulk update contacts'), { cause: error });
     }
   }
-
-  /**
-   * Soft delete contact
-   */
   async deleteContact(contactId: string, userId: string): Promise<boolean> {
     try {
       const result = await this.pool.query(

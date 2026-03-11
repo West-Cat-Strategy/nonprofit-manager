@@ -9,6 +9,13 @@ export enum AvailabilityStatus {
   LIMITED = 'limited',
 }
 
+export enum VolunteerLifecycleStatus {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  ON_LEAVE = 'on_leave',
+  RETIRED = 'retired',
+}
+
 export enum BackgroundCheckStatus {
   NOT_REQUIRED = 'not_required',
   PENDING = 'pending',
@@ -58,6 +65,7 @@ export interface Volunteer {
 
 export interface CreateVolunteerDTO {
   contact_id: string;
+  status?: VolunteerLifecycleStatus;
   skills?: string[];
   availability_status?: AvailabilityStatus;
   availability_notes?: string;
@@ -72,6 +80,8 @@ export interface CreateVolunteerDTO {
 }
 
 export interface UpdateVolunteerDTO {
+  status?: VolunteerLifecycleStatus;
+  volunteer_status?: VolunteerLifecycleStatus | AvailabilityStatus;
   skills?: string[];
   availability_status?: AvailabilityStatus;
   availability_notes?: string;

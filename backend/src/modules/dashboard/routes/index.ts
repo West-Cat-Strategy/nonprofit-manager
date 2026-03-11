@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
 import { validateBody, validateParams } from '@middleware/zodValidation';
-import { uuidSchema } from '@validations/shared';
+import { uuidSchema, optionalStrictBooleanSchema } from '@validations/shared';
 import { createDashboardController } from '../controllers/dashboard.controller';
 
 const dashboardIdParamsSchema = z.object({
@@ -11,7 +11,7 @@ const dashboardIdParamsSchema = z.object({
 
 const createDashboardSchema = z.object({
   name: z.string().trim().min(1, 'Dashboard name is required'),
-  is_default: z.coerce.boolean().optional(),
+  is_default: optionalStrictBooleanSchema,
   widgets: z.array(z.unknown()),
   layout: z.array(z.unknown()),
   breakpoints: z.record(z.string(), z.unknown()).optional(),
@@ -20,7 +20,7 @@ const createDashboardSchema = z.object({
 
 const updateDashboardSchema = z.object({
   name: z.string().trim().min(1).optional(),
-  is_default: z.coerce.boolean().optional(),
+  is_default: optionalStrictBooleanSchema,
   widgets: z.array(z.unknown()).optional(),
   layout: z.array(z.unknown()).optional(),
   breakpoints: z.record(z.string(), z.unknown()).optional(),
@@ -53,7 +53,11 @@ export const createDashboardRoutes = (): Router => {
     validateBody(dashboardLayoutSchema),
     controller.updateDashboardLayout
   );
-  router.delete('/configs/:id', validateParams(dashboardIdParamsSchema), controller.deleteDashboard);
+  router.delete(
+    '/configs/:id',
+    validateParams(dashboardIdParamsSchema),
+    controller.deleteDashboard
+  );
 
   return router;
 };

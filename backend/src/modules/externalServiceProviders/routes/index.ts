@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
 import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
-import { uuidSchema } from '@validations/shared';
+import { uuidSchema, optionalStrictBooleanSchema } from '@validations/shared';
 import * as externalServiceProviderController from '../controllers';
 
 const router = express.Router();
@@ -14,18 +14,20 @@ const externalServiceProviderIdParamsSchema = z.object({
   id: uuidSchema,
 });
 
-const externalServiceProviderQuerySchema = z.object({
-  search: z.string().trim().optional(),
-  provider_type: z.string().trim().min(1).max(100).optional(),
-  include_inactive: z.coerce.boolean().optional(),
-  limit: z.coerce.number().int().min(1).max(200).optional(),
-}).strict();
+const externalServiceProviderQuerySchema = z
+  .object({
+    search: z.string().trim().optional(),
+    provider_type: z.string().trim().min(1).max(100).optional(),
+    include_inactive: optionalStrictBooleanSchema,
+    limit: z.coerce.number().int().min(1).max(200).optional(),
+  })
+  .strict();
 
 const createExternalServiceProviderSchema = z.object({
   provider_name: z.string().trim().min(1).max(255),
   provider_type: z.string().trim().min(1).max(100).optional(),
   notes: z.string().trim().max(5000).optional(),
-  is_active: z.coerce.boolean().optional(),
+  is_active: optionalStrictBooleanSchema,
 });
 
 const updateExternalServiceProviderSchema = z
@@ -33,7 +35,7 @@ const updateExternalServiceProviderSchema = z
     provider_name: z.string().trim().min(1).max(255).optional(),
     provider_type: z.string().trim().min(1).max(100).nullable().optional(),
     notes: z.string().trim().max(5000).nullable().optional(),
-    is_active: z.coerce.boolean().optional(),
+    is_active: optionalStrictBooleanSchema,
   })
   .refine(
     (value) =>

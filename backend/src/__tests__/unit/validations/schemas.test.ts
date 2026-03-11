@@ -11,15 +11,53 @@ import {
   setupFirstUserSchema,
   twoFactorVerifySchema,
 } from '../../../validations/auth';
+import { createVolunteerSchema, updateVolunteerSchema } from '../../../validations/volunteer';
+import { createEventSchema } from '../../../validations/event';
 import {
-  createVolunteerSchema,
-  updateVolunteerSchema,
-} from '../../../validations/volunteer';
-import {
-  createEventSchema,
-} from '../../../validations/event';
-import { paginationSchema, passwordSchema } from '../../../validations/shared';
+  emailSchema,
+  isoDateSchema,
+  isoDateTimeSchema,
+  optionalStrictBooleanSchema,
+  paginationSchema,
+  passwordSchema,
+} from '../../../validations/shared';
 import { portalChangePasswordSchema, portalSignupSchema } from '../../../validations/portal';
+
+describe('Shared Validation Schemas', () => {
+  it('trims and normalizes email input before validation', () => {
+    const result = emailSchema.safeParse('  User@Example.com  ');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toBe('user@example.com');
+    }
+  });
+
+  it('parses only strict boolean-like inputs', () => {
+    expect(optionalStrictBooleanSchema.safeParse('false')).toEqual({
+      success: true,
+      data: false,
+    });
+    expect(optionalStrictBooleanSchema.safeParse('1')).toEqual({
+      success: true,
+      data: true,
+    });
+    expect(optionalStrictBooleanSchema.safeParse('yes').success).toBe(false);
+  });
+
+  it('accepts only real ISO calendar dates', () => {
+    expect(isoDateSchema.safeParse('2026-03-11').success).toBe(true);
+    expect(isoDateSchema.safeParse('2026-02-30').success).toBe(false);
+    expect(isoDateSchema.safeParse('03/11/2026').success).toBe(false);
+  });
+
+  it('requires timezone-aware ISO datetimes', () => {
+    expect(isoDateTimeSchema.safeParse('2026-03-11T12:00:00Z').success).toBe(true);
+    expect(isoDateTimeSchema.safeParse('2026-03-11T12:00:00+00:00').success).toBe(true);
+    expect(isoDateTimeSchema.safeParse('2026-03-11T12:00:00').success).toBe(false);
+    expect(isoDateTimeSchema.safeParse('March 11, 2026').success).toBe(false);
+  });
+});
 
 describe('Authentication Schemas', () => {
   describe('loginSchema', () => {
