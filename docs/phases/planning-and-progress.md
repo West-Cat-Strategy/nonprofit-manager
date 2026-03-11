@@ -1,7 +1,7 @@
 # 📊 Nonprofit Manager - Planning & Progress
 
 **Current Phase:** 🚀 Phase 4 - Modularity Refactor (In Progress, with active Phase 3 overlap)  
-**Last Updated:** March 11, 2026 (`P4-T7E-INPUT` signed out for whole-app input draft-preservation audit and frontend hydration guardrails covering admin settings + builder modal state sync.)  
+**Last Updated:** March 11, 2026 (`P4-T7E-INPUT` moved to Review after draft-preservation guardrails landed for admin settings + builder modal state sync, with targeted Vitest, lint, typecheck, UI audit, and smoke verification passing.)  
 **Lead Developer:** Bryan Crockett (@bcroc), Example Organization
 
 ---
@@ -143,7 +143,7 @@ All active work must be **signed out** in the Workboard below before code change
 | P4-T7D | Portal + auth/public pages migration | Phase 4 | Blocked | Codex | Mar 3, 2026 | TBD | codex/p4-t9b-efficiency-wave2 (parent: P4-T7) (What: Portal/auth-public migration landed but closure is blocked. Why: Prior broad CI failed on unrelated branch-coverage gate in wider stream. Next step: Re-run closure suite after coverage gate normalization and append closure evidence.) |
 | P4-T7G | Appointments/reminders/check-in infrastructure upgrade (admin-first; links: P3-T1, P3-T2C, P3-T2E) | Phase 4 | Blocked | Codex | Mar 3, 2026 | TBD | codex/p4-t9b-efficiency-wave2 (parent: P4-T7) (What: Hybrid check-in upgrade is implemented but strict closure is blocked. Why: Prior strict gates were interrupted by concurrent CI/process churn and runtime instability. Next step: Re-run strict sequence in isolated runner and attach closure artifact.) |
 | P4-T7E | Accessibility + interaction hardening | Phase 4 | Ready | — | — | TBD | — (parent: P4-T7) (queue: #15) |
-| P4-T7E-INPUT | Whole-app input draft-preservation audit + hydration guardrails (admin settings + builder modal confirmed-risk surfaces) | Phase 4 | In Progress | Codex | Mar 11, 2026 | Mar 11, 2026 | main (local working tree) |
+| P4-T7E-INPUT | Whole-app input draft-preservation audit + hydration guardrails (admin settings + builder modal confirmed-risk surfaces) | Phase 4 | Review | Codex | Mar 11, 2026 | Mar 11, 2026 | main (verified locally: `cd frontend && npm test -- --run src/features/adminOps/pages/adminSettings/sections/__tests__/SettingsSectionDraftPreservation.test.tsx src/pages/builder/__tests__/PageEditor.test.tsx`, `node scripts/ui-audit.ts`, `make lint`, `make typecheck`, `cd e2e && npm run test:smoke`) |
 | P4-T7F | Regression tests + docs update | Phase 4 | Blocked | Codex | Mar 4, 2026 | Mar 4, 2026 | codex/p4-t7f-link-health (What: Regression/docs pass completed but strict auth-mode closure is unresolved. Why: Strict-admin credential/MFA drift intentionally fails fast under `E2E_REQUIRE_STRICT_ADMIN_AUTH=true`. Next step: Refresh strict admin auth seed, rerun strict suite, then move to Done.) |
 | P4-T1R5 | Full remaining `/api/v2` modularization sweep (backend-first, contract-stable) | Phase 4 | Done | Codex | Mar 5, 2026 | Mar 5, 2026 | main@b546e9f (parent: P4-T1) (merged from `codex/p4-wave-close-direct-cutover` via PR #7 after strict closure evidence was green; handoff lock artifacts captured at `/tmp/p4-wave-close-20260305-153620-handoff-*`.) |
 | P4-T1R5A | Backend all-legacy-v2 module cutover (22 remaining domains) | Phase 4 | Done | Codex | Mar 5, 2026 | Mar 5, 2026 | main@b546e9f (parent: P4-T1R5) (merged via PR #7; backend module-controller inversion, route rewiring, and boundary policy expansion delivered and verified.) |
