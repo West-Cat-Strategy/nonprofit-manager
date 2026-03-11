@@ -13,11 +13,11 @@ export interface NavigationDrawerLink {
 }
 
 interface NavigationDrawerUser {
-  email?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
+  email?: string;
+  firstName: string;
+  lastName: string;
+  role: string;
   profilePicture?: string | null;
-  role?: string | null;
 }
 
 interface MobileNavigationDrawerProps {
