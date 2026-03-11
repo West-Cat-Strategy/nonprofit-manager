@@ -13,6 +13,11 @@ vi.mock('../../services/api', () => ({
 }));
 
 const mockApi = api as { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn> };
+const mockRoles = [
+  { id: 'role-staff', name: 'Staff', description: 'Internal team member' },
+  { id: 'role-board', name: 'Board Member', description: 'Board role' },
+  { id: 'role-client', name: 'Client', description: 'Client role' },
+];
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -61,8 +66,8 @@ describe('ContactForm', () => {
       },
     });
     mockApi.get.mockImplementation((url: string) => {
-      if (url === '/contacts/roles') {
-        return Promise.resolve({ data: { roles: [] } });
+      if (url === '/v2/contacts/roles') {
+        return Promise.resolve({ data: { success: true, data: mockRoles } });
       }
       if (url === '/v2/contacts/tags') {
         return Promise.resolve({ data: { success: true, data: [] } });
@@ -81,8 +86,8 @@ describe('ContactForm', () => {
       expect(screen.getByLabelText(/first name \*/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/last name \*/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/^email$/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/^mobile$/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/^home phone$/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/^phone$/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/^mobile phone$/i)).toBeInTheDocument();
     });
 
     it('shows Create Contact button', async () => {
@@ -131,6 +136,15 @@ describe('ContactForm', () => {
 
       expect(mockNavigate).toHaveBeenCalledWith('/contacts');
     });
+
+    it('loads roles from the v2 contacts roles endpoint', async () => {
+      await renderContactForm(<ContactForm mode="create" />);
+
+      expect(mockApi.get).toHaveBeenCalledWith('/v2/contacts/roles');
+      expect(screen.getByText('Staff')).toBeInTheDocument();
+      expect(screen.getByText('Board Member')).toBeInTheDocument();
+      expect(screen.getByText('Client')).toBeInTheDocument();
+    });
   });
 
   describe('Edit Mode', () => {
@@ -145,6 +159,7 @@ describe('ContactForm', () => {
       email: 'jane.smith@example.com',
       phone: '555-0200',
       mobile_phone: '555-0201',
+      birth_date: '1985-04-06T00:00:00.000Z',
       preferred_contact_method: 'email',
       do_not_email: false,
       do_not_phone: false,
@@ -176,6 +191,13 @@ describe('ContactForm', () => {
       const firstNameInput = screen.getByLabelText(/first name \*/i) as HTMLInputElement;
       fireEvent.change(firstNameInput, { target: { value: 'Janet' } });
       expect(firstNameInput.value).toBe('Janet');
+    });
+
+    it('normalizes birth date values for the date input in edit mode', async () => {
+      await renderContactForm(<ContactForm mode="edit" contact={mockContact} />);
+
+      const birthDateInput = screen.getByLabelText(/date of birth/i) as HTMLInputElement;
+      expect(birthDateInput.value).toBe('1985-04-06');
     });
   });
 

@@ -31,6 +31,32 @@ describe('parseApiError', () => {
     expect(parsed.correlationId).toBeUndefined();
   });
 
+  it('prefers the first validation issue when the canonical message is generic', () => {
+    const err = makeAxiosError({
+      error: {
+        code: 'validation_error',
+        message: 'Validation failed',
+        details: {
+          issues: [
+            {
+              source: 'query',
+              path: 'status',
+              message: 'Invalid option',
+              code: 'invalid_enum_value',
+            },
+          ],
+        },
+      },
+      code: undefined,
+      details: undefined,
+      correlationId: undefined,
+    });
+
+    const parsed = parseApiError(err, 'Fallback');
+    expect(parsed.message).toBe('status: Invalid option');
+    expect(parsed.code).toBe('validation_error');
+  });
+
   it('uses error.message for plain Error objects', () => {
     const err = new Error('Network failure');
     const parsed = parseApiError(err, 'Fallback');
@@ -66,6 +92,31 @@ describe('formatApiErrorMessage', () => {
     const err = makeAxiosError({ error: 'Auth failed', correlationId: undefined });
     const msg = formatApiErrorMessage(err, 'Fallback');
     expect(msg).toBe('Auth failed');
+  });
+
+  it('formats validation issue messages and keeps the correlation ID', () => {
+    const err = makeAxiosError({
+      error: {
+        code: 'validation_error',
+        message: 'Validation failed',
+        details: {
+          issues: [
+            {
+              source: 'query',
+              path: 'status',
+              message: 'Invalid option',
+              code: 'invalid_enum_value',
+            },
+          ],
+        },
+      },
+      code: undefined,
+      details: undefined,
+      correlationId: 'req-xyz',
+    });
+
+    const msg = formatApiErrorMessage(err, 'Fallback');
+    expect(msg).toBe('status: Invalid option (Ref: req-xyz)');
   });
 
   it('uses fallback when no structured error', () => {

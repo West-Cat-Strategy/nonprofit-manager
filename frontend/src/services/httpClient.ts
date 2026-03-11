@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosRequestConfig } from 'axios';
 import type { ApiEnvelope } from './apiEnvelope';
+import { formatApiErrorMessage } from '../utils/apiError';
 
 type UnauthorizedHandler = (error: AxiosError) => void;
 
@@ -116,6 +117,17 @@ const extractErrorMessage = (payload: unknown): string | undefined => {
   return undefined;
 };
 
+const normalizeResponseError = (error: AxiosError): AxiosError => {
+  const fallbackMessage =
+    error.message ||
+    (error.response
+      ? `Request failed with status code ${error.response.status}`
+      : 'Request failed');
+
+  error.message = formatApiErrorMessage(error, fallbackMessage);
+  return error;
+};
+
 export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
   const {
     onUnauthorized,
@@ -215,6 +227,7 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
 
       // Handle 401 unauthorized
       if (error.response?.status === 401) {
+        normalizeResponseError(error);
         onUnauthorized(error);
         return Promise.reject(error);
       }
@@ -250,7 +263,7 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
         }
       }
 
-      return Promise.reject(error);
+      return Promise.reject(normalizeResponseError(error));
     }
   );
 

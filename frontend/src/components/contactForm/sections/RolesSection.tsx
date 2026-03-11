@@ -13,7 +13,7 @@ export default function RolesSection({
   selectedRoles,
   onToggleRole,
 }: RolesSectionProps) {
-  const primaryRoleOrder = ['Client', 'Donor', 'Member', 'Volunteer', 'Board Member', 'Contact'];
+  const primaryRoleOrder = ['Client', 'Staff', 'Board Member', 'Volunteer', 'Donor', 'Member', 'Contact'];
   const clientSubRoleNames = [
     'Brain Injury Survivor',
     'Support Person',
@@ -65,7 +65,7 @@ export default function RolesSection({
                     className="mt-1 h-4 w-4 text-app-accent border-app-input-border rounded focus:ring-app-accent"
                   />
                   <div>
-                    <div className="font-medium text-app-text">[{role.name}]</div>
+                    <div className="font-medium text-app-text">{role.name}</div>
                     {role.description && (
                       <div className="text-xs text-app-text-muted">{role.description}</div>
                     )}
@@ -97,7 +97,7 @@ export default function RolesSection({
                         className="mt-1 h-4 w-4 text-app-accent border-app-input-border rounded focus:ring-app-accent"
                       />
                       <div>
-                        <div className="font-medium text-app-text">[{role.name}]</div>
+                        <div className="font-medium text-app-text">{role.name}</div>
                         {role.description && (
                           <div className="text-xs text-app-text-muted">{role.description}</div>
                         )}

@@ -1,3 +1,18 @@
+export const VOLUNTEER_AVAILABILITY_STATUS_VALUES = [
+  'available',
+  'unavailable',
+  'limited',
+] as const;
+
+export const VOLUNTEER_BACKGROUND_CHECK_STATUS_VALUES = [
+  'not_required',
+  'pending',
+  'in_progress',
+  'approved',
+  'rejected',
+  'expired',
+] as const;
+
 export interface Volunteer {
   volunteer_id: string;
   contact_id: string;
@@ -7,15 +22,9 @@ export interface Volunteer {
   phone?: string;
   mobile_phone?: string;
   skills: string[];
-  availability_status: 'available' | 'unavailable' | 'limited';
+  availability_status: (typeof VOLUNTEER_AVAILABILITY_STATUS_VALUES)[number];
   availability_notes: string | null;
-  background_check_status:
-    | 'not_required'
-    | 'pending'
-    | 'in_progress'
-    | 'approved'
-    | 'rejected'
-    | 'expired';
+  background_check_status: (typeof VOLUNTEER_BACKGROUND_CHECK_STATUS_VALUES)[number];
   background_check_date: string | null;
   background_check_expiry: string | null;
   preferred_roles: string[] | null;
@@ -52,8 +61,8 @@ export interface VolunteersListQuery {
   limit?: number;
   search?: string;
   skills?: string[];
-  availability_status?: string;
-  background_check_status?: string;
+  availability_status?: Volunteer['availability_status'];
+  background_check_status?: Volunteer['background_check_status'];
   is_active?: boolean;
 }
 

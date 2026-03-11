@@ -6,6 +6,7 @@ describe('Task API Integration Tests', () => {
   let authToken: string;
   let testTaskId: string;
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const isoDateTime = (date: string, time = '00:00:00Z') => `${date}T${time}`;
 
   beforeAll(async () => {
     // Register and login
@@ -37,7 +38,7 @@ describe('Task API Integration Tests', () => {
         .send({
           subject: 'Follow up with donor',
           priority: 'high',
-          due_date: '2024-04-15',
+          due_date: isoDateTime('2024-04-15'),
           status: 'not_started',
         })
         .expect(201);
@@ -79,7 +80,7 @@ describe('Task API Integration Tests', () => {
         .send({
           subject: 'Prepare event materials',
           priority: 'normal',
-          due_date: '2024-05-20',
+          due_date: isoDateTime('2024-05-20'),
           related_to_type: 'event',
         })
         .expect(201);
@@ -149,7 +150,9 @@ describe('Task API Integration Tests', () => {
 
     it('should filter by due date range', async () => {
       const response = await request(app)
-        .get('/api/v2/tasks?due_after=2024-01-01&due_before=2024-12-31')
+        .get(
+          `/api/v2/tasks?due_after=${isoDateTime('2024-01-01')}&due_before=${isoDateTime('2024-12-31', '23:59:59Z')}`
+        )
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -256,10 +259,7 @@ describe('Task API Integration Tests', () => {
     });
 
     it('should require authentication', async () => {
-      await request(app)
-        .put('/api/v2/tasks/1')
-        .send({ subject: 'Test' })
-        .expect(401);
+      await request(app).put('/api/v2/tasks/1').send({ subject: 'Test' }).expect(401);
     });
   });
 

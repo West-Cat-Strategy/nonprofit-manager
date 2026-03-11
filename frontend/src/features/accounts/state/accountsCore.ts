@@ -23,8 +23,8 @@ export interface AccountsState {
   };
   filters: {
     search: string;
-    account_type: string;
-    category: string;
+    account_type: '' | Account['account_type'];
+    category: '' | Account['category'];
     is_active: boolean;
   };
 }

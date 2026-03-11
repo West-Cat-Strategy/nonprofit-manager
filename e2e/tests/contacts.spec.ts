@@ -272,13 +272,19 @@ test.describe('Contacts Module', () => {
     const firstName = `Flow${suffix}`;
     const lastName = 'Person';
     const email = `flow.${suffix}@example.com`;
+    const phone = '5550201234';
+    const mobilePhone = '5550205678';
 
     await authenticatedPage.goto('/contacts/new');
 
     await authenticatedPage.getByLabel(/first name \*/i).fill(firstName);
     await authenticatedPage.getByLabel(/last name \*/i).fill(lastName);
     await authenticatedPage.getByLabel(/^email$/i).fill(email);
-    await authenticatedPage.locator('input[name="phone"]').fill('5550201234');
+    await authenticatedPage.getByLabel(/date of birth/i).fill('1986-07-09');
+    await authenticatedPage.locator('input[name="phone"]').fill(phone);
+    await authenticatedPage.locator('input[name="mobile_phone"]').fill(mobilePhone);
+    await authenticatedPage.locator('label', { hasText: /staff/i }).first().click();
+    await authenticatedPage.locator('label', { hasText: /board member/i }).first().click();
 
     const { contactId } = await createContactViaUI(authenticatedPage);
 
@@ -303,6 +309,12 @@ test.describe('Contacts Module', () => {
     await expect(
       authenticatedPage.getByRole('heading', { name: new RegExp(`${firstName} ${lastName}`, 'i') })
     ).toBeVisible();
+    await expect(authenticatedPage.getByText('Jul 9, 1986')).toBeVisible();
+    await expect(authenticatedPage.getByText(/^Staff$/i)).toBeVisible();
+    await expect(authenticatedPage.getByText(/^Board Member$/i)).toBeVisible();
+    await expect(authenticatedPage.getByRole('link', { name: email })).toBeVisible();
+    await expect(authenticatedPage.getByRole('link', { name: phone })).toBeVisible();
+    await expect(authenticatedPage.getByRole('link', { name: mobilePhone })).toBeVisible();
 
     await authenticatedPage.getByRole('button', { name: /edit contact/i }).click();
     await authenticatedPage.waitForURL(/\/contacts\/[a-f0-9-]+\/edit$/, { timeout: 30000 });
@@ -319,6 +331,51 @@ test.describe('Contacts Module', () => {
       authenticatedPage.getByRole('heading', {
         name: new RegExp(`${firstName} ${lastName}`, 'i'),
       })
+    ).toBeVisible();
+  });
+
+  test('should expose explicit inline contact-method submit actions in dark mode', async ({
+    authenticatedPage,
+    authToken,
+  }) => {
+    const suffix = uniqueSuffix();
+    const firstName = `Dark${suffix}`;
+    const lastName = 'Mode';
+    const { id } = await createTestContact(authenticatedPage, authToken, {
+      firstName,
+      lastName,
+    });
+
+    await authenticatedPage.addInitScript(() => {
+      localStorage.setItem('app-color-scheme', 'dark');
+    });
+
+    await waitForContactAvailability(authenticatedPage, authToken, id);
+    await authenticatedPage.goto(`/contacts/${id}`);
+    await waitForContactDetailReady(authenticatedPage, new RegExp(`${firstName} ${lastName}`, 'i'));
+
+    await expect(
+      authenticatedPage.getByRole('heading', { name: new RegExp(`${firstName} ${lastName}`, 'i') })
+    ).toBeVisible();
+
+    await authenticatedPage.getByRole('button', { name: /\+ add phone/i }).click();
+    const addPhoneForm = authenticatedPage.locator('form', {
+      has: authenticatedPage.getByRole('button', { name: /^add phone$/i }),
+    });
+    await expect(addPhoneForm.getByRole('button', { name: /^add phone$/i })).toBeVisible();
+    await addPhoneForm.locator('input[type="tel"]').fill('555-888-1000');
+    await addPhoneForm.getByRole('button', { name: /^add phone$/i }).click();
+    await expect(authenticatedPage.getByRole('link', { name: '555-888-1000' })).toBeVisible();
+
+    await authenticatedPage.getByRole('button', { name: /\+ add email/i }).click();
+    const addEmailForm = authenticatedPage.locator('form', {
+      has: authenticatedPage.getByRole('button', { name: /^add email$/i }),
+    });
+    await expect(addEmailForm.getByRole('button', { name: /^add email$/i })).toBeVisible();
+    await addEmailForm.locator('input[type="email"]').fill(`dark.mode.${suffix}@example.com`);
+    await addEmailForm.getByRole('button', { name: /^add email$/i }).click();
+    await expect(
+      authenticatedPage.getByRole('link', { name: `dark.mode.${suffix}@example.com` })
     ).toBeVisible();
   });
 

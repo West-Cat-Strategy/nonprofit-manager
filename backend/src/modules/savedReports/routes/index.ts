@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
-import { uuidSchema } from '@validations/shared';
+import { isoDateTimeSchema, optionalStrictBooleanSchema, uuidSchema } from '@validations/shared';
 import { REPORT_ENTITIES } from '@app-types/report';
 import { createSavedReportsController } from '../controllers/savedReports.controller';
 
@@ -10,35 +10,37 @@ const reportEntitySchema = z.enum(REPORT_ENTITIES);
 const reportIdParamsSchema = z.object({
   id: uuidSchema,
 });
-const savedReportListQuerySchema = z.object({
-  entity: reportEntitySchema.optional(),
-  page: z.coerce.number().int().min(1).max(10_000).optional(),
-  limit: z.coerce.number().int().min(1).max(100).optional(),
-  summary: z.coerce.boolean().optional(),
-}).strict();
+const savedReportListQuerySchema = z
+  .object({
+    entity: reportEntitySchema.optional(),
+    page: z.coerce.number().int().min(1).max(10_000).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    summary: optionalStrictBooleanSchema,
+  })
+  .strict();
 
-const sharePrincipalsQuerySchema = z.object({
-  search: z.string().trim().min(1).max(120).optional(),
-  limit: z.coerce.number().int().min(1).max(50).optional(),
-}).strict();
+const sharePrincipalsQuerySchema = z
+  .object({
+    search: z.string().trim().min(1).max(120).optional(),
+    limit: z.coerce.number().int().min(1).max(50).optional(),
+  })
+  .strict();
 
-const dateStringSchema = z
-  .string()
-  .refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid ISO8601 date');
+const dateStringSchema = isoDateTimeSchema;
 
 const createSavedReportSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
   description: z.string().trim().optional(),
   entity: reportEntitySchema,
   report_definition: z.record(z.string(), z.unknown()),
-  is_public: z.coerce.boolean().optional(),
+  is_public: optionalStrictBooleanSchema,
 });
 
 const updateSavedReportSchema = z.object({
   name: z.string().trim().min(1).optional(),
   description: z.string().trim().optional(),
   report_definition: z.record(z.string(), z.unknown()).optional(),
-  is_public: z.coerce.boolean().optional(),
+  is_public: optionalStrictBooleanSchema,
 });
 
 const reportShareSchema = z.object({
@@ -104,7 +106,11 @@ export const createSavedReportsRoutes = (): Router => {
     controller.generatePublicLink
   );
 
-  router.delete('/:id/public-link', validateParams(reportIdParamsSchema), controller.revokePublicLink);
+  router.delete(
+    '/:id/public-link',
+    validateParams(reportIdParamsSchema),
+    controller.revokePublicLink
+  );
 
   return router;
 };

@@ -18,8 +18,31 @@ import {
   SecondaryButton,
   StatCard,
 } from '../../../components/ui';
+import {
+  parseAllowedValueOrEmpty,
+  parsePositiveInteger,
+  safeParseStoredObject,
+} from '../../../utils/persistedFilters';
 
 const DONATION_FILTERS_STORAGE_KEY = 'donations_list_filters_v1';
+const PAYMENT_STATUS_VALUES = [
+  'pending',
+  'completed',
+  'failed',
+  'refunded',
+  'cancelled',
+] as const;
+const PAYMENT_METHOD_VALUES = [
+  'cash',
+  'check',
+  'credit_card',
+  'debit_card',
+  'bank_transfer',
+  'paypal',
+  'stock',
+  'in_kind',
+  'other',
+] as const;
 
 const DonationList: React.FC = () => {
   const navigate = useNavigate();
@@ -32,34 +55,28 @@ const DonationList: React.FC = () => {
   const [search, setSearch] = useState(() => {
     const fromUrl = searchParams.get('search') || '';
     if (fromUrl) return fromUrl;
-    try {
-      const saved = localStorage.getItem(DONATION_FILTERS_STORAGE_KEY);
-      return saved ? (JSON.parse(saved).search || '') : '';
-    } catch {
-      return '';
-    }
+    const saved = safeParseStoredObject<Record<string, unknown>>(
+      localStorage.getItem(DONATION_FILTERS_STORAGE_KEY)
+    );
+    return typeof saved?.search === 'string' ? saved.search : '';
   });
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | ''>(() => {
-    const fromUrl = (searchParams.get('status') as PaymentStatus | '') || '';
+    const fromUrl = parseAllowedValueOrEmpty(searchParams.get('status'), PAYMENT_STATUS_VALUES);
     if (fromUrl) return fromUrl;
-    try {
-      const saved = localStorage.getItem(DONATION_FILTERS_STORAGE_KEY);
-      return saved ? (JSON.parse(saved).paymentStatus || '') : '';
-    } catch {
-      return '';
-    }
+    const saved = safeParseStoredObject<Record<string, unknown>>(
+      localStorage.getItem(DONATION_FILTERS_STORAGE_KEY)
+    );
+    return parseAllowedValueOrEmpty(saved?.paymentStatus, PAYMENT_STATUS_VALUES);
   });
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>(() => {
-    const fromUrl = (searchParams.get('type') as PaymentMethod | '') || '';
+    const fromUrl = parseAllowedValueOrEmpty(searchParams.get('type'), PAYMENT_METHOD_VALUES);
     if (fromUrl) return fromUrl;
-    try {
-      const saved = localStorage.getItem(DONATION_FILTERS_STORAGE_KEY);
-      return saved ? (JSON.parse(saved).paymentMethod || '') : '';
-    } catch {
-      return '';
-    }
+    const saved = safeParseStoredObject<Record<string, unknown>>(
+      localStorage.getItem(DONATION_FILTERS_STORAGE_KEY)
+    );
+    return parseAllowedValueOrEmpty(saved?.paymentMethod, PAYMENT_METHOD_VALUES);
   });
-  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page') || '1'));
+  const [currentPage, setCurrentPage] = useState(() => parsePositiveInteger(searchParams.get('page'), 1));
   const hasActiveFilters = Boolean(search || paymentStatus || paymentMethod);
 
   const loadDonations = useCallback(() => {

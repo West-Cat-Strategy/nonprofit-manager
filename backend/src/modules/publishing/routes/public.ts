@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { emailSchema, optionalStrictBooleanSchema } from '@validations/shared';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import {
   getPublicNewsletter,
@@ -48,12 +49,12 @@ const publicWebsiteFormBodySchema = z
     name: z.string().trim().optional(),
     first_name: z.string().trim().optional(),
     last_name: z.string().trim().optional(),
-    email: z.string().trim().email().optional(),
+    email: emailSchema.optional(),
     phone: z.string().trim().optional(),
     message: z.string().trim().optional(),
     notes: z.string().trim().optional(),
     amount: z.union([z.coerce.number().positive(), z.string().trim()]).optional(),
-    recurring: z.coerce.boolean().optional(),
+    recurring: optionalStrictBooleanSchema,
     availability: z.string().trim().optional(),
     skills: z.array(z.string().trim()).optional(),
   })

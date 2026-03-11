@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { optionalStrictBooleanSchema } from '@validations/shared';
 import pool from '@config/database';
 import { authenticate } from '@middleware/domains/auth';
 import { loadDataScope } from '@middleware/domains/data';
@@ -38,7 +39,7 @@ const volunteerListQuerySchema = z
     background_check_status: z
       .enum(['not_required', 'pending', 'in_progress', 'approved', 'rejected', 'expired'])
       .optional(),
-    is_active: z.coerce.boolean().optional(),
+    is_active: optionalStrictBooleanSchema,
   })
   .strict();
 
@@ -55,7 +56,7 @@ const volunteerExportSchema = z
     background_check_status: z
       .enum(['not_required', 'pending', 'in_progress', 'approved', 'rejected', 'expired'])
       .optional(),
-    is_active: z.coerce.boolean().optional(),
+    is_active: optionalStrictBooleanSchema,
   })
   .strict();
 
@@ -82,7 +83,11 @@ export const createVolunteersRoutes = (mode: ResponseMode = 'v2'): Router => {
   router.use(authenticate);
   router.use(loadDataScope('volunteers'));
 
-  router.get('/search/skills', validateQuery(volunteerSkillsQuerySchema), controller.findVolunteersBySkills);
+  router.get(
+    '/search/skills',
+    validateQuery(volunteerSkillsQuerySchema),
+    controller.findVolunteersBySkills
+  );
 
   router.get('/', validateQuery(volunteerListQuerySchema), controller.getVolunteers);
   router.post(

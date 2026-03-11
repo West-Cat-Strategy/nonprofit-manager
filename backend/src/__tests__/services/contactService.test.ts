@@ -1,6 +1,10 @@
 import { ContactService } from '@services';
 import { Pool } from 'pg';
 import { decrypt, encrypt } from '@utils/encryption';
+import {
+  syncContactMethodSummaries,
+  syncStructuredContactMethodsFromSummary,
+} from '@services/contactMethodSyncService';
 
 // Mock the logger
 jest.mock('../../config/logger', () => ({
@@ -20,6 +24,11 @@ jest.mock('@utils/encryption', () => ({
     }
     return value.slice(4);
   }),
+}));
+
+jest.mock('@services/contactMethodSyncService', () => ({
+  syncStructuredContactMethodsFromSummary: jest.fn().mockResolvedValue(undefined),
+  syncContactMethodSummaries: jest.fn().mockResolvedValue(undefined),
 }));
 
 describe('ContactService', () => {
@@ -269,13 +278,19 @@ describe('ContactService', () => {
 
   describe('createContact', () => {
     it('should create contact with required fields only', async () => {
+      const mockInsertedContact = {
+        contact_id: 'new-uuid',
+      };
       const mockCreatedContact = {
         contact_id: 'new-uuid',
         first_name: 'John',
         last_name: 'Doe',
+        birth_date: null,
       };
 
-      mockQuery.mockResolvedValueOnce({ rows: [mockCreatedContact] });
+      mockQuery
+        .mockResolvedValueOnce({ rows: [mockInsertedContact] })
+        .mockResolvedValueOnce({ rows: [mockCreatedContact] });
 
       const result = await contactService.createContact(
         { first_name: 'John', last_name: 'Doe' },
@@ -283,12 +298,24 @@ describe('ContactService', () => {
       );
 
       expect(result).toEqual(expect.objectContaining({ ...mockCreatedContact, phn: null }));
+      expect(syncStructuredContactMethodsFromSummary).toHaveBeenCalledWith(
+        'new-uuid',
+        {
+          email: null,
+          phone: null,
+          mobile_phone: null,
+        },
+        'user-123',
+        mockPool
+      );
+      expect(syncContactMethodSummaries).toHaveBeenCalledWith('new-uuid', mockPool);
     });
 
     it('should create contact with all optional fields', async () => {
       const contactData = {
         first_name: 'John',
         last_name: 'Doe',
+        birth_date: '1988-09-10T23:45:00.000Z',
         account_id: 'acc-123',
         email: 'john@example.com',
         phone: '555-1234',
@@ -304,20 +331,41 @@ describe('ContactService', () => {
         notes: 'Test notes',
       };
 
-      mockQuery.mockResolvedValueOnce({
-        rows: [{ contact_id: 'uuid', ...contactData }],
-      });
+      mockQuery
+        .mockResolvedValueOnce({
+          rows: [{ contact_id: 'uuid' }],
+        })
+        .mockResolvedValueOnce({
+          rows: [{ contact_id: 'uuid', ...contactData, birth_date: '1988-09-10T00:00:00.000Z' }],
+        });
 
       const result = await contactService.createContact(contactData, 'user-123');
 
       expect(result.email).toBe('john@example.com');
       expect(result.job_title).toBe('Developer');
+      expect(result.birth_date).toBe('1988-09-10');
+      const insertValues = mockQuery.mock.calls[0][1] as unknown[];
+      expect(insertValues).toContain('1988-09-10');
+      expect(syncStructuredContactMethodsFromSummary).toHaveBeenCalledWith(
+        'uuid',
+        {
+          email: 'john@example.com',
+          phone: '555-1234',
+          mobile_phone: '555-5678',
+        },
+        'user-123',
+        mockPool
+      );
     });
 
     it('should encrypt PHN on create and never persist plaintext PHN', async () => {
-      mockQuery.mockResolvedValueOnce({
-        rows: [{ contact_id: 'uuid', first_name: 'John', last_name: 'Doe', phn_encrypted: 'enc:1234567890' }],
-      });
+      mockQuery
+        .mockResolvedValueOnce({
+          rows: [{ contact_id: 'uuid' }],
+        })
+        .mockResolvedValueOnce({
+          rows: [{ contact_id: 'uuid', first_name: 'John', last_name: 'Doe', phn_encrypted: 'enc:1234567890' }],
+        });
 
       const result = await contactService.createContact(
         { first_name: 'John', last_name: 'Doe', phn: '123-456-7890' },
@@ -354,6 +402,7 @@ describe('ContactService', () => {
       const result = await contactService.updateContact('123', { first_name: 'Johnny' }, 'user-123');
 
       expect(result).toEqual(expect.objectContaining({ ...mockUpdatedContact, phn: null }));
+      expect(syncStructuredContactMethodsFromSummary).not.toHaveBeenCalled();
     });
 
     it('should return null when contact not found', async () => {
@@ -397,14 +446,21 @@ describe('ContactService', () => {
     });
 
     it('should update multiple fields at once', async () => {
-      const mockUpdatedContact = {
+      const updatedRow = {
+        contact_id: '123',
+        first_name: 'Johnny',
+      };
+      const reloadedContact = {
         contact_id: '123',
         first_name: 'Johnny',
         email: 'johnny@example.com',
         phone: '555-9999',
+        birth_date: null,
       };
 
-      mockQuery.mockResolvedValueOnce({ rows: [mockUpdatedContact] });
+      mockQuery
+        .mockResolvedValueOnce({ rows: [updatedRow] })
+        .mockResolvedValueOnce({ rows: [reloadedContact] });
 
       const result = await contactService.updateContact(
         '123',
@@ -412,7 +468,47 @@ describe('ContactService', () => {
         'user-123'
       );
 
-      expect(result).toEqual(expect.objectContaining({ ...mockUpdatedContact, phn: null }));
+      expect(result).toEqual(expect.objectContaining({ ...reloadedContact, phn: null }));
+      expect(syncStructuredContactMethodsFromSummary).toHaveBeenCalledWith(
+        '123',
+        {
+          email: 'johnny@example.com',
+          phone: '555-9999',
+        },
+        'user-123',
+        mockPool
+      );
+      expect(syncContactMethodSummaries).toHaveBeenCalledWith('123', mockPool);
+    });
+
+    it('should normalize birth dates and clear summary contact methods on update', async () => {
+      mockQuery
+        .mockResolvedValueOnce({
+          rows: [{ contact_id: '123', birth_date: '2000-01-02', email: null, phone: null }],
+        })
+        .mockResolvedValueOnce({
+          rows: [{ contact_id: '123', first_name: 'John', last_name: 'Doe', birth_date: '2000-01-02' }],
+        });
+
+      const result = await contactService.updateContact(
+        '123',
+        { birth_date: '2000-01-02T19:30:00.000Z', email: '   ', phone: '' },
+        'user-123'
+      );
+
+      const updateValues = mockQuery.mock.calls[0][1] as unknown[];
+      expect(updateValues).toContain('2000-01-02');
+      expect(updateValues).toContain(null);
+      expect(syncStructuredContactMethodsFromSummary).toHaveBeenCalledWith(
+        '123',
+        {
+          email: null,
+          phone: null,
+        },
+        'user-123',
+        mockPool
+      );
+      expect(result).toEqual(expect.objectContaining({ birth_date: '2000-01-02' }));
     });
 
     it('should throw error on database failure', async () => {

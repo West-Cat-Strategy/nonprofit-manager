@@ -72,3 +72,5 @@
 070	070_activity_conversion_event_provenance_backfill.sql	
 071	071_case_workflow_coverage_recovery.sql	
 072	072_volunteer_assignments.sql	
+073	073_contact_method_sync_backfill.sql	
+074	074_email_settings_starttls_defaults.sql	

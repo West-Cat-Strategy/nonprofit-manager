@@ -5,10 +5,7 @@ import EmailSettingsSection from '../EmailSettingsSection';
 import TwilioSettingsSection from '../TwilioSettingsSection';
 import api from '../../../../../../services/api';
 
-const {
-  mockedApi,
-  toastSpy,
-} = vi.hoisted(() => ({
+const { mockedApi, toastSpy } = vi.hoisted(() => ({
   mockedApi: {
     get: vi.fn(),
     put: vi.fn(),
@@ -65,10 +62,91 @@ const seedCache = (key: string, value: unknown) => {
   );
 };
 
+const buildFreshInstallEmailSettings = () => ({
+  id: 'email-settings',
+  smtpHost: null,
+  smtpPort: 587,
+  smtpSecure: false,
+  smtpUser: null,
+  smtpFromAddress: null,
+  smtpFromName: null,
+  imapHost: null,
+  imapPort: 993,
+  imapSecure: true,
+  imapUser: null,
+  isConfigured: false,
+  lastTestedAt: null,
+  lastTestSuccess: null,
+});
+
 describe('settings section draft preservation', () => {
   beforeEach(() => {
     sessionStorage.clear();
     vi.clearAllMocks();
+  });
+
+  it('renders safer SMTP defaults and guidance for the seeded fresh-install row', async () => {
+    mockedApiClient.get.mockResolvedValueOnce({
+      data: {
+        data: buildFreshInstallEmailSettings(),
+        credentials: {
+          smtp: false,
+          imap: false,
+        },
+      },
+    });
+
+    render(<EmailSettingsSection />);
+
+    await screen.findByText('Email is not configured');
+
+    expect(screen.getByDisplayValue('587')).toBeInTheDocument();
+    expect(screen.getAllByLabelText(/use tls \/ ssl/i)[0]).not.toBeChecked();
+    expect(
+      screen.getByText(/Ports 587, 25, and 2525 usually use STARTTLS with TLS \/ SSL unchecked\./i)
+    ).toBeInTheDocument();
+  });
+
+  it('shows non-blocking warnings for risky SMTP port and TLS combinations', async () => {
+    const user = userEvent.setup();
+
+    mockedApiClient.get.mockResolvedValueOnce({
+      data: {
+        data: buildFreshInstallEmailSettings(),
+        credentials: {
+          smtp: false,
+          imap: false,
+        },
+      },
+    });
+
+    render(<EmailSettingsSection />);
+
+    await screen.findByText('Email is not configured');
+
+    const smtpPortInput = screen.getByDisplayValue('587');
+    const secureToggle = screen.getAllByLabelText(/use tls \/ ssl/i)[0];
+
+    expect(screen.queryByText(/check this smtp pairing\./i)).not.toBeInTheDocument();
+
+    await user.click(secureToggle);
+    expect(screen.getByText(/check this smtp pairing\./i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Port 587 usually uses STARTTLS, so leave TLS \/ SSL unchecked/i)
+    ).toBeInTheDocument();
+
+    await user.click(secureToggle);
+    expect(screen.queryByText(/check this smtp pairing\./i)).not.toBeInTheDocument();
+
+    await user.clear(smtpPortInput);
+    await user.type(smtpPortInput, '465');
+    expect(screen.getByText(/check this smtp pairing\./i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Port 465 usually expects an implicit TLS connection/i)
+    ).toBeInTheDocument();
+
+    await user.click(secureToggle);
+    expect(screen.queryByText(/check this smtp pairing\./i)).not.toBeInTheDocument();
   });
 
   it('preserves email drafts during background refresh and rehydrates after save', async () => {
@@ -203,9 +281,7 @@ describe('settings section draft preservation', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('smtp.example.com')).toHaveValue(
-        'saved.smtp.example.com'
-      );
+      expect(screen.getByPlaceholderText('smtp.example.com')).toHaveValue('saved.smtp.example.com');
     });
   });
 
@@ -312,9 +388,9 @@ describe('settings section draft preservation', () => {
     });
 
     await waitFor(() => {
-      expect(
-        screen.getByPlaceholderText('ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
-      ).toHaveValue('ACsaved');
+      expect(screen.getByPlaceholderText('ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')).toHaveValue(
+        'ACsaved'
+      );
     });
   });
 });

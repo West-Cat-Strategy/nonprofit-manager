@@ -14,6 +14,10 @@ import {
 } from '../state';
 import type { Volunteer } from '../state';
 import {
+  VOLUNTEER_AVAILABILITY_STATUS_VALUES,
+  VOLUNTEER_BACKGROUND_CHECK_STATUS_VALUES,
+} from '../types/contracts';
+import {
   PeopleListContainer,
   FilterPanel,
   BulkActionBar,
@@ -25,6 +29,13 @@ import ConfirmDialog from '../../../components/ConfirmDialog';
 import { useBulkSelect } from '../../../hooks';
 import { BrutalBadge } from '../../../components/neo-brutalist';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
+import {
+  parseAllowedValue,
+  parseAllowedValueOrEmpty,
+  parsePositiveInteger,
+} from '../../../utils/persistedFilters';
+
+const SORT_ORDER_VALUES = ['asc', 'desc'] as const;
 
 const VolunteerList = () => {
   const dispatch = useAppDispatch();
@@ -44,12 +55,33 @@ const VolunteerList = () => {
 
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || filters.search || '');
-  const [availabilityFilter, setAvailabilityFilter] = useState(searchParams.get('status') || filters.availability_status || '');
-  const [backgroundCheckFilter, setBackgroundCheckFilter] = useState(searchParams.get('type') || filters.background_check_status || '');
-  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page') || '1'));
-  const [currentLimit] = useState(Number(searchParams.get('limit') || String(pagination.limit || 20)));
+  const [availabilityFilter, setAvailabilityFilter] = useState<
+    '' | Volunteer['availability_status']
+  >(
+    () =>
+      parseAllowedValueOrEmpty(searchParams.get('status'), VOLUNTEER_AVAILABILITY_STATUS_VALUES) ||
+      filters.availability_status ||
+      ''
+  );
+  const [backgroundCheckFilter, setBackgroundCheckFilter] = useState<
+    '' | Volunteer['background_check_status']
+  >(
+    () =>
+      parseAllowedValueOrEmpty(
+        searchParams.get('type'),
+        VOLUNTEER_BACKGROUND_CHECK_STATUS_VALUES
+      ) ||
+      filters.background_check_status ||
+      ''
+  );
+  const [currentPage, setCurrentPage] = useState(() => parsePositiveInteger(searchParams.get('page'), 1));
+  const [currentLimit] = useState(() =>
+    parsePositiveInteger(searchParams.get('limit'), pagination.limit || 20)
+  );
   const [sortBy] = useState(searchParams.get('sort_by') || 'created_at');
-  const [sortOrder] = useState<'asc' | 'desc'>((searchParams.get('sort_order') as 'asc' | 'desc') || 'desc');
+  const [sortOrder] = useState<'asc' | 'desc'>(
+    () => parseAllowedValue(searchParams.get('sort_order'), SORT_ORDER_VALUES) || 'desc'
+  );
   const [showImportExport, setShowImportExport] = useState(false);
   const [filterCollapsed, setFilterCollapsed] = useState(false);
   const hasActiveFilters = Boolean(searchInput || availabilityFilter || backgroundCheckFilter);
@@ -86,9 +118,13 @@ const VolunteerList = () => {
     if (filterId === 'search' && typeof value === 'string') {
       setSearchInput(value);
     } else if (filterId === 'availability_status' && typeof value === 'string') {
-      setAvailabilityFilter(value);
+      setAvailabilityFilter(
+        parseAllowedValueOrEmpty(value, VOLUNTEER_AVAILABILITY_STATUS_VALUES)
+      );
     } else if (filterId === 'background_check_status' && typeof value === 'string') {
-      setBackgroundCheckFilter(value);
+      setBackgroundCheckFilter(
+        parseAllowedValueOrEmpty(value, VOLUNTEER_BACKGROUND_CHECK_STATUS_VALUES)
+      );
     }
   };
 

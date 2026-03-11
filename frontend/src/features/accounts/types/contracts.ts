@@ -1,9 +1,19 @@
+export const ACCOUNT_TYPE_VALUES = ['organization', 'individual'] as const;
+export const ACCOUNT_CATEGORY_VALUES = [
+  'donor',
+  'volunteer',
+  'partner',
+  'vendor',
+  'beneficiary',
+  'other',
+] as const;
+
 export interface Account {
   account_id: string;
   account_number: string;
   account_name: string;
-  account_type: 'organization' | 'individual';
-  category: 'donor' | 'volunteer' | 'partner' | 'vendor' | 'beneficiary' | 'other';
+  account_type: (typeof ACCOUNT_TYPE_VALUES)[number];
+  category: (typeof ACCOUNT_CATEGORY_VALUES)[number];
   email: string | null;
   phone: string | null;
   website: string | null;
@@ -24,8 +34,8 @@ export interface AccountsListQuery {
   page?: number;
   limit?: number;
   search?: string;
-  account_type?: string;
-  category?: string;
+  account_type?: Account['account_type'];
+  category?: Account['category'];
   is_active?: boolean;
 }
 

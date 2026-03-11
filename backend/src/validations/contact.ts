@@ -20,6 +20,29 @@ const booleanQuerySchema = z.preprocess((value) => {
   return value;
 }, z.boolean().optional());
 
+const dateOnlySchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Birth date must be in YYYY-MM-DD format');
+
+const nullableEmailSchema = z.preprocess((value) => {
+  if (value === '') {
+    return null;
+  }
+  return value;
+}, emailSchema.nullable().optional());
+
+const nullablePhoneSchema = z.preprocess((value) => {
+  if (value === '') {
+    return null;
+  }
+  return value;
+}, z
+  .string()
+  .regex(/^[\d\s\-+()]+$/, 'Invalid phone number format')
+  .min(10, 'Phone number must be at least 10 digits')
+  .nullable()
+  .optional());
+
 // Contact role enum
 export const contactRoleSchema = z.enum(CONTACT_ROLE_FILTER_VALUES);
 
@@ -60,13 +83,13 @@ export type DocumentType = z.infer<typeof documentTypeSchema>;
 // Create contact - comprehensive
 export const createContactSchema = z.object({
   account_id: uuidSchema.optional(),
-  first_name: z.string().min(1).max(100).optional(),
+  first_name: z.string().trim().min(1).max(100),
   preferred_name: z.string().max(100).optional(),
   last_name: z.string().min(1).max(100),
   middle_name: z.string().max(100).optional(),
   salutation: z.string().max(50).optional(),
   suffix: z.string().max(50).optional(),
-  birth_date: z.coerce.date().optional(),
+  birth_date: dateOnlySchema.optional(),
   gender: z.string().max(50).optional(),
   pronouns: z.string().max(50).optional(),
   phn: optionalPhnSchema,
@@ -103,13 +126,18 @@ export const updateContactSchema = z.object({
   middle_name: z.string().max(100).optional(),
   salutation: z.string().max(50).optional(),
   suffix: z.string().max(50).optional(),
-  birth_date: z.coerce.date().optional().nullable(),
+  birth_date: z.preprocess((value) => {
+    if (value === '') {
+      return null;
+    }
+    return value;
+  }, dateOnlySchema.nullable().optional()),
   gender: z.string().max(50).optional().nullable(),
   pronouns: z.string().max(50).optional().nullable(),
   phn: optionalNullablePhnSchema,
-  email: emailSchema.optional(),
-  phone: phoneSchema.optional(),
-  mobile_phone: phoneSchema.optional(),
+  email: nullableEmailSchema,
+  phone: nullablePhoneSchema,
+  mobile_phone: nullablePhoneSchema,
   address_line1: z.string().max(200).optional(),
   address_line2: z.string().max(200).optional(),
   city: z.string().max(100).optional(),

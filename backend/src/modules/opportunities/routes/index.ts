@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
 import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
-import { uuidSchema } from '@validations/shared';
+import { uuidSchema, optionalStrictBooleanSchema } from '@validations/shared';
 import { opportunitiesController } from '../controllers/opportunities.controller';
 
 const statusSchema = z.enum(['open', 'won', 'lost']);
@@ -16,31 +16,33 @@ const stageIdParamSchema = z.object({
   stageId: uuidSchema,
 });
 
-const listOpportunitiesQuerySchema = z.object({
-  stage_id: uuidSchema.optional(),
-  status: statusSchema.optional(),
-  assigned_to: uuidSchema.optional(),
-  search: z.string().trim().optional(),
-  page: z.coerce.number().int().min(1).optional(),
-  limit: z.coerce.number().int().min(1).max(100).optional(),
-}).strict();
+const listOpportunitiesQuerySchema = z
+  .object({
+    stage_id: uuidSchema.optional(),
+    status: statusSchema.optional(),
+    assigned_to: uuidSchema.optional(),
+    search: z.string().trim().optional(),
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+  })
+  .strict();
 
 const createStageSchema = z.object({
   name: z.string().trim().min(1),
   stage_order: z.coerce.number().int().min(0).optional(),
   probability: z.coerce.number().int().min(0).max(100).optional(),
-  is_closed: z.coerce.boolean().optional(),
-  is_won: z.coerce.boolean().optional(),
-  is_active: z.coerce.boolean().optional(),
+  is_closed: optionalStrictBooleanSchema,
+  is_won: optionalStrictBooleanSchema,
+  is_active: optionalStrictBooleanSchema,
 });
 
 const updateStageSchema = z.object({
   name: z.string().trim().min(1).optional(),
   stage_order: z.coerce.number().int().min(0).optional(),
   probability: z.union([z.coerce.number().int().min(0).max(100), z.null()]).optional(),
-  is_closed: z.coerce.boolean().optional(),
-  is_won: z.coerce.boolean().optional(),
-  is_active: z.coerce.boolean().optional(),
+  is_closed: optionalStrictBooleanSchema,
+  is_won: optionalStrictBooleanSchema,
+  is_active: optionalStrictBooleanSchema,
 });
 
 const reorderStagesSchema = z.object({
@@ -93,16 +95,51 @@ export const createOpportunitiesRoutes = (): Router => {
 
   router.get('/stages', opportunitiesController.listStages);
   router.post('/stages', validateBody(createStageSchema), opportunitiesController.createStage);
-  router.put('/stages/:stageId', validateParams(stageIdParamSchema), validateBody(updateStageSchema), opportunitiesController.updateStage);
-  router.post('/stages/reorder', validateBody(reorderStagesSchema), opportunitiesController.reorderStages);
+  router.put(
+    '/stages/:stageId',
+    validateParams(stageIdParamSchema),
+    validateBody(updateStageSchema),
+    opportunitiesController.updateStage
+  );
+  router.post(
+    '/stages/reorder',
+    validateBody(reorderStagesSchema),
+    opportunitiesController.reorderStages
+  );
 
   router.get('/summary', opportunitiesController.getOpportunitySummary);
-  router.get('/', validateQuery(listOpportunitiesQuerySchema), opportunitiesController.listOpportunities);
-  router.get('/:id', validateParams(opportunityIdParamSchema), opportunitiesController.getOpportunityById);
-  router.post('/', validateBody(createOpportunitySchema), opportunitiesController.createOpportunity);
-  router.put('/:id', validateParams(opportunityIdParamSchema), validateBody(updateOpportunitySchema), opportunitiesController.updateOpportunity);
-  router.post('/:id/move-stage', validateParams(opportunityIdParamSchema), validateBody(moveStageSchema), opportunitiesController.moveOpportunityStage);
-  router.delete('/:id', validateParams(opportunityIdParamSchema), opportunitiesController.deleteOpportunity);
+  router.get(
+    '/',
+    validateQuery(listOpportunitiesQuerySchema),
+    opportunitiesController.listOpportunities
+  );
+  router.get(
+    '/:id',
+    validateParams(opportunityIdParamSchema),
+    opportunitiesController.getOpportunityById
+  );
+  router.post(
+    '/',
+    validateBody(createOpportunitySchema),
+    opportunitiesController.createOpportunity
+  );
+  router.put(
+    '/:id',
+    validateParams(opportunityIdParamSchema),
+    validateBody(updateOpportunitySchema),
+    opportunitiesController.updateOpportunity
+  );
+  router.post(
+    '/:id/move-stage',
+    validateParams(opportunityIdParamSchema),
+    validateBody(moveStageSchema),
+    opportunitiesController.moveOpportunityStage
+  );
+  router.delete(
+    '/:id',
+    validateParams(opportunityIdParamSchema),
+    opportunitiesController.deleteOpportunity
+  );
 
   return router;
 };

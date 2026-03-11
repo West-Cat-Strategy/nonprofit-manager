@@ -5,7 +5,7 @@ import { authenticate } from '@middleware/domains/auth';
 import { loadDataScope } from '@middleware/domains/data';
 import { documentUpload, handleMulterError } from '@middleware/domains/platform';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
-import { uuidSchema } from '@validations/shared';
+import { uuidSchema, optionalStrictBooleanSchema } from '@validations/shared';
 import { createAccountsController } from '../controllers/accounts.controller';
 import { type ResponseMode } from '../mappers/responseMode';
 import { AccountRepository } from '../repositories/accountRepository';
@@ -28,16 +28,18 @@ const accountIdParamsSchema = z.object({
   id: uuidSchema,
 });
 
-const accountQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).optional(),
-  limit: z.coerce.number().int().min(1).max(100).optional(),
-  sort_by: z.string().optional(),
-  sort_order: sortOrderSchema.optional(),
-  search: z.string().optional(),
-  account_type: accountTypeSchema.optional(),
-  category: accountCategorySchema.optional(),
-  is_active: z.coerce.boolean().optional(),
-}).strict();
+const accountQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    sort_by: z.string().optional(),
+    sort_order: sortOrderSchema.optional(),
+    search: z.string().optional(),
+    account_type: accountTypeSchema.optional(),
+    category: accountCategorySchema.optional(),
+    is_active: optionalStrictBooleanSchema,
+  })
+  .strict();
 
 const createAccountSchema = z.object({
   account_name: z.string().trim().min(1).max(255),
@@ -71,27 +73,31 @@ const updateAccountSchema = z.object({
   postal_code: z.string().trim().optional(),
   country: z.string().trim().optional(),
   tax_id: z.string().trim().optional(),
-  is_active: z.coerce.boolean().optional(),
+  is_active: optionalStrictBooleanSchema,
 });
 
-const accountExportSchema = z.object({
-  format: z.enum(['csv', 'xlsx']),
-  ids: z.array(uuidSchema).optional(),
-  columns: z.array(z.string().trim().min(1)).optional(),
-  sort_by: z.string().optional(),
-  sort_order: sortOrderSchema.optional(),
-  search: z.string().optional(),
-  account_type: accountTypeSchema.optional(),
-  category: accountCategorySchema.optional(),
-  is_active: z.coerce.boolean().optional(),
-}).strict();
+const accountExportSchema = z
+  .object({
+    format: z.enum(['csv', 'xlsx']),
+    ids: z.array(uuidSchema).optional(),
+    columns: z.array(z.string().trim().min(1)).optional(),
+    sort_by: z.string().optional(),
+    sort_order: sortOrderSchema.optional(),
+    search: z.string().optional(),
+    account_type: accountTypeSchema.optional(),
+    category: accountCategorySchema.optional(),
+    is_active: optionalStrictBooleanSchema,
+  })
+  .strict();
 
-const accountImportTemplateQuerySchema = z.object({
-  format: z
-    .enum(['csv', 'xlsx', 'xslx'])
-    .transform((value) => (value === 'xslx' ? 'xlsx' : value))
-    .optional(),
-}).strict();
+const accountImportTemplateQuerySchema = z
+  .object({
+    format: z
+      .enum(['csv', 'xlsx', 'xslx'])
+      .transform((value) => (value === 'xslx' ? 'xlsx' : value))
+      .optional(),
+  })
+  .strict();
 
 export const createAccountsRoutes = (mode: ResponseMode = 'v2'): Router => {
   const router = Router();

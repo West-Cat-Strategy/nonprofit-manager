@@ -27,11 +27,46 @@ vi.mock('../../../../store/slices/donationsSlice', () => ({
 }));
 
 describe('DonationList page', () => {
+  beforeEach(() => {
+    dispatchMock.mockClear();
+    localStorage.clear();
+  });
+
   it('renders donation summary and quick filter', async () => {
     const user = userEvent.setup();
     renderWithProviders(<DonationList />);
     expect(screen.getByRole('heading', { name: 'Donations' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Completed' }));
     expect(dispatchMock).toHaveBeenCalled();
+  });
+
+  it('sanitizes stale local storage filters before dispatching the initial load', () => {
+    localStorage.setItem(
+      'donations_list_filters_v1',
+      JSON.stringify({
+        search: 'appeal',
+        paymentStatus: 'broken',
+        paymentMethod: 'wire',
+      })
+    );
+
+    renderWithProviders(<DonationList />, { route: '/donations?page=0' });
+
+    expect(dispatchMock).toHaveBeenCalledWith({
+      type: 'donations/fetch',
+      payload: {
+        filters: {
+          search: 'appeal',
+          payment_status: undefined,
+          payment_method: undefined,
+        },
+        pagination: {
+          page: 1,
+          limit: 20,
+          sort_by: 'donation_date',
+          sort_order: 'desc',
+        },
+      },
+    });
   });
 });

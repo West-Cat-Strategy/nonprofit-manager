@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { optionalStrictBooleanSchema } from '@validations/shared';
 import { CONTACT_ROLE_FILTER_VALUES } from '@app-types/contact';
 import pool from '@config/database';
 import { authenticate } from '@middleware/domains/auth';
@@ -46,25 +47,29 @@ import { ContactEmailsUseCase } from '../usecases/contactEmails.usecase';
 import { ContactRelationshipsUseCase } from '../usecases/contactRelationships.usecase';
 import { ContactDocumentsUseCase } from '../usecases/contactDocuments.usecase';
 
-const contactExportSchema = z.object({
-  format: z.enum(['csv', 'xlsx']),
-  ids: z.array(uuidSchema).optional(),
-  columns: z.array(z.string().trim().min(1)).optional(),
-  sort_by: z.string().optional(),
-  sort_order: z.enum(['asc', 'desc']).optional(),
-  search: z.string().optional(),
-  role: z.enum(CONTACT_ROLE_FILTER_VALUES).optional(),
-  account_id: uuidSchema.optional(),
-  is_active: z.coerce.boolean().optional(),
-  tags: z.array(z.string().trim().min(1)).optional(),
-}).strict();
+const contactExportSchema = z
+  .object({
+    format: z.enum(['csv', 'xlsx']),
+    ids: z.array(uuidSchema).optional(),
+    columns: z.array(z.string().trim().min(1)).optional(),
+    sort_by: z.string().optional(),
+    sort_order: z.enum(['asc', 'desc']).optional(),
+    search: z.string().optional(),
+    role: z.enum(CONTACT_ROLE_FILTER_VALUES).optional(),
+    account_id: uuidSchema.optional(),
+    is_active: optionalStrictBooleanSchema,
+    tags: z.array(z.string().trim().min(1)).optional(),
+  })
+  .strict();
 
-const importTemplateQuerySchema = z.object({
-  format: z
-    .enum(['csv', 'xlsx', 'xslx'])
-    .transform((value) => (value === 'xslx' ? 'xlsx' : value))
-    .optional(),
-}).strict();
+const importTemplateQuerySchema = z
+  .object({
+    format: z
+      .enum(['csv', 'xlsx', 'xslx'])
+      .transform((value) => (value === 'xslx' ? 'xlsx' : value))
+      .optional(),
+  })
+  .strict();
 
 export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
   const router = Router();
@@ -83,9 +88,18 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
     new ContactImportExportUseCase(pool),
     mode
   );
-  const notesController = createContactNotesController(new ContactNotesUseCase(notesRepository), mode);
-  const phonesController = createContactPhonesController(new ContactPhonesUseCase(phonesRepository), mode);
-  const emailsController = createContactEmailsController(new ContactEmailsUseCase(emailsRepository), mode);
+  const notesController = createContactNotesController(
+    new ContactNotesUseCase(notesRepository),
+    mode
+  );
+  const phonesController = createContactPhonesController(
+    new ContactPhonesUseCase(phonesRepository),
+    mode
+  );
+  const emailsController = createContactEmailsController(
+    new ContactEmailsUseCase(emailsRepository),
+    mode
+  );
   const relationshipsController = createContactRelationshipsController(
     new ContactRelationshipsUseCase(relationshipsRepository),
     mode
@@ -101,12 +115,24 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
   router.use(loadDataScope('contacts'));
 
   router.get('/', validateQuery(contactFilterSchema), directoryController.getContacts);
-  router.get('/lookup', validateQuery(contactLookupQuerySchema), directoryController.lookupContacts);
+  router.get(
+    '/lookup',
+    validateQuery(contactLookupQuerySchema),
+    directoryController.lookupContacts
+  );
   router.get('/tags', directoryController.getContactTags);
   router.get('/roles', directoryController.getContactRoles);
-  router.post('/bulk', validateBody(bulkUpdateContactsSchema), directoryController.bulkUpdateContacts);
+  router.post(
+    '/bulk',
+    validateBody(bulkUpdateContactsSchema),
+    directoryController.bulkUpdateContacts
+  );
   router.post('/export', validateBody(contactExportSchema), directoryController.exportContacts);
-  router.get('/import/template', validateQuery(importTemplateQuerySchema), directoryController.downloadImportTemplate);
+  router.get(
+    '/import/template',
+    validateQuery(importTemplateQuerySchema),
+    directoryController.downloadImportTemplate
+  );
   router.post(
     '/import/preview',
     documentUpload.single('file'),
@@ -120,7 +146,11 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
     directoryController.commitImport
   );
 
-  router.get('/:id', validateParams(z.object({ id: uuidSchema })), directoryController.getContactById);
+  router.get(
+    '/:id',
+    validateParams(z.object({ id: uuidSchema })),
+    directoryController.getContactById
+  );
   router.post('/', validateBody(createContactSchema), directoryController.createContact);
   router.put(
     '/:id',
@@ -128,8 +158,16 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
     validateBody(updateContactSchema),
     directoryController.updateContact
   );
-  router.delete('/:id', validateParams(z.object({ id: uuidSchema })), directoryController.deleteContact);
-  router.get('/:id/follow-ups', validateParams(z.object({ id: uuidSchema })), followUpsController.getContactFollowUps);
+  router.delete(
+    '/:id',
+    validateParams(z.object({ id: uuidSchema })),
+    directoryController.deleteContact
+  );
+  router.get(
+    '/:id/follow-ups',
+    validateParams(z.object({ id: uuidSchema })),
+    followUpsController.getContactFollowUps
+  );
 
   router.get(
     '/:contactId/notes',

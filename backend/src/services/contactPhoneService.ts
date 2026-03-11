@@ -10,6 +10,7 @@ import type {
   CreateContactPhoneDTO,
   UpdateContactPhoneDTO,
 } from '@app-types/contact';
+import { syncContactMethodSummaries } from './contactMethodSyncService';
 
 /**
  * Get all phone numbers for a contact
@@ -68,12 +69,13 @@ export async function createContactPhone(
       [
         contactId,
         data.phone_number,
-        data.label || 'mobile',
+        data.label || 'other',
         data.is_primary || false,
         userId,
       ]
     );
 
+    await syncContactMethodSummaries(contactId);
     logger.info(`Contact phone created for contact ${contactId}`);
     return result.rows[0];
   } catch (error: any) {
@@ -131,6 +133,7 @@ export async function updateContactPhone(
       return null;
     }
 
+    await syncContactMethodSummaries(result.rows[0].contact_id as string);
     logger.info(`Contact phone updated: ${phoneId}`);
     return result.rows[0];
   } catch (error: any) {
@@ -148,7 +151,7 @@ export async function updateContactPhone(
 export async function deleteContactPhone(phoneId: string): Promise<boolean> {
   try {
     const result = await pool.query(
-      `DELETE FROM contact_phone_numbers WHERE id = $1 RETURNING id`,
+      `DELETE FROM contact_phone_numbers WHERE id = $1 RETURNING id, contact_id`,
       [phoneId]
     );
 
@@ -156,6 +159,7 @@ export async function deleteContactPhone(phoneId: string): Promise<boolean> {
       return false;
     }
 
+    await syncContactMethodSummaries(result.rows[0].contact_id as string);
     logger.info(`Contact phone deleted: ${phoneId}`);
     return true;
   } catch (error) {

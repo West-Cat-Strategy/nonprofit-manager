@@ -15,11 +15,11 @@ import {
   createActionItem,
   getMinutesDraft,
 } from '../controllers';
-import { uuidSchema } from '@validations/shared';
+import { isoDateTimeSchema, uuidSchema } from '@validations/shared';
 
 const router = Router();
 
-const dateStringSchema = z.string().refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid ISO8601 date');
+const dateStringSchema = isoDateTimeSchema;
 const meetingTypeSchema = z.enum(['board', 'agm', 'committee']);
 const meetingStatusSchema = z.enum(['draft', 'scheduled', 'in_progress', 'completed', 'cancelled']);
 const motionStatusSchema = z.enum(['pending', 'passed', 'failed', 'amended', 'withdrawn']);
@@ -33,13 +33,15 @@ const motionParamsSchema = z.object({
   motionId: uuidSchema,
 });
 
-const listMeetingsQuerySchema = z.object({
-  committee_id: uuidSchema.optional(),
-  status: z.string().optional(),
-  from: dateStringSchema.optional(),
-  to: dateStringSchema.optional(),
-  limit: z.coerce.number().int().min(1).max(200).optional(),
-}).strict();
+const listMeetingsQuerySchema = z
+  .object({
+    committee_id: uuidSchema.optional(),
+    status: z.string().optional(),
+    from: dateStringSchema.optional(),
+    to: dateStringSchema.optional(),
+    limit: z.coerce.number().int().min(1).max(200).optional(),
+  })
+  .strict();
 
 const createMeetingSchema = z.object({
   meeting_type: meetingTypeSchema,
@@ -111,19 +113,49 @@ router.get('/:id', validateParams(idParamsSchema), getMeetingDetail);
 
 router.post('/', validateBody(createMeetingSchema), createMeeting);
 
-router.patch('/:id', validateParams(idParamsSchema), validateBody(updateMeetingSchema), updateMeeting);
+router.patch(
+  '/:id',
+  validateParams(idParamsSchema),
+  validateBody(updateMeetingSchema),
+  updateMeeting
+);
 
 router.get('/:id/minutes/draft', validateParams(idParamsSchema), getMinutesDraft);
 
-router.post('/:id/agenda-items', validateParams(idParamsSchema), validateBody(addAgendaItemSchema), addAgendaItem);
+router.post(
+  '/:id/agenda-items',
+  validateParams(idParamsSchema),
+  validateBody(addAgendaItemSchema),
+  addAgendaItem
+);
 
-router.post('/:id/agenda/reorder', validateParams(idParamsSchema), validateBody(reorderAgendaSchema), reorderAgenda);
+router.post(
+  '/:id/agenda/reorder',
+  validateParams(idParamsSchema),
+  validateBody(reorderAgendaSchema),
+  reorderAgenda
+);
 
-router.post('/:id/motions', validateParams(idParamsSchema), validateBody(addMotionSchema), addMotion);
+router.post(
+  '/:id/motions',
+  validateParams(idParamsSchema),
+  validateBody(addMotionSchema),
+  addMotion
+);
 
-router.patch('/:id/motions/:motionId', validateParams(motionParamsSchema), validateBody(updateMotionSchema), updateMotion);
+router.patch(
+  '/:id/motions/:motionId',
+  validateParams(motionParamsSchema),
+  validateBody(updateMotionSchema),
+  updateMotion
+);
 
-router.post('/:id/action-items', validateParams(idParamsSchema), validateBody(createActionItemSchema), createActionItem);
+router.post(
+  '/:id/action-items',
+  validateParams(idParamsSchema),
+  validateBody(createActionItemSchema),
+  createActionItem
+);
 
 export default router;
 

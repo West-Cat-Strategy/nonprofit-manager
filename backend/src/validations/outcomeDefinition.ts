@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { uuidSchema } from './shared';
+import { uuidSchema, optionalStrictBooleanSchema } from './shared';
 
 export const outcomeKeySchema = z
   .string()
@@ -36,7 +36,7 @@ export const outcomeDefinitionIdParamsSchema = z.object({
 });
 
 export const listOutcomeDefinitionsQuerySchema = z.object({
-  includeInactive: z.coerce.boolean().optional(),
+  includeInactive: optionalStrictBooleanSchema,
 });
 
 export const reorderOutcomeDefinitionsSchema = z.object({

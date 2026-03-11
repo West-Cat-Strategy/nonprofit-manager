@@ -19,7 +19,7 @@ import ContactTags from '../../../components/ContactTags';
 import ContactTasks from '../../../components/ContactTasks';
 import ContactActivityTimeline from '../../../components/ContactActivityTimeline';
 import FollowUpList from '../../../components/FollowUpList';
-import { formatDate } from '../../../utils/format';
+import { formatDate, formatDateOnly, getAgeFromDateOnly } from '../../../utils/format';
 
 type TabType = 'overview' | 'notes' | 'tasks' | 'activity' | 'followups' | 'documents' | 'payments';
 
@@ -106,21 +106,8 @@ const ContactDetail = () => {
   const displayFirstName = currentContact.preferred_name || currentContact.first_name;
   const fullName = `${currentContact.salutation ? currentContact.salutation + ' ' : ''}${displayFirstName} ${currentContact.middle_name ? currentContact.middle_name + ' ' : ''}${currentContact.last_name}`;
 
-  const formatDateOrDash = (dateString: string | null) => {
-    return dateString ? formatDate(dateString) : '-';
-  };
-
-  const calculateAge = (birthDate: string | null) => {
-    if (!birthDate) return null;
-    const today = new Date();
-    const birth = new Date(birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    return age;
-  };
+  const formatDateOrDash = (dateString: string | null) =>
+    dateString ? formatDateOnly(dateString) : '-';
 
   const tabs: { id: TabType; label: string; count?: number }[] = [
     { id: 'overview', label: 'Overview' },
@@ -148,13 +135,13 @@ const ContactDetail = () => {
           <div>
             <button
               onClick={() => navigate('/contacts')}
-              className="text-sm font-black uppercase text-black/70 hover:text-black mb-2 flex items-center gap-1"
+              className="mb-2 flex items-center gap-1 text-sm font-black uppercase text-black/70 hover:text-black dark:text-white/80 dark:hover:text-white"
               aria-label="Back to people"
             >
               ← Back to People
             </button>
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-black uppercase tracking-tight text-black">
+              <h1 className="text-3xl font-black uppercase tracking-tight text-black dark:text-white">
                 {fullName}
               </h1>
               {currentContact.pronouns && (
@@ -183,13 +170,13 @@ const ContactDetail = () => {
               ))}
             </div>
             {currentContact.job_title && (
-              <p className="mt-1 font-bold text-black/70">
+              <p className="mt-1 font-bold text-black/70 dark:text-white/80">
                 {currentContact.job_title}
                 {currentContact.department && ` - ${currentContact.department}`}
               </p>
             )}
             {currentContact.account_name && (
-              <p className="text-sm font-bold text-black/60">
+              <p className="text-sm font-bold text-black/60 dark:text-white/70">
                 Organization: {currentContact.account_name}
               </p>
             )}
@@ -289,9 +276,9 @@ const ContactDetail = () => {
                     </label>
                     <p className="mt-1 font-bold text-black">
                       {formatDateOrDash(currentContact.birth_date)}
-                      {currentContact.birth_date && calculateAge(currentContact.birth_date) !== null && (
+                      {currentContact.birth_date && getAgeFromDateOnly(currentContact.birth_date) !== null && (
                         <span className="text-black/60 ml-1">
-                          (Age: {calculateAge(currentContact.birth_date)})
+                          (Age: {getAgeFromDateOnly(currentContact.birth_date)})
                         </span>
                       )}
                     </p>

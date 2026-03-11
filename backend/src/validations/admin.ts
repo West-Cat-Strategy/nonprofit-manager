@@ -1,10 +1,8 @@
 import { z } from 'zod';
-import { emailSchema, phoneSchema, uuidSchema } from './shared';
+import { emailSchema, phoneSchema, uuidSchema, optionalStrictBooleanSchema } from './shared';
 
 const nullableString = (maxLength = 255) =>
-  z
-    .union([z.string().trim().max(maxLength), z.null()])
-    .optional();
+  z.union([z.string().trim().max(maxLength), z.null()]).optional();
 
 export const adminPendingRegistrationParamsSchema = z.object({
   id: uuidSchema,
@@ -19,26 +17,30 @@ export const rejectPendingRegistrationSchema = z.object({
   reason: z.string().trim().max(500).optional(),
 });
 
-export const adminAuditLogsQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(200).optional(),
-  offset: z.coerce.number().int().min(0).max(5000).optional(),
-}).strict();
+export const adminAuditLogsQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(200).optional(),
+    offset: z.coerce.number().int().min(0).max(5000).optional(),
+  })
+  .strict();
 
-export const adminPendingRegistrationsQuerySchema = z.object({
-  status: z.enum(['pending', 'approved', 'rejected']).optional(),
-}).strict();
+export const adminPendingRegistrationsQuerySchema = z
+  .object({
+    status: z.enum(['pending', 'approved', 'rejected']).optional(),
+  })
+  .strict();
 
 export const updateEmailSettingsSchema = z.object({
   smtpHost: nullableString(255),
   smtpPort: z.coerce.number().int().min(1).max(65535).optional(),
-  smtpSecure: z.coerce.boolean().optional(),
+  smtpSecure: optionalStrictBooleanSchema,
   smtpUser: nullableString(255),
   smtpPass: z.string().max(255).optional(),
   smtpFromAddress: z.union([emailSchema, z.literal(''), z.null()]).optional(),
   smtpFromName: nullableString(255),
   imapHost: nullableString(255),
   imapPort: z.coerce.number().int().min(1).max(65535).optional(),
-  imapSecure: z.coerce.boolean().optional(),
+  imapSecure: optionalStrictBooleanSchema,
   imapUser: nullableString(255),
   imapPass: z.string().max(255).optional(),
 });
@@ -53,12 +55,8 @@ export const updateTwilioSettingsSchema = z.object({
 export type AdminPendingRegistrationParamsInput = z.infer<
   typeof adminPendingRegistrationParamsSchema
 >;
-export type UpdateRegistrationSettingsInput = z.infer<
-  typeof updateRegistrationSettingsSchema
->;
-export type RejectPendingRegistrationInput = z.infer<
-  typeof rejectPendingRegistrationSchema
->;
+export type UpdateRegistrationSettingsInput = z.infer<typeof updateRegistrationSettingsSchema>;
+export type RejectPendingRegistrationInput = z.infer<typeof rejectPendingRegistrationSchema>;
 export type AdminAuditLogsQueryInput = z.infer<typeof adminAuditLogsQuerySchema>;
 export type AdminPendingRegistrationsQueryInput = z.infer<
   typeof adminPendingRegistrationsQuerySchema
