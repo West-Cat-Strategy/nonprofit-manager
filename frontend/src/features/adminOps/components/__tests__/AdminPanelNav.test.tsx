@@ -46,7 +46,7 @@ describe('AdminPanelNav', () => {
     });
 
     expect(screen.queryByRole('link', { name: /data backup/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /navigation/i })).toHaveClass('bg-app-accent-soft');
+    expect(screen.getByRole('link', { name: /navigation/i })).toHaveClass('bg-app-accent');
   });
 
   it('renders portal mode links and active panel state', () => {
@@ -74,7 +74,7 @@ describe('AdminPanelNav', () => {
       'href',
       '/settings/admin/portal/access'
     );
-    expect(screen.getByRole('link', { name: /appointments/i })).toHaveClass('bg-app-accent-soft');
+    expect(screen.getByRole('link', { name: /appointments/i })).toHaveClass('bg-app-accent');
   });
 
   it('highlights the canonical admin settings entry for legacy query locations', () => {
@@ -100,6 +100,6 @@ describe('AdminPanelNav', () => {
       'href',
       '/settings/admin/dashboard'
     );
-    expect(screen.getByRole('link', { name: /admin settings/i })).toHaveClass('bg-app-accent-soft');
+    expect(screen.getByRole('link', { name: /admin settings/i })).toHaveClass('bg-app-accent');
   });
 });

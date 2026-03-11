@@ -1255,6 +1255,8 @@ body [class*='focus:border-blue-600']:focus {
 
   --shadow-color: rgba(16, 24, 34, 0.12);
   --focus-ring: #17365d;
+  --app-shell-top: #faf8f4;
+  --app-shell-glow: rgba(255, 255, 255, 0.72);
 }
 
 body.theme-sea-breeze {
@@ -1415,13 +1417,15 @@ body.dark.theme-high-contrast {
   --app-input-bg: #0f1420;
   --app-input-border: #d2d9e8;
   --shadow-color: rgba(255, 255, 255, 0.2);
+  --app-shell-top: #11131a;
+  --app-shell-glow: rgba(111, 178, 255, 0.12);
 }
 
 body.ui-redesign {
   font-family: var(--ui-font-body);
   background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.72), transparent 34rem),
-    linear-gradient(180deg, #faf8f4 0%, var(--app-bg) 22rem, var(--app-bg) 100%);
+    radial-gradient(circle at top, var(--app-shell-glow), transparent 34rem),
+    linear-gradient(180deg, var(--app-shell-top) 0%, var(--app-bg) 22rem, var(--app-bg) 100%);
   color: var(--app-text);
   background-attachment: fixed;
 }
