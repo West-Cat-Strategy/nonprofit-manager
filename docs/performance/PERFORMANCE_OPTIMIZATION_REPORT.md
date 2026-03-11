@@ -111,8 +111,8 @@ A comprehensive code review identified **23 critical efficiency issues** across 
 
 ### 3. ✅ Redux Selector Memoization (Frontend)
 **Files:** 
-- [frontend/src/store/slices/casesSlice.ts](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/frontend/src/store/slices/casesSlice.ts)
-- [frontend/src/store/slices/followUpsSlice.ts](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/frontend/src/store/slices/followUpsSlice.ts)
+- [frontend/src/features/cases/state/casesCore.ts](../../frontend/src/features/cases/state/casesCore.ts)
+- [frontend/src/features/followUps/state/followUpsCore.ts](../../frontend/src/features/followUps/state/followUpsCore.ts)
 
 **Converted 9 case-related selectors to use `createSelector`:**
 - `selectCasesByAssignee` — filters by user
@@ -139,7 +139,7 @@ A comprehensive code review identified **23 critical efficiency issues** across 
 ---
 
 ### 4. ✅ Chart Component Memoization (Frontend)
-**File:** [frontend/src/pages/analytics/charts.tsx](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/frontend/src/pages/analytics/charts.tsx)
+**File:** [frontend/src/features/analytics/pages/charts.tsx](../../frontend/src/features/analytics/pages/charts.tsx)
 
 Wrapped all 6 recharts components with `React.memo()`:
 1. `EngagementPieChart` — engagement distribution
@@ -404,7 +404,7 @@ Converted sequential bulk sync to parallel operations:
    - Impact: Better perceived performance on route transitions
 
 2. **Memoize CaseList handlers and formatters**
-   - File: [pages/engagement/cases/CaseList.tsx](https://github.com/West-Cat-Strategy/nonprofit-manager/blob/main/frontend/src/pages/engagement/cases/CaseList.tsx#L1)
+   - File: [frontend/src/features/cases/pages/CaseListPage.tsx](../../frontend/src/features/cases/pages/CaseListPage.tsx)
    - Impact: Smooth list operations (879-line component)
 
 3. **Selective Redux selectors in 30+ components**

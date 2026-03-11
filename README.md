@@ -1,124 +1,75 @@
 # Nonprofit Manager
 
-Nonprofit Manager is an all-in-one platform for nonprofit organizations to manage people, programs, fundraising, communications, and public-facing web experiences.
+**Last Updated:** 2026-03-11
 
-Built by **West Cat Strategy Ltd.**
+Nonprofit Manager is a full-stack TypeScript platform for nonprofit operations: people and case management, events and volunteers, fundraising, client portal workflows, analytics, and website publishing.
 
-**Last updated:** March 8, 2026
+This README is the contributor start page. Use [docs/INDEX.md](docs/INDEX.md) for the full documentation catalog.
 
-## Overview
+## Start Here
 
-Nonprofit Manager brings core nonprofit operations into a single product:
+Read these in order when you are contributing code or docs:
 
-- **People and case management** for contacts, supporters, donors, volunteers, and case workflows
-- **Events and volunteer coordination** with registrations, reminders, check-in, and staffing
-- **Fundraising and payments** with donation tracking, receipts, and payment integrations
-- **Portal and communication flows** for client access, messages, documents, forms, and appointments
-- **Reporting and analytics** for dashboards, exports, alerts, and operational visibility
-- **Website publishing tools** for managing nonprofit web content alongside operational data
+1. [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md)
+2. [CONTRIBUTING.md](CONTRIBUTING.md)
+3. [docs/development/CONVENTIONS.md](docs/development/CONVENTIONS.md)
+4. [docs/development/ARCHITECTURE.md](docs/development/ARCHITECTURE.md)
 
-The repository contains the full stack that powers those experiences: API, frontend, database assets, end-to-end tests, deployment tooling, and project documentation.
+If the work is tracked, update [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md) before editing code or documentation.
 
-## Stack and Architecture
+## Stack
 
-### Core stack
+- Backend: Node.js, Express, TypeScript, PostgreSQL, Redis, Zod
+- Frontend: React 19, TypeScript, Vite, Tailwind CSS, Redux Toolkit, React Router 7
+- Testing: Jest, Vitest, Playwright
+- Operations: Docker Compose, Makefile-based local CI, deployment scripts
 
-- **Backend:** Node.js, Express, TypeScript, PostgreSQL, Redis, Zod
-- **Frontend:** React, TypeScript, Vite, Tailwind CSS, Redux Toolkit
-- **Testing:** Jest, Vitest, Playwright
-- **Operations:** Docker Compose, Makefile-based local CI, deployment scripts
+## Runtime Matrix
 
-### Current application shape
+| Mode | Start Command | Frontend | Backend/API | Other Services |
+|------|---------------|----------|-------------|----------------|
+| Docker development | `make dev` | `http://localhost:8005` | `http://localhost:8004` | Postgres `localhost:8002`, Redis `localhost:8003` |
+| Direct frontend runtime | `cd frontend && npm run dev` | `http://localhost:8005` | Configure `frontend/.env.local` to point at a running backend | None by default |
+| Direct backend runtime | `cd backend && npm run dev` | n/a | `http://localhost:3000` | Use your local env settings; Docker-backed infra commonly maps Postgres to `8002` and Redis to `8003` |
+| E2E harness | `cd e2e && npm test` | `http://127.0.0.1:5173` | `http://127.0.0.1:3001` | Playwright manages the frontend/backend processes |
 
-- [`backend/`](backend/) contains the Express API, organized around feature modules in [`backend/src/modules`](backend/src/modules) with shared middleware, validations, services, and route registrars.
-- [`frontend/`](frontend/) contains the React application, with feature-owned code in [`frontend/src/features`](frontend/src/features), shared routes in [`frontend/src/routes`](frontend/src/routes), and app-wide state in [`frontend/src/store`](frontend/src/store).
-- [`database/`](database/) contains schema, migration, initialization, and seed assets.
-- [`docs/`](docs/) contains architecture notes, API references, deployment runbooks, testing guides, and the active project workboard.
+## Common Commands
 
-### Backend pattern
-
-The backend follows a route-to-controller-to-service flow with validation and auth guardrails around each request:
-
-`Route -> Controller -> Service -> Database`
-
-This keeps HTTP concerns, authorization, business logic, and data access separated while the Phase 4 modularity refactor continues to consolidate legacy and v2 surfaces.
-
-## Quick Start
-
-### Prerequisites
-
-- Docker Desktop, or Docker Engine with Compose support
-- Node.js `20.19+`
-- npm `10+`
-
-### Local development
+Run these from the repo root unless noted otherwise:
 
 ```bash
-cp .env.development.example .env.development
-# Optional legacy fallback for older repo-root tooling:
-# cp .env.example .env
 make dev
-```
-
-This starts the local development stack with hot reload.
-
-For repo-root Docker Compose flows, prefer `.env.development`; `.env` remains a temporary compatibility fallback.
-
-Local endpoints:
-
-- Frontend: `http://localhost:8005`
-- Backend API: `http://localhost:8004`
-- PostgreSQL: `localhost:8002`
-- Redis: `localhost:8003`
-
-### Common commands
-
-```bash
-make ci
-make test
 make lint
 make typecheck
+make test
+make ci
+make check-links
+make lint-doc-api-versioning
 ```
 
-For deeper setup details, environment notes, and deployment workflows, use the docs linked below instead of relying on the root README.
+Package-level commands still exist when you want narrower feedback:
 
-## Documentation
+- `cd backend && npm run type-check`
+- `cd frontend && npm run type-check`
+- `cd e2e && npm run test:smoke`
 
-Start with [`docs/INDEX.md`](docs/INDEX.md) for the full documentation map.
+## Documentation Map
 
-Useful entry points:
+Use these as the main active references:
 
-- [`docs/development/GETTING_STARTED.md`](docs/development/GETTING_STARTED.md) for local setup
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution workflow
-- [`docs/development/ARCHITECTURE.md`](docs/development/ARCHITECTURE.md) for system design
-- [`docs/api/README.md`](docs/api/README.md) for API references and integration docs
-- [`docs/testing/TESTING.md`](docs/testing/TESTING.md) for test strategy and commands
-- [`docs/deployment/DEPLOYMENT.md`](docs/deployment/DEPLOYMENT.md) for deployment guidance
-- [`docs/deployment/cbis-production.md`](docs/deployment/cbis-production.md) for the CBIS production runbook
-- [`docs/phases/planning-and-progress.md`](docs/phases/planning-and-progress.md) for the active workboard and current execution status
-- [`backend/README.md`](backend/README.md) and [`frontend/README.md`](frontend/README.md) for service-specific details
-
-## Contributing
-
-Contributors should start with the setup and workflow docs:
-
-1. [`docs/development/GETTING_STARTED.md`](docs/development/GETTING_STARTED.md)
-2. [`CONTRIBUTING.md`](CONTRIBUTING.md)
-3. [`docs/development/CONVENTIONS.md`](docs/development/CONVENTIONS.md)
-4. [`docs/development/ARCHITECTURE.md`](docs/development/ARCHITECTURE.md)
+- [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) for setup and runtime choices
+- [CONTRIBUTING.md](CONTRIBUTING.md) for branch, review, and validation workflow
+- [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md) for coding-agent rules and repo guardrails
+- [backend/README.md](backend/README.md) and [frontend/README.md](frontend/README.md) for service-specific guidance
+- [docs/testing/TESTING.md](docs/testing/TESTING.md) and [e2e/README.md](e2e/README.md) for test guidance
+- [docs/api/README.md](docs/api/README.md) for API reference entry points
+- [docs/deployment/DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md) for deployment guidance
+- [docs/INDEX.md](docs/INDEX.md) for the full catalog
 
 ## Current Status
 
-The project is currently in **Phase 4: Modularity Refactor**, with active closure and follow-on work tracked in [`docs/phases/planning-and-progress.md`](docs/phases/planning-and-progress.md).
-
-That work is focused on consolidating backend and frontend ownership boundaries, preserving route and UI contracts during migration, and tightening policy and verification guardrails across the stack.
+The active delivery stream is Phase 4. The live source of truth for task ownership, status changes, and blockers is [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md).
 
 ## License
 
 MIT
-
-Copyright (c) 2026 West Cat Strategy Ltd.
-
-## Contact
-
-For project or product inquiries, contact [info@westcat.ca](mailto:info@westcat.ca).
