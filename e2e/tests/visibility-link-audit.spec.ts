@@ -1,4 +1,4 @@
-import { test as base, expect, type Page } from '@playwright/test';
+import { test as base, expect, type Locator, type Page } from '@playwright/test';
 import '../helpers/testEnv';
 import { test as authTest } from '../fixtures/auth.fixture';
 import { ensureEffectiveAdminLoginViaAPI } from '../helpers/auth';
@@ -10,6 +10,7 @@ import {
   type ProvisionedPortalUser,
 } from '../helpers/portal';
 import {
+  getRouteCatalogEntryById,
   matchRouteCatalogEntry,
   normalizeRouteLocation,
 } from '../../frontend/src/routes/routeCatalog';
@@ -26,13 +27,19 @@ type RouteAuditConfig = {
   heading?: RegExp;
   primaryAction?: RegExp;
   requiredTabs?: RegExp[];
+  interaction?: {
+    revealAction?: RegExp;
+    keyFields?: RegExp[];
+    keyControls?: RegExp[];
+    expectedStatesAnyOf?: RegExp[];
+  };
 };
 
 type ClickthroughAuditLink = {
   label: string;
   href: string;
   surface: 'staff' | 'portal';
-  scope?: 'workspace-nav' | 'page';
+  scope?: 'workspace-nav' | 'alerts-shortcut' | 'utilities-menu';
 };
 
 type LinkAuditRow = {
@@ -203,6 +210,15 @@ const staffRouteAudits: RouteAuditConfig[] = [
     expectedEntryId: 'analytics',
     heading: /analytics/i,
     primaryAction: /apply filters/i,
+    interaction: {
+      keyFields: [/start date/i, /end date/i],
+      keyControls: [/apply filters/i, /^clear$/i],
+      expectedStatesAnyOf: [
+        /key performance indicators/i,
+        /no analytics data available/i,
+        /retry analytics/i,
+      ],
+    },
   },
   {
     name: 'alerts',
@@ -211,6 +227,16 @@ const staffRouteAudits: RouteAuditConfig[] = [
     expectedEntryId: 'alerts-overview',
     heading: /alerts/i,
     primaryAction: /create alert|edit alert rules/i,
+    interaction: {
+      expectedStatesAnyOf: [
+        /no alert configurations yet/i,
+        /create your first alert/i,
+        /alert configurations/i,
+      ],
+      revealAction: /create alert/i,
+      keyFields: [/alert name/i, /metric/i, /condition/i, /threshold/i],
+      keyControls: [/test alert/i, /create alert/i],
+    },
   },
   {
     name: 'alerts instances',
@@ -247,6 +273,10 @@ const staffRouteAudits: RouteAuditConfig[] = [
     expectedEntryId: 'admin-settings',
     heading: /admin settings/i,
     primaryAction: /show advanced|hide advanced/i,
+    interaction: {
+      keyControls: [/show advanced|hide advanced/i],
+      expectedStatesAnyOf: [/dashboard/i, /organization/i, /branding/i],
+    },
   },
   {
     name: 'admin settings users',
@@ -276,6 +306,11 @@ const staffRouteAudits: RouteAuditConfig[] = [
     expectedEntryId: 'api-settings',
     heading: /api settings/i,
     primaryAction: /add webhook/i,
+    interaction: {
+      revealAction: /add webhook/i,
+      keyFields: [/https:\/\/your-server\.com\/webhook/i, /optional description/i],
+      keyControls: [/create webhook/i],
+    },
   },
   {
     name: 'navigation settings',
@@ -284,6 +319,10 @@ const staffRouteAudits: RouteAuditConfig[] = [
     expectedEntryId: 'navigation-settings',
     heading: /navigation settings/i,
     primaryAction: /reset to defaults/i,
+    interaction: {
+      keyControls: [/reset to defaults/i],
+      expectedStatesAnyOf: [/synced/i, /offline fallback/i, /saving/i],
+    },
   },
   {
     name: 'backup settings',
@@ -292,6 +331,10 @@ const staffRouteAudits: RouteAuditConfig[] = [
     expectedEntryId: 'backup-settings',
     heading: /data backup/i,
     primaryAction: /download backup/i,
+    interaction: {
+      keyFields: [/include secrets/i],
+      keyControls: [/download backup/i],
+    },
   },
   {
     name: 'email marketing',
@@ -306,6 +349,11 @@ const staffRouteAudits: RouteAuditConfig[] = [
     surface: 'staff',
     expectedEntryId: 'website-builder',
     heading: /website builder/i,
+    primaryAction: /new website/i,
+    interaction: {
+      keyFields: [/search templates/i],
+      keyControls: [/starter templates/i, /my templates/i],
+    },
   },
 ];
 
@@ -335,9 +383,9 @@ const staffNavigationLinks: ClickthroughAuditLink[] = [
   { label: 'Service', href: '/cases', surface: 'staff', scope: 'workspace-nav' },
   { label: 'Engagement', href: '/events', surface: 'staff', scope: 'workspace-nav' },
   { label: 'Finance', href: '/donations', surface: 'staff', scope: 'workspace-nav' },
-  { label: 'Analytics', href: '/analytics', surface: 'staff', scope: 'page' },
-  { label: 'Reports', href: '/reports/builder', surface: 'staff', scope: 'page' },
-  { label: 'Alerts', href: '/alerts', surface: 'staff', scope: 'page' },
+  { label: 'Analytics', href: '/analytics', surface: 'staff', scope: 'utilities-menu' },
+  { label: 'Reports', href: '/reports/builder', surface: 'staff', scope: 'utilities-menu' },
+  { label: 'Alerts', href: '/alerts', surface: 'staff', scope: 'alerts-shortcut' },
 ];
 
 const portalNavigationLinks: ClickthroughAuditLink[] = [
@@ -369,6 +417,55 @@ const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]
 
 const toNamePattern = (value: string): RegExp =>
   new RegExp(`^${escapeRegex(value).replace(/\s+/g, '\\s+')}$`, 'i');
+
+const getNamedControlCandidates = (page: Page, name: RegExp): Locator[] => [
+  page.getByRole('button', { name }).first(),
+  page.getByRole('link', { name }).first(),
+  page.getByRole('tab', { name }).first(),
+  page.getByRole('menuitem', { name }).first(),
+];
+
+const getNamedFieldCandidates = (page: Page, name: RegExp): Locator[] => [
+  page.getByLabel(name).first(),
+  page.getByPlaceholder(name).first(),
+  page.getByRole('textbox', { name }).first(),
+  page.getByRole('combobox', { name }).first(),
+  page.getByRole('spinbutton', { name }).first(),
+];
+
+const resolvePreferredVisibleLocator = async (candidates: Locator[]): Promise<Locator> => {
+  for (const candidate of candidates) {
+    if (await candidate.isVisible().catch(() => false)) {
+      return candidate;
+    }
+  }
+
+  return candidates[0];
+};
+
+const getNamedControlLocator = async (page: Page, name: RegExp): Promise<Locator> =>
+  resolvePreferredVisibleLocator(getNamedControlCandidates(page, name));
+
+const getNamedFieldLocator = async (page: Page, name: RegExp): Promise<Locator> =>
+  resolvePreferredVisibleLocator(getNamedFieldCandidates(page, name));
+
+const isPatternVisible = async (page: Page, pattern: RegExp): Promise<boolean> => {
+  const locators = [
+    page.getByRole('heading', { name: pattern }).first(),
+    page.getByRole('button', { name: pattern }).first(),
+    page.getByRole('link', { name: pattern }).first(),
+    page.getByRole('tab', { name: pattern }).first(),
+    page.getByText(pattern).first(),
+  ];
+
+  for (const locator of locators) {
+    if (await locator.isVisible().catch(() => false)) {
+      return true;
+    }
+  }
+
+  return false;
+};
 
 const formatAuditIssues = (route: string, issues: VisibilityAuditIssue[]): string =>
   issues.map((issue) => `${route} :: ${issue.kind} "${issue.name}" -> ${issue.issue}`).join('\n');
@@ -598,11 +695,14 @@ const assertRequiredChrome = async (page: Page, config: RouteAuditConfig) => {
     await expect(page.getByRole('heading').first()).toBeVisible();
   }
 
-  if (config.primaryAction) {
-    const actionLocator = page
-      .getByRole('button', { name: config.primaryAction })
-      .or(page.getByRole('link', { name: config.primaryAction }))
-      .first();
+  const catalogPrimaryActionLabel = config.expectedEntryId
+    ? getRouteCatalogEntryById(config.expectedEntryId)?.primaryAction?.label
+    : undefined;
+  const primaryAction =
+    config.primaryAction || (catalogPrimaryActionLabel ? toNamePattern(catalogPrimaryActionLabel) : undefined);
+
+  if (primaryAction) {
+    const actionLocator = await getNamedControlLocator(page, primaryAction);
     await expect(actionLocator).toBeVisible();
   }
 
@@ -611,11 +711,50 @@ const assertRequiredChrome = async (page: Page, config: RouteAuditConfig) => {
   }
 };
 
+const assertInteractionExpectations = async (page: Page, config: RouteAuditConfig) => {
+  const interaction = config.interaction;
+  if (!interaction) {
+    return;
+  }
+
+  if (interaction.expectedStatesAnyOf && interaction.expectedStatesAnyOf.length > 0) {
+    await expect
+      .poll(
+        async () => {
+          for (const pattern of interaction.expectedStatesAnyOf ?? []) {
+            if (await isPatternVisible(page, pattern)) {
+              return true;
+            }
+          }
+          return false;
+        },
+        { timeout: 15_000, intervals: [500, 1_000, 1_500] }
+      )
+      .toBeTruthy();
+  }
+
+  if (interaction.revealAction) {
+    const revealControl = await getNamedControlLocator(page, interaction.revealAction);
+    await expect(revealControl).toBeVisible();
+    await revealControl.click();
+    await waitForAppRoute(page);
+  }
+
+  for (const fieldName of interaction.keyFields ?? []) {
+    await expect(await getNamedFieldLocator(page, fieldName)).toBeVisible();
+  }
+
+  for (const controlName of interaction.keyControls ?? []) {
+    await expect(await getNamedControlLocator(page, controlName)).toBeVisible();
+  }
+};
+
 const auditRoute = async (page: Page, config: RouteAuditConfig) => {
   await gotoAuditedRoute(page, config.route);
   await assertCatalogRouteMatch(page, config.surface, config.expectedEntryId);
   await assertRequiredChrome(page, config);
   await assertVisibleTextAndLinks(page, normalizeRouteLocation(page.url()));
+  await assertInteractionExpectations(page, config);
 };
 
 const provisionPortalCaseFixture = async (page: Page): Promise<ProvisionedPortalCase> => {
@@ -703,9 +842,23 @@ authTest.describe('Staff text visibility and link audit', () => {
 
     for (const linkConfig of staffNavigationLinks) {
       const targetHref = normalizeRouteLocation(linkConfig.href);
-      const link = (linkConfig.scope === 'workspace-nav' ? workspaceNav : authenticatedPage)
-        .getByRole('link', { name: toNamePattern(linkConfig.label) })
-        .first();
+      let link;
+
+      if (linkConfig.scope === 'workspace-nav') {
+        link = workspaceNav.getByRole('link', { name: toNamePattern(linkConfig.label) }).first();
+      } else if (linkConfig.scope === 'utilities-menu') {
+        const utilitiesButton = authenticatedPage.getByRole('button', { name: /utilities/i });
+        await expect(utilitiesButton).toBeVisible();
+        await utilitiesButton.click();
+
+        const utilitiesMenu = authenticatedPage.getByRole('menu', { name: /utilities menu/i });
+        await expect(utilitiesMenu).toBeVisible();
+        link = utilitiesMenu
+          .getByRole('menuitem', { name: toNamePattern(linkConfig.label) })
+          .first();
+      } else {
+        link = authenticatedPage.getByRole('link', { name: toNamePattern(linkConfig.label) }).first();
+      }
 
       await expect(link, `missing visible staff nav link for ${linkConfig.label}`).toBeVisible();
       await link.click();

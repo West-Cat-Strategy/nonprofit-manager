@@ -182,27 +182,39 @@ export class AlertsRepository implements AlertsRepositoryPort {
 
     switch (metricType) {
       case 'donations':
-        query = `SELECT COUNT(*) as value FROM donations WHERE status = 'completed'`;
+        query = `SELECT COUNT(*) as value FROM donations WHERE payment_status = 'completed'`;
         break;
       case 'donation_amount':
-        query = `SELECT COALESCE(SUM(amount), 0) as value FROM donations WHERE status = 'completed'`;
+        query = `SELECT COALESCE(SUM(amount), 0) as value FROM donations WHERE payment_status = 'completed'`;
         break;
       case 'volunteer_hours':
-        query = `SELECT COALESCE(SUM(hours), 0) as value FROM volunteer_hours`;
+        query = `SELECT COALESCE(SUM(hours_logged), 0) as value FROM volunteer_hours`;
         break;
       case 'event_attendance':
-        query = `SELECT COUNT(*) as value FROM event_registrations WHERE status = 'attended'`;
+        query = `SELECT COUNT(*) as value
+                 FROM event_registrations
+                 WHERE checked_in = TRUE OR registration_status = 'attended'`;
         break;
       case 'case_volume':
-        query = `SELECT COUNT(*) as value FROM cases WHERE status IN ('intake', 'active')`;
+        query = `SELECT COUNT(*) as value FROM cases WHERE closed_date IS NULL`;
         break;
       case 'engagement_score':
         query = `SELECT COUNT(DISTINCT contact_id) as value FROM (
-          SELECT contact_id FROM donations WHERE created_at > NOW() - INTERVAL '30 days'
+          SELECT contact_id
+          FROM donations
+          WHERE contact_id IS NOT NULL
+            AND donation_date > NOW() - INTERVAL '30 days'
           UNION
-          SELECT contact_id FROM volunteer_hours WHERE date > NOW() - INTERVAL '30 days'
+          SELECT v.contact_id
+          FROM volunteer_hours vh
+          INNER JOIN volunteers v ON v.id = vh.volunteer_id
+          WHERE v.contact_id IS NOT NULL
+            AND vh.activity_date > CURRENT_DATE - INTERVAL '30 days'
           UNION
-          SELECT contact_id FROM event_registrations WHERE created_at > NOW() - INTERVAL '30 days'
+          SELECT contact_id
+          FROM event_registrations
+          WHERE contact_id IS NOT NULL
+            AND COALESCE(check_in_time, created_at) > NOW() - INTERVAL '30 days'
         ) engaged_contacts`;
         break;
       default:

@@ -1,4 +1,26 @@
+import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/auth.fixture';
+
+const waitForAnalyticsState = async (page: Page) => {
+    await expect
+        .poll(
+            async () => {
+                const loadingState = await page.getByText(/loading analytics/i).count();
+                const kpiSection = await page
+                    .getByText(/key performance indicators/i)
+                    .count();
+                const emptyState = await page
+                    .getByText(/no analytics data available/i)
+                    .count();
+                const errorState = await page
+                    .getByRole('button', { name: /retry analytics/i })
+                    .count();
+                return loadingState + kpiSection + emptyState + errorState;
+            },
+            { timeout: 10000, intervals: [500, 1000, 1500] }
+        )
+        .toBeGreaterThan(0);
+};
 
 test.describe('Analytics Module', () => {
     test('should load analytics dashboard', async ({ authenticatedPage }) => {
@@ -9,18 +31,39 @@ test.describe('Analytics Module', () => {
 
         // The shared analytics shell must always expose filters and then either KPI content or an explicit empty state.
         await expect(authenticatedPage.getByRole('heading', { name: /^date filters$/i })).toBeVisible();
-        await expect
-            .poll(
-                async () => {
-                    const loadingState = await authenticatedPage.getByText(/loading analytics/i).count();
-                    const kpiSection = await authenticatedPage.getByText(/key performance indicators/i).count();
-                    const emptyState = await authenticatedPage.getByText(/no analytics data available/i).count();
-                    const errorState = await authenticatedPage.getByRole('button', { name: /retry analytics/i }).count();
-                    return loadingState + kpiSection + emptyState + errorState;
-                },
-                { timeout: 10000, intervals: [500, 1000, 1500] }
-            )
-            .toBeGreaterThan(0);
+        await waitForAnalyticsState(authenticatedPage);
+    });
+
+    test('should apply and clear analytics filters while preserving operable states', async ({
+        authenticatedPage,
+    }) => {
+        await authenticatedPage.goto('/analytics');
+        await waitForAnalyticsState(authenticatedPage);
+
+        await authenticatedPage.getByLabel(/start date/i).fill('2025-01-01');
+        await authenticatedPage.getByLabel(/end date/i).fill('2025-12-31');
+        await authenticatedPage.getByRole('button', { name: /apply filters/i }).click();
+
+        await expect(authenticatedPage.getByLabel(/start date/i)).toHaveValue('2025-01-01');
+        await expect(authenticatedPage.getByLabel(/end date/i)).toHaveValue('2025-12-31');
+        await waitForAnalyticsState(authenticatedPage);
+
+        const retryButton = authenticatedPage.getByRole('button', { name: /retry analytics/i });
+        if (await retryButton.isVisible().catch(() => false)) {
+            await retryButton.click();
+            await waitForAnalyticsState(authenticatedPage);
+        } else {
+            await expect(
+                authenticatedPage
+                    .getByText(/key performance indicators|no analytics data available/i)
+                    .first()
+            ).toBeVisible();
+        }
+
+        await authenticatedPage.getByRole('button', { name: /^clear$/i }).click();
+        await expect(authenticatedPage.getByLabel(/start date/i)).toHaveValue('');
+        await expect(authenticatedPage.getByLabel(/end date/i)).toHaveValue('');
+        await waitForAnalyticsState(authenticatedPage);
     });
 
     test('should navigate to report builder', async ({ authenticatedPage }) => {
