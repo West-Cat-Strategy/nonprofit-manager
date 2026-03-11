@@ -395,6 +395,7 @@ export default function PortalAppointments() {
             <div className="mt-4">
               <label className="mb-1 block text-sm font-medium text-app-text-label">Case</label>
               <select
+                aria-label="Select case"
                 value={selectedCaseId}
                 onChange={(e) => setSelectedCaseId(e.target.value)}
                 className="w-full rounded-md border border-app-input-border px-3 py-2"
@@ -414,6 +415,7 @@ export default function PortalAppointments() {
             {mode === 'slot' ? (
               <div className="mt-4 space-y-3">
                 <input
+                  aria-label="Search available slots"
                   value={slotSearch}
                   onChange={(event) => setSlotSearch(event.target.value)}
                   placeholder="Search available slots"
@@ -471,6 +473,7 @@ export default function PortalAppointments() {
               <form onSubmit={handleRequestSubmit} className="mt-4 space-y-4">
                 <input
                   name="title"
+                  aria-label="Appointment title"
                   placeholder="Appointment title"
                   value={formData.title}
                   onChange={handleChange}
@@ -479,6 +482,7 @@ export default function PortalAppointments() {
                 />
                 <textarea
                   name="description"
+                  aria-label="Appointment description"
                   placeholder="Description"
                   value={formData.description}
                   onChange={handleChange}
@@ -488,6 +492,7 @@ export default function PortalAppointments() {
                   <input
                     type="datetime-local"
                     name="start_time"
+                    aria-label="Requested appointment start time"
                     value={formData.start_time}
                     onChange={handleChange}
                     className="w-full rounded-md border border-app-input-border px-3 py-2"
@@ -496,6 +501,7 @@ export default function PortalAppointments() {
                   <input
                     type="datetime-local"
                     name="end_time"
+                    aria-label="Requested appointment end time"
                     value={formData.end_time}
                     onChange={handleChange}
                     className="w-full rounded-md border border-app-input-border px-3 py-2"
@@ -503,6 +509,7 @@ export default function PortalAppointments() {
                 </div>
                 <input
                   name="location"
+                  aria-label="Appointment location"
                   placeholder="Location (optional)"
                   value={formData.location}
                   onChange={handleChange}
@@ -524,12 +531,14 @@ export default function PortalAppointments() {
               <h3 className="text-base font-semibold text-app-text">Your Appointments</h3>
               <div className="grid w-full grid-cols-1 gap-2 md:w-auto md:grid-cols-3">
                 <input
+                  aria-label="Search appointments"
                   value={appointmentSearch}
                   onChange={(event) => setAppointmentSearch(event.target.value)}
                   placeholder="Search appointments"
                   className="rounded-md border border-app-input-border px-3 py-2 text-sm"
                 />
                 <select
+                  aria-label="Filter appointments by status"
                   value={appointmentStatusFilter}
                   onChange={(event) =>
                     setAppointmentStatusFilter(event.target.value as AppointmentStatusFilter)
@@ -543,6 +552,7 @@ export default function PortalAppointments() {
                   <option value="completed">Completed</option>
                 </select>
                 <select
+                  aria-label="Filter appointments by case scope"
                   value={appointmentCaseFilter}
                   onChange={(event) =>
                     setAppointmentCaseFilter(event.target.value as AppointmentCaseFilter)
@@ -554,12 +564,14 @@ export default function PortalAppointments() {
                 </select>
                 <input
                   type="datetime-local"
+                  aria-label="Appointments from date"
                   value={appointmentFrom}
                   onChange={(event) => setAppointmentFrom(event.target.value)}
                   className="rounded-md border border-app-input-border px-3 py-2 text-sm"
                 />
                 <input
                   type="datetime-local"
+                  aria-label="Appointments to date"
                   value={appointmentTo}
                   onChange={(event) => setAppointmentTo(event.target.value)}
                   className="rounded-md border border-app-input-border px-3 py-2 text-sm"

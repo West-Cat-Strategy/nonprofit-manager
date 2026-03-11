@@ -31,8 +31,8 @@ export default function ThemeAudit() {
 
                             {/* Inputs */}
                             <div className="space-y-4 max-w-sm mb-4">
-                                <BrutalInput placeholder="Standard Input" />
-                                <BrutalInput placeholder="With Icon" icon={<span>🔍</span>} />
+                                <BrutalInput placeholder="Standard Input" aria-label="Standard audit input" />
+                                <BrutalInput placeholder="With Icon" aria-label="Search audit input" icon={<span>🔍</span>} />
                             </div>
 
                             {/* Colors */}
@@ -59,8 +59,8 @@ export default function ThemeAudit() {
                             </BrutalCard>
 
                             <BrutalCard color="green">
-                                <h3 className="text-lg font-mono mb-2">Colored Card</h3>
-                                <p>This card has a forced background color. Text inside should be readable.</p>
+                                <h3 className="text-lg font-mono mb-2 text-black">Colored Card</h3>
+                                <p className="text-black/80">This card has a forced background color. Text inside should be readable.</p>
                             </BrutalCard>
                         </div>
                     </div>

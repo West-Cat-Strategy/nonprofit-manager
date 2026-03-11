@@ -12,8 +12,9 @@ const PagePropertyEditor: React.FC<PagePropertyEditorProps> = ({ currentPage, on
 
     <div key={currentPage.id} className="space-y-4 p-4">
       <div>
-        <label className="mb-1 block text-sm font-medium text-app-text-muted">Page Name</label>
+        <label htmlFor="page-property-name" className="mb-1 block text-sm font-medium text-app-text-muted">Page Name</label>
         <input
+          id="page-property-name"
           type="text"
           defaultValue={currentPage.name}
           onBlur={(e) => onUpdatePage({ name: e.target.value })}
@@ -22,8 +23,9 @@ const PagePropertyEditor: React.FC<PagePropertyEditorProps> = ({ currentPage, on
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-app-text-muted">Slug</label>
+        <label htmlFor="page-property-slug" className="mb-1 block text-sm font-medium text-app-text-muted">Slug</label>
         <input
+          id="page-property-slug"
           type="text"
           defaultValue={currentPage.slug}
           onBlur={(e) => onUpdatePage({ slug: e.target.value })}
@@ -32,8 +34,9 @@ const PagePropertyEditor: React.FC<PagePropertyEditorProps> = ({ currentPage, on
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-app-text-muted">Page Type</label>
+        <label htmlFor="page-property-type" className="mb-1 block text-sm font-medium text-app-text-muted">Page Type</label>
         <select
+          id="page-property-type"
           value={currentPage.pageType || 'static'}
           onChange={(e) => {
             const pageType = e.target.value as TemplatePageType;
@@ -55,8 +58,9 @@ const PagePropertyEditor: React.FC<PagePropertyEditorProps> = ({ currentPage, on
 
       {currentPage.pageType !== 'static' ? (
         <div>
-          <label className="mb-1 block text-sm font-medium text-app-text-muted">Collection</label>
+          <label htmlFor="page-property-collection" className="mb-1 block text-sm font-medium text-app-text-muted">Collection</label>
           <select
+            id="page-property-collection"
             value={currentPage.collection || 'events'}
             onChange={(e) => onUpdatePage({ collection: e.target.value as PageCollectionType })}
             className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
@@ -71,8 +75,9 @@ const PagePropertyEditor: React.FC<PagePropertyEditorProps> = ({ currentPage, on
       ) : null}
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-app-text-muted">Route Pattern</label>
+        <label htmlFor="page-property-route-pattern" className="mb-1 block text-sm font-medium text-app-text-muted">Route Pattern</label>
         <input
+          id="page-property-route-pattern"
           type="text"
           defaultValue={currentPage.routePattern || ''}
           onBlur={(e) => onUpdatePage({ routePattern: e.target.value })}

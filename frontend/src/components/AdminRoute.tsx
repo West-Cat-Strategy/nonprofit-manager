@@ -7,6 +7,7 @@
 
 import { Navigate } from 'react-router-dom';
 import { Suspense } from 'react';
+import { canAccessAdminSettings } from '../features/auth/state/adminAccess';
 import { useAppSelector } from '../store/hooks';
 
 interface AdminRouteProps {
@@ -24,7 +25,7 @@ export default function AdminRoute({ children }: AdminRouteProps) {
     return <Navigate to="/login" replace />;
   }
 
-  if (user?.role !== 'admin') {
+  if (!canAccessAdminSettings(user)) {
     // Non-admin users are redirected to dashboard
     return <Navigate to="/dashboard" replace />;
   }

@@ -42,10 +42,11 @@ export default function BrandingSection({
 
         <div className="p-6 space-y-6">
           <div>
-            <label className="block text-sm font-medium text-app-text-muted mb-1">
+            <label htmlFor="branding-app-name" className="block text-sm font-medium text-app-text-muted mb-1">
               Application Name
             </label>
             <input
+              id="branding-app-name"
               type="text"
               value={branding.appName}
               onChange={(e) => onBrandingChange('appName', e.target.value)}
@@ -154,6 +155,7 @@ export default function BrandingSection({
                 />
                 <input
                   type="text"
+                  aria-label="Primary colour value"
                   value={branding.primaryColour}
                   onChange={(e) => onBrandingChange('primaryColour', e.target.value)}
                   placeholder="#2563eb"
@@ -175,6 +177,7 @@ export default function BrandingSection({
                 />
                 <input
                   type="text"
+                  aria-label="Secondary colour value"
                   value={branding.secondaryColour}
                   onChange={(e) => onBrandingChange('secondaryColour', e.target.value)}
                   placeholder="#7c3aed"

@@ -163,6 +163,7 @@ export default function PortalPeople() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <input
               name="first_name"
+              aria-label="First name"
               placeholder="First name"
               value={formData.first_name}
               onChange={handleChange}
@@ -171,6 +172,7 @@ export default function PortalPeople() {
             />
             <input
               name="last_name"
+              aria-label="Last name"
               placeholder="Last name"
               value={formData.last_name}
               onChange={handleChange}
@@ -181,6 +183,7 @@ export default function PortalPeople() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <input
               name="email"
+              aria-label="Email address"
               placeholder="Email"
               value={formData.email}
               onChange={handleChange}
@@ -188,6 +191,7 @@ export default function PortalPeople() {
             />
             <input
               name="phone"
+              aria-label="Phone number"
               placeholder="Phone"
               value={formData.phone}
               onChange={handleChange}
@@ -197,6 +201,7 @@ export default function PortalPeople() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <select
               name="relationship_type"
+              aria-label="Relationship type"
               value={formData.relationship_type}
               onChange={handleChange}
               className="rounded-md border border-app-input-border px-3 py-2"
@@ -209,6 +214,7 @@ export default function PortalPeople() {
             </select>
             <input
               name="relationship_label"
+              aria-label="Custom relationship label"
               placeholder="Custom label"
               value={formData.relationship_label}
               onChange={handleChange}
@@ -217,6 +223,7 @@ export default function PortalPeople() {
           </div>
           <textarea
             name="notes"
+            aria-label="Relationship notes"
             placeholder="Notes"
             value={formData.notes}
             onChange={handleChange}
@@ -237,12 +244,14 @@ export default function PortalPeople() {
           <h3 className="text-base font-semibold text-app-text">Current People</h3>
           <div className="flex flex-wrap gap-2">
             <input
+              aria-label="Search people"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Search people"
               className="rounded-md border border-app-input-border px-3 py-2 text-sm"
             />
             <select
+              aria-label="Sort people"
               value={sortOrder}
               onChange={(event) => setSortOrder(event.target.value as 'az' | 'za')}
               className="rounded-md border border-app-input-border px-3 py-2 text-sm"

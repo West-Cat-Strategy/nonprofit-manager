@@ -174,8 +174,11 @@ const ContactEmailAddresses = ({ contactId }: ContactEmailAddressesProps) => {
 
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="block text-sm font-medium text-app-text-muted mb-1">Email Address</label>
+              <label htmlFor="contact-email-address" className="block text-sm font-medium text-app-text-muted mb-1">
+                Email Address
+              </label>
               <input
+                id="contact-email-address"
                 type="email"
                 value={formData.email_address}
                 onChange={(e) =>
@@ -187,8 +190,11 @@ const ContactEmailAddresses = ({ contactId }: ContactEmailAddressesProps) => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app-text-muted mb-1">Label</label>
+              <label htmlFor="contact-email-label" className="block text-sm font-medium text-app-text-muted mb-1">
+                Label
+              </label>
               <select
+                id="contact-email-label"
                 value={formData.label}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, label: e.target.value as EmailLabel }))

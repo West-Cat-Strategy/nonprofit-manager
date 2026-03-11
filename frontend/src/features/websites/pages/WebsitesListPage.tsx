@@ -42,6 +42,7 @@ const WebsitesListPage: React.FC = () => {
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
             <input
               type="text"
+              aria-label="Search websites"
               value={searchParams.search || ''}
               onChange={(event) =>
                 dispatch(setWebsiteSearchParams({ search: event.target.value, page: 1 }))
@@ -50,6 +51,7 @@ const WebsitesListPage: React.FC = () => {
               className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
             />
             <select
+              aria-label="Filter websites by status"
               value={searchParams.status || ''}
               onChange={(event) =>
                 dispatch(

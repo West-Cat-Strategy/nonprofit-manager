@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
+import { canAccessAdminSettings } from '../../auth/state/adminAccess';
 import { useAppSelector } from '../../../store/hooks';
 import { SideNav } from '../../../components/ui';
 import type { SideNavItem } from '../../../components/ui/SideNav';
@@ -53,7 +54,7 @@ export default function AdminPanelNav({
 }: AdminPanelNavProps) {
   const location = useLocation();
   const { user } = useAppSelector((state) => state.auth);
-  const isAdmin = user?.role === 'admin';
+  const canOpenAdminSettings = canAccessAdminSettings(user);
   const effectiveCurrentPath =
     currentPath.includes('?') || location.pathname !== currentPath
       ? currentPath
@@ -61,14 +62,14 @@ export default function AdminPanelNav({
 
   const items = useMemo<SideNavItem[]>(() => {
     return getAdminNavigationEntries(mode)
-      .filter((route) => isAdmin || route.authScope !== 'admin')
+      .filter((route) => canOpenAdminSettings || route.authScope !== 'admin')
       .map((route) => ({
         key: route.id,
         label: route.adminNav.label || route.title,
         to: getRouteHref(route),
         isActive: isActiveRoute(route, effectiveCurrentPath),
       }));
-  }, [effectiveCurrentPath, isAdmin, mode]);
+  }, [canOpenAdminSettings, effectiveCurrentPath, mode]);
 
   return (
     <SideNav

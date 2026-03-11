@@ -65,6 +65,7 @@ export default function LinkingModule() {
                     <div className="flex-1 max-w-2xl">
                         <BrutalInput
                             type="search"
+                            aria-label="Search partnerships"
                             placeholder="Search partnerships..."
                             icon={<MagnifyingGlassIcon className="w-5 h-5" />}
                             value={searchTerm}

@@ -57,6 +57,7 @@ export default function PortalCases() {
       description="Only case files explicitly shared by staff are shown."
       actions={
         <input
+          aria-label="Search portal cases"
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
           placeholder="Search cases"

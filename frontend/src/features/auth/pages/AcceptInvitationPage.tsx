@@ -155,7 +155,7 @@ export default function AcceptInvitation() {
         />
         <Link
           to="/login"
-          className="mt-5 inline-flex items-center justify-center rounded-xl bg-app-text px-4 py-2 text-sm font-semibold text-white"
+          className="mt-5 inline-flex items-center justify-center rounded-xl border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover"
         >
           Go to Login
         </Link>

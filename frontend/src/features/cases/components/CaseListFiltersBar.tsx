@@ -20,7 +20,7 @@ export default function CaseListFiltersBar({
 
   return (
     <div className="mt-4 flex flex-wrap items-center gap-2">
-      <span className="text-xs font-black uppercase text-black/70">Active filters</span>
+      <span className="text-xs font-black uppercase text-app-text-label">Active filters</span>
       {chips.map((chip) => (
         <button
           key={chip.key}
@@ -37,7 +37,7 @@ export default function CaseListFiltersBar({
       <button
         type="button"
         onClick={onClearAll}
-        className="text-xs font-black uppercase text-black/70 underline"
+        className="text-xs font-black uppercase text-app-text-muted underline"
       >
         Clear all
       </button>

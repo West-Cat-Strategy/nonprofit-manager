@@ -36,10 +36,11 @@ export default function OrganizationSection({
 
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app-text-label mb-1">
+            <label htmlFor="organization-name" className="block text-sm font-medium text-app-text-label mb-1">
               Organization Name
             </label>
             <input
+              id="organization-name"
               type="text"
               value={config.name}
               onChange={(e) => onChange('name', e.target.value)}
@@ -50,10 +51,11 @@ export default function OrganizationSection({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app-text-label mb-1">
+              <label htmlFor="organization-email" className="block text-sm font-medium text-app-text-label mb-1">
                 Contact Email
               </label>
               <input
+                id="organization-email"
                 type="email"
                 value={config.email}
                 onChange={(e) => onChange('email', e.target.value)}
@@ -62,10 +64,11 @@ export default function OrganizationSection({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app-text-label mb-1">
+              <label htmlFor="organization-phone" className="block text-sm font-medium text-app-text-label mb-1">
                 Phone Number
               </label>
               <input
+                id="organization-phone"
                 type="tel"
                 value={config.phone}
                 onChange={(e) => onPhoneChange(e.target.value)}
@@ -76,10 +79,11 @@ export default function OrganizationSection({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app-text-label mb-1">
+            <label htmlFor="organization-website" className="block text-sm font-medium text-app-text-label mb-1">
               Website
             </label>
             <input
+              id="organization-website"
               type="url"
               value={config.website}
               onChange={(e) => onChange('website', e.target.value)}
@@ -98,10 +102,11 @@ export default function OrganizationSection({
 
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app-text-label mb-1">
+            <label htmlFor="organization-address-line1" className="block text-sm font-medium text-app-text-label mb-1">
               Address Line 1
             </label>
             <input
+              id="organization-address-line1"
               type="text"
               value={config.address.line1}
               onChange={(e) => onAddressChange('line1', e.target.value)}
@@ -111,10 +116,11 @@ export default function OrganizationSection({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app-text-label mb-1">
+            <label htmlFor="organization-address-line2" className="block text-sm font-medium text-app-text-label mb-1">
               Address Line 2
             </label>
             <input
+              id="organization-address-line2"
               type="text"
               value={config.address.line2}
               onChange={(e) => onAddressChange('line2', e.target.value)}
@@ -125,10 +131,11 @@ export default function OrganizationSection({
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="col-span-2 md:col-span-1">
-              <label className="block text-sm font-medium text-app-text-label mb-1">
+              <label htmlFor="organization-city" className="block text-sm font-medium text-app-text-label mb-1">
                 City
               </label>
               <input
+                id="organization-city"
                 type="text"
                 value={config.address.city}
                 onChange={(e) => onAddressChange('city', e.target.value)}
@@ -137,11 +144,12 @@ export default function OrganizationSection({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app-text-label mb-1">
+              <label htmlFor="organization-province" className="block text-sm font-medium text-app-text-label mb-1">
                 Province/State
               </label>
               {config.address.country === 'Canada' ? (
                 <select
+                  id="organization-province"
                   value={config.address.province}
                   onChange={(e) => onAddressChange('province', e.target.value)}
                   title="Select province"
@@ -156,6 +164,7 @@ export default function OrganizationSection({
                 </select>
               ) : (
                 <input
+                  id="organization-province"
                   type="text"
                   value={config.address.province}
                   onChange={(e) => onAddressChange('province', e.target.value)}
@@ -165,10 +174,11 @@ export default function OrganizationSection({
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-app-text-label mb-1">
+              <label htmlFor="organization-postal-code" className="block text-sm font-medium text-app-text-label mb-1">
                 {config.address.country === 'Canada' ? 'Postal Code' : 'ZIP Code'}
               </label>
               <input
+                id="organization-postal-code"
                 type="text"
                 value={config.address.postalCode}
                 onChange={(e) => onAddressChange('postalCode', e.target.value)}
@@ -181,10 +191,11 @@ export default function OrganizationSection({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app-text-label mb-1">
+              <label htmlFor="organization-country" className="block text-sm font-medium text-app-text-label mb-1">
                 Country
               </label>
               <select
+                id="organization-country"
                 value={config.address.country}
                 onChange={(e) => onAddressChange('country', e.target.value)}
                 title="Select country"
@@ -209,10 +220,11 @@ export default function OrganizationSection({
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app-text-label mb-1">
+              <label htmlFor="organization-timezone" className="block text-sm font-medium text-app-text-label mb-1">
                 Timezone
               </label>
               <select
+                id="organization-timezone"
                 value={config.timezone}
                 onChange={(e) => onChange('timezone', e.target.value)}
                 title="Select timezone"
@@ -226,10 +238,11 @@ export default function OrganizationSection({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-app-text-label mb-1">
+              <label htmlFor="organization-date-format" className="block text-sm font-medium text-app-text-label mb-1">
                 Date Format
               </label>
               <select
+                id="organization-date-format"
                 value={config.dateFormat}
                 onChange={(e) => onChange('dateFormat', e.target.value)}
                 title="Select date format"
@@ -246,10 +259,11 @@ export default function OrganizationSection({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app-text-label mb-1">
+              <label htmlFor="organization-currency" className="block text-sm font-medium text-app-text-label mb-1">
                 Currency
               </label>
               <select
+                id="organization-currency"
                 value={config.currency}
                 onChange={(e) => onChange('currency', e.target.value)}
                 title="Select currency"
@@ -263,10 +277,11 @@ export default function OrganizationSection({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-app-text-label mb-1">
+              <label htmlFor="organization-fiscal-year-start" className="block text-sm font-medium text-app-text-label mb-1">
                 Fiscal Year Starts
               </label>
               <select
+                id="organization-fiscal-year-start"
                 value={config.fiscalYearStart}
                 onChange={(e) => onChange('fiscalYearStart', e.target.value)}
                 title="Select fiscal year start month"
@@ -280,10 +295,11 @@ export default function OrganizationSection({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-app-text-label mb-1">
+              <label htmlFor="organization-measurement-system" className="block text-sm font-medium text-app-text-label mb-1">
                 Measurement System
               </label>
               <select
+                id="organization-measurement-system"
                 value={config.measurementSystem}
                 onChange={(e) => onChange('measurementSystem', e.target.value)}
                 title="Select measurement system"

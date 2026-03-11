@@ -430,7 +430,7 @@ const TaskList: React.FC = () => {
       {/* Pagination */}
       {pagination.pages > 1 && (
         <div className="mt-4 flex justify-center">
-          <nav className="inline-flex shadow-[4px_4px_0px_0px_var(--shadow-color)]">
+          <nav className="inline-flex shadow-[4px_4px_0px_0px_var(--shadow-color)]" aria-label="Task list pagination">
             {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((page) => (
               <button
                 key={page}

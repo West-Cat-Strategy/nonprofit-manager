@@ -155,6 +155,7 @@ export default function EventCheckInDeskPage() {
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <input
+            aria-label="Scan token"
             value={scanToken}
             onChange={(event) => setScanToken(event.target.value)}
             placeholder="Scan token"
@@ -209,8 +210,9 @@ export default function EventCheckInDeskPage() {
         </p>
 
         <div className="mt-3">
-          <label className="mb-1 block text-sm text-app-text-muted">Event</label>
+          <label htmlFor="event-check-in-selected-event" className="mb-1 block text-sm text-app-text-muted">Event</label>
           <select
+            id="event-check-in-selected-event"
             value={selectedEventId}
             onChange={(event) => setSelectedEventId(event.target.value)}
             disabled={loadingEvents}

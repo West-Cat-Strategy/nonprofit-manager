@@ -68,6 +68,20 @@ If needed, escalate to the cross-browser slice:
 npx playwright test tests/link-health.spec.ts --project=firefox --project=webkit
 ```
 
+## Dark Mode Accessibility Audit
+
+Run the full dark-mode route audit and generate a markdown findings report:
+
+```bash
+cd e2e
+npx playwright test tests/dark-mode-accessibility-audit.spec.ts --project=chromium
+```
+
+Artifacts:
+
+- `test-results/dark-mode-accessibility-report.md`
+- `test-results/dark-mode-audit/`
+
 ## Debugging
 
 Useful commands:

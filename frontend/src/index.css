@@ -255,16 +255,6 @@ body.dark .bg-loop-pink:not(nav *) {
 }
 
 /* Nested elements in colored cards also get black text - EXCLUDES NAV */
-body.dark main .bg-loop-yellow *,
-body.dark main .bg-loop-green *,
-body.dark main .bg-loop-purple *,
-body.dark main .bg-loop-pink *,
-body.dark main [class*='bg-[var(--loop'] *,
-body.dark .p-6 [class*='bg-[var(--loop'] *,
-body.dark .p-8 [class*='bg-[var(--loop'] * {
-  color: #000000 !important;
-}
-
 /* RULE 3: Input & Dropdown Rescue - Solid backgrounds with white borders */
 /* Excludes inputs with explicit bg-white (e.g., Login page) which should keep white bg + black text */
 body.dark input:not([class*='bg-loop-']):not(.bg-white),
@@ -1412,13 +1402,13 @@ body.dark.theme-high-contrast {
   --app-text-label: #d6ddeb;
   --app-border: #d9e0ee;
   --app-border-muted: #4b5569;
-  --app-accent: #6fb2ff;
-  --app-accent-hover: #5c9de8;
-  --app-accent-foreground: #0b1220;
-  --app-accent-text: #97c8ff;
-  --app-accent-text-hover: #b8d8ff;
-  --app-accent-soft: rgba(111, 178, 255, 0.2);
-  --app-accent-soft-hover: rgba(111, 178, 255, 0.32);
+  --app-accent: #2563eb;
+  --app-accent-hover: #1d4ed8;
+  --app-accent-foreground: #ffffff;
+  --app-accent-text: #eff6ff;
+  --app-accent-text-hover: #ffffff;
+  --app-accent-soft: rgba(37, 99, 235, 0.42);
+  --app-accent-soft-hover: rgba(37, 99, 235, 0.55);
   --app-hover: rgba(255, 255, 255, 0.09);
   --app-input-bg: #0f1420;
   --app-input-border: #d2d9e8;
@@ -1507,6 +1497,490 @@ body.ui-redesign button {
 body.ui-redesign .menu-surface-opaque {
   background-color: var(--app-surface-elevated) !important;
   backdrop-filter: none !important;
+}
+
+body.ui-redesign [class~='bg-app-bg'] {
+  background-color: var(--app-bg) !important;
+}
+
+body.ui-redesign [class~='bg-app-surface'] {
+  background-color: var(--app-surface) !important;
+}
+
+body.ui-redesign [class~='bg-app-surface-muted'] {
+  background-color: var(--app-surface-muted) !important;
+}
+
+body.ui-redesign [class~='bg-app-surface-elevated'] {
+  background-color: var(--app-surface-elevated) !important;
+}
+
+body.ui-redesign [class~='bg-app-hover'] {
+  background-color: var(--app-hover) !important;
+}
+
+body.ui-redesign [class~='bg-app-input-bg'] {
+  background-color: var(--app-input-bg) !important;
+}
+
+body.ui-redesign [class~='bg-app-text'] {
+  background-color: var(--app-text) !important;
+}
+
+body.ui-redesign [class~='bg-loop-yellow'] {
+  background-color: var(--loop-yellow) !important;
+}
+
+body.ui-redesign [class~='bg-loop-green'] {
+  background-color: var(--loop-green) !important;
+}
+
+body.ui-redesign [class~='bg-loop-purple'] {
+  background-color: var(--loop-purple) !important;
+}
+
+body.ui-redesign [class~='bg-loop-pink'] {
+  background-color: var(--loop-pink) !important;
+}
+
+body.ui-redesign [class~='bg-loop-cyan'] {
+  background-color: var(--loop-cyan) !important;
+}
+
+body.ui-redesign [class~='bg-loop-blue'] {
+  background-color: var(--loop-blue) !important;
+}
+
+body.ui-redesign [class~='bg-app-accent'] {
+  background-color: var(--app-accent) !important;
+}
+
+body.ui-redesign [class~='bg-app-accent-hover'] {
+  background-color: var(--app-accent-hover) !important;
+}
+
+body.ui-redesign [class~='bg-app-accent-soft'] {
+  background-color: var(--app-accent-soft) !important;
+}
+
+body.ui-redesign [class~='bg-app-accent-soft-hover'] {
+  background-color: var(--app-accent-soft-hover) !important;
+}
+
+body.ui-redesign [class~='text-app-text'] {
+  color: var(--app-text) !important;
+}
+
+body.ui-redesign [class~='text-app-text-heading'] {
+  color: var(--app-text-heading) !important;
+}
+
+body.ui-redesign [class~='text-app-text-muted'] {
+  color: var(--app-text-muted) !important;
+}
+
+body.ui-redesign [class~='text-app-text-subtle'] {
+  color: var(--app-text-subtle) !important;
+}
+
+body.ui-redesign [class~='text-app-text-label'] {
+  color: var(--app-text-label) !important;
+}
+
+body.ui-redesign [class~='text-app-accent'] {
+  color: var(--app-accent) !important;
+}
+
+body.ui-redesign [class~='text-app-accent-text'] {
+  color: var(--app-accent-text) !important;
+}
+
+body.ui-redesign [class~='text-app-accent-text-hover'] {
+  color: var(--app-accent-text-hover) !important;
+}
+
+body.ui-redesign [class~='border-app-border'] {
+  border-color: var(--app-border) !important;
+}
+
+body.ui-redesign [class~='border-app-border-muted'] {
+  border-color: var(--app-border-muted) !important;
+}
+
+body.ui-redesign [class~='border-app-input-border'] {
+  border-color: var(--app-input-border) !important;
+}
+
+body.ui-redesign [class~='border-app-accent'] {
+  border-color: var(--app-accent) !important;
+}
+
+body.ui-redesign [class~='bg-app-surface/70'] {
+  background-color: color-mix(in srgb, var(--app-surface) 70%, transparent) !important;
+}
+
+body.ui-redesign [class~='bg-app-surface/75'] {
+  background-color: color-mix(in srgb, var(--app-surface) 75%, transparent) !important;
+}
+
+body.ui-redesign [class~='bg-app-surface/85'] {
+  background-color: color-mix(in srgb, var(--app-surface) 85%, transparent) !important;
+}
+
+body.ui-redesign [class~='bg-app-surface/90'] {
+  background-color: color-mix(in srgb, var(--app-surface) 90%, transparent) !important;
+}
+
+body.ui-redesign [class~='bg-app-surface-muted/40'] {
+  background-color: color-mix(in srgb, var(--app-surface-muted) 40%, transparent) !important;
+}
+
+body.ui-redesign [class~='bg-app-surface-muted/60'] {
+  background-color: color-mix(in srgb, var(--app-surface-muted) 60%, transparent) !important;
+}
+
+body.ui-redesign [class~='bg-app-surface-muted/70'] {
+  background-color: color-mix(in srgb, var(--app-surface-muted) 70%, transparent) !important;
+}
+
+body.ui-redesign [class~='bg-app-surface-elevated/80'] {
+  background-color: color-mix(in srgb, var(--app-surface-elevated) 80%, transparent) !important;
+}
+
+body.ui-redesign [class~='bg-app-surface-elevated/90'] {
+  background-color: color-mix(in srgb, var(--app-surface-elevated) 90%, transparent) !important;
+}
+
+body.ui-redesign [class~='bg-app-surface-elevated/92'] {
+  background-color: color-mix(in srgb, var(--app-surface-elevated) 92%, transparent) !important;
+}
+
+body.ui-redesign [class~='bg-app-accent-soft/50'] {
+  background-color: color-mix(in srgb, var(--app-accent-soft) 50%, transparent) !important;
+}
+
+body.ui-redesign [class~='bg-app-accent-soft/55'] {
+  background-color: color-mix(in srgb, var(--app-accent-soft) 55%, transparent) !important;
+}
+
+body.ui-redesign [class~='bg-app-accent-soft/60'] {
+  background-color: color-mix(in srgb, var(--app-accent-soft) 60%, transparent) !important;
+}
+
+body.ui-redesign [class~='bg-app-accent-hover/20'] {
+  background-color: color-mix(in srgb, var(--app-accent-hover) 20%, transparent) !important;
+}
+
+body.ui-redesign [class~='bg-app-accent-hover/30'] {
+  background-color: color-mix(in srgb, var(--app-accent-hover) 30%, transparent) !important;
+}
+
+body.ui-redesign [class~='bg-app-accent-hover/50'] {
+  background-color: color-mix(in srgb, var(--app-accent-hover) 50%, transparent) !important;
+}
+
+body.ui-redesign [class~='bg-app-hover/40'] {
+  background-color: color-mix(in srgb, var(--app-hover) 40%, transparent) !important;
+}
+
+body.ui-redesign [class~='bg-app-text/45'] {
+  background-color: color-mix(in srgb, var(--app-text) 45%, transparent) !important;
+}
+
+body.ui-redesign [class~='bg-app-text/80'] {
+  background-color: color-mix(in srgb, var(--app-text) 80%, transparent) !important;
+}
+
+body.ui-redesign [class~='bg-app-text/85'] {
+  background-color: color-mix(in srgb, var(--app-text) 85%, transparent) !important;
+}
+
+body.ui-redesign [class~='border-app-border/70'] {
+  border-color: color-mix(in srgb, var(--app-border) 70%, transparent) !important;
+}
+
+body.ui-redesign [class~='border-app-accent/50'] {
+  border-color: color-mix(in srgb, var(--app-accent) 50%, transparent) !important;
+}
+
+body.ui-redesign [class~='hover:bg-app-hover']:hover {
+  background-color: var(--app-hover) !important;
+}
+
+body.ui-redesign [class~='hover:bg-app-surface-muted']:hover {
+  background-color: var(--app-surface-muted) !important;
+}
+
+body.ui-redesign [class~='hover:bg-app-hover/40']:hover {
+  background-color: color-mix(in srgb, var(--app-hover) 40%, transparent) !important;
+}
+
+body.ui-redesign [class~='hover:bg-app-surface-muted/70']:hover {
+  background-color: color-mix(in srgb, var(--app-surface-muted) 70%, transparent) !important;
+}
+
+body.ui-redesign [class~='hover:bg-app-accent-hover']:hover {
+  background-color: var(--app-accent-hover) !important;
+}
+
+body.ui-redesign [class~='hover:bg-app-accent-hover/50']:hover {
+  background-color: color-mix(in srgb, var(--app-accent-hover) 50%, transparent) !important;
+}
+
+body.ui-redesign [class~='hover:bg-app-accent-soft']:hover {
+  background-color: var(--app-accent-soft) !important;
+}
+
+body.ui-redesign [class~='hover:border-app-accent']:hover {
+  border-color: var(--app-accent) !important;
+}
+
+body.ui-redesign [class~='hover:border-app-accent-hover']:hover {
+  border-color: var(--app-accent-hover) !important;
+}
+
+body.ui-redesign [class~='hover:border-app-accent/50']:hover {
+  border-color: color-mix(in srgb, var(--app-accent) 50%, transparent) !important;
+}
+
+body.ui-redesign [class~='hover:text-app-accent']:hover {
+  color: var(--app-accent) !important;
+}
+
+body.ui-redesign [class~='hover:text-app-accent-text']:hover {
+  color: var(--app-accent-text-hover) !important;
+}
+
+body.ui-redesign [class~='hover:text-app-accent-hover']:hover {
+  color: var(--app-accent-text-hover) !important;
+}
+
+body.ui-redesign [class~='hover:text-app-text']:hover {
+  color: var(--app-text) !important;
+}
+
+body.ui-redesign [class~='focus:border-app-accent']:focus,
+body.ui-redesign [class~='focus-visible:border-app-accent']:focus-visible {
+  border-color: var(--app-accent) !important;
+}
+
+body.ui-redesign [class~='focus:ring-app-accent']:focus,
+body.ui-redesign [class~='focus-visible:ring-app-accent']:focus-visible {
+  --tw-ring-color: var(--app-accent) !important;
+}
+
+body.ui-redesign [class~='disabled:bg-app-surface-muted']:disabled {
+  background-color: var(--app-surface-muted) !important;
+}
+
+body.ui-redesign [class~='disabled:bg-app-accent-soft']:disabled {
+  background-color: var(--app-accent-soft) !important;
+}
+
+body.ui-redesign [class~='disabled:border-app-border-muted']:disabled {
+  border-color: var(--app-border-muted) !important;
+}
+
+body.ui-redesign [class~='disabled:text-app-text']:disabled {
+  color: var(--app-text) !important;
+}
+
+body.ui-redesign [class~='disabled:text-app-text-muted']:disabled {
+  color: var(--app-text-muted) !important;
+}
+
+body.ui-redesign button,
+body.ui-redesign input,
+body.ui-redesign select,
+body.ui-redesign textarea,
+body.ui-redesign a,
+body.ui-redesign [role='button'],
+body.ui-redesign [role='tab'] {
+  --tw-ring-offset-color: var(--app-bg);
+}
+
+body.ui-redesign.dark .text-black,
+body.ui-redesign.dark .text-black\/80,
+body.ui-redesign.dark .text-black\/70,
+body.ui-redesign.dark .text-black\/60 {
+  color: var(--app-text) !important;
+}
+
+body.ui-redesign.dark .text-black\/50,
+body.ui-redesign.dark .text-black\/40 {
+  color: var(--app-text-subtle) !important;
+}
+
+body.ui-redesign.dark .border-black {
+  border-color: var(--app-border) !important;
+}
+
+body.ui-redesign.dark .bg-white {
+  background-color: var(--app-surface-elevated) !important;
+}
+
+body.ui-redesign.dark .bg-black {
+  background-color: var(--app-text-heading) !important;
+  color: var(--app-bg) !important;
+}
+
+body.ui-redesign.dark .bg-black * {
+  color: inherit !important;
+}
+
+body.ui-redesign.dark [class~='bg-app-accent'],
+body.ui-redesign.dark [class~='bg-app-accent-hover'],
+body.ui-redesign.dark [class~='bg-app-accent-soft'],
+body.ui-redesign.dark [class~='bg-app-accent-soft/50'],
+body.ui-redesign.dark [class~='bg-app-accent-soft/55'],
+body.ui-redesign.dark [class~='bg-app-accent-soft/60'],
+body.ui-redesign.dark [class~='bg-app-accent-hover/20'],
+body.ui-redesign.dark [class~='bg-app-accent-hover/30'],
+body.ui-redesign.dark [class~='bg-app-accent-hover/50'],
+body.ui-redesign.dark [class~='bg-app-text'] {
+  color: var(--app-accent-foreground) !important;
+}
+
+body.ui-redesign.dark [class~='text-app-accent'] {
+  color: var(--app-accent-text) !important;
+}
+
+body.ui-redesign.dark [class~='bg-app-accent'] *,
+body.ui-redesign.dark [class~='bg-app-accent-hover'] *,
+body.ui-redesign.dark [class~='bg-app-accent-soft'] *,
+body.ui-redesign.dark [class~='bg-app-accent-soft/50'] *,
+body.ui-redesign.dark [class~='bg-app-accent-soft/55'] *,
+body.ui-redesign.dark [class~='bg-app-accent-soft/60'] *,
+body.ui-redesign.dark [class~='bg-app-accent-hover/20'] *,
+body.ui-redesign.dark [class~='bg-app-accent-hover/30'] *,
+body.ui-redesign.dark [class~='bg-app-accent-hover/50'] *,
+body.ui-redesign.dark [class~='bg-app-text'] * {
+  color: inherit !important;
+}
+
+body.ui-redesign.dark [class~='dark:text-white'] {
+  color: var(--app-text) !important;
+}
+
+body.ui-redesign.dark [class~='dark:text-white/80'] {
+  color: color-mix(in srgb, var(--app-text) 80%, transparent) !important;
+}
+
+body.ui-redesign.dark [class~='dark:text-white/70'] {
+  color: color-mix(in srgb, var(--app-text) 70%, transparent) !important;
+}
+
+body.ui-redesign.dark [class~='dark:text-white/60'] {
+  color: color-mix(in srgb, var(--app-text) 60%, transparent) !important;
+}
+
+body.ui-redesign.dark [class~='dark:text-white/50'] {
+  color: color-mix(in srgb, var(--app-text) 50%, transparent) !important;
+}
+
+body.ui-redesign.dark [class~='dark:border-white'] {
+  border-color: var(--app-border) !important;
+}
+
+body.ui-redesign.dark [class~='dark:bg-black'],
+body.ui-redesign.dark [class~='dark:bg-[#000000]'] {
+  background-color: var(--app-surface) !important;
+  color: var(--app-text) !important;
+}
+
+body.ui-redesign.dark [class~='dark:accent-white'] {
+  accent-color: var(--app-accent) !important;
+}
+
+body.ui-redesign.dark [class~='dark:focus:ring-white']:focus {
+  --tw-ring-color: var(--focus-ring) !important;
+}
+
+body.ui-redesign.dark [class~='dark:hover:text-white']:hover {
+  color: var(--app-text) !important;
+}
+
+body.ui-redesign.dark [class~='hover:text-app-accent']:hover,
+body.ui-redesign.dark [class~='hover:text-app-accent-text']:hover,
+body.ui-redesign.dark [class~='hover:text-app-accent-hover']:hover {
+  color: var(--app-accent-text-hover) !important;
+}
+
+body.ui-redesign.dark [class~='dark:hover:bg-app-text']:hover {
+  background-color: var(--app-surface-muted) !important;
+}
+
+body.ui-redesign.dark .accent-black {
+  accent-color: var(--app-accent) !important;
+}
+
+body.ui-redesign.dark [class*='focus:ring-black']:focus,
+body.ui-redesign.dark [class*='focus-visible:ring-black']:focus-visible {
+  --tw-ring-color: var(--focus-ring) !important;
+}
+
+body.ui-redesign.dark .bg-loop-yellow,
+body.ui-redesign.dark .bg-loop-green,
+body.ui-redesign.dark .bg-loop-purple,
+body.ui-redesign.dark .bg-loop-pink,
+body.ui-redesign.dark .bg-loop-cyan,
+body.ui-redesign.dark .bg-loop-blue,
+body.ui-redesign.dark .bg-\[var\(--loop-yellow\)\],
+body.ui-redesign.dark .bg-\[var\(--loop-green\)\],
+body.ui-redesign.dark .bg-\[var\(--loop-purple\)\],
+body.ui-redesign.dark .bg-\[var\(--loop-pink\)\],
+body.ui-redesign.dark .bg-\[var\(--loop-cyan\)\],
+body.ui-redesign.dark .bg-\[var\(--loop-blue\)\] {
+  color: #0f1115 !important;
+  border-color: #0f1115 !important;
+}
+
+body.ui-redesign.dark :is(
+    .bg-loop-yellow,
+    .bg-loop-green,
+    .bg-loop-purple,
+    .bg-loop-pink,
+    .bg-loop-cyan,
+    .bg-loop-blue,
+    .bg-\[var\(--loop-yellow\)\],
+    .bg-\[var\(--loop-green\)\],
+    .bg-\[var\(--loop-purple\)\],
+    .bg-\[var\(--loop-pink\)\],
+    .bg-\[var\(--loop-cyan\)\],
+    .bg-\[var\(--loop-blue\)\]
+  )
+  :is(h1, h2, h3, h4, h5, h6) {
+  color: #0f1115 !important;
+}
+
+body.ui-redesign.dark :is(
+    .bg-loop-yellow,
+    .bg-loop-green,
+    .bg-loop-purple,
+    .bg-loop-pink,
+    .bg-loop-cyan,
+    .bg-loop-blue,
+    .bg-\[var\(--loop-yellow\)\],
+    .bg-\[var\(--loop-green\)\],
+    .bg-\[var\(--loop-purple\)\],
+    .bg-\[var\(--loop-pink\)\],
+    .bg-\[var\(--loop-cyan\)\],
+    .bg-\[var\(--loop-blue\)\]
+  )
+  :is(
+    .text-black,
+    .text-black\/80,
+    .text-black\/70,
+    .text-black\/60,
+    .text-black\/50,
+    .text-black\/40,
+    [class~='dark:text-white'],
+    [class~='dark:text-white/80'],
+    [class~='dark:text-white/70'],
+    [class~='dark:text-white/60'],
+    [class~='dark:text-white/50']
+  ) {
+  color: #0f1115 !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -139,7 +139,7 @@ export const PeopleDetailContainer: React.FC<PeopleDetailContainerProps> = ({
             {(backPath || onBack) && (
               <button
                 onClick={onBack || (() => window.history.back())}
-                className="inline-flex items-center gap-2 text-[var(--app-accent)] hover:text-[var(--app-accent-text)] mb-2 font-black uppercase text-sm transition-all"
+                className="inline-flex items-center gap-2 border-2 border-app-border bg-app-surface-elevated px-4 py-2 text-app-text mb-2 font-black uppercase text-sm shadow-[2px_2px_0px_0px_var(--shadow-color)] transition-all hover:bg-app-surface-muted hover:text-app-text-heading focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg)]"
               >
                 <ArrowLeftIcon className="w-5 h-5 stroke-[3px]" />
                 Back

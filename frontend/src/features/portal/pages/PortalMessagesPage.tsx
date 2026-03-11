@@ -321,8 +321,9 @@ export default function PortalMessages() {
 
             <form onSubmit={handleCreateThread} className="mt-4 space-y-3">
               <div>
-                <label className="mb-1 block text-sm font-medium text-app-text-label">Case</label>
+                <label htmlFor="portal-message-case" className="mb-1 block text-sm font-medium text-app-text-label">Case</label>
                 <select
+                  id="portal-message-case"
                   value={selectedCaseId}
                   onChange={(e) => setSelectedCaseId(e.target.value)}
                   className="w-full rounded-md border border-app-input-border px-3 py-2"
@@ -346,8 +347,9 @@ export default function PortalMessages() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-app-text-label">Subject (optional)</label>
+                <label htmlFor="portal-message-subject" className="mb-1 block text-sm font-medium text-app-text-label">Subject (optional)</label>
                 <input
+                  id="portal-message-subject"
                   type="text"
                   value={newSubject}
                   onChange={(e) => setNewSubject(e.target.value)}
@@ -357,8 +359,9 @@ export default function PortalMessages() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-app-text-label">Message</label>
+                <label htmlFor="portal-message-body" className="mb-1 block text-sm font-medium text-app-text-label">Message</label>
                 <textarea
+                  id="portal-message-body"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   rows={4}
@@ -387,12 +390,14 @@ export default function PortalMessages() {
                   </span>
                 </div>
                 <input
+                  aria-label="Search conversations"
                   value={threadSearch}
                   onChange={(event) => setThreadSearch(event.target.value)}
                   placeholder="Search conversations"
                   className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
                 />
                 <select
+                  aria-label="Filter conversations by status"
                   value={threadStatusFilter}
                   onChange={(event) =>
                     setThreadStatusFilter(event.target.value as ThreadStatusFilter)
@@ -405,6 +410,7 @@ export default function PortalMessages() {
                   <option value="archived">Archived</option>
                 </select>
                 <select
+                  aria-label="Filter conversations by case scope"
                   value={threadCaseFilter}
                   onChange={(event) => setThreadCaseFilter(event.target.value as ThreadCaseFilter)}
                   className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
@@ -540,6 +546,7 @@ export default function PortalMessages() {
 
                   <form onSubmit={handleReply} className="border-t border-app-border p-4">
                     <textarea
+                      aria-label="Reply to conversation"
                       value={replyMessage}
                       onChange={(e) => setReplyMessage(e.target.value)}
                       rows={3}

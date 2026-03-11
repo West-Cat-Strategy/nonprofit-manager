@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { canAccessAdminSettings } from '../../features/auth/state/adminAccess';
 import type { NavigationItem } from '../../hooks/useNavigationPreferences';
 import Avatar from '../Avatar';
 import { classNames } from '../ui/classNames';
@@ -52,6 +53,8 @@ export default function MobileNavigationDrawer({
   user,
   utilityNavLinks,
 }: MobileNavigationDrawerProps) {
+  const canOpenAdminSettings = canAccessAdminSettings(user);
+
   return (
     <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col overflow-y-auto bg-app-surface shadow-xl lg:hidden">
       <div className="flex items-center justify-between border-b border-app-border px-4 py-4">
@@ -234,7 +237,7 @@ export default function MobileNavigationDrawer({
           >
             User Settings
           </Link>
-          {user?.role === 'admin' ? (
+          {canOpenAdminSettings ? (
             <Link
               to={adminSettingsPath}
               onClick={onClose}

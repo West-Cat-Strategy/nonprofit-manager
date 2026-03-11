@@ -87,6 +87,7 @@ export default function ContactTasks({ contactId }: ContactTasksProps) {
             onChange={(e) => setSubject(e.target.value)}
             placeholder="Task subject"
             className="w-full border-2 border-black px-3 py-2 text-sm font-bold"
+            aria-label="Task subject"
             required
           />
           <div className="flex flex-wrap gap-2">
@@ -95,11 +96,13 @@ export default function ContactTasks({ contactId }: ContactTasksProps) {
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
               className="border-2 border-black px-3 py-2 text-sm font-bold"
+              aria-label="Task due date"
             />
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value)}
               className="border-2 border-black px-3 py-2 text-sm font-bold"
+              aria-label="Task priority"
             >
               <option value="low">Low</option>
               <option value="normal">Normal</option>

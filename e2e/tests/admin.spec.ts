@@ -187,6 +187,48 @@ test.describe('Admin & Settings Module', () => {
     await assertSettingsRouteShell(request, '/settings/user');
   });
 
+  test('user settings uploads and persists the profile avatar', async ({ request, page }) => {
+    const session = await ensureAuthenticatedSession(page);
+    const csrfHeaders = await getCsrfHeaders(request, session);
+    const clearResponse = await request.put(`${API_URL}/api/v2/auth/profile`, {
+      headers: csrfHeaders,
+      data: { profilePicture: null },
+    });
+    expect(
+      clearResponse.ok(),
+      `Profile reset failed (${clearResponse.status()}): ${await getErrorText(clearResponse)}`
+    ).toBeTruthy();
+
+    await gotoAuthenticatedRoute(page, '/settings/user');
+
+    await page.locator('input[type="file"]').setInputFiles({
+      name: 'avatar.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z0w8AAAAASUVORK5CYII=',
+        'base64'
+      ),
+    });
+
+    const profileImage = page.getByAltText('Profile');
+    await expect(profileImage).toHaveAttribute('src', /data:image\/jpeg;base64,/);
+
+    const saveResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'PUT' &&
+        response.url().includes('/api/v2/auth/profile') &&
+        response.ok()
+    );
+
+    await page.getByRole('button', { name: /save all changes/i }).click();
+    await saveResponsePromise;
+    await expect(page.getByText(/profile saved successfully/i)).toBeVisible({ timeout: 10000 });
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByAltText('Profile')).toHaveAttribute('src', /data:image\/jpeg;base64,/);
+  });
+
   test('should load API settings', async ({ request, page }) => {
     await ensureAuthenticatedSession(page);
     await assertSettingsRouteShell(request, '/settings/api');
