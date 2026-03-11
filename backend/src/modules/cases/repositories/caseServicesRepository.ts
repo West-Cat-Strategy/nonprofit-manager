@@ -130,7 +130,7 @@ export class CaseServicesRepository implements CaseServiceAssignmentsPort {
         data.status || 'scheduled',
         data.outcome || null,
         data.cost || null,
-        data.currency || 'USD',
+        data.currency || 'CAD',
         data.notes || null,
         userId || null,
       ]

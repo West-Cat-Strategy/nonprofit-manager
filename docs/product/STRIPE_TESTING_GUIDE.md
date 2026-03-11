@@ -73,7 +73,7 @@ All Stripe test keys begin with:
   "id": "pi_...",
   "clientSecret": "pi_..._secret_...",
   "amount": 5000,
-  "currency": "usd",
+  "currency": "cad",
   "status": "requires_payment_method",
   "created": "2024-01-01T00:00:00.000Z"
 }
@@ -83,7 +83,7 @@ All Stripe test keys begin with:
 
 #### Successful Payment Intent Creation
 - Amount: $50.00 (5000 cents)
-- Currency: USD
+- Currency: CAD
 - Description: "Test donation"
 - Expected: 201 status with payment intent
 

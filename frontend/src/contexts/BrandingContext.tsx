@@ -5,7 +5,11 @@ import type { BrandingConfig } from '../types/branding';
 import { defaultBranding } from '../types/branding';
 import { applyBrandingToDocument } from '../utils/branding';
 import { useAppSelector } from '../store/hooks';
-import { getBrandingCached, setBrandingCached } from '../services/brandingService';
+import {
+  getBrandingCached,
+  invalidateBrandingCache,
+  setBrandingCached,
+} from '../services/brandingService';
 
 type BrandingContextValue = {
   branding: BrandingConfig;
@@ -33,7 +37,7 @@ export const BrandingProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      setBrandingCached(defaultBranding);
+      invalidateBrandingCache();
       setBrandingState(defaultBranding);
       applyBrandingToDocument(defaultBranding, { setTitle: false });
       return;

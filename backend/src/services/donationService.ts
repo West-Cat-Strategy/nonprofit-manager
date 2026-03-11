@@ -330,7 +330,7 @@ export class DonationService {
       account_id,
       contact_id,
       amount,
-      currency = 'USD',
+      currency = 'CAD',
       donation_date,
       payment_method,
       payment_status = 'pending',

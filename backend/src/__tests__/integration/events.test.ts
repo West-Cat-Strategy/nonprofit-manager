@@ -91,7 +91,7 @@ describe('Event API Integration Tests', () => {
           event_type: 'fundraiser',
           start_date: '2024-06-15T18:00:00Z',
           end_date: '2024-06-15T23:00:00Z',
-          location_name: '123 Main St, City, State',
+          location_name: '400 West Georgia Street, Vancouver, BC',
           description: 'Annual fundraising event',
           capacity: 200,
         })

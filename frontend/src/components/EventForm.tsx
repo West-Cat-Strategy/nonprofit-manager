@@ -255,7 +255,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
     city: '',
     state_province: '',
     postal_code: '',
-    country: 'USA',
+    country: 'Canada',
     capacity: undefined,
   });
 
@@ -315,7 +315,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
         city: event.city || '',
         state_province: event.state_province || '',
         postal_code: event.postal_code || '',
-        country: event.country || 'USA',
+        country: event.country || 'Canada',
         capacity: event.capacity || undefined,
       });
       setIsDirty(false);
@@ -965,7 +965,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
               value={formData.location_name}
               onChange={handleChange}
               className="w-full px-4 py-2 border rounded-md"
-              placeholder="Community Center"
+              placeholder="Community Centre"
             />
           </div>
 
@@ -978,7 +978,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
               value={formData.address_line1}
               onChange={handleChange}
               className="w-full px-4 py-2 border rounded-md"
-              placeholder="123 Main Street"
+              placeholder="400 West Georgia Street"
             />
           </div>
 
@@ -1004,7 +1004,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
               value={formData.city}
               onChange={handleChange}
               className="w-full px-4 py-2 border rounded-md"
-              placeholder="Springfield"
+              placeholder="Vancouver"
             />
           </div>
 
@@ -1017,7 +1017,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
               value={formData.state_province}
               onChange={handleChange}
               className="w-full px-4 py-2 border rounded-md"
-              placeholder="IL"
+              placeholder="BC"
             />
           </div>
 
@@ -1030,7 +1030,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
               value={formData.postal_code}
               onChange={handleChange}
               className="w-full px-4 py-2 border rounded-md"
-              placeholder="62701"
+              placeholder="V6B 1A1"
             />
           </div>
 
@@ -1043,7 +1043,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
               value={formData.country}
               onChange={handleChange}
               className="w-full px-4 py-2 border rounded-md"
-              placeholder="USA"
+              placeholder="Canada"
             />
           </div>
         </div>

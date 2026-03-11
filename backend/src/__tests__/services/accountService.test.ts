@@ -202,12 +202,12 @@ describe('AccountService', () => {
         phone: '555-1234',
         website: 'https://example.com',
         description: 'Test description',
-        address_line1: '123 Main St',
+        address_line1: '400 West Georgia Street',
         address_line2: 'Suite 100',
-        city: 'Test City',
-        state_province: 'TS',
-        postal_code: '12345',
-        country: 'USA',
+        city: 'Vancouver',
+        state_province: 'BC',
+        postal_code: 'V6B 1A1',
+        country: 'Canada',
       };
 
       mockQuery
@@ -222,7 +222,7 @@ describe('AccountService', () => {
       const result = await accountService.createAccount(accountData, 'user-123');
 
       expect(result.email).toBe('org@example.com');
-      expect(result.city).toBe('Test City');
+      expect(result.city).toBe('Vancouver');
     });
 
     it('should throw error on database failure', async () => {

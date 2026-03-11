@@ -93,7 +93,7 @@ export class ExportService {
           columns: [
             { key: 'metric', header: 'Metric', width: 28 },
             { key: 'value', header: 'Value', width: 18 },
-            { key: 'amount', header: 'Amount (USD)', width: 18 },
+            { key: 'amount', header: 'Amount', width: 18 },
           ],
           rows,
         },
@@ -124,7 +124,7 @@ export class ExportService {
           columns: [
             { key: 'date', header: 'Date', width: 16 },
             { key: 'donor', header: 'Donor', width: 28 },
-            { key: 'amount', header: 'Amount (USD)', width: 16 },
+            { key: 'amount', header: 'Amount', width: 16 },
             { key: 'method', header: 'Payment Method', width: 18 },
             { key: 'campaign', header: 'Campaign', width: 24 },
             { key: 'notes', header: 'Notes', width: 40 },

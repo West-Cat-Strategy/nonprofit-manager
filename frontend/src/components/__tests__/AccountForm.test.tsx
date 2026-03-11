@@ -125,12 +125,12 @@ describe('AccountForm', () => {
       email: 'existing@example.com',
       phone: '555-0100',
       website: 'https://example.com',
-      address_line1: '123 Main St',
+      address_line1: '400 West Georgia Street',
       address_line2: 'Suite 100',
-      city: 'Portland',
-      state_province: 'OR',
-      postal_code: '97201',
-      country: 'USA',
+      city: 'Vancouver',
+      state_province: 'BC',
+      postal_code: 'V6B 1A1',
+      country: 'Canada',
       tax_id: '12-3456789',
       description: 'Test organization',
       is_active: true,
@@ -232,8 +232,8 @@ describe('AccountForm', () => {
       expect(addressInput.value).toBe('456 Oak Ave');
 
       const cityInput = screen.getByLabelText(/city/i) as HTMLInputElement;
-      fireEvent.change(cityInput, { target: { value: 'Seattle' } });
-      expect(cityInput.value).toBe('Seattle');
+      fireEvent.change(cityInput, { target: { value: 'Vancouver' } });
+      expect(cityInput.value).toBe('Vancouver');
     });
   });
 });

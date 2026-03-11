@@ -17,7 +17,7 @@ const mockDonation: Donation = {
   contact_id: 'contact-1',
   account_id: 'account-1',
   amount: 100,
-  currency: 'USD',
+  currency: 'CAD',
   donation_date: '2024-01-15',
   payment_method: 'credit_card',
   campaign_id: null,

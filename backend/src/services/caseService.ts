@@ -602,7 +602,7 @@ export class CaseService {
         data.status || 'scheduled',
         data.outcome || null,
         data.cost || null,
-        data.currency || 'USD',
+        data.currency || 'CAD',
         data.notes || null,
         userId
       ]

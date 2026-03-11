@@ -87,12 +87,12 @@ export const PlausibleEvents = {
   donationCreated: (amount: number, method: string) =>
     trackEvent('Donation Created', {
       props: { method },
-      revenue: { amount, currency: 'USD' },
+      revenue: { amount, currency: 'CAD' },
     }),
 
   donationUpdated: (amount: number) =>
     trackEvent('Donation Updated', {
-      revenue: { amount, currency: 'USD' },
+      revenue: { amount, currency: 'CAD' },
     }),
 
   donationDeleted: () => trackEvent('Donation Deleted'),

@@ -14,10 +14,14 @@ const isFresh = (): boolean =>
 const normalizeBranding = (value: unknown): BrandingConfig =>
   ({ ...defaultBranding, ...((value || {}) as Partial<BrandingConfig>) }) as BrandingConfig;
 
-export const __resetBrandingCacheForTests = (): void => {
+export const invalidateBrandingCache = (): void => {
   cachedBranding = null;
   cachedAtMs = 0;
   inFlightRequest = null;
+};
+
+export const __resetBrandingCacheForTests = (): void => {
+  invalidateBrandingCache();
 };
 
 export const setBrandingCached = (branding: BrandingConfig): BrandingConfig => {

@@ -21,11 +21,11 @@ describe('AddToCalendar', () => {
     start_date: '2024-06-15T18:00:00Z',
     end_date: '2024-06-15T22:00:00Z',
     location_name: 'Grand Ballroom',
-    address_line1: '123 Main St',
-    city: 'New York',
-    state_province: 'NY',
-    postal_code: '10001',
-    country: 'USA',
+    address_line1: '400 West Georgia Street',
+    city: 'Vancouver',
+    state_province: 'BC',
+    postal_code: 'V6B 1A1',
+    country: 'Canada',
   };
 
   beforeEach(() => {

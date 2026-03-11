@@ -284,7 +284,7 @@ trackEvent('Purchase', {
   },
   revenue: {
     amount: 99.99,
-    currency: 'USD',
+    currency: 'CAD',
   },
 });
 ```

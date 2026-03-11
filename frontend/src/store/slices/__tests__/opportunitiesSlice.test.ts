@@ -35,7 +35,7 @@ const makeOpportunity = (overrides: Record<string, unknown> = {}) => ({
   stage_name: 'Prospecting',
   stage_order: 0,
   amount: '2500.00',
-  currency: 'USD',
+  currency: 'CAD',
   status: 'open',
   created_at: '2026-03-01T00:00:00.000Z',
   updated_at: '2026-03-01T00:00:00.000Z',

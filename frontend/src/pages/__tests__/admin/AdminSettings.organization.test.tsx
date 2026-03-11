@@ -7,8 +7,9 @@ import { renderWithProviders } from '../../../test/testUtils';
 
 let AdminSettings: ComponentType;
 
-const { mockNavigate, mockedApi } = vi.hoisted(() => ({
+const { mockNavigate, mockedApi, mockSetBranding } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
+  mockSetBranding: vi.fn(),
   mockedApi: {
     get: vi.fn(),
     post: vi.fn(),
@@ -35,7 +36,7 @@ vi.mock('../../../contexts/useToast', () => ({
 }));
 
 vi.mock('../../../contexts/BrandingContext', () => ({
-  useBranding: () => ({ setBranding: vi.fn() }),
+  useBranding: () => ({ setBranding: mockSetBranding }),
 }));
 
 vi.mock('../../../hooks/useUnsavedChangesGuard', () => ({

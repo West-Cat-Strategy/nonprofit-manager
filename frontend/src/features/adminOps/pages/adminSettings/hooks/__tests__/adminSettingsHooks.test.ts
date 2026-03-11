@@ -35,10 +35,11 @@ describe('admin settings hooks', () => {
   });
 
   it('handles organization save-state transitions', async () => {
+    const setGlobalBranding = vi.fn();
     const { result } = renderHook(() =>
       useOrganizationSettings({
         initialMode: 'basic',
-        setGlobalBranding: vi.fn(),
+        setGlobalBranding,
       })
     );
     const initialLoadOrganizationData = result.current.loadOrganizationData;
@@ -61,6 +62,84 @@ describe('admin settings hooks', () => {
     });
     expect(result.current.saveStatus).toBe('success');
     expect(result.current.organizationLastSavedAt).toBeInstanceOf(Date);
+  });
+
+  it('hydrates global branding from the saved branding payload on load', async () => {
+    const setGlobalBranding = vi.fn();
+    mockedApi.get.mockImplementation((url: string) => {
+      if (url === '/auth/preferences') {
+        return Promise.resolve({ data: { preferences: {} } });
+      }
+
+      if (url === '/admin/branding') {
+        return Promise.resolve({
+          data: {
+            appName: 'West Cat',
+            appIcon: null,
+            primaryColour: '#123456',
+            secondaryColour: '#654321',
+            favicon: null,
+          },
+        });
+      }
+
+      return Promise.resolve({ data: {} });
+    });
+
+    const { result } = renderHook(() =>
+      useOrganizationSettings({
+        initialMode: 'basic',
+        setGlobalBranding,
+      })
+    );
+
+    await act(async () => {
+      await result.current.loadOrganizationData();
+    });
+
+    expect(result.current.branding).toEqual(
+      expect.objectContaining({
+        appName: 'West Cat',
+        primaryColour: '#123456',
+        secondaryColour: '#654321',
+      })
+    );
+    expect(setGlobalBranding).toHaveBeenCalledWith(
+      expect.objectContaining({
+        appName: 'West Cat',
+        primaryColour: '#123456',
+        secondaryColour: '#654321',
+      })
+    );
+  });
+
+  it('does not overwrite global branding when branding bootstrap falls back to defaults', async () => {
+    const setGlobalBranding = vi.fn();
+    mockedApi.get.mockImplementation((url: string) => {
+      if (url === '/auth/preferences') {
+        return Promise.resolve({ data: { preferences: {} } });
+      }
+
+      if (url === '/admin/branding') {
+        return Promise.reject(new Error('boom'));
+      }
+
+      return Promise.resolve({ data: {} });
+    });
+
+    const { result } = renderHook(() =>
+      useOrganizationSettings({
+        initialMode: 'basic',
+        setGlobalBranding,
+      })
+    );
+
+    await act(async () => {
+      await result.current.loadOrganizationData();
+    });
+
+    expect(result.current.branding.appName).toBe('Nonprofit Manager');
+    expect(setGlobalBranding).not.toHaveBeenCalled();
   });
 
   it('handles user security password reset action', async () => {
