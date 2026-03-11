@@ -43,6 +43,7 @@ export default function UsersSection({
               value={userSearchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search by name or email..."
+              aria-label="Search users"
               className="w-full px-4 py-3 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent focus:border-transparent pl-10"
             />
             <svg

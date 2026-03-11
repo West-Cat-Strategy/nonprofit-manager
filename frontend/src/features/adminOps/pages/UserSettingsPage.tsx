@@ -82,6 +82,51 @@ const serializeUserProfile = (profile: UserProfile, customPronouns: string): str
     pronouns: profile.pronouns === 'custom' ? customPronouns : profile.pronouns,
   });
 
+const buildUserProfile = (data: Partial<UserProfile> | null | undefined, fallbackUser?: {
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+}): {
+  profile: UserProfile;
+  customPronouns: string;
+  previewImage: string | null;
+} => {
+  const pronouns = data?.pronouns || '';
+  const customPronouns =
+    pronouns && !pronounOptions.find((option) => option.value === pronouns) ? pronouns : '';
+  const normalizedPronouns = customPronouns ? 'custom' : pronouns;
+  const profilePicture = data?.profilePicture || null;
+
+  return {
+    profile: {
+      firstName: data?.firstName || fallbackUser?.firstName || '',
+      lastName: data?.lastName || fallbackUser?.lastName || '',
+      email: data?.email || fallbackUser?.email || '',
+      emailSharedWithClients: data?.emailSharedWithClients || false,
+      emailSharedWithUsers: data?.emailSharedWithUsers !== false,
+      alternativeEmails: data?.alternativeEmails || [],
+      displayName: data?.displayName || '',
+      alternativeName: data?.alternativeName || '',
+      pronouns: normalizedPronouns,
+      title: data?.title || '',
+      cellPhone: data?.cellPhone || '',
+      contactNumber: data?.contactNumber || '',
+      profilePicture,
+      notifications: data?.notifications || {
+        emailNotifications: true,
+        taskReminders: true,
+        eventReminders: true,
+        donationAlerts: true,
+        caseUpdates: true,
+        weeklyDigest: false,
+        marketingEmails: false,
+      },
+    },
+    customPronouns,
+    previewImage: profilePicture,
+  };
+};
+
 /**
  * Resize an image to fit within max dimensions while maintaining aspect ratio
  */
@@ -248,65 +293,16 @@ export default function UserSettings() {
       let resolvedPreviewImage: string | null = null;
 
       try {
-        // Use LoopApiService to fetch profile
         const data = await LoopApiService.getUserProfile();
-        resolvedProfile = {
-          firstName: data.firstName || user?.firstName || '',
-          lastName: data.lastName || user?.lastName || '',
-          email: data.email || user?.email || '',
-          emailSharedWithClients: data.emailSharedWithClients || false,
-          emailSharedWithUsers: data.emailSharedWithUsers !== false,
-          alternativeEmails: data.alternativeEmails || [],
-          displayName: data.displayName || '',
-          alternativeName: data.alternativeName || '',
-          pronouns: data.pronouns || '',
-          title: data.title || '',
-          cellPhone: data.cellPhone || '',
-          contactNumber: data.contactNumber || '',
-          profilePicture: data.profilePicture || null,
-          notifications: data.notifications || {
-            emailNotifications: true,
-            taskReminders: true,
-            eventReminders: true,
-            donationAlerts: true,
-            caseUpdates: true,
-            weeklyDigest: false,
-            marketingEmails: false,
-          },
-        };
-        if (data.pronouns && !pronounOptions.find(p => p.value === data.pronouns)) {
-          resolvedCustomPronouns = data.pronouns;
-          resolvedProfile = { ...resolvedProfile, pronouns: 'custom' };
-        }
-        if (data.profilePicture) {
-          resolvedPreviewImage = data.profilePicture;
-        }
+        const normalized = buildUserProfile(data, user);
+        resolvedProfile = normalized.profile;
+        resolvedCustomPronouns = normalized.customPronouns;
+        resolvedPreviewImage = normalized.previewImage;
       } catch {
-        // Use defaults from auth state if fetch fails
-        resolvedProfile = {
-          firstName: user?.firstName || '',
-          lastName: user?.lastName || '',
-          email: user?.email || '',
-          emailSharedWithClients: false,
-          emailSharedWithUsers: true,
-          alternativeEmails: [],
-          displayName: '',
-          alternativeName: '',
-          pronouns: '',
-          title: '',
-          cellPhone: '',
-          contactNumber: '',
-          profilePicture: null,
-          notifications: {
-            emailNotifications: true,
-            taskReminders: true,
-            eventReminders: true,
-            donationAlerts: true,
-            caseUpdates: true,
-            weeklyDigest: false,
-            marketingEmails: false,
-          },
-        };
+        const normalized = buildUserProfile(null, user);
+        resolvedProfile = normalized.profile;
+        resolvedCustomPronouns = normalized.customPronouns;
+        resolvedPreviewImage = normalized.previewImage;
       } finally {
         if (resolvedProfile) {
           setProfile(resolvedProfile);
@@ -448,18 +444,20 @@ export default function UserSettings() {
         pronouns: pronounsToSave,
       };
 
-      // Use LoopApiService instead of direct API call
-      await LoopApiService.updateUserProfile(payload);
+      const savedProfile = await LoopApiService.updateUserProfile(payload);
+      const normalized = buildUserProfile(savedProfile, user);
+      setProfile(normalized.profile);
+      setCustomPronouns(normalized.customPronouns);
+      setPreviewImage(normalized.previewImage);
 
-      // Update the auth state with new user info
       dispatch(updateUser({
-        firstName: profile.firstName,
-        lastName: profile.lastName,
-        email: profile.email,
-        profilePicture: profile.profilePicture,
+        firstName: normalized.profile.firstName,
+        lastName: normalized.profile.lastName,
+        email: normalized.profile.email,
+        profilePicture: normalized.profile.profilePicture,
       }));
 
-      setSavedProfileSnapshot(serializeUserProfile(profile, customPronouns));
+      setSavedProfileSnapshot(serializeUserProfile(normalized.profile, normalized.customPronouns));
       setLastSavedAt(new Date());
       setSaveStatus('success');
       setTimeout(() => setSaveStatus('idle'), 3000);
@@ -853,7 +851,7 @@ export default function UserSettings() {
               ].map((item) => (
                 <div key={item.field} className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <label className="block font-bold text-sm uppercase tracking-wide">
+                    <label htmlFor={`user-profile-${item.field}`} className="block font-bold text-sm uppercase tracking-wide">
                       {item.label} {item.req && <span className="text-app-accent">*</span>}
                     </label>
                     <button
@@ -869,6 +867,7 @@ export default function UserSettings() {
                     </button>
                   </div>
                   <input
+                    id={`user-profile-${item.field}`}
                     type="text"
                     value={String(profile[item.field as keyof UserProfile] || '')}
                     onChange={(e) => handleChange(item.field as keyof UserProfile, e.target.value)}
@@ -880,9 +879,10 @@ export default function UserSettings() {
 
               {/* Pronouns Selection */}
               <div className="space-y-2">
-                <label className="block font-bold text-sm uppercase tracking-wide">Pronouns</label>
+                <label htmlFor="user-profile-pronouns" className="block font-bold text-sm uppercase tracking-wide">Pronouns</label>
                 <div className="flex gap-2">
                   <select
+                    id="user-profile-pronouns"
                     value={profile.pronouns}
                     onChange={(e) => handleChange('pronouns', e.target.value)}
                     className="w-full p-3 border-2 border-black font-medium bg-app-surface focus:outline-none focus:shadow-[4px_4px_0px_0px_var(--shadow-color)] focus:-translate-y-1 transition-all"
@@ -896,6 +896,7 @@ export default function UserSettings() {
                   {profile.pronouns === 'custom' && (
                     <input
                       type="text"
+                      aria-label="Custom pronouns"
                       value={customPronouns}
                       onChange={(e) => setCustomPronouns(e.target.value)}
                       placeholder="Specify"
@@ -915,7 +916,7 @@ export default function UserSettings() {
 
             <div className="p-8 space-y-6">
               <div className="space-y-2">
-                <label className="block font-bold text-sm uppercase tracking-wide">
+                <label htmlFor="user-profile-cell-phone" className="block font-bold text-sm uppercase tracking-wide">
                   Cell Phone
                 </label>
                 <div className="flex justify-between items-center mb-1">
@@ -932,6 +933,7 @@ export default function UserSettings() {
                   </button>
                 </div>
                 <input
+                  id="user-profile-cell-phone"
                   type="text"
                   value={profile.cellPhone}
                   onChange={(e) => handleChange('cellPhone', e.target.value)}
@@ -940,10 +942,11 @@ export default function UserSettings() {
               </div>
 
               <div className="space-y-2">
-                <label className="block font-bold text-sm uppercase tracking-wide">
+                <label htmlFor="user-profile-email" className="block font-bold text-sm uppercase tracking-wide">
                   Primary Frequency (Email) <span className="text-app-accent">*</span>
                 </label>
                 <input
+                  id="user-profile-email"
                   type="email"
                   value={profile.email}
                   onChange={(e) => handleChange('email', e.target.value)}
@@ -999,10 +1002,10 @@ export default function UserSettings() {
                     type="button"
                     onClick={() => handleNotificationChange(key as keyof NotificationSettings, !value)}
                     aria-label={`${key.replace(/([A-Z])/g, ' $1').trim()} notifications ${value ? 'enabled' : 'disabled'}`}
-                    className={`w-12 h-6 border-2 border-black rounded-full relative transition-colors shadow-[2px_2px_0px_0px_var(--shadow-color)] ${value ? 'bg-[#90EE90]' : 'bg-app-surface-muted'
+                    className={`w-12 h-6 border-2 border-app-border rounded-full relative transition-colors shadow-[2px_2px_0px_0px_var(--shadow-color)] ${value ? 'bg-app-accent' : 'bg-app-surface-muted'
                       }`}
                   >
-                    <div className={`absolute top-0.5 bottom-0.5 w-4 h-4 bg-black border border-black rounded-full transition-all ${value ? 'right-1' : 'left-1'
+                    <div className={`absolute top-0.5 bottom-0.5 w-4 h-4 bg-app-accent-foreground border border-app-border rounded-full transition-all ${value ? 'right-1' : 'left-1'
                       }`}></div>
                   </button>
                 </div>
@@ -1046,8 +1049,9 @@ export default function UserSettings() {
                     </div>
                   )}
                   <div>
-                    <label className="block text-sm font-bold uppercase mb-1">Current Password</label>
+                    <label htmlFor="user-password-current" className="block text-sm font-bold uppercase mb-1">Current Password</label>
                     <input
+                      id="user-password-current"
                       type="password"
                       value={passwordData.currentPassword}
                       onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
@@ -1056,8 +1060,9 @@ export default function UserSettings() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold uppercase mb-1">New Password</label>
+                    <label htmlFor="user-password-new" className="block text-sm font-bold uppercase mb-1">New Password</label>
                     <input
+                      id="user-password-new"
                       type="password"
                       value={passwordData.newPassword}
                       onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
@@ -1066,8 +1071,9 @@ export default function UserSettings() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold uppercase mb-1">Confirm New Password</label>
+                    <label htmlFor="user-password-confirm" className="block text-sm font-bold uppercase mb-1">Confirm New Password</label>
                     <input
+                      id="user-password-confirm"
                       type="password"
                       value={passwordData.confirmPassword}
                       onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
@@ -1157,10 +1163,11 @@ export default function UserSettings() {
                         </div>
                       </div>
                       <div className="mt-4">
-                        <label className="block text-xs font-medium text-app-text-muted mb-1">
+                        <label htmlFor="user-totp-enable-code" className="block text-xs font-medium text-app-text-muted mb-1">
                           Enter 6-digit code to confirm
                         </label>
                         <input
+                          id="user-totp-enable-code"
                           inputMode="numeric"
                           autoComplete="one-time-code"
                           value={totpEnableCode}
@@ -1201,8 +1208,9 @@ export default function UserSettings() {
                   </p>
                   <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-app-text-muted mb-1">Password</label>
+                      <label htmlFor="user-totp-disable-password" className="block text-xs font-medium text-app-text-muted mb-1">Password</label>
                       <input
+                        id="user-totp-disable-password"
                         type="password"
                         value={totpDisablePassword}
                         onChange={(e) => setTotpDisablePassword(e.target.value)}
@@ -1210,8 +1218,9 @@ export default function UserSettings() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-app-text-muted mb-1">6-digit code</label>
+                      <label htmlFor="user-totp-disable-code" className="block text-xs font-medium text-app-text-muted mb-1">6-digit code</label>
                       <input
+                        id="user-totp-disable-code"
                         inputMode="numeric"
                         autoComplete="one-time-code"
                         value={totpDisableCode}
@@ -1242,10 +1251,11 @@ export default function UserSettings() {
 
               <div className="mt-3 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
                 <div className="w-full md:max-w-sm">
-                  <label className="block text-xs font-medium text-app-text-muted mb-1">
+                  <label htmlFor="user-passkey-name" className="block text-xs font-medium text-app-text-muted mb-1">
                     Passkey name (optional)
                   </label>
                   <input
+                    id="user-passkey-name"
                     value={newPasskeyName}
                     onChange={(e) => setNewPasskeyName(e.target.value)}
                     className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent focus:border-transparent"

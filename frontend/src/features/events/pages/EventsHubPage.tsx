@@ -71,12 +71,14 @@ export default function EventsHubPage() {
           Open Check-In Desk
         </button>
         <input
+          aria-label="Search events"
           value={searchInput}
           onChange={(event) => setSearchInput(event.target.value)}
           placeholder="Search events..."
           className="min-w-64 rounded border border-app-border bg-app-surface px-3 py-2 text-sm"
         />
         <select
+          aria-label="Filter events by type"
           value={eventTypeFilter}
           onChange={(event) => setEventTypeFilter(event.target.value)}
           className="rounded border border-app-border bg-app-surface px-3 py-2 text-sm"

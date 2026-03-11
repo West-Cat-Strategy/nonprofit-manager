@@ -47,6 +47,8 @@ export default function FollowUpEntityPicker({
       <label className="flex flex-col text-sm font-bold">
         Entity Type
         <select
+          id="follow-up-entity-type"
+          aria-label="Follow-up entity type"
           value={entityType}
           onChange={(event) => {
             const nextType = event.target.value as FollowUpEntityType;
@@ -65,6 +67,8 @@ export default function FollowUpEntityPicker({
       <label className="relative md:col-span-2 flex flex-col text-sm font-bold">
         {entityType === 'case' ? 'Case' : 'Task'}
         <input
+          id="follow-up-entity-search"
+          aria-label={entityType === 'case' ? 'Search case' : 'Search task'}
           value={searchTerm}
           onChange={(event) => {
             const value = event.target.value;

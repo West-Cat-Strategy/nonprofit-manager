@@ -59,6 +59,7 @@ export default function OutreachCenter() {
                     <div className="flex-1 max-w-2xl">
                         <BrutalInput
                             type="search"
+                            aria-label="Search outreach campaigns"
                             placeholder="Search campaigns..."
                             icon={<MagnifyingGlassIcon className="w-5 h-5" />}
                             value={searchTerm}
@@ -83,13 +84,13 @@ export default function OutreachCenter() {
                             <div className="mt-8 flex gap-4">
                                 <button
                                     onClick={handleNewBlast}
-                                    className="px-6 py-3 bg-app-surface text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-app-surface-muted font-bold uppercase"
+                                    className="px-6 py-3 bg-[var(--loop-yellow)] text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-[var(--loop-cyan)] font-bold uppercase"
                                 >
                                     NEW BLAST
                                 </button>
                                 <button
                                     onClick={handleViewReports}
-                                    className="px-6 py-3 bg-app-surface text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-app-surface-muted font-bold uppercase"
+                                    className="px-6 py-3 bg-[var(--loop-yellow)] text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-[var(--loop-cyan)] font-bold uppercase"
                                 >
                                     VIEW REPORTS
                                 </button>
@@ -151,7 +152,7 @@ export default function OutreachCenter() {
 
                                 <button
                                     onClick={() => handleManageEvent(event.id)}
-                                    className="px-4 py-2 bg-app-surface text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-app-surface-muted font-bold uppercase text-sm"
+                                    className="px-4 py-2 bg-[var(--loop-yellow)] text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-[var(--loop-cyan)] font-bold uppercase text-sm"
                                 >
                                     MANAGE
                                 </button>

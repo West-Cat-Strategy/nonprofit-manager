@@ -234,12 +234,14 @@ export default function FollowUpsPage() {
 
         <div className="mb-4 grid gap-3 md:grid-cols-4">
           <input
+            aria-label="Search follow-ups"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search follow-ups"
             className="border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
           />
           <select
+            aria-label="Filter follow-ups by entity type"
             value={entityTypeFilter}
             onChange={(event) => {
               setEntityTypeFilter(event.target.value as FollowUpEntityType | '');
@@ -252,6 +254,7 @@ export default function FollowUpsPage() {
             <option value="task">Tasks</option>
           </select>
           <select
+            aria-label="Filter follow-ups by status"
             value={statusFilter}
             onChange={(event) => {
               setStatusFilter(event.target.value as typeof statusFilter);

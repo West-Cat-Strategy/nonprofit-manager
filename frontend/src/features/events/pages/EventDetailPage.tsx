@@ -312,7 +312,7 @@ export default function EventDetailPage() {
         </div>
 
         <div className="mb-6 border-b">
-          <nav className="flex gap-4">
+          <nav className="flex gap-4" aria-label="Event detail sections">
             <button
               type="button"
               onClick={() => setActiveTab('info')}

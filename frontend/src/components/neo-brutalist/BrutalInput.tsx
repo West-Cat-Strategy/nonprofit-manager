@@ -24,11 +24,12 @@ export default function BrutalInput({
             <input
                 {...props}
                 className={`
-                    w-full border-2 border-black dark:border-white 
+                    w-full border-2 border-[var(--app-input-border)] 
                     px-4 py-2 ${icon ? 'pl-10' : ''} 
-                    bg-app-surface dark:bg-[#000000] 
-                    text-black dark:text-white 
-                    focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]
+                    bg-app-input-bg
+                    text-app-text
+                    placeholder:text-app-text-subtle
+                    focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:ring-offset-2 focus:ring-offset-[var(--app-bg)]
                     disabled:opacity-50 disabled:cursor-not-allowed
                     transition-all
                 `}

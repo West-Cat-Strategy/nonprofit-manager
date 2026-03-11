@@ -148,9 +148,10 @@ export default function InteractionNote() {
         {step === 'select' && (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-app-text-muted mb-2">Find a person</label>
+              <label htmlFor="interaction-note-person-search" className="block text-sm font-medium text-app-text-muted mb-2">Find a person</label>
               <div className="relative">
                 <input
+                  id="interaction-note-person-search"
                   ref={lookup.inputRef}
                   type="text"
                   value={lookup.searchTerm}

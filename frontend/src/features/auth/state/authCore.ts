@@ -130,6 +130,10 @@ const authSlice = createSlice({
     updateUser: (state, action: PayloadAction<Partial<User>>) => {
       if (state.user) {
         state.user = { ...state.user, ...action.payload };
+        setStaffBootstrapSnapshot({
+          user: state.user,
+          organizationId: getStoredOrganizationId(),
+        });
         localStorage.setItem('user', JSON.stringify(state.user));
       }
     },

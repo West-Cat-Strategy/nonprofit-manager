@@ -636,7 +636,7 @@ export default function ApiSettings() {
 
       {/* Tabs */}
       <div className="border-b border-app-border">
-        <nav className="-mb-px flex gap-6">
+        <nav className="-mb-px flex gap-6" aria-label="API settings sections">
           <button
             onClick={() => setActiveTab('webhooks')}
             className={`pb-4 text-sm font-medium border-b-2 ${

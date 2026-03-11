@@ -95,6 +95,7 @@ const ContactTags = ({ contactId, tags = [] }: ContactTagsProps) => {
             list={`contact-tag-options-${contactId}`}
             placeholder="Add a tag..."
             className="flex-1 min-w-[180px] px-3 py-2 border-2 border-black text-sm font-bold focus:outline-none"
+            aria-label="Add tag"
           />
           <button
             type="button"

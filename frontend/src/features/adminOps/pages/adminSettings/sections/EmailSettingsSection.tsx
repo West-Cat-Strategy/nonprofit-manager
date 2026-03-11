@@ -345,8 +345,9 @@ export default function EmailSettingsSection() {
         </div>
         <div className="grid gap-4 p-6 sm:grid-cols-2">
           <div>
-            <label className={labelClass}>SMTP Host</label>
+            <label htmlFor="email-settings-smtp-host" className={labelClass}>SMTP Host</label>
             <input
+              id="email-settings-smtp-host"
               type="text"
               className={inputClass}
               placeholder="smtp.example.com"
@@ -355,8 +356,9 @@ export default function EmailSettingsSection() {
             />
           </div>
           <div>
-            <label className={labelClass}>SMTP Port</label>
+            <label htmlFor="email-settings-smtp-port" className={labelClass}>SMTP Port</label>
             <input
+              id="email-settings-smtp-port"
               type="number"
               className={inputClass}
               value={smtpPort}
@@ -368,8 +370,9 @@ export default function EmailSettingsSection() {
             </p>
           </div>
           <div>
-            <label className={labelClass}>Username</label>
+            <label htmlFor="email-settings-smtp-user" className={labelClass}>Username</label>
             <input
+              id="email-settings-smtp-user"
               type="text"
               className={inputClass}
               placeholder="you@example.com"
@@ -378,13 +381,14 @@ export default function EmailSettingsSection() {
             />
           </div>
           <div>
-            <label className={labelClass}>
+            <label htmlFor="email-settings-smtp-pass" className={labelClass}>
               Password
               {credentials.smtp && (
                 <span className="ml-2 text-xs text-app-accent dark:text-app-text-muted">(stored)</span>
               )}
             </label>
             <input
+              id="email-settings-smtp-pass"
               type="password"
               className={inputClass}
               placeholder={credentials.smtp ? '••••••••' : 'Enter password'}
@@ -393,8 +397,9 @@ export default function EmailSettingsSection() {
             />
           </div>
           <div>
-            <label className={labelClass}>From Address</label>
+            <label htmlFor="email-settings-smtp-from-address" className={labelClass}>From Address</label>
             <input
+              id="email-settings-smtp-from-address"
               type="email"
               className={inputClass}
               placeholder="noreply@example.com"
@@ -403,8 +408,9 @@ export default function EmailSettingsSection() {
             />
           </div>
           <div>
-            <label className={labelClass}>From Name</label>
+            <label htmlFor="email-settings-smtp-from-name" className={labelClass}>From Name</label>
             <input
+              id="email-settings-smtp-from-name"
               type="text"
               className={inputClass}
               placeholder="Nonprofit Manager"
@@ -442,8 +448,9 @@ export default function EmailSettingsSection() {
         </div>
         <div className="grid gap-4 p-6 sm:grid-cols-2">
           <div>
-            <label className={labelClass}>IMAP Host</label>
+            <label htmlFor="email-settings-imap-host" className={labelClass}>IMAP Host</label>
             <input
+              id="email-settings-imap-host"
               type="text"
               className={inputClass}
               placeholder="imap.example.com"
@@ -452,8 +459,9 @@ export default function EmailSettingsSection() {
             />
           </div>
           <div>
-            <label className={labelClass}>IMAP Port</label>
+            <label htmlFor="email-settings-imap-port" className={labelClass}>IMAP Port</label>
             <input
+              id="email-settings-imap-port"
               type="number"
               className={inputClass}
               value={imapPort}
@@ -461,8 +469,9 @@ export default function EmailSettingsSection() {
             />
           </div>
           <div>
-            <label className={labelClass}>Username</label>
+            <label htmlFor="email-settings-imap-user" className={labelClass}>Username</label>
             <input
+              id="email-settings-imap-user"
               type="text"
               className={inputClass}
               placeholder="you@example.com"
@@ -471,13 +480,14 @@ export default function EmailSettingsSection() {
             />
           </div>
           <div>
-            <label className={labelClass}>
+            <label htmlFor="email-settings-imap-pass" className={labelClass}>
               Password
               {credentials.imap && (
                 <span className="ml-2 text-xs text-app-accent dark:text-app-text-muted">(stored)</span>
               )}
             </label>
             <input
+              id="email-settings-imap-pass"
               type="password"
               className={inputClass}
               placeholder={credentials.imap ? '••••••••' : 'Enter password'}

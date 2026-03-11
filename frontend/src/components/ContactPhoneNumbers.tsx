@@ -176,8 +176,11 @@ const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
 
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="block text-sm font-medium text-app-text-muted mb-1">Phone Number</label>
+              <label htmlFor="contact-phone-number" className="block text-sm font-medium text-app-text-muted mb-1">
+                Phone Number
+              </label>
               <input
+                id="contact-phone-number"
                 type="tel"
                 value={formData.phone_number}
                 onChange={(e) => setFormData((prev) => ({ ...prev, phone_number: e.target.value }))}
@@ -187,8 +190,11 @@ const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app-text-muted mb-1">Label</label>
+              <label htmlFor="contact-phone-label" className="block text-sm font-medium text-app-text-muted mb-1">
+                Label
+              </label>
               <select
+                id="contact-phone-label"
                 value={formData.label}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, label: e.target.value as PhoneLabel }))

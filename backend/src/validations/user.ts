@@ -22,14 +22,54 @@ export const createUserSchema = z.object({
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 
+const optionalTextFieldSchema = z.string().max(255).optional().or(z.literal(''));
+
+const profilePictureSchema = z
+  .string()
+  .max(8_000_000, 'Profile picture payload is too large')
+  .refine((value) => value.startsWith('data:image/') || z.string().url().safeParse(value).success, {
+    message: 'Profile picture must be an image data URL or URL',
+  });
+
+const userAlternativeEmailSchema = z
+  .object({
+    email: emailSchema,
+    label: z.string().trim().min(1).max(100),
+    isVerified: z.boolean(),
+  })
+  .strict();
+
+const userNotificationSettingsSchema = z
+  .object({
+    emailNotifications: z.boolean(),
+    taskReminders: z.boolean(),
+    eventReminders: z.boolean(),
+    donationAlerts: z.boolean(),
+    caseUpdates: z.boolean(),
+    weeklyDigest: z.boolean(),
+    marketingEmails: z.boolean(),
+  })
+  .strict();
+
 // Update user profile
-export const updateUserProfileSchema = z.object({
-  first_name: nameSchema.optional(),
-  last_name: nameSchema.optional(),
-  phone: phoneSchema.optional(),
-  avatar_url: z.string().url().optional().or(z.literal('')),
-  bio: z.string().max(1000).optional(),
-});
+export const updateUserProfileSchema = z
+  .object({
+    firstName: nameSchema.optional(),
+    lastName: nameSchema.optional(),
+    email: emailSchema.optional(),
+    emailSharedWithClients: z.boolean().optional(),
+    emailSharedWithUsers: z.boolean().optional(),
+    alternativeEmails: z.array(userAlternativeEmailSchema).optional(),
+    displayName: optionalTextFieldSchema,
+    alternativeName: optionalTextFieldSchema,
+    pronouns: z.string().max(255).optional().or(z.literal('')),
+    title: optionalTextFieldSchema,
+    cellPhone: phoneSchema,
+    contactNumber: phoneSchema,
+    profilePicture: profilePictureSchema.nullable().optional(),
+    notifications: userNotificationSettingsSchema.optional(),
+  })
+  .strict();
 
 export type UpdateUserProfileInput = z.infer<typeof updateUserProfileSchema>;
 

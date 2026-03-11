@@ -48,6 +48,7 @@ export default function QuickLookupWidget({ className = '' }: QuickLookupWidgetP
           <input
             ref={inputRef}
             type="text"
+            aria-label="Quick lookup"
             value={searchTerm}
             onChange={handleSearchChange}
             onKeyDown={handleKeyDown}

@@ -233,11 +233,12 @@ const CaseForm = ({
 
       {/* Contact Selection */}
       <div>
-        <label className="block text-sm font-medium text-app-text-label mb-2">
+        <label htmlFor="case-contact-lookup" className="block text-sm font-medium text-app-text-label mb-2">
           Client <span className="text-app-accent">*</span>
         </label>
         <div className="relative">
           <input
+            id="case-contact-lookup"
             ref={lookup.inputRef}
             type="text"
             name="contact_lookup"
@@ -284,10 +285,11 @@ const CaseForm = ({
 
       {/* Case Type */}
       <div>
-        <label className="block text-sm font-medium text-app-text-label mb-2">
+        <label htmlFor="case-type-id" className="block text-sm font-medium text-app-text-label mb-2">
           Case Type <span className="text-app-accent">*</span>
         </label>
         <select
+          id="case-type-id"
           name="case_type_id"
           value={formData.case_type_id}
           onChange={handleChange}
@@ -311,10 +313,11 @@ const CaseForm = ({
 
       {/* Title */}
       <div>
-        <label className="block text-sm font-medium text-app-text-label mb-2">
+        <label htmlFor="case-title" className="block text-sm font-medium text-app-text-label mb-2">
           Title <span className="text-app-accent">*</span>
         </label>
         <input
+          id="case-title"
           type="text"
           name="title"
           value={formData.title}
@@ -327,8 +330,9 @@ const CaseForm = ({
 
       {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-app-text-label mb-2">Description</label>
+        <label htmlFor="case-description" className="block text-sm font-medium text-app-text-label mb-2">Description</label>
         <textarea
+          id="case-description"
           name="description"
           value={formData.description}
           onChange={handleChange}
@@ -341,8 +345,9 @@ const CaseForm = ({
       {/* Priority and Source */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-app-text-label mb-2">Priority</label>
+          <label htmlFor="case-priority" className="block text-sm font-medium text-app-text-label mb-2">Priority</label>
           <select
+            id="case-priority"
             name="priority"
             value={formData.priority}
             onChange={handleChange}
@@ -357,8 +362,9 @@ const CaseForm = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-app-text-label mb-2">Source</label>
+          <label htmlFor="case-source" className="block text-sm font-medium text-app-text-label mb-2">Source</label>
           <select
+            id="case-source"
             name="source"
             value={formData.source || ''}
             onChange={handleChange}
@@ -379,8 +385,9 @@ const CaseForm = ({
       {/* Referral Source (if source is referral) */}
       {formData.source === 'referral' && (
         <div>
-          <label className="block text-sm font-medium text-app-text-label mb-2">Referral Source</label>
+          <label htmlFor="case-referral-source" className="block text-sm font-medium text-app-text-label mb-2">Referral Source</label>
           <input
+            id="case-referral-source"
             type="text"
             name="referral_source"
             value={formData.referral_source}
@@ -393,8 +400,9 @@ const CaseForm = ({
 
       {/* Due Date */}
       <div>
-        <label className="block text-sm font-medium text-app-text-label mb-2">Due Date</label>
+        <label htmlFor="case-due-date" className="block text-sm font-medium text-app-text-label mb-2">Due Date</label>
         <input
+          id="case-due-date"
           type="date"
           name="due_date"
           value={formData.due_date}
@@ -405,8 +413,9 @@ const CaseForm = ({
 
       {/* Assignment */}
       <div>
-        <label className="block text-sm font-medium text-app-text-label mb-2">Assigned To</label>
+        <label htmlFor="case-assigned-to" className="block text-sm font-medium text-app-text-label mb-2">Assigned To</label>
         <select
+          id="case-assigned-to"
           name="assigned_to"
           value={formData.assigned_to || ''}
           onChange={handleChange}
@@ -431,8 +440,9 @@ const CaseForm = ({
 
       {/* Urgent Checkbox */}
       <div>
-        <label className="flex items-center gap-2">
+        <label htmlFor="case-is-urgent" className="flex items-center gap-2">
           <input
+            id="case-is-urgent"
             type="checkbox"
             name="is_urgent"
             checked={formData.is_urgent}
@@ -448,9 +458,10 @@ const CaseForm = ({
 
       {/* Tags */}
       <div>
-        <label className="block text-sm font-medium text-app-text-label mb-2">Tags</label>
+        <label htmlFor="case-tag-input" className="block text-sm font-medium text-app-text-label mb-2">Tags</label>
         <div className="flex gap-2 mb-2">
           <input
+            id="case-tag-input"
             type="text"
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
@@ -512,8 +523,9 @@ const CaseForm = ({
           <h3 className="text-lg font-bold mb-4 uppercase">Case Outcome / Closure</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-app-text-label mb-2">Outcome</label>
+              <label htmlFor="case-outcome" className="block text-sm font-medium text-app-text-label mb-2">Outcome</label>
               <select
+                id="case-outcome"
                 name="outcome"
                 value={formData.outcome || ''}
                 onChange={handleChange}
@@ -530,8 +542,9 @@ const CaseForm = ({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-app-text-label mb-2">Closure Reason</label>
+              <label htmlFor="case-closure-reason" className="block text-sm font-medium text-app-text-label mb-2">Closure Reason</label>
               <input
+                id="case-closure-reason"
                 type="text"
                 name="closure_reason"
                 value={formData.closure_reason || ''}
@@ -542,8 +555,9 @@ const CaseForm = ({
             </div>
           </div>
           <div className="mt-4">
-            <label className="block text-sm font-medium text-app-text-label mb-2">Outcome Notes</label>
+            <label htmlFor="case-outcome-notes" className="block text-sm font-medium text-app-text-label mb-2">Outcome Notes</label>
             <textarea
+              id="case-outcome-notes"
               name="outcome_notes"
               value={formData.outcome_notes || ''}
               onChange={handleChange}

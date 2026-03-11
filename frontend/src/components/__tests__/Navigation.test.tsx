@@ -257,6 +257,80 @@ describe('Navigation', () => {
     );
   });
 
+  it('hides the admin settings link from the desktop user menu for non-admins', async () => {
+    renderWithProviders(<Navigation />, {
+      route: '/dashboard',
+      preloadedState: {
+        auth: {
+          user: {
+            id: 'manager-1',
+            email: 'manager@example.com',
+            firstName: 'Manager',
+            lastName: 'User',
+            role: 'manager',
+          },
+          isAuthenticated: true,
+          authLoading: false,
+          loading: false,
+        },
+      },
+    });
+
+    const userMenuButton = await screen.findByRole('button', { name: /user menu/i });
+    fireEvent.click(userMenuButton);
+
+    expect(screen.queryByRole('menuitem', { name: /admin settings/i })).not.toBeInTheDocument();
+  });
+
+  it('shows the admin settings link in the mobile account menu for admins only', async () => {
+    const { unmount } = renderWithProviders(<Navigation />, {
+      route: '/dashboard',
+      preloadedState: {
+        auth: {
+          user: {
+            id: 'admin-1',
+            email: 'admin@example.com',
+            firstName: 'Admin',
+            lastName: 'User',
+            role: 'admin',
+          },
+          isAuthenticated: true,
+          authLoading: false,
+          loading: false,
+        },
+      },
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: /main menu/i }));
+    expect(await screen.findByRole('link', { name: /admin settings/i })).toHaveAttribute(
+      'href',
+      '/settings/admin/dashboard'
+    );
+
+    unmount();
+
+    renderWithProviders(<Navigation />, {
+      route: '/dashboard',
+      preloadedState: {
+        auth: {
+          user: {
+            id: 'manager-1',
+            email: 'manager@example.com',
+            firstName: 'Manager',
+            lastName: 'User',
+            role: 'manager',
+          },
+          isAuthenticated: true,
+          authLoading: false,
+          loading: false,
+        },
+      },
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: /main menu/i }));
+    expect(screen.queryByRole('link', { name: /admin settings/i })).not.toBeInTheDocument();
+  });
+
   it('maintains user menu aria-expanded and closes on escape', async () => {
     renderWithProviders(<Navigation />, {
       route: '/dashboard',

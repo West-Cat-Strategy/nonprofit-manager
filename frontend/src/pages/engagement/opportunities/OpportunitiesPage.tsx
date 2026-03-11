@@ -205,6 +205,7 @@ export default function OpportunitiesPage() {
             value={newStageName}
             onChange={(event) => setNewStageName(event.target.value)}
             placeholder="New stage name"
+            aria-label="New opportunity stage name"
             className="border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
           />
           <button
@@ -397,8 +398,22 @@ export default function OpportunitiesPage() {
                       <p className="text-xs font-bold">{stageItems.length} opportunities</p>
                     </div>
                     <div className="flex gap-1">
-                      <button type="button" onClick={() => void reorderStage(index, -1)} className="border-2 border-[var(--app-border)] bg-white px-2 py-1 text-xs font-bold">↑</button>
-                      <button type="button" onClick={() => void reorderStage(index, 1)} className="border-2 border-[var(--app-border)] bg-white px-2 py-1 text-xs font-bold">↓</button>
+                      <button
+                        type="button"
+                        onClick={() => void reorderStage(index, -1)}
+                        aria-label={`Move ${stage.name} stage earlier`}
+                        className="border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] px-2 py-1 text-xs font-bold text-black"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void reorderStage(index, 1)}
+                        aria-label={`Move ${stage.name} stage later`}
+                        className="border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] px-2 py-1 text-xs font-bold text-black"
+                      >
+                        ↓
+                      </button>
                     </div>
                   </div>
                 </div>
