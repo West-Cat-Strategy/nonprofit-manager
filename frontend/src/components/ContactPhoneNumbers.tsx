@@ -26,7 +26,7 @@ const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<CreateContactPhoneDTO>({
     phone_number: '',
-    label: 'mobile',
+    label: 'other',
     is_primary: false,
   });
 
@@ -35,7 +35,7 @@ const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
   }, [dispatch, contactId]);
 
   const resetForm = () => {
-    setFormData({ phone_number: '', label: 'mobile', is_primary: false });
+    setFormData({ phone_number: '', label: 'other', is_primary: false });
     setIsAdding(false);
     setEditingId(null);
   };
@@ -170,7 +170,9 @@ const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
       {/* Add/Edit Form */}
       {isAdding ? (
         <form onSubmit={handleSubmit} className="bg-app-surface-muted rounded-lg p-4 border border-app-border">
-          <h4 className="font-medium mb-3">{editingId ? 'Edit Phone Number' : 'Add Phone Number'}</h4>
+          <h4 className="font-medium text-app-text mb-3">
+            {editingId ? 'Edit Phone Number' : 'Add Phone Number'}
+          </h4>
 
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
@@ -216,15 +218,15 @@ const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
             <button
               type="button"
               onClick={resetForm}
-              className="px-3 py-1.5 text-sm border border-app-input-border rounded-lg hover:bg-app-surface-muted transition"
+              className="px-3 py-1.5 text-sm text-app-text border border-app-input-border rounded-lg hover:bg-app-surface transition"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-3 py-1.5 text-sm bg-app-accent text-white rounded-lg hover:bg-app-accent-hover transition"
+              className="px-3 py-1.5 text-sm font-medium bg-app-accent text-app-accent-text rounded-lg hover:bg-app-accent-hover transition"
             >
-              {editingId ? 'Save' : 'Add'}
+              {editingId ? 'Save Phone' : 'Add Phone'}
             </button>
           </div>
         </form>
@@ -233,7 +235,7 @@ const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
           onClick={() => setIsAdding(true)}
           className="w-full px-3 py-2 text-sm text-app-accent border border-dashed border-app-accent rounded-lg hover:bg-app-accent-soft transition"
         >
-          + Add Phone Number
+          + Add Phone
         </button>
       )}
       <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />

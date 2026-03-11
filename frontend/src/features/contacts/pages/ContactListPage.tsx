@@ -27,6 +27,10 @@ import ConfirmDialog from '../../../components/ConfirmDialog';
 import { useBulkSelect } from '../../../hooks';
 import { BrutalBadge } from '../../../components/neo-brutalist';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
+import {
+  parseAllowedValue,
+  parsePositiveInteger,
+} from '../../../utils/persistedFilters';
 
 const ROLE_FILTER_OPTIONS: Array<{ value: ContactRoleFilter; label: string }> = [
   { value: 'client', label: 'Client' },
@@ -39,6 +43,9 @@ const ROLE_FILTER_OPTIONS: Array<{ value: ContactRoleFilter; label: string }> = 
 
 const isContactRoleFilter = (value: string): value is ContactRoleFilter =>
   ROLE_FILTER_OPTIONS.some((option) => option.value === value);
+
+const STATUS_FILTER_VALUES = ['active', 'inactive'] as const;
+const SORT_ORDER_VALUES = ['asc', 'desc'] as const;
 
 const normalizeRoleFilter = (value: string | null | undefined): ContactRoleFilter | '' => {
   if (!value) {
@@ -71,14 +78,16 @@ const ContactList = () => {
     initialRoleFilter || filters.role || ''
   );
   const [activeFilter, setActiveFilter] = useState(
-    searchParams.get('status') ||
+    parseAllowedValue(searchParams.get('status'), STATUS_FILTER_VALUES) ||
       (filters.is_active === true ? 'active' : filters.is_active === false ? 'inactive' : '')
   );
-  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page') || '1'));
-  const [currentLimit] = useState(Number(searchParams.get('limit') || String(pagination.limit || 20)));
+  const [currentPage, setCurrentPage] = useState(() => parsePositiveInteger(searchParams.get('page'), 1));
+  const [currentLimit] = useState(() =>
+    parsePositiveInteger(searchParams.get('limit'), pagination.limit || 20)
+  );
   const [sortBy] = useState(searchParams.get('sort_by') || filters.sort_by || 'created_at');
   const [sortOrder] = useState<'asc' | 'desc'>(
-    (searchParams.get('sort_order') as 'asc' | 'desc') || filters.sort_order || 'desc'
+    parseAllowedValue(searchParams.get('sort_order'), SORT_ORDER_VALUES) || filters.sort_order || 'desc'
   );
   const [showImportExport, setShowImportExport] = useState(false);
   const [filterCollapsed, setFilterCollapsed] = useState(false);

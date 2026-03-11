@@ -56,6 +56,89 @@ export function formatDate(date: string | Date | null | undefined): string {
   });
 }
 
+type DateOnlyParts = {
+  year: number;
+  month: number;
+  day: number;
+};
+
+const getDateOnlyParts = (value: string | Date | null | undefined): DateOnlyParts | null => {
+  if (!value) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) {
+      return null;
+    }
+    return {
+      year: value.getUTCFullYear(),
+      month: value.getUTCMonth() + 1,
+      day: value.getUTCDate(),
+    };
+  }
+
+  const trimmed = value.trim();
+  const directMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (directMatch) {
+    return {
+      year: Number(directMatch[1]),
+      month: Number(directMatch[2]),
+      day: Number(directMatch[3]),
+    };
+  }
+
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return {
+    year: parsed.getUTCFullYear(),
+    month: parsed.getUTCMonth() + 1,
+    day: parsed.getUTCDate(),
+  };
+};
+
+export function toDateInputValue(date: string | Date | null | undefined): string {
+  const parts = getDateOnlyParts(date);
+  if (!parts) {
+    return '';
+  }
+
+  return `${parts.year}-${`${parts.month}`.padStart(2, '0')}-${`${parts.day}`.padStart(2, '0')}`;
+}
+
+export function formatDateOnly(date: string | Date | null | undefined): string {
+  const parts = getDateOnlyParts(date);
+  if (!parts) {
+    return '';
+  }
+
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(parts.year, parts.month - 1, parts.day)));
+}
+
+export function getAgeFromDateOnly(date: string | Date | null | undefined): number | null {
+  const parts = getDateOnlyParts(date);
+  if (!parts) {
+    return null;
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - parts.year;
+  const monthDiff = today.getMonth() + 1 - parts.month;
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < parts.day)) {
+    age -= 1;
+  }
+
+  return age;
+}
+
 /**
  * Format a date with time (e.g., "Jan 15, 2024, 2:30 PM")
  */

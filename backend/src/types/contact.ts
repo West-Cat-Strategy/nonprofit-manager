@@ -196,7 +196,7 @@ export interface Contact {
   suffix: string | null;
 
   // Personal information
-  birth_date: Date | null;
+  birth_date: string | null;
   gender: string | null;
   pronouns: string | null;
   phn: string | null;
@@ -272,13 +272,13 @@ export interface CreateContactDTO {
   middle_name?: string;
   salutation?: string;
   suffix?: string;
-  birth_date?: Date | string;
+  birth_date?: string | null;
   gender?: string;
   pronouns?: string;
   phn?: string | null;
-  email?: string;
-  phone?: string;
-  mobile_phone?: string;
+  email?: string | null;
+  phone?: string | null;
+  mobile_phone?: string | null;
   address_line1?: string;
   address_line2?: string;
   city?: string;
@@ -306,13 +306,13 @@ export interface UpdateContactDTO {
   middle_name?: string;
   salutation?: string;
   suffix?: string;
-  birth_date?: Date | string | null;
+  birth_date?: string | null;
   gender?: string | null;
   pronouns?: string | null;
   phn?: string | null;
-  email?: string;
-  phone?: string;
-  mobile_phone?: string;
+  email?: string | null;
+  phone?: string | null;
+  mobile_phone?: string | null;
   address_line1?: string;
   address_line2?: string;
   city?: string;

@@ -8,14 +8,17 @@ import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import * as publishingController from '../controllers';
-import { uuidSchema } from '@validations/shared';
+import { uuidSchema, optionalStrictBooleanSchema } from '@validations/shared';
 
 const router = Router();
 
 const publishingStatusSchema = z.enum(['draft', 'published', 'maintenance', 'suspended']);
 const sortOrderSchema = z.enum(['asc', 'desc']);
 const verificationMethodSchema = z.enum(['cname', 'txt']);
-const subdomainSchema = z.string().trim().regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/, 'Invalid subdomain format');
+const subdomainSchema = z
+  .string()
+  .trim()
+  .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/, 'Invalid subdomain format');
 const domainSchema = z
   .string()
   .trim()
@@ -47,7 +50,7 @@ const updateSiteSchema = z.object({
   name: z.string().trim().min(1).max(255).optional(),
   subdomain: z.union([subdomainSchema, z.literal(''), z.null()]).optional(),
   customDomain: z.union([z.string().trim(), z.null()]).optional(),
-  analyticsEnabled: z.coerce.boolean().optional(),
+  analyticsEnabled: optionalStrictBooleanSchema,
   status: publishingStatusSchema.optional(),
   siteKind: z.enum(['organization', 'campaign']).optional(),
   parentSiteId: z.union([uuidSchema, z.null()]).optional(),
@@ -58,7 +61,13 @@ const publishSchema = z.object({
   siteId: uuidSchema.optional(),
 });
 
-const analyticsEventTypeSchema = z.enum(['pageview', 'click', 'form_submit', 'donation', 'event_register']);
+const analyticsEventTypeSchema = z.enum([
+  'pageview',
+  'click',
+  'form_submit',
+  'donation',
+  'event_register',
+]);
 
 const analyticsTrackSchema = z.object({
   eventType: analyticsEventTypeSchema,
@@ -73,22 +82,28 @@ const analyticsTrackSchema = z.object({
   eventData: z.record(z.string(), z.unknown()).optional(),
 });
 
-const siteSearchQuerySchema = z.object({
-  status: publishingStatusSchema.optional(),
-  search: z.string().optional(),
-  page: z.coerce.number().int().min(1).optional(),
-  limit: z.coerce.number().int().min(1).max(100).optional(),
-  sortBy: z.enum(['name', 'createdAt', 'publishedAt', 'status']).optional(),
-  sortOrder: sortOrderSchema.optional(),
-}).strict();
+const siteSearchQuerySchema = z
+  .object({
+    status: publishingStatusSchema.optional(),
+    search: z.string().optional(),
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    sortBy: z.enum(['name', 'createdAt', 'publishedAt', 'status']).optional(),
+    sortOrder: sortOrderSchema.optional(),
+  })
+  .strict();
 
-const siteAnalyticsQuerySchema = z.object({
-  period: z.coerce.number().int().min(1).max(365).optional(),
-}).strict();
+const siteAnalyticsQuerySchema = z
+  .object({
+    period: z.coerce.number().int().min(1).max(365).optional(),
+  })
+  .strict();
 
-const siteAnalyticsFunnelQuerySchema = z.object({
-  windowDays: z.coerce.number().int().min(1).max(365).optional(),
-}).strict();
+const siteAnalyticsFunnelQuerySchema = z
+  .object({
+    windowDays: z.coerce.number().int().min(1).max(365).optional(),
+  })
+  .strict();
 
 const siteConsoleQuerySchema = siteSearchQuerySchema;
 
@@ -103,17 +118,21 @@ const addCustomDomainSchema = z.object({
   verificationMethod: verificationMethodSchema.optional(),
 });
 
-const versionHistoryQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).optional(),
-}).strict();
+const versionHistoryQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+  })
+  .strict();
 
 const rollbackSchema = z.object({
   version: z.string().min(1, 'Version is required'),
 });
 
-const pruneVersionsQuerySchema = z.object({
-  keep: z.coerce.number().int().min(1).max(100).optional(),
-}).strict();
+const pruneVersionsQuerySchema = z
+  .object({
+    keep: z.coerce.number().int().min(1).max(100).optional(),
+  })
+  .strict();
 
 const entryIdParamsSchema = z.object({
   siteId: uuidSchema,
@@ -137,17 +156,17 @@ const formOperationalSettingsSchema = z
     mailchimpListId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
     audienceMode: z.enum(['crm', 'mailchimp', 'both']).optional(),
     defaultTags: z.array(z.string().trim().min(1).max(100)).max(50).optional(),
-    includePhone: z.coerce.boolean().optional(),
-    includeMessage: z.coerce.boolean().optional(),
+    includePhone: optionalStrictBooleanSchema,
+    includeMessage: optionalStrictBooleanSchema,
     formMode: z.enum(['contact', 'supporter']).optional(),
     defaultStatus: z.string().trim().max(100).optional(),
     suggestedAmounts: z.array(z.coerce.number().positive()).max(12).optional(),
-    allowCustomAmount: z.coerce.boolean().optional(),
-    recurringOption: z.coerce.boolean().optional(),
-    recurringDefault: z.coerce.boolean().optional(),
+    allowCustomAmount: optionalStrictBooleanSchema,
+    recurringOption: optionalStrictBooleanSchema,
+    recurringDefault: optionalStrictBooleanSchema,
     currency: z.string().trim().min(3).max(10).optional(),
     conversionGoal: z.string().trim().max(120).optional(),
-    trackingEnabled: z.coerce.boolean().optional(),
+    trackingEnabled: optionalStrictBooleanSchema,
   })
   .strict();
 
@@ -156,7 +175,7 @@ const updateSiteMailchimpSettingsSchema = z
     audienceId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
     audienceMode: z.enum(['crm', 'mailchimp', 'both']).optional(),
     defaultTags: z.array(z.string().trim().min(1).max(100)).max(50).optional(),
-    syncEnabled: z.coerce.boolean().optional(),
+    syncEnabled: optionalStrictBooleanSchema,
   })
   .strict();
 
@@ -165,7 +184,7 @@ const updateSiteStripeSettingsSchema = z
     accountId: z.union([uuidSchema, z.null()]).optional(),
     currency: z.string().trim().min(3).max(10).optional(),
     suggestedAmounts: z.array(z.coerce.number().positive()).max(12).optional(),
-    recurringDefault: z.coerce.boolean().optional(),
+    recurringDefault: optionalStrictBooleanSchema,
     campaignId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
   })
   .strict();
@@ -234,16 +253,31 @@ const syncMailchimpEntriesSchema = z
 // ==================== Protected Routes (require auth) ====================
 
 // Search sites
-router.get('/', authenticate, validateQuery(siteConsoleQuerySchema), publishingController.listSitesForConsole);
+router.get(
+  '/',
+  authenticate,
+  validateQuery(siteConsoleQuerySchema),
+  publishingController.listSitesForConsole
+);
 
 // Create a new site entry
 router.post('/', authenticate, validateBody(createSiteSchema), publishingController.createSite);
 
 // Publish a template (create or update published site)
-router.post('/publish', authenticate, validateBody(publishSchema), publishingController.publishSite);
+router.post(
+  '/publish',
+  authenticate,
+  validateBody(publishSchema),
+  publishingController.publishSite
+);
 
 // Get a specific site
-router.get('/:siteId', authenticate, validateParams(siteIdParamsSchema), publishingController.getSite);
+router.get(
+  '/:siteId',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  publishingController.getSite
+);
 
 router.get(
   '/:siteId/overview',
@@ -308,10 +342,21 @@ router.get(
 );
 
 // Update a site
-router.put('/:siteId', authenticate, validateParams(siteIdParamsSchema), validateBody(updateSiteSchema), publishingController.updateSite);
+router.put(
+  '/:siteId',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  validateBody(updateSiteSchema),
+  publishingController.updateSite
+);
 
 // Delete a site
-router.delete('/:siteId', authenticate, validateParams(siteIdParamsSchema), publishingController.deleteSite);
+router.delete(
+  '/:siteId',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  publishingController.deleteSite
+);
 
 router.get(
   '/:siteId/entries',
@@ -360,10 +405,20 @@ router.post(
 );
 
 // Unpublish a site
-router.post('/:siteId/unpublish', authenticate, validateParams(siteIdParamsSchema), publishingController.unpublishSite);
+router.post(
+  '/:siteId/unpublish',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  publishingController.unpublishSite
+);
 
 // Get deployment info
-router.get('/:siteId/deployment', authenticate, validateParams(siteIdParamsSchema), publishingController.getDeploymentInfo);
+router.get(
+  '/:siteId/deployment',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  publishingController.getDeploymentInfo
+);
 
 // Get analytics summary
 router.get(
@@ -386,21 +441,46 @@ router.post(
 );
 
 // Get custom domain config
-router.get('/:siteId/domain', authenticate, validateParams(siteIdParamsSchema), publishingController.getCustomDomainConfig);
+router.get(
+  '/:siteId/domain',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  publishingController.getCustomDomainConfig
+);
 
 // Verify custom domain
-router.post('/:siteId/domain/verify', authenticate, validateParams(siteIdParamsSchema), publishingController.verifyCustomDomain);
+router.post(
+  '/:siteId/domain/verify',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  publishingController.verifyCustomDomain
+);
 
 // Remove custom domain
-router.delete('/:siteId/domain', authenticate, validateParams(siteIdParamsSchema), publishingController.removeCustomDomain);
+router.delete(
+  '/:siteId/domain',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  publishingController.removeCustomDomain
+);
 
 // ==================== SSL Certificate Routes ====================
 
 // Get SSL info
-router.get('/:siteId/ssl', authenticate, validateParams(siteIdParamsSchema), publishingController.getSslInfo);
+router.get(
+  '/:siteId/ssl',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  publishingController.getSslInfo
+);
 
 // Provision SSL certificate
-router.post('/:siteId/ssl/provision', authenticate, validateParams(siteIdParamsSchema), publishingController.provisionSsl);
+router.post(
+  '/:siteId/ssl/provision',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  publishingController.provisionSsl
+);
 
 // ==================== Version History Routes ====================
 
@@ -414,7 +494,12 @@ router.get(
 );
 
 // Get specific version
-router.get('/:siteId/versions/:version', authenticate, validateParams(siteVersionParamsSchema), publishingController.getVersion);
+router.get(
+  '/:siteId/versions/:version',
+  authenticate,
+  validateParams(siteVersionParamsSchema),
+  publishingController.getVersion
+);
 
 // Rollback to a version
 router.post(
@@ -437,7 +522,12 @@ router.delete(
 // ==================== Cache Management Routes ====================
 
 // Invalidate cache for a site
-router.post('/:siteId/cache/invalidate', authenticate, validateParams(siteIdParamsSchema), publishingController.invalidateSiteCache);
+router.post(
+  '/:siteId/cache/invalidate',
+  authenticate,
+  validateParams(siteIdParamsSchema),
+  publishingController.invalidateSiteCache
+);
 
 // Get cache statistics (admin)
 router.get('/admin/cache/stats', authenticate, publishingController.getCacheStats);

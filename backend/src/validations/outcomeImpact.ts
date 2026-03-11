@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { uuidSchema } from './shared';
+import { isoDateSchema, optionalStrictBooleanSchema, uuidSchema } from './shared';
 
 export const outcomeAttributionSchema = z.enum(['DIRECT', 'LIKELY', 'POSSIBLE']);
 
@@ -22,10 +22,10 @@ export const interactionOutcomeParamsSchema = z.object({
 });
 
 export const caseOutcomeDefinitionsQuerySchema = z.object({
-  includeInactive: z.coerce.boolean().optional(),
+  includeInactive: optionalStrictBooleanSchema,
 });
 
-const dateStringSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD');
+const dateStringSchema = isoDateSchema;
 
 export const outcomesReportQuerySchema = z.object({
   from: dateStringSchema,
@@ -37,7 +37,7 @@ export const outcomesReportQuerySchema = z.object({
     .enum(['note', 'email', 'call', 'meeting', 'update', 'status_change'])
     .optional(),
   bucket: z.enum(['week', 'month']).optional(),
-  includeNonReportable: z.coerce.boolean().optional(),
+  includeNonReportable: optionalStrictBooleanSchema,
 });
 
 export type UpdateInteractionOutcomeImpactsInput = z.infer<

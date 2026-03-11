@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import * as webhookController from '../controllers';
-import { uuidSchema } from '@validations/shared';
+import { isoDateTimeSchema, optionalStrictBooleanSchema, uuidSchema } from '@validations/shared';
 
 const router = Router();
 
@@ -40,16 +40,16 @@ const updateWebhookEndpointSchema = z.object({
   url: webhookUrlSchema.optional(),
   description: z.string().max(500).optional(),
   events: z.array(z.string()).min(1).optional(),
-  isActive: z.coerce.boolean().optional(),
+  isActive: optionalStrictBooleanSchema,
 });
 
-const deliveriesQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).optional(),
-}).strict();
+const deliveriesQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+  })
+  .strict();
 
-const dateStringSchema = z
-  .string()
-  .refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid expiration date format');
+const dateStringSchema = isoDateTimeSchema;
 
 const createApiKeySchema = z.object({
   name: z.string().min(1, 'API key name is required').max(100),
@@ -63,9 +63,11 @@ const updateApiKeySchema = z.object({
   status: z.enum(['active', 'revoked']).optional(),
 });
 
-const apiKeyUsageQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(500).optional(),
-}).strict();
+const apiKeyUsageQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(500).optional(),
+  })
+  .strict();
 
 // All routes require authentication
 router.use(authenticate);
@@ -90,7 +92,11 @@ router.get('/endpoints', webhookController.getWebhookEndpoints);
  * POST /api/webhooks/endpoints
  * Create a new webhook endpoint
  */
-router.post('/endpoints', validateBody(createWebhookEndpointSchema), webhookController.createWebhookEndpoint);
+router.post(
+  '/endpoints',
+  validateBody(createWebhookEndpointSchema),
+  webhookController.createWebhookEndpoint
+);
 
 /**
  * GET /api/webhooks/endpoints/:id
@@ -113,13 +119,21 @@ router.put(
  * DELETE /api/webhooks/endpoints/:id
  * Delete a webhook endpoint
  */
-router.delete('/endpoints/:id', validateParams(idParamsSchema), webhookController.deleteWebhookEndpoint);
+router.delete(
+  '/endpoints/:id',
+  validateParams(idParamsSchema),
+  webhookController.deleteWebhookEndpoint
+);
 
 /**
  * POST /api/webhooks/endpoints/:id/regenerate-secret
  * Regenerate the webhook secret
  */
-router.post('/endpoints/:id/regenerate-secret', validateParams(idParamsSchema), webhookController.regenerateWebhookSecret);
+router.post(
+  '/endpoints/:id/regenerate-secret',
+  validateParams(idParamsSchema),
+  webhookController.regenerateWebhookSecret
+);
 
 /**
  * GET /api/webhooks/endpoints/:id/deliveries
@@ -136,7 +150,11 @@ router.get(
  * POST /api/webhooks/endpoints/:id/test
  * Send a test webhook to the endpoint
  */
-router.post('/endpoints/:id/test', validateParams(idParamsSchema), webhookController.testWebhookEndpoint);
+router.post(
+  '/endpoints/:id/test',
+  validateParams(idParamsSchema),
+  webhookController.testWebhookEndpoint
+);
 
 // ==================== API Key Info ====================
 
@@ -170,7 +188,12 @@ router.get('/api-keys/:id', validateParams(idParamsSchema), webhookController.ge
  * PUT /api/webhooks/api-keys/:id
  * Update an API key
  */
-router.put('/api-keys/:id', validateParams(idParamsSchema), validateBody(updateApiKeySchema), webhookController.updateApiKey);
+router.put(
+  '/api-keys/:id',
+  validateParams(idParamsSchema),
+  validateBody(updateApiKeySchema),
+  webhookController.updateApiKey
+);
 
 /**
  * POST /api/webhooks/api-keys/:id/revoke

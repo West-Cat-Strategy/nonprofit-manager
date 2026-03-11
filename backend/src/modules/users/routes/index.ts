@@ -16,7 +16,12 @@ import {
 } from '../controllers';
 import { authenticate } from '@middleware/domains/auth';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
-import { emailSchema, passwordSchema, uuidSchema } from '@validations/shared';
+import {
+  emailSchema,
+  optionalStrictBooleanSchema,
+  passwordSchema,
+  uuidSchema,
+} from '@validations/shared';
 
 const router = Router();
 
@@ -37,25 +42,20 @@ const updateUserSchema = z.object({
   firstName: z.string().trim().min(1, 'First name cannot be empty').optional(),
   lastName: z.string().trim().min(1, 'Last name cannot be empty').optional(),
   role: z.enum(['admin', 'manager', 'user', 'readonly']).optional(),
-  isActive: z.coerce.boolean().optional(),
+  isActive: optionalStrictBooleanSchema,
 });
 
 const resetUserPasswordSchema = z.object({
   password: passwordSchema,
 });
 
-const strictBooleanQuerySchema = z.preprocess((value) => {
-  if (value === undefined) return undefined;
-  if (value === true || value === 'true' || value === '1') return true;
-  if (value === false || value === 'false' || value === '0') return false;
-  return value;
-}, z.boolean().optional());
-
-const listUsersQuerySchema = z.object({
-  search: z.string().trim().max(255).optional(),
-  role: z.enum(['admin', 'manager', 'user', 'readonly']).optional(),
-  is_active: strictBooleanQuerySchema,
-}).strict();
+const listUsersQuerySchema = z
+  .object({
+    search: z.string().trim().max(255).optional(),
+    role: z.enum(['admin', 'manager', 'user', 'readonly']).optional(),
+    is_active: optionalStrictBooleanSchema,
+  })
+  .strict();
 
 // All routes require authentication
 router.use(authenticate);
@@ -76,7 +76,12 @@ router.post('/', validateBody(createUserSchema), createUser);
 router.put('/:id', validateParams(userIdParamsSchema), validateBody(updateUserSchema), updateUser);
 
 // Reset user password
-router.put('/:id/password', validateParams(userIdParamsSchema), validateBody(resetUserPasswordSchema), resetUserPassword);
+router.put(
+  '/:id/password',
+  validateParams(userIdParamsSchema),
+  validateBody(resetUserPasswordSchema),
+  resetUserPassword
+);
 
 // Delete (deactivate) a user
 router.delete('/:id', validateParams(userIdParamsSchema), deleteUser);

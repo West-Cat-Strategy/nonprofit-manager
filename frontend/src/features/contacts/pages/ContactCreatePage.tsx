@@ -18,15 +18,15 @@ export const ContactCreate: React.FC = () => {
           <div>
             <button
               onClick={() => navigate('/contacts')}
-              className="text-sm font-black uppercase text-black/70 hover:text-black mb-2 flex items-center gap-1"
+              className="mb-2 flex items-center gap-1 text-sm font-black uppercase text-black/70 hover:text-black dark:text-white/80 dark:hover:text-white"
               aria-label="Back to people"
             >
               ← Back to People
             </button>
-            <h1 className="text-3xl font-black uppercase tracking-tight text-black">
+            <h1 className="text-3xl font-black uppercase tracking-tight text-black dark:text-white">
               Create New Contact
             </h1>
-            <p className="mt-1 font-bold text-black/70">
+            <p className="mt-1 font-bold text-black/70 dark:text-white/80">
               Add a new contact to the system. Required fields are marked with an asterisk (*).
             </p>
           </div>

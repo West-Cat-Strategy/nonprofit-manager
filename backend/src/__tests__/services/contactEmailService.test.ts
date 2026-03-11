@@ -15,6 +15,10 @@ jest.mock('../../config/logger', () => ({
   },
 }));
 
+jest.mock('../../services/contactMethodSyncService', () => ({
+  syncContactMethodSummaries: jest.fn().mockResolvedValue(undefined),
+}));
+
 import {
   getContactEmails,
   getContactEmailById,
@@ -23,6 +27,7 @@ import {
   deleteContactEmail,
   getPrimaryEmail,
 } from '../../services/contactEmailService';
+import { syncContactMethodSummaries } from '../../services/contactMethodSyncService';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -128,6 +133,7 @@ describe('createContactEmail', () => {
     );
 
     expect(result.email_address).toBe('work@example.com');
+    expect(syncContactMethodSummaries).toHaveBeenCalledWith('contact-1');
   });
 
   it('passes contactId as first param and userId as fifth param', async () => {
@@ -193,6 +199,7 @@ describe('updateContactEmail', () => {
 
     expect(result).not.toBeNull();
     expect(result!.email_address).toBe('new@example.com');
+    expect(syncContactMethodSummaries).toHaveBeenCalledWith('contact-1');
   });
 
   it('returns null when no row matches', async () => {
@@ -246,10 +253,11 @@ describe('deleteContactEmail', () => {
   beforeEach(() => mockQuery.mockReset());
 
   it('returns true when the email was deleted', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [{ id: 'email-uuid' }] });
+    mockQuery.mockResolvedValueOnce({ rows: [{ id: 'email-uuid', contact_id: 'contact-1' }] });
 
     const result = await deleteContactEmail('email-uuid');
     expect(result).toBe(true);
+    expect(syncContactMethodSummaries).toHaveBeenCalledWith('contact-1');
   });
 
   it('returns false when no email matched', async () => {

@@ -90,6 +90,9 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/069_public_submission_export_jobs_activity_conversion_events.sql
 \i /migrations/070_activity_conversion_event_provenance_backfill.sql
 \i /migrations/071_case_workflow_coverage_recovery.sql
+\i /migrations/072_volunteer_assignments.sql
+\i /migrations/073_contact_method_sync_backfill.sql
+\i /migrations/074_email_settings_starttls_defaults.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',
@@ -184,7 +187,10 @@ VALUES
     ('068_people_import_export_support.sql', '068', '068_people_import_export_support.sql'),
     ('069_public_submission_export_jobs_activity_conversion_events.sql', '069', '069_public_submission_export_jobs_activity_conversion_events.sql'),
     ('070_activity_conversion_event_provenance_backfill.sql', '070', '070_activity_conversion_event_provenance_backfill.sql'),
-    ('071_case_workflow_coverage_recovery.sql', '071', '071_case_workflow_coverage_recovery.sql')
+    ('071_case_workflow_coverage_recovery.sql', '071', '071_case_workflow_coverage_recovery.sql'),
+    ('072_volunteer_assignments.sql', '072', '072_volunteer_assignments.sql'),
+    ('073_contact_method_sync_backfill.sql', '073', '073_contact_method_sync_backfill.sql'),
+    ('074_email_settings_starttls_defaults.sql', '074', '074_email_settings_starttls_defaults.sql')
 ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;

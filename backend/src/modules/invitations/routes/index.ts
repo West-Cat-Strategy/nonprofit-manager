@@ -16,7 +16,12 @@ import {
 } from '../controllers';
 import { authenticate } from '@middleware/domains/auth';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
-import { emailSchema, passwordSchema, uuidSchema } from '@validations/shared';
+import {
+  emailSchema,
+  passwordSchema,
+  uuidSchema,
+  optionalStrictBooleanSchema,
+} from '@validations/shared';
 
 const router = Router();
 
@@ -34,18 +39,20 @@ const acceptInvitationSchema = z.object({
   password: passwordSchema,
 });
 
-const invitationListQuerySchema = z.object({
-  includeExpired: z.coerce.boolean().optional(),
-  includeAccepted: z.coerce.boolean().optional(),
-  includeRevoked: z.coerce.boolean().optional(),
-}).strict();
+const invitationListQuerySchema = z
+  .object({
+    includeExpired: optionalStrictBooleanSchema,
+    includeAccepted: optionalStrictBooleanSchema,
+    includeRevoked: optionalStrictBooleanSchema,
+  })
+  .strict();
 
 const createInvitationSchema = z.object({
   email: emailSchema,
   role: z.enum(['admin', 'manager', 'user', 'readonly']),
   message: z.string().trim().optional(),
   expiresInDays: z.coerce.number().int().min(1).max(30).optional(),
-  sendEmail: z.coerce.boolean().optional(),
+  sendEmail: optionalStrictBooleanSchema,
 });
 
 // ============================================================================
@@ -62,7 +69,12 @@ router.get('/validate/:token', validateParams(invitationTokenParamsSchema), vali
  * POST /api/invitations/accept/:token
  * Accept an invitation and create user account
  */
-router.post('/accept/:token', validateParams(invitationTokenParamsSchema), validateBody(acceptInvitationSchema), acceptInvitation);
+router.post(
+  '/accept/:token',
+  validateParams(invitationTokenParamsSchema),
+  validateBody(acceptInvitationSchema),
+  acceptInvitation
+);
 
 // ============================================================================
 // ADMIN ROUTES (require authentication)

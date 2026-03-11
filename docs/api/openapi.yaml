@@ -218,8 +218,14 @@ paths:
               additionalProperties: false
               properties:
                 smtpHost: { type: string, nullable: true }
-                smtpPort: { type: integer, minimum: 1, maximum: 65535 }
-                smtpSecure: { type: boolean }
+                smtpPort:
+                  type: integer
+                  minimum: 1
+                  maximum: 65535
+                  description: Use 587, 25, or 2525 for STARTTLS in most setups, or 465 for implicit TLS when your provider requires it.
+                smtpSecure:
+                  type: boolean
+                  description: Set false for STARTTLS ports like 587/25/2525 and true for implicit TLS on port 465.
                 smtpUser: { type: string, nullable: true }
                 smtpPass: { type: string }
                 smtpFromAddress: { type: string, format: email, nullable: true }

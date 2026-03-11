@@ -14,6 +14,10 @@ import {
 } from '../state';
 import type { Account } from '../state';
 import {
+  ACCOUNT_CATEGORY_VALUES,
+  ACCOUNT_TYPE_VALUES,
+} from '../types/contracts';
+import {
   PeopleListContainer,
   FilterPanel,
   BulkActionBar,
@@ -25,6 +29,14 @@ import ConfirmDialog from '../../../components/ConfirmDialog';
 import { useBulkSelect } from '../../../hooks';
 import { BrutalBadge } from '../../../components/neo-brutalist';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
+import {
+  parseAllowedValue,
+  parseAllowedValueOrEmpty,
+  parsePositiveInteger,
+} from '../../../utils/persistedFilters';
+
+const STATUS_FILTER_VALUES = ['active', 'inactive'] as const;
+const SORT_ORDER_VALUES = ['asc', 'desc'] as const;
 
 const AccountList = () => {
   const dispatch = useAppDispatch();
@@ -44,13 +56,31 @@ const AccountList = () => {
 
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || filters.search || '');
-  const [accountTypeFilter, setAccountTypeFilter] = useState(searchParams.get('type') || filters.account_type || '');
-  const [categoryFilter, setCategoryFilter] = useState(searchParams.get('category') || filters.category || '');
-  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || (filters.is_active ? 'active' : 'inactive'));
-  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page') || '1'));
-  const [currentLimit] = useState(Number(searchParams.get('limit') || String(pagination.limit || 20)));
+  const [accountTypeFilter, setAccountTypeFilter] = useState<'' | Account['account_type']>(
+    () =>
+      parseAllowedValueOrEmpty(searchParams.get('type'), ACCOUNT_TYPE_VALUES) ||
+      filters.account_type ||
+      ''
+  );
+  const [categoryFilter, setCategoryFilter] = useState<'' | Account['category']>(
+    () =>
+      parseAllowedValueOrEmpty(searchParams.get('category'), ACCOUNT_CATEGORY_VALUES) ||
+      filters.category ||
+      ''
+  );
+  const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTER_VALUES)[number]>(
+    () =>
+      parseAllowedValue(searchParams.get('status'), STATUS_FILTER_VALUES) ||
+      (filters.is_active ? 'active' : 'inactive')
+  );
+  const [currentPage, setCurrentPage] = useState(() => parsePositiveInteger(searchParams.get('page'), 1));
+  const [currentLimit] = useState(() =>
+    parsePositiveInteger(searchParams.get('limit'), pagination.limit || 20)
+  );
   const [sortBy] = useState(searchParams.get('sort_by') || 'created_at');
-  const [sortOrder] = useState<'asc' | 'desc'>((searchParams.get('sort_order') as 'asc' | 'desc') || 'desc');
+  const [sortOrder] = useState<'asc' | 'desc'>(
+    () => parseAllowedValue(searchParams.get('sort_order'), SORT_ORDER_VALUES) || 'desc'
+  );
   const [showImportExport, setShowImportExport] = useState(false);
   const [filterCollapsed, setFilterCollapsed] = useState(false);
 
@@ -92,11 +122,11 @@ const AccountList = () => {
     if (filterId === 'search' && typeof value === 'string') {
       setSearchInput(value);
     } else if (filterId === 'account_type' && typeof value === 'string') {
-      setAccountTypeFilter(value);
+      setAccountTypeFilter(parseAllowedValueOrEmpty(value, ACCOUNT_TYPE_VALUES));
     } else if (filterId === 'category' && typeof value === 'string') {
-      setCategoryFilter(value);
+      setCategoryFilter(parseAllowedValueOrEmpty(value, ACCOUNT_CATEGORY_VALUES));
     } else if (filterId === 'status' && typeof value === 'string') {
-      setStatusFilter(value);
+      setStatusFilter(parseAllowedValue(value, STATUS_FILTER_VALUES) || 'active');
     }
   };
 

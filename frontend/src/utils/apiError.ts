@@ -4,6 +4,69 @@ import type { ApiErrorResponse } from '../types/api';
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
+const formatIssueMessage = (issue: unknown): string | undefined => {
+  if (!isObject(issue) || typeof issue.message !== 'string') {
+    return undefined;
+  }
+
+  const path = typeof issue.path === 'string' ? issue.path : '';
+  if (path && path !== '_') {
+    return `${path}: ${issue.message}`;
+  }
+
+  return issue.message;
+};
+
+const extractValidationMessage = (details: unknown): string | undefined => {
+  if (!isObject(details)) {
+    return undefined;
+  }
+
+  if (Array.isArray(details.issues)) {
+    for (const issue of details.issues) {
+      const formatted = formatIssueMessage(issue);
+      if (formatted) {
+        return formatted;
+      }
+    }
+  }
+
+  if (!isObject(details.validation)) {
+    return undefined;
+  }
+
+  for (const sourceDetails of Object.values(details.validation)) {
+    if (!isObject(sourceDetails)) {
+      continue;
+    }
+
+    for (const [path, messages] of Object.entries(sourceDetails)) {
+      if (!Array.isArray(messages)) {
+        continue;
+      }
+
+      const firstMessage = messages.find((message): message is string => typeof message === 'string');
+      if (firstMessage) {
+        return path && path !== '_' ? `${path}: ${firstMessage}` : firstMessage;
+      }
+    }
+  }
+
+  return undefined;
+};
+
+const normalizeCanonicalMessage = (message: string | undefined, details: unknown): string | undefined => {
+  if (!message) {
+    return undefined;
+  }
+
+  if (/^validation failed$/i.test(message)) {
+    return extractValidationMessage(details) || message;
+  }
+
+  return message;
+};
+
 const parseCanonicalError = (
   errorValue: unknown
 ): { message?: string; code?: string; details?: unknown } => {
@@ -11,10 +74,11 @@ const parseCanonicalError = (
     return {};
   }
 
-  const message =
-    typeof errorValue.message === 'string'
-      ? errorValue.message
-      : undefined;
+  const details = errorValue.details;
+  const message = normalizeCanonicalMessage(
+    typeof errorValue.message === 'string' ? errorValue.message : undefined,
+    details
+  );
   const code =
     typeof errorValue.code === 'string'
       ? errorValue.code
@@ -23,7 +87,7 @@ const parseCanonicalError = (
   return {
     message,
     code,
-    details: errorValue.details,
+    details,
   };
 };
 

@@ -9,7 +9,7 @@ import { authenticate } from '@middleware/domains/auth';
 import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import * as reconciliationController from '../controllers';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
-import { uuidSchema } from '@validations/shared';
+import { isoDateTimeSchema, uuidSchema } from '@validations/shared';
 
 const router = express.Router();
 router.use(authenticate);
@@ -34,10 +34,6 @@ const matchStatusSchema = z.enum([
   'date_mismatch',
 ]);
 const resolutionStatusSchema = z.enum(['resolved', 'closed', 'ignored']);
-const isoDateTimeSchema = z
-  .string()
-  .refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid ISO8601 date');
-
 const reconciliationIdParamsSchema = z.object({
   id: uuidSchema,
 });
@@ -49,32 +45,38 @@ const createReconciliationSchema = z.object({
   notes: z.string().trim().max(5000).optional(),
 });
 
-const reconciliationListQuerySchema = z.object({
-  status: reconciliationStatusSchema.optional(),
-  reconciliation_type: reconciliationTypeSchema.optional(),
-  start_date: isoDateTimeSchema.optional(),
-  end_date: isoDateTimeSchema.optional(),
-  initiated_by: uuidSchema.optional(),
-  page: z.coerce.number().int().min(1).max(10000).optional(),
-  limit: z.coerce.number().int().min(1).max(100).optional(),
-}).strict();
+const reconciliationListQuerySchema = z
+  .object({
+    status: reconciliationStatusSchema.optional(),
+    reconciliation_type: reconciliationTypeSchema.optional(),
+    start_date: isoDateTimeSchema.optional(),
+    end_date: isoDateTimeSchema.optional(),
+    initiated_by: uuidSchema.optional(),
+    page: z.coerce.number().int().min(1).max(10000).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+  })
+  .strict();
 
-const reconciliationItemsQuerySchema = z.object({
-  match_status: matchStatusSchema.optional(),
-  page: z.coerce.number().int().min(1).max(10000).optional(),
-  limit: z.coerce.number().int().min(1).max(100).optional(),
-}).strict();
+const reconciliationItemsQuerySchema = z
+  .object({
+    match_status: matchStatusSchema.optional(),
+    page: z.coerce.number().int().min(1).max(10000).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+  })
+  .strict();
 
-const discrepanciesQuerySchema = z.object({
-  status: discrepancyStatusSchema.optional(),
-  severity: discrepancySeveritySchema.optional(),
-  discrepancy_type: discrepancyTypeSchema.optional(),
-  assigned_to: uuidSchema.optional(),
-  reconciliation_id: uuidSchema.optional(),
-  donation_id: uuidSchema.optional(),
-  page: z.coerce.number().int().min(1).max(10000).optional(),
-  limit: z.coerce.number().int().min(1).max(100).optional(),
-}).strict();
+const discrepanciesQuerySchema = z
+  .object({
+    status: discrepancyStatusSchema.optional(),
+    severity: discrepancySeveritySchema.optional(),
+    discrepancy_type: discrepancyTypeSchema.optional(),
+    assigned_to: uuidSchema.optional(),
+    reconciliation_id: uuidSchema.optional(),
+    donation_id: uuidSchema.optional(),
+    page: z.coerce.number().int().min(1).max(10000).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+  })
+  .strict();
 
 const manualMatchSchema = z.object({
   donation_id: uuidSchema,
@@ -103,21 +105,33 @@ router.get('/dashboard', reconciliationController.getReconciliationDashboard);
  * @desc    Create a new payment reconciliation
  * @access  Private
  */
-router.post('/', validateBody(createReconciliationSchema), reconciliationController.createReconciliation);
+router.post(
+  '/',
+  validateBody(createReconciliationSchema),
+  reconciliationController.createReconciliation
+);
 
 /**
  * @route   GET /api/reconciliation
  * @desc    Get all reconciliations with filtering
  * @access  Private
  */
-router.get('/', validateQuery(reconciliationListQuerySchema), reconciliationController.getReconciliations);
+router.get(
+  '/',
+  validateQuery(reconciliationListQuerySchema),
+  reconciliationController.getReconciliations
+);
 
 /**
  * @route   GET /api/reconciliation/:id
  * @desc    Get reconciliation by ID
  * @access  Private
  */
-router.get('/:id', validateParams(reconciliationIdParamsSchema), reconciliationController.getReconciliationById);
+router.get(
+  '/:id',
+  validateParams(reconciliationIdParamsSchema),
+  reconciliationController.getReconciliationById
+);
 
 /**
  * @route   GET /api/reconciliation/:id/items
@@ -147,7 +161,11 @@ router.get(
  * @desc    Get all discrepancies with filtering
  * @access  Private
  */
-router.get('/discrepancies/all', validateQuery(discrepanciesQuerySchema), reconciliationController.getAllDiscrepancies);
+router.get(
+  '/discrepancies/all',
+  validateQuery(discrepanciesQuerySchema),
+  reconciliationController.getAllDiscrepancies
+);
 
 /**
  * @route   POST /api/reconciliation/match

@@ -26,8 +26,8 @@ export interface VolunteersState {
   filters: {
     search: string;
     skills: string[];
-    availability_status: string;
-    background_check_status: string;
+    availability_status: '' | Volunteer['availability_status'];
+    background_check_status: '' | Volunteer['background_check_status'];
     is_active: boolean;
   };
 }

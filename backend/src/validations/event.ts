@@ -4,7 +4,13 @@
  */
 
 import { z } from 'zod';
-import { emailSchema, phoneSchema, uuidSchema } from './shared';
+import {
+  emailSchema,
+  phoneSchema,
+  uuidSchema,
+  optionalStrictBooleanSchema,
+  strictBooleanSchema,
+} from './shared';
 
 export const eventTypeSchema = z.enum([
   'fundraiser',
@@ -25,7 +31,13 @@ export const reminderTimingTypeSchema = z.enum(['relative', 'absolute']);
 export const checkInMethodSchema = z.enum(['manual', 'qr']);
 
 // Event status enums
-export const eventStatusSchema = z.enum(['planned', 'active', 'completed', 'cancelled', 'postponed']);
+export const eventStatusSchema = z.enum([
+  'planned',
+  'active',
+  'completed',
+  'cancelled',
+  'postponed',
+]);
 
 export type EventStatus = z.infer<typeof eventStatusSchema>;
 
@@ -58,8 +70,8 @@ export const createEventSchema = z
     country: z.string().max(100).optional(),
     capacity: z.coerce.number().int().positive().optional(),
     status: eventStatusSchema.default('planned'),
-    is_public: z.coerce.boolean().default(false),
-    is_recurring: z.coerce.boolean().default(false),
+    is_public: optionalStrictBooleanSchema.default(false),
+    is_recurring: optionalStrictBooleanSchema.default(false),
     recurrence_pattern: recurrencePatternSchema.optional(),
     recurrence_interval: z.coerce.number().int().positive().optional(),
     recurrence_end_date: z.coerce.date().optional(),
@@ -70,7 +82,8 @@ export const createEventSchema = z
     path: ['end_date'],
   })
   .refine(
-    (data) => !data.is_recurring || (Boolean(data.recurrence_pattern) && Boolean(data.recurrence_interval)),
+    (data) =>
+      !data.is_recurring || (Boolean(data.recurrence_pattern) && Boolean(data.recurrence_interval)),
     {
       message: 'Recurring events require recurrence_pattern and recurrence_interval',
       path: ['recurrence_pattern'],
@@ -96,8 +109,8 @@ export const updateEventSchema = z
     country: z.string().max(100).optional(),
     capacity: z.coerce.number().int().positive().optional(),
     status: eventStatusSchema.optional(),
-    is_public: z.coerce.boolean().optional(),
-    is_recurring: z.coerce.boolean().optional(),
+    is_public: optionalStrictBooleanSchema,
+    is_recurring: optionalStrictBooleanSchema,
     recurrence_pattern: recurrencePatternSchema.optional(),
     recurrence_interval: z.coerce.number().int().positive().optional(),
     recurrence_end_date: z.coerce.date().optional(),
@@ -123,7 +136,7 @@ export const eventFilterSchema = z
   .object({
     event_type: eventTypeSchema.optional(),
     status: eventStatusSchema.optional(),
-    is_public: z.coerce.boolean().optional(),
+    is_public: optionalStrictBooleanSchema,
     start_date: z.coerce.date().optional(),
     end_date: z.coerce.date().optional(),
     organizer_id: uuidSchema.optional(),
@@ -146,7 +159,7 @@ export const publicEventsQuerySchema = z
   .object({
     search: z.string().trim().max(120).optional(),
     event_type: eventTypeSchema.optional(),
-    include_past: z.coerce.boolean().optional(),
+    include_past: optionalStrictBooleanSchema,
     limit: z.coerce.number().int().min(1).max(50).optional(),
     offset: z.coerce.number().int().min(0).optional(),
     sort_by: z.enum(['start_date', 'name', 'created_at']).optional(),
@@ -219,7 +232,7 @@ export const listEventRegistrationsQuerySchema = z
   .object({
     status: registrationStatusSchema.optional(),
     registration_status: registrationStatusSchema.optional(),
-    checked_in: z.coerce.boolean().optional(),
+    checked_in: optionalStrictBooleanSchema,
   })
   .strict();
 
@@ -229,7 +242,7 @@ export const listRegistrationsQuerySchema = z
     contact_id: uuidSchema.optional(),
     status: registrationStatusSchema.optional(),
     registration_status: registrationStatusSchema.optional(),
-    checked_in: z.coerce.boolean().optional(),
+    checked_in: optionalStrictBooleanSchema,
   })
   .strict();
 
@@ -251,8 +264,8 @@ export const updateRegistrationSchema = z
 
 export const sendRemindersSchema = z
   .object({
-    sendEmail: z.coerce.boolean().optional(),
-    sendSms: z.coerce.boolean().optional(),
+    sendEmail: optionalStrictBooleanSchema,
+    sendSms: optionalStrictBooleanSchema,
     customMessage: z.string().max(500).optional(),
   })
   .strict();
@@ -262,8 +275,8 @@ export const createAutomationSchema = z
     timingType: reminderTimingTypeSchema,
     relativeMinutesBefore: z.coerce.number().int().min(1).optional(),
     absoluteSendAt: z.string().datetime().optional(),
-    sendEmail: z.coerce.boolean().optional(),
-    sendSms: z.coerce.boolean().optional(),
+    sendEmail: optionalStrictBooleanSchema,
+    sendSms: optionalStrictBooleanSchema,
     customMessage: z.string().max(500).optional(),
     timezone: z.string().trim().min(1).max(64).optional(),
   })
@@ -274,11 +287,11 @@ export const updateAutomationSchema = z
     timingType: reminderTimingTypeSchema.optional(),
     relativeMinutesBefore: z.coerce.number().int().min(1).optional(),
     absoluteSendAt: z.string().datetime().optional(),
-    sendEmail: z.coerce.boolean().optional(),
-    sendSms: z.coerce.boolean().optional(),
+    sendEmail: optionalStrictBooleanSchema,
+    sendSms: optionalStrictBooleanSchema,
     customMessage: z.string().max(500).optional(),
     timezone: z.string().trim().min(1).max(64).optional(),
-    isActive: z.coerce.boolean().optional(),
+    isActive: optionalStrictBooleanSchema,
   })
   .strict();
 
@@ -296,7 +309,7 @@ export const eventCheckInScanSchema = z
 
 export const updateEventCheckInSettingsSchema = z
   .object({
-    public_checkin_enabled: z.coerce.boolean(),
+    public_checkin_enabled: strictBooleanSchema,
   })
   .strict();
 

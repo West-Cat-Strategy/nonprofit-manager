@@ -174,6 +174,89 @@ describe('Contact API Integration Tests', () => {
       expect(payload.phn).toBe('1234567890');
     });
 
+    it('should persist date-only DOB, multiple roles, and seeded child contact methods', async () => {
+      const suffix = unique();
+      const email = `contact-profile-${suffix}@example.com`;
+      const phone = '555-111-2222';
+      const mobilePhone = '555-333-4444';
+
+      const createResponse = await withStaffAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: 'Profile',
+          last_name: 'Consistency',
+          birth_date: '1986-07-09',
+          email,
+          phone,
+          mobile_phone: mobilePhone,
+          roles: ['Staff', 'Board Member'],
+        }))
+        .expect(201);
+
+      const createdPayload = payloadFromResponse<{
+        contact_id: string;
+        birth_date: string | null;
+        email: string | null;
+        phone: string | null;
+        mobile_phone: string | null;
+        roles: string[];
+      }>(createResponse.body);
+      expect(createdPayload.birth_date).toBe('1986-07-09');
+      expect(createdPayload.email).toBe(email);
+      expect(createdPayload.phone).toBe(phone);
+      expect(createdPayload.mobile_phone).toBe(mobilePhone);
+      expect(createdPayload.roles).toEqual(expect.arrayContaining(['Staff', 'Board Member']));
+
+      const detailResponse = await withStaffAuth(request(app)
+        .get(`/api/v2/contacts/${createdPayload.contact_id}`))
+        .expect(200);
+      const detailPayload = payloadFromResponse<{
+        birth_date: string | null;
+        roles: string[];
+      }>(detailResponse.body);
+      expect(detailPayload.birth_date).toBe('1986-07-09');
+      expect(detailPayload.roles).toEqual(expect.arrayContaining(['Staff', 'Board Member']));
+
+      const emailsResponse = await withStaffAuth(request(app)
+        .get(`/api/v2/contacts/${createdPayload.contact_id}/emails`))
+        .expect(200);
+      const emailsPayload = payloadFromResponse<Array<{
+        email_address: string;
+        label: string;
+        is_primary: boolean;
+      }>>(emailsResponse.body);
+      expect(emailsPayload).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            email_address: email,
+            label: 'personal',
+            is_primary: true,
+          }),
+        ])
+      );
+
+      const phonesResponse = await withStaffAuth(request(app)
+        .get(`/api/v2/contacts/${createdPayload.contact_id}/phones`))
+        .expect(200);
+      const phonesPayload = payloadFromResponse<Array<{
+        phone_number: string;
+        label: string;
+      }>>(phonesResponse.body);
+      expect(phonesPayload).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            phone_number: phone,
+            label: 'other',
+          }),
+          expect.objectContaining({
+            phone_number: mobilePhone,
+            label: 'mobile',
+          }),
+        ])
+      );
+    });
+
     it('should reject invalid PHN length', async () => {
       await withStaffAuth(request(app)
         .post('/api/v2/contacts')
@@ -396,6 +479,57 @@ describe('Contact API Integration Tests', () => {
       expect(payload.email).toBe('updated@example.com');
     });
 
+    it('should clear summary contact methods and preserve DOB as a date-only string', async () => {
+      const suffix = unique();
+      const createResponse = await withStaffAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: 'Clear',
+          last_name: 'Summary',
+          birth_date: '1990-04-12',
+          email: `clear-summary-${suffix}@example.com`,
+          phone: '555-444-1111',
+          mobile_phone: '555-444-2222',
+        }))
+        .expect(201);
+
+      const contactId = payloadFromResponse<{ contact_id: string }>(createResponse.body).contact_id;
+
+      const updateResponse = await withStaffAuth(request(app)
+        .put(`/api/v2/contacts/${contactId}`)
+        .send({
+          birth_date: '1990-04-12',
+          email: null,
+          phone: null,
+          mobile_phone: null,
+        }))
+        .expect(200);
+
+      const updatedPayload = payloadFromResponse<{
+        birth_date: string | null;
+        email: string | null;
+        phone: string | null;
+        mobile_phone: string | null;
+      }>(updateResponse.body);
+      expect(updatedPayload.birth_date).toBe('1990-04-12');
+      expect(updatedPayload.email).toBeNull();
+      expect(updatedPayload.phone).toBeNull();
+      expect(updatedPayload.mobile_phone).toBeNull();
+
+      const emailsResponse = await withStaffAuth(request(app)
+        .get(`/api/v2/contacts/${contactId}/emails`))
+        .expect(200);
+      const emailsPayload = payloadFromResponse<Array<unknown>>(emailsResponse.body);
+      expect(emailsPayload).toEqual([]);
+
+      const phonesResponse = await withStaffAuth(request(app)
+        .get(`/api/v2/contacts/${contactId}/phones`))
+        .expect(200);
+      const phonesPayload = payloadFromResponse<Array<unknown>>(phonesResponse.body);
+      expect(phonesPayload).toEqual([]);
+    });
+
     it('should return 404 for non-existent contact', async () => {
       await withStaffAuth(request(app)
         .put('/api/v2/contacts/00000000-0000-0000-0000-000000000000')
@@ -407,6 +541,86 @@ describe('Contact API Integration Tests', () => {
 
     it('should require authentication', async () => {
       await request(app).put('/api/v2/contacts/1').send({ first_name: 'Test' }).expect(401);
+    });
+  });
+
+  describe('contact child method sync', () => {
+    it('should refresh parent summaries when email and phone child records change', async () => {
+      const suffix = unique();
+      const createResponse = await withStaffAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: 'Child',
+          last_name: 'Sync',
+        }))
+        .expect(201);
+
+      const contactId = payloadFromResponse<{ contact_id: string }>(createResponse.body).contact_id;
+
+      const emailCreateResponse = await withStaffAuth(request(app)
+        .post(`/api/v2/contacts/${contactId}/emails`)
+        .send({
+          email_address: `child-sync-${suffix}@example.com`,
+          label: 'work',
+          is_primary: true,
+        }))
+        .expect(201);
+      const createdEmail = emailCreateResponse.body as { id: string; email_address: string };
+
+      const phoneCreateResponse = await withStaffAuth(request(app)
+        .post(`/api/v2/contacts/${contactId}/phones`)
+        .send({
+          phone_number: '555-777-1000',
+          label: 'other',
+          is_primary: true,
+        }))
+        .expect(201);
+      const createdPhone = phoneCreateResponse.body as { id: string; phone_number: string };
+
+      const mobileCreateResponse = await withStaffAuth(request(app)
+        .post(`/api/v2/contacts/${contactId}/phones`)
+        .send({
+          phone_number: '555-777-2000',
+          label: 'mobile',
+        }))
+        .expect(201);
+      const createdMobile = mobileCreateResponse.body as { id: string; phone_number: string };
+
+      const updatedEmailAddress = `child-sync-updated-${suffix}@example.com`;
+      await withStaffAuth(request(app)
+        .put(`/api/v2/contacts/emails/${createdEmail.id}`)
+        .send({
+          email_address: updatedEmailAddress,
+          label: 'personal',
+          is_primary: true,
+        }))
+        .expect(200);
+
+      await withStaffAuth(request(app)
+        .put(`/api/v2/contacts/phones/${createdPhone.id}`)
+        .send({
+          phone_number: '555-777-3000',
+          label: 'other',
+          is_primary: true,
+        }))
+        .expect(200);
+
+      await withStaffAuth(request(app)
+        .delete(`/api/v2/contacts/phones/${createdMobile.id}`))
+        .expect(204);
+
+      const detailResponse = await withStaffAuth(request(app)
+        .get(`/api/v2/contacts/${contactId}`))
+        .expect(200);
+      const detailPayload = payloadFromResponse<{
+        email: string | null;
+        phone: string | null;
+        mobile_phone: string | null;
+      }>(detailResponse.body);
+      expect(detailPayload.email).toBe(updatedEmailAddress);
+      expect(detailPayload.phone).toBe('555-777-3000');
+      expect(detailPayload.mobile_phone).toBeNull();
     });
   });
 

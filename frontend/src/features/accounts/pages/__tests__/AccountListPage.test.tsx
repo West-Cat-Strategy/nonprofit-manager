@@ -83,6 +83,7 @@ describe('AccountList page', () => {
   beforeEach(() => {
     dispatchMock.mockClear();
     importExportModalMock.mockClear();
+    localStorage.clear();
   });
 
   it('renders and wires backend import/export request props', () => {
@@ -104,5 +105,23 @@ describe('AccountList page', () => {
         },
       })
     );
+  });
+
+  it('sanitizes invalid URL filters before dispatching the initial load', () => {
+    renderWithProviders(<AccountList />, {
+      route: '/accounts?type=invalid&category=unknown&status=broken&page=0&limit=-4&sort_order=sideways',
+    });
+
+    expect(dispatchMock).toHaveBeenCalledWith({
+      type: 'accounts/fetch',
+      payload: {
+        page: 1,
+        limit: 20,
+        search: undefined,
+        account_type: undefined,
+        category: undefined,
+        is_active: true,
+      },
+    });
   });
 });

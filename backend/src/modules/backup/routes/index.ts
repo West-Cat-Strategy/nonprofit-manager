@@ -5,6 +5,7 @@
 
 import { Router } from 'express';
 import { z } from 'zod';
+import { optionalStrictBooleanSchema } from '@validations/shared';
 import { exportBackup } from '../controllers';
 import { authenticate, authorize } from '@middleware/domains/auth';
 import { validateBody } from '@middleware/zodValidation';
@@ -13,8 +14,8 @@ const router = Router();
 
 const backupExportSchema = z.object({
   filename: z.string().optional(),
-  include_secrets: z.coerce.boolean().optional(),
-  compress: z.coerce.boolean().optional(),
+  include_secrets: optionalStrictBooleanSchema,
+  compress: optionalStrictBooleanSchema,
 });
 
 router.use(authenticate);

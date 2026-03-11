@@ -32,6 +32,8 @@ interface Credentials {
 
 const EMAIL_SETTINGS_CACHE_KEY = 'admin_email_settings_cache_v1';
 const EMAIL_SETTINGS_CACHE_TTL_MS = 2 * 60 * 1000;
+const STARTTLS_SMTP_PORTS = new Set([25, 587, 2525]);
+const IMPLICIT_TLS_SMTP_PORT = 465;
 
 const inputClass =
   'mt-1 block w-full rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text shadow-sm focus:border-app-border focus:outline-none focus:ring-1 focus:ring-app-accent';
@@ -54,7 +56,7 @@ export default function EmailSettingsSection() {
   // Form state
   const [smtpHost, setSmtpHost] = useState('');
   const [smtpPort, setSmtpPort] = useState(587);
-  const [smtpSecure, setSmtpSecure] = useState(true);
+  const [smtpSecure, setSmtpSecure] = useState(false);
   const [smtpUser, setSmtpUser] = useState('');
   const [smtpPass, setSmtpPass] = useState('');
   const [smtpFromAddress, setSmtpFromAddress] = useState('');
@@ -98,6 +100,13 @@ export default function EmailSettingsSection() {
     ]
   );
   const isDirty = hasHydratedData && buildSnapshot() !== savedSnapshot;
+  const showsStartTlsWarning = STARTTLS_SMTP_PORTS.has(smtpPort) && smtpSecure;
+  const showsImplicitTlsWarning = smtpPort === IMPLICIT_TLS_SMTP_PORT && !smtpSecure;
+  const smtpWarningMessage = showsStartTlsWarning
+    ? `Port ${smtpPort} usually uses STARTTLS, so leave TLS / SSL unchecked and let the server upgrade the connection.`
+    : showsImplicitTlsWarning
+      ? 'Port 465 usually expects an implicit TLS connection, so TLS / SSL should be checked.'
+      : null;
 
   useUnsavedChangesGuard({
     hasUnsavedChanges: isDirty && !saving && !testing,
@@ -353,6 +362,10 @@ export default function EmailSettingsSection() {
               value={smtpPort}
               onChange={(e) => setSmtpPort(Number(e.target.value))}
             />
+            <p className="mt-2 text-xs text-app-text-muted">
+              Ports 587, 25, and 2525 usually use STARTTLS with TLS / SSL unchecked. Port 465
+              usually uses implicit TLS with TLS / SSL checked.
+            </p>
           </div>
           <div>
             <label className={labelClass}>Username</label>
@@ -411,6 +424,11 @@ export default function EmailSettingsSection() {
               Use TLS / SSL
             </label>
           </div>
+          {smtpWarningMessage && (
+            <div className="rounded-md border border-app-accent bg-app-accent-soft px-4 py-3 text-sm text-app-accent-text sm:col-span-2">
+              <strong>Check this SMTP pairing.</strong> {smtpWarningMessage}
+            </div>
+          )}
         </div>
       </div>
 

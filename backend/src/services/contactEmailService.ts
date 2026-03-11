@@ -10,6 +10,7 @@ import type {
   CreateContactEmailDTO,
   UpdateContactEmailDTO,
 } from '@app-types/contact';
+import { syncContactMethodSummaries } from './contactMethodSyncService';
 
 /**
  * Get all email addresses for a contact
@@ -74,6 +75,7 @@ export async function createContactEmail(
       ]
     );
 
+    await syncContactMethodSummaries(contactId);
     logger.info(`Contact email created for contact ${contactId}`);
     return result.rows[0];
   } catch (error: any) {
@@ -131,6 +133,7 @@ export async function updateContactEmail(
       return null;
     }
 
+    await syncContactMethodSummaries(result.rows[0].contact_id as string);
     logger.info(`Contact email updated: ${emailId}`);
     return result.rows[0];
   } catch (error: any) {
@@ -148,7 +151,7 @@ export async function updateContactEmail(
 export async function deleteContactEmail(emailId: string): Promise<boolean> {
   try {
     const result = await pool.query(
-      `DELETE FROM contact_email_addresses WHERE id = $1 RETURNING id`,
+      `DELETE FROM contact_email_addresses WHERE id = $1 RETURNING id, contact_id`,
       [emailId]
     );
 
@@ -156,6 +159,7 @@ export async function deleteContactEmail(emailId: string): Promise<boolean> {
       return false;
     }
 
+    await syncContactMethodSummaries(result.rows[0].contact_id as string);
     logger.info(`Contact email deleted: ${emailId}`);
     return true;
   } catch (error) {

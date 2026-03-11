@@ -51,7 +51,7 @@ export default function ContactInfoSection({ formData, errors, onChange }: Conta
 
         <div>
           <label htmlFor="phone" className="block text-sm font-medium text-app-text-muted">
-            Mobile
+            Phone
           </label>
           <input
             type="text"
@@ -68,7 +68,7 @@ export default function ContactInfoSection({ formData, errors, onChange }: Conta
 
         <div>
           <label htmlFor="mobile_phone" className="block text-sm font-medium text-app-text-muted">
-            Home Phone
+            Mobile Phone
           </label>
           <input
             type="text"
