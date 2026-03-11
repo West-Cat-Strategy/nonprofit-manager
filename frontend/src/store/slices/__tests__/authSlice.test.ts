@@ -1,4 +1,9 @@
-import reducer, { setCredentials, logout, setLoading } from '../../../features/auth/state';
+import reducer, {
+  initializeAuth,
+  setCredentials,
+  logout,
+  setLoading,
+} from '../../../features/auth/state';
 
 const baseState = {
   user: null,
@@ -34,8 +39,65 @@ describe('authSlice', () => {
     );
   });
 
+  it('stores organizationId when credentials include it', () => {
+    reducer(
+      baseState,
+      setCredentials({
+        user: {
+          id: 'user-1',
+          email: 'test@example.com',
+          firstName: 'Test',
+          lastName: 'User',
+          role: 'user',
+        },
+        organizationId: 'org-1',
+      })
+    );
+
+    expect(localStorage.getItem('organizationId')).toBe('org-1');
+  });
+
+  it('preserves an existing organizationId when credentials omit it', () => {
+    localStorage.setItem('organizationId', 'org-existing');
+
+    reducer(
+      baseState,
+      setCredentials({
+        user: {
+          id: 'user-1',
+          email: 'test@example.com',
+          firstName: 'Test',
+          lastName: 'User',
+          role: 'user',
+        },
+      })
+    );
+
+    expect(localStorage.getItem('organizationId')).toBe('org-existing');
+  });
+
+  it('persists organizationId from initializeAuth fulfillment', () => {
+    const nextState = reducer(baseState, {
+      type: initializeAuth.fulfilled.type,
+      payload: {
+        user: {
+          id: 'user-1',
+          email: 'test@example.com',
+          firstName: 'Test',
+          lastName: 'User',
+          role: 'user',
+        },
+        organizationId: 'org-bootstrap',
+      },
+    });
+
+    expect(nextState.isAuthenticated).toBe(true);
+    expect(localStorage.getItem('organizationId')).toBe('org-bootstrap');
+  });
+
   it('clears credentials on logout', () => {
     localStorage.setItem('user', JSON.stringify({ id: 'user-1' }));
+    localStorage.setItem('organizationId', 'org-1');
 
     const nextState = reducer(
       {
@@ -49,6 +111,7 @@ describe('authSlice', () => {
     expect(nextState.user).toBeNull();
     expect(nextState.isAuthenticated).toBe(false);
     expect(localStorage.getItem('user')).toBeNull();
+    expect(localStorage.getItem('organizationId')).toBeNull();
     expect(localStorage.getItem('token')).toBeNull();
   });
 

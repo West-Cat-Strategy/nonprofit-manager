@@ -44,12 +44,6 @@ export default function Login() {
       });
   }, []);
 
-  const persistOrganizationId = (organizationId?: string | null): void => {
-    if (organizationId) {
-      localStorage.setItem('organizationId', organizationId);
-    }
-  };
-
   const resetTotpStep = () => {
     setStep('password');
     setMfaToken(null);
@@ -74,8 +68,7 @@ export default function Login() {
           return;
         }
 
-        persistOrganizationId(response.organizationId);
-        dispatch(setCredentials({ user: response.user }));
+        dispatch(setCredentials({ user: response.user, organizationId: response.organizationId }));
         navigate('/dashboard');
         return;
       }
@@ -91,8 +84,7 @@ export default function Login() {
         mfaToken,
         code: totpCode.trim(),
       });
-      persistOrganizationId(response.organizationId);
-      dispatch(setCredentials({ user: response.user }));
+      dispatch(setCredentials({ user: response.user, organizationId: response.organizationId }));
       navigate('/dashboard');
     } catch (err: unknown) {
       setFromError(err, 'Login failed. Please try again.');
@@ -119,8 +111,7 @@ export default function Login() {
         challengeId,
         credential,
       });
-      persistOrganizationId(response.organizationId);
-      dispatch(setCredentials({ user: response.user }));
+      dispatch(setCredentials({ user: response.user, organizationId: response.organizationId }));
       navigate('/dashboard');
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {

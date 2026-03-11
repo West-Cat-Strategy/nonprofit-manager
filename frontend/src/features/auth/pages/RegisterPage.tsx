@@ -51,8 +51,8 @@ export default function Register() {
         return;
       }
 
-      if ('user' in response && response.user) {
-        dispatch(setCredentials({ user: response.user }));
+      if (response.user) {
+        dispatch(setCredentials({ user: response.user, organizationId: response.organizationId }));
         navigate('/dashboard');
       }
     } catch (err: unknown) {

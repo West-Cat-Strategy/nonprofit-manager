@@ -1,21 +1,24 @@
 import request from 'supertest';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { authenticator } from '@otplib/preset-default';
 import app from '../../index';
 import pool from '../../config/database';
 import { encrypt } from '../../utils/encryption';
+import { getJwtSecret } from '../../config/jwt';
 
 describe('Auth MFA Integration Tests', () => {
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const mfaEmail = `auth-mfa-${unique()}@example.com`;
   const mfaPassword = 'StrongPassword123!';
   const mfaSecret = authenticator.generateSecret();
+  let expectedOrganizationId: string;
 
   beforeAll(async () => {
     authenticator.options = { step: 30, window: 1 };
     const passwordHash = await bcrypt.hash(mfaPassword, 10);
 
-    await pool.query(
+    const userResult = await pool.query<{ id: string }>(
       `INSERT INTO users (
         email,
         password_hash,
@@ -27,9 +30,33 @@ describe('Auth MFA Integration Tests', () => {
         created_at,
         updated_at
       )
-      VALUES ($1, $2, 'Mfa', 'User', 'user', TRUE, $3, NOW(), NOW())`,
+      VALUES ($1, $2, 'Mfa', 'User', 'user', TRUE, $3, NOW(), NOW())
+      RETURNING id`,
       [mfaEmail, passwordHash, encrypt(mfaSecret)]
     );
+
+    const existingOrganization = await pool.query<{ id: string }>(
+      `SELECT id
+       FROM accounts
+       WHERE account_type = 'organization'
+         AND COALESCE(is_active, true) = true
+       ORDER BY created_at ASC
+       LIMIT 1`
+    );
+
+    if (existingOrganization.rows[0]?.id) {
+      expectedOrganizationId = existingOrganization.rows[0].id;
+      return;
+    }
+
+    const createdOrganization = await pool.query<{ id: string }>(
+      `INSERT INTO accounts (account_name, account_type, created_by, modified_by)
+       VALUES ($1, 'organization', $2, $2)
+       RETURNING id`,
+      [`MFA Test Org ${unique()}`, userResult.rows[0].id]
+    );
+
+    expectedOrganizationId = createdOrganization.rows[0].id;
   });
 
   afterAll(async () => {
@@ -51,6 +78,7 @@ describe('Auth MFA Integration Tests', () => {
 
     await safeDelete('DELETE FROM user_roles WHERE user_id = ANY($1)', [userIds]);
     await safeDelete('DELETE FROM audit_logs WHERE user_id = ANY($1)', [userIds]);
+    await safeDelete('DELETE FROM accounts WHERE created_by = ANY($1)', [userIds]);
     await safeDelete('DELETE FROM users WHERE id = ANY($1)', [userIds]);
   });
 
@@ -94,7 +122,12 @@ describe('Auth MFA Integration Tests', () => {
 
     expect(response.body).toHaveProperty('token');
     expect(response.body).toHaveProperty('refreshToken');
+    expect(response.body.organizationId).toBe(expectedOrganizationId);
     expect(response.body.user.email).toBe(mfaEmail);
+    const decoded = jwt.verify(response.body.token, getJwtSecret()) as {
+      organizationId?: string;
+    };
+    expect(decoded.organizationId).toBe(expectedOrganizationId);
     expect(response.headers['set-cookie']).toEqual(
       expect.arrayContaining([
         expect.stringMatching(/^auth_token=/),
