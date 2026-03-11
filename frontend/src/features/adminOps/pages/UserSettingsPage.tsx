@@ -294,12 +294,12 @@ export default function UserSettings() {
 
       try {
         const data = await LoopApiService.getUserProfile();
-        const normalized = buildUserProfile(data, user);
+        const normalized = buildUserProfile(data, user ?? undefined);
         resolvedProfile = normalized.profile;
         resolvedCustomPronouns = normalized.customPronouns;
         resolvedPreviewImage = normalized.previewImage;
       } catch {
-        const normalized = buildUserProfile(null, user);
+        const normalized = buildUserProfile(null, user ?? undefined);
         resolvedProfile = normalized.profile;
         resolvedCustomPronouns = normalized.customPronouns;
         resolvedPreviewImage = normalized.previewImage;
@@ -445,7 +445,7 @@ export default function UserSettings() {
       };
 
       const savedProfile = await LoopApiService.updateUserProfile(payload);
-      const normalized = buildUserProfile(savedProfile, user);
+      const normalized = buildUserProfile(savedProfile, user ?? undefined);
       setProfile(normalized.profile);
       setCustomPronouns(normalized.customPronouns);
       setPreviewImage(normalized.previewImage);

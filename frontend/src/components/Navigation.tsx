@@ -506,7 +506,7 @@ export default function Navigation() {
               >
                 <div id="topnav-admin-actions" role="menu" aria-label="Admin quick actions">
                   <AdminQuickActionsBar
-                    role={user.role}
+                    role={user?.role}
                     compact
                     maxItems={5}
                     onActionClick={() => setAdminMenuOpen(false)}
@@ -674,7 +674,7 @@ export default function Navigation() {
                     </Link>
                     <div className="border-t border-app-border px-2 py-2">
                       <AdminQuickActionsBar
-                        role={user.role}
+                        role={user?.role}
                         compact
                         maxItems={4}
                         onActionClick={() => setUserMenuOpen(false)}
