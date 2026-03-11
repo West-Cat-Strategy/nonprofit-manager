@@ -1,4 +1,13 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logoutAsync } from '../features/auth/state';
@@ -6,12 +15,20 @@ import { useNavigationPreferences } from '../hooks/useNavigationPreferences';
 import { useBranding } from '../contexts/BrandingContext';
 import { useTheme } from '../contexts/ThemeContext';
 import Avatar from './Avatar';
-import { getSurfaceAreaNavigation } from '../routes/routeCatalog';
+import {
+  getRouteCatalogEntryById,
+  matchRouteCatalogEntry,
+  normalizeRouteLocation,
+} from '../routes/routeCatalog';
 import { getStartupStaffUtilityEntries } from '../routes/startupRouteCatalog';
 import type { ThemeId } from '../theme/themeRegistry';
 import NavPopover from './navigation/NavPopover';
+import MobileNavigationDrawer, {
+  type NavigationDrawerLink,
+} from './navigation/MobileNavigationDrawer';
 import AdminQuickActionsBar from '../features/adminOps/components/AdminQuickActionsBar';
 import { getAdminSettingsPath } from '../features/adminOps/adminRoutePaths';
+import { classNames } from './ui/classNames';
 
 const NavigationQuickLookupDialog = lazy(() => import('./navigation/NavigationQuickLookupDialog'));
 
@@ -26,32 +43,67 @@ export default function Navigation() {
   const { user } = useAppSelector((state) => state.auth);
   const { branding } = useBranding();
   const { theme, setTheme, isDarkMode, toggleDarkMode, availableThemes } = useTheme();
-  const {
-    favoriteItems,
-    enabledRouteIds,
-  } = useNavigationPreferences();
+  const { favoriteItems, primaryItems, secondaryItems } = useNavigationPreferences();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
-  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [utilitiesMenuOpen, setUtilitiesMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const themeMenuRef = useRef<HTMLDivElement>(null);
   const adminMenuRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+  const utilitiesMenuRef = useRef<HTMLDivElement>(null);
 
   const currentLocation = `${location.pathname}${location.search}`;
-  const areaNavigation = getSurfaceAreaNavigation('staff', currentLocation, {
-    flags: routeFlags,
-    enabledRouteIds,
-  });
-  const utilityNavLinks = getStartupStaffUtilityEntries(routeFlags).map((entry) => ({
-    path: entry.href || entry.path,
-    label: entry.staffNav?.label || entry.title,
-    icon: entry.staffNav?.icon || '•',
-  }));
+  const normalizedCurrentLocation = useMemo(
+    () => normalizeRouteLocation(currentLocation),
+    [currentLocation]
+  );
+  const activeRouteIds = useMemo(() => {
+    const ids = new Set<string>();
+    let currentEntry = matchRouteCatalogEntry(currentLocation);
+
+    while (currentEntry) {
+      ids.add(currentEntry.id);
+      currentEntry = currentEntry.parentId ? getRouteCatalogEntryById(currentEntry.parentId) : null;
+    }
+
+    return ids;
+  }, [currentLocation]);
+  const utilityEntries = useMemo<NavigationDrawerLink[]>(
+    () =>
+      getStartupStaffUtilityEntries(routeFlags).map((entry) => ({
+        id: entry.id,
+        path: entry.href || entry.path,
+        label: entry.staffNav?.label || entry.title,
+        shortLabel: entry.staffNav?.shortLabel || entry.staffNav?.label || entry.title,
+        icon: entry.staffNav?.icon || '•',
+        ariaLabel: entry.staffNav?.ariaLabel || entry.staffNav?.label || entry.title,
+      })),
+    []
+  );
+  const alertsLink = utilityEntries.find((entry) => entry.path === '/alerts') ?? {
+    id: 'alerts-overview',
+    path: '/alerts',
+    label: 'Alerts',
+    shortLabel: 'Alerts',
+    icon: '🚨',
+    ariaLabel: 'Alerts',
+  };
+  const utilityNavLinks = utilityEntries.filter((entry) => entry.path !== alertsLink.path);
   const adminSettingsPath = getAdminSettingsPath('dashboard');
+  const hasActiveSecondaryItem = secondaryItems.some(
+    (item) =>
+      activeRouteIds.has(item.id) || normalizeRouteLocation(item.path) === normalizedCurrentLocation
+  );
+  const hasActiveUtilityItem = utilityNavLinks.some(
+    (item) =>
+      activeRouteIds.has(item.id) || normalizeRouteLocation(item.path) === normalizedCurrentLocation
+  );
 
   const themeLabels: Record<ThemeId, string> = {
     neobrutalist: 'NB',
@@ -67,10 +119,14 @@ export default function Navigation() {
     setUserMenuOpen(false);
     setThemeMenuOpen(false);
     setAdminMenuOpen(false);
+    setMoreMenuOpen(false);
+    setUtilitiesMenuOpen(false);
   }, []);
 
   const focusFirstItem = (ref: RefObject<HTMLDivElement | null>) => {
-    const item = ref.current?.querySelector<HTMLElement>('a,button,input,[tabindex]:not([tabindex="-1"])');
+    const item = ref.current?.querySelector<HTMLElement>(
+      'a,button,input,[tabindex]:not([tabindex="-1"])'
+    );
     item?.focus();
   };
 
@@ -83,6 +139,17 @@ export default function Navigation() {
   const handleLogout = () => {
     dispatch(logoutAsync()).finally(() => navigate('/login'));
   };
+
+  const isNavItemActive = useCallback(
+    (id: string, path: string) =>
+      activeRouteIds.has(id) || normalizeRouteLocation(path) === normalizedCurrentLocation,
+    [activeRouteIds, normalizedCurrentLocation]
+  );
+
+  const desktopActionButtonClass =
+    'hidden items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-3 py-2 text-sm font-medium text-app-text-muted transition hover:bg-app-hover hover:text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 lg:inline-flex';
+  const desktopMenuButtonClass =
+    'inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-3 py-2 text-sm font-medium text-app-text-muted transition hover:bg-app-hover hover:text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2';
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -131,21 +198,42 @@ export default function Navigation() {
   }, [adminMenuOpen]);
 
   useEffect(() => {
+    if (moreMenuOpen) {
+      focusFirstItem(moreMenuRef);
+    }
+  }, [moreMenuOpen]);
+
+  useEffect(() => {
+    if (utilitiesMenuOpen) {
+      focusFirstItem(utilitiesMenuRef);
+    }
+  }, [utilitiesMenuOpen]);
+
+  useEffect(() => {
     if (!searchOpen) {
       searchButtonRef.current?.focus();
     }
   }, [searchOpen]);
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-app-border/70 bg-app-surface-elevated/95 backdrop-blur">
+    <nav
+      aria-label="Global navigation"
+      className="sticky top-0 z-50 border-b border-app-border/70 bg-app-surface-elevated/95 backdrop-blur"
+    >
       <div className="mx-auto flex h-16 max-w-[1920px] items-center gap-3 px-3 sm:px-4 lg:px-6">
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 shrink-0 items-center gap-3">
           <Link to="/dashboard" className="flex min-w-0 items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[var(--ui-radius-md)] bg-app-accent text-[var(--app-accent-foreground)] shadow-sm">
               {branding.appIcon ? (
-                <img src={branding.appIcon} alt={branding.appName} className="h-full w-full object-cover" />
+                <img
+                  src={branding.appIcon}
+                  alt={branding.appName}
+                  className="h-full w-full object-cover"
+                />
               ) : (
-                <span className="text-lg font-bold">{(branding.appName || 'N')[0]?.toUpperCase()}</span>
+                <span className="text-lg font-bold">
+                  {(branding.appName || 'N')[0]?.toUpperCase()}
+                </span>
               )}
             </div>
             <div className="min-w-0">
@@ -158,33 +246,120 @@ export default function Navigation() {
         </div>
 
         <div className="hidden min-w-0 flex-1 items-center justify-center lg:flex">
-          <div className="flex flex-wrap items-center gap-1 rounded-full border border-app-border-muted bg-app-surface px-2 py-1 shadow-sm">
-            {areaNavigation.map((item) => (
-              <Link
-                key={item.area}
-                to={item.href}
-                className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition ${
-                  item.isActive
-                    ? 'bg-app-accent-soft text-app-accent-text'
-                    : 'text-app-text-muted hover:bg-app-hover hover:text-app-text'
-                }`}
-              >
-                {item.icon ? <span aria-hidden="true">{item.icon}</span> : null}
-                <span>{item.label}</span>
-              </Link>
-            ))}
+          <div className="flex min-w-0 max-w-full items-center gap-1 rounded-full border border-app-border-muted bg-app-surface px-1.5 py-1 shadow-sm">
+            <div
+              className="flex min-w-0 items-center gap-1 overflow-hidden"
+              role="navigation"
+              aria-label="Primary navigation"
+            >
+              {primaryItems.map((item) => (
+                <Link
+                  key={item.id}
+                  to={item.path}
+                  aria-current={isNavItemActive(item.id, item.path) ? 'page' : undefined}
+                  className={classNames(
+                    'inline-flex min-w-0 max-w-[9rem] items-center rounded-full px-3 py-2 text-sm font-medium transition xl:max-w-[11rem]',
+                    isNavItemActive(item.id, item.path)
+                      ? 'bg-app-accent-soft text-app-accent-text'
+                      : 'text-app-text-muted hover:bg-app-hover hover:text-app-text'
+                  )}
+                >
+                  <span className="truncate">{item.shortLabel ?? item.name}</span>
+                </Link>
+              ))}
+            </div>
+
+            {secondaryItems.length > 0 ? (
+              <div className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMoreMenuOpen((open) => !open);
+                    setUtilitiesMenuOpen(false);
+                    setUserMenuOpen(false);
+                    setThemeMenuOpen(false);
+                    setAdminMenuOpen(false);
+                  }}
+                  className={classNames(
+                    'inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition',
+                    hasActiveSecondaryItem
+                      ? 'bg-app-accent-soft text-app-accent-text'
+                      : 'text-app-text-muted hover:bg-app-hover hover:text-app-text'
+                  )}
+                  aria-label="More navigation"
+                  aria-expanded={moreMenuOpen}
+                  aria-haspopup="menu"
+                  aria-controls="topnav-more-menu"
+                >
+                  <span>More</span>
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+                <NavPopover
+                  open={moreMenuOpen}
+                  onClose={() => setMoreMenuOpen(false)}
+                  panelClassName="w-72 p-2"
+                  panelRef={moreMenuRef}
+                >
+                  <div id="topnav-more-menu" role="menu" aria-label="More navigation">
+                    <p className="px-3 pb-2 pt-1 text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+                      More modules
+                    </p>
+                    <div className="grid gap-1">
+                      {secondaryItems.map((item) => (
+                        <Link
+                          key={item.id}
+                          to={item.path}
+                          role="menuitem"
+                          onClick={() => setMoreMenuOpen(false)}
+                          className={classNames(
+                            'flex items-center gap-3 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm transition',
+                            isNavItemActive(item.id, item.path)
+                              ? 'bg-app-accent-soft text-app-accent-text'
+                              : 'text-app-text hover:bg-app-hover'
+                          )}
+                        >
+                          <span aria-hidden="true" className="text-base">
+                            {item.icon}
+                          </span>
+                          <span className="truncate font-medium">{item.name}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </NavPopover>
+              </div>
+            ) : null}
           </div>
         </div>
 
-        <div className="ml-auto flex items-center gap-2 sm:gap-3">
+        <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
           <button
             type="button"
             ref={searchButtonRef}
-            className="hidden items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-3 py-2 text-sm font-medium text-app-text-muted transition hover:bg-app-hover hover:text-app-text lg:inline-flex"
+            className={desktopActionButtonClass}
             onClick={() => setSearchOpen(true)}
             aria-label="Search"
           >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -192,28 +367,99 @@ export default function Navigation() {
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
-            <span className="hidden xl:inline">Search workspace</span>
+            <span className="hidden xl:inline">Search</span>
           </button>
 
           <Link
-            to="/alerts"
-            className="hidden items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-3 py-2 text-sm font-medium text-app-text-muted transition hover:bg-app-hover hover:text-app-text lg:inline-flex"
-            aria-label="Notifications"
+            to={alertsLink.path}
+            aria-label={alertsLink.label}
+            aria-current={isNavItemActive(alertsLink.id, alertsLink.path) ? 'page' : undefined}
+            className={classNames(
+              desktopActionButtonClass,
+              isNavItemActive(alertsLink.id, alertsLink.path)
+                ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
+                : ''
+            )}
           >
-            <span aria-hidden="true">🔔</span>
-            <span className="hidden xl:inline">Notifications</span>
+            <span aria-hidden="true">{alertsLink.icon}</span>
+            <span className="hidden xl:inline">{alertsLink.shortLabel}</span>
           </Link>
 
-          {utilityNavLinks.map((link) => (
-            <Link
-              key={link.path}
-              to={link.path}
-              className="hidden items-center gap-2 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm font-medium text-app-text-muted transition hover:bg-app-hover hover:text-app-text xl:inline-flex"
-            >
-              <span aria-hidden="true">{link.icon}</span>
-              <span>{link.label}</span>
-            </Link>
-          ))}
+          {utilityNavLinks.length > 0 ? (
+            <div className="relative hidden lg:block">
+              <button
+                type="button"
+                onClick={() => {
+                  setUtilitiesMenuOpen((open) => !open);
+                  setMoreMenuOpen(false);
+                  setUserMenuOpen(false);
+                  setThemeMenuOpen(false);
+                  setAdminMenuOpen(false);
+                }}
+                className={classNames(
+                  desktopMenuButtonClass,
+                  hasActiveUtilityItem
+                    ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
+                    : ''
+                )}
+                aria-label="Utilities"
+                aria-expanded={utilitiesMenuOpen}
+                aria-haspopup="menu"
+                aria-controls="topnav-utilities-menu"
+              >
+                <span aria-hidden="true">🧰</span>
+                <span className="hidden xl:inline">Utilities</span>
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+              <NavPopover
+                open={utilitiesMenuOpen}
+                onClose={() => setUtilitiesMenuOpen(false)}
+                align="right"
+                panelClassName="w-72 p-2"
+                panelRef={utilitiesMenuRef}
+              >
+                <div id="topnav-utilities-menu" role="menu" aria-label="Utilities menu">
+                  <p className="px-3 pb-2 pt-1 text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+                    Workspace utilities
+                  </p>
+                  <div className="grid gap-1">
+                    {utilityNavLinks.map((link) => (
+                      <Link
+                        key={link.id}
+                        to={link.path}
+                        role="menuitem"
+                        onClick={() => setUtilitiesMenuOpen(false)}
+                        className={classNames(
+                          'flex items-center gap-3 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm transition',
+                          isNavItemActive(link.id, link.path)
+                            ? 'bg-app-accent-soft text-app-accent-text'
+                            : 'text-app-text hover:bg-app-hover'
+                        )}
+                      >
+                        <span aria-hidden="true" className="text-base">
+                          {link.icon}
+                        </span>
+                        <span className="truncate font-medium">{link.label}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </NavPopover>
+            </div>
+          ) : null}
 
           {user?.role === 'admin' ? (
             <div className="relative hidden lg:block">
@@ -221,18 +467,34 @@ export default function Navigation() {
                 type="button"
                 onClick={() => {
                   setAdminMenuOpen((open) => !open);
+                  setMoreMenuOpen(false);
+                  setUtilitiesMenuOpen(false);
                   setUserMenuOpen(false);
                   setThemeMenuOpen(false);
                 }}
-                className="inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-3 py-2 text-sm font-medium text-app-text-muted transition hover:bg-app-hover hover:text-app-text"
+                className={desktopMenuButtonClass}
                 aria-label="Admin quick actions"
                 aria-expanded={adminMenuOpen}
                 aria-haspopup="menu"
                 aria-controls="topnav-admin-actions"
               >
-                <span>Admin</span>
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <span className="hidden xl:inline">Admin</span>
+                <span className="xl:hidden" aria-hidden="true">
+                  ⚙️
+                </span>
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </button>
               <NavPopover
@@ -259,11 +521,13 @@ export default function Navigation() {
               type="button"
               onClick={() => {
                 setThemeMenuOpen((open) => !open);
+                setMoreMenuOpen(false);
+                setUtilitiesMenuOpen(false);
                 setUserMenuOpen(false);
                 setAdminMenuOpen(false);
               }}
               onDoubleClick={handleQuickThemeCycle}
-              className="inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-3 py-2 text-sm font-medium text-app-text-muted transition hover:bg-app-hover hover:text-app-text"
+              className={desktopMenuButtonClass}
               aria-label="Theme settings"
               aria-expanded={themeMenuOpen}
               aria-haspopup="menu"
@@ -283,7 +547,9 @@ export default function Navigation() {
             >
               <div id="topnav-theme-menu" role="menu" aria-label="Theme settings">
                 <div className="mb-1 border-b border-app-border-muted px-3 pb-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-app-text-muted">Theme</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-app-text-muted">
+                    Theme
+                  </p>
                 </div>
                 {availableThemes.map((availableTheme) => (
                   <button
@@ -300,9 +566,13 @@ export default function Navigation() {
                         : 'text-app-text hover:bg-app-hover'
                     }`}
                   >
-                    <span className="text-[11px] font-semibold tracking-wide">{themeLabels[availableTheme]}</span>
+                    <span className="text-[11px] font-semibold tracking-wide">
+                      {themeLabels[availableTheme]}
+                    </span>
                     <span className="capitalize">{availableTheme.replace(/-/g, ' ')}</span>
-                    {theme === availableTheme ? <span className="ml-auto text-app-accent">✓</span> : null}
+                    {theme === availableTheme ? (
+                      <span className="ml-auto text-app-accent">✓</span>
+                    ) : null}
                   </button>
                 ))}
                 <div className="mt-1 border-t border-app-border-muted px-3 pt-2">
@@ -325,10 +595,12 @@ export default function Navigation() {
               type="button"
               onClick={() => {
                 setUserMenuOpen((open) => !open);
+                setMoreMenuOpen(false);
+                setUtilitiesMenuOpen(false);
                 setThemeMenuOpen(false);
                 setAdminMenuOpen(false);
               }}
-              className="inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] px-2 py-1.5 text-sm font-medium text-app-text-muted transition hover:bg-app-hover hover:text-app-text"
+              className="inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] px-2 py-1.5 text-sm font-medium text-app-text-muted transition hover:bg-app-hover hover:text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
               aria-label="User menu"
               aria-expanded={userMenuOpen}
               aria-haspopup="menu"
@@ -340,11 +612,22 @@ export default function Navigation() {
                 lastName={user?.lastName}
                 size="sm"
               />
-              <span className="hidden max-w-[150px] truncate xl:block">
+              <span className="hidden max-w-[140px] truncate xl:block">
                 {user?.firstName} {user?.lastName}
               </span>
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
 
@@ -421,11 +704,27 @@ export default function Navigation() {
             aria-label="Main menu"
             aria-expanded={mobileMenuOpen}
           >
-            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <svg
+              className="h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
               {mobileMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               )}
             </svg>
           </button>
@@ -440,158 +739,28 @@ export default function Navigation() {
             aria-hidden="true"
           />
 
-          <div
-            ref={mobileMenuRef}
-            className="fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col overflow-y-auto bg-app-surface shadow-xl lg:hidden"
-          >
-            <div className="flex items-center justify-between border-b border-app-border px-4 py-4">
-              <div>
-                <p className="text-sm font-semibold text-app-text-heading">{branding.appName || 'Nonprofit Manager'}</p>
-                <p className="text-xs text-app-text-muted">Staff workspace</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setMobileMenuOpen(false)}
-                className="rounded-[var(--ui-radius-sm)] p-2 text-app-text-muted transition hover:bg-app-hover hover:text-app-text"
-                aria-label="Close menu"
-              >
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="space-y-6 px-4 py-5">
-              <section>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">Areas</p>
-                <div className="mt-3 space-y-2">
-                  {areaNavigation.map((item) => (
-                    <Link
-                      key={item.area}
-                      to={item.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-3 rounded-[var(--ui-radius-md)] border px-3 py-3 text-sm font-medium transition ${
-                        item.isActive
-                          ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
-                          : 'border-app-border-muted bg-app-surface text-app-text hover:bg-app-hover'
-                      }`}
-                    >
-                      {item.icon ? <span aria-hidden="true">{item.icon}</span> : null}
-                      <span>{item.label}</span>
-                    </Link>
-                  ))}
-                </div>
-              </section>
-
-              {favoriteItems.length > 0 ? (
-                <section>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">Favorites</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {favoriteItems.map((item) => (
-                      <Link
-                        key={item.id}
-                        to={item.path}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="inline-flex items-center gap-2 rounded-full border border-app-border bg-app-surface px-3 py-2 text-sm font-medium text-app-text transition hover:bg-app-hover"
-                      >
-                        <span aria-hidden="true">{item.icon}</span>
-                        <span>{item.shortLabel ?? item.name}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
-
-              <section>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">Utilities</p>
-                <div className="mt-3 space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      setSearchOpen(true);
-                    }}
-                    className="flex w-full items-center gap-3 rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface px-3 py-3 text-left text-sm font-medium text-app-text transition hover:bg-app-hover"
-                  >
-                    <span aria-hidden="true">🔎</span>
-                    <span>Search workspace</span>
-                  </button>
-                  <Link
-                    to="/alerts"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface px-3 py-3 text-sm font-medium text-app-text transition hover:bg-app-hover"
-                  >
-                    <span aria-hidden="true">🔔</span>
-                    <span>Notifications</span>
-                  </Link>
-                  {utilityNavLinks.map((link) => (
-                    <Link
-                      key={link.path}
-                      to={link.path}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-3 rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface px-3 py-3 text-sm font-medium text-app-text transition hover:bg-app-hover"
-                    >
-                      <span aria-hidden="true">{link.icon}</span>
-                      <span>{link.label}</span>
-                    </Link>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={toggleDarkMode}
-                    className="flex w-full items-center gap-3 rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface px-3 py-3 text-left text-sm font-medium text-app-text transition hover:bg-app-hover"
-                  >
-                    <span>{isDarkMode ? '☀️' : '🌙'}</span>
-                    <span>{isDarkMode ? 'Switch to Light' : 'Switch to Dark'}</span>
-                  </button>
-                </div>
-              </section>
-            </div>
-
-            <div className="mt-auto border-t border-app-border px-4 py-4">
-              <div className="flex items-center gap-3 rounded-[var(--ui-radius-md)] bg-app-surface-muted px-3 py-3">
-                <Avatar
-                  src={user?.profilePicture}
-                  firstName={user?.firstName}
-                  lastName={user?.lastName}
-                  size="md"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-app-text">
-                    {user?.firstName} {user?.lastName}
-                  </p>
-                  <p className="truncate text-xs text-app-text-muted">{user?.email}</p>
-                </div>
-              </div>
-              <div className="mt-3 grid gap-2">
-                <Link
-                  to="/settings/user"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover"
-                >
-                  User Settings
-                </Link>
-                {user?.role === 'admin' ? (
-                  <Link
-                    to={adminSettingsPath}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover"
-                  >
-                    Admin Settings
-                  </Link>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    handleLogout();
-                  }}
-                  className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-accent bg-app-accent px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] transition hover:bg-app-accent-hover"
-                >
-                  Logout
-                </button>
-              </div>
-            </div>
-          </div>
+          <MobileNavigationDrawer
+            adminSettingsPath={adminSettingsPath}
+            alertsLink={alertsLink}
+            appName={branding.appName || 'Nonprofit Manager'}
+            favoriteItems={favoriteItems}
+            isDarkMode={isDarkMode}
+            isNavItemActive={isNavItemActive}
+            onClose={() => setMobileMenuOpen(false)}
+            onLogout={() => {
+              setMobileMenuOpen(false);
+              handleLogout();
+            }}
+            onOpenSearch={() => {
+              setMobileMenuOpen(false);
+              setSearchOpen(true);
+            }}
+            onToggleDarkMode={toggleDarkMode}
+            primaryItems={primaryItems}
+            secondaryItems={secondaryItems}
+            user={user}
+            utilityNavLinks={utilityNavLinks}
+          />
         </>
       ) : null}
 

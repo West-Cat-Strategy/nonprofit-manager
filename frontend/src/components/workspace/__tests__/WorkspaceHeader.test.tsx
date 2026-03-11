@@ -49,6 +49,7 @@ describe('WorkspaceHeader', () => {
     renderWithProviders(<WorkspaceHeader />, { route: '/dashboard' });
 
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByText(/pinned shortcuts/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /create intake/i })).toHaveAttribute(
       'href',
       '/intake/new'

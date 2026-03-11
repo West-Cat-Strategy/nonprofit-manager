@@ -150,7 +150,7 @@ describe('Navigation', () => {
     mockTogglePinned.mockClear();
   });
 
-  it('renders area navigation and the desktop search trigger', () => {
+  it('renders preference-driven primary navigation and the desktop search trigger', async () => {
     renderWithProviders(<Navigation />, {
       route: '/dashboard',
       preloadedState: {
@@ -170,7 +170,12 @@ describe('Navigation', () => {
     });
 
     expect(screen.getByRole('link', { name: /^home$/i })).toHaveAttribute('href', '/dashboard');
-    expect(screen.getByRole('link', { name: /^people$/i })).toHaveAttribute('href', '/contacts');
+    expect(screen.queryByRole('link', { name: /^people$/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /more navigation/i }));
+    expect(await screen.findByRole('menuitem', { name: /^people$/i })).toHaveAttribute(
+      'href',
+      '/contacts'
+    );
     expect(screen.getByRole('button', { name: /^search$/i })).toBeInTheDocument();
   });
 
@@ -305,7 +310,7 @@ describe('Navigation', () => {
     });
   });
 
-  it('renders catalog-driven utility links including alerts', async () => {
+  it('keeps alerts direct and groups utility links under the utilities menu', async () => {
     renderWithProviders(<Navigation />, {
       route: '/dashboard',
       preloadedState: {
@@ -324,7 +329,20 @@ describe('Navigation', () => {
       },
     });
 
-    const alertLinks = await screen.findAllByRole('link', { name: /alerts/i });
-    expect(alertLinks.some((link) => link.getAttribute('href') === '/alerts')).toBe(true);
+    expect(await screen.findByRole('link', { name: /^alerts$/i })).toHaveAttribute(
+      'href',
+      '/alerts'
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /^utilities$/i }));
+
+    expect(await screen.findByRole('menuitem', { name: /^analytics$/i })).toHaveAttribute(
+      'href',
+      '/analytics'
+    );
+    expect(screen.getByRole('menuitem', { name: /^reports$/i })).toHaveAttribute(
+      'href',
+      '/reports/builder'
+    );
   });
 });

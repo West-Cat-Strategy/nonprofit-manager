@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 /* LOOP Design System - Theme Engine */
@@ -6,36 +6,36 @@
   --font-display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;
   --font-body: 'Space Grotesk', 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
   /* GLOBAL DEFAULTS (NEO-BRUTALIST) */
-  --loop-yellow: #FFD700;
-  --loop-green: #90EE90;
-  --loop-purple: #D8BFD8;
-  --loop-pink: #FFB6C1;
-  --loop-cyan: #4DD0E1;
-  --loop-blue: #87CEEB;
+  --loop-yellow: #ffd700;
+  --loop-green: #90ee90;
+  --loop-purple: #d8bfd8;
+  --loop-pink: #ffb6c1;
+  --loop-cyan: #4dd0e1;
+  --loop-blue: #87ceeb;
 
-  --app-bg: #F9FAFB;
+  --app-bg: #f9fafb;
   /* Gray 50 equivalent */
-  --app-surface: #FFFFFF;
-  --app-surface-muted: #F3F4F6;
+  --app-surface: #ffffff;
+  --app-surface-muted: #f3f4f6;
   --app-text: #000000;
-  --app-text-muted: #4B5563;
-  --app-text-subtle: #4B5563;
+  --app-text-muted: #4b5563;
+  --app-text-subtle: #4b5563;
   --app-border: #000000;
-  --app-accent: #2563EB;
-  --app-accent-hover: #1D4ED8;
-  --app-accent-foreground: #FFFFFF;
-  --app-accent-text: #2563EB;
-  --app-accent-text-hover: #1D4ED8;
-  --app-accent-soft: #DBEAFE;
-  --app-accent-soft-hover: #BFDBFE;
+  --app-accent: #2563eb;
+  --app-accent-hover: #1d4ed8;
+  --app-accent-foreground: #ffffff;
+  --app-accent-text: #2563eb;
+  --app-accent-text-hover: #1d4ed8;
+  --app-accent-soft: #dbeafe;
+  --app-accent-soft-hover: #bfdbfe;
 
-  --app-hover: #F3F4F6;
-  --app-input-bg: #FFFFFF;
+  --app-hover: #f3f4f6;
+  --app-input-bg: #ffffff;
   --app-input-border: #000000;
   --app-text-heading: #000000;
   --app-text-label: #374151;
-  --app-border-muted: #D1D5DB;
-  --app-surface-elevated: #FFFFFF;
+  --app-border-muted: #d1d5db;
+  --app-surface-elevated: #ffffff;
 
   --shadow-color: #000000;
   --border-brutal: 2px solid #000000;
@@ -50,7 +50,11 @@ body.theme-transitioning,
 body.theme-transitioning *,
 body.theme-transitioning *::before,
 body.theme-transitioning *::after {
-  transition: background-color 300ms ease, color 200ms ease, border-color 250ms ease, box-shadow 200ms ease !important;
+  transition:
+    background-color 300ms ease,
+    color 200ms ease,
+    border-color 250ms ease,
+    box-shadow 200ms ease !important;
 }
 
 .font-display {
@@ -74,43 +78,43 @@ body.theme-transitioning *::after {
 }
 
 /* GLOBAL DARK MODE (DEFAULT FALLBACK) */
-body.dark:not([class*="theme-"]) {
+body.dark:not([class*='theme-']) {
   /* Default Dark Mode (High Contrast Neon/Black) */
   --app-bg: #121212;
   --app-surface: #000000;
-  --app-surface-muted: #1F2937;
-  --app-text: #FFFFFF;
-  --app-text-muted: #D1D5DB;
-  --app-text-subtle: #9CA3AF;
-  --app-border: #FFFFFF;
-  --app-accent: #2563EB;
-  --app-accent-hover: #1D4ED8;
-  --app-accent-foreground: #FFFFFF;
-  --app-accent-text: #60A5FA;
-  --app-accent-text-hover: #93C5FD;
+  --app-surface-muted: #1f2937;
+  --app-text: #ffffff;
+  --app-text-muted: #d1d5db;
+  --app-text-subtle: #9ca3af;
+  --app-border: #ffffff;
+  --app-accent: #2563eb;
+  --app-accent-hover: #1d4ed8;
+  --app-accent-foreground: #ffffff;
+  --app-accent-text: #60a5fa;
+  --app-accent-text-hover: #93c5fd;
   --app-accent-soft: rgba(37, 99, 235, 0.2);
   --app-accent-soft-hover: rgba(37, 99, 235, 0.35);
 
-  --app-hover: #1F2937;
+  --app-hover: #1f2937;
   --app-input-bg: #1a1a1a;
-  --app-input-border: #FFFFFF;
-  --app-text-heading: #FFFFFF;
-  --app-text-label: #D1D5DB;
+  --app-input-border: #ffffff;
+  --app-text-heading: #ffffff;
+  --app-text-label: #d1d5db;
   --app-border-muted: #374151;
-  --app-surface-elevated: #1F2937;
+  --app-surface-elevated: #1f2937;
 
-  --shadow-color: #FFFFFF;
+  --shadow-color: #ffffff;
   /* Inverted White Shadows for Brutalism */
-  --border-brutal: 2px solid #FFFFFF;
-  --focus-ring: #FFFFFF;
+  --border-brutal: 2px solid #ffffff;
+  --focus-ring: #ffffff;
 
   /* Keep the Loop Colors POPPING against black */
-  --loop-yellow: #FFD700;
-  --loop-green: #90EE90;
-  --loop-purple: #D8BFD8;
-  --loop-pink: #FFB6C1;
-  --loop-cyan: #4DD0E1;
-  --loop-blue: #87CEEB;
+  --loop-yellow: #ffd700;
+  --loop-green: #90ee90;
+  --loop-purple: #d8bfd8;
+  --loop-pink: #ffb6c1;
+  --loop-cyan: #4dd0e1;
+  --loop-blue: #87ceeb;
 }
 
 /* ==========================================================================
@@ -119,45 +123,45 @@ body.dark:not([class*="theme-"]) {
    ========================================================================== */
 body.theme-sea-breeze {
   /* LIGHT MODE - Applies LOOP Brand Colors */
-  --loop-yellow: #B2DFDB;
+  --loop-yellow: #b2dfdb;
   /* Teal 100 - Sidebar header */
-  --loop-green: #90EE90;
+  --loop-green: #90ee90;
   /* LOOP Green - Linking Module */
-  --loop-blue: #87CEEB;
+  --loop-blue: #87ceeb;
   /* LOOP Blue - Operations Module */
-  --loop-purple: #D8BFD8;
+  --loop-purple: #d8bfd8;
   /* LOOP Purple - Outreach Module */
-  --loop-pink: #FFB6C1;
+  --loop-pink: #ffb6c1;
   /* LOOP Pink - People Module */
   --loop-cyan: #009688;
   /* Teal 500 - Accent */
 
   /* App Base (LIGHT) */
-  --app-bg: #E0F2F1;
+  --app-bg: #e0f2f1;
   /* Very Light Teal */
-  --app-surface: #F5FCFD;
+  --app-surface: #f5fcfd;
   /* Minty White */
-  --app-surface-muted: #DFF6F3;
-  --app-text: #004D40;
+  --app-surface-muted: #dff6f3;
+  --app-text: #004d40;
   /* Teal 900 */
-  --app-text-muted: #0F766E;
-  --app-text-subtle: #0F766E;
-  --app-border: #80CBC4;
+  --app-text-muted: #0f766e;
+  --app-text-subtle: #0f766e;
+  --app-border: #80cbc4;
   /* Teal 200 */
   --app-accent: #009688;
-  --app-accent-hover: #00796B;
+  --app-accent-hover: #00796b;
   --app-accent-text: #009688;
-  --app-accent-text-hover: #00796B;
-  --app-accent-soft: #B2DFDB;
-  --app-accent-soft-hover: #80CBC4;
+  --app-accent-text-hover: #00796b;
+  --app-accent-soft: #b2dfdb;
+  --app-accent-soft-hover: #80cbc4;
 
-  --app-hover: #DFF6F3;
-  --app-input-bg: #F5FCFD;
-  --app-input-border: #80CBC4;
-  --app-text-heading: #004D40;
-  --app-text-label: #0F766E;
-  --app-border-muted: #B2DFDB;
-  --app-surface-elevated: #F5FCFD;
+  --app-hover: #dff6f3;
+  --app-input-bg: #f5fcfd;
+  --app-input-border: #80cbc4;
+  --app-text-heading: #004d40;
+  --app-text-label: #0f766e;
+  --app-border-muted: #b2dfdb;
+  --app-surface-elevated: #f5fcfd;
 
   /* Brutalist Overrides (Softened) */
   --shadow-color: rgba(0, 150, 136, 0.2);
@@ -171,51 +175,51 @@ body.theme-sea-breeze {
 /* SEA BREEZE: DARK MODE */
 body.theme-sea-breeze.dark {
   /* Palette - Deep Ocean Background / Bright Accents */
-  --loop-yellow: #B2DFDB;
+  --loop-yellow: #b2dfdb;
   /* Teal 100 - Bright to support Black Text */
-  --loop-green: #80CBC4;
+  --loop-green: #80cbc4;
   /* Teal 200 */
-  --loop-purple: #4DB6AC;
+  --loop-purple: #4db6ac;
   /* Teal 300 */
-  --loop-pink: #26A69A;
+  --loop-pink: #26a69a;
   /* Teal 400 */
   --loop-cyan: #009688;
   /* Teal 500 */
-  --loop-blue: #00897B;
+  --loop-blue: #00897b;
   /* Teal 600 */
 
   /* App Base (DARK) */
-  --app-bg: #00251A;
+  --app-bg: #00251a;
   /* Deepest Teal/Black */
-  --app-surface: #004D40;
+  --app-surface: #004d40;
   /* Deep Teal Surface */
-  --app-surface-muted: #00695C;
-  --app-text: #E0F2F1;
+  --app-surface-muted: #00695c;
+  --app-text: #e0f2f1;
   /* Light Teal Text */
-  --app-text-muted: #B2DFDB;
-  --app-text-subtle: #B2DFDB;
-  --app-border: #00796B;
-  --app-accent: #4DB6AC;
-  --app-accent-hover: #26A69A;
-  --app-accent-text: #B2DFDB;
-  --app-accent-text-hover: #80CBC4;
+  --app-text-muted: #b2dfdb;
+  --app-text-subtle: #b2dfdb;
+  --app-border: #00796b;
+  --app-accent: #4db6ac;
+  --app-accent-hover: #26a69a;
+  --app-accent-text: #b2dfdb;
+  --app-accent-text-hover: #80cbc4;
   --app-accent-soft: rgba(77, 182, 172, 0.2);
   --app-accent-soft-hover: rgba(77, 182, 172, 0.35);
 
-  --app-hover: #00695C;
-  --app-input-bg: #004D40;
-  --app-input-border: #00796B;
-  --app-text-heading: #E0F2F1;
-  --app-text-label: #B2DFDB;
-  --app-border-muted: #004D40;
-  --app-surface-elevated: #00695C;
+  --app-hover: #00695c;
+  --app-input-bg: #004d40;
+  --app-input-border: #00796b;
+  --app-text-heading: #e0f2f1;
+  --app-text-label: #b2dfdb;
+  --app-border-muted: #004d40;
+  --app-surface-elevated: #00695c;
 
   --shadow-color: #000000;
 }
 
 /* Sea Breeze Overrides */
 body.theme-sea-breeze .border-brutal,
-body.theme-sea-breeze [class*="border-brutal"],
+body.theme-sea-breeze [class*='border-brutal'],
 body.theme-sea-breeze button,
 body.theme-sea-breeze input,
 body.theme-sea-breeze select {
@@ -235,8 +239,8 @@ body.theme-sea-breeze button.p-4 {
    ========================================================================== */
 
 /* RULE 1: Main Dark Backgrounds need White/Cream borders */
-body.dark .border-black:not([class*="bg-loop-"]):not([class*="bg-\[var\(--loop"]) {
-  border-color: #F5F5DC !important;
+body.dark .border-black:not([class*='bg-loop-']):not([class*='bg-\[var\(--loop']) {
+  border-color: #f5f5dc !important;
   /* Cream borders on dark backgrounds */
 }
 
@@ -255,17 +259,17 @@ body.dark main .bg-loop-yellow *,
 body.dark main .bg-loop-green *,
 body.dark main .bg-loop-purple *,
 body.dark main .bg-loop-pink *,
-body.dark main [class*="bg-[var(--loop"] *,
-body.dark .p-6 [class*="bg-[var(--loop"] *,
-body.dark .p-8 [class*="bg-[var(--loop"] * {
+body.dark main [class*='bg-[var(--loop'] *,
+body.dark .p-6 [class*='bg-[var(--loop'] *,
+body.dark .p-8 [class*='bg-[var(--loop'] * {
   color: #000000 !important;
 }
 
 /* RULE 3: Input & Dropdown Rescue - Solid backgrounds with white borders */
 /* Excludes inputs with explicit bg-white (e.g., Login page) which should keep white bg + black text */
-body.dark input:not([class*="bg-loop-"]):not(.bg-white),
-body.dark select:not([class*="bg-loop-"]):not(.bg-white),
-body.dark textarea:not([class*="bg-loop-"]):not(.bg-white) {
+body.dark input:not([class*='bg-loop-']):not(.bg-white),
+body.dark select:not([class*='bg-loop-']):not(.bg-white),
+body.dark textarea:not([class*='bg-loop-']):not(.bg-white) {
   background-color: #1a1a1a !important;
   /* Solid Dark Grey (User Request) */
   border-color: #f5f5dc !important;
@@ -283,70 +287,69 @@ body.dark textarea::placeholder {
   opacity: 1;
 }
 
-
 /* ==========================================================================
    THEME 2: CORPORATE MINIMALIST (LIGHT & DARK)
    Concept: Clean, professional, high legibility, subtle borders
    ========================================================================== */
 body.theme-corporate {
   /* LIGHT MODE */
-  --loop-yellow: #F3F4F6;
+  --loop-yellow: #f3f4f6;
   /* Gray 100 */
-  --loop-green: #E5E7EB;
+  --loop-green: #e5e7eb;
   /* Gray 200 */
-  --loop-purple: #D1D5DB;
+  --loop-purple: #d1d5db;
   /* Gray 300 */
-  --loop-pink: #9CA3AF;
+  --loop-pink: #9ca3af;
   /* Gray 400 */
-  --loop-cyan: #6B7280;
+  --loop-cyan: #6b7280;
   /* Gray 500 */
   --loop-blue: #374151;
   /* Gray 700 */
 
   /* App Base */
-  --app-bg: #FFFFFF;
-  --app-surface: #F9FAFB;
+  --app-bg: #ffffff;
+  --app-surface: #f9fafb;
   --app-text: #111827;
-  --app-surface-muted: #F3F4F6;
-  --app-text-muted: #4B5563;
-  --app-text-subtle: #4B5563;
-  --app-border: #E5E7EB;
-  --app-accent: #1F2937;
+  --app-surface-muted: #f3f4f6;
+  --app-text-muted: #4b5563;
+  --app-text-subtle: #4b5563;
+  --app-border: #e5e7eb;
+  --app-accent: #1f2937;
   --app-accent-hover: #111827;
-  --app-accent-text: #1F2937;
+  --app-accent-text: #1f2937;
   --app-accent-text-hover: #111827;
-  --app-accent-soft: #E5E7EB;
-  --app-accent-soft-hover: #D1D5DB;
+  --app-accent-soft: #e5e7eb;
+  --app-accent-soft-hover: #d1d5db;
 
-  --app-hover: #F3F4F6;
-  --app-input-bg: #FFFFFF;
-  --app-input-border: #D1D5DB;
+  --app-hover: #f3f4f6;
+  --app-input-bg: #ffffff;
+  --app-input-border: #d1d5db;
   --app-text-heading: #111827;
   --app-text-label: #374151;
-  --app-border-muted: #E5E7EB;
-  --app-surface-elevated: #FFFFFF;
+  --app-border-muted: #e5e7eb;
+  --app-surface-elevated: #ffffff;
 
   /* Brutalist Overrides (Normalized) */
   --shadow-color: rgba(0, 0, 0, 0.05);
-  --border-brutal: 1px solid #E5E7EB;
+  --border-brutal: 1px solid #e5e7eb;
   --shadow-brutal: 0 1px 2px 0 var(--shadow-color);
   --shadow-brutal-sm: 0 1px 2px 0 var(--shadow-color);
   --font-weight-brutal: 400;
-  --focus-ring: #6B7280;
+  --focus-ring: #6b7280;
 }
 
 /* CORPORATE: DARK MODE */
 body.theme-corporate.dark {
   /* Dark Slate Palette - Monochrome Bright Accents */
-  --loop-yellow: #F3F4F6;
+  --loop-yellow: #f3f4f6;
   /* Gray 100 */
-  --loop-green: #E5E7EB;
+  --loop-green: #e5e7eb;
   /* Gray 200 */
-  --loop-purple: #D1D5DB;
+  --loop-purple: #d1d5db;
   /* Gray 300 */
-  --loop-pink: #9CA3AF;
+  --loop-pink: #9ca3af;
   /* Gray 400 */
-  --loop-cyan: #6B7280;
+  --loop-cyan: #6b7280;
   /* Gray 500 */
   --loop-blue: #374151;
   /* Gray 700 - Use cautiously */
@@ -354,26 +357,26 @@ body.theme-corporate.dark {
   /* App Base (DARK) */
   --app-bg: #111827;
   /* Gray 900 */
-  --app-surface: #1F2937;
+  --app-surface: #1f2937;
   /* Gray 800 */
   --app-surface-muted: #374151;
-  --app-text: #F9FAFB;
+  --app-text: #f9fafb;
   /* Gray 50 */
-  --app-text-muted: #E5E7EB;
-  --app-text-subtle: #CBD5E1;
+  --app-text-muted: #e5e7eb;
+  --app-text-subtle: #cbd5e1;
   --app-border: #374151;
-  --app-accent: #4B5563;
+  --app-accent: #4b5563;
   --app-accent-hover: #374151;
-  --app-accent-text: #E5E7EB;
-  --app-accent-text-hover: #F9FAFB;
+  --app-accent-text: #e5e7eb;
+  --app-accent-text-hover: #f9fafb;
   --app-accent-soft: rgba(75, 85, 99, 0.2);
   --app-accent-soft-hover: rgba(75, 85, 99, 0.35);
 
   --app-hover: #374151;
-  --app-input-bg: #1F2937;
-  --app-input-border: #4B5563;
-  --app-text-heading: #F9FAFB;
-  --app-text-label: #E5E7EB;
+  --app-input-bg: #1f2937;
+  --app-input-border: #4b5563;
+  --app-text-heading: #f9fafb;
+  --app-text-label: #e5e7eb;
   --app-border-muted: #374151;
   --app-surface-elevated: #374151;
 
@@ -399,21 +402,30 @@ body.theme-corporate li,
 body.theme-corporate div {
   text-transform: none !important;
   letter-spacing: normal !important;
-  font-family: system-ui, -apple-system, sans-serif !important;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif !important;
 }
 
 body.theme-corporate .border-brutal,
-body.theme-corporate [class*="border-brutal"] {
+body.theme-corporate [class*='border-brutal'] {
   border-radius: 6px !important;
   border-color: var(--app-border) !important;
 }
 
-body.theme-corporate button:not([class*="bg-blue"]):not([class*="bg-red"]):not([class*="bg-green"]):not([class*="bg-indigo"]):not([class*="bg-app-accent"]):not([class*="bg-yellow"]):not([class*="bg-loop-"]) {
+body.theme-corporate
+  button:not([class*='bg-blue']):not([class*='bg-red']):not([class*='bg-green']):not(
+    [class*='bg-indigo']
+  ):not([class*='bg-app-accent']):not([class*='bg-yellow']):not([class*='bg-loop-']) {
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
   transform: none !important;
 }
 
-body.theme-corporate button:not([class*="bg-blue"]):not([class*="bg-red"]):not([class*="bg-green"]):not([class*="bg-indigo"]):not([class*="bg-app-accent"]):not([class*="bg-yellow"]):not([class*="bg-loop-"]):hover {
+body.theme-corporate
+  button:not([class*='bg-blue']):not([class*='bg-red']):not([class*='bg-green']):not(
+    [class*='bg-indigo']
+  ):not([class*='bg-app-accent']):not([class*='bg-yellow']):not([class*='bg-loop-']):hover {
   background-color: var(--app-surface-muted) !important;
   border-color: var(--app-border) !important;
 }
@@ -424,78 +436,77 @@ body.theme-corporate button:not([class*="bg-blue"]):not([class*="bg-red"]):not([
    ========================================================================== */
 body.theme-clean-modern {
   /* LIGHT MODE */
-  --loop-yellow: #FDE68A;
-  --loop-green: #A7F3D0;
-  --loop-purple: #C4B5FD;
-  --loop-pink: #F9A8D4;
-  --loop-cyan: #67E8F9;
-  --loop-blue: #93C5FD;
+  --loop-yellow: #fde68a;
+  --loop-green: #a7f3d0;
+  --loop-purple: #c4b5fd;
+  --loop-pink: #f9a8d4;
+  --loop-cyan: #67e8f9;
+  --loop-blue: #93c5fd;
 
-  --app-bg: #F8FAFC;
-  --app-surface: #FFFFFF;
-  --app-surface-muted: #F1F5F9;
-  --app-text: #0F172A;
+  --app-bg: #f8fafc;
+  --app-surface: #ffffff;
+  --app-surface-muted: #f1f5f9;
+  --app-text: #0f172a;
   --app-text-muted: #475569;
   --app-text-subtle: #475569;
-  --app-border: #E2E8F0;
-  --app-accent: #2563EB;
-  --app-accent-hover: #1D4ED8;
-  --app-accent-text: #1D4ED8;
-  --app-accent-text-hover: #1E40AF;
-  --app-accent-soft: #DBEAFE;
-  --app-accent-soft-hover: #BFDBFE;
+  --app-border: #e2e8f0;
+  --app-accent: #2563eb;
+  --app-accent-hover: #1d4ed8;
+  --app-accent-text: #1d4ed8;
+  --app-accent-text-hover: #1e40af;
+  --app-accent-soft: #dbeafe;
+  --app-accent-soft-hover: #bfdbfe;
 
-  --app-hover: #F1F5F9;
-  --app-input-bg: #FFFFFF;
-  --app-input-border: #CBD5E1;
-  --app-text-heading: #0F172A;
+  --app-hover: #f1f5f9;
+  --app-input-bg: #ffffff;
+  --app-input-border: #cbd5e1;
+  --app-text-heading: #0f172a;
   --app-text-label: #334155;
-  --app-border-muted: #E2E8F0;
-  --app-surface-elevated: #FFFFFF;
+  --app-border-muted: #e2e8f0;
+  --app-surface-elevated: #ffffff;
 
   --shadow-color: rgba(15, 23, 42, 0.08);
-  --border-brutal: 1px solid #E2E8F0;
+  --border-brutal: 1px solid #e2e8f0;
   --shadow-brutal: 0 2px 6px rgba(15, 23, 42, 0.08);
   --shadow-brutal-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
-  --focus-ring: #2563EB;
+  --focus-ring: #2563eb;
 }
 
 body.theme-clean-modern.dark {
-  --loop-yellow: #FDE68A;
-  --loop-green: #A7F3D0;
-  --loop-purple: #C4B5FD;
-  --loop-pink: #F9A8D4;
-  --loop-cyan: #67E8F9;
-  --loop-blue: #93C5FD;
+  --loop-yellow: #fde68a;
+  --loop-green: #a7f3d0;
+  --loop-purple: #c4b5fd;
+  --loop-pink: #f9a8d4;
+  --loop-cyan: #67e8f9;
+  --loop-blue: #93c5fd;
 
-  --app-bg: #0B1220;
+  --app-bg: #0b1220;
   --app-surface: #111827;
-  --app-surface-muted: #1F2937;
-  --app-text: #E2E8F0;
-  --app-text-muted: #94A3B8;
-  --app-text-subtle: #94A3B8;
+  --app-surface-muted: #1f2937;
+  --app-text: #e2e8f0;
+  --app-text-muted: #94a3b8;
+  --app-text-subtle: #94a3b8;
   --app-border: #334155;
-  --app-accent: #3B82F6;
-  --app-accent-hover: #2563EB;
-  --app-accent-text: #93C5FD;
-  --app-accent-text-hover: #BFDBFE;
+  --app-accent: #3b82f6;
+  --app-accent-hover: #2563eb;
+  --app-accent-text: #93c5fd;
+  --app-accent-text-hover: #bfdbfe;
   --app-accent-soft: rgba(59, 130, 246, 0.2);
   --app-accent-soft-hover: rgba(59, 130, 246, 0.35);
 
-  --app-hover: #1F2937;
-  --app-input-bg: #1F2937;
+  --app-hover: #1f2937;
+  --app-input-bg: #1f2937;
   --app-input-border: #475569;
-  --app-text-heading: #F1F5F9;
-  --app-text-label: #CBD5E1;
+  --app-text-heading: #f1f5f9;
+  --app-text-label: #cbd5e1;
   --app-border-muted: #334155;
-  --app-surface-elevated: #1F2937;
+  --app-surface-elevated: #1f2937;
 
   --shadow-color: #000000;
   --shadow-brutal: 0 2px 6px rgba(0, 0, 0, 0.35);
   --shadow-brutal-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
-  --focus-ring: #3B82F6;
+  --focus-ring: #3b82f6;
 }
-
 
 /* ==========================================================================
    THEME 3: GLASSMORPHISM (LIGHT & DARK)
@@ -503,102 +514,102 @@ body.theme-clean-modern.dark {
    ========================================================================== */
 body.theme-glass {
   /* LIGHT MODE - "Frosted Steel" - Applies LOOP Brand Colors */
-  --loop-yellow: #CBD5E1;
+  --loop-yellow: #cbd5e1;
   /* Slate 300 - Sidebar header */
-  --loop-green: #90EE90;
+  --loop-green: #90ee90;
   /* LOOP Green - Linking Module */
-  --loop-blue: #87CEEB;
+  --loop-blue: #87ceeb;
   /* LOOP Blue - Operations Module */
-  --loop-purple: #D8BFD8;
+  --loop-purple: #d8bfd8;
   /* LOOP Purple - Outreach Module */
-  --loop-pink: #FFB6C1;
+  --loop-pink: #ffb6c1;
   /* LOOP Pink - People Module */
-  --loop-cyan: #00B0FF;
+  --loop-cyan: #00b0ff;
   /* Light Blue Accent */
 
   /* App Base (LIGHT GLASS - Frosted Steel) */
-  --app-bg: #B0BEC5;
+  --app-bg: #b0bec5;
   /* Blue Grey 200 - Lighter steel for better contrast */
-  --app-surface: #E2E8F0;
+  --app-surface: #e2e8f0;
   /* Solid slate surface for readable overlays/dropdowns */
-  --app-surface-muted: #CBD5E1;
-  --app-text: #0F172A;
+  --app-surface-muted: #cbd5e1;
+  --app-text: #0f172a;
   /* Slate 900 */
-  --app-text-muted: #1E293B;
+  --app-text-muted: #1e293b;
   /* Slate 800 - darker for AA compliance */
   --app-text-subtle: #334155;
   /* Slate 700 - darker for AA compliance */
-  --app-border: #CBD5E1;
+  --app-border: #cbd5e1;
   /* Slate 300 */
-  --app-accent: #00B0FF;
-  --app-accent-hover: #0081CC;
-  --app-accent-text: #00B0FF;
-  --app-accent-text-hover: #0081CC;
+  --app-accent: #00b0ff;
+  --app-accent-hover: #0081cc;
+  --app-accent-text: #00b0ff;
+  --app-accent-text-hover: #0081cc;
   --app-accent-soft: rgba(0, 176, 255, 0.15);
   --app-accent-soft-hover: rgba(0, 176, 255, 0.25);
 
-  --app-hover: #CBD5E1;
-  --app-input-bg: #F8FAFC;
-  --app-input-border: #94A3B8;
-  --app-text-heading: #0F172A;
-  --app-text-label: #1E293B;
-  --app-border-muted: #94A3B8;
-  --app-surface-elevated: #F1F5F9;
+  --app-hover: #cbd5e1;
+  --app-input-bg: #f8fafc;
+  --app-input-border: #94a3b8;
+  --app-text-heading: #0f172a;
+  --app-text-label: #1e293b;
+  --app-border-muted: #94a3b8;
+  --app-surface-elevated: #f1f5f9;
 
   /* Brutalist Overrides (Glassy) */
   --shadow-color: rgba(0, 0, 0, 0.15);
-  --border-brutal: 1px solid #94A3B8;
+  --border-brutal: 1px solid #94a3b8;
   --shadow-brutal: 0 4px 6px rgba(0, 0, 0, 0.1);
   --shadow-brutal-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
-  --focus-ring: #00B0FF;
+  --focus-ring: #00b0ff;
 }
 
 /* GLASS: DARK MODE */
 body.theme-glass.dark {
   /* Palette - DEEP VOID & NEON ACCENTS */
-  --loop-yellow: #FEF08A;
+  --loop-yellow: #fef08a;
   /* Yellow 200 - Neon */
-  --loop-green: #A7F3D0;
+  --loop-green: #a7f3d0;
   /* Green 200 - Neon */
-  --loop-purple: #DDD6FE;
+  --loop-purple: #ddd6fe;
   /* Violet 200 - Neon */
-  --loop-pink: #FBCFE8;
+  --loop-pink: #fbcfe8;
   /* Pink 200 - Neon */
-  --loop-cyan: #67E8F9;
+  --loop-cyan: #67e8f9;
   /* Cyan 300 - Neon */
-  --loop-blue: #93C5FD;
+  --loop-blue: #93c5fd;
   /* Blue 300 - Neon */
 
   /* App Base (DARK) */
   --app-bg: #000000;
   /* Pure Black */
-  --app-surface: #14141E;
-  --app-surface-muted: #1E293B;
-  --app-text: #F3F4F6;
-  --app-text-muted: #E2E8F0;
-  --app-text-subtle: #CBD5E1;
-  --app-border: #3B82F6;
-  --app-accent: #007FFF;
-  --app-accent-hover: #005FCC;
-  --app-accent-text: #93C5FD;
-  --app-accent-text-hover: #BFDBFE;
+  --app-surface: #14141e;
+  --app-surface-muted: #1e293b;
+  --app-text: #f3f4f6;
+  --app-text-muted: #e2e8f0;
+  --app-text-subtle: #cbd5e1;
+  --app-border: #3b82f6;
+  --app-accent: #007fff;
+  --app-accent-hover: #005fcc;
+  --app-accent-text: #93c5fd;
+  --app-accent-text-hover: #bfdbfe;
   --app-accent-soft: rgba(0, 127, 255, 0.2);
   --app-accent-soft-hover: rgba(0, 127, 255, 0.35);
 
-  --app-hover: #1E293B;
+  --app-hover: #1e293b;
   --app-input-bg: #111827;
-  --app-input-border: #2563EB;
-  --app-text-heading: #F3F4F6;
-  --app-text-label: #E2E8F0;
-  --app-border-muted: #1D4ED8;
-  --app-surface-elevated: #1F2435;
+  --app-input-border: #2563eb;
+  --app-text-heading: #f3f4f6;
+  --app-text-label: #e2e8f0;
+  --app-border-muted: #1d4ed8;
+  --app-surface-elevated: #1f2435;
 
   /* Brutalist Overrides (Glowing) */
-  --shadow-color: #3B82F6;
-  --border-brutal: 1px solid #3B82F6;
+  --shadow-color: #3b82f6;
+  --border-brutal: 1px solid #3b82f6;
   --shadow-brutal: 0 0 15px rgba(59, 130, 246, 0.3);
   --shadow-brutal-sm: 0 0 8px rgba(59, 130, 246, 0.3);
-  --focus-ring: #00FFFF;
+  --focus-ring: #00ffff;
 }
 
 /* ==========================================================================
@@ -608,81 +619,81 @@ body.theme-glass.dark {
    ========================================================================== */
 body.theme-high-contrast {
   /* LIGHT MODE - Bold & Clear */
-  --loop-yellow: #FFD700;
+  --loop-yellow: #ffd700;
   --loop-green: #008000;
-  --loop-purple: #6A0DAD;
-  --loop-pink: #C71585;
-  --loop-cyan: #006D6F;
-  --loop-blue: #0047AB;
+  --loop-purple: #6a0dad;
+  --loop-pink: #c71585;
+  --loop-cyan: #006d6f;
+  --loop-blue: #0047ab;
 
-  --app-bg: #FFFFFF;
-  --app-surface: #FFFFFF;
-  --app-surface-muted: #F0F0F0;
+  --app-bg: #ffffff;
+  --app-surface: #ffffff;
+  --app-surface-muted: #f0f0f0;
   --app-text: #000000;
-  --app-text-muted: #1A1A1A;
+  --app-text-muted: #1a1a1a;
   --app-text-subtle: #333333;
   --app-border: #000000;
-  --app-accent: #0047AB;
+  --app-accent: #0047ab;
   --app-accent-hover: #003380;
-  --app-accent-text: #0047AB;
+  --app-accent-text: #0047ab;
   --app-accent-text-hover: #003380;
-  --app-accent-soft: #D6E4F0;
-  --app-accent-soft-hover: #B8D0E8;
+  --app-accent-soft: #d6e4f0;
+  --app-accent-soft-hover: #b8d0e8;
 
-  --app-hover: #E8E8E8;
-  --app-input-bg: #FFFFFF;
+  --app-hover: #e8e8e8;
+  --app-input-bg: #ffffff;
   --app-input-border: #000000;
   --app-text-heading: #000000;
   --app-text-label: #000000;
   --app-border-muted: #666666;
-  --app-surface-elevated: #FFFFFF;
+  --app-surface-elevated: #ffffff;
 
   --shadow-color: #000000;
   --border-brutal: 3px solid #000000;
   --shadow-brutal: none;
   --shadow-brutal-sm: none;
   --shadow-brutal-lg: none;
-  --focus-ring: #0047AB;
+  --focus-ring: #0047ab;
 }
 
 /* HIGH CONTRAST: DARK MODE */
 body.theme-high-contrast.dark {
-  --loop-yellow: #FFD700;
-  --loop-green: #00FF00;
-  --loop-purple: #DA70D6;
-  --loop-pink: #FF69B4;
-  --loop-cyan: #00FFFF;
-  --loop-blue: #6495ED;
+  --loop-yellow: #ffd700;
+  --loop-green: #00ff00;
+  --loop-purple: #da70d6;
+  --loop-pink: #ff69b4;
+  --loop-cyan: #00ffff;
+  --loop-blue: #6495ed;
 
   --app-bg: #000000;
   --app-surface: #000000;
-  --app-surface-muted: #1A1A1A;
-  --app-text: #FFFFFF;
-  --app-text-muted: #F0F0F0;
-  --app-text-subtle: #E0E0E0;
-  --app-border: #FFFFFF;
-  --app-accent: #FFD700;
-  --app-accent-hover: #FFC000;
+  --app-surface-muted: #1a1a1a;
+  --app-text: #ffffff;
+  --app-text-muted: #f0f0f0;
+  --app-text-subtle: #e0e0e0;
+  --app-border: #ffffff;
+  --app-accent: #ffd700;
+  --app-accent-hover: #ffc000;
   --app-accent-foreground: #000000;
-  --app-accent-text: #FFD700;
-  --app-accent-text-hover: #FFC000;
+  --app-accent-text: #ffd700;
+  --app-accent-text-hover: #ffc000;
   --app-accent-soft: rgba(255, 215, 0, 0.2);
   --app-accent-soft-hover: rgba(255, 215, 0, 0.35);
 
-  --app-hover: #1A1A1A;
+  --app-hover: #1a1a1a;
   --app-input-bg: #000000;
-  --app-input-border: #FFFFFF;
-  --app-text-heading: #FFFFFF;
-  --app-text-label: #FFFFFF;
+  --app-input-border: #ffffff;
+  --app-text-heading: #ffffff;
+  --app-text-label: #ffffff;
   --app-border-muted: #999999;
-  --app-surface-elevated: #1A1A1A;
+  --app-surface-elevated: #1a1a1a;
 
-  --shadow-color: #FFFFFF;
-  --border-brutal: 3px solid #FFFFFF;
+  --shadow-color: #ffffff;
+  --border-brutal: 3px solid #ffffff;
   --shadow-brutal: none;
   --shadow-brutal-sm: none;
   --shadow-brutal-lg: none;
-  --focus-ring: #FFD700;
+  --focus-ring: #ffd700;
 }
 
 /* High Contrast Overrides */
@@ -721,14 +732,14 @@ body.theme-glass .bg-gray-100 {
 }
 
 /* Glow Effects on Hover */
-body.theme-glass div[class*="border-brutal"]:hover,
+body.theme-glass div[class*='border-brutal']:hover,
 body.theme-glass button:hover {
   box-shadow: 0 0 25px var(--shadow-color) !important;
   border-color: var(--loop-blue) !important;
 }
 
 body.theme-glass .border-brutal,
-body.theme-glass [class*="border-brutal"] {
+body.theme-glass [class*='border-brutal'] {
   border-radius: 12px !important;
 }
 
@@ -743,7 +754,7 @@ body.theme-glass textarea {
 body.theme-glass input::placeholder,
 body.theme-glass select::placeholder,
 body.theme-glass textarea::placeholder {
-  color: #94A3B8 !important;
+  color: #94a3b8 !important;
   opacity: 1;
 }
 
@@ -855,13 +866,13 @@ body .border-blue-600 {
   border-color: var(--app-accent) !important;
 }
 
-body [class*="focus:ring-blue-500"]:focus,
-body [class*="focus:ring-blue-600"]:focus {
+body [class*='focus:ring-blue-500']:focus,
+body [class*='focus:ring-blue-600']:focus {
   --tw-ring-color: var(--app-accent) !important;
 }
 
-body [class*="focus:border-blue-500"]:focus,
-body [class*="focus:border-blue-600"]:focus {
+body [class*='focus:border-blue-500']:focus,
+body [class*='focus:border-blue-600']:focus {
   border-color: var(--app-accent) !important;
 }
 
@@ -918,7 +929,7 @@ body [class*="focus:border-blue-600"]:focus {
 }
 
 .react-resizable-handle-se::after {
-  content: "";
+  content: '';
   position: absolute;
   right: 3px;
   bottom: 3px;
@@ -988,16 +999,13 @@ body [class*="focus:border-blue-600"]:focus {
   color: var(--app-text);
 }
 
-/* RULE 2: SIDEBAR TEXT - Force all sidebar text to be visible */
-.dark nav span,
-.dark nav div,
-.dark [class*="sidebar"] span,
-.dark [class*="Sidebar"] span {
-  color: var(--app-text) !important;
-}
-
-/* Sidebar module button labels - explicit override */
-.dark nav a>div>span:last-child {
+/* RULE 2: LEGACY SIDEBAR TEXT - Keep older sidebar surfaces readable */
+.dark [class*='sidebar'] span,
+.dark [class*='sidebar'] div,
+.dark [class*='sidebar'] a,
+.dark [class*='Sidebar'] span,
+.dark [class*='Sidebar'] div,
+.dark [class*='Sidebar'] a {
   color: var(--app-text) !important;
 }
 
@@ -1049,20 +1057,17 @@ body [class*="focus:border-blue-600"]:focus {
   color: var(--app-text-subtle) !important;
 }
 
-/* RULE 6: HEADER USER NAME - Force visibility */
-.dark header span,
-.dark [class*="header"] span {
-  color: var(--app-text) !important;
-}
-
-/* But keep black text in yellow/colored backgrounds */
+/* RULE 6: Colored surfaces keep black text in dark mode */
 .dark .bg-\[var\(--loop-yellow\)\] span,
 .dark .bg-\[var\(--loop-yellow\)\] button span {
   color: #000000 !important;
 }
 
 /* RULE 7: BORDERS - Use theme border on dark backgrounds */
-.dark .border-black:not(.bg-\[var\(--loop-yellow\)\]):not(.bg-\[var\(--loop-green\)\]):not(.bg-\[var\(--loop-blue\)\]):not(.bg-\[var\(--loop-purple\)\]):not(.bg-\[var\(--loop-pink\)\]) {
+.dark
+  .border-black:not(.bg-\[var\(--loop-yellow\)\]):not(.bg-\[var\(--loop-green\)\]):not(
+    .bg-\[var\(--loop-blue\)\]
+  ):not(.bg-\[var\(--loop-purple\)\]):not(.bg-\[var\(--loop-pink\)\]) {
   border-color: var(--app-border) !important;
 }
 
@@ -1078,7 +1083,7 @@ body [class*="focus:border-blue-600"]:focus {
 /* RULE 8: SETTINGS PAGE WHITE CARDS - Black text on pure white backgrounds */
 /* CRITICAL: Only applies when element does NOT have a dark mode background override */
 .dark .bg-white:not(.dark\:bg-\[\#121212\]) {
-  background-color: #FFFFFF !important;
+  background-color: #ffffff !important;
   color: #000000 !important;
 }
 
@@ -1096,12 +1101,12 @@ body [class*="focus:border-blue-600"]:focus {
 /* RULE 9: DARK CONTAINERS - Use theme text on dark surfaces */
 /* Overrides the greedy safety zone for explicit dark containers */
 .dark .dark\:bg-\[\#121212\],
-.dark [class*="dark:bg-[#121212]"] {
+.dark [class*='dark:bg-[#121212]'] {
   color: var(--app-text) !important;
 }
 
 .dark .dark\:bg-\[\#121212\] *,
-.dark [class*="dark:bg-[#121212]"] * {
+.dark [class*='dark:bg-[#121212]'] * {
   color: var(--app-text) !important;
 }
 
@@ -1145,13 +1150,13 @@ body [class*="focus:border-blue-600"]:focus {
 .dark .auth-page-light th,
 .dark .auth-page-light li,
 .dark .auth-page-light a {
-  color: #1e293b !important;   /* slate-800 — safe dark text on light bg */
+  color: #1e293b !important; /* slate-800 — safe dark text on light bg */
 }
 
 .dark .auth-page-light h1,
 .dark .auth-page-light h2,
 .dark .auth-page-light h3 {
-  color: #0f172a !important;   /* slate-900 */
+  color: #0f172a !important; /* slate-900 */
 }
 
 .dark .auth-page-light input,
@@ -1159,12 +1164,12 @@ body [class*="focus:border-blue-600"]:focus {
 .dark .auth-page-light textarea {
   background-color: #ffffff !important;
   color: #0f172a !important;
-  border: 1px solid #e2e8f0 !important;   /* slate-200 */
+  border: 1px solid #e2e8f0 !important; /* slate-200 */
 }
 
 .dark .auth-page-light input::placeholder,
 .dark .auth-page-light textarea::placeholder {
-  color: #94a3b8 !important;   /* slate-400 */
+  color: #94a3b8 !important; /* slate-400 */
 }
 
 /* Buttons that are intentionally white keep dark text */
@@ -1178,7 +1183,7 @@ body [class*="focus:border-blue-600"]:focus {
 
 /* Dark-bg CTA buttons keep white text */
 .dark .auth-page-light button.bg-slate-900,
-.dark .auth-page-light button[class*="bg-slate-900"] {
+.dark .auth-page-light button[class*='bg-slate-900'] {
   color: #ffffff !important;
   background-color: #0f172a !important;
 }

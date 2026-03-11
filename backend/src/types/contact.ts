@@ -340,11 +340,22 @@ export interface ContactRole {
   is_system: boolean;
 }
 
+export const CONTACT_ROLE_FILTER_VALUES = [
+  'client',
+  'donor',
+  'support_person',
+  'staff',
+  'volunteer',
+  'board',
+] as const;
+
+export type ContactRoleFilter = typeof CONTACT_ROLE_FILTER_VALUES[number];
+
 export interface ContactFilters {
   search?: string;
   account_id?: string;
   is_active?: boolean;
-  role?: 'staff' | 'volunteer' | 'board';
+  role?: ContactRoleFilter;
   tags?: string[];
 }
 

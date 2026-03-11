@@ -15,7 +15,7 @@ export default function WorkspaceHeader() {
         ariaLabel: `Pinned shortcut: ${item.ariaLabel ?? item.name}`,
       }))}
       secondaryAction={{ label: 'Manage Navigation', to: '/settings/navigation' }}
-      shortcutLabel="Favorites"
+      shortcutLabel="Pinned shortcuts"
     />
   );
 }
