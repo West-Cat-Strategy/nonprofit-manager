@@ -40,7 +40,7 @@ const ExternalServiceProviders = () => {
     try {
       setLoading(true);
       const response = await api.get<ExternalServiceProvidersResponse>('/external-service-providers', {
-        params: { search: searchTerm || undefined, include_inactive: true, limit: 250 },
+        params: { search: searchTerm || undefined, include_inactive: true, limit: 200 },
       });
       setProviders(response.data.providers || []);
     } catch (error) {

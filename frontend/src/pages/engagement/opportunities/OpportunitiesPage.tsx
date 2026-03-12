@@ -14,7 +14,7 @@ import {
   moveOpportunityStage,
   reorderOpportunityStages,
   updateOpportunity,
-} from '../../../store/slices/opportunitiesSlice';
+} from '../../../features/engagement/opportunities/state/opportunitiesCore';
 import type {
   CreateOpportunityDTO,
   Opportunity,

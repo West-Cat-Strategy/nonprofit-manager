@@ -1,6 +1,19 @@
 /**
- * Payment Routes
- * API endpoints for payment processing
+ * MODULE-OWNERSHIP: payments routes
+ *
+ * Route behavior for payment endpoints is owned by this module.
+ * The legacy surface remains in `backend/src/routes/payments.ts` and only adapts
+ * legacy v1 mounting to this route module.
+ *
+ * What replaced:
+ * - Legacy payment routing previously resolved directly in `backend/src/routes/payments.ts`
+ *   (now moved to `createPaymentsRoutes`).
+ *
+ * Why kept:
+ * - Preserve `/api/payments` compatibility while v1 migration and policy validation are complete.
+ *
+ * Sunset target:
+ * - P4-T1R7 / 2026-06-30 (or earlier after policy-clean migration).
  */
 
 import { Router } from 'express';

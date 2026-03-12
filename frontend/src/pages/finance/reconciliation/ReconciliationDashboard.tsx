@@ -10,7 +10,7 @@ import {
   createReconciliation,
   fetchReconciliations,
   fetchAllDiscrepancies,
-} from '../../../store/slices/reconciliationSlice';
+} from '../../../features/finance/state/reconciliationCore';
 import type { CreateReconciliationRequest } from '../../../types/reconciliation';
 import { formatDate, formatCurrency } from '../../../utils/format';
 

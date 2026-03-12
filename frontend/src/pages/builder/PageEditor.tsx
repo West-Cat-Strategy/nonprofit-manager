@@ -31,7 +31,7 @@ import {
   updateTemplate,
   setCurrentPage,
   updateCurrentPageSections,
-} from '../../store/slices/templateSlice';
+} from '../../features/builder/state/templateCore';
 import {
   ComponentPalette,
   EditorCanvas,

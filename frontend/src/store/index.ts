@@ -1,15 +1,11 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import authReducer from '../features/auth/state';
-import donationsReducer from './slices/donationsSlice';
-import paymentsReducer from './slices/paymentsSlice';
-import reconciliationReducer from './slices/reconciliationSlice';
-import templatesReducer from './slices/templateSlice';
 import outcomesAdminReducer from './slices/outcomesAdminSlice';
 import outcomesReportsReducer from './slices/outcomesReportsSlice';
-import opportunitiesReducer from './slices/opportunitiesSlice';
 import accountsV2Reducer from '../features/accounts/state';
 import volunteersV2Reducer from '../features/volunteers/state';
 import tasksV2Reducer from '../features/tasks/state';
+import opportunitiesReducer from '../features/engagement/opportunities/state/opportunitiesCore';
 import analyticsV2Reducer from '../features/analytics/state';
 import reportsV2Reducer from '../features/reports/state';
 import savedReportsV2Reducer from '../features/savedReports/state';
@@ -20,6 +16,10 @@ import mailchimpReducer from '../features/mailchimp/state';
 import webhooksReducer from '../features/webhooks/state';
 import alertsReducer from '../features/alerts/state';
 import portalAuthReducer from '../features/portalAuth/state';
+import donationsReducer from '../features/finance/state/donationsCore';
+import paymentsReducer from '../features/finance/state/paymentsCore';
+import reconciliationReducer from '../features/finance/state/reconciliationCore';
+import templateReducer from '../features/builder/state/templateCore';
 import casesV2Reducer from '../features/cases/state';
 import contactsV2Reducer from '../features/contacts/state';
 import websitesReducer from '../features/websites/state';
@@ -46,7 +46,7 @@ export const rootReducer = combineReducers({
   reconciliation: reconciliationReducer,
   mailchimp: mailchimpReducer,
   webhooks: webhooksReducer,
-  templates: templatesReducer,
+  templates: templateReducer,
   casesV2: casesV2Reducer,
   dashboard: dashboardV2Reducer,
   alerts: alertsReducer,
