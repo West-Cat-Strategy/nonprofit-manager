@@ -28,7 +28,10 @@ test.describe('Publishing Workflows', () => {
     authToken,
   }) => {
     const templateId = await createTemplate(authenticatedPage, authToken);
-    const siteId = await createWebsiteSite(authenticatedPage, authToken, templateId);
+    const siteName = `E2E Website ${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    const siteId = await createWebsiteSite(authenticatedPage, authToken, templateId, {
+      name: siteName,
+    });
 
     try {
       await authenticatedPage.goto('/websites', { waitUntil: 'domcontentloaded' });
@@ -39,9 +42,7 @@ test.describe('Publishing Workflows', () => {
       await siteCard.click();
 
       await expect(authenticatedPage).toHaveURL(new RegExp(`/websites/${siteId}/overview$`));
-      await expect(
-        authenticatedPage.getByRole('heading', { name: /e2e website/i })
-      ).toBeVisible();
+      await expect(authenticatedPage.getByText(siteName)).toBeVisible();
 
       await authenticatedPage.getByRole('link', { name: 'Content', exact: true }).click();
       await expect(authenticatedPage).toHaveURL(new RegExp(`/websites/${siteId}/content$`));

@@ -8,7 +8,7 @@ import type {
   OpportunityStage,
   OpportunitySummary,
   UpdateOpportunityDTO,
-} from '../../../types/opportunity';
+} from '../../../../types/opportunity';
 
 interface OpportunityPagination {
   page: number;

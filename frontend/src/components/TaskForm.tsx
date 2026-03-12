@@ -69,7 +69,18 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, isEdit = false }) =
         throw new Error('Subject is required');
       }
 
-      await onSubmit(formData);
+      const normalizedData = { ...formData } as CreateTaskDTO | UpdateTaskDTO;
+      if (!normalizedData.due_date) {
+        delete normalizedData.due_date;
+      } else {
+        const dueDate = new Date(normalizedData.due_date);
+        if (Number.isNaN(dueDate.getTime())) {
+          throw new Error('Invalid due date format');
+        }
+        normalizedData.due_date = dueDate.toISOString();
+      }
+
+      await onSubmit(normalizedData);
       setIsDirty(false);
       navigate('/tasks');
     } catch (err: unknown) {

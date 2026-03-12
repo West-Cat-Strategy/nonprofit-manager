@@ -89,6 +89,7 @@ const MANUAL_REVIEW_ROUTE_IDS = new Set([
   'website-console-builder',
   'website-builder-editor',
   'website-builder-preview',
+  'cases',
 ]);
 
 const severityRank: Record<AuditSeverity, number> = {

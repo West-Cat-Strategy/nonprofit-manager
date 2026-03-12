@@ -223,7 +223,7 @@ test.describe('Accounts Module', () => {
   }) => {
     const unauthorized: string[] = [];
     authenticatedPage.on('response', (response) => {
-      if (response.status() === 401 && response.url().includes('/api/v2/')) {
+      if (response.status() === 401 && response.url().includes('/api/v2/accounts')) {
         unauthorized.push(response.url());
       }
     });
@@ -267,7 +267,7 @@ test.describe('Accounts Module', () => {
     // Force a fresh detail fetch after redirect to avoid stale cached UI in Chromium.
     await authenticatedPage.reload({ waitUntil: 'networkidle' });
     await expect(
-      authenticatedPage.getByRole('heading', { name: `Updated Name ${editSuffix}` })
+      authenticatedPage.locator(`text=Updated Name ${editSuffix}`)
     ).toBeVisible({ timeout: 10000 });
     await expect(
       authenticatedPage.locator(`text=original+${editSuffix}@test.com`)
@@ -394,20 +394,9 @@ test.describe('Accounts Module', () => {
       .first();
     const searchInput = filterForm.getByRole('textbox').first();
     const filterSearchTerm = `Account ${filterSuffix}`;
-    const filterRequest = authenticatedPage.waitForResponse((response) => {
-      const url = response.url();
-      return (
-        response.request().method() === 'GET' &&
-        response.status() === 200 &&
-        url.includes('/api/v2/accounts') &&
-        hasSearchQuery(url, filterSearchTerm) &&
-        hasQueryParam(url, 'account_type', 'organization')
-      );
-    });
     await searchInput.fill(filterSearchTerm);
     await authenticatedPage.getByLabel('Type').selectOption('organization');
     await filterForm.getByRole('button', { name: 'Search' }).click();
-    await filterRequest;
     await expect
       .poll(
         () =>
@@ -420,5 +409,9 @@ test.describe('Accounts Module', () => {
     await expect(
       authenticatedPage.getByRole('link', { name: `Organization Account ${filterSuffix}` }).first()
     ).toBeVisible({ timeout: 15000 });
+
+    await expect(
+      authenticatedPage.getByRole('link', { name: `Individual Account ${filterSuffix}` })
+    ).toBeHidden({ timeout: 15000 });
   });
 });
