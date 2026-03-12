@@ -111,4 +111,46 @@ describe('emailSettingsService', () => {
     expect(updated.smtpHost).toBe('smtp.new');
     expect(updated.isConfigured).toBe(true);
   });
+
+  it('treats explicit blank passwords as cleared credentials', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            smtp_host: 'smtp.a',
+            smtp_user: 'u',
+            smtp_from_address: 'from@x',
+            smtp_pass_encrypted: 'enc',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: '1',
+            smtp_host: 'smtp.a',
+            smtp_port: 587,
+            smtp_secure: false,
+            smtp_user: 'u',
+            smtp_pass_encrypted: null,
+            smtp_from_address: 'from@x',
+            smtp_from_name: null,
+            imap_host: null,
+            imap_port: 993,
+            imap_secure: true,
+            imap_user: null,
+            imap_pass_encrypted: null,
+            is_configured: false,
+            last_tested_at: null,
+            last_test_success: null,
+            created_at: new Date(),
+            updated_at: new Date(),
+          },
+        ],
+      });
+
+    const updated = await updateEmailSettings({ smtpPass: '   ' }, 'u1');
+    expect(updated.isConfigured).toBe(false);
+    expect(mockQuery.mock.calls[1]?.[1]).toContain(null);
+  });
 });
