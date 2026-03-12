@@ -150,6 +150,55 @@ async function waitForContactAvailability(page: Page, token: string, contactId: 
     .toBe(true);
 }
 
+async function waitForContactPhnSuffix(
+  page: Page,
+  token: string,
+  contactId: string,
+  expectedPhn: string
+): Promise<void> {
+  const expectedDigits = expectedPhn.replace(/\D/g, '');
+  const expectedSuffix = expectedDigits.slice(-4);
+
+  await expect
+    .poll(
+      async () => {
+        const headers = await getContactReadHeaders(page, token);
+        const response = await page.request.get(`${apiURL}/api/v2/contacts/${contactId}`, { headers });
+
+        if (!response.ok()) {
+          return null;
+        }
+
+        const payload = (await response.json().catch(() => null)) as unknown;
+        if (!payload || typeof payload !== 'object') {
+          return null;
+        }
+
+        const dataPayload = 'data' in payload && payload.data && typeof payload.data === 'object'
+          ? (payload.data as Record<string, unknown>)
+          : (payload as Record<string, unknown>);
+
+        const phnValue = dataPayload.phn;
+        if (typeof phnValue !== 'string') {
+          return null;
+        }
+
+        const digits = phnValue.replace(/\D/g, '');
+        if (digits === expectedDigits) {
+          return digits;
+        }
+
+        if (digits.length <= 4 && digits.endsWith(expectedSuffix)) {
+          return digits;
+        }
+
+        return null;
+      },
+      { timeout: 30000, intervals: [500, 1000, 2000] }
+    )
+    .not.toBeNull();
+}
+
 async function waitForContactDetailReady(page: Page, headingMatcher?: RegExp): Promise<void> {
   await page.getByText(/loading contact\.\.\./i).waitFor({ state: 'hidden', timeout: 30000 }).catch(() => undefined);
   await expect(page.getByRole('tablist', { name: /contact sections/i })).toBeVisible({ timeout: 30000 });
@@ -263,6 +312,8 @@ test.describe('Contacts Module', () => {
     await authenticatedPage.waitForURL(/\/contacts\/[a-f0-9-]+$/, { timeout: 30000 }).catch(async () => {
       await authenticatedPage.goto(`/contacts/${resolvedContactId}`);
     });
+    await waitForContactPhnSuffix(authenticatedPage, authToken, resolvedContactId, '098-765-4321');
+    await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
     await waitForContactDetailReady(authenticatedPage);
     await expect(authenticatedPage.getByText(/0987654321|\*{2,}4321/i)).toBeVisible();
   });
