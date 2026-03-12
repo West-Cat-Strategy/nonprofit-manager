@@ -15,7 +15,7 @@ import {
   duplicateTemplate,
   setSearchParams,
   clearError,
-} from '../../store/slices/templateSlice';
+} from '../../features/builder/state/templateCore';
 import { TemplateCard } from '../../components/templates';
 import type { TemplateListItem, TemplateCategory, TemplateStatus } from '../../types/websiteBuilder';
 

@@ -18,4 +18,4 @@ export const WebsiteIntegrationsPage = lazy(
 export const WebsitePublishingPage = lazy(
   () => import('../features/websites/pages/WebsitePublishingPage')
 );
-export const WebsiteBuilderPage = lazy(() => import('../pages/builder/PageEditor'));
+export { PageEditor as WebsiteBuilderPage } from '../features/builder/routeComponents';

@@ -18,7 +18,7 @@ import { orgContextMiddleware } from './middleware/orgContext';
 import { legacyApiTombstoneMiddleware } from './middleware/legacyApiTombstone';
 import healthRoutes, { setHealthCheckPool } from '@routes/health';
 import { registerApiRoutes } from '@routes/registrars';
-import { setPaymentPool } from '@controllers/domains';
+import { setPaymentPool } from '@modules/payments';
 import { eventReminderSchedulerService } from '@services/eventReminderSchedulerService';
 import { followUpReminderSchedulerService } from '@services/followUpReminderSchedulerService';
 import { appointmentReminderSchedulerService } from '@services/appointmentReminderSchedulerService';

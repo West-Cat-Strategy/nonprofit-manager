@@ -6,7 +6,7 @@
 import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchDonationById, updateDonation } from '../../../store/slices/donationsSlice';
+import { fetchDonationById, updateDonation } from '../../../features/finance/state/donationsCore';
 import DonationForm from '../../../components/DonationForm';
 import type { UpdateDonationDTO } from '../../../types/donation';
 
