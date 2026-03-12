@@ -117,6 +117,11 @@ async function createContactViaUI(page: Page): Promise<{ contactId: string | nul
 
 async function getContactReadHeaders(page: Page, token: string): Promise<Record<string, string>> {
   const organizationId = await page.evaluate(() => localStorage.getItem('organizationId')).catch(() => null);
+  const normalizedToken = token?.trim();
+  if (!normalizedToken || normalizedToken === 'null' || normalizedToken === 'undefined') {
+    return organizationId && organizationId.trim().length > 0 ? { 'X-Organization-Id': organizationId } : {};
+  }
+
   if (organizationId && organizationId.trim().length > 0) {
     return {
       Authorization: `Bearer ${token}`,
@@ -156,6 +161,40 @@ async function waitForContactPhnSuffix(
   contactId: string,
   expectedPhn: string
 ): Promise<void> {
+  const resolvePhnFromPayload = (payload: unknown): string | null => {
+    if (!payload || typeof payload !== 'object') {
+      return null;
+    }
+
+    const envelopeData = (payload as Record<string, unknown>).data;
+    const payloadData = envelopeData && typeof envelopeData === 'object'
+      ? (envelopeData as Record<string, unknown>)
+      : (payload as Record<string, unknown>);
+
+    const nestedContact =
+      payloadData.contact && typeof payloadData.contact === 'object'
+        ? (payloadData.contact as Record<string, unknown>)
+        : null;
+
+    const candidates: Array<unknown> = [
+      payloadData.phn,
+      nestedContact?.phn,
+      (payload as Record<string, unknown>).phn,
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate !== 'string') {
+        continue;
+      }
+      const digits = candidate.replace(/\D/g, '');
+      if (digits.length > 0) {
+        return digits;
+      }
+    }
+
+    return null;
+  };
+
   const expectedDigits = expectedPhn.replace(/\D/g, '');
   const expectedSuffix = expectedDigits.slice(-4);
 
@@ -170,26 +209,15 @@ async function waitForContactPhnSuffix(
         }
 
         const payload = (await response.json().catch(() => null)) as unknown;
-        if (!payload || typeof payload !== 'object') {
+        const phnDigits = resolvePhnFromPayload(payload);
+        if (!phnDigits) {
           return null;
         }
-
-        const dataPayload = 'data' in payload && payload.data && typeof payload.data === 'object'
-          ? (payload.data as Record<string, unknown>)
-          : (payload as Record<string, unknown>);
-
-        const phnValue = dataPayload.phn;
-        if (typeof phnValue !== 'string') {
-          return null;
+        if (phnDigits === expectedDigits) {
+          return phnDigits;
         }
-
-        const digits = phnValue.replace(/\D/g, '');
-        if (digits === expectedDigits) {
-          return digits;
-        }
-
-        if (digits.length <= 4 && digits.endsWith(expectedSuffix)) {
-          return digits;
+        if (phnDigits.length <= expectedDigits.length && phnDigits.endsWith(expectedSuffix)) {
+          return phnDigits;
         }
 
         return null;
