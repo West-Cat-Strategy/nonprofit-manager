@@ -107,7 +107,12 @@ test.describe('Complete User Workflows', () => {
     await subjectField.fill(taskSubject);
     await expect(subjectField).toHaveValue(taskSubject);
     await authenticatedPage.getByLabel(/priority/i).selectOption('high');
-    await authenticatedPage.getByLabel(/due date/i).fill('2030-01-01T09:00');
+    const dueDateInput = authenticatedPage.getByLabel(/due date/i);
+    await dueDateInput.evaluate((input: HTMLInputElement) => {
+      input.value = '';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
 
     const createResponsePromise = authenticatedPage.waitForResponse(
       (response) =>

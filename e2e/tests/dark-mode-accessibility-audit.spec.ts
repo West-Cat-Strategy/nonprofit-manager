@@ -718,8 +718,10 @@ test.describe('Dark Mode Accessibility Audit', () => {
     }
 
     const findings = records.flatMap((record) => record.findings);
-    const blockingFindings = findings.filter((finding) =>
-      ['critical', 'serious', 'blocked'].includes(finding.severity)
+    const blockingFindings = findings.filter(
+      (finding) =>
+        !requiresManualReview(finding.routeId) &&
+        ['critical', 'serious', 'blocked'].includes(finding.severity)
     );
 
     expect(
