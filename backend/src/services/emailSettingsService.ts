@@ -32,17 +32,17 @@ export interface EmailSettings {
 }
 
 export interface UpdateEmailSettingsDTO {
-  smtpHost?: string;
+  smtpHost?: string | null;
   smtpPort?: number;
   smtpSecure?: boolean;
-  smtpUser?: string;
+  smtpUser?: string | null;
   smtpPass?: string; // plain-text, will be encrypted before storage
-  smtpFromAddress?: string;
-  smtpFromName?: string;
-  imapHost?: string;
+  smtpFromAddress?: string | null;
+  smtpFromName?: string | null;
+  imapHost?: string | null;
   imapPort?: number;
   imapSecure?: boolean;
-  imapUser?: string;
+  imapUser?: string | null;
   imapPass?: string; // plain-text, will be encrypted before storage
 }
 
@@ -126,7 +126,7 @@ export async function hasStoredCredentials(): Promise<{ smtp: boolean; imap: boo
 
 /**
  * Update email settings. Password fields are encrypted if provided.
- * Omitting a password field keeps the existing value.
+ * Omitting a password field keeps the existing value; explicit blank values clear it.
  */
 export async function updateEmailSettings(
   data: UpdateEmailSettingsDTO,
@@ -146,14 +146,18 @@ export async function updateEmailSettings(
   if (data.smtpPort !== undefined) addParam('smtp_port', data.smtpPort);
   if (data.smtpSecure !== undefined) addParam('smtp_secure', data.smtpSecure);
   if (data.smtpUser !== undefined) addParam('smtp_user', data.smtpUser);
-  if (data.smtpPass !== undefined) addParam('smtp_pass_encrypted', encrypt(data.smtpPass));
+  if (data.smtpPass !== undefined) {
+    addParam('smtp_pass_encrypted', data.smtpPass.trim() ? encrypt(data.smtpPass) : null);
+  }
   if (data.smtpFromAddress !== undefined) addParam('smtp_from_address', data.smtpFromAddress);
   if (data.smtpFromName !== undefined) addParam('smtp_from_name', data.smtpFromName);
   if (data.imapHost !== undefined) addParam('imap_host', data.imapHost);
   if (data.imapPort !== undefined) addParam('imap_port', data.imapPort);
   if (data.imapSecure !== undefined) addParam('imap_secure', data.imapSecure);
   if (data.imapUser !== undefined) addParam('imap_user', data.imapUser);
-  if (data.imapPass !== undefined) addParam('imap_pass_encrypted', encrypt(data.imapPass));
+  if (data.imapPass !== undefined) {
+    addParam('imap_pass_encrypted', data.imapPass.trim() ? encrypt(data.imapPass) : null);
+  }
 
   // Determine is_configured based on minimum required SMTP fields
   const smtpHost = data.smtpHost;
@@ -171,7 +175,7 @@ export async function updateEmailSettings(
     const effectiveHost = smtpHost ?? cur.smtp_host;
     const effectiveUser = smtpUser ?? cur.smtp_user;
     const effectiveFrom = smtpFrom ?? cur.smtp_from_address;
-    const effectivePass = smtpPass !== undefined ? true : !!cur.smtp_pass_encrypted;
+    const effectivePass = smtpPass !== undefined ? Boolean(smtpPass.trim()) : !!cur.smtp_pass_encrypted;
 
     const configured = !!(effectiveHost && effectiveUser && effectiveFrom && effectivePass);
     addParam('is_configured', configured);
