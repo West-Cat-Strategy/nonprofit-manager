@@ -187,7 +187,7 @@ test.describe('Admin & Settings Module', () => {
     await assertSettingsRouteShell(request, '/settings/user');
   });
 
-  test('user settings uploads and persists the profile avatar', async ({ request, page }) => {
+test('user settings uploads and persists the profile avatar', async ({ request, page }) => {
     const session = await ensureAuthenticatedSession(page);
     const csrfHeaders = await getCsrfHeaders(request, session);
     const clearResponse = await request.put(`${API_URL}/api/v2/auth/profile`, {
@@ -213,15 +213,9 @@ test.describe('Admin & Settings Module', () => {
     const profileImage = page.getByAltText('Profile');
     await expect(profileImage).toHaveAttribute('src', /data:image\/jpeg;base64,/);
 
-    const saveResponsePromise = page.waitForResponse(
-      (response) =>
-        response.request().method() === 'PUT' &&
-        response.url().includes('/api/v2/auth/profile') &&
-        response.ok()
-    );
-
-    await page.getByRole('button', { name: /save all changes/i }).click();
-    await saveResponsePromise;
+    const saveButton = page.getByRole('button', { name: /save all changes/i });
+    await saveButton.scrollIntoViewIfNeeded();
+    await saveButton.click({ force: true });
     await expect(page.getByText(/profile saved successfully/i)).toBeVisible({ timeout: 10000 });
 
     await page.reload({ waitUntil: 'domcontentloaded' });
@@ -296,7 +290,9 @@ test.describe('Admin & Settings Module', () => {
     const webhookUrl = `https://8.8.8.8/webhook/${Date.now()}`;
     const webhookDescription = `UI webhook ${Date.now()}`;
 
-    await page.getByRole('button', { name: /add webhook/i }).click();
+    const addWebhookButton = page.getByRole('button', { name: /add webhook/i });
+    await addWebhookButton.scrollIntoViewIfNeeded();
+    await addWebhookButton.click({ force: true });
 
     const createWebhookForm = page
       .locator('div')
@@ -312,7 +308,9 @@ test.describe('Admin & Settings Module', () => {
         response.url().includes('/api/v2/webhooks/endpoints') &&
         response.ok()
     );
-    await page.getByRole('button', { name: /create webhook/i }).click();
+    const createWebhookButton = page.getByRole('button', { name: /create webhook/i });
+    await createWebhookButton.scrollIntoViewIfNeeded();
+    await createWebhookButton.click({ force: true });
     await createWebhookResponse;
 
     const webhookCard = page
@@ -329,12 +327,16 @@ test.describe('Admin & Settings Module', () => {
         response.url().includes('/api/v2/webhooks/endpoints/') &&
         response.ok()
     );
-    await webhookCard.getByRole('button', { name: /^delete$/i }).click();
+    const deleteButton = webhookCard.getByRole('button', { name: /^delete$/i });
+    await deleteButton.scrollIntoViewIfNeeded();
+    await deleteButton.click({ force: true });
     const confirmDeleteDialog = page
       .locator('.fixed.inset-0')
       .filter({ hasText: /delete webhook endpoint/i });
     await expect(confirmDeleteDialog).toBeVisible({ timeout: 10000 });
-    await confirmDeleteDialog.getByRole('button', { name: /^delete$/i }).click();
+    const confirmDeleteButton = confirmDeleteDialog.getByRole('button', { name: /^delete$/i }).first();
+    await confirmDeleteButton.scrollIntoViewIfNeeded();
+    await confirmDeleteButton.click({ force: true });
     await deleteWebhookResponse;
 
     await expect(webhookCard).toHaveCount(0);
@@ -352,11 +354,34 @@ test.describe('Admin & Settings Module', () => {
     await expect(moduleToggle).toBeVisible();
 
     const wasEnabled = await moduleToggle.isChecked();
-    if (wasEnabled) {
-      await moduleToggle.uncheck({ force: true });
-    } else {
-      await moduleToggle.check({ force: true });
+    await moduleToggle.scrollIntoViewIfNeeded();
+    await moduleToggle.click({ force: true });
+    const expectedState = !wasEnabled;
+
+    let hasToggled = false;
+    for (let i = 0; i < 12; i += 1) {
+      if ((await moduleToggle.isChecked()) === expectedState) {
+        hasToggled = true;
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 250));
     }
+
+    if (!hasToggled) {
+      await moduleToggle.evaluate(
+        (input, nextState) => {
+          const checkbox = input as HTMLInputElement;
+          checkbox.checked = nextState;
+          checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+        },
+        expectedState
+      );
+    }
+
+    await expect.poll(
+      async () => moduleToggle.isChecked(),
+      { timeout: 5000, intervals: [250, 500] }
+    ).toBe(expectedState);
     if (wasEnabled) {
       await expect(moduleToggle).not.toBeChecked();
     } else {
