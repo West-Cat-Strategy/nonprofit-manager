@@ -6,7 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch } from '../../../store/hooks';
-import { getPaymentIntent, setPaymentSuccess } from '../../../store/slices/paymentsSlice';
+import { getPaymentIntent, setPaymentSuccess } from '../../../features/finance/state/paymentsCore';
 
 type ResultStatus = 'loading' | 'success' | 'processing' | 'failed';
 

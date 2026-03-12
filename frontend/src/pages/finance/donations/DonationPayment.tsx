@@ -14,8 +14,8 @@ import {
   clearPaymentError,
   clearCurrentIntent,
   setPaymentSuccess,
-} from '../../../store/slices/paymentsSlice';
-import { createDonation } from '../../../store/slices/donationsSlice';
+} from '../../../features/finance/state/paymentsCore';
+import { createDonation } from '../../../features/finance/state/donationsCore';
 import api from '../../../services/api';
 import PaymentForm from '../../../components/PaymentForm';
 import type { DonationPaymentData } from '../../../types/payment';

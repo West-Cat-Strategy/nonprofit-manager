@@ -163,6 +163,7 @@ All active work must be **signed out** in the Workboard below before code change
 | P4-T1R6B | Frontend hotspot decomposition (auth ownership + route metadata/catalog removal + root-store cleanup) | Phase 4 | Done | Codex | Mar 8, 2026 | Mar 8, 2026 | main@cd4391c (parent: P4-T1R6; coordinated main-release bundle with `P4-T9C` + `P4-T9F`; deployed and verified from `main@74db868` after the route-catalog typing/build fix cleared the last production blocker. Verification: `make typecheck`, `make build`, `cd frontend && npm test -- src/routes/__tests__/routeCatalog.test.ts src/routes/__tests__/adminRedirects.test.tsx src/routes/__tests__/setupRedirects.test.tsx src/pages/__tests__/admin/AdminSettings.test.tsx src/features/adminOps/components/__tests__/AdminPanelNav.test.tsx src/components/__tests__/Navigation.test.tsx`, live `./scripts/verify.sh`.) |
 | P4-T1R6C | Remaining domain completion (finance/builder/workflows/outcomes + thin backend modules) | Phase 4 | Done | Codex | Mar 8, 2026 | Mar 9, 2026 | main@b915b2a (parent: P4-T1R6) (Remaining domain/module completion is closed on `main`; shared strict closure verification from `P4-T1R6` passed, including `make ci-full` and standalone `cd e2e && npm run test:ci` on the rebuilt CI stack.) |
 | P4-T1R6D | Policy/docs closure and legacy reintroduction ratchets | Phase 4 | Done | Codex | Mar 8, 2026 | Mar 9, 2026 | main@b915b2a (parent: P4-T1R6) (Policy ratchets, route-catalog split, and property-panel decomposition are closed on `main`; shared strict closure verification from `P4-T1R6` passed, including `make ci-full` and standalone `cd e2e && npm run test:ci` on the rebuilt CI stack.) |
+| P4-T1R7 | Compatibility hardening + ownership-map ratchet sweep for remaining seams (`payments`, `finance`, `builder`, `opportunities` seams) | Phase 4 | In Progress | Codex | Mar 11, 2026 | Jun 30, 2026 | codex/p4-t1r7-compat-hardening (backend controllers/routes + frontend state/page route ownership compatibility cleanup, with `backend/src/controllers/paymentController.ts` and shim deprecation ledger updated.) |
 
 ### **P4-T7D Redesign + Contract Changelog (Mar 3, 2026)**
 
@@ -224,6 +225,8 @@ This tracker is now a bounded active-gaps snapshot (updated: March 1, 2026).
 - Canonical-only auth field enforcement target: **July 1, 2026** (no earlier in this phase)
 - Required gate before removal: **30 consecutive days** of zero alias usage telemetry across `register`, `setup`, and `change-password`
 - Current phase policy: compatibility aliases stay enabled; no alias removals
+- Compatibility shim deprecation ledger: [docs/phases/compatibility-shim-deprecation-ledger.md](./compatibility-shim-deprecation-ledger.md)
+- Backend module ownership map: [docs/phases/backend-module-ownership-map.md](./backend-module-ownership-map.md)
 
 ### ✅ Recently Completed (February 1, 2026 - Late Evening + Phase 2 Completion)
 

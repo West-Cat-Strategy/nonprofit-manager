@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { useAppDispatch } from '../../../store/hooks';
-import { createDonation } from '../../../store/slices/donationsSlice';
+import { createDonation } from '../../../features/finance/state/donationsCore';
 import DonationForm from '../../../components/DonationForm';
 import type { CreateDonationDTO, UpdateDonationDTO } from '../../../types/donation';
 

@@ -10,7 +10,7 @@ import {
   fetchDonationById,
   markReceiptSent,
   clearSelectedDonation,
-} from '../../../store/slices/donationsSlice';
+} from '../../../features/finance/state/donationsCore';
 import { formatDateTime, formatCurrency } from '../../../utils/format';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import useConfirmDialog from '../../../hooks/useConfirmDialog';

@@ -6,7 +6,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchDonations } from '../../../store/slices/donationsSlice';
+import { fetchDonations } from '../../../features/finance/state/donationsCore';
 import type { PaymentMethod, PaymentStatus } from '../../../types/donation';
 import { formatDate, formatCurrency } from '../../../utils/format';
 import {

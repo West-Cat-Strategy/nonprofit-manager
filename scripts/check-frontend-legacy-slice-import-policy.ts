@@ -9,9 +9,12 @@ const featuresRoot = path.join(repoRoot, 'frontend/src/features');
 const migratedDomains = new Set([
   'accounts',
   'analytics',
+  'builder',
   'cases',
   'contacts',
+  'engagement',
   'dashboard',
+  'finance',
   'followUps',
   'reports',
   'savedReports',
