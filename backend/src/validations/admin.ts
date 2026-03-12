@@ -4,6 +4,19 @@ import { emailSchema, phoneSchema, uuidSchema, optionalStrictBooleanSchema } fro
 const nullableString = (maxLength = 255) =>
   z.union([z.string().trim().max(maxLength), z.null()]).optional();
 
+const nullableEmailSetting = z.preprocess((value) => {
+  if (value === undefined || value === null) {
+    return value;
+  }
+
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
+}, emailSchema.nullable().optional());
+
 export const adminPendingRegistrationParamsSchema = z.object({
   id: uuidSchema,
 });
@@ -36,7 +49,7 @@ export const updateEmailSettingsSchema = z.object({
   smtpSecure: optionalStrictBooleanSchema,
   smtpUser: nullableString(255),
   smtpPass: z.string().max(255).optional(),
-  smtpFromAddress: z.union([emailSchema, z.literal(''), z.null()]).optional(),
+  smtpFromAddress: nullableEmailSetting,
   smtpFromName: nullableString(255),
   imapHost: nullableString(255),
   imapPort: z.coerce.number().int().min(1).max(65535).optional(),

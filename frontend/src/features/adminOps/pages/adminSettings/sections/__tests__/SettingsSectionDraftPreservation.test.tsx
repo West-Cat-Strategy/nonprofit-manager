@@ -285,6 +285,164 @@ describe('settings section draft preservation', () => {
     });
   });
 
+  it('normalizes email settings payloads before save and omits blank passwords', async () => {
+    const user = userEvent.setup();
+
+    mockedApiClient.get.mockResolvedValueOnce({
+      data: {
+        data: buildFreshInstallEmailSettings(),
+        credentials: {
+          smtp: true,
+          imap: true,
+        },
+      },
+    });
+    mockedApiClient.put.mockResolvedValue({ data: {} });
+    mockedApiClient.get.mockResolvedValueOnce({
+      data: {
+        data: buildFreshInstallEmailSettings(),
+        credentials: {
+          smtp: true,
+          imap: true,
+        },
+      },
+    });
+
+    render(<EmailSettingsSection />);
+
+    await screen.findByText('Email is not configured');
+
+    const smtpHostInput = screen.getByPlaceholderText('smtp.example.com');
+    const smtpUserInput = screen.getAllByPlaceholderText('you@example.com')[0];
+    const smtpPassInput = screen.getAllByLabelText(/^password/i)[0];
+    const smtpFromAddressInput = screen.getByPlaceholderText('noreply@example.com');
+    const smtpFromNameInput = screen.getByPlaceholderText('Nonprofit Manager');
+    const imapHostInput = screen.getByPlaceholderText('imap.example.com');
+    const imapUserInput = screen.getAllByPlaceholderText('you@example.com')[1];
+    const imapPassInput = screen.getAllByLabelText(/^password/i)[1];
+
+    await user.type(smtpHostInput, '   ');
+    await user.type(smtpUserInput, '   ');
+    await user.type(smtpPassInput, '   ');
+    await user.type(smtpFromAddressInput, ' NOREPLY@Example.COM ');
+    await user.type(smtpFromNameInput, '   ');
+    await user.type(imapHostInput, '   ');
+    await user.type(imapUserInput, '   ');
+    await user.type(imapPassInput, '   ');
+
+    await user.click(screen.getByRole('button', { name: /save settings/i }));
+
+    await waitFor(() => {
+      expect(mockedApiClient.put).toHaveBeenCalledTimes(1);
+    });
+
+    const payload = mockedApiClient.put.mock.calls[0]?.[1] as Record<string, unknown>;
+    expect(payload).toMatchObject({
+      smtpHost: null,
+      smtpUser: null,
+      smtpFromAddress: 'noreply@example.com',
+      smtpFromName: null,
+      imapHost: null,
+      imapUser: null,
+    });
+    expect(payload).not.toHaveProperty('smtpPass');
+    expect(payload).not.toHaveProperty('imapPass');
+  });
+
+  it('surfaces canonical validation errors when email settings save fails', async () => {
+    const user = userEvent.setup();
+
+    mockedApiClient.get.mockResolvedValueOnce({
+      data: {
+        data: buildFreshInstallEmailSettings(),
+        credentials: {
+          smtp: false,
+          imap: false,
+        },
+      },
+    });
+    mockedApiClient.put.mockRejectedValue({
+      response: {
+        data: {
+          success: false,
+          error: {
+            code: 'validation_error',
+            message: 'Validation failed',
+            details: {
+              issues: [
+                {
+                  source: 'body',
+                  path: 'smtpFromAddress',
+                  message: 'Invalid email address',
+                  code: 'invalid_format',
+                },
+              ],
+            },
+          },
+          correlationId: 'req-123',
+        },
+      },
+    });
+
+    render(<EmailSettingsSection />);
+
+    const smtpFromAddressInput = await screen.findByPlaceholderText('noreply@example.com');
+    await user.type(smtpFromAddressInput, 'not-an-email');
+    await user.click(screen.getByRole('button', { name: /save settings/i }));
+
+    await waitFor(() => {
+      expect(toastSpy.showError).toHaveBeenCalledWith(
+        'smtpFromAddress: Invalid email address (Ref: req-123)'
+      );
+    });
+  });
+
+  it('blocks save when the SMTP port is outside the valid range', async () => {
+    const user = userEvent.setup();
+
+    mockedApiClient.get.mockResolvedValueOnce({
+      data: {
+        data: buildFreshInstallEmailSettings(),
+        credentials: {
+          smtp: false,
+          imap: false,
+        },
+      },
+    });
+
+    render(<EmailSettingsSection />);
+
+    const smtpPortInput = await screen.findByDisplayValue('587');
+    await user.clear(smtpPortInput);
+    await user.click(screen.getByRole('button', { name: /save settings/i }));
+
+    expect(mockedApiClient.put).not.toHaveBeenCalled();
+    expect(toastSpy.showError).toHaveBeenCalledWith('SMTP port must be between 1 and 65535.');
+  });
+
+  it('blocks save when the IMAP port is outside the valid range', async () => {
+    const user = userEvent.setup();
+
+    mockedApiClient.get.mockResolvedValueOnce({
+      data: {
+        data: buildFreshInstallEmailSettings(),
+        credentials: {
+          smtp: false,
+          imap: false,
+        },
+      },
+    });
+
+    render(<EmailSettingsSection />);
+
+    const imapPortInput = await screen.findByDisplayValue('993');
+    await user.clear(imapPortInput);
+    await user.click(screen.getByRole('button', { name: /save settings/i }));
+
+    expect(mockedApiClient.put).not.toHaveBeenCalled();
+    expect(toastSpy.showError).toHaveBeenCalledWith('IMAP port must be between 1 and 65535.');
+  });
+
   it('preserves Twilio drafts during background refresh and rehydrates after a connection test', async () => {
     const user = userEvent.setup();
     const backgroundFetch = createDeferred<{

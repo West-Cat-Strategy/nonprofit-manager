@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../../../../../services/api';
 import { useToast } from '../../../../../contexts/useToast';
 import { useUnsavedChangesGuard } from '../../../../../hooks/useUnsavedChangesGuard';
+import { formatApiErrorMessage } from '../../../../../utils/apiError';
 
 interface EmailSettings {
   id: string;
@@ -34,6 +35,27 @@ const EMAIL_SETTINGS_CACHE_KEY = 'admin_email_settings_cache_v1';
 const EMAIL_SETTINGS_CACHE_TTL_MS = 2 * 60 * 1000;
 const STARTTLS_SMTP_PORTS = new Set([25, 587, 2525]);
 const IMPLICIT_TLS_SMTP_PORT = 465;
+
+const normalizeOptionalStringInput = (value: string): string | null => {
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
+};
+
+const normalizeOptionalEmailInput = (value: string): string | null => {
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed.toLowerCase();
+};
+
+const normalizeOptionalSecretInput = (value: string): string | undefined =>
+  value.trim().length === 0 ? undefined : value;
+
+const getPortValidationMessage = (label: string, value: number): string | null => {
+  if (!Number.isInteger(value) || value < 1 || value > 65535) {
+    return `${label} must be between 1 and 65535.`;
+  }
+
+  return null;
+};
 
 const inputClass =
   'mt-1 block w-full rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text shadow-sm focus:border-app-border focus:outline-none focus:ring-1 focus:ring-app-accent';
@@ -236,23 +258,38 @@ export default function EmailSettingsSection() {
 
   // ---- Save ----
   const handleSave = async () => {
+    const smtpPortError = getPortValidationMessage('SMTP port', smtpPort);
+    if (smtpPortError) {
+      showError(smtpPortError);
+      return;
+    }
+
+    const imapPortError = getPortValidationMessage('IMAP port', imapPort);
+    if (imapPortError) {
+      showError(imapPortError);
+      return;
+    }
+
     setSaving(true);
     try {
       const payload: Record<string, unknown> = {
-        smtpHost,
+        smtpHost: normalizeOptionalStringInput(smtpHost),
         smtpPort,
         smtpSecure,
-        smtpUser,
-        smtpFromAddress,
-        smtpFromName,
-        imapHost,
+        smtpUser: normalizeOptionalStringInput(smtpUser),
+        smtpFromAddress: normalizeOptionalEmailInput(smtpFromAddress),
+        smtpFromName: normalizeOptionalStringInput(smtpFromName),
+        imapHost: normalizeOptionalStringInput(imapHost),
         imapPort,
         imapSecure,
-        imapUser,
+        imapUser: normalizeOptionalStringInput(imapUser),
       };
-      // Only include passwords if the user typed something
-      if (smtpPass) payload.smtpPass = smtpPass;
-      if (imapPass) payload.imapPass = imapPass;
+      const normalizedSmtpPass = normalizeOptionalSecretInput(smtpPass);
+      const normalizedImapPass = normalizeOptionalSecretInput(imapPass);
+
+      // Only include passwords if the user typed a non-empty value.
+      if (normalizedSmtpPass) payload.smtpPass = normalizedSmtpPass;
+      if (normalizedImapPass) payload.imapPass = normalizedImapPass;
 
       await api.put('/admin/email-settings', payload);
       showSuccess('Email settings saved');
@@ -260,8 +297,8 @@ export default function EmailSettingsSection() {
       setImapPass('');
       setLastSavedAt(new Date());
       await fetchSettings();
-    } catch {
-      showError('Failed to save email settings');
+    } catch (error) {
+      showError(formatApiErrorMessage(error, 'Failed to save email settings'));
     } finally {
       setSaving(false);
     }

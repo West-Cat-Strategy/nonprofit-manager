@@ -12,6 +12,25 @@ import { testSmtpConnection } from '@services/emailService';
 import { forbidden } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
 
+const normalizeOptionalString = (value: unknown): string | null | undefined => {
+  if (value === undefined || value === null) {
+    return value as null | undefined;
+  }
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
+};
+
+const normalizeOptionalSecret = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  return value.trim().length === 0 ? undefined : value;
+};
+
 /**
  * GET /api/admin/email-settings
  * Return the current email settings (passwords excluded).
@@ -55,35 +74,20 @@ export const updateEmailSettings = async (
       return forbidden(res, 'Admin access required');
     }
 
-    const {
-      smtpHost,
-      smtpPort,
-      smtpSecure,
-      smtpUser,
-      smtpPass,
-      smtpFromAddress,
-      smtpFromName,
-      imapHost,
-      imapPort,
-      imapSecure,
-      imapUser,
-      imapPass,
-    } = req.body;
-
     const updated = await emailSettingsService.updateEmailSettings(
       {
-        smtpHost,
-        smtpPort,
-        smtpSecure,
-        smtpUser,
-        smtpPass,
-        smtpFromAddress,
-        smtpFromName,
-        imapHost,
-        imapPort,
-        imapSecure,
-        imapUser,
-        imapPass,
+        smtpHost: normalizeOptionalString(req.body.smtpHost),
+        smtpPort: req.body.smtpPort,
+        smtpSecure: req.body.smtpSecure,
+        smtpUser: normalizeOptionalString(req.body.smtpUser),
+        smtpPass: normalizeOptionalSecret(req.body.smtpPass),
+        smtpFromAddress: normalizeOptionalString(req.body.smtpFromAddress),
+        smtpFromName: normalizeOptionalString(req.body.smtpFromName),
+        imapHost: normalizeOptionalString(req.body.imapHost),
+        imapPort: req.body.imapPort,
+        imapSecure: req.body.imapSecure,
+        imapUser: normalizeOptionalString(req.body.imapUser),
+        imapPass: normalizeOptionalSecret(req.body.imapPass),
       },
       req.user.id
     );
