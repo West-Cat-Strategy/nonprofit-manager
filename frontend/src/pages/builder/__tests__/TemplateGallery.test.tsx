@@ -62,7 +62,7 @@ vi.mock('react-redux', async (importOriginal) => {
   };
 });
 
-vi.mock('../../../store/slices/templateSlice', () => ({
+vi.mock('../../../features/builder/state', () => ({
   createTemplate: templateSliceMocks.createTemplate,
   searchTemplates: templateSliceMocks.searchTemplates,
   fetchSystemTemplates: templateSliceMocks.fetchSystemTemplates,

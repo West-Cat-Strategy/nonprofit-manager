@@ -5,7 +5,7 @@ import app from '../../index';
 import pool from '@config/database';
 import { getJwtSecret } from '@config/jwt';
 import { randomUUID } from 'crypto';
-import { handleWebhook, setPaymentPool } from '@controllers/paymentController';
+import { handleWebhook, setPaymentPool } from '@modules/payments/controllers/paymentController';
 import { stripeService } from '@services/domains/operations';
 
 type GuardrailCase = {
