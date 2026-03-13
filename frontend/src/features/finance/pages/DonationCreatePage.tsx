@@ -1,9 +1,32 @@
 /**
- * MODULE-OWNERSHIP: finance route-mounted page facade
+ * MODULE-OWNERSHIP: finance page
  *
- * Legacy facade for compatibility mounts while feature-owned pages are fully
- * migrated and route-owned state is stabilized.
- *
- * @deprecated Route consumers should migrate to a feature-owned page implementation.
+ * Canonical donation create implementation for feature-owned finance routes.
  */
-export { default } from '../../../pages/finance/donations/DonationCreate';
+
+import React from 'react';
+import { useAppDispatch } from '../../../store/hooks';
+import { createDonation } from '../state';
+import DonationForm from '../../../components/DonationForm';
+import type { CreateDonationDTO, UpdateDonationDTO } from '../../../types/donation';
+
+const DonationCreate: React.FC = () => {
+  const dispatch = useAppDispatch();
+
+  const handleSubmit = async (donationData: CreateDonationDTO | UpdateDonationDTO) => {
+    await dispatch(createDonation(donationData as CreateDonationDTO)).unwrap();
+  };
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-app-text">Record New Donation</h1>
+        <p className="mt-2 text-app-text-muted">Enter the donation details below.</p>
+      </div>
+
+      <DonationForm onSubmit={handleSubmit} />
+    </div>
+  );
+};
+
+export default DonationCreate;

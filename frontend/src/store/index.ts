@@ -5,7 +5,7 @@ import outcomesReportsReducer from './slices/outcomesReportsSlice';
 import accountsV2Reducer from '../features/accounts/state';
 import volunteersV2Reducer from '../features/volunteers/state';
 import tasksV2Reducer from '../features/tasks/state';
-import opportunitiesReducer from '../features/engagement/opportunities/state/opportunitiesCore';
+import opportunitiesReducer from '../features/engagement/opportunities/state';
 import analyticsV2Reducer from '../features/analytics/state';
 import reportsV2Reducer from '../features/reports/state';
 import savedReportsV2Reducer from '../features/savedReports/state';
@@ -16,10 +16,12 @@ import mailchimpReducer from '../features/mailchimp/state';
 import webhooksReducer from '../features/webhooks/state';
 import alertsReducer from '../features/alerts/state';
 import portalAuthReducer from '../features/portalAuth/state';
-import donationsReducer from '../features/finance/state/donationsCore';
-import paymentsReducer from '../features/finance/state/paymentsCore';
-import reconciliationReducer from '../features/finance/state/reconciliationCore';
-import templateReducer from '../features/builder/state/templateCore';
+import {
+  donationsReducer,
+  paymentsReducer,
+  reconciliationReducer,
+} from '../features/finance/state';
+import templateReducer from '../features/builder/state';
 import casesV2Reducer from '../features/cases/state';
 import contactsV2Reducer from '../features/contacts/state';
 import websitesReducer from '../features/websites/state';

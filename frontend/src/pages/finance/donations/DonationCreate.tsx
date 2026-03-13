@@ -1,31 +1,8 @@
 /**
- * DonationCreate Page
- * Page for creating a new donation
+ * MODULE-OWNERSHIP: finance compatibility page wrapper
+ *
+ * Canonical implementation lives in `frontend/src/features/finance/pages/DonationCreatePage.tsx`.
+ *
+ * @deprecated Import the feature-owned page when touching finance routes.
  */
-
-import React from 'react';
-import { useAppDispatch } from '../../../store/hooks';
-import { createDonation } from '../../../features/finance/state/donationsCore';
-import DonationForm from '../../../components/DonationForm';
-import type { CreateDonationDTO, UpdateDonationDTO } from '../../../types/donation';
-
-const DonationCreate: React.FC = () => {
-  const dispatch = useAppDispatch();
-
-  const handleSubmit = async (donationData: CreateDonationDTO | UpdateDonationDTO) => {
-    await dispatch(createDonation(donationData as CreateDonationDTO)).unwrap();
-  };
-
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-app-text">Record New Donation</h1>
-        <p className="mt-2 text-app-text-muted">Enter the donation details below.</p>
-      </div>
-
-      <DonationForm onSubmit={handleSubmit} />
-    </div>
-  );
-};
-
-export default DonationCreate;
+export { default } from '../../../features/finance/pages/DonationCreatePage';
