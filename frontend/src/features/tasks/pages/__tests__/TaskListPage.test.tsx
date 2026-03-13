@@ -1,6 +1,6 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
+import { act, type ReactNode } from 'react';
 import userEvent from '@testing-library/user-event';
-import type { ReactNode } from 'react';
 import { vi } from 'vitest';
 import TaskList from '../TaskListPage';
 import { renderWithProviders } from '../../../../test/testUtils';
@@ -41,6 +41,10 @@ describe('TaskList page', () => {
     localStorage.clear();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('renders tasks heading and quick filters', async () => {
     const user = userEvent.setup();
     renderWithProviders(<TaskList />);
@@ -73,5 +77,46 @@ describe('TaskList page', () => {
         page: 1,
       },
     });
+  });
+
+  it('debounces free-text search before dispatching another fetch', async () => {
+    vi.useFakeTimers();
+
+    renderWithProviders(<TaskList />);
+
+    const getFetchActions = () =>
+      dispatchMock.mock.calls
+        .map(([action]) => action)
+        .filter((action) => action.type === 'tasks/fetch');
+
+    expect(getFetchActions()).toHaveLength(1);
+
+    dispatchMock.mockClear();
+
+    const searchInput = screen.getByLabelText('Search tasks');
+    fireEvent.change(searchInput, { target: { value: 'g' } });
+    fireEvent.change(searchInput, { target: { value: 'gr' } });
+    fireEvent.change(searchInput, { target: { value: 'gra' } });
+    fireEvent.change(searchInput, { target: { value: 'grant' } });
+
+    expect(getFetchActions()).toHaveLength(0);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+
+    expect(getFetchActions()).toHaveLength(1);
+    expect(getFetchActions()[0]).toEqual({
+      type: 'tasks/fetch',
+      payload: {
+        search: 'grant',
+        status: undefined,
+        priority: undefined,
+        overdue: false,
+        page: 1,
+      },
+    });
+
+    vi.useRealTimers();
   });
 });

@@ -37,17 +37,17 @@ describe('AccountService', () => {
   describe('getAccounts', () => {
     it('should return paginated accounts with default pagination', async () => {
       const mockAccounts = [
-        { account_id: '1', account_name: 'Test Org', account_type: 'organization' },
-        { account_id: '2', account_name: 'John Doe', account_type: 'individual' },
+        { account_id: '1', account_name: 'Test Org', account_type: 'organization', total_count: 2 },
+        { account_id: '2', account_name: 'John Doe', account_type: 'individual', total_count: 2 },
       ];
 
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '2' }] }) // count query
-        .mockResolvedValueOnce({ rows: mockAccounts }); // data query
+      mockQuery.mockResolvedValueOnce({ rows: mockAccounts });
 
       const result = await accountService.getAccounts();
 
-      expect(result.data).toEqual(mockAccounts);
+      expect(result.data).toEqual(
+        mockAccounts.map(({ total_count: _totalCount, ...account }) => account)
+      );
       expect(result.pagination.total).toBe(2);
       expect(result.pagination.page).toBe(1);
       expect(result.pagination.limit).toBe(20);
@@ -55,45 +55,38 @@ describe('AccountService', () => {
     });
 
     it('should apply search filter correctly', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '1' }] })
-        .mockResolvedValueOnce({ rows: [{ account_id: '1', account_name: 'Test Org' }] });
+      mockQuery.mockResolvedValueOnce({ rows: [{ account_id: '1', account_name: 'Test Org', total_count: 1 }] });
 
       await accountService.getAccounts({ search: 'Test' });
 
-      expect(mockQuery).toHaveBeenCalledTimes(2);
-      const countCall = mockQuery.mock.calls[0];
-      expect(countCall[1]).toContain('%Test%');
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+      const queryCall = mockQuery.mock.calls[0];
+      expect(queryCall[0]).toContain("concat_ws(' ', account_name, email, account_number)");
+      expect(queryCall[1]).toContain('%Test%');
     });
 
     it('should apply account_type filter correctly', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '1' }] })
-        .mockResolvedValueOnce({ rows: [{ account_id: '1', account_type: 'organization' }] });
+      mockQuery.mockResolvedValueOnce({ rows: [{ account_id: '1', account_type: 'organization', total_count: 1 }] });
 
       await accountService.getAccounts({ account_type: AccountType.ORGANIZATION });
 
-      expect(mockQuery).toHaveBeenCalledTimes(2);
-      const countCall = mockQuery.mock.calls[0];
-      expect(countCall[1]).toContain('organization');
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+      const queryCall = mockQuery.mock.calls[0];
+      expect(queryCall[1]).toContain('organization');
     });
 
     it('should apply is_active filter correctly', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '1' }] })
-        .mockResolvedValueOnce({ rows: [{ account_id: '1', is_active: true }] });
+      mockQuery.mockResolvedValueOnce({ rows: [{ account_id: '1', is_active: true, total_count: 1 }] });
 
       await accountService.getAccounts({ is_active: true });
 
-      expect(mockQuery).toHaveBeenCalledTimes(2);
-      const countCall = mockQuery.mock.calls[0];
-      expect(countCall[1]).toContain(true);
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+      const queryCall = mockQuery.mock.calls[0];
+      expect(queryCall[1]).toContain(true);
     });
 
     it('should handle custom pagination', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '50' }] })
-        .mockResolvedValueOnce({ rows: [] });
+      mockQuery.mockResolvedValueOnce({ rows: [{ account_id: '1', total_count: 50 }] });
 
       const result = await accountService.getAccounts({}, { page: 3, limit: 10 });
 

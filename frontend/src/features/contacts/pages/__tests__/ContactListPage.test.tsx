@@ -1,4 +1,5 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
+import { act, type ReactNode } from 'react';
 import { vi } from 'vitest';
 import ContactList from '../ContactListPage';
 import { renderWithProviders } from '../../../../test/testUtils';
@@ -42,8 +43,28 @@ vi.mock('../../../../features/contacts/state', () => ({
 }));
 
 vi.mock('../../../../components/people', () => ({
-  PeopleListContainer: () => <div>Contact List</div>,
-  FilterPanel: () => <div>Filter Panel</div>,
+  PeopleListContainer: ({ filters }: { filters?: ReactNode }) => (
+    <div>
+      <div>Contact List</div>
+      {filters}
+    </div>
+  ),
+  FilterPanel: ({
+    fields,
+    onFilterChange,
+  }: {
+    fields: Array<{ id: string; ariaLabel?: string; value?: string }>;
+    onFilterChange: (id: string, value: string) => void;
+  }) => {
+    const searchField = fields.find((field) => field.id === 'search');
+    return (
+      <input
+        aria-label={searchField?.ariaLabel || 'Search contacts'}
+        value={searchField?.value || ''}
+        onChange={(event) => onFilterChange('search', event.target.value)}
+      />
+    );
+  },
   BulkActionBar: () => <div>Bulk Bar</div>,
   ImportExportModal: (props: unknown) => {
     importExportModalMock(props);
@@ -80,6 +101,10 @@ describe('ContactList page', () => {
     localStorage.clear();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('sanitizes invalid URL filters before dispatching the initial load', () => {
     renderWithProviders(<ContactList />, {
       route: '/contacts?type=unknown&status=broken&page=0&limit=-3&sort_order=sideways',
@@ -99,5 +124,46 @@ describe('ContactList page', () => {
       },
     });
     expect(dispatchMock).toHaveBeenCalledWith({ type: 'contacts/fetchTags' });
+  });
+
+  it('debounces free-text search before dispatching another fetch', async () => {
+    vi.useFakeTimers();
+
+    renderWithProviders(<ContactList />);
+
+    const getFetchActions = () =>
+      dispatchMock.mock.calls
+        .map(([action]) => action)
+        .filter((action) => action.type === 'contacts/fetchContacts');
+
+    expect(getFetchActions()).toHaveLength(1);
+
+    const searchInput = screen.getByLabelText('Search contacts');
+    fireEvent.change(searchInput, { target: { value: 'a' } });
+    fireEvent.change(searchInput, { target: { value: 'al' } });
+    fireEvent.change(searchInput, { target: { value: 'ale' } });
+    fireEvent.change(searchInput, { target: { value: 'alex' } });
+
+    expect(getFetchActions()).toHaveLength(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+
+    expect(getFetchActions()).toHaveLength(2);
+    expect(getFetchActions()[1]).toEqual({
+      type: 'contacts/fetchContacts',
+      payload: {
+        page: 1,
+        limit: 20,
+        search: 'alex',
+        is_active: undefined,
+        role: undefined,
+        sort_by: 'created_at',
+        sort_order: 'desc',
+      },
+    });
+
+    vi.useRealTimers();
   });
 });

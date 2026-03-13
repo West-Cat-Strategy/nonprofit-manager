@@ -1,38 +1,22 @@
 import { Pool } from 'pg';
-import {
-  Contact,
-  CreateContactDTO,
-  UpdateContactDTO,
-  ContactFilters,
-  ContactLookupItem,
-  PaginationParams,
-  PaginatedContacts,
-} from '@app-types/contact';
+import { Contact, CreateContactDTO, UpdateContactDTO, ContactFilters, ContactLookupItem, PaginationParams, PaginatedContacts } from '@app-types/contact';
 import { logger } from '@config/logger';
 import { resolveContactRoleNames } from '@modules/contacts/shared/contactRoleFilters';
 import { resolveSort } from '@utils/queryHelpers';
 import { decrypt, encrypt } from '@utils/encryption';
 import type { DataScopeFilter } from '@app-types/dataScope';
-import {
-  syncContactMethodSummaries,
-  syncStructuredContactMethodsFromSummary,
-} from '@services/contactMethodSyncService';
+import { syncContactMethodSummaries, syncStructuredContactMethodsFromSummary } from '@services/contactMethodSyncService';
 
 type QueryValue = string | number | boolean | null | string[] | Date;
 type ViewerRole = string | undefined;
-type ContactRecord = Omit<Contact, 'birth_date' | 'phn'> & {
-  birth_date?: string | Date | null;
-  phn?: string | null;
-  phn_encrypted?: string | null;
-};
+type ContactRecord = Omit<Contact, 'birth_date' | 'phn'> & { birth_date?: string | Date | null; phn?: string | null; phn_encrypted?: string | null; total_count?: number | string };
 const PHN_FULL_ACCESS_ROLES = new Set(['admin', 'manager', 'staff']);
+const CONTACT_SEARCH_SQL = `concat_ws(' ', c.first_name, c.preferred_name, c.last_name, c.email, c.phone, c.mobile_phone)`;
 
 export class ContactService {
   private pool: Pool;
 
-  constructor(pool: Pool) {
-    this.pool = pool;
-  }
+  constructor(pool: Pool) { this.pool = pool; }
 
   private normalizePhn(phn: unknown): string | null | undefined {
     if (phn === undefined) {
@@ -141,6 +125,7 @@ export class ContactService {
       phn,
     };
   }
+
   async getContacts(
     filters: ContactFilters = {},
     pagination: PaginationParams = {},
@@ -152,12 +137,12 @@ export class ContactService {
       const limit = pagination.limit || 20;
       const offset = (page - 1) * limit;
       const sortColumnMap: Record<string, string> = {
-        created_at: 'c.created_at',
-        updated_at: 'c.updated_at',
-        first_name: 'c.first_name',
-        last_name: 'c.last_name',
-        email: 'c.email',
-        account_name: 'a.account_name',
+        created_at: 'created_at',
+        updated_at: 'updated_at',
+        first_name: 'first_name',
+        last_name: 'last_name',
+        email: 'email',
+        account_name: 'account_name',
       };
       const { sortColumn, sortOrder } = resolveSort(
         pagination.sort_by,
@@ -172,16 +157,7 @@ export class ContactService {
       let paramCounter = 1;
 
       if (filters.search) {
-        conditions.push(`(
-          c.first_name ILIKE $${paramCounter} OR
-          c.preferred_name ILIKE $${paramCounter} OR
-          c.last_name ILIKE $${paramCounter} OR
-          c.email ILIKE $${paramCounter} OR
-          c.phone ILIKE $${paramCounter} OR
-          c.mobile_phone ILIKE $${paramCounter} OR
-          CONCAT(c.first_name, ' ', c.last_name) ILIKE $${paramCounter} OR
-          CONCAT(COALESCE(c.preferred_name, ''), ' ', c.last_name) ILIKE $${paramCounter}
-        )`);
+        conditions.push(`${CONTACT_SEARCH_SQL} ILIKE $${paramCounter}`);
         values.push(`%${filters.search}%`);
         paramCounter++;
       }
@@ -237,83 +213,115 @@ export class ContactService {
       }
 
       const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-
-      // Get total count
-      const countQuery = `SELECT COUNT(*) FROM contacts c ${whereClause}`;
-      const countResult = await this.pool.query(countQuery, values);
-      const total = parseInt(countResult.rows[0].count);
-
-      // Get paginated data with account info and aggregated counts
-      // Using LEFT JOINs with GROUP BY instead of correlated subqueries for better performance
       const dataQuery = `
+        WITH filtered_contacts AS (
+          SELECT
+            c.id as contact_id,
+            c.account_id,
+            c.first_name,
+            c.preferred_name,
+            c.last_name,
+            c.middle_name,
+            c.salutation,
+            c.suffix,
+            c.birth_date,
+            c.gender,
+            c.pronouns,
+            c.phn_encrypted,
+            c.email,
+            c.phone,
+            c.mobile_phone,
+            c.job_title,
+            c.department,
+            c.preferred_contact_method,
+            c.do_not_email,
+            c.do_not_phone,
+            c.do_not_text,
+            c.do_not_voicemail,
+            c.address_line1,
+            c.address_line2,
+            c.city,
+            c.state_province,
+            c.postal_code,
+            c.country,
+            c.no_fixed_address,
+            c.notes,
+            c.tags,
+            c.is_active,
+            c.created_at,
+            c.updated_at,
+            c.created_by,
+            c.modified_by,
+            a.account_name
+          FROM contacts c
+          LEFT JOIN accounts a ON c.account_id = a.id
+          ${whereClause}
+        ),
+        paged_contacts AS (
+          SELECT
+            fc.*,
+            COUNT(*) OVER()::int AS total_count
+          FROM filtered_contacts fc
+          ORDER BY ${sortColumn} ${sortOrder}
+          LIMIT $${paramCounter} OFFSET $${paramCounter + 1}
+        ),
+        phone_counts AS (
+          SELECT contact_id, COUNT(*)::int AS cnt
+          FROM contact_phone_numbers
+          WHERE contact_id IN (SELECT contact_id FROM paged_contacts)
+          GROUP BY contact_id
+        ),
+        email_counts AS (
+          SELECT contact_id, COUNT(*)::int AS cnt
+          FROM contact_email_addresses
+          WHERE contact_id IN (SELECT contact_id FROM paged_contacts)
+          GROUP BY contact_id
+        ),
+        rel_counts AS (
+          SELECT contact_id, COUNT(*)::int AS cnt
+          FROM contact_relationships
+          WHERE is_active = true
+            AND contact_id IN (SELECT contact_id FROM paged_contacts)
+          GROUP BY contact_id
+        ),
+        note_counts AS (
+          SELECT contact_id, COUNT(*)::int AS cnt
+          FROM contact_notes
+          WHERE contact_id IN (SELECT contact_id FROM paged_contacts)
+          GROUP BY contact_id
+        ),
+        role_names AS (
+          SELECT
+            cra.contact_id,
+            ARRAY_AGG(cr.name ORDER BY cr.name) AS roles
+          FROM contact_role_assignments cra
+          INNER JOIN contact_roles cr ON cr.id = cra.role_id
+          WHERE cra.contact_id IN (SELECT contact_id FROM paged_contacts)
+          GROUP BY cra.contact_id
+        )
         SELECT
-          c.id as contact_id,
-          c.account_id,
-          c.first_name,
-          c.preferred_name,
-          c.last_name,
-          c.middle_name,
-          c.salutation,
-          c.suffix,
-          c.birth_date,
-          c.gender,
-          c.pronouns,
-          c.phn_encrypted,
-          c.email,
-          c.phone,
-          c.mobile_phone,
-          c.job_title,
-          c.department,
-          c.preferred_contact_method,
-          c.do_not_email,
-          c.do_not_phone,
-          c.do_not_text,
-          c.do_not_voicemail,
-          c.address_line1,
-          c.address_line2,
-          c.city,
-          c.state_province,
-          c.postal_code,
-          c.country,
-          c.no_fixed_address,
-          c.notes,
-          c.tags,
-          c.is_active,
-          c.created_at,
-          c.updated_at,
-          a.account_name,
+          pc.*,
           COALESCE(phone_counts.cnt, 0) as phone_count,
           COALESCE(email_counts.cnt, 0) as email_count,
           COALESCE(rel_counts.cnt, 0) as relationship_count,
           COALESCE(note_counts.cnt, 0) as note_count,
-          COALESCE(
-            (SELECT ARRAY_AGG(cr.name) FROM contact_role_assignments cra
-             JOIN contact_roles cr ON cr.id = cra.role_id
-             WHERE cra.contact_id = c.id),
-            ARRAY[]::text[]
-          ) as roles
-        FROM contacts c
-        LEFT JOIN accounts a ON c.account_id = a.id
-        LEFT JOIN (
-          SELECT contact_id, COUNT(*) as cnt FROM contact_phone_numbers GROUP BY contact_id
-        ) phone_counts ON phone_counts.contact_id = c.id
-        LEFT JOIN (
-          SELECT contact_id, COUNT(*) as cnt FROM contact_email_addresses GROUP BY contact_id
-        ) email_counts ON email_counts.contact_id = c.id
-        LEFT JOIN (
-          SELECT contact_id, COUNT(*) as cnt FROM contact_relationships WHERE is_active = true GROUP BY contact_id
-        ) rel_counts ON rel_counts.contact_id = c.id
-        LEFT JOIN (
-          SELECT contact_id, COUNT(*) as cnt FROM contact_notes GROUP BY contact_id
-        ) note_counts ON note_counts.contact_id = c.id
-        ${whereClause}
+          COALESCE(role_names.roles, ARRAY[]::text[]) as roles
+        FROM paged_contacts pc
+        LEFT JOIN phone_counts ON phone_counts.contact_id = pc.contact_id
+        LEFT JOIN email_counts ON email_counts.contact_id = pc.contact_id
+        LEFT JOIN rel_counts ON rel_counts.contact_id = pc.contact_id
+        LEFT JOIN note_counts ON note_counts.contact_id = pc.contact_id
+        LEFT JOIN role_names ON role_names.contact_id = pc.contact_id
         ORDER BY ${sortColumn} ${sortOrder}
-        LIMIT $${paramCounter} OFFSET $${paramCounter + 1}
       `;
       const dataResult = await this.pool.query(dataQuery, [...values, limit, offset]);
+      const rows = dataResult.rows as ContactRecord[];
+      const total = rows.length > 0 ? Number(rows[0].total_count ?? 0) : 0;
 
       return {
-        data: dataResult.rows.map((row) => this.mapContactRow(row as ContactRecord, viewerRole)),
+        data: rows.map(({ total_count: _totalCount, ...row }) =>
+          this.mapContactRow(row as ContactRecord, viewerRole)
+        ),
         pagination: {
           total,
           page,
@@ -326,6 +334,7 @@ export class ContactService {
       throw Object.assign(new Error('Failed to retrieve contacts'), { cause: error });
     }
   }
+
   async lookupContacts(
     query: { q: string; limit?: number; is_active?: boolean },
     scope?: DataScopeFilter
@@ -341,16 +350,7 @@ export class ContactService {
       const values: QueryValue[] = [];
       let paramCounter = 1;
 
-      conditions.push(`(
-        c.first_name ILIKE $${paramCounter} OR
-        c.preferred_name ILIKE $${paramCounter} OR
-        c.last_name ILIKE $${paramCounter} OR
-        c.email ILIKE $${paramCounter} OR
-        c.phone ILIKE $${paramCounter} OR
-        c.mobile_phone ILIKE $${paramCounter} OR
-        CONCAT(c.first_name, ' ', c.last_name) ILIKE $${paramCounter} OR
-        CONCAT(COALESCE(c.preferred_name, ''), ' ', c.last_name) ILIKE $${paramCounter}
-      )`);
+      conditions.push(`${CONTACT_SEARCH_SQL} ILIKE $${paramCounter}`);
       values.push(`%${searchTerm}%`);
       paramCounter++;
 
@@ -416,6 +416,7 @@ export class ContactService {
       throw Object.assign(new Error('Failed to lookup contacts'), { cause: error });
     }
   }
+
   async getContactTags(scope?: DataScopeFilter): Promise<string[]> {
     try {
       const conditions: string[] = [];
@@ -458,6 +459,7 @@ export class ContactService {
       throw Object.assign(new Error('Failed to retrieve contact tags'), { cause: error });
     }
   }
+
   async getContactById(contactId: string, viewerRole?: ViewerRole): Promise<Contact | null> {
     try {
       const result = await this.pool.query(
@@ -609,6 +611,7 @@ export class ContactService {
       throw Object.assign(new Error('Failed to retrieve contact'), { cause: error });
     }
   }
+
   async createContact(data: CreateContactDTO, userId: string, viewerRole?: ViewerRole): Promise<Contact> {
     try {
       const normalizedPhn = this.normalizePhn(data.phn);
@@ -697,6 +700,7 @@ export class ContactService {
       throw Object.assign(new Error('Failed to create contact'), { cause: error });
     }
   }
+
   async updateContact(
     contactId: string,
     data: UpdateContactDTO,
@@ -801,6 +805,7 @@ export class ContactService {
       throw Object.assign(new Error('Failed to update contact'), { cause: error });
     }
   }
+
   async bulkUpdateContacts(
     contactIds: string[],
     options: {
@@ -866,6 +871,7 @@ export class ContactService {
       throw Object.assign(new Error('Failed to bulk update contacts'), { cause: error });
     }
   }
+
   async deleteContact(contactId: string, userId: string): Promise<boolean> {
     try {
       const result = await this.pool.query(

@@ -51,13 +51,11 @@ describe('ContactService', () => {
   describe('getContacts', () => {
     it('should return paginated contacts with default pagination', async () => {
       const mockContacts = [
-        { contact_id: '1', first_name: 'John', last_name: 'Doe' },
-        { contact_id: '2', first_name: 'Jane', last_name: 'Smith' },
+        { contact_id: '1', first_name: 'John', last_name: 'Doe', total_count: 2 },
+        { contact_id: '2', first_name: 'Jane', last_name: 'Smith', total_count: 2 },
       ];
 
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '2' }] })
-        .mockResolvedValueOnce({ rows: mockContacts });
+      mockQuery.mockResolvedValueOnce({ rows: mockContacts });
 
       const result = await contactService.getContacts();
 
@@ -71,53 +69,46 @@ describe('ContactService', () => {
     });
 
     it('should apply search filter correctly', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '1' }] })
-        .mockResolvedValueOnce({ rows: [{ contact_id: '1', first_name: 'John' }] });
+      mockQuery.mockResolvedValueOnce({ rows: [{ contact_id: '1', first_name: 'John', total_count: 1 }] });
 
       await contactService.getContacts({ search: 'John' });
 
-      expect(mockQuery).toHaveBeenCalledTimes(2);
-      const countCall = mockQuery.mock.calls[0];
-      expect(countCall[1]).toContain('%John%');
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+      const queryCall = mockQuery.mock.calls[0];
+      expect(queryCall[0]).toContain("concat_ws(' ', c.first_name, c.preferred_name, c.last_name, c.email, c.phone, c.mobile_phone)");
+      expect(queryCall[1]).toContain('%John%');
     });
 
     it('should apply account_id filter correctly', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '1' }] })
-        .mockResolvedValueOnce({ rows: [{ contact_id: '1', account_id: 'acc-123' }] });
+      mockQuery.mockResolvedValueOnce({ rows: [{ contact_id: '1', account_id: 'acc-123', total_count: 1 }] });
 
       await contactService.getContacts({ account_id: 'acc-123' });
 
-      expect(mockQuery).toHaveBeenCalledTimes(2);
-      const countCall = mockQuery.mock.calls[0];
-      expect(countCall[1]).toContain('acc-123');
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+      const queryCall = mockQuery.mock.calls[0];
+      expect(queryCall[1]).toContain('acc-123');
     });
 
     it('should apply is_active filter correctly', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '1' }] })
-        .mockResolvedValueOnce({ rows: [{ contact_id: '1', is_active: true }] });
+      mockQuery.mockResolvedValueOnce({ rows: [{ contact_id: '1', is_active: true, total_count: 1 }] });
 
       await contactService.getContacts({ is_active: true });
 
-      expect(mockQuery).toHaveBeenCalledTimes(2);
-      const countCall = mockQuery.mock.calls[0];
-      expect(countCall[1]).toContain(true);
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+      const queryCall = mockQuery.mock.calls[0];
+      expect(queryCall[1]).toContain(true);
     });
 
     it('should apply role filter correctly (staff)', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '1' }] })
-        .mockResolvedValueOnce({ rows: [{ contact_id: '1', first_name: 'John' }] });
+      mockQuery.mockResolvedValueOnce({ rows: [{ contact_id: '1', first_name: 'John', total_count: 1 }] });
 
       await contactService.getContacts({ role: 'staff' });
 
-      expect(mockQuery).toHaveBeenCalledTimes(2);
-      const countCall = mockQuery.mock.calls[0];
-      expect(countCall[0]).toContain('contact_role_assignments');
-      expect(countCall[0]).toContain('contact_roles');
-      expect(countCall[1]).toContainEqual(['Staff', 'Executive Director']);
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+      const queryCall = mockQuery.mock.calls[0];
+      expect(queryCall[0]).toContain('contact_role_assignments');
+      expect(queryCall[0]).toContain('contact_roles');
+      expect(queryCall[1]).toContainEqual(['Staff', 'Executive Director']);
     });
 
     it.each([
@@ -125,23 +116,19 @@ describe('ContactService', () => {
       ['donor', ['Donor']],
       ['support_person', ['Support Person']],
     ] as const)('should apply role filter correctly (%s)', async (role, expectedRoleNames) => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '1' }] })
-        .mockResolvedValueOnce({ rows: [{ contact_id: '1', first_name: 'John' }] });
+      mockQuery.mockResolvedValueOnce({ rows: [{ contact_id: '1', first_name: 'John', total_count: 1 }] });
 
       await contactService.getContacts({ role });
 
-      expect(mockQuery).toHaveBeenCalledTimes(2);
-      const countCall = mockQuery.mock.calls[0];
-      expect(countCall[0]).toContain('contact_role_assignments');
-      expect(countCall[0]).toContain('contact_roles');
-      expect(countCall[1]).toContainEqual(expectedRoleNames);
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+      const queryCall = mockQuery.mock.calls[0];
+      expect(queryCall[0]).toContain('contact_role_assignments');
+      expect(queryCall[0]).toContain('contact_roles');
+      expect(queryCall[1]).toContainEqual(expectedRoleNames);
     });
 
     it('should handle custom pagination', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '100' }] })
-        .mockResolvedValueOnce({ rows: [] });
+      mockQuery.mockResolvedValueOnce({ rows: [{ contact_id: '1', total_count: 100 }] });
 
       const result = await contactService.getContacts({}, { page: 5, limit: 10 });
 
@@ -191,6 +178,7 @@ describe('ContactService', () => {
         },
       ]);
       expect(mockQuery).toHaveBeenCalledTimes(1);
+      expect(mockQuery.mock.calls[0][0]).toContain("concat_ws(' ', c.first_name, c.preferred_name, c.last_name, c.email, c.phone, c.mobile_phone)");
       expect(mockQuery.mock.calls[0][1]).toContain('%alex%');
       expect(mockQuery.mock.calls[0][1]).toContain(true);
       expect(mockQuery.mock.calls[0][1]).toContain(8);

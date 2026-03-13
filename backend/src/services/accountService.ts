@@ -19,6 +19,9 @@ import type { DataScopeFilter } from '@app-types/dataScope';
 
 type QueryValue = string | number | boolean | null | string[];
 type DbClient = Pick<Pool, 'query'>;
+type AccountListRow = Account & { total_count?: number | string };
+
+const ACCOUNT_SEARCH_SQL = `concat_ws(' ', account_name, email, account_number)`;
 
 export class AccountService {
   private pool: Pool;
@@ -78,11 +81,7 @@ export class AccountService {
       let paramCounter = 1;
 
       if (filters.search) {
-        conditions.push(`(
-          account_name ILIKE $${paramCounter} OR
-          email ILIKE $${paramCounter} OR
-          account_number ILIKE $${paramCounter}
-        )`);
+        conditions.push(`${ACCOUNT_SEARCH_SQL} ILIKE $${paramCounter}`);
         values.push(`%${filters.search}%`);
         paramCounter++;
       }
@@ -125,44 +124,53 @@ export class AccountService {
 
       const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-      // Get total count
-      const countQuery = `SELECT COUNT(*) FROM accounts ${whereClause}`;
-      const countResult = await this.pool.query(countQuery, values);
-      const total = parseInt(countResult.rows[0].count);
-
       // Get paginated data
       const dataQuery = `
-        SELECT
-          id as account_id,
-          account_number,
-          account_name,
-          account_type,
-          category,
-          email,
-          phone,
-          website,
-          description,
-          address_line1,
-          address_line2,
-          city,
-          state_province,
-          postal_code,
-          country,
-          tax_id,
-          is_active,
-          created_at,
-          updated_at,
-          created_by,
-          modified_by
-        FROM accounts
-        ${whereClause}
+        WITH filtered_accounts AS (
+          SELECT
+            id as account_id,
+            account_number,
+            account_name,
+            account_type,
+            category,
+            email,
+            phone,
+            website,
+            description,
+            address_line1,
+            address_line2,
+            city,
+            state_province,
+            postal_code,
+            country,
+            tax_id,
+            is_active,
+            created_at,
+            updated_at,
+            created_by,
+            modified_by
+          FROM accounts
+          ${whereClause}
+        ),
+        paged_accounts AS (
+          SELECT
+            fa.*,
+            COUNT(*) OVER()::int AS total_count
+          FROM filtered_accounts fa
+          ORDER BY ${sortColumn} ${sortOrder}
+          LIMIT $${paramCounter} OFFSET $${paramCounter + 1}
+        )
+        SELECT *
+        FROM paged_accounts
         ORDER BY ${sortColumn} ${sortOrder}
-        LIMIT $${paramCounter} OFFSET $${paramCounter + 1}
       `;
       const dataResult = await this.pool.query(dataQuery, [...values, limit, offset]);
+      const rows = dataResult.rows as AccountListRow[];
+      const total = rows.length > 0 ? Number(rows[0].total_count ?? 0) : 0;
+      const data = rows.map(({ total_count: _totalCount, ...account }) => account);
 
       return {
-        data: dataResult.rows,
+        data,
         pagination: {
           total,
           page,

@@ -1,4 +1,5 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
+import { act, type ReactNode } from 'react';
 import { vi } from 'vitest';
 import AccountList from '../AccountListPage';
 import { renderWithProviders } from '../../../../test/testUtils';
@@ -48,8 +49,28 @@ vi.mock('../../../../features/accounts/state', () => ({
 }));
 
 vi.mock('../../../../components/people', () => ({
-  PeopleListContainer: () => <div>Account List</div>,
-  FilterPanel: () => <div>Filter Panel</div>,
+  PeopleListContainer: ({ filters }: { filters?: ReactNode }) => (
+    <div>
+      <div>Account List</div>
+      {filters}
+    </div>
+  ),
+  FilterPanel: ({
+    fields,
+    onFilterChange,
+  }: {
+    fields: Array<{ id: string; ariaLabel?: string; value?: string }>;
+    onFilterChange: (id: string, value: string) => void;
+  }) => {
+    const searchField = fields.find((field) => field.id === 'search');
+    return (
+      <input
+        aria-label={searchField?.ariaLabel || 'Search accounts'}
+        value={searchField?.value || ''}
+        onChange={(event) => onFilterChange('search', event.target.value)}
+      />
+    );
+  },
   BulkActionBar: () => <div>Bulk Bar</div>,
   ImportExportModal: (props: unknown) => {
     importExportModalMock(props);
@@ -84,6 +105,10 @@ describe('AccountList page', () => {
     dispatchMock.mockClear();
     importExportModalMock.mockClear();
     localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('renders and wires backend import/export request props', () => {
@@ -123,5 +148,45 @@ describe('AccountList page', () => {
         is_active: true,
       },
     });
+  });
+
+  it('debounces free-text search before dispatching another fetch', async () => {
+    vi.useFakeTimers();
+
+    renderWithProviders(<AccountList />);
+
+    const getFetchActions = () =>
+      dispatchMock.mock.calls
+        .map(([action]) => action)
+        .filter((action) => action.type === 'accounts/fetch');
+
+    expect(getFetchActions()).toHaveLength(1);
+
+    const searchInput = screen.getByLabelText('Search accounts');
+    fireEvent.change(searchInput, { target: { value: 'w' } });
+    fireEvent.change(searchInput, { target: { value: 'we' } });
+    fireEvent.change(searchInput, { target: { value: 'wes' } });
+    fireEvent.change(searchInput, { target: { value: 'west' } });
+
+    expect(getFetchActions()).toHaveLength(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+
+    expect(getFetchActions()).toHaveLength(2);
+    expect(getFetchActions()[1]).toEqual({
+      type: 'accounts/fetch',
+      payload: {
+        page: 1,
+        limit: 20,
+        search: 'west',
+        account_type: undefined,
+        category: undefined,
+        is_active: true,
+      },
+    });
+
+    vi.useRealTimers();
   });
 });

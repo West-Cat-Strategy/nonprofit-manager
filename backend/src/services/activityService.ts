@@ -29,27 +29,72 @@ export class ActivityService {
    * Get recent activities across all modules
    */
   async getRecentActivities(limit: number = 10, organizationId?: string): Promise<Activity[]> {
-    const recordedActivities = await activityEventService.listRecentActivities(limit, organizationId);
     const activities: Activity[] = [];
-
-    // Fetch recent cases (created in last 30 days)
-    const casesResult = await pool.query(
-      `SELECT
-        c.id,
-        c.case_number,
-        c.title,
-        c.created_at,
-        c.opened_date,
-        c.assigned_to,
-        c.status_name,
-        u.first_name || ' ' || u.last_name as user_name
-      FROM cases c
-      LEFT JOIN users u ON c.assigned_to = u.id
-      WHERE c.created_at >= NOW() - INTERVAL '30 days'
-      ORDER BY c.created_at DESC
-      LIMIT $1`,
-      [Math.ceil(limit / 2)]
-    );
+    const [recordedActivities, casesResult, donationsResult, volunteerResult, eventRegResult] =
+      await Promise.all([
+        activityEventService.listRecentActivities(limit, organizationId),
+        pool.query(
+          `SELECT
+            c.id,
+            c.case_number,
+            c.title,
+            c.created_at,
+            c.opened_date,
+            c.assigned_to,
+            c.status_name,
+            u.first_name || ' ' || u.last_name as user_name
+          FROM cases c
+          LEFT JOIN users u ON c.assigned_to = u.id
+          WHERE c.created_at >= NOW() - INTERVAL '30 days'
+          ORDER BY c.created_at DESC
+          LIMIT $1`,
+          [Math.ceil(limit / 2)]
+        ),
+        pool.query(
+          `SELECT
+            d.id,
+            d.amount,
+            d.donation_date,
+            d.payment_method,
+            d.donor_name,
+            c.first_name || ' ' || c.last_name as contact_name
+          FROM donations d
+          LEFT JOIN contacts c ON d.contact_id = c.id
+          WHERE d.donation_date >= NOW() - INTERVAL '30 days'
+          ORDER BY d.donation_date DESC
+          LIMIT $1`,
+          [Math.ceil(limit / 3)]
+        ),
+        pool.query(
+          `SELECT
+            vh.id,
+            vh.hours_logged,
+            vh.activity_date,
+            vh.notes,
+            c.first_name || ' ' || c.last_name as volunteer_name
+          FROM volunteer_hours vh
+          LEFT JOIN volunteers v ON vh.volunteer_id = v.id
+          LEFT JOIN contacts c ON v.contact_id = c.id
+          WHERE vh.activity_date >= NOW() - INTERVAL '30 days'
+          ORDER BY vh.activity_date DESC
+          LIMIT $1`,
+          [Math.ceil(limit / 4)]
+        ),
+        pool.query(
+          `SELECT
+            er.id,
+            er.registered_at,
+            e.name as event_name,
+            c.first_name || ' ' || c.last_name as attendee_name
+          FROM event_registrations er
+          LEFT JOIN events e ON er.event_id = e.id
+          LEFT JOIN contacts c ON er.contact_id = c.id
+          WHERE er.registered_at >= NOW() - INTERVAL '30 days'
+          ORDER BY er.registered_at DESC
+          LIMIT $1`,
+          [Math.ceil(limit / 4)]
+        ),
+      ]);
 
     casesResult.rows.forEach((row) => {
       activities.push({
@@ -68,23 +113,6 @@ export class ActivityService {
         },
       });
     });
-
-    // Fetch recent donations (last 30 days)
-    const donationsResult = await pool.query(
-      `SELECT
-        d.id,
-        d.amount,
-        d.donation_date,
-        d.payment_method,
-        d.donor_name,
-        c.first_name || ' ' || c.last_name as contact_name
-      FROM donations d
-      LEFT JOIN contacts c ON d.contact_id = c.id
-      WHERE d.donation_date >= NOW() - INTERVAL '30 days'
-      ORDER BY d.donation_date DESC
-      LIMIT $1`,
-      [Math.ceil(limit / 3)]
-    );
 
     donationsResult.rows.forEach((row) => {
       const donorName = row.donor_name || row.contact_name || 'Anonymous';
@@ -105,23 +133,6 @@ export class ActivityService {
       });
     });
 
-    // Fetch recent volunteer hours (last 30 days)
-    const volunteerResult = await pool.query(
-      `SELECT
-        vh.id,
-        vh.hours_logged,
-        vh.activity_date,
-        vh.notes,
-        c.first_name || ' ' || c.last_name as volunteer_name
-      FROM volunteer_hours vh
-      LEFT JOIN volunteers v ON vh.volunteer_id = v.id
-      LEFT JOIN contacts c ON v.contact_id = c.id
-      WHERE vh.activity_date >= NOW() - INTERVAL '30 days'
-      ORDER BY vh.activity_date DESC
-      LIMIT $1`,
-      [Math.ceil(limit / 4)]
-    );
-
     volunteerResult.rows.forEach((row) => {
       activities.push({
         id: `volunteer-${row.id}`,
@@ -139,22 +150,6 @@ export class ActivityService {
         },
       });
     });
-
-    // Fetch recent event registrations (last 30 days)
-    const eventRegResult = await pool.query(
-      `SELECT
-        er.id,
-        er.registered_at,
-        e.name as event_name,
-        c.first_name || ' ' || c.last_name as attendee_name
-      FROM event_registrations er
-      LEFT JOIN events e ON er.event_id = e.id
-      LEFT JOIN contacts c ON er.contact_id = c.id
-      WHERE er.registered_at >= NOW() - INTERVAL '30 days'
-      ORDER BY er.registered_at DESC
-      LIMIT $1`,
-      [Math.ceil(limit / 4)]
-    );
 
     eventRegResult.rows.forEach((row) => {
       activities.push({

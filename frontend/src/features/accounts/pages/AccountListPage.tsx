@@ -27,6 +27,7 @@ import {
 import { SecondaryButton } from '../../../components/ui';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import { useBulkSelect } from '../../../hooks';
+import { useDebounce } from '../../../hooks/useVirtualList';
 import { BrutalBadge } from '../../../components/neo-brutalist';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 import {
@@ -56,6 +57,7 @@ const AccountList = () => {
 
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || filters.search || '');
+  const debouncedSearchInput = useDebounce(searchInput, 300);
   const [accountTypeFilter, setAccountTypeFilter] = useState<'' | Account['account_type']>(
     () =>
       parseAllowedValueOrEmpty(searchParams.get('type'), ACCOUNT_TYPE_VALUES) ||
@@ -90,16 +92,16 @@ const AccountList = () => {
 
   const loadAccounts = useCallback(() => {
     dispatch(
-      fetchAccounts({
-        page: currentPage,
-        limit: currentLimit,
-        search: searchInput || undefined,
-        account_type: accountTypeFilter || undefined,
-        category: categoryFilter || undefined,
-        is_active: resolvedIsActive,
-      })
-    );
-  }, [dispatch, currentPage, currentLimit, searchInput, accountTypeFilter, categoryFilter, resolvedIsActive]);
+        fetchAccounts({
+          page: currentPage,
+          limit: currentLimit,
+          search: debouncedSearchInput || undefined,
+          account_type: accountTypeFilter || undefined,
+          category: categoryFilter || undefined,
+          is_active: resolvedIsActive,
+        })
+      );
+  }, [dispatch, currentPage, currentLimit, debouncedSearchInput, accountTypeFilter, categoryFilter, resolvedIsActive]);
 
   useEffect(() => {
     loadAccounts();
