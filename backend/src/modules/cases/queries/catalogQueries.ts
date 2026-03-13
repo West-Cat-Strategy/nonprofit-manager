@@ -42,6 +42,8 @@ const CASE_COLUMNS = `
   c.modified_by
 `;
 
+const CASE_SEARCH_SQL = `concat_ws(' ', c.case_number, c.title, c.description)`;
+
 export const getCasesQuery = async (
   db: Pool,
   filter: CaseFilter = {}
@@ -86,7 +88,7 @@ export const getCasesQuery = async (
   if (filter.quick_filter) {
     if (filter.quick_filter === 'active') {
       needsStatusJoin = true;
-      filters.push(`cs.status_type NOT IN ('closed', 'cancelled')`);
+      filters.push(`filter_cs.status_type NOT IN ('closed', 'cancelled')`);
     }
 
     if (filter.quick_filter === 'urgent') {
@@ -96,14 +98,14 @@ export const getCasesQuery = async (
     if (filter.quick_filter === 'unassigned') {
       needsStatusJoin = true;
       filters.push('c.assigned_to IS NULL');
-      filters.push(`cs.status_type NOT IN ('closed', 'cancelled')`);
+      filters.push(`filter_cs.status_type NOT IN ('closed', 'cancelled')`);
     }
 
     if (filter.quick_filter === 'overdue') {
       needsStatusJoin = true;
       filters.push('c.due_date IS NOT NULL');
       filters.push('c.due_date < NOW()');
-      filters.push(`cs.status_type NOT IN ('closed', 'cancelled')`);
+      filters.push(`filter_cs.status_type NOT IN ('closed', 'cancelled')`);
     }
 
     if (filter.quick_filter === 'due_soon') {
@@ -115,67 +117,88 @@ export const getCasesQuery = async (
       filters.push('c.due_date IS NOT NULL');
       params.push(days);
       filters.push(`c.due_date >= NOW() AND c.due_date <= NOW() + ($${params.length} * INTERVAL '1 day')`);
-      filters.push(`cs.status_type NOT IN ('closed', 'cancelled')`);
+      filters.push(`filter_cs.status_type NOT IN ('closed', 'cancelled')`);
     }
   }
 
   if (filter.search) {
-    const searchValue = `%${filter.search}%`;
-    params.push(searchValue, searchValue, searchValue);
-    filters.push(
-      `(c.case_number ILIKE $${params.length - 2} OR c.title ILIKE $${params.length - 1} OR c.description ILIKE $${params.length})`
-    );
+    params.push(`%${filter.search}%`);
+    filters.push(`${CASE_SEARCH_SQL} ILIKE $${params.length}`);
   }
 
   const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
-  const countJoinClause = needsStatusJoin ? 'LEFT JOIN case_statuses cs ON c.status_id = cs.id' : '';
+  const filterStatusJoin = needsStatusJoin
+    ? 'LEFT JOIN case_statuses filter_cs ON c.status_id = filter_cs.id'
+    : '';
 
-  const countResult = await db.query(
-    `SELECT COUNT(*) FROM cases c ${countJoinClause} ${whereClause}`,
-    params
-  );
-  const total = parseInt(countResult.rows[0].count, 10);
+  const sortColumns: Record<string, string> = {
+    created_at: 'created_at',
+    updated_at: 'updated_at',
+    case_number: 'case_number',
+    title: 'title',
+    priority: 'priority',
+    due_date: 'due_date',
+    status_id: 'status_id',
+    case_type_id: 'case_type_id',
+    intake_date: 'intake_date',
+  };
 
-  let query = `
-    SELECT ${CASE_COLUMNS},
+  const sortBy = sortColumns[filter.sort_by || 'created_at'] || 'created_at';
+  const sortOrder = filter.sort_order === 'asc' ? 'ASC' : 'DESC';
+  const limit = filter.limit || 20;
+  const offset = ((filter.page || 1) - 1) * limit;
+  params.push(limit, offset);
+
+  const query = `
+    WITH filtered_cases AS (
+      SELECT ${CASE_COLUMNS}
+      FROM cases c
+      ${filterStatusJoin}
+      ${whereClause}
+    ),
+    paged_cases AS (
+      SELECT
+        fc.*,
+        COUNT(*) OVER()::int AS total_count
+      FROM filtered_cases fc
+      ORDER BY ${sortBy} ${sortOrder}
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+    ),
+    note_counts AS (
+      SELECT case_id, COUNT(*)::int AS notes_count
+      FROM case_notes
+      WHERE case_id IN (SELECT id FROM paged_cases)
+      GROUP BY case_id
+    ),
+    document_counts AS (
+      SELECT case_id, COUNT(*)::int AS documents_count
+      FROM case_documents
+      WHERE case_id IN (SELECT id FROM paged_cases)
+      GROUP BY case_id
+    )
+    SELECT
+      pc.*,
       ct.name as case_type_name, ct.color as case_type_color, ct.icon as case_type_icon,
       cs.name as status_name, cs.color as status_color, cs.status_type,
       con.first_name as contact_first_name, con.last_name as contact_last_name,
       con.email as contact_email, con.phone as contact_phone,
       u.first_name as assigned_first_name, u.last_name as assigned_last_name,
-      (SELECT COUNT(*) FROM case_notes WHERE case_id = c.id) as notes_count,
-      (SELECT COUNT(*) FROM case_documents WHERE case_id = c.id) as documents_count
-    FROM cases c
-    LEFT JOIN case_types ct ON c.case_type_id = ct.id
-    LEFT JOIN case_statuses cs ON c.status_id = cs.id
-    LEFT JOIN contacts con ON c.contact_id = con.id
-    LEFT JOIN users u ON c.assigned_to = u.id
-    ${whereClause}
+      COALESCE(note_counts.notes_count, 0) as notes_count,
+      COALESCE(document_counts.documents_count, 0) as documents_count
+    FROM paged_cases pc
+    LEFT JOIN case_types ct ON pc.case_type_id = ct.id
+    LEFT JOIN case_statuses cs ON pc.status_id = cs.id
+    LEFT JOIN contacts con ON pc.contact_id = con.id
+    LEFT JOIN users u ON pc.assigned_to = u.id
+    LEFT JOIN note_counts ON note_counts.case_id = pc.id
+    LEFT JOIN document_counts ON document_counts.case_id = pc.id
+    ORDER BY pc.${sortBy} ${sortOrder}
   `;
-
-  const sortColumns: Record<string, string> = {
-    created_at: 'c.created_at',
-    updated_at: 'c.updated_at',
-    case_number: 'c.case_number',
-    title: 'c.title',
-    priority: 'c.priority',
-    due_date: 'c.due_date',
-    status_id: 'c.status_id',
-    case_type_id: 'c.case_type_id',
-    intake_date: 'c.intake_date',
-  };
-
-  const sortBy = sortColumns[filter.sort_by || 'created_at'] || 'c.created_at';
-  const sortOrder = filter.sort_order === 'asc' ? 'ASC' : 'DESC';
-  query += ` ORDER BY ${sortBy} ${sortOrder}`;
-
-  const limit = filter.limit || 20;
-  const offset = ((filter.page || 1) - 1) * limit;
-  params.push(limit, offset);
-  query += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
-
   const result = await db.query(query, params);
-  return { cases: result.rows, total };
+  const rows = result.rows as Array<CaseWithDetails & { total_count?: number | string }>;
+  const total = rows.length > 0 ? Number(rows[0].total_count ?? 0) : 0;
+  const cases = rows.map(({ total_count: _totalCount, ...row }) => row as CaseWithDetails);
+  return { cases, total };
 };
 
 export const getCaseByIdQuery = async (

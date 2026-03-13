@@ -25,6 +25,7 @@ import {
 import { SecondaryButton } from '../../../components/ui';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import { useBulkSelect } from '../../../hooks';
+import { useDebounce } from '../../../hooks/useVirtualList';
 import { BrutalBadge } from '../../../components/neo-brutalist';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 import {
@@ -74,6 +75,7 @@ const ContactList = () => {
 
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || filters.search || '');
+  const debouncedSearchInput = useDebounce(searchInput, 300);
   const [roleFilter, setRoleFilter] = useState<ContactRoleFilter | ''>(
     initialRoleFilter || filters.role || ''
   );
@@ -98,17 +100,17 @@ const ContactList = () => {
 
   const loadContacts = useCallback(() => {
     dispatch(
-      fetchContacts({
-        page: currentPage,
-        limit: currentLimit,
-        search: searchInput || undefined,
-        is_active: resolvedIsActive,
-        role: roleFilter || undefined,
-        sort_by: sortBy,
-        sort_order: sortOrder,
-      })
-    );
-  }, [dispatch, currentPage, currentLimit, searchInput, resolvedIsActive, roleFilter, sortBy, sortOrder]);
+        fetchContacts({
+          page: currentPage,
+          limit: currentLimit,
+          search: debouncedSearchInput || undefined,
+          is_active: resolvedIsActive,
+          role: roleFilter || undefined,
+          sort_by: sortBy,
+          sort_order: sortOrder,
+        })
+      );
+  }, [dispatch, currentPage, currentLimit, debouncedSearchInput, resolvedIsActive, roleFilter, sortBy, sortOrder]);
 
   useEffect(() => {
     loadContacts();

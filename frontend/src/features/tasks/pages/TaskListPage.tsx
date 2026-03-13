@@ -13,6 +13,7 @@ import { formatDate } from '../../../utils/format';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
+import { useDebounce } from '../../../hooks/useVirtualList';
 import {
   parseAllowedValueOrEmpty,
   parsePositiveInteger,
@@ -74,17 +75,26 @@ const TaskList: React.FC = () => {
 
     return urlFilters;
   });
+  const debouncedSearch = useDebounce(filters.search, 300);
   const hasActiveFilters = Boolean(filters.search || filters.status || filters.priority || filters.overdue);
 
   const buildRequestFilters = (current: TaskListFilters): TaskFilters => ({
     ...current,
+    search: current.search.trim() || undefined,
     status: current.status || undefined,
     priority: current.priority || undefined,
   });
 
   useEffect(() => {
-    dispatch(fetchTasks(buildRequestFilters(filters)));
-  }, [dispatch, filters]);
+    dispatch(
+      fetchTasks(
+        buildRequestFilters({
+          ...filters,
+          search: debouncedSearch,
+        })
+      )
+    );
+  }, [dispatch, debouncedSearch, filters.overdue, filters.page, filters.priority, filters.status]);
 
   useEffect(() => {
     const params = new URLSearchParams();

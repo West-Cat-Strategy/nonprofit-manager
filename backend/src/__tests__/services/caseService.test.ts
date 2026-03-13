@@ -118,23 +118,19 @@ describe('CaseService', () => {
 
   describe('getCases', () => {
     it('returns cases and total with no filter', async () => {
-      const mockCases = [{ id: 'c1', title: 'Case 1' }];
+      const mockCases = [{ id: 'c1', title: 'Case 1', total_count: 1 }];
 
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '1' }] }) // count
-        .mockResolvedValueOnce({ rows: mockCases });        // data
+      mockQuery.mockResolvedValueOnce({ rows: mockCases });
 
       const result = await service.getCases();
 
       expect(result.total).toBe(1);
-      expect(result.cases).toEqual(mockCases);
-      expect(mockQuery).toHaveBeenCalledTimes(2);
+      expect(result.cases).toEqual([{ id: 'c1', title: 'Case 1' }]);
+      expect(mockQuery).toHaveBeenCalledTimes(1);
     });
 
     it('returns 0 cases for an empty result set', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] })
-        .mockResolvedValueOnce({ rows: [] });
+      mockQuery.mockResolvedValueOnce({ rows: [] });
 
       const result = await service.getCases({ search: 'notfound' });
       expect(result.total).toBe(0);
@@ -142,42 +138,38 @@ describe('CaseService', () => {
     });
 
     it('applies contact_id filter', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '1' }] })
-        .mockResolvedValueOnce({ rows: [{ id: 'c1' }] });
+      mockQuery.mockResolvedValueOnce({ rows: [{ id: 'c1', total_count: 1 }] });
 
       await service.getCases({ contact_id: 'contact-uuid' });
 
-      const countSql = mockQuery.mock.calls[0][0] as string;
-      const countParams = mockQuery.mock.calls[0][1] as unknown[];
-      expect(countParams).toContain('contact-uuid');
-      expect(countSql).toMatch(/contact_id/);
+      const querySql = mockQuery.mock.calls[0][0] as string;
+      const queryParams = mockQuery.mock.calls[0][1] as unknown[];
+      expect(queryParams).toContain('contact-uuid');
+      expect(querySql).toMatch(/contact_id/);
     });
 
     it('defaults to page 1, limit 20 and sorts by created_at DESC', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] })
-        .mockResolvedValueOnce({ rows: [] });
+      mockQuery.mockResolvedValueOnce({ rows: [] });
 
       await service.getCases();
 
-      const dataSql = mockQuery.mock.calls[1][0] as string;
-      const dataParams = mockQuery.mock.calls[1][1] as unknown[];
+      const dataSql = mockQuery.mock.calls[0][0] as string;
+      const dataParams = mockQuery.mock.calls[0][1] as unknown[];
 
       // Limit = 20, offset = 0
       expect(dataParams.slice(-2)).toEqual([20, 0]);
-      expect(dataSql).toMatch(/ORDER BY c\.created_at DESC/);
+      expect(dataSql).toMatch(/ORDER BY created_at DESC/);
     });
 
     it('applies search filter across case_number, title, and description', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] })
-        .mockResolvedValueOnce({ rows: [] });
+      mockQuery.mockResolvedValueOnce({ rows: [] });
 
       await service.getCases({ search: 'housing' });
 
-      const countParams = mockQuery.mock.calls[0][1] as string[];
-      expect(countParams.some((p) => p.includes('housing'))).toBe(true);
+      const querySql = mockQuery.mock.calls[0][0] as string;
+      const queryParams = mockQuery.mock.calls[0][1] as string[];
+      expect(querySql).toContain("concat_ws(' ', c.case_number, c.title, c.description)");
+      expect(queryParams.some((p) => p.includes('housing'))).toBe(true);
     });
   });
 
