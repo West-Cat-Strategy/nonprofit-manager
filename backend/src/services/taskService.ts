@@ -8,11 +8,14 @@ import pool from '@config/database';
 import { Task, CreateTaskDTO, UpdateTaskDTO, TaskFilters, TaskSummary, TaskStatus, TaskPriority } from '@app-types/task';
 
 type TaskQueryValue = string | number | boolean;
+type TaskRow = Task & { total_count?: number | string };
 
 interface TaskFilterSql {
   whereClause: string;
   values: TaskQueryValue[];
 }
+
+const TASK_SEARCH_SQL = `concat_ws(' ', t.subject, t.description)`;
 
 export class TaskService {
   constructor(private pool: Pool) {}
@@ -26,12 +29,6 @@ export class TaskService {
     const offset = (page - 1) * limit;
     const { whereClause, values } = this.buildTaskFilterSql(filters);
 
-    // Get total count
-    const countQuery = `SELECT COUNT(*) FROM tasks t ${whereClause}`;
-    const countResult = await this.pool.query(countQuery, values);
-    const total = parseInt(countResult.rows[0].count);
-
-    // Get tasks with joined data
     let paramCount = values.length;
     paramCount++;
     const limitParam = paramCount;
@@ -39,43 +36,60 @@ export class TaskService {
     const offsetParam = paramCount;
 
     const query = `
+      WITH paged_tasks AS (
+        SELECT
+          t.*,
+          COUNT(*) OVER()::int AS total_count
+        FROM tasks t
+        ${whereClause}
+        ORDER BY
+          CASE WHEN t.status IN ('completed', 'cancelled') THEN 1 ELSE 0 END,
+          CASE t.priority
+            WHEN 'urgent' THEN 1
+            WHEN 'high' THEN 2
+            WHEN 'normal' THEN 3
+            WHEN 'low' THEN 4
+          END,
+          t.due_date ASC NULLS LAST,
+          t.created_at DESC
+        LIMIT $${limitParam} OFFSET $${offsetParam}
+      )
       SELECT
-        t.*,
+        pt.*,
         u.first_name || ' ' || u.last_name as assigned_to_name,
         CASE
-          WHEN t.related_to_type = 'account' THEN a.account_name
-          WHEN t.related_to_type = 'contact' THEN c.first_name || ' ' || c.last_name
-          WHEN t.related_to_type = 'event' THEN e.name
-          WHEN t.related_to_type = 'donation' THEN d.donation_number
-          WHEN t.related_to_type = 'volunteer' THEN vc.first_name || ' ' || vc.last_name
+          WHEN pt.related_to_type = 'account' THEN a.account_name
+          WHEN pt.related_to_type = 'contact' THEN c.first_name || ' ' || c.last_name
+          WHEN pt.related_to_type = 'event' THEN e.name
+          WHEN pt.related_to_type = 'donation' THEN d.donation_number
+          WHEN pt.related_to_type = 'volunteer' THEN vc.first_name || ' ' || vc.last_name
           ELSE NULL
         END as related_to_name
-      FROM tasks t
-      LEFT JOIN users u ON t.assigned_to = u.id
-      LEFT JOIN accounts a ON t.related_to_type = 'account' AND t.related_to_id = a.id
-      LEFT JOIN contacts c ON t.related_to_type = 'contact' AND t.related_to_id = c.id
-      LEFT JOIN events e ON t.related_to_type = 'event' AND t.related_to_id = e.id
-      LEFT JOIN donations d ON t.related_to_type = 'donation' AND t.related_to_id = d.id
-      LEFT JOIN contacts vc ON t.related_to_type = 'volunteer' AND t.related_to_id = vc.id
-      ${whereClause}
+      FROM paged_tasks pt
+      LEFT JOIN users u ON pt.assigned_to = u.id
+      LEFT JOIN accounts a ON pt.related_to_type = 'account' AND pt.related_to_id = a.id
+      LEFT JOIN contacts c ON pt.related_to_type = 'contact' AND pt.related_to_id = c.id
+      LEFT JOIN events e ON pt.related_to_type = 'event' AND pt.related_to_id = e.id
+      LEFT JOIN donations d ON pt.related_to_type = 'donation' AND pt.related_to_id = d.id
+      LEFT JOIN contacts vc ON pt.related_to_type = 'volunteer' AND pt.related_to_id = vc.id
       ORDER BY
-        CASE WHEN t.status IN ('completed', 'cancelled') THEN 1 ELSE 0 END,
-        CASE t.priority
+        CASE WHEN pt.status IN ('completed', 'cancelled') THEN 1 ELSE 0 END,
+        CASE pt.priority
           WHEN 'urgent' THEN 1
           WHEN 'high' THEN 2
           WHEN 'normal' THEN 3
           WHEN 'low' THEN 4
         END,
-        t.due_date ASC NULLS LAST,
-        t.created_at DESC
-      LIMIT $${limitParam} OFFSET $${offsetParam}
+        pt.due_date ASC NULLS LAST,
+        pt.created_at DESC
     `;
-
-    const result = await this.pool.query(query, [...values, limit, offset]);
-    const tasks = result.rows;
-
-    // Get summary statistics
-    const summary = await this.queryTaskSummary(whereClause, values);
+    const [result, summary] = await Promise.all([
+      this.pool.query(query, [...values, limit, offset]),
+      this.queryTaskSummary(whereClause, values),
+    ]);
+    const rows = result.rows as TaskRow[];
+    const total = rows.length > 0 ? Number(rows[0].total_count ?? 0) : 0;
+    const tasks = rows.map(({ total_count: _totalCount, ...task }) => task);
 
     return {
       tasks,
@@ -245,7 +259,7 @@ export class TaskService {
 
     if (filters.search) {
       paramCount++;
-      conditions.push(`(t.subject ILIKE $${paramCount} OR t.description ILIKE $${paramCount})`);
+      conditions.push(`${TASK_SEARCH_SQL} ILIKE $${paramCount}`);
       values.push(`%${filters.search}%`);
     }
 

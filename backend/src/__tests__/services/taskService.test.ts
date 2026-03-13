@@ -18,12 +18,10 @@ describe('TaskService', () => {
   describe('getTasks', () => {
     it('should return paginated tasks with default pagination', async () => {
       const mockTasks = [
-        { id: '1', subject: 'Task 1', status: 'not_started', priority: 'high' },
-        { id: '2', subject: 'Task 2', status: 'in_progress', priority: 'medium' },
+        { id: '1', subject: 'Task 1', status: 'not_started', priority: 'high', total_count: 2 },
+        { id: '2', subject: 'Task 2', status: 'in_progress', priority: 'normal', total_count: 2 },
       ];
 
-      // Count query
-      mockQuery.mockResolvedValueOnce({ rows: [{ count: '2' }] });
       // Tasks query
       mockQuery.mockResolvedValueOnce({ rows: mockTasks });
       // Summary query
@@ -36,19 +34,21 @@ describe('TaskService', () => {
           completed: '3',
           deferred: '1',
           cancelled: '0',
+          priority_low: '2',
+          priority_normal: '5',
+          priority_high: '2',
+          priority_urgent: '1',
           overdue: '2',
           due_today: '1',
           due_this_week: '3',
-          high_priority: '2',
-          medium_priority: '5',
-          low_priority: '2',
-          none_priority: '1',
         }],
       });
 
       const result = await taskService.getTasks({});
 
-      expect(result.tasks).toEqual(mockTasks);
+      expect(result.tasks).toEqual(
+        mockTasks.map(({ total_count: _totalCount, ...task }) => task)
+      );
       expect(result.pagination.total).toBe(2);
       expect(result.pagination.page).toBe(1);
       expect(result.pagination.limit).toBe(20);
@@ -56,78 +56,75 @@ describe('TaskService', () => {
 
     it('should apply search filter', async () => {
       mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '1' }] })
-        .mockResolvedValueOnce({ rows: [{ id: '1', subject: 'Important Task' }] })
+        .mockResolvedValueOnce({ rows: [{ id: '1', subject: 'Important Task', total_count: 1 }] })
         .mockResolvedValueOnce({
           rows: [{
             total: '1', not_started: '1', in_progress: '0', waiting: '0',
             completed: '0', deferred: '0', cancelled: '0', overdue: '0',
-            due_today: '0', due_this_week: '1', high_priority: '1',
-            medium_priority: '0', low_priority: '0', none_priority: '0',
+            due_today: '0', due_this_week: '1', priority_low: '0',
+            priority_normal: '0', priority_high: '1', priority_urgent: '0',
           }],
         });
 
       await taskService.getTasks({ search: 'Important' });
 
-      const countCall = mockQuery.mock.calls[0];
-      expect(countCall[1]).toContain('%Important%');
+      const dataCall = mockQuery.mock.calls[0];
+      expect(dataCall[0]).toContain("concat_ws(' ', t.subject, t.description)");
+      expect(dataCall[1]).toContain('%Important%');
     });
 
     it('should apply status filter', async () => {
       mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '1' }] })
-        .mockResolvedValueOnce({ rows: [{ id: '1', status: 'completed' }] })
+        .mockResolvedValueOnce({ rows: [{ id: '1', status: 'completed', total_count: 1 }] })
         .mockResolvedValueOnce({
           rows: [{
             total: '1', not_started: '0', in_progress: '0', waiting: '0',
             completed: '1', deferred: '0', cancelled: '0', overdue: '0',
-            due_today: '0', due_this_week: '0', high_priority: '0',
-            medium_priority: '1', low_priority: '0', none_priority: '0',
+            due_today: '0', due_this_week: '0', priority_low: '0',
+            priority_normal: '1', priority_high: '0', priority_urgent: '0',
           }],
         });
 
       await taskService.getTasks({ status: TaskStatus.COMPLETED });
 
-      const countCall = mockQuery.mock.calls[0];
-      expect(countCall[1]).toContain('completed');
+      const dataCall = mockQuery.mock.calls[0];
+      expect(dataCall[1]).toContain('completed');
     });
 
     it('should apply priority filter', async () => {
       mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '2' }] })
-        .mockResolvedValueOnce({ rows: [{ id: '1', priority: 'high' }] })
+        .mockResolvedValueOnce({ rows: [{ id: '1', priority: 'high', total_count: 2 }] })
         .mockResolvedValueOnce({
           rows: [{
             total: '2', not_started: '1', in_progress: '1', waiting: '0',
             completed: '0', deferred: '0', cancelled: '0', overdue: '0',
-            due_today: '1', due_this_week: '2', high_priority: '2',
-            medium_priority: '0', low_priority: '0', none_priority: '0',
+            due_today: '1', due_this_week: '2', priority_low: '0',
+            priority_normal: '0', priority_high: '2', priority_urgent: '0',
           }],
         });
 
       await taskService.getTasks({ priority: TaskPriority.HIGH });
 
-      const countCall = mockQuery.mock.calls[0];
-      expect(countCall[1]).toContain('high');
+      const dataCall = mockQuery.mock.calls[0];
+      expect(dataCall[1]).toContain('high');
     });
 
     it('should apply overdue filter', async () => {
       mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '3' }] })
-        .mockResolvedValueOnce({ rows: [{ id: '1', due_date: '2024-01-01' }] })
+        .mockResolvedValueOnce({ rows: [{ id: '1', due_date: '2024-01-01', total_count: 3 }] })
         .mockResolvedValueOnce({
           rows: [{
             total: '3', not_started: '2', in_progress: '1', waiting: '0',
             completed: '0', deferred: '0', cancelled: '0', overdue: '3',
-            due_today: '0', due_this_week: '0', high_priority: '3',
-            medium_priority: '0', low_priority: '0', none_priority: '0',
+            due_today: '0', due_this_week: '0', priority_low: '0',
+            priority_normal: '0', priority_high: '3', priority_urgent: '0',
           }],
         });
 
       await taskService.getTasks({ overdue: true });
 
-      const countCall = mockQuery.mock.calls[0];
-      expect(countCall[0]).toContain('due_date < CURRENT_TIMESTAMP');
+      const dataCall = mockQuery.mock.calls[0];
+      expect(dataCall[0]).toContain('due_date < CURRENT_TIMESTAMP');
     });
   });
 
