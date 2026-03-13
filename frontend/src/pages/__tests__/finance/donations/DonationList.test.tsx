@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
+import type * as FinanceStateModule from '../../../../features/finance/state';
 import DonationList from '../../../finance/donations/DonationList';
 import { renderWithProviders } from '../../../../test/testUtils';
 
@@ -21,10 +22,13 @@ vi.mock('../../../../store/hooks', () => ({
   useAppSelector: (selector: (s: typeof state) => unknown) => selector(state),
 }));
 
-vi.mock('../../../../store/slices/donationsSlice', () => ({
-  default: (state = { donations: [], pagination: { total: 0, page: 1, limit: 20, total_pages: 1 }, totalAmount: 0, averageAmount: 0, loading: false, error: null }) => state,
-  fetchDonations: (payload: unknown) => ({ type: 'donations/fetch', payload }),
-}));
+vi.mock('../../../../features/finance/state', async (importOriginal) => {
+  const actual = await importOriginal<typeof FinanceStateModule>();
+  return {
+    ...actual,
+    fetchDonations: (payload: unknown) => ({ type: 'donations/fetch', payload }),
+  };
+});
 
 describe('DonationList page', () => {
   beforeEach(() => {

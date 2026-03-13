@@ -42,7 +42,7 @@ const STRICT_ZERO_CONTROLLERS = new Set([
 const PROVIDER_ACK_EXCEPTIONS = new Set([
   // Provider webhook handlers must use sendProviderAck(...) and set skipSuccessEnvelope,
   // not direct 2xx res.json(...) responses.
-  'backend/src/controllers/paymentController.ts',
+  'backend/src/modules/payments/controllers/paymentController.ts',
   'backend/src/controllers/mailchimpController.ts',
 ]);
 

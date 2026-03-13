@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { handleWebhook, setPaymentPool } from '@controllers/paymentController';
+import { handleWebhook, setPaymentPool } from '@modules/payments/controllers/paymentController';
 import { stripeService } from '@services/domains/operations';
 
 jest.mock('@services/domains/operations', () => ({
