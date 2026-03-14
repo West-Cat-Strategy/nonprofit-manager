@@ -14,6 +14,14 @@ interface DonationFormProps {
   isEdit?: boolean;
 }
 
+const donationFieldClassName =
+  'app-focus-ring w-full rounded-md border border-app-input-border bg-app-input-bg px-4 py-2 text-app-text placeholder:text-app-text-subtle focus:outline-none';
+const checkboxClassName = 'app-focus-ring h-4 w-4 rounded border-app-input-border text-app-accent';
+const secondaryButtonClassName =
+  'app-focus-ring rounded-md border border-app-input-border px-6 py-2 text-app-text hover:bg-app-surface-muted focus:outline-none';
+const primaryButtonClassName =
+  'app-focus-ring rounded-md bg-app-accent px-6 py-2 text-white hover:bg-app-accent-hover focus:outline-none disabled:opacity-50';
+
 const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit = false }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -124,7 +132,7 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
               required
               min="0.01"
               step="0.01"
-              className="w-full px-4 py-2 border rounded-md"
+              className={donationFieldClassName}
             />
           </div>
 
@@ -137,7 +145,7 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
               value={formData.currency}
               onChange={handleChange}
               maxLength={3}
-              className="w-full px-4 py-2 border rounded-md"
+              className={donationFieldClassName}
               placeholder="CAD"
             />
           </div>
@@ -153,7 +161,7 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
               value={formData.donation_date}
               onChange={handleChange}
               required
-              className="w-full px-4 py-2 border rounded-md"
+              className={donationFieldClassName}
             />
           </div>
 
@@ -164,7 +172,7 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
               name="payment_method"
               value={formData.payment_method}
               onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-md"
+              className={donationFieldClassName}
             >
               <option value="cash">Cash</option>
               <option value="check">Check</option>
@@ -185,7 +193,7 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
               name="payment_status"
               value={formData.payment_status}
               onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-md"
+              className={donationFieldClassName}
             >
               <option value="pending">Pending</option>
               <option value="completed">Completed</option>
@@ -203,7 +211,7 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
               name="transaction_id"
               value={formData.transaction_id || ''}
               onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-md"
+              className={donationFieldClassName}
               placeholder="TXN-12345"
             />
           </div>
@@ -221,7 +229,7 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
               name="campaign_name"
               value={formData.campaign_name || ''}
               onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-md"
+              className={donationFieldClassName}
               placeholder="Annual Fund 2026"
             />
           </div>
@@ -234,7 +242,7 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
               name="designation"
               value={formData.designation || ''}
               onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-md"
+              className={donationFieldClassName}
               placeholder="General Operating Fund"
             />
           </div>
@@ -251,7 +259,7 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
               id="is_recurring"
               checked={formData.is_recurring}
               onChange={handleChange}
-              className="h-4 w-4 text-app-accent border-app-input-border rounded"
+              className={checkboxClassName}
             />
             <label htmlFor="is_recurring" className="ml-2 text-sm font-medium text-app-text-muted">
               This is a recurring donation
@@ -266,7 +274,7 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
                 name="recurring_frequency"
                 value={formData.recurring_frequency}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-md"
+                className={donationFieldClassName}
               >
                 <option value="weekly">Weekly</option>
                 <option value="monthly">Monthly</option>
@@ -288,7 +296,7 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
             value={formData.notes || ''}
             onChange={handleChange}
             rows={4}
-            className="w-full px-4 py-2 border rounded-md"
+            className={`${donationFieldClassName} min-h-[120px]`}
             placeholder="Any additional notes about this donation..."
           />
         </div>
@@ -298,14 +306,14 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
         <button
           type="button"
           onClick={() => navigate('/donations')}
-          className="px-6 py-2 border rounded-md hover:bg-app-surface-muted"
+          className={secondaryButtonClassName}
           disabled={loading}
         >
           Cancel
         </button>
         <button
           type="submit"
-          className="px-6 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover disabled:opacity-50"
+          className={primaryButtonClassName}
           disabled={loading}
         >
           {loading ? 'Saving...' : isEdit ? 'Update Donation' : 'Record Donation'}

@@ -75,7 +75,9 @@ describe('ContactService', () => {
 
       expect(mockQuery).toHaveBeenCalledTimes(1);
       const queryCall = mockQuery.mock.calls[0];
-      expect(queryCall[0]).toContain("concat_ws(' ', c.first_name, c.preferred_name, c.last_name, c.email, c.phone, c.mobile_phone)");
+      expect(queryCall[0]).toContain(
+        "coalesce(nullif(c.first_name, ''), '') || CASE WHEN nullif(c.preferred_name, '') IS NOT NULL THEN ' ' || c.preferred_name ELSE '' END || CASE WHEN nullif(c.last_name, '') IS NOT NULL THEN ' ' || c.last_name ELSE '' END || CASE WHEN nullif(c.email, '') IS NOT NULL THEN ' ' || c.email ELSE '' END || CASE WHEN nullif(c.phone, '') IS NOT NULL THEN ' ' || c.phone ELSE '' END || CASE WHEN nullif(c.mobile_phone, '') IS NOT NULL THEN ' ' || c.mobile_phone ELSE '' END"
+      );
       expect(queryCall[1]).toContain('%John%');
     });
 
@@ -178,7 +180,9 @@ describe('ContactService', () => {
         },
       ]);
       expect(mockQuery).toHaveBeenCalledTimes(1);
-      expect(mockQuery.mock.calls[0][0]).toContain("concat_ws(' ', c.first_name, c.preferred_name, c.last_name, c.email, c.phone, c.mobile_phone)");
+      expect(mockQuery.mock.calls[0][0]).toContain(
+        "coalesce(nullif(c.first_name, ''), '') || CASE WHEN nullif(c.preferred_name, '') IS NOT NULL THEN ' ' || c.preferred_name ELSE '' END || CASE WHEN nullif(c.last_name, '') IS NOT NULL THEN ' ' || c.last_name ELSE '' END || CASE WHEN nullif(c.email, '') IS NOT NULL THEN ' ' || c.email ELSE '' END || CASE WHEN nullif(c.phone, '') IS NOT NULL THEN ' ' || c.phone ELSE '' END || CASE WHEN nullif(c.mobile_phone, '') IS NOT NULL THEN ' ' || c.mobile_phone ELSE '' END"
+      );
       expect(mockQuery.mock.calls[0][1]).toContain('%alex%');
       expect(mockQuery.mock.calls[0][1]).toContain(true);
       expect(mockQuery.mock.calls[0][1]).toContain(8);

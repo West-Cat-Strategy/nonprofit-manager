@@ -21,7 +21,10 @@ type QueryValue = string | number | boolean | null | string[];
 type DbClient = Pick<Pool, 'query'>;
 type AccountListRow = Account & { total_count?: number | string };
 
-const ACCOUNT_SEARCH_SQL = `concat_ws(' ', account_name, email, account_number)`;
+const ACCOUNT_SEARCH_SQL =
+  `coalesce(nullif(account_name, ''), '')`
+  + ` || CASE WHEN nullif(email, '') IS NOT NULL THEN ' ' || email ELSE '' END`
+  + ` || CASE WHEN nullif(account_number, '') IS NOT NULL THEN ' ' || account_number ELSE '' END`;
 
 export class AccountService {
   private pool: Pool;

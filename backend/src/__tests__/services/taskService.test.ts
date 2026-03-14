@@ -69,7 +69,9 @@ describe('TaskService', () => {
       await taskService.getTasks({ search: 'Important' });
 
       const dataCall = mockQuery.mock.calls[0];
-      expect(dataCall[0]).toContain("concat_ws(' ', t.subject, t.description)");
+      expect(dataCall[0]).toContain(
+        "coalesce(nullif(t.subject, ''), '') || CASE WHEN nullif(t.description, '') IS NOT NULL THEN ' ' || t.description ELSE '' END"
+      );
       expect(dataCall[1]).toContain('%Important%');
     });
 

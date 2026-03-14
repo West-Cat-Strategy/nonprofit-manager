@@ -168,7 +168,9 @@ describe('CaseService', () => {
 
       const querySql = mockQuery.mock.calls[0][0] as string;
       const queryParams = mockQuery.mock.calls[0][1] as string[];
-      expect(querySql).toContain("concat_ws(' ', c.case_number, c.title, c.description)");
+      expect(querySql).toContain(
+        "coalesce(nullif(c.case_number, ''), '') || CASE WHEN nullif(c.title, '') IS NOT NULL THEN ' ' || c.title ELSE '' END || CASE WHEN nullif(c.description, '') IS NOT NULL THEN ' ' || c.description ELSE '' END"
+      );
       expect(queryParams.some((p) => p.includes('housing'))).toBe(true);
     });
   });
