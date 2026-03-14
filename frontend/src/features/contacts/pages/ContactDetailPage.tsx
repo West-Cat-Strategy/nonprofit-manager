@@ -20,11 +20,13 @@ import ContactTasks from '../../../components/ContactTasks';
 import ContactActivityTimeline from '../../../components/ContactActivityTimeline';
 import FollowUpList from '../../../components/FollowUpList';
 import { formatDate, formatDateOnly, getAgeFromDateOnly } from '../../../utils/format';
+import { isUuid } from '../../../utils/uuid';
 
 type TabType = 'overview' | 'notes' | 'tasks' | 'activity' | 'followups' | 'documents' | 'payments';
 
 const ContactDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const hasValidId = isUuid(id);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { currentContact, loading, error, contactNotes } = useAppSelector((state) => state.contactsV2);
@@ -33,18 +35,21 @@ const ContactDetail = () => {
   const [openNoteForm, setOpenNoteForm] = useState(false);
 
   // Get cases for this contact
-  const contactCases = useAppSelector((state) => (id ? selectCasesByContact(state, id) : []));
+  const contactCases = useAppSelector((state) => (hasValidId ? selectCasesByContact(state, id) : []));
 
   useEffect(() => {
-    if (id) {
+    if (hasValidId) {
       dispatch(fetchContactById(id));
       dispatch(fetchCasesByContact(id));
       dispatch(fetchContactNotes(id));
     }
+  }, [hasValidId, id, dispatch]);
+
+  useEffect(() => {
     return () => {
       dispatch(clearCurrentContact());
     };
-  }, [id, dispatch]);
+  }, [dispatch]);
 
   // Show alert modal when alert notes exist
   const alertNotes = contactNotes.filter((n) => n.is_alert);
@@ -53,6 +58,25 @@ const ContactDetail = () => {
       setShowAlertModal(true);
     }
   }, [alertNotes.length]);
+
+  if (id && !hasValidId) {
+    return (
+      <div className="p-6">
+        <BrutalCard color="yellow" className="p-6">
+          <div className="text-center">
+            <div className="text-4xl mb-4">🔗</div>
+            <h2 className="text-xl font-black uppercase text-black mb-2">Invalid Contact Link</h2>
+            <p className="font-bold text-black/70 mb-4">
+              This person link is invalid. Please return to the People list and try again.
+            </p>
+            <BrutalButton onClick={() => navigate('/contacts')} variant="primary">
+              Back to People
+            </BrutalButton>
+          </div>
+        </BrutalCard>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

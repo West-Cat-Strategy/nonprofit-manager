@@ -11,7 +11,7 @@ import reducer, {
   reorderOpportunityStages,
   updateOpportunity,
   updateOpportunityStage,
-} from '../opportunitiesSlice';
+} from '../../../features/engagement/opportunities/state';
 
 const makeStage = (overrides: Record<string, unknown> = {}) => ({
   id: 'stage-1',

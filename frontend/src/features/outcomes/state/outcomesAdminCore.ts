@@ -1,12 +1,12 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import api from '../../services/api';
-import { unwrapApiData, type ApiEnvelope } from '../../services/apiEnvelope';
-import { formatApiErrorMessageWith } from '../../utils/apiError';
+import api from '../../../services/api';
+import { unwrapApiData, type ApiEnvelope } from '../../../services/apiEnvelope';
+import { formatApiErrorMessageWith } from '../../../utils/apiError';
 import type {
   OutcomeDefinition,
   OutcomeDefinitionCreateInput,
   OutcomeDefinitionUpdateInput,
-} from '../../types/outcomes';
+} from '../../../types/outcomes';
 
 interface OutcomesAdminState {
   definitions: OutcomeDefinition[];
@@ -48,10 +48,7 @@ export const createOutcomeDefinition = createAsyncThunk(
   'outcomesAdmin/createDefinition',
   async (payload: OutcomeDefinitionCreateInput, { rejectWithValue }) => {
     try {
-      const response = await api.post<ApiEnvelope<OutcomeDefinition>>(
-        '/admin/outcomes',
-        payload
-      );
+      const response = await api.post<ApiEnvelope<OutcomeDefinition>>('/admin/outcomes', payload);
       return unwrapApiData<OutcomeDefinition>(response.data);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to create outcome'));
@@ -81,9 +78,7 @@ export const enableOutcomeDefinition = createAsyncThunk(
   'outcomesAdmin/enableDefinition',
   async (id: string, { rejectWithValue }) => {
     try {
-      const response = await api.post<ApiEnvelope<OutcomeDefinition>>(
-        `/admin/outcomes/${id}/enable`
-      );
+      const response = await api.post<ApiEnvelope<OutcomeDefinition>>(`/admin/outcomes/${id}/enable`);
       return unwrapApiData<OutcomeDefinition>(response.data);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to enable outcome'));
@@ -109,10 +104,9 @@ export const reorderOutcomeDefinitions = createAsyncThunk(
   'outcomesAdmin/reorderDefinitions',
   async (orderedIds: string[], { rejectWithValue }) => {
     try {
-      const response = await api.post<ApiEnvelope<OutcomeDefinition[]>>(
-        '/admin/outcomes/reorder',
-        { orderedIds }
-      );
+      const response = await api.post<ApiEnvelope<OutcomeDefinition[]>>('/admin/outcomes/reorder', {
+        orderedIds,
+      });
       return unwrapApiData<OutcomeDefinition[]>(response.data);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to reorder outcomes'));
@@ -120,10 +114,15 @@ export const reorderOutcomeDefinitions = createAsyncThunk(
   }
 );
 
-const upsertDefinition = (definitions: OutcomeDefinition[], next: OutcomeDefinition): OutcomeDefinition[] => {
+const upsertDefinition = (
+  definitions: OutcomeDefinition[],
+  next: OutcomeDefinition
+): OutcomeDefinition[] => {
   const idx = definitions.findIndex((item) => item.id === next.id);
   if (idx === -1) {
-    return [...definitions, next].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+    return [...definitions, next].sort(
+      (a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)
+    );
   }
 
   const updated = [...definitions];
@@ -157,7 +156,6 @@ const outcomesAdminSlice = createSlice({
         state.loading = false;
         state.error = (action.payload as string) || 'Failed to load outcomes';
       })
-
       .addCase(createOutcomeDefinition.pending, (state) => {
         state.saving = true;
         state.error = null;
@@ -170,7 +168,6 @@ const outcomesAdminSlice = createSlice({
         state.saving = false;
         state.error = (action.payload as string) || 'Failed to create outcome';
       })
-
       .addCase(updateOutcomeDefinition.pending, (state) => {
         state.saving = true;
         state.error = null;
@@ -183,7 +180,6 @@ const outcomesAdminSlice = createSlice({
         state.saving = false;
         state.error = (action.payload as string) || 'Failed to update outcome';
       })
-
       .addCase(enableOutcomeDefinition.pending, (state) => {
         state.saving = true;
         state.error = null;
@@ -196,7 +192,6 @@ const outcomesAdminSlice = createSlice({
         state.saving = false;
         state.error = (action.payload as string) || 'Failed to enable outcome';
       })
-
       .addCase(disableOutcomeDefinition.pending, (state) => {
         state.saving = true;
         state.error = null;
@@ -209,7 +204,6 @@ const outcomesAdminSlice = createSlice({
         state.saving = false;
         state.error = (action.payload as string) || 'Failed to disable outcome';
       })
-
       .addCase(reorderOutcomeDefinitions.pending, (state) => {
         state.saving = true;
         state.error = null;

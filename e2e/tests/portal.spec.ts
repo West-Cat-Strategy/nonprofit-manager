@@ -48,24 +48,23 @@ test.describe('Donor Portal', () => {
 
     test('portal route transitions do not repeatedly refetch session bootstrap', async ({ page }) => {
         const portalUser = await provisionApprovedPortalUser(page);
-        const portalMeRequests: string[] = [];
+        const portalBootstrapRequests: string[] = [];
 
         page.on('request', (request) => {
             const url = request.url();
-            if (/\/api\/portal\/auth\/me(?:\?|$)/.test(url)) {
-                portalMeRequests.push(url);
+            if (/\/api\/v2\/portal\/auth\/bootstrap(?:\?|$)/.test(url)) {
+                portalBootstrapRequests.push(url);
             }
         });
 
         await loginPortalUserUI(page, portalUser);
-        await page.goto('/portal');
         await expect(page).toHaveURL(/\/portal(?:\?|$)/);
-        await page.goto('/portal/profile');
+        await page.getByRole('banner').getByRole('link', { name: /^account$/i }).click();
         await expect(page).toHaveURL(/\/portal\/profile(?:\?|$)/);
-        await page.goto('/portal/events');
-        await expect(page).toHaveURL(/\/portal\/events(?:\?|$)/);
+        await page.getByRole('banner').getByRole('link', { name: /^client portal$/i }).click();
+        await expect(page).toHaveURL(/\/portal(?:\?|$)/);
         await page.waitForTimeout(600);
 
-        expect(portalMeRequests.length).toBeLessThanOrEqual(1);
+        expect(portalBootstrapRequests.length).toBeLessThanOrEqual(1);
     });
 });

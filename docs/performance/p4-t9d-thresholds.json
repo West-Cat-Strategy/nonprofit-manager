@@ -1,9 +1,10 @@
 {
   "captured_at": "2026-03-05",
   "startupRequestCountBaseline": 8,
-  "startupRequestCountCap": 6,
+  "startupRequestCountCap": 4,
   "appOwnedStartupJsBytesBaseline": 256726,
-  "appOwnedStartupJsBytesCap": 192544,
+  "appOwnedStartupJsBytesCap": 122880,
   "p75LoadMsBaseline": 2600,
-  "p75LoadMsCap": 2000
+  "p75LoadMsCap": 1800,
+  "firstNavigationP75MsCap": 1000
 }

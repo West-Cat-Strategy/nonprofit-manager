@@ -10,6 +10,10 @@ import {
   __resetNavigationPreferencesCacheForTests,
   useNavigationPreferences,
 } from '../useNavigationPreferences';
+import {
+  __resetUserPreferencesCacheForTests,
+  setUserPreferencesCached,
+} from '../../services/userPreferencesService';
 
 const renderNavigationPreferencesHook = () => {
   const store = configureStore({
@@ -40,6 +44,7 @@ describe('useNavigationPreferences', () => {
     vi.clearAllMocks();
     window.localStorage.clear();
     __resetNavigationPreferencesCacheForTests();
+    __resetUserPreferencesCacheForTests();
     vi.mocked(api.get).mockResolvedValue({ data: { preferences: {} } });
     vi.mocked(api.patch).mockResolvedValue({ data: { success: true } });
   });
@@ -149,5 +154,28 @@ describe('useNavigationPreferences', () => {
     expect(result.current.isSaving).toBe(false);
     expect(result.current.isSynced).toBe(true);
     expect(result.current.syncStatus).toBe('synced');
+  });
+
+  it('uses bootstrap-seeded navigation preferences without issuing a duplicate GET', async () => {
+    window.localStorage.setItem(
+      'navigation_preferences',
+      JSON.stringify({
+        items: [{ id: 'dashboard', enabled: true }],
+      })
+    );
+    setUserPreferencesCached({
+      navigation: {
+        items: [{ id: 'dashboard', enabled: true }],
+      },
+    });
+
+    const { result } = renderNavigationPreferencesHook();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(vi.mocked(api.get)).not.toHaveBeenCalled();
+    expect(result.current.allItems.find((item) => item.id === 'dashboard')?.enabled).toBe(true);
   });
 });

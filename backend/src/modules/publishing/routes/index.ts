@@ -6,11 +6,13 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
+import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import * as publishingController from '../controllers';
 import { uuidSchema, optionalStrictBooleanSchema } from '@validations/shared';
 
 const router = Router();
+const withOrganizationContext = [authenticate, requireActiveOrganizationContext] as const;
 
 const publishingStatusSchema = z.enum(['draft', 'published', 'maintenance', 'suspended']);
 const sortOrderSchema = z.enum(['asc', 'desc']);
@@ -255,18 +257,18 @@ const syncMailchimpEntriesSchema = z
 // Search sites
 router.get(
   '/',
-  authenticate,
+  ...withOrganizationContext,
   validateQuery(siteConsoleQuerySchema),
   publishingController.listSitesForConsole
 );
 
 // Create a new site entry
-router.post('/', authenticate, validateBody(createSiteSchema), publishingController.createSite);
+router.post('/', ...withOrganizationContext, validateBody(createSiteSchema), publishingController.createSite);
 
 // Publish a template (create or update published site)
 router.post(
   '/publish',
-  authenticate,
+  ...withOrganizationContext,
   validateBody(publishSchema),
   publishingController.publishSite
 );
@@ -274,14 +276,14 @@ router.post(
 // Get a specific site
 router.get(
   '/:siteId',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   publishingController.getSite
 );
 
 router.get(
   '/:siteId/overview',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   validateQuery(siteConsoleOverviewQuerySchema),
   publishingController.getSiteOverview
@@ -289,14 +291,14 @@ router.get(
 
 router.get(
   '/:siteId/forms',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   publishingController.getSiteForms
 );
 
 router.put(
   '/:siteId/forms/:formKey',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteFormParamsSchema),
   validateBody(formOperationalSettingsSchema),
   publishingController.updateSiteForm
@@ -304,14 +306,14 @@ router.put(
 
 router.get(
   '/:siteId/integrations',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   publishingController.getSiteIntegrations
 );
 
 router.put(
   '/:siteId/integrations/mailchimp',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   validateBody(updateSiteMailchimpSettingsSchema),
   publishingController.updateSiteMailchimpIntegration
@@ -319,7 +321,7 @@ router.put(
 
 router.put(
   '/:siteId/integrations/stripe',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   validateBody(updateSiteStripeSettingsSchema),
   publishingController.updateSiteStripeIntegration
@@ -327,7 +329,7 @@ router.put(
 
 router.get(
   '/:siteId/analytics/summary',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   validateQuery(siteAnalyticsQuerySchema),
   publishingController.getSiteAnalyticsSummary
@@ -335,7 +337,7 @@ router.get(
 
 router.get(
   '/:siteId/analytics/funnel',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   validateQuery(siteAnalyticsFunnelQuerySchema),
   publishingController.getSiteAnalyticsFunnel
@@ -344,7 +346,7 @@ router.get(
 // Update a site
 router.put(
   '/:siteId',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   validateBody(updateSiteSchema),
   publishingController.updateSite
@@ -353,14 +355,14 @@ router.put(
 // Delete a site
 router.delete(
   '/:siteId',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   publishingController.deleteSite
 );
 
 router.get(
   '/:siteId/entries',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   validateQuery(websiteEntriesQuerySchema),
   publishingController.listWebsiteEntries
@@ -368,7 +370,7 @@ router.get(
 
 router.post(
   '/:siteId/entries',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   validateBody(createWebsiteEntrySchema),
   publishingController.createWebsiteEntry
@@ -376,14 +378,14 @@ router.post(
 
 router.get(
   '/:siteId/entries/:entryId',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(entryIdParamsSchema),
   publishingController.getWebsiteEntry
 );
 
 router.put(
   '/:siteId/entries/:entryId',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(entryIdParamsSchema),
   validateBody(updateWebsiteEntrySchema),
   publishingController.updateWebsiteEntry
@@ -391,14 +393,14 @@ router.put(
 
 router.delete(
   '/:siteId/entries/:entryId',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(entryIdParamsSchema),
   publishingController.deleteWebsiteEntry
 );
 
 router.post(
   '/:siteId/entries/sync-mailchimp',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   validateBody(syncMailchimpEntriesSchema),
   publishingController.syncMailchimpEntries
@@ -407,7 +409,7 @@ router.post(
 // Unpublish a site
 router.post(
   '/:siteId/unpublish',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   publishingController.unpublishSite
 );
@@ -415,7 +417,7 @@ router.post(
 // Get deployment info
 router.get(
   '/:siteId/deployment',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   publishingController.getDeploymentInfo
 );
@@ -423,7 +425,7 @@ router.get(
 // Get analytics summary
 router.get(
   '/:siteId/analytics',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   validateQuery(siteAnalyticsQuerySchema),
   publishingController.getAnalyticsSummary
@@ -434,7 +436,7 @@ router.get(
 // Add custom domain
 router.post(
   '/:siteId/domain',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   validateBody(addCustomDomainSchema),
   publishingController.addCustomDomain
@@ -443,7 +445,7 @@ router.post(
 // Get custom domain config
 router.get(
   '/:siteId/domain',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   publishingController.getCustomDomainConfig
 );
@@ -451,7 +453,7 @@ router.get(
 // Verify custom domain
 router.post(
   '/:siteId/domain/verify',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   publishingController.verifyCustomDomain
 );
@@ -459,7 +461,7 @@ router.post(
 // Remove custom domain
 router.delete(
   '/:siteId/domain',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   publishingController.removeCustomDomain
 );
@@ -469,7 +471,7 @@ router.delete(
 // Get SSL info
 router.get(
   '/:siteId/ssl',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   publishingController.getSslInfo
 );
@@ -477,7 +479,7 @@ router.get(
 // Provision SSL certificate
 router.post(
   '/:siteId/ssl/provision',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   publishingController.provisionSsl
 );
@@ -487,7 +489,7 @@ router.post(
 // Get version history
 router.get(
   '/:siteId/versions',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   validateQuery(versionHistoryQuerySchema),
   publishingController.getVersionHistory
@@ -496,7 +498,7 @@ router.get(
 // Get specific version
 router.get(
   '/:siteId/versions/:version',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteVersionParamsSchema),
   publishingController.getVersion
 );
@@ -504,7 +506,7 @@ router.get(
 // Rollback to a version
 router.post(
   '/:siteId/rollback',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   validateBody(rollbackSchema),
   publishingController.rollbackVersion
@@ -513,7 +515,7 @@ router.post(
 // Prune old versions
 router.delete(
   '/:siteId/versions',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   validateQuery(pruneVersionsQuerySchema),
   publishingController.pruneVersions
@@ -524,13 +526,13 @@ router.delete(
 // Invalidate cache for a site
 router.post(
   '/:siteId/cache/invalidate',
-  authenticate,
+  ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   publishingController.invalidateSiteCache
 );
 
 // Get cache statistics (admin)
-router.get('/admin/cache/stats', authenticate, publishingController.getCacheStats);
+router.get('/admin/cache/stats', ...withOrganizationContext, publishingController.getCacheStats);
 
 // Clear all cache (admin only)
 router.delete('/admin/cache', authenticate, publishingController.clearAllCache);

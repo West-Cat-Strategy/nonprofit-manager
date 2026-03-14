@@ -15,7 +15,6 @@ export interface RegisterData {
 
 export interface AuthResponse {
   token?: string;
-  refreshToken?: string;
   organizationId?: string | null;
   user: {
     id: string;

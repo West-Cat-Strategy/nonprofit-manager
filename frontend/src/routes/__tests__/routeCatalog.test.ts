@@ -70,14 +70,16 @@ describe('routeCatalog alias resolution', () => {
   });
 
   it('builds breadcrumbs and local navigation from the route hierarchy for detail pages', () => {
+    const contactDetailPath = '/contacts/11111111-1111-4111-8111-111111111111';
+
     expect(
-      getRouteBreadcrumbs('/contacts/123').map(({ label, current }) => ({ label, current }))
+      getRouteBreadcrumbs(contactDetailPath).map(({ label, current }) => ({ label, current }))
     ).toEqual([
       { label: 'People', current: false },
       { label: 'Person Detail', current: true },
     ]);
 
-    const peopleLocalNav = getRouteLocalNavigation('/contacts/123');
+    const peopleLocalNav = getRouteLocalNavigation(contactDetailPath);
     expect(peopleLocalNav.map((entry) => entry.shortLabel)).toEqual(
       expect.arrayContaining(['People', 'Accounts', 'Volunteers'])
     );

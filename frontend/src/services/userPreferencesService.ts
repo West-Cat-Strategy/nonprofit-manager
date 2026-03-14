@@ -36,9 +36,23 @@ export const __resetUserPreferencesCacheForTests = (): void => {
   inFlightRequest = null;
 };
 
+export const invalidateUserPreferencesCache = (): void => {
+  cachedPreferences = null;
+  cachedAtMs = 0;
+  inFlightRequest = null;
+};
+
 export const setUserPreferencesCached = (preferences: UserPreferences | null): UserPreferences | null => {
   cachedPreferences = preferences;
   cachedAtMs = Date.now();
+  return cachedPreferences;
+};
+
+export const getUserPreferencesCachedSync = (): UserPreferences | null => {
+  if (!cachedPreferences || Date.now() - cachedAtMs >= PREFERENCES_CACHE_TTL_MS) {
+    return null;
+  }
+
   return cachedPreferences;
 };
 

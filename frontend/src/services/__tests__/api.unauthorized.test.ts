@@ -24,6 +24,7 @@ describe('api unauthorized handling', () => {
     await onUnauthorized({ config: { url: '/admin/email-settings' } });
 
     expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(String(fetchFn.mock.calls[0]?.[0])).toContain('/auth/bootstrap');
     expect(dispatchUnauthorizedEvent).toHaveBeenCalledTimes(1);
     expect(scheduleReset).toHaveBeenCalledTimes(1);
   });
@@ -57,6 +58,7 @@ describe('api unauthorized handling', () => {
     });
 
     await onUnauthorized({ config: { url: '/auth/me' } });
+    await onUnauthorized({ config: { url: '/auth/bootstrap' } });
     await onUnauthorized({ config: { url: '/auth/setup-status' } });
 
     expect(fetchFn).not.toHaveBeenCalled();

@@ -1,25 +1,9 @@
 import { createApiClient } from './httpClient';
 import type { ApiErrorResponse } from '../types/api';
-
-let portalUnauthorizedEventDispatched = false;
+import { createPortalUnauthorizedHandler } from './portalUnauthorizedHandler';
 
 const portalApi = createApiClient({
-  onUnauthorized: () => {
-    const onPublicPortalRoute =
-      window.location.pathname.startsWith('/portal/login') ||
-      window.location.pathname.startsWith('/portal/signup') ||
-      window.location.pathname.startsWith('/portal/accept-invitation');
-
-    if (onPublicPortalRoute || portalUnauthorizedEventDispatched) {
-      return;
-    }
-
-    portalUnauthorizedEventDispatched = true;
-    window.dispatchEvent(new CustomEvent('portal:unauthorized'));
-    window.setTimeout(() => {
-      portalUnauthorizedEventDispatched = false;
-    }, 1500);
-  },
+  onUnauthorized: createPortalUnauthorizedHandler(),
 });
 
 const typedPortalApi = portalApi as typeof portalApi & {

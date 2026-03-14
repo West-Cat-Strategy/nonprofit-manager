@@ -47,15 +47,14 @@ describe('BrandingContext', () => {
     document.documentElement.style.removeProperty('--brand-secondary');
   });
 
-  it('refetches saved branding after auth initializes instead of reusing cached defaults', async () => {
-    setBrandingCached(defaultBranding);
-    vi.mocked(api.get).mockResolvedValueOnce({ data: savedBranding });
+  it('uses seeded bootstrap branding after auth initializes without refetching', async () => {
+    setBrandingCached(savedBranding);
 
     const store = createTestStore({
       auth: {
         user: null,
         isAuthenticated: false,
-        authLoading: false,
+        authLoading: true,
         loading: false,
       },
     });
@@ -76,10 +75,30 @@ describe('BrandingContext', () => {
     });
 
     await waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith('/admin/branding');
-    });
-    await waitFor(() => {
       expect(screen.getByTestId('app-name')).toHaveTextContent(savedBranding.appName);
     });
+    expect(api.get).not.toHaveBeenCalled();
+  });
+
+  it('keeps default branding when auth is initialized without a seeded branding fetch', async () => {
+    const store = createTestStore({
+      auth: {
+        user: bootstrapUser,
+        isAuthenticated: true,
+        authLoading: false,
+        loading: false,
+      },
+    });
+
+    render(
+      <Provider store={store}>
+        <BrandingProvider>
+          <BrandingProbe />
+        </BrandingProvider>
+      </Provider>
+    );
+
+    expect(screen.getByTestId('app-name')).toHaveTextContent(defaultBranding.appName);
+    expect(api.get).not.toHaveBeenCalled();
   });
 });

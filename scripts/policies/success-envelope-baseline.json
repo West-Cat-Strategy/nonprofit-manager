@@ -27,7 +27,6 @@
   "backend/src/controllers/outcomeReportController.ts": 1,
   "backend/src/controllers/passkeyController.ts": 5,
   "backend/src/controllers/passwordResetController.ts": 3,
-  "backend/src/controllers/paymentController.ts": 10,
   "backend/src/controllers/portalAdminController.ts": 17,
   "backend/src/controllers/portalAuthController.ts": 6,
   "backend/src/controllers/publishingController.ts": 24,

@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import reducer, {
+import {
   clearOutcomesReport,
   clearOutcomesReportError,
   fetchOutcomesReport,
+  outcomesReportsReducer,
   setOutcomesReportFilters,
-} from '../outcomesReportsSlice';
+} from '../../../features/outcomes/state';
 
 const sampleFilters = {
   from: '2026-01-01',
@@ -45,11 +46,11 @@ const sampleReport = {
 
 describe('outcomesReportsSlice', () => {
   it('handles fetch pending and fulfilled', () => {
-    let state = reducer(undefined, { type: fetchOutcomesReport.pending.type });
+    let state = outcomesReportsReducer(undefined, { type: fetchOutcomesReport.pending.type });
     expect(state.loading).toBe(true);
     expect(state.error).toBeNull();
 
-    state = reducer(state, {
+    state = outcomesReportsReducer(state, {
       type: fetchOutcomesReport.fulfilled.type,
       payload: {
         report: sampleReport,
@@ -63,7 +64,7 @@ describe('outcomesReportsSlice', () => {
   });
 
   it('stores rejected error', () => {
-    const state = reducer(undefined, {
+    const state = outcomesReportsReducer(undefined, {
       type: fetchOutcomesReport.rejected.type,
       payload: 'Nope',
     });
@@ -73,10 +74,10 @@ describe('outcomesReportsSlice', () => {
   });
 
   it('sets and clears filters/report', () => {
-    const withFilters = reducer(undefined, setOutcomesReportFilters(sampleFilters));
+    const withFilters = outcomesReportsReducer(undefined, setOutcomesReportFilters(sampleFilters));
     expect(withFilters.filters?.to).toBe('2026-01-31');
 
-    const withReport = reducer(withFilters, {
+    const withReport = outcomesReportsReducer(withFilters, {
       type: fetchOutcomesReport.fulfilled.type,
       payload: {
         report: sampleReport,
@@ -84,16 +85,16 @@ describe('outcomesReportsSlice', () => {
       },
     });
 
-    const clearedReport = reducer(withReport, clearOutcomesReport());
+    const clearedReport = outcomesReportsReducer(withReport, clearOutcomesReport());
     expect(clearedReport.report).toBeNull();
     expect(clearedReport.filters).toBeNull();
 
-    const withError = reducer(withReport, {
+    const withError = outcomesReportsReducer(withReport, {
       type: fetchOutcomesReport.rejected.type,
       payload: 'Error',
     });
 
-    const clearedError = reducer(withError, clearOutcomesReportError());
+    const clearedError = outcomesReportsReducer(withError, clearOutcomesReportError());
     expect(clearedError.error).toBeNull();
   });
 });

@@ -60,6 +60,6 @@ Primary capabilities:
 - View summary metrics and weighted amount.
 
 Key files:
-- `frontend/src/store/slices/opportunitiesSlice.ts`
-- `frontend/src/pages/engagement/opportunities/OpportunitiesPage.tsx`
+- `frontend/src/features/engagement/opportunities/state/opportunitiesCore.ts`
+- `frontend/src/features/engagement/opportunities/pages/OpportunitiesPage.tsx`
 - `frontend/src/types/opportunity.ts`

@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '@config/jwt';
 import { PASSWORD, JWT } from '@config/constants';
+import { trackLoginAttempt } from '@middleware/accountLockout';
 import { PortalAuthRequest } from '@middleware/portalAuth';
 import { logPortalActivity } from '@services/domains/integration';
 import * as portalAuthService from '@services/portalAuthService';
@@ -23,6 +24,17 @@ interface PortalLoginRequest {
   email: string;
   password: string;
 }
+
+const mapPortalSessionUser = (user: {
+  id: string;
+  email: string;
+  contact_id?: string | null;
+  contactId?: string | null;
+}) => ({
+  id: user.id,
+  email: user.email,
+  contactId: user.contact_id ?? user.contactId ?? null,
+});
 
 const buildPortalToken = (payload: { id: string; email: string; contactId: string | null }) => {
   return jwt.sign(
@@ -92,8 +104,11 @@ export const portalLogin = async (
 ): Promise<Response | void> => {
   try {
     const { email, password }: PortalLoginRequest = req.body;
-    const user = await portalAuthService.getPortalLoginUserByEmail(email.toLowerCase());
+    const normalizedEmail = email.toLowerCase();
+    const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
+    const user = await portalAuthService.getPortalLoginUserByEmail(normalizedEmail);
     if (!user) {
+      await trackLoginAttempt(normalizedEmail, false, undefined, clientIp);
       return unauthorized(res, 'Invalid credentials');
     }
 
@@ -107,10 +122,12 @@ export const portalLogin = async (
 
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
+      await trackLoginAttempt(normalizedEmail, false, undefined, clientIp);
       return unauthorized(res, 'Invalid credentials');
     }
 
     await portalAuthService.updatePortalUserLastLogin(user.id);
+    await trackLoginAttempt(normalizedEmail, true, undefined, clientIp);
     await logPortalActivity({
       portalUserId: user.id,
       action: 'login.success',
@@ -125,11 +142,27 @@ export const portalLogin = async (
     setPortalAuthCookie(res, token);
 
     return sendSuccess(res, {
-      user: {
-        id: user.id,
-        email: user.email,
-        contactId: user.contact_id,
-      },
+      user: mapPortalSessionUser(user),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getPortalBootstrap = async (
+  req: PortalAuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const portalUser = req.portalUser!;
+    const profile = await portalAuthService.getPortalUserProfileById(portalUser.id);
+    if (!profile) {
+      return notFoundMessage(res, 'Portal user not found');
+    }
+
+    return sendSuccess(res, {
+      user: mapPortalSessionUser(profile),
     });
   } catch (error) {
     next(error);
@@ -265,11 +298,7 @@ export const acceptPortalInvitation = async (
       res,
       {
         ...(shouldExposeAuthTokensInResponse() ? { token: tokenValue } : {}),
-        user: {
-          id: portalUser.id,
-          email: portalUser.email,
-          contactId: portalUser.contact_id,
-        },
+        user: mapPortalSessionUser(portalUser),
       },
       201
     );

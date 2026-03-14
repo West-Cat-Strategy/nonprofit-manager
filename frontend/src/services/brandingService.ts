@@ -30,6 +30,14 @@ export const setBrandingCached = (branding: BrandingConfig): BrandingConfig => {
   return cachedBranding;
 };
 
+export const getBrandingCachedSync = (): BrandingConfig | null => {
+  if (!isFresh() || !cachedBranding) {
+    return null;
+  }
+
+  return cachedBranding;
+};
+
 export const getBrandingCached = async (options?: {
   forceRefresh?: boolean;
 }): Promise<BrandingConfig> => {

@@ -1,9 +1,10 @@
-import { screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import type * as ReactRouterDom from 'react-router-dom';
 import { vi } from 'vitest';
 import Setup from '../../features/auth/pages/SetupPage';
 import api from '../../services/api';
+import { getStaffBootstrapSnapshot } from '../../services/bootstrap/staffBootstrap';
+import { primeStaffSession } from '../../features/auth/utils/primeStaffSession';
 import { createTestStore, renderWithProviders } from '../../test/testUtils';
 
 const mockNavigate = vi.fn();
@@ -23,6 +24,17 @@ vi.mock('../../services/api', () => ({
   },
 }));
 
+vi.mock('../../services/bootstrap/staffBootstrap', () => ({
+  getStaffBootstrapSnapshot: vi.fn(),
+}));
+
+vi.mock('../../features/auth/utils/primeStaffSession', () => ({
+  primeStaffSession: vi.fn(async ({ user, organizationId }) => ({
+    user,
+    organizationId: organizationId ?? null,
+  })),
+}));
+
 const renderSetup = () => {
   const store = createTestStore();
   renderWithProviders(<Setup />, { store });
@@ -30,20 +42,22 @@ const renderSetup = () => {
 };
 
 const fillSetupForm = async (password: string) => {
-  const user = userEvent.setup();
-
-  await user.type(screen.getByLabelText(/first name/i), 'Setup');
-  await user.type(screen.getByLabelText(/last name/i), 'Admin');
-  await user.type(screen.getByLabelText(/organization name/i), 'Community Aid Network');
-  await user.type(screen.getByLabelText(/email address/i), 'setup@example.com');
-  await user.type(screen.getByLabelText(/^password$/i), password);
-  await user.type(screen.getByLabelText(/confirm password/i), password);
-  await user.click(screen.getByRole('button', { name: /create admin account/i }));
+  fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'Setup' } });
+  fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Admin' } });
+  fireEvent.change(screen.getByLabelText(/organization name/i), {
+    target: { value: 'Community Aid Network' },
+  });
+  fireEvent.change(screen.getByLabelText(/email address/i), {
+    target: { value: 'setup@example.com' },
+  });
+  fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: password } });
+  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: password } });
+  fireEvent.click(screen.getByRole('button', { name: /create admin account/i }));
 };
 
 const mockSuccessfulSetupRequest = (options?: { includeSetupUser?: boolean }) => {
   const postMock = api.post as ReturnType<typeof vi.fn>;
-  const getMock = api.get as ReturnType<typeof vi.fn>;
+  const bootstrapMock = vi.mocked(getStaffBootstrapSnapshot);
 
   postMock.mockResolvedValue({
     data: {
@@ -66,17 +80,19 @@ const mockSuccessfulSetupRequest = (options?: { includeSetupUser?: boolean }) =>
   });
 
   if (!options?.includeSetupUser) {
-    getMock.mockResolvedValue({
-      data: {
-        success: true,
-        data: {
-          id: 'user-1',
-          email: 'setup@example.com',
-          firstName: 'Setup',
-          lastName: 'Admin',
-          role: 'admin',
-        },
+    bootstrapMock.mockResolvedValue({
+      status: 'authenticated',
+      user: {
+        id: 'user-1',
+        email: 'setup@example.com',
+        firstName: 'Setup',
+        lastName: 'Admin',
+        role: 'admin',
       },
+      organizationId: 'org-1',
+      branding: null,
+      preferences: null,
+      fetchedAt: Date.now(),
     });
   }
 };
@@ -85,6 +101,14 @@ describe('Setup password validation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    vi.mocked(getStaffBootstrapSnapshot).mockResolvedValue({
+      status: 'anonymous',
+      user: null,
+      organizationId: null,
+      branding: null,
+      preferences: null,
+      fetchedAt: Date.now(),
+    });
   });
 
   it(
@@ -103,7 +127,7 @@ describe('Setup password validation', () => {
         lastName: 'Admin',
         organizationName: 'Community Aid Network',
       }));
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+      expect(primeStaffSession).toHaveBeenCalled();
     });
     },
     15000
@@ -121,7 +145,8 @@ describe('Setup password validation', () => {
       expect(api.post).toHaveBeenCalledWith('/auth/setup', expect.objectContaining({
         password: 'Strong1Password',
       }));
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+      expect(vi.mocked(getStaffBootstrapSnapshot)).toHaveBeenCalledWith({ forceRefresh: true });
+      expect(primeStaffSession).toHaveBeenCalled();
     });
     },
     15000
@@ -139,22 +164,21 @@ describe('Setup password validation', () => {
         expect(api.post).toHaveBeenCalledWith('/auth/setup', expect.objectContaining({
           password: 'Strong1Password',
         }));
-        expect(api.get).not.toHaveBeenCalledWith('/auth/me');
-        expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+        expect(vi.mocked(getStaffBootstrapSnapshot)).not.toHaveBeenCalled();
+        expect(primeStaffSession).toHaveBeenCalled();
       });
     },
     15000
   );
 
   it(
-    'shows a clear message and routes to login when setup succeeds but /auth/me hydration fails',
+    'shows a clear message and routes to login when setup succeeds but bootstrap hydration fails',
     async () => {
       const postMock = api.post as ReturnType<typeof vi.fn>;
-      const getMock = api.get as ReturnType<typeof vi.fn>;
       postMock.mockResolvedValue({
         data: { success: true, data: { organizationId: 'org-1' } },
       });
-      getMock.mockRejectedValue(new Error('session failed'));
+      vi.mocked(getStaffBootstrapSnapshot).mockRejectedValue(new Error('session failed'));
 
       renderSetup();
 
@@ -162,7 +186,7 @@ describe('Setup password validation', () => {
 
       await waitFor(() => {
         expect(api.post).toHaveBeenCalledWith('/auth/setup', expect.any(Object));
-        expect(api.get).toHaveBeenCalledWith('/auth/me');
+        expect(vi.mocked(getStaffBootstrapSnapshot)).toHaveBeenCalledWith({ forceRefresh: true });
         expect(
           screen.getByText(/setup completed, but automatic sign-in failed/i)
         ).toBeInTheDocument();

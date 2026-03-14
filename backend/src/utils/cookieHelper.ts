@@ -51,16 +51,6 @@ export const setAuthCookie = (res: Response, token: string, maxAge?: number): vo
 };
 
 /**
- * Set the refresh token cookie
- */
-export const setRefreshCookie = (res: Response, token: string, maxAge?: number): void => {
-  res.cookie(REFRESH_COOKIE_NAME, token, {
-    ...baseCookieOptions,
-    maxAge: maxAge ?? 7 * 24 * 60 * 60 * 1000, // 7 days default
-  });
-};
-
-/**
  * Set the portal auth token cookie (for client portal)
  */
 export const setPortalAuthCookie = (res: Response, token: string, maxAge?: number): void => {
@@ -84,6 +74,7 @@ export const clearPortalAuthCookie = (res: Response): void => {
  * Clear all auth cookies on logout
  */
 export const clearAuthCookies = (res: Response): void => {
+  // Keep clearing the legacy refresh cookie so older browser sessions fully logout.
   const clearOptions = {
     ...baseCookieOptions,
     maxAge: 0,

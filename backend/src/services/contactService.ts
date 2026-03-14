@@ -3,134 +3,24 @@ import { Contact, CreateContactDTO, UpdateContactDTO, ContactFilters, ContactLoo
 import { logger } from '@config/logger';
 import { resolveContactRoleNames } from '@modules/contacts/shared/contactRoleFilters';
 import { resolveSort } from '@utils/queryHelpers';
-import { decrypt, encrypt } from '@utils/encryption';
+import { encrypt } from '@utils/encryption';
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { syncContactMethodSummaries, syncStructuredContactMethodsFromSummary } from '@services/contactMethodSyncService';
-
-type QueryValue = string | number | boolean | null | string[] | Date;
-type ViewerRole = string | undefined;
-type ContactRecord = Omit<Contact, 'birth_date' | 'phn'> & { birth_date?: string | Date | null; phn?: string | null; phn_encrypted?: string | null; total_count?: number | string };
-const PHN_FULL_ACCESS_ROLES = new Set(['admin', 'manager', 'staff']);
-const CONTACT_SEARCH_SQL =
-  `coalesce(nullif(c.first_name, ''), '')`
-  + ` || CASE WHEN nullif(c.preferred_name, '') IS NOT NULL THEN ' ' || c.preferred_name ELSE '' END`
-  + ` || CASE WHEN nullif(c.last_name, '') IS NOT NULL THEN ' ' || c.last_name ELSE '' END`
-  + ` || CASE WHEN nullif(c.email, '') IS NOT NULL THEN ' ' || c.email ELSE '' END`
-  + ` || CASE WHEN nullif(c.phone, '') IS NOT NULL THEN ' ' || c.phone ELSE '' END`
-  + ` || CASE WHEN nullif(c.mobile_phone, '') IS NOT NULL THEN ' ' || c.mobile_phone ELSE '' END`;
+import {
+  CONTACT_SEARCH_SQL,
+  mapContactRow,
+  normalizeDateOnly,
+  normalizeNullableText,
+  normalizePhn,
+  type ContactRecord,
+  type QueryValue,
+  type ViewerRole,
+} from './contactServiceHelpers';
 
 export class ContactService {
   private pool: Pool;
 
   constructor(pool: Pool) { this.pool = pool; }
-
-  private normalizePhn(phn: unknown): string | null | undefined {
-    if (phn === undefined) {
-      return undefined;
-    }
-    if (phn === null) {
-      return null;
-    }
-    if (typeof phn !== 'string') {
-      throw new Error('PHN must be a string');
-    }
-
-    const digits = phn.replace(/\D/g, '');
-    if (digits.length === 0) {
-      return null;
-    }
-    if (digits.length !== 10) {
-      throw new Error('PHN must contain exactly 10 digits');
-    }
-
-    return digits;
-  }
-
-  private decryptPhn(phnEncrypted: string | null | undefined, contactId?: string): string | null {
-    if (!phnEncrypted) {
-      return null;
-    }
-
-    try {
-      return decrypt(phnEncrypted);
-    } catch (error) {
-      logger.warn('Failed to decrypt contact PHN; returning null', {
-        contactId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      return null;
-    }
-  }
-
-  private formatPhnForViewer(phn: string | null, viewerRole: ViewerRole): string | null {
-    if (!phn) {
-      return null;
-    }
-    if (viewerRole && PHN_FULL_ACCESS_ROLES.has(viewerRole)) {
-      return phn;
-    }
-
-    return `******${phn.slice(-4)}`;
-  }
-
-  private normalizeNullableText(value: unknown): string | null | undefined {
-    if (value === undefined) {
-      return undefined;
-    }
-    if (value === null) {
-      return null;
-    }
-    if (typeof value !== 'string') {
-      throw new Error('Expected string value');
-    }
-
-    const trimmed = value.trim();
-    return trimmed.length > 0 ? trimmed : null;
-  }
-
-  private normalizeDateOnly(value: unknown): string | null {
-    if (value === undefined || value === null || value === '') {
-      return null;
-    }
-
-    if (value instanceof Date) {
-      const year = value.getUTCFullYear();
-      const month = `${value.getUTCMonth() + 1}`.padStart(2, '0');
-      const day = `${value.getUTCDate()}`.padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    }
-
-    if (typeof value === 'string') {
-      const trimmed = value.trim();
-      const directMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2})/);
-      if (directMatch) {
-        return directMatch[1];
-      }
-
-      const parsed = new Date(trimmed);
-      if (!Number.isNaN(parsed.getTime())) {
-        const year = parsed.getUTCFullYear();
-        const month = `${parsed.getUTCMonth() + 1}`.padStart(2, '0');
-        const day = `${parsed.getUTCDate()}`.padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      }
-    }
-
-    throw new Error('Birth date must be a valid YYYY-MM-DD value');
-  }
-
-  private mapContactRow(row: ContactRecord, viewerRole?: ViewerRole): Contact {
-    const decryptedPhn = this.decryptPhn(row.phn_encrypted, row.contact_id);
-    const phn = this.formatPhnForViewer(decryptedPhn, viewerRole);
-    const rest = { ...row };
-    delete rest.phn_encrypted;
-
-    return {
-      ...rest,
-      birth_date: this.normalizeDateOnly(rest.birth_date),
-      phn,
-    };
-  }
 
   async getContacts(
     filters: ContactFilters = {},
@@ -326,7 +216,7 @@ export class ContactService {
 
       return {
         data: rows.map(({ total_count: _totalCount, ...row }) =>
-          this.mapContactRow(row as ContactRecord, viewerRole)
+          mapContactRow(row as ContactRecord, viewerRole)
         ),
         pagination: {
           total,
@@ -522,7 +412,7 @@ export class ContactService {
       );
 
       const row = result.rows[0] as ContactRecord | undefined;
-      return row ? this.mapContactRow(row, viewerRole) : null;
+      return row ? mapContactRow(row, viewerRole) : null;
     } catch (error) {
       logger.error('Error getting contact by ID:', error);
       throw Object.assign(new Error('Failed to retrieve contact'), { cause: error });
@@ -611,7 +501,7 @@ export class ContactService {
       );
 
       const row = result.rows[0] as ContactRecord | undefined;
-      return row ? this.mapContactRow(row, viewerRole) : null;
+      return row ? mapContactRow(row, viewerRole) : null;
     } catch (error) {
       logger.error('Error getting contact by ID with scope:', error);
       throw Object.assign(new Error('Failed to retrieve contact'), { cause: error });
@@ -620,12 +510,12 @@ export class ContactService {
 
   async createContact(data: CreateContactDTO, userId: string, viewerRole?: ViewerRole): Promise<Contact> {
     try {
-      const normalizedPhn = this.normalizePhn(data.phn);
+      const normalizedPhn = normalizePhn(data.phn);
       const encryptedPhn = normalizedPhn ? encrypt(normalizedPhn) : null;
-      const normalizedBirthDate = this.normalizeDateOnly(data.birth_date);
-      const normalizedEmail = this.normalizeNullableText(data.email) ?? null;
-      const normalizedPhone = this.normalizeNullableText(data.phone) ?? null;
-      const normalizedMobilePhone = this.normalizeNullableText(data.mobile_phone) ?? null;
+      const normalizedBirthDate = normalizeDateOnly(data.birth_date);
+      const normalizedEmail = normalizeNullableText(data.email) ?? null;
+      const normalizedPhone = normalizeNullableText(data.phone) ?? null;
+      const normalizedMobilePhone = normalizeNullableText(data.mobile_phone) ?? null;
 
       const result = await this.pool.query(
         `INSERT INTO contacts (
@@ -722,29 +612,29 @@ export class ContactService {
       } = {};
 
       if (Object.prototype.hasOwnProperty.call(updateData, 'birth_date')) {
-        updateData.birth_date = this.normalizeDateOnly(updateData.birth_date);
+        updateData.birth_date = normalizeDateOnly(updateData.birth_date);
       }
 
       if (Object.prototype.hasOwnProperty.call(updateData, 'email')) {
-        const normalizedEmail = this.normalizeNullableText(updateData.email);
+        const normalizedEmail = normalizeNullableText(updateData.email);
         updateData.email = normalizedEmail;
         summarySyncInput.email = normalizedEmail ?? null;
       }
 
       if (Object.prototype.hasOwnProperty.call(updateData, 'phone')) {
-        const normalizedPhone = this.normalizeNullableText(updateData.phone);
+        const normalizedPhone = normalizeNullableText(updateData.phone);
         updateData.phone = normalizedPhone;
         summarySyncInput.phone = normalizedPhone ?? null;
       }
 
       if (Object.prototype.hasOwnProperty.call(updateData, 'mobile_phone')) {
-        const normalizedMobilePhone = this.normalizeNullableText(updateData.mobile_phone);
+        const normalizedMobilePhone = normalizeNullableText(updateData.mobile_phone);
         updateData.mobile_phone = normalizedMobilePhone;
         summarySyncInput.mobile_phone = normalizedMobilePhone ?? null;
       }
 
       if (Object.prototype.hasOwnProperty.call(updateData, 'phn')) {
-        const normalizedPhn = this.normalizePhn(updateData.phn);
+        const normalizedPhn = normalizePhn(updateData.phn);
         updateData.phn_encrypted = normalizedPhn ? encrypt(normalizedPhn) : null;
         delete updateData.phn;
       }
@@ -805,7 +695,7 @@ export class ContactService {
       }
 
       logger.info(`Contact updated: ${contactId}`);
-      return this.mapContactRow(result.rows[0] as ContactRecord, viewerRole);
+      return mapContactRow(result.rows[0] as ContactRecord, viewerRole);
     } catch (error) {
       logger.error('Error updating contact:', error);
       throw Object.assign(new Error('Failed to update contact'), { cause: error });
