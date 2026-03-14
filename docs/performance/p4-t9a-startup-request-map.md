@@ -1,4 +1,4 @@
-# P4-T9 Startup Request Map (`/login` -> `/dashboard` -> `/contacts/:id`)
+# P4-T9 Startup Request Map (`/login` -> `/dashboard` -> `/contacts`)
 
 Date: 2026-03-05  
 Task: `P4-T9D` (load-time acceleration refactor)
@@ -27,5 +27,14 @@ Task: `P4-T9D` (load-time acceleration refactor)
 - Contact scoped case fetch: `frontend/src/features/cases/state/casesCore.ts`, `frontend/src/pages/people/contacts/ContactDetail.tsx`
 - Quick lookup endpoint usage: `frontend/src/components/dashboard/useQuickLookup.tsx`, `frontend/src/features/contacts/api/contactsApiClient.ts`
 - Assertions:
-  - `e2e/tests/auth.spec.ts` (`authenticated route transitions do not repeatedly refetch preferences/branding`, `quick lookup uses lookup endpoint instead of full contacts list search`)
+- `e2e/tests/auth.spec.ts` (`authenticated route transitions do not repeatedly refetch preferences/branding`, `quick lookup uses lookup endpoint instead of full contacts list search`)
   - `e2e/tests/contacts.spec.ts` (`contact detail uses contact scoped case fetch`)
+
+## Current Staff Bootstrap Targets (Mar 13, 2026 redesign slice)
+
+| Route | Targeted startup/transition requests |
+|---|---|
+| `/login` -> `/dashboard` | `POST /api/v2/auth/login`, `GET /api/v2/auth/bootstrap`; no `/auth/preferences` or `/admin/branding` request after auth resolves |
+| `/dashboard` -> `/contacts` | Code-prefetch only before intent/idle; first navigation may fetch contacts page data, but should not refetch `/auth/preferences` or `/admin/branding` |
+
+Active guardrails now live in `docs/performance/p4-t9d-thresholds.json` and `e2e/tests/performance.startup.spec.ts`.

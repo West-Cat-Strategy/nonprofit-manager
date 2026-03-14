@@ -1,6 +1,6 @@
-import { getBrandingCached } from '../brandingService';
-import { getUserPreferencesCached, type UserPreferences } from '../userPreferencesService';
-import type { BrandingConfig } from '../../types/branding';
+import { defaultBranding, type BrandingConfig } from '../../types/branding';
+import { getCachedStaffBootstrapSnapshot, getStaffBootstrapSnapshot } from './staffBootstrap';
+import type { UserPreferences } from '../userPreferencesService';
 
 export interface AuthenticatedShellBootstrapSnapshot {
   preferences: UserPreferences | null;
@@ -9,13 +9,18 @@ export interface AuthenticatedShellBootstrapSnapshot {
 
 export const preloadAuthenticatedShellBootstrap =
   async (): Promise<AuthenticatedShellBootstrapSnapshot> => {
-    const [preferences, branding] = await Promise.all([
-      getUserPreferencesCached(),
-      getBrandingCached(),
-    ]);
+    const seededSnapshot = getCachedStaffBootstrapSnapshot();
+    if (seededSnapshot?.user) {
+      return {
+        preferences: seededSnapshot.preferences,
+        branding: seededSnapshot.branding ?? defaultBranding,
+      };
+    }
+
+    const snapshot = await getStaffBootstrapSnapshot();
 
     return {
-      preferences,
-      branding,
+      preferences: snapshot.preferences,
+      branding: snapshot.branding ?? defaultBranding,
     };
   };

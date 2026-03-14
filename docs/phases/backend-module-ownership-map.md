@@ -1,6 +1,6 @@
 # Backend Module Ownership Map (Compatibility-Aware)
 
-**Updated:** March 11, 2026
+**Updated:** March 13, 2026
 
 ## Module-owned contract boundaries (canonical)
 
@@ -54,9 +54,8 @@ Financial feature ownership is split across module domains below; the `finance` 
 
 ## Compatibility shims expected in this phase
 
-- `backend/src/controllers/paymentController.ts` should remain a thin re-export shim.
-- `backend/src/controllers/domains/index.ts` and `backend/src/controllers/domains/operations/index.ts` should stay compatibility-only.
 - `backend/src/routes/payments.ts` and related legacy route surfaces remain compatibility adapters with v1 deprecation headers only.
+- Backend payment controller/domain export shims were retired during `P4-T1R7` once all in-repo callers moved to module entrypoints.
 
 ## Active task ownership context
 

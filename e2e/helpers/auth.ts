@@ -467,6 +467,17 @@ const waitForSetupStatus = async (
   return latestStatus ?? { setupRequired: true, userCount: 0 };
 };
 
+const getSetupStatusOrNull = async (
+  page: Page,
+  options: { attempts?: number; delayMs?: number } = {}
+): Promise<SetupStatusResult | null> => {
+  try {
+    return await waitForSetupStatus(page, options);
+  } catch {
+    return null;
+  }
+};
+
 const resolveOrganizationIdFromPayload = (payload: unknown): string | undefined => {
   if (!payload || typeof payload !== 'object') {
     return undefined;
@@ -1143,16 +1154,20 @@ export async function ensureLoginViaAPI(
       // Continue with setup/user creation flow below.
     }
 
-    await ensureSetupComplete(page, email, password, profile);
-    try {
-      const afterSetup = await attemptLogin();
-      fs.writeFileSync(readyFile, JSON.stringify({ email, at: Date.now() }), {
-        encoding: 'utf8',
-      });
-      return afterSetup;
-    } catch {
-      // Continue to registration fallback.
+    const setupStatus = await getSetupStatusOrNull(page, { attempts: 3, delayMs: 200 });
+    if (!setupStatus || setupStatus.setupRequired) {
+      await ensureSetupComplete(page, email, password, profile);
+      try {
+        const afterSetup = await attemptLogin();
+        fs.writeFileSync(readyFile, JSON.stringify({ email, at: Date.now() }), {
+          encoding: 'utf8',
+        });
+        return afterSetup;
+      } catch {
+        // Continue to registration fallback.
+      }
     }
+
     const firstName = profile?.firstName || 'Test';
     const lastName = profile?.lastName || 'User';
 

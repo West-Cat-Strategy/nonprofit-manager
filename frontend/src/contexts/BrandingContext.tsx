@@ -7,6 +7,7 @@ import { applyBrandingToDocument } from '../utils/branding';
 import { useAppSelector } from '../store/hooks';
 import {
   getBrandingCached,
+  getBrandingCachedSync,
   invalidateBrandingCache,
   setBrandingCached,
 } from '../services/brandingService';
@@ -20,8 +21,10 @@ type BrandingContextValue = {
 const BrandingContext = createContext<BrandingContextValue | null>(null);
 
 export const BrandingProvider = ({ children }: { children: ReactNode }) => {
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const { authLoading, isAuthenticated } = useAppSelector((state) => state.auth);
   const [branding, setBrandingState] = useState<BrandingConfig>(defaultBranding);
+  const cachedBranding = isAuthenticated ? getBrandingCachedSync() : null;
+  const resolvedBranding = cachedBranding ?? branding;
 
   const setBranding = useCallback((next: BrandingConfig) => {
     const cached = setBrandingCached(next);
@@ -36,22 +39,33 @@ export const BrandingProvider = ({ children }: { children: ReactNode }) => {
   }, [isAuthenticated, setBranding]);
 
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
     if (!isAuthenticated) {
       invalidateBrandingCache();
       setBrandingState(defaultBranding);
       applyBrandingToDocument(defaultBranding, { setTitle: false });
       return;
     }
-    refreshBranding();
-  }, [isAuthenticated, refreshBranding]);
+
+    if (cachedBranding) {
+      setBrandingState(cachedBranding);
+      applyBrandingToDocument(cachedBranding);
+      return;
+    }
+
+    applyBrandingToDocument(branding);
+  }, [authLoading, branding, cachedBranding, isAuthenticated]);
 
   const value = useMemo<BrandingContextValue>(
     () => ({
-      branding,
+      branding: resolvedBranding,
       setBranding,
       refreshBranding,
     }),
-    [branding, refreshBranding, setBranding]
+    [refreshBranding, resolvedBranding, setBranding]
   );
 
   return <BrandingContext.Provider value={value}>{children}</BrandingContext.Provider>;

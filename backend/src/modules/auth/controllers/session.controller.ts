@@ -14,7 +14,7 @@ import {
 } from '@services/authorization';
 import { issueTotpMfaChallenge } from './mfaController';
 import { forbidden, notFoundMessage, unauthorized } from '@utils/responseHelpers';
-import { setAuthCookie, setRefreshCookie, clearAuthCookies } from '@utils/cookieHelper';
+import { setAuthCookie, clearAuthCookies } from '@utils/cookieHelper';
 import { buildAuthTokenResponse } from '@utils/authResponse';
 import { generateCsrfToken } from '@middleware/domains/security';
 import { sendSuccess } from '@modules/shared/http/envelope';
@@ -25,6 +25,7 @@ import {
   requireAuthenticatedUser,
 } from '../lib/authQueries';
 import { mapAuthUser } from '../lib/authResponseMappers';
+import { resolveAuthenticatedOrganizationId } from '../lib/resolveOrganizationContext';
 
 export const login = async (
   req: AuthRequest,
@@ -99,24 +100,14 @@ export const login = async (
       { expiresIn: JWT.ACCESS_TOKEN_EXPIRY }
     );
 
-    const refreshToken = jwt.sign(
-      {
-        id: user.id,
-        type: 'refresh',
-      },
-      jwtSecret,
-      { expiresIn: '7d' }
-    );
-
     logger.info(`User logged in: ${user.email}`, { ip: clientIp });
 
     setAuthCookie(res, token);
-    setRefreshCookie(res, refreshToken);
 
     const csrfToken = generateCsrfToken(req, res);
 
     return sendSuccess(res, {
-      ...buildAuthTokenResponse(token, refreshToken),
+      ...buildAuthTokenResponse(token),
       csrfToken,
       organizationId,
       user: mapAuthUser(user),
@@ -155,8 +146,10 @@ export const getCurrentUser = async (
     }
 
     const user = result.rows[0];
-    const organizationId =
-      req.organizationId || req.accountId || req.tenantId || (await getDefaultOrganizationId());
+    const organizationId = await resolveAuthenticatedOrganizationId(req, res);
+    if (organizationId === undefined) {
+      return;
+    }
 
     return sendSuccess(res, {
       id: user.id,
@@ -183,18 +176,21 @@ export const checkAccess = async (
     if (!authUser) return;
     const userId = authUser.id;
     const primaryRole = authUser.role;
-    const organizationId = req.organizationId || req.accountId || req.tenantId;
+    const organizationId = await resolveAuthenticatedOrganizationId(req, res);
+    if (organizationId === undefined) {
+      return;
+    }
 
     const snapshot = await buildAuthorizationSnapshot({
       userId,
       primaryRole,
-      organizationId,
+      organizationId: organizationId ?? undefined,
     });
 
     req.authorizationContext = createRequestAuthorizationContext(
       userId,
       primaryRole,
-      organizationId,
+      organizationId ?? undefined,
       snapshot.user.roles
     );
 

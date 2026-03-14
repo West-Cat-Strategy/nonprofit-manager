@@ -18,7 +18,7 @@ import templatesReducer, {
   setSearchParams,
   setCurrentPage,
   clearCurrentTemplate,
-} from '../templateSlice';
+} from '../../../features/builder/state';
 import api from '../../../services/api';
 import type { TemplateState, Template, TemplateListItem, TemplatePage } from '../../../types/websiteBuilder';
 

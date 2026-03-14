@@ -34,6 +34,16 @@ export interface UserRow {
   mfa_required_by_role?: boolean;
 }
 
+export interface CurrentAuthUserRow {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  profile_picture: string | null;
+  created_at: Date;
+}
+
 export interface AlternativeEmail {
   email: string;
   label: string;
@@ -216,6 +226,19 @@ export const getUserPreferences = async (
   }
 
   return result.rows[0].preferences || {};
+};
+
+export const getCurrentAuthUserById = async (
+  userId: string
+): Promise<CurrentAuthUserRow | null> => {
+  const result = await pool.query<CurrentAuthUserRow>(
+    `SELECT id, email, first_name, last_name, role, profile_picture, created_at
+     FROM users
+     WHERE id = $1`,
+    [userId]
+  );
+
+  return result.rows[0] ?? null;
 };
 
 export const mergeUserPreferences = async (

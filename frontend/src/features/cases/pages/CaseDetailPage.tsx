@@ -1,8 +1,3 @@
-/**
- * CaseDetail Page
- * Displays detailed information about a single case with neo-brutalist styling
- */
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -37,6 +32,7 @@ import { getCasePriorityBadgeColor } from '../utils/casePriority';
 import CaseTeamChatPanel from '../../teamChat/components/CaseTeamChatPanel';
 import CaseDetailTabs from '../components/CaseDetailTabs';
 import CaseStatusChangeModal from '../components/CaseStatusChangeModal';
+import { isUuid } from '../../../utils/uuid';
 
 type TabType =
   | 'overview'
@@ -89,18 +85,14 @@ const getProgressWidthClass = (value: number): string => {
 
 const CaseDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const hasValidId = isUuid(id);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { showSuccess, showError } = useToast();
-  const {
-    currentCase,
-    caseStatuses,
-    caseMilestones,
-    caseOutcomeDefinitions,
-    loading,
-    error,
-  } = useAppSelector((state) => state.casesV2);
+  const { currentCase, caseStatuses, caseMilestones, caseOutcomeDefinitions, loading, error } = useAppSelector(
+    (state) => state.casesV2
+  );
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
 
   const requestedTab = searchParams.get('tab');
@@ -121,22 +113,35 @@ const CaseDetail = () => {
   const [timelineRefreshKey, setTimelineRefreshKey] = useState(0);
 
   useEffect(() => {
-    if (id) {
+    if (hasValidId) {
       dispatch(fetchCaseById(id));
       dispatch(fetchCaseStatuses());
       dispatch(fetchCaseMilestones(id));
       dispatch(fetchCaseOutcomeDefinitions(false));
     }
+  }, [dispatch, hasValidId, id]);
 
-    return () => {
-      dispatch(clearCurrentCase());
-    };
-  }, [dispatch, id]);
+  useEffect(() => () => dispatch(clearCurrentCase()), [dispatch]);
 
   useEffect(() => {
     const nextTab = resolveTab(requestedTab);
     setActiveTab((current) => (current === nextTab ? current : nextTab));
   }, [requestedTab]);
+
+  if (id && !hasValidId) {
+    return (
+      <div className="p-6">
+        <BrutalCard color="yellow" className="p-6">
+          <div className="text-center">
+            <div className="text-4xl mb-4">🔗</div>
+            <h2 className="text-xl font-black uppercase text-black mb-2">Invalid Case Link</h2>
+            <p className="font-bold text-black/70 mb-4">This case link is invalid. Please return to the Cases list and try again.</p>
+            <BrutalButton onClick={() => navigate('/cases')} variant="primary">Back to Cases</BrutalButton>
+          </div>
+        </BrutalCard>
+      </div>
+    );
+  }
 
   const setActiveTabWithUrl = (tab: TabType) => {
     setActiveTab(tab);

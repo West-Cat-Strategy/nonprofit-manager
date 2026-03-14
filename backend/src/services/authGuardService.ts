@@ -260,6 +260,13 @@ export async function requireActiveOrganizationSafe(
     return orgResult;
   }
 
+  if (
+    req.organizationContextValidated?.organizationId === orgResult.data.organizationId &&
+    req.organizationContextValidated.isActive
+  ) {
+    return orgResult;
+  }
+
   const result = await pool.query<{ is_active: boolean }>(
     `SELECT is_active
      FROM accounts

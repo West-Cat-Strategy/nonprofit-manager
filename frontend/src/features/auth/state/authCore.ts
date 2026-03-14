@@ -6,6 +6,8 @@ import {
   getStaffBootstrapSnapshot,
   setStaffBootstrapSnapshot,
 } from '../../../services/bootstrap/staffBootstrap';
+import { invalidateBrandingCache } from '../../../services/brandingService';
+import { invalidateUserPreferencesCache } from '../../../services/userPreferencesService';
 
 export interface User {
   id: string;
@@ -75,7 +77,7 @@ const syncOrganizationIdStorage = (organizationId?: string | null): string | nul
 
 const initialState: AuthState = {
   user: user,
-  isAuthenticated: false, // Always false until /auth/me verifies the cookie
+  isAuthenticated: false, // Always false until bootstrap verifies the session cookie
   authLoading: true,      // True until initializeAuth completes
   loading: false,
 };
@@ -121,6 +123,8 @@ const authSlice = createSlice({
       state.loading = false;
       state.authLoading = false;
       clearStaffBootstrapSnapshot();
+      invalidateBrandingCache();
+      invalidateUserPreferencesCache();
       localStorage.removeItem('user');
       localStorage.removeItem('organizationId');
     },
@@ -153,6 +157,8 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.authLoading = false;
         clearStaffBootstrapSnapshot();
+        invalidateBrandingCache();
+        invalidateUserPreferencesCache();
         localStorage.removeItem('user');
         localStorage.removeItem('organizationId');
       });

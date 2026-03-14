@@ -7,6 +7,10 @@ info:
     This repository runs v2-only APIs under `/api/v2/*`.
     Documented query contracts are strict: malformed values or unknown keys return
     canonical `400` responses with `error.code: validation_error`.
+    Browser auth is cookie-session based: login endpoints set HttpOnly cookies and
+    browser shells should initialize through `GET /auth/bootstrap` or
+    `GET /portal/auth/bootstrap`. Bearer JWTs remain supported for API/test
+    clients where explicitly documented.
 servers:
   - url: http://localhost:3000/api/v2
 paths:
@@ -40,6 +44,7 @@ paths:
   /auth/login:
     post:
       summary: Login user
+      description: Establishes the browser session cookie. No refresh-token cookie is issued.
       requestBody:
         required: true
         content:
@@ -64,10 +69,39 @@ paths:
     get:
       summary: Get current user
       security:
+        - staffSessionCookie: []
         - bearerAuth: []
       responses:
         '200':
           description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+  /auth/bootstrap:
+    get:
+      summary: Bootstrap browser staff session
+      description: Canonical browser startup contract for staff shells.
+      security:
+        - staffSessionCookie: []
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Startup auth context
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+  /portal/auth/bootstrap:
+    get:
+      summary: Bootstrap browser portal session
+      description: Canonical browser startup contract for portal shells.
+      security:
+        - portalSessionCookie: []
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Portal startup auth context
           content:
             application/json:
               schema:
@@ -1002,6 +1036,14 @@ paths:
                 $ref: '#/components/schemas/SuccessEnvelope'
 components:
   securitySchemes:
+    staffSessionCookie:
+      type: apiKey
+      in: cookie
+      name: auth_token
+    portalSessionCookie:
+      type: apiKey
+      in: cookie
+      name: portal_auth_token
     bearerAuth:
       type: http
       scheme: bearer

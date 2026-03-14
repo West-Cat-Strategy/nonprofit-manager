@@ -1,11 +1,5 @@
 import { Response, NextFunction } from 'express';
-import pool from '@config/database';
-import { logger } from '@config/logger';
-import { setRequestContext } from '@config/requestContext';
-import { AuthRequest } from './auth';
-import { badRequest, forbidden, notFoundMessage, serverError } from '@utils/responseHelpers';
-
-type OrgContextSource = 'header' | 'query' | 'param';
+import type { AuthRequest, RequestedOrganizationSource } from './auth';
 
 const ORG_HEADER_KEYS = ['x-organization-id', 'x-org-id', 'x-account-id', 'x-tenant-id'];
 const ORG_QUERY_KEYS = ['organization_id', 'org_id', 'account_id', 'tenant_id'];
@@ -44,7 +38,9 @@ const extractFromParams = (req: AuthRequest): string | undefined => {
   return value;
 };
 
-const getOrgContext = (req: AuthRequest): { id?: string; source?: OrgContextSource } => {
+const getOrgContext = (
+  req: AuthRequest
+): { id?: string; source?: RequestedOrganizationSource } => {
   const headerValue = extractFromHeaders(req);
   if (headerValue) return { id: headerValue, source: 'header' };
 
@@ -57,13 +53,11 @@ const getOrgContext = (req: AuthRequest): { id?: string; source?: OrgContextSour
   return {};
 };
 
-const shouldValidateContext = () => process.env.ORG_CONTEXT_VALIDATE === 'true';
-const shouldRequireContext = () => process.env.ORG_CONTEXT_REQUIRE === 'true';
-const shouldValidateUserAccess = () => process.env.ORG_ACCESS_VALIDATE === 'true';
+const AUTH_CONTEXT_AWARE_PREFIXES = ['/auth/bootstrap', '/auth/me', '/auth/check-access'];
 
 export const orgContextMiddleware = async (
   req: AuthRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): Promise<void | Response> => {
   if (req.method === 'OPTIONS') {
@@ -76,7 +70,16 @@ export const orgContextMiddleware = async (
   const versionlessPath = stripVersionPrefix(path);
   const versionlessNormalizedPath = stripVersionPrefix(normalizedPath);
   const skipPrefixes = ['/auth', '/payments/webhook', '/admin', '/invitations'];
+  const shouldPreserveAuthContext =
+    AUTH_CONTEXT_AWARE_PREFIXES.some(
+      (prefix) =>
+        matchesPathPrefix(path, prefix) ||
+        matchesPathPrefix(normalizedPath, prefix) ||
+        matchesPathPrefix(versionlessPath, prefix) ||
+        matchesPathPrefix(versionlessNormalizedPath, prefix)
+    );
   if (
+    !shouldPreserveAuthContext &&
     skipPrefixes.some(
       (prefix) =>
         matchesPathPrefix(path, prefix) ||
@@ -101,66 +104,12 @@ export const orgContextMiddleware = async (
   const { id, source } = getOrgContext(req);
 
   if (!id) {
-    if (shouldRequireContext()) {
-      return badRequest(res, 'Organization context is required');
-    }
     return next();
   }
 
-  req.organizationId = id;
-  req.accountId = id;
-  req.tenantId = id;
-  setRequestContext({
-    organizationId: id,
-    accountId: id,
-    tenantId: id,
-  });
-
-  if (!shouldValidateContext()) {
-    return next();
-  }
-
-  try {
-    const result = await pool.query<{ id: string; is_active: boolean }>(
-      'SELECT id, is_active FROM accounts WHERE id = $1',
-      [id]
-    );
-    if (result.rows.length === 0) {
-      logger.warn('Organization context not found', { orgId: id, source });
-      return notFoundMessage(res, 'Organization context not found');
-    }
-
-    if (!result.rows[0].is_active) {
-      logger.warn('Organization context inactive', { orgId: id, source });
-      return forbidden(res, 'Organization is inactive');
-    }
-
-    // Validate user access to the organization if enabled
-    if (shouldValidateUserAccess() && req.user) {
-      const userId = req.user.id;
-      const userRole = req.user.role;
-
-      // Admins always have access
-      if (userRole !== 'admin') {
-        // Check user_account_access table for explicit access
-        const accessResult = await pool.query(
-          `SELECT id FROM user_account_access
-           WHERE user_id = $1 AND account_id = $2 AND is_active = true`,
-          [userId, id]
-        );
-
-        if (accessResult.rows.length === 0) {
-          logger.warn('User lacks access to organization', { userId, orgId: id, source });
-          return forbidden(res, 'You do not have access to this organization');
-        }
-      }
-    }
-
-    return next();
-  } catch (error) {
-    logger.error('Failed to validate organization context', { error, orgId: id, source });
-    return serverError(res, 'Failed to validate organization context');
-  }
+  req.requestedOrganizationId = id;
+  req.requestedOrganizationSource = source;
+  return next();
 };
 
 export default orgContextMiddleware;

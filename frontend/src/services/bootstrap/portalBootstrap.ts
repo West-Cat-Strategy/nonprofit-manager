@@ -9,6 +9,14 @@ export interface PortalBootstrapSnapshot {
   fetchedAt: number;
 }
 
+type PortalBootstrapResponse = {
+  user?: Record<string, unknown>;
+  id?: string;
+  email?: string;
+  contactId?: string | null;
+  contact_id?: string | null;
+};
+
 const PORTAL_BOOTSTRAP_TTL_MS = 60_000;
 const portalBootstrapMode = import.meta.env.VITE_UI_PORTAL_BOOTSTRAP_MODE as
   | 'anonymous'
@@ -26,11 +34,30 @@ let inFlightSnapshot: Promise<PortalBootstrapSnapshot> | null = null;
 const isFresh = (snapshot: PortalBootstrapSnapshot): boolean =>
   Date.now() - snapshot.fetchedAt < PORTAL_BOOTSTRAP_TTL_MS;
 
-const normalizePortalUser = (payload: Record<string, unknown>): PortalUser => ({
-  id: String(payload.id || ''),
-  email: String(payload.email || ''),
-  contactId: typeof payload.contact_id === 'string' ? payload.contact_id : null,
-});
+const normalizePortalUser = (payload: Record<string, unknown>): PortalUser | null => {
+  const userPayload =
+    payload.user && typeof payload.user === 'object' && !Array.isArray(payload.user)
+      ? (payload.user as Record<string, unknown>)
+      : payload;
+
+  const id = typeof userPayload.id === 'string' ? userPayload.id : '';
+  const email = typeof userPayload.email === 'string' ? userPayload.email : '';
+
+  if (!id || !email) {
+    return null;
+  }
+
+  return {
+    id,
+    email,
+    contactId:
+      typeof userPayload.contactId === 'string'
+        ? userPayload.contactId
+        : typeof userPayload.contact_id === 'string'
+          ? userPayload.contact_id
+          : null,
+  };
+};
 
 const fetchPortalBootstrapSnapshot = async (): Promise<PortalBootstrapSnapshot> => {
   if (portalBootstrapMode === 'anonymous') {
@@ -50,10 +77,19 @@ const fetchPortalBootstrapSnapshot = async (): Promise<PortalBootstrapSnapshot> 
   }
 
   try {
-    const response = await portalApi.get('/portal/auth/me');
+    const response = await portalApi.get<PortalBootstrapResponse>('/portal/auth/bootstrap');
+    const user = normalizePortalUser((response.data || {}) as Record<string, unknown>);
+    if (!user) {
+      return {
+        status: 'anonymous',
+        user: null,
+        fetchedAt: Date.now(),
+      };
+    }
+
     return {
       status: 'authenticated',
-      user: normalizePortalUser((response.data || {}) as Record<string, unknown>),
+      user,
       fetchedAt: Date.now(),
     };
   } catch {
@@ -67,6 +103,7 @@ const fetchPortalBootstrapSnapshot = async (): Promise<PortalBootstrapSnapshot> 
 
 export const getPortalBootstrapSnapshot = async (options?: {
   forceRefresh?: boolean;
+  fallbackUser?: PortalUser | null;
 }): Promise<PortalBootstrapSnapshot> => {
   const forceRefresh = options?.forceRefresh === true;
 
@@ -82,7 +119,10 @@ export const getPortalBootstrapSnapshot = async (options?: {
   inFlightSnapshot = request;
 
   try {
-    const snapshot = await request;
+    let snapshot = await request;
+    if (!snapshot.user && options?.fallbackUser) {
+      snapshot = setPortalBootstrapSnapshot(options.fallbackUser);
+    }
     cachedSnapshot = snapshot;
     return snapshot;
   } finally {

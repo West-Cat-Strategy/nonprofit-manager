@@ -6,6 +6,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
+import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import * as templateController from '../controllers';
 import { uuidSchema, optionalStrictBooleanSchema } from '@validations/shared';
@@ -14,6 +15,7 @@ const router = Router();
 
 // All routes require authentication
 router.use(authenticate);
+router.use(requireActiveOrganizationContext);
 
 const validCategories = [
   'landing-page',

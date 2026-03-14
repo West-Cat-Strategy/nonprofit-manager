@@ -4,6 +4,7 @@ import { defaultDashboardSettings } from '../components/dashboard';
 import type { DashboardSettings } from '../components/dashboard';
 import { useAppSelector } from '../store/hooks';
 import { getUserPreferencesCached, mergeUserPreferencesCached } from '../services/userPreferencesService';
+import { clearStaffBootstrapSnapshot } from '../services/bootstrap/staffBootstrap';
 
 const DASHBOARD_SETTINGS_KEY = 'dashboardSettings';
 const DASHBOARD_SETTINGS_PREF_KEY = 'dashboard_settings';
@@ -101,7 +102,7 @@ interface UseDashboardSettingsResult {
 
 export function useDashboardSettings(): UseDashboardSettingsResult {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
-  const [settings, setSettingsState] = useState<DashboardSettings>(defaultDashboardSettings);
+  const [settings, setSettingsState] = useState<DashboardSettings>(() => loadDashboardSettings());
   const [isLoading, setIsLoading] = useState(true);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
@@ -111,6 +112,7 @@ export function useDashboardSettings(): UseDashboardSettingsResult {
     isMountedRef.current = true;
     const localSettings = loadDashboardSettings();
     setSettingsState(localSettings);
+    setDashboardSettingsSnapshot(localSettings);
 
     const fetchServerSettings = async () => {
       try {
@@ -156,6 +158,7 @@ export function useDashboardSettings(): UseDashboardSettingsResult {
           value: settings,
         });
         mergeUserPreferencesCached(DASHBOARD_SETTINGS_PREF_KEY, settings);
+        clearStaffBootstrapSnapshot();
         setDashboardSettingsSnapshot(settings);
       } catch {
         // Ignore save errors (local cache still updated)

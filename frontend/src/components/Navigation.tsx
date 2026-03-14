@@ -30,8 +30,9 @@ import MobileNavigationDrawer, {
 import AdminQuickActionsBar from '../features/adminOps/components/AdminQuickActionsBar';
 import { getAdminSettingsPath } from '../features/adminOps/adminRoutePaths';
 import { classNames } from './ui/classNames';
-
-const NavigationQuickLookupDialog = lazy(() => import('./navigation/NavigationQuickLookupDialog'));
+import { preloadContactsPeopleRoute } from '../routes/peopleRoutePreload';
+import { preloadNavigationQuickLookupDialog } from './navigation/preloadNavigationQuickLookupDialog';
+const NavigationQuickLookupDialog = lazy(preloadNavigationQuickLookupDialog);
 
 const routeFlags = {
   VITE_TEAM_CHAT_ENABLED: import.meta.env.VITE_TEAM_CHAT_ENABLED,
@@ -137,6 +138,14 @@ export default function Navigation() {
     const nextIndex = (index + 1) % availableThemes.length;
     setTheme(availableThemes[nextIndex]);
   }, [availableThemes, setTheme, theme]);
+
+  const prefetchStaffPeoplePath = useCallback(() => {
+    void preloadContactsPeopleRoute();
+  }, []);
+
+  const prefetchQuickLookup = useCallback(() => {
+    void preloadNavigationQuickLookupDialog();
+  }, []);
 
   const handleLogout = () => {
     dispatch(logoutAsync()).finally(() => navigate('/login'));
@@ -260,6 +269,8 @@ export default function Navigation() {
                 <Link
                   key={item.id}
                   to={item.path}
+                  onMouseEnter={item.id === 'contacts' ? prefetchStaffPeoplePath : undefined}
+                  onFocus={item.id === 'contacts' ? prefetchStaffPeoplePath : undefined}
                   aria-current={isNavItemActive(item.id, item.path) ? 'page' : undefined}
                   className={classNames(
                     'inline-flex min-w-0 max-w-[9rem] items-center rounded-full border px-3 py-2 text-sm font-semibold transition xl:max-w-[11rem]',
@@ -327,6 +338,8 @@ export default function Navigation() {
                           key={item.id}
                           to={item.path}
                           role="menuitem"
+                          onMouseEnter={item.id === 'contacts' ? prefetchStaffPeoplePath : undefined}
+                          onFocus={item.id === 'contacts' ? prefetchStaffPeoplePath : undefined}
                           onClick={() => setMoreMenuOpen(false)}
                           className={classNames(
                             'flex items-center gap-3 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm transition',
@@ -355,6 +368,8 @@ export default function Navigation() {
             ref={searchButtonRef}
             className={desktopActionButtonClass}
             onClick={() => setSearchOpen(true)}
+            onMouseEnter={prefetchQuickLookup}
+            onFocus={prefetchQuickLookup}
             aria-label="Search"
           >
             <svg
@@ -753,6 +768,7 @@ export default function Navigation() {
             }}
             onOpenSearch={() => {
               setMobileMenuOpen(false);
+              prefetchQuickLookup();
               setSearchOpen(true);
             }}
             onToggleDarkMode={toggleDarkMode}

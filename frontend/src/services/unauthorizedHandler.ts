@@ -4,11 +4,14 @@ let sessionValidationInFlight: Promise<boolean> | null = null;
 const shouldIgnoreUnauthorized = (pathname: string, requestUrl?: string): boolean => {
   const isSetupCheck = requestUrl?.includes('/auth/setup-status');
   const isAuthMe = requestUrl?.includes('/auth/me');
+  const isAuthBootstrap = requestUrl?.includes('/auth/bootstrap');
   const isSetupPage = pathname === '/setup';
   const isLoginPage = pathname === '/login';
   const isPortalPage = pathname.startsWith('/portal');
 
-  return Boolean(isSetupCheck || isAuthMe || isSetupPage || isLoginPage || isPortalPage);
+  return Boolean(
+    isSetupCheck || isAuthMe || isAuthBootstrap || isSetupPage || isLoginPage || isPortalPage
+  );
 };
 
 const validateSessionStillInvalid = async (fetchFn: typeof fetch): Promise<boolean> => {
@@ -18,11 +21,11 @@ const validateSessionStillInvalid = async (fetchFn: typeof fetch): Promise<boole
 
   const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
   const normalizedBase = baseURL.replace(/\/$/, '');
-  const authMeUrl = normalizedBase.endsWith('/api/v2')
-    ? `${normalizedBase}/auth/me`
-    : `${normalizedBase}/v2/auth/me`;
+  const authBootstrapUrl = normalizedBase.endsWith('/api/v2')
+    ? `${normalizedBase}/auth/bootstrap`
+    : `${normalizedBase}/v2/auth/bootstrap`;
 
-  sessionValidationInFlight = fetchFn(authMeUrl, {
+  sessionValidationInFlight = fetchFn(authBootstrapUrl, {
     method: 'GET',
     credentials: 'include',
     headers: {

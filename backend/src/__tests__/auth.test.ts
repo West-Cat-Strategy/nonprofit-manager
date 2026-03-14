@@ -36,7 +36,6 @@ jest.mock('../middleware/accountLockout', () => ({
 
 jest.mock('../utils/cookieHelper', () => ({
   setAuthCookie: jest.fn(),
-  setRefreshCookie: jest.fn(),
   clearAuthCookies: jest.fn(),
 }));
 

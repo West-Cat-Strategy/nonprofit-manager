@@ -1,11 +1,14 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import api from '../../services/api';
 import {
   __resetDashboardSettingsServerCacheForTests,
   useDashboardSettings,
 } from '../useDashboardSettings';
-import { __resetUserPreferencesCacheForTests } from '../../services/userPreferencesService';
+import {
+  __resetUserPreferencesCacheForTests,
+  setUserPreferencesCached,
+} from '../../services/userPreferencesService';
 
 vi.mock('../../services/api', () => ({
   default: {
@@ -55,53 +58,65 @@ describe('useDashboardSettings cache behavior', () => {
     vi.restoreAllMocks();
   });
 
-  it('reuses cached server settings within ttl and avoids duplicate GET requests', async () => {
+  it('uses local defaults on mount without issuing a startup GET request', async () => {
     const firstMount = renderHook(() => useDashboardSettings());
     await waitFor(() => expect(firstMount.result.current.isLoading).toBe(false));
-    expect(mockedApi.get).toHaveBeenCalledTimes(1);
+    expect(mockedApi.get).not.toHaveBeenCalled();
     firstMount.unmount();
 
     const secondMount = renderHook(() => useDashboardSettings());
     await waitFor(() => expect(secondMount.result.current.isLoading).toBe(false));
-    expect(mockedApi.get).toHaveBeenCalledTimes(1);
-    expect(secondMount.result.current.settings.showQuickLookup).toBe(false);
+    expect(mockedApi.get).not.toHaveBeenCalled();
+    expect(secondMount.result.current.settings.showQuickLookup).toBe(true);
     expect(secondMount.result.current.settings.showWorkspaceSummary).toBe(true);
     expect(secondMount.result.current.settings.showPinnedWorkstreams).toBe(true);
     secondMount.unmount();
   });
 
-  it('fetches fresh server settings after cache ttl expiry', async () => {
-    mockedApi.get
-      .mockResolvedValueOnce({
-        data: {
-          preferences: {
-            dashboard_settings: {
-              showQuickLookup: false,
-            },
-          },
-        },
-      })
-      .mockResolvedValueOnce({
-        data: {
-          preferences: {
-            dashboard_settings: {
-              showQuickLookup: true,
-            },
-          },
-        },
-      });
-
+  it('persists locally changed settings across remounts without refetching startup preferences', async () => {
     const firstMount = renderHook(() => useDashboardSettings());
     await waitFor(() => expect(firstMount.result.current.isLoading).toBe(false));
-    expect(mockedApi.get).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      firstMount.result.current.setSettings({
+        ...firstMount.result.current.settings,
+        showQuickLookup: false,
+      });
+    });
+    await waitFor(() => {
+      expect(JSON.parse(localStorage.getItem('dashboardSettings') || '{}')).toMatchObject({
+        showQuickLookup: false,
+      });
+    });
     firstMount.unmount();
 
     nowMs += 5 * 60 * 1000 + 1;
 
     const secondMount = renderHook(() => useDashboardSettings());
     await waitFor(() => expect(secondMount.result.current.isLoading).toBe(false));
-    expect(mockedApi.get).toHaveBeenCalledTimes(2);
-    expect(secondMount.result.current.settings.showQuickLookup).toBe(true);
+    expect(mockedApi.get).not.toHaveBeenCalled();
+    expect(secondMount.result.current.settings.showQuickLookup).toBe(false);
     secondMount.unmount();
+  });
+
+  it('uses bootstrap-seeded dashboard settings without issuing a duplicate GET', async () => {
+    localStorage.setItem(
+      'dashboardSettings',
+      JSON.stringify({
+        showQuickLookup: false,
+      })
+    );
+    setUserPreferencesCached({
+      dashboard_settings: {
+        showQuickLookup: false,
+      },
+    } as never);
+
+    const mount = renderHook(() => useDashboardSettings());
+    await waitFor(() => expect(mount.result.current.isLoading).toBe(false));
+
+    expect(mockedApi.get).not.toHaveBeenCalled();
+    expect(mount.result.current.settings.showQuickLookup).toBe(false);
+    mount.unmount();
   });
 });
