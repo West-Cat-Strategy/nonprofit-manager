@@ -12,6 +12,7 @@ import { useApiError } from '../../../hooks/useApiError';
 import ErrorBanner from '../../../components/ErrorBanner';
 import { validatePassword } from '../../../utils/validation';
 import { AuthHeroShell, FormField, PrimaryButton } from '../../../components/ui';
+import { primeStaffSession } from '../utils/primeStaffSession';
 
 interface InvitationInfo {
   email: string;
@@ -112,10 +113,12 @@ export default function AcceptInvitation() {
         password,
       });
 
-      // Store the token and user info
-      dispatch(setCredentials({
+      const session = await primeStaffSession({
         user: response.data.user,
-      }));
+        organizationId:
+          typeof response.data?.organizationId === 'string' ? response.data.organizationId : null,
+      });
+      dispatch(setCredentials(session));
 
       // Navigate to dashboard
       navigate('/dashboard', { replace: true });

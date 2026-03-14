@@ -3,11 +3,12 @@ import {
   portalSignup,
   portalLogin,
   portalLogout,
+  getPortalBootstrap,
   getPortalMe,
   validatePortalInvitation,
   acceptPortalInvitation,
 } from '../controllers';
-import { authenticatePortal } from '@middleware/domains/auth';
+import { authenticatePortal, checkAccountLockout } from '@middleware/domains/auth';
 import { authLimiterMiddleware } from '@middleware/domains/platform';
 import { validateBody, validateParams } from '@middleware/zodValidation';
 import {
@@ -20,8 +21,15 @@ import {
 const router = Router();
 
 router.post('/signup', authLimiterMiddleware, validateBody(portalSignupSchema), portalSignup);
-router.post('/login', authLimiterMiddleware, validateBody(portalLoginSchema), portalLogin);
+router.post(
+  '/login',
+  authLimiterMiddleware,
+  checkAccountLockout,
+  validateBody(portalLoginSchema),
+  portalLogin
+);
 router.post('/logout', portalLogout);
+router.get('/bootstrap', authenticatePortal, getPortalBootstrap);
 router.get('/me', authenticatePortal, getPortalMe);
 
 router.get(

@@ -11,6 +11,7 @@ import { useAppSelector } from '../store/hooks';
 import { getStartupStaffNavigationEntries } from '../routes/startupRouteCatalog';
 import type { RouteArea, RouteNavKind, RouteSection } from '../routes/routeCatalog';
 import { getUserPreferencesCached, mergeUserPreferencesCached } from '../services/userPreferencesService';
+import { clearStaffBootstrapSnapshot } from '../services/bootstrap/staffBootstrap';
 
 export interface NavigationItem {
   id: string;
@@ -280,6 +281,7 @@ export function useNavigationPreferences() {
           value: newPrefs,
         });
         mergeUserPreferencesCached(PREFERENCE_KEY, newPrefs);
+        clearStaffBootstrapSnapshot();
         setIsSynced(true);
       } catch {
         setIsSynced(false);

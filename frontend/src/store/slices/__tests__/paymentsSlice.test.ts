@@ -1,15 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
-import paymentsReducer, {
+import {
   fetchPaymentConfig,
   createPaymentIntent,
   getPaymentIntent,
   cancelPaymentIntent,
   clearPaymentError,
   clearCurrentIntent,
+  paymentsReducer,
   setPaymentSuccess,
   setProcessing,
-} from '../paymentsSlice';
+} from '../../../features/finance/state';
 import api from '../../../services/api';
 
 // Mock the API

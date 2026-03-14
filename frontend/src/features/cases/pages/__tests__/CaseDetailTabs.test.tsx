@@ -6,11 +6,13 @@ import CaseDetail from '../CaseDetailPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
 const dispatchMock = vi.fn(() => Promise.resolve({ unwrap: () => Promise.resolve({}) }));
+const validCaseId = '22222222-2222-4222-8222-222222222222';
+const validContactId = '33333333-3333-4333-8333-333333333333';
 
 const mockState = {
   casesV2: {
     currentCase: {
-      id: 'case-1',
+      id: validCaseId,
       case_number: 'CASE-001',
       title: 'Housing Support',
       is_urgent: false,
@@ -37,7 +39,7 @@ const mockState = {
       assigned_first_name: 'Alex',
       assigned_last_name: 'Rivera',
       tags: [],
-      contact_id: 'contact-1',
+      contact_id: validContactId,
     },
     caseStatuses: [],
     caseMilestones: [],
@@ -156,18 +158,33 @@ describe('Case detail tabs URL sync', () => {
   });
 
   it('hydrates selected tab from query string', () => {
-    renderCaseDetail('/cases/case-1?tab=notes');
+    renderCaseDetail(`/cases/${validCaseId}?tab=notes`);
 
     expect(screen.getByRole('tab', { name: /notes/i })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('location-search')).toHaveTextContent('tab=notes');
   });
 
   it('updates query string when switching tabs', () => {
-    renderCaseDetail('/cases/case-1');
+    renderCaseDetail(`/cases/${validCaseId}`);
 
     fireEvent.click(screen.getByRole('tab', { name: /documents/i }));
 
     expect(screen.getByRole('tab', { name: /documents/i })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('location-search')).toHaveTextContent('tab=documents');
+  });
+
+  it('renders a local invalid-link state and skips case fetches for non-UUID params', () => {
+    renderCaseDetail('/cases/not-a-uuid');
+
+    expect(screen.getByRole('heading', { name: /invalid case link/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /back to cases/i })).toBeInTheDocument();
+    expect(dispatchMock).not.toHaveBeenCalledWith({
+      type: 'case/fetchById',
+      payload: 'not-a-uuid',
+    });
+    expect(dispatchMock).not.toHaveBeenCalledWith({
+      type: 'case/fetchMilestones',
+      payload: 'not-a-uuid',
+    });
   });
 });

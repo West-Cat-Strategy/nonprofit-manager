@@ -2,6 +2,9 @@ import api from '../api';
 import { unwrapApiData, type ApiEnvelope } from '../apiEnvelope';
 import type { User } from '../../features/auth/state';
 import type { CurrentUserResponse } from '../authService';
+import type { BrandingConfig } from '../../types/branding';
+import { setBrandingCached } from '../brandingService';
+import { setUserPreferencesCached, type UserPreferences } from '../userPreferencesService';
 
 export type BootstrapStatus = 'authenticated' | 'anonymous';
 
@@ -9,8 +12,17 @@ export interface StaffBootstrapSnapshot {
   status: BootstrapStatus;
   user: User | null;
   organizationId: string | null;
+  branding: BrandingConfig | null;
+  preferences: UserPreferences | null;
   fetchedAt: number;
 }
+
+type StaffBootstrapResponse = {
+  user: CurrentUserResponse;
+  organizationId: string | null;
+  branding?: BrandingConfig | null;
+  preferences?: UserPreferences | null;
+};
 
 const STAFF_BOOTSTRAP_TTL_MS = 60_000;
 const staffBootstrapMode = import.meta.env.VITE_UI_STAFF_BOOTSTRAP_MODE as
@@ -29,8 +41,99 @@ const mockStaffUser: User = {
 let cachedSnapshot: StaffBootstrapSnapshot | null = null;
 let inFlightSnapshot: Promise<StaffBootstrapSnapshot> | null = null;
 
+const NAVIGATION_STORAGE_KEY = 'navigation_preferences';
+const DASHBOARD_SETTINGS_STORAGE_KEY = 'dashboardSettings';
+
 const isFresh = (snapshot: StaffBootstrapSnapshot): boolean =>
   Date.now() - snapshot.fetchedAt < STAFF_BOOTSTRAP_TTL_MS;
+
+const normalizeStartupPreferences = (value: unknown): UserPreferences | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  const preferences: UserPreferences = {};
+
+  if (typeof candidate.timezone === 'string' && candidate.timezone.trim().length > 0) {
+    preferences.timezone = candidate.timezone.trim();
+  }
+
+  if (candidate.navigation && typeof candidate.navigation === 'object' && !Array.isArray(candidate.navigation)) {
+    preferences.navigation = candidate.navigation as UserPreferences['navigation'];
+  }
+
+  if (
+    candidate.dashboard_settings &&
+    typeof candidate.dashboard_settings === 'object' &&
+    !Array.isArray(candidate.dashboard_settings)
+  ) {
+    (preferences as Record<string, unknown>).dashboard_settings = candidate.dashboard_settings;
+  }
+
+  return Object.keys(preferences).length > 0 ? preferences : {};
+};
+
+const seedStartupLocalStorage = (preferences: UserPreferences | null): void => {
+  if (!preferences || typeof window === 'undefined') {
+    return;
+  }
+
+  const navigation = preferences.navigation;
+  if (navigation && typeof navigation === 'object' && !Array.isArray(navigation)) {
+    try {
+      window.localStorage.setItem(
+        NAVIGATION_STORAGE_KEY,
+        JSON.stringify({ items: (navigation as { items?: unknown[] }).items ?? [] })
+      );
+    } catch {
+      // Ignore localStorage failures; hooks retain in-memory caches.
+    }
+  }
+
+  const dashboardSettings = (preferences as Record<string, unknown>).dashboard_settings;
+  if (dashboardSettings && typeof dashboardSettings === 'object' && !Array.isArray(dashboardSettings)) {
+    try {
+      window.localStorage.setItem(
+        DASHBOARD_SETTINGS_STORAGE_KEY,
+        JSON.stringify(dashboardSettings)
+      );
+    } catch {
+      // Ignore localStorage failures; the user preference cache remains populated.
+    }
+  }
+};
+
+const buildAuthenticatedSnapshot = (input: {
+  user: User;
+  organizationId?: string | null;
+  branding?: BrandingConfig | null;
+  preferences?: UserPreferences | null;
+}): StaffBootstrapSnapshot => {
+  const current =
+    cachedSnapshot?.user?.id === input.user.id && cachedSnapshot.status === 'authenticated'
+      ? cachedSnapshot
+      : null;
+  const nextPreferences = input.preferences ?? current?.preferences ?? {};
+
+  const snapshot: StaffBootstrapSnapshot = {
+    status: 'authenticated',
+    user: input.user,
+    organizationId: input.organizationId ?? null,
+    branding: input.branding ?? current?.branding ?? null,
+    preferences: nextPreferences,
+    fetchedAt: Date.now(),
+  };
+
+  if (snapshot.branding) {
+    setBrandingCached(snapshot.branding);
+  }
+
+  setUserPreferencesCached(snapshot.preferences);
+  seedStartupLocalStorage(snapshot.preferences);
+
+  return snapshot;
+};
 
 const fetchStaffBootstrapSnapshot = async (): Promise<StaffBootstrapSnapshot> => {
   if (staffBootstrapMode === 'anonymous') {
@@ -38,33 +141,37 @@ const fetchStaffBootstrapSnapshot = async (): Promise<StaffBootstrapSnapshot> =>
       status: 'anonymous',
       user: null,
       organizationId: null,
+      branding: null,
+      preferences: null,
       fetchedAt: Date.now(),
     };
   }
 
   if (staffBootstrapMode === 'authenticated') {
-    return {
-      status: 'authenticated',
+    return buildAuthenticatedSnapshot({
       user: mockStaffUser,
       organizationId: null,
-      fetchedAt: Date.now(),
-    };
+      branding: null,
+      preferences: null,
+    });
   }
 
   try {
-    const response = await api.get<ApiEnvelope<CurrentUserResponse>>('/auth/me');
-    const payload = unwrapApiData(response.data) as CurrentUserResponse;
-    return {
-      status: 'authenticated',
-      user: payload,
-      organizationId: payload.organizationId ?? null,
-      fetchedAt: Date.now(),
-    };
+    const response = await api.get<ApiEnvelope<StaffBootstrapResponse>>('/auth/bootstrap');
+    const payload = unwrapApiData(response.data) as StaffBootstrapResponse;
+    return buildAuthenticatedSnapshot({
+      user: payload.user,
+      organizationId: payload.organizationId ?? payload.user.organizationId ?? null,
+      branding: payload.branding ?? null,
+      preferences: normalizeStartupPreferences(payload.preferences),
+    });
   } catch {
     return {
       status: 'anonymous',
       user: null,
       organizationId: null,
+      branding: null,
+      preferences: null,
       fetchedAt: Date.now(),
     };
   }
@@ -72,6 +179,8 @@ const fetchStaffBootstrapSnapshot = async (): Promise<StaffBootstrapSnapshot> =>
 
 export const getStaffBootstrapSnapshot = async (options?: {
   forceRefresh?: boolean;
+  fallbackUser?: User | null;
+  fallbackOrganizationId?: string | null;
 }): Promise<StaffBootstrapSnapshot> => {
   const forceRefresh = options?.forceRefresh === true;
 
@@ -87,7 +196,16 @@ export const getStaffBootstrapSnapshot = async (options?: {
   inFlightSnapshot = request;
 
   try {
-    const snapshot = await request;
+    let snapshot = await request;
+    if (!snapshot.user && options?.fallbackUser) {
+      const retrySnapshot = await fetchStaffBootstrapSnapshot();
+      snapshot = retrySnapshot.user
+        ? retrySnapshot
+        : buildAuthenticatedSnapshot({
+            user: options.fallbackUser,
+            organizationId: options.fallbackOrganizationId ?? null,
+          });
+    }
     cachedSnapshot = snapshot;
     return snapshot;
   } finally {
@@ -100,17 +218,36 @@ export const getStaffBootstrapSnapshot = async (options?: {
 export const setStaffBootstrapSnapshot = (input: {
   user: User | null;
   organizationId?: string | null;
+  branding?: BrandingConfig | null;
+  preferences?: UserPreferences | null;
 }): StaffBootstrapSnapshot => {
-  cachedSnapshot = {
-    status: input.user ? 'authenticated' : 'anonymous',
-    user: input.user,
-    organizationId: input.organizationId ?? null,
-    fetchedAt: Date.now(),
-  };
+  cachedSnapshot = input.user
+    ? buildAuthenticatedSnapshot(input as {
+        user: User;
+        organizationId?: string | null;
+        branding?: BrandingConfig | null;
+        preferences?: UserPreferences | null;
+      })
+    : {
+        status: 'anonymous',
+        user: null,
+        organizationId: null,
+        branding: null,
+        preferences: null,
+        fetchedAt: Date.now(),
+      };
   return cachedSnapshot;
 };
 
 export const clearStaffBootstrapSnapshot = (): void => {
   cachedSnapshot = null;
   inFlightSnapshot = null;
+};
+
+export const getCachedStaffBootstrapSnapshot = (): StaffBootstrapSnapshot | null => {
+  if (!cachedSnapshot || !isFresh(cachedSnapshot)) {
+    return null;
+  }
+
+  return cachedSnapshot;
 };

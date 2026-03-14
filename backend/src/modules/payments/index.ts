@@ -7,8 +7,7 @@
  *
  * Compatibility policy:
  * - `backend/src/routes/payments.ts` stays as a legacy v1 shim while migration is in flight.
- * - `backend/src/controllers/paymentController.ts` stays as a legacy re-export shim for
- *   bootstrap/tests until direct module imports are complete.
+ * - Controller/domain payment re-export shims were retired in `P4-T1R7` after importer cleanup.
  *
  * Removed when P4-T1R7 migration blockers close.
  */

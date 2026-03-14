@@ -202,8 +202,8 @@ This backlog converts extracted reference patterns into actionable nonprofit-man
 - Target files:
   - `backend/src/modules/opportunities/**`
   - `database/migrations/055_opportunities_pipeline.sql`
-  - `frontend/src/pages/engagement/opportunities/OpportunitiesPage.tsx`
-  - `frontend/src/store/slices/opportunitiesSlice.ts`
+  - `frontend/src/features/engagement/opportunities/pages/OpportunitiesPage.tsx`
+  - `frontend/src/features/engagement/opportunities/state/opportunitiesCore.ts`
 - Acceptance criteria:
   - Alias + canonical API route parity.
   - Stage reorder and move-stage history persistence.

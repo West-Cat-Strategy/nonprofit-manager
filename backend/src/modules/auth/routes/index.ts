@@ -37,6 +37,7 @@ import {
   setupFirstUser,
   validateResetToken,
 } from '../controllers/registration.controller';
+import { getBootstrap } from '../controllers/bootstrap.controller';
 import { checkAccess, getCurrentUser, login, logout } from '../controllers/session.controller';
 import { getPreferences, updatePreferenceKey, updatePreferences } from '../controllers/preferences.controller';
 import { changePassword, getProfile, updateProfile } from '../controllers/profile.controller';
@@ -95,6 +96,7 @@ export const createAuthRoutes = (_mode: ResponseMode = 'v2'): Router => {
   );
 
   router.get('/me', authenticate, getCurrentUser);
+  router.get('/bootstrap', authenticate, getBootstrap);
   router.get('/check-access', authenticate, checkAccess);
   router.post('/logout', authenticate, logout);
 

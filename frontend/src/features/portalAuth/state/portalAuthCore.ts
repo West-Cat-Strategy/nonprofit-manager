@@ -5,6 +5,7 @@ import {
   getPortalBootstrapSnapshot,
   setPortalBootstrapSnapshot,
 } from '../../../services/bootstrap/portalBootstrap';
+import { primePortalSession } from '../utils/primePortalSession';
 
 export interface PortalUser {
   id: string;
@@ -28,11 +29,30 @@ const initialState: PortalAuthState = {
   signupStatus: 'idle',
 };
 
+const normalizePortalUser = (payload: {
+  id?: string;
+  email?: string;
+  contactId?: string | null;
+  contact_id?: string | null;
+}): PortalUser => ({
+  id: payload.id || '',
+  email: payload.email || '',
+  contactId:
+    typeof payload.contactId === 'string'
+      ? payload.contactId
+      : typeof payload.contact_id === 'string'
+        ? payload.contact_id
+        : null,
+});
+
 export const portalLogin = createAsyncThunk(
   'portalAuth/login',
   async ({ email, password }: { email: string; password: string }) => {
     const response = await portalApi.post('/portal/auth/login', { email, password });
-    return response.data;
+    const fallbackUser = normalizePortalUser(
+      ((response.data as { user?: PortalUser }).user || {}) as PortalUser
+    );
+    return primePortalSession(fallbackUser);
   }
 );
 
@@ -49,11 +69,7 @@ export const portalFetchMe = createAsyncThunk('portalAuth/me', async () => {
   if (!snapshot.user) {
     throw new Error('Unauthenticated portal session');
   }
-  return {
-    id: snapshot.user.id,
-    email: snapshot.user.email,
-    contact_id: snapshot.user.contactId,
-  };
+  return snapshot.user;
 });
 
 export const portalLogoutAsync = createAsyncThunk('portalAuth/logout', async (_, { dispatch }) => {
@@ -90,12 +106,8 @@ const portalAuthSlice = createSlice({
         state.loading = false;
         // Token is now stored in HTTP-only cookie; don't store in Redux state
         state.token = null;
-        state.user = action.payload.user;
-        setPortalBootstrapSnapshot({
-          id: action.payload.user.id,
-          email: action.payload.user.email,
-          contactId: action.payload.user.contact_id,
-        });
+        state.user = action.payload;
+        setPortalBootstrapSnapshot(action.payload);
         // Don't store token in localStorage anymore
       })
       .addCase(portalLogin.rejected, (state, action) => {
@@ -121,11 +133,7 @@ const portalAuthSlice = createSlice({
       })
       .addCase(portalFetchMe.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = {
-          id: action.payload.id,
-          email: action.payload.email,
-          contactId: action.payload.contact_id,
-        };
+        state.user = action.payload;
         setPortalBootstrapSnapshot(state.user);
         state.error = null;
       })

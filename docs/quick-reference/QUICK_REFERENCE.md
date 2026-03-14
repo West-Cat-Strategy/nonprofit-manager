@@ -107,7 +107,9 @@ VITE_API_URL=localhost:3000/api
 ## API Endpoints (Current)
 - `POST /api/v2/auth/register` - Register user
 - `POST /api/v2/auth/login` - Login user
-- `GET /api/v2/auth/me` - Get current user (authenticated)
+- `GET /api/v2/auth/bootstrap` - Canonical browser staff-session bootstrap
+- `GET /api/v2/portal/auth/bootstrap` - Canonical browser portal-session bootstrap
+- `GET /api/v2/auth/me` - Current-user compatibility/API client endpoint
 
 ## Next Steps
 1. ✅ Install backend dependencies

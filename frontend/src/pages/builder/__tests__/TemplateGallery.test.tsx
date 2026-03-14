@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import type * as ReactReduxModule from 'react-redux';
 import type * as ReactRouterDomModule from 'react-router-dom';
-import TemplateGallery from '../TemplateGallery';
+import TemplateGallery from '../../../features/builder/pages/TemplateGalleryPage';
 
 const navigateMock = vi.fn();
 const dispatchMock = vi.fn();

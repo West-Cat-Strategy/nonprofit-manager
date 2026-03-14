@@ -9,6 +9,7 @@ import { AuthHeroShell, FormField, PrimaryButton, SecondaryButton } from '../../
 import { useApiError } from '../../../hooks/useApiError';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { setCredentials } from '../state';
+import { primeStaffSession } from '../utils/primeStaffSession';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -68,7 +69,11 @@ export default function Login() {
           return;
         }
 
-        dispatch(setCredentials({ user: response.user, organizationId: response.organizationId }));
+        const session = await primeStaffSession({
+          user: response.user,
+          organizationId: response.organizationId,
+        });
+        dispatch(setCredentials(session));
         navigate('/dashboard');
         return;
       }
@@ -84,7 +89,11 @@ export default function Login() {
         mfaToken,
         code: totpCode.trim(),
       });
-      dispatch(setCredentials({ user: response.user, organizationId: response.organizationId }));
+      const session = await primeStaffSession({
+        user: response.user,
+        organizationId: response.organizationId,
+      });
+      dispatch(setCredentials(session));
       navigate('/dashboard');
     } catch (err: unknown) {
       setFromError(err, 'Login failed. Please try again.');
@@ -111,7 +120,11 @@ export default function Login() {
         challengeId,
         credential,
       });
-      dispatch(setCredentials({ user: response.user, organizationId: response.organizationId }));
+      const session = await primeStaffSession({
+        user: response.user,
+        organizationId: response.organizationId,
+      });
+      dispatch(setCredentials(session));
       navigate('/dashboard');
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {

@@ -104,7 +104,7 @@ For **detailed feature specifications**, see linked documentation files.
 | Feature | Status | Owner | Documentation | Code | Notes |
 |---------|--------|-------|---|---|---|
 | **Stage-Based Pipeline** | ✅ | Backend/Frontend | [OPPORTUNITIES_PIPELINE.md](OPPORTUNITIES_PIPELINE.md) | `backend/src/modules/opportunities` | Stage model with reorder and transition history |
-| Opportunity CRUD | ✅ | Backend/Frontend | Same | `frontend/src/pages/engagement/opportunities/OpportunitiesPage.tsx` | Create/edit/delete opportunities with optional donation linkage |
+| Opportunity CRUD | ✅ | Backend/Frontend | Same | `frontend/src/features/engagement/opportunities/pages/OpportunitiesPage.tsx` | Create/edit/delete opportunities with optional donation linkage |
 | Stage Reordering | ✅ | Backend/Frontend | Same | `backend/src/modules/opportunities/services/opportunity.service.ts` | Reorder pipeline stages with validation |
 | Stage Movement History | ✅ | Backend | Same | `database/migrations/055_opportunities_pipeline.sql` | Audit trail of stage transitions |
 

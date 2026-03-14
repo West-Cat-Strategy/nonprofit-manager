@@ -7,10 +7,11 @@ import { useApiError } from '../../../hooks/useApiError';
 import api from '../../../services/api';
 import type { ApiEnvelope } from '../../../services/apiEnvelope';
 import { unwrapApiData } from '../../../services/apiEnvelope';
-import type { CurrentUserResponse } from '../../../services/authService';
+import { getStaffBootstrapSnapshot } from '../../../services/bootstrap/staffBootstrap';
 import { useAppDispatch } from '../../../store/hooks';
 import { setCredentials } from '../state';
 import { validatePassword } from '../../../utils/validation';
+import { primeStaffSession } from '../utils/primeStaffSession';
 
 interface SetupFormData {
   email: string;
@@ -170,23 +171,15 @@ const Setup: React.FC = () => {
       const setupPayload = unwrapApiData(response.data);
 
       const setupUser = normalizeSetupUser(setupPayload.user);
-      if (setupUser) {
-        dispatch(setCredentials({ user: setupUser, organizationId: setupPayload.organizationId }));
-      } else {
+      let authenticatedUser = setupUser;
+      let authenticatedOrganizationId = setupPayload.organizationId ?? null;
+
+      if (!setupUser) {
         try {
-          const me = await api.get<ApiEnvelope<CurrentUserResponse>>('/auth/me');
-          const mePayload = unwrapApiData(me.data) as CurrentUserResponse;
-          dispatch(setCredentials({
-            user: {
-              id: mePayload.id,
-              email: mePayload.email,
-              firstName: mePayload.firstName,
-              lastName: mePayload.lastName,
-              role: mePayload.role,
-              profilePicture: mePayload.profilePicture,
-            },
-            organizationId: mePayload.organizationId ?? setupPayload.organizationId,
-          }));
+          const bootstrapSnapshot = await getStaffBootstrapSnapshot({ forceRefresh: true });
+          authenticatedUser = bootstrapSnapshot.user;
+          authenticatedOrganizationId =
+            bootstrapSnapshot.organizationId ?? setupPayload.organizationId ?? null;
         } catch (sessionHydrationError) {
           setFromError(
             sessionHydrationError,
@@ -196,6 +189,14 @@ const Setup: React.FC = () => {
           navigate('/login', { replace: true });
           return;
         }
+      }
+
+      if (authenticatedUser) {
+        const session = await primeStaffSession({
+          user: authenticatedUser,
+          organizationId: authenticatedOrganizationId,
+        });
+        dispatch(setCredentials(session));
       }
 
       navigate('/dashboard');

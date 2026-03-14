@@ -1,33 +1,13 @@
 import type { Response } from 'express';
-import pool from '@config/database';
 import { logger } from '@config/logger';
 import type { AuthRequest } from '@middleware/auth';
 import { badRequest, serverError } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
-
-type BrandingConfig = {
-  appName: string;
-  appIcon: string | null;
-  primaryColour: string;
-  secondaryColour: string;
-  favicon: string | null;
-};
-
-const ensureBrandingTable = async () => {
-  await pool.query(
-    `CREATE TABLE IF NOT EXISTS organization_branding (
-      id INTEGER PRIMARY KEY CHECK (id = 1),
-      config JSONB NOT NULL DEFAULT '{}'::jsonb,
-      created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-    )`
-  );
-  await pool.query(
-    `INSERT INTO organization_branding (id, config)
-     VALUES (1, '{}'::jsonb)
-     ON CONFLICT (id) DO NOTHING`
-  );
-};
+import {
+  getOrganizationBrandingConfig,
+  upsertOrganizationBrandingConfig,
+  type BrandingConfig,
+} from '../lib/brandingStore';
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -64,18 +44,8 @@ const parseBrandingConfig = (input: unknown): BrandingConfig | null => {
 
 export const getBranding = async (_req: AuthRequest, res: Response) => {
   try {
-    // Read-only access: any authenticated user can read branding.
-    const result = await pool.query('SELECT config FROM organization_branding WHERE id = 1');
-    const config = (result.rows[0]?.config ?? {}) as BrandingConfig | Record<string, unknown>;
-    return sendSuccess(res, config);
+    return sendSuccess(res, await getOrganizationBrandingConfig());
   } catch (error) {
-    const err = error as { code?: string } | undefined;
-    if (err?.code === '42P01') {
-      // Migration not applied yet; create the table so clients can use defaults.
-      await ensureBrandingTable();
-      const result = await pool.query('SELECT config FROM organization_branding WHERE id = 1');
-      return sendSuccess(res, (result.rows[0]?.config ?? {}) as BrandingConfig | Record<string, unknown>);
-    }
     logger.error('Failed to fetch organization branding', { error });
     return serverError(res, 'Failed to fetch branding');
   }
@@ -91,31 +61,9 @@ export const putBranding = async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    const result = await pool.query(
-      `INSERT INTO organization_branding (id, config, created_at, updated_at)
-       VALUES (1, $1::jsonb, NOW(), NOW())
-       ON CONFLICT (id)
-       DO UPDATE SET config = EXCLUDED.config, updated_at = NOW()
-       RETURNING config`,
-      [JSON.stringify(brandingConfig)]
-    );
-
     logger.info('Organization branding updated', { userId: req.user?.id });
-    return sendSuccess(res, result.rows[0].config);
+    return sendSuccess(res, await upsertOrganizationBrandingConfig(brandingConfig));
   } catch (error) {
-    const err = error as { code?: string } | undefined;
-    if (err?.code === '42P01') {
-      await ensureBrandingTable();
-      const result = await pool.query(
-        `INSERT INTO organization_branding (id, config, created_at, updated_at)
-         VALUES (1, $1::jsonb, NOW(), NOW())
-         ON CONFLICT (id)
-         DO UPDATE SET config = EXCLUDED.config, updated_at = NOW()
-         RETURNING config`,
-        [JSON.stringify(brandingConfig)]
-      );
-      return sendSuccess(res, result.rows[0].config);
-    }
     logger.error('Failed to update organization branding', { error, userId: req.user?.id });
     return serverError(res, 'Failed to update branding');
   }

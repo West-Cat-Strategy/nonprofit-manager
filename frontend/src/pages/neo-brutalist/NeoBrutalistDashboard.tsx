@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import NeoBrutalistLayout from '../../components/neo-brutalist/NeoBrutalistLayout';
 import {
@@ -6,6 +6,8 @@ import {
   QuickActionsWidget,
   QuickLookupWidget,
 } from '../../components/dashboard';
+import { preloadContactsPeopleRoute } from '../../routes/peopleRoutePreload';
+import { preloadNavigationQuickLookupDialog } from '../../components/navigation/preloadNavigationQuickLookupDialog';
 import { useDashboardSettings } from '../../hooks/useDashboardSettings';
 import {
   useNavigationPreferences,
@@ -146,6 +148,41 @@ export default function NeoBrutalistDashboard() {
   );
 
   const totalWorkstreams = enabledItems.filter((item) => item.id !== 'dashboard').length;
+
+  useEffect(() => {
+    let timeoutId: number | null = null;
+    let idleHandle: number | null = null;
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (
+        callback: () => void,
+        options?: {
+          timeout?: number;
+        }
+      ) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+
+    const prefetchStartupAdjacencies = () => {
+      void preloadContactsPeopleRoute();
+      void preloadNavigationQuickLookupDialog();
+    };
+
+    if (typeof window !== 'undefined' && typeof idleWindow.requestIdleCallback === 'function') {
+      idleHandle = idleWindow.requestIdleCallback(prefetchStartupAdjacencies, { timeout: 1200 });
+    } else {
+      timeoutId = window.setTimeout(prefetchStartupAdjacencies, 400);
+    }
+
+    return () => {
+      if (idleHandle !== null && typeof idleWindow.cancelIdleCallback === 'function') {
+        idleWindow.cancelIdleCallback(idleHandle);
+      }
+
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, []);
 
   return (
     <NeoBrutalistLayout pageTitle="WORKBENCH OVERVIEW">

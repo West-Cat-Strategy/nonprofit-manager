@@ -17,11 +17,27 @@ let currentCreds = { ...defaultCreds };
 const getCreds = () => currentCreds;
 
 const gotoLogin = async (page: Page) => {
-  try {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-  } catch {
-    // Redirect chains can occasionally abort the initial navigation request.
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      await page.goto('/login', { waitUntil: 'domcontentloaded' });
+    } catch {
+      // Redirect chains can occasionally abort the initial navigation request.
+    }
+
+    if (!page.url().startsWith('chrome-error://')) {
+      try {
+        await expect(page).toHaveURL(/\/login/);
+        return;
+      } catch (error) {
+        if (attempt === 2) {
+          throw error;
+        }
+      }
+    }
+
+    await page.waitForTimeout(250);
   }
+
   await expect(page).toHaveURL(/\/login/);
 };
 
@@ -196,9 +212,8 @@ test.describe('Authentication Flow', () => {
     await login(page, email, password);
     await expect(page).toHaveURL('/dashboard');
     await page.waitForTimeout(800);
-
-    const baselinePreferencesCount = preferencesRequests.length;
-    const baselineBrandingCount = brandingRequests.length;
+    expect(preferencesRequests).toEqual([]);
+    expect(brandingRequests).toEqual([]);
 
     await clickVisibleNavLink('/contacts', /people|contacts/i);
     await expect(page).toHaveURL('/contacts');
@@ -207,11 +222,8 @@ test.describe('Authentication Flow', () => {
     await expect(page).toHaveURL('/dashboard');
 
     await page.waitForTimeout(800);
-    const transitionPreferencesCount = preferencesRequests.length - baselinePreferencesCount;
-    const transitionBrandingCount = brandingRequests.length - baselineBrandingCount;
-
-    expect(transitionPreferencesCount).toBeLessThanOrEqual(1);
-    expect(transitionBrandingCount).toBeLessThanOrEqual(1);
+    expect(preferencesRequests).toEqual([]);
+    expect(brandingRequests).toEqual([]);
   });
 
   test('quick lookup uses lookup endpoint instead of full contacts list search', async ({ page }) => {

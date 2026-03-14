@@ -1,9 +1,9 @@
 import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import PageEditor from '../PageEditor';
+import PageEditor from '../../../features/builder/pages/PageEditorPage';
 import { renderWithProviders, createTestStore } from '../../../test/testUtils';
-import { updateCurrentPageSections } from '../../../store/slices/templateSlice';
+import { updateCurrentPageSections } from '../../../features/builder/state';
 import type { RootState } from '../../../store';
 
 vi.mock('../../../components/editor', () => ({

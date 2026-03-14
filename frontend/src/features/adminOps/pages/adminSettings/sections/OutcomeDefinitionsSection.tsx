@@ -8,7 +8,7 @@ import {
   fetchOutcomeDefinitionsAdmin,
   reorderOutcomeDefinitions,
   updateOutcomeDefinition,
-} from '../../../../../store/slices/outcomesAdminSlice';
+} from '../../../../../features/outcomes/state';
 import { useToast } from '../../../../../contexts/useToast';
 import type {
   OutcomeDefinition,

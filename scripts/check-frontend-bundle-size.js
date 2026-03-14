@@ -24,7 +24,7 @@ const budgets = [
   { id: 'AdminSettings', prefixes: ['AdminSettingsPage-', 'AdminSettings-'], maxBytes: 180 * 1024 },
   { id: 'vendor-recharts', prefix: 'vendor-recharts-', maxBytes: 380 * 1024 },
   { id: 'vendor-pdf', prefix: 'vendor-pdf-', maxBytes: 450 * 1024 },
-  { id: 'index-main', prefix: 'index-', maxBytes: 320 * 1024 },
+  { id: 'index-main', prefix: 'index-', maxBytes: 120 * 1024 },
   { id: 'routes-core', prefix: 'routes-core-', maxBytes: 220 * 1024 },
   { id: 'routes-people', prefix: 'routes-people-', maxBytes: 120 * 1024 },
   { id: 'routes-engagement', prefix: 'routes-engagement-', maxBytes: 120 * 1024 },
