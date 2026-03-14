@@ -15,7 +15,9 @@ interface TaskFilterSql {
   values: TaskQueryValue[];
 }
 
-const TASK_SEARCH_SQL = `concat_ws(' ', t.subject, t.description)`;
+const TASK_SEARCH_SQL =
+  `coalesce(nullif(t.subject, ''), '')`
+  + ` || CASE WHEN nullif(t.description, '') IS NOT NULL THEN ' ' || t.description ELSE '' END`;
 
 export class TaskService {
   constructor(private pool: Pool) {}

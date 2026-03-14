@@ -293,6 +293,42 @@ describe('Contact API Integration Tests', () => {
       expect(response.body).toHaveProperty('data');
     });
 
+    it('should match full-name searches when optional fields are empty', async () => {
+      const uniqueSuffix = unique();
+      const firstName = `Full-${uniqueSuffix}`;
+      const lastName = `Search-${uniqueSuffix}`;
+
+      const createResponse = await withStaffAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: firstName,
+          last_name: lastName,
+          email: `full-search-${uniqueSuffix}@example.com`,
+        }))
+        .expect(201);
+
+      const createdPayload = payloadFromResponse<{ contact_id: string }>(createResponse.body);
+      const response = await withStaffAuth(request(app)
+        .get(`/api/v2/contacts?search=${encodeURIComponent(`${firstName} ${lastName}`)}`)
+      )
+        .expect(200);
+
+      const payload = payloadFromResponse<{
+        data: Array<{ contact_id: string; first_name: string; last_name: string }>;
+      }>(response.body);
+
+      expect(payload.data).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            contact_id: createdPayload.contact_id,
+            first_name: firstName,
+            last_name: lastName,
+          }),
+        ])
+      );
+    });
+
     it('should filter by account_id', async () => {
       const response = await withStaffAuth(request(app)
         .get(`/api/v2/contacts?account_id=${testAccountId}`)
@@ -383,6 +419,39 @@ describe('Contact API Integration Tests', () => {
       expect(item.mobile_phone === null || typeof item.mobile_phone === 'string').toBe(true);
       expect(item).not.toHaveProperty('note_count');
       expect(item).not.toHaveProperty('relationship_count');
+    });
+
+    it('should match full-name lookup queries when preferred name is empty', async () => {
+      const uniqueSuffix = unique();
+      const firstName = `Lookup-${uniqueSuffix}`;
+      const lastName = `Person-${uniqueSuffix}`;
+
+      const createResponse = await withStaffAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: firstName,
+          last_name: lastName,
+          email: `lookup-person-${uniqueSuffix}@example.com`,
+        }))
+        .expect(201);
+
+      const createdPayload = payloadFromResponse<{ contact_id: string }>(createResponse.body);
+      const response = await withStaffAuth(request(app)
+        .get(`/api/v2/contacts/lookup?q=${encodeURIComponent(`${firstName} ${lastName}`)}&limit=5`)
+      )
+        .expect(200);
+
+      const payload = payloadFromResponse<{ items: Array<{ contact_id: string; first_name: string; last_name: string }> }>(response.body);
+      expect(payload.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            contact_id: createdPayload.contact_id,
+            first_name: firstName,
+            last_name: lastName,
+          }),
+        ])
+      );
     });
 
     it('should enforce query validation', async () => {

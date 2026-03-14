@@ -42,7 +42,10 @@ const CASE_COLUMNS = `
   c.modified_by
 `;
 
-const CASE_SEARCH_SQL = `concat_ws(' ', c.case_number, c.title, c.description)`;
+const CASE_SEARCH_SQL =
+  `coalesce(nullif(c.case_number, ''), '')`
+  + ` || CASE WHEN nullif(c.title, '') IS NOT NULL THEN ' ' || c.title ELSE '' END`
+  + ` || CASE WHEN nullif(c.description, '') IS NOT NULL THEN ' ' || c.description ELSE '' END`;
 
 export const getCasesQuery = async (
   db: Pool,

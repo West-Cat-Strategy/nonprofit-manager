@@ -11,7 +11,13 @@ type QueryValue = string | number | boolean | null | string[] | Date;
 type ViewerRole = string | undefined;
 type ContactRecord = Omit<Contact, 'birth_date' | 'phn'> & { birth_date?: string | Date | null; phn?: string | null; phn_encrypted?: string | null; total_count?: number | string };
 const PHN_FULL_ACCESS_ROLES = new Set(['admin', 'manager', 'staff']);
-const CONTACT_SEARCH_SQL = `concat_ws(' ', c.first_name, c.preferred_name, c.last_name, c.email, c.phone, c.mobile_phone)`;
+const CONTACT_SEARCH_SQL =
+  `coalesce(nullif(c.first_name, ''), '')`
+  + ` || CASE WHEN nullif(c.preferred_name, '') IS NOT NULL THEN ' ' || c.preferred_name ELSE '' END`
+  + ` || CASE WHEN nullif(c.last_name, '') IS NOT NULL THEN ' ' || c.last_name ELSE '' END`
+  + ` || CASE WHEN nullif(c.email, '') IS NOT NULL THEN ' ' || c.email ELSE '' END`
+  + ` || CASE WHEN nullif(c.phone, '') IS NOT NULL THEN ' ' || c.phone ELSE '' END`
+  + ` || CASE WHEN nullif(c.mobile_phone, '') IS NOT NULL THEN ' ' || c.mobile_phone ELSE '' END`;
 
 export class ContactService {
   private pool: Pool;

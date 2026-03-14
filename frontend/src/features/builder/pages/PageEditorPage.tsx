@@ -40,9 +40,8 @@ import {
   EditorHeader,
   PageList,
 } from '../../../components/editor';
-import TemplateSettingsDialog, {
-  toTemplateSettingsDraft,
-} from '../components/TemplateSettingsDialog';
+import TemplateSettingsDialog from '../components/TemplateSettingsDialog';
+import { toTemplateSettingsDraft } from '../components/templateSettingsDraft';
 import { useEditorHistory } from '../../../hooks/useEditorHistory';
 import { useAutoSave } from '../../../hooks/useAutoSave';
 import { websitesApiClient } from '../../websites/api/websitesApiClient';
@@ -59,7 +58,6 @@ import type {
   PageSection,
   ComponentType,
   PageCollectionType,
-  Template,
   TemplatePage,
   TemplatePageType,
   UpdatePageRequest,

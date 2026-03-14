@@ -49,6 +49,11 @@ const mockApi = api as unknown as {
   get: ReturnType<typeof vi.fn>;
 };
 
+const mockContactRoles = [
+  { id: 'role-staff', name: 'Staff', description: 'Internal team member' },
+  { id: 'role-client', name: 'Client', description: 'Client role' },
+];
+
 type SmokeCase = {
   name: string;
   route: string;
@@ -232,6 +237,9 @@ describe('Route UX smoke', () => {
             pagination: { total: 0, page: 1, limit: 20, total_pages: 0 },
           },
         });
+      }
+      if (url === '/v2/contacts/roles') {
+        return Promise.resolve({ data: { success: true, data: mockContactRoles } });
       }
       if (url === '/v2/contacts/tags') {
         return Promise.resolve({ data: { success: true, data: [] } });
