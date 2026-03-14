@@ -145,6 +145,26 @@ describe('ContactForm', () => {
       expect(screen.getByText('Board Member')).toBeInTheDocument();
       expect(screen.getByText('Client')).toBeInTheDocument();
     });
+
+    it('falls back to no roles when the roles payload is malformed', async () => {
+      mockApi.get.mockImplementation((url: string) => {
+        if (url === '/v2/contacts/roles') {
+          return Promise.resolve({ data: { success: true, data: {} } });
+        }
+        if (url === '/v2/contacts/tags') {
+          return Promise.resolve({ data: { success: true, data: [] } });
+        }
+        if (url.startsWith('/v2/contacts/') && url.endsWith('/relationships')) {
+          return Promise.resolve({ data: { success: true, data: [] } });
+        }
+        return Promise.resolve({ data: { success: true, data: [] } });
+      });
+
+      await renderContactForm(<ContactForm mode="create" />);
+
+      expect(screen.getByRole('button', { name: /create contact/i })).toBeInTheDocument();
+      expect(screen.getByText(/no roles available\./i)).toBeInTheDocument();
+    });
   });
 
   describe('Edit Mode', () => {

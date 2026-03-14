@@ -98,7 +98,8 @@ export class ContactsApiClient implements ContactsApiClientPort {
 
   async listRoles(): Promise<ContactRole[]> {
     const response = await api.get<ApiEnvelope<ContactRole[]>>('/v2/contacts/roles');
-    return unwrapApiData(response.data);
+    const payload = unwrapApiData(response.data);
+    return Array.isArray(payload) ? payload : [];
   }
 
   async bulkUpdate(payload: {
