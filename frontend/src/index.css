@@ -77,6 +77,14 @@ body.theme-transitioning *::after {
   padding-right: 1.75rem;
 }
 
+.app-focus-ring:focus,
+.app-focus-ring:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--focus-ring);
+  border-color: var(--app-accent);
+}
+
 /* GLOBAL DARK MODE (DEFAULT FALLBACK) */
 body.dark:not([class*='theme-']) {
   /* Default Dark Mode (High Contrast Neon/Black) */

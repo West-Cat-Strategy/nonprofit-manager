@@ -61,7 +61,9 @@ describe('AccountService', () => {
 
       expect(mockQuery).toHaveBeenCalledTimes(1);
       const queryCall = mockQuery.mock.calls[0];
-      expect(queryCall[0]).toContain("concat_ws(' ', account_name, email, account_number)");
+      expect(queryCall[0]).toContain(
+        "coalesce(nullif(account_name, ''), '') || CASE WHEN nullif(email, '') IS NOT NULL THEN ' ' || email ELSE '' END || CASE WHEN nullif(account_number, '') IS NOT NULL THEN ' ' || account_number ELSE '' END"
+      );
       expect(queryCall[1]).toContain('%Test%');
     });
 

@@ -6,174 +6,19 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
-import { EyeIcon, EyeSlashIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { updateUser } from '../../auth/state';
-import api from '../../../services/api';
 import LoopApiService from '../../../services/LoopApiService';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import ThemeSelector from '../../../components/ThemeSelector';
 import ErrorBanner from '../../../components/ErrorBanner';
 import { useApiError } from '../../../hooks/useApiError';
 import { useUnsavedChangesGuard } from '../../../hooks/useUnsavedChangesGuard';
-import { validatePassword } from '../../../utils/validation';
-
-interface AlternativeEmail {
-  email: string;
-  label: string;
-  isVerified: boolean;
-}
-
-interface NotificationSettings {
-  emailNotifications: boolean;
-  taskReminders: boolean;
-  eventReminders: boolean;
-  donationAlerts: boolean;
-  caseUpdates: boolean;
-  weeklyDigest: boolean;
-  marketingEmails: boolean;
-}
-
-interface UserProfile {
-  firstName: string;
-  lastName: string;
-  email: string;
-  emailSharedWithClients: boolean;
-  emailSharedWithUsers: boolean;
-  alternativeEmails: AlternativeEmail[];
-  displayName: string;
-  alternativeName: string;
-  pronouns: string;
-  title: string;
-  cellPhone: string;
-  contactNumber: string;
-  profilePicture: string | null;
-  notifications: NotificationSettings;
-}
-
-interface PasskeyInfo {
-  id: string;
-  name: string | null;
-  createdAt: string;
-  lastUsedAt: string | null;
-}
-
-interface SecurityOverview {
-  totpEnabled: boolean;
-  passkeys: PasskeyInfo[];
-}
-
-const pronounOptions = [
-  { value: '', label: 'Prefer not to say' },
-  { value: 'he/him', label: 'He/Him' },
-  { value: 'she/her', label: 'She/Her' },
-  { value: 'they/them', label: 'They/Them' },
-  { value: 'he/they', label: 'He/They' },
-  { value: 'she/they', label: 'She/They' },
-  { value: 'custom', label: 'Custom (specify below)' },
-];
-
-const MAX_IMAGE_DIMENSION = 400; // Maximum width/height for resized image
-const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB upload limit
-
-const serializeUserProfile = (profile: UserProfile, customPronouns: string): string =>
-  JSON.stringify({
-    ...profile,
-    pronouns: profile.pronouns === 'custom' ? customPronouns : profile.pronouns,
-  });
-
-const buildUserProfile = (data: Partial<UserProfile> | null | undefined, fallbackUser?: {
-  firstName?: string | null;
-  lastName?: string | null;
-  email?: string | null;
-}): {
-  profile: UserProfile;
-  customPronouns: string;
-  previewImage: string | null;
-} => {
-  const pronouns = data?.pronouns || '';
-  const customPronouns =
-    pronouns && !pronounOptions.find((option) => option.value === pronouns) ? pronouns : '';
-  const normalizedPronouns = customPronouns ? 'custom' : pronouns;
-  const profilePicture = data?.profilePicture || null;
-
-  return {
-    profile: {
-      firstName: data?.firstName || fallbackUser?.firstName || '',
-      lastName: data?.lastName || fallbackUser?.lastName || '',
-      email: data?.email || fallbackUser?.email || '',
-      emailSharedWithClients: data?.emailSharedWithClients || false,
-      emailSharedWithUsers: data?.emailSharedWithUsers !== false,
-      alternativeEmails: data?.alternativeEmails || [],
-      displayName: data?.displayName || '',
-      alternativeName: data?.alternativeName || '',
-      pronouns: normalizedPronouns,
-      title: data?.title || '',
-      cellPhone: data?.cellPhone || '',
-      contactNumber: data?.contactNumber || '',
-      profilePicture,
-      notifications: data?.notifications || {
-        emailNotifications: true,
-        taskReminders: true,
-        eventReminders: true,
-        donationAlerts: true,
-        caseUpdates: true,
-        weeklyDigest: false,
-        marketingEmails: false,
-      },
-    },
-    customPronouns,
-    previewImage: profilePicture,
-  };
-};
-
-/**
- * Resize an image to fit within max dimensions while maintaining aspect ratio
- */
-const resizeImage = (file: File, maxDimension: number): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        let { width, height } = img;
-
-        // Calculate new dimensions maintaining aspect ratio
-        if (width > height) {
-          if (width > maxDimension) {
-            height = Math.round((height * maxDimension) / width);
-            width = maxDimension;
-          }
-        } else {
-          if (height > maxDimension) {
-            width = Math.round((width * maxDimension) / height);
-            height = maxDimension;
-          }
-        }
-
-        // Create canvas and resize
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Could not get canvas context'));
-          return;
-        }
-
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Convert to base64 with quality optimization
-        const resizedBase64 = canvas.toDataURL('image/jpeg', 0.85);
-        resolve(resizedBase64);
-      };
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = e.target?.result as string;
-    };
-    reader.onerror = () => reject(new Error('Failed to read file'));
-    reader.readAsDataURL(file);
-  });
-};
+import UserProfileAvatarSection from './userSettings/UserProfileAvatarSection';
+import { buildUserProfile, MAX_FILE_SIZE, MAX_IMAGE_DIMENSION, pronounOptions, resizeImage, serializeUserProfile } from './userSettings/helpers';
+import type { NotificationSettings, UserProfile } from './userSettings/types';
+import useUserSecuritySettings from './userSettings/useUserSecuritySettings';
 
 export default function UserSettings() {
   const dispatch = useAppDispatch();
@@ -237,55 +82,44 @@ export default function UserSettings() {
     setFieldVisibility(prev => ({ ...prev, [field]: !prev[field] }));
   };
 
-  const [security, setSecurity] = useState<SecurityOverview>({ totpEnabled: false, passkeys: [] });
-  const [securityLoading, setSecurityLoading] = useState(true);
   const {
-    error: securityError,
-    details: securityDetails,
-    setFromError: setSecurityErrorFromError,
-    clear: clearSecurityError,
-  } = useApiError();
-
-  // TOTP setup timeout (5 minutes)
-  const TOTP_SETUP_TIMEOUT_MS = 5 * 60 * 1000;
-
-  const [totpSetup, setTotpSetup] = useState<{
-    secret: string;
-    otpauthUrl: string;
-    qrDataUrl: string | null;
-  } | null>(null);
-  const [totpSetupExpiresAt, setTotpSetupExpiresAt] = useState<number | null>(null);
-  const [totpSecondsRemaining, setTotpSecondsRemaining] = useState<number>(0);
-  const [totpEnableCode, setTotpEnableCode] = useState('');
-  const [totpDisablePassword, setTotpDisablePassword] = useState('');
-  const [totpDisableCode, setTotpDisableCode] = useState('');
-  const [securityActionLoading, setSecurityActionLoading] = useState(false);
-  const [newPasskeyName, setNewPasskeyName] = useState('');
-
-  // Password change state
-  const [showPasswordSection, setShowPasswordSection] = useState(false);
-  const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
-  const [passwordError, setPasswordError] = useState('');
-  const [passwordStatus, setPasswordStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
+    security,
+    securityLoading,
+    securityError,
+    securityDetails,
+    totpSetup,
+    setTotpSetup,
+    setTotpSetupExpiresAt,
+    totpSecondsRemaining,
+    totpEnableCode,
+    setTotpEnableCode,
+    totpDisablePassword,
+    setTotpDisablePassword,
+    totpDisableCode,
+    setTotpDisableCode,
+    securityActionLoading,
+    newPasskeyName,
+    setNewPasskeyName,
+    showPasswordSection,
+    setShowPasswordSection,
+    passwordData,
+    setPasswordData,
+    passwordError,
+    passwordStatus,
+    isChangingPassword,
+    handleChangePassword,
+    handleStartTotpSetup,
+    handleEnableTotp,
+    handleDisableTotp,
+    handleAddPasskey,
+    handleDeletePasskey,
+  } = useUserSecuritySettings();
   const profileSnapshot = serializeUserProfile(profile, customPronouns);
   const isProfileDirty = savedProfileSnapshot !== '' && profileSnapshot !== savedProfileSnapshot;
 
   useUnsavedChangesGuard({
     hasUnsavedChanges: isProfileDirty && !isSaving && !isProcessingImage,
   });
-
-  const refreshSecurity = useCallback(async () => {
-    clearSecurityError();
-    try {
-      const response = await api.get<{ totpEnabled: boolean; passkeys: PasskeyInfo[] }>('/auth/security');
-      setSecurity(response.data);
-    } catch (err: unknown) {
-      setSecurityErrorFromError(err, 'Failed to load security settings');
-    } finally {
-      setSecurityLoading(false);
-    }
-  }, [clearSecurityError, setSecurityErrorFromError]);
 
   const fetchProfile = useCallback(async () => {
       let resolvedProfile: UserProfile | null = null;
@@ -317,34 +151,6 @@ export default function UserSettings() {
   useEffect(() => {
     void fetchProfile();
   }, [fetchProfile]);
-
-  useEffect(() => {
-    refreshSecurity();
-  }, [refreshSecurity]);
-
-  // TOTP setup expiration countdown
-  useEffect(() => {
-    if (!totpSetupExpiresAt) {
-      setTotpSecondsRemaining(0);
-      return;
-    }
-
-    const updateCountdown = () => {
-      const remaining = Math.max(0, Math.floor((totpSetupExpiresAt - Date.now()) / 1000));
-      setTotpSecondsRemaining(remaining);
-
-      if (remaining === 0) {
-        // Auto-clear setup on expiry
-        setTotpSetup(null);
-        setTotpSetupExpiresAt(null);
-        setTotpEnableCode('');
-      }
-    };
-
-    updateCountdown();
-    const interval = setInterval(updateCountdown, 1000);
-    return () => clearInterval(interval);
-  }, [totpSetupExpiresAt]);
 
   const handleChange = (field: keyof UserProfile, value: string | boolean) => {
     setProfile((prev) => ({ ...prev, [field]: value }));
@@ -469,46 +275,6 @@ export default function UserSettings() {
     }
   };
 
-  // Password change functionality
-  const handleChangePassword = async () => {
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setPasswordError('New passwords do not match');
-      return;
-    }
-
-    const passwordError = validatePassword(passwordData.newPassword);
-    if (passwordError) {
-      setPasswordError(passwordError);
-      return;
-    }
-
-    setIsChangingPassword(true);
-    setPasswordStatus('idle');
-    setPasswordError('');
-
-    try {
-      await api.put('/auth/password', {
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword,
-      });
-
-      setPasswordStatus('success');
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setShowPasswordSection(false);
-      setTimeout(() => setPasswordStatus('idle'), 3000);
-    } catch (err: unknown) {
-      setPasswordStatus('error');
-      if (err && typeof err === 'object' && 'response' in err) {
-        const axiosErr = err as { response?: { data?: { error?: { message?: string } } } };
-        setPasswordError(axiosErr.response?.data?.error?.message || 'Failed to change password');
-      } else {
-        setPasswordError('Failed to change password');
-      }
-    } finally {
-      setIsChangingPassword(false);
-    }
-  };
-
   const scrollToSection = (sectionId: string) => {
     const target = document.getElementById(sectionId);
     if (!target) return;
@@ -546,96 +312,6 @@ export default function UserSettings() {
 
     return () => observer.disconnect();
   }, [settingsMode, activeSection]);
-
-  const handleStartTotpSetup = async () => {
-    clearSecurityError();
-    setSecurityActionLoading(true);
-    try {
-      const response = await api.post<{ secret: string; otpauthUrl: string }>('/auth/2fa/totp/enroll');
-      const { secret, otpauthUrl } = response.data;
-      const qrcode = await import('qrcode');
-      const qrDataUrl = await qrcode.toDataURL(otpauthUrl, { margin: 1, width: 192 });
-      setTotpSetup({ secret, otpauthUrl, qrDataUrl });
-      setTotpSetupExpiresAt(Date.now() + TOTP_SETUP_TIMEOUT_MS);
-      setTotpEnableCode('');
-    } catch (err: unknown) {
-      setSecurityErrorFromError(err, 'Failed to start 2FA setup');
-    } finally {
-      setSecurityActionLoading(false);
-    }
-  };
-
-  const handleEnableTotp = async () => {
-    if (!totpEnableCode.trim()) return;
-    clearSecurityError();
-    setSecurityActionLoading(true);
-    try {
-      await api.post('/auth/2fa/totp/enable', { code: totpEnableCode.trim() });
-      setTotpSetup(null);
-      setTotpSetupExpiresAt(null);
-      setTotpEnableCode('');
-      await refreshSecurity();
-    } catch (err: unknown) {
-      setSecurityErrorFromError(err, 'Failed to enable 2FA');
-    } finally {
-      setSecurityActionLoading(false);
-    }
-  };
-
-  const handleDisableTotp = async () => {
-    if (!totpDisablePassword || !totpDisableCode.trim()) return;
-    clearSecurityError();
-    setSecurityActionLoading(true);
-    try {
-      await api.post('/auth/2fa/totp/disable', {
-        password: totpDisablePassword,
-        code: totpDisableCode.trim(),
-      });
-      setTotpDisablePassword('');
-      setTotpDisableCode('');
-      await refreshSecurity();
-    } catch (err: unknown) {
-      setSecurityErrorFromError(err, 'Failed to disable 2FA');
-    } finally {
-      setSecurityActionLoading(false);
-    }
-  };
-
-  const handleAddPasskey = async () => {
-    clearSecurityError();
-    setSecurityActionLoading(true);
-    try {
-      const { startRegistration } = await import('@simplewebauthn/browser');
-      const optionsResp = await api.post<{ challengeId: string; options: unknown }>(
-        '/auth/passkeys/register/options'
-      );
-      const credential = await startRegistration(optionsResp.data.options as never);
-      await api.post('/auth/passkeys/register/verify', {
-        challengeId: optionsResp.data.challengeId,
-        credential,
-        name: newPasskeyName.trim() || null,
-      });
-      setNewPasskeyName('');
-      await refreshSecurity();
-    } catch (err: unknown) {
-      setSecurityErrorFromError(err, 'Failed to add passkey');
-    } finally {
-      setSecurityActionLoading(false);
-    }
-  };
-
-  const handleDeletePasskey = async (id: string) => {
-    clearSecurityError();
-    setSecurityActionLoading(true);
-    try {
-      await api.delete(`/auth/passkeys/${id}`);
-      await refreshSecurity();
-    } catch (err: unknown) {
-      setSecurityErrorFromError(err, 'Failed to delete passkey');
-    } finally {
-      setSecurityActionLoading(false);
-    }
-  };
   if (isLoading) {
     return (
       <NeoBrutalistLayout pageTitle="USER SETTINGS">
@@ -764,76 +440,20 @@ export default function UserSettings() {
             <ThemeSelector />
           </div>
 
-          {/* Profile Picture Card - CYAN Theme */}
-          <div id="profile-section" className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
-            <div className="bg-[var(--loop-cyan)] border-b-4 border-black p-4">
-              <h2 className="text-2xl font-black uppercase">Profile</h2>
-            </div>
-
-            <div className="p-8 flex flex-col md:flex-row items-center gap-8">
-              <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                <div className="w-40 h-40 border-4 border-black shadow-[6px_6px_0px_0px_var(--shadow-color)] overflow-hidden bg-app-surface-muted">
-                  {previewImage ? (
-                    <img
-                      src={previewImage}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-[#FFD700] text-4xl font-black">
-                      {profile.firstName?.[0]}{profile.lastName?.[0]}
-                    </div>
-                  )}
-                  {isProcessingImage && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white">
-                      Loading...
-                    </div>
-                  )}
-                </div>
-                <div className="absolute -bottom-3 -right-3 bg-black text-white p-2 border-2 border-white transform rotate-3">
-                  EDIT
-                </div>
-                {previewImage && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemoveImage();
-                    }}
-                    className="absolute -bottom-3 -left-3 bg-black text-white p-2 border-2 border-white transform -rotate-3 hover:scale-110 transition-transform shadow-[2px_2px_0px_0px_var(--shadow-color)]"
-                    title="Remove Profile Picture"
-                  >
-                    <TrashIcon className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
-
-              <div className="flex-1 w-full">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-
-                <div
-                  ref={dropZoneRef}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`border-4 border-dashed rounded-none p-6 text-center cursor-pointer transition-all uppercase font-bold
-                    ${isDragging
-                      ? 'border-[#4DD0E1] bg-[#E0F7FA] text-black scale-[1.02]'
-                      : 'border-app-input-border hover:border-black hover:bg-app-surface-muted text-app-text-muted hover:text-black'
-                    }`}
-                >
-                  <p className="text-lg">Click to Upload Avatar</p>
-                  <p className="text-xs mt-2">JPG, PNG or GIF (Max 20MB)</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <UserProfileAvatarSection
+            fileInputRef={fileInputRef}
+            dropZoneRef={dropZoneRef}
+            previewImage={previewImage}
+            firstName={profile.firstName}
+            lastName={profile.lastName}
+            isProcessingImage={isProcessingImage}
+            isDragging={isDragging}
+            onImageUpload={handleImageUpload}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onRemoveImage={handleRemoveImage}
+          />
 
           {/* Personal Information Card - PINK Theme */}
           <div id="bio-section" className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">

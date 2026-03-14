@@ -44,6 +44,13 @@ describe('DonationForm', () => {
       expect(screen.getByRole('button', { name: /record donation/i })).toBeInTheDocument();
     });
 
+    it('applies a visible focus ring to the donation date field', () => {
+      renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
+
+      const donationDateInput = screen.getByLabelText(/donation date/i);
+      expect(donationDateInput).toHaveClass('app-focus-ring');
+    });
+
     it('has default currency as CAD', () => {
       renderWithProviders(<DonationForm onSubmit={mockOnSubmit} />);
 
