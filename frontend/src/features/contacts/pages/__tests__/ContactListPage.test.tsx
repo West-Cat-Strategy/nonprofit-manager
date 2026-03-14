@@ -1,5 +1,6 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { act, type ReactNode } from 'react';
+import type * as ReactRouterDomModule from 'react-router-dom';
 import { vi } from 'vitest';
 import ContactList from '../ContactListPage';
 import { renderWithProviders } from '../../../../test/testUtils';
@@ -23,6 +24,7 @@ const { contactsState, dispatchMock, importExportModalMock } = vi.hoisted(() => 
   dispatchMock: vi.fn(),
   importExportModalMock: vi.fn(),
 }));
+const navigateMock = vi.hoisted(() => vi.fn());
 
 const state = {
   contactsV2: contactsState,
@@ -32,6 +34,14 @@ vi.mock('../../../../store/hooks', () => ({
   useAppDispatch: () => dispatchMock,
   useAppSelector: (selector: (s: typeof state) => unknown) => selector(state),
 }));
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof ReactRouterDomModule>('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => navigateMock,
+  };
+});
 
 vi.mock('../../../../features/contacts/state', () => ({
   default: (sliceState = contactsState) => sliceState,
@@ -43,10 +53,30 @@ vi.mock('../../../../features/contacts/state', () => ({
 }));
 
 vi.mock('../../../../components/people', () => ({
-  PeopleListContainer: ({ filters }: { filters?: ReactNode }) => (
+  PeopleListContainer: ({
+    filters,
+    data = [],
+    columns = [],
+  }: {
+    filters?: ReactNode;
+    data?: Array<Record<string, unknown>>;
+    columns?: Array<{
+      key: string;
+      render?: (value: unknown, row: Record<string, unknown>) => ReactNode;
+    }>;
+  }) => (
     <div>
       <div>Contact List</div>
       {filters}
+      {data.map((row, rowIndex) => (
+        <div key={String(row.contact_id ?? rowIndex)}>
+          {columns.map((column) => (
+            <div key={column.key}>
+              {column.render ? column.render(row[column.key], row) : null}
+            </div>
+          ))}
+        </div>
+      ))}
     </div>
   ),
   FilterPanel: ({
@@ -98,6 +128,8 @@ describe('ContactList page', () => {
   beforeEach(() => {
     dispatchMock.mockClear();
     importExportModalMock.mockClear();
+    navigateMock.mockClear();
+    contactsState.contacts = [];
     localStorage.clear();
   });
 
@@ -165,5 +197,27 @@ describe('ContactList page', () => {
     });
 
     vi.useRealTimers();
+  });
+
+  it('navigates to a contact detail route using the canonical contact UUID', () => {
+    contactsState.contacts = [
+      {
+        contact_id: '11111111-1111-4111-8111-111111111111',
+        first_name: 'Avery',
+        last_name: 'Stone',
+        email: 'avery@example.com',
+        job_title: null,
+        department: null,
+        account_name: null,
+        tags: [],
+        is_active: true,
+      },
+    ];
+
+    renderWithProviders(<ContactList />);
+
+    fireEvent.click(screen.getByText('Avery Stone'));
+
+    expect(navigateMock).toHaveBeenCalledWith('/contacts/11111111-1111-4111-8111-111111111111');
   });
 });

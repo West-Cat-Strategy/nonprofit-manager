@@ -76,8 +76,9 @@ describe('portalLogin thunk', () => {
 
   it('sets user on fulfilled (token stays null for HTTP-only cookie)', () => {
     const payload = {
-      token: 'portal-jwt-token',
-      user: { id: 'portal-user-1', email: 'member@example.com', contact_id: 'contact-1' },
+      id: 'portal-user-1',
+      email: 'member@example.com',
+      contactId: 'contact-1',
     };
     const state = reducer(
       { ...initialState, loading: true } as never,
@@ -86,11 +87,11 @@ describe('portalLogin thunk', () => {
     expect(state.loading).toBe(false);
     // Token is now in HTTP-only cookie, not stored in Redux state
     expect(state.token).toBeNull();
-    expect(state.user).toEqual(payload.user);
+    expect(state.user).toEqual(payload);
   });
 
   it('does not persist token to localStorage (HTTP-only cookie)', () => {
-    const payload = { token: 'portal-jwt-token', user: mockUser };
+    const payload = mockUser;
     reducer(
       { ...initialState, loading: true } as never,
       { type: portalLogin.fulfilled.type, payload }
@@ -160,25 +161,21 @@ describe('portalSignup thunk', () => {
 // ─── portalFetchMe thunk ──────────────────────────────────────────────────────
 
 describe('portalFetchMe thunk', () => {
-  it('maps contact_id → contactId and sets user on fulfilled', () => {
+  it('sets user on fulfilled using normalized bootstrap payload', () => {
     const payload = {
       id: 'portal-user-1',
       email: 'member@example.com',
-      contact_id: 'contact-1',
+      contactId: 'contact-1',
     };
     const state = reducer(
       initialState as never,
       { type: portalFetchMe.fulfilled.type, payload }
     );
-    expect(state.user).toEqual({
-      id: 'portal-user-1',
-      email: 'member@example.com',
-      contactId: 'contact-1',
-    });
+    expect(state.user).toEqual(payload);
   });
 
-  it('sets contactId to null when contact_id is null', () => {
-    const payload = { id: 'portal-user-1', email: 'member@example.com', contact_id: null };
+  it('sets contactId to null when bootstrap payload omits it', () => {
+    const payload = { id: 'portal-user-1', email: 'member@example.com', contactId: null };
     const state = reducer(
       initialState as never,
       { type: portalFetchMe.fulfilled.type, payload }

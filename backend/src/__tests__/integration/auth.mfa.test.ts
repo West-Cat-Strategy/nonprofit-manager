@@ -121,7 +121,6 @@ describe('Auth MFA Integration Tests', () => {
       .expect(200);
 
     expect(response.body).toHaveProperty('token');
-    expect(response.body).toHaveProperty('refreshToken');
     expect(response.body.organizationId).toBe(expectedOrganizationId);
     expect(response.body.user.email).toBe(mfaEmail);
     const decoded = jwt.verify(response.body.token, getJwtSecret()) as {
@@ -131,8 +130,10 @@ describe('Auth MFA Integration Tests', () => {
     expect(response.headers['set-cookie']).toEqual(
       expect.arrayContaining([
         expect.stringMatching(/^auth_token=/),
-        expect.stringMatching(/^refresh_token=/),
       ])
+    );
+    expect(response.headers['set-cookie']).not.toEqual(
+      expect.arrayContaining([expect.stringMatching(/^refresh_token=/)])
     );
   });
 

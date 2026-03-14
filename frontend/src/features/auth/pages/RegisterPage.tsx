@@ -9,6 +9,7 @@ import { authService } from '../../../services/authService';
 import type { RegisterData } from '../../../services/authService';
 import { useAppDispatch } from '../../../store/hooks';
 import { setCredentials } from '../state';
+import { primeStaffSession } from '../utils/primeStaffSession';
 
 export default function Register() {
   const [firstName, setFirstName] = useState('');
@@ -52,7 +53,11 @@ export default function Register() {
       }
 
       if (response.user) {
-        dispatch(setCredentials({ user: response.user, organizationId: response.organizationId }));
+        const session = await primeStaffSession({
+          user: response.user,
+          organizationId: response.organizationId,
+        });
+        dispatch(setCredentials(session));
         navigate('/dashboard');
       }
     } catch (err: unknown) {

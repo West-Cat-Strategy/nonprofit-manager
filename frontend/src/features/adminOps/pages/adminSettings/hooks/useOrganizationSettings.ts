@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react';
 import api from '../../../../../services/api';
+import { clearStaffBootstrapSnapshot } from '../../../../../services/bootstrap/staffBootstrap';
+import { mergeUserPreferencesCached } from '../../../../../services/userPreferencesService';
 import { defaultBranding, type BrandingConfig } from '../../../../../types/branding';
 import type { OrganizationConfig, SaveStatus } from '../types';
 import { defaultConfig } from '../constants';
@@ -101,6 +103,8 @@ export const useOrganizationSettings = ({
     setSaveStatus('idle');
     try {
       await api.patch('/auth/preferences/organization', { value: config });
+      mergeUserPreferencesCached('organization', config);
+      clearStaffBootstrapSnapshot();
       setSavedOrganizationSnapshot(serializeOrganizationConfig(config));
       setOrganizationLastSavedAt(new Date());
       setSaveStatus('success');
@@ -120,6 +124,7 @@ export const useOrganizationSettings = ({
       const saved = { ...defaultBranding, ...(response.data || {}) } as BrandingConfig;
       setBranding(saved);
       setGlobalBranding(saved);
+      clearStaffBootstrapSnapshot();
       setSavedBrandingSnapshot(serializeBrandingConfig(saved));
       setBrandingLastSavedAt(new Date());
       setSaveStatus('success');

@@ -25,7 +25,6 @@ const STRICT_ZERO_CONTROLLERS = new Set([
   'backend/src/controllers/userController.ts',
   'backend/src/controllers/mfaController.ts',
   'backend/src/controllers/portalAuthController.ts',
-  'backend/src/controllers/paymentController.ts',
   'backend/src/controllers/publishingController.ts',
   'backend/src/controllers/templateController.ts',
   'backend/src/modules/accounts/controllers/accounts.controller.ts',

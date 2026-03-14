@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { test, expect } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { clearAuth, ensureLoginViaAPI, login } from '../helpers/auth';
 
 type StartupThresholds = {
@@ -8,11 +9,13 @@ type StartupThresholds = {
   startupRequestCountBaseline?: number;
   p75LoadMsCap: number;
   p75LoadMsBaseline?: number;
+  firstNavigationP75MsCap: number;
 };
 
 const loginBootstrapRequestPatterns = [
   /\/api\/v2\/auth\/csrf-token(?:\?|$)/,
   /\/api\/v2\/auth\/me(?:\?|$)/,
+  /\/api\/v2\/auth\/bootstrap(?:\?|$)/,
   /\/api\/v2\/auth\/registration-status(?:\?|$)/,
   /\/api\/v2\/auth\/setup-status(?:\?|$)/,
 ];
@@ -32,6 +35,7 @@ const readThresholds = (): StartupThresholds => {
       startupRequestCountCap?: number;
       p75LoadMsCap?: number;
       p75LoadMsBaseline?: number;
+      firstNavigationP75MsCap?: number;
     };
 
     return {
@@ -39,6 +43,7 @@ const readThresholds = (): StartupThresholds => {
       startupRequestCountCap: parsed.startupRequestCountCap ?? 6,
       p75LoadMsCap: parsed.p75LoadMsCap ?? 2000,
       p75LoadMsBaseline: parsed.p75LoadMsBaseline ?? 0,
+      firstNavigationP75MsCap: parsed.firstNavigationP75MsCap ?? 1000,
     };
   } catch {
     return {
@@ -46,7 +51,20 @@ const readThresholds = (): StartupThresholds => {
       startupRequestCountCap: 6,
       p75LoadMsCap: 2000,
       p75LoadMsBaseline: 0,
+      firstNavigationP75MsCap: 1000,
     };
+  }
+};
+
+const clickNavLink = async (page: Page, link: ReturnType<Page['locator']>): Promise<void> => {
+  try {
+    await link.click({ timeout: 5000 });
+  } catch {
+    await link.evaluate((node) => {
+      if (node instanceof HTMLElement) {
+        node.click();
+      }
+    });
   }
 };
 
@@ -65,19 +83,34 @@ test.describe('Startup Performance Guards', () => {
 
     const requestCounts: number[] = [];
     const loadTimesMs: number[] = [];
+    const firstNavigationTimesMs: number[] = [];
+    const preferencesRequestCounts: number[] = [];
+    const brandingRequestCounts: number[] = [];
 
     for (let i = 0; i < 5; i += 1) {
       await clearAuth(page);
 
       const startupRequests = new Set<string>();
+      let preferencesRequests = 0;
+      let brandingRequests = 0;
+      let requestPhase: 'startup' | 'first-navigation' | 'done' = 'startup';
       const trackRequest = (request: { url: () => string }) => {
         const url = request.url();
         const isLoginBootstrapRequest =
           page.url().includes('/login') &&
           loginBootstrapRequestPatterns.some((pattern) => pattern.test(url));
 
+        if (/\/api\/(?:v2\/)?auth\/preferences(?:\?|$)/.test(url) && requestPhase !== 'done') {
+          preferencesRequests += 1;
+        }
+        if (/\/api\/(?:v2\/)?admin\/branding(?:\?|$)/.test(url) && requestPhase !== 'done') {
+          brandingRequests += 1;
+        }
+
         if (url.includes('/api/') && !isLoginBootstrapRequest) {
-          startupRequests.add(url.replace(/\?.*$/, ''));
+          if (requestPhase === 'startup') {
+            startupRequests.add(url.replace(/\?.*$/, ''));
+          }
         }
       };
 
@@ -91,19 +124,38 @@ test.describe('Startup Performance Guards', () => {
       await page.waitForTimeout(800);
       loadTimesMs.push(Date.now() - startedAt);
       requestCounts.push(startupRequests.size);
+      requestPhase = 'first-navigation';
+
+      const contactsLink = page.locator('a[href="/contacts"]').first();
+      const navigationStartedAt = Date.now();
+      if (await contactsLink.isVisible().catch(() => false)) {
+        await clickNavLink(page, contactsLink);
+      } else {
+        await clickNavLink(page, page.getByRole('link', { name: /people|contacts/i }).first());
+      }
+      await expect(page).toHaveURL('/contacts');
+      await expect(page.getByRole('heading', { name: /people/i })).toBeVisible({ timeout: 10000 });
+      firstNavigationTimesMs.push(Date.now() - navigationStartedAt);
+      requestPhase = 'done';
+      preferencesRequestCounts.push(preferencesRequests);
+      brandingRequestCounts.push(brandingRequests);
       page.off('request', trackRequest);
     }
 
     const p75Load = percentile(loadTimesMs, 0.75);
     const p75Requests = percentile(requestCounts, 0.75);
+    const p75FirstNavigationLoad = percentile(firstNavigationTimesMs, 0.75);
     const p75LoadCap = process.env.CI
       ? thresholds.p75LoadMsCap + 500
       : thresholds.p75LoadMsBaseline || thresholds.p75LoadMsCap;
 
     expect(p75Load).toBeLessThanOrEqual(p75LoadCap);
+    expect(p75FirstNavigationLoad).toBeLessThanOrEqual(thresholds.firstNavigationP75MsCap);
     if (process.env.CI === 'true' || process.env.CI === '1') {
       const startupRequestCountCap = thresholds.startupRequestCountCap;
       expect(p75Requests).toBeLessThanOrEqual(startupRequestCountCap);
     }
+    expect(preferencesRequestCounts).toEqual([0, 0, 0, 0, 0]);
+    expect(brandingRequestCounts).toEqual([0, 0, 0, 0, 0]);
   });
 });

@@ -1,7 +1,5 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import authReducer from '../features/auth/state';
-import outcomesAdminReducer from './slices/outcomesAdminSlice';
-import outcomesReportsReducer from './slices/outcomesReportsSlice';
 import accountsV2Reducer from '../features/accounts/state';
 import volunteersV2Reducer from '../features/volunteers/state';
 import tasksV2Reducer from '../features/tasks/state';
@@ -24,6 +22,10 @@ import {
 import templateReducer from '../features/builder/state';
 import casesV2Reducer from '../features/cases/state';
 import contactsV2Reducer from '../features/contacts/state';
+import {
+  outcomesAdminReducer,
+  outcomesReportsReducer,
+} from '../features/outcomes/state';
 import websitesReducer from '../features/websites/state';
 import {
   eventAutomationV2Reducer,

@@ -295,6 +295,147 @@ describe('Auth API Integration Tests', () => {
     });
   });
 
+  describe('GET /api/v2/auth/bootstrap', () => {
+    it('returns startup-scoped auth bootstrap data for authenticated requests', async () => {
+      await pool.query(
+        `CREATE TABLE IF NOT EXISTS organization_branding (
+          id INTEGER PRIMARY KEY CHECK (id = 1),
+          config JSONB NOT NULL DEFAULT '{}'::jsonb,
+          created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+        )`
+      );
+      await pool.query(
+        `INSERT INTO organization_branding (id, config)
+         VALUES (1, $1::jsonb)
+         ON CONFLICT (id)
+         DO UPDATE SET config = EXCLUDED.config, updated_at = NOW()`,
+        [
+          JSON.stringify({
+            appName: 'West Cat',
+            appIcon: null,
+            primaryColour: '#123456',
+            secondaryColour: '#654321',
+            favicon: null,
+          }),
+        ]
+      );
+      await pool.query(
+        `UPDATE users
+         SET preferences = $1::jsonb
+         WHERE email = $2`,
+        [
+          JSON.stringify({
+            timezone: 'America/Halifax',
+            navigation: { items: [{ id: 'dashboard', enabled: true }] },
+            dashboard_settings: { showQuickLookup: false },
+            organization: { timezone: 'America/St_Johns', phoneFormat: 'canadian' },
+            notifications: { weeklyDigest: true },
+          }),
+          testEmail,
+        ]
+      );
+
+      const response = await request(app)
+        .get('/api/v2/auth/bootstrap')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        success: true,
+        data: {
+          user: {
+            email: testEmail,
+          },
+          organizationId: expect.any(String),
+          branding: {
+            appName: 'West Cat',
+          },
+          preferences: {
+            timezone: 'America/St_Johns',
+            navigation: {
+              items: [{ id: 'dashboard', enabled: true }],
+            },
+            dashboard_settings: {
+              showQuickLookup: false,
+            },
+          },
+        },
+      });
+      expect(response.body.data.preferences).not.toHaveProperty('organization');
+      expect(response.body.data.preferences).not.toHaveProperty('notifications');
+    });
+
+    it('requires authentication', async () => {
+      await request(app).get('/api/v2/auth/bootstrap').expect(401);
+    });
+
+    it('rejects an explicit organization override when the user lacks access', async () => {
+      const userResult = await pool.query<{ id: string }>('SELECT id FROM users WHERE email = $1', [testEmail]);
+      const userId = userResult.rows[0]?.id;
+      expect(userId).toBeTruthy();
+
+      const secondaryOrgResult = await pool.query<{ id: string }>(
+        `INSERT INTO accounts (account_name, account_type, created_by, modified_by)
+         VALUES ($1, 'organization', $2, $2)
+         RETURNING id`,
+        [`Unauthorized Org ${unique()}`, userId]
+      );
+      const secondaryOrgId = secondaryOrgResult.rows[0].id;
+
+      try {
+        const response = await request(app)
+          .get('/api/v2/auth/bootstrap')
+          .set('Authorization', `Bearer ${authToken}`)
+          .set('X-Organization-Id', secondaryOrgId)
+          .expect(403);
+
+        expect(response.body.error.code).toBe('forbidden');
+        expect(response.body.error.message).toMatch(/do not have access/i);
+      } finally {
+        await pool.query('DELETE FROM accounts WHERE id = $1', [secondaryOrgId]);
+      }
+    });
+
+    it('rejects unknown explicit organization overrides', async () => {
+      const response = await request(app)
+        .get('/api/v2/auth/bootstrap')
+        .set('Authorization', `Bearer ${authToken}`)
+        .set('X-Organization-Id', '00000000-0000-4000-8000-000000000001')
+        .expect(404);
+
+      expect(response.body.error.code).toBe('not_found');
+      expect(response.body.error.message).toMatch(/organization context not found/i);
+    });
+
+    it('rejects inactive explicit organization overrides', async () => {
+      const userResult = await pool.query<{ id: string }>('SELECT id FROM users WHERE email = $1', [testEmail]);
+      const userId = userResult.rows[0]?.id;
+      expect(userId).toBeTruthy();
+
+      const inactiveOrgResult = await pool.query<{ id: string }>(
+        `INSERT INTO accounts (account_name, account_type, created_by, modified_by, is_active)
+         VALUES ($1, 'organization', $2, $2, FALSE)
+         RETURNING id`,
+        [`Inactive Org ${unique()}`, userId]
+      );
+      const inactiveOrgId = inactiveOrgResult.rows[0].id;
+
+      try {
+        const response = await request(app)
+          .get('/api/v2/auth/bootstrap')
+          .set('Authorization', `Bearer ${authToken}`)
+          .set('X-Organization-Id', inactiveOrgId)
+          .expect(403);
+
+        expect(response.body.error.code).toBe('forbidden');
+        expect(response.body.error.message).toMatch(/inactive/i);
+      } finally {
+        await pool.query('DELETE FROM accounts WHERE id = $1', [inactiveOrgId]);
+      }
+    });
+  });
+
   describe('PUT /api/v2/auth/profile', () => {
     const profilePicture = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z0w8AAAAASUVORK5CYII=';
 

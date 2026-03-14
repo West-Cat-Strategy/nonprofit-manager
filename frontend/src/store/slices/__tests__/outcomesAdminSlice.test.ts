@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import reducer, {
+import {
   clearOutcomesAdminError,
   createOutcomeDefinition,
   disableOutcomeDefinition,
   enableOutcomeDefinition,
   fetchOutcomeDefinitionsAdmin,
+  outcomesAdminReducer,
   reorderOutcomeDefinitions,
   updateOutcomeDefinition,
-} from '../outcomesAdminSlice';
+} from '../../../features/outcomes/state';
 
 const makeOutcome = (overrides: Partial<ReturnType<typeof baseOutcome>> = {}) => ({
   ...baseOutcome(),
@@ -29,11 +30,11 @@ const baseOutcome = () => ({
 
 describe('outcomesAdminSlice', () => {
   it('handles fetch pending and fulfilled', () => {
-    let state = reducer(undefined, { type: fetchOutcomeDefinitionsAdmin.pending.type });
+    let state = outcomesAdminReducer(undefined, { type: fetchOutcomeDefinitionsAdmin.pending.type });
     expect(state.loading).toBe(true);
     expect(state.error).toBeNull();
 
-    state = reducer(state, {
+    state = outcomesAdminReducer(state, {
       type: fetchOutcomeDefinitionsAdmin.fulfilled.type,
       payload: {
         definitions: [makeOutcome()],
@@ -48,14 +49,14 @@ describe('outcomesAdminSlice', () => {
 
   it('upserts create and update responses', () => {
     const created = makeOutcome({ id: 'outcome-2', sort_order: 20, key: 'obtained_employment' });
-    let state = reducer(undefined, {
+    let state = outcomesAdminReducer(undefined, {
       type: createOutcomeDefinition.fulfilled.type,
       payload: created,
     });
 
     expect(state.definitions).toHaveLength(1);
 
-    state = reducer(state, {
+    state = outcomesAdminReducer(state, {
       type: updateOutcomeDefinition.fulfilled.type,
       payload: { ...created, name: 'Obtained employment' },
     });
@@ -65,18 +66,18 @@ describe('outcomesAdminSlice', () => {
 
   it('handles enable and disable actions', () => {
     const initial = {
-      ...reducer(undefined, { type: '@@INIT' }),
+      ...outcomesAdminReducer(undefined, { type: '@@INIT' }),
       definitions: [makeOutcome()],
     };
 
-    const disabled = reducer(initial, {
+    const disabled = outcomesAdminReducer(initial, {
       type: disableOutcomeDefinition.fulfilled.type,
       payload: makeOutcome({ is_active: false }),
     });
 
     expect(disabled.definitions[0].is_active).toBe(false);
 
-    const enabled = reducer(disabled, {
+    const enabled = outcomesAdminReducer(disabled, {
       type: enableOutcomeDefinition.fulfilled.type,
       payload: makeOutcome({ is_active: true }),
     });
@@ -88,7 +89,7 @@ describe('outcomesAdminSlice', () => {
     const first = makeOutcome({ id: 'one', sort_order: 10, key: 'one', name: 'One' });
     const second = makeOutcome({ id: 'two', sort_order: 20, key: 'two', name: 'Two' });
 
-    const state = reducer(undefined, {
+    const state = outcomesAdminReducer(undefined, {
       type: reorderOutcomeDefinitions.fulfilled.type,
       payload: [second, first],
     });
@@ -97,12 +98,12 @@ describe('outcomesAdminSlice', () => {
   });
 
   it('clears error', () => {
-    const withError = reducer(undefined, {
+    const withError = outcomesAdminReducer(undefined, {
       type: fetchOutcomeDefinitionsAdmin.rejected.type,
       payload: 'Boom',
     });
 
-    const cleared = reducer(withError, clearOutcomesAdminError());
+    const cleared = outcomesAdminReducer(withError, clearOutcomesAdminError());
     expect(cleared.error).toBeNull();
   });
 });

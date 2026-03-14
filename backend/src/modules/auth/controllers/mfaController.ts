@@ -9,7 +9,7 @@ import { trackLoginAttempt } from '@middleware/accountLockout';
 import { JWT, TIME } from '@config/constants';
 import { decrypt, encrypt } from '@utils/encryption';
 import { badRequest, conflict, notFoundMessage, unauthorized } from '@utils/responseHelpers';
-import { setAuthCookie, setRefreshCookie } from '@utils/cookieHelper';
+import { setAuthCookie } from '@utils/cookieHelper';
 import { buildAuthTokenResponse } from '@utils/authResponse';
 import { authenticator } from '@otplib/preset-default';
 import { sendSuccess } from '@modules/shared/http/envelope';
@@ -47,23 +47,16 @@ const issueAuthTokens = (
   organizationId?: string | null
 ) => {
   const jwtSecret = getJwtSecret();
-  return {
-    token: jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        ...(organizationId ? { organizationId } : {}),
-      },
-      jwtSecret,
-      { expiresIn: JWT.ACCESS_TOKEN_EXPIRY }
-    ),
-    refreshToken: jwt.sign(
-      { id: user.id, type: 'refresh' },
-      jwtSecret,
-      { expiresIn: JWT.REFRESH_TOKEN_EXPIRY }
-    ),
-  };
+  return jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      ...(organizationId ? { organizationId } : {}),
+    },
+    jwtSecret,
+    { expiresIn: JWT.ACCESS_TOKEN_EXPIRY }
+  );
 };
 
 const issueMfaToken = (user: { id: string; email: string; role: string }) => {
@@ -307,11 +300,10 @@ export const completeTotpLogin = async (
     await trackLoginAttempt(email, true, user.id, clientIp);
 
     const organizationId = await getDefaultOrganizationId();
-    const { token, refreshToken } = issueAuthTokens(user, organizationId);
+    const token = issueAuthTokens(user, organizationId);
     setAuthCookie(res, token);
-    setRefreshCookie(res, refreshToken);
     return sendSuccess(res, {
-      ...buildAuthTokenResponse(token, refreshToken),
+      ...buildAuthTokenResponse(token),
       organizationId: organizationId ?? null,
       user: {
         id: user.id,

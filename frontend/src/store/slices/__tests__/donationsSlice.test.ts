@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import reducer, {
+import {
+  clearDonationsError,
   clearSelectedDonation,
-  clearError,
+  donationsReducer,
   fetchDonations,
   fetchDonationById,
   createDonation,
@@ -9,7 +10,7 @@ import reducer, {
   deleteDonation,
   markReceiptSent,
   fetchDonationSummary,
-} from '../donationsSlice';
+} from '../../../features/finance/state';
 import type { Donation } from '../../../types/donation';
 
 const mockDonation: Donation = {
@@ -63,13 +64,13 @@ describe('donationsSlice', () => {
   describe('reducers', () => {
     it('clears selected donation', () => {
       const stateWithDonation = { ...initialState, selectedDonation: mockDonation };
-      const state = reducer(stateWithDonation, clearSelectedDonation());
+      const state = donationsReducer(stateWithDonation, clearSelectedDonation());
       expect(state.selectedDonation).toBeNull();
     });
 
     it('clears error state', () => {
       const stateWithError = { ...initialState, error: 'Something went wrong' };
-      const state = reducer(stateWithError, clearError());
+      const state = donationsReducer(stateWithError, clearDonationsError());
       expect(state.error).toBeNull();
     });
   });
@@ -77,7 +78,7 @@ describe('donationsSlice', () => {
   describe('fetchDonations thunk', () => {
     it('sets loading to true on pending', () => {
       const action = { type: fetchDonations.pending.type };
-      const state = reducer(initialState, action);
+      const state = donationsReducer(initialState, action);
       expect(state.loading).toBe(true);
       expect(state.error).toBeNull();
     });
@@ -91,7 +92,7 @@ describe('donationsSlice', () => {
           summary: { total_amount: 100, average_amount: 100 },
         },
       };
-      const state = reducer(initialState, action);
+      const state = donationsReducer(initialState, action);
       expect(state.loading).toBe(false);
       expect(state.donations).toEqual([mockDonation]);
       expect(state.pagination.total).toBe(1);
@@ -104,7 +105,7 @@ describe('donationsSlice', () => {
         type: fetchDonations.rejected.type,
         error: { message: 'Network error' },
       };
-      const state = reducer(initialState, action);
+      const state = donationsReducer(initialState, action);
       expect(state.loading).toBe(false);
       expect(state.error).toBe('Network error');
     });
@@ -113,7 +114,7 @@ describe('donationsSlice', () => {
   describe('fetchDonationById thunk', () => {
     it('sets loading to true on pending', () => {
       const action = { type: fetchDonationById.pending.type };
-      const state = reducer(initialState, action);
+      const state = donationsReducer(initialState, action);
       expect(state.loading).toBe(true);
     });
 
@@ -122,7 +123,7 @@ describe('donationsSlice', () => {
         type: fetchDonationById.fulfilled.type,
         payload: mockDonation,
       };
-      const state = reducer(initialState, action);
+      const state = donationsReducer(initialState, action);
       expect(state.loading).toBe(false);
       expect(state.selectedDonation).toEqual(mockDonation);
     });
@@ -137,7 +138,7 @@ describe('donationsSlice', () => {
         type: createDonation.fulfilled.type,
         payload: mockDonation,
       };
-      const state = reducer(stateWithDonations, action);
+      const state = donationsReducer(stateWithDonations, action);
       expect(state.donations).toHaveLength(2);
       expect(state.donations[0]).toEqual(mockDonation);
     });
@@ -152,7 +153,7 @@ describe('donationsSlice', () => {
         type: updateDonation.fulfilled.type,
         payload: updatedDonation,
       };
-      const state = reducer(stateWithDonations, action);
+      const state = donationsReducer(stateWithDonations, action);
       expect(state.donations[0].amount).toBe(200);
     });
 
@@ -164,7 +165,7 @@ describe('donationsSlice', () => {
         type: updateDonation.fulfilled.type,
         payload: updatedDonation,
       };
-      const state = reducer(stateWithSelected, action);
+      const state = donationsReducer(stateWithSelected, action);
       expect(state.selectedDonation?.amount).toBe(200);
     });
   });
@@ -177,7 +178,7 @@ describe('donationsSlice', () => {
         type: deleteDonation.fulfilled.type,
         payload: mockDonation.donation_id,
       };
-      const state = reducer(stateWithDonations, action);
+      const state = donationsReducer(stateWithDonations, action);
       expect(state.donations).toHaveLength(0);
     });
 
@@ -192,7 +193,7 @@ describe('donationsSlice', () => {
         type: deleteDonation.fulfilled.type,
         payload: mockDonation.donation_id,
       };
-      const state = reducer(stateWithSelected, action);
+      const state = donationsReducer(stateWithSelected, action);
       expect(state.selectedDonation).toBeNull();
     });
   });
@@ -206,7 +207,7 @@ describe('donationsSlice', () => {
         type: markReceiptSent.fulfilled.type,
         payload: updatedDonation,
       };
-      const state = reducer(stateWithDonations, action);
+      const state = donationsReducer(stateWithDonations, action);
       expect(state.donations[0].receipt_sent).toBe(true);
     });
   });
@@ -214,7 +215,7 @@ describe('donationsSlice', () => {
   describe('fetchDonationSummary thunk', () => {
     it('sets loading on pending', () => {
       const action = { type: fetchDonationSummary.pending.type };
-      const state = reducer(initialState, action);
+      const state = donationsReducer(initialState, action);
       expect(state.loading).toBe(true);
     });
 
@@ -234,7 +235,7 @@ describe('donationsSlice', () => {
         type: fetchDonationSummary.fulfilled.type,
         payload: mockSummary,
       };
-      const state = reducer(initialState, action);
+      const state = donationsReducer(initialState, action);
       expect(state.loading).toBe(false);
       expect(state.summary).toEqual(mockSummary);
     });

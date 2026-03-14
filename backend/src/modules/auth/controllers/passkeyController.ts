@@ -20,7 +20,7 @@ import { getJwtSecret } from '@config/jwt';
 import { JWT } from '@config/constants';
 import { trackLoginAttempt } from '@middleware/accountLockout';
 import { badRequest, notFoundMessage, unauthorized } from '@utils/responseHelpers';
-import { setAuthCookie, setRefreshCookie } from '@utils/cookieHelper';
+import { setAuthCookie } from '@utils/cookieHelper';
 import { buildAuthTokenResponse } from '@utils/authResponse';
 
 const CHALLENGE_TTL_MS = TIME.FIVE_MINUTES;
@@ -62,23 +62,18 @@ const issueAuthTokens = (
   organizationId?: string | null
 ) => {
   const jwtSecret = getJwtSecret();
-  return {
-    token: jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        ...(organizationId ? { organizationId } : {}),
-      },
-      jwtSecret,
-      {
-        expiresIn: JWT.ACCESS_TOKEN_EXPIRY,
-      }
-    ),
-    refreshToken: jwt.sign({ id: user.id, type: 'refresh' }, jwtSecret, {
-      expiresIn: JWT.REFRESH_TOKEN_EXPIRY,
-    }),
-  };
+  return jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      ...(organizationId ? { organizationId } : {}),
+    },
+    jwtSecret,
+    {
+      expiresIn: JWT.ACCESS_TOKEN_EXPIRY,
+    }
+  );
 };
 
 const getDefaultOrganizationId = async (): Promise<string | null> => {
@@ -410,11 +405,10 @@ export const loginVerify = async (
     await trackLoginAttempt(email, true, user.id, clientIp);
 
     const organizationId = await getDefaultOrganizationId();
-    const { token, refreshToken } = issueAuthTokens(user, organizationId);
+    const token = issueAuthTokens(user, organizationId);
     setAuthCookie(res, token);
-    setRefreshCookie(res, refreshToken);
     return res.json({
-      ...buildAuthTokenResponse(token, refreshToken),
+      ...buildAuthTokenResponse(token),
       organizationId,
       user: {
         id: user.id,

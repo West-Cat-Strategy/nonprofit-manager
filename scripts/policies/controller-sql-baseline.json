@@ -7,7 +7,6 @@
   "backend/src/controllers/invitationController.ts": 1,
   "backend/src/controllers/mfaController.ts": 4,
   "backend/src/controllers/passkeyController.ts": 7,
-  "backend/src/controllers/paymentController.ts": 5,
   "backend/src/controllers/portalAdminController.ts": 14,
   "backend/src/controllers/reconciliationController.ts": 9,
   "backend/src/modules/admin/controllers/adminBrandingController.ts": 6,
