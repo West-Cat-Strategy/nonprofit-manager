@@ -27,6 +27,7 @@ import { scheduledReportSchedulerService } from '@services/scheduledReportSchedu
 import { webhookRetrySchedulerService } from '@services/webhookRetrySchedulerService';
 import { renderPublishedWebsite } from '@modules/publishing/controllers';
 import pool from './config/database';
+import { validateProductionSecurityConfig } from './config/productionSecurityConfig';
 
 if (process.env.JEST_WORKER_ID && !process.env.NODE_ENV) {
   process.env.NODE_ENV = 'test';
@@ -44,32 +45,7 @@ if (process.env.NODE_ENV === 'test') {
 
 // Production secrets validation
 if (process.env.NODE_ENV === 'production') {
-  const warnings: string[] = [];
-  const errors: string[] = [];
-
-  const jwtSecret = process.env.JWT_SECRET || '';
-  if (jwtSecret.includes('dev') || jwtSecret.includes('placeholder') || jwtSecret.length < 32) {
-    warnings.push('JWT_SECRET appears insecure (contains "dev"/"placeholder" or is less than 32 characters)');
-  }
-
-  if (process.env.DB_PASSWORD === 'postgres') {
-    errors.push('DB_PASSWORD is set to default value "postgres"');
-  }
-
-  const csrfSecret = process.env.CSRF_SECRET || '';
-  if (csrfSecret.includes('change') || csrfSecret.includes('placeholder') || csrfSecret.length < 32) {
-    warnings.push('CSRF_SECRET appears insecure (contains "change"/"placeholder" or is less than 32 characters)');
-  }
-
-  const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
-  if (stripeWebhookSecret.includes('placeholder') || stripeWebhookSecret.includes('test')) {
-    errors.push('STRIPE_WEBHOOK_SECRET must be set to actual Stripe webhook secret (not placeholder or test value)');
-  }
-
-  const encryptionKey = process.env.ENCRYPTION_KEY || '';
-  if (encryptionKey.length < 64) {
-    warnings.push('ENCRYPTION_KEY should be 64 hex characters (256-bit). Current length: ' + encryptionKey.length);
-  }
+  const { warnings, errors, fatalErrors } = validateProductionSecurityConfig(process.env);
 
   // Report all warnings and errors
   if (warnings.length > 0) {
@@ -78,6 +54,15 @@ if (process.env.NODE_ENV === 'production') {
 
   if (errors.length > 0) {
     errors.forEach((e) => logger.error(`SECURITY ERROR: ${e}`));
+  }
+
+  if (fatalErrors.length > 0) {
+    fatalErrors.forEach((e) => logger.error(`SECURITY ERROR: ${e}`));
+    logger.error('Exiting due to invalid production database at-rest encryption configuration.');
+    process.exit(1);
+  }
+
+  if (errors.length > 0) {
     if (process.env.ENFORCE_SECURE_CONFIG === 'true') {
       logger.error('Exiting due to insecure configuration. Set ENFORCE_SECURE_CONFIG=false to disable.');
       process.exit(1);

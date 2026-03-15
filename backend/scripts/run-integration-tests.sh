@@ -3,6 +3,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+CALLER_SET_DB_HOST="${DB_HOST+x}"
+CALLER_SET_DB_PORT="${DB_PORT+x}"
+CALLER_SET_DIRECT_DB_CONNECTION="${DIRECT_DB_CONNECTION+x}"
 
 if [[ "${SKIP_INTEGRATION_DB_PREP:-0}" != "1" ]]; then
   export DB_HOST="${DB_HOST:-localhost}"
@@ -35,7 +38,18 @@ if [[ "${SKIP_INTEGRATION_DB_PREP:-0}" != "1" ]]; then
 
   (
     cd "$REPO_ROOT"
-    DB_AUTO_START=true "$REPO_ROOT/scripts/db-migrate.sh"
+    if [[ "$CALLER_SET_DB_HOST" != "x" && "$CALLER_SET_DB_PORT" != "x" && "$CALLER_SET_DIRECT_DB_CONNECTION" != "x" ]]; then
+      env \
+        -u DB_HOST \
+        -u DB_PORT \
+        -u DB_NAME \
+        -u DB_USER \
+        -u DB_PASSWORD \
+        DB_AUTO_START=true \
+        "$REPO_ROOT/scripts/db-migrate.sh"
+    else
+      DB_AUTO_START=true DIRECT_DB_CONNECTION=1 "$REPO_ROOT/scripts/db-migrate.sh"
+    fi
   )
 fi
 
