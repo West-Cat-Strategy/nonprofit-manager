@@ -6,6 +6,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 source "$SCRIPT_DIR/lib/config.sh"
+source "$SCRIPT_DIR/lib/db-at-rest.sh"
 
 HOST_ALIAS="${CBIS_SSH_HOST:-cbis-vps}"
 REMOTE_APP_DIR="${CBIS_REMOTE_PATH:-/srv/nonprofit-manager}"
@@ -104,6 +105,12 @@ if [[ ! -f "$LOCAL_ENV_FILE" ]]; then
   exit 1
 fi
 
+validate_production_db_at_rest_config "$LOCAL_ENV_FILE" || exit 1
+if [[ "$(resolve_db_at_rest_mode "$LOCAL_ENV_FILE")" != "luks" ]]; then
+  log_error "CBIS production requires DB_AT_REST_ENCRYPTION_MODE=luks"
+  exit 1
+fi
+
 if [[ ! -f "$SUDO_PASSWORD_FILE" ]]; then
   log_error "CBIS sudo password file not found: $SUDO_PASSWORD_FILE"
   exit 1
@@ -161,8 +168,41 @@ rsync -a --delete --filter='P .env.production' --chown="$APP_USER:$APP_GROUP" "$
 install -o "$APP_USER" -g "$APP_GROUP" -m 0640 "$REMOTE_STAGE_DIR/.env.production" "$REMOTE_APP_DIR/.env.production"
 chmod 2770 "$REMOTE_APP_DIR"
 find "$REMOTE_APP_DIR" -type d -exec chmod g+s {} +
+
+cd "$REMOTE_APP_DIR"
+source ./scripts/lib/common.sh
+source ./scripts/lib/config.sh
+source ./scripts/lib/db-at-rest.sh
+
+ENV_FILE="$REMOTE_APP_DIR/.env.production"
+validate_production_db_at_rest_config "$ENV_FILE"
+
+if [[ "$(resolve_db_at_rest_mode "$ENV_FILE")" != "luks" ]]; then
+  log_error "CBIS production requires DB_AT_REST_ENCRYPTION_MODE=luks"
+  exit 1
+fi
+
+POSTGRES_DATA_DIR="$(db_at_rest_value POSTGRES_DATA_DIR "$ENV_FILE" "")"
+DB_LUKS_MAPPING_NAME="$(db_at_rest_value DB_LUKS_MAPPING_NAME "$ENV_FILE" "")"
+COMPOSE_FILES_EFFECTIVE="$(compose_files_for_db_at_rest_mode "$COMPOSE_FILES_VALUE" "$ENV_FILE")"
+
+if ! command -v cryptsetup >/dev/null 2>&1; then
+  log_error "cryptsetup is required to verify the CBIS encrypted database mount"
+  exit 1
+fi
+
+CRYPT_STATUS="$(cryptsetup status "$DB_LUKS_MAPPING_NAME" 2>&1 || true)"
+if ! printf '%s\n' "$CRYPT_STATUS" | grep -q "^/dev/mapper/$DB_LUKS_MAPPING_NAME is active"; then
+  printf '%s\n' "$CRYPT_STATUS"
+  log_error "LUKS mapping $DB_LUKS_MAPPING_NAME is not active"
+  exit 1
+fi
+
+validate_luks_mount_target "$POSTGRES_DATA_DIR" "$DB_LUKS_MAPPING_NAME"
+validate_production_backup_target "$ENV_FILE"
+
 systemctl reload "$SERVICE_NAME"
-runuser -u "$APP_USER" -- bash -lc "cd '$REMOTE_APP_DIR' && COMPOSE_ENV_FILE=.env.production COMPOSE_PROJECT_NAME='$COMPOSE_PROJECT_NAME_VALUE' COMPOSE_MODE=prod COMPOSE_FILES_PROD='$COMPOSE_FILES_VALUE' ./scripts/db-migrate.sh"
+runuser -u "$APP_USER" -- bash -lc "set -euo pipefail; cd '$REMOTE_APP_DIR'; source ./scripts/lib/common.sh; source ./scripts/lib/config.sh; source ./scripts/lib/db-at-rest.sh; export COMPOSE_ENV_FILE=.env.production COMPOSE_PROJECT_NAME='$COMPOSE_PROJECT_NAME_VALUE' COMPOSE_MODE=prod COMPOSE_FILES_PROD='$COMPOSE_FILES_EFFECTIVE'; validate_production_db_at_rest_config ./.env.production; docker_compose_mode prod up -d postgres redis; ./scripts/db-migrate.sh; docker_compose_mode prod up -d"
 REMOTE_SCRIPT
 } | ssh "$HOST_ALIAS" "sudo -S -p '' bash -s -- '$REMOTE_STAGE_DIR' '$REMOTE_APP_DIR' '$SERVICE_NAME' '$APP_USER' '$APP_GROUP' '$COMPOSE_PROJECT_NAME_VALUE' '$COMPOSE_FILES_VALUE'"
 

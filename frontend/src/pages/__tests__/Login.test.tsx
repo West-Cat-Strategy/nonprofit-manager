@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import type * as ReactRouterDom from 'react-router-dom';
 import Login from '../../features/auth/pages/LoginPage';
 import { authService } from '../../services/authService';
+import { primeStaffSession } from '../../features/auth/utils/primeStaffSession';
 import { renderWithProviders, createTestStore } from '../../test/testUtils';
 import { vi } from 'vitest';
 
@@ -20,6 +21,13 @@ vi.mock('../../services/authService', () => ({
   authService: {
     login: vi.fn(),
   },
+}));
+
+vi.mock('../../features/auth/utils/primeStaffSession', () => ({
+  primeStaffSession: vi.fn(async ({ user, organizationId }) => ({
+    user,
+    organizationId: organizationId ?? null,
+  })),
 }));
 
 const renderLogin = () => {
@@ -74,6 +82,10 @@ describe('Login page', () => {
       password: 'Password123!',
     });
 
+    expect(primeStaffSession).toHaveBeenCalledWith({
+      user: authResponse.user,
+      organizationId: undefined,
+    });
     expect(store.getState().auth.isAuthenticated).toBe(true);
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
   });

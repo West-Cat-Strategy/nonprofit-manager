@@ -149,6 +149,10 @@ vi.mock('../dashboard', () => ({
   }),
 }));
 
+vi.mock('../../routes/peopleRoutePreload', () => ({
+  preloadContactsPeopleRoute: vi.fn(() => Promise.resolve([])),
+}));
+
 describe('Navigation', () => {
   beforeEach(() => {
     mockTogglePinned.mockClear();

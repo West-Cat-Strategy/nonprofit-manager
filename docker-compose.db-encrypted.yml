@@ -1,0 +1,5 @@
+services:
+  # Self-hosted production PostgreSQL must bind to a host path on the encrypted LUKS mount.
+  postgres:
+    volumes:
+      - ${POSTGRES_DATA_DIR:?Set POSTGRES_DATA_DIR to an absolute encrypted host path}:/var/lib/postgresql/data

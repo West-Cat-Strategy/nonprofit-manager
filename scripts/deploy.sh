@@ -8,9 +8,11 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 source "$SCRIPT_DIR/lib/config.sh"
+source "$SCRIPT_DIR/lib/db-at-rest.sh"
 
 # Configuration file for remote deployments
 CONFIG_FILE="${DEPLOY_CONFIG_FILE:-$PROJECT_ROOT/.deploy.conf}"
+PROD_ENV_FILE_PATH="$PROJECT_ROOT/.env.production"
 
 # Load configuration if exists
 if [ -f "$CONFIG_FILE" ]; then
@@ -46,6 +48,9 @@ echo ""
 # Local Deployment
 #------------------------------------------------------------------------------
 deploy_local() {
+    local env_file="$PROD_ENV_FILE_PATH"
+    local db_mode compose_files
+
     log_info "Running pre-deployment checks..."
 
     # Run fast CI
@@ -54,14 +59,35 @@ deploy_local() {
         exit 1
     fi
 
+    validate_production_db_at_rest_config "$env_file" || exit 1
+    db_mode="$(resolve_db_at_rest_mode "$env_file")"
+    compose_files="$(compose_files_for_db_at_rest_mode "docker-compose.yml" "$env_file")"
+
+    export COMPOSE_ENV_FILE="$env_file"
+    export COMPOSE_MODE=prod
+    export COMPOSE_FILES_PROD="$compose_files"
+
     log_info "Building Docker images..."
-    docker_compose --env-file "$PROJECT_ROOT/.env.production" build
+    docker_compose_mode prod build
+
+    if [[ "$db_mode" == "managed" ]]; then
+        log_info "Starting managed-database service set..."
+        docker_compose_mode prod up -d redis
+    else
+        log_info "Starting self-hosted encrypted database service set..."
+        docker_compose_mode prod up -d postgres redis
+    fi
 
     log_info "Running database migrations..."
-    "$SCRIPT_DIR/db-migrate.sh" || log_warn "Migration script not found or failed"
+    "$SCRIPT_DIR/db-migrate.sh"
 
     log_info "Restarting containers..."
-    docker_compose --env-file "$PROJECT_ROOT/.env.production" up -d
+    if [[ "$db_mode" == "managed" ]]; then
+        docker_compose_mode prod up -d --no-deps backend
+        docker_compose_mode prod up -d --no-deps frontend
+    else
+        docker_compose_mode prod up -d backend frontend
+    fi
 
     # Wait for health check
     log_info "Waiting for services to be healthy..."
@@ -160,30 +186,44 @@ deploy_remote() {
     log_info "Connecting to $deploy_host..."
 
     ssh "$deploy_user@$deploy_host" << DEPLOY_SCRIPT
-        set -e
+        set -euo pipefail
         cd $deploy_path
-
-        if docker compose version >/dev/null 2>&1; then
-          COMPOSE="docker compose"
-        elif command -v docker-compose >/dev/null 2>&1; then
-          COMPOSE="docker-compose"
-        else
-          echo "Neither 'docker compose' nor 'docker-compose' is available on remote host"
-          exit 1
-        fi
+        ENV_FILE="./.env.production"
 
         echo "Pulling latest code..."
         git fetch origin
         git checkout $GIT_COMMIT
 
+        source ./scripts/lib/common.sh
+        source ./scripts/lib/config.sh
+        source ./scripts/lib/db-at-rest.sh
+
+        validate_production_db_at_rest_config "\$ENV_FILE"
+        DB_MODE="\$(resolve_db_at_rest_mode "\$ENV_FILE")"
+        COMPOSE_FILES_EFFECTIVE="\$(compose_files_for_db_at_rest_mode "docker-compose.yml" "\$ENV_FILE")"
+        export COMPOSE_ENV_FILE="\$ENV_FILE"
+        export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_PROD}"
+        export COMPOSE_MODE=prod
+        export COMPOSE_FILES_PROD="\$COMPOSE_FILES_EFFECTIVE"
+
         echo "Building/pulling images..."
-        \$COMPOSE --env-file .env.production pull 2>/dev/null || \$COMPOSE --env-file .env.production build
+        docker_compose_mode prod pull 2>/dev/null || docker_compose_mode prod build
 
         echo "Running migrations..."
-        \$COMPOSE exec -T postgres psql -U postgres -d nonprofit_manager -c "SELECT 1" || true
+        if [[ "\$DB_MODE" == "managed" ]]; then
+          docker_compose_mode prod up -d redis
+        else
+          docker_compose_mode prod up -d postgres redis
+        fi
+        ./scripts/db-migrate.sh
 
         echo "Restarting services..."
-        \$COMPOSE --env-file .env.production up -d
+        if [[ "\$DB_MODE" == "managed" ]]; then
+          docker_compose_mode prod up -d --no-deps backend
+          docker_compose_mode prod up -d --no-deps frontend
+        else
+          docker_compose_mode prod up -d backend frontend
+        fi
 
         echo "Cleaning up..."
         docker system prune -f

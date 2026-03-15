@@ -8,12 +8,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 source "$SCRIPT_DIR/lib/config.sh"
+source "$SCRIPT_DIR/lib/db-at-rest.sh"
 
 COMPOSE_MODE="$(normalize_compose_mode "${COMPOSE_MODE:-prod}")"
 DB_SERVICE="${DB_SERVICE:-postgres}"
 DB_USER="${DB_USER:-postgres}"
 DB_NAME="${DB_NAME:-nonprofit_manager}"
-BACKUP_DIR="${BACKUP_DIR:-database/backups}"
+ENV_FILE="$(db_at_rest_env_file "${COMPOSE_ENV_FILE:-}")"
+BACKUP_DIR="$(env_file_value_or_default BACKUP_DIR "$ENV_FILE" "${BACKUP_DIR:-database/backups}")"
+
+validate_production_db_at_rest_config "$ENV_FILE" || exit 1
+validate_production_backup_target "$ENV_FILE" || exit 1
 
 if [[ "$BACKUP_DIR" != /* ]]; then
     BACKUP_DIR="$PROJECT_ROOT/$BACKUP_DIR"
