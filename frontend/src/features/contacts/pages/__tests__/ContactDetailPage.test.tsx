@@ -102,7 +102,7 @@ vi.mock('../../../../components/PaymentHistory', () => ({ default: () => <div>Pa
 vi.mock('../../../../components/ContactPhoneNumbers', () => ({ default: () => <div>Phones</div> }));
 vi.mock('../../../../components/ContactEmailAddresses', () => ({ default: () => <div>Emails</div> }));
 vi.mock('../../../../components/ContactRelationships', () => ({ default: () => <div>Relationships</div> }));
-vi.mock('../../../../components/ContactNotes', () => ({ default: () => <div>Notes</div> }));
+vi.mock('../../components/ContactNotesPanel', () => ({ default: () => <div>Notes</div> }));
 vi.mock('../../../../components/ContactDocuments', () => ({ default: () => <div>Documents</div> }));
 vi.mock('../../../../components/ContactTags', () => ({ default: () => <div>Tags</div> }));
 vi.mock('../../../../components/ContactTasks', () => ({ default: () => <div>Tasks</div> }));

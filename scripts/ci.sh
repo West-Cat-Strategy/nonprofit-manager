@@ -109,6 +109,7 @@ CI_INFRA_COMPOSE_ARGS=""
 CI_INFRA_STARTED=false
 CI_KEEP_INFRA_RAW="${CI_KEEP_INFRA:-false}"
 CI_KEEP_INFRA_NORMALIZED="$(printf '%s' "$CI_KEEP_INFRA_RAW" | tr '[:upper:]' '[:lower:]')"
+CI_COMPOSE_ENV_FILE="${CI_COMPOSE_ENV_FILE:-${COMPOSE_ENV_FILE:-.env.development}}"
 
 case "$CI_KEEP_INFRA_NORMALIZED" in
     1|true|yes|on)
@@ -285,7 +286,7 @@ run_ci() {
             trap cleanup_ci_infra EXIT
         fi
         run_step "Test Infra" "DB_PASSWORD=postgres docker_compose $infra_compose_args up -d postgres redis"
-        run_step "DB Migrations" "DB_HOST=$ci_db_host DB_PORT=$ci_db_port DB_NAME=$ci_db_name DB_USER=$ci_db_user DB_PASSWORD=$ci_db_password COMPOSE_MODE=ci COMPOSE_PROJECT_NAME=$ci_project_name COMPOSE_FILES='$ci_compose_files' \"$SCRIPT_DIR/db-migrate.sh\""
+        run_step "DB Migrations" "DB_HOST=$ci_db_host DB_PORT=$ci_db_port DB_NAME=$ci_db_name DB_USER=$ci_db_user DB_PASSWORD=$ci_db_password COMPOSE_MODE=ci COMPOSE_ENV_FILE=$CI_COMPOSE_ENV_FILE COMPOSE_PROJECT_NAME=$ci_project_name COMPOSE_FILES='$ci_compose_files' \"$SCRIPT_DIR/db-migrate.sh\""
         run_step "Test Runner Cleanup" "E2E_LOCK_FILE=$ci_e2e_lock_file \"$SCRIPT_DIR/e2e-lock-cleanup.sh\""
     fi
 

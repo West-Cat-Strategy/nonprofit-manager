@@ -39,6 +39,8 @@ const E2E_COMPOSE_MODE = (
 );
 const E2E_COMPOSE_PROJECT_NAME = process.env.E2E_COMPOSE_PROJECT_NAME || process.env.COMPOSE_PROJECT_NAME || '';
 const E2E_COMPOSE_FILES = process.env.E2E_COMPOSE_FILES || process.env.COMPOSE_FILES || '';
+const E2E_COMPOSE_ENV_FILE =
+  process.env.E2E_COMPOSE_ENV_FILE || process.env.COMPOSE_ENV_FILE || '.env.development';
 const E2E_DB_HOST = process.env.E2E_DB_HOST || '127.0.0.1';
 const E2E_DB_PORT = process.env.E2E_DB_PORT || '8012';
 const E2E_DB_NAME = process.env.E2E_DB_NAME || 'nonprofit_manager';
@@ -150,6 +152,7 @@ export default defineConfig({
           COMPOSE_MODE: E2E_COMPOSE_MODE,
           ...(E2E_COMPOSE_PROJECT_NAME ? { COMPOSE_PROJECT_NAME: E2E_COMPOSE_PROJECT_NAME } : {}),
           ...(E2E_COMPOSE_FILES ? { COMPOSE_FILES: E2E_COMPOSE_FILES } : {}),
+          COMPOSE_ENV_FILE: E2E_COMPOSE_ENV_FILE,
           REDIS_ENABLED: 'false',
           CORS_ORIGIN: `${HTTP_SCHEME}${E2E_FRONTEND_HOST}:${E2E_FRONTEND_PORT},${HTTP_SCHEME}localhost:${E2E_FRONTEND_PORT}`,
           DB_HOST: E2E_DB_HOST,

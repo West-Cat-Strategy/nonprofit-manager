@@ -91,7 +91,7 @@ vi.mock('../../../../components/neo-brutalist', () => ({
   BrutalBadge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }));
 
-vi.mock('../../../../components/CaseNotes', () => ({ default: () => <div>Notes panel</div> }));
+vi.mock('../../components/CaseNotesPanel', () => ({ default: () => <div>Notes panel</div> }));
 vi.mock('../../../../components/CaseDocuments', () => ({ default: () => <div>Documents panel</div> }));
 vi.mock('../../../../components/FollowUpList', () => ({ default: () => <div>Follow-ups panel</div> }));
 vi.mock('../../../../components/cases/CaseRelationships', () => ({ default: () => <div>Relationships panel</div> }));

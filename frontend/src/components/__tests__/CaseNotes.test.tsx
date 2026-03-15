@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import CaseNotes from '../CaseNotes';
+import { resetOutcomeDefinitionsCache } from '../../features/outcomes/hooks/useOutcomeDefinitions';
 import { renderWithProviders } from '../../test/testUtils';
 
 const listCaseNotesMock = vi.fn();
@@ -27,6 +28,7 @@ vi.mock('../../contexts/useToast', () => ({
 describe('CaseNotes component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetOutcomeDefinitionsCache();
     listCaseNotesMock.mockResolvedValue({ notes: [] });
     listOutcomeDefinitionsMock.mockResolvedValue([
       {

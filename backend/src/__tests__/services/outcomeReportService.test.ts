@@ -130,9 +130,21 @@ describe('OutcomeReportService', () => {
 
     expect(totalsSql).not.toContain('od.is_reportable = true');
     expect(totalsSql).toContain('cn.created_by =');
+    expect(totalsSql).toContain('ctn.created_by =');
     expect(totalsSql).toContain('cn.note_type =');
+    expect(totalsSql).toContain('ctn.note_type =');
+    expect(totalsSql).toContain('FROM contact_note_outcome_impacts');
     expect(totalsSql).not.toContain('FROM case_outcomes');
     expect(timeseriesSql).toContain("date_trunc('month'");
-    expect(totalsValues).toEqual(['2026-01-01', '2026-01-31', 'user-1', 'meeting']);
+    expect(totalsValues).toEqual([
+      '2026-01-01',
+      '2026-01-31',
+      '2026-01-01',
+      '2026-01-31',
+      'user-1',
+      'user-1',
+      'meeting',
+      'meeting',
+    ]);
   });
 });
