@@ -94,6 +94,7 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/073_contact_method_sync_backfill.sql
 \i /migrations/074_email_settings_starttls_defaults.sql
 \i /migrations/075_staff_backend_efficiency_search_indexes.sql
+\i /migrations/076_contact_note_outcome_tracking.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',
@@ -192,7 +193,8 @@ VALUES
     ('072_volunteer_assignments.sql', '072', '072_volunteer_assignments.sql'),
     ('073_contact_method_sync_backfill.sql', '073', '073_contact_method_sync_backfill.sql'),
     ('074_email_settings_starttls_defaults.sql', '074', '074_email_settings_starttls_defaults.sql'),
-    ('075_staff_backend_efficiency_search_indexes.sql', '075', '075_staff_backend_efficiency_search_indexes.sql')
+    ('075_staff_backend_efficiency_search_indexes.sql', '075', '075_staff_backend_efficiency_search_indexes.sql'),
+    ('076_contact_note_outcome_tracking.sql', '076', '076_contact_note_outcome_tracking.sql')
 ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;

@@ -22,6 +22,7 @@ RESET := \033[0m
 
 DOCKER_COMPOSE ?= $(shell if docker compose version >/dev/null 2>&1; then echo "docker compose"; elif docker-compose version >/dev/null 2>&1; then echo "docker-compose"; else echo "docker compose"; fi)
 PROD_ENV_FILE ?= .env.production
+DEV_ENV_FILE ?= .env.development
 COMPOSE_PROJECT_PROD ?= nonprofit-prod
 COMPOSE_PROJECT_DEV ?= nonprofit-dev
 COMPOSE_PROJECT_CI ?= nonprofit-ci
@@ -339,7 +340,7 @@ test:
 	@echo "$(BLUE)Ensuring test infrastructure is running (Postgres/Redis)...$(RESET)"
 	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d postgres redis
 	@echo "$(BLUE)Applying pending database migrations...$(RESET)"
-	@COMPOSE_MODE=ci COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
+	@COMPOSE_MODE=ci COMPOSE_ENV_FILE=$(DEV_ENV_FILE) COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
 	@echo "$(BLUE)Running backend tests...$(RESET)"
 	cd backend && npm test -- --runInBand
 	@echo "$(BLUE)Running frontend tests...$(RESET)"
@@ -352,7 +353,7 @@ test-coverage:
 	@echo "$(BLUE)Ensuring test infrastructure is running (Postgres/Redis)...$(RESET)"
 	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d postgres redis
 	@echo "$(BLUE)Applying pending database migrations...$(RESET)"
-	@COMPOSE_MODE=ci COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
+	@COMPOSE_MODE=ci COMPOSE_ENV_FILE=$(DEV_ENV_FILE) COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
 	@echo "$(BLUE)Running backend tests with coverage...$(RESET)"
 	cd backend && npm test -- --coverage --runInBand
 	@echo "$(BLUE)Running frontend tests with coverage...$(RESET)"
@@ -363,7 +364,7 @@ test-coverage:
 
 test-backend:
 	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d postgres redis
-	@COMPOSE_MODE=ci COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
+	@COMPOSE_MODE=ci COMPOSE_ENV_FILE=$(DEV_ENV_FILE) COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
 	cd backend && npm test -- --runInBand
 
 test-frontend:
@@ -371,7 +372,7 @@ test-frontend:
 
 test-e2e:
 	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d postgres redis
-	@COMPOSE_MODE=ci COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
+	@COMPOSE_MODE=ci COMPOSE_ENV_FILE=$(DEV_ENV_FILE) COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
 	cd e2e && npm run test:ci
 
 quality-baseline:

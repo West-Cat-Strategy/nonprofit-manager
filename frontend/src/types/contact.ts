@@ -1,6 +1,11 @@
 /**
  * Contact Type Definitions for Frontend
  */
+import type {
+  InteractionOutcomeImpact,
+  InteractionOutcomeImpactInput,
+  OutcomeUpdateMode,
+} from './outcomes';
 
 export interface ContactStaffInvitation {
   role: string;
@@ -194,6 +199,7 @@ export interface ContactNote {
   created_by_last_name?: string;
   case_number?: string;
   case_title?: string;
+  outcome_impacts?: InteractionOutcomeImpact[];
 }
 
 export interface CreateContactNoteDTO {
@@ -207,6 +213,8 @@ export interface CreateContactNoteDTO {
   is_alert?: boolean;
   is_portal_visible?: boolean;
   attachments?: unknown;
+  outcome_impacts?: InteractionOutcomeImpactInput[];
+  outcomes_mode?: OutcomeUpdateMode;
 }
 
 export interface UpdateContactNoteDTO {
@@ -218,6 +226,8 @@ export interface UpdateContactNoteDTO {
   is_pinned?: boolean;
   is_alert?: boolean;
   is_portal_visible?: boolean;
+  outcome_impacts?: InteractionOutcomeImpactInput[];
+  outcomes_mode?: OutcomeUpdateMode;
 }
 
 // ============================================================================

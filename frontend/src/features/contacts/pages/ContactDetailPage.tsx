@@ -13,7 +13,7 @@ import PaymentHistory from '../../../components/PaymentHistory';
 import ContactPhoneNumbers from '../../../components/ContactPhoneNumbers';
 import ContactEmailAddresses from '../../../components/ContactEmailAddresses';
 import ContactRelationships from '../../../components/ContactRelationships';
-import ContactNotes from '../../../components/ContactNotes';
+import ContactNotes from '../components/ContactNotesPanel';
 import ContactDocuments from '../../../components/ContactDocuments';
 import ContactTags from '../../../components/ContactTags';
 import ContactTasks from '../../../components/ContactTasks';

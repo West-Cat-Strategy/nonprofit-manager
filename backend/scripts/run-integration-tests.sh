@@ -14,6 +14,7 @@ if [[ "${SKIP_INTEGRATION_DB_PREP:-0}" != "1" ]]; then
   export DB_USER="${DB_USER:-postgres}"
   export DB_PASSWORD="${DB_PASSWORD:-postgres}"
   export COMPOSE_MODE="${COMPOSE_MODE:-ci}"
+  export COMPOSE_ENV_FILE="${COMPOSE_ENV_FILE:-.env.development}"
   export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-${CI_COMPOSE_PROJECT_NAME:-nonprofit-ci}}"
   export COMPOSE_FILES="${COMPOSE_FILES:-$REPO_ROOT/docker-compose.yml $REPO_ROOT/docker-compose.host-access.yml $REPO_ROOT/docker-compose.ci.yml}"
 

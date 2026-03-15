@@ -7,7 +7,7 @@ import {
 } from '@services/authGuardService';
 import { Permission } from '@utils/permissions';
 import { serverError, validationError } from '@utils/responseHelpers';
-import * as outcomeReportService from '@services/outcomeReportService';
+import * as outcomeReportService from '../services/outcomesReportService';
 import type { OutcomeReportFilters } from '@app-types/outcomes';
 import { sendSuccess } from '@modules/shared/http/envelope';
 
@@ -36,7 +36,7 @@ export const getOutcomesReport = async (req: AuthRequest, res: Response): Promis
       programId?: string;
       staffId?: string;
       source?: 'all' | 'interaction' | 'event';
-      interactionType?: string;
+      interactionType?: OutcomeReportFilters['interactionType'];
       bucket?: 'week' | 'month';
       includeNonReportable?: boolean;
     };
