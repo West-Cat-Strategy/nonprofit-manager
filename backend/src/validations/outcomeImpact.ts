@@ -34,7 +34,7 @@ export const outcomesReportQuerySchema = z.object({
   staffId: uuidSchema.optional(),
   source: z.enum(['all', 'interaction', 'event']).optional(),
   interactionType: z
-    .enum(['note', 'email', 'call', 'meeting', 'update', 'status_change'])
+    .enum(['note', 'email', 'call', 'meeting', 'update', 'status_change', 'other'])
     .optional(),
   bucket: z.enum(['week', 'month']).optional(),
   includeNonReportable: optionalStrictBooleanSchema,

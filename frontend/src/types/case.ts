@@ -21,6 +21,7 @@ export type CaseOutcome =
 export type CaseStatusType = 'intake' | 'active' | 'review' | 'closed' | 'cancelled';
 export type CaseSourceEntityType =
   | 'case_note'
+  | 'contact_note'
   | 'appointment'
   | 'follow_up'
   | 'portal_thread'

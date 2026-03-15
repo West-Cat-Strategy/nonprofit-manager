@@ -37,6 +37,7 @@ export type ServiceOutcome = 'attended_event' | 'additional_related_case' | 'com
 export type CaseOutcomeEntrySource = 'manual' | 'interaction_sync' | 'legacy';
 export type CaseSourceEntityType =
   | 'case_note'
+  | 'contact_note'
   | 'case_status'
   | 'portal_thread'
   | 'appointment'

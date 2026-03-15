@@ -16,7 +16,7 @@ import {
 } from '../state';
 import { useToast } from '../../../contexts/useToast';
 import { BrutalBadge, BrutalButton, BrutalCard, NeoBrutalistLayout } from '../../../components/neo-brutalist';
-import CaseNotes from '../../../components/CaseNotes';
+import CaseNotes from '../components/CaseNotesPanel';
 import CaseDocuments from '../../../components/CaseDocuments';
 import FollowUpList from '../../../components/FollowUpList';
 import CaseRelationships from '../../../components/cases/CaseRelationships';
@@ -121,7 +121,11 @@ const CaseDetail = () => {
     }
   }, [dispatch, hasValidId, id]);
 
-  useEffect(() => () => dispatch(clearCurrentCase()), [dispatch]);
+  useEffect(() => {
+    return () => {
+      dispatch(clearCurrentCase());
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     const nextTab = resolveTab(requestedTab);

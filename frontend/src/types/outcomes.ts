@@ -108,7 +108,7 @@ export interface OutcomesReportFilters {
   to: string;
   programId?: string;
   staffId?: string;
-  interactionType?: 'note' | 'email' | 'call' | 'meeting' | 'update' | 'status_change';
+  interactionType?: 'note' | 'email' | 'call' | 'meeting' | 'update' | 'status_change' | 'other';
   bucket?: 'week' | 'month';
   includeNonReportable?: boolean;
   source?: OutcomeReportSourceFilter;
