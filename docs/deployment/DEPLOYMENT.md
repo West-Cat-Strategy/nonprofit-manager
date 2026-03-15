@@ -44,6 +44,14 @@ DB_PORT=5432
 DB_NAME=nonprofit_manager
 DB_USER=your_db_user
 DB_PASSWORD=strong_password_here
+DB_AT_REST_ENCRYPTION_MODE=managed
+DB_AT_REST_PROVIDER=rds
+DB_AT_REST_VERIFIED=true
+# Self-hosted LUKS alternative:
+# DB_AT_REST_ENCRYPTION_MODE=luks
+# POSTGRES_DATA_DIR=/srv/nonprofit-manager/postgres
+# DB_LUKS_MAPPING_NAME=nonprofit-manager-db
+# BACKUP_DIR=/srv/nonprofit-manager/backups/database
 
 # JWT - CHANGE THESE!
 JWT_SECRET=your_strong_secret_key_minimum_32_characters
@@ -101,10 +109,11 @@ sudo apt-get install certbot
 sudo certbot certonly --standalone -d example.com
 ```
 
-2. **Run the VPS overlay** so Caddy is the only public ingress:
+2. **Run the VPS overlay** so Caddy is the only public ingress.
+   For self-hosted PostgreSQL on a LUKS mount, include the encrypted DB overlay:
 
 ```bash
-docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.vps.yml up -d
+docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.vps.yml -f docker-compose.db-encrypted.yml up -d
 ```
 
 3. **Key Points:**
@@ -113,6 +122,7 @@ docker compose --env-file .env.production -f docker-compose.yml -f docker-compos
    - Redirect all HTTP traffic to HTTPS
    - Route `/api` and `/health` to the backend and all other paths to the frontend
    - Keep backend/frontend host ports (`8000`/`8001`) bound to `127.0.0.1` for host-local diagnostics only
+   - If `DB_AT_REST_ENCRYPTION_MODE=managed`, use the deploy scripts instead of raw `docker compose up -d` so the host does not start a local `postgres` service
 
 #### Option 2: Application Load Balancer (AWS, Azure, GCP)
 
@@ -144,6 +154,21 @@ If using Cloudflare or similar:
 2. Add page rules to force HTTPS
 3. Enable "Always Use HTTPS" setting
 4. The backend will receive `X-Forwarded-Proto: https` headers automatically
+
+### Database Encryption at Rest
+
+**CRITICAL: Production must set `DB_AT_REST_ENCRYPTION_MODE` and satisfy exactly one supported contract.**
+
+- `managed`
+  - Use an external managed PostgreSQL service with provider-encrypted storage and snapshots.
+  - Required env: `DB_AT_REST_PROVIDER` and `DB_AT_REST_VERIFIED=true`.
+  - `DB_HOST` must point at the external provider, not the local compose `postgres` service.
+  - Local `./scripts/db-backup.sh` is intentionally blocked in this mode; use provider-managed backups instead.
+- `luks`
+  - Use self-hosted PostgreSQL with `docker-compose.db-encrypted.yml`.
+  - Required env: `POSTGRES_DATA_DIR` as an absolute host path on the unlocked LUKS mount and `DB_LUKS_MAPPING_NAME`.
+  - `BACKUP_DIR` must be an absolute path on the same encrypted mount; repo-local backup paths are rejected in production.
+  - The production deploy and verification scripts validate the LUKS mapper, the mounted host path, and the Postgres bind mount before reporting success.
 
 ### Database Encryption in Transit
 
@@ -514,12 +539,18 @@ psql -U nonprofit_user -d nonprofit_manager -f database/migrations/003_your_migr
 
 ### Backup Strategy
 
+- `managed`
+  - Use provider-encrypted automated backups and snapshots.
+  - Do not rely on `./scripts/db-backup.sh`; it exits non-zero by design in this mode.
+- `luks`
+  - Set `BACKUP_DIR` to an absolute path on the encrypted mount, then schedule `./scripts/db-backup.sh`.
+
 ```bash
-# Daily automated backup (add to crontab)
-0 2 * * * pg_dump -U nonprofit_user nonprofit_manager | gzip > /backups/nonprofit_$(date +\%Y\%m\%d).sql.gz
+# Daily automated backup for self-hosted LUKS mode
+0 2 * * * BACKUP_DIR=/srv/nonprofit-manager/backups/database ./scripts/db-backup.sh
 
 # Restore from backup
-gunzip -c /backups/nonprofit_20260201.sql.gz | psql -U nonprofit_user -d nonprofit_manager
+gunzip -c /srv/nonprofit-manager/backups/database/backup_20260201_020000.sql.gz | psql -U nonprofit_user -d nonprofit_manager
 ```
 
 ## Local CI Runner (No GitHub Actions)
@@ -707,7 +738,10 @@ docker compose --env-file .env.production logs postgres
 
 - [ ] Environment variables configured
 - [ ] SSL certificate installed
+- [ ] DB at-rest mode configured (`managed` or `luks`)
+- [ ] Managed backup/snapshot policy enabled or LUKS mapper verified
 - [ ] Database backups automated
+- [ ] Backup storage satisfies the same at-rest encryption policy as primary database storage
 - [ ] Monitoring alerts configured
 - [ ] Rate limiting enabled
 - [ ] Security headers set

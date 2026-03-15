@@ -126,6 +126,7 @@ Controls:
 
 - `UPLOAD_DIR` (optional): backend upload base directory
   - default: `backend/uploads` (resolved from `fileStorageService`)
+  - runtime-only storage: keep the directory writable locally, but do not commit generated `backend/uploads/**` contents
 
 ## Manual QA Checklist
 

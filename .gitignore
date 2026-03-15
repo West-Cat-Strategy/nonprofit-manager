@@ -140,6 +140,8 @@ tests.txt
 # Project-specific
 # ==============================
 backend/exports/
+backend/uploads/**
+!backend/uploads/.gitignore
 security-reports/
 .deploy-history
 

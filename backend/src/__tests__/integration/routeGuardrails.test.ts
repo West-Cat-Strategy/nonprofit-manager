@@ -589,7 +589,7 @@ describe('Route Guardrails Integration', () => {
         .expect(400);
 
       expectCanonicalError(response, 'bad_request');
-      expect(response.body.error.message).toMatch(/organization context is required/i);
+      expect(response.body.error.message).toMatch(/no organization context/i);
     });
   });
 

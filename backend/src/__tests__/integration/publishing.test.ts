@@ -1,4 +1,4 @@
-import request from 'supertest';
+import request, { type Test } from 'supertest';
 import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
@@ -10,6 +10,10 @@ const unwrap = <T>(body: ApiEnvelope<T>): T =>
   (body && typeof body === 'object' && 'data' in body ? (body as { data: T }).data : body) as T;
 
 const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+const withSiteConsoleAuth = (req: Test, authToken: string, organizationId: string): Test =>
+  req
+    .set('Authorization', `Bearer ${authToken}`)
+    .set('X-Organization-Id', organizationId);
 
 const buildTemplateTheme = () => ({
   colors: {
@@ -367,9 +371,7 @@ describe('Publishing API Integration', () => {
   });
 
   it('lists sites for the console and includes blocked state', async () => {
-    const response = await request(app)
-      .get('/api/v2/sites')
-      .set('Authorization', `Bearer ${authToken}`)
+    const response = await withSiteConsoleAuth(request(app).get('/api/v2/sites'), authToken, accountId)
       .expect(200);
 
     const payload = unwrap<{
@@ -391,10 +393,11 @@ describe('Publishing API Integration', () => {
   });
 
   it('returns site overview with live routes and discovered forms', async () => {
-    const response = await request(app)
-      .get(`/api/v2/sites/${activeSiteId}/overview?period=30`)
-      .set('Authorization', `Bearer ${authToken}`)
-      .expect(200);
+    const response = await withSiteConsoleAuth(
+      request(app).get(`/api/v2/sites/${activeSiteId}/overview?period=30`),
+      authToken,
+      accountId
+    ).expect(200);
 
     const payload = unwrap<{
       site: { id: string; blocked: boolean };
@@ -420,9 +423,11 @@ describe('Publishing API Integration', () => {
     );
     const beforeOverrides = (beforeResult.rows[0]?.form_overrides || {}) as Record<string, unknown>;
 
-    await request(app)
-      .put(`/api/v2/sites/${activeSiteId}/forms/${missingKey}`)
-      .set('Authorization', `Bearer ${authToken}`)
+    await withSiteConsoleAuth(
+      request(app).put(`/api/v2/sites/${activeSiteId}/forms/${missingKey}`),
+      authToken,
+      accountId
+    )
       .send({
         successMessage: 'Should never persist',
         defaultTags: ['orphaned'],
@@ -440,10 +445,11 @@ describe('Publishing API Integration', () => {
   });
 
   it('reads and updates form settings, and the public form uses the override without republish', async () => {
-    const formsResponse = await request(app)
-      .get(`/api/v2/sites/${activeSiteId}/forms`)
-      .set('Authorization', `Bearer ${authToken}`)
-      .expect(200);
+    const formsResponse = await withSiteConsoleAuth(
+      request(app).get(`/api/v2/sites/${activeSiteId}/forms`),
+      authToken,
+      accountId
+    ).expect(200);
 
     const forms = unwrap<
       Array<{ formKey: string; operationalSettings: { successMessage?: string | undefined } }>
@@ -459,9 +465,11 @@ describe('Publishing API Integration', () => {
       ])
     );
 
-    const updateResponse = await request(app)
-      .put(`/api/v2/sites/${activeSiteId}/forms/contact-form-1`)
-      .set('Authorization', `Bearer ${authToken}`)
+    const updateResponse = await withSiteConsoleAuth(
+      request(app).put(`/api/v2/sites/${activeSiteId}/forms/contact-form-1`),
+      authToken,
+      accountId
+    )
       .send({
         successMessage: 'Updated by site console',
         defaultTags: ['console-updated'],
@@ -499,10 +507,11 @@ describe('Publishing API Integration', () => {
   });
 
   it('reads and updates integration settings through the site console APIs', async () => {
-    const initialResponse = await request(app)
-      .get(`/api/v2/sites/${activeSiteId}/integrations`)
-      .set('Authorization', `Bearer ${authToken}`)
-      .expect(200);
+    const initialResponse = await withSiteConsoleAuth(
+      request(app).get(`/api/v2/sites/${activeSiteId}/integrations`),
+      authToken,
+      accountId
+    ).expect(200);
 
     const initial = unwrap<{
       blocked: boolean;
@@ -513,9 +522,11 @@ describe('Publishing API Integration', () => {
     expect(typeof initial.mailchimp.configured).toBe('boolean');
     expect(typeof initial.stripe.configured).toBe('boolean');
 
-    const mailchimpResponse = await request(app)
-      .put(`/api/v2/sites/${activeSiteId}/integrations/mailchimp`)
-      .set('Authorization', `Bearer ${authToken}`)
+    const mailchimpResponse = await withSiteConsoleAuth(
+      request(app).put(`/api/v2/sites/${activeSiteId}/integrations/mailchimp`),
+      authToken,
+      accountId
+    )
       .send({
         audienceId: 'audience-123',
         audienceMode: 'both',
@@ -539,9 +550,11 @@ describe('Publishing API Integration', () => {
       syncEnabled: true,
     });
 
-    const stripeResponse = await request(app)
-      .put(`/api/v2/sites/${activeSiteId}/integrations/stripe`)
-      .set('Authorization', `Bearer ${authToken}`)
+    const stripeResponse = await withSiteConsoleAuth(
+      request(app).put(`/api/v2/sites/${activeSiteId}/integrations/stripe`),
+      authToken,
+      accountId
+    )
       .send({
         accountId,
         currency: 'cad',
@@ -570,10 +583,11 @@ describe('Publishing API Integration', () => {
   });
 
   it('returns conversion analytics summary for a site', async () => {
-    const response = await request(app)
-      .get(`/api/v2/sites/${analyticsSiteId}/analytics/summary?period=30`)
-      .set('Authorization', `Bearer ${authToken}`)
-      .expect(200);
+    const response = await withSiteConsoleAuth(
+      request(app).get(`/api/v2/sites/${analyticsSiteId}/analytics/summary?period=30`),
+      authToken,
+      accountId
+    ).expect(200);
 
     const payload = unwrap<{
       totalPageviews: number;
@@ -603,10 +617,11 @@ describe('Publishing API Integration', () => {
   });
 
   it('keeps blocked sites readable but rejects form, integration, domain, and publish mutations', async () => {
-    const blockedFormsResponse = await request(app)
-      .get(`/api/v2/sites/${blockedSiteId}/forms`)
-      .set('Authorization', `Bearer ${authToken}`)
-      .expect(200);
+    const blockedFormsResponse = await withSiteConsoleAuth(
+      request(app).get(`/api/v2/sites/${blockedSiteId}/forms`),
+      authToken,
+      accountId
+    ).expect(200);
 
     const blockedForms = unwrap<Array<{ formKey: string; blocked: boolean }>>(blockedFormsResponse.body);
     expect(blockedForms).toEqual(
@@ -615,39 +630,42 @@ describe('Publishing API Integration', () => {
       ])
     );
 
-    await request(app)
-      .put(`/api/v2/sites/${blockedSiteId}/forms/contact-form-1`)
-      .set('Authorization', `Bearer ${authToken}`)
+    await withSiteConsoleAuth(
+      request(app).put(`/api/v2/sites/${blockedSiteId}/forms/contact-form-1`),
+      authToken,
+      accountId
+    )
       .send({ successMessage: 'Blocked write' })
       .expect(400);
 
-    await request(app)
-      .put(`/api/v2/sites/${blockedSiteId}/integrations/mailchimp`)
-      .set('Authorization', `Bearer ${authToken}`)
+    await withSiteConsoleAuth(
+      request(app).put(`/api/v2/sites/${blockedSiteId}/integrations/mailchimp`),
+      authToken,
+      accountId
+    )
       .send({ audienceId: 'blocked-list', audienceMode: 'crm' })
       .expect(400);
 
-    await request(app)
-      .put(`/api/v2/sites/${blockedSiteId}/integrations/stripe`)
-      .set('Authorization', `Bearer ${authToken}`)
+    await withSiteConsoleAuth(
+      request(app).put(`/api/v2/sites/${blockedSiteId}/integrations/stripe`),
+      authToken,
+      accountId
+    )
       .send({ accountId, currency: 'usd' })
       .expect(400);
 
-    await request(app)
-      .put(`/api/v2/sites/${blockedSiteId}`)
-      .set('Authorization', `Bearer ${authToken}`)
+    await withSiteConsoleAuth(request(app).put(`/api/v2/sites/${blockedSiteId}`), authToken, accountId)
       .send({ subdomain: `blocked-updated-${unique()}`.slice(0, 40) })
       .expect(400);
 
-    await request(app)
-      .post('/api/v2/sites/publish')
-      .set('Authorization', `Bearer ${authToken}`)
+    await withSiteConsoleAuth(request(app).post('/api/v2/sites/publish'), authToken, accountId)
       .send({ templateId, siteId: blockedSiteId })
       .expect(400);
 
-    await request(app)
-      .post(`/api/v2/sites/${blockedSiteId}/unpublish`)
-      .set('Authorization', `Bearer ${authToken}`)
-      .expect(400);
+    await withSiteConsoleAuth(
+      request(app).post(`/api/v2/sites/${blockedSiteId}/unpublish`),
+      authToken,
+      accountId
+    ).expect(400);
   });
 });

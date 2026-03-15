@@ -68,6 +68,10 @@ Applies pending canonical database migrations in manifest order.
 #### `db-backup.sh` - Database Backup
 Creates timestamped database backups with optional compression.
 
+Production behavior:
+- `DB_AT_REST_ENCRYPTION_MODE=managed` -> exits non-zero and directs operators to provider-managed backups/snapshots
+- `DB_AT_REST_ENCRYPTION_MODE=luks` -> requires `BACKUP_DIR` to be an absolute path on the encrypted host mount
+
 ```bash
 ./scripts/db-backup.sh
 ```
@@ -316,6 +320,11 @@ Scripts respect these environment variables:
 - `COMPOSE_MODE` - Compose target mode (`prod`, `dev`, `ci`)
 - `COMPOSE_PROJECT_NAME` - Optional compose project override
 - `COMPOSE_FILES` - Optional compose file list override (space or comma separated)
+- `DB_AT_REST_ENCRYPTION_MODE` - Production at-rest mode (`managed` or `luks`)
+- `DB_AT_REST_PROVIDER` - Provider attestation for managed production databases
+- `DB_AT_REST_VERIFIED` - Explicit managed-database encryption verification flag (`true`)
+- `POSTGRES_DATA_DIR` - Absolute encrypted host path for self-hosted PostgreSQL data
+- `DB_LUKS_MAPPING_NAME` - LUKS mapper name for self-hosted encrypted PostgreSQL
 - `DB_SERVICE` - Database compose service name (default: `postgres`)
 - `DB_USER` - Database username
 - `DB_NAME` - Database name
