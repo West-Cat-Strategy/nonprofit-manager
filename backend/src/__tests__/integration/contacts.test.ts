@@ -6,6 +6,8 @@ describe('Contact API Integration Tests', () => {
   let authToken: string;
   let staffAuthToken: string;
   let testAccountId: string;
+  let creatorUserId: string;
+  let staffUserId: string;
   const sharedPassword = 'Test123!Strong';
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const tokenFromResponse = (body: unknown): string | undefined => {
@@ -67,6 +69,13 @@ describe('Contact API Integration Tests', () => {
     testAccountId = accountIdFromResponse(accountResponse.body) || '';
     expect(testAccountId).toBeTruthy();
 
+    const accountOwnerResult = await pool.query<{ created_by: string }>(
+      'SELECT created_by FROM accounts WHERE id = $1',
+      [testAccountId]
+    );
+    creatorUserId = accountOwnerResult.rows[0]?.created_by || '';
+    expect(creatorUserId).toBeTruthy();
+
     const staffEmail = `contact-staff-${unique()}@example.com`;
     await request(app)
       .post('/api/v2/auth/register')
@@ -79,7 +88,12 @@ describe('Contact API Integration Tests', () => {
       })
       .expect(201);
 
-    await pool.query('UPDATE users SET role = $1 WHERE email = $2', ['staff', staffEmail.toLowerCase()]);
+    const staffRoleResult = await pool.query<{ id: string }>(
+      'UPDATE users SET role = $1 WHERE email = $2 RETURNING id',
+      ['staff', staffEmail.toLowerCase()]
+    );
+    staffUserId = staffRoleResult.rows[0]?.id || '';
+    expect(staffUserId).toBeTruthy();
 
     const staffLoginResponse = await request(app)
       .post('/api/v2/auth/login')
@@ -87,12 +101,23 @@ describe('Contact API Integration Tests', () => {
       .expect(200);
     staffAuthToken = tokenFromResponse(staffLoginResponse.body) || '';
     expect(staffAuthToken).toBeTruthy();
+
+    await pool.query(
+      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
+       VALUES
+         ($1, $3, 'admin', $1, TRUE),
+         ($2, $3, 'staff', $1, TRUE)
+       ON CONFLICT (user_id, account_id)
+       DO UPDATE SET access_level = EXCLUDED.access_level, granted_by = EXCLUDED.granted_by, is_active = TRUE`,
+      [creatorUserId, staffUserId, testAccountId]
+    );
   });
 
   afterAll(async () => {
     // Clean up - delete contacts first due to foreign key constraint
     if (testAccountId) {
       await pool.query('DELETE FROM contacts WHERE account_id = $1', [testAccountId]);
+      await pool.query('DELETE FROM user_account_access WHERE account_id = $1', [testAccountId]);
       await pool.query('DELETE FROM accounts WHERE id = $1', [testAccountId]);
     }
   });

@@ -2,7 +2,7 @@ import { Response, NextFunction } from 'express';
 import type { AuthRequest, RequestedOrganizationSource } from './auth';
 
 const ORG_HEADER_KEYS = ['x-organization-id', 'x-org-id', 'x-account-id', 'x-tenant-id'];
-const ORG_QUERY_KEYS = ['organization_id', 'org_id', 'account_id', 'tenant_id'];
+const ORG_QUERY_KEYS = ['organization_id', 'org_id', 'tenant_id'];
 const stripVersionPrefix = (value: string): string =>
   value.replace(/^\/api\/v\d+\b/i, '').replace(/^\/v\d+\b/i, '') || '/';
 

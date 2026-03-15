@@ -39,26 +39,39 @@ fi
 
 source "$SCRIPT_DIR/lib/common.sh"
 source "$SCRIPT_DIR/lib/config.sh"
+source "$SCRIPT_DIR/lib/db-at-rest.sh"
 source "$SCRIPT_DIR/lib/migration-manifest.sh"
+
+ENV_FILE="$(db_at_rest_env_file "${COMPOSE_ENV_FILE:-}")"
 
 if [[ "$has_db_host" == "true" ]]; then
   DB_HOST="$inbound_db_host"
+else
+  DB_HOST="$(env_file_value_or_default DB_HOST "$ENV_FILE" "${DB_HOST:-localhost}")"
 fi
 
 if [[ "$has_db_port" == "true" ]]; then
   DB_PORT="$inbound_db_port"
+else
+  DB_PORT="$(env_file_value_or_default DB_PORT "$ENV_FILE" "${DB_PORT:-5432}")"
 fi
 
 if [[ "$has_db_user" == "true" ]]; then
   DB_USER="$inbound_db_user"
+else
+  DB_USER="$(env_file_value_or_default DB_USER "$ENV_FILE" "${DB_USER:-postgres}")"
 fi
 
 if [[ "$has_db_name" == "true" ]]; then
   DB_NAME="$inbound_db_name"
+else
+  DB_NAME="$(env_file_value_or_default DB_NAME "$ENV_FILE" "${DB_NAME:-nonprofit_manager}")"
 fi
 
 if [[ "$has_db_password" == "true" ]]; then
   DB_PASSWORD="$inbound_db_password"
+else
+  DB_PASSWORD="$(env_file_value_or_default DB_PASSWORD "$ENV_FILE" "${DB_PASSWORD:-postgres}")"
 fi
 
 usage() {
@@ -99,12 +112,7 @@ done
 
 COMPOSE_MODE="$(normalize_compose_mode "${COMPOSE_MODE:-prod}")"
 DB_SERVICE="${DB_SERVICE:-postgres}"
-DB_HOST="${DB_HOST:-localhost}"
-DB_PORT="${DB_PORT:-5432}"
-DB_USER="${DB_USER:-postgres}"
-DB_NAME="${DB_NAME:-nonprofit_manager}"
 MIGRATIONS_DIR="${MIGRATIONS_DIR:-database/migrations}"
-DB_PASSWORD="${DB_PASSWORD:-postgres}"
 export DB_PASSWORD
 DB_AUTO_START_RAW="$(printf '%s' "${DB_AUTO_START:-false}" | tr '[:upper:]' '[:lower:]')"
 
@@ -131,8 +139,15 @@ fi
 load_migration_manifest "$MIGRATIONS_DIR"
 
 USE_DIRECT_DB=false
+DB_AT_REST_MODE="$(resolve_db_at_rest_mode "$ENV_FILE")"
 
-if [[ "${DIRECT_DB_CONNECTION:-0}" == "1" || "$has_db_host" == "true" || "$has_db_port" == "true" ]]; then
+if ! validate_production_db_at_rest_config "$ENV_FILE"; then
+  exit 1
+fi
+
+if [[ "${DIRECT_DB_CONNECTION:-0}" == "1" || "$has_db_host" == "true" || "$has_db_port" == "true" || "$DB_AT_REST_MODE" == "managed" ]]; then
+  USE_DIRECT_DB=true
+elif [[ "$DB_HOST" != "localhost" && "$DB_HOST" != "127.0.0.1" && "$DB_HOST" != "postgres" ]]; then
   USE_DIRECT_DB=true
 fi
 

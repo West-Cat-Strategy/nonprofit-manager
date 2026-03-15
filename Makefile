@@ -157,6 +157,8 @@ docker-validate:
 	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) config > /tmp/nonprofit-compose-dev-config.txt
 	$(DOCKER_COMPOSE) $(COMPOSE_DEV_TOOLS_ARGS) config > /tmp/nonprofit-compose-dev-tools-config.txt
 	$(DOCKER_COMPOSE) $(COMPOSE_DEV_CADDY_ARGS) config > /tmp/nonprofit-compose-dev-caddy-config.txt
+	DB_PASSWORD=$${DB_PASSWORD:-postgres} POSTGRES_DATA_DIR=/srv/nonprofit-manager/postgres $(DOCKER_COMPOSE) -p $(COMPOSE_PROJECT_PROD) --env-file $(PROD_ENV_FILE) -f docker-compose.yml -f docker-compose.db-encrypted.yml config > /tmp/nonprofit-compose-encrypted-db-config.txt
+	DB_PASSWORD=$${DB_PASSWORD:-postgres} POSTGRES_DATA_DIR=/srv/nonprofit-manager/postgres $(DOCKER_COMPOSE) -p $(COMPOSE_PROJECT_PROD) --env-file $(PROD_ENV_FILE) -f docker-compose.yml -f docker-compose.vps.yml -f docker-compose.db-encrypted.yml config > /tmp/nonprofit-compose-vps-encrypted-db-config.txt
 	DB_PASSWORD=$${DB_PASSWORD:-postgres} $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) config > /tmp/nonprofit-compose-ci-config.txt
 	$(DOCKER_COMPOSE) -p nonprofit-plausible -f docker-compose.plausible.yml config > /tmp/nonprofit-compose-plausible-config.txt
 	$(DOCKER_COMPOSE) -p nonprofit-elk -f docker-compose.elk.yml config > /tmp/nonprofit-compose-elk-config.txt

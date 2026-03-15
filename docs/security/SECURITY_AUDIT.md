@@ -270,9 +270,9 @@ const loginLimiter = rateLimit({
 **Measures:**
 - ✅ Passwords hashed with bcrypt (10 rounds)
 - ✅ Tokens encrypted at rest
-- ⏳ Column-level encryption for PII (optional)
-- ⏳ Encryption at rest (database level)
-- ⏳ Encryption in transit (SSL/TLS to database)
+- ✅ Column-level encryption for selected sensitive fields (tokens, PHN, mail/PII surfaces where implemented)
+- ✅ Encryption at rest (database level) enforced via production `managed`/`luks` contract
+- ✅ Encryption in transit (SSL/TLS to database)
 
 ---
 

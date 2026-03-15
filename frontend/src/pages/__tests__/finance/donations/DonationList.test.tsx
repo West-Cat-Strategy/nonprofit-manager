@@ -2,7 +2,7 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import type * as FinanceStateModule from '../../../../features/finance/state';
-import DonationList from '../../../finance/donations/DonationList';
+import DonationList from '../../../../features/finance/pages/DonationListPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
 const dispatchMock = vi.fn();

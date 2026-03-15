@@ -52,7 +52,9 @@ const WEB_SERVER_TIMEOUT_MS = RUNNING_IN_CI ? 300 * 1000 : 120 * 1000;
 const backendRuntimeCommand = useCompiledCiRuntime
   ? 'npm run build && node dist/index.js'
   : 'npx ts-node -r tsconfig-paths/register --transpileOnly src/index.ts';
-const backendStartCommand = `cd .. && ./scripts/db-migrate.sh && cd backend && ${backendRuntimeCommand}`;
+const backendStartCommand =
+  'cd .. && env -u DB_HOST -u DB_PORT -u DB_NAME -u DB_USER -u DB_PASSWORD DB_AUTO_START=true ./scripts/db-migrate.sh' +
+  ` && cd backend && ${backendRuntimeCommand}`;
 
 const frontendRuntimeCommand = useCompiledCiRuntime
   ? `${clearFrontendPortCommand} && npm run build && ${clearFrontendPortCommand} && npx vite preview --host ${E2E_FRONTEND_HOST} --port ${E2E_FRONTEND_PORT} --strictPort`
