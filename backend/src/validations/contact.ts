@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { interactionOutcomeImpactItemSchema } from './outcomeImpact';
 import { CONTACT_ROLE_FILTER_VALUES } from '@app-types/contact';
 import { emailSchema, optionalNullablePhnSchema, optionalPhnSchema, phoneSchema, uuidSchema } from './shared';
 
@@ -50,6 +51,7 @@ export type ContactRole = z.infer<typeof contactRoleSchema>;
 
 // Note type enum
 export const noteTypeSchema = z.enum(['note', 'email', 'call', 'meeting', 'update', 'other']);
+const outcomesModeSchema = z.enum(['replace', 'merge']);
 
 export type NoteType = z.infer<typeof noteTypeSchema>;
 
@@ -198,17 +200,30 @@ export const contactLookupQuerySchema = z.object({
 export type ContactLookupQueryInput = z.infer<typeof contactLookupQuerySchema>;
 
 // Contact note
-export const contactNoteSchema = z.object({
-  case_id: uuidSchema.optional(),
-  note_type: noteTypeSchema.optional(),
-  subject: z.string().max(500).optional(),
-  content: z.string().min(1),
-  is_internal: z.boolean().optional(),
-  is_important: z.boolean().optional(),
-  is_pinned: z.boolean().optional(),
-  is_alert: z.boolean().optional(),
-  is_portal_visible: z.boolean().optional(),
-});
+export const contactNoteSchema = z
+  .object({
+    case_id: uuidSchema.optional(),
+    note_type: noteTypeSchema.optional(),
+    subject: z.string().max(500).optional(),
+    content: z.string().min(1),
+    is_internal: z.boolean().optional(),
+    is_important: z.boolean().optional(),
+    is_pinned: z.boolean().optional(),
+    is_alert: z.boolean().optional(),
+    is_portal_visible: z.boolean().optional(),
+    outcome_impacts: z.array(interactionOutcomeImpactItemSchema).optional(),
+    outcomes_mode: outcomesModeSchema.optional(),
+  })
+  .superRefine((payload, ctx) => {
+    const hasOutcomePayload = payload.outcome_impacts !== undefined || payload.outcomes_mode !== undefined;
+    if (hasOutcomePayload && !payload.case_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'case_id is required when outcome_impacts are provided',
+        path: ['case_id'],
+      });
+    }
+  });
 
 export type ContactNoteInput = z.infer<typeof contactNoteSchema>;
 
@@ -222,6 +237,8 @@ export const updateContactNoteSchema = z.object({
   is_pinned: z.boolean().optional(),
   is_alert: z.boolean().optional(),
   is_portal_visible: z.boolean().optional(),
+  outcome_impacts: z.array(interactionOutcomeImpactItemSchema).optional(),
+  outcomes_mode: outcomesModeSchema.optional(),
 });
 
 export type UpdateContactNoteInput = z.infer<typeof updateContactNoteSchema>;

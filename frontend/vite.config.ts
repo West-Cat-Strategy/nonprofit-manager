@@ -83,6 +83,17 @@ export default defineConfig({
           }
 
           if (
+            normalizedId.includes('/src/features/cases/state/') ||
+            normalizedId.includes('/src/features/contacts/state/') ||
+            normalizedId.includes('/src/features/outcomes/state/') ||
+            normalizedId.includes('/src/features/reports/state/') ||
+            normalizedId.includes('/src/features/savedReports/state/') ||
+            normalizedId.includes('/src/features/scheduledReports/state/')
+          ) {
+            return 'state-casework'
+          }
+
+          if (
             normalizedId.includes('\0vite/preload-helper') ||
             normalizedId.includes('\0commonjsHelpers') ||
             normalizedId.includes('/vite/dist/client/')

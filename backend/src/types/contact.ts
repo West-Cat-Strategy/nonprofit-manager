@@ -2,6 +2,11 @@
  * Contact Type Definitions
  * Aligned with Microsoft Common Data Model (CDM) Contact entity
  */
+import type {
+  InteractionOutcomeImpact,
+  InteractionOutcomeImpactInput,
+  OutcomeUpdateMode,
+} from './outcomes';
 
 // ============================================================================
 // Phone Number Types
@@ -152,6 +157,7 @@ export interface ContactNote {
   created_by_last_name?: string;
   case_number?: string;
   case_title?: string;
+  outcome_impacts?: InteractionOutcomeImpact[];
 }
 
 export interface CreateContactNoteDTO {
@@ -165,6 +171,8 @@ export interface CreateContactNoteDTO {
   is_alert?: boolean;
   is_portal_visible?: boolean;
   attachments?: any;
+  outcome_impacts?: InteractionOutcomeImpactInput[];
+  outcomes_mode?: OutcomeUpdateMode;
 }
 
 export interface UpdateContactNoteDTO {
@@ -177,6 +185,8 @@ export interface UpdateContactNoteDTO {
   is_alert?: boolean;
   is_portal_visible?: boolean;
   attachments?: any;
+  outcome_impacts?: InteractionOutcomeImpactInput[];
+  outcomes_mode?: OutcomeUpdateMode;
 }
 
 // ============================================================================

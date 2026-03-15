@@ -79,7 +79,7 @@ export interface OutcomeReportFilters {
   from: string;
   to: string;
   staffId?: string;
-  interactionType?: string;
+  interactionType?: 'note' | 'email' | 'call' | 'meeting' | 'update' | 'status_change' | 'other';
   bucket: 'week' | 'month';
   includeNonReportable?: boolean;
   programId?: string;
