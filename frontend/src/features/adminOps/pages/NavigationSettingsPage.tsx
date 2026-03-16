@@ -89,7 +89,7 @@ export default function NavigationSettings() {
   return (
     <AdminPanelLayout
       title="Navigation Settings"
-      description="Choose which modules appear in your navigation. Disabled modules remain accessible by direct URL."
+      description="Choose which enabled workspace modules appear in your navigation and quick access areas."
       sidebar={<AdminPanelNav currentPath={location.pathname} />}
     >
       <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
@@ -123,7 +123,8 @@ export default function NavigationSettings() {
           {allItems.map((item, index) => {
             const isDashboard = item.id === 'dashboard';
             const canReorder = !isDashboard;
-            const pinEligible = item.enabled && !isDashboard && !item.isCore;
+            const effectiveEnabled = item.enabled && item.workspaceEnabled;
+            const pinEligible = effectiveEnabled && !isDashboard && !item.isCore;
             const pinLimitReached = !item.pinned && pinnedCount >= maxPinnedItems;
 
             return (
@@ -239,7 +240,12 @@ export default function NavigationSettings() {
                           Required
                         </span>
                       )}
-                      {item.pinned && item.enabled && (
+                      {item.lockedByWorkspace && (
+                        <span className="px-2 py-0.5 text-xs font-medium bg-app-surface-muted text-app-text-muted rounded">
+                          Locked by workspace
+                        </span>
+                      )}
+                      {item.pinned && effectiveEnabled && (
                         <span className="px-2 py-0.5 text-xs font-medium bg-app-accent-soft text-app-accent-text rounded">
                           Pinned
                         </span>
@@ -256,10 +262,12 @@ export default function NavigationSettings() {
                     onClick={() => togglePinned(item.id)}
                     className="rounded-md border border-app-border px-2.5 py-1.5 text-xs font-semibold text-app-text hover:bg-app-hover disabled:opacity-40 disabled:cursor-not-allowed"
                     title={
-                      !item.enabled
-                        ? 'Enable this module before pinning'
-                        : pinLimitReached
-                          ? `Maximum of ${maxPinnedItems} pinned items reached`
+                      item.lockedByWorkspace
+                        ? 'This module is disabled by an organization admin'
+                        : !effectiveEnabled
+                          ? 'Enable this module before pinning'
+                          : pinLimitReached
+                            ? `Maximum of ${maxPinnedItems} pinned items reached`
                           : item.pinned
                             ? 'Unpin from quick access'
                             : 'Pin for quick access'
@@ -268,19 +276,24 @@ export default function NavigationSettings() {
                     {item.pinned ? 'Unpin' : 'Pin'}
                   </button>
 
-                  {item.isCore ? (
+                    {item.isCore ? (
                     <span className="text-sm text-app-text-subtle">Always visible</span>
                   ) : (
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={item.enabled}
+                        checked={effectiveEnabled}
                         onChange={() => toggleItem(item.id)}
+                        disabled={item.lockedByWorkspace}
                         className="sr-only peer"
                       />
                       <div className="w-11 h-6 bg-app-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-app-accent-soft rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-0.5 after:bg-app-surface after:border-app-input-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-app-accent" />
                       <span className="ms-3 text-sm font-medium text-app-text-label">
-                        {item.enabled ? 'Enabled' : 'Disabled'}
+                        {item.lockedByWorkspace
+                          ? 'Disabled by org admin'
+                          : effectiveEnabled
+                            ? 'Enabled'
+                            : 'Disabled'}
                       </span>
                     </label>
                   )}
@@ -316,7 +329,7 @@ export default function NavigationSettings() {
                 <li>Drag items or use arrows to reorder non-dashboard modules</li>
                 <li>The first 4 enabled, unpinned items appear in the main navigation bar</li>
                 <li>Additional enabled, unpinned items appear under the &quot;More&quot; menu</li>
-                <li>Disabled modules can still be accessed by direct URL</li>
+                <li>Modules disabled by an organization admin stay locked until the workspace setting changes</li>
               </ul>
             </div>
           </div>

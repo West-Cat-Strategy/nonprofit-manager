@@ -136,9 +136,10 @@ export default function CasePortalConversations({
       if (payload.case_id !== caseId || !payload.thread) {
         return;
       }
+      const thread = payload.thread;
 
       setConversations((current) => {
-        const existing = current.find((entry) => entry.thread.id === payload.thread!.id);
+        const existing = current.find((entry) => entry.thread.id === thread.id);
         if (!existing) {
           return current;
         }
@@ -146,16 +147,16 @@ export default function CasePortalConversations({
         const nextConversation: CasePortalConversation = {
           thread: {
             ...existing.thread,
-            id: payload.thread.id,
-            subject: payload.thread.subject,
-            status: payload.thread.status as CasePortalConversation['thread']['status'],
-            case_id: payload.thread.case_id,
-            case_number: payload.thread.case_number,
-            case_title: payload.thread.case_title,
-            contact_id: payload.thread.contact_id,
-            last_message_at: payload.thread.last_message_at,
-            unread_count: payload.thread.staff_unread_count,
-            portal_email: payload.thread.portal_email,
+            id: thread.id,
+            subject: thread.subject,
+            status: thread.status as CasePortalConversation['thread']['status'],
+            case_id: thread.case_id,
+            case_number: thread.case_number,
+            case_title: thread.case_title,
+            contact_id: thread.contact_id,
+            last_message_at: thread.last_message_at,
+            unread_count: thread.staff_unread_count,
+            portal_email: thread.portal_email,
           },
           messages: payload.message
             ? mergeConversationMessages([

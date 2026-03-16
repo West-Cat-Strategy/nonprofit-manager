@@ -212,6 +212,7 @@ const routeParentIds: Record<string, string> = {
   'alerts-instances': 'alerts-overview',
   'alerts-history': 'alerts-overview',
   'admin-settings-organization': 'admin-settings',
+  'admin-settings-workspace-modules': 'admin-settings',
   'admin-settings-branding': 'admin-settings',
   'admin-settings-users': 'admin-settings',
   'admin-settings-email': 'admin-settings',

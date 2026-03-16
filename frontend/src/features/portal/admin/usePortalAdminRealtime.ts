@@ -663,7 +663,7 @@ export function usePortalAdminRealtime({
         });
 
         setSelectedPortalConversation((current) => {
-          if (!current || current.thread.id !== payload.entity_id) {
+          if (current?.thread.id !== payload.entity_id) {
             return current;
           }
 

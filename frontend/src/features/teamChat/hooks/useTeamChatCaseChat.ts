@@ -402,17 +402,18 @@ export function useTeamChatCaseChat(
       sender: { id: string; firstName?: string | null; lastName?: string | null }
     ) => {
       const target = messages.find((message) => message.id === messageId);
-      if (!target?.client_message_id) {
+      const clientMessageId = target?.client_message_id;
+      if (!clientMessageId) {
         return;
       }
 
-      setMessages((current) => markMessageSending(current, target.client_message_id!));
+      setMessages((current) => markMessageSending(current, clientMessageId));
       await sendMessage(
         {
           body: target.body,
           parent_message_id: target.parent_message_id,
           mention_user_ids: target.mention_user_ids,
-          client_message_id: target.client_message_id,
+          client_message_id: clientMessageId,
         },
         sender
       );

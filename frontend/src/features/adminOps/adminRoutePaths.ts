@@ -21,6 +21,7 @@ const adminSettingsSectionSet = new Set<AdminSettingsSection>(
 const adminSettingsRouteIds: Record<AdminSettingsSection, string> = {
   dashboard: 'admin-settings',
   organization: 'admin-settings-organization',
+  workspace_modules: 'admin-settings-workspace-modules',
   branding: 'admin-settings-branding',
   users: 'admin-settings-users',
   email: 'admin-settings-email',

@@ -580,6 +580,12 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     ],
   }),
   adminRoute({
+    id: 'admin-settings-workspace-modules',
+    title: 'Workspace Modules',
+    path: '/settings/admin/workspace_modules',
+    aliases: [{ path: '/settings/admin', query: { section: 'workspace_modules' } }],
+  }),
+  adminRoute({
     id: 'admin-settings-branding',
     title: 'Branding',
     path: '/settings/admin/branding',

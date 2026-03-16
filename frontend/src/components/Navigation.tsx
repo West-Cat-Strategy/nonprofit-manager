@@ -3,49 +3,38 @@ import {
   Suspense,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
   type RefObject,
 } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { logoutAsync } from '../features/auth/state';
-import { canAccessAdminSettings } from '../features/auth/state/adminAccess';
-import { useNavigationPreferences } from '../hooks/useNavigationPreferences';
-import { useBranding } from '../contexts/BrandingContext';
-import { useTheme } from '../contexts/ThemeContext';
+import { Link } from 'react-router-dom';
 import Avatar from './Avatar';
-import {
-  getRouteCatalogEntryById,
-  matchRouteCatalogEntry,
-  normalizeRouteLocation,
-} from '../routes/routeCatalog';
-import { getStartupStaffUtilityEntries } from '../routes/startupRouteCatalog';
-import type { ThemeId } from '../theme/themeRegistry';
 import NavPopover from './navigation/NavPopover';
-import MobileNavigationDrawer, {
-  type NavigationDrawerLink,
-} from './navigation/MobileNavigationDrawer';
+import MobileNavigationDrawer from './navigation/MobileNavigationDrawer';
 import AdminQuickActionsBar from '../features/adminOps/components/AdminQuickActionsBar';
-import { getAdminSettingsPath } from '../features/adminOps/adminRoutePaths';
+import useStaffNavigationViewModel from '../features/navigation/hooks/useStaffNavigationViewModel';
 import { classNames } from './ui/classNames';
 import { preloadContactsPeopleRoute } from '../routes/peopleRoutePreload';
 import { preloadNavigationQuickLookupDialog } from './navigation/preloadNavigationQuickLookupDialog';
 const NavigationQuickLookupDialog = lazy(preloadNavigationQuickLookupDialog);
 
-const routeFlags = {
-  VITE_TEAM_CHAT_ENABLED: import.meta.env.VITE_TEAM_CHAT_ENABLED,
-};
-
 export default function Navigation() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state) => state.auth);
-  const { branding } = useBranding();
-  const { theme, setTheme, isDarkMode, toggleDarkMode, availableThemes } = useTheme();
-  const { favoriteItems, primaryItems, secondaryItems } = useNavigationPreferences();
+  const {
+    adminSettingsPath,
+    alertsLink,
+    branding,
+    canOpenAdminSettings,
+    currentLocation,
+    handleLogout,
+    hasActiveSecondaryItem,
+    hasActiveUtilityItem,
+    isNavItemActive,
+    navigationPreferences: { favoriteItems, primaryItems, secondaryItems },
+    themeLabels,
+    themeState: { availableThemes, isDarkMode, setTheme, theme, toggleDarkMode },
+    utilityNavLinks,
+    user,
+  } = useStaffNavigationViewModel();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -59,63 +48,6 @@ export default function Navigation() {
   const adminMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const utilitiesMenuRef = useRef<HTMLDivElement>(null);
-
-  const currentLocation = `${location.pathname}${location.search}`;
-  const normalizedCurrentLocation = useMemo(
-    () => normalizeRouteLocation(currentLocation),
-    [currentLocation]
-  );
-  const activeRouteIds = useMemo(() => {
-    const ids = new Set<string>();
-    let currentEntry = matchRouteCatalogEntry(currentLocation);
-
-    while (currentEntry) {
-      ids.add(currentEntry.id);
-      currentEntry = currentEntry.parentId ? getRouteCatalogEntryById(currentEntry.parentId) : null;
-    }
-
-    return ids;
-  }, [currentLocation]);
-  const utilityEntries = useMemo<NavigationDrawerLink[]>(
-    () =>
-      getStartupStaffUtilityEntries(routeFlags).map((entry) => ({
-        id: entry.id,
-        path: entry.href || entry.path,
-        label: entry.staffNav?.label || entry.title,
-        shortLabel: entry.staffNav?.shortLabel || entry.staffNav?.label || entry.title,
-        icon: entry.staffNav?.icon || '•',
-        ariaLabel: entry.staffNav?.ariaLabel || entry.staffNav?.label || entry.title,
-      })),
-    []
-  );
-  const alertsLink = utilityEntries.find((entry) => entry.path === '/alerts') ?? {
-    id: 'alerts-overview',
-    path: '/alerts',
-    label: 'Alerts',
-    shortLabel: 'Alerts',
-    icon: '🚨',
-    ariaLabel: 'Alerts',
-  };
-  const utilityNavLinks = utilityEntries.filter((entry) => entry.path !== alertsLink.path);
-  const adminSettingsPath = getAdminSettingsPath('dashboard');
-  const canOpenAdminSettings = canAccessAdminSettings(user);
-  const hasActiveSecondaryItem = secondaryItems.some(
-    (item) =>
-      activeRouteIds.has(item.id) || normalizeRouteLocation(item.path) === normalizedCurrentLocation
-  );
-  const hasActiveUtilityItem = utilityNavLinks.some(
-    (item) =>
-      activeRouteIds.has(item.id) || normalizeRouteLocation(item.path) === normalizedCurrentLocation
-  );
-
-  const themeLabels: Record<ThemeId, string> = {
-    neobrutalist: 'NB',
-    'sea-breeze': 'SB',
-    corporate: 'CP',
-    'clean-modern': 'CM',
-    glass: 'GL',
-    'high-contrast': 'HC',
-  };
 
   const closeAllMenus = useCallback(() => {
     setMobileMenuOpen(false);
@@ -147,16 +79,6 @@ export default function Navigation() {
     void preloadNavigationQuickLookupDialog();
   }, []);
 
-  const handleLogout = () => {
-    dispatch(logoutAsync()).finally(() => navigate('/login'));
-  };
-
-  const isNavItemActive = useCallback(
-    (id: string, path: string) =>
-      activeRouteIds.has(id) || normalizeRouteLocation(path) === normalizedCurrentLocation,
-    [activeRouteIds, normalizedCurrentLocation]
-  );
-
   const desktopActionButtonClass =
     'hidden items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-3 py-2 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 lg:inline-flex';
   const desktopMenuButtonClass =
@@ -178,7 +100,7 @@ export default function Navigation() {
 
   useEffect(() => {
     closeAllMenus();
-  }, [closeAllMenus, location.pathname]);
+  }, [closeAllMenus, currentLocation]);
 
   useEffect(() => {
     if (mobileMenuOpen || searchOpen) {

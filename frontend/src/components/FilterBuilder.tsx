@@ -1,8 +1,7 @@
-import { useAppSelector } from '../store/hooks';
-import type { ReportEntity, ReportFilter, FilterOperator } from '../types/report';
+import type { ReportField, ReportFilter, FilterOperator } from '../types/report';
 
 interface FilterBuilderProps {
-  entity: ReportEntity;
+  availableFields: ReportField[];
   filters: ReportFilter[];
   onChange: (filters: ReportFilter[]) => void;
 }
@@ -19,9 +18,8 @@ const OPERATORS: { value: FilterOperator; label: string; types: string[] }[] = [
   { value: 'between', label: 'Between', types: ['number', 'date'] },
 ];
 
-function FilterBuilder({ entity, filters, onChange }: FilterBuilderProps) {
-  const { availableFields } = useAppSelector((state) => state.reports);
-  const currentFields = (availableFields[entity] || []) as { field: string; label: string; type: string }[];
+function FilterBuilder({ availableFields, filters, onChange }: FilterBuilderProps) {
+  const currentFields = availableFields;
 
   const handleAddFilter = () => {
     const newFilter: ReportFilter = {

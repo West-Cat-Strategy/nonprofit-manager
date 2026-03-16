@@ -1,35 +1,81 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import type * as ReactRouterDom from 'react-router-dom';
-import type * as SavedReportsSliceModule from '../../state';
-import type * as ScheduledReportsSliceModule from '../../../scheduledReports/state';
-import type { SavedReport } from '../../../../types/savedReport';
+import type { SavedReportListItem } from '../../../../types/savedReport';
 import { vi } from 'vitest';
-import SavedReports from '../SavedReportsPage';
+import SavedReportsPage from '../SavedReportsPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
 const {
-  dispatchMock,
-  navigateMock,
+  closeShareDialogMock,
   confirmMock,
-  clipboardWriteTextMock,
-  shareClientMock,
+  controllerStateRef,
+  handleCopyPublicLinkMock,
+  handleDeleteReportMock,
+  handleGeneratePublicLinkMock,
+  handleLoadReportMock,
+  handleRemoveShareMock,
+  handleRevokePublicLinkMock,
+  handleSaveShareMock,
+  handleScheduleMock,
+  loadSavedReportsMock,
+  loadSharePrincipalsMock,
+  navigateMock,
+  openShareDialogMock,
+  resetScheduleDialogMock,
+  setCurrentPageMock,
+  setFilterEntityMock,
+  setPublicLinkExpiryLocalMock,
+  setScheduleDayOfMonthMock,
+  setScheduleDayOfWeekMock,
+  setScheduleFormatMock,
+  setScheduleFrequencyMock,
+  setScheduleHourMock,
+  setScheduleMinuteMock,
+  setScheduleRecipientsMock,
+  setScheduleTargetMock,
+  setScheduleTimezoneMock,
+  setSelectedRoleNamesMock,
+  setSelectedUserIdsMock,
+  setShareCanEditMock,
+  setShareSearchMock,
 } = vi.hoisted(() => ({
-  dispatchMock: vi.fn(() => Promise.resolve()),
-  navigateMock: vi.fn(),
+  closeShareDialogMock: vi.fn(),
   confirmMock: vi.fn(() => Promise.resolve(true)),
-  clipboardWriteTextMock: vi.fn(() => Promise.resolve()),
-  shareClientMock: {
-    fetchSharePrincipals: vi.fn(),
-    shareSavedReport: vi.fn(),
-    removeSavedReportShare: vi.fn(),
-    generatePublicLink: vi.fn(),
-    revokePublicLink: vi.fn(),
-  },
+  controllerStateRef: { current: null } as SavedReportsControllerStateRef,
+  handleCopyPublicLinkMock: vi.fn(),
+  handleDeleteReportMock: vi.fn(),
+  handleGeneratePublicLinkMock: vi.fn(),
+  handleLoadReportMock: vi.fn(),
+  handleRemoveShareMock: vi.fn(),
+  handleRevokePublicLinkMock: vi.fn(),
+  handleSaveShareMock: vi.fn(),
+  handleScheduleMock: vi.fn(),
+  loadSavedReportsMock: vi.fn(),
+  loadSharePrincipalsMock: vi.fn(),
+  navigateMock: vi.fn(),
+  openShareDialogMock: vi.fn(),
+  resetScheduleDialogMock: vi.fn(),
+  setCurrentPageMock: vi.fn(),
+  setFilterEntityMock: vi.fn(),
+  setPublicLinkExpiryLocalMock: vi.fn(),
+  setScheduleDayOfMonthMock: vi.fn(),
+  setScheduleDayOfWeekMock: vi.fn(),
+  setScheduleFormatMock: vi.fn(),
+  setScheduleFrequencyMock: vi.fn(),
+  setScheduleHourMock: vi.fn(),
+  setScheduleMinuteMock: vi.fn(),
+  setScheduleRecipientsMock: vi.fn(),
+  setScheduleTargetMock: vi.fn(),
+  setScheduleTimezoneMock: vi.fn(),
+  setSelectedRoleNamesMock: vi.fn(),
+  setSelectedUserIdsMock: vi.fn(),
+  setShareCanEditMock: vi.fn(),
+  setShareSearchMock: vi.fn(),
 }));
 
-const makeReport = (overrides: Partial<SavedReport> = {}): SavedReport => ({
+const makeReport = (overrides: Partial<SavedReportListItem> = {}): SavedReportListItem => ({
   id: 'saved-report-1',
   name: 'Donor Growth',
   description: 'Monthly donor growth',
@@ -45,25 +91,91 @@ const makeReport = (overrides: Partial<SavedReport> = {}): SavedReport => ({
   is_public: false,
   shared_with_users: [],
   shared_with_roles: [],
+  share_settings: null,
+  public_token: null,
   ...overrides,
 });
 
-const mockState = {
-  savedReports: {
-    reports: [makeReport()],
-    pagination: { page: 1, limit: 20, total: 1, total_pages: 1 },
-    loading: false,
-    error: null as string | null,
-  },
+const reports = [
+  makeReport({ id: 'saved-report-1', name: 'Donor Growth', entity: 'donations' }),
+  makeReport({ id: 'saved-report-2', name: 'Accounts Snapshot', entity: 'accounts' }),
+];
+
+const buildControllerState = () => ({
+  closeShareDialog: closeShareDialogMock,
+  currentPage: 1,
+  error: null as string | null,
+  filterEntity: '' as const | '',
+  filteredReports: reports,
+  handleCopyPublicLink: handleCopyPublicLinkMock,
+  handleDeleteReport: handleDeleteReportMock,
+  handleGeneratePublicLink: handleGeneratePublicLinkMock,
+  handleLoadReport: handleLoadReportMock,
+  handleRemoveShare: handleRemoveShareMock,
+  handleRevokePublicLink: handleRevokePublicLinkMock,
+  handleSaveShare: handleSaveShareMock,
+  handleSchedule: handleScheduleMock,
+  loadSavedReports: loadSavedReportsMock,
+  loadSharePrincipals: loadSharePrincipalsMock,
+  loading: false,
+  openShareDialog: openShareDialogMock,
+  pagination: { page: 1, limit: 20, total: 2, total_pages: 1 },
+  publicLinkDisplay: null as string | null,
+  publicLinkExpiryLocal: '',
+  resetScheduleDialog: resetScheduleDialogMock,
+  scheduleDayOfMonth: '1',
+  scheduleDayOfWeek: '1',
+  scheduleFormat: 'csv' as const,
+  scheduleFrequency: 'weekly' as const,
+  scheduleHour: '9',
+  scheduleMinute: '0',
+  scheduleRecipients: '',
+  scheduleTarget: null as SavedReportListItem | null,
+  scheduleTimezone: 'UTC',
+  selectedRoleNames: [] as string[],
+  selectedUserIds: [] as string[],
+  setCurrentPage: setCurrentPageMock,
+  setFilterEntity: setFilterEntityMock,
+  setPublicLinkExpiryLocal: setPublicLinkExpiryLocalMock,
+  setScheduleDayOfMonth: setScheduleDayOfMonthMock,
+  setScheduleDayOfWeek: setScheduleDayOfWeekMock,
+  setScheduleFormat: setScheduleFormatMock,
+  setScheduleFrequency: setScheduleFrequencyMock,
+  setScheduleHour: setScheduleHourMock,
+  setScheduleMinute: setScheduleMinuteMock,
+  setScheduleRecipients: setScheduleRecipientsMock,
+  setScheduleTarget: setScheduleTargetMock,
+  setScheduleTimezone: setScheduleTimezoneMock,
+  setSelectedRoleNames: setSelectedRoleNamesMock,
+  setSelectedUserIds: setSelectedUserIdsMock,
+  setShareCanEdit: setShareCanEditMock,
+  setShareSearch: setShareSearchMock,
+  shareBusy: false,
+  shareCanEdit: false,
+  shareError: null as string | null,
+  shareRoles: [{ name: 'manager', label: 'Manager' }],
+  shareSearch: '',
+  shareTarget: null as SavedReportListItem | null,
+  shareUsers: [
+    {
+      id: 'user-1',
+      email: 'alex@example.org',
+      first_name: 'Alex',
+      last_name: 'Rivera',
+      full_name: 'Alex Rivera',
+    },
+  ],
+  toggleSelection: (current: string[], value: string) =>
+    current.includes(value)
+      ? current.filter((entry) => entry !== value)
+      : [...current, value],
+});
+
+type SavedReportsControllerState = ReturnType<typeof buildControllerState>;
+
+type SavedReportsControllerStateRef = {
+  current: SavedReportsControllerState | null;
 };
-
-vi.mock('../../../../components/ConfirmDialog', () => ({
-  default: () => null,
-}));
-
-vi.mock('../../../../components/neo-brutalist/NeoBrutalistLayout', () => ({
-  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}));
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof ReactRouterDom>('react-router-dom');
@@ -72,6 +184,18 @@ vi.mock('react-router-dom', async () => {
     useNavigate: () => navigateMock,
   };
 });
+
+vi.mock('../../hooks/useSavedReportsController', () => ({
+  default: () => controllerStateRef.current,
+}));
+
+vi.mock('../../../../components/ConfirmDialog', () => ({
+  default: () => null,
+}));
+
+vi.mock('../../../../components/neo-brutalist/NeoBrutalistLayout', () => ({
+  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}));
 
 vi.mock('../../../../hooks/useConfirmDialog', () => ({
   default: () => ({
@@ -85,200 +209,116 @@ vi.mock('../../../../hooks/useConfirmDialog', () => ({
   },
 }));
 
-vi.mock('../../../../store/hooks', () => ({
-  useAppDispatch: () => dispatchMock,
-  useAppSelector: (selector: (state: typeof mockState) => unknown) => selector(mockState),
-}));
-
-vi.mock('../../../scheduledReports/state', async () => {
-  const actual = await vi.importActual<typeof ScheduledReportsSliceModule>(
-    '../../../scheduledReports/state'
-  );
-  return {
-    ...actual,
-    createScheduledReport: (payload: unknown) => ({ type: 'scheduledReports/create', payload }),
-  };
-});
-
-vi.mock('../../state', async () => {
-  const actual = await vi.importActual<typeof SavedReportsSliceModule>(
-    '../../state'
-  );
-  return {
-    ...actual,
-    fetchSavedReports: (params?: unknown) => ({ type: 'savedReports/fetch', payload: params }),
-    deleteSavedReport: (id: string) => ({ type: 'savedReports/delete', payload: id }),
-  };
-});
-
-vi.mock('../../api/savedReportsApiClient', () => ({
-  savedReportsApiClient: shareClientMock,
-}));
-
-describe('SavedReports page', () => {
+describe('SavedReportsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-
-    Object.defineProperty(navigator, 'clipboard', {
-      configurable: true,
-      value: {
-        writeText: clipboardWriteTextMock,
-      },
-    });
-
-    mockState.savedReports.reports = [
-      makeReport({ id: 'saved-report-1', name: 'Donor Growth', entity: 'donations' }),
-      makeReport({ id: 'saved-report-2', name: 'Accounts Snapshot', entity: 'accounts' }),
-    ];
-    mockState.savedReports.pagination = { page: 1, limit: 20, total: 2, total_pages: 1 };
-    mockState.savedReports.loading = false;
-    mockState.savedReports.error = null;
-
-    shareClientMock.fetchSharePrincipals.mockResolvedValue({
-      users: [
-        {
-          id: 'user-1',
-          email: 'alex@example.org',
-          first_name: 'Alex',
-          last_name: 'Rivera',
-          full_name: 'Alex Rivera',
-        },
-      ],
-      roles: [{ name: 'manager', label: 'Manager' }],
-    });
-    shareClientMock.shareSavedReport.mockResolvedValue(makeReport());
-    shareClientMock.removeSavedReportShare.mockResolvedValue(makeReport());
-    shareClientMock.generatePublicLink.mockResolvedValue({
-      token: 'public-token-1',
-      url: '/public/reports/public-token-1',
-    });
-    shareClientMock.revokePublicLink.mockResolvedValue(undefined);
+    controllerStateRef.current = buildControllerState();
   });
 
-  it('renders and filters report cards, then loads a report in builder', async () => {
+  it('renders saved report cards and delegates card actions to the controller', async () => {
     const user = userEvent.setup();
-    renderWithProviders(<SavedReports />);
-
-    await waitFor(() => {
-      expect(dispatchMock).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'savedReports/fetch' })
-      );
-    });
+    renderWithProviders(<SavedReportsPage />);
 
     expect(screen.getByText('Donor Growth')).toBeInTheDocument();
     expect(screen.getByText('Accounts Snapshot')).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText(/filter by entity/i), 'accounts');
-
-    await waitFor(() => {
-      expect(dispatchMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'savedReports/fetch',
-          payload: expect.objectContaining({ entity: 'accounts' }),
-        })
-      );
-    });
+    expect(setFilterEntityMock).toHaveBeenCalledWith('accounts');
+    expect(setCurrentPageMock).toHaveBeenCalledWith(1);
 
     await user.click(screen.getAllByRole('button', { name: /load & run/i })[1]);
-    expect(navigateMock).toHaveBeenCalledWith('/reports/builder?load=saved-report-2');
+    await user.click(screen.getAllByRole('button', { name: /schedule/i })[0]);
+    await user.click(screen.getAllByRole('button', { name: /share/i })[0]);
+
+    expect(handleLoadReportMock).toHaveBeenCalledWith(reports[1]);
+    expect(setScheduleTargetMock).toHaveBeenCalledWith(reports[0]);
+    expect(openShareDialogMock).toHaveBeenCalledWith(reports[0]);
   });
 
-  it(
-    'supports scheduling a report with monthly cadence',
-    async () => {
-      const user = userEvent.setup();
-      renderWithProviders(<SavedReports />);
+  it('renders the schedule dialog and delegates schedule form changes', async () => {
+    const user = userEvent.setup();
+    controllerStateRef.current.scheduleTarget = reports[0];
+    controllerStateRef.current.scheduleFrequency = 'monthly';
+    controllerStateRef.current.scheduleDayOfMonth = '15';
 
-      await user.click(screen.getAllByRole('button', { name: /schedule/i })[0]);
+    renderWithProviders(<SavedReportsPage />);
 
-      await user.type(screen.getByLabelText(/recipients \(comma-separated\)/i), 'ops@example.org');
-      await user.selectOptions(screen.getByLabelText(/^frequency$/i), 'monthly');
-      await user.clear(screen.getByLabelText(/day of month/i));
-      await user.type(screen.getByLabelText(/day of month/i), '15');
+    await user.type(screen.getByLabelText(/recipients \(comma-separated\)/i), 'ops@example.org');
+    await user.clear(screen.getByLabelText(/day of month/i));
+    await user.type(screen.getByLabelText(/day of month/i), '15');
+    await user.click(screen.getByRole('button', { name: /save schedule/i }));
+    await user.click(screen.getByRole('button', { name: /^close$/i }));
 
-      await user.click(screen.getByRole('button', { name: /save schedule/i }));
+    expect(setScheduleRecipientsMock).toHaveBeenCalled();
+    expect(setScheduleDayOfMonthMock).toHaveBeenCalled();
+    expect(handleScheduleMock).toHaveBeenCalled();
+    expect(resetScheduleDialogMock).toHaveBeenCalled();
+  });
 
-      await waitFor(() => {
-        expect(dispatchMock).toHaveBeenCalledWith(
-          expect.objectContaining({
-            type: 'scheduledReports/create',
-            payload: expect.objectContaining({
-              saved_report_id: 'saved-report-1',
-              frequency: 'monthly',
-              day_of_month: 15,
-              recipients: ['ops@example.org'],
-            }),
-          })
-        );
-      });
+  it('renders the share dialog and delegates share/public-link actions', async () => {
+    const user = userEvent.setup();
+    controllerStateRef.current.shareTarget = reports[0];
+    controllerStateRef.current.publicLinkDisplay = '/public/reports/public-token-1';
 
-      expect(navigateMock).toHaveBeenCalledWith('/reports/scheduled');
-    },
-    15000
-  );
+    renderWithProviders(<SavedReportsPage />);
 
-  it(
-    'supports sharing controls including save/remove/public-link lifecycle',
-    async () => {
-      const user = userEvent.setup();
-      renderWithProviders(<SavedReports />);
+    await user.type(screen.getByLabelText(/search users/i), 'Alex');
+    await user.click(screen.getByRole('button', { name: /^search$/i }));
+    await user.click(screen.getByLabelText(/alex rivera/i));
+    await user.click(screen.getByLabelText(/manager/i));
+    await user.click(screen.getByLabelText(/allow edits for shared users\/roles/i));
+    await user.type(screen.getByLabelText(/expiry/i), '2026-03-20T09:30');
+    await user.click(screen.getByRole('button', { name: /^save sharing$/i }));
+    await user.click(screen.getByRole('button', { name: /remove selected/i }));
+    await user.click(screen.getByRole('button', { name: /generate link/i }));
+    await user.click(screen.getByRole('button', { name: /copy link/i }));
+    await user.click(screen.getByRole('button', { name: /revoke link/i }));
+    await user.click(screen.getAllByRole('button', { name: /^close$/i })[0]);
 
-      await user.click(screen.getAllByRole('button', { name: /share/i })[0]);
+    expect(setShareSearchMock).toHaveBeenCalled();
+    expect(loadSharePrincipalsMock).toHaveBeenCalled();
+    expect(setSelectedUserIdsMock).toHaveBeenCalled();
+    expect(setSelectedUserIdsMock.mock.calls[0][0]([])).toEqual(['user-1']);
+    expect(setSelectedRoleNamesMock).toHaveBeenCalled();
+    expect(setSelectedRoleNamesMock.mock.calls[0][0]([])).toEqual(['manager']);
+    expect(setShareCanEditMock).toHaveBeenCalledWith(true);
+    expect(setPublicLinkExpiryLocalMock).toHaveBeenCalled();
+    expect(handleSaveShareMock).toHaveBeenCalled();
+    expect(handleRemoveShareMock).toHaveBeenCalled();
+    expect(handleGeneratePublicLinkMock).toHaveBeenCalled();
+    expect(handleCopyPublicLinkMock).toHaveBeenCalled();
+    expect(handleRevokePublicLinkMock).toHaveBeenCalled();
+    expect(closeShareDialogMock).toHaveBeenCalled();
+    expect(screen.getByText('/public/reports/public-token-1')).toBeInTheDocument();
+  });
 
-      await waitFor(() => {
-        expect(shareClientMock.fetchSharePrincipals).toHaveBeenCalled();
-        expect(screen.getByText('Alex Rivera')).toBeInTheDocument();
-      });
+  it('renders loading, error, empty, retry, and delete behaviors', async () => {
+    const user = userEvent.setup();
+    controllerStateRef.current.error = 'Failed to fetch saved reports';
+    controllerStateRef.current.loading = true;
 
-      await user.click(screen.getByRole('button', { name: /remove selected/i }));
-      expect(screen.getByText(/select at least one user or role/i)).toBeInTheDocument();
+    const { rerender } = renderWithProviders(<SavedReportsPage />);
 
-      await user.click(screen.getByLabelText(/alex rivera/i));
-      await user.click(screen.getByLabelText(/manager/i));
-      await user.click(screen.getByRole('button', { name: /^save sharing$/i }));
-
-      await waitFor(() => {
-        expect(shareClientMock.shareSavedReport).toHaveBeenCalledWith(
-          'saved-report-1',
-          expect.objectContaining({
-            user_ids: ['user-1'],
-            role_names: ['manager'],
-            share_settings: expect.objectContaining({ can_edit: false }),
-          })
-        );
-      });
-
-      await user.click(screen.getByRole('button', { name: /generate link/i }));
-      await waitFor(() => {
-        expect(shareClientMock.generatePublicLink).toHaveBeenCalledWith('saved-report-1', undefined);
-      });
-      await waitFor(() => {
-        expect(screen.getByText(/\/public\/reports\/public-token-1/i)).toBeInTheDocument();
-      });
-
-      const copyButton = screen.getByRole('button', { name: /copy link/i });
-      expect(copyButton).not.toBeDisabled();
-      await user.click(copyButton);
-
-      await user.click(screen.getByRole('button', { name: /revoke link/i }));
-      await waitFor(() => {
-        expect(shareClientMock.revokePublicLink).toHaveBeenCalledWith('saved-report-1');
-      });
-    },
-    15000
-  );
-
-  it('renders loading, error, and empty states', () => {
-    mockState.savedReports.loading = true;
-    mockState.savedReports.error = 'Failed to load';
-    mockState.savedReports.reports = [];
-
-    const { rerender } = renderWithProviders(<SavedReports />);
+    expect(screen.getByText(/failed to fetch saved reports/i)).toBeInTheDocument();
     expect(screen.getByText(/loading saved reports/i)).toBeInTheDocument();
-    expect(screen.getByText(/failed to load/i)).toBeInTheDocument();
 
-    mockState.savedReports.loading = false;
-    rerender(<SavedReports />);
+    await user.click(screen.getByRole('button', { name: /try again/i }));
+    expect(loadSavedReportsMock).toHaveBeenCalled();
+
+    controllerStateRef.current.loading = false;
+    controllerStateRef.current.error = null;
+    controllerStateRef.current.filteredReports = [];
+    rerender(<SavedReportsPage />);
+
     expect(screen.getByText(/no saved reports found/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /create your first report/i }));
+    expect(navigateMock).toHaveBeenCalledWith('/reports/builder');
+
+    controllerStateRef.current.filteredReports = reports;
+    rerender(<SavedReportsPage />);
+    await user.click(screen.getAllByRole('button', { name: /delete/i })[0]);
+
+    expect(confirmMock).toHaveBeenCalled();
+    expect(handleDeleteReportMock).toHaveBeenCalledWith('saved-report-1');
   });
 });

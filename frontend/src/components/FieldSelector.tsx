@@ -1,23 +1,19 @@
-import { useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { fetchAvailableFields } from '../features/reports/state';
-import type { ReportEntity } from '../types/report';
+import type { ReportField } from '../types/report';
 
 interface FieldSelectorProps {
-  entity: ReportEntity;
+  availableFields: ReportField[];
+  fieldsLoading?: boolean;
   selectedFields: string[];
   onChange: (fields: string[]) => void;
 }
 
-function FieldSelector({ entity, selectedFields, onChange }: FieldSelectorProps) {
-  const dispatch = useAppDispatch();
-  const { availableFields, fieldsLoading } = useAppSelector((state) => state.reports);
-
-  useEffect(() => {
-    dispatch(fetchAvailableFields(entity));
-  }, [dispatch, entity]);
-
-  const currentFields = (availableFields[entity] || []) as { field: string; label: string; type: string }[];
+function FieldSelector({
+  availableFields,
+  fieldsLoading = false,
+  selectedFields,
+  onChange,
+}: FieldSelectorProps) {
+  const currentFields = availableFields;
 
   const handleToggleField = (field: string) => {
     if (selectedFields.includes(field)) {

@@ -1,5 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
-import type { FormEvent } from 'react';
+import { Fragment } from 'react';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import {
   EmptyState,
@@ -12,40 +11,8 @@ import {
   SectionCard,
   SelectField,
 } from '../../../components/ui';
-import { triggerFileDownload } from '../../../services/fileDownload';
-import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import {
-  createScheduledReport,
-  deleteScheduledReport,
-  fetchScheduledReportRuns,
-  fetchScheduledReports,
-  runScheduledReportNow,
-  toggleScheduledReport,
-  updateScheduledReport,
-} from '../../scheduledReports/state';
-import { reportsApiClient } from '../../reports/api/reportsApiClient';
-import { fetchSavedReports } from '../../savedReports/state';
-import type {
-  ScheduledReport,
-  ScheduledReportFormat,
-  ScheduledReportFrequency,
-  ScheduledReportRun,
-} from '../../../types/scheduledReport';
-
-const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-
-const defaultForm = {
-  saved_report_id: '',
-  name: '',
-  recipients: '',
-  format: 'csv' as ScheduledReportFormat,
-  frequency: 'weekly' as ScheduledReportFrequency,
-  timezone: localTimezone,
-  hour: '9',
-  minute: '0',
-  day_of_week: '1',
-  day_of_month: '1',
-};
+import type { ScheduledReportFormat, ScheduledReportFrequency } from '../../../types/scheduledReport';
+import useScheduledReportsController from '../hooks/useScheduledReportsController';
 
 const formatSchedule = (
   frequency: ScheduledReportFrequency,
@@ -65,177 +32,39 @@ const formatSchedule = (
 };
 
 export default function ScheduledReportsPage() {
-  const dispatch = useAppDispatch();
-  const { reports, runsByReportId, loading, error } = useAppSelector((state) => state.scheduledReports);
-  const { reports: savedReports } = useAppSelector((state) => state.savedReports);
-
-  const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState(defaultForm);
-  const [editTarget, setEditTarget] = useState<ScheduledReport | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused'>('all');
-  const [historyReportId, setHistoryReportId] = useState<string | null>(null);
-  const [downloadingExportJobId, setDownloadingExportJobId] = useState<string | null>(null);
-
-  const loadAllScheduledData = useCallback(async () => {
-    await Promise.all([
-      dispatch(fetchScheduledReports()),
-      dispatch(fetchSavedReports({ page: 1, limit: 100, summary: true })),
-    ]);
-  }, [dispatch]);
-
-  useEffect(() => {
-    void loadAllScheduledData();
-  }, [loadAllScheduledData]);
-
-  const sortedReports = useMemo(() => {
-    const term = searchQuery.trim().toLowerCase();
-    const filtered = reports.filter((report) => {
-      const matchesStatus =
-        statusFilter === 'all' ||
-        (statusFilter === 'active' ? report.is_active : !report.is_active);
-
-      if (!matchesStatus) return false;
-      if (!term) return true;
-
-      return (
-        report.name.toLowerCase().includes(term) ||
-        report.recipients.join(',').toLowerCase().includes(term) ||
-        report.frequency.toLowerCase().includes(term)
-      );
-    });
-
-    return filtered.sort(
-      (a, b) => new Date(a.next_run_at).getTime() - new Date(b.next_run_at).getTime()
-    );
-  }, [reports, searchQuery, statusFilter]);
-
-  const clearForm = () => {
-    setForm(defaultForm);
-  };
-
-  const openEditDialog = (report: ScheduledReport) => {
-    setEditTarget(report);
-    setForm({
-      saved_report_id: report.saved_report_id,
-      name: report.name,
-      recipients: report.recipients.join(', '),
-      format: report.format,
-      frequency: report.frequency,
-      timezone: report.timezone,
-      hour: String(report.hour),
-      minute: String(report.minute),
-      day_of_week: String(report.day_of_week ?? 1),
-      day_of_month: String(report.day_of_month ?? 1),
-    });
-  };
-
-  const closeEditDialog = () => {
-    setEditTarget(null);
-    clearForm();
-  };
-
-  const handleCreate = async (event: FormEvent) => {
-    event.preventDefault();
-
-    const recipients = form.recipients
-      .split(',')
-      .map((value) => value.trim())
-      .filter(Boolean);
-
-    if (!form.saved_report_id || recipients.length === 0) {
-      return;
-    }
-
-    await dispatch(
-      createScheduledReport({
-        saved_report_id: form.saved_report_id,
-        name: form.name || undefined,
-        recipients,
-        format: form.format,
-        frequency: form.frequency,
-        timezone: form.timezone,
-        hour: Number(form.hour),
-        minute: Number(form.minute),
-        day_of_week: form.frequency === 'weekly' ? Number(form.day_of_week) : undefined,
-        day_of_month: form.frequency === 'monthly' ? Number(form.day_of_month) : undefined,
-      })
-    );
-
-    await dispatch(fetchScheduledReports());
-    clearForm();
-    setShowCreate(false);
-  };
-
-  const handleOpenHistory = async (scheduledReportId: string) => {
-    if (historyReportId === scheduledReportId) {
-      setHistoryReportId(null);
-      return;
-    }
-
-    setHistoryReportId(scheduledReportId);
-    await dispatch(fetchScheduledReportRuns({ scheduledReportId, limit: 20 }));
-  };
-
-  const handleSaveEdit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!editTarget) return;
-
-    const recipients = form.recipients
-      .split(',')
-      .map((value) => value.trim())
-      .filter(Boolean);
-
-    if (recipients.length === 0) {
-      return;
-    }
-
-    await dispatch(
-      updateScheduledReport({
-        scheduledReportId: editTarget.id,
-        data: {
-          name: form.name || undefined,
-          recipients,
-          format: form.format,
-          frequency: form.frequency,
-          timezone: form.timezone,
-          hour: Number(form.hour),
-          minute: Number(form.minute),
-          day_of_week: form.frequency === 'weekly' ? Number(form.day_of_week) : null,
-          day_of_month: form.frequency === 'monthly' ? Number(form.day_of_month) : null,
-        },
-      })
-    );
-    await dispatch(fetchScheduledReports());
-    closeEditDialog();
-  };
-
-  const handleDownloadRunArtifact = async (run: ScheduledReportRun) => {
-    if (!run.reportExportJobId) {
-      return;
-    }
-
-    setDownloadingExportJobId(run.reportExportJobId);
-
-    try {
-      const file = await reportsApiClient.downloadExportJob(
-        run.reportExportJobId,
-        run.file_name || `scheduled-report.${run.file_format || 'csv'}`
-      );
-      triggerFileDownload(file);
-    } catch (error) {
-      console.error('Failed to download scheduled report artifact', error);
-      window.alert('Failed to download scheduled report artifact');
-    } finally {
-      setDownloadingExportJobId((current) =>
-        current === run.reportExportJobId ? null : current
-      );
-    }
-  };
+  const {
+    clearForm,
+    closeEditDialog,
+    downloadingExportJobId,
+    editTarget,
+    error,
+    form,
+    handleCreate,
+    handleDelete,
+    handleDownloadRunArtifact,
+    handleOpenHistory,
+    handleRunNow,
+    handleSaveEdit,
+    handleToggleScheduledReport,
+    historyReportId,
+    loadAllScheduledData,
+    loading,
+    openEditDialog,
+    runsByReportId,
+    savedReports,
+    searchQuery,
+    setForm,
+    setSearchQuery,
+    setShowCreate,
+    setStatusFilter,
+    showCreate,
+    sortedReports,
+    statusFilter,
+  } = useScheduledReportsController();
 
   const renderScheduleForm = (
     mode: 'create' | 'edit',
-    onSubmit: (event: FormEvent) => Promise<void>,
+    onSubmit: () => Promise<void>,
     onCancel: () => void
   ) => {
     const submitLabel = mode === 'create' ? 'Save Schedule' : 'Save Changes';
@@ -246,7 +75,13 @@ export default function ScheduledReportsPage() {
         title={title}
         subtitle="Configure recipients, cadence, and timezone for recurring delivery."
       >
-        <form className="space-y-4" onSubmit={(event) => void onSubmit(event)}>
+        <form
+          className="space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void onSubmit();
+          }}
+        >
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {mode === 'create' && (
               <SelectField
@@ -404,10 +239,11 @@ export default function ScheduledReportsPage() {
           }
         />
 
-        {showCreate && renderScheduleForm('create', handleCreate, () => {
-          clearForm();
-          setShowCreate(false);
-        })}
+        {showCreate &&
+          renderScheduleForm('create', handleCreate, () => {
+            clearForm();
+            setShowCreate(false);
+          })}
 
         {editTarget && renderScheduleForm('edit', handleSaveEdit, closeEditDialog)}
 
@@ -492,15 +328,13 @@ export default function ScheduledReportsPage() {
                           <div className="flex flex-wrap gap-2">
                             <SecondaryButton
                               className="px-2 py-1 text-xs"
-                              onClick={() =>
-                                void dispatch(toggleScheduledReport({ scheduledReportId: report.id }))
-                              }
+                              onClick={() => void handleToggleScheduledReport(report.id)}
                             >
                               {report.is_active ? 'Pause' : 'Resume'}
                             </SecondaryButton>
                             <PrimaryButton
                               className="px-2 py-1 text-xs"
-                              onClick={() => void dispatch(runScheduledReportNow(report.id))}
+                              onClick={() => void handleRunNow(report.id)}
                             >
                               Run Now
                             </PrimaryButton>
@@ -520,7 +354,7 @@ export default function ScheduledReportsPage() {
                               className="px-2 py-1 text-xs text-app-accent-text"
                               onClick={() => {
                                 if (!window.confirm('Delete this schedule?')) return;
-                                void dispatch(deleteScheduledReport(report.id));
+                                void handleDelete(report.id);
                               }}
                             >
                               Delete
@@ -571,7 +405,7 @@ export default function ScheduledReportsPage() {
                                     {run.status === 'failed' && (
                                       <SecondaryButton
                                         className="mt-2 px-2 py-1 text-[11px]"
-                                        onClick={() => void dispatch(runScheduledReportNow(report.id))}
+                                        onClick={() => void handleRunNow(report.id)}
                                       >
                                         Retry Failed Run
                                       </SecondaryButton>

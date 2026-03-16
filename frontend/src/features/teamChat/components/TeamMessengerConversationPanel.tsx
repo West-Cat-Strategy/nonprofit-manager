@@ -55,8 +55,8 @@ export default function TeamMessengerConversationPanel({
 
   const detail = conversationDetails[roomId];
   const room = detail?.room;
-  const members = detail?.members || [];
-  const messages = detail?.messages || [];
+  const members = useMemo(() => detail?.members ?? [], [detail?.members]);
+  const messages = useMemo(() => detail?.messages ?? [], [detail?.messages]);
   const currentUserId = user?.id || '';
 
   useEffect(() => {

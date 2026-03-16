@@ -45,6 +45,32 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 });
 
+class EventSourceMock {
+  url: string;
+  withCredentials: boolean;
+  onopen: ((event: Event) => void) | null = null;
+  onerror: ((event: Event) => void) | null = null;
+
+  constructor(url: string | URL, init?: EventSourceInit) {
+    this.url = String(url);
+    this.withCredentials = init?.withCredentials ?? false;
+  }
+
+  addEventListener() {}
+  removeEventListener() {}
+  close() {}
+}
+
+Object.defineProperty(globalThis, 'EventSource', {
+  value: EventSourceMock,
+  configurable: true,
+});
+
+Object.defineProperty(window, 'alert', {
+  value: vi.fn(),
+  configurable: true,
+});
+
 class ResizeObserverMock {
   private callback: ResizeObserverCallback;
 

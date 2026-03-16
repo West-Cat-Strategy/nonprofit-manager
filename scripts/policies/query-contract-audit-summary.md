@@ -1,6 +1,6 @@
 # Query Contract Audit Summary
 
-- Route endpoints scanned: 420
+- Route endpoints scanned: 495
 - MISSING_VALIDATE_QUERY: 0
 - DIRECT_REQ_QUERY: 0
 - NON_STRICT_QUERY_SCHEMA: 0

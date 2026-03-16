@@ -8,6 +8,7 @@ import {
 } from '../../../services/bootstrap/staffBootstrap';
 import { invalidateBrandingCache } from '../../../services/brandingService';
 import { invalidateUserPreferencesCache } from '../../../services/userPreferencesService';
+import { clearWorkspaceModuleAccessCache } from '../../../services/workspaceModuleAccessService';
 
 export interface User {
   id: string;
@@ -125,6 +126,7 @@ const authSlice = createSlice({
       clearStaffBootstrapSnapshot();
       invalidateBrandingCache();
       invalidateUserPreferencesCache();
+      clearWorkspaceModuleAccessCache();
       localStorage.removeItem('user');
       localStorage.removeItem('organizationId');
     },
@@ -159,6 +161,7 @@ const authSlice = createSlice({
         clearStaffBootstrapSnapshot();
         invalidateBrandingCache();
         invalidateUserPreferencesCache();
+        clearWorkspaceModuleAccessCache();
         localStorage.removeItem('user');
         localStorage.removeItem('organizationId');
       });

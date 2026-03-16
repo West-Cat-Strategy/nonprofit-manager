@@ -8,6 +8,7 @@ import {
   type RouteCatalogEntry,
   type RouteSection,
 } from './routeCatalog';
+import type { WorkspaceModuleSettings } from '../features/workspaceModules/catalog';
 
 export type StartupRouteSection = RouteSection;
 
@@ -83,9 +84,11 @@ export const getStartupPortalNavigationEntries = (): StartupRouteEntry[] =>
   getPortalNavigationEntries().map(toStartupRouteEntry);
 
 export const getStartupStaffNavigationEntries = (
-  flags: FeatureFlagValues = {}
-): StartupRouteEntry[] => getStaffNavigationEntries(flags).map(toStartupRouteEntry);
+  flags: FeatureFlagValues = {},
+  workspaceModules?: WorkspaceModuleSettings
+): StartupRouteEntry[] => getStaffNavigationEntries(flags, workspaceModules).map(toStartupRouteEntry);
 
 export const getStartupStaffUtilityEntries = (
-  flags: FeatureFlagValues = {}
-): StartupRouteEntry[] => getStaffUtilityEntries(flags).map(toStartupRouteEntry);
+  flags: FeatureFlagValues = {},
+  workspaceModules?: WorkspaceModuleSettings
+): StartupRouteEntry[] => getStaffUtilityEntries(flags, workspaceModules).map(toStartupRouteEntry);

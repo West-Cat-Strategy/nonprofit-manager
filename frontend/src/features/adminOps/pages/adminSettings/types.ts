@@ -1,4 +1,5 @@
 import type { MessageSendState } from '../../../messaging/types';
+import type { WorkspaceModuleSettings } from '../../../../workspaceModules/catalog';
 
 export interface OrganizationAddress {
   line1: string;
@@ -34,6 +35,7 @@ export interface OrganizationConfig {
   measurementSystem: 'metric' | 'imperial';
   phoneFormat: 'canadian' | 'us' | 'international';
   taxReceipt: OrganizationTaxReceiptSettings;
+  workspaceModules: WorkspaceModuleSettings;
 }
 
 export interface OrganizationSettings {

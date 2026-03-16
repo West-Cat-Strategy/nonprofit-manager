@@ -12,6 +12,10 @@ import {
   getBrandingCachedSync,
 } from '../../brandingService';
 import {
+  clearWorkspaceModuleAccessCache,
+  getWorkspaceModuleAccessCachedSync,
+} from '../../workspaceModuleAccessService';
+import {
   clearStaffBootstrapSnapshot,
   getStaffBootstrapSnapshot,
 } from '../staffBootstrap';
@@ -25,6 +29,7 @@ describe('staffBootstrap', () => {
     vi.clearAllMocks();
     window.localStorage.clear();
     clearStaffBootstrapSnapshot();
+    clearWorkspaceModuleAccessCache();
     __resetBrandingCacheForTests();
     __resetUserPreferencesCacheForTests();
   });
@@ -63,6 +68,27 @@ describe('staffBootstrap', () => {
               weeklyDigest: true,
             },
           },
+          workspaceModules: {
+            ...{
+              contacts: true,
+              accounts: true,
+              volunteers: true,
+              events: true,
+              tasks: true,
+              cases: false,
+              followUps: true,
+              opportunities: true,
+              externalServiceProviders: true,
+              teamChat: true,
+              donations: true,
+              recurringDonations: true,
+              reconciliation: true,
+              analytics: true,
+              reports: true,
+              scheduledReports: true,
+              alerts: true,
+            },
+          },
         },
       },
     });
@@ -89,6 +115,9 @@ describe('staffBootstrap', () => {
           showQuickLookup: false,
         },
       },
+      workspaceModules: {
+        cases: false,
+      },
     });
 
     expect(getBrandingCachedSync()).toMatchObject({
@@ -109,6 +138,7 @@ describe('staffBootstrap', () => {
     expect(window.localStorage.getItem('dashboardSettings')).toBe(
       JSON.stringify({ showQuickLookup: false })
     );
+    expect(getWorkspaceModuleAccessCachedSync().cases).toBe(false);
   });
 
   it('retries bootstrap once before falling back to the authenticated user snapshot', async () => {

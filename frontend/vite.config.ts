@@ -19,7 +19,6 @@ export default defineConfig({
 
           if (
             normalizedId.includes('/src/routes/index.tsx') ||
-            normalizedId.includes('/src/routes/authRoutes.tsx') ||
             normalizedId.includes('/src/routes/authRouteComponents.tsx') ||
             normalizedId.includes('/src/routes/routeMeta.ts')
           ) {
